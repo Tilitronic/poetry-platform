@@ -1,0 +1,9 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "paths": {
+      "@poetry/data-contracts": ["../../packages/data-contracts/schemas/contract.json"]
+    }
+  },
+  "include": ["src"]
+}

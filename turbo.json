@@ -1,0 +1,22 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "tasks": {
+    "compile:lezer": {
+      "inputs": ["src/markup-dsl/*.grammar"],
+      "outputs": ["src/markup-dsl/*.js"]
+    },
+    "build": {
+      "dependsOn": ["compile:lezer", "^build"],
+      "outputs": ["dist/**", ".quasar/**", "dist/spa/**"]
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true
+    },
+    "lint": {},
+    "typecheck": {},
+    "format": {
+      "cache": false
+    }
+  }
+}

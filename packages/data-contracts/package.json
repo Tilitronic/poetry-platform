@@ -1,0 +1,12 @@
+{
+  "name": "@poetry/data-contracts",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "schemas/contract.json",
+  "types": "schemas/contract.json",
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit"
+  }
+}

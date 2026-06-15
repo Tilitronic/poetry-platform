@@ -1,0 +1,24 @@
+{
+  "name": "@poetry/visualizer-2d",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "src/interactive/index.ts",
+  "types": "src/interactive/index.ts",
+  "browser": "src/interactive/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/interactive/index.ts",
+      "browser": "./src/interactive/index.ts",
+      "node": "./src/ssr/index.ts"
+    }
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "@poetry/data-contracts": "workspace:*",
+    "d3": "^7.9.0"
+  }
+}

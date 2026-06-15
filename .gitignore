@@ -1,0 +1,43 @@
+# === Dependencies ===
+node_modules/
+.pnpm-store/
+
+# === Build outputs ===
+dist/
+.output/
+.next/
+.astro/
+.nuxt/
+.quasar/
+*.tsbuildinfo
+
+# === Turbo ===
+.turbo/
+
+# === Python ===
+*.pyc
+__pycache__/
+.pytest_cache/
+*.egg-info/
+
+# === Environment files ===
+.env
+.env.local
+.env.*.local
+
+# === Logs and OS artifacts ===
+*.log
+.DS_Store
+Thumbs.db
+
+# === IDE / Editor ===
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# === Test coverage ===
+coverage/
+.temp/
+.cache/

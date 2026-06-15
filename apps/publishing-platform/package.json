@@ -1,0 +1,14 @@
+{
+  "name": "@poetry/publishing-platform",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "vue-tsc --noEmit"
+  },
+  "dependencies": {
+    "@poetry/visualizer-2d": "workspace:*",
+    "@poetry/visualizer-3d": "workspace:*",
+    "@poetry/data-contracts": "workspace:*"
+  }
+}

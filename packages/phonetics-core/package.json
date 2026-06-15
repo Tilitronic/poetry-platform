@@ -1,0 +1,15 @@
+{
+  "name": "@poetry/phonetics-core",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "src/engine/ipa.ts",
+  "types": "src/engine/ipa.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "@poetry/data-contracts": "workspace:*"
+  }
+}

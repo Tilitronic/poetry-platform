@@ -1,0 +1,19 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "PoetryDataContract",
+  "description": "Single source of truth — linesMap, lineOrder, metrics, contract_hash + version (OCC)",
+  "type": "object",
+  "properties": {
+    "id": { "type": "string", "format": "uuid" },
+    "version": { "type": "integer" },
+    "contract_hash": { "type": "string" },
+    "title": { "type": "string" },
+    "authorId": { "type": "string", "format": "uuid" },
+    "linesMap": { "type": "object" },
+    "lineOrder": { "type": "array", "items": { "type": "string" } },
+    "metrics": { "type": "object" },
+    "createdAt": { "type": "string", "format": "date-time" },
+    "updatedAt": { "type": "string", "format": "date-time" }
+  },
+  "required": ["id", "version", "contract_hash", "linesMap", "lineOrder"]
+}
