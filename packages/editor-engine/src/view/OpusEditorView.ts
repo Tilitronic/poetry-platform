@@ -1,16 +1,16 @@
-import { EditorView, ViewUpdate, lineNumbers } from '@codemirror/view';
+import { EditorView, ViewUpdate, lineNumbers, keymap } from '@codemirror/view';
 import { EditorState } from '@codemirror/state';
 import type { Extension } from '@codemirror/state';
+import { defaultKeymap } from '@codemirror/commands';
 import type { Orchestrator } from '../orchestrator/Orchestrator';
 import { opusFormattingFilter } from './opusFormattingFilter';
 
-// Create an elegant dark theme
 const encyclopedicDarkTheme = EditorView.theme(
   {
     // Global background and text color
     '&': {
-      color: '#e1e4e8', // Soft off-white text
-      backgroundColor: '#1e1e24', // Deep dark graphite
+      color: '#e1e4e8',
+      backgroundColor: '#1e1e24',
     },
     // Inner padding and font
     '.cm-content': {
@@ -25,9 +25,9 @@ const encyclopedicDarkTheme = EditorView.theme(
     // },
     // Line number gutter styling
     '.cm-gutters': {
-      backgroundColor: '#18181d', // Slightly darker than main background
-      color: '#6b7280', // Muted number color
-      borderRight: '1px solid #2d2d36', // Subtle separator line
+      backgroundColor: '#18181d',
+      color: '#6b7280',
+      borderRight: '1px solid #2d2d36',
       paddingRight: '8px',
     },
     // Active line gutter highlight
@@ -57,6 +57,11 @@ export class OpusEditorView {
         lineNumbers(),
         opusFormattingFilter(),
 
+        // Default key bindings (Enter → insertNewline, Backspace, arrows, etc.)
+        // Without this, keyboard input like Enter does nothing in the browser
+        // because CM6's key-handling pipeline has no matching command.
+        keymap.of(defaultKeymap),
+
         //key press listener
         EditorView.updateListener.of((update: ViewUpdate) => {
           console.log('Document changed:', update.docChanged);
@@ -69,6 +74,13 @@ export class OpusEditorView {
     });
 
     this.view = new EditorView({ state, parent });
+
+    // Expose the view globally so Playwright e2e tests can read the actual
+    // document content via view.state.doc.toString() — CM6's DOM renders
+    // each line as a separate element, so textContent loses newlines.
+    if (typeof window !== 'undefined') {
+      (window as any).__edotorView = this.view;
+    }
   }
 
   destroy(): void {
