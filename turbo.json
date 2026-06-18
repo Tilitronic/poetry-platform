@@ -9,6 +9,11 @@
       "dependsOn": ["compile:lezer", "^build"],
       "outputs": ["dist/**", ".quasar/**", "dist/spa/**"]
     },
+    "test": {
+      "dependsOn": ["build"],
+      "inputs": ["src/**/*.test.ts", "src/**/*.spec.ts", "src/**/*.test.py"],
+      "outputs": []
+    },
     "dev": {
       "cache": false,
       "persistent": true

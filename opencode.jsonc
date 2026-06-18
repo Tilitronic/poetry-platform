@@ -1,0 +1,146 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  // ---------------------------------------------------------------------------
+  // Project-level overrides for poetry-platform-monorepo.
+  // These merge with (and take precedence over) the global ~/.config/opencode config.
+  // All files in .opencode/ and prompts/ are version-controlled for team sharing.
+  // ---------------------------------------------------------------------------
+  // Auto-load architecture.md into every session's system context.
+  // The AI MUST treat this as authoritative design reference.
+  // feature-interviewer skill is referenced in AGENTS.md §0a and loaded on-demand.
+  "instructions": [
+    "architecture.md"
+  ],
+  // Start every session in TDD-optimized build agent mode.
+  "default_agent": "build",
+  // Prevent context overflow during long TDD sessions.
+  "compaction": {
+    "auto": true,
+    "prune": true,
+    "reserved": 10000
+  },
+  // LSP enables type-aware diagnostics for the AI.
+  "lsp": true,
+  // ---------------------------------------------------------------------------
+  // MCP Servers — live external tool access
+  // ---------------------------------------------------------------------------
+  "mcp": {
+    "context7": {
+      "type": "remote",
+      "url": "https://mcp.context7.com/mcp",
+      "description": "Search library documentation (Node.js, Python, NumPy, etc.)"
+    },
+    "gh_grep": {
+      "type": "remote",
+      "url": "https://mcp.grep.app",
+      "description": "Search GitHub for reference code patterns"
+    }
+  },
+  // ---------------------------------------------------------------------------
+  // Custom Commands — reusable multi-step workflows via Ctrl+K
+  // ---------------------------------------------------------------------------
+  "command": {
+    "tdd-cycle": {
+      "template": "Execute a full TDD cycle for $ARGUMENTS:\n1. Invoke 'feature-interviewer' skill to gather specifications\n2. RED: write failing test (invoke 'test-architect' skill)\n3. GREEN: implement minimum code to pass\n4. REFACTOR: optimize for hot-path performance + clarity\n5. Run verification gates: vitest run && tsc --noEmit && eslint .",
+      "description": "Full feature TDD cycle with pre-build interview (e.g. /tdd-cycle implement stress detection for Ukrainian)",
+      "agent": "build"
+    },
+    "test-package": {
+      "template": "Run the full test suite for @poetry/$ARGUMENTS with vitest run --reporter=verbose. If any tests fail, analyze the errors and suggest fixes.",
+      "description": "Run tests with verbose output for a specific package (e.g. /test-package editor-engine)",
+      "agent": "build"
+    },
+    "arch-check": {
+      "template": "Review the architecture of the code at $ARGUMENTS against architecture.md and SOLID principles (AGENTS.md §0b). Check for: single responsibility violations, missing DI, state mutation outside Orchestrator, worker boundary leaks, OCC version check omissions. Report any violations with specific line references.",
+      "description": "Audit code against architectural standards (e.g. /arch-check packages/editor-engine/src)",
+      "agent": "plan"
+    },
+    "code-ownership": {
+      "template": "Analyze the code at $ARGUMENTS for maintainability and ownership:\n1. Are public APIs documented with JSDoc explaining WHY?\n2. Are modules single-responsibility?\n3. Is there dead code or speculative generality?\n4. Are tests present and meaningful?\n5. Are there architectural pattern violations?\nProduce a maintainability score (1-10) and specific improvement recommendations.",
+      "description": "Evaluate code ownership quality and maintainability (e.g. /code-ownership packages/phonetics-core)",
+      "agent": "plan"
+    }
+  },
+  // ---------------------------------------------------------------------------
+  // Agent Definitions
+  // ---------------------------------------------------------------------------
+  "agent": {
+    // --- Primary: Scientific-grade TDD builder ---
+    "build": {
+      "description": "Scientific-grade TDD engineer. RED-GREEN-REFACTOR. Precision first, performance second, clarity third.",
+      "mode": "primary",
+      "model": "opencode-go/deepseek-v4-flash",
+      "temperature": 0.1,
+      "color": "accent",
+      // Prompt extracted to prompts/build.txt for team editing via PRs
+      "prompt": "{file:./prompts/build.txt}",
+      "permission": {
+        "edit": "allow",
+        "bash": {
+          "*": "allow",
+          "rm -rf *": "ask",
+          "git push": "ask"
+        },
+        "task": {
+          "gigabuild": "allow",
+          "gigaplan": "allow"
+        }
+      }
+    },
+    // --- Primary: Read-only exploration and design review ---
+    "plan": {
+      "description": "Read-only codebase navigation and design review. Consults architecture.md for context.",
+      "mode": "primary",
+      "model": "opencode-go/deepseek-v4-flash",
+      "temperature": 0.1,
+      "color": "info",
+      "prompt": "{file:./prompts/plan.txt}",
+      "permission": {
+        "edit": "deny",
+        "task": {
+          "*": "deny",
+          "gigaplan": "allow"
+        }
+      }
+    },
+    // --- Subagent: Test-only suite designer (hidden, invoked by build via @test) ---
+    "test": {
+      "description": "AAA test suite designer. Writes tests only — never implementation. Granular assertions, exhaustive edge cases.",
+      "mode": "subagent",
+      "hidden": true,
+      "model": "opencode-go/deepseek-v4-flash",
+      "temperature": 0.1,
+      "color": "success",
+      "prompt": "{file:./prompts/test.txt}",
+      "permission": {
+        "edit": "allow",
+        "bash": {
+          "*": "allow"
+        },
+        "task": {
+          "*": "deny"
+        }
+      }
+    },
+    // --- Subagent: Code reviewer for SOLID/architecture compliance (invoked via @review) ---
+    "review": {
+      "description": "Reviews code for SOLID compliance, architectural integrity, and scientific correctness.",
+      "mode": "subagent",
+      "model": "opencode-go/deepseek-v4-flash",
+      "temperature": 0.1,
+      "color": "warning",
+      "prompt": "You are a code reviewer for a scientific poetry analysis platform. You NEVER write code — only review it.\n\nFocus on:\n1. SOLID principle violations (see AGENTS.md §0b)\n2. Architecture compliance (Orchestrator single write point, MessageChannel workers)\n3. Hot-path allocation elimination\n4. Numerical stability in phonetic/matrix operations\n5. OCC version check correctness\n6. Test coverage gaps\n7. JSDoc/Docstring quality — does it explain WHY, not WHAT?\n\nBe precise. Reference specific line numbers. Suggest concrete fixes without writing them.",
+      "permission": {
+        "edit": "deny",
+        "bash": {
+          "*": "deny",
+          "vitest run *": "allow",
+          "tsc --noEmit *": "allow"
+        },
+        "task": {
+          "*": "deny"
+        }
+      }
+    }
+  }
+}
