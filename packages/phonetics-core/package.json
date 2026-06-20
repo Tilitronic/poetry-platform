@@ -5,11 +5,39 @@
   "type": "module",
   "main": "src/engine/ipa.ts",
   "types": "src/engine/ipa.ts",
+  "exports": {
+    ".": {
+      "import": "./src/engine/ipa.ts",
+      "types": "./src/engine/ipa.ts"
+    },
+    "./atlas": {
+      "import": "./src/atlas/load-atlas.ts",
+      "types": "./src/atlas/load-atlas.ts"
+    },
+    "./atlas/loader": {
+      "import": "./src/atlas/load-atlas.ts",
+      "types": "./src/atlas/load-atlas.ts"
+    },
+    "./atlas/loader.py": "./src/atlas/load_atlas.py",
+    "./atlas/schema": "./src/atlas/phonetic_atlas.fbs",
+    "./atlas/bin": "./src/atlas/phonetic_atlas.bin",
+    "./atlas/bin?url": "./src/atlas/phonetic_atlas.bin",
+    "./dist/ts/*": "./dist/ts/*",
+    "./dist/python/*": "./dist/python/*"
+  },
   "scripts": {
+    "codegen": "node scripts/codegen.js",
+    "generate:phonetic-atlas": "python scripts/generate_phonetic_atlas.py --dist dist",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "test": "vitest run"
   },
   "dependencies": {
-    "@poetry/data-contracts": "workspace:*"
+    "@poetry/data-contracts": "workspace:*",
+    "flatbuffers": "^25.9.23"
+  },
+  "devDependencies": {
+    "@fast-check/vitest": "^0.4.1",
+    "vitest": "^4.1.9"
   }
 }

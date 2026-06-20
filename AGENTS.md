@@ -150,7 +150,7 @@ apps/
   publishing-platform/    Nuxt 3 SSR (public reader) — stub
   api-server/             FastAPI (Python 3.11+)
 packages/
-  data-contracts/         JSON Schema (PoetryDataContract) — shared by all
+  data-contracts/         Protobuf Schema (PoetryDataContract) — shared by all (see architecture.md §4)
   editor-engine/          CodeMirror 6 + Signia state + orchestrator
   stress-lang-core/       W1 worker: lang detection + WASM stress
   phonetics-core/         W2 worker: IPA + metrics

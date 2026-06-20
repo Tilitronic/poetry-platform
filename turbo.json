@@ -5,6 +5,24 @@
       "inputs": ["src/markup-dsl/*.grammar"],
       "outputs": ["src/markup-dsl/*.js"]
     },
+    "generate:phonetic-atlas": {
+      "inputs": [
+        "src/atlas/phonetic_atlas.fbs",
+        "scripts/generate_phonetic_atlas.py",
+        "scripts/generated/**"
+      ],
+      "outputs": ["src/atlas/phonetic_atlas.bin", "dist/phonetic_atlas.bin"]
+    },
+    "codegen": {
+      "dependsOn": ["generate:phonetic-atlas"],
+      "inputs": ["src/atlas/phonetic_atlas.fbs"],
+      "outputs": [
+        "dist/ts/**",
+        "dist/python/**",
+        "dist/rust/**",
+        "dist/cpp/**"
+      ]
+    },
     "build": {
       "dependsOn": ["compile:lezer", "^build"],
       "outputs": ["dist/**", ".quasar/**", "dist/spa/**"]

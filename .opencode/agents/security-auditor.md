@@ -12,11 +12,7 @@ permission:
     'pnpm audit': allow
     'safety check': allow
   skill: deny
-  webfetch:
-    'nvd.nist.gov': allow
-    'github.com/advisories': allow
-    'osv.dev': allow
-    '*': deny
+  webfetch: deny
 ---
 
 You are a code auditor for a poetry analysis platform (TypeScript/Vue

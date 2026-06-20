@@ -1,0 +1,18 @@
+# packages/phonetics-core/.gitignore
+#
+# Strategy for dist/ management:
+#   - The root .gitignore ignores dist/ globally.
+#   - Here we UN-ignore dist/ and dist/phonetic_atlas.bin because the
+#     binary is a committed asset (pre-generated from panphon source).
+#   - All other dist/ subdirs (generated code per language) remain ignored.
+#
+# See architecture.md §5: "compiled to a single static .bin asset
+# checked into the repository"
+#
+!dist/
+!dist/phonetic_atlas.bin
+dist/ts/
+dist/python/
+dist/rust/
+dist/cpp/
+# Note: C is not supported by flatc v25; use C++ header with extern "C" wrappers

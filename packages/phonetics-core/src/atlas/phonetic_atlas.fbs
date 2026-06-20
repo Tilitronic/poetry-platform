@@ -1,0 +1,150 @@
+// Phonetic Atlas — cross-language static phoneme feature vector set
+// ===================================================================
+//
+// This FlatBuffers schema defines the binary format for the Phonetic
+// Atlas (§5 in architecture.md), a compiled-once, read-many asset
+// consumed by W2 (TS via flatc-generated bindings), the analytics
+// pipeline (Python), and the Rust FST index (W1 via WASM).
+//
+// WHY FlatBuffers and not Protobuf:
+//   - Zero-copy reads: a consumer can read a single field out of the
+//     buffer without parsing the whole structure first.
+//   - FeatureVector is a 'struct' (inline, fixed-size 24 bytes),
+//     stored directly inside the buffer — no indirection, no allocation.
+//   - Official codegen covers C++, Rust, Python, TypeScript/JS natively.
+//
+// WHY a single .bin asset:
+//   - The phoneme set is compiled once from Panphon and checked into
+//     the repository; it changes only when the Panphon version bumps.
+//   - Every consumer loads the exact same bytes, guaranteeing
+//     cross-language feature vector agreement.
+//
+// See: architecture.md §5 "Phonetic Atlas — the cross-language data asset"
+
+// Declare user-defined attributes used throughout this schema.
+// FlatBuffers v25+ requires explicit attribute declarations.
+attribute "default";
+attribute "required";
+
+// File identifier (4 bytes, embedded after FlatBuffers magic):
+//   "PHAT" — quick format identification without full schema parse.
+file_identifier "PHAT";
+
+// ===================================================================
+// Feature vector encoding
+// ===================================================================
+//
+// Each phonetic feature is encoded as an unsigned byte:
+//   0 = unspecified / not applicable  (panphon "0")
+//   1 = positively specified          (panphon "+")
+//   2 = negatively specified          (panphon "-")
+//
+// This is a struct (fixed-size, stored inline) to guarantee zero-copy
+// reads — the 24 feature bytes sit directly in the buffer at a known
+// offset, no pointer chasing.
+//
+// The field order matches the column order in Panphon's ipa_all.csv
+// so that the feature-to-position mapping is explicit.
+
+enum FeatureValue : ubyte {
+  Unspecified = 0,
+  Positive    = 1,
+  Negative    = 2,
+}
+
+struct FeatureVector {
+  syl:     FeatureValue;  // syllabic
+  son:     FeatureValue;  // sonorant
+  cons:    FeatureValue;  // consonantal
+  cont:    FeatureValue;  // continuant
+  delrel:  FeatureValue;  // delayed release
+  lat:     FeatureValue;  // lateral
+  nas:     FeatureValue;  // nasal
+  strid:   FeatureValue;  // strident
+  voi:     FeatureValue;  // voice
+  sg:      FeatureValue;  // spread glottis
+  cg:      FeatureValue;  // constricted glottis
+  ant:     FeatureValue;  // anterior
+  cor:     FeatureValue;  // coronal
+  distr:   FeatureValue;  // distributed
+  lab:     FeatureValue;  // labial
+  hi:      FeatureValue;  // high
+  lo:      FeatureValue;  // low
+  back:    FeatureValue;  // back
+  round:   FeatureValue;  // round
+  velaric: FeatureValue;  // velaric
+  tense:   FeatureValue;  // tense
+  long:    FeatureValue;  // long
+  hitone:  FeatureValue;  // high tone
+  hireg:   FeatureValue;  // high register
+}
+
+// ===================================================================
+// Feature definition — runtime description of a single feature
+// ===================================================================
+table FeatureDef {
+  key:       string (required);   // Short key, e.g. "syl", "son"
+  long_name: string (required);   // Human-readable name, e.g. "syllabic"
+  doc:       string; // Optional documentation
+}
+
+// ===================================================================
+// Metadata — source provenance and data integrity information
+// ===================================================================
+table AtlasMetadata {
+  // Source attribution — "Panphon" expected by convention
+  source_name:    string (required);
+  source_version: string (required);  // e.g. "0.22.2"
+
+  // Generation tool provenance
+  generator_name:    string (required);
+  generator_version: string (required); // SemVer of this schema/generator
+  generated_at:      string (required); // ISO 8601 UTC timestamp
+
+  // Data integrity — SHA-256 hex digest computed over the serialized
+  // phoneme entries (excluding the metadata fields themselves).
+  // Consumers SHOULD verify this hash when loading the atlas.
+  content_hash: string (required);
+
+  // Shape information (scalar defaults to 0)
+  total_segments: uint;
+  total_bases:    uint;
+
+  // Feature schema — ordered list matching FeatureVector struct field
+  // positions. Consumer code can map index → feature name at runtime.
+  features: [FeatureDef] (required);
+
+  // Value encoding documentation
+  value_encoding: [string]; // [0]=unspecified, [1]=positive, [2]=negative
+}
+
+// ===================================================================
+// Phoneme entry — a single IPA symbol with its feature vector
+// ===================================================================
+table PhonemeEntry {
+  // IPA symbol (e.g. "p", "aɪ", "tʰ")
+  ipa: string (required);
+
+  // True if this is a base phoneme from ipa_bases.csv
+  // (defaults to false in FlatBuffers)
+  is_base: bool;
+
+  // Phonological feature vector (struct — inline, zero-copy)
+  features: FeatureVector (required);
+}
+
+// ===================================================================
+// Root type — the entire Phonetic Atlas
+// ===================================================================
+table PhoneticAtlas {
+  // Provenance and integrity metadata
+  metadata: AtlasMetadata (required);
+
+  // All phoneme segments. Ordered: bases first, then derived forms.
+  // Lookup by symbol is O(n) linear scan or O(1) if the consumer
+  // builds its own index. The atlas is small (<7000 entries, ~300 KB),
+  // so linear scan at load time plus a consumer-side Map is adequate.
+  phonemes: [PhonemeEntry] (required);
+}
+
+root_type PhoneticAtlas;
