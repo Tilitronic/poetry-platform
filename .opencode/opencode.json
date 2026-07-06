@@ -1,0 +1,72 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "model": "opencode-go/deepseek-v4-flash-free",
+  "plugin": [
+    "/app/ponytail/.opencode/plugins/ponytail.mjs",
+    "opencode-snip@latest",
+    "@tarquinen/opencode-dcp@latest"
+  ],
+  "mcp": {
+    "context7": {
+      "type": "remote",
+      "url": "https://mcp.context7.com/mcp",
+      "headers": {
+        "CONTEXT7_API_KEY": "ctx7sk-e95549ba-9509-4378-80d7-af0489597af7"
+      },
+      "enabled": true
+    }
+  },
+  "agent": {
+    "architect": {
+      "mode": "all",
+      "model": "opencode-go/deepseek-v4-flash-free",
+      "color": "#8B5CF6",
+      "permission": {
+        "edit": "deny",
+        "bash": "deny",
+        "task": "deny"
+      }
+    },
+    "reviewer": {
+      "mode": "all",
+      "model": "opencode-go/deepseek-v4-flash-free",
+      "color": "#F59E0B",
+      "reasoningEffort": "high",
+      "permission": {
+        "edit": "deny",
+        "bash": "deny",
+        "task": "deny"
+      }
+    },
+    "tester": {
+      "mode": "subagent",
+      "model": "opencode-go/deepseek-v4-flash-free",
+      "color": "#10B981",
+      "reasoningEffort": "high"
+    },
+    "writer": {
+      "mode": "subagent",
+      "model": "opencode-go/deepseek-v4-flash-free",
+      "color": "#3B82F6",
+      "reasoningEffort": "medium"
+    },
+    "writer-frontend": {
+      "mode": "subagent",
+      "model": "opencode-go/deepseek-v4-flash-free",
+      "color": "#EC4899",
+      "reasoningEffort": "medium"
+    },
+    "orchestrator": {
+      "mode": "primary",
+      "model": "opencode-go/deepseek-v4-flash-free",
+      "color": "#6366F1",
+      "reasoningEffort": "medium"
+    },
+    "memory-manager": {
+      "mode": "subagent",
+      "model": "opencode-go/deepseek-v4-flash-free",
+      "color": "#F472B6",
+      "reasoningEffort": "low"
+    }
+  }
+}
