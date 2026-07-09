@@ -5,7 +5,7 @@ import { log } from './logger';
  * Tracks subagent spawn depth to prevent excessive nesting.
  *
  * Depth 0 = root session (user's main conversation)
- * Depth 1 = agent spawned by root (e.g., explorer, council)
+ * Depth 1 = agent spawned by root (e.g., code-navigator, council)
  * Depth 2 = agent spawned by depth-1 agent (e.g., councillor spawned by council)
  * Depth 3 = agent spawned by depth-2 agent (max depth by default)
  *

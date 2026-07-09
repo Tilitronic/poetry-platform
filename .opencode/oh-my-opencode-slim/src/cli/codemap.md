@@ -75,11 +75,11 @@ The CLI follows a command pattern with two primary commands:
    - copilot
    - zai-plan
 2. Map agents to models with variants:
-   - orchestrator → high-capacity model
-   - oracle → high variant
-   - librarian/explorer → low variant
-   - designer → medium variant
-   - fixer → low variant
+   - boss → high-capacity model
+    - architector → high variant
+    - researcher/code-navigator → low variant
+    - designer → medium variant
+    - coder → low variant
 3. Apply skill permissions based on agent role
 4. Generate final configuration with schema URL
 ```

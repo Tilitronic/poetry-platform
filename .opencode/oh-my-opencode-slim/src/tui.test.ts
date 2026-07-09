@@ -25,22 +25,22 @@ describe('tui sidebar agents', () => {
     const agentNames = getSidebarAgentNames(
       createSnapshot({
         agentModels: {
-          explorer: 'openai/gpt-5.4-mini',
-          fixer: 'openai/gpt-5.4-mini',
+          'code-navigator': 'openai/gpt-5.4-mini',
+          coder: 'openai/gpt-5.4-mini',
         },
       }),
     );
 
-    expect(agentNames).toEqual(['explorer', 'fixer']);
+    expect(agentNames).toEqual(['code-navigator', 'coder']);
     expect(agentNames).not.toContain('observer');
-    expect(agentNames).not.toContain('librarian');
+    expect(agentNames).not.toContain('researcher');
   });
 
   test('uses default-enabled fallback before models are persisted', () => {
     const agentNames = getSidebarAgentNames(createSnapshot({}));
 
-    expect(agentNames).toContain('explorer');
-    expect(agentNames).toContain('fixer');
+    expect(agentNames).toContain('code-navigator');
+    expect(agentNames).toContain('coder');
     expect(agentNames).not.toContain('observer');
     expect(agentNames).not.toContain('council');
     expect(agentNames).not.toContain('councillor');

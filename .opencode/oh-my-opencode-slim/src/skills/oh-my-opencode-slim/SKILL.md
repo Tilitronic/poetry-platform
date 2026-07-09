@@ -20,7 +20,7 @@ Use this skill when the user asks about or is likely to benefit from changes to:
 - `~/.config/opencode/oh-my-opencode-slim.json` or `.jsonc`
 - `.opencode/` or `~/.config/opencode/` plugin/agent configuration
 - agent models, variants, presets, or provider routing
-- orchestrator delegation behavior or specialist-agent prompts
+- boss delegation behavior or specialist-agent prompts
 - custom agents under `agents.<name>`
 - custom agent `prompt` and `orchestratorPrompt` blocks
 - skills, MCP permissions, tool access, or disabled agents
@@ -62,11 +62,11 @@ Concrete files agents should know:
 Built-in agent prompt file names are exact agent names:
 
 - `orchestrator.md` / `orchestrator_append.md`
-- `oracle.md` / `oracle_append.md`
-- `librarian.md` / `librarian_append.md`
-- `explorer.md` / `explorer_append.md`
+- `architector.md` / `architector_append.md`
+- `researcher.md` / `researcher_append.md`
+- `code-navigator.md` / `code-navigator_append.md`
 - `designer.md` / `designer_append.md`
-- `fixer.md` / `fixer_append.md`
+- `coder.md` / `coder_append.md`
 - `observer.md` / `observer_append.md`
 - `council.md` / `council_append.md`
 
@@ -86,8 +86,8 @@ Common customizations:
 
 - **Switch presets**: choose which generated or custom preset is active.
 - **Tune models**: assign different models/variants per agent.
-- **Limit costs**: use cheaper models for `explorer`, `librarian`, and `fixer`.
-- **Improve quality**: use stronger models for `orchestrator`, `oracle`, or
+- **Limit costs**: use cheaper models for `code-navigator`, `researcher`, and `coder`.
+- **Improve quality**: use stronger models for `boss`, `architector`, or
   design-heavy `designer` work.
 - **Control skills**: set `skills` per agent with `['*']`, explicit names, or
   exclusions like `['*', '!codemap']`.
@@ -102,8 +102,8 @@ Common customizations:
 
 Important schema boundary:
 
-- Built-in agents (`orchestrator`, `oracle`, `librarian`, `explorer`,
-  `designer`, `fixer`, `observer`, `council`) can set models, variants, skills,
+- Built-in agents (`boss`, `architector`, `researcher`, `code-navigator`,
+  `designer`, `coder`, `observer`, `council`) can set models, variants, skills,
   MCPs, options, and display names in config.
 - Built-in agent `prompt` and `orchestratorPrompt` fields are **not** supported
   in `oh-my-opencode-slim.json[c]`; use markdown prompt override files instead.
@@ -127,7 +127,7 @@ Edit the active preset under `presets.<preset>.<agent>`:
         "skills": ["*"],
         "mcps": ["*", "!context7"]
       },
-      "librarian": {
+      "researcher": {
         "model": "openai/gpt-5.4-mini",
         "variant": "low",
         "skills": [],
@@ -254,11 +254,11 @@ Good custom agents have:
 
 Avoid custom agents that duplicate existing specialists:
 
-- codebase scouting → `explorer`
-- external docs/research → `librarian`
-- architecture/debugging/review → `oracle`
+- codebase scouting → `code-navigator`
+- external docs/research → `researcher`
+- architecture/debugging/review → `architector`
 - UI/UX polish → `designer`
-- scoped mechanical implementation → `fixer`
+- scoped mechanical implementation → `coder`
 
 ## Prompt Tuning Pattern
 

@@ -73,11 +73,12 @@ const TERMINAL_STATES = new Set<BackgroundJobState>([
 const AGENT_PREFIX: Record<string, string> = {
   council: 'cou',
   designer: 'des',
-  explorer: 'exp',
-  fixer: 'fix',
-  librarian: 'lib',
+  'code-navigator': 'nav',
+  coder: 'cod',
+  researcher: 'res',
+  architector: 'arc',
+  reviewer: 'rev',
   observer: 'obs',
-  oracle: 'ora',
 };
 
 export class BackgroundJobBoard {
@@ -90,7 +91,7 @@ export class BackgroundJobBoard {
   private readonly readContextMaxFiles: number;
 
   constructor(options: BackgroundJobBoardOptions = {}) {
-    this.maxReusablePerAgent = options.maxReusablePerAgent ?? 2;
+    this.maxReusablePerAgent = options.maxReusablePerAgent ?? 6;
     this.readContextMinLines = options.readContextMinLines ?? 10;
     this.readContextMaxFiles = options.readContextMaxFiles ?? 8;
   }

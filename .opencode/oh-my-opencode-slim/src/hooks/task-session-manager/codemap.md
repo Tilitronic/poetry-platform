@@ -2,7 +2,7 @@
 
 ## Responsibility
 
-Manages V2 background job-board state for task execution and injected completion messages, enabling the orchestrator to track active jobs and reuse only completed, reconciled child sessions by short aliases (e.g., `exp-1`, `ora-2`). This module was recently split into three focused submodules to improve separation of concerns and maintainability.
+Manages V2 background job-board state for task execution and injected completion messages, enabling the boss to track active jobs and reuse only completed, reconciled child sessions by short aliases (e.g., `exp-1`, `ora-2`). This module was recently split into three focused submodules to improve separation of concerns and maintainability.
 
 ## Design
 

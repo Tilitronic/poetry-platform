@@ -94,15 +94,15 @@ export async function readSecondaryModelFromConfig(directory: string) {
     );
 
     const pluginConfig = loadPluginConfig(directory);
-    const explorerModel = pickAgentModelRef(
-      pluginConfig.agents?.explorer?.model,
+    const codeNavigatorModel = pickAgentModelRef(
+      pluginConfig.agents?.['code-navigator']?.model,
     );
-    const librarianModel = pickAgentModelRef(
-      pluginConfig.agents?.librarian?.model,
+    const researcherModel = pickAgentModelRef(
+      pluginConfig.agents?.researcher?.model,
     );
 
-    pushModel(explorerModel);
-    pushModel(librarianModel);
+    pushModel(codeNavigatorModel);
+    pushModel(researcherModel);
 
     return models;
   } catch {

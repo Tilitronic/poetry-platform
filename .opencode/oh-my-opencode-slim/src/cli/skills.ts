@@ -20,7 +20,7 @@ export interface PermissionOnlySkill {
 export const PERMISSION_ONLY_SKILLS: PermissionOnlySkill[] = [
   {
     name: 'requesting-code-review',
-    allowedAgents: ['oracle'],
+    allowedAgents: ['architector', 'reviewer'],
     description:
       'Code review template for reviewer subagents in multi-step workflows',
   },
@@ -41,7 +41,7 @@ export function getSkillPermissionsForAgent(
 
   // Orchestrator gets all skills by default, others are restricted
   const permissions: Record<string, 'allow' | 'ask' | 'deny'> = {
-    '*': agentName === 'orchestrator' ? 'allow' : 'deny',
+    '*': agentName === 'boss' ? 'allow' : 'deny',
   };
 
   // If the user provided an explicit skill list (even empty), honor it

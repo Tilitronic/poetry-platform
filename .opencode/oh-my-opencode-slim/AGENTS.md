@@ -65,7 +65,7 @@ bun test -t "test-name-pattern"
 ```
 oh-my-opencode-slim/
 ├── src/
-│   ├── agents/       # Agent factories (orchestrator, explorer, oracle, etc.)
+│   ├── agents/       # Agent factories (boss, code-navigator, architector, etc.)
 │   ├── cli/          # CLI entry point
 │   ├── config/       # Constants, schemas, MCP defaults
 │   ├── council/      # Council manager (multi-LLM session orchestration)
@@ -159,8 +159,8 @@ bun run build
 # "plugin": ["file:///path/to/oh-my-opencode-slim"]
 
 # 3. Launch test tasks
-@explorer count files in src/
-@librarian search for Bun documentation
+@code-navigator count files in src/
+@researcher search for Bun documentation
 
 # 4. Verify no orphans
 ps aux | grep "opencode attach" | grep -v grep
@@ -203,7 +203,7 @@ OpenCode has a built-in `/review` command that automatically performs comprehens
 /review <pr-url-or-number>
 ```
 
-**Why use `/review` instead of asking @oracle manually?**
+**Why use `/review` instead of asking @reviewer manually?**
 - Standardized review process with consistent focus areas (bugs, structure, performance)
 - Automatically handles git operations (diff, status, etc.)
 - Context-aware: reads full files and convention files (AGENTS.md, etc.)

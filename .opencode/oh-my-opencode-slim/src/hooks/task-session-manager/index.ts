@@ -496,7 +496,7 @@ export function createTaskSessionManagerHook(
 
       for (const [messageIndex, message] of messages.entries()) {
         if (!isUserMessageWithParts(message)) continue;
-        if (message.info.agent && message.info.agent !== 'orchestrator') {
+        if (message.info.agent && message.info.agent !== 'boss') {
           continue;
         }
         if (
@@ -514,7 +514,7 @@ export function createTaskSessionManagerHook(
       for (let i = messages.length - 1; i >= 0; i -= 1) {
         const message = messages[i];
         if (!isUserMessageWithParts(message)) continue;
-        if (message.info.agent && message.info.agent !== 'orchestrator') return;
+        if (message.info.agent && message.info.agent !== 'boss') return;
         if (
           !message.info.sessionID ||
           !options.shouldManageSession(message.info.sessionID)
@@ -637,7 +637,7 @@ export function createTaskSessionManagerHook(
           // Only clear injected terminal jobs for fatal errors.
           // Rate-limit errors are recovered by ForegroundFallbackManager
           // (abort + reprompt with fallback model); clearing the injected
-          // job state here would make the orchestrator lose track of
+          // job state here would make the boss lose track of
           // completed background tasks and unable to dispatch follow-ups.
           const props = input.event.properties as
             | { error?: unknown }

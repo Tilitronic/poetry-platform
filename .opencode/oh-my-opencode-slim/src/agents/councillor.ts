@@ -1,5 +1,5 @@
 import { NO_SHELL_READONLY_FILE_OPERATIONS_RULES } from '../config';
-import { type AgentDefinition, resolvePrompt } from './orchestrator';
+import { type AgentDefinition, resolvePrompt } from './boss';
 import { createReadOnlyAgentPermission } from './permissions';
 
 /**

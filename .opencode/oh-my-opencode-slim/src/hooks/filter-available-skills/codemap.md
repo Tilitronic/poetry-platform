@@ -16,7 +16,7 @@ The hook is implemented as an `experimental.chat.messages.transform` hook that r
 
 ### Permission Resolution Flow:
 
-1. **Agent Detection**: Extracts current agent name from message history (defaults to 'orchestrator')
+1. **Agent Detection**: Extracts current agent name from message history (defaults to 'boss')
 2. **Permission Lookup**: Retrieves skill rules for the agent from configuration
 3. **Block Extraction**: Uses regex to parse `<skill>` blocks from `<available_skills>` XML
 4. **Filtering**: Applies permission rules to each skill entry

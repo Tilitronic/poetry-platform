@@ -1,27 +1,33 @@
 // Agent names
 export const AGENT_ALIASES: Record<string, string> = {
-  explore: 'explorer',
+  explore: 'code-navigator',
+  explorer: 'code-navigator',
+  librarian: 'researcher',
+  oracle: 'architector',
+  fixer: 'coder',
+  orchestrator: 'boss',
   'frontend-ui-ux-engineer': 'designer',
 };
 
 export const SUBAGENT_NAMES = [
-  'explorer',
-  'librarian',
-  'oracle',
+  'code-navigator',
+  'researcher',
+  'architector',
+  'reviewer',
   'designer',
-  'fixer',
+  'coder',
   'observer',
   'council',
   'councillor',
 ] as const;
 
-export const ALL_AGENT_NAMES = ['orchestrator', ...SUBAGENT_NAMES] as const;
+export const ALL_AGENT_NAMES = ['boss', ...SUBAGENT_NAMES] as const;
 
 // Agent name type (for use in DEFAULT_MODELS)
 export type AgentName = (typeof ALL_AGENT_NAMES)[number];
 
 /** Agents that cannot be disabled even if listed in disabled_agents config. */
-export const PROTECTED_AGENTS = new Set(['orchestrator', 'councillor']);
+export const PROTECTED_AGENTS = new Set(['boss', 'councillor']);
 
 /**
  * Default models for each agent.
@@ -29,12 +35,13 @@ export const PROTECTED_AGENTS = new Set(['orchestrator', 'councillor']);
  * Users can override per-agent via oh-my-opencode-slim.json agents.<name>.model.
  */
 export const DEFAULT_MODELS: Record<AgentName, string | undefined> = {
-  orchestrator: undefined,
-  oracle: undefined,
-  librarian: undefined,
-  explorer: undefined,
+  boss: undefined,
+  architector: undefined,
+  reviewer: undefined,
+  researcher: undefined,
+  'code-navigator': undefined,
   designer: undefined,
-  fixer: undefined,
+  coder: undefined,
   observer: undefined,
   council: undefined,
   councillor: undefined,

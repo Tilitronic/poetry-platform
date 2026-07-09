@@ -10,47 +10,55 @@ export const GENERATED_PRESETS = ['openai', 'opencode-go'] as const;
 // Model mappings by provider/preset.
 export const MODEL_MAPPINGS = {
   openai: {
-    orchestrator: { model: 'openai/gpt-5.5', variant: 'medium' },
-    oracle: { model: 'openai/gpt-5.5', variant: 'high' },
-    librarian: { model: 'openai/gpt-5.4-mini', variant: 'low' },
-    explorer: { model: 'openai/gpt-5.4-mini', variant: 'low' },
+    boss: { model: 'openai/gpt-5.5', variant: 'medium' },
+    architector: { model: 'openai/gpt-5.5', variant: 'high' },
+    reviewer: { model: 'openai/gpt-5.5', variant: 'high' },
+    researcher: { model: 'openai/gpt-5.4-mini', variant: 'low' },
+    'code-navigator': { model: 'openai/gpt-5.4-mini', variant: 'low' },
     designer: { model: 'openai/gpt-5.4-mini', variant: 'medium' },
-    fixer: { model: 'openai/gpt-5.5', variant: 'low' },
+    coder: { model: 'openai/gpt-5.5', variant: 'low' },
   },
   kimi: {
-    orchestrator: { model: 'kimi-for-coding/k2p5' },
-    oracle: { model: 'kimi-for-coding/k2p5', variant: 'high' },
-    librarian: { model: 'kimi-for-coding/k2p5', variant: 'low' },
-    explorer: { model: 'kimi-for-coding/k2p5', variant: 'low' },
+    boss: { model: 'kimi-for-coding/k2p5' },
+    architector: { model: 'kimi-for-coding/k2p5', variant: 'high' },
+    reviewer: { model: 'kimi-for-coding/k2p5', variant: 'high' },
+    researcher: { model: 'kimi-for-coding/k2p5', variant: 'low' },
+    'code-navigator': { model: 'kimi-for-coding/k2p5', variant: 'low' },
     designer: { model: 'kimi-for-coding/k2p5', variant: 'medium' },
-    fixer: { model: 'kimi-for-coding/k2p5', variant: 'low' },
+    coder: { model: 'kimi-for-coding/k2p5', variant: 'low' },
   },
   copilot: {
-    orchestrator: { model: 'github-copilot/claude-opus-4.6' },
-    oracle: { model: 'github-copilot/claude-opus-4.6', variant: 'high' },
-    librarian: { model: 'github-copilot/grok-code-fast-1', variant: 'low' },
-    explorer: { model: 'github-copilot/grok-code-fast-1', variant: 'low' },
+    boss: { model: 'github-copilot/claude-opus-4.6' },
+    architector: { model: 'github-copilot/claude-opus-4.6', variant: 'high' },
+    reviewer: { model: 'github-copilot/claude-opus-4.6', variant: 'high' },
+    researcher: { model: 'github-copilot/grok-code-fast-1', variant: 'low' },
+    'code-navigator': {
+      model: 'github-copilot/grok-code-fast-1',
+      variant: 'low',
+    },
     designer: {
       model: 'github-copilot/gemini-3.1-pro-preview',
       variant: 'medium',
     },
-    fixer: { model: 'github-copilot/claude-sonnet-4.6', variant: 'low' },
+    coder: { model: 'github-copilot/claude-sonnet-4.6', variant: 'low' },
   },
   'zai-plan': {
-    orchestrator: { model: 'zai-coding-plan/glm-5' },
-    oracle: { model: 'zai-coding-plan/glm-5', variant: 'high' },
-    librarian: { model: 'zai-coding-plan/glm-5', variant: 'low' },
-    explorer: { model: 'zai-coding-plan/glm-5', variant: 'low' },
+    boss: { model: 'zai-coding-plan/glm-5' },
+    architector: { model: 'zai-coding-plan/glm-5', variant: 'high' },
+    reviewer: { model: 'zai-coding-plan/glm-5', variant: 'high' },
+    researcher: { model: 'zai-coding-plan/glm-5', variant: 'low' },
+    'code-navigator': { model: 'zai-coding-plan/glm-5', variant: 'low' },
     designer: { model: 'zai-coding-plan/glm-5', variant: 'medium' },
-    fixer: { model: 'zai-coding-plan/glm-5', variant: 'low' },
+    coder: { model: 'zai-coding-plan/glm-5', variant: 'low' },
   },
   'opencode-go': {
-    orchestrator: { model: 'opencode-go/glm-5.2' },
-    oracle: { model: 'opencode-go/qwen3.7-max', variant: 'max' },
-    librarian: { model: 'opencode-go/deepseek-v4-flash' },
-    explorer: { model: 'opencode-go/deepseek-v4-flash' },
+    boss: { model: 'opencode-go/glm-5.2' },
+    architector: { model: 'opencode-go/qwen3.7-max', variant: 'max' },
+    reviewer: { model: 'opencode-go/deepseek-v4-flash', variant: 'high' },
+    researcher: { model: 'opencode-go/deepseek-v4-flash' },
+    'code-navigator': { model: 'opencode-go/deepseek-v4-flash' },
     designer: { model: 'opencode-go/kimi-k2.7-code', variant: 'medium' },
-    fixer: { model: 'opencode-go/deepseek-v4-flash', variant: 'high' },
+    coder: { model: 'opencode-go/deepseek-v4-flash', variant: 'high' },
     observer: { model: 'opencode-go/kimi-k2.6' },
   },
 } as const;
@@ -100,9 +108,9 @@ export function generateLiteConfig(
     agentName: string,
     modelInfo: { model: string; variant?: string },
   ) => {
-    const isOrchestrator = agentName === 'orchestrator';
+    const isBoss = agentName === 'boss';
 
-    const skills = isOrchestrator
+    const skills = isBoss
       ? ['*']
       : [
           ...CUSTOM_SKILLS.filter(

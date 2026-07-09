@@ -1,6 +1,6 @@
 ---
 name: clonedeps
-description: Clone important project dependency source code into an ignored local workspace so OpenCode can inspect library internals. Use when the user asks to clone dependencies, inspect dependency/source internals, understand SDK/framework behavior from source, debug library implementation details, or make core dependency repos locally readable. Do not use for ordinary API/docs questions where @librarian is enough.
+description: Clone important project dependency source code into an ignored local workspace so OpenCode can inspect library internals. Use when the user asks to clone dependencies, inspect dependency/source internals, understand SDK/framework behavior from source, debug library implementation details, or make core dependency repos locally readable. Do not use for ordinary API/docs questions where @researcher is enough.
 ---
 
 # Clonedeps Skill
@@ -10,7 +10,7 @@ locally readable to OpenCode.
 
 This is a workflow skill, not a command wrapper. Do not use a helper script for
 dependency detection, ref validation, cloning, status, or cleanup. The
-orchestrator and `@librarian` do the repo-specific thinking; the orchestrator
+boss and `@researcher` do the repo-specific thinking; the orchestrator
 performs the approved filesystem/git operations directly.
 
 ## Workflow
@@ -21,17 +21,17 @@ First check whether `.slim/clonedeps.json` exists.
 
 If it exists:
 
-1. Read it before asking librarian for a new plan.
+1. Read it before asking researcher for a new plan.
 2. Check whether each listed `path` exists under `.slim/clonedeps/repos/`.
 3. Reuse existing cloned repos when they already satisfy the user's task.
-4. Only ask librarian for new recommendations if the existing manifest is
+4. Only ask researcher for new recommendations if the existing manifest is
    missing, stale, or insufficient for the current task.
 
 Do not rescan/re-plan from scratch when the manifest already has useful entries.
 
-### Step 2: Ask Librarian for the Clone Plan
+### Step 2: Ask Researcher for the Clone Plan
 
-Delegate dependency discovery and source resolution to `@librarian`.
+Delegate dependency discovery and source resolution to `@researcher`.
 
 Use this prompt:
 
@@ -87,11 +87,11 @@ are directly relevant to the active task.
 
 ### Step 3: Verify and Confirm the Plan
 
-The orchestrator owns final approval. Before cloning:
+The boss owns final approval. Before cloning:
 
 1. Verify refs manually where possible with `git ls-remote`.
-2. Prefer pinned tags or commit SHAs. If no exact tag exists, ask librarian to
-   find the correct module-specific tag/commit or explain the fallback.
+2. Prefer pinned tags or commit SHAs. If no exact tag exists, ask researcher to
+    find the correct module-specific tag/commit or explain the fallback.
 3. Only use HTTPS GitHub/GitLab-style repository URLs by default. Reject
    `file://`, SSH URLs, local paths, URLs with embedded credentials, and private
    or auth-required repositories unless the user explicitly approves that case.

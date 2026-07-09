@@ -131,7 +131,7 @@ bun run build
 4. **为您要分配的每个智能体更新模型配置**
 
 > [!TIP]
-> **建议**了解后台编排的工作原理。**[编排者提示词 (Orchestrator prompt)](https://github.com/alvinunreal/oh-my-opencode-slim/blob/master/src/agents/orchestrator.ts#L28)** 包含调度规则、专家路由逻辑，以及何时应把工作分配给后台智能体的阈值。您始终可以通过以下方式手动委派任务：`@智能体名称 <任务内容>`
+> **建议**了解后台编排的工作原理。**[编排者提示词 (Orchestrator prompt)](https://github.com/alvinunreal/oh-my-opencode-slim/blob/master/src/agents/boss.ts#L28)** 包含调度规则、专家路由逻辑，以及何时应把工作分配给后台智能体的阈值。您始终可以通过以下方式手动委派任务：`@智能体名称 <任务内容>`
 
 > [!TIP]
 > 由于后台智能体现在是默认工作流，**强烈建议**启用并配置 **[Multiplexer Integration](docs/multiplexer-integration.md)**。它会自动在专用的 Tmux、Zellij 或 Herdr 窗格中打开每个智能体，让您在 Orchestrator 继续协调会话时，实时跟进各个专家智能体的工作。
@@ -145,19 +145,19 @@ bun run build
   "presets": {
     "openai": {
       "orchestrator": { "model": "openai/gpt-5.5", "variant": "medium", "skills": ["*"], "mcps": ["*", "!context7"] },
-      "oracle": { "model": "openai/gpt-5.5", "variant": "high", "skills": ["simplify"], "mcps": [] },
-      "librarian": { "model": "openai/gpt-5.4-mini", "variant": "low", "skills": [], "mcps": ["websearch", "context7", "gh_grep"] },
-      "explorer": { "model": "openai/gpt-5.4-mini", "variant": "low", "skills": [], "mcps": [] },
+      "architector": { "model": "openai/gpt-5.5", "variant": "high", "skills": ["simplify"], "mcps": [] },
+      "researcher": { "model": "openai/gpt-5.4-mini", "variant": "low", "skills": [], "mcps": ["websearch", "context7", "gh_grep"] },
+      "code-navigator": { "model": "openai/gpt-5.4-mini", "variant": "low", "skills": [], "mcps": [] },
       "designer": { "model": "openai/gpt-5.4-mini", "variant": "medium", "skills": [], "mcps": [] },
-      "fixer": { "model": "openai/gpt-5.5", "variant": "low", "skills": [], "mcps": [] }
+      "coder": { "model": "openai/gpt-5.5", "variant": "low", "skills": [], "mcps": [] }
     },
     "opencode-go": {
       "orchestrator": { "model": "opencode-go/glm-5.2", "skills": [ "*" ], "mcps": [ "*", "!context7" ] },
-      "oracle": { "model": "opencode-go/qwen3.7-max", "variant": "max", "skills": ["simplify"], "mcps": [] },
-      "librarian": { "model": "opencode-go/deepseek-v4-flash", "skills": [], "mcps": [ "websearch", "context7", "gh_grep" ] },
-      "explorer": { "model": "opencode-go/deepseek-v4-flash", "skills": [], "mcps": [] },
+      "architector": { "model": "opencode-go/qwen3.7-max", "variant": "max", "skills": ["simplify"], "mcps": [] },
+      "researcher": { "model": "opencode-go/deepseek-v4-flash", "skills": [], "mcps": [ "websearch", "context7", "gh_grep" ] },
+      "code-navigator": { "model": "opencode-go/deepseek-v4-flash", "skills": [], "mcps": [] },
       "designer": { "model": "opencode-go/kimi-k2.7-code", "variant": "medium", "skills": [], "mcps": [] },
-      "fixer": { "model": "opencode-go/deepseek-v4-flash", "variant": "high", "skills": [], "mcps": [] }
+      "coder": { "model": "opencode-go/deepseek-v4-flash", "variant": "high", "skills": [], "mcps": [] }
     }
   }
 }
@@ -298,7 +298,7 @@ Worktrees 将 Git worktree 作为安全、隔离的编码通道管理，默认�
   </tr>
   <tr>
     <td colspan="2">
-      <b>提示词源码：</b> <a href="src/agents/orchestrator.ts"><code>orchestrator.ts</code></a>
+      <b>提示词源码：</b> <a href="src/agents/boss.ts"><code>orchestrator.ts</code></a>
     </td>
   </tr>
   <tr>
@@ -339,7 +339,7 @@ Worktrees 将 Git worktree 作为安全、隔离的编码通道管理，默认�
   </tr>
   <tr>
     <td colspan="2">
-      <b>提示词源码：</b> <a href="src/agents/explorer.ts"><code>explorer.ts</code></a>
+      <b>提示词源码：</b> <a href="src/agents/code-navigator.ts"><code>code-navigator.ts</code></a>
     </td>
   </tr>
   <tr>
@@ -380,7 +380,7 @@ Worktrees 将 Git worktree 作为安全、隔离的编码通道管理，默认�
   </tr>
   <tr>
     <td colspan="2">
-      <b>提示词源码：</b> <a href="src/agents/oracle.ts"><code>oracle.ts</code></a>
+      <b>提示词源码：</b> <a href="src/agents/architector.ts"><code>architector.ts</code></a>
     </td>
   </tr>
   <tr>
@@ -470,7 +470,7 @@ Worktrees 将 Git worktree 作为安全、隔离的编码通道管理，默认�
   </tr>
   <tr>
     <td colspan="2">
-      <b>提示词源码：</b> <a href="src/agents/librarian.ts"><code>librarian.ts</code></a>
+      <b>提示词源码：</b> <a href="src/agents/researcher.ts"><code>researcher.ts</code></a>
     </td>
   </tr>
   <tr>
@@ -552,7 +552,7 @@ Worktrees 将 Git worktree 作为安全、隔离的编码通道管理，默认�
   </tr>
   <tr>
     <td colspan="2">
-      <b>提示词源码：</b> <a href="src/agents/fixer.ts"><code>fixer.ts</code></a>
+      <b>提示词源码：</b> <a href="src/agents/coder.ts"><code>coder.ts</code></a>
     </td>
   </tr>
   <tr>

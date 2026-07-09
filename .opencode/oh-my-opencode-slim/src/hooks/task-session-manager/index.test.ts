@@ -37,7 +37,7 @@ function createMessages(sessionID: string, text = 'user message') {
   return {
     messages: [
       {
-        info: { role: 'user', agent: 'orchestrator', sessionID },
+        info: { role: 'user', agent: 'boss', sessionID },
         parts: [{ type: 'text', text }],
       },
     ],
@@ -50,7 +50,7 @@ describe('task-session-manager hook', () => {
     board.registerLaunch({
       taskID: 'child-1',
       parentSessionID: 'parent-1',
-      agent: 'explorer',
+      agent: 'code-navigator',
       description: 'map scheduler hooks',
     });
     const { hook } = createHook({ backgroundJobBoard: board });
@@ -58,7 +58,7 @@ describe('task-session-manager hook', () => {
       messages: [
         {},
         {
-          info: { role: 'user', agent: 'orchestrator', sessionID: 'parent-1' },
+          info: { role: 'user', agent: 'boss', sessionID: 'parent-1' },
         },
         { parts: [{ type: 'text', text: 'missing info' }] },
         {
@@ -66,7 +66,7 @@ describe('task-session-manager hook', () => {
           parts: [{ type: 'text', text: 'assistant response' }],
         },
         {
-          info: { role: 'user', agent: 'orchestrator', sessionID: 'parent-1' },
+          info: { role: 'user', agent: 'boss', sessionID: 'parent-1' },
           parts: [{ type: 'text', text: 'valid user message' }],
         },
       ],
@@ -79,7 +79,7 @@ describe('task-session-manager hook', () => {
       '### Background Job Board',
     );
     expect(messages.messages[4].parts[0].text).toContain(
-      'exp-1 / child-1 / explorer / running',
+      'nav-1 / child-1 / code-navigator / running',
     );
   });
 
@@ -95,7 +95,7 @@ describe('task-session-manager hook', () => {
       },
       {
         args: {
-          subagent_type: 'explorer',
+          subagent_type: 'code-navigator',
           description: 'map scheduler hooks',
           prompt: 'inspect scheduler hooks',
         },
@@ -126,7 +126,7 @@ describe('task-session-manager hook', () => {
     const userMessage = messages.messages[0];
     expect(userMessage.parts[0].text).toContain('### Background Job Board');
     expect(userMessage.parts[0].text).toContain(
-      'exp-1 / child-1 / explorer / running',
+      'nav-1 / child-1 / code-navigator / running',
     );
     expect(userMessage.parts[0].text).toContain(
       'Objective: map scheduler hooks',
@@ -141,7 +141,7 @@ describe('task-session-manager hook', () => {
       { tool: 'task', sessionID: 'parent-1', callID: 'call-1' },
       {
         args: {
-          subagent_type: 'oracle',
+          subagent_type: 'architector',
           description: 'review scheduler plan',
         },
       },
@@ -156,7 +156,10 @@ describe('task-session-manager hook', () => {
     await hook['tool.execute.before'](
       { tool: 'task', sessionID: 'parent-1', callID: 'call-2' },
       {
-        args: { subagent_type: 'oracle', description: 'review scheduler plan' },
+        args: {
+          subagent_type: 'architector',
+          description: 'review scheduler plan',
+        },
       },
     );
     await hook['tool.execute.after'](
@@ -183,7 +186,7 @@ describe('task-session-manager hook', () => {
     await hook['experimental.chat.messages.transform']({}, messages);
 
     expect(messages.messages[0].parts[0].text).toContain(
-      'ora-1 / child-1 / oracle / completed, unreconciled',
+      'arc-1 / child-1 / architector / completed, unreconciled',
     );
     expect(messages.messages[0].parts[0].text).toContain(
       'Result: plan is sound',
@@ -198,7 +201,7 @@ describe('task-session-manager hook', () => {
       { tool: 'task', sessionID: 'parent-1', callID: 'call-1' },
       {
         args: {
-          subagent_type: 'fixer',
+          subagent_type: 'coder',
           description: 'implement scheduler wiring',
         },
       },
@@ -214,7 +217,7 @@ describe('task-session-manager hook', () => {
       { tool: 'task', sessionID: 'parent-1', callID: 'call-2' },
       {
         args: {
-          subagent_type: 'fixer',
+          subagent_type: 'coder',
           description: 'implement scheduler wiring',
         },
       },
@@ -243,7 +246,7 @@ describe('task-session-manager hook', () => {
     await hook['experimental.chat.messages.transform']({}, messages);
 
     expect(messages.messages[0].parts[0].text).toContain(
-      'fix-1 / child-1 / fixer / running, timed out',
+      'cod-1 / child-1 / coder / running, timed out',
     );
   });
 
@@ -255,7 +258,7 @@ describe('task-session-manager hook', () => {
       { tool: 'task', sessionID: 'parent-1', callID: 'call-1' },
       {
         args: {
-          subagent_type: 'explorer',
+          subagent_type: 'code-navigator',
           description: 'map timed out session',
         },
       },
@@ -275,7 +278,7 @@ describe('task-session-manager hook', () => {
     );
 
     expect(
-      board.resolveRecoverable('parent-1', 'exp-1', 'explorer')?.taskID,
+      board.resolveRecoverable('parent-1', 'nav-1', 'code-navigator')?.taskID,
     ).toBeUndefined();
 
     await hook.event({
@@ -289,11 +292,11 @@ describe('task-session-manager hook', () => {
     });
 
     expect(
-      board.resolveRecoverable('parent-1', 'exp-1', 'explorer')?.taskID,
+      board.resolveRecoverable('parent-1', 'nav-1', 'code-navigator')?.taskID,
     ).toBe('child-1');
 
     const resume = {
-      args: { subagent_type: 'explorer', task_id: 'exp-1' },
+      args: { subagent_type: 'code-navigator', task_id: 'nav-1' },
     };
     await hook['tool.execute.before'](
       { tool: 'task', sessionID: 'parent-1', callID: 'resume-1' },
@@ -316,7 +319,7 @@ describe('task-session-manager hook', () => {
       { tool: 'task', sessionID: 'parent-1', callID: 'call-1' },
       {
         args: {
-          subagent_type: 'explorer',
+          subagent_type: 'code-navigator',
           description: 'map timed out session',
         },
       },
@@ -336,7 +339,7 @@ describe('task-session-manager hook', () => {
     );
 
     const resumeBeforeLiveBusy = {
-      args: { subagent_type: 'explorer', task_id: 'ses_timeout' },
+      args: { subagent_type: 'code-navigator', task_id: 'ses_timeout' },
     };
     await hook['tool.execute.before'](
       { tool: 'task', sessionID: 'parent-1', callID: 'resume-1' },
@@ -356,7 +359,7 @@ describe('task-session-manager hook', () => {
     });
 
     const resumeAfterLiveBusy = {
-      args: { subagent_type: 'explorer', task_id: 'ses_timeout' },
+      args: { subagent_type: 'code-navigator', task_id: 'ses_timeout' },
     };
     await hook['tool.execute.before'](
       { tool: 'task', sessionID: 'parent-1', callID: 'resume-2' },
@@ -374,7 +377,7 @@ describe('task-session-manager hook', () => {
       { tool: 'task', sessionID: 'parent-1', callID: 'call-1' },
       {
         args: {
-          subagent_type: 'explorer',
+          subagent_type: 'code-navigator',
           description: 'recover timed out child',
         },
       },
@@ -431,7 +434,7 @@ describe('task-session-manager hook', () => {
       { tool: 'task', sessionID: 'parent-1', callID: 'call-1' },
       {
         args: {
-          subagent_type: 'explorer',
+          subagent_type: 'code-navigator',
           description: 'map hooks',
         },
       },
@@ -446,7 +449,7 @@ describe('task-session-manager hook', () => {
     const messages = {
       messages: [
         {
-          info: { role: 'user', agent: 'orchestrator', sessionID: 'parent-1' },
+          info: { role: 'user', agent: 'boss', sessionID: 'parent-1' },
           parts: [
             {
               type: 'text',
@@ -474,7 +477,7 @@ describe('task-session-manager hook', () => {
       resultSummary: 'found hook flow',
     });
     expect(messages.messages[0].parts[0].text).toContain(
-      'exp-1 / child-1 / explorer / completed, unreconciled',
+      'nav-1 / child-1 / code-navigator / completed, unreconciled',
     );
   });
 
@@ -485,7 +488,7 @@ describe('task-session-manager hook', () => {
     board.registerLaunch({
       taskID: 'child-1',
       parentSessionID: 'parent-1',
-      agent: 'explorer',
+      agent: 'code-navigator',
       description: 'map hooks',
     });
 
@@ -516,14 +519,14 @@ describe('task-session-manager hook', () => {
     board.registerLaunch({
       taskID: 'child-1',
       parentSessionID: 'parent-1',
-      agent: 'explorer',
+      agent: 'code-navigator',
       description: 'map hooks',
     });
 
     const messages = {
       messages: [
         {
-          info: { role: 'user', agent: 'orchestrator', sessionID: 'parent-1' },
+          info: { role: 'user', agent: 'boss', sessionID: 'parent-1' },
           parts: [
             {
               type: 'text',
@@ -554,7 +557,7 @@ describe('task-session-manager hook', () => {
     board.registerLaunch({
       taskID: 'child-1',
       parentSessionID: 'parent-1',
-      agent: 'explorer',
+      agent: 'code-navigator',
       description: 'map hooks again',
     });
 
@@ -574,7 +577,7 @@ describe('task-session-manager hook', () => {
     board.registerLaunch({
       taskID: 'child-1',
       parentSessionID: 'parent-1',
-      agent: 'explorer',
+      agent: 'code-navigator',
       description: 'map hooks',
     });
 
@@ -584,7 +587,7 @@ describe('task-session-manager hook', () => {
         {
           info: {
             role: 'user',
-            agent: 'orchestrator',
+            agent: 'boss',
             sessionID: 'parent-1',
             id: 'msg-1',
           },
@@ -618,7 +621,7 @@ describe('task-session-manager hook', () => {
     board.registerLaunch({
       taskID: 'child-1',
       parentSessionID: 'parent-1',
-      agent: 'explorer',
+      agent: 'code-navigator',
       description: 'map hooks again',
     });
 
@@ -633,7 +636,7 @@ describe('task-session-manager hook', () => {
         {
           info: {
             role: 'user',
-            agent: 'orchestrator',
+            agent: 'boss',
             sessionID: 'parent-1',
             id: 'msg-2',
           },
@@ -673,7 +676,7 @@ describe('task-session-manager hook', () => {
     board.registerLaunch({
       taskID: 'child-1',
       parentSessionID: 'parent-1',
-      agent: 'explorer',
+      agent: 'code-navigator',
       description: 'map hooks',
     });
 
@@ -695,7 +698,7 @@ describe('task-session-manager hook', () => {
     const firstMessages = {
       messages: [
         {
-          info: { role: 'user', agent: 'orchestrator', sessionID: 'parent-1' },
+          info: { role: 'user', agent: 'boss', sessionID: 'parent-1' },
           parts: [completionPart],
         },
       ],
@@ -713,7 +716,7 @@ describe('task-session-manager hook', () => {
     board.registerLaunch({
       taskID: 'child-1',
       parentSessionID: 'parent-1',
-      agent: 'explorer',
+      agent: 'code-navigator',
       description: 'map hooks again',
     });
 
@@ -729,13 +732,13 @@ describe('task-session-manager hook', () => {
         {
           info: {
             role: 'assistant',
-            agent: 'orchestrator',
+            agent: 'boss',
             sessionID: 'parent-1',
           },
           parts: [{ type: 'text', text: 'some other message' }],
         }, // New message at index 0
         {
-          info: { role: 'user', agent: 'orchestrator', sessionID: 'parent-1' },
+          info: { role: 'user', agent: 'boss', sessionID: 'parent-1' },
           parts: [completionPart], // Same completion now at index 1
         },
       ],
@@ -758,7 +761,7 @@ describe('task-session-manager hook', () => {
     board.registerLaunch({
       taskID: 'child-1',
       parentSessionID: 'parent-1',
-      agent: 'explorer',
+      agent: 'code-navigator',
       description: 'map hooks',
     });
 
@@ -766,7 +769,7 @@ describe('task-session-manager hook', () => {
     const messages = {
       messages: [
         {
-          info: { role: 'user', agent: 'orchestrator', sessionID: 'parent-1' },
+          info: { role: 'user', agent: 'boss', sessionID: 'parent-1' },
           parts: [
             {
               type: 'text',
@@ -801,7 +804,7 @@ describe('task-session-manager hook', () => {
     board.registerLaunch({
       taskID: 'child-1',
       parentSessionID: 'parent-1',
-      agent: 'explorer',
+      agent: 'code-navigator',
       description: 'map hooks',
     });
 
@@ -809,7 +812,7 @@ describe('task-session-manager hook', () => {
     const messages = {
       messages: [
         {
-          info: { role: 'user', agent: 'orchestrator', sessionID: 'parent-1' },
+          info: { role: 'user', agent: 'boss', sessionID: 'parent-1' },
           parts: [
             {
               type: 'text',
@@ -843,7 +846,7 @@ describe('task-session-manager hook', () => {
     board.registerLaunch({
       taskID: 'child-1',
       parentSessionID: 'parent-1',
-      agent: 'explorer',
+      agent: 'code-navigator',
       description: 'map hooks',
     });
 
@@ -851,7 +854,7 @@ describe('task-session-manager hook', () => {
     const messages = {
       messages: [
         {
-          info: { role: 'user', agent: 'orchestrator', sessionID: 'parent-1' },
+          info: { role: 'user', agent: 'boss', sessionID: 'parent-1' },
           parts: [
             {
               type: 'text',
@@ -885,7 +888,7 @@ describe('task-session-manager hook', () => {
     board.registerLaunch({
       taskID: 'child-1',
       parentSessionID: 'parent-1',
-      agent: 'explorer',
+      agent: 'code-navigator',
       description: 'map hooks',
     });
 
@@ -893,7 +896,7 @@ describe('task-session-manager hook', () => {
     const messages = {
       messages: [
         {
-          info: { role: 'user', agent: 'orchestrator', sessionID: 'parent-1' },
+          info: { role: 'user', agent: 'boss', sessionID: 'parent-1' },
           parts: [
             {
               type: 'text',
@@ -927,14 +930,14 @@ describe('task-session-manager hook', () => {
     board.registerLaunch({
       taskID: 'child-1',
       parentSessionID: 'parent-1',
-      agent: 'explorer',
+      agent: 'code-navigator',
       description: 'map hooks',
     });
 
     const messages = {
       messages: [
         {
-          info: { role: 'user', agent: 'orchestrator', sessionID: 'parent-1' },
+          info: { role: 'user', agent: 'boss', sessionID: 'parent-1' },
           parts: [
             {
               type: 'text',
@@ -969,14 +972,14 @@ describe('task-session-manager hook', () => {
     board.registerLaunch({
       taskID: 'child-1',
       parentSessionID: 'parent-1',
-      agent: 'explorer',
+      agent: 'code-navigator',
       description: 'map hooks',
     });
 
     const messages = {
       messages: [
         {
-          info: { role: 'user', agent: 'orchestrator', sessionID: 'parent-1' },
+          info: { role: 'user', agent: 'boss', sessionID: 'parent-1' },
           parts: [
             {
               type: 'text',
@@ -1011,7 +1014,7 @@ describe('task-session-manager hook', () => {
     board.registerLaunch({
       taskID: 'child-1',
       parentSessionID: 'parent-1',
-      agent: 'oracle',
+      agent: 'architector',
       description: 'cancelled review',
     });
     board.markCancelled('child-1', 'user requested');
@@ -1020,7 +1023,7 @@ describe('task-session-manager hook', () => {
     const messages = {
       messages: [
         {
-          info: { role: 'user', agent: 'orchestrator', sessionID: 'parent-1' },
+          info: { role: 'user', agent: 'boss', sessionID: 'parent-1' },
           parts: [
             {
               type: 'text',
@@ -1062,7 +1065,7 @@ describe('task-session-manager hook', () => {
     board.registerLaunch({
       taskID: 'child-1',
       parentSessionID: 'parent-1',
-      agent: 'oracle',
+      agent: 'architector',
       description: 'cancelled review',
     });
     board.markCancelled('child-1', 'user requested');
@@ -1070,7 +1073,9 @@ describe('task-session-manager hook', () => {
 
     await hook['tool.execute.before'](
       { tool: 'task', sessionID: 'parent-1', callID: 'call-2' },
-      { args: { subagent_type: 'oracle', description: 'cancelled review' } },
+      {
+        args: { subagent_type: 'architector', description: 'cancelled review' },
+      },
     );
 
     const output = {
@@ -1107,7 +1112,7 @@ describe('task-session-manager hook', () => {
     board.registerLaunch({
       taskID: 'child-1',
       parentSessionID: 'parent-1',
-      agent: 'oracle',
+      agent: 'architector',
       description: 'review plan',
     });
     board.updateStatus({
@@ -1119,7 +1124,7 @@ describe('task-session-manager hook', () => {
     const messages = createMessages('parent-1', 'continue');
     await hook['experimental.chat.messages.transform']({}, messages);
     expect(messages.messages[0].parts[0].text).toContain(
-      'ora-1 / child-1 / oracle / completed, unreconciled',
+      'arc-1 / child-1 / architector / completed, unreconciled',
     );
 
     await hook.event({
@@ -1148,7 +1153,7 @@ describe('task-session-manager hook', () => {
     board.registerLaunch({
       taskID: 'child-1',
       parentSessionID: 'parent-1',
-      agent: 'explorer',
+      agent: 'code-navigator',
       description: 'read internals',
     });
     board.updateStatus({ taskID: 'child-1', state: 'cancelled' });
@@ -1175,7 +1180,7 @@ describe('task-session-manager hook', () => {
     board.registerLaunch({
       taskID: 'child-1',
       parentSessionID: 'parent-1',
-      agent: 'oracle',
+      agent: 'architector',
       description: 'review plan',
     });
     board.updateStatus({ taskID: 'child-1', state: 'completed' });
@@ -1200,7 +1205,7 @@ describe('task-session-manager hook', () => {
     board.registerLaunch({
       taskID: 'child-1',
       parentSessionID: 'parent-1',
-      agent: 'oracle',
+      agent: 'architector',
       description: 'review plan',
     });
     board.updateStatus({ taskID: 'child-1', state: 'completed' });
@@ -1237,7 +1242,7 @@ describe('task-session-manager hook', () => {
     board.registerLaunch({
       taskID: 'child-1',
       parentSessionID: 'parent-1',
-      agent: 'explorer',
+      agent: 'code-navigator',
       description: 'map config schema',
     });
     board.updateStatus({
@@ -1261,7 +1266,7 @@ describe('task-session-manager hook', () => {
       '#### Reusable Sessions',
     );
     expect(nextMessages.messages[0].parts[0].text).toContain(
-      'exp-1 / child-1 / explorer / completed, reconciled',
+      'nav-1 / child-1 / code-navigator / completed, reconciled',
     );
     expect(nextMessages.messages[0].parts[0].text).not.toContain(
       ['<resumable', '_sessions>'].join(''),
@@ -1272,9 +1277,9 @@ describe('task-session-manager hook', () => {
 
     const resume = {
       args: {
-        subagent_type: 'explorer',
+        subagent_type: 'code-navigator',
         description: 'continue config schema',
-        task_id: 'exp-1',
+        task_id: 'nav-1',
       },
     };
     await hook['tool.execute.before'](
@@ -1291,21 +1296,21 @@ describe('task-session-manager hook', () => {
     board.registerLaunch({
       taskID: 'done-1',
       parentSessionID: 'parent-1',
-      agent: 'oracle',
+      agent: 'architector',
       description: 'review plan',
     });
     board.updateStatus({ taskID: 'done-1', state: 'completed' });
     board.registerLaunch({
       taskID: 'err-1',
       parentSessionID: 'parent-1',
-      agent: 'oracle',
+      agent: 'architector',
       description: 'bad review',
     });
     board.updateStatus({ taskID: 'err-1', state: 'error' });
     board.markReconciled('err-1');
 
     const unreconciled = {
-      args: { subagent_type: 'oracle', task_id: 'ora-1' },
+      args: { subagent_type: 'architector', task_id: 'arc-1' },
     };
     await hook['tool.execute.before'](
       { tool: 'task', sessionID: 'parent-1', callID: 'call-1' },
@@ -1315,14 +1320,16 @@ describe('task-session-manager hook', () => {
 
     board.markReconciled('done-1');
 
-    const failed = { args: { subagent_type: 'oracle', task_id: 'ora-2' } };
+    const failed = { args: { subagent_type: 'architector', task_id: 'arc-2' } };
     await hook['tool.execute.before'](
       { tool: 'task', sessionID: 'parent-1', callID: 'call-2' },
       failed,
     );
     expect(failed.args.task_id).toBeUndefined();
 
-    const completed = { args: { subagent_type: 'oracle', task_id: 'ora-1' } };
+    const completed = {
+      args: { subagent_type: 'architector', task_id: 'arc-1' },
+    };
     await hook['tool.execute.before'](
       { tool: 'task', sessionID: 'parent-1', callID: 'call-3' },
       completed,
@@ -1332,7 +1339,7 @@ describe('task-session-manager hook', () => {
     const messages = createMessages('parent-1', 'continue');
     await hook['experimental.chat.messages.transform']({}, messages);
     expect(messages.messages[0].parts[0].text).toContain(
-      'ora-1 / done-1 / oracle / completed, reconciled',
+      'arc-1 / done-1 / architector / completed, reconciled',
     );
     expect(messages.messages[0].parts[0].text).not.toContain('err-1');
   });
@@ -1343,11 +1350,13 @@ describe('task-session-manager hook', () => {
     board.registerLaunch({
       taskID: 'child-1',
       parentSessionID: 'parent-1',
-      agent: 'explorer',
+      agent: 'code-navigator',
       description: 'map hooks',
     });
 
-    const resume = { args: { subagent_type: 'explorer', task_id: 'exp-1' } };
+    const resume = {
+      args: { subagent_type: 'code-navigator', task_id: 'nav-1' },
+    };
     await hook['tool.execute.before'](
       { tool: 'task', sessionID: 'parent-1', callID: 'resume' },
       resume,
@@ -1361,11 +1370,11 @@ describe('task-session-manager hook', () => {
     board.registerLaunch({
       taskID: 'child-1',
       parentSessionID: 'parent-1',
-      agent: 'explorer',
+      agent: 'code-navigator',
       description: 'map hooks',
     });
 
-    const resume = { args: { task_id: 'exp-1' } };
+    const resume = { args: { task_id: 'nav-1' } };
     await hook['tool.execute.before'](
       { tool: 'task', sessionID: 'parent-1', callID: 'resume' },
       resume,
@@ -1380,12 +1389,12 @@ describe('task-session-manager hook', () => {
     board.registerLaunch({
       taskID: 'child-1',
       parentSessionID: 'parent-1',
-      agent: 'explorer',
+      agent: 'code-navigator',
       description: 'map hooks',
     });
 
     const resume = {
-      args: { subagent_type: 123, task_id: 'exp-1' },
+      args: { subagent_type: 123, task_id: 'nav-1' },
     };
     await hook['tool.execute.before'](
       { tool: 'task', sessionID: 'parent-1', callID: 'resume' },
@@ -1438,13 +1447,15 @@ describe('task-session-manager hook', () => {
     board.registerLaunch({
       taskID: 'child-1',
       parentSessionID: 'parent-1',
-      agent: 'explorer',
+      agent: 'code-navigator',
       description: 'map hooks',
     });
     board.updateStatus({ taskID: 'child-1', state: 'completed' });
     board.markReconciled('child-1');
 
-    const wrongAgent = { args: { subagent_type: 'oracle', task_id: 'exp-1' } };
+    const wrongAgent = {
+      args: { subagent_type: 'architector', task_id: 'nav-1' },
+    };
     await hook['tool.execute.before'](
       { tool: 'task', sessionID: 'parent-1', callID: 'agent' },
       wrongAgent,
@@ -1458,13 +1469,15 @@ describe('task-session-manager hook', () => {
     board.registerLaunch({
       taskID: 'child-1',
       parentSessionID: 'parent-1',
-      agent: 'explorer',
+      agent: 'code-navigator',
       description: 'map hooks',
     });
     board.updateStatus({ taskID: 'child-1', state: 'completed' });
     board.markReconciled('child-1');
 
-    const resume = { args: { subagent_type: 'explorer', task_id: 'exp-1' } };
+    const resume = {
+      args: { subagent_type: 'code-navigator', task_id: 'nav-1' },
+    };
     await hook['tool.execute.before'](
       { tool: 'task', sessionID: 'parent-1', callID: 'resume' },
       resume,
@@ -1477,7 +1490,7 @@ describe('task-session-manager hook', () => {
     const messages = createMessages('parent-1', 'continue');
     await hook['experimental.chat.messages.transform']({}, messages);
     expect(messages.messages[0].parts[0].text).toContain(
-      'exp-1 / child-1 / explorer / running',
+      'nav-1 / child-1 / code-navigator / running',
     );
     expect(messages.messages[0].parts[0].text).toContain(
       '#### Reusable Sessions\n- none',
@@ -1488,7 +1501,9 @@ describe('task-session-manager hook', () => {
     const { hook } = createHook();
     await hook['tool.execute.before'](
       { tool: 'task', sessionID: 'parent-1', callID: 'call-1' },
-      { args: { subagent_type: 'explorer', description: 'legacy output' } },
+      {
+        args: { subagent_type: 'code-navigator', description: 'legacy output' },
+      },
     );
     await hook['tool.execute.after'](
       { tool: 'task', sessionID: 'parent-1', callID: 'call-1' },
@@ -1504,7 +1519,7 @@ describe('task-session-manager hook', () => {
     const { hook } = createHook();
     await hook['tool.execute.before'](
       { tool: 'task', sessionID: 'parent-1', callID: 'call-1' },
-      { args: { subagent_type: 'fixer', description: 'reuse probe' } },
+      { args: { subagent_type: 'coder', description: 'reuse probe' } },
     );
     await hook['tool.execute.after'](
       { tool: 'task', sessionID: 'parent-1', callID: 'call-1' },
@@ -1522,7 +1537,7 @@ describe('task-session-manager hook', () => {
     const unreconciled = createMessages('parent-1', 'continue');
     await hook['experimental.chat.messages.transform']({}, unreconciled);
     expect(unreconciled.messages[0].parts[0].text).toContain(
-      'fix-1 / ses_child / fixer / completed, unreconciled',
+      'cod-1 / ses_child / coder / completed, unreconciled',
     );
 
     await hook.event({
@@ -1535,10 +1550,10 @@ describe('task-session-manager hook', () => {
     const reusable = createMessages('parent-1', 'reuse');
     await hook['experimental.chat.messages.transform']({}, reusable);
     expect(reusable.messages[0].parts[0].text).toContain(
-      'fix-1 / ses_child / fixer / completed, reconciled',
+      'cod-1 / ses_child / coder / completed, reconciled',
     );
 
-    const resume = { args: { subagent_type: 'fixer', task_id: 'fix-1' } };
+    const resume = { args: { subagent_type: 'coder', task_id: 'cod-1' } };
     await hook['tool.execute.before'](
       { tool: 'task', sessionID: 'parent-1', callID: 'resume-1' },
       resume,
@@ -1551,7 +1566,7 @@ describe('task-session-manager hook', () => {
     const { hook } = createHook({ backgroundJobBoard: board });
     await hook['tool.execute.before'](
       { tool: 'task', sessionID: 'parent-1', callID: 'call-1' },
-      { args: { subagent_type: 'fixer', description: 'reuse probe' } },
+      { args: { subagent_type: 'coder', description: 'reuse probe' } },
     );
     await hook['tool.execute.after'](
       { tool: 'task', sessionID: 'parent-1', callID: 'call-1' },
@@ -1583,7 +1598,7 @@ describe('task-session-manager hook', () => {
   test('preserves explicit raw session ids when reusable board misses', async () => {
     const { hook } = createHook();
     const resume = {
-      args: { subagent_type: 'fixer', task_id: 'ses_existing' },
+      args: { subagent_type: 'coder', task_id: 'ses_existing' },
     };
 
     await hook['tool.execute.before'](
@@ -1596,7 +1611,7 @@ describe('task-session-manager hook', () => {
 
   test('still drops unknown reusable aliases', async () => {
     const { hook } = createHook();
-    const resume = { args: { subagent_type: 'fixer', task_id: 'fix-99' } };
+    const resume = { args: { subagent_type: 'coder', task_id: 'fix-99' } };
 
     await hook['tool.execute.before'](
       { tool: 'task', sessionID: 'parent-1', callID: 'resume-1' },
@@ -1640,7 +1655,9 @@ describe('task-session-manager hook', () => {
     }
     await hook['tool.execute.before'](
       { tool: 'task', sessionID: 'parent-1', callID: 'call-1' },
-      { args: { subagent_type: 'explorer', description: 'context caps' } },
+      {
+        args: { subagent_type: 'code-navigator', description: 'context caps' },
+      },
     );
     await hook['tool.execute.after'](
       { tool: 'task', sessionID: 'parent-1', callID: 'call-1' },
@@ -1648,7 +1665,9 @@ describe('task-session-manager hook', () => {
     );
     await hook['tool.execute.before'](
       { tool: 'task', sessionID: 'parent-1', callID: 'status-1' },
-      { args: { subagent_type: 'explorer', description: 'context caps' } },
+      {
+        args: { subagent_type: 'code-navigator', description: 'context caps' },
+      },
     );
     await hook['tool.execute.after'](
       { tool: 'task', sessionID: 'parent-1', callID: 'status-1' },
@@ -1677,7 +1696,7 @@ describe('task-session-manager hook', () => {
       board.registerLaunch({
         taskID: `done-${index}`,
         parentSessionID: 'parent-1',
-        agent: 'explorer',
+        agent: 'code-navigator',
         description: `done ${index}`,
         now: index,
       });
@@ -1691,7 +1710,7 @@ describe('task-session-manager hook', () => {
     board.registerLaunch({
       taskID: 'running-1',
       parentSessionID: 'parent-1',
-      agent: 'explorer',
+      agent: 'code-navigator',
       description: 'active',
       now: 4,
     });
@@ -1707,7 +1726,7 @@ describe('task-session-manager hook', () => {
     expect('experimental.chat.system.transform' in hook).toBe(false);
   });
 
-  test('ignores sessions that are not orchestrator-managed', async () => {
+  test('ignores sessions that are not boss-managed', async () => {
     const { hook } = createHook({ shouldManageSession: () => false });
 
     await hook['tool.execute.before'](
@@ -1718,7 +1737,7 @@ describe('task-session-manager hook', () => {
       },
       {
         args: {
-          subagent_type: 'explorer',
+          subagent_type: 'code-navigator',
           description: 'config schema',
         },
       },
@@ -1753,7 +1772,7 @@ describe('task-session-manager hook', () => {
       },
       {
         args: {
-          subagent_type: 'oracle',
+          subagent_type: 'architector',
           description: 'architecture review',
         },
       },
@@ -1794,7 +1813,7 @@ describe('task-session-manager hook', () => {
       },
       {
         args: {
-          subagent_type: 'oracle',
+          subagent_type: 'architector',
           description: 'architecture review',
         },
       },
@@ -1831,7 +1850,7 @@ describe('task-session-manager hook', () => {
     board.registerLaunch({
       taskID: 'child-1',
       parentSessionID: 'parent-1',
-      agent: 'fixer',
+      agent: 'coder',
       description: 'fix bug',
     });
     expect(board.get('child-1')).toMatchObject({ state: 'running' });
@@ -1856,7 +1875,7 @@ describe('task-session-manager hook', () => {
     board.registerLaunch({
       taskID: 'child-1',
       parentSessionID: 'parent-1',
-      agent: 'fixer',
+      agent: 'coder',
       description: 'fix bug',
     });
     board.updateStatus({ taskID: 'child-1', state: 'completed' });
@@ -1879,7 +1898,7 @@ describe('task-session-manager hook', () => {
     board.registerLaunch({
       taskID: 'child-1',
       parentSessionID: 'parent-1',
-      agent: 'fixer',
+      agent: 'coder',
       description: 'fix bug',
     });
     expect(board.get('child-1')).toMatchObject({ state: 'running' });
@@ -1903,7 +1922,7 @@ describe('task-session-manager hook', () => {
     board.registerLaunch({
       taskID: 'child-1',
       parentSessionID: 'parent-1',
-      agent: 'fixer',
+      agent: 'coder',
       description: 'fix bug',
     });
     expect(board.get('child-1')).toMatchObject({ state: 'running' });
@@ -1930,7 +1949,7 @@ describe('task-session-manager hook', () => {
     board.registerLaunch({
       taskID: 'child-1',
       parentSessionID: 'parent-1',
-      agent: 'fixer',
+      agent: 'coder',
       description: 'fix bug',
     });
     expect(board.get('child-1')).toMatchObject({
@@ -1979,7 +1998,7 @@ describe('task-session-manager hook', () => {
     board.registerLaunch({
       taskID: 'child-1',
       parentSessionID: 'parent-1',
-      agent: 'fixer',
+      agent: 'coder',
       description: 'fix bug',
     });
     board.markCancelled('child-1', 'explicit cancel');
@@ -2004,7 +2023,7 @@ describe('task-session-manager hook', () => {
     board.registerLaunch({
       taskID: 'child-1',
       parentSessionID: 'parent-1',
-      agent: 'fixer',
+      agent: 'coder',
       description: 'fix bug',
     });
     expect(board.get('child-1')).toMatchObject({ state: 'running' });
@@ -2032,12 +2051,17 @@ describe('task-session-manager hook', () => {
     const { hook } = createHook({ backgroundJobBoard: board });
     await hook['tool.execute.before'](
       { tool: 'task', sessionID: 'parent-1', callID: 'call-1' },
-      { args: { subagent_type: 'oracle', description: 'architecture review' } },
+      {
+        args: {
+          subagent_type: 'architector',
+          description: 'architecture review',
+        },
+      },
     );
     board.registerLaunch({
       taskID: 'child-1',
       parentSessionID: 'parent-1',
-      agent: 'oracle',
+      agent: 'architector',
       description: 'architecture review',
     });
 

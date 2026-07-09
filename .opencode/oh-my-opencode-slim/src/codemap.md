@@ -98,7 +98,7 @@ Key event flows:
 
 4. **Chat Integration**:
    - `chat.message` → track session → agent mapping
-   - `experimental.chat.system.transform` → inject orchestrator prompt for serve mode
+   - `experimental.chat.system.transform` → inject boss prompt for serve mode
    - `experimental.chat.messages.transform` → phase reminders, skill filtering, image attachment processing
 
 5. **Command Execution**:

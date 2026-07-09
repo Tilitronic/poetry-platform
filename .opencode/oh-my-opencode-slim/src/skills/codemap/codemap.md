@@ -3,7 +3,7 @@
 ## Responsibility
 
 - Provide a command-style skill package that standardizes repository mapping workflows for unfamiliar codebases.
-- Define the task contract used by Orchestrator/fixer agents via `SKILL.md` and operational guidance via `README.md`.
+- Define the task contract used by Orchestrator/coder agents via `SKILL.md` and operational guidance via `README.md`.
 - Generate and evolve change-aware codemap state artifacts (`.slim/codemap.json`) and scaffold placeholders (`codemap.md`).
 
 ## Design
@@ -25,7 +25,7 @@
   1) `.slim/codemap.json` via `saveState()`
   2) one `codemap.md` per discovered folder via `createEmptyCodemap()`.
 - `cmdChanges()` reloads state (`loadState()` + `migrateLegacyState()`), recomputes current hashes, emits added/removed/modified diffs and affected folder list, and exits non-zero if state is absent.
-- `cmdUpdate()` recomputes full state from existing metadata and persists it, used after targeted fixers finish updates.
+- `cmdUpdate()` recomputes full state from existing metadata and persists it, used after targeted coders finish updates.
 - `codemap` skill invocation path in SKILL workflow is explicit: Step 1 checks `.slim/codemap.json` or `.slim/cartography.json`, then Step 2/3 selects init or incremental path.
 
 ## Integration

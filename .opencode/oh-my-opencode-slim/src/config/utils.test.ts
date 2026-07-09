@@ -23,7 +23,7 @@ describe('getAgentOverride', () => {
       },
     } as PluginConfig;
 
-    const override = getAgentOverride(config, 'explorer');
+    const override = getAgentOverride(config, 'code-navigator');
 
     expect(override).toBeDefined();
     expect(override?.model).toBe('openai/gpt-5.4-mini');
@@ -32,7 +32,7 @@ describe('getAgentOverride', () => {
   test('returns undefined when no override exists', () => {
     const config = {
       agents: {
-        explorer: { model: 'openai/gpt-5.4-mini' },
+        'code-navigator': { model: 'openai/gpt-5.4-mini' },
       },
     } as PluginConfig;
 
@@ -44,7 +44,7 @@ describe('getCustomAgentNames', () => {
   test('returns only unknown non-alias agent keys', () => {
     const config = {
       agents: {
-        explorer: { model: 'openai/gpt-5.4-mini' },
+        'code-navigator': { model: 'openai/gpt-5.4-mini' },
         explore: { model: 'openai/gpt-5.4-mini' },
         janitor: { model: 'openai/gpt-5.4-mini' },
       },
@@ -56,8 +56,8 @@ describe('getCustomAgentNames', () => {
   test('returns an empty list when no custom agents exist', () => {
     const config = {
       agents: {
-        explorer: { model: 'openai/gpt-5.4-mini' },
-        oracle: { model: 'openai/gpt-5.5' },
+        'code-navigator': { model: 'openai/gpt-5.4-mini' },
+        architector: { model: 'openai/gpt-5.5' },
       },
     } as PluginConfig;
 

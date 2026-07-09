@@ -31,7 +31,7 @@ This is the exact configuration the author runs day-to-day.
           "!websearch"
         ]
       },
-      "oracle": {
+      "architector": {
         "model": "openai/gpt-5.5-fast",
         "variant": "high",
         "skills": [
@@ -45,7 +45,7 @@ This is the exact configuration the author runs day-to-day.
           "crawl4ai"
         ]
       },
-      "librarian": {
+      "researcher": {
         "model": "openai/gpt-5.3-codex-spark",
         "variant": "low",
         "skills": [
@@ -59,7 +59,7 @@ This is the exact configuration the author runs day-to-day.
           "crawl4ai"
         ]
       },
-      "explorer": {
+      "code-navigator": {
         "model": "openai/gpt-5.3-codex-spark",
         "variant": "low",
         "skills": [],
@@ -83,7 +83,7 @@ This is the exact configuration the author runs day-to-day.
           "codegraph"
         ]
       },
-      "fixer": {
+      "coder": {
         "model": "omniroute/antigravity/gemini-3-flash-agent",
         "variant": "low",
         "skills": [

@@ -456,9 +456,7 @@ describe('config-io', () => {
     expect(saved.preset).toBe('opencode-go');
     expect(saved.disabled_agents).toEqual([]);
     expect(saved.presets.openai).toBeDefined();
-    expect(saved.presets['opencode-go'].orchestrator.model).toBe(
-      'opencode-go/glm-5.2',
-    );
+    expect(saved.presets['opencode-go'].boss.model).toBe('opencode-go/glm-5.2');
     expect(saved.presets['opencode-go'].observer.model).toBe(
       'opencode-go/kimi-k2.6',
     );
@@ -561,9 +559,9 @@ describe('config-io', () => {
         presets: {
           openai: {
             orchestrator: { model: 'openai/gpt-4' },
-            oracle: { model: 'anthropic/claude-opus-4-6' },
-            explorer: { model: 'github-copilot/grok-code-fast-1' },
-            librarian: { model: 'zai-coding-plan/glm-4.7' },
+            architector: { model: 'anthropic/claude-opus-4-6' },
+            'code-navigator': { model: 'github-copilot/grok-code-fast-1' },
+            researcher: { model: 'zai-coding-plan/glm-4.7' },
           },
         },
         tmux: { enabled: true },

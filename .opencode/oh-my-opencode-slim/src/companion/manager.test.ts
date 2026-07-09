@@ -79,15 +79,15 @@ describe('CompanionManager', () => {
     expect(state.sessions[0].pid).toBe(process.pid);
   });
 
-  it('shows orchestrator while orchestrator is busy with no specialists', () => {
+  it('shows boss while boss is busy with no specialists', () => {
     const m = make();
     m.onLoad();
     m.onSessionStatus({
       sessionId: 'ses_orch',
-      agent: 'orchestrator',
+      agent: 'boss',
       status: 'busy',
     });
-    expect(readState().sessions[0].active_agents).toEqual(['orchestrator']);
+    expect(readState().sessions[0].active_agents).toEqual(['boss']);
     expect(readState().sessions[0].status).toBe('busy');
   });
 
@@ -96,11 +96,15 @@ describe('CompanionManager', () => {
     m.onLoad();
     m.onSessionStatus({
       sessionId: 'ses_orch',
-      agent: 'orchestrator',
+      agent: 'boss',
       status: 'busy',
     });
-    m.onSessionStatus({ sessionId: 'ses_a', agent: 'oracle', status: 'busy' });
-    expect(readState().sessions[0].active_agents).toEqual(['oracle']);
+    m.onSessionStatus({
+      sessionId: 'ses_a',
+      agent: 'architector',
+      status: 'busy',
+    });
+    expect(readState().sessions[0].active_agents).toEqual(['architector']);
   });
 
   it('shows all concurrently busy specialists', () => {
@@ -108,20 +112,20 @@ describe('CompanionManager', () => {
     m.onLoad();
     m.onSessionStatus({
       sessionId: 'ses_a',
-      agent: 'explorer',
+      agent: 'code-navigator',
       status: 'busy',
     });
-    m.onSessionStatus({ sessionId: 'ses_b', agent: 'fixer', status: 'busy' });
+    m.onSessionStatus({ sessionId: 'ses_b', agent: 'coder', status: 'busy' });
     m.onSessionStatus({
       sessionId: 'ses_c',
-      agent: 'librarian',
+      agent: 'researcher',
       status: 'busy',
     });
     const agents = readState().sessions[0].active_agents;
     expect(agents).toHaveLength(3);
-    expect(agents).toContain('explorer');
-    expect(agents).toContain('fixer');
-    expect(agents).toContain('librarian');
+    expect(agents).toContain('code-navigator');
+    expect(agents).toContain('coder');
+    expect(agents).toContain('researcher');
   });
 
   it('removes a specialist when its session goes idle', () => {
@@ -129,55 +133,63 @@ describe('CompanionManager', () => {
     m.onLoad();
     m.onSessionStatus({
       sessionId: 'ses_orch',
-      agent: 'orchestrator',
+      agent: 'boss',
       status: 'busy',
     });
     m.onSessionStatus({
       sessionId: 'ses_a',
-      agent: 'explorer',
+      agent: 'code-navigator',
       status: 'busy',
     });
-    m.onSessionStatus({ sessionId: 'ses_b', agent: 'fixer', status: 'busy' });
+    m.onSessionStatus({ sessionId: 'ses_b', agent: 'coder', status: 'busy' });
     m.onSessionStatus({
       sessionId: 'ses_a',
-      agent: 'explorer',
+      agent: 'code-navigator',
       status: 'idle',
     });
-    expect(readState().sessions[0].active_agents).toEqual(['fixer']);
+    expect(readState().sessions[0].active_agents).toEqual(['coder']);
   });
 
-  it('falls back to orchestrator when last specialist finishes but orchestrator still busy', () => {
+  it('falls back to boss when last specialist finishes but boss still busy', () => {
     const m = make();
     m.onLoad();
     m.onSessionStatus({
       sessionId: 'ses_orch',
-      agent: 'orchestrator',
+      agent: 'boss',
       status: 'busy',
     });
-    m.onSessionStatus({ sessionId: 'ses_a', agent: 'oracle', status: 'busy' });
-    m.onSessionStatus({ sessionId: 'ses_a', agent: 'oracle', status: 'idle' });
-    expect(readState().sessions[0].active_agents).toEqual(['orchestrator']);
+    m.onSessionStatus({
+      sessionId: 'ses_a',
+      agent: 'architector',
+      status: 'busy',
+    });
+    m.onSessionStatus({
+      sessionId: 'ses_a',
+      agent: 'architector',
+      status: 'idle',
+    });
+    expect(readState().sessions[0].active_agents).toEqual(['boss']);
   });
 
-  it('keeps background specialists visible when orchestrator goes idle', () => {
-    // Background orchestration: orchestrator dispatches and idles while the
+  it('keeps background specialists visible when boss goes idle', () => {
+    // Background orchestration: boss dispatches and idles while the
     // specialist keeps running in its own session.
     const m = make();
     m.onLoad();
     m.onSessionStatus({
       sessionId: 'ses_orch',
-      agent: 'orchestrator',
+      agent: 'boss',
       status: 'busy',
     });
-    m.onSessionStatus({ sessionId: 'ses_a', agent: 'fixer', status: 'busy' });
+    m.onSessionStatus({ sessionId: 'ses_a', agent: 'coder', status: 'busy' });
     m.onSessionStatus({
       sessionId: 'ses_orch',
-      agent: 'orchestrator',
+      agent: 'boss',
       status: 'idle',
     });
-    expect(readState().sessions[0].active_agents).toEqual(['fixer']);
+    expect(readState().sessions[0].active_agents).toEqual(['coder']);
     // Specialist finishes afterwards → back to intro
-    m.onSessionStatus({ sessionId: 'ses_a', agent: 'fixer', status: 'idle' });
+    m.onSessionStatus({ sessionId: 'ses_a', agent: 'coder', status: 'idle' });
     expect(readState().sessions[0].active_agents).toEqual(['intro']);
     expect(readState().sessions[0].status).toBe('idle');
   });
@@ -185,7 +197,11 @@ describe('CompanionManager', () => {
   it('removes a finished specialist even when its agent name is unknown', () => {
     const m = make();
     m.onLoad();
-    m.onSessionStatus({ sessionId: 'ses_a', agent: 'oracle', status: 'busy' });
+    m.onSessionStatus({
+      sessionId: 'ses_a',
+      agent: 'architector',
+      status: 'busy',
+    });
     m.onSessionStatus({ sessionId: 'ses_a', agent: undefined, status: 'idle' });
     expect(readState().sessions[0].active_agents).toEqual(['intro']);
   });
@@ -195,7 +211,7 @@ describe('CompanionManager', () => {
     m.onLoad();
     m.onSessionStatus({
       sessionId: 'ses_a',
-      agent: 'explorer',
+      agent: 'code-navigator',
       status: 'busy',
     });
     m.onSessionDeleted('ses_a');
@@ -206,7 +222,7 @@ describe('CompanionManager', () => {
     const m = make();
     m.onLoad();
     m.onSessionStatus({ sessionId: 'ses_x', agent: undefined, status: 'busy' });
-    m.onSessionStatus({ sessionId: 'ses_y', agent: 'fixer', status: 'retry' });
+    m.onSessionStatus({ sessionId: 'ses_y', agent: 'coder', status: 'retry' });
     expect(readState().sessions[0].active_agents).toEqual(['intro']);
   });
 
@@ -237,9 +253,9 @@ describe('CompanionManager', () => {
   it('deduplicates by session, not by agent type', () => {
     const m = make();
     m.onLoad();
-    m.onSessionStatus({ sessionId: 'ses_a', agent: 'fixer', status: 'busy' });
-    m.onSessionStatus({ sessionId: 'ses_b', agent: 'fixer', status: 'busy' });
-    expect(readState().sessions[0].active_agents).toEqual(['fixer', 'fixer']);
+    m.onSessionStatus({ sessionId: 'ses_a', agent: 'coder', status: 'busy' });
+    m.onSessionStatus({ sessionId: 'ses_b', agent: 'coder', status: 'busy' });
+    expect(readState().sessions[0].active_agents).toEqual(['coder', 'coder']);
   });
 
   it('keeps at most one process exit listener across reloads', () => {
@@ -319,7 +335,7 @@ describe('CompanionManager', () => {
     });
     b.onSessionStatus({
       sessionId: 'ses_2',
-      agent: 'librarian',
+      agent: 'researcher',
       status: 'busy',
     });
     const state = readState();
@@ -330,7 +346,7 @@ describe('CompanionManager', () => {
       (s: { session_id: string }) => s.session_id === 'b',
     );
     expect(sa.active_agents).toEqual(['designer']);
-    expect(sb.active_agents).toEqual(['librarian']);
+    expect(sb.active_agents).toEqual(['researcher']);
   });
 
   it('is disabled by default and does not write state', () => {
@@ -407,7 +423,7 @@ describe('CompanionManager', () => {
     m.onLoad();
     m.onSessionStatus({
       sessionId: 'ses_a',
-      agent: 'explorer',
+      agent: 'code-navigator',
       status: 'busy',
     });
     m.onWaitingInput();

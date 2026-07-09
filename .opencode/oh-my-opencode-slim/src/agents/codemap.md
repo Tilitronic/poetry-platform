@@ -2,7 +2,7 @@
 
 ## Responsibility
 
-Defines agent personalities (Orchestrator, Explorer, Librarian, etc.) and manages their configuration lifecycle. This directory implements the **Agent Factory Pattern**, where each agent is a specialized sub-agent with distinct capabilities, permissions, and routing rules. The Orchestrator agent (src/agents/index.ts) coordinates task delegation to these specialists.
+Defines agent personalities (Orchestrator, CodeNavigator, Researcher, etc.) and manages their configuration lifecycle. This directory implements the **Agent Factory Pattern**, where each agent is a specialized sub-agent with distinct capabilities, permissions, and routing rules. The Orchestrator agent (src/agents/index.ts) coordinates task delegation to these specialists.
 
 ## Design
 
@@ -12,19 +12,19 @@ Each agent is a **prompt-driven specialist** with a factory function that create
 
 | Agent | Factory | Role | Permissions | Model Default |
 |-------|---------|------|-------------|---------------|
-| **orchestrator** | `createOrchestratorAgent()` | Workflow manager that delegates tasks to specialists | Primary agent with full tool access | Resolved from config or runtime preset |
-| **explorer** | `createExplorerAgent()` | Fast codebase search and pattern matching | Read-only (glob, grep, ast_grep_search) | DEFAULT_MODELS.explorer |
-| **librarian** | `createLibrarianAgent()` | External documentation and library research | Read-only (context7, gh_grep, websearch) | DEFAULT_MODELS.librarian |
-| **oracle** | `createOracleAgent()` | Strategic technical advisor and code reviewer | Read-only (read, glob, grep, ast_grep_search) | DEFAULT_MODELS.oracle |
+| **boss** | `createBossAgent()` | Workflow manager that delegates tasks to specialists | Primary agent with full tool access | Resolved from config or runtime preset |
+| **code-navigator** | `createCodeNavigatorAgent()` | Fast codebase search and pattern matching | Read-only (glob, grep, ast_grep_search) | DEFAULT_MODELS.code-navigator |
+| **researcher** | `createResearcherAgent()` | External documentation and library research | Read-only (context7, gh_grep, websearch) | DEFAULT_MODELS.researcher |
+| **architector** | `createArchitectorAgent()` | Strategic technical advisor and code reviewer | Read-only (read, glob, grep, ast_grep_search) | DEFAULT_MODELS.architector |
 | **designer** | `createDesignerAgent()` | UI/UX design, review, and implementation | Read/write (read, glob, grep, write, edit) | DEFAULT_MODELS.designer |
-| **fixer** | `createFixerAgent()` | Fast implementation specialist for bounded tasks | Read/write (read, glob, grep, write, edit) | DEFAULT_MODELS.fixer |
+| **coder** | `createCoderAgent()` | Fast implementation specialist for bounded tasks | Read/write (read, glob, grep, write, edit) | DEFAULT_MODELS.coder |
 | **observer** | `createObserverAgent()` | Visual analysis specialist (images, PDFs, diagrams) | Read-only (read, glob, grep, ast_grep_search) | DEFAULT_MODELS.observer |
 | **council** | `createCouncilAgent()` | Multi-LLM consensus engine for high-stakes decisions | Read-only + council_session tool | DEFAULT_MODELS.council |
 | **councillor** | `createCouncillorAgent()` | Read-only council advisor (internal use only) | Read-only (read, glob, grep, ast_grep_search) | Inherited from council |
 
 ### Configuration System
 
-- **Default prompts**: Each agent factory has a base prompt defined in its file (e.g., `explorer.ts`, `oracle.ts`)
+- **Default prompts**: Each agent factory has a base prompt defined in its file (e.g., `code-navigator.ts`, `architector.ts`)
 - **User overrides**: From `~/.config/opencode/oh-my-opencode-slim.json` via `loadAgentPrompt()`
 - **Permission wildcards**: Applied via `applyDefaultPermissions()` in `index.ts`
 - **Model resolution**: Supports both string models and priority-ordered arrays (`_modelArray`) for runtime fallback
@@ -58,22 +58,22 @@ const builtInSubAgents = protoSubAgents.map((agent) => {
   return agent;
 });
 
-// 3. Create Orchestrator (with its own overrides and custom prompts)
-const orchestrator = createOrchestratorAgent(
-  orchestratorModel,
-  orchestratorPrompts.prompt,
-  orchestratorPrompts.appendPrompt,
+// 3. Create Boss (with its own overrides and custom prompts)
+const boss = createBossAgent(
+  bossModel,
+  bossPrompts.prompt,
+  bossPrompts.appendPrompt,
   disabled,
 );
-applyDefaultPermissions(orchestrator, orchestratorOverride?.skills, config?.disabled_skills);
+applyDefaultPermissions(boss, bossOverride?.skills, config?.disabled_skills);
 
-// 4. Collect display names and inject into orchestrator prompt
+// 4. Collect display names and inject into boss prompt
 const displayNameMap = new Map<string, string>();
-// ... populate from orchestrator and all subagents ...
-injectDisplayNames(orchestrator, displayNameMap);
+// ... populate from boss and all subagents ...
+injectDisplayNames(boss, displayNameMap);
 
-// 5. Return agents array [orchestrator, ...allSubAgents]
-return [orchestrator, ...allSubAgents];
+// 5. Return agents array [boss, ...allSubAgents]
+return [boss, ...allSubAgents];
 ```
 
 ### Agent Configuration Export
@@ -90,7 +90,7 @@ export function getAgentConfigs(config?: PluginConfig): Record<string, SDKAgentC
       sdkConfig.hidden = true; // Internal only
     } else if (isSubagent(name)) {
       sdkConfig.mode = 'subagent';
-    } else if (name === 'orchestrator') {
+    } else if (name === 'boss') {
       sdkConfig.mode = 'primary';
     }
   };
@@ -147,35 +147,35 @@ return {
 
 ### Key Integration Points
 
-1. **Agent selection**: OpenCode selects the orchestrator as the primary agent
-2. **Task delegation**: Orchestrator uses `task()` with `subagent_type` to delegate to specialists
+1. **Agent selection**: OpenCode selects the boss as the primary agent
+2. **Task delegation**: Boss uses `task()` with `subagent_type` to delegate to specialists
 3. **Session tracking**: `sessionAgentMap` tracks which agent owns each session for TUI prompts
 4. **Model resolution**: ForegroundFallbackManager handles runtime model switching for rate limits
 5. **Permission system**: MCP permissions are injected based on agent's `mcps` list
 
-### Routing Rules (src/agents/orchestrator.ts)
+### Routing Rules (src/agents/boss.ts)
 
-The orchestrator's system prompt contains dynamic routing rules that reference agent capabilities:
+The boss's system prompt contains dynamic routing rules that reference agent capabilities:
 
-- **@explorer**: Fast codebase recon, parallel searches
-- **@librarian**: Library research, web search
-- **@oracle**: Architecture decisions, code review
+- **@code-navigator**: Fast codebase recon, parallel searches
+- **@researcher**: Library research, web search
+- **@architector**: Architecture decisions, code review
 - **@designer**: UI/UX design and polish
-- **@fixer**: Bounded implementation tasks
+- **@coder**: Bounded implementation tasks
 - **@observer**: Visual/media analysis
 - **@council**: Multi-model consensus for high-stakes decisions
 
-These rules are filtered based on disabled agents and injected into the orchestrator's prompt at startup.
+These rules are filtered based on disabled agents and injected into the boss's prompt at startup.
 
 ## File Structure
 
 - `index.ts` - Main agent factory and configuration system
-- `orchestrator.ts` - Orchestrator agent definition and prompt builder
-- `explorer.ts` - Fast codebase search specialist
-- `librarian.ts` - Documentation and library research specialist
-- `oracle.ts` - Architecture and code review specialist
+- `boss.ts` - Boss agent definition and prompt builder
+- `code-navigator.ts` - Fast codebase search specialist
+- `researcher.ts` - Documentation and library research specialist
+- `architector.ts` - Architecture and code review specialist
 - `designer.ts` - UI/UX design specialist
-- `fixer.ts` - Implementation execution specialist
+- `coder.ts` - Implementation execution specialist
 - `observer.ts` - Visual analysis specialist
 - `council.ts` - Multi-LLM council agent
 - `councillor.ts` - Read-only council advisor (internal)
@@ -187,4 +187,4 @@ These rules are filtered based on disabled agents and injected into the orchestr
 - **Strategy Pattern**: Different agents implement different strategies for different tasks
 - **Decorator Pattern**: Configuration decorators (overrides, permissions, display names) wrap agent definitions
 - **Observer Pattern**: Session tracking via `sessionAgentMap` and event handlers
-- **Chain of Responsibility**: Task delegation flows from orchestrator to specialists
+- **Chain of Responsibility**: Task delegation flows from boss to specialists

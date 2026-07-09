@@ -18,13 +18,14 @@ describe('delegate-task-retry hook', () => {
   test('appends guidance for task agent allowlist errors', async () => {
     const hook = createDelegateTaskRetryHook({} as never);
     const output = {
-      output: "Agent 'oracle' is not allowed. Allowed agents: explorer, fixer",
+      output:
+        "Agent 'architector' is not allowed. Allowed agents: code-navigator, coder",
     };
 
     await hook['tool.execute.after']({ tool: 'task' }, output);
 
     expect(output.output).toContain('background_agent_not_allowed');
-    expect(output.output).toContain('Available: explorer, fixer');
+    expect(output.output).toContain('Available: code-navigator, coder');
   });
 
   test('does nothing for unrelated tool output', async () => {

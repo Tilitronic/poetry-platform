@@ -8,7 +8,7 @@ This hook enables developers to:
 - Initiate deepwork sessions via `/deepwork <task>` command
 - Maintain `.slim/deepwork/` progress tracking files
 - Keep OpenCode todos synchronized with current phase
-- Enforce phased implementation with `@oracle` review gates
+- Enforce phased implementation with `@architector` review gates
 - Execute phases with background specialist agents where appropriate
 - Validate results and incorporate simplification/readability feedback
 
@@ -28,8 +28,8 @@ The hook follows the OpenCode plugin hook pattern, exposing a factory function `
 ### Integration Points
 - Consumes OpenCode session context (`sessionID`)
 - Integrates with OpenCode command system via `command` configuration
-- Leverages `@oracle` for review and simplification feedback
-- Supports background specialist agents (`@fixer`, `@explorer`, etc.) for phase execution
+- Leverages `@architector` for review and simplification feedback
+- Supports background specialist agents (`@coder`, `@code-navigator`, etc.) for phase execution
 
 ## Flow
 
@@ -57,12 +57,12 @@ The hook follows the OpenCode plugin hook pattern, exposing a factory function `
 1. Agent receives activation prompt with task description
 2. Agent creates `.slim/deepwork/` progress file
 3. Agent maintains OpenCode todo synchronization
-4. Agent drafts plan and requests `@oracle` review
+4. Agent drafts plan and requests `@architector` review
 5. Agent creates and reviews phased implementation/delegation plan
 6. Agent executes phases with background specialists as needed
 7. Agent waits for hook-driven background completion
 8. Agent reconciles results and validates
-9. Agent requests `@oracle` review for each phase
+9. Agent requests `@architector` review for each phase
 10. Agent incorporates simplification/readability feedback
 11. Agent fixes actionable review issues before continuing
 
@@ -71,7 +71,7 @@ The hook follows the OpenCode plugin hook pattern, exposing a factory function `
 ### Consumers
 - **Main plugin** (`src/index.ts`): Registers the deepwork hook during plugin initialization
 - **OpenCode CLI**: Invokes hook when `/deepwork` command is executed
-- **Agents** (`@oracle`, `@fixer`, `@explorer`, etc.): Follow deepwork workflow for complex tasks
+- **Agents** (`@architector`, `@coder`, `@code-navigator`, etc.): Follow deepwork workflow for complex tasks
 
 ### Dependencies
 - **OpenCode SDK**: Provides `createInternalAgentTextPart` utility and hook interface

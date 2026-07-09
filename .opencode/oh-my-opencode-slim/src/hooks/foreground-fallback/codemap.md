@@ -86,7 +86,7 @@ Log fallback event
 
 ### Configuration Schema
 Fallback chains are provided as `Record<string, string[]>` where:
-- Key: Agent name (e.g., "orchestrator", "explorer")
+- Key: Agent name (e.g., "boss", "code-navigator")
 - Value: Ordered list of model strings (e.g., `["anthropic/claude-opus-4-5", "openai/gpt-4o"]`)
 
 ### Memory Management

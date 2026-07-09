@@ -3,7 +3,7 @@
 Expose external [Agent Client Protocol](https://agentclientprotocol.com/) agents
 as optional OpenCode subagents.
 
-Use this when you want the orchestrator to delegate to software-connected tools
+Use this when you want the boss to delegate to software-connected tools
 such as Claude Code ACP, Gemini ACP, or another ACP-compatible coding agent.
 
 ## How it works
@@ -52,7 +52,7 @@ Restart OpenCode after changing config. Then call the generated agent directly:
 @claude-research investigate this bug and summarize the likely cause
 ```
 
-Or let the orchestrator delegate to it when its routing prompt matches the task.
+Or let the boss delegate to it when its routing prompt matches the task.
 
 ## Options
 
@@ -62,7 +62,7 @@ Or let the orchestrator delegate to it when its routing prompt matches the task.
 | `args` | string[] | `[]` | Arguments for the ACP command. |
 | `env` | object | `{}` | Extra environment variables for the subprocess. |
 | `cwd` | string | current session directory | Working directory override. ACP paths should be absolute. |
-| `description` | string | generated | Role text shown to OpenCode and the orchestrator. |
+| `description` | string | generated | Role text shown to OpenCode and the boss. |
 | `prompt` | string | generated | Full prompt for the wrapper subagent. Usually unnecessary. |
 | `orchestratorPrompt` | string | generated | Exact routing block injected into the orchestrator prompt. |
 | `wrapperModel` | string | fixer default | Cheap OpenCode model used by the wrapper. |

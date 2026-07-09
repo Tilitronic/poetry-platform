@@ -52,7 +52,7 @@ The Orchestrator will analyze the work, present a lane plan (with slug, path, ba
 ### `.slim/worktrees/<slug>/`
 
 Local Git worktrees are placed here, separated from your main checkout while
-sharing the same underlying Git database. Specialists such as `@fixer` or
+sharing the same underlying Git database. Specialists such as `@coder` or
 `@designer` are directed to write and run tests strictly within this path.
 
 For example, `.slim/worktrees/refactor-auth/` contains a copy of the repository files on the `omo/refactor-auth` branch.

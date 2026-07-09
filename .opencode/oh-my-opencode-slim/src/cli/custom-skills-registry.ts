@@ -20,54 +20,54 @@ export const CUSTOM_SKILLS: CustomSkill[] = [
   {
     name: 'simplify',
     description: 'Code simplification and readability-focused refactoring',
-    allowedAgents: ['oracle'],
+    allowedAgents: ['architector', 'reviewer'],
     sourcePath: 'src/skills/simplify',
   },
   {
     name: 'codemap',
     description: 'Repository understanding and hierarchical codemap generation',
-    allowedAgents: ['orchestrator'],
+    allowedAgents: ['boss'],
     sourcePath: 'src/skills/codemap',
   },
   {
     name: 'clonedeps',
     description: 'Clone important dependency source for local inspection',
-    allowedAgents: ['orchestrator'],
+    allowedAgents: ['boss'],
     sourcePath: 'src/skills/clonedeps',
   },
   {
     name: 'deepwork',
     description:
       'Heavy/complex coding sessions and large modifications workflow',
-    allowedAgents: ['orchestrator'],
+    allowedAgents: ['boss'],
     sourcePath: 'src/skills/deepwork',
   },
   {
     name: 'reflect',
     description:
       'Review repeated work and suggest reusable workflow improvements',
-    allowedAgents: ['orchestrator'],
+    allowedAgents: ['boss'],
     sourcePath: 'src/skills/reflect',
   },
   {
     name: 'oh-my-opencode-slim',
     description:
       'Configure, customize, and safely improve oh-my-opencode-slim setups',
-    allowedAgents: ['orchestrator'],
+    allowedAgents: ['boss'],
     sourcePath: 'src/skills/oh-my-opencode-slim',
   },
   {
     name: 'release-smoke-test',
     description:
       'Validate packed release candidates and bugfixes before public publish',
-    allowedAgents: ['orchestrator'],
+    allowedAgents: ['boss'],
     sourcePath: 'src/skills/release-smoke-test',
   },
   {
     name: 'worktrees',
     description:
       'Manage Git worktrees as OMO safe isolated coding lanes for complex/risky/parallel work',
-    allowedAgents: ['orchestrator'],
+    allowedAgents: ['boss'],
     sourcePath: 'src/skills/worktrees',
   },
 ];

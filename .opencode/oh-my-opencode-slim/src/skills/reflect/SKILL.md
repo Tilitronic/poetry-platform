@@ -5,7 +5,7 @@ description: Review recent work, find repeated workflow patterns, and suggest re
 
 # Reflect
 
-Reflect is an orchestrator-only workflow for learning from repeated work. It
+Reflect is a boss-only workflow for learning from repeated work. It
 looks back over recent sessions, project notes, and existing agent assets, then
 recommends the smallest useful improvement: a skill, custom agent, command,
 configuration change, prompt rule, documentation playbook, or no change.
@@ -70,7 +70,7 @@ For each session, analyze and produce a structured summary:
   ],
   "duration_minutes": 18,
   "models_used": ["opencode/mimo-v2.5-free"],
-  "agents_used": ["orchestrator", "fixer", "explorer"],
+  "agents_used": ["boss", "coder", "code-navigator"],
   "tools_used": ["Read", "Edit", "Bash"],
   "confidence": 0.85
 }
@@ -274,7 +274,7 @@ before writing files or changing config:
 Found 2 strong repeated workflows and 1 weak candidate.
 
 Recommended:
-- Add a small orchestrator prompt rule for <workflow> because <evidence>.
+- Add a small boss prompt rule for <workflow> because <evidence>.
 - Extend existing <skill> instead of creating a new one because <overlap>.
 
 Skip:

@@ -86,10 +86,10 @@ The implementation follows a layered architecture:
 
 ```typescript
 // Search for all console.log calls in TypeScript files
-@fixer search for console.log calls in TypeScript files
+@coder search for console.log calls in TypeScript files
 
 // Replace arrow functions with regular functions
-@fixer replace arrow functions with regular functions
+@coder replace arrow functions with regular functions
 ```
 
 See tool definitions in `tools.ts` for full argument schemas and examples.

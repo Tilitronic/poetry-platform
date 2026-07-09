@@ -14,8 +14,8 @@ function testDef(overrides?: Partial<LoopDefinition>): LoopDefinition {
     successCriteria: 'it works',
     success: { type: 'test', command: 'bun test' },
     maxAttempts: 3,
-    executeAgent: 'fixer',
-    verifyAgent: 'oracle',
+    executeAgent: 'coder',
+    verifyAgent: 'architector',
     ...overrides,
   };
 }

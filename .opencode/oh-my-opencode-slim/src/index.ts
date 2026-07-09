@@ -1,6 +1,6 @@
 import type { Plugin, ToolDefinition } from '@opencode-ai/plugin';
 import { createAgents, getAgentConfigs, getDisabledAgents } from './agents';
-import { buildOrchestratorPrompt } from './agents/orchestrator';
+import { buildBossPrompt } from './agents/boss';
 import { CompanionManager } from './companion/manager';
 import { ensureCompanionVersion } from './companion/updater';
 import {
@@ -251,7 +251,7 @@ const OhMyOpenCodeLite: Plugin = async (ctx) => {
         : {};
     webfetch = createWebfetchTool(ctx);
     backgroundJobBoard = new BackgroundJobBoard({
-      maxReusablePerAgent: config.backgroundJobs?.maxSessionsPerAgent ?? 2,
+      maxReusablePerAgent: config.backgroundJobs?.maxSessionsPerAgent ?? 5,
       readContextMinLines: config.backgroundJobs?.readContextMinLines ?? 10,
       readContextMaxFiles: config.backgroundJobs?.readContextMaxFiles ?? 8,
     });
@@ -284,8 +284,7 @@ const OhMyOpenCodeLite: Plugin = async (ctx) => {
 
     // Initialize post-file-tool nudge hook
     postFileToolNudgeHook = createPostFileToolNudgeHook({
-      shouldInject: (sessionID) =>
-        sessionAgentMap.get(sessionID) === 'orchestrator',
+      shouldInject: (sessionID) => sessionAgentMap.get(sessionID) === 'boss',
     });
 
     chatHeadersHook = createChatHeadersHook(ctx);
@@ -311,12 +310,12 @@ const OhMyOpenCodeLite: Plugin = async (ctx) => {
     reflectCommandHook = createReflectCommandHook();
     loopCommandHook = createLoopCommandHook();
     taskSessionManagerHook = createTaskSessionManagerHook(ctx, {
-      maxSessionsPerAgent: config.backgroundJobs?.maxSessionsPerAgent ?? 2,
+      maxSessionsPerAgent: config.backgroundJobs?.maxSessionsPerAgent ?? 5,
       readContextMinLines: config.backgroundJobs?.readContextMinLines ?? 10,
       readContextMaxFiles: config.backgroundJobs?.readContextMaxFiles ?? 8,
       backgroundJobBoard,
       shouldManageSession: (sessionID) =>
-        sessionAgentMap.get(sessionID) === 'orchestrator',
+        sessionAgentMap.get(sessionID) === 'boss',
       isFallbackInProgress: (sessionID) =>
         foregroundFallback.isFallbackInProgress(sessionID),
     });
@@ -331,7 +330,7 @@ const OhMyOpenCodeLite: Plugin = async (ctx) => {
       client: ctx.client,
       backgroundJobBoard,
       shouldManageSession: (sessionID) =>
-        sessionAgentMap.get(sessionID) === 'orchestrator',
+        sessionAgentMap.get(sessionID) === 'boss',
     });
 
     tools = {
@@ -471,8 +470,7 @@ const OhMyOpenCodeLite: Plugin = async (ctx) => {
         config.setDefaultAgent !== false &&
         !(opencodeConfig as { default_agent?: string }).default_agent
       ) {
-        (opencodeConfig as { default_agent?: string }).default_agent =
-          'orchestrator';
+        (opencodeConfig as { default_agent?: string }).default_agent = 'boss';
       }
 
       // Merge Agent configs - per-agent shallow merge to preserve
@@ -1011,7 +1009,7 @@ const OhMyOpenCodeLite: Plugin = async (ctx) => {
       }
     },
 
-    // Inject orchestrator system prompt for serve-mode sessions. In serve
+    // Inject boss system prompt for serve-mode sessions. In serve
     // mode, the agent's prompt field may be absent from the agents
     // registry (built before plugin config hooks run). This hook injects
     // it at LLM call time. Uses the already-resolved prompt from
@@ -1024,30 +1022,24 @@ const OhMyOpenCodeLite: Plugin = async (ctx) => {
       const agentName = input.sessionID
         ? sessionAgentMap.get(input.sessionID)
         : undefined;
-      if (agentName === 'orchestrator') {
+      if (agentName === 'boss') {
         const alreadyInjected = output.system.some(
-          (s) =>
-            typeof s === 'string' &&
-            s.includes('<Role>') &&
-            s.includes('orchestrator'),
+          (s) => typeof s === 'string' && s.includes('<Role>'),
         );
         if (!alreadyInjected) {
-          // Prepend the orchestrator prompt to the system array. Use the
-          // resolved prompt from the orchestrator agent definition (which
-          // includes any custom replacement or append from orchestrator.md
-          // / orchestrator_append.md) Fall back to
-          // buildOrchestratorPrompt only if the resolved prompt is
+          // Prepend the boss prompt to the system array. Use the
+          // resolved prompt from the boss agent definition (which
+          // includes any custom replacement or append from boss.md
+          // / boss_append.md) Fall back to
+          // buildBossPrompt only if the resolved prompt is
           // missing.
-          const orchestratorDef = agentDefs.find(
-            (a) => a.name === 'orchestrator',
-          );
-          const orchestratorPrompt =
-            typeof orchestratorDef?.config?.prompt === 'string'
-              ? orchestratorDef.config.prompt
-              : buildOrchestratorPrompt(disabledAgents);
+          const bossDef = agentDefs.find((a) => a.name === 'boss');
+          const bossPrompt =
+            typeof bossDef?.config?.prompt === 'string'
+              ? bossDef.config.prompt
+              : buildBossPrompt(disabledAgents);
           output.system[0] =
-            orchestratorPrompt +
-            (output.system[0] ? `\n\n${output.system[0]}` : '');
+            bossPrompt + (output.system[0] ? `\n\n${output.system[0]}` : '');
         }
       }
 
@@ -1085,10 +1077,10 @@ const OhMyOpenCodeLite: Plugin = async (ctx) => {
         }
       }
 
-      // Strip image parts from orchestrator messages when @observer is
-      // available. When the orchestrator's model doesn't support image
+      // Strip image parts from boss messages when @observer is
+      // available. When the boss's model doesn't support image
       // input, the API call fails before the LLM can respond. We replace
-      // image bytes with a text nudge so the orchestrator delegates to
+      // image bytes with a text nudge so the boss delegates to
       // @observer instead.
       processImageAttachments({
         messages: typedOutput.messages,

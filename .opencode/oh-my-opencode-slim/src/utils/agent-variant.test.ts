@@ -4,7 +4,7 @@ import { normalizeAgentName, resolveRuntimeAgentName } from './agent-variant';
 
 describe('normalizeAgentName', () => {
   test('returns name unchanged if no @ prefix', () => {
-    expect(normalizeAgentName('oracle')).toBe('oracle');
+    expect(normalizeAgentName('architector')).toBe('architector');
   });
 
   test('strips @ prefix from agent name', () => {
@@ -28,47 +28,49 @@ describe('resolveRuntimeAgentName', () => {
   test('keeps internal agent names unchanged', () => {
     const config = {
       agents: {
-        oracle: { displayName: 'advisor' },
+        architector: { displayName: 'advisor' },
       },
     } as PluginConfig;
 
-    expect(resolveRuntimeAgentName(config, 'oracle')).toBe('oracle');
+    expect(resolveRuntimeAgentName(config, 'architector')).toBe('architector');
   });
 
   test('resolves displayName to internal name', () => {
     const config = {
       agents: {
-        oracle: { displayName: 'advisor' },
+        architector: { displayName: 'advisor' },
       },
     } as PluginConfig;
 
-    expect(resolveRuntimeAgentName(config, 'advisor')).toBe('oracle');
+    expect(resolveRuntimeAgentName(config, 'advisor')).toBe('architector');
   });
 
   test('resolves displayName with @ prefix and whitespace', () => {
     const config = {
       agents: {
-        oracle: { displayName: 'advisor' },
+        architector: { displayName: 'advisor' },
       },
     } as PluginConfig;
 
-    expect(resolveRuntimeAgentName(config, '  @advisor  ')).toBe('oracle');
+    expect(resolveRuntimeAgentName(config, '  @advisor  ')).toBe('architector');
   });
 
   test('resolves displayName configured via legacy alias key', () => {
     const config = {
       agents: {
-        explore: { displayName: 'researcher' },
+        'code-navigator': { displayName: 'custom-searcher' },
       },
     } as PluginConfig;
 
-    expect(resolveRuntimeAgentName(config, 'researcher')).toBe('explorer');
+    expect(resolveRuntimeAgentName(config, 'custom-searcher')).toBe(
+      'code-navigator',
+    );
   });
 
   test('returns normalized name when no displayName match exists', () => {
     const config = {
       agents: {
-        oracle: { displayName: 'advisor' },
+        architector: { displayName: 'advisor' },
       },
     } as PluginConfig;
 

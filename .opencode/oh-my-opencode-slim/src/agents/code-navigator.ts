@@ -1,5 +1,5 @@
 import { READONLY_FILE_OPERATIONS_RULES } from '../config';
-import type { AgentDefinition } from './orchestrator';
+import type { AgentDefinition } from './boss';
 
 const EXPLORER_PROMPT = `You are Explorer - a fast codebase navigation specialist.
 
@@ -33,7 +33,7 @@ Concise answer to the question
 - Include line numbers when relevant
 `;
 
-export function createExplorerAgent(
+export function createCodeNavigatorAgent(
   model: string,
   customPrompt?: string,
   customAppendPrompt?: string,
@@ -47,7 +47,7 @@ export function createExplorerAgent(
   }
 
   return {
-    name: 'explorer',
+    name: 'code-navigator',
     description:
       "Fast codebase search and pattern matching. Use for finding files, locating code patterns, and answering 'where is X?' questions.",
     config: {

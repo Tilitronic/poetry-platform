@@ -1,5 +1,5 @@
 import { READONLY_FILE_OPERATIONS_RULES } from '../config';
-import type { AgentDefinition } from './orchestrator';
+import type { AgentDefinition } from './boss';
 
 const OBSERVER_PROMPT = `You are Observer - a visual analysis specialist.
 

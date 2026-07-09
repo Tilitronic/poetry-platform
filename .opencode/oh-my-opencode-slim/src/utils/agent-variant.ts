@@ -1,4 +1,5 @@
 import {
+  AGENT_ALIASES,
   ALL_AGENT_NAMES,
   getAgentOverride,
   getCustomAgentNames,
@@ -47,6 +48,12 @@ export function resolveRuntimeAgentName(
 
   if ((ALL_AGENT_NAMES as readonly string[]).includes(normalized)) {
     return normalized;
+  }
+
+  // Resolve old names (oracle→architector, explorer→code-navigator, etc.)
+  const aliased = AGENT_ALIASES[normalized];
+  if (aliased !== undefined) {
+    return aliased;
   }
 
   for (const internalName of getRuntimeAgentNames(config)) {

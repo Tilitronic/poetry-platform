@@ -46,10 +46,10 @@ When a `preset` is active, the plugin checks preset directories before falling b
 ```
 ~/.config/opencode/oh-my-opencode-slim/
   ├── best/
-  │   ├── orchestrator.md        # Preset-specific override (used when preset=best)
+  │   ├── boss.md        # Preset-specific override (used when preset=best)
   │   └── explorer_append.md
-  ├── orchestrator.md            # Fallback override
-  ├── orchestrator_append.md
+  ├── boss.md            # Fallback override
+  ├── boss_append.md
   ├── explorer.md
   └── ...
 ```
@@ -132,7 +132,7 @@ Presets can also be switched at runtime without restarting using the `/preset` c
 | `tmux.enabled` | boolean | `false` | Legacy alias for `multiplexer.type = "tmux"` |
 | `tmux.layout` | string | `"main-vertical"` | Legacy alias for `multiplexer.layout` |
 | `tmux.main_pane_size` | number | `60` | Legacy alias for `multiplexer.main_pane_size` |
-| `backgroundJobs.maxSessionsPerAgent` | integer | `2` | Maximum completed/reconciled reusable child sessions per specialist type in the current orchestrator session (1–10). See [Session Management](session-management.md) |
+| `backgroundJobs.maxSessionsPerAgent` | integer | `5` | Maximum completed/reconciled reusable child sessions per specialist type in the current orchestrator session (1–10). See [Session Management](session-management.md) |
 | `backgroundJobs.readContextMinLines` | integer | `10` | Minimum number of lines read from a file before it appears in reusable background-job context (0–1000) |
 | `backgroundJobs.readContextMaxFiles` | integer | `8` | Maximum number of recent read-context files shown per reusable child session (0–50) |
 | `disabled_mcps` | string[] | `[]` | MCP server IDs to disable globally |
@@ -203,7 +203,7 @@ and troubleshooting.
 }
 ```
 
-After restart, the orchestrator can delegate to `@claude-research` or
+After restart, the boss can delegate to `@claude-research` or
 `@gemini-acp`. Use safe names matching `^[a-z][a-z0-9_-]*$`; names cannot
 conflict with built-in or custom agents. `permissionMode` controls ACP
 permission requests, but the plugin still asks before launching the configured
@@ -281,7 +281,7 @@ Notes:
 
 Unknown keys under `agents` are treated as custom subagents. A custom agent needs
 its own `model`, a normal `prompt`, and optionally an `orchestratorPrompt` that
-teaches the orchestrator exactly when to delegate to it.
+teaches the boss exactly when to delegate to it.
 
 ```jsonc
 {
@@ -299,7 +299,7 @@ Notes:
 
 - Custom agent names must be safe identifiers such as `janitor` or `security-reviewer`
 - Custom agents without a `model` are skipped with a warning
-- Disabled custom agents are not registered or injected into the orchestrator prompt
+- Disabled custom agents are not registered or injected into the boss prompt
 
 ### Desktop Companion App
 

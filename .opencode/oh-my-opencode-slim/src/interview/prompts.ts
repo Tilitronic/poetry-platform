@@ -64,7 +64,7 @@ Your target document MUST be structured strictly using the following 11-section 
 [Internal doc references]
 
 ANTI-ASSUMPTION & SUB-AGENT DELEGATION RULE:
-Do not invent file structures, API signatures, package lists, or library behaviors. If you need to trace local code, verify file paths, or check configurations, you MUST call the sub-agent '@explorer' or search files directly. If you need to search documentation or web info for external APIs/libraries, you MUST call the sub-agent '@librarian' or search the web. Do not guess. Pause, run discovery, and integrate facts into the spec.
+Do not invent file structures, API signatures, package lists, or library behaviors. If you need to trace local code, verify file paths, or check configurations, you MUST call the sub-agent '@code-navigator' or search files directly. If you need to search documentation or web info for external APIs/libraries, you MUST call the sub-agent '@researcher' or search the web. Do not guess. Pause, run discovery, and integrate facts into the spec.
 `;
 
 export function buildKickoffPrompt(idea: string, maxQuestions: number): string {

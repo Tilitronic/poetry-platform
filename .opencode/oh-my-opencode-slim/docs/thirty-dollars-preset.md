@@ -13,11 +13,11 @@ It uses Codex Plus for the OpenAI models and GitHub Copilot for the premium desi
     "preset": "thirtydollars",
     "presets": {
       "thirtydollars": { "orchestrator": { "model": "openai/gpt-5.5", "variant": "medium", "skills": [ "*" ], "mcps": [ "*", "websearch"] },
-        "oracle": { "model": "openai/gpt-5.5", "variant": "high", "skills": [], "mcps": [] },
-        "librarian": { "model": "openai/gpt-5.4-mini", "variant": "low", "skills": [], "mcps": [ "websearch", "context7", "gh_grep" ] },
-        "explorer": { "model": "openai/gpt-5.4-mini", "variant": "low", "skills": [], "mcps": [] },
+        "architector": { "model": "openai/gpt-5.5", "variant": "high", "skills": [], "mcps": [] },
+        "researcher": { "model": "openai/gpt-5.4-mini", "variant": "low", "skills": [], "mcps": [ "websearch", "context7", "gh_grep" ] },
+        "code-navigator": { "model": "openai/gpt-5.4-mini", "variant": "low", "skills": [], "mcps": [] },
         "designer": { "model": "github-copilot/gemini-3.5-flash", "skills": [], "mcps": [] },
-        "fixer": { "model": "openai/gpt-5.5", "variant": "low", "skills": [], "mcps": [] }
+        "coder": { "model": "openai/gpt-5.5", "variant": "low", "skills": [], "mcps": [] }
       }
     }
   }

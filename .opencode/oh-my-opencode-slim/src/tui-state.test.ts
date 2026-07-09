@@ -31,66 +31,66 @@ describe('tui-state persistence', () => {
   test('persists enabled agent models', () => {
     recordTuiAgentModels({
       agentModels: {
-        explorer: 'openai/gpt-5.4-mini',
-        fixer: 'openai/gpt-5.4-mini',
+        'code-navigator': 'openai/gpt-5.4-mini',
+        coder: 'openai/gpt-5.4-mini',
       },
       agentVariants: {
-        explorer: 'low',
-        fixer: 'high',
+        'code-navigator': 'low',
+        coder: 'high',
       },
     });
 
     const snapshot = readTuiSnapshot();
 
     expect(snapshot.agentModels).toEqual({
-      explorer: 'openai/gpt-5.4-mini',
-      fixer: 'openai/gpt-5.4-mini',
+      'code-navigator': 'openai/gpt-5.4-mini',
+      coder: 'openai/gpt-5.4-mini',
     });
     expect(snapshot.agentVariants).toEqual({
-      explorer: 'low',
-      fixer: 'high',
+      'code-navigator': 'low',
+      coder: 'high',
     });
   });
 
   test('updates a single live agent model without dropping others', () => {
     recordTuiAgentModels({
       agentModels: {
-        orchestrator: 'default',
-        explorer: 'openai/gpt-5.4-mini',
+        boss: 'default',
+        'code-navigator': 'openai/gpt-5.4-mini',
       },
     });
 
     recordTuiAgentModel({
-      agentName: 'orchestrator',
+      agentName: 'boss',
       model: 'openai/gpt-5.5',
     });
 
     expect(readTuiSnapshot().agentModels).toEqual({
-      orchestrator: 'openai/gpt-5.5',
-      explorer: 'openai/gpt-5.4-mini',
+      boss: 'openai/gpt-5.5',
+      'code-navigator': 'openai/gpt-5.4-mini',
     });
   });
 
   test('updates a single live agent variant without dropping others', () => {
     recordTuiAgentModels({
       agentModels: {
-        orchestrator: 'default',
-        explorer: 'openai/gpt-5.4-mini',
+        boss: 'default',
+        'code-navigator': 'openai/gpt-5.4-mini',
       },
       agentVariants: {
-        explorer: 'low',
+        'code-navigator': 'low',
       },
     });
 
     recordTuiAgentModel({
-      agentName: 'orchestrator',
+      agentName: 'boss',
       model: 'openai/gpt-5.5',
       variant: 'high',
     });
 
     expect(readTuiSnapshot().agentVariants).toEqual({
-      orchestrator: 'high',
-      explorer: 'low',
+      boss: 'high',
+      'code-navigator': 'low',
     });
   });
 
@@ -108,7 +108,7 @@ describe('tui-state persistence', () => {
       JSON.stringify({
         version: 1,
         updatedAt: Date.now(),
-        agentModels: { explorer: 'openai/gpt-5.4-mini' },
+        agentModels: { 'code-navigator': 'openai/gpt-5.4-mini' },
         configInvalid: true,
         configInvalidByProject: { old: true },
       }),
@@ -116,7 +116,7 @@ describe('tui-state persistence', () => {
 
     const snapshot = readTuiSnapshot();
     expect(snapshot.agentModels).toEqual({
-      explorer: 'openai/gpt-5.4-mini',
+      'code-navigator': 'openai/gpt-5.4-mini',
     });
     expect(snapshot.agentVariants).toEqual({});
   });

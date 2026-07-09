@@ -68,7 +68,7 @@ describe('createFilterAvailableSkillsHook', () => {
   test('filters system prompt skill blocks for explicit agent skills', async () => {
     const config: PluginConfig = {
       agents: {
-        explorer: {
+        'code-navigator': {
           skills: ['skill1', 'skill3'],
         },
       },
@@ -87,7 +87,7 @@ describe('createFilterAvailableSkillsHook', () => {
           ],
         },
         {
-          info: { role: 'user', agent: 'explorer' },
+          info: { role: 'user', agent: 'code-navigator' },
           parts: [{ type: 'text', text: 'check skills' }],
         },
       ],
@@ -104,7 +104,7 @@ describe('createFilterAvailableSkillsHook', () => {
   test('shows no skills for agents configured with an empty skills list', async () => {
     const config: PluginConfig = {
       agents: {
-        fixer: {
+        coder: {
           skills: [],
         },
       },
@@ -118,7 +118,7 @@ describe('createFilterAvailableSkillsHook', () => {
           parts: [{ type: 'text', text: availableSkillsBlock('skill1') }],
         },
         {
-          info: { role: 'user', agent: 'fixer' },
+          info: { role: 'user', agent: 'coder' },
           parts: [{ type: 'text', text: 'check skills' }],
         },
       ],
@@ -131,7 +131,7 @@ describe('createFilterAvailableSkillsHook', () => {
     expect(resultText).not.toContain('<name>skill1</name>');
   });
 
-  test('preserves orchestrator default wildcard allow', async () => {
+  test('preserves boss default wildcard allow', async () => {
     const hook = createFilterAvailableSkillsHook(mockCtx, {});
     const output = {
       messages: [
@@ -142,7 +142,7 @@ describe('createFilterAvailableSkillsHook', () => {
           ],
         },
         {
-          info: { role: 'user', agent: 'orchestrator' },
+          info: { role: 'user', agent: 'boss' },
           parts: [{ type: 'text', text: 'check skills' }],
         },
       ],
@@ -187,7 +187,7 @@ describe('createFilterAvailableSkillsHook', () => {
     expect(resultText).not.toContain('<name>skill2</name>');
   });
 
-  test('defaults to orchestrator when no agent is present', async () => {
+  test('defaults to boss when no agent is present', async () => {
     const hook = createFilterAvailableSkillsHook(mockCtx, {});
     const output = {
       messages: [
@@ -210,7 +210,7 @@ describe('createFilterAvailableSkillsHook', () => {
   test('filters multiple skill blocks across messages', async () => {
     const config: PluginConfig = {
       agents: {
-        explorer: {
+        'code-navigator': {
           skills: ['skill1'],
         },
       },
@@ -235,7 +235,7 @@ describe('createFilterAvailableSkillsHook', () => {
           ],
         },
         {
-          info: { role: 'user', agent: 'explorer' },
+          info: { role: 'user', agent: 'code-navigator' },
           parts: [{ type: 'text', text: 'check skills' }],
         },
       ],
@@ -253,7 +253,7 @@ describe('createFilterAvailableSkillsHook', () => {
   test('reuses permission rules without caching the final skills block text', async () => {
     const config: PluginConfig = {
       agents: {
-        explorer: {
+        'code-navigator': {
           skills: ['skill1', 'skill3'],
         },
       },
@@ -272,7 +272,7 @@ describe('createFilterAvailableSkillsHook', () => {
           ],
         },
         {
-          info: { role: 'user', agent: 'explorer' },
+          info: { role: 'user', agent: 'code-navigator' },
           parts: [{ type: 'text', text: 'check skills' }],
         },
       ],
@@ -289,7 +289,7 @@ describe('createFilterAvailableSkillsHook', () => {
           ],
         },
         {
-          info: { role: 'user', agent: 'explorer' },
+          info: { role: 'user', agent: 'code-navigator' },
           parts: [{ type: 'text', text: 'check skills' }],
         },
       ],

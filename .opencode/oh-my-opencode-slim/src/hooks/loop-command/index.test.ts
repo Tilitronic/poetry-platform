@@ -62,7 +62,7 @@ describe('loop command hook', () => {
     expect(text).toContain('.opencode/loop-history/');
     expect(text).toContain('history-{NNN}.md');
     expect(text).not.toContain('attempt-{N}.md');
-    expect(text).toContain('Dispatch @fixer');
+    expect(text).toContain('Dispatch @coder');
   });
 
   test('ignores other commands', async () => {

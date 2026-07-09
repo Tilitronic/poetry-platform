@@ -136,7 +136,7 @@ bun run build
 4. **각 에이전트에 사용할 모델을 업데이트합니다**
 
 > [!TIP]
-> 자동 위임이 어떻게 동작하는지 이해하는 것을 **권장**합니다. **[Orchestrator 프롬프트](https://github.com/alvinunreal/oh-my-opencode-slim/blob/master/src/agents/orchestrator.ts#L28)** 에는 위임 규칙, 전문 에이전트 라우팅 로직, 메인 에이전트가 언제 서브에이전트로 작업을 넘겨야 하는지에 대한 임계값이 포함되어 있습니다. 수동으로 위임하려면 `@agentName <task>`로 서브에이전트를 호출하면 됩니다.
+> 자동 위임이 어떻게 동작하는지 이해하는 것을 **권장**합니다. **[Orchestrator 프롬프트](https://github.com/alvinunreal/oh-my-opencode-slim/blob/master/src/agents/boss.ts#L28)** 에는 위임 규칙, 전문 에이전트 라우팅 로직, 메인 에이전트가 언제 서브에이전트로 작업을 넘겨야 하는지에 대한 임계값이 포함되어 있습니다. 수동으로 위임하려면 `@agentName <task>`로 서브에이전트를 호출하면 됩니다.
 
 > [!TIP]
 > 이제 백그라운드 에이전트가 기본 워크플로이므로 **[Multiplexer Integration](docs/multiplexer-integration.md)** 을 활성화하고 설정하는 것을 **강력히 권장**합니다. 각 에이전트를 전용 Tmux, Zellij, 또는 Herdr 창에서 자동으로 열어 주기 때문에, Orchestrator가 세션을 계속 조율하는 동안 전문 에이전트들의 작업을 실시간으로 따라볼 수 있습니다.
@@ -150,19 +150,19 @@ bun run build
   "presets": {
     "openai": {
       "orchestrator": { "model": "openai/gpt-5.5", "variant": "medium", "skills": ["*"], "mcps": ["*", "!context7"] },
-      "oracle": { "model": "openai/gpt-5.5", "variant": "high", "skills": ["simplify"], "mcps": [] },
-      "librarian": { "model": "openai/gpt-5.4-mini", "variant": "low", "skills": [], "mcps": ["websearch", "context7", "gh_grep"] },
-      "explorer": { "model": "openai/gpt-5.4-mini", "variant": "low", "skills": [], "mcps": [] },
+      "architector": { "model": "openai/gpt-5.5", "variant": "high", "skills": ["simplify"], "mcps": [] },
+      "researcher": { "model": "openai/gpt-5.4-mini", "variant": "low", "skills": [], "mcps": ["websearch", "context7", "gh_grep"] },
+      "code-navigator": { "model": "openai/gpt-5.4-mini", "variant": "low", "skills": [], "mcps": [] },
       "designer": { "model": "openai/gpt-5.4-mini", "variant": "medium", "skills": [], "mcps": [] },
-      "fixer": { "model": "openai/gpt-5.5", "variant": "low", "skills": [], "mcps": [] }
+      "coder": { "model": "openai/gpt-5.5", "variant": "low", "skills": [], "mcps": [] }
     },
     "opencode-go": {
       "orchestrator": { "model": "opencode-go/glm-5.2", "skills": [ "*" ], "mcps": [ "*", "!context7" ] },
-      "oracle": { "model": "opencode-go/qwen3.7-max", "variant": "max", "skills": ["simplify"], "mcps": [] },
-      "librarian": { "model": "opencode-go/deepseek-v4-flash", "skills": [], "mcps": [ "websearch", "context7", "gh_grep" ] },
-      "explorer": { "model": "opencode-go/deepseek-v4-flash", "skills": [], "mcps": [] },
+      "architector": { "model": "opencode-go/qwen3.7-max", "variant": "max", "skills": ["simplify"], "mcps": [] },
+      "researcher": { "model": "opencode-go/deepseek-v4-flash", "skills": [], "mcps": [ "websearch", "context7", "gh_grep" ] },
+      "code-navigator": { "model": "opencode-go/deepseek-v4-flash", "skills": [], "mcps": [] },
       "designer": { "model": "opencode-go/kimi-k2.7-code", "variant": "medium", "skills": [], "mcps": [] },
-      "fixer": { "model": "opencode-go/deepseek-v4-flash", "variant": "high", "skills": [], "mcps": [] }
+      "coder": { "model": "opencode-go/deepseek-v4-flash", "variant": "high", "skills": [], "mcps": [] }
     }
   }
 }
@@ -303,7 +303,7 @@ Worktrees는 Git worktree를 `.slim/worktrees/<slug>/` 아래의 안전하고 �
   </tr>
   <tr>
     <td colspan="2">
-      <b>프롬프트:</b> <a href="src/agents/orchestrator.ts"><code>orchestrator.ts</code></a>
+      <b>프롬프트:</b> <a href="src/agents/boss.ts"><code>orchestrator.ts</code></a>
     </td>
   </tr>
   <tr>
@@ -344,7 +344,7 @@ Worktrees는 Git worktree를 `.slim/worktrees/<slug>/` 아래의 안전하고 �
   </tr>
   <tr>
     <td colspan="2">
-      <b>프롬프트:</b> <a href="src/agents/explorer.ts"><code>explorer.ts</code></a>
+      <b>프롬프트:</b> <a href="src/agents/code-navigator.ts"><code>code-navigator.ts</code></a>
     </td>
   </tr>
   <tr>
@@ -385,7 +385,7 @@ Worktrees는 Git worktree를 `.slim/worktrees/<slug>/` 아래의 안전하고 �
   </tr>
   <tr>
     <td colspan="2">
-      <b>프롬프트:</b> <a href="src/agents/oracle.ts"><code>oracle.ts</code></a>
+      <b>프롬프트:</b> <a href="src/agents/architector.ts"><code>architector.ts</code></a>
     </td>
   </tr>
   <tr>
@@ -475,7 +475,7 @@ Worktrees는 Git worktree를 `.slim/worktrees/<slug>/` 아래의 안전하고 �
   </tr>
   <tr>
     <td colspan="2">
-      <b>프롬프트:</b> <a href="src/agents/librarian.ts"><code>librarian.ts</code></a>
+      <b>프롬프트:</b> <a href="src/agents/researcher.ts"><code>researcher.ts</code></a>
     </td>
   </tr>
   <tr>
@@ -557,7 +557,7 @@ Worktrees는 Git worktree를 `.slim/worktrees/<slug>/` 아래의 안전하고 �
   </tr>
   <tr>
     <td colspan="2">
-      <b>프롬프트:</b> <a href="src/agents/fixer.ts"><code>fixer.ts</code></a>
+      <b>프롬프트:</b> <a href="src/agents/coder.ts"><code>coder.ts</code></a>
     </td>
   </tr>
   <tr>

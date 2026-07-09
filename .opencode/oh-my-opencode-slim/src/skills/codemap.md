@@ -5,7 +5,7 @@
 - Owns metadata-driven OpenCode custom skills shipped with this package
 - Maintains the skill contract artifacts (`SKILL.md`, `README.md`, per-skill helper files) that are copied into `${configDir}/skills` at install time
 - Preserves a canonical registry boundary: runtime code consumes skill definitions as data, not as executable plugin dependencies
-- Skills are partitioned into orchestrator-only workflows and general-purpose skills for broad reuse
+- Skills are partitioned into boss-only workflows and general-purpose skills for broad reuse
 
 ## Design
 

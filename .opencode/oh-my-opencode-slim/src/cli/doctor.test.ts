@@ -93,7 +93,7 @@ describe('runDoctorCheck', () => {
       `{
         // JSONC comments are supported.
         "agents": {
-          "oracle": { "model": "test/model" },
+          "architector": { "model": "test/model" },
         },
       }`,
     );
@@ -175,7 +175,7 @@ describe('runDoctorCheck', () => {
     fs.writeFileSync(
       path.join(configDir, 'oh-my-opencode-slim.json'),
       JSON.stringify({
-        agents: { oracle: { temperature: 99 } },
+        agents: { architector: { temperature: 99 } },
         multiplexer: { type: 'unknown' },
       }),
     );
@@ -187,7 +187,7 @@ describe('runDoctorCheck', () => {
     const issuePaths = result.configs[1].error?.issues?.map((i) =>
       i.path.join('.'),
     );
-    expect(issuePaths).toContain('agents.oracle.temperature');
+    expect(issuePaths).toContain('agents.architector.temperature');
     expect(issuePaths).toContain('multiplexer.type');
   });
 
@@ -300,8 +300,8 @@ describe('runDoctorCheck', () => {
         agents: { oracle: { temperature: 0.5 } },
         presets: {
           'test-preset': {
-            oracle: { model: 'user/model' },
-            explorer: { model: 'user/explorer' },
+            architector: { model: 'user/model' },
+            'code-navigator': { model: 'user/explorer' },
           },
         },
       }),

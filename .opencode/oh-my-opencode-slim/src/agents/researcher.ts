@@ -1,5 +1,5 @@
 import { READONLY_FILE_OPERATIONS_RULES } from '../config';
-import type { AgentDefinition } from './orchestrator';
+import type { AgentDefinition } from './boss';
 
 const LIBRARIAN_PROMPT = `You are Librarian - a research specialist for codebases and documentation.
 
@@ -25,7 +25,7 @@ ${READONLY_FILE_OPERATIONS_RULES}
 - Distinguish between official and community patterns
 `;
 
-export function createLibrarianAgent(
+export function createResearcherAgent(
   model: string,
   customPrompt?: string,
   customAppendPrompt?: string,
@@ -39,9 +39,9 @@ export function createLibrarianAgent(
   }
 
   return {
-    name: 'librarian',
+    name: 'researcher',
     description:
-      'External documentation and library research. Use for official docs lookup, GitHub examples, and understanding library internals.',
+      'External documentation and library research. Use for official docs lookup, GitHub examples, web search, and understanding library internals.',
     config: {
       model,
       temperature: 0.1,

@@ -335,9 +335,9 @@ The councillor sees:
 @council Should we use a job queue or an outbox pattern here?
 ```
 
-### Via orchestrator delegation
+### Via boss delegation
 
-The orchestrator may delegate to `@council` for high-stakes or ambiguous
+The boss may delegate to `@council` for high-stakes or ambiguous
 decisions, but it does so sparingly because council is usually the most
 expensive path.
 

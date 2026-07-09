@@ -26,7 +26,7 @@ describe('Project-local customization - 15 core cases', () => {
   test('1. Project prompt root beats user prompt root', () => {
     const userDir = path.join(tempDir, 'opencode', 'oh-my-opencode-slim');
     fs.mkdirSync(userDir, { recursive: true });
-    fs.writeFileSync(path.join(userDir, 'oracle.md'), 'user-oracle');
+    fs.writeFileSync(path.join(userDir, 'architector.md'), 'user-oracle');
 
     const projectDir = path.join(tempDir, 'project');
     const projectPromptDir = path.join(
@@ -36,11 +36,13 @@ describe('Project-local customization - 15 core cases', () => {
     );
     fs.mkdirSync(projectPromptDir, { recursive: true });
     fs.writeFileSync(
-      path.join(projectPromptDir, 'oracle.md'),
+      path.join(projectPromptDir, 'architector.md'),
       'project-oracle',
     );
 
-    const loaded = loadAgentPrompt('oracle', { projectDirectory: projectDir });
+    const loaded = loadAgentPrompt('architector', {
+      projectDirectory: projectDir,
+    });
     expect(loaded.prompt).toBe('project-oracle');
   });
 
@@ -56,15 +58,15 @@ describe('Project-local customization - 15 core cases', () => {
     fs.mkdirSync(projectPresetDir, { recursive: true });
 
     fs.writeFileSync(
-      path.join(projectPromptDir, 'oracle.md'),
+      path.join(projectPromptDir, 'architector.md'),
       'project-root-oracle',
     );
     fs.writeFileSync(
-      path.join(projectPresetDir, 'oracle.md'),
+      path.join(projectPresetDir, 'architector.md'),
       'project-preset-oracle',
     );
 
-    const loaded = loadAgentPrompt('oracle', {
+    const loaded = loadAgentPrompt('architector', {
       preset: 'test-preset',
       projectDirectory: projectDir,
     });
@@ -77,13 +79,13 @@ describe('Project-local customization - 15 core cases', () => {
     const userPresetDir = path.join(userDir, 'test-preset');
     fs.mkdirSync(userPresetDir, { recursive: true });
 
-    fs.writeFileSync(path.join(userDir, 'oracle.md'), 'user-root-oracle');
+    fs.writeFileSync(path.join(userDir, 'architector.md'), 'user-root-oracle');
     fs.writeFileSync(
-      path.join(userPresetDir, 'oracle.md'),
+      path.join(userPresetDir, 'architector.md'),
       'user-preset-oracle',
     );
 
-    const loaded = loadAgentPrompt('oracle', { preset: 'test-preset' });
+    const loaded = loadAgentPrompt('architector', { preset: 'test-preset' });
     expect(loaded.prompt).toBe('user-preset-oracle');
   });
 
@@ -98,16 +100,16 @@ describe('Project-local customization - 15 core cases', () => {
     fs.mkdirSync(projectPromptDir, { recursive: true });
 
     fs.writeFileSync(
-      path.join(projectPromptDir, 'oracle.md'),
+      path.join(projectPromptDir, 'architector.md'),
       'replacement prompt',
     );
     fs.writeFileSync(
-      path.join(projectPromptDir, 'oracle_append.md'),
+      path.join(projectPromptDir, 'architector_append.md'),
       'append prompt',
     );
 
     const agents = createAgents(undefined, { projectDirectory: projectDir });
-    const oracle = agents.find((a) => a.name === 'oracle');
+    const oracle = agents.find((a) => a.name === 'architector');
     expect(oracle?.config.prompt).toBe('replacement prompt\n\nappend prompt');
   });
 
@@ -115,7 +117,7 @@ describe('Project-local customization - 15 core cases', () => {
   test('5. Inline built-in prompt is accepted and used', () => {
     const config = {
       agents: {
-        oracle: {
+        architector: {
           model: 'openai/gpt-4o',
           prompt: 'You are the inline oracle prompt override.',
         },
@@ -123,7 +125,7 @@ describe('Project-local customization - 15 core cases', () => {
     };
 
     const agents = createAgents(config);
-    const oracle = agents.find((a) => a.name === 'oracle');
+    const oracle = agents.find((a) => a.name === 'architector');
     expect(oracle?.config.prompt).toBe(
       'You are the inline oracle prompt override.',
     );
@@ -133,7 +135,7 @@ describe('Project-local customization - 15 core cases', () => {
   test('6. File prompt overrides inline built-in prompt', () => {
     const config = {
       agents: {
-        oracle: {
+        architector: {
           model: 'openai/gpt-4o',
           prompt: 'You are the inline oracle prompt override.',
         },
@@ -144,12 +146,12 @@ describe('Project-local customization - 15 core cases', () => {
     const userDir = path.join(tempDir, 'opencode', 'oh-my-opencode-slim');
     fs.mkdirSync(userDir, { recursive: true });
     fs.writeFileSync(
-      path.join(userDir, 'oracle.md'),
+      path.join(userDir, 'architector.md'),
       'File prompt override content',
     );
 
     const agents = createAgents(config);
-    const oracle = agents.find((a) => a.name === 'oracle');
+    const oracle = agents.find((a) => a.name === 'architector');
     expect(oracle?.config.prompt).toBe('File prompt override content');
   });
 
@@ -157,7 +159,7 @@ describe('Project-local customization - 15 core cases', () => {
   test('7. Append file appends to inline built-in prompt', () => {
     const config = {
       agents: {
-        oracle: {
+        architector: {
           model: 'openai/gpt-4o',
           prompt: 'You are the inline oracle prompt override.',
         },
@@ -167,62 +169,63 @@ describe('Project-local customization - 15 core cases', () => {
     // User append file mock
     const userDir = path.join(tempDir, 'opencode', 'oh-my-opencode-slim');
     fs.mkdirSync(userDir, { recursive: true });
-    fs.writeFileSync(path.join(userDir, 'oracle_append.md'), 'append content');
+    fs.writeFileSync(
+      path.join(userDir, 'architector_append.md'),
+      'append content',
+    );
 
     const agents = createAgents(config);
-    const oracle = agents.find((a) => a.name === 'oracle');
+    const oracle = agents.find((a) => a.name === 'architector');
     expect(oracle?.config.prompt).toBe(
       'You are the inline oracle prompt override.\n\nappend content',
     );
   });
 
-  // Test Case 8: Built-in orchestratorPrompt is injected into orchestrator prompt
-  test('8. Built-in orchestratorPrompt is injected into orchestrator prompt', () => {
+  // Test Case 8: Built-in orchestratorPrompt is injected into boss prompt
+  test('8. Built-in orchestratorPrompt is injected into boss prompt', () => {
     const config = {
       agents: {
-        oracle: {
+        architector: {
           model: 'openai/gpt-4o',
           orchestratorPrompt:
-            'Please routing to @oracle when architecture is queried.',
+            'Please routing to @architector when architecture is queried.',
         },
       },
     };
 
     const agents = createAgents(config);
-    const orchestrator = agents.find((a) => a.name === 'orchestrator');
-    expect(orchestrator?.config.prompt).toContain(
+    const boss = agents.find((a) => a.name === 'boss');
+    expect(boss?.config.prompt).toContain(
       '# Project-specific routing guidance',
     );
-    expect(orchestrator?.config.prompt).toContain(
-      'Please routing to @oracle when architecture is queried.',
+    expect(boss?.config.prompt).toContain(
+      'Please routing to @architector when architecture is queried.',
     );
   });
 
-  // Test Case 9: Disabled built-in agent\'s orchestratorPrompt is not injected
+  // Test Case 9: Disabled built-in agent's orchestratorPrompt is not injected
   test("9. Disabled built-in agent's orchestratorPrompt is not injected", () => {
     const config = {
-      disabled_agents: ['oracle'],
+      disabled_agents: ['architector'],
       agents: {
-        oracle: {
+        architector: {
           model: 'openai/gpt-4o',
           orchestratorPrompt:
-            'Please routing to @oracle when architecture is queried.',
+            'Please routing to @architector when architecture is queried.',
         },
       },
     };
 
     const agents = createAgents(config);
-    const orchestrator = agents.find((a) => a.name === 'orchestrator');
-    expect(orchestrator?.config.prompt).not.toContain(
-      'Please routing to @oracle',
-    );
+    const boss = agents.find((a) => a.name === 'boss');
+    expect(boss?.config.prompt).not.toContain('Please routing to @architector');
   });
 
-  // Test Case 10: agents.orchestrator.orchestratorPrompt is rejected or explicitly ignored
-  test('10. agents.orchestrator.orchestratorPrompt is rejected', () => {
+  // Test Case 10: agents.boss.orchestratorPrompt is rejected or explicitly ignored
+  test('10. agents.boss.orchestratorPrompt is rejected', () => {
     const invalidConfig = {
       agents: {
-        orchestrator: {
+        boss: {
           model: 'openai/gpt-4o',
           orchestratorPrompt: 'Self guidance',
         },
@@ -238,7 +241,7 @@ describe('Project-local customization - 15 core cases', () => {
     const userConfig = {
       presets: {
         presetA: {
-          oracle: { model: 'model-a' },
+          architector: { model: 'model-a' },
         },
       },
     };
@@ -246,7 +249,7 @@ describe('Project-local customization - 15 core cases', () => {
     const projectConfig = {
       presets: {
         presetB: {
-          explorer: { model: 'model-b' },
+          'code-navigator': { model: 'model-b' },
         },
       },
     };
@@ -254,8 +257,8 @@ describe('Project-local customization - 15 core cases', () => {
     const merged = mergePluginConfigs(userConfig, projectConfig);
     expect(merged.presets?.presetA).toBeDefined();
     expect(merged.presets?.presetB).toBeDefined();
-    expect(merged.presets?.presetA.oracle?.model).toBe('model-a');
-    expect(merged.presets?.presetB.explorer?.model).toBe('model-b');
+    expect(merged.presets?.presetA.architector?.model).toBe('model-a');
+    expect(merged.presets?.presetB['code-navigator']?.model).toBe('model-b');
   });
 
   // Test Case 12: Same-name preset deep-merges by agent and nested options
@@ -263,7 +266,7 @@ describe('Project-local customization - 15 core cases', () => {
     const userConfig = {
       presets: {
         myPreset: {
-          oracle: {
+          architector: {
             model: 'model-a',
             options: { tokenLimit: 1000, debug: true },
           },
@@ -274,7 +277,7 @@ describe('Project-local customization - 15 core cases', () => {
     const projectConfig = {
       presets: {
         myPreset: {
-          oracle: {
+          architector: {
             temperature: 0.7,
             options: { debug: false, maxSearch: 5 },
           },
@@ -283,7 +286,7 @@ describe('Project-local customization - 15 core cases', () => {
     };
 
     const merged = mergePluginConfigs(userConfig, projectConfig);
-    const oraclePreset = merged.presets?.myPreset?.oracle;
+    const oraclePreset = merged.presets?.myPreset?.architector;
     expect(oraclePreset?.model).toBe('model-a');
     expect(oraclePreset?.temperature).toBe(0.7);
     expect(oraclePreset?.options).toEqual({
@@ -297,7 +300,7 @@ describe('Project-local customization - 15 core cases', () => {
   test('13. Project config still overrides user config for root agents', () => {
     const userConfig = {
       agents: {
-        oracle: {
+        architector: {
           model: 'user-model',
           temperature: 0.1,
         },
@@ -306,15 +309,15 @@ describe('Project-local customization - 15 core cases', () => {
 
     const projectConfig = {
       agents: {
-        oracle: {
+        architector: {
           model: 'project-model',
         },
       },
     };
 
     const merged = mergePluginConfigs(userConfig, projectConfig);
-    expect(merged.agents?.oracle?.model).toBe('project-model');
-    expect(merged.agents?.oracle?.temperature).toBe(0.1);
+    expect(merged.agents?.architector?.model).toBe('project-model');
+    expect(merged.agents?.architector?.temperature).toBe(0.1);
   });
 
   // Test Case 14: Schema accepts built-in prompt/orchestratorPrompt in root and presets, but rejects empty strings
@@ -322,7 +325,7 @@ describe('Project-local customization - 15 core cases', () => {
     // Non-empty is allowed
     const valid = PluginConfigSchema.safeParse({
       agents: {
-        oracle: {
+        architector: {
           prompt: 'non-empty prompt',
           orchestratorPrompt: 'non-empty guidance',
         },
@@ -333,7 +336,7 @@ describe('Project-local customization - 15 core cases', () => {
     // Empty prompt is rejected
     const invalidPrompt = PluginConfigSchema.safeParse({
       agents: {
-        oracle: {
+        architector: {
           prompt: '',
         },
       },
@@ -343,7 +346,7 @@ describe('Project-local customization - 15 core cases', () => {
     // Empty orchestratorPrompt is rejected
     const invalidOrchestrator = PluginConfigSchema.safeParse({
       agents: {
-        oracle: {
+        architector: {
           orchestratorPrompt: '',
         },
       },
@@ -368,40 +371,43 @@ describe('Project-local customization - 15 core cases', () => {
     fs.mkdirSync(userPresetDir, { recursive: true });
     fs.mkdirSync(projectPresetDir, { recursive: true });
 
-    fs.writeFileSync(path.join(userPromptDir, 'oracle.md'), 'user-root');
-    fs.writeFileSync(path.join(userPresetDir, 'oracle.md'), 'user-preset');
-    fs.writeFileSync(path.join(projectPromptDir, 'oracle.md'), 'project-root');
+    fs.writeFileSync(path.join(userPromptDir, 'architector.md'), 'user-root');
+    fs.writeFileSync(path.join(userPresetDir, 'architector.md'), 'user-preset');
     fs.writeFileSync(
-      path.join(projectPresetDir, 'oracle.md'),
+      path.join(projectPromptDir, 'architector.md'),
+      'project-root',
+    );
+    fs.writeFileSync(
+      path.join(projectPresetDir, 'architector.md'),
       'project-preset',
     );
 
     // 1. All exist -> project preset won
-    let result = loadAgentPrompt('oracle', {
+    let result = loadAgentPrompt('architector', {
       preset: 'my-preset',
       projectDirectory: projectDir,
     });
     expect(result.prompt).toBe('project-preset');
 
     // 2. Remove project preset -> project root won
-    fs.unlinkSync(path.join(projectPresetDir, 'oracle.md'));
-    result = loadAgentPrompt('oracle', {
+    fs.unlinkSync(path.join(projectPresetDir, 'architector.md'));
+    result = loadAgentPrompt('architector', {
       preset: 'my-preset',
       projectDirectory: projectDir,
     });
     expect(result.prompt).toBe('project-root');
 
     // 3. Remove project root -> user preset won
-    fs.unlinkSync(path.join(projectPromptDir, 'oracle.md'));
-    result = loadAgentPrompt('oracle', {
+    fs.unlinkSync(path.join(projectPromptDir, 'architector.md'));
+    result = loadAgentPrompt('architector', {
       preset: 'my-preset',
       projectDirectory: projectDir,
     });
     expect(result.prompt).toBe('user-preset');
 
     // 4. Remove user preset -> user root won
-    fs.unlinkSync(path.join(userPresetDir, 'oracle.md'));
-    result = loadAgentPrompt('oracle', {
+    fs.unlinkSync(path.join(userPresetDir, 'architector.md'));
+    result = loadAgentPrompt('architector', {
       preset: 'my-preset',
       projectDirectory: projectDir,
     });

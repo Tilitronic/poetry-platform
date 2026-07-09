@@ -48,7 +48,7 @@ function createTool(overrides?: {
   };
 }
 
-const context = { sessionID: 'parent-1', agent: 'orchestrator' } as any;
+const context = { sessionID: 'parent-1', agent: 'boss' } as any;
 
 describe('cancel_task tool', () => {
   test('cancels a tracked running task by task ID', async () => {
@@ -56,7 +56,7 @@ describe('cancel_task tool', () => {
     board.registerLaunch({
       taskID: 'ses_1',
       parentSessionID: 'parent-1',
-      agent: 'explorer',
+      agent: 'code-navigator',
     });
 
     const output = await cancelTask.execute(
@@ -80,10 +80,10 @@ describe('cancel_task tool', () => {
     board.registerLaunch({
       taskID: 'ses_1',
       parentSessionID: 'parent-1',
-      agent: 'oracle',
+      agent: 'architector',
     });
 
-    await cancelTask.execute({ task_id: 'ora-1' }, context);
+    await cancelTask.execute({ task_id: 'arc-1' }, context);
 
     expect(abort).toHaveBeenCalledWith({ path: { id: 'ses_1' } });
   });
@@ -93,7 +93,7 @@ describe('cancel_task tool', () => {
     board.registerLaunch({
       taskID: 'ses_2',
       parentSessionID: 'parent-2',
-      agent: 'fixer',
+      agent: 'coder',
     });
 
     const output = await cancelTask.execute({ task_id: 'ses_2' }, context);
@@ -116,7 +116,7 @@ describe('cancel_task tool', () => {
     board.registerLaunch({
       taskID: 'ses_1',
       parentSessionID: 'parent-1',
-      agent: 'fixer',
+      agent: 'coder',
     });
     board.updateStatus({ taskID: 'ses_1', state: 'completed' });
 
@@ -168,7 +168,7 @@ describe('cancel_task tool', () => {
     board.registerLaunch({
       taskID: 'ses_1',
       parentSessionID: 'parent-1',
-      agent: 'explorer',
+      agent: 'code-navigator',
     });
     board.updateStatus({ taskID: 'ses_1', state: 'cancelled' });
 
@@ -186,7 +186,7 @@ describe('cancel_task tool', () => {
     board.registerLaunch({
       taskID: 'ses_1',
       parentSessionID: 'parent-1',
-      agent: 'explorer',
+      agent: 'code-navigator',
     });
     board.updateStatus({ taskID: 'ses_1', state: 'cancelled' });
     board.markReconciled('ses_1');
@@ -210,7 +210,7 @@ describe('cancel_task tool', () => {
     board.registerLaunch({
       taskID: 'ses_1',
       parentSessionID: 'parent-1',
-      agent: 'fixer',
+      agent: 'coder',
     });
 
     const output = await cancelTask.execute({ task_id: 'ses_1' }, context);
@@ -233,7 +233,7 @@ describe('cancel_task tool', () => {
     board.registerLaunch({
       taskID: 'ses_1',
       parentSessionID: 'parent-1',
-      agent: 'fixer',
+      agent: 'coder',
     });
 
     const output = await cancelTask.execute({ task_id: 'ses_1' }, context);
@@ -254,7 +254,7 @@ describe('cancel_task tool', () => {
     board.registerLaunch({
       taskID: 'ses_1',
       parentSessionID: 'parent-1',
-      agent: 'fixer',
+      agent: 'coder',
     });
 
     const output = await cancelTask.execute({ task_id: 'ses_1' }, context);
@@ -274,7 +274,7 @@ describe('cancel_task tool', () => {
     board.registerLaunch({
       taskID: 'ses_1',
       parentSessionID: 'parent-1',
-      agent: 'fixer',
+      agent: 'coder',
     });
 
     const output = await cancelTask.execute({ task_id: 'ses_1' }, context);
@@ -297,7 +297,7 @@ describe('cancel_task tool', () => {
     board.registerLaunch({
       taskID: 'ses_1',
       parentSessionID: 'parent-1',
-      agent: 'fixer',
+      agent: 'coder',
     });
 
     const output = await cancelTask.execute({ task_id: 'ses_1' }, context);
@@ -328,7 +328,7 @@ describe('cancel_task tool', () => {
     board.registerLaunch({
       taskID: 'ses_1',
       parentSessionID: 'parent-1',
-      agent: 'oracle',
+      agent: 'architector',
     });
 
     const output = await cancelTask.execute({ task_id: 'ses_1' }, context);
@@ -360,7 +360,7 @@ describe('cancel_task tool', () => {
     board.registerLaunch({
       taskID: 'ses_1',
       parentSessionID: 'parent-1',
-      agent: 'oracle',
+      agent: 'architector',
     });
 
     const output = await cancelTask.execute({ task_id: 'ses_1' }, context);
@@ -390,7 +390,7 @@ describe('cancel_task tool', () => {
     board.registerLaunch({
       taskID: 'ses_1',
       parentSessionID: 'parent-1',
-      agent: 'oracle',
+      agent: 'architector',
       now: Date.now() - 1000,
     });
 
@@ -413,7 +413,7 @@ describe('cancel_task tool', () => {
     board.registerLaunch({
       taskID: 'ses_1',
       parentSessionID: 'parent-1',
-      agent: 'oracle',
+      agent: 'architector',
     });
 
     const output = await cancelTask.execute({ task_id: 'ses_1' }, context);
@@ -438,7 +438,7 @@ describe('cancel_task tool', () => {
     board.registerLaunch({
       taskID: 'ses_running',
       parentSessionID: 'parent-1',
-      agent: 'fixer',
+      agent: 'coder',
     });
     // Override resolve to return undefined, forcing the cancelSessionByID
     // raw session path instead of the tracked task path.
@@ -456,15 +456,15 @@ describe('cancel_task tool', () => {
     expect(String(output)).not.toContain('state: running');
   });
 
-  test('denies non-orchestrator agents', async () => {
+  test('denies non-boss agents', async () => {
     const { cancelTask } = createTool();
 
     await expect(
       cancelTask.execute({ task_id: 'ses_1' }, {
         sessionID: 'parent-1',
-        agent: 'fixer',
+        agent: 'coder',
       } as any),
-    ).rejects.toThrow('orchestrator');
+    ).rejects.toThrow('boss');
   });
 
   test('denies unmanaged sessions', async () => {
@@ -472,6 +472,6 @@ describe('cancel_task tool', () => {
 
     await expect(
       cancelTask.execute({ task_id: 'ses_1' }, context),
-    ).rejects.toThrow('orchestrator sessions');
+    ).rejects.toThrow('boss sessions');
   });
 });

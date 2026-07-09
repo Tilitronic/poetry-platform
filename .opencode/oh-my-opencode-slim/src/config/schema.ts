@@ -2,12 +2,13 @@ import { z } from 'zod';
 import { CouncilConfigSchema } from './council-schema';
 
 const MANUAL_AGENT_NAMES = [
-  'orchestrator',
-  'oracle',
+  'boss',
+  'architector',
+  'reviewer',
   'designer',
-  'explorer',
-  'librarian',
-  'fixer',
+  'code-navigator',
+  'researcher',
+  'coder',
 ] as const;
 
 export const ProviderModelIdSchema = z
@@ -41,12 +42,13 @@ export const ManualAgentPlanSchema = z
 
 export const ManualPlanSchema = z
   .object({
-    orchestrator: ManualAgentPlanSchema,
-    oracle: ManualAgentPlanSchema,
+    boss: ManualAgentPlanSchema,
+    architector: ManualAgentPlanSchema,
+    reviewer: ManualAgentPlanSchema,
     designer: ManualAgentPlanSchema,
-    explorer: ManualAgentPlanSchema,
-    librarian: ManualAgentPlanSchema,
-    fixer: ManualAgentPlanSchema,
+    'code-navigator': ManualAgentPlanSchema,
+    researcher: ManualAgentPlanSchema,
+    coder: ManualAgentPlanSchema,
   })
   .strict();
 
@@ -168,7 +170,7 @@ export const InterviewConfigSchema = z.object({
 export type InterviewConfig = z.infer<typeof InterviewConfigSchema>;
 
 export const BackgroundJobsConfigSchema = z.object({
-  maxSessionsPerAgent: z.number().int().min(1).max(10).default(2),
+  maxSessionsPerAgent: z.number().int().min(1).max(10).default(5),
   readContextMinLines: z.number().int().min(0).max(1000).default(10),
   readContextMaxFiles: z.number().int().min(0).max(50).default(8),
 });
@@ -272,18 +274,20 @@ export type AcpAgentPermissionMode = z.infer<
 export type AcpAgentConfig = z.infer<typeof AcpAgentConfigSchema>;
 export type AcpAgentsConfig = z.infer<typeof AcpAgentsConfigSchema>;
 
-function rejectOrchestratorPromptOnOrchestrator(
+function rejectOrchestratorPromptOnBoss(
   overrides: Record<string, z.infer<typeof AgentOverrideConfigSchema>>,
   ctx: z.RefinementCtx,
   pathPrefix: Array<string | number>,
 ): void {
   for (const [name, override] of Object.entries(overrides)) {
-    if (name === 'orchestrator' && override.orchestratorPrompt !== undefined) {
+    if (
+      (name === 'boss' || name === 'orchestrator') &&
+      override.orchestratorPrompt !== undefined
+    ) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: [...pathPrefix, name, 'orchestratorPrompt'],
-        message:
-          'orchestratorPrompt is not supported for the orchestrator agent',
+        message: 'orchestratorPrompt is not supported for the boss agent',
       });
     }
   }
@@ -311,7 +315,7 @@ export const PluginConfigSchema = z
       .describe(
         'Agent names to disable completely. ' +
           'Disabled agents are not instantiated and cannot be delegated to. ' +
-          'Orchestrator and council internal agents (councillor) cannot be disabled. ' +
+          'Boss and council internal agents (councillor) cannot be disabled. ' +
           "By default, 'observer' is disabled. Remove it from this list and configure a vision-capable model to enable.",
       ),
     disabled_mcps: z.array(z.string()).optional(),
@@ -342,15 +346,12 @@ export const PluginConfigSchema = z
   })
   .superRefine((value, ctx) => {
     if (value.agents) {
-      rejectOrchestratorPromptOnOrchestrator(value.agents, ctx, ['agents']);
+      rejectOrchestratorPromptOnBoss(value.agents, ctx, ['agents']);
     }
 
     if (value.presets) {
       for (const [presetName, preset] of Object.entries(value.presets)) {
-        rejectOrchestratorPromptOnOrchestrator(preset, ctx, [
-          'presets',
-          presetName,
-        ]);
+        rejectOrchestratorPromptOnBoss(preset, ctx, ['presets', presetName]);
       }
     }
   });

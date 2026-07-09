@@ -134,7 +134,7 @@ Then:
 4. **Update the models you want for each agent**
 
 > [!TIP]
-> It's **recommended** to understand how background orchestration works. The **[Orchestrator prompt](https://github.com/alvinunreal/oh-my-opencode-slim/blob/master/src/agents/orchestrator.ts#L28)** contains the scheduler rules, specialist routing logic, and thresholds for when work should be assigned to background agents. You can always delegate manually by calling a subagent via: `@agentName <task>`
+> It's **recommended** to understand how background orchestration works. The **[Boss prompt](https://github.com/alvinunreal/oh-my-opencode-slim/blob/master/src/agents/boss.ts#L28)** contains the scheduler rules, specialist routing logic, and thresholds for when work should be assigned to background agents. You can always delegate manually by calling a subagent via: `@agentName <task>`
 
 > [!TIP]
 > Because background agents are now the default workflow, it is **highly recommended** to enable and configure **[Multiplexer Integration](docs/multiplexer-integration.md)**. It automatically opens each agent in a dedicated Tmux, Zellij, or Herdr pane, so you can watch specialists work live while the Orchestrator continues coordinating the session.
@@ -148,19 +148,19 @@ The default generated configuration includes both `openai` and `opencode-go` pre
   "presets": {
     "openai": {
       "orchestrator": { "model": "openai/gpt-5.5", "variant": "medium", "skills": ["*"], "mcps": ["*", "!context7"] },
-      "oracle": { "model": "openai/gpt-5.5", "variant": "high", "skills": ["simplify"], "mcps": [] },
-      "librarian": { "model": "openai/gpt-5.4-mini", "variant": "low", "skills": [], "mcps": ["websearch", "context7", "gh_grep"] },
-      "explorer": { "model": "openai/gpt-5.4-mini", "variant": "low", "skills": [], "mcps": [] },
+      "architector": { "model": "openai/gpt-5.5", "variant": "high", "skills": ["simplify"], "mcps": [] },
+      "researcher": { "model": "openai/gpt-5.4-mini", "variant": "low", "skills": [], "mcps": ["websearch", "context7", "gh_grep"] },
+      "code-navigator": { "model": "openai/gpt-5.4-mini", "variant": "low", "skills": [], "mcps": [] },
       "designer": { "model": "openai/gpt-5.4-mini", "variant": "medium", "skills": [], "mcps": [] },
-      "fixer": { "model": "openai/gpt-5.5", "variant": "low", "skills": [], "mcps": [] }
+      "coder": { "model": "openai/gpt-5.5", "variant": "low", "skills": [], "mcps": [] }
     },
     "opencode-go": {
       "orchestrator": { "model": "opencode-go/glm-5.2", "skills": [ "*" ], "mcps": [ "*", "!context7" ] },
-      "oracle": { "model": "opencode-go/qwen3.7-max", "variant": "max", "skills": ["simplify"], "mcps": [] },
-      "librarian": { "model": "opencode-go/deepseek-v4-flash", "skills": [], "mcps": [ "websearch", "context7", "gh_grep" ] },
-      "explorer": { "model": "opencode-go/deepseek-v4-flash", "skills": [], "mcps": [] },
+      "architector": { "model": "opencode-go/qwen3.7-max", "variant": "max", "skills": ["simplify"], "mcps": [] },
+      "researcher": { "model": "opencode-go/deepseek-v4-flash", "skills": [], "mcps": [ "websearch", "context7", "gh_grep" ] },
+      "code-navigator": { "model": "opencode-go/deepseek-v4-flash", "skills": [], "mcps": [] },
       "designer": { "model": "opencode-go/kimi-k2.7-code", "variant": "medium", "skills": [], "mcps": [] },
-      "fixer": { "model": "opencode-go/deepseek-v4-flash", "variant": "high", "skills": [], "mcps": [] }
+      "coder": { "model": "opencode-go/deepseek-v4-flash", "variant": "high", "skills": [], "mcps": [] }
     }
   }
 }
@@ -205,7 +205,7 @@ verification while specialists do the work in their own lanes.
 - **[Companion](#companion)** - an optional floating desktop window shows which
   agents are currently active, including parallel background specialists.
 - **[Deepwork](#deepwork)** - a structured workflow for large, multi-file, risky,
-  or phased coding work using persistent plan files and Oracle review gates.
+  or phased coding work using persistent plan files and Reviewer review gates.
 - **[Reflect](#reflect)** - reviews repeated work patterns and suggests reusable skills,
   agents, commands, config rules, prompt rules, or project playbooks.
 - **[Worktrees](#worktrees)** - manages Git worktrees as isolated coding lanes
@@ -248,7 +248,7 @@ install details.
 
 Deepwork is for heavy coding sessions: broad refactors, multi-phase features,
 risky architecture changes, or work that needs a persistent plan. It creates a
-local markdown progress file, uses Oracle review gates, and keeps implementation
+local markdown progress file, uses Reviewer review gates, and keeps implementation
 phases structured.
 
 Start it with:
@@ -330,7 +330,7 @@ rules.
   </tr>
   <tr>
     <td colspan="2">
-      <b>Prompt:</b> <a href="src/agents/orchestrator.ts"><code>orchestrator.ts</code></a>
+      <b>Prompt:</b> <a href="src/agents/boss.ts"><code>boss.ts</code></a>
     </td>
   </tr>
   <tr>
@@ -352,7 +352,7 @@ rules.
 
 ---
 
-### 02. Explorer: The Eternal Wanderer
+### 02. Code Navigator: The Eternal Wanderer
 
 <table>
   <tr>
@@ -371,7 +371,7 @@ rules.
   </tr>
   <tr>
     <td colspan="2">
-      <b>Prompt:</b> <a href="src/agents/explorer.ts"><code>explorer.ts</code></a>
+      <b>Prompt:</b> <a href="src/agents/code-navigator.ts"><code>code-navigator.ts</code></a>
     </td>
   </tr>
   <tr>
@@ -393,7 +393,7 @@ rules.
 
 ---
 
-### 03. Oracle: The Guardian of Paths
+### 03. Architector: The Guardian of Paths
 
 <table>
   <tr>
@@ -412,7 +412,7 @@ rules.
   </tr>
   <tr>
     <td colspan="2">
-      <b>Prompt:</b> <a href="src/agents/oracle.ts"><code>oracle.ts</code></a>
+      <b>Prompt:</b> <a href="src/agents/architector.ts"><code>architector.ts</code></a>
     </td>
   </tr>
   <tr>
@@ -483,7 +483,7 @@ rules.
 
 ---
 
-### 05. Librarian: The Weaver of Knowledge
+### 05. Researcher: The Weaver of Knowledge
 
 <table>
   <tr>
@@ -502,7 +502,7 @@ rules.
   </tr>
   <tr>
     <td colspan="2">
-      <b>Prompt:</b> <a href="src/agents/librarian.ts"><code>librarian.ts</code></a>
+      <b>Prompt:</b> <a href="src/agents/researcher.ts"><code>researcher.ts</code></a>
     </td>
   </tr>
   <tr>
@@ -565,7 +565,7 @@ rules.
 
 ---
 
-### 07. Fixer: The Last Builder
+### 07. Coder: The Last Builder
 
 <table>
   <tr>
@@ -584,7 +584,7 @@ rules.
   </tr>
   <tr>
     <td colspan="2">
-      <b>Prompt:</b> <a href="src/agents/fixer.ts"><code>fixer.ts</code></a>
+      <b>Prompt:</b> <a href="src/agents/coder.ts"><code>coder.ts</code></a>
     </td>
   </tr>
   <tr>
@@ -621,7 +621,7 @@ rules.
     </td>
     <td width="70%" valign="top">
 
-**Read-only visual analysis** - interprets images, screenshots, PDFs, and diagrams. Returns structured observations to the orchestrator without loading raw file bytes into the main context window.
+**Read-only visual analysis** - interprets images, screenshots, PDFs, and diagrams. Returns structured observations to the boss without loading raw file bytes into the main context window.
 
 - Images, screenshots, diagrams → `read` tool (native image support)
 - PDFs and binary documents → `read` tool (text + structure extraction)
@@ -676,7 +676,7 @@ Use this section as a map: start with installation, then jump to features, confi
 | **[Installation Guide](docs/installation.md)** | Install the plugin, use CLI flags, reset config, and troubleshoot setup |
 | **[Configuration](docs/configuration.md)** | Config file locations, JSONC support, prompt overrides, and full option reference |
 | **[Project Customization](docs/project-local-customization.md)** | Repository-specific custom agents, prompt overrides, per-agent skills, and precedence |
-| **[Background Orchestration](docs/background-orchestration.md)** | Scheduler-first orchestrator model built around native background subagents |
+| **[Background Orchestration](docs/background-orchestration.md)** | Scheduler-first boss model built around native background subagents |
 | **[Maintainer Guide](docs/maintainers.md)** | Issue triage rules, label meanings, support routing, and repo maintenance workflow |
 | **[Skills](docs/skills.md)** | Bundled skills such as `simplify`, `codemap`, `clonedeps`, `deepwork`, `reflect`, `worktrees`, and `oh-my-opencode-slim` |
 | **[MCPs](docs/mcps.md)** | `websearch`, `context7`, `gh_grep`, and how MCP permissions work per agent |

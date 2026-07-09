@@ -300,8 +300,8 @@ export class CompanionManager {
     const { sessionId, agent, status } = input;
     if (!sessionId || (status !== 'busy' && status !== 'idle')) return;
 
-    if (agent === 'orchestrator') {
-      // Orchestrator going idle does NOT clear specialists: with background
+    if (agent === 'boss') {
+      // Boss going idle does NOT clear specialists: with background
       // orchestration it idles while dispatched agents are still running.
       // Specialists are removed only by their own idle/deleted events.
       this.status = status;
@@ -390,7 +390,7 @@ export class CompanionManager {
     const agents = Array.from(this.busyAgentSessions.values());
     if (agents.length > 0) return agents.slice(0, 9);
     if (this.status === 'waiting-input') return ['input'];
-    if (this.status === 'busy') return ['orchestrator'];
+    if (this.status === 'busy') return ['boss'];
     return ['intro'];
   }
 

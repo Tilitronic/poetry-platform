@@ -64,7 +64,7 @@ See **[Codemap Skill](codemap.md)** for full documentation including manual comm
 source repositories into `.slim/clonedeps/repos/` so OpenCode can inspect library
 internals while keeping cloned code out of git.
 
-The skill is assigned to `orchestrator`. The orchestrator may ask `@librarian`
+The skill is assigned to `orchestrator`. The orchestrator may ask `@researcher`
 to identify important dependencies and resolve official repository URLs/tags,
 then asks for approval before cloning with direct git/filesystem operations.
 There is intentionally no helper script; dependency discovery and ref validation

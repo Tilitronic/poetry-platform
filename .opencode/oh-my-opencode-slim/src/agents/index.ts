@@ -15,22 +15,18 @@ import {
   SUBAGENT_NAMES,
 } from '../config';
 import { getAgentMcpList } from '../config/agent-mcps';
-
+import { createArchitectorAgent } from './architector';
+import { type AgentDefinition, createBossAgent, resolvePrompt } from './boss';
+import { createCodeNavigatorAgent } from './code-navigator';
+import { createCoderAgent } from './coder';
 import { createCouncilAgent } from './council';
 import { createCouncillorAgent } from './councillor';
 import { createDesignerAgent } from './designer';
-import { createExplorerAgent } from './explorer';
-import { createFixerAgent } from './fixer';
-import { createLibrarianAgent } from './librarian';
 import { createObserverAgent } from './observer';
-import { createOracleAgent } from './oracle';
-import {
-  type AgentDefinition,
-  createOrchestratorAgent,
-  resolvePrompt,
-} from './orchestrator';
+import { createResearcherAgent } from './researcher';
+import { createReviewerAgent } from './reviewer';
 
-export type { AgentDefinition } from './orchestrator';
+export type { AgentDefinition } from './boss';
 
 type AgentFactory = (
   model: string,
@@ -39,7 +35,7 @@ type AgentFactory = (
 ) => AgentDefinition;
 
 const COUNCIL_TOOL_ALLOWED_AGENTS = new Set(['council']);
-const CANCEL_TASK_ALLOWED_AGENTS = new Set(['orchestrator']);
+const CANCEL_TASK_ALLOWED_AGENTS = new Set(['boss']);
 const SAFE_AGENT_ALIAS_RE = /^[a-z][a-z0-9_-]*$/i;
 
 function normalizeDisplayName(displayName: string): string {
@@ -71,11 +67,11 @@ function getActivePresetPrimaryModel(
     return undefined;
   }
 
-  const orchestratorModel = getPrimaryModelFromOverride(
-    activePreset.orchestrator,
+  const bossModel = getPrimaryModelFromOverride(
+    activePreset.boss ?? activePreset.orchestrator,
   );
-  if (orchestratorModel) {
-    return orchestratorModel;
+  if (bossModel) {
+    return bossModel;
   }
 
   for (const name of SUBAGENT_NAMES) {
@@ -108,14 +104,14 @@ function buildAcpAgentDefinition(
       '',
       'Your only job is to send the user task to the configured external ACP agent using the acp_run tool, then return the ACP agent result.',
       `Always call acp_run with agent: ${JSON.stringify(name)} and pass the full user task as prompt.`,
-      'Do not edit files yourself unless the ACP result explicitly asks you to report a local follow-up to the orchestrator.',
+      'Do not edit files yourself unless the ACP result explicitly asks you to report a local follow-up to the boss.',
     ].join('\n');
 
   return {
     name,
     description,
     config: {
-      model: config.wrapperModel ?? fallbackModel ?? DEFAULT_MODELS.oracle,
+      model: config.wrapperModel ?? fallbackModel ?? DEFAULT_MODELS.architector,
       temperature: 0,
       prompt,
       permission: {
@@ -218,7 +214,7 @@ function buildCustomAgentDefinition(
   return {
     name,
     config: {
-      model: primaryModel ?? DEFAULT_MODELS.oracle,
+      model: primaryModel ?? DEFAULT_MODELS.architector,
       temperature: 0.2,
       prompt: resolvePrompt(basePrompt, filePrompt, fileAppendPrompt),
     },
@@ -226,11 +222,11 @@ function buildCustomAgentDefinition(
 }
 
 function injectDisplayNames(
-  orchestrator: AgentDefinition,
+  boss: AgentDefinition,
   nameMap: Map<string, string>,
 ): void {
   if (nameMap.size === 0) return;
-  let prompt = orchestrator.config.prompt;
+  let prompt = boss.config.prompt;
   if (!prompt) return;
 
   for (const [internalName, displayName] of nameMap) {
@@ -240,7 +236,7 @@ function injectDisplayNames(
     );
   }
 
-  orchestrator.config.prompt = prompt;
+  boss.config.prompt = prompt;
 }
 
 /**
@@ -301,11 +297,12 @@ export function isSubagent(name: string): name is SubagentName {
 // Agent Factories
 
 const SUBAGENT_FACTORIES: Record<SubagentName, AgentFactory> = {
-  explorer: createExplorerAgent,
-  librarian: createLibrarianAgent,
-  oracle: createOracleAgent,
+  'code-navigator': createCodeNavigatorAgent,
+  researcher: createResearcherAgent,
+  architector: createArchitectorAgent,
+  reviewer: createReviewerAgent,
   designer: createDesignerAgent,
-  fixer: createFixerAgent,
+  coder: createCoderAgent,
   observer: createObserverAgent,
   council: createCouncilAgent,
   councillor: createCouncillorAgent,
@@ -315,10 +312,10 @@ const SUBAGENT_FACTORIES: Record<SubagentName, AgentFactory> = {
 
 /**
  * Create all agent definitions with optional configuration overrides.
- * Instantiates the orchestrator and all subagents, applying user config and defaults.
+ * Instantiates the boss and all subagents, applying user config and defaults.
  *
  * @param config - Optional plugin configuration with agent overrides
- * @returns Array of agent definitions (orchestrator first, then subagents)
+ * @returns Array of agent definitions (boss first, then subagents)
  */
 export function createAgents(
   config?: PluginConfig,
@@ -331,20 +328,20 @@ export function createAgents(
 
   const primaryModel = getConfigPrimaryModel(config);
 
-  // TEMP: If fixer has no config, inherit from librarian's model to avoid breaking
-  // existing users who don't have fixer in their config yet
+  // TEMP: If coder has no config, inherit from researcher's model to avoid breaking
+  // existing users who don't have coder in their config yet
   const getModelForAgent = (name: SubagentName): string => {
-    if (name === 'fixer' && !getAgentOverride(config, 'fixer')?.model) {
-      const librarianOverride = getAgentOverride(config, 'librarian')?.model;
-      let librarianModel: string | undefined;
-      if (Array.isArray(librarianOverride)) {
-        const first = librarianOverride[0];
-        librarianModel = typeof first === 'string' ? first : first?.id;
+    if (name === 'coder' && !getAgentOverride(config, 'coder')?.model) {
+      const researcherOverride = getAgentOverride(config, 'researcher')?.model;
+      let researcherModel: string | undefined;
+      if (Array.isArray(researcherOverride)) {
+        const first = researcherOverride[0];
+        researcherModel = typeof first === 'string' ? first : first?.id;
       } else {
-        librarianModel = librarianOverride;
+        researcherModel = researcherOverride;
       }
       return (
-        librarianModel ?? primaryModel ?? (DEFAULT_MODELS.librarian as string)
+        researcherModel ?? primaryModel ?? (DEFAULT_MODELS.researcher as string)
       );
     }
     return primaryModel ?? (DEFAULT_MODELS[name] as string);
@@ -490,49 +487,37 @@ export function createAgents(
     ...acpSubAgents,
   ];
 
-  // 3. Create Orchestrator (with its own overrides and custom prompts)
-  // DEFAULT_MODELS.orchestrator is undefined; model is resolved via override or
+  // 3. Create Boss (with its own overrides and custom prompts)
+  // DEFAULT_MODELS.boss is undefined; model is resolved via override or
   // left unset so the runtime chat.message hook can pick it from _modelArray.
-  const orchestratorOverride = getAgentOverride(config, 'orchestrator');
-  const orchestratorModel =
-    orchestratorOverride?.model ?? DEFAULT_MODELS.orchestrator;
-  const orchestratorPrompts = loadAgentPrompt('orchestrator', {
+  const bossOverride = getAgentOverride(config, 'boss');
+  const bossModel = bossOverride?.model ?? DEFAULT_MODELS.boss;
+  const bossPrompts = loadAgentPrompt('boss', {
     preset: config?.preset,
     projectDirectory: options?.projectDirectory,
   });
-  const orchestrator = createOrchestratorAgent(
-    orchestratorModel,
-    undefined,
-    undefined,
-    disabled,
+  const boss = createBossAgent(bossModel, undefined, undefined, disabled);
+
+  const inlineBossPrompt = bossOverride?.prompt;
+  const defaultBossPrompt = boss.config.prompt ?? '';
+
+  const baseBossPrompt =
+    inlineBossPrompt !== undefined ? inlineBossPrompt : defaultBossPrompt;
+  boss.config.prompt = resolvePrompt(
+    baseBossPrompt,
+    bossPrompts.prompt,
+    bossPrompts.appendPrompt,
   );
 
-  const inlineOrchestratorPrompt = orchestratorOverride?.prompt;
-  const defaultOrchestratorPrompt = orchestrator.config.prompt ?? '';
-
-  const baseOrchestratorPrompt =
-    inlineOrchestratorPrompt !== undefined
-      ? inlineOrchestratorPrompt
-      : defaultOrchestratorPrompt;
-  orchestrator.config.prompt = resolvePrompt(
-    baseOrchestratorPrompt,
-    orchestratorPrompts.prompt,
-    orchestratorPrompts.appendPrompt,
-  );
-
-  applyDefaultPermissions(
-    orchestrator,
-    orchestratorOverride?.skills,
-    config?.disabled_skills,
-  );
-  if (orchestratorOverride) {
-    applyOverrides(orchestrator, orchestratorOverride);
+  applyDefaultPermissions(boss, bossOverride?.skills, config?.disabled_skills);
+  if (bossOverride) {
+    applyOverrides(boss, bossOverride);
   }
 
-  // Collect all display names from orchestrator and all subagents
+  // Collect all display names from boss and all subagents
   const displayNameMap = new Map<string, string>();
-  if (orchestrator.displayName) {
-    displayNameMap.set('orchestrator', orchestrator.displayName);
+  if (boss.displayName) {
+    displayNameMap.set('boss', boss.displayName);
   }
   for (const agent of allSubAgents) {
     if (agent.displayName) {
@@ -540,15 +525,15 @@ export function createAgents(
     }
   }
 
-  // 3b. Append custom orchestrator hints from built-in and custom agent overrides.
-  const extraOrchestratorPromptsList = [...builtInSubAgents, ...customSubAgents]
+  // 3b. Append custom boss hints from built-in and custom agent overrides.
+  const extraBossPromptsList = [...builtInSubAgents, ...customSubAgents]
     .map((agent) => {
       const override = getAgentOverride(config, agent.name);
       return override?.orchestratorPrompt;
     })
     .filter((prompt): prompt is string => Boolean(prompt));
 
-  const acpOrchestratorPrompts = acpSubAgents.map((agent) => {
+  const acpBossPrompts = acpSubAgents.map((agent) => {
     const acp = config?.acpAgents?.[agent.name];
     if (acp?.orchestratorPrompt) return acp.orchestratorPrompt;
     return [
@@ -589,8 +574,8 @@ export function createAgents(
     }
   }
 
-  // Inject display names into orchestrator prompt (complete map)
-  injectDisplayNames(orchestrator, displayNameMap);
+  // Inject display names into boss prompt (complete map)
+  injectDisplayNames(boss, displayNameMap);
 
   const rewritePrompt = (promptText: string) => {
     let text = promptText;
@@ -603,10 +588,10 @@ export function createAgents(
     return text;
   };
 
-  const rewrittenOverrides = extraOrchestratorPromptsList.map(rewritePrompt);
-  const rewrittenAcps = acpOrchestratorPrompts.map(rewritePrompt);
+  const rewrittenOverrides = extraBossPromptsList.map(rewritePrompt);
+  const rewrittenAcps = acpBossPrompts.map(rewritePrompt);
 
-  let updatedPrompt = orchestrator.config.prompt ?? '';
+  let updatedPrompt = boss.config.prompt ?? '';
 
   if (rewrittenOverrides.length > 0) {
     updatedPrompt = `${updatedPrompt}\n\n# Project-specific routing guidance\n\n${rewrittenOverrides.join(
@@ -618,9 +603,9 @@ export function createAgents(
     updatedPrompt = `${updatedPrompt}\n\n${rewrittenAcps.join('\n\n')}`;
   }
 
-  orchestrator.config.prompt = updatedPrompt;
+  boss.config.prompt = updatedPrompt;
 
-  return [orchestrator, ...allSubAgents];
+  return [boss, ...allSubAgents];
 }
 
 /**
@@ -647,7 +632,7 @@ export function getAgentConfigs(
   ): void => {
     if (name === 'council') {
       // Council is callable both as a primary agent (user-facing)
-      // and as a subagent (orchestrator can delegate to it)
+      // and as a subagent (boss can delegate to it)
       sdkConfig.mode = 'all';
     } else if (name === 'councillor') {
       // Internal agent - subagent mode, hidden from @ autocomplete
@@ -655,7 +640,7 @@ export function getAgentConfigs(
       sdkConfig.hidden = true;
     } else if (isSubagent(name)) {
       sdkConfig.mode = 'subagent';
-    } else if (name === 'orchestrator') {
+    } else if (name === 'boss') {
       sdkConfig.mode = 'primary';
     } else {
       sdkConfig.mode = 'subagent';

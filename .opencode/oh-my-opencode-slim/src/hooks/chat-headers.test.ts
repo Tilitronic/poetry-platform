@@ -32,7 +32,7 @@ function createInput(
   const sessionID = overrides?.sessionID ?? 'session-1';
   return {
     sessionID,
-    agent: 'orchestrator',
+    agent: 'boss',
     model: {
       id: 'github-copilot/claude',
       providerID: overrides?.providerID ?? 'github-copilot',
@@ -85,7 +85,7 @@ function createInput(
       sessionID,
       role: 'user' as const,
       time: { created: Date.now() },
-      agent: 'orchestrator',
+      agent: 'boss',
       model: {
         providerID: 'github-copilot',
         modelID: 'claude',

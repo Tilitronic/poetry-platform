@@ -85,7 +85,7 @@ Each tool is implemented as a factory function that returns a `ToolDefinition` r
 
 ```
 1. Orchestrator invokes cancel_task tool
-   ├─> Validates calling agent is 'orchestrator'
+   ├─> Validates calling agent is 'boss'
    ├─> Resolves task_id to BackgroundJobBoard entry
    ├─> Calls abortSessionWithTimeout() to signal cancellation
    ├─> Verifies session stopped via status polling

@@ -95,12 +95,12 @@ For any agent, the final system prompt is computed dynamically using the followi
 
 ## Custom Routing Guidance (`orchestratorPrompt`)
 
-Every non-orchestrator agent (both built-in and custom) can define an `orchestratorPrompt`. This snippet is automatically injected into the central **Orchestrator** prompt to instruct it on when and how to delegate tasks to this agent.
+Every non-boss agent (both built-in and custom) can define an `orchestratorPrompt`. This snippet is automatically injected into the central **Boss** prompt to instruct it on when and how to delegate tasks to this agent.
 
-- **Additive Routing Guidance:** The local config snippet is grouped under a clear markdown header (`# Project-specific routing guidance`) at the end of the orchestrator prompt. It does not replace the default routing blocks.
+- **Additive Routing Guidance:** The local config snippet is grouped under a clear markdown header (`# Project-specific routing guidance`) at the end of the boss prompt. It does not replace the default routing blocks.
 - **Display name rewriting:** Any mentions of `@<internalName>` within the `orchestratorPrompt` are automatically mapped to the agent's custom `displayName` if one was defined.
 - **Disabled agents:** If an agent is disabled via the `disabled_agents` config option, its `orchestratorPrompt` is **not** injected.
-- **Orchestrator agent constraint:** The orchestrator agent itself cannot define an `orchestratorPrompt`. Setting `agents.orchestrator.orchestratorPrompt` will be rejected by the schema.
+- **Boss agent constraint:** The boss agent itself cannot define an `orchestratorPrompt`. Setting `agents.boss.orchestratorPrompt` will be rejected by the schema.
 
 ---
 

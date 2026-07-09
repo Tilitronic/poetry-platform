@@ -380,7 +380,7 @@ describe('MultiplexerSessionManager', () => {
       board.registerLaunch({
         taskID: 'running-idle-child',
         parentSessionID: 'parent-1',
-        agent: 'explorer',
+        agent: 'code-navigator',
       });
       mockMultiplexer.spawnPane.mockResolvedValue({
         success: true,
@@ -416,7 +416,7 @@ describe('MultiplexerSessionManager', () => {
       board.registerLaunch({
         taskID: 'timedout-child',
         parentSessionID: 'parent-1',
-        agent: 'explorer',
+        agent: 'code-navigator',
       });
       board.updateStatus({
         taskID: 'timedout-child',
@@ -487,7 +487,7 @@ describe('MultiplexerSessionManager', () => {
         board.registerLaunch({
           taskID: sessionId,
           parentSessionID: 'parent-1',
-          agent: 'explorer',
+          agent: 'code-navigator',
         });
         mockMultiplexer.spawnPane.mockResolvedValueOnce({
           success: true,
@@ -525,7 +525,7 @@ describe('MultiplexerSessionManager', () => {
       board.registerLaunch({
         taskID: 'deferred-cancel',
         parentSessionID: 'parent-1',
-        agent: 'explorer',
+        agent: 'code-navigator',
       });
       mockMultiplexer.spawnPane.mockResolvedValue({
         success: true,
@@ -565,7 +565,7 @@ describe('MultiplexerSessionManager', () => {
       board.registerLaunch({
         taskID: 'terminal-without-defer',
         parentSessionID: 'parent-1',
-        agent: 'explorer',
+        agent: 'code-navigator',
       });
       mockMultiplexer.spawnPane.mockResolvedValue({
         success: true,
@@ -601,7 +601,7 @@ describe('MultiplexerSessionManager', () => {
       board.registerLaunch({
         taskID: 'deleted-deferred',
         parentSessionID: 'parent-1',
-        agent: 'explorer',
+        agent: 'code-navigator',
       });
       mockMultiplexer.spawnPane.mockResolvedValue({
         success: true,
@@ -643,7 +643,7 @@ describe('MultiplexerSessionManager', () => {
       board.registerLaunch({
         taskID: 'still-running-deferred',
         parentSessionID: 'parent-1',
-        agent: 'explorer',
+        agent: 'code-navigator',
       });
       mockMultiplexer.spawnPane.mockResolvedValue({
         success: true,
@@ -691,7 +691,7 @@ describe('MultiplexerSessionManager', () => {
       board.registerLaunch({
         taskID: 'disabled-retry-deferred',
         parentSessionID: 'parent-1',
-        agent: 'explorer',
+        agent: 'code-navigator',
       });
       mockMultiplexer.spawnPane.mockResolvedValue({
         success: true,
@@ -734,7 +734,7 @@ describe('MultiplexerSessionManager', () => {
       board.registerLaunch({
         taskID: 'retry-event-deferred',
         parentSessionID: 'parent-1',
-        agent: 'explorer',
+        agent: 'code-navigator',
       });
       mockMultiplexer.spawnPane.mockResolvedValue({
         success: true,
@@ -796,7 +796,7 @@ describe('MultiplexerSessionManager', () => {
       board.registerLaunch({
         taskID: 'resumed-deferred',
         parentSessionID: 'parent-1',
-        agent: 'explorer',
+        agent: 'code-navigator',
       });
       mockMultiplexer.spawnPane.mockResolvedValue({
         success: true,

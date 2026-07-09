@@ -77,7 +77,7 @@ Preset resolution flow:
 2. Look up preset in config.presets[presetName]
 3. Merge preset.agents with config.agents (root overrides take precedence)
 4. Apply preset-specific agent overrides
-5. Resolve preset model plans for manual agents (orchestrator, oracle, etc.)
+5. Resolve preset model plans for manual agents (boss, oracle, etc.)
 ```
 
 ## Integration
@@ -170,7 +170,7 @@ This allows consumers to import directly from `src/config` rather than individua
 - `skills`: Skill allow/deny list ("*" = all, "!item" = exclude)
 - `mcps`: MCP allow/deny list ("*" = all, "!item" = exclude)
 - `prompt`: Custom agent prompt override
-- `orchestratorPrompt`: Custom orchestrator prompt override
+- `bossPrompt`: Custom boss prompt override
 - `options`: Provider-specific model options
 - `displayName`: Custom display name for the agent
 

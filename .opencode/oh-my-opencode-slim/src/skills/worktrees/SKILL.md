@@ -10,7 +10,7 @@ managing Git worktrees as isolated coding lanes. Its value is giving the Orchest
 
 ## Core Contract
 
-This is an **orchestrator-only** workflow. Other specialists such as `@fixer`
+This is a **boss-only** workflow. Other specialists such as `@coder`
 or `@designer` can be assigned tasks inside a worktree lane, but the
 Orchestrator owns lane planning, branch/path selection, file ownership,
 delegation, diff validation, integration, and cleanup.

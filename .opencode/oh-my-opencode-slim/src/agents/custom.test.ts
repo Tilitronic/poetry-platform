@@ -6,7 +6,7 @@ describe('custom-agent creation', () => {
   test('infers custom agents from unknown keys', () => {
     const config: PluginConfig = {
       agents: {
-        explorer: { model: 'openai/gpt-5.4-mini' },
+        'code-navigator': { model: 'openai/gpt-5.4-mini' },
         reviewer: {
           model: 'openai/gpt-5.5',
           prompt: 'You are the custom reviewer agent.',
@@ -47,8 +47,8 @@ describe('custom-agent creation', () => {
       'You are a custom subagent for auditing.',
     );
 
-    const orchestrator = agents.find((agent) => agent.name === 'orchestrator');
-    expect(orchestrator?.config.prompt).toContain(
+    const boss = agents.find((agent) => agent.name === 'boss');
+    expect(boss?.config.prompt).toContain(
       '@test-auditor\n- Role: Compliance audit specialist',
     );
   });
@@ -120,8 +120,8 @@ describe('custom-agent creation', () => {
     };
 
     const agents = createAgents(config);
-    const orchestrator = agents.find((agent) => agent.name === 'orchestrator');
-    expect(orchestrator?.config.prompt).toContain(
+    const boss = agents.find((agent) => agent.name === 'boss');
+    expect(boss?.config.prompt).toContain(
       '@cleanup\n- Role: Cleanup specialist',
     );
   });
@@ -143,13 +143,13 @@ describe('custom-agent creation', () => {
 
     const agents = createAgents(config);
     const wrapper = agents.find((agent) => agent.name === 'claude-research');
-    const orchestrator = agents.find((agent) => agent.name === 'orchestrator');
+    const boss = agents.find((agent) => agent.name === 'boss');
 
     expect(wrapper).toBeDefined();
     expect(wrapper?.description).toBe('Claude Code research via ACP');
     expect(wrapper?.config.model).toBe('openai/gpt-5.4-mini');
     expect(wrapper?.config.prompt).toContain('acp_run');
-    expect(orchestrator?.config.prompt).toContain('@claude-research');
+    expect(boss?.config.prompt).toContain('@claude-research');
   });
 
   test('falls back to active preset primary model for ACP wrappers', () => {
@@ -182,13 +182,13 @@ describe('custom-agent creation', () => {
 
   test('falls back to oracle model for ACP wrappers', () => {
     const defaults = {
-      fixer: DEFAULT_MODELS.fixer,
-      librarian: DEFAULT_MODELS.librarian,
-      orchestrator: DEFAULT_MODELS.orchestrator,
+      coder: DEFAULT_MODELS.coder,
+      researcher: DEFAULT_MODELS.researcher,
+      orchestrator: DEFAULT_MODELS.boss,
     };
-    DEFAULT_MODELS.fixer = undefined;
-    DEFAULT_MODELS.librarian = undefined;
-    DEFAULT_MODELS.orchestrator = undefined;
+    DEFAULT_MODELS.coder = undefined;
+    DEFAULT_MODELS.researcher = undefined;
+    DEFAULT_MODELS.boss = undefined;
 
     try {
       const config: PluginConfig = {
@@ -206,11 +206,11 @@ describe('custom-agent creation', () => {
       const agents = createAgents(config);
       const wrapper = agents.find((agent) => agent.name === 'bridge');
 
-      expect(wrapper?.config.model).toBe(DEFAULT_MODELS.oracle);
+      expect(wrapper?.config.model).toBe(DEFAULT_MODELS.architector);
     } finally {
-      DEFAULT_MODELS.fixer = defaults.fixer;
-      DEFAULT_MODELS.librarian = defaults.librarian;
-      DEFAULT_MODELS.orchestrator = defaults.orchestrator;
+      DEFAULT_MODELS.coder = defaults.fixer;
+      DEFAULT_MODELS.researcher = defaults.librarian;
+      DEFAULT_MODELS.boss = defaults.orchestrator;
     }
   });
 
@@ -238,7 +238,7 @@ describe('custom-agent creation', () => {
   test('rejects acpAgents that conflict with built-in agents', () => {
     const config: PluginConfig = {
       acpAgents: {
-        fixer: {
+        coder: {
           command: 'fixer-acp',
           args: [],
           env: {},
@@ -249,21 +249,21 @@ describe('custom-agent creation', () => {
     };
 
     expect(() => createAgents(config)).toThrow(
-      "ACP agent 'fixer' conflicts with a built-in agent name or alias",
+      "ACP agent 'coder' conflicts with a built-in agent name or alias",
     );
   });
 
   test('appends ACP routing prompts separately without heading, and preserves rewriting', () => {
     const config: PluginConfig = {
       agents: {
-        explorer: {
+        'code-navigator': {
           model: 'openai/gpt-5.4-mini',
           displayName: 'fancy-explorer',
         },
         janitor: {
           model: 'openai/gpt-5.5',
           orchestratorPrompt:
-            'Please use @janitor to clean up after @explorer has completed.',
+            'Please use @janitor to clean up after @code-navigator has completed.',
         },
       },
       acpAgents: {
@@ -274,14 +274,14 @@ describe('custom-agent creation', () => {
           timeoutMs: 0,
           permissionMode: 'ask',
           orchestratorPrompt:
-            'Please delegate research tasks to @claude-research or @explorer.',
+            'Please delegate research tasks to @claude-research or @code-navigator.',
         },
       },
     };
 
     const agents = createAgents(config);
-    const orchestrator = agents.find((agent) => agent.name === 'orchestrator');
-    const prompt = orchestrator?.config.prompt ?? '';
+    const boss = agents.find((agent) => agent.name === 'boss');
+    const prompt = boss?.config.prompt ?? '';
 
     // Verify Project-specific routing guidance exists and has the custom agent override prompt rewritten
     expect(prompt).toContain('# Project-specific routing guidance');
@@ -313,7 +313,7 @@ describe('custom-agent creation', () => {
     // Let's also check a scenario where only ACP routing prompt is present. There should be NO heading at all!
     const configOnlyAcp: PluginConfig = {
       agents: {
-        explorer: {
+        'code-navigator': {
           model: 'openai/gpt-5.4-mini',
           displayName: 'fancy-explorer',
         },
@@ -326,16 +326,14 @@ describe('custom-agent creation', () => {
           timeoutMs: 0,
           permissionMode: 'ask',
           orchestratorPrompt:
-            'Please delegate research tasks to @claude-research or @explorer.',
+            'Please delegate research tasks to @claude-research or @code-navigator.',
         },
       },
     };
 
     const agentsOnlyAcp = createAgents(configOnlyAcp);
-    const orchestratorOnlyAcp = agentsOnlyAcp.find(
-      (agent) => agent.name === 'orchestrator',
-    );
-    const promptOnlyAcp = orchestratorOnlyAcp?.config.prompt ?? '';
+    const bossOnlyAcp = agentsOnlyAcp.find((agent) => agent.name === 'boss');
+    const promptOnlyAcp = bossOnlyAcp?.config.prompt ?? '';
 
     expect(promptOnlyAcp).not.toContain('# Project-specific routing guidance');
     expect(promptOnlyAcp).toContain(

@@ -24,8 +24,12 @@ export type LoopPhase =
   | 'escalated'
   | 'cancelled';
 
-export type ExecuteAgent = 'fixer' | 'designer' | 'explorer' | 'librarian';
-export type VerifyAgent = 'oracle' | 'observer' | 'test';
+export type ExecuteAgent =
+  | 'coder'
+  | 'designer'
+  | 'code-navigator'
+  | 'researcher';
+export type VerifyAgent = 'architector' | 'reviewer' | 'observer' | 'test';
 
 export type SuccessCriterion =
   | { type: 'test'; command: string }
@@ -33,7 +37,8 @@ export type SuccessCriterion =
   | { type: 'lint'; command: string }
   | { type: 'fileExists'; path: string }
   | { type: 'command'; command: string; expectExitCode?: number }
-  | { type: 'oracle' }
+  | { type: 'architector' }
+  | { type: 'reviewer' }
   | { type: 'observer' }
   | { type: 'manual' };
 

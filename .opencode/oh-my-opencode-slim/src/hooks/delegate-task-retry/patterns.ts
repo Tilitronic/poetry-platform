@@ -20,13 +20,13 @@ export const DELEGATE_TASK_ERROR_PATTERNS: DelegateTaskErrorPattern[] = [
     pattern: 'category OR subagent_type',
     errorType: 'mutual_exclusion',
     fixHint:
-      'Provide only one: category (e.g., "unspecified-low") OR subagent_type (e.g., "explorer").',
+      'Provide only one: category (e.g., "unspecified-low") OR subagent_type (e.g., "code-navigator").',
   },
   {
     pattern: 'Must provide either category or subagent_type',
     errorType: 'missing_category_or_agent',
     fixHint:
-      'Add either category="unspecified-low" or subagent_type="explorer".',
+      'Add either category="unspecified-low" or subagent_type="code-navigator".',
   },
   {
     pattern: 'Unknown category',

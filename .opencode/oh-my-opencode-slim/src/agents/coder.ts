@@ -1,5 +1,5 @@
 import { WRITABLE_FILE_OPERATIONS_RULES } from '../config';
-import type { AgentDefinition } from './orchestrator';
+import type { AgentDefinition } from './boss';
 
 const FIXER_PROMPT = `You are Fixer - a fast, focused implementation specialist.
 
@@ -46,7 +46,7 @@ No changes required
 - Validation: [not run - reason]
 </verification>`;
 
-export function createFixerAgent(
+export function createCoderAgent(
   model: string,
   customPrompt?: string,
   customAppendPrompt?: string,
@@ -60,9 +60,9 @@ export function createFixerAgent(
   }
 
   return {
-    name: 'fixer',
+    name: 'coder',
     description:
-      'Fast implementation specialist. Receives complete context and task spec, executes code changes efficiently.',
+      'Fast implementation specialist. Receives complete context and task spec, executes code changes efficiently. Tests-first by default.',
     config: {
       model,
       temperature: 0.2,

@@ -113,7 +113,7 @@ export class ForegroundFallbackManager {
     private readonly client: OpencodeClient,
     /**
      * Ordered fallback chains per agent.
-     * e.g. { orchestrator: ['anthropic/claude-opus-4-5', 'openai/gpt-4o'] }
+     * e.g. { boss: ['anthropic/claude-opus-4-5', 'openai/gpt-4o'] }
      * The first model that hasn't been tried yet is selected on each fallback.
      */
     private readonly chains: Record<string, string[]>,
@@ -474,7 +474,7 @@ export class ForegroundFallbackManager {
       // Agent is known: use its chain exactly if configured.
       const chain = this.chains[agentName];
       if (chain) return chain;
-      // Known omos built-in agent (oracle, librarian, …) without a
+      // Known omos built-in agent (architector, researcher, …) without a
       // configured chain: keep isolation - do NOT bleed into other
       // agents' chains (preserves the cross-agent isolation contract
       // from PR #199).

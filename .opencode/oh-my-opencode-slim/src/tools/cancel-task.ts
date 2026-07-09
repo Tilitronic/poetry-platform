@@ -41,13 +41,11 @@ Use only for obsolete, wrong, conflicting, or user-requested cancellation. Accep
     async execute(args, toolContext) {
       const parentSessionID = toolContext?.sessionID;
       if (!parentSessionID) throw new Error('cancel_task requires sessionID');
-      if (toolContext.agent && toolContext.agent !== 'orchestrator') {
-        throw new Error('cancel_task can only be used by orchestrator');
+      if (toolContext.agent && toolContext.agent !== 'boss') {
+        throw new Error('cancel_task can only be used by boss');
       }
       if (!options.shouldManageSession(parentSessionID)) {
-        throw new Error(
-          'cancel_task can only be used in orchestrator sessions',
-        );
+        throw new Error('cancel_task can only be used in boss sessions');
       }
 
       const requested = args.task_id.trim();
