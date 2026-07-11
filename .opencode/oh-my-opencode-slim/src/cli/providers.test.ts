@@ -195,8 +195,8 @@ describe('providers', () => {
     // Explorer should have no bundled skills by default
     expect(agents["code-navigator"].skills).toEqual([]);
 
-    // Fixer should have no bundled skills by default
-    expect(agents.coder.skills).toEqual([]);
+    // Coder has tdd-craftsman skill by default
+    expect(agents.coder.skills).toEqual(['tdd-craftsman']);
   });
 
   test('generateLiteConfig includes mcps field', () => {

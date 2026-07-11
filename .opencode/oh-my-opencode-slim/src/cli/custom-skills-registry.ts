@@ -70,4 +70,32 @@ export const CUSTOM_SKILLS: CustomSkill[] = [
     allowedAgents: ['boss'],
     sourcePath: 'src/skills/worktrees',
   },
+  {
+    name: 'tdd-craftsman',
+    description:
+      'Polyglot RED-GREEN-REFACTOR TDD cycle for Python/Rust/C/C++/TS monorepos with ownership safeguards',
+    allowedAgents: ['boss', 'coder'],
+    sourcePath: 'src/skills/tdd-craftsman',
+  },
+  {
+    name: 'feature-interviewer',
+    description:
+      'Structured pre-build interview to gather full feature specifications before TDD begins',
+    allowedAgents: ['boss', 'architector'],
+    sourcePath: 'src/skills/feature-interviewer',
+  },
+  {
+    name: 'grill-with-docs',
+    description:
+      'Stress-test plans against domain model, sharpen terminology, update CONTEXT.md and ADRs',
+    allowedAgents: ['architector', 'reviewer'],
+    sourcePath: 'src/skills/grill-with-docs',
+  },
+  {
+    name: 'finishing-a-development-branch',
+    description:
+      'Guide completion of development work: verify tests, detect environment, present merge/PR/keep/discard options',
+    allowedAgents: ['boss'],
+    sourcePath: 'src/skills/finishing-a-development-branch',
+  },
 ];
