@@ -126,7 +126,7 @@ separately from fast unit suites:
 
 | Language | Unit framework | Property-based | Notes |
 |---|---|---|---|
-| TypeScript | Vitest | `fast-check` | For CM6 extension tests: create `EditorState` directly with the extension. Use Playwright ONLY when DOM/browser interaction is essential. |
+| TypeScript | Vitest | `fast-check` | For CM6 extension tests: create `EditorState` directly with the extension. Use Playwright ONLY when DOM/browser interaction is essential. For browser-based testing workflows, see the `playwright-browser` skill. |
 | Python | pytest | `hypothesis` | Use `pytest-benchmark` for perf gates. NumPy array tests use `np.testing.assert_array_equal` / `assert_allclose`, never `==`. |
 | Rust | built-in `#[test]` / `cargo test` | `proptest` or `quickcheck` | `cargo bench` (criterion.rs) for perf gates. Prefer `Result<(), E>`-returning tests over `.unwrap()` chains where failure context matters. |
 | C/C++ | GoogleTest | `rapidcheck` (GTest integration) or `fuzztest` | Use `ASSERT_*` for fatal preconditions, `EXPECT_*` for the actual behavioral checks so one failure doesn't hide the next. AddressSanitizer/UBSan enabled in the test build config — see Memory Safety Gate below. |

@@ -1,0 +1,51 @@
+cached_at: '2026-07-13T10:33:23.456475+00:00'
+ttl_seconds: 3600
+kbs:
+- tag: visualization
+  name: Visualization
+  description: 'Core data and analysis visualization knowledge '
+  id: ca7b4932-aac0-461d-9af9-26deaf0aca94
+- tag: analytical
+  name: Analytical
+  description: Core reasoning, analytical and sensemaking frameworks
+  id: 58c8474f-54ab-4288-9251-ae9ac100428d
+- tag: js
+  name: JS
+  description: Core JS and TS language knowledge, core web programming
+  id: a2e10b2f-d3a2-49eb-87a0-c275aa934eb6
+- tag: teaching
+  name: Teaching
+  description: 'Best teaching approaches '
+  id: 6b4c0ca6-73f7-4a40-b6ef-461451a3b6d8
+- tag: statistics and algebra
+  name: Statistics and Algebra
+  description: Core statistics and algebra
+  id: 0c532188-e789-49ef-a38f-0fe674c06c29
+- tag: dsboinf
+  name: DSBoinf
+  description: 'data science and bioinformatics '
+  id: 1f081c8c-b6b7-4861-ab58-712c539bd2e7
+- tag: ml
+  name: ML
+  description: machine learning
+  id: 55f0ee3c-03a5-47eb-bef2-494b98d8c77a
+- tag: datamanagement
+  name: DataManagement
+  description: data bases, sql
+  id: fa1681f3-109d-47b5-9ddb-77a75bd58ce7
+- tag: python
+  name: Python
+  description: 'Core Python language knowledge '
+  id: 4ecd519d-0458-4335-92fb-9f1668e7be1f
+- tag: rust
+  name: Rust
+  description: 'Core Rust programming language knowledge '
+  id: 47a75bb5-e315-47b4-b3ee-a2b19390be53
+- tag: csc
+  name: CSC
+  description: core computer science and programming conceprs
+  id: e976be8e-2674-40f7-9509-b2fcd2c8c399
+- tag: ppartreception
+  name: PPartReception
+  description: психофізіологія сприйняття об'єктів мистецтва
+  id: a7637ee4-8d9a-400b-ae52-8d4f1eeeff1a

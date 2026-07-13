@@ -1,0 +1,455 @@
+{
+  "$schema": "https://unpkg.com/oh-my-opencode-slim@latest/oh-my-opencode-slim.schema.json",
+  "preset": "cebula",
+  "compactSidebar": false,
+  "disabled_agents": [],
+  "presets": {
+    "opencode-go": {
+      "orchestrator": {
+        "model": "opencode-go/qwen3.7-max",
+        "variant": "high",
+        "skills": [
+          "*"
+        ],
+        "mcps": [
+          "*",
+          "!context7"
+        ],
+        "options": {
+          "reasoningEffort": "high",
+          "thinking": {
+            "type": "enabled"
+          }
+        }
+      },
+      "oracle": {
+        "model": "opencode-go/qwen3.7-max",
+        "variant": "max",
+        "skills": [
+          "simplify",
+          "teaching",
+          "book-rag",
+          "mermaid-diagramming",
+          "console-charting"
+        ],
+        "mcps": [],
+        "options": {
+          "reasoningEffort": "max",
+          "thinking": {
+            "type": "enabled"
+          }
+        }
+      },
+      "librarian": {
+        "model": "opencode-go/deepseek-v4-flash",
+        "variant": "low",
+        "skills": [],
+        "mcps": [
+          "websearch",
+          "context7",
+          "gh_grep"
+        ]
+      },
+      "explorer": {
+        "model": "github-copilot/gpt-5-mini",
+        "skills": [],
+        "mcps": []
+      },
+      "designer": {
+        "model": "opencode-go/kimi-k2.7-code",
+        "variant": "medium",
+        "skills": [
+          "playwright-browser"
+        ],
+        "mcps": []
+      },
+      "fixer": {
+        "model": "opencode-go/deepseek-v4-flash",
+        "variant": "medium",
+        "skills": [
+          "simplify",
+          "playwright-browser",
+          "debugging-workflow"
+        ],
+        "mcps": [],
+        "temperature": 0.2,
+        "prompt": "Before implementing: (1) check .openspec/, .sdd/, and .tss/ for governing design constraints, (2) document which design rule drove each architectural choice — every decision traces to a specific SDD/TSS entry, (3) write self-documenting code — document the WHY behind non-obvious decisions, not the WHAT. After implementing: run dev build, lint, and tests before handing off."
+      },
+      "observer": {
+        "model": "opencode-go/kimi-k2.6",
+        "variant": "medium",
+        "skills": [],
+        "mcps": []
+      },
+      "openspec-plan": {
+        "model": "opencode-go/qwen3.7-plus",
+        "variant": "high",
+        "skills": [
+          "teaching"
+        ],
+        "options": {
+          "reasoningEffort": "high",
+          "thinking": {
+            "type": "enabled"
+          }
+        }
+      },
+      "ai-assist-specialist": {
+        "model": "opencode-go/qwen3.7-plus",
+        "variant": "high",
+        "skills": [
+          "teaching"
+        ],
+        "mcps": [
+          "websearch"
+        ]
+      },
+      "code-reviewer": {
+        "model": "github-copilot/gpt-5.3-codex",
+        "variant": "medium",
+        "skills": [
+          "teaching",
+          "playwright-browser"
+        ]
+      },
+      "conspecter": {
+        "model": "opencode-go/deepseek-v4-flash",
+        "mcps": [
+          "websearch"
+        ]
+      },
+      "analyzer": {
+        "model": "opencode-go/qwen3.7-plus",
+        "variant": "high",
+        "skills": [
+          "teaching",
+          "book-rag",
+          "mermaid-diagramming",
+          "console-charting",
+          "debugging-workflow"
+        ],
+        "mcps": [
+          "websearch"
+        ]
+      }
+    },
+    "cebula": {
+      "orchestrator": {
+        "model": "opencode-go/deepseek-v4-flash",
+        "variant": "high",
+        "skills": [
+          "*"
+        ],
+        "mcps": [
+          "*",
+          "!context7"
+        ],
+        "options": {
+          "reasoningEffort": "high",
+          "thinking": {
+            "type": "enabled"
+          }
+        }
+      },
+      "oracle": {
+        "model": "github-copilot/gemini-3.1-pro-preview",
+        "variant": "high",
+        "skills": [
+          "teaching",
+          "simplify",
+          "book-rag",
+          "mermaid-diagramming",
+          "console-charting"
+        ],
+        "mcps": [],
+        "options": {
+          "reasoningEffort": "high",
+          "thinking": {
+            "type": "enabled"
+          }
+        }
+      },
+      "openspec-plan": {
+        "model": "opencode-go/qwen3.7-plus",
+        "variant": "high",
+        "skills": [
+          "teaching"
+        ],
+        "options": {
+          "reasoningEffort": "high",
+          "thinking": {
+            "type": "enabled"
+          }
+        }
+      },
+      "fixer": {
+        "model": "opencode-go/deepseek-v4-flash",
+        "variant": "medium",
+        "skills": [
+          "simplify",
+          "playwright-browser",
+          "debugging-workflow"
+        ],
+        "mcps": [],
+        "temperature": 0.2,
+        "prompt": "Before implementing: (1) check .openspec/, .sdd/, and .tss/ for governing design constraints, (2) document which design rule drove each architectural choice — every decision traces to a specific SDD/TSS entry, (3) write self-documenting code — document the WHY behind non-obvious decisions, not the WHAT. After implementing: run dev build, lint, and tests before handing off."
+      },
+      "code-reviewer": {
+        "model": "github-copilot/gpt-5.3-codex",
+        "variant": "medium",
+        "skills": [
+          "teaching",
+          "playwright-browser"
+        ]
+      },
+      "designer": {
+        "model": "github-copilot/gemini-3-flash-preview",
+        "variant": "medium",
+        "skills": [
+          "playwright-browser"
+        ],
+        "mcps": []
+      },
+      "explorer": {
+        "model": "github-copilot/gpt-5-mini",
+        "skills": [],
+        "mcps": []
+      },
+      "librarian": {
+        "model": "opencode-go/deepseek-v4-flash",
+        "variant": "low",
+        "skills": [],
+        "mcps": [
+          "websearch",
+          "context7",
+          "gh_grep"
+        ]
+      },
+      "conspecter": {
+        "model": "opencode-go/deepseek-v4-flash",
+        "mcps": [
+          "websearch"
+        ]
+      },
+      "analyzer": {
+        "model": "opencode-go/qwen3.7-plus",
+        "variant": "high",
+        "skills": [
+          "teaching",
+          "book-rag",
+          "mermaid-diagramming",
+          "console-charting",
+          "debugging-workflow"
+        ],
+        "mcps": [
+          "websearch"
+        ]
+      },
+      "observer": {
+        "model": "github-copilot/gpt-5-mini",
+        "variant": "low",
+        "skills": [],
+        "mcps": []
+      },
+      "ai-assist-specialist": {
+        "model": "opencode-go/qwen3.7-plus",
+        "variant": "high",
+        "skills": [
+          "teaching"
+        ],
+        "mcps": [
+          "websearch"
+        ]
+      }
+    },
+    "free": {
+      "orchestrator": {
+        "model": "opencode/big-pickle",
+        "variant": "high",
+        "skills": [
+          "*"
+        ],
+        "mcps": [
+          "*",
+          "!context7"
+        ],
+        "options": {
+          "reasoningEffort": "high",
+          "thinking": {
+            "type": "enabled"
+          }
+        }
+      },
+      "oracle": {
+        "model": "opencode/big-pickle",
+        "variant": "high",
+        "skills": [
+          "teaching",
+          "simplify",
+          "book-rag",
+          "mermaid-diagramming",
+          "console-charting"
+        ],
+        "mcps": [],
+        "options": {
+          "reasoningEffort": "high",
+          "thinking": {
+            "type": "enabled"
+          }
+        }
+      },
+      "openspec-plan": {
+        "model": "opencode/big-pickle",
+        "variant": "high",
+        "skills": [
+          "teaching"
+        ],
+        "options": {
+          "reasoningEffort": "high",
+          "thinking": {
+            "type": "enabled"
+          }
+        }
+      },
+      "fixer": {
+        "model": "opencode/deepseek-v4-flash-free",
+        "variant": "medium",
+        "skills": [
+          "playwright-browser",
+          "debugging-workflow"
+        ],
+        "mcps": [],
+        "temperature": 0.2
+      },
+      "code-reviewer": {
+        "model": "opencode/mimo-v2.5-free",
+        "variant": "medium",
+        "skills": [
+          "teaching",
+          "playwright-browser"
+        ]
+      },
+      "designer": {
+        "model": "opencode/big-pickle",
+        "variant": "medium",
+        "skills": [
+          "playwright-browser"
+        ],
+        "mcps": []
+      },
+      "explorer": {
+        "model": "ollama/qwen2.5-coder:14b",
+        "skills": [],
+        "mcps": []
+      },
+      "librarian": {
+        "model": "opencode/deepseek-v4-flash-free",
+        "variant": "low",
+        "skills": [],
+        "mcps": [
+          "websearch",
+          "context7",
+          "gh_grep"
+        ]
+      },
+      "conspecter": {
+        "model": "opencode/nemotron-3-ultra-free",
+        "mcps": [
+          "websearch"
+        ]
+      },
+      "analyzer": {
+        "model": "opencode/nemotron-3-ultra-free",
+        "variant": "high",
+        "skills": [
+          "teaching",
+          "book-rag",
+          "mermaid-diagramming",
+          "console-charting",
+          "debugging-workflow"
+        ],
+        "mcps": [
+          "websearch"
+        ]
+      },
+      "observer": {
+        "model": "opencode/big-pickle",
+        "variant": "medium",
+        "skills": [],
+        "mcps": []
+      },
+      "ai-assist-specialist": {
+        "model": "opencode/nemotron-3-ultra-free",
+        "variant": "high",
+        "skills": [
+          "teaching"
+        ],
+        "mcps": [
+          "websearch"
+        ]
+      }
+    }
+  },
+  "agents": {
+    "librarian": {
+      "displayName": "web_scout"
+    },
+    "fixer": {
+      "displayName": "code_executor"
+    },
+    "explorer": {
+      "displayName": "code_explorer"
+    },
+    "oracle": {
+      "displayName": "code_architect",
+      "orchestratorPrompt": "@oracle (code_architect)\n- Lane: Architecture and technical strategy\n- Role: Authors architecture-<module-name>.md documents with optional research and analysis phases.\n\n## WORKFLOW — Orchestrator routes, architect advises\n1. **Design audit** — dispatch @code_architect to cross-reference .sdd/ and .tss/ for existing design constraints before starting architecture work. Flag any gaps (design decisions without documentation).\n2. **Interview** — assess scope, identify research gaps, trade-off questions, and which design documents need updating.\n3. **Research gaps found?** — architect recommends @conspecter; orchestrator dispatches it, feeds results back to architect.\n4. **Trade-offs found?** — architect recommends @analyzer; orchestrator dispatches it, feeds results back to architect.\n5. **Synthesize** — dispatch @code_architect again with research + analysis results. The architect produces structured architecture content in conversation — Mermaid diagrams, ADRs, comparison tables.\n   **Note:** The architect does NOT delegate to other agents. It identifies needs and recommends; the orchestrator routes.\n   - Cross-reference every architectural decision against .sdd/ and .tss/ — each ADR must trace to a specific design rule or flag a gap\n   - Include Mermaid diagrams for system context, component relationships, data flow, deployment (via `mermaid-diagramming` skill)\n   - Include decision records (ADRs) for key trade-offs using this format:\n     ```\n     ## ADR: <Title>\n     - **Status:** Proposed | Accepted | Deprecated | Superseded\n     - **Context:** What problem are we solving? What constraints exist?\n     - **Decision:** What did we choose and why?\n     - **Consequences:** What becomes easier? Harder? What are the risks?\n     - **Alternatives Considered:** What else was evaluated? Why rejected?\n     ```\n   - Include tables comparing alternatives with pros/cons.\n   - Reference any conspects or analyses used.\n6. **Persist** — dispatch @code_executor to transcribe the architect's output into `architecture-<module-name>.md`. The executor copies verbatim — no reinterpretation or content modification.\n7. **Register** in .opencode/memory-shelf.yaml under shelf.architectures.\n\n## VISUALIZATION TOOLS\n- **Mermaid** (via `mermaid-diagramming` skill) for C4 context/container, sequence diagrams, flowcharts, entity relationships\n- **Tables** for comparison matrices\n- **ASCII trees** for directory/file structure\n- **Decision matrices** for trade-off analysis\n\n## OUTPUT\n- File: `architecture-<module-name>.md` in the module or project root\n- Memory Shelf: registered under shelf.architectures\n- Main architecture.md describes whole project; per-module files are generated separately (monorepo pattern)."
+    },
+    "conspecter": {
+      "orchestratorPrompt": "@conspecter\n- Lane: Two-phase source archiving and conspect creation (mandatory phases)\n- Role: Downloads and caches every source URL as local Markdown, THEN reads local files to synthesize an MLA-cited conspect.\n- Uses: trafilatura CLI for MD conversion, crawl4ai fallback for JS-heavy pages\n\n## PHASE A — Source Capture (MANDATORY)\n1. Create directory: `knowledge/<type><id>-<topic>/sources/`\n2. For each source URL: run `trafilatura -u \"<URL>\" --output-format markdown > sources/<slug>.md`. Verify file has content. If trafilatura fails, use crawl4ai.\n3. Write `.source-urls.txt` with one URL per line.\n4. If any source fails to save: STOP. Do not proceed to Phase B.\n\n## PHASE B — Conspect Synthesis\n1. Read all source files from sources/*.md\n2. Write MLA-cited conspect at <type><id>-<topic>-conspect.md\n3. Register in Memory Shelf under shelf.conspects\n\n## Guard Gate\n- If sources/ is empty at end of Phase A, do NOT proceed to Phase B."
+    },
+    "analyzer": {
+      "prompt": "You are a multi-method analyst. Apply analytical methods (5-Whys, inversion, systems thinking, MECE, OODA, etc.) to produce structured findings with terminal visualizations (tables, trees, matrices, Mermaid). Write results to knowledge/<type><id>-<topic>/<type><id>-<topic>-report.md.\n\n## NAMING RULE\n\nFolder and file names MUST use the pattern `<type><id>-<topic>` where `type` is `ana` for analysis. Both parts must be meaningful, descriptive words (≥3 chars each). Single-word topics are forbidden (`analysis-all-conspects` is meaningless). The name must tell the reader what the analysis is about without opening the file. Examples: `conspects-capability-gap-matrix`, `p5js-integration-ssr-safety`, `sketch-performance-benchmarks`. After writing, register the report in .opencode/memory-shelf.yaml under shelf.analyses.\n\n## TELEMETRY PATTERN-DETECTION STEP\n\nTrigger: run on demand, or when @ai_assist_specialist requests a check for a suspected pattern.\n\n1. Query the Telemetry SQLite (opencode-telemetry data at ~/.local/share/opencode-telemetry/data.db) and Token Monitor data for the relevant window (e.g. last N sessions).\n2. Look for quantitative signals: elevated retry counts on a specific agent/skill combination, rising token cost per successful task, repeated RED-GREEN-REFACTOR failures tied to the same root cause, delegation chains that stall or loop.\n3. Before treating a signal as a real pattern, check .opencode/learnings/index.md for prior findings on the same agent/skill — do not re-report something already logged as resolved.\n4. If a signal meets the threshold (≥2 occurrences, quantitatively confirmed — not just noticed in one transcript), write analysis-report.md: the metric and its trend (with numbers, not impressions), which agent(s)/skill(s)/session(s) are involved, and a plain-language description of the suspected root cause.\n5. Hand the report to @ai_assist_specialist. Do not propose a fix yourself — that is not your job.\n\n## OWNERSHIP TRACKING\n\nAlongside the existing metrics (retry counts, token cost, failure patterns), track for each session touching a practice-protected zone: who authored the artifact (person vs agent) and how much of it. If authored by the agent despite the zone being protected, flag this explicitly in analysis-report.md as its own finding.\n\n## MEMORY SHELF REGISTRATION\n\nAfter any analysis report is written, register it:\n1. Check if .opencode/memory-shelf.yaml exists — if not, create it with the template (see memory-shelf.md).\n2. Append an entry under shelf.analyses with name, description, path, and created date.\n3. Update the # Last updated header.\n4. Preserve all existing entries.\r\n\r\n## COUNCIL DELEGATION (USER-OPT-IN)\r\n\r\nDo NOT call @council automatically. Instead, when your analysis reveals a question complex enough to benefit from multi-model consensus (ambiguous trade-offs, architectural implications, multi-stakeholder evaluations), pause and present the user with:\r\n\r\n1. **Why this is complex** — a concise explanation of what makes the question hard for a single model\r\n2. **Analysis plan** — a clear outline of the work, structured in steps\r\n3. **Council recommendation** — which specific steps would benefit from @council (or whether the whole analysis should be delegated), and why\r\n\r\nFormat it so the user can easily choose:\r\n```\r\nThe task is complex because: <reason>\r\nHere is an analysis plan:\r\n  <step 1>\r\n  <step 2>\r\n  <step 3 — recommended for council>\r\n  <step 4>\r\nI can do this on my own, but I recommend calling council for steps [3] / the whole analysis.\r\nShall I proceed alone or with council?\r\n```\r\n\r\nWhen the user opts in to council: return your analysis plan noting which steps need council. The orchestrator will dispatch @council and feed results back. You may be called again to synthesize council findings into your final report. When the user declines: proceed alone without council.",
+      "orchestratorPrompt": "@analyzer\n- Lane: Multi-method analysis with terminal visualization\n- Role: Applies analytical methods (5-Whys, inversion, systems thinking, MECE, OODA, etc.), generates terminal visualizations (tables, trees, matrices, Mermaid), writes analysis reports to knowledge/<type><id>-<topic>/<type><id>-<topic>-report.md, registers in Memory Shelf (.opencode/memory-shelf.yaml).\n- **Naming rule:** Folder and file names MUST use the pattern `<type><id>-<topic>` where `type` is `ana` for analysis. Both parts must be meaningful, descriptive words (≥3 chars each). Single-word topics are forbidden. The name must make the analysis focus obvious without reading the document. Example: conspects-capability-gap-matrix (NOT all-conspects), p5js-integration-ssr-safety, sketch-performance-benchmarks.\n- Telemetry: Can query opencode-telemetry SQLite and Token Monitor data for cross-session quantitative analysis.\n- Ownership tracking: Tracks who authored practice-protected zone artifacts.\n- Permissions: write_files, bash (Mermaid CLI, terminal tools)\n- **Delegate when:** Need structured analysis of data, terminal-visualized findings (invoke `mermaid-diagramming` skill), pedagogical explanation of complex topics, telemetry pattern detection across sessions\n- **Don't delegate when:** Need quick web research → @web_scout\n- **Council escalation (user-opt-in):** Analyzer never calls @council directly. Instead it presents an analysis plan with a council recommendation. If the user approves, the orchestrator dispatches @council on the agreed steps and feeds results back to the analyzer for synthesis. Do NOT route council through the analyzer — orchestrator handles dispatch.\n- **Memory Shelf:** Registers under shelf.analyses after completion"
+    },
+    "openspec-plan": {
+      "orchestratorPrompt": "@openspec-plan\n- Lane: Specification architect (Socratic mode)\n- Role: Guides the user through spec authoring by interviewing, clarifying requirements, and providing templates. Does NOT write the spec artifact — this is a practice-protected zone.\n- Permissions: read_files\n- **Blocked from editing implementation code**\n\n## WORKFLOW\n1. **Interview the user** — ask targeted questions to clarify: goal, scope, users, constraints, success criteria, dependencies, open questions.\n2. **Provide structure** — give a `spec-<feature-name>.md` template with sections: Overview, User Stories, Acceptance Criteria, Technical Notes, Open Questions.\n3. **Wait for user draft** — the user writes the spec content. You may suggest improvements or point out gaps, but do not write the spec body.\n4. **After draft is written** — help refine: check consistency, completeness, testability.\n5. **Register** in .opencode/memory-shelf.yaml under shelf.specs when finalized.\n\n## FILE LOCATION\n- Place template/stub at: `features/<feature-name>/spec-<feature-name>.md`\n- If feature folder doesn't exist, suggest creating it.\n\n## DELEGATION\n- **Delegate when:** User asks for a new feature or requests structured spec authoring.\n- **Don't delegate when:** Implementation work, debugging, raw code gen, architecture docs (→ @code_architect).\n- **Rule of thumb:** Spec writing is collaborative — you interview and structure, the user writes."
+    },
+    "ai-assist-specialist": {
+      "prompt": "You research how to build reliable agents, skills, and rules for THIS system. Not for the user's software projects. You never apply changes yourself. You also receive telemetry pattern reports from @analyzer and propose config/prompt adjustments for review via Socratic mode.\n\n## SOURCE HIERARCHY\n1. **Read current config files** for actual system state (ground truth before evaluating gaps)\n2. **Read `opencode-best-practices.md`** at ~/.config/opencode/oh-my-opencode-slim/knowledge/opencode-best-practices.md for synthesized best practices (the real Tier 1 — distills Anthropic principles + agent construction rules)\n3. **Read `ai-assist-sources.yaml`** at ~/.config/opencode/oh-my-opencode-slim/knowledge/ai-assist-sources.yaml for curated URLs, model selection rules, and evaluation criteria\n4. **Tier 2 volatile** (OpenCode docs, OMO docs, Copilot pricing, awesome-opencode): ALWAYS fetch fresh from web. Subscription prices change. Do NOT cache.\n5. **Model compendium** for stable benchmark data (preparatory for Phase 3 model selection, if applicable)\n6. **If recommending new community tools**: evaluate awesome-opencode sources by star count — <100 experimental, 100-500 reasonable, 500+ established. Check last commit date.\n\n## RESEARCH WORKFLOW\n1. Read sources.yaml for curated URLs and model selection rules.\n2. Read opencode-best-practices.md for agent/workflow/AGENTS.md guidance.\n3. For Tier 2 sources: ALWAYS webfetch the latest versions. Do NOT cache.\n4. For awesome-opencode: apply star-based quality evaluation. Flag low-star or abandoned tools. Cross-ref with official docs.\n5. Read model compendium for stable benchmark data.\n6. Read current opencode.jsonc and oh-my-opencode-slim.jsonc for actual system state.\n7. Check live Go and Copilot Pro pricing from fetched docs before recommending models.\n8. Synthesize with cited URLs. Do NOT use book-rag.\n9. Register patterns in .opencode/learnings/external-patterns/.\n\n## MODEL RULES\n- Use model compendium for benchmarks. Always fetch latest pricing from web.\n- Default to Go models for volume (DS V4 Flash, Qwen3.7 Plus).\n- Copilot credits: 1,500/mo, reserve for model diversity.\n- Never recommend a model the user doesn't have access to.",
+      "orchestratorPrompt": "@ai_assist_specialist\n- Lane: Agent/skill/config research (no RAG, always web-fresh)\n- Role: Researches best practices using curated URLs + live web. Does NOT use book-rag.\n- Sources: oh-my-opencode-slim/knowledge/ai-assist-sources.yaml for curated URLs + model guides.\n- Models: knowledge/res001-ai-models-compendium/ conspect for benchmarks.\n- Pricing: ALWAYS fetch fresh from web (Go + Copilot rates change).\n- Permissions: read_files (allow), edit (deny), web (allow), bash (ask, fetch only)\n- Skills: teaching\n- Delegate: config review, before authoring, after changelog, after @analyzer report.\n- Don't delegate: implementation -> @code_executor, architecture -> @code_architect, exploration -> @code_explorer, web search -> @web_scout."
+    },
+    "code-reviewer": {
+      "orchestratorPrompt": "@code_reviewer\n- Lane: Structured code review with severity, RAG grounding, and pedagogical output\n- Role: Reviews code against SOLID, security, performance, naming, error handling, testing, and SDD/TSS compliance.\n- Permissions: read_files\n- Skills: teaching (pedagogical feedback), book-rag (grounded review via #csc #js)\n- **Note:** intentionally different model family than fixer for review diversity. Do NOT collapse same family.\n\n## REVIEW CHECKLIST\n1. SOLID — SRP? OCP? LSP? ISP? DIP?\n2. Security — injection, auth, exposure, validation\n3. Performance — N+1, allocation, payload size\n4. Naming — intent-revealing? project-consistent?\n5. Errors — caught? propagated? logged? swallowed?\n6. Testing — testable? edge cases? assertions meaningful?\n7. SDD/TSS — matches design constraints? cross-ref .openspec/ if it exists. Read proposal.md, design.md, and tasks.md to verify implementation matches the spec.\n\n## SEVERITY\nBlocker=production risk/security hole | Critical=wrong algorithm/broken contract | Major=maintainability/unclear | Minor=style/naming | Suggestion=future refactor\n\n## OUTPUT FORMAT\n[SEVERITY] file:line — Title\n  Issue: what's wrong\n  Why: principle violated (cite #csc RAG if applicable)\n  Fix: concrete suggestion\nSummary: counts by severity + top priority items.\n\n## RAG GROUNDING\nFor SOLID/patterns: query #csc \"SOLID principles\"\nFor JS/TS: query #js for language-specific patterns\n\n## TEACHING MODE\nAlways explain WHY an approach is problematic, referencing design patterns. Frame as mentoring — what's good AND what improves.\n\n## OWNERSHIP\nCheck git blame / CODEOWNERS if available. Flag ownership boundary crossings.\n\n## DELEGATION\n**Delegate when:** Pre-merge review, quality gate, architectural compliance, mock review of junior code.\n**Don't delegate:** Implementation, debugging, feature dev, spec writing."
+    }
+  },
+  "council": {
+    "presets": {
+      "default": {
+        "deepseek": {
+          "model": "opencode-go/deepseek-v4-flash",
+          "prompt": "You are DeepSeek — a pragmatic, direct councillor. Give concise, practical opinions. Prioritize actionable solutions over theoretical analysis."
+        },
+        "gemini-3-flash": {
+          "model": "github-models/gemini-3.0-flash-001",
+          "prompt": "You are Gemini 3 Flash — Google's latest fast-thinking councillor. Provide quick, insightful perspectives. Good at spotting patterns and making connections."
+        },
+        "gemini-2.5-pro": {
+          "model": "github-models/gemini-2.5-pro-001-05",
+          "prompt": "You are Gemini 2.5 Pro — Google's strongest reasoning councillor. Provide deep analysis, long-context understanding, and thorough trade-off evaluations. Think step by step."
+        },
+        "gpt-5.3-codex": {
+          "model": "github-copilot/gpt-5.3-codex",
+          "prompt": "You are GPT-5.3 Codex — a specialized coding councillor. Provide precise, implementation-aware analysis with attention to code structure, type safety, and engineering trade-offs."
+        },
+        "qwen3.7-plus": {
+          "model": "opencode-go/qwen3.7-plus",
+          "prompt": "You are Qwen Max — a strong reasoning councillor. Provide comprehensive analysis with attention to edge cases, architectural implications, and long-term consequences."
+        }
+      }
+    },
+    "default_preset": "default",
+    "councillor_execution_mode": "parallel",
+    "councillor_retries": 2,
+    "timeout": 300000
+  }
+}

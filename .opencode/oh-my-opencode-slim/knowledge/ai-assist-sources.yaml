@@ -1,0 +1,226 @@
+# ai-assist-specialist: Curated Sources & Fundamental Knowledge
+#
+# Tier 1 — Stable fundamentals (re-fetch quarterly, cache locally)
+# Tier 2 — Volatile sources (ALWAYS fetch fresh from web — prices change)
+# Tier 3 — Local reference data (conspects, config files)
+#
+# Model pricing is NEVER stored here — it changes dynamically.
+# Always fetch latest pricing from live URLs in Tier 2.
+
+tier1_fundamentals:
+  anthropic_engineering:
+    - title: "Building Effective Agents"
+      url: "https://www.anthropic.com/engineering/building-effective-agents"
+      why: "Core agent design patterns — orchestrator, router, evaluator-optimizer"
+    - title: "Equipping Agents for the Real World with Agent Skills"
+      url: "https://www.anthropic.com/engineering/equipping-agents-for-the-real-world-with-agent-skills"
+      why: "How to scope and compose agent capabilities"
+    - title: "Effective Context Engineering for AI Agents"
+      url: "https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents"
+      why: "Prompt structure, context windows, token budget management"
+    - title: "Writing Tools for Agents"
+      url: "https://www.anthropic.com/engineering/writing-tools-for-agents"
+      why: "Tool design principles, permission boundaries"
+    - title: "Multi-Agent Research System"
+      url: "https://www.anthropic.com/engineering/multi-agent-research-system"
+      why: "Parallel subagent orchestration, artifact persistence"
+    - title: "Claude Code Best Practices"
+      url: "https://www.anthropic.com/engineering/claude-code-best-practices"
+      why: "Harness patterns, agent reliability at scale"
+    - title: "Effective Harnesses for Long-Running Agents"
+      url: "https://www.anthropic.com/engineering/effective-harnesses-for-long-running-agents"
+      why: "Long-horizon task design, error recovery"
+    - title: "Harness Design for Long-Running Applications"
+      url: "https://www.anthropic.com/engineering/harness-design-long-running-apps"
+      why: "Production harness architecture"
+    - title: "Demystifying Evals for AI Agents"
+      url: "https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents"
+      why: "Evaluation design, benchmarking methodology"
+    - title: "Managed Agents"
+      url: "https://www.anthropic.com/engineering/managed-agents"
+      why: "Agent lifecycle, supervision patterns"
+
+tier2_volatile_web:
+  opencode_docs:
+    - title: "OpenCode Configuration"
+      url: "https://opencode.ai/docs/config/"
+      why: "Current config schema, provider setup, agent definitions"
+    - title: "OpenCode Go"
+      url: "https://opencode.ai/docs/go/"
+      why: "Models list, usage limits — prices here are current, fetch fresh"
+    - title: "OpenCode Models"
+      url: "https://opencode.ai/docs/models/"
+      why: "Model IDs, provider mappings"
+  github_copilot:
+    - title: "Copilot Models & Pricing"
+      url: "https://docs.github.com/en/copilot/reference/copilot-billing/models-and-pricing"
+      why: "PER-TOKEN PRICING — ALWAYS FETCH FRESH (prices change)"
+    - title: "Copilot Usage-Based Billing"
+      url: "https://docs.github.com/en/copilot/concepts/billing/usage-based-billing-for-individuals"
+      why: "AI credits system, plan allowances — ALWAYS FETCH FRESH"
+  oh_my_opencode_slim:
+    - title: "OMO Slim Schema"
+      url: "https://unpkg.com/oh-my-opencode-slim@latest/oh-my-opencode-slim.schema.json"
+      why: "Latest schema for config validation"
+    - title: "OMO Slim Repository"
+      url: "https://github.com/anomalyco/oh-my-opencode-slim"
+      why: "Changelog, issues, docs"
+  opencode_releases:
+    - title: "OpenCode Releases"
+      url: "https://github.com/anomalyco/opencode/releases"
+      why: "Changelog for agent/skill/rules changes"
+  awesome_opencode:
+    - title: "Awesome OpenCode"
+      url: "https://github.com/awesome-opencode/awesome-opencode"
+      why: "Curated list of OpenCode tools, configs, extensions, and community resources. CRITICAL EVALUATION REQUIRED (see evaluation rules below)."
+
+tier3_local_references:
+  model_compendium:
+    path: "W:\\Projects\\visualPoetryResearch\\knowledge\\research-ai-models-compendium\\research-ai-models-compendium-conspect.md"
+    why: "Complete model specs, benchmarks for Go + Copilot Pro models (stable data)"
+  model_analysis:
+    path: "W:\\Projects\\visualPoetryResearch\\knowledge\\analysis-ai-models-value\\analysis-ai-models-detailed.md"
+    why: "Model rankings per priority, budget analysis"
+  memory_shelf:
+    path: "W:\\Projects\\visualPoetryResearch\\.opencode\\memory-shelf.yaml"
+    why: "All research conspects, analyses, specs"
+  opencode_config:
+    path: "C:\\Users\\qualt\\.config\\opencode\\opencode.jsonc"
+    why: "Current provider config, base permissions, agent definitions"
+  omo_slim_config:
+    path: "C:\\Users\\qualt\\.config\\opencode\\oh-my-opencode-slim.jsonc"
+    why: "Active preset, all agent model assignments, council config"
+  opencode_best_practices:
+    path: "C:\\Users\\qualt\\.config\\opencode\\oh-my-opencode-slim\\knowledge\\opencode-best-practices.md"
+    why: "Curated mid-2026 best practices for OpenCode agents, workflows, AGENTS.md files, and community resource evaluation"
+
+# Stable model benchmark reference (NOT pricing — pricing always from web)
+# Benchmarks are stable across releases, safe to cache here.
+model_benchmark_reference:
+  coding_benchmarks:
+    swe_bench_verified:
+      - model: "GPT-5.3-Codex"
+        score: 85.0%
+        pool: Copilot
+        note: "Best coding model on Copilot Pro"
+      - model: "Claude Sonnet 4.6"
+        score: 79.6%
+        pool: Copilot
+        note: "Best Anthropic on Pro"
+      - model: "DeepSeek V4 Flash"
+        score: 79.0%
+        pool: Go
+        note: "Best value on Go"
+      - model: "Qwen3.7 Plus"
+        score: 77.7%
+        pool: Go
+        note: "Best daily driver on Go"
+      - model: "Gemini 3 Flash"
+        score: 78.0%
+        pool: Copilot
+        note: "Cheapest premium model"
+      - model: "DeepSeek V4 Pro"
+        score: 80.6%
+        pool: Go
+        note: "Best quality on Go"
+      - model: "Kimi K2.6"
+        score: 80.2%
+        pool: Go
+        note: "Go quality pick"
+      - model: "GPT-5 mini"
+        score: ~59.8%
+        pool: Copilot
+        note: "Cheapest GPT on Pro"
+    gpqa_diamond:
+      - model: "Gemini 3.1 Pro"
+        score: 94.3%
+        pool: Copilot
+        note: "Best reasoning on Copilot Pro (highest GPQA)"
+      - model: "Qwen3.7 Plus"
+        score: 90.3%
+        pool: Go
+        note: "Best reasoning on Go"
+      - model: "GPT-5.3-Codex"
+        score: 92.6%
+        pool: Copilot
+      - model: "Claude Sonnet 4.6"
+        score: 89.9%
+        pool: Copilot
+      - model: "DeepSeek V4 Flash"
+        score: 88.1%
+        pool: Go
+      - model: "Gemini 3 Flash"
+        score: 90.4%
+        pool: Copilot
+
+  strong_sides:
+    deepseek_v4_flash:
+      - "Fastest and cheapest on Go ($0.14/$0.28)"
+      - "79% SWE-bench — best price/performance ratio"
+      - "1M context window"
+      - "Weak: not the strongest on complex reasoning (88% GPQA)"
+    deepseek_v4_pro:
+      - "80.6% SWE-bench — best coding score on Go"
+      - "1M context window"
+      - "Weak: more expensive ($1.74/$3.48)"
+    qwen37_plus:
+      - "77.7% SWE, 90.3% GPQA — excellent all-rounder on Go"
+      - "Very cheap ($0.40/$1.60)"
+      - "21,600 req/mo — great volume capacity"
+    gemini_31_pro:
+      - "94.3% GPQA — best reasoning of any available model"
+      - "1M context window"
+      - "Weak: only available on Copilot, ~14 cr/100K"
+    gpt_53_codex:
+      - "85% SWE-bench — best coding on Copilot Pro"
+      - "Built for agentic coding workflows"
+      - "Weak: expensive ($1.75/$14), ~16 cr/100K"
+    claude_sonnet_46:
+      - "79.6% SWE, 89.9% GPQA — strong all-round Anthropic model"
+      - "Best instruction following in class"
+      - "Weak: expensive ($3/$15), ~18 cr/100K"
+    gemini_3_flash:
+      - "78% SWE, 90.4% GPQA — best value on Copilot"
+      - "Cheapest premium model ($0.50/$3, ~3.5 cr/100K)"
+      - "1M context"
+    gpt_5_mini:
+      - "Cheapest GPT on Copilot Pro ($0.25/$2, ~3 cr/100K)"
+      - "Good for fast, simple tasks"
+      - "Weak: only ~60% SWE"
+
+# Model selection rules of thumb (pricing always fetched fresh from web)
+model_selection_guidelines:
+  role_mapping:
+    orchestrator: "DS V4 Flash (Go) — fast routing, 1M ctx, cheap"
+    oracle: "Gemini 3.1 Pro (Copilot) — highest GPQA for architecture depth"
+    fixer: "DS V4 Flash (Go) — speed + value for implementation"
+    code_reviewer: "GPT-5.3-Codex (Copilot) — model diversity, 85% SWE"
+    openspec_plan: "Qwen3.7 Plus (Go) — volume for spec writing"
+    designer: "Gemini 3 Flash (Copilot) or Kimi K2.6 (Go) — fast, multimodal"
+    explorer: "GPT-5 mini (Copilot) — fast code search, cheap"
+    librarian: "DS V4 Flash (Go) — volume research"
+    conspecter: "DS V4 Flash (Go) — volume synthesis"
+    analyzer: "Qwen3.7 Plus (Go) — 90.3% GPQA for analysis"
+    observer: "GPT-5 mini (Copilot) — passive monitoring, cheap"
+    ai_assist_specialist: "Qwen3.7 Plus (Go) — research agent"
+
+  rules:
+    - "Always check current pricing from web before recommending — Go and Copilot rates change"
+    - "Default to Go models for volume work (DS V4 Flash, Qwen3.7 Plus)"
+    - "Copilot credits: 1,500/mo for Pro, 7,000/mo for Pro+ — reserve for model diversity"
+    - "Never recommend a model the user doesn't have access to"
+    - "For review diversity: code-reviewer must be different model family than fixer"
+    - "Qwen3.7 Max is special ammo — not a default for any agent (6x cost for 2% gain)"
+
+community_source_evaluation:
+  awesome_opencode:
+    url: "https://github.com/awesome-opencode/awesome-opencode"
+    evaluation_rules:
+      - "Star count is the PRIMARY quality signal. More stars = more community validation, battle-testing, and ongoing maintenance."
+      - "TOOLS WITH < 100 STARS: Treat as experimental. Only recommend if they solve a specific gap nothing else covers. Flag the low adoption risk."
+      - "TOOLS WITH 100-500 STARS: Reasonable adoption. Note the star count and any recent commit activity in your recommendation."
+      - "TOOLS WITH 500+ STARS: Well-established. Can recommend more confidently, but still verify last update date."
+      - "TOOLS WITH 5000+ STARS: Industry standard. High confidence."
+      - "ALWAYS check the 'last commit' / 'last release' date. A tool with high stars but no commits in 6+ months is abandoned — flag this."
+      - "Cross-reference recommendations with official OpenCode documentation. Community tools may lag behind API changes."
+      - "Do NOT recommend unmaintained tools even if they have high stars — security risk and compatibility issues."
