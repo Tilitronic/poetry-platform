@@ -1,0 +1,33 @@
+# OpenSpec project configuration
+# Created: 2026-07-13
+# Based on: ana001-openspec-workflow-analysis recommendations
+
+schema: spec-driven
+
+context: |
+  Tech stack: TypeScript, Python, Rust/WASM
+  Monorepo: Turborepo with pnpm workspaces
+  Architecture docs: .sdd/ (Software Design Documents — system-level decisions)
+  System overview: architecture.md (root — loaded as system instruction)
+  Technical specs: .tss/ (API contracts, data schemas — future)
+  See .sdd/README.md for the design authority layer model
+
+rules:
+  proposal:
+    - Reference relevant .sdd/ documents if the change touches an existing module
+    - Flag if the change requires a new architectural decision (escalate to @code_architect)
+    - Include rollback plan for risky changes
+  design:
+    - Before writing: read .sdd/<module>/architecture.md for governing constraints
+    - design.md contains IMPLEMENTATION design (which files, what patterns, how data
+      flows within existing module boundaries)
+    - Do NOT make system architecture decisions in design.md — escalate to @code_architect
+      if a new module boundary, technology choice, or cross-cutting concern is needed
+    - Reference .sdd/ documents in the Approach section
+    - Include sequence diagrams for complex data flows
+  specs:
+    - Use Given/When/Then format for scenarios
+    - Cross-reference .tss/ contracts where applicable (future)
+  tasks:
+    - Break down into verifiable, independently testable steps
+    - Annotate boundary-crossing tasks with the .sdd/ document they depend on

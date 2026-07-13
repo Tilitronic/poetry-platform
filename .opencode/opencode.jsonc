@@ -48,9 +48,12 @@
       "prompt": "You are a pragmatist. Write clean, self-documenting code with inline native comments (JSDoc/Docstrings) explaining the 'WHY'. No conversational filler. If the user mentions tests, invoke the 'tdd-craftsman' skill immediately via your skill tool.",
       "permission": {
         "task": {
+          // Verified 2026-07-13: oracle and openspec-plan are present
+          "oracle": "allow",
+          "openspec-plan": "allow",
+          "code-executor": "allow",
           "gigabuild": "allow",
-          "gigaplan": "allow",
-          "code-executor": "allow"
+          "gigaplan": "allow"
         }
       }
     },
@@ -192,11 +195,9 @@
   "plugin": [
     "envsitter-guard",
     "opencode-subagent-output",
-    "opencode-plugin-openspec",
     "opencode-snip",
     "opencode-dynamic-context-pruning",
     "opencode-telemetry",
-    "opencode-token-monitor",
     "oh-my-opencode-slim"
   ],
 

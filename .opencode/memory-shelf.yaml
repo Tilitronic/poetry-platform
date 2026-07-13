@@ -1,0 +1,17 @@
+# Memory Shelf — Central Knowledge Registry
+# Last updated: 2026-07-13
+
+shelf:
+  conspects:
+    - name: "OpenSpec, SDD/TSS, and code_architect Reconciliation"
+      description: "Analysis of the three parallel design documentation approaches (OpenSpec .openspec/, .sdd/.tss directories, and code_architect architecture documents), their overlap, and a recommended reconciliation into a three-layer model."
+      path: "knowledge/res001-openspec-sdd-reconciliation/res001-openspec-sdd-reconciliation-conspect.md"
+      created: 2026-07-13
+  analyses:
+    - name: "OpenSpec Workflow Integration in AI Agent Pipelines"
+      description: "Analysis of the proposed @oracle → @openspec-plan → @fixer workflow split. Verdict: conceptually sound but needs 5 boundary fixes — design.md scope redefinition, .sdd/ creation with seed content, agent prompt updates, escalation path, and OpenSpec config.yaml."
+      path: "knowledge/ana001-openspec-workflow-analysis/ana001-openspec-workflow-analysis-report.md"
+      created: 2026-07-13
+  specs: []
+  architectures: []
+  rag_bases: []

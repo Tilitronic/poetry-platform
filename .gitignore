@@ -37,6 +37,9 @@ Thumbs.db
 *.swo
 *~
 
+# === Knowledge / Research ===
+knowledge/*/sources/
+
 # === Test coverage ===
 coverage/
 .temp/
