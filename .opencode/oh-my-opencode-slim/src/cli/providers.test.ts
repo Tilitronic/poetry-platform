@@ -34,8 +34,8 @@ describe('providers', () => {
     );
     const agents = (config.presets as any).openai;
     expect(agents).toBeDefined();
-    expect(agents.orchestrator.model).toBe('openai/gpt-5.5');
-    expect(agents.orchestrator.variant).toBe('medium');
+    expect(agents.boss.model).toBe('openai/gpt-5.5');
+    expect(agents.boss.variant).toBe('medium');
     expect(agents.coder.model).toBe('openai/gpt-5.5');
     expect(agents.coder.variant).toBe('low');
   });
@@ -49,8 +49,8 @@ describe('providers', () => {
     });
 
     const agents = (config.presets as any).openai;
-    expect(agents.orchestrator.model).toBe(
-      MODEL_MAPPINGS.openai.orchestrator.model,
+    expect(agents.boss.model).toBe(
+      MODEL_MAPPINGS.openai.boss.model,
     );
     expect(agents.architector.model).toBe('openai/gpt-5.5');
     expect(agents.architector.variant).toBe('high');
@@ -76,7 +76,7 @@ describe('providers', () => {
     expect((config.presets as any).openai).toBeDefined();
     const agents = (config.presets as any)['opencode-go'];
     expect(agents).toBeDefined();
-    expect(agents.orchestrator.model).toBe('opencode-go/glm-5.2');
+    expect(agents.boss.model).toBe('opencode-go/glm-5.2');
     expect(agents.architector.model).toBe('opencode-go/qwen3.7-max');
     expect(agents.architector.variant).toBe('max');
     expect(agents.council).toBeUndefined();
@@ -180,14 +180,14 @@ describe('providers', () => {
     });
 
     const agents = (config.presets as any).openai;
-    // Orchestrator should always have '*'
-    expect(agents.orchestrator.skills).toEqual(['*']);
+    // Boss should always have '*'
+    expect(agents.boss.skills).toEqual(['*']);
 
     // Oracle should have bundled simplify
     expect(agents.architector.skills).toContain('simplify');
 
     // Orchestrator should implicitly cover bundled codemap via '*'
-    expect(agents.orchestrator.skills).toContain('*');
+    expect(agents.boss.skills).toContain('*');
 
     // Designer should have no bundled skills by default
     expect(agents.designer.skills).toEqual([]);
@@ -208,8 +208,8 @@ describe('providers', () => {
     });
 
     const agents = (config.presets as any).openai;
-    expect(agents.orchestrator.mcps).toBeDefined();
-    expect(Array.isArray(agents.orchestrator.mcps)).toBe(true);
+    expect(agents.boss.mcps).toBeDefined();
+    expect(Array.isArray(agents.boss.mcps)).toBe(true);
     expect(agents.researcher.mcps).toBeDefined();
     expect(Array.isArray(agents.researcher.mcps)).toBe(true);
   });
@@ -223,7 +223,7 @@ describe('providers', () => {
     });
 
     const agents = (config.presets as any).openai;
-    expect(agents.orchestrator.mcps).toEqual(['*', '!context7']);
+    expect(agents.boss.mcps).toEqual(['*', '!context7']);
     expect(agents.researcher.mcps).toContain('websearch');
     expect(agents.researcher.mcps).toContain('context7');
     expect(agents.researcher.mcps).toContain('gh_grep');

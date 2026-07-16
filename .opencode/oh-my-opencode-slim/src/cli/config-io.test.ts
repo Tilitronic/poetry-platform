@@ -558,7 +558,7 @@ describe('config-io', () => {
         preset: 'openai',
         presets: {
           openai: {
-            orchestrator: { model: 'openai/gpt-4' },
+            boss: { model: 'openai/gpt-4' },
             architector: { model: 'anthropic/claude-opus-4-6' },
             'code-navigator': { model: 'github-copilot/grok-code-fast-1' },
             researcher: { model: 'zai-coding-plan/glm-4.7' },
@@ -593,7 +593,7 @@ describe('config-io', () => {
         preset: 'dev',
         presets: {
           dev: {
-            orchestrator: {
+            boss: {
               model: [
                 'openai/gpt-5.4-mini',
                 { id: 'anthropic/claude-opus-4-6' },

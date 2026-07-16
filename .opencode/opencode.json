@@ -3,7 +3,7 @@
   "model": "opencode-go/deepseek-v4-flash-free",
   "plugin": [
     "/app/ponytail/.opencode/plugins/ponytail.mjs",
-    "opencode-snip@latest",
+    "./.opencode/plugins/snip/index.ts",
     "@tarquinen/opencode-dcp@latest"
   ],
   "mcp": {
