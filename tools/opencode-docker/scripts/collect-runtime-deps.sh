@@ -70,6 +70,8 @@ for p in sorted(paths):
 
 collect_node() {
   # ponytail: dash needed for Node.js child_process.spawn; negligible size, huge convenience
+  [ -n "${_COLLECT_NODE_DONE:-}" ] && return
+  _COLLECT_NODE_DONE=1
   [ -e /bin/sh ] && process /bin/sh
   for d in /usr/bin/npm /usr/bin/npx /usr/bin/corepack \
            /usr/lib/node_modules/npm /usr/lib/node_modules/corepack \

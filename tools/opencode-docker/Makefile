@@ -4,7 +4,7 @@ USER_UID := $(shell id -u)
 USER_GID := $(shell id -g)
 VERSION ?=
 
-COMMON_DOCKER_FLAGS := --rm -it --userns=keep-id --read-only --tmpfs /tmp:exec,size=512m --cap-drop=ALL --security-opt=no-new-privileges --memory=2g --cpus=2
+COMMON_DOCKER_FLAGS := --rm -it --userns=keep-id --read-only --tmpfs /tmp:exec,size=512m --cap-drop=ALL --security-opt=no-new-privileges --memory=4g --cpus=4
 COMMON_VOLUME_FLAGS := -v $(shell pwd)/homebase/.local/share:/app/.local/share:rw,Z -v $(shell pwd)/homebase/.local/state:/app/.local/state:rw,Z -v $(shell pwd)/config:/app/.config/opencode:rw,Z -v $(shell pwd)/homebase/.cache:/app/.cache:rw,Z -v $(shell pwd)/workspace:/workspace:rw,Z -v $(shell pwd)/secrets:/run/secrets:ro,Z
 
 build:

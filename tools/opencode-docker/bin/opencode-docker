@@ -6,7 +6,7 @@
 # Options:
 #   -w, --websearch     Enable web search (sets OPENCODE_ENABLE_EXA=1)
 #   -e, --experimental  Enable experimental features (sets OPENCODE_EXPERIMENTAL=1 and OPENCODE_ENABLE_EXPERIMENTAL_MODELS=1)
-#   -u, --update-config Overwrite ~/.opencode-docker/config/ files with repo versions
+#   -U, --update-config Overwrite ~/.opencode-docker/config/ files with repo versions
 #   -m, --memory        Set memory limit (default: 4g, e.g., -m 8g)
 #   -c, --cpus          Set CPU count (default: 4, e.g., -c 8)
 
@@ -54,7 +54,7 @@ CPU_LIMIT="${CPU_LIMIT:-4}"
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        -u|--update-config)
+        -U|--update-config)
             UPDATE_CONFIG=1
             shift
             ;;
@@ -81,7 +81,7 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-# Config copy after flag parsing so -u/--update-config works
+# Config copy after flag parsing so -U/--update-config works
 if [ -d "$repo_dir/config" ]; then
   if [ "$UPDATE_CONFIG" = 1 ]; then
     cp -a "$repo_dir/config/." "$ocd_dir/config/"
