@@ -2,9 +2,10 @@
   "$schema": "https://opencode.ai/config.json",
   "model": "opencode-go/deepseek-v4-flash-free",
   "plugin": [
-    "/app/ponytail/.opencode/plugins/ponytail.mjs",
+    "file:///workspace/.opencode/oh-my-opencode-slim",
     "./.opencode/plugins/snip/index.ts",
-    "@tarquinen/opencode-dcp@latest"
+    "@tarquinen/opencode-dcp@latest",
+    "opencode-snip@latest"
   ],
   "mcp": {
     "context7": {
@@ -18,8 +19,31 @@
   },
   "agent": {
     "architect": {
+      "mode": "subagent",
+      "color": "#8B5CF6",
+      "hidden": true,
+      "permission": {
+        "edit": "deny",
+        "bash": "deny",
+        "task": "deny"
+      }
+    },
+    "orchestrator": {
+      "mode": "subagent",
+      "color": "#6366F1",
+      "hidden": true,
+      "permission": {
+        "edit": "deny",
+        "bash": "deny",
+        "task": "deny"
+      }
+    },
+    "boss": {
+      "mode": "primary",
+      "color": "#6366F1"
+    },
+    "architector": {
       "mode": "all",
-      "model": "opencode-go/deepseek-v4-flash-free",
       "color": "#8B5CF6",
       "permission": {
         "edit": "deny",
@@ -29,9 +53,7 @@
     },
     "reviewer": {
       "mode": "all",
-      "model": "opencode-go/deepseek-v4-flash-free",
       "color": "#F59E0B",
-      "reasoningEffort": "high",
       "permission": {
         "edit": "deny",
         "bash": "deny",
@@ -40,33 +62,39 @@
     },
     "tester": {
       "mode": "subagent",
-      "model": "opencode-go/deepseek-v4-flash-free",
-      "color": "#10B981",
-      "reasoningEffort": "high"
+      "color": "#10B981"
     },
     "writer": {
       "mode": "subagent",
-      "model": "opencode-go/deepseek-v4-flash-free",
-      "color": "#3B82F6",
-      "reasoningEffort": "medium"
+      "color": "#3B82F6"
     },
     "writer-frontend": {
       "mode": "subagent",
-      "model": "opencode-go/deepseek-v4-flash-free",
-      "color": "#EC4899",
-      "reasoningEffort": "medium"
-    },
-    "orchestrator": {
-      "mode": "primary",
-      "model": "opencode-go/deepseek-v4-flash-free",
-      "color": "#6366F1",
-      "reasoningEffort": "medium"
+      "color": "#EC4899"
     },
     "memory-manager": {
       "mode": "subagent",
-      "model": "opencode-go/deepseek-v4-flash-free",
-      "color": "#F472B6",
-      "reasoningEffort": "low"
+      "color": "#F472B6"
+    },
+    "code-navigator": {
+      "mode": "subagent",
+      "color": "#06B6D4"
+    },
+    "researcher": {
+      "mode": "subagent",
+      "color": "#84CC16"
+    },
+    "coder": {
+      "mode": "subagent",
+      "color": "#3B82F6"
+    },
+    "designer": {
+      "mode": "subagent",
+      "color": "#EC4899"
+    },
+    "observer": {
+      "mode": "subagent",
+      "color": "#A855F7"
     }
   }
 }

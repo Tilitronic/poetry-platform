@@ -44,3 +44,13 @@ knowledge/*/sources/
 coverage/
 .temp/
 .cache/
+
+# === OpenCode Docker tool ===
+tools/opencode-docker/workspace/
+tools/opencode-docker/homebase/
+tools/opencode-docker/secrets/
+tools/opencode-docker/.worktrees/
+tools/opencode-docker/worktrees/
+tools/opencode-docker/opencode.json
+tools/opencode-docker/.opencode/
+tools/opencode-docker/.cache/opencode/
