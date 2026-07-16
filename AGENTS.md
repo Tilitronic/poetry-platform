@@ -23,6 +23,7 @@ Architecture → Specification → Implementation:
 1. **Pre-flight**: Check `.sdd/` and `.openspec/` for governing constraints before touching code
 2. **Dispatch** `@coder` — implements against `tasks.md`, within architectural constraints
 3. **Post-flight**: Run dev build, lint, tests before handing off
+4. **Persist**: After feature completion or ≥2 failed loops, dispatch `@memory-manager` to capture ADRs, lessons, and failure patterns in `.opencode/memory/`
 
 `openspec-plan` is blocked from editing implementation code.
 
