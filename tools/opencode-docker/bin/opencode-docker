@@ -1,0 +1,129 @@
+#!/usr/bin/env bash
+#
+# OpenCode Docker wrapper script
+# Add this directory to your PATH to run the Docker isolated OpenCode from anywhere
+#
+# Options:
+#   -w, --websearch     Enable web search (sets OPENCODE_ENABLE_EXA=1)
+#   -e, --experimental  Enable experimental features (sets OPENCODE_EXPERIMENTAL=1 and OPENCODE_ENABLE_EXPERIMENTAL_MODELS=1)
+#   -u, --update-config Overwrite ~/.opencode-docker/config/ files with repo versions
+#   -m, --memory        Set memory limit (default: 4g, e.g., -m 8g)
+#   -c, --cpus          Set CPU count (default: 4, e.g., -c 8)
+
+set -e
+
+# Pre-flight checks — fail fast before touching filesystem
+if ! command -v podman &>/dev/null; then
+    echo "Error: podman is not installed" >&2
+    exit 1
+fi
+if ! podman image inspect opencode-docker:latest &>/dev/null; then
+    echo "Error: image opencode-docker:latest not found. Run 'make build' in opencode-docker repo." >&2
+    exit 1
+fi
+
+UPDATE_CONFIG=0
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+ocd_dir="$HOME/.opencode-docker"
+repo_dir="${OPENCODE_DOCKER_REPO:-$(cd "$SCRIPT_DIR/.." && pwd)}"
+
+mkdir -p "$ocd_dir/config" "$ocd_dir/secrets"
+chmod 700 "$ocd_dir" "$ocd_dir/config" "$ocd_dir/secrets"
+
+# Ensure persistence subdirs exist (needed for selective mounts)
+mkdir -p "$ocd_dir/.local/share" "$ocd_dir/.local/state" "$ocd_dir/.cache"
+
+# Default workspace to current directory if not specified
+WORKSPACE="${OPENCODE_WORKSPACE:-$(pwd)}"
+
+if [ ! -d "$WORKSPACE" ]; then
+    echo "Error: workspace path is not an existing directory: $WORKSPACE" >&2
+    exit 1
+fi
+
+# ponytail: block workspace=$HOME, :Z relabel of home dir fails on SELinux
+if [ "$WORKSPACE" = "$HOME" ]; then
+    echo "Error: cannot use home directory as workspace. Run from a project directory instead." >&2
+    exit 1
+fi
+
+EXTRA_ENV=()
+MEMORY_LIMIT="${MEMORY_LIMIT:-4g}"
+CPU_LIMIT="${CPU_LIMIT:-4}"
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        -u|--update-config)
+            UPDATE_CONFIG=1
+            shift
+            ;;
+        -w|--websearch)
+            EXTRA_ENV+=("-e OPENCODE_ENABLE_EXA=1")
+            shift
+            ;;
+        -e|--experimental)
+            EXTRA_ENV+=("-e OPENCODE_EXPERIMENTAL=1")
+            EXTRA_ENV+=("-e OPENCODE_ENABLE_EXPERIMENTAL_MODELS=1")
+            shift
+            ;;
+        -m|--memory)
+            MEMORY_LIMIT="$2"
+            shift 2
+            ;;
+        -c|--cpus)
+            CPU_LIMIT="$2"
+            shift 2
+            ;;
+        *)
+            break
+            ;;
+    esac
+done
+
+# Config copy after flag parsing so -u/--update-config works
+if [ -d "$repo_dir/config" ]; then
+  if [ "$UPDATE_CONFIG" = 1 ]; then
+    cp -a "$repo_dir/config/." "$ocd_dir/config/"
+  else
+    cp -a --update=none "$repo_dir/config/." "$ocd_dir/config/"
+  fi
+fi
+
+if [ -t 0 ]; then
+    DOCKER_FLAGS="-it"
+else
+    DOCKER_FLAGS="-i"
+fi
+
+GITCONFIG_MOUNT=()
+# ponytail: copy gitconfig into .opencode-docker so :Z works (home dir blocks relabel)
+if [ -f "$HOME/.gitconfig" ]; then
+    cp "$HOME/.gitconfig" "$ocd_dir/.gitconfig"
+    GITCONFIG_MOUNT=(-v "$ocd_dir/.gitconfig:/app/.gitconfig:ro,Z")
+fi
+
+# ponytail: mount ponytail plugin if present on host
+PONYTAIL_MOUNT=()
+if [ -d "$HOME/ponytail" ]; then
+    PONYTAIL_MOUNT=(-v "$HOME/ponytail:/app/ponytail:ro,Z")
+fi
+
+podman run --rm $DOCKER_FLAGS \
+    --userns=keep-id \
+    --read-only \
+    --tmpfs /tmp:exec,size=512m \
+    --cap-drop=ALL \
+    --security-opt=no-new-privileges \
+    --memory="${MEMORY_LIMIT}" \
+    --cpus="${CPU_LIMIT}" \
+    "${EXTRA_ENV[@]}" \
+    -v "$ocd_dir/.local/share:/app/.local/share:rw,Z" \
+    -v "$ocd_dir/.local/state:/app/.local/state:rw,Z" \
+    -v "$ocd_dir/config:/app/.config/opencode:rw,Z" \
+    -v "$ocd_dir/.cache:/app/.cache:rw,Z" \
+    -v "$ocd_dir/secrets:/run/secrets:ro,Z" \
+    "${GITCONFIG_MOUNT[@]}" \
+    "${PONYTAIL_MOUNT[@]}" \
+    -v "$WORKSPACE:/workspace:rw,Z" \
+    opencode-docker:latest /workspace "$@"
