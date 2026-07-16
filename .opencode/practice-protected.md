@@ -16,7 +16,7 @@ proceeding or applying changes.
   surfaced to the user for prioritization before test implementation.
 - The user decides which edge cases to test, not the agent.
 
-### 3. Architectural decisions flagged by @code_architect / @gigaplan
+### 3. Architectural decisions flagged by @architector / @gigaplan
 - When an agent detects a significant architectural decision point, it must
   present the options with trade-offs and wait for explicit user direction.
 - Do not silently choose an architecture path and implement it.
@@ -27,9 +27,9 @@ All agents fall into one of three permission tiers. New agents must declare thei
 
 | Tier | Permissions | Produces | Examples |
 |------|------------|----------|----------|
-| **pure-analyst** | `read_files` only | Output in conversation only | @code_architect, @ai_assist_specialist, @code_reviewer, @openspec-plan |
+| **pure-analyst** | `read_files` only | Output in conversation only | @architector, @ai_assist_specialist, @code_reviewer, @openspec-plan |
 | **artifact-producer** | Write+Bash, scoped to `knowledge/` | Structured reports, conspects, analyses | @analyzer, @conspecter |
-| **executor** | Full Write+Bash | Implementation, refactoring, scribe work | @code_executor, @designer, @gigabuild |
+| **executor** | Full Write+Bash | Implementation, refactoring, scribe work | @coder, @designer, @gigabuild |
 
 **Rule:** If a pure-analyst agent's output needs to be persisted as a file, the
 orchestrator delegates to an executor for transcription. Pure-analysts never

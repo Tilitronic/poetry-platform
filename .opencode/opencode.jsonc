@@ -51,7 +51,6 @@
           // Verified 2026-07-13: oracle and openspec-plan are present
           "oracle": "allow",
           "openspec-plan": "allow",
-          "code-executor": "allow",
           "gigabuild": "allow",
           "gigaplan": "allow"
         }

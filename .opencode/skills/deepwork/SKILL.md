@@ -34,7 +34,7 @@ Required behavior:
   for oracle review and ask `@oracle` to review the phase result, fix
   actionable issues, then continue;
 - when a phase includes `@designer`, preserve designer intent across later
-  phases. Use `@code_executor` only for mechanical follow-up that does not alter the
+  phases. Use `@coder` only for mechanical follow-up that does not alter the
   UI/UX;
 - finish with final validation and a concise summary.
 
@@ -52,7 +52,7 @@ After designer work:
   change visual structure or interaction intent;
 - route follow-up visual, responsive, motion, hierarchy, polish, or
   component-feel changes back to `@designer`;
-- use `@code_executor` only for bounded mechanical follow-up that preserves the design
+- use `@coder` only for bounded mechanical follow-up that preserves the design
   exactly, such as wiring, tests, type fixes, or non-visual behavior changes;
 - if design intent must change, record why in the deepwork file before changing
   it.
