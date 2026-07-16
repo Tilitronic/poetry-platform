@@ -85,6 +85,10 @@ RUN cd /opt/runtime-rootfs && \
 # Copy opencode-snip plugin (with local PR fixes) into distroless image
 COPY plugins /opt/runtime-rootfs/app/plugins
 
+# Copy grill-with-docs skill (used by architect, reviewer, tester, memory-manager)
+RUN mkdir -p /opt/runtime-rootfs/app/.agents/skills/grill-with-docs
+COPY skills/grill-with-docs /opt/runtime-rootfs/app/.agents/skills/grill-with-docs
+
 RUN mkdir -p /opt/runtime-rootfs/app/.local/share /opt/runtime-rootfs/app/.config/opencode /opt/runtime-rootfs/app/.cache && \
     chown -R ${USER_UID}:${USER_GID} /opt/runtime-rootfs/app && \
     printf 'opencode:x:%s:%s:OpenCode User:/app:/usr/bin/python3\n' "${USER_UID}" "${USER_GID}" >> /opt/runtime-rootfs/etc/passwd && \

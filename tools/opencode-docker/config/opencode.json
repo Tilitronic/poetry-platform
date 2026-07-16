@@ -12,7 +12,6 @@
     }
   },
   "plugin": [
-    "superpowers@git+https://github.com/obra/superpowers.git#v6.1.0",
     "@tarquinen/opencode-dcp@3.1.14"
   ]
 }

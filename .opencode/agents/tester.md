@@ -51,7 +51,7 @@ If the task is large, risky, or the architect's plan is detailed enough:
 
 1. Read the architect's plan.
 2. Use the `grill-with-docs` skill to load project testing conventions and domain language. If invoked as a subagent by the orchestrator: read `CONTEXT.md` and `docs/adr/` directly instead — grill-with-docs is interactive and not usable from a subagent. Batch any questions for the orchestrator.
-3. Use the `tdd` skill for test-first design guidance: vertical slices over horizontal, mocking patterns when needed, and behavior-over-implementation testing.
+3. Use the `tdd-craftsman` skill for polyglot test-first design (Python/Rust/C/TS via Turborepo): vertical slices, ownership protocol, behavior-over-implementation testing.
 4. Identify missing or ambiguous contract details. Batch all questions and return them to the orchestrator.
 5. **Sketch a test plan** — before writing any test code, list all tests you intend to write. For each sketch:
    * What behavior it verifies
