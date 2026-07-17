@@ -4,8 +4,8 @@
     "modelMaxLimits": {
       "opencode-go/deepseek-v4-pro": "55%",
       "opencode-go/deepseek-v4-flash": "80%",
-      "opencode-go/deepseek-v4-flash-free": "85%",
-      "opencode/deepseek-v4-flash-free": "85%",
+      "opencode-go/deepseek-v4-flash": "85%",
+      "opencode/deepseek-v4-flash": "85%",
       "opencode-go/qwen3.7-max": "70%",
       "opencode-go/qwen3.7-plus": "70%",
       "opencode-go/kimi-k2.7-code": "65%",
@@ -27,8 +27,8 @@
     "modelMinLimits": {
       "opencode-go/deepseek-v4-pro": "15%",
       "opencode-go/deepseek-v4-flash": "25%",
-      "opencode-go/deepseek-v4-flash-free": "30%",
-      "opencode/deepseek-v4-flash-free": "30%",
+      "opencode-go/deepseek-v4-flash": "30%",
+      "opencode/deepseek-v4-flash": "30%",
       "opencode-go/qwen3.7-max": "20%",
       "opencode-go/qwen3.7-plus": "20%",
       "opencode-go/kimi-k2.7-code": "18%",

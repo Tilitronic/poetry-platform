@@ -10,14 +10,14 @@ Architecture → Specification → Implementation:
 
 ### 2.1 System Architecture (RARE — only when architecture evolves)
 1. **Trigger**: New module, cross-cutting technology decision, or module boundary change
-2. **Dispatch** `@code_architect` — produces `.sdd/<module>/architecture.md` with ADRs
+2. **Dispatch** `@architector` — produces `.sdd/<module>/architecture.md` with ADRs
 3. **Frequency**: Not per-feature. Architecture is stable; features work within it.
 
 ### 2.2 Feature Specification (per feature)
 1. **Pre-flight**: Read relevant `.sdd/` documents for governing constraints
 2. **Dispatch** `@openspec-plan` — guides Socratic authoring of `proposal.md`, `design.md`, `tasks.md` under `.openspec/changes/<name>/`
 3. **Constraint**: `design.md` references `.sdd/` but never overrides it. Practice-protected: agent guides, user writes.
-4. **Escalation**: If the feature discovers an architecture gap (new module boundary needed, technology decision not yet made), PAUSE spec flow, dispatch `@code_architect` to create the `.sdd/` document, then resume.
+4. **Escalation**: If the feature discovers an architecture gap (new module boundary needed, technology decision not yet made), PAUSE spec flow, dispatch `@architector` to create the `.sdd/` document, then resume.
 
 ### 2.3 Implementation (per feature)
 1. **Pre-flight**: Check `.sdd/` and `.openspec/` for governing constraints before touching code
@@ -40,7 +40,7 @@ Before any code change, check these files for governing constraints (in order):
 See `.opencode/practice-protected.md` for zones where agents must ask guiding questions and wait for user input rather than silently implementing:
 - OpenSpec proposal.md / design.md authoring
 - TDD edge-case identification
-- Architectural decisions flagged by @code_architect
+- Architectural decisions flagged by @architector
 
 ## 5. Skill Integration
 - When writing tests: invoke the `tdd-craftsman` skill at the start of the workflow.

@@ -6,13 +6,12 @@
   // All files in .opencode/ and prompts/ are version-controlled for team sharing.
   // ---------------------------------------------------------------------------
 
-  // Auto-load architecture.md into every session's system context.
-  "instructions": [
-    "architecture.md"
-  ],
+  // Instructions loaded only via boss_append.md — no global spam.
 
-  // Start every session in build agent mode.
-  "default_agent": "build",
+  "instructions": [],
+
+  // Start every session in boss agent mode (OMO Slim orchestrator).
+  "default_agent": "boss",
 
   // Prevent context overflow during long sessions.
   "compaction": {
@@ -48,11 +47,9 @@
       "prompt": "You are a pragmatist. Write clean, self-documenting code with inline native comments (JSDoc/Docstrings) explaining the 'WHY'. No conversational filler. If the user mentions tests, invoke the 'tdd-craftsman' skill immediately via your skill tool.",
       "permission": {
         "task": {
-          // Verified 2026-07-13: oracle and openspec-plan are present
-          "oracle": "allow",
-          "openspec-plan": "allow",
-          "gigabuild": "allow",
-          "gigaplan": "allow"
+          // Verified 2026-07-17: boss and openspec-plan are present
+          "boss": "allow",
+          "openspec-plan": "allow"
         }
       }
     },
@@ -66,8 +63,7 @@
       "permission": {
         "edit": "deny",
         "task": {
-          "*": "deny",
-          "gigaplan": "allow"
+          "*": "deny"
         }
       },
       "prompt": "You are a technical mentor. Explain code fragments cleanly to help the user grow. You are strictly read-only."
@@ -96,14 +92,6 @@
         }
       }
     },
-    // Analyzer can dispatch council
-    "analyzer": {
-      "permission": {
-        "task": {
-          "council": "allow"
-        }
-      }
-    }
   },
 
   // ---------------------------------------------------------------------------
@@ -207,6 +195,10 @@
     "context7": {
       "type": "remote",
       "url": "https://mcp.context7.com/mcp",
+      "headers": {
+        "CONTEXT7_API_KEY": "{env:CONTEXT7_API_KEY}"
+      },
+      "enabled": true,
       "description": "Search library documentation (Node.js, Python, NumPy, etc.)"
     },
     "gh_grep": {

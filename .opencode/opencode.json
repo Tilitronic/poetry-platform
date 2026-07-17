@@ -1,42 +1,12 @@
 {
   "$schema": "https://opencode.ai/config.json",
-  "model": "opencode-go/deepseek-v4-flash-free",
+  "model": "opencode-go/deepseek-v4-flash",
   "plugin": [
     "file:///workspace/.opencode/oh-my-opencode-slim"
   ],
-  "mcp": {
-    "context7": {
-      "type": "remote",
-      "url": "https://mcp.context7.com/mcp",
-      "headers": {
-        "CONTEXT7_API_KEY": "ctx7sk-e95549ba-9509-4378-80d7-af0489597af7"
-      },
-      "enabled": true
-    }
-  },
   "agent": {
-    "architect": {
-      "mode": "subagent",
-      "color": "#8B5CF6",
-      "hidden": true,
-      "permission": {
-        "edit": "deny",
-        "bash": "deny",
-        "task": "deny"
-      }
-    },
-    "orchestrator": {
-      "mode": "subagent",
-      "color": "#6366F1",
-      "hidden": true,
-      "permission": {
-        "edit": "deny",
-        "bash": "deny",
-        "task": "deny"
-      }
-    },
     "boss": {
-      "mode": "primary",
+      "mode": "all",
       "color": "#6366F1"
     },
     "architector": {
@@ -57,21 +27,9 @@
         "task": "deny"
       }
     },
-    "tester": {
-      "mode": "subagent",
-      "color": "#10B981"
-    },
-    "writer": {
+    "coder": {
       "mode": "subagent",
       "color": "#3B82F6"
-    },
-    "writer-frontend": {
-      "mode": "subagent",
-      "color": "#EC4899"
-    },
-    "memory-manager": {
-      "mode": "subagent",
-      "color": "#F472B6"
     },
     "code-navigator": {
       "mode": "subagent",
@@ -80,10 +38,6 @@
     "researcher": {
       "mode": "subagent",
       "color": "#84CC16"
-    },
-    "coder": {
-      "mode": "subagent",
-      "color": "#3B82F6"
     },
     "designer": {
       "mode": "subagent",
