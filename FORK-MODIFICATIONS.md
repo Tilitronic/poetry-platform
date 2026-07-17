@@ -45,7 +45,29 @@ The plugin TypeScript source in `.opencode/oh-my-opencode-slim/src/` is **unchan
 
 ---
 
-## 3. Related: poetry-platform-monorepo
+## 3. OpenSpec
+
+- **Original**: [Fission-AI/OpenSpec](https://github.com/Fission-AI/OpenSpec)
+- **Package**: `@fission-ai/openspec` (MIT)
+- **Not modified** — used as-is, installed via npm in Docker
+
+### Integration
+
+| What | Where |
+|------|-------|
+| Global install | `Dockerfile` line 46: `npm install -g @fission-ai/openspec@latest` |
+| Runtime deps | `scripts/collect-runtime-deps.sh` line 81: copied to distroless image |
+| Auto-init | `bootstrap.py`: runs `openspec init --tools opencode --force` on first launch (idempotent) |
+
+### Purpose
+
+OpenSpec provides a lightweight agreement layer between developers and AI assistants:
+"agree first, then build confidently." Creates `.openspec/` directory with spec templates
+and AI tool integrations. Used by `@openspec-plan` agent for structured spec authoring.
+
+---
+
+## 4. Related: poetry-platform-monorepo
 
 - **Original**: [Tilitronic/poetry-platform](https://github.com/Tilitronic/poetry-platform)
 - This is the main application repository, not a fork.

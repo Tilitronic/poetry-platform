@@ -77,7 +77,8 @@ collect_node() {
            /usr/lib/node_modules/npm /usr/lib/node_modules/corepack \
            /usr/lib/node_modules/pnpm /usr/lib/node_modules/bun \
            /usr/lib/node_modules/opencode-snip \
-           /usr/lib/node_modules/@tarquinen/opencode-dcp; do
+           /usr/lib/node_modules/@tarquinen/opencode-dcp \
+           /usr/lib/node_modules/@fission-ai/openspec; do
     [ -e "$d" ] && cp_with_parents "$d"
   done
 }

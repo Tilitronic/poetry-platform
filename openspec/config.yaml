@@ -15,13 +15,13 @@ context: |
 rules:
   proposal:
     - Reference relevant .sdd/ documents if the change touches an existing module
-    - Flag if the change requires a new architectural decision (escalate to @code_architect)
+    - Flag if the change requires a new architectural decision (escalate to @architector)
     - Include rollback plan for risky changes
   design:
     - Before writing: read .sdd/<module>/architecture.md for governing constraints
     - design.md contains IMPLEMENTATION design (which files, what patterns, how data
       flows within existing module boundaries)
-    - Do NOT make system architecture decisions in design.md — escalate to @code_architect
+    - Do NOT make system architecture decisions in design.md — escalate to @architector
       if a new module boundary, technology choice, or cross-cutting concern is needed
     - Reference .sdd/ documents in the Approach section
     - Include sequence diagrams for complex data flows

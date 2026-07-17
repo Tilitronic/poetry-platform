@@ -8,6 +8,7 @@ ARG PNPM_VERSION=10.33.0
 ARG BUN_VERSION=1.3.14
 ARG SNIP_VERSION=1.6.1
 ARG DCP_VERSION=3.1.14
+ARG OPENSPEC_VERSION=1.6.0
 
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -43,7 +44,7 @@ RUN echo "Installing OpenCode version: ${OPENCODE_VERSION}" && \
     rm -f /tmp/install-opencode.sh && \
     install -m 0755 /root/.opencode/bin/opencode /usr/local/bin/opencode
 
-RUN npm install -g pnpm@${PNPM_VERSION} bun@${BUN_VERSION} @tarquinen/opencode-dcp@${DCP_VERSION}
+RUN npm install -g pnpm@${PNPM_VERSION} bun@${BUN_VERSION} @tarquinen/opencode-dcp@${DCP_VERSION} @fission-ai/openspec@${OPENSPEC_VERSION}
 
 RUN node --version && \
     npm --version && \
@@ -68,7 +69,7 @@ RUN mkdir -p /opt/runtime-rootfs && \
       opencode node npm npx pnpm bun python3 pip3 Xvfb xclip wl-copy wl-paste git \
       mkdir find grep rg jq cat head tail sed awk tr \
       ls cp mv rm chmod wc sort cut env uname date dirname basename \
-      curl wget snip dbus-send rustc cargo
+      curl wget snip dbus-send rustc cargo openspec
 
 RUN cd /opt/runtime-rootfs && \
     for dir in bin sbin lib lib64; do \
