@@ -37,37 +37,6 @@
   // Agent Definitions
   // ---------------------------------------------------------------------------
   "agent": {
-    // --- Primary: Fast, pragmatic coder ---
-    "build": {
-      "description": "Blazing fast routine coding, autocompletion, and boilerplate. Zero talking, maximum execution.",
-      "mode": "primary",
-      "model": "opencode-go/deepseek-v4-flash",
-      "temperature": 0.1,
-      "color": "accent",
-      "prompt": "You are a pragmatist. Write clean, self-documenting code with inline native comments (JSDoc/Docstrings) explaining the 'WHY'. No conversational filler. If the user mentions tests, invoke the 'tdd-craftsman' skill immediately via your skill tool.",
-      "permission": {
-        "task": {
-          // Verified 2026-07-17: boss and openspec-plan are present
-          "boss": "allow",
-          "openspec-plan": "allow"
-        }
-      }
-    },
-    // --- Primary: Read-only codebase navigation and design review ---
-    "plan": {
-      "description": "Fast read-only codebase navigation and logic explanations.",
-      "mode": "primary",
-      "model": "opencode-go/deepseek-v4-flash",
-      "temperature": 0.1,
-      "color": "info",
-      "permission": {
-        "edit": "deny",
-        "task": {
-          "*": "deny"
-        }
-      },
-      "prompt": "You are a technical mentor. Explain code fragments cleanly to help the user grow. You are strictly read-only."
-    },
     // Disable built-in OpenCode subagents (we use OMO Slim managed ones)
     "explore": {
       "disable": true
@@ -84,14 +53,21 @@
         }
       }
     },
-    "councillor": {
-      "permission": {
-        "edit": "deny",
-        "bash": {
-          "*": "deny"
+    "ai-assist-specialist": {
+    "description": "Researches agent/skill/config best practices for OpenCode itself. Read-only.",
+    "mode": "primary",
+    "model": "opencode-go/qwen3.7-plus",
+    "temperature": 0.3,
+    "color": "info",
+    "permission": {
+      "edit": "deny",
+      "bash": {
+        "curl": "allow",
+        "wget": "allow",
+        "*": "deny"
         }
       }
-    },
+    }
   },
 
   // ---------------------------------------------------------------------------
@@ -180,13 +156,25 @@
   // Plugins — loaded by OpenCode for this project
   // ---------------------------------------------------------------------------
   "plugin": [
-    "envsitter-guard",
-    "opencode-subagent-output",
-    "opencode-snip",
-    "opencode-dynamic-context-pruning",
-    "opencode-telemetry",
+    "envsitter-guard@0.0.4",
+    "github:raisbecka/opencode-subagent-output",
+    "@yelling_mimic/opencode-snip@1.0.0",
+    "@tarquinen/opencode-dcp@3.1.14",
+    "opencode-telemetry@0.1.19",
     "oh-my-opencode-slim"
   ],
+
+  // ---------------------------------------------------------------------------
+  // Skills — dynamic loading from remote sources
+  // ---------------------------------------------------------------------------
+  // Skills in .opencode/skills/ are always loaded locally.
+  // skills.urls allows pulling additional skills from GitHub or other URLs at startup.
+  // Format: URL to a tar.gz archive containing SKILL.md directories.
+  // Example: "https://github.com/org/poetry-skills/archive/main.tar.gz#path=skills/"
+  // Currently empty — enable by publishing custom skills to a remote archive.
+  "skills": {
+    "urls": []
+  },
 
   // ---------------------------------------------------------------------------
   // MCP Servers — live external tool access
@@ -205,22 +193,16 @@
       "type": "remote",
       "url": "https://mcp.grep.app",
       "description": "Search GitHub for reference code patterns"
-    },
-    "console-ninja": {
-      "type": "local",
-      "command": [
-        "node",
-        "C:\\Users\\qualt\\.console-ninja\\mcp\\"
-      ]
     }
   },
+
 
   // ---------------------------------------------------------------------------
   // Custom Commands — reusable multi-step workflows via Ctrl+K
   // ---------------------------------------------------------------------------
   "command": {
     "tdd-cycle": {
-      "template": "Execute a full TDD cycle for $ARGUMENTS:\n1. Invoke 'feature-interviewer' skill to gather specifications\n2. RED: write failing test (invoke 'test-architect' skill)\n3. GREEN: implement minimum code to pass\n4. REFACTOR: optimize for hot-path performance + clarity\n5. Run verification gates: vitest run && tsc --noEmit && eslint .",
+      "template": "Execute a full TDD cycle for $ARGUMENTS:\n1. Invoke 'feature-interviewer' skill to gather specifications\n2. RED: write failing test (invoke 'tdd-craftsman' skill)\n3. GREEN: implement minimum code to pass\n4. REFACTOR: optimize for hot-path performance + clarity\n5. Run verification gates: vitest run && tsc --noEmit && eslint .",
       "description": "Full feature TDD cycle with pre-build interview (e.g. /tdd-cycle implement stress detection for Ukrainian)",
       "agent": "build"
     },

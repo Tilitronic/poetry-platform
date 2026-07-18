@@ -28,6 +28,20 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ocd_dir="$HOME/.opencode-docker"
 repo_dir="${OPENCODE_DOCKER_REPO:-$(cd "$SCRIPT_DIR/.." && pwd)}"
 
+# Ensure base dir exists before acquiring lock
+mkdir -p "$ocd_dir"
+chmod 700 "$ocd_dir"
+
+# Instance lock — prevent concurrent runs that corrupt shared config/session data
+LOCKFILE="$ocd_dir/.run.lock"
+exec 9>"$LOCKFILE"
+if ! flock -n 9; then
+    echo "Error: another opencode-docker instance is already running in $ocd_dir" >&2
+    echo "Use a different OPENCODE_DOCKER_HOME or stop the other instance first." >&2
+    exit 1
+fi
+# Lock released automatically when fd 9 closes (process exit)
+
 mkdir -p "$ocd_dir/config" "$ocd_dir/secrets"
 chmod 700 "$ocd_dir" "$ocd_dir/config" "$ocd_dir/secrets"
 
@@ -59,12 +73,12 @@ while [[ $# -gt 0 ]]; do
             shift
             ;;
         -w|--websearch)
-            EXTRA_ENV+=("-e OPENCODE_ENABLE_EXA=1")
+            EXTRA_ENV+=("-e" "OPENCODE_ENABLE_EXA=1")
             shift
             ;;
         -e|--experimental)
-            EXTRA_ENV+=("-e OPENCODE_EXPERIMENTAL=1")
-            EXTRA_ENV+=("-e OPENCODE_ENABLE_EXPERIMENTAL_MODELS=1")
+            EXTRA_ENV+=("-e" "OPENCODE_EXPERIMENTAL=1")
+            EXTRA_ENV+=("-e" "OPENCODE_ENABLE_EXPERIMENTAL_MODELS=1")
             shift
             ;;
         -m|--memory)
@@ -115,6 +129,7 @@ podman run --rm $DOCKER_FLAGS \
     --tmpfs /tmp:exec,size=512m \
     --cap-drop=ALL \
     --security-opt=no-new-privileges \
+    --shm-size=1g \
     --memory="${MEMORY_LIMIT}" \
     --cpus="${CPU_LIMIT}" \
     "${EXTRA_ENV[@]}" \

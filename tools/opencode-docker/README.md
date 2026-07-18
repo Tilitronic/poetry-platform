@@ -87,12 +87,12 @@ OPENCODE_WORKSPACE=/path/to/project opencode-docker
 
 This container implements defense-in-depth with multiple security layers:
 
-- **Complete isolation:** Distroless base image with no shell or package manager
+- **Debian 13 slim runtime:** Standard shell (`/bin/bash`) available for debugging, but no unnecessary packages
 - **Read-only filesystem:** Root filesystem is immutable; only `/tmp` (tmpfs) and mounted volumes are writable
 - **Dropped capabilities:** `--cap-drop ALL` removes all Linux capabilities (principle of least privilege)
 - **Privilege escalation prevention:** `--security-opt no-new-privileges` blocks setuid/setgid exploits
 - **Unprivileged user:** Runs as non-root UID 1000 (configurable at build time)
-- **Resource limits:** Memory (2GB) and CPU (2 cores) constraints prevent resource exhaustion
+- **Resource limits:** Memory (4GB), CPU (4 cores), and shared memory (1GB) constraints prevent resource exhaustion
 - **File-based secrets:** Secrets loaded from files (not environment variables) to avoid exposure in process listings or logs
 
 ## Secrets Management
@@ -153,15 +153,13 @@ When using `make run` (development only):
 | **Config** | `./config/` | OpenCode config |
 | **Workspace** | `./workspace/` | Local workspace |
 
-## Superpowers Visual Companion
+## Browser Automation
 
-The [Superpowers](https://github.com/obra/superpowers) plugin includes a visual brainstorming companion that serves mockups, diagrams, and design options in your browser.
-
-The brainstorming server uses a randomly assigned port in the range 49152-65535:
-- **Wrapper script:** Use the `-b` or `--brainstorm` flag with `bin/opencode-docker`
-- **Development:** `make run` and `make shell` automatically configure and expose the port
-
-When the brainstorming skill starts, it will display the assigned port. Access it at the URL shown (e.g., `http://localhost:XXXXX`).
+The container includes **Playwright (Chromium)** and **crawl4ai** for browser automation and web crawling:
+- Chromium browser pre-installed in the image
+- Requires `--shm-size=1g` at runtime (configured in both Makefile and wrapper script)
+- Xvfb headless display server started automatically by `bootstrap.py`
+- Set `DISPLAY=:99` env var for Playwright to use
 
 ## Advanced Usage
 
@@ -216,10 +214,12 @@ podman build --build-arg USER_UID=$(id -u) --build-arg USER_GID=$(id -g) -t open
 
 ### Runtime Details
 
-The image uses a multi-stage build with distroless runtime:
+The image uses a multi-stage build with Debian 13 slim runtime:
 
-- **Base:** `gcr.io/distroless/base-debian13` (no shell, no package manager)
+- **Base:** `debian:13-slim` (bash, apt, standard tooling)
 - **Node.js:** Node 24 from NodeSource, runtime dependencies extracted via `collect-runtime-deps.sh`
-- **Python:** Python 3 with venv support from Debian 12
+- **Python:** Python 3 with venv support from Debian 13
+- **Playwright:** Chromium pre-installed for browser automation
+- **crawl4ai:** Pre-installed for web crawling
 - **OpenCode:** Installed via official installer in build stage
 - **Bootstrap:** `bootstrap.py` loads secrets from `/run/secrets`, starts Xvfb, then execs OpenCode

@@ -8,13 +8,15 @@ OpenCode Docker — containerized environment for running OpenCode CLI.
 
 **`make run`** (development only) — uses local `./homebase`, `./workspace`, `./secrets`. For working on this repo itself.
 
-## Distroless runtime constraints
+## Debian 13 slim runtime
 
-Final image is `gcr.io/distroless/base-debian13`:
-- **No `/bin/bash` or `/bin/sh`** — cannot `docker exec` into production container
-- To debug: `make shell` (uses builder-tools stage with bash)
-- Available commands: `mkdir find grep rg jq cat head tail sed awk echo ls cp mv rm chmod wc sort cut env pwd date dirname basename`
-- Python 3, Node 24, git, Xvfb also available
+Final image is `debian:13-slim` with **Playwright (chromium)** and **crawl4ai**:
+- Standard shell (`/bin/bash`) available for debugging and scripts
+- To debug: `make shell` (or `docker exec -it <container> /bin/bash`)
+- **Playwright chromium** pre-installed for browser automation
+- **crawl4ai** pre-installed for web crawling
+- Requires `--shm-size=1g` at runtime for Chromium shared memory (configured in Makefile)
+- Requires `--read-only --tmpfs /tmp:exec` for transient writes (configured in Makefile)
 
 ## Commit messages
 

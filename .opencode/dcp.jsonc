@@ -3,7 +3,6 @@
   "compress": {
     "modelMaxLimits": {
       "opencode-go/deepseek-v4-pro": "55%",
-      "opencode-go/deepseek-v4-flash": "80%",
       "opencode-go/deepseek-v4-flash": "85%",
       "opencode/deepseek-v4-flash": "85%",
       "opencode-go/qwen3.7-max": "70%",
@@ -26,7 +25,6 @@
     },
     "modelMinLimits": {
       "opencode-go/deepseek-v4-pro": "15%",
-      "opencode-go/deepseek-v4-flash": "25%",
       "opencode-go/deepseek-v4-flash": "30%",
       "opencode/deepseek-v4-flash": "30%",
       "opencode-go/qwen3.7-max": "20%",

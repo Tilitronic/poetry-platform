@@ -1,22 +1,37 @@
 #!/usr/bin/env bash
 set -euo pipefail
+trap 'echo "=== FAILED at line $LINENO (exit code $?) ===" >&2' ERR
 
 ROOTFS="$1"; shift
 mkdir -p "$ROOTFS"
 
 declare -A PROCESSED=()
+declare -A CP_VISITED=()
+
+_cp_skip_visited=0
 
 cp_with_parents() {
   local src="$1"
+  local real_src; real_src="$(readlink -f "$src" 2>/dev/null)" || real_src="$src"
+
+  # Skip if already processed (but not when following a symlink from caller)
+  if [ "$_cp_skip_visited" -eq 0 ] && [ -n "${CP_VISITED[$real_src]:-}" ]; then
+    return
+  fi
+  _cp_skip_visited=0
+
   local dst="${ROOTFS}${src}"
   mkdir -p "$(dirname "$dst")"
   if [ -L "$src" ]; then
     cp -a "$src" "$dst"
     local resolved; resolved="$(readlink -f "$src")"
-    [ -n "$resolved" ] && [ -e "$resolved" ] && cp_with_parents "$resolved"
+    if [ -n "$resolved" ] && [ -e "$resolved" ]; then
+      [ -z "${CP_VISITED[$resolved]:-}" ] && { CP_VISITED[$resolved]=1; _cp_skip_visited=1; cp_with_parents "$resolved"; }
+    fi
   elif [ -d "$src" ]; then
     cp -a "$src/." "$dst"
   else
+    CP_VISITED[$real_src]=1
     cp -a "$src" "$dst"
   fi
 }
@@ -73,17 +88,17 @@ collect_node() {
   [ -n "${_COLLECT_NODE_DONE:-}" ] && return
   _COLLECT_NODE_DONE=1
   [ -e /bin/sh ] && process /bin/sh
-  for d in /usr/bin/npm /usr/bin/npx /usr/bin/corepack \
-           /usr/lib/node_modules/npm /usr/lib/node_modules/corepack \
-           /usr/lib/node_modules/pnpm /usr/lib/node_modules/bun \
-           /usr/lib/node_modules/opencode-snip \
-           /usr/lib/node_modules/@tarquinen/opencode-dcp \
-           /usr/lib/node_modules/@fission-ai/openspec; do
+  for d in /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack \
+           /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/corepack \
+           /usr/local/lib/node_modules/pnpm /usr/local/lib/node_modules/bun \
+           /usr/local/lib/node_modules/@tarquinen/opencode-dcp \
+           /usr/local/lib/node_modules/@fission-ai/openspec; do
     [ -e "$d" ] && cp_with_parents "$d"
   done
 }
 
 for exe in "$@"; do
+  echo ">>> $exe"
   p="$(command -v "$exe")" && process "$p"
 done
 

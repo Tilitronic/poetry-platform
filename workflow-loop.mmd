@@ -1,0 +1,78 @@
+%%{init: {'theme': 'base', 'themeVariables': {
+  'darkMode': true, 'background': '#1e1e2e',
+  'primaryColor': '#2d3a5c', 'primaryTextColor': '#e0e0e0',
+  'primaryBorderColor': '#5b8def', 'lineColor': '#5b8def',
+  'secondaryColor': '#3d3520', 'tertiaryColor': '#2a2a36',
+  'labelTextColor': '#e0e0e0'
+}}}%%
+flowchart TB
+    subgraph Phase1["① Explore & Brainstorm"]
+        A([Start]) --> B
+        B["<b>Architector</b> + <b>Researcher</b>\n+ <b>Explorer</b> explore idea"]
+    end
+
+    subgraph Phase2["② Plan / Architecture"]
+        B --> C["<b>Architector</b>\ncreates plan & architecture"]
+    end
+
+    subgraph Phase3["③ OpenSpec"]
+        C --> D["Break into features\n& write specs"]
+    end
+
+    subgraph TDD["TDD"]
+        E["<b>Coder Tester</b>\nwrite tests — RED"]
+        F["<b>Coder Implementer</b>\nimplement code — GREEN"]
+        G["<b>Coder Implementer</b>\nrefactor — still GREEN"]
+    end
+
+    D --> E
+    E --> F
+    F --> G
+
+    subgraph Phase7["⑦ Review"]
+        G --> H["<b>Reviewer</b> reviews"]
+    end
+
+    H --> I{"Issues\nfound?"}
+
+    subgraph FixBox["Fix"]
+        J["<b>Coder Tester</b>\nfixes tests"]
+        K["<b>Coder Implementer</b>\nfixes code"]
+    end
+
+    I -->|"Yes"| FixBox
+    FixBox -->|"Back to Review"| H
+
+    subgraph Phase9["⑨ Persist"]
+        I -->|"No issues"| L["<b>Memory Manager</b>"]
+        L --> M["ADR: who did what,\nlessons, progress"]
+    end
+
+    M --> N([End iteration])
+
+    classDef explore fill:#d4d4d4,stroke:#737373,color:#1e1e1e,stroke-width:2px
+    classDef plan fill:#dbeafe,stroke:#3b82f6,color:#1e1e1e,stroke-width:2px
+    classDef spec fill:#e9d5ff,stroke:#a855f7,color:#1e1e1e,stroke-width:2px
+    classDef tddRed fill:#fee2e2,stroke:#ef4444,color:#1e1e1e,stroke-width:2px
+    classDef tddGreen fill:#dcfce7,stroke:#22c55e,color:#1e1e1e,stroke-width:2px
+    classDef tddRefactor fill:#dbeafe,stroke:#3b82f6,color:#1e1e1e,stroke-width:2px
+    classDef review fill:#ffedd5,stroke:#f97316,color:#1e1e1e,stroke-width:2px
+    classDef fix fill:#fee2e2,stroke:#ef4444,color:#1e1e1e,stroke-width:2px
+    classDef persist fill:#dcfce7,stroke:#22c55e,color:#1e1e1e,stroke-width:2px
+    classDef startend fill:#0f2d1a,stroke:#22c55e,color:#e0e0e0,stroke-width:2px
+    classDef decision fill:#3d2e00,stroke:#eab308,color:#e0e0e0,stroke-width:2px
+
+    class A startend
+    class B explore
+    class C plan
+    class D spec
+    class E tddRed
+    class F tddGreen
+    class G tddRefactor
+    class H review
+    class I decision
+    class J fix
+    class K fix
+    class L persist
+    class M persist
+    class N startend
