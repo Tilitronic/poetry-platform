@@ -23,18 +23,18 @@
         }
       },
       "architector": {
-        "model": "opencode-go/qwen3.7-max",
-        "variant": "max",
+        "model": ["opencode-go/qwen3.7-max", "opencode/big-pickle"],
+        "variant": "high",
         "skills": [
-          "simplify",
           "teaching",
+          "simplify",
           "book-rag",
           "mermaid-diagramming",
           "console-charting"
         ],
         "mcps": [],
         "options": {
-          "reasoningEffort": "max",
+          "reasoningEffort": "high",
           "thinking": {
             "type": "enabled"
           }
@@ -51,7 +51,7 @@
         ]
       },
       "explorer": {
-        "model": "github-copilot/gpt-5-mini",
+        "model": "opencode-go/deepseek-v4-flash",
         "skills": [],
         "mcps": []
       },
@@ -76,11 +76,12 @@
         "prompt": "Before implementing, check project design constraints (see AGENTS.md Design Authority). Write self-documenting code — document the WHY behind non-obvious decisions, not the WHAT. After implementing: run dev build, lint, and tests before handing off.\n\n## When Tests Keep Failing\nDon't guess and retry. Trace the failure backwards through the data flow. List 3-5 hypotheses (one MUST be 'the test is wrong'), gather evidence, assess confidence (High/Medium/Low). After 3 consecutive failures on the same tests, escalate to boss. Don't loop."
       },
       "openspec-plan": {
-        "model": "github-copilot/gpt-5.3-codex",
+        "model": "opencode-go/qwen3.7-plus",
         "variant": "high",
         "skills": [
           "teaching"
         ],
+        "mcps": [],
         "options": {
           "reasoningEffort": "high",
           "thinking": {
@@ -99,12 +100,13 @@
         ]
       },
       "reviewer": {
-        "model": "github-copilot/gpt-5.3-codex",
+        "model": "opencode-go/qwen3.7-plus",
         "variant": "medium",
         "skills": [
           "teaching",
           "playwright-browser"
-        ]
+        ],
+        "mcps": []
       },
       "conspecter": {
         "model": "opencode-go/deepseek-v4-flash",
@@ -132,11 +134,29 @@
         "skills": [],
         "mcps": [],
         "temperature": 0.1
+      },
+      "observer": {
+        "model": "opencode-go/deepseek-v4-flash",
+        "variant": "low",
+        "skills": [],
+        "mcps": []
+      },
+      "code-navigator": {
+        "model": "opencode-go/deepseek-v4-flash",
+        "variant": "low",
+        "skills": [],
+        "mcps": []
+      },
+      "researcher": {
+        "model": "opencode-go/deepseek-v4-flash",
+        "variant": "low",
+        "skills": [],
+        "mcps": []
       }
     },
     "cebula": {
       "orchestrator": {
-        "model": "opencode-go/deepseek-v4-flash",
+        "model": ["opencode-go/deepseek-v4-flash", "opencode/deepseek-v4-flash"],
         "variant": "high",
         "skills": [
           "*"
@@ -153,7 +173,7 @@
         }
       },
       "architector": {
-        "model": "opencode/big-pickle",
+        "model": ["opencode-go/qwen3.7-max", "opencode/big-pickle"],
         "variant": "high",
         "skills": [
           "teaching",
@@ -171,11 +191,12 @@
         }
       },
       "openspec-plan": {
-        "model": "opencode-go/qwen3.7-plus",
+        "model": ["opencode-go/qwen3.7-plus", "opencode/big-pickle"],
         "variant": "high",
         "skills": [
           "teaching"
         ],
+        "mcps": [],
         "options": {
           "reasoningEffort": "high",
           "thinking": {
@@ -184,7 +205,7 @@
         }
       },
       "coder": {
-        "model": "opencode-go/deepseek-v4-flash",
+        "model": ["opencode-go/deepseek-v4-flash", "opencode/deepseek-v4-flash"],
         "variant": "medium",
         "skills": [
           "simplify",
@@ -196,7 +217,7 @@
         "prompt": "Before implementing, check project design constraints (see AGENTS.md Design Authority). Write self-documenting code — document the WHY behind non-obvious decisions, not the WHAT. After implementing: run dev build, lint, and tests before handing off.\n\n## When Tests Keep Failing\nDon't guess and retry. Trace the failure backwards through the data flow. List 3-5 hypotheses (one MUST be 'the test is wrong'), gather evidence, assess confidence (High/Medium/Low). After 3 consecutive failures on the same tests, escalate to boss. Don't loop."
       },
       "reviewer": {
-        "model": "opencode/big-pickle",
+        "model": ["opencode-go/qwen3.7-plus", "opencode/big-pickle"],
         "variant": "high",
         "skills": [
           "teaching",
@@ -218,13 +239,14 @@
       "explorer": {
         "model": [
           "github-copilot/gpt-5-mini",
-          "opencode-go/deepseek-v4-flash"
+          "opencode-go/deepseek-v4-flash",
+          "opencode/deepseek-v4-flash"
         ],
         "skills": [],
         "mcps": []
       },
       "librarian": {
-        "model": "opencode-go/deepseek-v4-flash",
+        "model": ["opencode-go/deepseek-v4-flash", "opencode/deepseek-v4-flash"],
         "variant": "low",
         "skills": [],
         "mcps": [
@@ -234,13 +256,13 @@
         ]
       },
       "conspecter": {
-        "model": "opencode-go/deepseek-v4-flash",
+        "model": ["opencode-go/deepseek-v4-flash", "opencode/deepseek-v4-flash"],
         "mcps": [
           "websearch"
         ]
       },
       "analyzer": {
-        "model": "opencode-go/qwen3.7-plus",
+        "model": ["opencode-go/qwen3.7-plus", "opencode/big-pickle"],
         "variant": "high",
         "skills": [
           "teaching",
@@ -263,7 +285,7 @@
         "mcps": []
       },
       "ai-assist-specialist": {
-        "model": "opencode-go/qwen3.7-plus",
+        "model": ["opencode-go/qwen3.7-plus", "opencode/big-pickle"],
         "variant": "high",
         "skills": [
           "teaching"
@@ -275,12 +297,29 @@
       "memory-manager": {
         "model": [
           "github-copilot/gpt-5-mini",
-          "opencode-go/deepseek-v4-flash"
+          "opencode-go/deepseek-v4-flash",
+          "opencode/deepseek-v4-flash"
         ],
         "variant": "low",
         "skills": [],
         "mcps": [],
         "temperature": 0.1
+      },
+      "code-navigator": {
+        "model": ["opencode-go/deepseek-v4-flash", "opencode/deepseek-v4-flash"],
+        "variant": "low",
+        "skills": [],
+        "mcps": []
+      },
+      "researcher": {
+        "model": ["opencode-go/deepseek-v4-flash", "opencode/deepseek-v4-flash"],
+        "variant": "low",
+        "skills": [],
+        "mcps": [
+          "websearch",
+          "context7",
+          "gh_grep"
+        ]
       }
     },
     "free": {
@@ -360,7 +399,7 @@
         "mcps": []
       },
       "explorer": {
-        "model": "ollama/qwen2.5-coder:14b",
+        "model": "opencode/deepseek-v4-flash",
         "skills": [],
         "mcps": []
       },
@@ -411,14 +450,23 @@
         ]
       },
       "memory-manager": {
-        "model": [
-          "github-copilot/gpt-5-mini",
-          "opencode-go/deepseek-v4-flash"
-        ],
+        "model": "opencode/deepseek-v4-flash",
         "variant": "low",
         "skills": [],
         "mcps": [],
         "temperature": 0.1
+      },
+      "code-navigator": {
+        "model": "opencode/deepseek-v4-flash",
+        "variant": "low",
+        "skills": [],
+        "mcps": []
+      },
+      "researcher": {
+        "model": "opencode/deepseek-v4-flash",
+        "variant": "low",
+        "skills": [],
+        "mcps": []
       }
     }
   },

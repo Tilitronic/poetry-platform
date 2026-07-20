@@ -28,3 +28,12 @@ Anti-pattern: copy-pasting the entire conversation into every subagent prompt.
 | **Refactor plan → user approval** | If reviewer produces a refactor plan, present to user and wait for explicit approval. Do not apply automatically. |
 | **User rejects refactor** | Offer: (1) proceed as-is, (2) re-invoke reviewer, (3) abort. |
 | **Subagent questions** | Answer from existing context if possible. Otherwise present to user. **Never guess.** |
+
+## Mandatory Final Step
+
+After all subagents return results:
+1. Dispatch `@memory-manager` with review findings + task summary
+2. Wait for completion
+3. Then respond to user
+
+**Skip**: trivial tasks (questions, <10 line fixes).

@@ -1,5 +1,5 @@
 # Memory Shelf — Central Knowledge Registry
-# Last updated: 2026-07-17
+# Last updated: 2026-07-20
 
 shelf:
   conspects:
@@ -16,6 +16,11 @@ shelf:
       description: "MECE inventory of all agent definitions across OMO Slim, native OpenCode, project config, and AGENTS.md. Finds 4 critical issues (dual dispatch hierarchy, 2 ghost agents, architector missing model, analyzer↔council contradiction), 5 major issues (naming mismatches, dual prompts, orphan agents), and 4 minor issues. 20 unique agents across all files, 2 ghosts, 4 orphans."
       path: "knowledge/ana002-agent-alignment-audit/ana002-agent-alignment-audit-report.md"
       created: 2026-07-17
+  adrs:
+    - name: "Memory Storage Strategy"
+      description: "Evaluation of Claude-Mem, Honcho, and current hand-written memory manager. Decision: keep current markdown-based approach. Neither external tool improves architecture for our scale. Escalation path defined from Level 0 (current) to Level 4 (API-based)."
+      path: ".opencode/memory/adr.md"
+      created: 2026-07-20
   specs: []
   architectures: []
   rag_bases: []
