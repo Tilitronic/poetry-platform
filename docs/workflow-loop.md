@@ -12,8 +12,7 @@
 | `codemap` | Skill | Map unfamiliar codebase | 🔶 Nice-to-have | Дорогий (спавнює fixer-агентів на кожну папку). Тільки коли кодова база незнайома. code-navigator робить легшу версію |
 | `clonedeps` | Skill | Clone & inspect library internals | 🔶 Nice-to-have | Тільки коли треба зрозуміти internals бібліотеки. Фаза ① — найкращий час, але не за замовчуванням. Потребує мережі |
 | `mermaid-diagramming` | Skill | Best practices for Mermaid diagrams | 🆕 MISSING | Фаза ② має його, але фаза ① — ні. А саме тут малюються перші діаграми системи |
-| ~~`book-rag`~~ | Skill | Query engineering textbooks via RAG | ❌ MISPLACED | Належить до TDD/Review, не до brainstorm. OPT-IN only — не активується без `#rag` |
-| ~~`console-charting`~~ | Skill | Terminal data visualization | ❌ MISPLACED | Належить до @analyzer. Plotext heatmap під час "давайте обговоримо ідею?" — не доречно |
+
 | `researcher` | Agent | External docs & library research | 🔴 BROKEN | Orphan — немає OMO конфігу, промпту, навичок. @librarian (web_scout) вже має ці здібності |
 | `explorer` | Agent | — | 🔴 BROKEN | В описі фази згадується, але немає промпту, немає AGENTS.md ролі |
 
@@ -25,7 +24,6 @@
 | `mermaid-diagramming` | Skill | Best practices for Mermaid diagrams | ✅ ESSENTIAL | Єдиний інструмент для візуалізації архітектури. C4, sequence, flowcharts. Diffable діаграми в markdown — жодна альтернатива так не вміє |
 | `teaching` | Skill | Pedagogical explanation of concepts | ✅ ESSENTIAL | Пояснення WHY для нетривіальних ADR. Але **використовувати обережно** — тільки для складних tradeoff, не для кожної задачі. Правило: якщо можна пояснити в 3 реченнях — skip |
 | `deepwork` | Skill | Heavy coding sessions, multi-phase | 🔶 Nice-to-have | Тільки для багатоденних архітектурних змін (розділення моноліту, нові bounded contexts). За замовчуванням — skip |
-| ~~`ponytail`~~ | Skill | Force laziest solution that works | ❌ MISPLACED | **Архітектор рішуче проти.** Ponytail = видалення зайвого. Архітектура потребує EXPLICIT tradeoff аналізу та документування. Застосування ponytail до архітектури = "не документуй альтернативи, не пиши ADR" — хибний шлях. Вартість хибного архітектурного рішення на порядки вища за хибний implementation |
 | 🆕 `council_session` | Tool | Multi-model consensus engine | 🆕 MISSING | Multi-model evaluation для складних tradeoff. Коли є 2+ підходи з різними компромісами — отримати думку кількох моделей до фінального рішення. Ризик: overuse → decision paralysis. Тільки для genuinely ≥2 viable approaches |
 | 🆕 `grill-with-docs` | Skill | Stress-test against domain model | 🆕 MISSING | Перевірка нової .sdd/ документації проти існуючої доменної моделі. Gate для кожного нового .sdd/ документа |
 
@@ -40,10 +38,8 @@ Break the idea into specific features. Write specs for each feature. Each featur
 | `openspec-sync-specs` | Skill | Sync delta specs to main specs | ✅ ESSENTIAL | Міст між change-scoped specs та living specification base. Без нього specs залишаються ізольованими |
 | `openspec-plan` | Agent | Socratic spec authoring guide | 🔶 Nice-to-have | Pure-analyst, read-only, без запису файлів. Корисний для інтерв'ю перед propose, але openspec-explore + openspec-propose покривають цю потребу |
 | `openspec-archive-change` | Skill | Archive completed change | 🔶 Nice-to-have | Housekeeping, не spec creation. Належить до пост-реалізації. Виконує `mkdir -p` та `mv` |
-| `openspec-apply-change` | Skill | Implement tasks from a change | ⚠️ MISPLACED | Implementation tool в spec toolset. Порушує фазову межу — тисне на пропуск spec-review та перехід до коду |
 | `opsx-explore` | Command | `/opsx:explore` | ✅ ESSENTIAL | Alias для openspec-explore |
 | `opsx-propose` | Command | `/opsx:propose` | ✅ ESSENTIAL | Alias для openspec-propose |
-| `opsx-apply` | Command | `/opsx:apply` | ⚠️ MISPLACED | Alias для openspec-apply-change — implementation tool |
 | `opsx-archive` | Command | `/opsx:archive` | 🔶 Nice-to-have | Alias для openspec-archive-change |
 | `opsx-sync` | Command | `/opsx:sync` | ✅ ESSENTIAL | Alias для openspec-sync-specs |
 | `opsx-update` | Command | `/opsx:update` | ✅ ESSENTIAL | Alias для openspec-update-change |
@@ -55,28 +51,24 @@ Break the idea into specific features. Write specs for each feature. Each featur
 ## TDD
 
 ### Red
-**Coder Tester** writes tests. They must be **red** (failing).
+**<b>Coder</b> (Mode 1)** writes tests. They must be **red** (failing).
 
 | Tool | Type | Purpose | Status | Architector Review |
 |------|------|---------|--------|-------------------|
 | `tdd-craftsman` | Skill | Polyglot RED-GREEN-REFACTOR TDD | ✅ ESSENTIAL | Хребет фази. AAA структура, per-language naming, property-based testing, RED gate, ownership protocol (practice-protected per AGENTS.md §4). Єдиний інструмент що визначає disciplined test writing |
-| `debugging-workflow` | Skill | Language-specific debugging tools | 🔶 Nice-to-have | Escape hatch для RED gate failures — коли тест падає з незрозумілої причини. 5-stage pipeline: reproduce → isolate → analyze. Але більшість RED = "write test, confirm assertion failure" |
-| ~~`book-rag`~~ | Skill | Query engineering textbooks via RAG | ❌ MISPLACED | Edge-case knowledge має приходити зі специфікації (.openspec/) до TDD, не під час тестування. Вбудовування RAG в RED створює спокусу research-ити під час циклу, ламаючи discipline |
-| ~~`teaching`~~ | Skill | Pedagogical explanation of patterns | ❌ MISPLACED | Pedagogical explanation під час RED = прогалина в знаннях. Правильна відповідь: pause RED → навчання → resume RED. ПRACTICE-PROTECTED zone вже є в AGENTS.md §4 |
+| `debugging-workflow` | Skill | Language-specific debugging tools | ✅ ESSENTIAL | Root cause analysis коли архітектор просить пофіксити тест-кейси (Red mode variant). 5-stage pipeline: reproduce → isolate → analyze. Для звичайного Red (написати нові тести) — тільки tdd-craftsman |
 
 ### Green
-**Coder Implementer** implements code. Tests become **green** (passing).
+**Coder (Mode 2)** implements code. Tests become **green** (passing).
 
 | Tool | Type | Purpose | Status | Architector Review |
 |------|------|---------|--------|-------------------|
 | `tdd-craftsman` | Skill | Polyglot RED-GREEN-REFACTOR TDD | ✅ ESSENTIAL | Визначає GREEN constraints: мінімальний код, без speculative features, verification gates (test → typecheck → lint → build → ASan). Ownership checkpoint: "one-line rationale comment" |
-| ~~`simplify`~~ | Skill | Simplify code for clarity | ❌ CONFLICTING | GREEN = "напиши мінімум коду що проходить". simplify = "зрозумій перед тим як міняти". Створює scope creep — coder починає оптимізувати readability до завершення implementation. Належить в REFACTOR |
 | `teaching` | Skill | Pedagogical explanation of patterns | 🔶 Nice-to-have | Якщо implementer не розуміє WHY. Але ownership checkpoint ("one-line rationale comment") вже покриває це — якщо не можеш написати одне речення, не розумієш достатньо |
-| ~~`frontend-design`~~ | Skill | Production-grade frontend interfaces | ❌ MISPLACED | Zero overlap з GREEN. Навіть для UI компонентів (CodeMirror 6) GREEN = мінімальний код для проходу тесту, не краса. Належить в Design/Implementation phase |
 | `playwright-browser` | Skill | Browser automation for E2E testing | 🔶 Nice-to-have | Тільки для browser-based features (React, CM6 extensions). Для Python/Rust/C++ packages — ні. Per skill itself: "For unit/integration tests, use tdd-craftsman instead" |
 
 ### Refactor
-**Coder Implementer** refactors code. Tests remain **green**.
+**Coder (Mode 2)** refactors code. Tests remain **green**.
 
 | Tool | Type | Purpose | Status | Architector Review |
 |------|------|---------|--------|-------------------|
@@ -98,28 +90,24 @@ Break the idea into specific features. Write specs for each feature. Each featur
 | `book-rag` | Skill | Grounded review via RAG | 🔶 Nice-to-have | Для верифікації чи pattern є anti-pattern. Requires textbooks loaded. Complementary до teaching |
 | 🆕 Correctness/Security/Perf tools | Skill | Bug/security/perf detection | 🆕 MISSING (HIGH) | ponytail-review не перевіряє bugs, security vulnerabilities, performance issues. Review incomplete без них. Потрібні: correctness oracle, security scanner, perf profiler |
 
-## ⑧ Fix
+## ⑧ Debug and Fix
 One arrow in ("Yes"), one arrow out ("Back to Review"):
-- **Coder Tester** fixes tests
-- **Coder Implementer** fixes code
+- **Coder** uses Mode 3 (Bugfix): debugging-workflow for root cause → tdd-craftsman RED→GREEN → git-diff for context
 
 | Tool | Type | Purpose | Status | Architector Review |
 |------|------|---------|--------|-------------------|
-| `tdd-craftsman` | Skill | Polyglot RED-GREEN-REFACTOR TDD | ✅ ESSENTIAL | Fix = RED→GREEN цикл. Coder Tester → RED (fix/write failing tests), Coder Implementer → GREEN (fix code). Skip REFACTOR unless Review explicitly flagged performance/readability |
-| `debugging-workflow` | Skill | Language-specific debugging tools | ✅ ESSENTIAL | Root cause analysis before fix. Structured hypothesis→evidence loop. Polyglot coverage (pdb, Chrome DevTools, dbg!, GDB/Valgrind). Essential for non-trivial fixes, skip for trivial/pinpointed |
-| `simplify` | Skill | Simplify code for clarity | 🔶 Nice-to-have | Тільки якщо Review flagged readability/complexity. Не default tool — Fix = correctness, not readability. Risk: conflating "fix the bug" with "rewrite the code" |
-| ~~`ponytail`~~ | Skill | Force laziest solution that works | ❌ MISPLACED | Fix = correctness under constraint. Ponytail = "does this need to exist?" — в Fix відповідь завжди YES, бо Review вже визначив. "Skip what you can" — хибний reflex коли Review каже "this is broken". Належить в TDD Refactor |
-| 🆕 `git-diff` | Skill | Inject Git status/diff context | 🆕 MISSING | Fix починається з reviewer feedback. Кодер має бачити diff який reviewer reviewed. Без цього — фіксує не те що треба |
+| `tdd-craftsman` | Skill | Polyglot RED-GREEN-REFACTOR TDD | ✅ ESSENTIAL | Bugfix = RED→GREEN цикл. Coder → RED (fix/write failing tests) → GREEN (fix code). Skip REFACTOR unless Review explicitly flagged performance/readability |
+| `debugging-workflow` | Skill | Language-specific debugging tools | ✅ ESSENTIAL | Root cause analysis (Mode 3). Structured hypothesis→evidence loop: reproduce → isolate → analyze → fix. Essential for non-trivial bugs, skip for trivial/pinpointed |
+| `git-diff` | Skill | Inject Git status/diff context | ✅ ESSENTIAL | Бачити написані тести, план, специфікації перед fix. Кодер має знати що reviewer reviewed і що architect спланував |
 
 ## ⑨ Persist
 If no issues — **Memory Manager** writes ADR: who did what, lessons, progress, blockers. End of iteration.
 
 | Tool | Type | Purpose | Status | Architector Review |
 |------|------|---------|--------|-------------------|
-| ~~`reflect`~~ | Skill | Review recent work, find patterns | ❌ MISPLACED | Reflect = meta-workflow optimizer ("як покращити tooling"). Persist = project memory ("що сталось в ітерації"). Різні питання, різні аудиторії. Вже правильно в Review (⑦) |
-| ~~`git-diff`~~ | Skill | Inject Git status/diff context | ❌ MISPLACED + BROKEN | Залежить від неіснуючого скрипту `get_git_context.py`. Редундантний — memory-manager має власний shell access до git. Designed for interactive debugging, not batch ADR generation |
-| 🆕 `git log` | — | Commit history context | 🆕 MISSING | memory-manager каже "git diff" але не згадує `git log`. Для "who did what" в ADR критично |
-| 🆕 `.openspec/changes/` context | — | Planned vs. delivered comparison | 🆕 MISSING | memory-manager не порівнює what was planned vs. what was delivered |
+| 🆕 `git log` | — | Commit history context | ✅ ADDED | Додано в process memory-manager (крок 1) |
+| 🆕 `.openspec/changes/` context | — | Planned vs. delivered comparison | ✅ ADDED | Додано в process memory-manager (крок 2) |
+| `git-diff` | Skill | Inject Git status/diff context | ✅ ESSENTIAL | Контекст для порівняння planned vs delivered. Memory-manager бачить що фактично змінилось перед записом ADR |
 | 🆕 `openspec-archive-change` | Skill | Archive completed change | 🔶 Nice-to-have | Natural end-of-iteration housekeeping. Optional step 7 в memory-manager process |
 
 **Висновок:** memory-manager самодостатній — зовнішні інструменти не потрібні. Потрібно оновити його внутрішній process (додати git log, .openspec reading, optional archive step).
@@ -149,9 +137,9 @@ flowchart TB
     end
 
     subgraph TDD["TDD"]
-        E["<b>Coder Tester</b>\nwrite tests — RED"]
-        F["<b>Coder Implementer</b>\nimplement code — GREEN"]
-        G["<b>Coder Implementer</b>\nrefactor — still GREEN"]
+        E["<b>Coder</b> (Mode 1)\nwrite tests — RED"]
+        F["<b>Coder</b> (Mode 2)\nimplement code — GREEN"]
+        G["<b>Coder</b> (Mode 2)\nrefactor — still GREEN"]
     end
 
     D --> E
@@ -164,20 +152,18 @@ flowchart TB
 
     H --> I{"Issues\nfound?"}
 
-    subgraph FixBox["Fix"]
-        J["<b>Coder Tester</b>\nfixes tests"]
-        K["<b>Coder Implementer</b>\nfixes code"]
+    subgraph DebugAndFix["⑧ Debug & Fix"]
+        J["<b>Coder</b> (Mode 3)\ndebugging-workflow: root cause\n→ tdd-craftsman: RED→GREEN\n→ git-diff: context"]
     end
 
-    I -->|"Yes"| FixBox
-    FixBox -->|"Back to Review"| H
+    I -->|"Yes"| DebugAndFix
+    DebugAndFix -->|"Back to Review"| H
 
     subgraph Phase9["⑨ Persist"]
-        I -->|"No issues"| L["<b>Memory Manager</b>"]
-        L --> M["ADR: who did what,\nlessons, progress"]
+        I -->|"No issues"| L["<b>Memory Manager</b>\nADR: who did what,\nlessons, progress"]
     end
 
-    M --> N([End iteration])
+    L --> N([End iteration])
 
     classDef explore fill:#d4d4d4,stroke:#737373,color:#1e1e1e,stroke-width:2px
     classDef plan fill:#dbeafe,stroke:#3b82f6,color:#1e1e1e,stroke-width:2px
@@ -186,7 +172,7 @@ flowchart TB
     classDef tddGreen fill:#dcfce7,stroke:#22c55e,color:#1e1e1e,stroke-width:2px
     classDef tddRefactor fill:#dbeafe,stroke:#3b82f6,color:#1e1e1e,stroke-width:2px
     classDef review fill:#ffedd5,stroke:#f97316,color:#1e1e1e,stroke-width:2px
-    classDef fix fill:#fee2e2,stroke:#ef4444,color:#1e1e1e,stroke-width:2px
+    classDef debugandfix fill:#fee2e2,stroke:#ef4444,color:#1e1e1e,stroke-width:2px
     classDef persist fill:#dcfce7,stroke:#22c55e,color:#1e1e1e,stroke-width:2px
     classDef startend fill:#0f2d1a,stroke:#22c55e,color:#e0e0e0,stroke-width:2px
     classDef decision fill:#3d2e00,stroke:#eab308,color:#e0e0e0,stroke-width:2px
@@ -200,9 +186,7 @@ flowchart TB
     class G tddRefactor
     class H review
     class I decision
-    class J fix
-    class K fix
+    class J debugandfix
     class L persist
-    class M persist
     class N startend
 ```

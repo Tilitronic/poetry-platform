@@ -77,13 +77,17 @@ const AGENT_DESCRIPTIONS: Record<string, string> = {
 - **Rule of thumb:** Users see it and polish matters? → @designer. Headless/functional implementation? → schedule @coder.`,
 
   coder: `@coder
-- Lane: Bounded implementation and execution
-- Role: Fast execution specialist for well-defined tasks
+- Lane: Multi-mode implementation specialist
+- Role: 3 operational modes — Red (write tests), Green+Refactor (implement), Bugfix (debug & fix)
 - Permissions: read_files, write_files
 - Stats: 2x faster code edits, 1/2 cost of boss
 - Weakness: design, taste, architecture
-- Tools/Constraints: Execution-focused — no research, no architectural decisions
-- **Delegate when:** For implementation work, think and triage first. If the change is non-trivial or multi-file, hand bounded execution to @coder • Parallelization benefits: Task involves multiple folders and multiple files modification, scoping work per folder and spawning parallel @coders for each folder.
+- Tools/Constraints: Execution-focused — no research, no architectural decisions. Uses tdd-craftsman, debugging-workflow, git-diff per mode.
+- **Delegate when:**
+  • Red: Specs and plan ready → need tests written
+  • Green+Refactor: Tests exist → need implementation
+  • Bugfix: Reviewer found bugs → need root cause analysis and fix
+  • Parallelization: Multi-folder changes → spawn parallel @coders per folder
 - **Don't delegate when:** Needs discovery/research/decisions • Single small change (<20 lines, one file) • Unclear requirements needing iteration • Explaining to coder > doing • Tight integration with your current work • Requires design taste, visual hierarchy, interaction polish, responsive layout decisions, animation/motion, component feel, or UI copy/design trade-offs
 - **Rule of thumb:** Headless/mechanical implementation → @coder. User-visible design or polish → @designer. If @designer already set direction, @coder may only do bounded mechanical follow-up that preserves that design exactly.`,
 

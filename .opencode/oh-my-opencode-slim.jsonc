@@ -8,6 +8,7 @@
       "orchestrator": {
         "model": "opencode-go/qwen3.7-max",
         "variant": "high",
+        "temperature": 0.3,
         "skills": [
           "*"
         ],
@@ -25,6 +26,7 @@
       "architector": {
         "model": ["opencode-go/qwen3.7-max", "opencode/big-pickle"],
         "variant": "high",
+        "temperature": 0.1,
         "skills": [
           "teaching",
           "simplify",
@@ -72,7 +74,7 @@
           "debugging-workflow"
         ],
         "mcps": [],
-        "temperature": 0.2,
+        "temperature": 0.1,
         "prompt": "Before implementing, check project design constraints (see AGENTS.md Design Authority). Write self-documenting code — document the WHY behind non-obvious decisions, not the WHAT. After implementing: run dev build, lint, and tests before handing off.\n\n## When Tests Keep Failing\nDon't guess and retry. Trace the failure backwards through the data flow. List 3-5 hypotheses (one MUST be 'the test is wrong'), gather evidence, assess confidence (High/Medium/Low). After 3 consecutive failures on the same tests, escalate to boss. Don't loop."
       },
       "openspec-plan": {
@@ -102,6 +104,7 @@
       "reviewer": {
         "model": "opencode-go/qwen3.7-plus",
         "variant": "medium",
+        "temperature": 0.1,
         "skills": [
           "teaching",
           "playwright-browser"
@@ -150,6 +153,7 @@
       "researcher": {
         "model": "opencode-go/deepseek-v4-flash",
         "variant": "low",
+        "temperature": 0.7,
         "skills": [],
         "mcps": []
       }
@@ -158,6 +162,7 @@
       "orchestrator": {
         "model": ["opencode-go/deepseek-v4-flash", "opencode/deepseek-v4-flash"],
         "variant": "high",
+        "temperature": 0.3,
         "skills": [
           "*"
         ],
@@ -175,6 +180,7 @@
       "architector": {
         "model": ["opencode-go/qwen3.7-max", "opencode/big-pickle"],
         "variant": "high",
+        "temperature": 0.1,
         "skills": [
           "teaching",
           "simplify",
@@ -213,12 +219,13 @@
           "debugging-workflow"
         ],
         "mcps": [],
-        "temperature": 0.2,
+        "temperature": 0.1,
         "prompt": "Before implementing, check project design constraints (see AGENTS.md Design Authority). Write self-documenting code — document the WHY behind non-obvious decisions, not the WHAT. After implementing: run dev build, lint, and tests before handing off.\n\n## When Tests Keep Failing\nDon't guess and retry. Trace the failure backwards through the data flow. List 3-5 hypotheses (one MUST be 'the test is wrong'), gather evidence, assess confidence (High/Medium/Low). After 3 consecutive failures on the same tests, escalate to boss. Don't loop."
       },
       "reviewer": {
         "model": ["opencode-go/qwen3.7-plus", "opencode/big-pickle"],
         "variant": "high",
+        "temperature": 0.1,
         "skills": [
           "teaching",
           "playwright-browser"
@@ -314,6 +321,7 @@
       "researcher": {
         "model": ["opencode-go/deepseek-v4-flash", "opencode/deepseek-v4-flash"],
         "variant": "low",
+        "temperature": 0.7,
         "skills": [],
         "mcps": [
           "websearch",
@@ -326,6 +334,7 @@
       "orchestrator": {
         "model": "opencode/big-pickle",
         "variant": "high",
+        "temperature": 0.3,
         "skills": [
           "*"
         ],
@@ -343,6 +352,7 @@
       "architector": {
         "model": "opencode/big-pickle",
         "variant": "high",
+        "temperature": 0.1,
         "skills": [
           "teaching",
           "simplify",
@@ -379,12 +389,13 @@
           "debugging-workflow"
         ],
         "mcps": [],
-        "temperature": 0.2,
+        "temperature": 0.1,
         "prompt": "Before implementing, check project design constraints (see AGENTS.md Design Authority). Write self-documenting code — document the WHY behind non-obvious decisions, not the WHAT. After implementing: run dev build, lint, and tests before handing off.\n\n## When Tests Keep Failing\nDon't guess and retry. Trace the failure backwards through the data flow. List 3-5 hypotheses (one MUST be 'the test is wrong'), gather evidence, assess confidence (High/Medium/Low). After 3 consecutive failures on the same tests, escalate to boss. Don't loop."
       },
       "reviewer": {
         "model": "opencode/mimo-v2.5-free",
         "variant": "medium",
+        "temperature": 0.1,
         "skills": [
           "teaching",
           "playwright-browser"
@@ -465,6 +476,7 @@
       "researcher": {
         "model": "opencode/deepseek-v4-flash",
         "variant": "low",
+        "temperature": 0.7,
         "skills": [],
         "mcps": []
       }

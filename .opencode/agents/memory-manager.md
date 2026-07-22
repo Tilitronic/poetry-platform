@@ -28,9 +28,9 @@ Write to `.opencode/memory/`:
 
 ## Process
 
-1. Scan completed task: git diff, test results, agent outputs
-2. Read `.opencode/session/agents.md` — flag reuse patterns
-3. Check existing memory files for duplicates; update > create new
-4. Write only irrecoverable knowledge
-5. Truncate `.opencode/session/agents.md` to header row after analysis
+1. Check `git log --oneline -10` for commit history — who did what, when
+2. Read `.openspec/changes/` for the current change — compare planned (design/tasks) vs. delivered (diffs)
+3. Scan completed task: git diff, test results, agent outputs
+4. Check existing memory files for duplicates; update > create new
+5. Write only irrecoverable knowledge
 6. Return summary: files modified, entries added/updated/superseded
