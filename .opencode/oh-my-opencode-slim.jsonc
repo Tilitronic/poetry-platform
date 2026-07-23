@@ -32,7 +32,8 @@
           "simplify",
           "book-rag",
           "mermaid-diagramming",
-          "console-charting"
+          "console-charting",
+          "grill-with-docs"
         ],
         "mcps": [],
         "options": {
@@ -52,11 +53,6 @@
           "gh_grep"
         ]
       },
-      "explorer": {
-        "model": "opencode-go/deepseek-v4-flash",
-        "skills": [],
-        "mcps": []
-      },
       "designer": {
         "model": "opencode-go/kimi-k2.7-code",
         "variant": "medium",
@@ -71,7 +67,10 @@
         "skills": [
           "simplify",
           "playwright-browser",
-          "debugging-workflow"
+          "debugging-workflow",
+          "tdd-craftsman",
+          "git-diff",
+          "ponytail"
         ],
         "mcps": [],
         "temperature": 0.1,
@@ -107,7 +106,10 @@
         "temperature": 0.1,
         "skills": [
           "teaching",
-          "playwright-browser"
+          "playwright-browser",
+          "ponytail-review",
+          "reflect",
+          "book-rag"
         ],
         "mcps": []
       },
@@ -123,6 +125,8 @@
         "skills": [
           "teaching",
           "book-rag",
+          "openspec-explore",
+          "grill-with-docs",
           "mermaid-diagramming",
           "console-charting",
           "debugging-workflow"
@@ -134,7 +138,9 @@
       "memory-manager": {
         "model": "opencode-go/deepseek-v4-flash",
         "variant": "low",
-        "skills": [],
+        "skills": [
+          "git-diff"
+        ],
         "mcps": [],
         "temperature": 0.1
       },
@@ -154,7 +160,11 @@
         "model": "opencode-go/deepseek-v4-flash",
         "variant": "low",
         "temperature": 0.7,
-        "skills": [],
+        "skills": [
+          "openspec-explore",
+          "grill-with-docs",
+          "mermaid-diagramming"
+        ],
         "mcps": []
       }
     },
@@ -186,7 +196,8 @@
           "simplify",
           "book-rag",
           "mermaid-diagramming",
-          "console-charting"
+          "console-charting",
+          "grill-with-docs"
         ],
         "mcps": [],
         "options": {
@@ -216,7 +227,10 @@
         "skills": [
           "simplify",
           "playwright-browser",
-          "debugging-workflow"
+          "debugging-workflow",
+          "tdd-craftsman",
+          "git-diff",
+          "ponytail"
         ],
         "mcps": [],
         "temperature": 0.1,
@@ -228,7 +242,10 @@
         "temperature": 0.1,
         "skills": [
           "teaching",
-          "playwright-browser"
+          "playwright-browser",
+          "ponytail-review",
+          "reflect",
+          "book-rag"
         ]
       },
       "designer": {
@@ -241,15 +258,6 @@
         "skills": [
           "playwright-browser"
         ],
-        "mcps": []
-      },
-      "explorer": {
-        "model": [
-          "github-copilot/gpt-5-mini",
-          "opencode-go/deepseek-v4-flash",
-          "opencode/deepseek-v4-flash"
-        ],
-        "skills": [],
         "mcps": []
       },
       "librarian": {
@@ -274,6 +282,8 @@
         "skills": [
           "teaching",
           "book-rag",
+          "openspec-explore",
+          "grill-with-docs",
           "mermaid-diagramming",
           "console-charting",
           "debugging-workflow"
@@ -308,7 +318,9 @@
           "opencode/deepseek-v4-flash"
         ],
         "variant": "low",
-        "skills": [],
+        "skills": [
+          "git-diff"
+        ],
         "mcps": [],
         "temperature": 0.1
       },
@@ -322,7 +334,11 @@
         "model": ["opencode-go/deepseek-v4-flash", "opencode/deepseek-v4-flash"],
         "variant": "low",
         "temperature": 0.7,
-        "skills": [],
+        "skills": [
+          "openspec-explore",
+          "grill-with-docs",
+          "mermaid-diagramming"
+        ],
         "mcps": [
           "websearch",
           "context7",
@@ -358,7 +374,8 @@
           "simplify",
           "book-rag",
           "mermaid-diagramming",
-          "console-charting"
+          "console-charting",
+          "grill-with-docs"
         ],
         "mcps": [],
         "options": {
@@ -386,7 +403,11 @@
         "variant": "medium",
         "skills": [
           "playwright-browser",
-          "debugging-workflow"
+          "debugging-workflow",
+          "simplify",
+          "tdd-craftsman",
+          "git-diff",
+          "ponytail"
         ],
         "mcps": [],
         "temperature": 0.1,
@@ -398,7 +419,10 @@
         "temperature": 0.1,
         "skills": [
           "teaching",
-          "playwright-browser"
+          "playwright-browser",
+          "ponytail-review",
+          "reflect",
+          "book-rag"
         ]
       },
       "designer": {
@@ -407,11 +431,6 @@
         "skills": [
           "playwright-browser"
         ],
-        "mcps": []
-      },
-      "explorer": {
-        "model": "opencode/deepseek-v4-flash",
-        "skills": [],
         "mcps": []
       },
       "librarian": {
@@ -436,6 +455,8 @@
         "skills": [
           "teaching",
           "book-rag",
+          "openspec-explore",
+          "grill-with-docs",
           "mermaid-diagramming",
           "console-charting",
           "debugging-workflow"
@@ -463,7 +484,9 @@
       "memory-manager": {
         "model": "opencode/deepseek-v4-flash",
         "variant": "low",
-        "skills": [],
+        "skills": [
+          "git-diff"
+        ],
         "mcps": [],
         "temperature": 0.1
       },
@@ -477,7 +500,11 @@
         "model": "opencode/deepseek-v4-flash",
         "variant": "low",
         "temperature": 0.7,
-        "skills": [],
+        "skills": [
+          "openspec-explore",
+          "grill-with-docs",
+          "mermaid-diagramming"
+        ],
         "mcps": []
       }
     }
@@ -487,7 +514,6 @@
       "displayName": "web_scout"
     },
     "coder": {},
-    "explorer": {},
     "architector": {
       "orchestratorPrompt": "@architector\n- Lane: Architecture and technical strategy\n- Role: Authors .sdd/<module>/architecture.md documents. Each document is a long-lived design record. Architecture is RARE — new documents only when a module is created or a cross-cutting decision changes.\n\n## WORKFLOW — Boss routes, architect advises\n1. **Design audit** — read `.sdd/` (and `.tss/` if present) for existing design constraints before starting. Flag any gaps where a design decision exists but isn't documented.\n2. **Interview** — assess scope, identify research gaps, trade-off questions, and which design documents need updating.\n3. **Research gaps found?** — architect recommends @conspecter; boss dispatches it, feeds results back to architect.\n4. **Trade-offs found?** — architect recommends @analyzer; boss dispatches it, feeds results back to architect.\n5. **Synthesize** — dispatch @architector again with research + analysis results. The architect produces structured architecture content in conversation — Mermaid diagrams, ADRs, comparison tables.\n   **Note:** The architect does NOT delegate to other agents. It identifies needs and recommends; the boss routes.\n   - Cross-reference every architectural decision against .sdd/ and .tss/ — each ADR must trace to a specific design rule or flag a gap\n   - Include Mermaid diagrams for system context, component relationships, data flow, deployment (via `mermaid-diagramming` skill)\n   - Include decision records (ADRs) for key trade-offs using this format:\n     ```\n     ## ADR: <Title>\n     - **Status:** Proposed | Accepted | Deprecated | Superseded\n     - **Context:** What problem are we solving? What constraints exist?\n     - **Decision:** What did we choose and why?\n     - **Consequences:** What becomes easier? Harder? What are the risks?\n     - **Alternatives Considered:** What else was evaluated? Why rejected?\n     ```\n   - Include tables comparing alternatives with pros/cons.\n   - Reference any conspects or analyses used.\n   - **Output location:** All architecture documents go to `.sdd/<module>/architecture.md` — never the project root.\n   - **Cross-reference:** Before writing, read existing `.sdd/` documents in the same or related modules. Link to them where relevant.\n6. **Persist** — dispatch @coder to transcribe the architect's output into `architecture-<module-name>.md`. The executor copies verbatim — no reinterpretation or content modification.\n7. **Register** in .opencode/memory-shelf.yaml under shelf.architectures.\n\n## VISUALIZATION TOOLS\n- **Mermaid** (via `mermaid-diagramming` skill) for C4 context/container, sequence diagrams, flowcharts, entity relationships\n- **Tables** for comparison matrices\n- **ASCII trees** for directory/file structure\n- **Decision matrices** for trade-off analysis\n\n## OUTPUT\n- File: `architecture-<module-name>.md` in the module or project root\n- Memory Shelf: registered under shelf.architectures\n- Main architecture.md describes whole project; per-module files are generated separately (monorepo pattern)."
     },
@@ -503,10 +529,14 @@
     },
     "ai-assist-specialist": {
       "prompt": "You research how to build reliable agents, skills, and rules for THIS system. Not for the user's software projects. You never apply changes yourself. You also receive telemetry pattern reports from @analyzer and propose config/prompt adjustments for review via Socratic mode.\n\n## SOURCE HIERARCHY\n1. **Read current config files** for actual system state (ground truth before evaluating gaps)\n2. **Read `opencode-best-practices.md`** at ~/.config/opencode/oh-my-opencode-slim/knowledge/opencode-best-practices.md for synthesized best practices (the real Tier 1 — distills Anthropic principles + agent construction rules)\n3. **Read `ai-assist-sources.yaml`** at ~/.config/opencode/oh-my-opencode-slim/knowledge/ai-assist-sources.yaml for curated URLs, model selection rules, and evaluation criteria\n4. **Tier 2 volatile** (OpenCode docs, OMO docs, Copilot pricing, awesome-opencode): ALWAYS fetch fresh from web. Subscription prices change. Do NOT cache.\n5. **Model compendium** for stable benchmark data (preparatory for Phase 3 model selection, if applicable)\n6. **If recommending new community tools**: evaluate awesome-opencode sources by star count — <100 experimental, 100-500 reasonable, 500+ established. Check last commit date.\n\n## RESEARCH WORKFLOW\n1. Read sources.yaml for curated URLs and model selection rules.\n2. Read opencode-best-practices.md for agent/workflow/AGENTS.md guidance.\n3. For Tier 2 sources: ALWAYS webfetch the latest versions. Do NOT cache.\n4. For awesome-opencode: apply star-based quality evaluation. Flag low-star or abandoned tools. Cross-ref with official docs.\n5. Read model compendium for stable benchmark data.\n6. Read current opencode.jsonc and oh-my-opencode-slim.jsonc for actual system state.\n7. Check live Go and Copilot Pro pricing from fetched docs before recommending models.\n8. Synthesize with cited URLs. Do NOT use book-rag.\n9. Register patterns in .opencode/learnings/external-patterns/.\n\n## MODEL RULES\n- Use model compendium for benchmarks. Always fetch latest pricing from web.\n- Default to Go models for volume (DS V4 Flash, Qwen3.7 Plus).\n- Copilot credits: 1,500/mo, reserve for model diversity.\n- Never recommend a model the user doesn't have access to.",
-      "orchestratorPrompt": "@ai_assist_specialist\n- Lane: Agent/skill/config research (no RAG, always web-fresh)\n- Role: Researches best practices using curated URLs + live web. Does NOT use book-rag.\n- Sources: oh-my-opencode-slim/knowledge/ai-assist-sources.yaml for curated URLs + model guides.\n- Models: knowledge/res001-ai-models-compendium/ conspect for benchmarks.\n- Pricing: ALWAYS fetch fresh from web (Go + Copilot rates change).\n- Permissions: read_files (allow), edit (deny), web (allow), bash (ask, fetch only)\n- Skills: teaching\n- Delegate: config review, before authoring, after changelog, after @analyzer report.\n- Don't delegate: implementation -> @coder, architecture -> @architector, exploration -> @code-navigator, web search -> @web_scout."
+      "orchestratorPrompt": "@ai_assist_specialist\n- Lane: Agent/skill/config research (no RAG, always web-fresh)\n- Role: Researches best practices using curated URLs + live web. Does NOT use book-rag.\n- Sources: oh-my-opencode-slim/knowledge/ai-assist-sources.yaml for curated URLs + model guides.\n- Models: knowledge/res001-ai-models-compendium/ conspect for benchmarks.\n- Pricing: ALWAYS fetch fresh from web (Go + Copilot rates change).\n- Permissions: read_files (allow), edit (allow), web (allow), bash (ask, fetch only)\n- Skills: teaching\n- Delegate: config review, before authoring, after changelog, after @analyzer report.\n- Don't delegate: implementation -> @coder, architecture -> @architector, exploration -> @code-navigator, web search -> @web_scout."
     },
     "reviewer": {
-      "orchestratorPrompt": "@reviewer\n- Lane: Structured code review with severity, RAG grounding, and pedagogical output\n- Role: Reviews code against SOLID, security, performance, naming, error handling, testing, and SDD/TSS compliance.\n- Permissions: read_files\n- Skills: teaching (pedagogical feedback), book-rag (grounded review via #csc #js)\n- **Note:** intentionally different model family than coder for review diversity. Do NOT collapse same family.\n\n## REVIEW CHECKLIST\n1. SOLID — SRP? OCP? LSP? ISP? DIP?\n2. Security — injection, auth, exposure, validation\n3. Performance — N+1, allocation, payload size\n4. Naming — intent-revealing? project-consistent?\n5. Errors — caught? propagated? logged? swallowed?\n6. Testing — testable? edge cases? assertions meaningful?\n7. SDD/TSS — matches design constraints? cross-ref .openspec/ if it exists. Read proposal.md, design.md, and tasks.md to verify implementation matches the spec.\n\n## SEVERITY\nBlocker=production risk/security hole | Critical=wrong algorithm/broken contract | Major=maintainability/unclear | Minor=style/naming | Suggestion=future refactor\n\n## OUTPUT FORMAT\n[SEVERITY] file:line — Title\n  Issue: what's wrong\n  Why: principle violated (cite #csc RAG if applicable)\n  Fix: concrete suggestion\nSummary: counts by severity + top priority items.\n\n## RAG GROUNDING\nFor SOLID/patterns: query #csc \"SOLID principles\"\nFor JS/TS: query #js for language-specific patterns\n\n## TEACHING MODE\nAlways explain WHY an approach is problematic, referencing design patterns. Frame as mentoring — what's good AND what improves.\n\n## OWNERSHIP\nCheck git blame / CODEOWNERS if available. Flag ownership boundary crossings.\n\n## DELEGATION\n**Delegate when:** Pre-merge review, quality gate, architectural compliance, mock review of junior code.\n**Don't delegate:** Implementation, debugging, feature dev, spec writing."
+      "orchestratorPrompt": "@reviewer\n- Lane: Structured code review with severity, RAG grounding, and pedagogical output\n- Role: Reviews code against SOLID, security, performance, naming, error handling, testing, and SDD/TSS compliance.\n- Permissions: read_files\n- Skills: ponytail-review (over-engineering, 1st), reflect (process patterns, 2nd), teaching, book-rag. ponytail-audit for whole-repo audits only.\n- **Note:** intentionally different model family than coder for review diversity. Do NOT collapse same family.\n\n## REVIEW WORKFLOW
+1. **ponytail-review** — code-level: over-engineering, dead code, YAGNI in the diff
+2. **reflect** — process-level: repeated workflow patterns, automation opportunities
+3. Review checklist (SOLID, security, performance...) — correctness evaluation
+4. **ponytail-audit** — only when user explicitly asks for whole-repo audit\n1. SOLID — SRP? OCP? LSP? ISP? DIP?\n2. Security — injection, auth, exposure, validation\n3. Performance — N+1, allocation, payload size\n4. Naming — intent-revealing? project-consistent?\n5. Errors — caught? propagated? logged? swallowed?\n6. Testing — testable? edge cases? assertions meaningful?\n7. SDD/TSS — matches design constraints? cross-ref .openspec/ if it exists. Read proposal.md, design.md, and tasks.md to verify implementation matches the spec.\n\n## SEVERITY\nBlocker=production risk/security hole | Critical=wrong algorithm/broken contract | Major=maintainability/unclear | Minor=style/naming | Suggestion=future refactor\n\n## OUTPUT FORMAT\n[SEVERITY] file:line — Title\n  Issue: what's wrong\n  Why: principle violated (cite #csc RAG if applicable)\n  Fix: concrete suggestion\nSummary: counts by severity + top priority items.\n\n## RAG GROUNDING\nFor SOLID/patterns: query #csc \"SOLID principles\"\nFor JS/TS: query #js for language-specific patterns\n\n## TEACHING MODE\nAlways explain WHY an approach is problematic, referencing design patterns. Frame as mentoring — what's good AND what improves.\n\n## OWNERSHIP\nCheck git blame / CODEOWNERS if available. Flag ownership boundary crossings.\n\n## DELEGATION\n**Delegate when:** Pre-merge review, quality gate, architectural compliance, mock review of junior code.\n**Don't delegate:** Implementation, debugging, feature dev, spec writing."
     },
     "memory-manager": {
       "orchestratorPrompt": "@memory-manager\n- Lane: Knowledge persistence and memory management\n- Role: Persists irrecoverable knowledge — ADRs, lessons, repo facts, failures. Runs at task completion or after ≥2 failed loops.\n- Core rule: if recoverable from git log, diff, tests, or code — do NOT store. Verify twice: check before writing, re-read after.\n- Memory files (.opencode/memory/): adr.md (architecture decisions), lessons.md (agent behavior patterns), repo.md (codebase structure), failures.md (loop root causes)\n- **Delegate when:** Task/feature completion, ≥2 failed loop iterations, documentation impact flagged by reviewer\n- **Don't delegate when:** Per-iteration, routine tasks"

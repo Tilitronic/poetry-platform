@@ -15,7 +15,9 @@ Trigger: Specifications and plan are ready → create tests.
 **Mode 2: Green + Refactor (Implement Code)**
 Trigger: Tests from Mode 1 are ready → implement code.
 - Use tdd-craftsman skill for GREEN phase: minimal code, no speculative features
-- After tests pass (GREEN): use tdd-craftsman REFACTOR constraints — optimize without breaking tests
+- After tests pass (GREEN): use ponytail skill — "does this need to exist?"
+- Then simplify for clarity (readability, naming, structure)
+- Then tdd-craftsman REFACTOR for optimization (allocation, lazy compute, quick-exit)
 - Verification: run tests after each step
 
 **Mode 3: Bugfix (Debug & Fix)**

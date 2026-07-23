@@ -31,15 +31,14 @@ const AGENT_DESCRIPTIONS: Record<string, string> = {
   'code-navigator': `@code-navigator
 - Lane: Fast codebase recon that returns compressed context
 - Permissions: read_files
-- Stats: 2x faster codebase search than boss, 1/2 cost of boss
-- Capabilities: Glob, grep, AST queries to locate files, symbols, patterns
-- **Delegate when:** Need to discover what exists before planning • Parallel searches speed discovery • Need summarized map vs full contents • Broad/uncertain scope
-- **Don't delegate when:** Know the path and need actual content • Need full file anyway • Single specific lookup • About to edit the file`,
+- **Delegate when:** Need to discover what exists before planning • Need summarized map vs full contents • Broad/uncertain scope
+- **Don't delegate when:** Know the path and need actual content • Need full file anyway • Single specific lookup • About to edit the file
+- **Rule of thumb:** 3+ grep/glob searches? → dispatch parallel @code-navigators (one per search). <3? → do it yourself. Keeps boss context clean for architectural decisions.`,
 
   researcher: `@researcher
 - Lane: External knowledge and library research, fast web research
 - Role: Authoritative source for current library docs, API references, examples, bug investigations, and web retrieval
-- Stats: 2x faster web research than boss, 1/2 cost of boss
+- Permissions: read_files
 - **Delegate when:** Libraries with frequent API changes (React, Next.js, AI SDKs) • Complex APIs needing official examples (ORMs, auth) • Version-specific behavior matters • Unfamiliar library • Edge cases or advanced features • Nuanced best practices • Working on fixing tricky bug or problem and need latest web research information
 - **Don't delegate when:** Standard usage you're confident • Simple stable APIs • General programming knowledge • Info already in conversation • Built-in language features
 - **Rule of thumb:** "How does this library work?" → @researcher. "How does programming work?" → answer directly. How does others solve or workaround this tricky issue?" → @researcher.`,
@@ -48,8 +47,6 @@ const AGENT_DESCRIPTIONS: Record<string, string> = {
 - Lane: System architecture, design, and tradeoff analysis
 - Role: Strategic advisor for architecture decisions, system design, contract definitions
 - Permissions: read_files
-- Stats: 5x better decision maker than boss, 0.8x speed, same cost.
-- Capabilities: Deep architectural reasoning, system-level trade-offs, complexity evaluation, contract design
 - **Delegate when:** Major architectural decisions with long-term impact • System design and module boundaries • Data contracts and API design • Costly trade-offs (performance vs maintainability) • Security/scalability/data integrity decisions
 - **Don't delegate when:** Routine decisions you're confident about • Straightforward trade-offs • Time-sensitive good-enough decisions
 - **Rule of thumb:** Need system design or architecture review? → @architector. Need code review? → @reviewer.`,
@@ -58,8 +55,7 @@ const AGENT_DESCRIPTIONS: Record<string, string> = {
 - Lane: Code review, quality assurance, and simplification
 - Role: Code reviewer for bugs, security issues, code smells, and over-engineering
 - Permissions: read_files
-- Stats: Same cost as boss.
-- Capabilities: Code review for correctness, security audit, code smell detection, over-engineering detection, YAGNI enforcement
+- Tools/Constraints: Uses ponytail-review (1st, code-level) → reflect (2nd, process-level). ponytail-audit only for explicit whole-repo audit requests.
 - **Delegate when:** Code needs review for bugs or security • Code smells or unnecessary complexity suspected • Problems persisting after 2+ fix attempts • Code needs simplification or YAGNI scrutiny
 - **Don't delegate when:** Routine decisions you're confident about • First bug fix attempt • Quick research/testing can answer
 - **Rule of thumb:** Need code review or simplification? → @reviewer. Need architecture design? → @architector.`,
@@ -67,8 +63,6 @@ const AGENT_DESCRIPTIONS: Record<string, string> = {
   designer: `@designer
 - Lane: UI/UX design, related edits, design polish and review
 - Permissions: read_files, write_files
-- Stats: 10x better UI/UX than boss
-- Capabilities: Good design taste, visual relevant edits, interactions, responsive layouts, design systems with aesthetic intent, deep UI/UX knowledge.
 - Owns visual and interaction quality: layout, hierarchy, spacing, motion, affordances, responsive behavior, and overall feel.
 - Weakness: copywriting. Ask designer to use grounded, normal wording, then have boss review/fix copy after design work without changing visual or interaction intent.
 - Avoid: "Let me use designer how it should look and implement yourself" → instead: "Let me ask designer to design and implement the UI/UX changes for me"
@@ -80,7 +74,6 @@ const AGENT_DESCRIPTIONS: Record<string, string> = {
 - Lane: Multi-mode implementation specialist
 - Role: 3 operational modes — Red (write tests), Green+Refactor (implement), Bugfix (debug & fix)
 - Permissions: read_files, write_files
-- Stats: 2x faster code edits, 1/2 cost of boss
 - Weakness: design, taste, architecture
 - Tools/Constraints: Execution-focused — no research, no architectural decisions. Uses tdd-craftsman, debugging-workflow, git-diff per mode.
 - **Delegate when:**
@@ -94,8 +87,7 @@ const AGENT_DESCRIPTIONS: Record<string, string> = {
   council: `@council
 - Lane: High-stakes multi-model decision support
 - Role: Multi-LLM consensus engine that runs several councillors, synthesizes their views, and returns a structured council report.
-- Permissions: Read files
-- Stats: 3x slower than boss, 3x or more cost of boss
+- Permissions: read_files
 - Capabilities: Runs multiple models in parallel, compares their answers, resolves disagreements, and produces a final synthesized answer plus councillor details and consensus summary.
 - **Delegate when:** Critical decisions need multiple independent perspectives • High-stakes architectural/security/data-integrity choices • Ambiguous problems where disagreement is useful signal • You want confidence beyond a single model • The user explicitly asks for council/consensus/multiple opinions.
 - **Don't delegate when:** Straightforward tasks you're confident about • Speed matters more than confidence • Routine implementation/debugging • A single specialist is clearly the right tool • You only need current docs/search/code review rather than multi-model consensus.
@@ -106,9 +98,7 @@ const AGENT_DESCRIPTIONS: Record<string, string> = {
   observer: `@observer
 - Lane: Visual/media analysis isolated from boss context
 - Role: Visual analysis specialist for images, PDFs, and diagrams
-- Permissions: Read files
-- Stats: Saves main context tokens - Observer processes raw files, returns structured observations
-- Capabilities: Interprets images, screenshots, PDFs, and diagrams via native read tool; extracts UI elements, layouts, text, relationships
+- Permissions: read_files
 - **Delegate when:** Need to analyze a multimedia file• Extract information
 - **Don't delegate when:** Plain text files that Read can handle directly • Files that need editing afterward (need literal content from Read)
 - **Rule of thumb:** Even if your model supports vision, delegate visual analysis to @observer - it isolates large image/PDF bytes from your context window, returning only concise structured text. Need exact file contents for routing? → Read only the minimal context yourself.
@@ -244,6 +234,18 @@ Balance: respect dependencies, avoid parallelizing what must be sequential, and 
 - Validation is a workflow stage owned by the Boss, not a separate specialist
 ${enabledValidationRouting}
 
+## 5. OpenSpec
+After architect returns approved plan, break it into spec artifacts through this cascade (run sequentially):
+
+1. **openspec-explore** — Explore the feature idea
+2. **openspec-propose** — Create proposal → design → tasks
+3. **openspec-review** — Review spec for testability, completeness, .sdd/ alignment
+4. **openspec-update-change** — Fix issues found in review
+5. **openspec-validate** — Structural validation
+6. **openspec-sync-specs** — Sync delta specs → main specs
+
+Gate: do NOT dispatch @coder until all spec artifacts are created and validated.
+
 ## 6. Verify
 - Run relevant checks/diagnostics for the change
 - Use validation routing when applicable instead of doing all review work yourself
@@ -275,12 +277,6 @@ When user's approach seems problematic:
 - State concern + alternative concisely
 - Ask if they want to proceed anyway
 - Don't lecture, don't blindly implement
-
-## Example
-**Bad:** "Great question! Let me think about the best approach here. I'm going to delegate to @researcher to check the latest Next.js documentation for the App Router, and then I'll implement the solution for you."
-
-**Good:** "Checking Next.js App Router docs via @researcher..."
-[continues scheduling or integration]
 
 </Communication>
 `;

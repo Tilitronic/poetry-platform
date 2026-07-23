@@ -47,7 +47,7 @@
     // Council subagents — read-only
     "council": {
       "permission": {
-        "edit": "deny",
+      "edit": "deny",
         "bash": {
           "*": "deny"
         }
@@ -60,7 +60,7 @@
     "temperature": 0.3,
     "color": "info",
     "permission": {
-      "edit": "deny",
+      "edit": "allow",
       "bash": {
         "curl": "allow",
         "wget": "allow",

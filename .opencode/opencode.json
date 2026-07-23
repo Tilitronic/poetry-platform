@@ -16,6 +16,15 @@
         "task": "deny"
       }
     },
+    "analyzer": {
+      "mode": "subagent",
+      "color": "#14B8A6",
+      "permission": {
+        "edit": "deny",
+        "bash": "deny",
+        "task": "deny"
+      }
+    },
     "reviewer": {
       "mode": "all",
       "color": "#F59E0B",

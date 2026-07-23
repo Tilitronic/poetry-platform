@@ -1,54 +1,43 @@
 # Poetry Platform — Development Loop
 
-## ① Explore & Brainstorm
-**Architector** + **Researcher** + **Explorer** explore the idea with the user.
+## ⓪ Explore & Brainstorm
+**Researcher** + **Analyzer** explore the idea with the user.
 
-| Tool | Type | Purpose | Status | Architector Review |
-|------|------|---------|--------|-------------------|
-| `ponytail` | Skill | Question if task needs to exist (YAGNI) | ✅ ESSENTIAL | Єдиний YAGNI-інструмент. Найвища точка перехоплення — до будь-якого дизайну чи коду. Без нього перевірка "чи треба це взагалі?" відбувається занадто пізно (під час рефакторингу, якщо взагалі) |
-| `openspec-explore` | Skill | Explore mode for thinking partner | ✅ ESSENTIAL | Вільний thinking partner, read-only. Заповнює прогалину між "є ідея" і "знаю що пропонувати". Read-only по дизайну — не дозволяє випадково зачепити код |
-| `grill-with-docs` | Skill | Stress-test plan against domain model | ✅ ESSENTIAL | Socratic stress-test термінології проти доменної моделі. Краще за openspec-explore для глибини. Але потребує адаптації шляхів (.sdd/ замість CONTEXT.md) |
-| `code-navigator` | Agent | Fast codebase recon | ✅ ESSENTIAL | Швидкий glob/grep/AST — stateless, нічого не пише. Але **потребує OMO-конфігу** — зараз немає моделі в пресеті |
-| `codemap` | Skill | Map unfamiliar codebase | 🔶 Nice-to-have | Дорогий (спавнює fixer-агентів на кожну папку). Тільки коли кодова база незнайома. code-navigator робить легшу версію |
-| `clonedeps` | Skill | Clone & inspect library internals | 🔶 Nice-to-have | Тільки коли треба зрозуміти internals бібліотеки. Фаза ① — найкращий час, але не за замовчуванням. Потребує мережі |
-| `mermaid-diagramming` | Skill | Best practices for Mermaid diagrams | 🆕 MISSING | Фаза ② має його, але фаза ① — ні. А саме тут малюються перші діаграми системи |
+| # | Tool | Type | Purpose | Status |
+|---|------|------|---------|--------|
+| 1 | `ponytail` | Skill | YAGNI check — does this need to exist? | ✅ ESSENTIAL |
+| 2 | `openspec-explore` | Skill | Thinking partner for ideas | ✅ ESSENTIAL |
+| 3 | `grill-with-docs` | Skill | Stress-test against domain model | ✅ ESSENTIAL |
+| 4 | `code-navigator` | Agent | Understand existing codebase | ✅ ESSENTIAL |
+| 5 | `mermaid-diagramming` | Skill | Sketch system diagrams | ✅ ESSENTIAL |
 
-| `researcher` | Agent | External docs & library research | 🔴 BROKEN | Orphan — немає OMO конфігу, промпту, навичок. @librarian (web_scout) вже має ці здібності |
-| `explorer` | Agent | — | 🔴 BROKEN | В описі фази згадується, але немає промпту, немає AGENTS.md ролі |
+**Removed:** codemap (too expensive), clonedeps (not for exploration), researcher/explorer (broken/replaced)
 
-## ② Plan / Architecture
+## ① Plan / Architecture
 **Architector** creates the plan and general architecture.
 
-| Tool | Type | Purpose | Status | Architector Review |
-|------|------|---------|--------|-------------------|
-| `mermaid-diagramming` | Skill | Best practices for Mermaid diagrams | ✅ ESSENTIAL | Єдиний інструмент для візуалізації архітектури. C4, sequence, flowcharts. Diffable діаграми в markdown — жодна альтернатива так не вміє |
-| `teaching` | Skill | Pedagogical explanation of concepts | ✅ ESSENTIAL | Пояснення WHY для нетривіальних ADR. Але **використовувати обережно** — тільки для складних tradeoff, не для кожної задачі. Правило: якщо можна пояснити в 3 реченнях — skip |
-| `deepwork` | Skill | Heavy coding sessions, multi-phase | 🔶 Nice-to-have | Тільки для багатоденних архітектурних змін (розділення моноліту, нові bounded contexts). За замовчуванням — skip |
-| 🆕 `council_session` | Tool | Multi-model consensus engine | 🆕 MISSING | Multi-model evaluation для складних tradeoff. Коли є 2+ підходи з різними компромісами — отримати думку кількох моделей до фінального рішення. Ризик: overuse → decision paralysis. Тільки для genuinely ≥2 viable approaches |
-| 🆕 `grill-with-docs` | Skill | Stress-test against domain model | 🆕 MISSING | Перевірка нової .sdd/ документації проти існуючої доменної моделі. Gate для кожного нового .sdd/ документа |
+| # | Tool | Type | Purpose | Status |
+|---|------|------|---------|--------|
+| 1 | `mermaid-diagramming` | Skill | Architecture diagrams (C4, sequence, flowcharts) | ✅ ESSENTIAL |
+| 2 | `teaching` | Skill | Explain WHY in ADRs (skip if <3 sentences) | ✅ ESSENTIAL |
+| 3 | 🆕 `council_session` | Tool | Multi-model consensus for complex tradeoffs | 🆕 MISSING |
+| 4 | 🆕 `grill-with-docs` | Skill | Validate .sdd/ against domain model | 🆕 MISSING |
 
-## ③ OpenSpec
+## ② OpenSpec
 Break the idea into specific features. Write specs for each feature. Each feature is broken into concrete tasks.
 
-| Tool | Type | Purpose | Status | Architector Review |
-|------|------|---------|--------|-------------------|
-| `openspec-explore` | Skill | Explore mode for ideas | ✅ ESSENTIAL | Read-only thinking partner перед створенням специфікації. Заповнює прогалину між "є ідея" і "знаю що пропонувати" |
-| `openspec-propose` | Skill | Propose new change with artifacts | ✅ ESSENTIAL | Основний output-producing інструмент. Єдиний що створює повний набір артефактів (proposal → design → tasks). Але **конфлікт з practice-protected** — auto-генерує контент |
-| `openspec-update-change` | Skill | Update existing change plan | ✅ ESSENTIAL | Bidirectional coherence checking між артефактами. Edits to later artifacts can revise earlier ones. User confirms each edit |
-| `openspec-sync-specs` | Skill | Sync delta specs to main specs | ✅ ESSENTIAL | Міст між change-scoped specs та living specification base. Без нього specs залишаються ізольованими |
-| `openspec-plan` | Agent | Socratic spec authoring guide | 🔶 Nice-to-have | Pure-analyst, read-only, без запису файлів. Корисний для інтерв'ю перед propose, але openspec-explore + openspec-propose покривають цю потребу |
-| `openspec-archive-change` | Skill | Archive completed change | 🔶 Nice-to-have | Housekeeping, не spec creation. Належить до пост-реалізації. Виконує `mkdir -p` та `mv` |
-| `opsx-explore` | Command | `/opsx:explore` | ✅ ESSENTIAL | Alias для openspec-explore |
-| `opsx-propose` | Command | `/opsx:propose` | ✅ ESSENTIAL | Alias для openspec-propose |
-| `opsx-archive` | Command | `/opsx:archive` | 🔶 Nice-to-have | Alias для openspec-archive-change |
-| `opsx-sync` | Command | `/opsx:sync` | ✅ ESSENTIAL | Alias для openspec-sync-specs |
-| `opsx-update` | Command | `/opsx:update` | ✅ ESSENTIAL | Alias для openspec-update-change |
-| `writing-skills` | Skill | Create/verify skills | 🔶 Nice-to-have | Корисний для створення нових навичок OpenSpec, але не для spec authoring |
-| 🆕 `/opsx-continue` | Command | Create missing artifacts | 🆕 MISSING (HIGH) | Два існуючих інструменти (update, apply) посилаються на нього, але він не існує. Broken workflow path — якщо change має proposal, але немає tasks, немає способу просунутись |
-| 🆕 `openspec-review` | Skill | Pre-implementation spec review | 🆕 MISSING (MEDIUM) | @reviewer орієнтований на код. Spec review потребує інших критеріїв: testability, completeness, alignment з .sdd/ |
-| 🆕 `openspec-validate` | Skill | Structural validation | 🆕 MISSING (LOW) | CLI `validate` існує, але обгортки для зручного виклику немає |
+| # | Tool | Type | Purpose | Status |
+|---|------|------|---------|--------|
+| 1 | `openspec-explore` | Skill | Explore ideas before spec creation | ✅ ESSENTIAL |
+| 2 | `openspec-propose` | Skill | Create proposal → design → tasks | ✅ ESSENTIAL |
+| 3 | `openspec-review` | Skill | Review spec: testability, completeness, .sdd/ alignment | ✅ ESSENTIAL |
+| 4 | `openspec-update-change` | Skill | Fix spec issues found in review | ✅ ESSENTIAL |
+| 5 | `openspec-validate` | Skill | Structural validation before TDD | ✅ ESSENTIAL |
+| 6 | `openspec-sync-specs` | Skill | Sync delta specs → main specs | ✅ ESSENTIAL |
 
-## TDD
+**Removed:** `openspec-plan` (redundant), `openspec-archive-change` (→ Phase ⑥), `opsx-*` aliases (redundant), `writing-skills` (not for spec auth).
+
+## ③ TDD
 
 ### Red
 **<b>Coder</b> (Mode 1)** writes tests. They must be **red** (failing).
@@ -77,7 +66,7 @@ Break the idea into specific features. Write specs for each feature. Each featur
 | `debugging-workflow` | Skill | Language-specific debugging tools | 🔶 Nice-to-have | Safety net коли refactoring ламає тести. Більшість проблем ловиться простим read error + revert. tdd-craftsman вже має gate-failure routing |
 | `tdd-craftsman` | Skill | Polyglot RED-GREEN-REFACTOR TDD | ✅ ESSENTIAL | Optimization priority order (allocation elimination → lazy computation → pre-compiled constants → quick-exit), language-specific tactics, verification gates, scientific code verification (property-based testing, benchmark regression, memory layout, statistical correctness) |
 
-## ⑦ Review
+## ④ Review
 **Reviewer** reviews the work done.
 
 | Tool | Type | Purpose | Status | Architector Review |
@@ -90,7 +79,7 @@ Break the idea into specific features. Write specs for each feature. Each featur
 | `book-rag` | Skill | Grounded review via RAG | 🔶 Nice-to-have | Для верифікації чи pattern є anti-pattern. Requires textbooks loaded. Complementary до teaching |
 | 🆕 Correctness/Security/Perf tools | Skill | Bug/security/perf detection | 🆕 MISSING (HIGH) | ponytail-review не перевіряє bugs, security vulnerabilities, performance issues. Review incomplete без них. Потрібні: correctness oracle, security scanner, perf profiler |
 
-## ⑧ Debug and Fix
+## ⑤ Debug and Fix
 One arrow in ("Yes"), one arrow out ("Back to Review"):
 - **Coder** uses Mode 3 (Bugfix): debugging-workflow for root cause → tdd-craftsman RED→GREEN → git-diff for context
 
@@ -100,7 +89,7 @@ One arrow in ("Yes"), one arrow out ("Back to Review"):
 | `debugging-workflow` | Skill | Language-specific debugging tools | ✅ ESSENTIAL | Root cause analysis (Mode 3). Structured hypothesis→evidence loop: reproduce → isolate → analyze → fix. Essential for non-trivial bugs, skip for trivial/pinpointed |
 | `git-diff` | Skill | Inject Git status/diff context | ✅ ESSENTIAL | Бачити написані тести, план, специфікації перед fix. Кодер має знати що reviewer reviewed і що architect спланував |
 
-## ⑨ Persist
+## ⑥ Persist
 If no issues — **Memory Manager** writes ADR: who did what, lessons, progress, blockers. End of iteration.
 
 | Tool | Type | Purpose | Status | Architector Review |
@@ -123,20 +112,20 @@ If no issues — **Memory Manager** writes ADR: who did what, lessons, progress,
   'labelTextColor': '#e0e0e0'
 }}}%%
 flowchart TB
-    subgraph Phase1["① Explore & Brainstorm"]
+    subgraph Phase0["⓪ Explore & Brainstorm"]
         A([Start]) --> B
-        B["<b>Architector</b> + <b>Researcher</b>\n+ <b>Explorer</b> explore idea"]
+        B["<b>Researcher</b> + <b>Analyzer</b>\nexplore idea"]
     end
 
-    subgraph Phase2["② Plan / Architecture"]
+    subgraph Phase1["① Plan / Architecture"]
         B --> C["<b>Architector</b>\ncreates plan & architecture"]
     end
 
-    subgraph Phase3["③ OpenSpec"]
+    subgraph Phase2["② OpenSpec"]
         C --> D["Break into features\n& write specs"]
     end
 
-    subgraph TDD["TDD"]
+    subgraph TDD["③ TDD"]
         E["<b>Coder</b> (Mode 1)\nwrite tests — RED"]
         F["<b>Coder</b> (Mode 2)\nimplement code — GREEN"]
         G["<b>Coder</b> (Mode 2)\nrefactor — still GREEN"]
@@ -146,20 +135,20 @@ flowchart TB
     E --> F
     F --> G
 
-    subgraph Phase7["⑦ Review"]
+    subgraph Phase4["④ Review"]
         G --> H["<b>Reviewer</b> reviews"]
     end
 
     H --> I{"Issues\nfound?"}
 
-    subgraph DebugAndFix["⑧ Debug & Fix"]
+    subgraph DebugAndFix["⑤ Debug & Fix"]
         J["<b>Coder</b> (Mode 3)\ndebugging-workflow: root cause\n→ tdd-craftsman: RED→GREEN\n→ git-diff: context"]
     end
 
     I -->|"Yes"| DebugAndFix
     DebugAndFix -->|"Back to Review"| H
 
-    subgraph Phase9["⑨ Persist"]
+    subgraph Phase6["⑥ Persist"]
         I -->|"No issues"| L["<b>Memory Manager</b>\nADR: who did what,\nlessons, progress"]
     end
 

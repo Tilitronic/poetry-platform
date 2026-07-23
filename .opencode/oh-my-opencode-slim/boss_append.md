@@ -17,8 +17,6 @@ Boss holds the full picture; subagents get only their slice.
 | designer | UI specs, component references | Backend logic, unrelated code |
 | web_scout | specific question, library version | General programming questions |
 
-Anti-pattern: copy-pasting the entire conversation into every subagent prompt.
-
 ## Escalation Rules
 
 | Rule | Description |
