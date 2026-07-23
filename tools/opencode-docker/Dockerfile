@@ -45,12 +45,13 @@ RUN echo "Installing OpenCode version: ${OPENCODE_VERSION}" && \
 
 RUN npm install -g pnpm@${PNPM_VERSION} bun@${BUN_VERSION} @tarquinen/opencode-dcp@${DCP_VERSION} @fission-ai/openspec@${OPENSPEC_VERSION}
 
-RUN node --version && \
-    npm --version && \
-    python3 --version && \
-    python3 -m venv /tmp/test-venv && \
-    rm -rf /tmp/test-venv && \
-    opencode --version
+# Install Volta 2.0.2 — JS tool manager for automatic Node version switching
+ARG VOLTA_VERSION=2.0.2
+RUN VOLTA_ARCH=$(case "${TARGETARCH:-$(uname -m)}" in x86_64|amd64) echo "linux" ;; aarch64|arm64) echo "linux-arm" ;; esac) && \
+    curl -fsSL "https://github.com/volta-cli/volta/releases/download/v${VOLTA_VERSION}/volta-${VOLTA_VERSION}-${VOLTA_ARCH}.tar.gz" -o /tmp/volta.tar.gz && \
+    tar xzf /tmp/volta.tar.gz -C /usr/local/bin/ && \
+    rm -f /tmp/volta.tar.gz && \
+    volta --version
 
 RUN SNIP_ARCH=$(case "${TARGETARCH:-$(uname -m)}" in x86_64|amd64) echo "amd64" ;; aarch64|arm64) echo "arm64" ;; esac) && \
     curl -fsSL "https://github.com/edouard-claude/snip/releases/download/v${SNIP_VERSION}/snip_${SNIP_VERSION}_linux_${SNIP_ARCH}.tar.gz" -o /tmp/snip.tar.gz && \
@@ -70,6 +71,13 @@ RUN UV_ARCH=$(case "${TARGETARCH:-$(uname -m)}" in x86_64|amd64) echo "x86_64" ;
     rm -f /tmp/uv.tar.gz /tmp/uv.sha256 && \
     uv --version
 
+RUN node --version && \
+    npm --version && \
+    python3 --version && \
+    uv venv /tmp/test-venv && \
+    rm -rf /tmp/test-venv && \
+    opencode --version
+
 COPY scripts/collect-runtime-deps.sh /usr/local/bin/collect-runtime-deps.sh
 RUN chmod 0755 /usr/local/bin/collect-runtime-deps.sh
 
@@ -83,7 +91,7 @@ RUN mkdir -p /opt/runtime-rootfs && \
       opencode node npm npx pnpm bun python3 pip3 Xvfb xclip wl-copy wl-paste git \
       mkdir find grep rg jq cat head tail sed awk tr \
       ls cp mv rm chmod wc sort cut env uname date dirname basename \
-      curl wget snip uv dbus-send openspec
+      curl wget snip uv volta volta-migrate volta-shim dbus-send openspec
 
 RUN cd /opt/runtime-rootfs && \
     for dir in bin sbin lib lib64; do \
