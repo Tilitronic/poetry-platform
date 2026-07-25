@@ -1,6 +1,6 @@
 {
   "plugin": [
-    "oh-my-opencode-slim",
+    "file:///workspace/.opencode/oh-my-opencode-slim",
     "@tarquinen/opencode-dcp@latest"
   ]
 }
