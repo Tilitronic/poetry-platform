@@ -17,22 +17,28 @@ load test-helper
 
 setup_python_tree() {
   TREE="$BATS_TEST_TMPDIR/tree"
-  mkdir -p "$TREE/scripts" "$TREE/apps/api-server/.venv/bin" "$BATS_TEST_TMPDIR/bin"
-  cp "$SCRIPTS_DIR/verify-python.sh" "$TREE/scripts/verify-python.sh"
-
-  cat > "$TREE/apps/api-server/.venv/bin/ruff" <<'FAKERUFF'
+  # Mirror verify-python.sh's package list (DIA-013: apps/api-server +
+  # packages/analytics-pipeline) so the second package's `cd` does not fail.
+  # Fakes are planted in BOTH venvs; tests delete a venv's binaries to drive
+  # the bootstrap path for that package.
+  mkdir -p "$TREE/scripts" "$BATS_TEST_TMPDIR/bin"
+  for pkg in apps/api-server packages/analytics-pipeline; do
+    mkdir -p "$TREE/$pkg/.venv/bin"
+    cat > "$TREE/$pkg/.venv/bin/ruff" <<'FAKERUFF'
 #!/usr/bin/env bash
 printf 'ruff %s\n' "$*" >> "${RUFF_LOG:?RUFF_LOG not set}"
 exit "${FAKE_RUFF_STATUS:-0}"
 FAKERUFF
-  chmod +x "$TREE/apps/api-server/.venv/bin/ruff"
+    chmod +x "$TREE/$pkg/.venv/bin/ruff"
 
-  cat > "$TREE/apps/api-server/.venv/bin/python" <<'FAKEPY'
+    cat > "$TREE/$pkg/.venv/bin/python" <<'FAKEPY'
 #!/usr/bin/env bash
 printf 'python %s\n' "$*" >> "${PYTHON_LOG:?PYTHON_LOG not set}"
 exit 0
 FAKEPY
-  chmod +x "$TREE/apps/api-server/.venv/bin/python"
+    chmod +x "$TREE/$pkg/.venv/bin/python"
+  done
+  cp "$SCRIPTS_DIR/verify-python.sh" "$TREE/scripts/verify-python.sh"
 
   cat > "$BATS_TEST_TMPDIR/bin/uv" <<'FAKEUV'
 #!/usr/bin/env bash

@@ -65,7 +65,12 @@ FAKEPNPM
   export PATH="$bindir:$PATH"
   export PNPM_LOG="$BATS_TEST_TMPDIR/pnpm.log"
   export POETRY_WORKSPACE="$BATS_TEST_TMPDIR/ws"
-  mkdir -p "$POETRY_WORKSPACE"
+  # run_workspace uses `bash -lc`, a login shell that sources ~/.profile, which
+  # prepends $VOLTA_HOME/bin and would shadow our fake pnpm with the real one
+  # (the real pnpm then errors: no package.json in the temp workspace). A temp
+  # HOME keeps the login shell clean so the fake pnpm is exercised.
+  export HOME="$BATS_TEST_TMPDIR/home"
+  mkdir -p "$POETRY_WORKSPACE" "$HOME"
 
   run bash "$SCRIPTS_DIR/verify-pre-push.sh"
 
