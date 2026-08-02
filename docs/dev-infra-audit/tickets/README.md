@@ -21,7 +21,7 @@ carries the full detail (description, verification, fix, re-verify evidence).
 | DIA-012 | .env missing CONTEXT7_API_KEY vs .env.example                                                                       | env             | Minor    | FIXED    | [DIA-012.md](DIA-012.md) |
 | DIA-013 | analytics-pipeline pytest config without deps/tests/ruff coverage; verify-python covers api-server only             | python-tooling  | Major    | FIXED    | [DIA-013.md](DIA-013.md) |
 | DIA-014 | Empty secret placeholder files (4/5) contradict README non-empty rule                                               | secrets         | Minor    | FIXED    | [DIA-014.md](DIA-014.md) |
-| DIA-015 | pnpm missing from Volta toolchain + empty node_modules → pnpm JS gates exit 126                                     | env             | Blocker  | RESOLVED | [DIA-015.md](DIA-015.md) |
+| DIA-015 | pnpm missing from Volta toolchain + empty node_modules → pnpm JS gates exit 126                                     | env             | Blocker  | CLOSED   | [DIA-015.md](DIA-015.md) |
 | DIA-016 | Global DCP sparse vs project DCP 14 models — unify                                                                  | opencode-config | Minor    | CLOSED   | [DIA-016.md](DIA-016.md) |
 | DIA-017 | ai-assist-sources.yaml — verify path consistency; close as verified if moot                                         | opencode-config | Minor    | FIXED    | [DIA-017.md](DIA-017.md) |
 | DIA-018 | Ports documented — close as verified (docker-dev.md + .env.example + compose agree)                                 | docs            | Minor    | CLOSED   | [DIA-018.md](DIA-018.md) |
@@ -57,9 +57,8 @@ carries the full detail (description, verification, fix, re-verify evidence).
 | Status   | Count |
 | -------- | ----- |
 | FIXED    | 24    |
-| CLOSED   | 5     |
+| CLOSED   | 6     |
 | OPEN     | 5     |
-| RESOLVED | 1     |
 
 ## How to add a ticket
 
