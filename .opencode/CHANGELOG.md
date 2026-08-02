@@ -1,5 +1,15 @@
 # OpenCode Config Changelog
 
+## 2026-08-02 — Dev-infra config audit fixes (DIA-001/003/016/017/019/020, F3 lane)
+- DIA-001 (Minor): `opencode.jsonc` `references.shelf.path` `".opencode"` → `".opencode/memory-shelf.yaml"` — the shelf key pointed at a directory instead of the actual shelf index file (the description already named memory-shelf.yaml as the entry point).
+- DIA-019 (Major): `skills/book-rag/SKILL.md` (8 refs) + `commands/rag.md` — replaced `~/.config/opencode/scripts/query_rag.py` with `.opencode/scripts/query_rag.py` (repo-relative). The repo's canonical script lives at `.opencode/scripts/query_rag.py`; `~/.config/opencode/scripts/` is a machine-local copy and must not be referenced from the repo. Verified `grep -rn "~/.config/opencode/scripts" .opencode/` → clean.
+- DIA-017 (Minor): `oh-my-opencode-slim.jsonc` ai-specialist prompt — knowledge-source path `~/.config/opencode/oh-my-opencode-slim/knowledge/ai-assist-sources.yaml` → `.opencode/oh-my-opencode-slim/knowledge/ai-assist-sources.yaml` (the global path does not exist; the project file does — verified).
+- DIA-020 (Minor, global OUTSIDE repo): `~/.config/opencode/oh-my-opencode-slim.jsonc` — added `"!openspec-propose"` to orchestrator `skills` in all 3 presets (`opencode-go`, `cebula`, `free`) so global matches project `["*", "!openspec-propose"]`. Backup: `~/.config/opencode/oh-my-opencode-slim.jsonc.bak-20260802`. No other global keys touched.
+- DIA-003 (evaluate → DEFER): skills-lock.json pinning of the 15 project skills — NOT done. Evidence: (1) lock format is remote-github-skill only (`source`/`sourceType: "github"`/`skillPath`/`computedHash`) — local `.opencode/skills/*` don't fit; (2) zero consumers in the vendored fork (`rg skills-lock` in fork source/docs → nothing; fork is REFERENCE-ONLY per REFERENCE-ONLY.md, not the running npm 2.2.8 plugin); (3) local skills are already pinned by git. Ticket stays OPEN for the reconcile lane.
+- DIA-016 (evaluate → intentional): global `~/.config/opencode/dcp.jsonc` left as the sparse `maxContextLimit: "50%"` fallback; project `.opencode/dcp.jsonc` (14 models, max/min limits) is project-scoped and takes precedence inside this repo. Evidence: global file is a generic default for all projects; the 14 model IDs are this repo's lineup; aligning global would leak repo-specific tuning into the user's machine-wide config. Divergence documented, no change.
+- Validation: `make test-config` PASS; `pytest .opencode/scripts/test_query_rag.py .opencode/scripts/test_query_web.py` PASS.
+- Pending user: restart OpenCode — config changes take effect on next start (DIA-001/017/019/020 are loaded at startup).
+
 ## 2026-08-02 — Fix context7 remote MCP registration
 - Change: Fix context7 remote MCP registration (canonical Authorization Bearer header, oauth:false, timeout 15000) in .opencode/opencode.jsonc and tools/opencode-docker/config/opencode.json.
 - Reason: Context7 MCP tools (resolve-library-id / query-docs) not exposed: non-canonical auth header + OAuth auto-detect interference + tight 5s timeout; per ai-specialist research of upstash/context7 server source.
