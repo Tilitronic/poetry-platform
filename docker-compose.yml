@@ -39,6 +39,11 @@ services:
       - pnpm_store:/workspace/node_modules
       - dev_state:/home/dev/.local/share
       - dev_cache:/home/dev/.cache
+    # DEV-ONLY credentials (SEC-DOCKER-003): the `poetry` user/password
+    # fallback is for local development only. Outside dev (CI, staging, prod)
+    # POSTGRES_USER/POSTGRES_PASSWORD/POSTGRES_DB MUST be set explicitly —
+    # never rely on these defaults. There is intentionally no env validation
+    # here: `make up` must keep working for fresh checkouts without a .env.
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER:-poetry}:${POSTGRES_PASSWORD:-poetry}@postgres:5432/${POSTGRES_DB:-poetry}
       - OPENCODE_ENABLE_EXA=1
@@ -67,6 +72,9 @@ services:
     image: postgres:16-alpine
     container_name: poetry-postgres
     restart: unless-stopped
+    # DEV-ONLY credential defaults (SEC-DOCKER-003): weak `poetry` fallback is
+    # acceptable for local development only. Any non-dev deployment must set
+    # POSTGRES_PASSWORD explicitly; treat this default as an active risk marker.
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-poetry}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-poetry}
