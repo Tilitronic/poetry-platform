@@ -22,13 +22,13 @@ The audit is complete when one full pass of all gates succeeds: that is the
 
 ## Status Legend
 
-| Status | Meaning |
-|--------|---------|
-| `OPEN` | Ticket accepted; work not started, or fix in progress. |
-| `FIXED` | Fix implemented and committed; not yet re-verified. |
-| `VERIFIED` | Fix re-verified on a clean run (gate passes; evidence recorded in the ticket's Re-verify section). |
-| `CLOSED` | Verified AND no further action required (may be closed-as-won't-fix / info when explicitly accepted). |
-| `BLOCKED` | Cannot proceed; dependency unmet, environment broken, or decision pending. Note the blocker in the ticket. |
+| Status     | Meaning                                                                                                    |
+| ---------- | ---------------------------------------------------------------------------------------------------------- |
+| `OPEN`     | Ticket accepted; work not started, or fix in progress.                                                     |
+| `FIXED`    | Fix implemented and committed; not yet re-verified.                                                        |
+| `VERIFIED` | Fix re-verified on a clean run (gate passes; evidence recorded in the ticket's Re-verify section).         |
+| `CLOSED`   | Verified AND no further action required (may be closed-as-won't-fix / info when explicitly accepted).      |
+| `BLOCKED`  | Cannot proceed; dependency unmet, environment broken, or decision pending. Note the blocker in the ticket. |
 
 Transitions: `OPEN → FIXED → VERIFIED → CLOSED`. `BLOCKED` is a holding state; a
 blocked ticket must state what unblocks it. A ticket may also go `OPEN → CLOSED`
@@ -49,7 +49,7 @@ Each loop is one complete pass over the campaign:
    existing one). Assign severity per the ticket severity guide.
 3. **Fix lane** — one ticket at a time, smallest first (Minor → Major → Critical →
    Blocker, unless a Blocker/Critical gates the rest).
-4. **Re-verify** — after a fix, re-run the affected gate(s) *and* the full gate set
+4. **Re-verify** — after a fix, re-run the affected gate(s) _and_ the full gate set
    for the affected area. Fill the ticket's Re-verify section with evidence.
 5. **Loop close** — end the loop when all gates pass with **zero open
    Blocker/Critical** tickets. Remaining Minor/Info tickets may stay open but must
@@ -71,12 +71,12 @@ Until both conditions hold, the audit continues looping (inventory → vertical 
 
 ## Campaign Artifacts
 
-| Artifact | Content |
-|----------|---------|
-| `inventory.md` | Authoritative read-only recon output (verbatim). |
-| `tickets/README.md` | Ledger index (ID → title / area / severity / status / file). |
-| `tickets/_TEMPLATE.md` | Ticket template (fields + allowed values). |
-| `tickets/DIA-*.md` | One file per ticket (initial set: DIA-001 … DIA-018). |
+| Artifact               | Content                                                      |
+| ---------------------- | ------------------------------------------------------------ |
+| `inventory.md`         | Authoritative read-only recon output (verbatim).             |
+| `tickets/README.md`    | Ledger index (ID → title / area / severity / status / file). |
+| `tickets/_TEMPLATE.md` | Ticket template (fields + allowed values).                   |
+| `tickets/DIA-*.md`     | One file per ticket (initial set: DIA-001 … DIA-018).        |
 
 ## Severity Guide
 

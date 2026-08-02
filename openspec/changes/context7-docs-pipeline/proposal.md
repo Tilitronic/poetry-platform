@@ -54,13 +54,13 @@ Two operational constraints drive the design:
 
 Every artifact added by this change is independently revertable:
 
-| Artifact | Revert |
-|---|---|
-| `scripts/context7-docs.mjs` | Delete file |
-| `scripts/__tests__/context7-docs.bats` | Delete file |
-| `knowledge/context7-docs/` | Delete directory (gitignored output) |
-| Makefile `context7-docs` target | `git checkout` to prior version |
-| `.gitignore` entry | Remove line |
+| Artifact                               | Revert                               |
+| -------------------------------------- | ------------------------------------ |
+| `scripts/context7-docs.mjs`            | Delete file                          |
+| `scripts/__tests__/context7-docs.bats` | Delete file                          |
+| `knowledge/context7-docs/`             | Delete directory (gitignored output) |
+| Makefile `context7-docs` target        | `git checkout` to prior version      |
+| `.gitignore` entry                     | Remove line                          |
 
 No existing production code is modified. No data migrations. Rollback is file deletion / git checkout, with no side effects on running services.
 
