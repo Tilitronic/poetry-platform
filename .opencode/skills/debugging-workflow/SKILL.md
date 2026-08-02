@@ -25,13 +25,13 @@ Debugging follows a **5-stage multi-agent pipeline**. Each stage produces output
 User Bug Report
   │
   ▼
-Stage 1 — Reproduce & Capture    (@fixer + debugging-workflow skill)
+Stage 1 — Reproduce & Capture    (@coder + debugging-workflow skill)
   │  - Create minimal reproduction
   │  - Capture exact inputs, env, versions
   │  - Add structured logging at key points
   │  - Output: annotated bug note + debug artifacts
   ▼
-Stage 2 — Isolate Root Cause      (@fixer + debugging-workflow skill)
+Stage 2 — Isolate Root Cause      (@coder + debugging-workflow skill)
   │  - Strategic breakpoints at critical junctions
   │  - Binary search on code path
   │  - git bisect for regressions
@@ -47,7 +47,7 @@ Stage 4 — Design Solution          (@architector or council)
   │  - Consider spec compliance
   │  - Output: fix specification
   ▼
-Stage 5 — Implement & Verify      (@fixer)
+Stage 5 — Implement & Verify      (@coder)
   │  - Apply the minimum fix
   │  - Write regression test
   │  - Verify no regressions

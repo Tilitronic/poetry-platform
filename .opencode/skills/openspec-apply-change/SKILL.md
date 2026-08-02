@@ -10,7 +10,24 @@ metadata:
   generatedBy: "1.6.0"
 ---
 
+<!-- LOCAL OVERRIDE — vendored from openspec@1.6.0. Test-first execution per task
+is additionally enforced via openspec/config.yaml → operations.apply.guidance.
+If `openspec update` regenerates this file, re-apply this banner and keep the
+apply discipline notes below in sync with config.yaml. -->
+
 Implement tasks from an OpenSpec change.
+
+**Apply discipline (project rule — read before implementing):**
+- Work each task as a VERTICAL SLICE (tracer bullet). For each task, write the
+  failing test FIRST (invoke the `tdd-craftsman` skill), then the minimum code
+  to pass it. One slice at a time — never batch tests or implementations across
+  tasks.
+- Tests live at the seams listed in design.md. No test is written at an
+  unconfirmed seam.
+- Run typecheck and the affected test file after each task; run the full suite
+  once at the end.
+- Do NOT refactor during RED-GREEN cycles. Refactoring belongs to the @reviewer
+  pass.
 
 **Store selection:** If the user names a store (a store is a standalone OpenSpec repo registered on this machine) or the work lives in one, run `openspec store list --json` to discover registered store ids, then pass `--store <id>` on the commands that read or write specs and changes (`new change`, `status`, `instructions`, `list`, `show`, `validate`, `archive`, `doctor`, `context`). Other commands do not take the flag. Hints printed by commands already carry the flag; keep it on follow-ups. Without a store, commands act on the nearest local `openspec/` root.
 

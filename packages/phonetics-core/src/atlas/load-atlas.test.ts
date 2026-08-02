@@ -41,15 +41,37 @@ const EXPECTED_SOURCE = 'Panphon';
 // Well-known base phonemes that MUST exist in the atlas.
 // Uses actual IPA symbols from the Panphon dataset (e.g. "ɡ" not "g").
 const WELL_KNOWN_PHONEMES = [
-  'a', 'b', 'd', 'e', 'f', 'ɡ', 'h', 'i', 'j', 'k', 'l', 'm',
-  'n', 'o', 'p', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z',
+  'a',
+  'b',
+  'd',
+  'e',
+  'f',
+  'ɡ',
+  'h',
+  'i',
+  'j',
+  'k',
+  'l',
+  'm',
+  'n',
+  'o',
+  'p',
+  'r',
+  's',
+  't',
+  'u',
+  'v',
+  'w',
+  'x',
+  'y',
+  'z',
 ];
 
 // Well-known derived/complex phonemes.
 // These use NFC form (precomposed) because the atlas stores NFC.
 // Querying in NFD also works thanks to NFC normalization in get().
 const WELL_KNOWN_DERIVED = [
-  '\u00e4',  // ä (a with diaeresis, NFC — was 'a\\u0308' NFD before C1 fix)
+  '\u00e4', // ä (a with diaeresis, NFC — was 'a\\u0308' NFD before C1 fix)
   'p\u02b0', // p with aspiration (U+02B0 is modifier letter, no NFC/NFD diff)
   't\u0361s', // t-s affricate tie bar
 ];
@@ -277,20 +299,17 @@ describe('PhoneticAtlasIndex — content hash integrity', () => {
 describe('PhoneticAtlasIndex — property-based invariants', () => {
   it('every phoneme feature vector has exactly 24 fields (struct size)', () => {
     fc.assert(
-      fc.property(
-        fc.integer({ min: 0, max: atlas.size - 1 }),
-        (index) => {
-          const p = atlas.at(index);
-          expect(p).not.toBeNull();
-          // Feature vector struct is 24 bytes. We verify this by checking
-          // the last field at offset 23 is accessible.
-          const fv = p!.features;
-          // If hireg() at byte offset 23 is readable, the struct is intact
-          expect(typeof fv.hireg()).toBe('number');
-          expect(fv.hireg()).toBeGreaterThanOrEqual(0);
-          expect(fv.hireg()).toBeLessThanOrEqual(2);
-        },
-      ),
+      fc.property(fc.integer({ min: 0, max: atlas.size - 1 }), (index) => {
+        const p = atlas.at(index);
+        expect(p).not.toBeNull();
+        // Feature vector struct is 24 bytes. We verify this by checking
+        // the last field at offset 23 is accessible.
+        const fv = p!.features;
+        // If hireg() at byte offset 23 is readable, the struct is intact
+        expect(typeof fv.hireg()).toBe('number');
+        expect(fv.hireg()).toBeGreaterThanOrEqual(0);
+        expect(fv.hireg()).toBeLessThanOrEqual(2);
+      }),
     );
   });
 
@@ -299,7 +318,12 @@ describe('PhoneticAtlasIndex — property-based invariants', () => {
       fc.property(
         fc.integer({ min: 0, max: atlas.size - 1 }),
         fc.constantFrom<'syl' | 'voi' | 'cons' | 'son' | 'nas' | 'lab'>(
-          'syl', 'voi', 'cons', 'son', 'nas', 'lab',
+          'syl',
+          'voi',
+          'cons',
+          'son',
+          'nas',
+          'lab',
         ),
         (index: number, field: string) => {
           const p = atlas.at(index);
@@ -315,24 +339,21 @@ describe('PhoneticAtlasIndex — property-based invariants', () => {
 
   it('ipa lookup is idempotent', () => {
     fc.assert(
-      fc.property(
-        fc.integer({ min: 0, max: atlas.size - 1 }),
-        (index) => {
-          const p = atlas.at(index);
-          expect(p).not.toBeNull();
-          const ipa = p!.ipa;
+      fc.property(fc.integer({ min: 0, max: atlas.size - 1 }), (index) => {
+        const p = atlas.at(index);
+        expect(p).not.toBeNull();
+        const ipa = p!.ipa;
 
-          // Lookup by the same IPA string twice
-          const p1 = atlas.get(ipa);
-          const p2 = atlas.get(ipa);
-          expect(p1).not.toBeNull();
-          expect(p2).not.toBeNull();
+        // Lookup by the same IPA string twice
+        const p1 = atlas.get(ipa);
+        const p2 = atlas.get(ipa);
+        expect(p1).not.toBeNull();
+        expect(p2).not.toBeNull();
 
-          // Should return the same entry (same features)
-          expect(p1!.features.syl()).toBe(p2!.features.syl());
-          expect(p1!.features.cons()).toBe(p2!.features.cons());
-        },
-      ),
+        // Should return the same entry (same features)
+        expect(p1!.features.syl()).toBe(p2!.features.syl());
+        expect(p1!.features.cons()).toBe(p2!.features.cons());
+      }),
     );
   });
 });

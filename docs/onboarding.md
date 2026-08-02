@@ -43,6 +43,7 @@ pnpm --filter @poetry/editor-engine test  # test a specific package
 ```
 
 **OpenCode** is our AI coding assistant. Start it with:
+
 ```bash
 opencode
 ```
@@ -91,12 +92,12 @@ We built a **layered AI workflow** that ensures code quality, maintainability, a
 
 These are the **foundation**. They tell the AI who it is and how to behave.
 
-| File | Purpose | Who reads it |
-|---|---|---|
-| `opencode.jsonc` | Control panel — agents, tools, MCP servers, commands | The AI |
-| `AGENTS.md` | Company handbook — rules, workflow, values | The AI |
-| `architecture.md` | System design — data flow, component boundaries | Everyone |
-| `turbo.json` | Build pipeline — dependency ordering | The AI + CI |
+| File              | Purpose                                              | Who reads it |
+| ----------------- | ---------------------------------------------------- | ------------ |
+| `opencode.jsonc`  | Control panel — agents, tools, MCP servers, commands | The AI       |
+| `AGENTS.md`       | Company handbook — rules, workflow, values           | The AI       |
+| `architecture.md` | System design — data flow, component boundaries      | Everyone     |
+| `turbo.json`      | Build pipeline — dependency ordering                 | The AI + CI  |
 
 **Key principle:** `opencode.jsonc` and `AGENTS.md` are the AI's operating instructions. `architecture.md` is its design reference.
 
@@ -136,11 +137,11 @@ We have **6 agents**, each with a different job and different permissions:
 
 Skills are like **cookbook recipes** the AI follows to the letter.
 
-| Skill | Location | What it does |
-|---|---|---|
-| `tdd-craftsman` | Global (`~/.config/opencode/skills/`) | Full RED → GREEN → REFACTOR cycle with scientific verification |
-| `test-architect` | Global | AAA test design patterns for writing great tests |
-| `feature-interviewer` | Project (`.opencode/skills/`) | 3-phase structured interview before building new features |
+| Skill                 | Location                              | What it does                                                   |
+| --------------------- | ------------------------------------- | -------------------------------------------------------------- |
+| `tdd-craftsman`       | Global (`~/.config/opencode/skills/`) | Full RED → GREEN → REFACTOR cycle with scientific verification |
+| `test-architect`      | Global                                | AAA test design patterns for writing great tests               |
+| `feature-interviewer` | Project (`.opencode/skills/`)         | 3-phase structured interview before building new features      |
 
 **Why skills instead of just telling the AI?** The AI can "forget" a step or take shortcuts. Skills are structured documents it must follow — they make the workflow repeatable and auditable.
 
@@ -156,6 +157,7 @@ Turbo ensures the **build order** is correct — tests never run on stale builds
 ### Layer 4: Commands & MCP (Speed Layer)
 
 **Custom commands** (press Ctrl+K):
+
 ```
 /tdd-cycle <feature>      # Full interview + TDD in one command
 /test-package <name>      # Run tests for a specific package
@@ -164,6 +166,7 @@ Turbo ensures the **build order** is correct — tests never run on stale builds
 ```
 
 **MCP servers** (live AI tool access):
+
 ```
 context7   → The AI searches library docs in real-time
 gh_grep    → The AI searches GitHub for code patterns
@@ -176,6 +179,7 @@ These give the AI **live access to current information** — its training data i
 This is the **most important layer**. It's documented in `AGENTS.md` §0c.
 
 **The rules:**
+
 1. Every module has one clear owner
 2. Every public API has JSDoc explaining **why** (not what)
 3. No tests = unowned code — don't commit it
@@ -183,7 +187,7 @@ This is the **most important layer**. It's documented in `AGENTS.md` §0c.
 5. Architecture > cleverness
 6. Every change gets a `@review` pass before commit
 
-**The motto:** *"Write code that your future self can debug at 2 AM six months from now, after you've forgotten everything about this feature."*
+**The motto:** _"Write code that your future self can debug at 2 AM six months from now, after you've forgotten everything about this feature."_
 
 ---
 
@@ -251,40 +255,40 @@ YOU: "Add heteronym resolution to the editor"
 
 ### Package Status
 
-| Package | What it does | Tests |
-|---|---|---|
-| `editor-engine` | CodeMirror 6 editor + Signia state + orchestrator | ✅ 91 tests |
-| `data-contracts` | JSON Schema shared across all packages | 🔲 Not yet |
-| `stress-lang-core` | W1 worker: lang detection + WASM stress | 🔲 Not yet |
-| `phonetics-core` | W2 worker: IPA + metrics + ring buffer | 🔲 Not yet |
-| `visualizer-2d` | D3 SVG (interactive + SSR template) | 🔲 Not yet |
-| `visualizer-3d` | TresJS/Three.js (lazy dynamic import) | 🔲 Not yet |
-| `analytics-pipeline` | Python: offline analytics (NumPy, asyncpg) | 🔲 Not yet |
-| `author-studio` | Quasar 2 + Vue 3 SPA (main editor app) | 🔲 Not yet |
-| `publishing-platform` | Nuxt 3 SSR (public reader — stub) | 🔲 Not yet |
-| `api-server` | FastAPI (Python — not yet created) | 🔲 Not yet |
+| Package               | What it does                                      | Tests       |
+| --------------------- | ------------------------------------------------- | ----------- |
+| `editor-engine`       | CodeMirror 6 editor + Signia state + orchestrator | ✅ 91 tests |
+| `data-contracts`      | JSON Schema shared across all packages            | 🔲 Not yet  |
+| `stress-lang-core`    | W1 worker: lang detection + WASM stress           | 🔲 Not yet  |
+| `phonetics-core`      | W2 worker: IPA + metrics + ring buffer            | 🔲 Not yet  |
+| `visualizer-2d`       | D3 SVG (interactive + SSR template)               | 🔲 Not yet  |
+| `visualizer-3d`       | TresJS/Three.js (lazy dynamic import)             | 🔲 Not yet  |
+| `analytics-pipeline`  | Python: offline analytics (NumPy, asyncpg)        | 🔲 Not yet  |
+| `author-studio`       | Quasar 2 + Vue 3 SPA (main editor app)            | 🔲 Not yet  |
+| `publishing-platform` | Nuxt 3 SSR (public reader — stub)                 | 🔲 Not yet  |
+| `api-server`          | FastAPI (Python — not yet created)                | 🔲 Not yet  |
 
 ### Root Commands
 
-| Command | What it does |
-|---|---|
-| `pnpm dev` | Start all apps in dev mode |
-| `pnpm build` | Build everything |
-| `pnpm test` | Run all tests (via turbo) |
-| `pnpm lint` | Lint all code |
-| `pnpm typecheck` | TypeScript type checking |
-| `pnpm format` | Prettier formatting |
-| `opencode` | Start AI assistant |
-| `opencode agent create` | Create a new AI agent |
+| Command                 | What it does               |
+| ----------------------- | -------------------------- |
+| `pnpm dev`              | Start all apps in dev mode |
+| `pnpm build`            | Build everything           |
+| `pnpm test`             | Run all tests (via turbo)  |
+| `pnpm lint`             | Lint all code              |
+| `pnpm typecheck`        | TypeScript type checking   |
+| `pnpm format`           | Prettier formatting        |
+| `opencode`              | Start AI assistant         |
+| `opencode agent create` | Create a new AI agent      |
 
 ### OpenCode Custom Commands (Ctrl+K)
 
-| Command | When to use |
-|---|---|
-| `/tdd-cycle <feature>` | You want to build something new with full discipline |
-| `/test-package <name>` | You want to check if a package's tests pass |
-| `/arch-check <path>` | You want to verify code follows our architecture rules |
-| `/code-ownership <path>` | You want to evaluate code quality and maintainability |
+| Command                  | When to use                                            |
+| ------------------------ | ------------------------------------------------------ |
+| `/tdd-cycle <feature>`   | You want to build something new with full discipline   |
+| `/test-package <name>`   | You want to check if a package's tests pass            |
+| `/arch-check <path>`     | You want to verify code follows our architecture rules |
+| `/code-ownership <path>` | You want to evaluate code quality and maintainability  |
 
 ---
 
@@ -330,4 +334,4 @@ poetry-platform-monorepo/
 
 ---
 
-*Last updated: June 2026*
+_Last updated: June 2026_

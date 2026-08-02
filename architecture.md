@@ -1,5 +1,9 @@
 # Architecture
 
+> **CONTEXT.md role:** This file serves as the project's CONTEXT.md — the domain
+> vocabulary, ADRs, and seam map. Test names and interface design should use the
+> vocabulary defined here; test at the seams (public boundaries) described by it.
+
 ```
 flowchart TB
     A>Raw Poem Input] --> ED
@@ -916,6 +920,7 @@ that knows the byte offsets. This code is produced once by the `flatc`
 compiler from the `.fbs` schema — separately for each target language.
 
 **One schema for all languages:**
+
 ```
 phonetic_atlas.fbs  (IDL — Interface Definition Language)
 ```
@@ -935,6 +940,7 @@ flatc --cpp    → dist/cpp/phonetic_atlas_generated.h   (header-only)
 > `extern "C"` functions — the struct layout is identical.
 
 Each generated file contains:
+
 - A class/struct for every `table` and `struct` in the schema
 - Accessor methods like `.voi()`, `.Ipa()`, `.Phonemes(i)` — which
   internally execute `readUint8(bb_pos + N)` — a single arithmetic

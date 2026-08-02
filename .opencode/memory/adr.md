@@ -74,3 +74,56 @@ We are at Level 0. Level 4 is for a different problem.
 - **Created**: 2026-07-20
 - **Supersedes**: N/A (first memory storage ADR)
 - **Related**: memory-shelf.yaml, .opencode/agents/memory-manager.md
+
+## ADR: Dev-infra orchestration boundary — turbo vs host Docker
+
+### Status
+
+Accepted — 2026-08-01
+
+### Context
+
+During a recent change we added dev-infrastructure helper scripts (dev-stack.sh, Makefile targets, test harnesses) and formalised workflow rules about who may implement dev-infra changes. A recurring confusion surfaced: where should orchestration live when using turbo (task runner) together with docker-compose and other host-level tooling?
+
+Turbo (task runner) executes inside project containers and cannot control host-level services such as Docker daemon, host network, or starting sibling processes (docker-compose). Attempts to have turbo "bring up" Docker or manage host containers result in layering and permission problems.
+
+### Decision
+
+Place host-level orchestration (docker-compose up, starting DBs, Xvfb display setup, health-check wrappers) in host-side scripts (scripts/dev-stack.sh and similar). Keep turbo tasks inside the dev container focused on build/test steps that run within that container. Use thin host-side wrappers to manage host resources; do not rely on turbo to perform host orchestration.
+
+### Rationale
+
+- Separation of concerns: turbo manages in-container tasks; host scripts manage the host environment and services.
+- Practical constraints: turbo lacks privileges and visibility to start host Docker; wrappers avoid permission/namespace complexity.
+- Test hermeticity: host wrappers allow setting up isolated user namespaces, tmpfs mounts, and mock binaries for fast, safe CI/local runs.
+
+### Consequences
+
+- Keep dev orchestration scripts under scripts/ and document their role in the dev workflow. Do not attempt to replicate host orchestration inside turbo tasks.
+- Tests that require host resources should be exercised via host-side targets (Makefile test-shell / test-infra) which call the orchestration wrappers.
+
+## ADR: Context7 docs pipeline — verification & error semantics
+
+### Status
+
+Accepted — 2026-08-02
+
+### Context
+
+The context7-docs-pipeline fetches library docs from Context7 (context7.com/api/v2) for monorepo workspace package.json deps and writes markdown under knowledge/context7-docs/. Mock mode supports offline and CI tests; real API runs are required to catch URL/auth and redirect semantics.
+
+### Decision
+
+1. Use https://context7.com/api as the canonical base (api.context7.com is dead as of 2026-08-02).
+2. Treat 301 responses with a JSON body containing redirectUrl as an application-level redirect; if redirectUrl absent or not resolvable, record the library as "skipped" (not failed). If redirect loops exceed depth cap, mark as "failed".
+3. Add a mandatory real-API smoke run (gated by CONTEXT7_API_KEY_REAL_RUN env) in verification before merging network-touching dev-infra changes.
+
+### Rationale
+
+- DNS/host state is external to the repo and can change over time; recording the canonical base avoids regressions.
+- Mock-mode tests can't catch URL composition or server auth header mismatches; a single real-API smoke reduces regressions while keeping CI hermetic by gating behind opt-in env.
+
+### Consequences
+
+- Verification must include at least one real API run when adding or changing networked dev-infra scripts.
+- The pipeline's error semantics (skipped vs failed) are preserved and should be consulted when interpreting run reports.

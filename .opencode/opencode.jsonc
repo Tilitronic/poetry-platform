@@ -1,17 +1,18 @@
 {
   "$schema": "https://opencode.ai/config.json",
+
   // ---------------------------------------------------------------------------
   // Project-level opencode config for poetry-platform-monorepo.
   // Duplicated from global config for team sharing — each evolves independently.
   // All files in .opencode/ and prompts/ are version-controlled for team sharing.
   // ---------------------------------------------------------------------------
 
-  // Instructions loaded only via boss_append.md — no global spam.
+  // Instructions loaded via orchestrator_append.md — no global spam.
 
   "instructions": [],
 
-  // Start every session in boss agent mode (OMO Slim orchestrator).
-  "default_agent": "boss",
+  // Start every session in orchestrator agent mode (OMO Slim orchestrator).
+  "default_agent": "orchestrator",
 
   // Prevent context overflow during long sessions.
   "compaction": {
@@ -24,8 +25,22 @@
   "permission": {
     "edit": "allow",
     "bash": {
-      "git push": "ask",
+      "sudo *": "deny",
+      "git push *": "deny",
+      "git remote set-url *": "deny",
+      "git remote add *": "deny",
+      "git remote remove *": "deny",
+      "git remote prune *": "deny",
+      "git remote rename *": "deny",
+      "git reset --hard*": "ask",
+      "git clean -f*": "ask",
+      "git checkout -- .": "ask",
+      "git restore .": "ask",
       "rm -rf *": "ask",
+      "rm *": "ask",
+      "rmdir *": "ask",
+      "chmod *": "ask",
+      "chown *": "ask",
       "*": "allow"
     }
   },
@@ -44,28 +59,123 @@
     "general": {
       "disable": true
     },
+    // Agent modes/colors + permissions (merged from the old opencode.json)
+    // The orchestrator is the plugin's real delegating agent (oh-my-opencode-slim@2.2.8
+    // registers it as `orchestrator`). It must NEVER perform engineering work itself:
+    // edit/write/bash are denied so delegation is mechanically enforced. Only
+    // orchestration tools remain. Verification results come FROM specialists; this
+    // agent only reviews them, communicates to the user, or restarts a cycle.
+    "orchestrator": {
+      "color": "#6366F1",
+      "permission": {
+        "edit": "deny",
+        "write": "deny",
+        "apply_patch": "deny",
+        "ast_grep_replace": "deny",
+        "bash": "deny",
+        "envsitter_set": "deny",
+        "envsitter_add": "deny",
+        "envsitter_delete": "deny",
+        "envsitter_unset": "deny",
+        "envsitter_annotate": "deny",
+        "envsitter_format": "deny",
+        "envsitter_reorder": "deny",
+        "envsitter_copy": "deny",
+        "webfetch": "deny",
+        "task": "allow",
+        "cancel_task": "allow",
+        "read": "allow",
+        "glob": "allow",
+        "grep": "allow",
+        "list": "allow",
+        "lsp": "allow",
+        "question": "allow",
+        "wait_for_user": "allow",
+        "todowrite": "allow",
+        "skill": "allow",
+        "websearch": "allow"
+      }
+    },
+    "architector": {
+      "color": "#8B5CF6",
+      "permission": {
+        "edit": "deny",
+        "bash": "deny",
+        "task": "deny"
+      }
+    },
+    "analyzer": {
+      "mode": "subagent",
+      "color": "#14B8A6",
+      "permission": {
+        "edit": "deny",
+        "bash": "deny",
+        "task": "deny"
+      }
+    },
+    "reviewer": {
+      "color": "#F59E0B",
+      "permission": {
+        "edit": "deny",
+        "bash": "deny",
+        "task": "deny"
+      }
+    },
+    // coder deliberately has NO permission restrictions (unlike architector/analyzer/
+    // reviewer). It is the implementer: it must edit files, run bash (dev build, lint,
+    // tests) and dispatch subagents. Denying any of these breaks its core function.
+    // M2 decision (2026-08-01): document intent instead of restricting.
+    "coder": {
+      "mode": "subagent",
+      "color": "#3B82F6"
+    },
+    "code-navigator": {
+      "mode": "subagent",
+      "color": "#06B6D4"
+    },
+    "researcher": {
+      "mode": "subagent",
+      "color": "#84CC16"
+    },
+    "designer": {
+      "mode": "subagent",
+      "color": "#EC4899"
+    },
+    "observer": {
+      "mode": "subagent",
+      "color": "#A855F7"
+    },
+    "explorer": {
+      "mode": "subagent",
+      "color": "#10B981"
+    },
+    "memory-manager": {
+      "mode": "subagent",
+      "color": "#F472B6"
+    },
     // Council subagents — read-only
     "council": {
       "permission": {
-      "edit": "deny",
+        "edit": "deny",
         "bash": {
           "*": "deny"
         }
       }
     },
-    "ai-assist-specialist": {
-    "description": "Researches agent/skill/config best practices for OpenCode itself. Read-only.",
-    "mode": "primary",
-    "model": "opencode-go/qwen3.7-plus",
-    "temperature": 0.3,
-    "color": "info",
-    "permission": {
-      "edit": "allow",
-      "bash": {
-        "curl": "allow",
-        "wget": "allow",
-        "*": "deny"
-        }
+    "ai-specialist": {
+      "description": "Researches agent/skill/config best practices for OpenCode itself. Read-only — findings routed through orchestrator for persistence.",
+      "mode": "subagent",
+      "model": "opencode-go/qwen3.7-plus",
+      "temperature": 0.3,
+      "color": "info",
+      "permission": {
+        "edit": "deny",
+        "bash": {
+          "curl": "allow",
+          "wget": "allow",
+          "*": "deny"
+        },
+        "task": "deny"
       }
     }
   },
@@ -106,39 +216,6 @@
           ]
         }
       }
-    },
-    "github-models": {
-      "npm": "@ai-sdk/openai-compatible",
-      "name": "GitHub Models (Copilot Pro)",
-      "options": {
-        "baseURL": "https://models.inference.ai.azure.com",
-        "apiKey": "{env:GITHUB_TOKEN}"
-      },
-      "models": {
-        "gpt-4o-mini": {
-          "name": "GPT-4o Mini — fast pragmatic work",
-          "roles": [
-            "chat",
-            "edit",
-            "apply"
-          ]
-        },
-        "gemini-2.5-pro-001-05": {
-          "name": "Gemini 2.5 Pro — Google's strongest reasoning",
-          "roles": [
-            "chat",
-            "edit"
-          ]
-        },
-        "gemini-3.0-flash-001": {
-          "name": "Gemini 3.0 Flash — Google's latest fast model",
-          "roles": [
-            "chat",
-            "edit",
-            "apply"
-          ]
-        }
-      }
     }
   },
 
@@ -157,11 +234,9 @@
   // ---------------------------------------------------------------------------
   "plugin": [
     "envsitter-guard@0.0.4",
-    "github:raisbecka/opencode-subagent-output",
-    "@yelling_mimic/opencode-snip@1.0.0",
     "@tarquinen/opencode-dcp@3.1.14",
     "opencode-telemetry@0.1.19",
-    "file:///workspace/.opencode/oh-my-opencode-slim"
+    "oh-my-opencode-slim@2.2.8"
   ],
 
   // ---------------------------------------------------------------------------
@@ -183,8 +258,10 @@
     "context7": {
       "type": "remote",
       "url": "https://mcp.context7.com/mcp",
+      "oauth": false,
+      "timeout": 15000,
       "headers": {
-        "CONTEXT7_API_KEY": "{env:CONTEXT7_API_KEY}"
+        "Authorization": "Bearer {env:CONTEXT7_API_KEY}"
       },
       "enabled": true,
       "description": "Search library documentation (Node.js, Python, NumPy, etc.)"
@@ -202,24 +279,24 @@
   // ---------------------------------------------------------------------------
   "command": {
     "tdd-cycle": {
-      "template": "Execute a full TDD cycle for $ARGUMENTS:\n1. Invoke 'feature-interviewer' skill to gather specifications\n2. RED: write failing test (invoke 'tdd-craftsman' skill)\n3. GREEN: implement minimum code to pass\n4. REFACTOR: optimize for hot-path performance + clarity\n5. Run verification gates: vitest run && tsc --noEmit && eslint .",
-      "description": "Full feature TDD cycle with pre-build interview (e.g. /tdd-cycle implement stress detection for Ukrainian)",
-      "agent": "build"
+      "template": "Execute a full TDD cycle for $ARGUMENTS:\n1. If a spec is not yet captured, dispatch @openspec-plan for interview-first spec authoring (Socratic interview → artifact synthesis → openspec validate). Do NOT invoke the openspec-propose skill directly.\n2. For each task (a vertical slice): RED — write a failing test at a pre-agreed seam (invoke tdd-craftsman)\n3. GREEN — implement the minimum code to pass that one test, one slice at a time\n4. Run verification gates after each task: turbo run typecheck lint test --filter=<affected package>\n5. When all slices are green, dispatch @reviewer for the two-axis review (Standards + Spec)",
+      "description": "Full feature TDD cycle — spec → vertical-slice test-first implementation → two-axis review (e.g. /tdd-cycle implement stress detection for Ukrainian)",
+      "agent": "coder"
     },
     "test-package": {
-      "template": "Run the full test suite for @poetry/$ARGUMENTS with vitest run --reporter=verbose. If any tests fail, analyze the errors and suggest fixes.",
-      "description": "Run tests with verbose output for a specific package (e.g. /test-package editor-engine)",
-      "agent": "build"
+      "template": "Run the test suite for @poetry/$ARGUMENTS with turbo run test --filter=@poetry/$ARGUMENTS. If any tests fail, analyze the errors and suggest fixes.",
+      "description": "Run tests for a specific package (e.g. /test-package editor-engine)",
+      "agent": "coder"
     },
     "arch-check": {
       "template": "Review the architecture of the code at $ARGUMENTS against architecture.md and SOLID principles. Check for: single responsibility violations, missing DI, state mutation outside Orchestrator, worker boundary leaks, OCC version check omissions. Report any violations with specific line references.",
       "description": "Audit code against architectural standards (e.g. /arch-check packages/editor-engine/src)",
-      "agent": "plan"
+      "agent": "architector"
     },
     "code-ownership": {
       "template": "Analyze the code at $ARGUMENTS for maintainability and ownership:\n1. Are public APIs documented with JSDoc explaining WHY?\n2. Are modules single-responsibility?\n3. Is there dead code or speculative generality?\n4. Are tests present and meaningful?\n5. Are there architectural pattern violations?\nProduce a maintainability score (1-10) and specific improvement recommendations.",
       "description": "Evaluate code ownership quality and maintainability (e.g. /code-ownership packages/phonetics-core)",
-      "agent": "plan"
+      "agent": "architector"
     }
   }
 }

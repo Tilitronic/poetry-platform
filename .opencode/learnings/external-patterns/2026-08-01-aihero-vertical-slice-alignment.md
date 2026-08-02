@@ -1,0 +1,24 @@
+# AIHero Vertical-Slice TDD Alignment
+
+- **date**: 2026-08-01
+- **source**: orchestrator + @ai_specialist research (mattpocock/skills engineering chain: to-spec, to-tickets, implement, tdd, code-review, codebase-design)
+- **finding**: The project's feature workflow had 4 critical gaps vs AIHero's vertical-slice TDD model: (1) openspec tasks.md was a flat checklist with no vertical-slice/blocking-edge semantics; (2) the implementation path (openspec-apply-change) did not mandate test-first execution; (3) the "seam" concept was entirely absent from spec/design/test flow; (4) @reviewer had no Spec-fidelity axis or Fowler smell baseline. Plus dangling skill references and a broken /tdd-cycle command.
+- **applied**:
+  - Installed `@fission-ai/openspec@1.7.0` (was "Not installed" in CONTAINER-SETUP.md).
+  - `openspec/config.yaml`: fixed a YAML bug that silently ignored ALL `rules.design` (an item `- Before writing: ...` parsed as a map, not a string — doctor warning). Added Testing Decisions (proposal), Seams (design), seam-reference (specs), vertical-slice + blocking-edge + expand–contract tasks rules, and `operations.apply.guidance` (test-first, one slice at a time, seams, no refactor in loop).
+  - `tdd-craftsman` (global + OMO bundle synced): added §0.0 stack detection, §0 tracer-bullet-first, §0 seam confirmation, §0 no-tautology rule; removed §3 REFACTOR phase (refactoring deferred to @reviewer — model-diversity rationale).
+  - @reviewer orchestratorPrompt rewritten for two-axis review (Standards incl. Fowler smell baseline | Spec fidelity, never merged).
+  - @openspec-plan orchestratorPrompt rewritten to the CLI-backed `openspec/changes/` layout (was conflicting `features/<name>/` layout).
+  - Removed dangling skill refs from all 3 OMO presets: `ponytail`, `ponytail-review` (no source anywhere), `grill-with-docs`/`feature-interviewer` (bundled but not loaded; feature-interviewer consolidated into openspec-plan).
+  - Fixed `/tdd-cycle` and `/test-package` commands (agent `build`→`coder`, vitest-at-root→turbo, removed ghost-skill).
+  - AGENTS.md (project + global): §4/§5 now route feature work openspec-plan → coder(tdd-craftsman) → reviewer.
+  - LOCAL OVERRIDE banners on vendored openspec-*.SKILL.md; CONTEXT.md note added to architecture.md.
+- **status**: confirmed (needs OpenCode restart to take effect)
+- **outcome (2026-08-01, validation pass 2 @ai-specialist)**: AIHero audit found 3 blockers + 2 majors, all fixed and re-audited to 0 findings:
+  - B1: fictional `.openspec/` path removed from living docs (`.sdd/README.md`, `.opencode/agents/memory-manager.md`, `docs/workflow-loop.md`, `FORK-MODIFICATIONS.md`) — real path is `openspec/`.
+  - B2: global AGENTS.md Design Authority list dropped the fictional `.openspec/` entry.
+  - B3: `boss_append.md` dispatch table `web_scout` → `researcher`.
+  - M1: global coder prompts (cebula + opencode-go presets) `check .openspec/` → `openspec/`.
+  - M2: global `agents.reviewer.orchestratorPrompt` rewritten to the two-axis version (was one-axis SOLID-only); architector orchestratorPrompt restored after a bad sed target. Global `oh-my-opencode-slim.jsonc` re-verified parses.
+  - Verified end-to-end CLI injection: `openspec instructions {proposal,design,tasks,specs,apply} --json` all carry the AIHero concepts (Testing Decisions, Seams, vertical-slice/blocking-edge/context-window/expand-contract, seam-reference, "Do NOT refactor during RED-GREEN"). 59 audit checks + 5 injection checks green.
+- **lesson**: `.openspec/` (dot-prefixed) does not exist — OpenSpec root is `openspec/`. The reviewer's operative system prompt is the `reviewer.md` prompt file (project dir wins over global), NOT the `orchestratorPrompt` routing hint — both must carry the two-axis content.

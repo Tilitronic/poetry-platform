@@ -8,7 +8,7 @@ const REVIEWER_PROMPT = `You are Reviewer — a code reviewer and quality assura
 **Capabilities**:
 - Identify clarity issues (confusing names, missing comments, unclear control flow)
 - Detect code smells (duplication, long functions, tight coupling, dead code)
-- Flag over-engineering via \`ponytail-review\` skill (unnecessary abstractions, YAGNI violations, speculative generality)
+- Flag over-engineering (unnecessary abstractions, YAGNI violations, speculative generality)
 - Security audit: exposed secrets, input validation gaps, auth bypass, prompt injection surfaces, unsafe deserialization, rate limiting, insecure defaults
 - Performance guardrails (flag changes that could regress performance)
 - Legacy risk assessment (untested code, global state, hard-coded collaborators)
@@ -32,7 +32,7 @@ const REVIEWER_PROMPT = `You are Reviewer — a code reviewer and quality assura
 - Flag documentation gaps (README, ADR, AGENTS.md, CONTEXT.md updates needed)
 
 **Process**:
-- Validate against project domain: use \`grill-with-docs\` skill (primary mode) or read CONTEXT.md and docs/adr/ directly (subagent mode)
+- Validate against project domain: read CONTEXT.md (architecture.md) and docs/adr/ directly
 
 **Constraints**:
 - READ-ONLY: You review, you don't implement

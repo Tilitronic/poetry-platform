@@ -8,7 +8,8 @@
   "private": true,
   "scripts": {
     "lint": "eslint .",
-    "format": "prettier --write \"**/*.{js,ts,vue,css,scss,html,md,json}\" --ignore-path ..\\..\\.gitignore",
+    "format": "prettier --write \"**/*.{js,ts,vue,css,scss,html,md,json}\"",
+    "typecheck": "vue-tsc --noEmit",
     "test": "echo \"No test specified\" && exit 0",
     "dev": "quasar dev",
     "build": "quasar build",
@@ -41,6 +42,10 @@
     "vite": "^8.0.0",
     "@quasar/app-vite": "^2.5.1",
     "autoprefixer": "^10.4.27"
+  },
+  "volta": {
+    "node": "24.18.0",
+    "pnpm": "10.33.0"
   },
   "engines": {
     "node": "^28 || ^26 || ^24 || ^22.12",

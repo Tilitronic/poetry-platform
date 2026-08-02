@@ -40,6 +40,8 @@ const AGENT_DESCRIPTIONS: Record<string, string> = {
 - Role: Authoritative source for current library docs, API references, examples, bug investigations, and web retrieval
 - Permissions: read_files
 - **Delegate when:** Libraries with frequent API changes (React, Next.js, AI SDKs) • Complex APIs needing official examples (ORMs, auth) • Version-specific behavior matters • Unfamiliar library • Edge cases or advanced features • Nuanced best practices • Working on fixing tricky bug or problem and need latest web research information
+- **Standalone:** user explicitly asks for research — dispatch @researcher directly (this is a valid standalone lane)
+- **Phased:** research needs discovered during @openspec-plan interview/spec — dispatch @researcher inline and feed results back to @openspec-plan
 - **Don't delegate when:** Standard usage you're confident • Simple stable APIs • General programming knowledge • Info already in conversation • Built-in language features
 - **Rule of thumb:** "How does this library work?" → @researcher. "How does programming work?" → answer directly. How does others solve or workaround this tricky issue?" → @researcher.`,
 
@@ -52,13 +54,12 @@ const AGENT_DESCRIPTIONS: Record<string, string> = {
 - **Rule of thumb:** Need system design or architecture review? → @architector. Need code review? → @reviewer.`,
 
   reviewer: `@reviewer
-- Lane: Code review, quality assurance, and simplification
-- Role: Code reviewer for bugs, security issues, code smells, and over-engineering
+- Lane: Two-axis code review — Standards and Spec fidelity, reported separately, never merged
+- Role: Reviews the diff since a fixed point along two independent axes: Standards (repo coding standards + Fowler smell baseline) and Spec (faithful implementation of the originating OpenSpec change)
 - Permissions: read_files
-- Tools/Constraints: Uses ponytail-review (1st, code-level) → reflect (2nd, process-level). ponytail-audit only for explicit whole-repo audit requests.
-- **Delegate when:** Code needs review for bugs or security • Code smells or unnecessary complexity suspected • Problems persisting after 2+ fix attempts • Code needs simplification or YAGNI scrutiny
+- **Delegate when:** Code needs review for bugs or security • Code smells or unnecessary complexity suspected • Problems persisting after 2+ fix attempts • Spec fidelity needs checking against the originating OpenSpec change • Code needs simplification or YAGNI scrutiny
 - **Don't delegate when:** Routine decisions you're confident about • First bug fix attempt • Quick research/testing can answer
-- **Rule of thumb:** Need code review or simplification? → @reviewer. Need architecture design? → @architector.`,
+- **Rule of thumb:** Need code review or spec-fidelity check? → @reviewer. Need architecture design? → @architector.`,
 
   designer: `@designer
 - Lane: UI/UX design, related edits, design polish and review
@@ -169,24 +170,40 @@ ${enabledAgents}
 ## 1. Understand
 Parse request: explicit requirements + implicit needs.
 
-## 2. Path Selection
-Evaluate approach by: quality, speed and cost.
-Choose the path that optimizes all four.
+## 2. Request Classification
+Determine the work type BEFORE planning:
+- **Engineering work** (features, implementation, bug fixes, refactors, config, dev-infra, design changes): MUST flow through the strict chain — Interview Gate (step 3) → Spec Generation (step 4) → Delegation (step 5-6). No skipping.
+- **Standalone research/analysis requested by the user** ("research X", "analyze Y", "compare Z"): dispatch directly to the matching specialist (@researcher / @analyzer) as a standalone lane. Feed results back to the user or into the engineering chain if it evolves into one.
+- **Pure conversation / questions** (no code, no files, no delegation): respond directly.
 
-## 3. Delegation Check
+## 3. Interview Gate (MANDATORY for all engineering work)
+Before any planning or delegation of engineering work, dispatch @openspec-plan for a structured Socratic interview:
+- Goal: clarify requirements, scope, constraints, success criteria, dependencies, open questions
+- Research needs discovered during the interview: dispatch @researcher inline, feed results back to @openspec-plan
+- Analysis needs discovered during the interview: dispatch @analyzer inline, feed results back to @openspec-plan
+- The interview output feeds directly into spec generation
+
+## 4. Spec Generation
+After the interview completes, drive spec artifact creation via @openspec-plan:
+- proposal.md → design.md → tasks.md (vertical slices with blocking edges)
+- Analysis needs during spec authoring: dispatch @analyzer inline (feed results to @openspec-plan)
+- GATE: do NOT delegate any implementation work until all spec artifacts are created and validated (`openspec validate`)
+
+## 5. Delegation Check
 Review available agents and lane rules.
 
 **Dispatch efficiency:**
 - Reference paths/lines, don't paste files (\`src/app.ts:42\` not full contents)
 - Brief user on delegation goal before each call
-- For trivial conversational answers or tiny mechanical edits, direct execution is allowed when scheduling overhead would clearly dominate
+- For trivial conversational answers (pure chat, no code, no files, no specialist work), direct response is allowed
+- ANY engineering work — code changes, file edits, research, analysis, implementation, bug fixes, refactors, config, dev-infra — MUST be delegated to the appropriate specialist agent. The boss never performs specialist work itself.
 - Record task IDs, state, and advisory ownership/dependency labels
 - Do not immediately wait after spawning independent background tasks unless the next step truly depends on their result
 - Reconcile results, resolve conflicts, and gate dependent lanes
 
 ${WRITABLE_FILE_OPERATIONS_RULES}
 
-## 4. Plan and Parallelize
+## 6. Plan and Parallelize
 Build a short work graph before dispatching:
 - Independent lanes that can run now
 - Dependency-ordered lanes that must wait
@@ -234,19 +251,7 @@ Balance: respect dependencies, avoid parallelizing what must be sequential, and 
 - Validation is a workflow stage owned by the Boss, not a separate specialist
 ${enabledValidationRouting}
 
-## 5. OpenSpec
-After architect returns approved plan, break it into spec artifacts through this cascade (run sequentially):
-
-1. **openspec-explore** — Explore the feature idea
-2. **openspec-propose** — Create proposal → design → tasks
-3. **openspec-review** — Review spec for testability, completeness, .sdd/ alignment
-4. **openspec-update-change** — Fix issues found in review
-5. **openspec-validate** — Structural validation
-6. **openspec-sync-specs** — Sync delta specs → main specs
-
-Gate: do NOT dispatch @coder until all spec artifacts are created and validated.
-
-## 6. Verify
+## 7. Verify
 - Run relevant checks/diagnostics for the change
 - Use validation routing when applicable instead of doing all review work yourself
 - If test files are involved, prefer @coder for bounded test changes and @architector only for test strategy or quality review

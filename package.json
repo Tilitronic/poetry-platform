@@ -8,8 +8,16 @@
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
     "clean": "turbo run clean",
-    "format": "prettier --write \"**/*.{js,ts,vue,css,scss,html,md,json}\" --ignore-path .gitignore",
-    "test": "turbo test"
+    "stack": "bash scripts/dev-stack.sh",
+    "format": "prettier --write \"**/*.{js,ts,vue,css,scss,html,md,json}\"",
+    "format:check": "prettier --check \"**/*.{js,ts,vue,css,scss,html,md,json}\"",
+    "test": "turbo test",
+    "verify:format": "pnpm format:check",
+    "verify:js": "pnpm lint && pnpm typecheck",
+    "verify:js-tests": "pnpm test",
+    "verify:python": "bash scripts/verify-python.sh",
+    "verify": "pnpm verify:format && pnpm verify:js && pnpm verify:js-tests && pnpm verify:python",
+    "prepare": "husky"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",
@@ -19,9 +27,30 @@
     "eslint": "^9.39.4",
     "eslint-plugin-vue": "^10.8.0",
     "globals": "^17.4.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^15.0.0",
     "prettier": "^3.8.1",
     "turbo": "^2.0.0",
     "typescript": "^5.9.3"
   },
-  "packageManager": "pnpm@10.33.0"
+  "lint-staged": {
+    "*.{js,ts,mjs,cjs,tsx,vue}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{css,scss,html,md,json,yaml,yml}": [
+      "prettier --write"
+    ],
+    "apps/api-server/**/*.py": [
+      "scripts/lint-python-files.sh"
+    ],
+    "*.{sh,bats}": [
+      "bash -n"
+    ]
+  },
+  "packageManager": "pnpm@10.33.0",
+  "volta": {
+    "node": "24.18.0",
+    "pnpm": "10.33.0"
+  }
 }

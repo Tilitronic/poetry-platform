@@ -1,15 +1,12 @@
 ---
-description: Propose a new change - create it and generate all artifacts in one step
+description: Propose a new change via interview-first spec authoring (Socratic interview → artifact synthesis → validate)
 ---
 
-Propose a new change - create the change and generate all artifacts in one step.
+Propose a new change — interview-first, then synthesize.
 
-I'll create a change with artifacts:
-- proposal.md (what & why)
-- design.md (how)
-- tasks.md (implementation steps)
-
-When ready to implement, run /opsx-apply
+I will NOT generate spec artifacts without first conducting a structured Socratic
+interview (dispatched to @openspec-plan). The interview transcript is the sole
+input for artifact synthesis.
 
 ---
 
@@ -19,63 +16,19 @@ When ready to implement, run /opsx-apply
 
 **Steps**
 
-1. **If no input provided, ask what they want to build**
+1. **Interview (MANDATORY)** — dispatch @openspec-plan for the structured Socratic interview BEFORE any artifact work. Protocol: one question at a time, each with the model's recommended answer; look up facts in the codebase rather than asking the developer; depth mode Full (default) / Compressed (≤5 questions) / Skip (requires explicit developer opt-in with a stated reason). Research/analysis needs found during the interview → dispatch @researcher / @analyzer inline and feed results back. Practice-protected: the developer writes the substance; you structure, challenge, and synthesize but never draft on the developer's behalf. Output: the interview transcript in conversation.
 
-   Use the **AskUserQuestion tool** (open-ended, no preset options) to ask:
-   > "What change do you want to work on? Describe what you want to build or fix."
+2. **Synthesize artifacts from the interview transcript** — using the openspec CLI commands in dependency order:
+   - `openspec new change "<name>"`
+   - `openspec status --change "<name>" --json` (get the build order)
+   - For each ready artifact: `openspec instructions <artifact-id> --change "<name>" --json`, then write the artifact to its `resolvedOutputPath` using the `template` — every claim/decision/edge case must trace to a specific interview exchange.
 
-   From their description, derive a kebab-case name (e.g., "add user authentication" → `add-user-auth`).
-
-   **IMPORTANT**: Do NOT proceed without understanding what the user wants to build.
-
-2. **Create the change directory**
+3. **Validate**
    ```bash
-   openspec new change "<name>"
+   openspec validate "<name>"
    ```
-   This creates a scaffolded change in the planning home resolved by the CLI with `.openspec.yaml`.
 
-3. **Get the artifact build order**
-   ```bash
-   openspec status --change "<name>" --json
-   ```
-   Parse the JSON to get:
-   - `applyRequires`: array of artifact IDs needed before implementation (e.g., `["tasks"]`)
-   - `artifacts`: list of all artifacts with their status and dependencies
-   - `planningHome`, `changeRoot`, `artifactPaths`, and `actionContext`: path and scope context. Use these instead of assuming repo-local paths.
-
-4. **Create artifacts in sequence until apply-ready**
-
-   Use the **TodoWrite tool** to track progress through the artifacts.
-
-   Loop through artifacts in dependency order (artifacts with no pending dependencies first):
-
-   a. **For each artifact that is `ready` (dependencies satisfied)**:
-      - Get instructions:
-        ```bash
-        openspec instructions <artifact-id> --change "<name>" --json
-        ```
-      - The instructions JSON includes:
-        - `context`: Project background (constraints for you - do NOT include in output)
-        - `rules`: Artifact-specific rules (constraints for you - do NOT include in output)
-        - `template`: The structure to use for your output file
-        - `instruction`: Schema-specific guidance for this artifact type
-        - `resolvedOutputPath`: Resolved path or pattern to write the artifact
-        - `dependencies`: Completed artifacts to read for context
-      - Read any completed dependency files for context
-      - Create the artifact file using `template` as the structure and write it to `resolvedOutputPath`
-      - Apply `context` and `rules` as constraints - but do NOT copy them into the file
-      - Show brief progress: "Created <artifact-id>"
-
-   b. **Continue until all `applyRequires` artifacts are complete**
-      - After creating each artifact, re-run `openspec status --change "<name>" --json`
-      - Check if every artifact ID in `applyRequires` has `status: "done"` in the artifacts array
-      - Stop when all `applyRequires` artifacts are done
-
-   c. **If an artifact requires user input** (unclear context):
-      - Use **AskUserQuestion tool** to clarify
-      - Then continue with creation
-
-5. **Show final status**
+4. **Show final status**
    ```bash
    openspec status --change "<name>"
    ```
@@ -85,22 +38,13 @@ When ready to implement, run /opsx-apply
 After completing all artifacts, summarize:
 - Change name and location
 - List of artifacts created with brief descriptions
+- Interview depth mode used
 - What's ready: "All artifacts created! Ready for implementation."
-- Prompt: "Run `/opsx-apply` to start implementing."
-
-**Artifact Creation Guidelines**
-
-- Follow the `instruction` field from `openspec instructions` for each artifact type
-- The schema defines what each artifact should contain - follow it
-- Read dependency artifacts for context before creating new ones
-- Use `template` as the structure for your output file - fill in its sections
-- **IMPORTANT**: `context` and `rules` are constraints for YOU, not content for the file
-  - Do NOT copy `<context>`, `<rules>`, `<project_context>` blocks into the artifact
-  - These guide what you write, but should never appear in the output
+- Prompt: "Run `/opsx-apply` or ask me to implement to start working on the tasks."
 
 **Guardrails**
 - Create ALL artifacts needed for implementation (as defined by schema's `apply.requires`)
 - Always read dependency artifacts before creating a new one
-- If context is critically unclear, ask the user - but prefer making reasonable decisions to keep momentum
-- If a change with that name already exists, ask if user wants to continue it or create a new one
+- NEVER skip the interview — unclear context is MORE reason to interview, not less
+- If a change with that name already exists, point to `/opsx-continue`
 - Verify each artifact file exists after writing before proceeding to next

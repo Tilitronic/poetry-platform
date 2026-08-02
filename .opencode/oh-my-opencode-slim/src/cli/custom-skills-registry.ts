@@ -73,7 +73,7 @@ export const CUSTOM_SKILLS: CustomSkill[] = [
   {
     name: 'tdd-craftsman',
     description:
-      'Polyglot RED-GREEN-REFACTOR TDD cycle for Python/Rust/C/C++/TS monorepos with ownership safeguards',
+      'Polyglot RED-GREEN TDD cycle in vertical slices (tracer bullets at pre-agreed seams); refactoring deferred to review',
     allowedAgents: ['boss', 'coder'],
     sourcePath: 'src/skills/tdd-craftsman',
   },

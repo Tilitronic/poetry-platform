@@ -1,26 +1,31 @@
 # Memory Shelf — Central Knowledge Registry
-# Last updated: 2026-07-20
+# Last updated: 2026-08-02
 
 shelf:
   conspects:
     - name: "OpenSpec, SDD/TSS, and code_architect Reconciliation"
-      description: "Analysis of the three parallel design documentation approaches (OpenSpec .openspec/, .sdd/.tss directories, and code_architect architecture documents), their overlap, and a recommended reconciliation into a three-layer model."
+      description: "Analysis of the three parallel design documentation approaches (OpenSpec openspec/, .sdd/.tss directories, and code_architect architecture documents), their overlap, and a recommended reconciliation into a three-layer model."
       path: "knowledge/res001-openspec-sdd-reconciliation/res001-openspec-sdd-reconciliation-conspect.md"
       created: 2026-07-13
   analyses:
-    - name: "OpenSpec Workflow Integration in AI Agent Pipelines"
-      description: "Analysis of the proposed boss → @openspec-plan → @coder workflow split. Verdict: conceptually sound but needs 5 boundary fixes — design.md scope redefinition, .sdd/ creation with seed content, agent prompt updates, escalation path, and OpenSpec config.yaml."
-      path: "knowledge/ana001-openspec-workflow-analysis/ana001-openspec-workflow-analysis-report.md"
-      created: 2026-07-13
     - name: "Agent Alignment Audit"
       description: "MECE inventory of all agent definitions across OMO Slim, native OpenCode, project config, and AGENTS.md. Finds 4 critical issues (dual dispatch hierarchy, 2 ghost agents, architector missing model, analyzer↔council contradiction), 5 major issues (naming mismatches, dual prompts, orphan agents), and 4 minor issues. 20 unique agents across all files, 2 ghosts, 4 orphans."
       path: "knowledge/ana002-agent-alignment-audit/ana002-agent-alignment-audit-report.md"
       created: 2026-07-17
+    - name: "Spec Authoring Philosophy Audit"
+      description: "Audit of whether the 'interview-first / grill-the-developer' spec authoring philosophy is durably embedded in OpenCode/OMO/OpenSpec config. Verdict: 52/100 — embedded as intent, not enforcement. 4 hard bypass paths (/opsx-propose, /opsx-new, /tdd-cycle, skills:['*']) outrank 4 soft ALIGNED layers (boss_append, @openspec-plan, practice-protected, AGENTS.md §2). Root cause: philosophy lives in prompt append + convention while hard paths bypass it; the boss.ts fork patch was written but never built. 3-phase remediation plan: Phase 1 kill one-shot defaults (~2h, score →75), Phase 2 structural gate via fork/build, Phase 3 port AIHero grill protocol into @openspec-plan."
+      path: "knowledge/ana004-spec-authoring-philosophy/ana004-spec-authoring-philosophy-report.md"
+      created: 2026-08-02
   adrs:
     - name: "Memory Storage Strategy"
       description: "Evaluation of Claude-Mem, Honcho, and current hand-written memory manager. Decision: keep current markdown-based approach. Neither external tool improves architecture for our scale. Escalation path defined from Level 0 (current) to Level 4 (API-based)."
       path: ".opencode/memory/adr.md"
       created: 2026-07-20
-  specs: []
+  specs:
+    - name: "context7-docs-pipeline"
+      description: "OpenSpec change: fetches Context7 library documentation for monorepo workspace dependencies. Key-optional (dry-run without CONTEXT7_API_KEY), deduplicates by package name (highest version wins, logs skew), stores as markdown in knowledge/context7-docs/. Node ESM script in scripts/, bats tests with dry-run + mock mode. API contract: context7.com/api/v2 (NOT api.context7.com). 3 vertical slices: scanner+dedup+inventory, API client+mock+markdown, Makefile+gitignore wiring."
+      path: "openspec/changes/context7-docs-pipeline/"
+      created: 2026-08-02
+      status: implemented
   architectures: []
   rag_bases: []

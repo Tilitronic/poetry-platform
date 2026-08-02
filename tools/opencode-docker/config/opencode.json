@@ -9,13 +9,22 @@
       "type": "remote",
       "url": "https://mcp.context7.com/mcp",
       "enabled": true,
+      "oauth": false,
+      "timeout": 15000,
       "headers": {
-        "CONTEXT7_API_KEY": "{env:CONTEXT7_API_KEY}"
+        "Authorization": "Bearer {env:CONTEXT7_API_KEY}"
       }
+    },
+    "gh_grep": {
+      "type": "remote",
+      "url": "https://mcp.grep.app",
+      "description": "Search GitHub for reference code patterns"
     }
   },
   "plugin": [
+    "envsitter-guard@0.0.4",
+    "opencode-telemetry@0.1.19",
     "@tarquinen/opencode-dcp@3.1.14",
-    "@yelling_mimic/opencode-snip@1.0.0"
+    "file:///workspace/.opencode/oh-my-opencode-slim"
   ]
 }

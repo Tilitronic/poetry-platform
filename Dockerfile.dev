@@ -1,0 +1,200 @@
+# Poetry Platform — Dev Workstation Container
+#
+# ONE container that holds everything for development:
+#   - opencode + OMO slim plugins
+#   - Node 24, pnpm, bun, uv, Volta, snip
+#   - Python 3 + uv for the FastAPI api-server
+#   - Rust toolchain (for stress-lang-core WASM builds, per architecture.md)
+#   - Playwright (chromium) + crawl4ai for browser automation
+#
+# The monorepo is mounted at /workspace. App services (author-studio,
+# api-server, publishing-platform) run INSIDE this container via `pnpm dev`
+# (turbo). Only stateful/infrastructure services get their own containers
+# (see docker-compose.yml: postgres).
+#
+# This is intentionally NOT distroless and NOT --read-only: dev must be able to
+# write (pnpm install, WASM builds, dev-server caches). Security posture is still
+# strong: pinned versions, SHA256-verified installers, non-root user.
+
+FROM debian:13-slim@sha256:4e401d95de7083948053197a9c3913343cd06b706bf15eb6a0c3ccd26f436a0e
+
+ARG USER_UID=1000
+ARG USER_GID=1000
+ARG NODE_VERSION=24.18.0
+ARG OPENCODE_VERSION=1.18.4
+ARG PNPM_VERSION=10.33.0
+ARG BUN_VERSION=1.3.14
+ARG SNIP_VERSION=0.22.0
+ARG DCP_VERSION=3.1.14
+ARG OPENSPEC_VERSION=1.7.0
+ARG UV_VERSION=0.11.29
+ARG VOLTA_VERSION=2.0.2
+ARG RUST_VERSION=1.83.0
+# tini: minimal init for PID 1 zombie reaping (see M9); pinned and
+# SHA256-verified like snip/uv below.
+ARG TINI_VERSION=0.19.0
+# Language server versions (pinned; see openspec/changes/dev-infra-language-servers)
+ARG TYPESCRIPT_LS_VERSION=5.3.0
+ARG TYPESCRIPT_VERSION=5.9.3
+ARG PYRIGHT_VERSION=1.1.411
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+# === Base system packages ===
+RUN apt-get update && apt-get install --no-install-recommends -y \
+    ca-certificates \
+    curl \
+    wget \
+    git \
+    python3 \
+    python3-pip \
+    python3-venv \
+    xvfb \
+    xclip \
+    wl-clipboard \
+    ripgrep \
+    jq \
+    make \
+    dbus \
+    && rm -rf /var/lib/apt/lists/*
+
+# === tini — PID 1 init for zombie reaping ===
+# Docker's default PID 1 does not reap orphaned children; playwright/crawl4ai
+# spawn short-lived processes that would accumulate as zombies. tini-static is
+# glibc-independent (no version drift on debian:13) and matches the project's
+# pinned + SHA256-verified binary-install pattern (snip/uv). The release
+# publishes a per-binary .sha256sum file; grep|sed|sha256sum -c - verifies the
+# exact artifact we downloaded (same shape as the uv install below).
+RUN TINI_ARCH=$(case "${TARGETARCH:-$(uname -m)}" in x86_64|amd64) echo "amd64" ;; aarch64|arm64) echo "arm64" ;; esac) && \
+    curl -fsSL "https://github.com/krallin/tini/releases/download/v${TINI_VERSION}/tini-static-${TINI_ARCH}" -o "/tmp/tini-static-${TINI_ARCH}" && \
+    curl -fsSL "https://github.com/krallin/tini/releases/download/v${TINI_VERSION}/tini-static-${TINI_ARCH}.sha256sum" -o /tmp/tini.sha256 && \
+    grep "tini-static-${TINI_ARCH}" /tmp/tini.sha256 | sed "s|tini-static-${TINI_ARCH}|/tmp/tini-static-${TINI_ARCH}|" | sha256sum -c - && \
+    install -m 0755 "/tmp/tini-static-${TINI_ARCH}" /usr/local/bin/tini && \
+    rm -f "/tmp/tini-static-${TINI_ARCH}" /tmp/tini.sha256 && \
+    tini --version
+
+# === Node.js (pinned binary from nodejs.org, not apt repo) ===
+RUN NODE_ARCH=$(case "${TARGETARCH:-$(uname -m)}" in x86_64|amd64) echo "x64" ;; aarch64|arm64) echo "arm64" ;; esac) && \
+    curl -fsSL "https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-${NODE_ARCH}.tar.gz" -o /tmp/node.tar.gz && \
+    tar xzf /tmp/node.tar.gz -C /usr/local/ --strip-components=1 && \
+    rm -f /tmp/node.tar.gz && \
+    node --version && npm --version
+
+# === OpenCode CLI (pinned, SHA256-verified installer) ===
+RUN curl -fsSL https://opencode.ai/install -o /tmp/install-opencode.sh && \
+    echo "fc3c1b2123f49b6df545a7622e5127d21cd794b15134fc3b66e1ca49f7fb297e  /tmp/install-opencode.sh" | sha256sum -c - && \
+    bash /tmp/install-opencode.sh --version "${OPENCODE_VERSION}" --no-modify-path && \
+    rm -f /tmp/install-opencode.sh && \
+    install -m 0755 /root/.opencode/bin/opencode /usr/local/bin/opencode && \
+    opencode --version
+
+# === Global npm packages: pnpm, bun, DCP plugin, OpenSpec, language servers ===
+# typescript-language-server + typescript + pyright give LSP intelligence in
+# the dev container; versions are pinned in the ARG block above.
+RUN npm install -g pnpm@${PNPM_VERSION} bun@${BUN_VERSION} \
+    @tarquinen/opencode-dcp@${DCP_VERSION} \
+    @fission-ai/openspec@${OPENSPEC_VERSION} \
+    typescript-language-server@${TYPESCRIPT_LS_VERSION} \
+    typescript@${TYPESCRIPT_VERSION} \
+    pyright@${PYRIGHT_VERSION}
+
+# === Volta — JS tool manager ===
+RUN VOLTA_ARCH=$(case "${TARGETARCH:-$(uname -m)}" in x86_64|amd64) echo "linux" ;; aarch64|arm64) echo "linux-arm" ;; esac) && \
+    curl -fsSL "https://github.com/volta-cli/volta/releases/download/v${VOLTA_VERSION}/volta-${VOLTA_VERSION}-${VOLTA_ARCH}.tar.gz" -o /tmp/volta.tar.gz && \
+    tar xzf /tmp/volta.tar.gz -C /usr/local/bin/ && \
+    rm -f /tmp/volta.tar.gz && \
+    volta --version
+
+# === snip — command runner (checksum-verified) ===
+RUN SNIP_ARCH=$(case "${TARGETARCH:-$(uname -m)}" in x86_64|amd64) echo "amd64" ;; aarch64|arm64) echo "arm64" ;; esac) && \
+    curl -fsSL "https://github.com/edouard-claude/snip/releases/download/v${SNIP_VERSION}/snip_${SNIP_VERSION}_linux_${SNIP_ARCH}.tar.gz" -o /tmp/snip.tar.gz && \
+    curl -fsSL "https://github.com/edouard-claude/snip/releases/download/v${SNIP_VERSION}/checksums.txt" -o /tmp/checksums.txt && \
+    grep "snip_${SNIP_VERSION}_linux_${SNIP_ARCH}.tar.gz" /tmp/checksums.txt | sed "s|snip_${SNIP_VERSION}_linux_${SNIP_ARCH}.tar.gz|/tmp/snip.tar.gz|" | sha256sum -c - && \
+    tar xzf /tmp/snip.tar.gz -C /usr/local/bin/ snip && \
+    rm -f /tmp/snip.tar.gz /tmp/checksums.txt && \
+    snip --version
+
+# === uv — fast Python package manager ===
+RUN UV_ARCH=$(case "${TARGETARCH:-$(uname -m)}" in x86_64|amd64) echo "x86_64" ;; aarch64|arm64) echo "aarch64" ;; esac) && \
+    curl -fsSL "https://github.com/astral-sh/uv/releases/download/${UV_VERSION}/uv-${UV_ARCH}-unknown-linux-gnu.tar.gz" -o /tmp/uv.tar.gz && \
+    curl -fsSL "https://github.com/astral-sh/uv/releases/download/${UV_VERSION}/sha256.sum" -o /tmp/uv.sha256 && \
+    grep "uv-${UV_ARCH}-unknown-linux-gnu.tar.gz" /tmp/uv.sha256 | sed "s|uv-${UV_ARCH}-unknown-linux-gnu.tar.gz|/tmp/uv.tar.gz|" | sha256sum -c - && \
+    tar xzf /tmp/uv.tar.gz -C /usr/local/bin/ --strip-components=1 "uv-${UV_ARCH}-unknown-linux-gnu/uv" && \
+    rm -f /tmp/uv.tar.gz /tmp/uv.sha256 && \
+    uv --version
+
+# === Rust toolchain (for stress-lang-core Rust FST → WASM) ===
+# Installed into /opt/rust (not /root/.cargo) so the non-root `dev` user can
+# access it at runtime. CARGO_HOME/RUSTUP_HOME keep everything in one tree.
+ENV RUSTUP_HOME=/opt/rust/rustup \
+    CARGO_HOME=/opt/rust/cargo \
+    PATH="/opt/rust/cargo/bin:${PATH}"
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | \
+    sh -s -- -y --profile minimal --default-toolchain "${RUST_VERSION}" && \
+    rustup target add wasm32-unknown-unknown && \
+    rustup component add rust-analyzer && \
+    rustc --version && cargo --version
+
+# === Playwright (chromium) + crawl4ai for browser automation ===
+# PLAYWRIGHT_BROWSERS_PATH must be declared BEFORE the install step: playwright
+# resolves the browser cache dir from ENV at install time. Previously the ENV
+# was set after install, so chromium landed in the default
+# /root/.cache/ms-playwright as root — unreachable by the non-root `dev` user —
+# and the system libraries were never installed, so chromium could not launch
+# even when found. Mirrors the Rust toolchain pattern above: ENV set before
+# install, dedicated /opt dir, chowned to the non-root user. install-deps
+# chromium pulls the system libs (libglib-2.0, libnss3, libatk, libgtk,
+# libgbm, ...) via apt.
+ENV PLAYWRIGHT_BROWSERS_PATH=/opt/ms-playwright
+RUN mkdir -p /opt/ms-playwright
+RUN uv pip install --system --break-system-packages playwright crawl4ai && \
+    python3 -m playwright install-deps chromium && \
+    python3 -m playwright install chromium && \
+    rm -rf /root/.cache/uv
+# Playwright writes the browser tree as root; hand it to the non-root `dev`
+# user (numeric UID/GID — the user is created in the next block) so chromium
+# is reachable at runtime.
+RUN chown -R ${USER_UID}:${USER_GID} /opt/ms-playwright
+
+# === Non-root user ===
+RUN groupadd --gid ${USER_GID} dev && \
+    useradd --uid ${USER_UID} --gid ${USER_GID} -m -s /bin/bash dev && \
+    mkdir -p /home/dev/.local/share/opencode \
+             /home/dev/.config/opencode \
+             /home/dev/.local/state \
+             /home/dev/.cache \
+             /workspace \
+             /workspace/node_modules \
+             /run/secrets && \
+    chown -R ${USER_UID}:${USER_GID} /home/dev /workspace /opt/rust
+
+ENV HOME=/home/dev \
+    XDG_CONFIG_HOME=/home/dev/.config \
+    XDG_DATA_HOME=/home/dev/.local/share \
+    XDG_STATE_HOME=/home/dev/.local/state \
+    XDG_CACHE_HOME=/home/dev/.cache \
+    OPENCODE_CONFIG_DIR=/home/dev/.config/opencode \
+    DISPLAY=:99.0 \
+    PIP_BREAK_SYSTEM_PACKAGES=1
+
+WORKDIR /workspace
+
+COPY --chmod=0755 dev-entrypoint.sh /usr/local/bin/dev-entrypoint.sh
+# Interactive-shell secrets passthrough (H5): `docker compose exec` spawns a
+# fresh process that does not inherit the env vars dev-entrypoint.sh exports,
+# so this hook re-loads /run/secrets for interactive bash login shells. The
+# script lives in the repo (scripts/dev-secrets-profile.sh) so bats can test
+# it; the whitelist must stay in sync with dev-entrypoint.sh ALLOWED_SECRETS.
+COPY --chmod=0644 scripts/dev-secrets-profile.sh /etc/profile.d/secrets.sh
+
+USER ${USER_UID}:${USER_GID}
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD opencode --version >/dev/null 2>&1 || exit 1
+
+# tini as PID 1: reaps orphaned children (playwright/crawl4ai spawn short-lived
+# processes) and forwards signals to the entrypoint's children (M9).
+ENTRYPOINT ["tini", "--", "/usr/local/bin/dev-entrypoint.sh"]
+
+# Default: drop into an interactive shell (override with compose command).
+CMD ["/bin/bash"]

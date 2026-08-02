@@ -1,0 +1,28 @@
+# Lessons from 2026-08-01 dev-infra & config workflow change
+
+These lessons capture irrecoverable, human-context knowledge discovered during the recent dev-infra/config workflow work. Only items that are not recoverable from git logs, diffs, tests, or code are recorded here.
+
+- boss/orchestrator role enforcement (process): a HARD RULE was required to stop the boss from implementing dev-infra or config changes directly. The cultural/coordination lesson: small mechanical edits by an orchestrator reliably reoccur unless explicitly blocked. The fact that a HARD RULE (boss_append.md) was added and why it was necessary is a human-process lesson not present in code history.
+
+- Host vs container orchestration (operational rationale): turbo runs inside containers and cannot reliably manage host-level services (Docker daemon, docker-compose, Xvfb setup). The pragmatic boundary decision — keep host orchestration in host-side scripts (scripts/dev-stack.sh) and keep turbo for in-container tasks — is stored in the ADR but this lessons entry records the human reasoning and operational expectations teams should follow when designing dev workflows.
+
+- Shell-test hermeticity pattern (testing practice): For unit-testing shell entrypoints and orchestration scripts without launching real privileged services, we used a combination of:
+  - vendor-pinned bats-core in scripts/__tests__/vendor/ (to avoid external installs)
+  - a mocked docker binary placed earlier in PATH for unit tests
+  - user-namespace isolation (unshare -r -m) and tmpfs mounts over /run to avoid touching host state
+  - Xvfb invocation in a controlled temporary DISPLAY for display-requiring smoke tests
+
+  This pattern (mock binary + user namespaces + tmpfs) is operational knowledge about how to make shell tests fast, hermetic, and safe in CI/local dev and is not reconstructible purely from code diffs.
+
+- JSONC/comment-stripping caveat (validator): naive comment-stripping using regexes can break on URLs containing '//' and similar character sequences. The validator was implemented using a proper JavaScript tokenizer to strip comments safely. Record: use a tokenizer-aware approach when removing comments from JSONC; do not rely on naive regex replacement.
+
+- Verification outcome (human confirmation): Final verification run produced bats 13/13, pytest 2/2, and config validation OK. The fact that reviewers iterated and that fixes were required (pinning bats-core, hermeticity tweaks, test renames, and .gitignore cleanup) is documented in the change history but the human lesson is: independent review (ai-specialist + reviewer) found maintainability and hermeticity issues that otherwise slip by when implementers work alone.
+
+- Verify against deployed npm dist, not vendored fork source: During the audit we found behaviour differences between the deployed oh-my-opencode-slim@2.2.8 dist and the repo's vendored/forked source. Runtime semantics (deepMerge array handling, agent default resolution) must always be verified against the deployed npm dist artifact (e.g. ~/.cache/opencode/packages/oh-my-opencode-slim@2.2.8/dist/index.js); rely on the deployed dist as the ground-truth for runtime behaviours. This is not recoverable from code diffs and should be consulted for future audits.
+
+- Mock-mode blindspot: unit/mocked tests passed while real API runs failed due to a double-/api base URL bug that only real network runs caught. For networked dev-infra scripts, add at least one real-API smoke run to the verification matrix (optionally gated behind an env var like CONTEXT7_API_KEY_REAL_RUN) so base-URL and auth header mismatches are caught before merging.
+
+- Context7 301 handling nuance: Context7 indicates moved libraries via 301 responses carrying a JSON body with redirectUrl (not Location header). When redirectUrl missing or not resolvable, the pipeline treats the library as "skipped" rather than "failed"; however, redirect-loop exhaustion is considered a failure. This behaviour was agreed in spec review — kept in lessons because the operational nuance (301+body) is easy to miss during later API client changes.
+
+- MCP auth header mismatch risk: opencode.jsonc currently configures the Context7 MCP to send a header named CONTEXT7_API_KEY (env). The upstream server accepts Authorization: Bearer <key> and several X-* header variants but does not accept the literal header name CONTEXT7_API_KEY. This is a probable config mismatch risk for MCP-based fetches. Recommendation: update MCP config to use Authorization: Bearer or X-Context7-API-Key, and verify in a real MCP load test. This header-name acceptance detail is not present in repo diffs and is recorded here as an operational lesson.
+ - MCP auth header mismatch risk: (OUTDATED) earlier notes stated the upstream server "does not accept the literal header name CONTEXT7_API_KEY". Subsequent verification against Context7 server source and the change in .opencode/ shows this is incorrect: the server accepts Authorization: Bearer <key> (canonical) and also accepts several legacy aliases (context7-api-key, x-api-key, context7_api_key, x_api_key). HTTP headers are case-insensitive, so CONTEXT7_API_KEY (env-written) is equivalent to the accepted legacy alias when present. The authoritative details and rationale for switching to Authorization: Bearer (and adding oauth:false + increased timeout) are in .opencode/learnings/external-patterns/2026-08-02-context7-mcp-registration.md. Keep the lesson to warn about header-name risks, but correct the factual error and point to the learnings note for details.
