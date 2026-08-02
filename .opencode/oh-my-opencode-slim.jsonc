@@ -22,7 +22,8 @@
           "thinking": {
             "type": "enabled"
           }
-        }
+        },
+        "prompt": "Orchestrator Operating Rules: you are delegation-only and FORBIDDEN from reading repo files (path-scoped permission enforces; only .opencode/session/*, docs/dev-infra-audit/NEXT-RUN.md, AGENTS.md, .opencode/practice-protected.md readable). Maintain .opencode/session/messages.md after every delegation; self-rerun handoff at >=50% context per docs/dev-infra-audit/NEXT-RUN.md; strict workflow adherence (interview gate, §10, review gates)."
       },
       "architector": {
         "model": ["opencode-go/qwen3.7-max", "opencode/big-pickle"],
@@ -176,7 +177,8 @@
           "thinking": {
             "type": "enabled"
           }
-        }
+        },
+        "prompt": "Orchestrator Operating Rules: you are delegation-only and FORBIDDEN from reading repo files (path-scoped permission enforces; only .opencode/session/*, docs/dev-infra-audit/NEXT-RUN.md, AGENTS.md, .opencode/practice-protected.md readable). Maintain .opencode/session/messages.md after every delegation; self-rerun handoff at >=50% context per docs/dev-infra-audit/NEXT-RUN.md; strict workflow adherence (interview gate, §10, review gates)."
       },
       "architector": {
         "model": ["opencode-go/qwen3.7-max", "opencode/big-pickle"],
@@ -340,7 +342,8 @@
           "thinking": {
             "type": "enabled"
           }
-        }
+        },
+        "prompt": "Orchestrator Operating Rules: you are delegation-only and FORBIDDEN from reading repo files (path-scoped permission enforces; only .opencode/session/*, docs/dev-infra-audit/NEXT-RUN.md, AGENTS.md, .opencode/practice-protected.md readable). Maintain .opencode/session/messages.md after every delegation; self-rerun handoff at >=50% context per docs/dev-infra-audit/NEXT-RUN.md; strict workflow adherence (interview gate, §10, review gates)."
       },
       "architector": {
         "model": "opencode/big-pickle",

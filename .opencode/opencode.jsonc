@@ -62,17 +62,18 @@
     // Agent modes/colors + permissions (merged from the old opencode.json)
     // The orchestrator is the plugin's real delegating agent (oh-my-opencode-slim@2.2.8
     // registers it as `orchestrator`). It must NEVER perform engineering work itself:
-    // edit/write/bash are denied so delegation is mechanically enforced. Only
-    // orchestration tools remain. Verification results come FROM specialists; this
-    // agent only reviews them, communicates to the user, or restarts a cycle.
+    // bash/apply_patch/ast_grep_replace/webfetch/envsitter are denied so delegation
+    // is mechanically enforced. DIA-036: read is path-scoped to the session dir +
+    // boot/rules files (the orchestrator knows NOTHING about the codebase except
+    // what delegation results report); edit is path-scoped to .opencode/session/*
+    // (covers write+apply_patch per OpenCode docs — flat `write` key removed).
     "orchestrator": {
       "color": "#6366F1",
       "permission": {
-        "edit": "deny",
-        "write": "deny",
+        "bash": "deny",
         "apply_patch": "deny",
         "ast_grep_replace": "deny",
-        "bash": "deny",
+        "webfetch": "deny",
         "envsitter_set": "deny",
         "envsitter_add": "deny",
         "envsitter_delete": "deny",
@@ -81,12 +82,24 @@
         "envsitter_format": "deny",
         "envsitter_reorder": "deny",
         "envsitter_copy": "deny",
-        "webfetch": "deny",
+        "read": {
+          ".opencode/session/*": "allow",
+          "docs/dev-infra-audit/NEXT-RUN.md": "allow",
+          ".opencode/practice-protected.md": "allow",
+          "AGENTS.md": "allow",
+          "*": "deny"
+        },
+        "edit": {
+          ".opencode/session/*": "allow",
+          "*": "deny"
+        },
+        "glob": {
+          ".opencode/session/*": "allow",
+          "*": "deny"
+        },
+        "grep": "deny",
         "task": "allow",
         "cancel_task": "allow",
-        "read": "allow",
-        "glob": "allow",
-        "grep": "allow",
         "list": "allow",
         "lsp": "allow",
         "question": "allow",

@@ -70,3 +70,6 @@ tools/opencode-docker/.cache/opencode/
 # key files are never accidentally committed; only README.md is allowed.
 secrets/*
 !secrets/README.md
+
+# Orchestrator session state (transient, regenerated per session)
+.opencode/session/

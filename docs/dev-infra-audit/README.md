@@ -76,7 +76,7 @@ Until both conditions hold, the audit continues looping (inventory → vertical 
 | `inventory.md`         | Authoritative read-only recon output (verbatim).             |
 | `tickets/README.md`    | Ledger index (ID → title / area / severity / status / file). |
 | `tickets/_TEMPLATE.md` | Ticket template (fields + allowed values).                   |
-| `tickets/DIA-*.md`     | One file per ticket (current set: DIA-001 … DIA-035).        |
+| `tickets/DIA-*.md`     | One file per ticket (current set: DIA-001 … DIA-036).        |
 
 ## Severity Guide
 
@@ -102,7 +102,7 @@ triaged into seed tickets DIA-001 … DIA-018.
 ### Phase C — Fix lanes (complete)
 
 Wave-1 fix lanes closed seed-ticket defects; wave-2 fix lanes recorded
-DIA-019 … DIA-035 from their fix evidence. Ledger rollup: **24 FIXED, 6 CLOSED,
+DIA-019 … DIA-035 from their fix evidence. Ledger rollup: **25 FIXED, 6 CLOSED,
 0 RESOLVED, 5 OPEN**. Zero open Blocker/Critical tickets.
 
 ### Phase D — Full-cycle verification (complete — CLEAN)
@@ -122,3 +122,14 @@ the clean cycle:
 Clean-cycle criterion met: every automated gate passes and zero open
 Blocker/Critical tickets (the only Blocker/Critical tickets, DIA-008 and DIA-015,
 are CLOSED). See the [Clean Cycle Definition](#clean-cycle-definition).
+
+### Phase E — Orchestrator operating model (DIA-036, complete)
+
+Config-lane change (openCode-config, §10 route): the orchestrator was read-unrestricted
+and had no session-continuity mechanism. **DIA-036** locked it to delegation-only with
+path-scoped `read`/`edit` permissions, established a session messages-log + HANDOFF
+self-rerun protocol (`.opencode/session/`, gitignored), and added
+`docs/dev-infra-audit/NEXT-RUN.md` — the operating manual the next orchestrator
+instance follows to rerun the audit flow and close the 5 open tickets
+(DIA-003/006/007/030/034). Ledger rollup: **36 tickets total — 25 FIXED, 6 CLOSED,
+5 OPEN** (all non-blocking: 1 DEFERRED, 2 USER-DECISION, 2 MONITOR).
