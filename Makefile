@@ -16,9 +16,10 @@
 #   make test-infra   test-shell + full Docker compose smoke test (heavy)
 #   make test-config  validate OpenCode JSONC config syntax + interview enforcement
 #   make test-interview  run scripts/test-interview-enforcement.sh (5 checks)
+#   make audit-python  pip-audit both Python packages (requires uv + committed uv.lock)
 #   make context7-docs  fetch library docs from Context7 (requires CONTEXT7_API_KEY; dry-run without it)
 
-.PHONY: build up shell opencode dev stack install db-psql logs down clean gen-jsconfig test-shell test-python test-infra test-config test-interview context7-docs
+.PHONY: build up shell opencode dev stack install db-psql logs down clean gen-jsconfig test-shell test-python test-infra test-config test-interview audit-python context7-docs
 
 stack:
 	bash scripts/dev-stack.sh
@@ -99,6 +100,16 @@ test-interview:
 # OpenCode JSONC config syntax validation + interview-enforcement regression checks.
 test-config: test-interview
 	bash .opencode/scripts/validate-opencode-config.sh
+
+# Python dependency vulnerability audit via pip-audit (DIA-028). Exports the
+# locked runtime dependency set per package with uv (exact pins + hashes) and
+# audits it with a pinned pip-audit version. --disable-pip skips pip's resolver,
+# so no scratch venv / ensurepip is needed on the host. Requires uv + uvx on the
+# host PATH and the committed uv.lock in each package (DIA-029). Finding/fixing
+# Python vulns is tracked separately — this target only establishes the capability.
+audit-python:
+	@f="$$(mktemp)"; uv export --project apps/api-server --no-dev -o "$$f" && uvx pip-audit@2.10.1 --disable-pip -r "$$f"; rc=$$?; rm -f "$$f"; exit $$rc
+	@f="$$(mktemp)"; uv export --project packages/analytics-pipeline --no-dev -o "$$f" && uvx pip-audit@2.10.1 --disable-pip -r "$$f"; rc=$$?; rm -f "$$f"; exit $$rc
 
 # Fetch Context7 library docs for the monorepo's workspace dependencies
 # (scripts/context7-docs.mjs -> knowledge/context7-docs/). Developer-triggered,
