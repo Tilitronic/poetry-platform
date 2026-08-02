@@ -83,19 +83,19 @@
         "envsitter_reorder": "deny",
         "envsitter_copy": "deny",
         "read": {
+          "*": "deny",
           ".opencode/session/*": "allow",
           "docs/dev-infra-audit/NEXT-RUN.md": "allow",
           ".opencode/practice-protected.md": "allow",
-          "AGENTS.md": "allow",
-          "*": "deny"
+          "AGENTS.md": "allow"
         },
         "edit": {
-          ".opencode/session/*": "allow",
-          "*": "deny"
+          "*": "deny",
+          ".opencode/session/*": "allow"
         },
         "glob": {
-          ".opencode/session/*": "allow",
-          "*": "deny"
+          "*": "deny",
+          ".opencode/session/*": "allow"
         },
         "grep": "deny",
         "task": "allow",
