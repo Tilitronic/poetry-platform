@@ -48,7 +48,7 @@ pnpm --filter @poetry/editor-engine test  # test a specific package
 opencode
 ```
 
-Then use **Tab** to cycle between Build and Plan agents, or **Ctrl+K** for custom commands.
+Then use **Ctrl+K** for custom commands. OpenCode starts in **orchestrator** mode — the delegating agent that dispatches specialists via `@mentions` (see [Layer 1](#layer-1-agents--specialized-ai-roles)); it never edits code itself.
 
 ---
 
@@ -70,16 +70,16 @@ We built a **layered AI workflow** that ensures code quality, maintainability, a
                     │  Turbo Pipeline      │
                     │  (turbo.json)        │
                     ├──────────────────────┤
-                    │   LAYER 2: SKILLS    │
+                    │  LAYER 2: SKILLS    │
                     │  Reusable Playbooks  │
                     │  (tdd-craftsman +    │
-                    │   feature-interviewer│
-                    │   test-architect)    │
+                    │   project skills in  │
+                    │   .opencode/skills/) │
                     ├──────────────────────┤
                     │   LAYER 1: AGENTS    │
                     │  Specialized Roles   │
-                    │  (build / plan /     │
-                    │   @test / @review)   │
+                    │  (orchestrator +     │
+                    │   12 subagents)      │
                     ├──────────────────────┤
                     │   LAYER 0: CONFIG    │
                     │  Rules + Settings    │
@@ -103,33 +103,25 @@ These are the **foundation**. They tell the AI who it is and how to behave.
 
 ### Layer 1: Agents — Specialized AI Roles
 
-We have **6 agents**, each with a different job and different permissions:
+We have **13 active agents**, each with a different job and different permissions. They are defined in `.opencode/opencode.jsonc` (the orchestrator is registered by the oh-my-opencode-slim plugin):
 
-```
-┌──────────────────────────────────────────────────┐
-│              PRIMARY AGENTS                       │
-│       (cycle via Tab key)                         │
-│                                                   │
-│   BUILD           ←── Tab ──→     PLAN            │
-│   (default)                        (read-only)    │
-│   • Writes code                    • Reviews code │
-│   • Full edit permission           • No edit      │
-│   • TDD engineer                   • Mentor       │
-└──────────────────┬───────────────────────────────┘
-                   │
-                   │ invokes via @mention
-                   ▼
-┌──────────────────────────────────────────────────┐
-│              SUBAGENTS                            │
-│                                                   │
-│  @test          @review        @docs-writer       │
-│  writes tests   audits SOLID   writes .md files   │
-│  never impl.    never writes   never codes        │
-│                                                   │
-│  @security-auditor                                 │
-│  audits Python/TS for vulns                       │
-└──────────────────────────────────────────────────┘
-```
+| Agent            | Role                                                       | Permissions                                                  |
+| ---------------- | ---------------------------------------------------------- | ------------------------------------------------------------ |
+| `orchestrator`   | Default agent — delegates to specialists, never edits code | Read-only + delegation (`task`, `question`, `wait_for_user`) |
+| `architector`    | Architecture & strategy — authors `.sdd/` docs with ADRs   | Read-only                                                    |
+| `analyzer`       | Analysis reports & visualizations                          | Read-only subagent                                           |
+| `reviewer`       | Two-axis review (Standards + Spec fidelity)                | Read-only                                                    |
+| `coder`          | Bounded implementation, test-first via tdd-craftsman       | Full (edit, bash, tests)                                     |
+| `code-navigator` | Fast codebase recon                                        | Subagent                                                     |
+| `researcher`     | External research                                          | Subagent                                                     |
+| `designer`       | UI/UX design                                               | Subagent                                                     |
+| `observer`       | Visual/media analysis                                      | Subagent                                                     |
+| `explorer`       | Explore mode — thinking partner for ideas/requirements     | Subagent                                                     |
+| `memory-manager` | Knowledge persistence (`.opencode/memory/`, memory shelf)  | Subagent                                                     |
+| `council`        | Multi-model consensus                                      | Read-only                                                    |
+| `ai-specialist`  | OpenCode tooling best-practices research                   | Read-only subagent (curl/wget only)                          |
+
+> The `openspec-plan` lane (Socratic spec authoring via the openspec-propose skill) is also referenced throughout the workflow — see AGENTS.md §2.2.
 
 **Why multiple agents?** Separation of concerns. A code reviewer shouldn't have write access. A test writer should never touch implementation. Each agent is focused and restricted — this prevents the AI from cutting corners.
 
@@ -137,11 +129,24 @@ We have **6 agents**, each with a different job and different permissions:
 
 Skills are like **cookbook recipes** the AI follows to the letter.
 
-| Skill                 | Location                              | What it does                                                   |
-| --------------------- | ------------------------------------- | -------------------------------------------------------------- |
-| `tdd-craftsman`       | Global (`~/.config/opencode/skills/`) | Full RED → GREEN → REFACTOR cycle with scientific verification |
-| `test-architect`      | Global                                | AAA test design patterns for writing great tests               |
-| `feature-interviewer` | Project (`.opencode/skills/`)         | 3-phase structured interview before building new features      |
+| Skill                     | Location                              | What it does                                                      |
+| ------------------------- | ------------------------------------- | ----------------------------------------------------------------- |
+| `tdd-craftsman`           | Global (`~/.config/opencode/skills/`) | Full RED → GREEN → REFACTOR cycle with scientific verification    |
+| `openspec-propose`        | Project (`.opencode/skills/`)         | Interview-first OpenSpec change authoring (proposal/design/tasks) |
+| `openspec-apply-change`   | Project (`.opencode/skills/`)         | Implement tasks from an OpenSpec change                           |
+| `openspec-update-change`  | Project (`.opencode/skills/`)         | Revise a change's planning artifacts                              |
+| `openspec-explore`        | Project (`.opencode/skills/`)         | Thinking-partner mode for exploring ideas/requirements            |
+| `openspec-archive-change` | Project (`.opencode/skills/`)         | Archive a completed change                                        |
+| `openspec-sync-specs`     | Project (`.opencode/skills/`)         | Sync delta specs to main specs                                    |
+| `book-rag`                | Project (`.opencode/skills/`)         | Query local engineering textbooks via OpenWebUI RAG               |
+| `console-charting`        | Project (`.opencode/skills/`)         | Terminal charts/tables for data-driven reports                    |
+| `debugging-workflow`      | Project (`.opencode/skills/`)         | Language-specific debugging tools and techniques                  |
+| `frontend-design`         | Project (`.opencode/skills/`)         | Production-grade frontend/UI design                               |
+| `git-diff`                | Project (`.opencode/skills/`)         | Inject current git status + diff context                          |
+| `mermaid-diagramming`     | Project (`.opencode/skills/`)         | Mermaid diagram best practices                                    |
+| `playwright-browser`      | Project (`.opencode/skills/`)         | Browser automation for acceptance/E2E tests                       |
+| `teaching`                | Project (`.opencode/skills/`)         | Pedagogical explanations (mental models, worked examples)         |
+| `writing-skills`          | Project (`.opencode/skills/`)         | Authoring, editing, and verifying skills                          |
 
 **Why skills instead of just telling the AI?** The AI can "forget" a step or take shortcuts. Skills are structured documents it must follow — they make the workflow repeatable and auditable.
 
@@ -176,7 +181,7 @@ These give the AI **live access to current information** — its training data i
 
 ### Layer 5: Code Ownership & Values (The Philosophy)
 
-This is the **most important layer**. It's documented in `AGENTS.md` §0c.
+This is the **most important layer**. It's documented in `AGENTS.md` (see §1 Architectural Integrity and §2 Feature Workflow Chain).
 
 **The rules:**
 
@@ -185,7 +190,7 @@ This is the **most important layer**. It's documented in `AGENTS.md` §0c.
 3. No tests = unowned code — don't commit it
 4. No speculative abstractions (YAGNI)
 5. Architecture > cleverness
-6. Every change gets a `@review` pass before commit
+6. Every change gets a `@reviewer` pass before commit
 
 **The motto:** _"Write code that your future self can debug at 2 AM six months from now, after you've forgotten everything about this feature."_
 
@@ -201,53 +206,50 @@ YOU: "Add heteronym resolution to the editor"
      │
      ▼
 ┌──────────────────────────────────────────────────────┐
-│ 1. INTERVIEW PHASE                                   │
-│    AI reads architecture.md silently                 │
-│    AI invokes feature-interviewer skill              │
-│    AI asks you 7-10 questions one at a time:         │
+│ 1. SPEC PHASE (@openspec-plan)                       │
+│    reads architecture.md + .sdd/ constraints          │
+│    Socratic interview — one question at a time:       │
 │      "What's in scope?"                              │
 │      "What are the edge cases?"                      │
 │      "What are the performance targets?"             │
 │      "Which modules does this touch?"                │
 │      ...                                             │
-│    AI produces a structured spec document            │
-│    AI waits for your confirmation                    │
+│    Authors openspec/changes/<name>/proposal.md,      │
+│    design.md, tasks.md from the interview            │
+│    (practice-protected: you write the substance)     │
 └──────────────────────────────────────────────────────┘
      │
      ▼ CONFIRMED
      │
 ┌──────────────────────────────────────────────────────┐
-│ 2. TDD CYCLE                                         │
-│    AI invokes tdd-craftsman skill                    │
+│ 2. TDD CYCLE (@coder + tdd-craftsman)                │
+│    @coder implements tasks.md as vertical slices     │
+│    test-first via the tdd-craftsman skill            │
 │                                                      │
-│    RED:    AI invokes @test subagent                 │
-│            @test writes failing test (AAA pattern)   │
-│            vitest run → FAIL (expected!)              │
+│    RED:    write a failing test at the pre-agreed    │
+│            seam → run → FAIL (expected!)             │
 │                                                      │
-│    GREEN:  AI implements minimum code to pass        │
-│            vitest run → PASS                          │
+│    GREEN:  implement the minimum code to pass        │
+│            → run → PASS                              │
 │                                                      │
-│    REFACTOR: AI optimizes performance                │
-│              (property-based tests for algorithms)   │
-│              (benchmark gates for hot paths)         │
-│              vitest run → PASS                        │
-│              tsc --noEmit → PASS                      │
-│              eslint . → PASS                          │
+│    verify gates after each slice:                    │
+│              turbo run typecheck lint test           │
+│              (scripts/verify-python.sh for Python)   │
 └──────────────────────────────────────────────────────┘
      │
      ▼
 ┌──────────────────────────────────────────────────────┐
-│ 3. REVIEW PHASE                                      │
-│    AI invokes @review subagent                       │
-│    @review checks: SOLID, JSDoc, test coverage       │
-│    Reports maintainability score                     │
+│ 3. REVIEW PHASE (@reviewer)                          │
+│    @reviewer runs the two-axis review:               │
+│      (a) Standards — SOLID, JSDoc, test coverage     │
+│      (b) Spec fidelity — matches proposal/design     │
 └──────────────────────────────────────────────────────┘
      │
      ▼
      COMMIT (or fix issues and repeat)
 ```
 
-**Total time:** You answer ~10 questions, then the AI does the rest. The interview prevents "vibe coding" — building something that looks right but misses all the edge cases.
+**Total time:** You answer the interview questions once, then `@coder` implements the slices. The interview prevents "vibe coding" — building something that looks right but misses all the edge cases.
 
 ---
 
@@ -266,7 +268,7 @@ YOU: "Add heteronym resolution to the editor"
 | `analytics-pipeline`  | Python: offline analytics (NumPy, asyncpg)        | 🔲 Not yet  |
 | `author-studio`       | Quasar 2 + Vue 3 SPA (main editor app)            | 🔲 Not yet  |
 | `publishing-platform` | Nuxt 3 SSR (public reader — stub)                 | 🔲 Not yet  |
-| `api-server`          | FastAPI (Python — not yet created)                | 🔲 Not yet  |
+| `api-server`          | FastAPI (Python — lives in `apps/api-server`)     | 🔲 Not yet  |
 
 ### Root Commands
 
@@ -300,14 +302,17 @@ poetry-platform-monorepo/
 ├── AGENTS.md                   AI rules and workflow handbook
 ├── architecture.md             System design reference
 ├── turbo.json                  Build pipeline
-├── prompts/                    AI agent system prompts (editable via PRs)
 ├── docs/
 │   ├── onboarding.md           ← You are here
 │   └── ...                     (more docs as needed)
 ├── .opencode/
-│   ├── skills/                 Project-specific AI skills
-│   ├── agents/                 Project-specific AI agents
-│   └── commands/               Project-specific AI commands
+│   ├── opencode.jsonc          Agent definitions, permissions, MCP, commands
+│   ├── oh-my-opencode-slim.jsonc  OMO Slim plugin config (agent prompts/presets)
+│   ├── agents/                 Project-specific agent prompt overrides
+│   ├── commands/               Project-specific AI commands (Ctrl+K)
+│   ├── skills/                 Project-specific AI skills (15)
+│   ├── scripts/                Python bridge scripts (query_rag.py, query_web.py)
+│   └── memory-shelf.yaml       Central index of RAG KBs, conspects, specs
 ├── apps/
 │   ├── author-studio/          Vue 3 / Quasar SPA
 │   ├── publishing-platform/    Nuxt 3 SSR
@@ -320,7 +325,6 @@ poetry-platform-monorepo/
 │   ├── visualizer-2d/          D3 visualizations
 │   ├── visualizer-3d/          Three.js visualizations
 │   └── analytics-pipeline/     Python analytics
-└── prompts/                    Agent system prompts
 ```
 
 ---
@@ -329,9 +333,9 @@ poetry-platform-monorepo/
 
 - **OpenCode docs:** `opencode help` or `https://opencode.ai/docs`
 - **Architecture questions:** Read `architecture.md` first
-- **AI not behaving?** Check `AGENTS.md` and `prompts/` — those control its behavior
-- **Want to add a new agent/command?** Edit `opencode.jsonc` and send a PR
+- **AI not behaving?** Check `AGENTS.md` and `.opencode/opencode.jsonc` — those control its behavior
+- **Want to add a new agent/command?** Edit `.opencode/opencode.jsonc` and send a PR
 
 ---
 
-_Last updated: June 2026_
+_Last updated: August 2026_
