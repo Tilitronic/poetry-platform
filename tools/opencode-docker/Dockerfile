@@ -8,7 +8,7 @@ ARG PNPM_VERSION=10.33.0
 ARG BUN_VERSION=1.3.14
 ARG SNIP_VERSION=0.22.0  # standalone CLI binary — different artifact from @yelling_mimic/opencode-snip plugin
 ARG DCP_VERSION=3.1.14
-ARG OPENSPEC_VERSION=1.6.0
+ARG OPENSPEC_VERSION=1.7.0
 
 ENV DEBIAN_FRONTEND=noninteractive
 
