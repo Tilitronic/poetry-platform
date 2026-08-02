@@ -54,7 +54,7 @@ If multiple KBs, synthesize results. Cite source books.
 ## Script call
 
 ```bash
-python3 ~/.config/opencode/scripts/query_rag.py "$ARGUMENTS"
+python3 .opencode/scripts/query_rag.py "$ARGUMENTS"
 ```
 
 ## Examples
