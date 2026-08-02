@@ -44,6 +44,9 @@
     "apps/api-server/**/*.py": [
       "scripts/lint-python-files.sh"
     ],
+    "packages/analytics-pipeline/**/*.py": [
+      "scripts/lint-python-files.sh"
+    ],
     "*.{sh,bats}": [
       "bash -n"
     ]
