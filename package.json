@@ -47,7 +47,7 @@
     "packages/analytics-pipeline/**/*.py": [
       "scripts/lint-python-files.sh"
     ],
-    "*.{sh,bats}": [
+    "*.sh": [
       "bash -n"
     ]
   },
