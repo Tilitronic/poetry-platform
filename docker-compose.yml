@@ -27,9 +27,9 @@ services:
     hostname: poetry-dev
     # Author-studio (Quasar/Vite), api-server (FastAPI), publishing-platform (Nuxt)
     ports:
-      - "${AUTHOR_STUDIO_PORT:-9000}:9000"
-      - "${API_SERVER_PORT:-8000}:8000"
-      - "${PUBLISHING_PORT:-3000}:3000"
+      - '${AUTHOR_STUDIO_PORT:-9000}:9000'
+      - '${API_SERVER_PORT:-8000}:8000'
+      - '${PUBLISHING_PORT:-3000}:3000'
     # Optional: expose postgres from host for psql tooling (disable if unwanted)
     # - "${POSTGRES_PORT:-5432}:5432"
     volumes:
@@ -42,16 +42,11 @@ services:
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER:-poetry}:${POSTGRES_PASSWORD:-poetry}@postgres:5432/${POSTGRES_DB:-poetry}
       - OPENCODE_ENABLE_EXA=1
-      # H5: `docker compose exec` does NOT inherit the env vars dev-entrypoint.sh
-      # exports at runtime, so `make opencode` inside the container would run
-      # with 0 credentials. These pass the developer's host vars (from .env or
-      # the host shell) into the container config env, which exec'd processes
-      # DO see. Read at compose-up time; empty when unset.
-      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
-      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
-      - CONTEXT7_API_KEY=${CONTEXT7_API_KEY:-}
-      - GITHUB_TOKEN=${GITHUB_TOKEN:-}
-      - EXA_API_KEY=${EXA_API_KEY:-}
+      # Secrets are NOT passed through env (SEC-DOCKER-002): the API keys live
+      # in the read-only /run/secrets mounts below and are loaded by the
+      # entrypoint (dev-entrypoint.sh). The /etc/profile.d/secrets.sh hook
+      # (H5) re-loads them for `docker compose exec` login shells. Duplicating
+      # them as env vars would leak them to `docker inspect` for no benefit.
     secrets:
       - anthropic_api_key
       - openai_api_key
@@ -82,7 +77,7 @@ services:
     # ports:
     #   - "${POSTGRES_PORT:-5432}:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-poetry} -d ${POSTGRES_DB:-poetry}"]
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-poetry} -d ${POSTGRES_DB:-poetry}']
       interval: 5s
       timeout: 5s
       retries: 10
