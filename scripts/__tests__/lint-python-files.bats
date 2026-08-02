@@ -36,7 +36,12 @@ load test-helper
 
 setup_wrapper_tree() {
   TREE="$BATS_TEST_TMPDIR/tree"
-  mkdir -p "$TREE/scripts" "$TREE/apps/api-server/.venv/bin" "$BATS_TEST_TMPDIR/bin"
+  # T-PY-001: analytics-pipeline is now in scope — run_ruff cds into its root,
+  # so the dir must exist in the isolated tree (it reuses api-server's venv).
+  mkdir -p "$TREE/scripts" \
+    "$TREE/apps/api-server/.venv/bin" \
+    "$TREE/packages/analytics-pipeline" \
+    "$BATS_TEST_TMPDIR/bin"
   cp "$SCRIPTS_DIR/lint-python-files.sh" "$TREE/scripts/lint-python-files.sh"
 
   cat > "$TREE/apps/api-server/.venv/bin/ruff" <<'FAKERUFF'
@@ -134,16 +139,17 @@ FAKEUV
 @test "lint-python-files: skips out-of-scope paths without invoking ruff" {
   setup_wrapper_tree
 
-  # a .py from outside apps/api-server (e.g. packages/analytics-pipeline) has no
-  # ruff config in the repo; it must be skipped with a diagnostic, not forwarded
-  # to ruff as an unresolvable path (that previously blocked pre-commit)
-  run bash "$TREE/scripts/lint-python-files.sh" packages/analytics-pipeline/src/daemon/cron.py
+  # T-PY-001: analytics-pipeline is now IN scope (it has its own ruff config),
+  # so an out-of-scope path is one outside the two Python packages — it must be
+  # skipped with a diagnostic, not forwarded to ruff as an unresolvable path
+  # (that previously blocked pre-commit)
+  run bash "$TREE/scripts/lint-python-files.sh" tools/opencode-docker/bootstrap.py
 
   assert_status 0
   # the diagnostic goes to stderr; bats 1.x splits stdout/stderr, older bats
   # merges them into $output — check both so the assertion is version-agnostic
   local combined="${output}${stderr:-}"
-  [[ "$combined" == *"lint-python-files: skipping out-of-scope path: packages/analytics-pipeline/src/daemon/cron.py"* ]] || {
+  [[ "$combined" == *"lint-python-files: skipping out-of-scope path: tools/opencode-docker/bootstrap.py"* ]] || {
     echo "expected skip diagnostic, got:" >&2
     echo "--- stdout ---" >&2
     printf '%s\n' "$output" >&2
