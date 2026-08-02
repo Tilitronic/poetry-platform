@@ -14,10 +14,11 @@
 #
 #   make test-shell   unit-test dev-infra shell scripts (bats; Docker mocked)
 #   make test-infra   test-shell + full Docker compose smoke test (heavy)
-#   make test-config  validate OpenCode JSONC config syntax
+#   make test-config  validate OpenCode JSONC config syntax + interview enforcement
+#   make test-interview  run scripts/test-interview-enforcement.sh (5 checks)
 #   make context7-docs  fetch library docs from Context7 (requires CONTEXT7_API_KEY; dry-run without it)
 
-.PHONY: build up shell opencode dev stack install db-psql logs down clean gen-jsconfig test-shell test-python test-infra test-config context7-docs
+.PHONY: build up shell opencode dev stack install db-psql logs down clean gen-jsconfig test-shell test-python test-infra test-config test-interview context7-docs
 
 stack:
 	bash scripts/dev-stack.sh
@@ -88,8 +89,15 @@ test-python:
 	docker compose exec -T dev bash -c 'cd /workspace/packages/analytics-pipeline && { test -x .venv/bin/python || uv venv .venv; } && uv pip install --python .venv/bin/python -e ".[dev]"'
 	docker compose exec -T dev bash -c 'cd /workspace/packages/analytics-pipeline && .venv/bin/python -m pytest'
 
-# OpenCode JSONC config syntax validation.
-test-config:
+# Interview-first spec-authoring enforcement (scripts/test-interview-enforcement.sh,
+# 5 grep/python checks). DIA-009: the script was orphaned — the CHANGELOG claimed
+# Makefile registration that did not exist; this target makes that claim true and
+# is wired into test-config below.
+test-interview:
+	bash scripts/test-interview-enforcement.sh
+
+# OpenCode JSONC config syntax validation + interview-enforcement regression checks.
+test-config: test-interview
 	bash .opencode/scripts/validate-opencode-config.sh
 
 # Fetch Context7 library docs for the monorepo's workspace dependencies
