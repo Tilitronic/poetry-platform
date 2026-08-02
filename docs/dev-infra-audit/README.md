@@ -76,7 +76,7 @@ Until both conditions hold, the audit continues looping (inventory → vertical 
 | `inventory.md`         | Authoritative read-only recon output (verbatim).             |
 | `tickets/README.md`    | Ledger index (ID → title / area / severity / status / file). |
 | `tickets/_TEMPLATE.md` | Ticket template (fields + allowed values).                   |
-| `tickets/DIA-*.md`     | One file per ticket (initial set: DIA-001 … DIA-018).        |
+| `tickets/DIA-*.md`     | One file per ticket (current set: DIA-001 … DIA-035).        |
 
 ## Severity Guide
 
@@ -88,6 +88,34 @@ Until both conditions hold, the audit continues looping (inventory → vertical 
 
 ## Current State
 
-Seed tickets DIA-001 … DIA-018 are recorded from the inventory + baseline run.
-One `BLOCKER` (DIA-015 — pnpm/Volta toolchain, environment repair) gates all JS
-gates; environment repair is tracked separately.
+### Phase A — Inventory (complete)
+
+`inventory.md` captures the authoritative recon output for every piece of dev
+infrastructure.
+
+### Phase B — Baseline vertical tests (complete)
+
+Every automated gate run once and recorded: `make test-shell`, `make test-python`,
+`make test-config`, `pnpm verify`, `make test-infra`. Failures and inventory defects
+triaged into seed tickets DIA-001 … DIA-018.
+
+### Phase C — Fix lanes (complete)
+
+Wave-1 fix lanes closed seed-ticket defects; wave-2 fix lanes recorded
+DIA-019 … DIA-035 from their fix evidence. Ledger rollup: **24 FIXED, 5 CLOSED,
+1 RESOLVED, 5 OPEN**. Zero open Blocker/Critical tickets.
+
+### Phase D — Full-cycle verification (in progress)
+
+Re-running every automated gate in one clean pass: `make test-shell`,
+`make test-python`, `make test-config`, `make audit-python`, `pnpm verify`
+(JS + Python lanes), and `make test-infra`. The 5 remaining OPEN tickets are all
+non-blocking for the clean cycle:
+
+- **DIA-003** — deferred skills-lock pinning (format limitation).
+- **DIA-006 / DIA-007** — pending USER DECISION (production Dockerfile; ai-specialist split).
+- **DIA-030** — monitored (volta digests when upstream ships them).
+- **DIA-034** — monitored (ecdsa advisory with no published fix).
+
+See the [Clean Cycle Definition](#clean-cycle-definition) for the completion bar of
+Phase D.
