@@ -9,13 +9,14 @@ from pathlib import Path
 
 SECRETS_DIR = Path("/run/secrets")
 
+# Whitelist must mirror dev-entrypoint.sh ALLOWED_SECRETS and the
+# scripts/dev-secrets-profile.sh case pattern (M2: only the 5 names compose
+# actually mounts). google_application_credentials / aws_* were removed in M2 —
+# no service uses them.
 ALLOWED_SECRETS = {
     "anthropic_api_key",
     "openai_api_key",
     "context7_api_key",
-    "google_application_credentials",
-    "aws_access_key_id",
-    "aws_secret_access_key",
     "github_token",
     "exa_api_key",
 }
