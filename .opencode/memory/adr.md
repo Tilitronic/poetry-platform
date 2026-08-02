@@ -100,6 +100,29 @@ Place host-level orchestration (docker-compose up, starting DBs, Xvfb display se
 ### Consequences
 
 - Keep dev orchestration scripts under scripts/ and document their role in the dev workflow. Do not attempt to replicate host orchestration inside turbo tasks.
+
+## ADR: Dev-infra audit methodology (accepted)
+
+### Status
+
+Accepted — 2026-08-02
+
+### Context
+
+During the dev-infra audit (branch further-dev-infrastructure-development) we formalised a repeatable verification loop to ensure infra changes do not regress CI or governance gates.
+
+### Decision
+
+Adopt the audit methodology: inventory → vertical per-feature testing → fix-per-ticket → full re-verification loop until reaching 1 clean cycle. Define clean-cycle as: all automated gates pass and zero open Blocker/Critical tickets. Keep the local ticket ledger under docs/dev-infra-audit/tickets/ and record fix commits on a branch for traceability.
+
+### Rationale
+
+This process ensures fixes are small, reviewable, and verifiable independently; the local ticket ledger provides human-readable context for why each change was made.
+
+### Consequences
+
+- Use per-ticket branches or disjoint worktree lanes for parallel fixes; close the ledger only after a verified clean cycle. Keep the tickets folder as the canonical operational ledger for the audit run.
+
 - Tests that require host resources should be exercised via host-side targets (Makefile test-shell / test-infra) which call the orchestration wrappers.
 
 ## ADR: Context7 docs pipeline — verification & error semantics
