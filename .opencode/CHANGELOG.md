@@ -8,6 +8,7 @@
 - **OMO prompt additions:** `oh-my-opencode-slim.jsonc` — all 3 presets (opencode-go, cebula, free) orchestrator blocks got a compact "Orchestrator Operating Rules" `prompt` (same text each): delegation-only + forbidden repo reads (path-scoped permission), messages.md after every delegation, self-rerun handoff at >=50%, strict workflow adherence (interview gate, §10, review gates).
 - **Gitignore:** `.opencode/session/` added — transient orchestrator session state is never committed.
 - Validation: `make test-config` PASS (4/4 JSONC). `git check-ignore .opencode/session/messages.md` → ignored. Diff confirms only the orchestrator permission block changed in opencode.jsonc.
+- **Follow-up (same day):** reordered the three path-scoped orchestrator permission objects (`read`/`edit`/`glob`) so the catch-all `"*": "deny"` rule comes FIRST and specific `allow` paths follow — per OpenCode permission docs, "last matching rule wins" and the common pattern puts `"*"` first; valid under both order-based and specificity-based matcher semantics. No allow/deny values lost or added.
 - Pending user: restart OpenCode + functional smoke tests (orchestrator must delegate, read-restriction enforced, messages.md logging works).
 
 ## 2026-08-02 — Dev-infra config audit fixes (DIA-001/003/016/017/019/020, F3 lane)
