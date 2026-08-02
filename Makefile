@@ -105,11 +105,18 @@ test-config: test-interview
 # locked runtime dependency set per package with uv (exact pins + hashes) and
 # audits it with a pinned pip-audit version. --disable-pip skips pip's resolver,
 # so no scratch venv / ensurepip is needed on the host. Requires uv + uvx on the
-# host PATH and the committed uv.lock in each package (DIA-029). Finding/fixing
-# Python vulns is tracked separately — this target only establishes the capability.
+# host PATH and the committed uv.lock in each package (DIA-029). Both packages
+# are always audited — findings are accumulated and the target fails at the end
+# if any package has vulnerabilities. Fixing Python vulns is tracked separately;
+# this target only establishes the capability.
 audit-python:
-	@f="$$(mktemp)"; uv export --project apps/api-server --no-dev -o "$$f" && uvx pip-audit@2.10.1 --disable-pip -r "$$f"; rc=$$?; rm -f "$$f"; exit $$rc
-	@f="$$(mktemp)"; uv export --project packages/analytics-pipeline --no-dev -o "$$f" && uvx pip-audit@2.10.1 --disable-pip -r "$$f"; rc=$$?; rm -f "$$f"; exit $$rc
+	@rc=0; \
+	for pkg in apps/api-server packages/analytics-pipeline; do \
+		f="$$(mktemp)"; \
+		uv export --project "$$pkg" --no-dev -o "$$f" && uvx pip-audit@2.10.1 --disable-pip -r "$$f" || rc=1; \
+		rm -f "$$f"; \
+	done; \
+	exit $$rc
 
 # Fetch Context7 library docs for the monorepo's workspace dependencies
 # (scripts/context7-docs.mjs -> knowledge/context7-docs/). Developer-triggered,
