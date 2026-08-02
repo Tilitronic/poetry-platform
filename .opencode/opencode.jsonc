@@ -224,7 +224,7 @@
   // ---------------------------------------------------------------------------
   "references": {
     "shelf": {
-      "path": ".opencode",
+      "path": ".opencode/memory-shelf.yaml",
       "description": "Memory Shelf, agent config, and opencode project settings. Read .opencode/memory-shelf.yaml first — it's the central index of all RAG knowledge bases, research conspects, specs, and analyses."
     }
   },
