@@ -25,8 +25,30 @@ the host from reading them:
 chmod 600 secrets/anthropic_api_key
 ```
 
-Secret files must be non-empty. Empty files result in empty env vars (the
-entrypoint loads the file content verbatim).
+## Empty placeholder files are the valid initialization state
+
+The five secret files are committed (or initialized) as **zero-byte
+placeholders**. This is intentional: you fill each file with a real secret
+before the value is needed. The smoke test and the entrypoint treat an empty
+file as "no secret configured" and skip loading it — an empty placeholder does
+not fail startup.
+
+A file must be **non-empty** to actually be mounted/loaded into its env var at
+container start (the entrypoint reads the file content verbatim; an empty file
+would produce an empty env var, so it is skipped instead).
+
+Fill a placeholder like this:
+
+```bash
+echo "sk-ant-..." > secrets/anthropic_api_key
+chmod 600 secrets/anthropic_api_key
+```
+
+Check the file is populated before starting the stack:
+
+```bash
+test -s secrets/anthropic_api_key && echo "ready" || echo "still empty — fill it first"
+```
 
 ## Allowed filenames (from dev-entrypoint.sh)
 
