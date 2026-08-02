@@ -31,11 +31,13 @@ API (GET /api/v1/knowledge/) with a SQLite fallback, then cached to a
 YAML file with a configurable TTL — no hardcoded UUIDs or names needed.
 
 Design notes:
-  - #tag MUST be at the beginning of the query (re.match, not re.search).
-    This prevents mid-sentence hashtags from accidentally filtering.
-  - If a #tag is provided but doesn't match any KB, returns an error
-    (does NOT silently fall back to global search).  The SKILL.md
-    decision tree handles the fallback explicitly.
+  - A #tag is recognized anywhere in the query (re.search, not re.match)
+    so "dna #bio_python" still filters correctly; only the tag token is
+    stripped from the search text. "C#" is never treated as a tag — a #
+    must be followed by a word character.
+  - If a #tag is provided but doesn't resolve (exact or fuzzy), the query
+    falls back to a global search across all KBs instead of failing, so
+    typos and unknown tags still return results.
   - Relevance scores are included per-chunk.  A WARNING line is emitted
     when the top score is below 0.3 (weak semantic match).
   - First-run auto-setup will generate an API key if none is configured.
@@ -856,7 +858,7 @@ def query_hybrid_rag(raw_prompt: str, k: int | None = None) -> str:
     Parameters
     ----------
     raw_prompt : str
-        The full query string, optionally starting with a #tag.
+        The full query string, optionally containing a #tag.
         Example: "#js closures explained" or "what is a monad"
     k : int, optional
         Number of results to request (defaults to TOP_K).
@@ -871,8 +873,11 @@ def query_hybrid_rag(raw_prompt: str, k: int | None = None) -> str:
 
     num_results = k or TOP_K
 
-    # -- Parse optional #tag (must be at START of string, not mid-sentence) --
-    hashtag_match = re.match(r"#(\w+)", raw_prompt.lstrip())
+    # -- Parse optional #tag anywhere in the query ---------------------------
+    # re.search (not re.match): a #tag is recognized even mid-sentence
+    # ("dna #bio_python"), per the edge-case tests. "C#" stays safe — a #
+    # must be followed by a word character to count as a tag.
+    hashtag_match = re.search(r"#(\w+)", raw_prompt)
     collection_uuid: str | None = None
     collection_tag: str = ""
     actual_resolved_tag: str | None = ""
@@ -885,8 +890,11 @@ def query_hybrid_rag(raw_prompt: str, k: int | None = None) -> str:
         collection_uuid, actual_resolved_tag = _resolve_knowledge_base_smart(collection_tag)
         if collection_uuid and actual_resolved_tag and actual_resolved_tag != collection_tag.lower():
             used_fuzzy_correction = True
-        # Strip ONLY the leading tag so it doesn't pollute embeddings
-        clean_query = raw_prompt[hashtag_match.end():].strip()
+        # Remove ONLY the matched tag token so it doesn't pollute embeddings;
+        # the rest of the query stays intact even when the tag is mid-sentence.
+        clean_query = (
+            raw_prompt[:hashtag_match.start()] + raw_prompt[hashtag_match.end():]
+        ).strip()
 
     if not clean_query:
         return "Error: Query is empty after removing #tag. Provide actual search terms."
@@ -899,19 +907,7 @@ def query_hybrid_rag(raw_prompt: str, k: int | None = None) -> str:
         collection_names = [collection_uuid]
         action = "fuzzy-corrected" if used_fuzzy_correction else "tagged"
         log.info("%s search in collection #%s", action.title(), actual_resolved_tag or collection_tag)
-    elif hashtag_match:
-        # Tag was given but didn't resolve — return error so SKILL.md decision tree handles it
-        tag = collection_tag
-        fuzzy_advice = ""
-        kbs = _discover_knowledge_bases()
-        possible = difflib.get_close_matches(tag.lower(), list(kbs.keys()), n=3, cutoff=0.3)
-        if possible:
-            fuzzy_advice = f" Did you mean: {' or '.join(f'#{p}' for p in possible)}?"
-        return (
-            f"Error: Unknown knowledge base '#{tag}'.{fuzzy_advice} "
-            "Use --list to see available tags."
-        )
-    else:
+    elif not hashtag_match:
         # No #tag given → try auto-routing to best KB first
         routed_kb = _auto_route_best(clean_query)
         if routed_kb:
@@ -927,6 +923,16 @@ def query_hybrid_rag(raw_prompt: str, k: int | None = None) -> str:
                 return "Error: No knowledge bases discovered. Check OpenWebUI connection."
             log.info("Auto-route: no confident match — global search across %d KBs",
                      len(collection_names))
+    else:
+        # Tag was given but didn't resolve (exact or fuzzy) → global fallback.
+        # Unknown/typo'd tags return results instead of hard-failing; the
+        # response label below still marks the query as a global search.
+        kbs = _discover_knowledge_bases()
+        collection_names = list(kbs.values())
+        if not collection_names:
+            return "Error: No knowledge bases discovered. Check OpenWebUI connection."
+        log.warning("Unknown #%s — falling back to global search across %d KBs",
+                    collection_tag, len(collection_names))
 
     payload: dict[str, Any] = {
         "query": clean_query,
