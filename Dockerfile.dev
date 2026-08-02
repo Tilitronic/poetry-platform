@@ -74,8 +74,15 @@ RUN TINI_ARCH=$(case "${TARGETARCH:-$(uname -m)}" in x86_64|amd64) echo "amd64" 
     tini --version
 
 # === Node.js (pinned binary from nodejs.org, not apt repo) ===
+# SHA256 digests pinned from the official nodejs.org SHASUMS256.txt for
+# v24.18.0 (SEC-DOCKER-001): the tarball is verified before extraction, so a
+# tampered mirror or MITM'd download fails the build instead of shipping.
 RUN NODE_ARCH=$(case "${TARGETARCH:-$(uname -m)}" in x86_64|amd64) echo "x64" ;; aarch64|arm64) echo "arm64" ;; esac) && \
     curl -fsSL "https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-${NODE_ARCH}.tar.gz" -o /tmp/node.tar.gz && \
+    case "${NODE_ARCH}" in \
+      x64)   echo "783130984963db7ba9cbd01089eaf2c2efb055c7c1693c943174b967b3050cb8  /tmp/node.tar.gz" | sha256sum -c - ;; \
+      arm64) echo "6b4484c2190274175df9aa8f28e2d758a819cb1c1fe6ab481e2f95b463ab8508  /tmp/node.tar.gz" | sha256sum -c - ;; \
+    esac && \
     tar xzf /tmp/node.tar.gz -C /usr/local/ --strip-components=1 && \
     rm -f /tmp/node.tar.gz && \
     node --version && npm --version
@@ -99,6 +106,11 @@ RUN npm install -g pnpm@${PNPM_VERSION} bun@${BUN_VERSION} \
     pyright@${PYRIGHT_VERSION}
 
 # === Volta — JS tool manager ===
+# SEC-DOCKER-001: checksum verification is BLOCKED here — the volta-cli/volta
+# v2.0.2 release publishes no official digest for the binary tarballs
+# (volta.manifest lists binary names only, no hashes). Per the audit rule
+# "never guess a hash", this install is intentionally left unverified (ticket
+# DIA-030 stays open for volta). Revisit when upstream publishes checksums.
 RUN VOLTA_ARCH=$(case "${TARGETARCH:-$(uname -m)}" in x86_64|amd64) echo "linux" ;; aarch64|arm64) echo "linux-arm" ;; esac) && \
     curl -fsSL "https://github.com/volta-cli/volta/releases/download/v${VOLTA_VERSION}/volta-${VOLTA_VERSION}-${VOLTA_ARCH}.tar.gz" -o /tmp/volta.tar.gz && \
     tar xzf /tmp/volta.tar.gz -C /usr/local/bin/ && \
@@ -126,11 +138,24 @@ RUN UV_ARCH=$(case "${TARGETARCH:-$(uname -m)}" in x86_64|amd64) echo "x86_64" ;
 # === Rust toolchain (for stress-lang-core Rust FST → WASM) ===
 # Installed into /opt/rust (not /root/.cargo) so the non-root `dev` user can
 # access it at runtime. CARGO_HOME/RUSTUP_HOME keep everything in one tree.
+# SEC-DOCKER-001: rustup-init is downloaded directly and verified against the
+# official sha256 published alongside it at static.rust-lang.org
+# (rustup/dist/<target>/rustup-init.sha256) — the same distribution channel
+# sh.rustup.rs uses, now with a digest check instead of a curl|sh pipe.
+# `--no-modify-path` is used because PATH is set via ENV below (CARGO_HOME/bin),
+# so the installer must not rewrite /etc/profile.d for root.
 ENV RUSTUP_HOME=/opt/rust/rustup \
     CARGO_HOME=/opt/rust/cargo \
     PATH="/opt/rust/cargo/bin:${PATH}"
-RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | \
-    sh -s -- -y --profile minimal --default-toolchain "${RUST_VERSION}" && \
+RUN RUSTUP_ARCH=$(case "${TARGETARCH:-$(uname -m)}" in x86_64|amd64) echo "x86_64-unknown-linux-gnu" ;; aarch64|arm64) echo "aarch64-unknown-linux-gnu" ;; esac) && \
+    curl -fsSL "https://static.rust-lang.org/rustup/dist/${RUSTUP_ARCH}/rustup-init" -o /tmp/rustup-init && \
+    case "${RUSTUP_ARCH}" in \
+      x86_64-unknown-linux-gnu) echo "4acc9acc76d5079515b46346a485974457b5a79893cfb01112423c89aeb5aa10  /tmp/rustup-init" | sha256sum -c - ;; \
+      aarch64-unknown-linux-gnu) echo "9732d6c5e2a098d3521fca8145d826ae0aaa067ef2385ead08e6feac88fa5792  /tmp/rustup-init" | sha256sum -c - ;; \
+    esac && \
+    chmod +x /tmp/rustup-init && \
+    /tmp/rustup-init -y --profile minimal --default-toolchain "${RUST_VERSION}" --no-modify-path && \
+    rm -f /tmp/rustup-init && \
     rustup target add wasm32-unknown-unknown && \
     rustup component add rust-analyzer && \
     rustc --version && cargo --version
