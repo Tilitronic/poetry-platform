@@ -77,13 +77,16 @@ test-infra: gen-jsconfig test-shell
 	$(MAKE) test-python
 	docker compose down
 
-# Unit tests for the FastAPI api-server (pytest). Runs inside the dev container.
-# Debian's system python3 is PEP 668 externally-managed, so deps go into a
-# project-local venv (.venv) bootstrapped on demand via uv — never the system
-# site-packages. Re-runs reuse the existing venv.
+# Unit tests for the Python packages (pytest): apps/api-server + the
+# analytics-pipeline (DIA-013 — it was previously outside all Python gates).
+# Runs inside the dev container. Debian's system python3 is PEP 668
+# externally-managed, so deps go into a project-local venv (.venv) bootstrapped
+# on demand via uv — never the system site-packages. Re-runs reuse the venv.
 test-python:
 	docker compose exec -T dev bash -c 'cd /workspace/apps/api-server && { test -x .venv/bin/python || uv venv .venv; } && uv pip install --python .venv/bin/python -e ".[dev]"'
 	docker compose exec -T dev bash -c 'cd /workspace/apps/api-server && .venv/bin/python -m pytest'
+	docker compose exec -T dev bash -c 'cd /workspace/packages/analytics-pipeline && { test -x .venv/bin/python || uv venv .venv; } && uv pip install --python .venv/bin/python -e ".[dev]"'
+	docker compose exec -T dev bash -c 'cd /workspace/packages/analytics-pipeline && .venv/bin/python -m pytest'
 
 # OpenCode JSONC config syntax validation.
 test-config:
