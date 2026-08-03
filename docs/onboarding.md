@@ -103,23 +103,24 @@ These are the **foundation**. They tell the AI who it is and how to behave.
 
 ### Layer 1: Agents — Specialized AI Roles
 
-We have **13 active agents**, each with a different job and different permissions. They are defined in `.opencode/opencode.jsonc` (the orchestrator is registered by the oh-my-opencode-slim plugin):
+We have **14 active agents**, each with a different job and different permissions. They are defined in `.opencode/opencode.jsonc` (the orchestrator is registered by the oh-my-opencode-slim plugin):
 
-| Agent            | Role                                                       | Permissions                                                  |
-| ---------------- | ---------------------------------------------------------- | ------------------------------------------------------------ |
-| `orchestrator`   | Default agent — delegates to specialists, never edits code | Read-only + delegation (`task`, `question`, `wait_for_user`) |
-| `architector`    | Architecture & strategy — authors `.sdd/` docs with ADRs   | Read-only                                                    |
-| `analyzer`       | Analysis reports & visualizations                          | Read-only subagent                                           |
-| `reviewer`       | Two-axis review (Standards + Spec fidelity)                | Read-only                                                    |
-| `coder`          | Bounded implementation, test-first via tdd-craftsman       | Full (edit, bash, tests)                                     |
-| `code-navigator` | Fast codebase recon                                        | Subagent                                                     |
-| `researcher`     | External research                                          | Subagent                                                     |
-| `designer`       | UI/UX design                                               | Subagent                                                     |
-| `observer`       | Visual/media analysis                                      | Subagent                                                     |
-| `explorer`       | Explore mode — thinking partner for ideas/requirements     | Subagent                                                     |
-| `memory-manager` | Knowledge persistence (`.opencode/memory/`, memory shelf)  | Subagent                                                     |
-| `council`        | Multi-model consensus                                      | Read-only                                                    |
-| `ai-specialist`  | OpenCode tooling best-practices research                   | Read-only subagent (curl/wget only)                          |
+| Agent              | Role                                                             | Permissions                                                    |
+| ------------------ | ---------------------------------------------------------------- | -------------------------------------------------------------- |
+| `orchestrator`     | Default agent — delegates to specialists, never edits code       | Read-only + delegation (`task`, `question`, `wait_for_user`)   |
+| `architector`      | Architecture & strategy — authors `.sdd/` docs with ADRs         | Read-only                                                      |
+| `analyzer`         | Analysis reports & visualizations                                | Read-only subagent                                             |
+| `reviewer`         | Two-axis review (Standards + Spec fidelity)                      | Read-only                                                      |
+| `coder`            | Bounded implementation, test-first via tdd-craftsman             | Full (edit, bash, tests)                                       |
+| `code-navigator`   | Fast codebase recon                                              | Subagent                                                       |
+| `researcher`       | External research                                                | Subagent                                                       |
+| `designer`         | UI/UX design                                                     | Subagent                                                       |
+| `observer`         | Visual/media analysis                                            | Subagent                                                       |
+| `explorer`         | Explore mode — thinking partner for ideas/requirements           | Subagent                                                       |
+| `memory-manager`   | Knowledge persistence (`.opencode/memory/`, memory shelf)        | Subagent                                                       |
+| `council`          | Multi-model consensus                                            | Read-only                                                      |
+| `ai-specialist`    | OpenCode tooling best-practices research                         | Read-only subagent (curl/wget only)                            |
+| `resource-manager` | Knowledge-source curation (ai-assist-sources.yaml, Tier-1 cache) | Subagent — edit scoped to `knowledge/` (curl/wget/trafilatura) |
 
 > The `openspec-plan` lane (Socratic spec authoring via the openspec-propose skill) is also referenced throughout the workflow — see AGENTS.md §2.2.
 

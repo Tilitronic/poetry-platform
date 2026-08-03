@@ -90,4 +90,5 @@ After all subagents return results:
 | Dev-infra (scripts/Makefile, no Docker) | `@coder` | `@reviewer` | `make test-shell` |
 | Dev-infra (Docker / compose) | `@coder` | `@reviewer` | `make test-infra` |
 | OpenCode config | `@coder` | `@ai-specialist` (mandatory) | `make test-config` + restart-verify |
+| Knowledge-source curation (ai-assist-sources.yaml, Tier-1 cache) | `@resource-manager` | `@ai-specialist` (independent review) | YAML validity + cache-file check |
 | Feature code (packages/apps) | `@coder` | `@reviewer` | existing test suites |

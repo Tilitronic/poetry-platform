@@ -175,6 +175,30 @@
         }
       }
     },
+    // resource-manager — knowledge-source curation lane (DIA-007 split).
+    // Artifact-producer tier (practice-protected.md §5): edit scoped to the OMO
+    // knowledge/ dir ONLY; bash limited to curl/wget/trafilatura for Tier-1
+    // Markdown caching + Tier-2 re-fetch. May dispatch @researcher/@conspecter
+    // (task: allow) to gather curation evidence (star counts, pricing, terms).
+    "resource-manager": {
+      "description": "Curates ai-assist-sources.yaml and Tier-1 knowledge caches (Markdown), re-fetches Tier-2 volatile sources, and evaluates awesome-opencode tools by star count (<100 experimental, 100-500 reasonable, 500+ established). Artifact-producer — edit scoped to knowledge/ only.",
+      "mode": "subagent",
+      "model": "opencode-go/deepseek-v4-flash",
+      "color": "#0891B2",
+      "permission": {
+        "edit": {
+          "*": "deny",
+          ".opencode/oh-my-opencode-slim/knowledge/*": "allow"
+        },
+        "bash": {
+          "curl": "allow",
+          "wget": "allow",
+          "trafilatura": "allow",
+          "*": "deny"
+        },
+        "task": "allow"
+      }
+    },
     "ai-specialist": {
       "description": "Researches agent/skill/config best practices for OpenCode itself. Read-only — findings routed through orchestrator for persistence.",
       "mode": "subagent",
