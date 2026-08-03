@@ -18,6 +18,7 @@ These are **not** feature specs — those live in `openspec/changes/`.
 
 | Layer                   | Location                    | Owner          | Lifecycle                        |
 | ----------------------- | --------------------------- | -------------- | -------------------------------- |
+| L0: Domain Vocabulary   | `CONTEXT.md` (root)         | domain-grilling| Lazily filled glossary (per session) |
 | L1: System Architecture | `.sdd/` + `architecture.md` | @architector   | Long-lived (months/years)        |
 | L2: Technical Specs     | `.tss/` (future)            | @architector   | Semi-stable                      |
 | L3: Feature Specs       | `openspec/changes/`         | @openspec-plan | Ephemeral (per change, archived) |

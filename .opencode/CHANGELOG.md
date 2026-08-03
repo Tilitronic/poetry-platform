@@ -1,5 +1,27 @@
 # OpenCode Config Changelog
 
+## 2026-08-03 — mattpocock/skills fork+adapt: 5 skills for OpenCode workflows
+
+Change: Forked and adapted 5 skills from mattpocock/skills (MIT, 200k★) into
+our workflows — domain-grilling (merged grill-with-docs+domain-modeling+grilling,
+3-phase Socratic interview w/ CONTEXT.md glossary + .sdd ADR capture), to-tickets
+(tracer-bullet vertical slices + blocking edges + expand-contract, published to
+DIA ticket ledger), code-review-fowler (12-smell baseline for @reviewer),
+resolving-merge-conflicts (never --abort discipline), diagnosing-bugs discipline
+merged into debugging-workflow (global + project copies). Root CONTEXT.md created;
+AGENTS.md §3/§2.3 + .sdd/README updated; DIA-037 filed for make test-skills gap.
+Reason: gaps surfaced by §10 Phase 1 gate — persistent domain glossary (ana004
+remediation), wide-refactor playbook, review smell descriptions, bug-diagnosis
+discipline, merge-conflict process. Owner approved all 5 (row 99); design arc-1
+(row 100-101); independent review approve-with-changes (row 103-104); fixes applied
+(row 105).
+Files: .opencode/skills/{domain-grilling,to-tickets,code-review-fowler,resolving-merge-conflicts}/SKILL.md,
+CONTEXT.md, ~/.config/opencode/skills/debugging-workflow/SKILL.md,
+.opencode/skills/debugging-workflow/SKILL.md, .opencode/oh-my-opencode-slim.jsonc
+(12 skill-array edits across 3 presets + reviewer prompt ref), AGENTS.md, .sdd/README.md,
+docs/dev-infra-audit/tickets/{_TEMPLATE.md,DIA-037.md,README.md}
+Pending: owner restart OpenCode → smoke tests (skill activation ×5) → commit.
+
 ## 2026-08-03 — cebula preset rebalance: Copilot Pro utilization (observer → gemini-3.6-flash; conspecter/code-navigator/resource-manager → gpt-5-mini)
 - **Change:** cebula preset rebalance — `observer` → `github-copilot/gemini-3.6-flash` (multimodal, replaces gpt-5-mini which is NOT multimodal — observer does visual/media analysis), `conspecter` → `github-copilot/gpt-5-mini`, `code-navigator` → `github-copilot/gpt-5-mini`, `resource-manager` → `github-copilot/gpt-5-mini`. All 4 moved agents keep their Go → free fallback chains (observer: kimi-k2.7-code → big-pickle; conspecter/code-navigator/resource-manager: deepseek-v4-flash ×2). dcp.jsonc: `github-copilot/gemini-3.6-flash` added to both `modelMaxLimits` ("50%") and `modelMinLimits` ("25%"), mirroring the `github-copilot/gemini-3.1-pro-preview` entry.
 - **Reason:** shift subscription quota drain from OpenCode Go ($60/mo cap) toward Copilot Pro (1,500 credits/$15) targeting ~70% Copilot utilization; per §10 GATE research 2026-08-03.

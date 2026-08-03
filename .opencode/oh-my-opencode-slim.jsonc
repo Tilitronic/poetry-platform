@@ -34,7 +34,8 @@
           "simplify",
           "book-rag",
           "mermaid-diagramming",
-          "console-charting"
+          "console-charting",
+          "domain-grilling"
         ],
         "mcps": [],
         "options": {
@@ -60,7 +61,9 @@
           "playwright-browser",
           "debugging-workflow",
           "tdd-craftsman",
-          "git-diff"
+          "git-diff",
+          "to-tickets",
+          "resolving-merge-conflicts"
         ],
         "mcps": [],
         "temperature": 0.1,
@@ -70,7 +73,9 @@
         "model": "opencode-go/qwen3.7-plus",
         "variant": "high",
         "skills": [
-          "teaching"
+          "teaching",
+          "domain-grilling",
+          "to-tickets"
         ],
         "mcps": [],
         "options": {
@@ -106,7 +111,8 @@
           "teaching",
           "playwright-browser",
           "reflect",
-          "book-rag"
+          "book-rag",
+          "code-review-fowler"
         ],
         "mcps": []
       },
@@ -197,7 +203,8 @@
           "simplify",
           "book-rag",
           "mermaid-diagramming",
-          "console-charting"
+          "console-charting",
+          "domain-grilling"
         ],
         "mcps": [],
         "options": {
@@ -211,7 +218,9 @@
         "model": ["opencode-go/qwen3.7-plus", "opencode/big-pickle"],
         "variant": "high",
         "skills": [
-          "teaching"
+          "teaching",
+          "domain-grilling",
+          "to-tickets"
         ],
         "mcps": [],
         "options": {
@@ -229,7 +238,9 @@
           "playwright-browser",
           "debugging-workflow",
           "tdd-craftsman",
-          "git-diff"
+          "git-diff",
+          "to-tickets",
+          "resolving-merge-conflicts"
         ],
         "mcps": [],
         "temperature": 0.1,
@@ -243,7 +254,8 @@
           "teaching",
           "playwright-browser",
           "reflect",
-          "book-rag"
+          "book-rag",
+          "code-review-fowler"
         ]
       },
       "designer": {
@@ -371,7 +383,8 @@
           "simplify",
           "book-rag",
           "mermaid-diagramming",
-          "console-charting"
+          "console-charting",
+          "domain-grilling"
         ],
         "mcps": [],
         "options": {
@@ -385,7 +398,9 @@
         "model": "opencode/big-pickle",
         "variant": "high",
         "skills": [
-          "teaching"
+          "teaching",
+          "domain-grilling",
+          "to-tickets"
         ],
         "options": {
           "reasoningEffort": "high",
@@ -402,7 +417,9 @@
           "debugging-workflow",
           "simplify",
           "tdd-craftsman",
-          "git-diff"
+          "git-diff",
+          "to-tickets",
+          "resolving-merge-conflicts"
         ],
         "mcps": [],
         "temperature": 0.1,
@@ -416,7 +433,8 @@
           "teaching",
           "playwright-browser",
           "reflect",
-          "book-rag"
+          "book-rag",
+          "code-review-fowler"
         ]
       },
       "designer": {
@@ -527,7 +545,7 @@
       "orchestratorPrompt": "@resource-manager\n- Lane: Knowledge-source curation (ai-assist-sources.yaml, Tier-1 Markdown caches, Tier-2 re-fetch, awesome-opencode star-count evaluation)\n- Role: Artifact-producer — edit scoped to .opencode/oh-my-opencode-slim/knowledge/* ONLY; bash curl/wget/trafilatura; may dispatch @researcher/@conspecter.\n- Delegate when: a source is missing from ai-assist-sources.yaml, Tier-1 cache refresh, Tier-2 re-fetch, awesome-opencode tool evaluation.\n- Don't delegate: config changes -> @coder, research analysis -> @ai-specialist/@analyzer, implementation -> @coder."
     },
     "reviewer": {
-      "orchestratorPrompt": "@reviewer\n- Lane: Two-axis code review — Standards and Spec fidelity, reported separately, never merged\n- Role: Reviews the diff since a fixed point along two independent axes: Standards (repo coding standards + Fowler smell baseline) and Spec (faithful implementation of the originating OpenSpec change). Reports both axes side by side without merging or reranking them.\n- Permissions: read_files\n- **Note:** intentionally different model family than coder for review diversity. Do NOT collapse same family.\n\n## INPUTS\n- Fixed point: the commit, branch, tag, or merge-base the diff is compared against. Capture `git diff <fixed-point>...HEAD` (three-dot) and `git log <fixed-point>..HEAD --oneline`. Confirm the ref resolves and the diff is non-empty before proceeding.\n- Spec source: the originating OpenSpec change under `openspec/changes/<name>/` — read proposal.md, design.md, tasks.md, and specs/ (if present). Also read .sdd/ and .tss/ for design constraints. If no spec exists, the Spec axis reports 'no spec available' instead of guessing.\n\n## REVIEW WORKFLOW\n1. Pin the fixed point; read the originating spec artifacts.\n2. Produce TWO SEPARATE sections, never merged:\n\n## Standards\nDoes the code conform to the repo's documented coding standards (architecture.md, AGENTS.md, .sdd/) PLUS the Fowler smell baseline below? A documented repo standard overrides the baseline. Skip anything tooling (lint/typecheck) already enforces. Distinguish hard violations (documented-standard breaches) from judgement calls (baseline smells).\n\n### Fowler smell baseline (always applied — each is a labelled heuristic, never a hard violation)\nMysterious Name · Duplicated Code · Feature Envy · Data Clumps · Primitive Obsession · Repeated Switches · Shotgun Surgery · Divergent Change · Speculative Generality · Message Chains · Middle Man · Refused Bequest\n\n## Spec\nDoes the code faithfully implement the originating spec (proposal.md / design.md / tasks.md)?\n(a) Requirements the spec asked for that are missing or partial\n(b) Behaviour in the diff that wasn't asked for (scope creep)\n(c) Requirements that look implemented but where the implementation looks wrong\nQuote the spec line for each finding.\n\n## Summary\nTotal findings per axis. Worst issue within each axis. Do NOT pick a single winner across axes — the separation is the point.\n\n## FINDING FORMAT (within each axis)\n[SEVERITY] file:line — Title\n  Issue: what's wrong\n  Why: principle violated\n  Fix: concrete suggestion\nSEVERITY: Blocker=production risk/security hole | Critical=wrong algorithm/broken contract | Major=maintainability/unclear | Minor=style/naming | Suggestion=future refactor\n\n## RAG GROUNDING\nFor SOLID/patterns: query #csc \"SOLID principles\"\nFor JS/TS: query #js for language-specific patterns\n\n## TEACHING MODE\nAlways explain WHY an approach is problematic, referencing design patterns. Frame as mentoring — what's good AND what improves.\n\n## OWNERSHIP\nCheck git blame / CODEOWNERS if available. Flag ownership boundary crossings.\n\n## DELEGATION\n**Delegate when:** Pre-merge review, quality gate, architectural compliance, mock review of junior code.\n**Don't delegate:** Implementation, debugging, feature dev, spec writing."
+      "orchestratorPrompt": "@reviewer\n- Lane: Two-axis code review — Standards and Spec fidelity, reported separately, never merged\n- Role: Reviews the diff since a fixed point along two independent axes: Standards (repo coding standards + Fowler smell baseline) and Spec (faithful implementation of the originating OpenSpec change). Reports both axes side by side without merging or reranking them.\n- Permissions: read_files\n- **Note:** intentionally different model family than coder for review diversity. Do NOT collapse same family.\n\n## INPUTS\n- Fixed point: the commit, branch, tag, or merge-base the diff is compared against. Capture `git diff <fixed-point>...HEAD` (three-dot) and `git log <fixed-point>..HEAD --oneline`. Confirm the ref resolves and the diff is non-empty before proceeding.\n- Spec source: the originating OpenSpec change under `openspec/changes/<name>/` — read proposal.md, design.md, tasks.md, and specs/ (if present). Also read .sdd/ and .tss/ for design constraints. If no spec exists, the Spec axis reports 'no spec available' instead of guessing.\n\n## REVIEW WORKFLOW\n1. Pin the fixed point; read the originating spec artifacts.\n2. Produce TWO SEPARATE sections, never merged:\n\n## Standards\nDoes the code conform to the repo's documented coding standards (architecture.md, AGENTS.md, .sdd/) PLUS the Fowler smell baseline below? A documented repo standard overrides the baseline. Skip anything tooling (lint/typecheck) already enforces. Distinguish hard violations (documented-standard breaches) from judgement calls (baseline smells).\n\n### Fowler smell baseline (always applied — each is a labelled heuristic, never a hard violation)\nMysterious Name · Duplicated Code · Feature Envy · Data Clumps · Primitive Obsession · Repeated Switches · Shotgun Surgery · Divergent Change · Speculative Generality · Message Chains · Middle Man · Refused Bequest\nFull baseline with descriptions: see the `code-review-fowler` skill.\n\n## Spec\nDoes the code faithfully implement the originating spec (proposal.md / design.md / tasks.md)?\n(a) Requirements the spec asked for that are missing or partial\n(b) Behaviour in the diff that wasn't asked for (scope creep)\n(c) Requirements that look implemented but where the implementation looks wrong\nQuote the spec line for each finding.\n\n## Summary\nTotal findings per axis. Worst issue within each axis. Do NOT pick a single winner across axes — the separation is the point.\n\n## FINDING FORMAT (within each axis)\n[SEVERITY] file:line — Title\n  Issue: what's wrong\n  Why: principle violated\n  Fix: concrete suggestion\nSEVERITY: Blocker=production risk/security hole | Critical=wrong algorithm/broken contract | Major=maintainability/unclear | Minor=style/naming | Suggestion=future refactor\n\n## RAG GROUNDING\nFor SOLID/patterns: query #csc \"SOLID principles\"\nFor JS/TS: query #js for language-specific patterns\n\n## TEACHING MODE\nAlways explain WHY an approach is problematic, referencing design patterns. Frame as mentoring — what's good AND what improves.\n\n## OWNERSHIP\nCheck git blame / CODEOWNERS if available. Flag ownership boundary crossings.\n\n## DELEGATION\n**Delegate when:** Pre-merge review, quality gate, architectural compliance, mock review of junior code.\n**Don't delegate:** Implementation, debugging, feature dev, spec writing."
     },
     "memory-manager": {
       "orchestratorPrompt": "@memory-manager\n- Lane: Knowledge persistence and memory management\n- Role: Persists irrecoverable knowledge — ADRs, lessons, repo facts, failures. Runs at task completion or after ≥2 failed loops.\n- Core rule: if recoverable from git log, diff, tests, or code — do NOT store. Verify twice: check before writing, re-read after.\n- Memory files (.opencode/memory/): adr.md (architecture decisions), lessons.md (agent behavior patterns), repo.md (codebase structure), failures.md (loop root causes)\n- **Delegate when:** Task/feature completion, ≥2 failed loop iterations, documentation impact flagged by reviewer\n- **Don't delegate when:** Per-iteration, routine tasks"

@@ -27,6 +27,7 @@ Architecture → Specification → Implementation:
 
 1. **Pre-flight**: Check `.sdd/` and `openspec/` for governing constraints before touching code
 2. **Dispatch** `@coder` — implements against `tasks.md`, within architectural constraints
+   - Optionally run `to-tickets` first to publish the tasks as DIA tickets in `docs/dev-infra-audit/tickets/`
 3. **Post-flight**: Run dev build, lint, tests before handing off
 4. **Persist**: After feature completion or ≥2 failed loops, dispatch `@memory-manager` to capture ADRs, lessons, and failure patterns in `.opencode/memory/`
 
@@ -64,6 +65,7 @@ Before any code change, check these files for governing constraints (in order):
 2. `.sdd/` — software design documents (module-level; currently only `.sdd/README.md` exists — no module docs authored yet)
 3. `.tss/` — technical specifications (planned future layer — not yet created)
 4. `openspec/` — OpenSpec artifacts (if present)
+5. `CONTEXT.md` — domain glossary (the domain-vocabulary layer; maintained by `domain-grilling`)
 
 **Key principle:** Design drives code, not the reverse. If no design document exists for a module, flag it as a gap before implementing.
 

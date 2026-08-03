@@ -13,6 +13,7 @@ carries the full detail (description, verification, fix, re-verify evidence).
 | DIA-006 | api-server has no production Dockerfile — evaluate need                                                      | docker          | Major    | OPEN   | [DIA-006.md](DIA-006.md) |
 | DIA-030 | unverified installs in Dockerfile.dev                                                                        | docker          | Medium   | OPEN   | [DIA-030.md](DIA-030.md) |
 | DIA-034 | pip-audit finding: apps/api-server ecdsa 0.19.2 PYSEC-2026-1325 (transitive via python-jose), NO fix version | deps            | Medium   | OPEN   | [DIA-034.md](DIA-034.md) |
+| DIA-037 | make test-skills gap — no validation of SKILL.md content                                                    | opencode-config | Minor    | OPEN   | [DIA-037.md](DIA-037.md) |
 
 ## Status summary
 
@@ -22,7 +23,7 @@ carries the full detail (description, verification, fix, re-verify evidence).
 | Critical | 0     |
 | Major    | 1     |
 | Medium   | 2     |
-| Minor    | 1     |
+| Minor    | 2     |
 | Low      | 0     |
 
 | Status      | Count |
