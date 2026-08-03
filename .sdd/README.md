@@ -31,14 +31,23 @@ These are **not** feature specs — those live in `openspec/changes/`.
 
 ## Index
 
-No module-level `.sdd/` documents have been authored yet. The current system
-architecture authority is the root `architecture.md` (system boundaries, schema
-decision framework, and open questions live there). When `@architector` produces
-a module architecture document, it is indexed here using the
+One module-level `.sdd/` document has been authored so far:
+`dia-redispatch-cycle/architecture.md` (a 5-ADR seed for the cycle-management
+protocol, produced as part of a dev-infra campaign — see row below). The system
+architecture authority remains the root `architecture.md` (system boundaries,
+schema decision framework, and open questions live there). When `@architector`
+produces further module architecture documents, they are indexed here using the
 `NN-<topic>/architecture.md` numbering convention:
 
-| Document                             | Summary                                                                                                           |
-| ------------------------------------ | ----------------------------------------------------------------------------------------------------------------- |
-| `01-system-overview/architecture.md` | System boundaries, guiding principles, data-flow overview (planned — not yet authored)                            |
-| `02-schema-decision/architecture.md` | Why three schema technologies (FlatBuffers, Protobuf, native TS); decision framework for new boundaries (planned) |
-| `03-open-questions/architecture.md`  | Tracked blind spots and their resolution status (planned)                                                         |
+> **Process note (dev-infra / non-system-architecture modules):** unnumbered
+> directory names are permitted for dev-infra and other non-system-architecture
+> modules — `dia-redispatch-cycle/` deliberately matches the
+> `openspec/changes/` naming instead of the `NN-<topic>/` convention, and that is
+> acceptable. Numbered names remain the default for system-architecture modules.
+
+| Document                               | Summary                                                                                                           |
+| -------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `01-system-overview/architecture.md`   | System boundaries, guiding principles, data-flow overview (planned — not yet authored)                            |
+| `02-schema-decision/architecture.md`   | Why three schema technologies (FlatBuffers, Protobuf, native TS); decision framework for new boundaries (planned) |
+| `03-open-questions/architecture.md`    | Tracked blind spots and their resolution status (planned)                                                         |
+| `dia-redispatch-cycle/architecture.md` | 5-ADR seed for the cycle-management protocol (dev-infra campaign)                                                 |

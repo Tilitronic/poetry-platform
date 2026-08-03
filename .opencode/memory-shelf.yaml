@@ -27,5 +27,10 @@ shelf:
       path: "openspec/changes/context7-docs-pipeline/"
       created: 2026-08-02
       status: implemented
+    - name: "dia-redispatch-cycle"
+      description: "OpenSpec change: dev-infra campaign protocol for AI-assisted development cycle management. Three interlocking protocols: CRISIS-DETECTION (C1–C5 binary OR triggers — same-task failure loop, re-plan churn, tool-call stagnation, context overflow, prognosis debt), PROGNOSIS-DISCIPLINE (HANDOFF.md with 5 folded subsections: session_summary/fixes_applied/open_tickets/verification_request/resume_instructions), and cycle-budget management (default max-cycles=3, override 2..10 clamped, 4 exit states: clean/crisis/exhausted/manual-halt). Includes: messages.md 8→9-column schema extension (nullable, backward-compatible, no migration), T5 row schema with cycle attribution, cycle-id format c-YYYYMMDD-HHMMss UTC, batch-approval boot protocol, clean-termination via fresh-session independent verification (no self-certification). Seeds .sdd/dia-redispatch-cycle/ with 5 ADRs. 6 vertical slices: spec-infra scaffold, messages schema fixture, crisis drills, budget edge cases, independence verification, integration end-to-end."
+      path: "openspec/changes/dia-redispatch-cycle/"
+      created: 2026-08-03
+      status: implemented
   architectures: []
   rag_bases: []

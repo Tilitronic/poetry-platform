@@ -115,7 +115,8 @@ for fix/re-verify evidence. The 5 remaining OPEN tickets are all non-blocking fo
 the clean cycle:
 
 - **DIA-003** — deferred skills-lock pinning (format limitation).
-- **DIA-006 / DIA-007** — pending USER DECISION (production Dockerfile; ai-specialist split).
+- **DIA-006** — deferred production Dockerfile (owner decision 2026-08-03: no deploy story; production-image need unproven).
+- **DIA-007** — pending USER DECISION (ai-specialist split).
 - **DIA-030** — monitored (volta digests when upstream ships them).
 - **DIA-034** — monitored (ecdsa advisory with no published fix).
 
@@ -132,4 +133,4 @@ self-rerun protocol (`.opencode/session/`, gitignored), and added
 `docs/dev-infra-audit/NEXT-RUN.md` — the operating manual the next orchestrator
 instance follows to rerun the audit flow and close the 5 open tickets
 (DIA-003/006/007/030/034). Ledger rollup: **36 tickets total — 25 FIXED, 6 CLOSED,
-5 OPEN** (all non-blocking: 1 DEFERRED, 2 USER-DECISION, 2 MONITOR).
+5 OPEN** (all non-blocking: 2 DEFERRED, 1 USER-DECISION, 2 MONITOR).
