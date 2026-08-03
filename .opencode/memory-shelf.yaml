@@ -32,5 +32,10 @@ shelf:
       path: "openspec/changes/dia-redispatch-cycle/"
       created: 2026-08-03
       status: implemented
+    - name: "volta-to-mise"
+      description: "OpenSpec change: replace the unmaintained Volta JS tool manager with the SHA256-verifiable mise tool manager in the dev container. Closes DIA-030 (CLOSED 2026-08-03 with owner migration directive — Volta is officially unmaintained per issue #2080, v2.0.2 2024-12-05 stale, upstream recommends mise, no checksums ever coming). Dual-path contract: mise tarball installs (SHA256-verified in Dockerfile.dev + tools/opencode-docker/Dockerfile) + .mise.toml declares (repo root, [tools] only, no env/plugins/settings — interview Q8). MISE_VERSION ARG + SHA256 resolved at implementation time via flag (b) fetch command (TODO — spec does not invent hashes). MISE_TRUSTED_CONFIG_PATHS=/workspace ENV so non-root dev user reads mounted .mise.toml. Seams S1 Dockerfile install block, S2 make check-tools + bats, S3 smoke-test runtime probes, S4 .mise.toml integrity. Removes both volta blocks (Dockerfile.dev lines 108-118 + tools/opencode-docker/Dockerfile lines 48-54) + both package.json volta blocks (root + apps/author-studio). Renames volta* → mise in collect-runtime-deps.sh whitelist. Adds make check-tools (host-runnable, NOT wired into test-shell/test-infra — requires mise on PATH). Adds 3 smoke probes (mise --version, mise install+mise which node, MISE_TRUSTED_CONFIG_PATHS set). 5 vertical slices: T1 .mise.toml+volta-removals+check-tools+bats (foundation), T2 Dockerfile.dev+S2 ENV+smoke probes (depends T1), T3 tools/opencode-docker Dockerfile swap+whitelist rename (depends T2 — copies FLAG_B pattern), T4 docs updates (depends T1, parallel with T2/T3), T5 full validation gate (depends T2/T3/T4). Rollback: git revert + make build && make test-infra. AC1-AC14 testable at seams. No .sdd/ module doc created (dev-infra within existing boundaries, no @architector dispatch)."
+      path: "openspec/changes/volta-to-mise/"
+      created: 2026-08-03
+      status: proposed
   architectures: []
   rag_bases: []

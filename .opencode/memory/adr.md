@@ -150,3 +150,33 @@ The context7-docs-pipeline fetches library docs from Context7 (context7.com/api/
 
 - Verification must include at least one real API run when adding or changing networked dev-infra scripts.
 - The pipeline's error semantics (skipped vs failed) are preserved and should be consulted when interpreting run reports.
+
+## ADR: Orchestrator operating model — delegation-only, read-restricted, session-continuity handoff
+
+### Status
+
+Accepted — 2026-08-02
+
+### Context
+
+Following the dev-infra audit and owner directive (DIA-036), the team formalised an operating model for the orchestrator to reduce risk from an agent that can edit or read repository state. The change was approved after ai-specialist review and independent review (followed §10 gate). The WHAT (commit pointers, CHANGELOG, and DIA-036.md) remain in git; this ADR records the irrecoverable WHY/context and operational gotchas that guided the decision.
+
+### Decision
+
+1. The orchestrator will be delegation-only: it must not perform direct code edits. Its role is messaging, workflow orchestration, and strict delegation to human or coder agents.
+2. Read-restriction: the orchestrator is forbidden from reading repo files except for its own session messages-log under .opencode/session/ and a small set of boot/rules files: AGENTS.md, .opencode/practice-protected.md, docs/dev-infra-audit/NEXT-RUN.md. The messages-log is gitignored and treated ephemeral.
+3. Session-continuity handoff: when the orchestrator's session context usage reaches the configured threshold (owner-specified threshold — manual: token_stats vs model-window lookup table in NEXT-RUN.md), the orchestrator performs a manual handoff: a human-instigated restart of a new orchestrator instance that resumes from HANDOFF.md + messages.md. Child-dispatch automatic handoff is NOT used; the owner explicitly approved manual handoff.
+
+### Rationale (irrecoverable context)
+
+- Owner intent: the owner required read strictness and delegation-only operations to reduce accidental repo changes and governance risk; this is a policy-level decision not reconstructible from code.
+- Manual handoff rationale: manual handoff gives an explicit human checkpoint and prevents silent session forks or runaway automated restarts that could circumvent policy. The approval explicitly chose manual handoff over child-dispatch — record this as an operational constraint.
+- Messages-log gitignored: keeping the orchestrator's session log out of git reduces secret/leak risk and prevents session artifacts from being treated as authoritative repo history. This gitignore choice plus the expectation that boot tolerates a missing .opencode/session/ directory (fresh clone) is an operational gotcha to record: boot must not fail if session messages are absent.
+- Token window & handoff frequency gotcha (CORRECTED 2026-08-03): deepseek-v4-flash's actual context window is **1,000,000 tokens** (verified against models.dev 2026-08-03 — V4-Flash, NOT the V3-Flash 64k window). The 50% threshold therefore maps to ≈500K tokens, and sessions run ~15.6× longer than the old 64k assumption suggested. Operational consequence: ALWAYS verify context windows against models.dev before handoff decisions (verify-on-use); the old 50% → ~32k mapping is wrong and superseded. Cross-ref repo.md / lessons.md for the correction trail.
+- Permission ordering: the owner required a catch-all "*" permission rule ordered FIRST to make read restrictions explicit per OpenCode docs. The ordering fix was applied during review; record that path-scoped permission semantics and ordering are an implementation gotcha.
+
+### Consequences
+
+- Implementations must make boot tolerant of a missing .opencode/session/ (no messages.md) to support fresh clones and scripted CI runs.
+- Monitoring: add a small operational monitor that alerts when session context usage crosses the 50% threshold to schedule a manual handoff. Token->window math should be documented in NEXT-RUN.md.
+- Policy: reviewers and auditors should confirm orchestrator code and configs only reference permitted files; runtime checks should enforce read restrictions where possible.

@@ -267,6 +267,7 @@ Format: `c-YYYYMMDD-HHMMss` UTC
 - The budget increments **only on full audit pass** — a cycle that ends due to ≥50% context rerun does NOT increment the budget counter unless a full audit pass was completed.
 - "Full audit pass" means the cycle produced a complete HANDOFF.md with all five subsections populated, and the successor session acknowledged receipt via the batch-approval protocol.
 - Context reruns at ≥50% are tracked separately (in messages.md evidence) but do not consume budget unless the cycle terminates.
+- **CLARIFICATION (2026-08-03, handoff-protocol modernization):** the ≥50% context threshold is now a **SAFETY-NET**; the primary SELF-RERUN trigger is **30%** plus campaign milestones (see NEXT-RUN.md §2). Native compaction (`compaction.auto`, opencode.jsonc) handles raw context pressure. Budget accounting is unchanged — only full audit passes increment.
 
 ### Exit states
 

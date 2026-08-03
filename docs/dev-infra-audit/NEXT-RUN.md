@@ -14,6 +14,9 @@ Read these files **in this order** when a session starts:
 1. `.opencode/session/HANDOFF.md` — if it exists, read it **FIRST**. It is the resume
    point from a previous instance (previous session id, last message #, reason,
    campaign state, resume instructions).
+   1.5. **BATCH-APPROVAL GATE (G1)** — if HANDOFF.md exists and contains a "Prognosis for
+   next cycle" section, present the full prognosis to the developer as a **batch
+   approval** BEFORE reading messages.md or delegating any work. See §7.3 for protocol.
 2. `.opencode/session/messages.md` — the session history record. Read the **last ~20
    entries** to reconstruct what happened and what the next action is.
 3. **This file** (`docs/dev-infra-audit/NEXT-RUN.md`) — the operating manual.
@@ -38,17 +41,32 @@ with a read-only task) to report the current contents of:
 - **WRITE RESTRICTION**: you write ONLY to `.opencode/session/*` (messages.md append
   - HANDOFF.md). Never edit code, config, or docs directly.
 - **MESSAGES-LOG DISCIPLINE**: after EVERY delegation result and every user decision,
-  append one row to `.opencode/session/messages.md` (table: `# | timestamp | from |
-to | lane/ticket | result | next-action`). Also append campaign-state snapshots
-  before any session end.
-- **SELF-RERUN**: when context usage >= 50%, write `.opencode/session/HANDOFF.md`
-  (previous session id, last message #, reason, campaign state incl. active tickets
-  - next lane + gates passed, resume instructions), append a final log row, then end
-    your turn telling the user a fresh session should be started — the next instance
-    reads HANDOFF.md + messages.md and resumes. Detection: call `token_stats`; compute
-    (input+output)/model_context_window using this lookup (estimates):
-    qwen3.7-max 1,000,000; qwen3.7-plus 1,000,000 (per models.dev; verify on next refresh); deepseek-v4-flash 1,000,000;
-    big-pickle 200,000 (unverified); others 131,072 unless known. Context windows per models.dev, verified 2026-08-03.
+  append BOTH (a) one row to `.opencode/session/messages.md` (table: `# | timestamp |
+from | to | lane/ticket | result | next-action`) AND (b) one JSON line to
+  `.opencode/session/messages.jsonl` (semconv v1.42.0 — same event, one JSON object).
+  Row numbering MUST be strictly monotonic — continue from the last row # across
+  sessions, never restart on a fresh session; an empty file starts at 1. Also append
+  campaign-state snapshots before any session end.
+- **SELF-RERUN**: OpenCode native compaction (`compaction.auto: true`, opencode.jsonc)
+  handles RAW context pressure within a session — no human action needed for compaction
+  events. SELF-RERUN is triggered by: (a) **CAMPAIGN MILESTONE** — a major phase
+  completes (implementation done, review disposition finalized, campaign complete) and
+  the next phase benefits from a fresh session; (b) **CONTEXT DEGRADATION** — compaction
+  has compacted campaign-critical context (HANDOFF.md, prognosis, cycle state) so the
+  orchestrator cannot reliably continue; (c) **PRIMARY THRESHOLD** — context usage
+  > = 30% of the model context window (300K tokens for 1M-window models); (d) **HARD
+  > SAFETY-NET** — context usage >= 50% (unconditional force). On ANY trigger: write
+  > `.opencode/session/HANDOFF.md` (previous session id, last message #, reason, campaign
+  > state incl. active tickets + next lane + gates passed, resume instructions), append a
+  > final log row, then end your turn telling the user a fresh session should be started —
+  > the next instance reads HANDOFF.md + messages.md and resumes. Detection: call
+  > `token_stats`; compute (input+output)/model_context_window using this lookup
+  > (estimates): qwen3.7-max 1,000,000; qwen3.7-plus 1,000,000 (per models.dev; verify on
+  > next refresh); deepseek-v4-flash 1,000,000;
+  > big-pickle 200,000 (unverified); others 131,072 unless known. Context windows per
+  > models.dev, verified 2026-08-03. NOTE: compaction is size-triggered, not
+  > relevance-triggered, and loses campaign-critical detail — hence the 30% primary
+  > threshold (research-refined division of labor).
 - **CRISIS-DETECTION**: a cycle is in crisis when **ANY** of C1–C5 fires (binary OR — ADR-002,
   `.sdd/dia-redispatch-cycle/architecture.md`; full rule text in
   `openspec/changes/dia-redispatch-cycle/design.md` §1). C1: ≥3 consecutive failures on the
@@ -71,6 +89,13 @@ to | lane/ticket | result | next-action`). Also append campaign-state snapshots
   override 2..10 clamped, 1 disallowed, >10 requires split) is recorded in the cycle HANDOFF.md
   (current/max, clean-re-audit, budget-exhausted) + the campaign trigger manifest — NOT in this
   file. Full rule text: design.md §2 / §7 / §9.
+- **HANDOFF-REFRESH (G2)**: HANDOFF.md must be **REWRITTEN** (not appended) at each
+  campaign milestone: (a) after any implementation lane completes; (b) after any review
+  disposition is finalized; (c) after any commit lane lands; (d) at campaign completion.
+  Each rewrite captures the current state snapshot — supersede, do not accumulate stale
+  sections. Detection: after logging a messages.md row whose result contains
+  DONE/COMPLETE/PASS for an implementation/review/commit lane, rewrite HANDOFF.md within
+  the same delegation cycle.
 - **DELEGATION MAP**: research→@researcher, analysis→@analyzer, inventory→@code-navigator,
   implementation→@coder (after @openspec-plan spec; tdd-craftsman), review→@reviewer,
   architecture→@architector, opencode-config research/review→@ai-specialist,
@@ -100,16 +125,19 @@ docs lane) → fix via delegation → re-verify. Repeat until the full cycle is 
 
 ## 4. Open Tickets to Close
 
-| ID      | Summary                                                   | Severity | Disposition                                                                                 |
-| ------- | --------------------------------------------------------- | -------- | ------------------------------------------------------------------------------------------- |
-| DIA-003 | skills-lock pinning (all skills)                          | Minor    | **CLOSED** — 2026-08-03 owner directive; archived per archive policy (see tickets/archive/) |
-| DIA-006 | api-server production Dockerfile                          | Major    | **CLOSED** — 2026-08-03 owner directive; archived per archive policy (see tickets/archive/) |
-| DIA-030 | unverified installs in Dockerfile.dev (volta)             | Medium   | **CLOSED** — 2026-08-03 owner directive; archived per archive policy (see tickets/archive/) |
-| DIA-034 | ecdsa 0.19.2 PYSEC-2026-1325 (transitive via python-jose) | Medium   | **CLOSED** — 2026-08-03 owner directive; archived per archive policy (see tickets/archive/) |
+| ID      | Summary                                                   | Severity | Disposition                                                                                                                                                                                          |
+| ------- | --------------------------------------------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| DIA-003 | skills-lock pinning (all skills)                          | Minor    | **CLOSED** — 2026-08-03 owner directive; archived per archive policy (see tickets/archive/)                                                                                                          |
+| DIA-006 | api-server production Dockerfile                          | Major    | **CLOSED** — 2026-08-03 owner directive; archived per archive policy (see tickets/archive/)                                                                                                          |
+| DIA-030 | unverified installs in Dockerfile.dev (volta)             | Medium   | **CLOSED** — 2026-08-03 owner directive; migration executed via `openspec/changes/volta-to-mise` (Volta v2.0.2 → SHA256-verified mise v2026.8.0); archived per archive policy (see tickets/archive/) |
+| DIA-034 | ecdsa 0.19.2 PYSEC-2026-1325 (transitive via python-jose) | Medium   | **CLOSED** — 2026-08-03 owner directive; archived per archive policy (see tickets/archive/)                                                                                                          |
 
 No open tickets remain from the audit campaign. DIA-003 / DIA-006 / DIA-030 /
 DIA-034 were CLOSED and archived 2026-08-03 (owner directive; dispositions in
-`tickets/archive/`). DIA-007 was archived in the 2026-08-03 cleanup (git
+`tickets/archive/`). DIA-030's migration directive was executed 2026-08-03 via
+`openspec/changes/volta-to-mise` (Volta v2.0.2 → SHA256-verified mise v2026.8.0
+in `Dockerfile.dev` + `tools/opencode-docker/Dockerfile`; `.mise.toml` is the new
+single source of node/pnpm pins). DIA-007 was archived in the 2026-08-03 cleanup (git
 history). The only active ledger row is DIA-037 (OPEN backlog — make test-skills
 gate), tracked in `tickets/README.md`.
 
@@ -121,7 +149,7 @@ tickets are only DEFERRED / USER-DECISION / MONITOR (non-blocking).
 ## 6. Session Continuity
 
 `messages.md` is your memory; never lose state — append before ending any session;
-handoff protocol at >= 50% context (see rule 2).
+handoff protocol per rule 2 (30% primary threshold / 50% safety-net; campaign milestones).
 
 ## 7. Redispatch Protocol (dia-redispatch-cycle)
 
@@ -157,6 +185,11 @@ The incoming session's FIRST action is to read the predecessor HANDOFF.md and pr
 the "Prognosis for next cycle" section as a **batch approval** to the developer BEFORE
 any delegation or tool use (design.md §8):
 
+0. **DETECTION** — at session start, check for `.opencode/session/HANDOFF.md`. If it
+   exists AND contains a `## Prognosis for next cycle` heading, the batch-approval
+   protocol is MANDATORY: log a messages.md row (channel: 'handoff',
+   event_type: 'batch-approval-gate') before proceeding. If no HANDOFF.md exists or it
+   has no Prognosis section, skip to normal boot (§1).
 1. Read HANDOFF.md and parse the prognosis section.
 2. Present each subsection as a batch: session_summary → fixes_applied → open_tickets →
    verification_request → resume_instructions.
@@ -164,7 +197,10 @@ any delegation or tool use (design.md §8):
 4. Rejected items become new open_tickets; deferred items carry forward.
 5. During open_tickets review, run the **C5 check**: if a `[BLOCKING]` ticket from the
    predecessor was supposed to be resolved but wasn't, C5 fires (design.md §1).
-6. Only after ALL items are approved does the session begin work — no work before approval.
+6. **VERIFICATION** — after the developer approves ALL items, log a messages.md row
+   (channel: 'delegation', resolution_status: 'acknowledged',
+   content_ref: 'batch-approval-complete'); ONLY THEN begin work. Rejected items become
+   new open_tickets and await instruction — they are not silently carried forward.
 
 ### 7.4 Crisis handling
 
@@ -178,7 +214,13 @@ cycle (counts against budget), or close the change.
 A `clean` exit requires fresh-session independent verification (design.md §9, ADR-003):
 the session that produced the work cannot certify its own completion. The fresh session
 reads HANDOFF.md, executes each verification_request independently, and confirms or
-downgrades exit_state. No self-certification; untrusted markers block SELF-RERUN.
+downgrades exit_state. Procedure: the fresh session APPENDS a `## Verification Result`
+section to HANDOFF.md with, per verification_id, a status (verified-pass |
+verified-fail | verified-partial), evidence, the verifier session ID, and a timestamp.
+All verified-pass → confirm 'clean'; any verified-fail → downgrade exit_state to
+'crisis' (and append failure details); mixed pass+partial → 'manual-halt'. The producer
+session NEVER writes the Verification Result — it is the verifier's contract only; no
+self-certification; untrusted markers block SELF-RERUN.
 
 ### 7.6 Cycles budget
 

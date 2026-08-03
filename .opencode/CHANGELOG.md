@@ -1,5 +1,32 @@
 # OpenCode Config Changelog
 
+## 2026-08-03 — Handoff protocol modernization (G1–G9)
+
+- **Change:** §10-approved modernization of the orchestrator handoff protocol per the handoff-protocol audit (learnings 2026-08-03-handoff-protocol-audit.md). 9 files modified, 1 script created, 0 deleted. Uncommitted.
+- **Reason:** Audit found 3 correctness defects (G1 Critical batch-approval boot never executed; G2 Major HANDOFF.md staleness; G3 Major messages.md non-monotonic numbering) + modernization of continuity mechanics (G4 compaction/SELF-RERUN split, 30% primary / 50% safety-net; G5 prompt-enforced pre-handoff verification gate; G6 verification_result section) + tooling (G7 adr.md 64k→1M; G8 verified no-op; G9 jsonl-stats consumer).
+- **Files:** docs/dev-infra-audit/NEXT-RUN.md · .opencode/oh-my-opencode-slim.jsonc · .opencode/oh-my-opencode-slim/orchestrator_append.md · .opencode/skills/review-re-verify/SKILL.md · openspec/templates/HANDOFF.md · openspec/changes/dia-redispatch-cycle/design.md · .opencode/memory/adr.md · .opencode/session/README.md · NEW .opencode/scripts/jsonl-stats.sh · Makefile
+- **Design decisions:** batch-approval ENFORCED not deprecated (G1); HANDOFF-REFRESH milestone-based rewrite (G2); JSONL-canonical + strictly monotonic numbering (G3); native compaction handles raw pressure, SELF-RERUN = campaign-state transfer with 30% primary/50% hard-cap (G4); plugin-free prompt gate (G5, research: no native OpenCode hooks//goal — Option B); verifier-only Verification Result (G6).
+- **Review:** ai-specialist ai--14 APPROVE-WITH-CHANGES (confidence 90%; C1 jsonl-stats execution resolved by coder evidence; M1 cosmetic not applied; M2 no-action); owner approved as-is (row 187).
+- Pending user: restart OpenCode → post-restart smoke → commit decision.
+
+## 2026-08-03 — Reviewer context-fork alignment (Options A+C)
+
+- **Change:** Removed `teaching`, `playwright-browser`, `reflect` from reviewer skills array (×3 presets) — reviewer now loads `[book-rag, code-review-fowler, review-re-verify]`; appended `## FRESH-CONTEXT EVALUATION` section to reviewer orchestratorPrompt ("You receive only the diff, criteria, and coder's verification evidence — NOT the coder's reasoning, chain-of-thought, or self-justifications...").
+- **Reason:** Anthropic fresh-context verification principle — a verifier must evaluate the code on its own terms with clean criteria, not be anchored to the builder's reasoning/narrative ("the agent doing the work isn't the one grading it"; "sees only the diff and the criteria you give it, not the reasoning that produced the change").
+- **Files:** oh-my-opencode-slim.jsonc (reviewer skills ×3 presets; reviewer orchestratorPrompt).
+- **Design decisions:** Option A+C from context-fork gap analysis (ai--1 audit): teaching → mentoring posture assumes coder intent; reflect → self-referential anchoring in re-review; playwright-browser → irrelevant context bloat. Option B (structured fixes-applied summary) deferred; O3/O4 remain deferred.
+- **Review:** §10 ai-specialist APPROVE (6/6 PASS, coherence teaching-mode vs fresh-context = orthogonal, no tension).
+- Pending user: restart OpenCode + functional smoke test.
+
+## 2026-08-03 — Reviewing stage verification loop (Phase 1: O1/O2/O5/O6)
+
+- **Change:** Added fix→re-verify→re-review loop to the reviewing stage. O1: orchestrator re-dispatches @reviewer after coder fixes (targeted re-review, max 2 cycles, escalation to owner). O2: coder must include verification evidence in handoff; reviewer demands it. O5: coder pre-handoff verification checklist. O6: reviewer findings-resolution table with evidence column.
+- **Reason:** Anthropic engineering best practices — verification loop (worker ≠ judge), evidence-over-assertion, bounded iteration. §10 Phase 1 gate findings registered 2026-08-03.
+- **Files:** AGENTS.md (§2.3 renumbered + §2.3.1 new), oh-my-opencode-slim.jsonc (coder prompt ×3 presets, reviewer orchestratorPrompt, reviewer skills ×3 presets), .opencode/skills/review-re-verify/SKILL.md (NEW), orchestrator_append.md (review gate row updated).
+- **Design decisions:** O1/O6 reviewer protocol extracted to skill (code-review-fowler precedent — budget relief); O1 orchestrator behavior in AGENTS.md (canonical source); O2/O5 in coder prompt (headroom available).
+- **Review:** §10 Phase 5 ai-specialist APPROVE-WITH-CHANGES (1 Minor tool-limitation, 1 Suggestion — coder prompt 1068ch documented); Phase 6 registration 2026-08-03.
+- Pending user: restart OpenCode + functional smoke test.
+
 ## 2026-08-03 — OTel GenAI JSONL sidecar + ticket format standardization
 
 Change: orchestrator now dual-writes .opencode/session/messages.jsonl (OTel GenAI

@@ -150,3 +150,37 @@
   depends_on: []
   estimated_scope: trivial
 -->
+
+## Verification Result
+
+<!--
+  Filled by the FRESH-SESSION VERIFIER only — NEVER by the producer session
+  (design.md §9, ADR-003: no self-certification; "I verified" markers are untrusted
+  and block SELF-RERUN). The fresh session independently executes each
+  verification_request and records the outcome here. Appended AFTER the producer's
+  five subsections; the producer's contract ends above this section.
+-->
+
+| Field            | Type     | Required | Description                                                                  |
+| ---------------- | -------- | -------- | ---------------------------------------------------------------------------- |
+| verification_id  | string   | yes      | Must match a verification_id from the Verification request section           |
+| status           | enum     | yes      | One of: `verified-pass` \| `verified-fail` \| `verified-partial`             |
+| evidence         | string   | yes      | Concrete evidence: exit codes, test counts, file paths, observed vs expected |
+| verifier_session | string   | yes      | Session ID of the fresh-session verifier (never the producer session)        |
+| verified_at      | datetime | yes      | ISO 8601 UTC timestamp of verification                                       |
+
+### Outcome rules
+
+- ALL `verified-pass` → confirm `exit_state: clean` (append `Verified by:
+<session-id>, <timestamp>`).
+- ANY `verified-fail` → downgrade `exit_state` to `crisis`; append failure details.
+- Mixed `verified-pass` + `verified-partial` → `manual-halt` (partial means the
+  verification could not be completed conclusively).
+
+<!-- Example values:
+  verification_id: VR-001
+  status: verified-pass
+  evidence: "make test-config exit 0; validate-opencode-config.sh 6/6 checks pass"
+  verifier_session: s-20260803-183000
+  verified_at: 2026-08-03T18:35:00Z
+-->

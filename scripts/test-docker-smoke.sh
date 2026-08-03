@@ -121,6 +121,54 @@ echo "ok: openspec ${osver}"
 docker compose exec -T dev make --version >/dev/null
 echo "ok: make present in dev container"
 
+# 7 probes (vs spec's 3): presence + resolution + pin parity (mise current == pins) + ENV + no-volta-remnants (AC1/AC2 runtime verification) — defensive testing for DIA-030 closure.
+echo "-> verifying mise toolchain (replaces Volta; DIA-030 closure)..."
+# DIA-030: Volta v2.0.2 was an unverified, unmaintained install (no upstream
+# checksums). mise v2026.8.0 ships a SHASUMS256.txt manifest verified at image
+# build time; these probes assert the binary is present, the mounted
+# /workspace/.mise.toml resolves under MISE_TRUSTED_CONFIG_PATHS, the declared
+# pins match the spec values, and the image sources carry no volta remnants.
+docker compose exec -T dev mise --version >/dev/null
+echo "ok: mise present in dev container"
+# The mounted /workspace/.mise.toml must resolve under MISE_TRUSTED_CONFIG_PATHS
+# (mise install downloads the pinned node/pnpm; mise which asserts the
+# mise-managed tool is active — flag-a resolution, design.md §Context).
+docker compose exec -T dev bash -c 'mise install >/dev/null && mise which node >/dev/null && mise which pnpm >/dev/null'
+echo "ok: mise resolved .mise.toml pins (node + pnpm)"
+node_pin="$(docker compose exec -T dev bash -c 'mise current node')"
+if [ "$node_pin" != "24.18.0" ]; then
+  echo "error: mise current node is '$node_pin', expected 24.18.0" >&2
+  exit 1
+fi
+echo "ok: mise current node == 24.18.0"
+pnpm_pin="$(docker compose exec -T dev bash -c 'mise current pnpm')"
+if [ "$pnpm_pin" != "10.33.0" ]; then
+  echo "error: mise current pnpm is '$pnpm_pin', expected 10.33.0" >&2
+  exit 1
+fi
+echo "ok: mise current pnpm == 10.33.0"
+docker compose exec -T dev bash -c '[ -n "${MISE_TRUSTED_CONFIG_PATHS:-}" ]' || {
+  echo "error: MISE_TRUSTED_CONFIG_PATHS not set in the dev container" >&2
+  exit 1
+}
+echo "ok: MISE_TRUSTED_CONFIG_PATHS set"
+# Static source assertions: no volta install remnants in the image definitions
+# (AC1/AC2). POSIX grep (not rg) — this script must run on hosts without
+# ripgrep. The probe targets install tokens, NOT the historical "replaces
+# Volta" mention in the design-sanctioned section header (design.md §2.4
+# skeleton comment) — see the volta-to-mise implementation report for the
+# deviation note on AC1's literal `grep -i volta` reading.
+if grep -qiE 'volta-cli|VOLTA_VERSION|volta-shim|volta-migrate|volta\.tar|volta --version' Dockerfile.dev; then
+  echo "error: Dockerfile.dev still references a volta install (DIA-030 not fully closed)" >&2
+  exit 1
+fi
+echo "ok: no volta install remnants in Dockerfile.dev"
+if grep -qiE 'volta-cli|VOLTA_VERSION|volta-shim|volta-migrate|volta\.tar|volta --version' tools/opencode-docker/Dockerfile; then
+  echo "error: tools/opencode-docker/Dockerfile still references a volta install" >&2
+  exit 1
+fi
+echo "ok: no volta install remnants in tools/opencode-docker/Dockerfile"
+
 echo "-> verifying secrets passthrough (M2/H5)..."
 # H5: compose exec shells do not inherit the entrypoint's exported vars; the
 # /etc/profile.d/secrets.sh hook restores them for interactive shells.

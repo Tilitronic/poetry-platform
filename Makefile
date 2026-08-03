@@ -13,6 +13,7 @@
 #   make clean        stop containers + wipe volumes (postgres data, pnpm store)
 #
 #   make test-shell   unit-test dev-infra shell scripts (bats; Docker mocked)
+#   make check-tools  host-runnable tool integrity check (mise vs node/pnpm pins)
 #   make test-infra   test-shell + full Docker compose smoke test (heavy)
 #   make test-config  validate OpenCode JSONC config syntax + interview + skills gate
 #   make test-interview  run scripts/test-interview-enforcement.sh (5 checks)
@@ -20,7 +21,7 @@
 #   make audit-python  pip-audit both Python packages (requires uv + committed uv.lock)
 #   make context7-docs  fetch library docs from Context7 (requires CONTEXT7_API_KEY; dry-run without it)
 
-.PHONY: build up shell opencode dev stack install db-psql logs down clean gen-jsconfig test-shell test-python test-infra test-config test-interview test-skills audit-python context7-docs
+.PHONY: build up shell opencode dev stack install db-psql logs down clean check-tools gen-jsconfig test-shell test-python test-infra test-config test-interview test-skills audit-python context7-docs jsonl-stats
 
 stack:
 	bash scripts/dev-stack.sh
@@ -54,6 +55,15 @@ down:
 
 clean:
 	docker compose down -v
+
+# Host-runnable tool integrity check (seam S2; scripts/check-tools.sh). Verifies
+# mise is on PATH, .mise.toml exists, `mise install` resolves the pins, and the
+# mise-managed node/pnpm match the pinned versions. Deliberately NOT wired into
+# test-shell/test-infra (design.md §2.8): it requires mise on PATH — the dev
+# container or a host mise install — so it is a developer convenience, not a CI
+# gate.
+check-tools:
+	bash scripts/check-tools.sh
 
 # --- Test infrastructure (dev-infra artifacts) --------------------------------
 # bats unit tests for scripts/dev-stack.sh + dev-entrypoint.sh. Docker is
@@ -134,3 +144,9 @@ audit-python:
 # CONTEXT7_API_KEY the script runs in dry-run mode (inventory only, exit 0).
 context7-docs:
 	node scripts/context7-docs.mjs
+
+# Show messages.jsonl session rollup — on-demand audit reader for the
+# orchestrator's machine-readable session log (G9; .opencode/scripts/jsonl-stats.sh).
+# Requires jq for detail; degrades to a plain line count otherwise.
+jsonl-stats:
+	@bash .opencode/scripts/jsonl-stats.sh

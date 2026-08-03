@@ -28,8 +28,28 @@ Architecture → Specification → Implementation:
 1. **Pre-flight**: Check `.sdd/` and `openspec/` for governing constraints before touching code
 2. **Dispatch** `@coder` — implements against `tasks.md`, within architectural constraints
    - Optionally run `to-tickets` first to publish the tasks as DIA tickets in `docs/dev-infra-audit/tickets/`
-3. **Post-flight**: Run dev build, lint, tests before handing off
-4. **Persist**: After feature completion or ≥2 failed loops, dispatch `@memory-manager` to capture ADRs, lessons, and failure patterns in `.opencode/memory/`
+3. **Post-flight**: Run dev build, lint, tests before handing off. Coder MUST include verification evidence (exit codes + summary lines) — see §2.3.1
+4. **Review**: Dispatch `@reviewer` (two-axis: Standards + Spec fidelity)
+5. **Fix → Re-review loop** (§2.3.1): after developer disposition and coder fixes, re-dispatch `@reviewer` for targeted re-verification (max 2 cycles)
+6. **Persist**: After feature completion or ≥2 failed loops, dispatch `@memory-manager` to capture ADRs, lessons, and failure patterns in `.opencode/memory/`
+
+#### 2.3.1 Re-Review Loop (fix → re-verify → re-review)
+
+After the developer disposes review findings (accept/reject per practice-protected §4) and `@coder` applies accepted fixes:
+
+1. **Coder handoff** must include verification evidence: test/lint/typecheck exit codes + summary lines for each fix applied.
+2. **Orchestrator re-dispatches `@reviewer`** with:
+   - Same fixed point (commit/branch/tag)
+   - Prior findings list (only the developer-accepted ones)
+   - Coder's fixes-applied summary + verification evidence
+   - Cycle counter: `re-review cycle N/2`
+3. **Reviewer conducts targeted re-review** (see `review-re-verify` skill):
+   - For each prior finding: `verified-closed` | `still-open` | `partial` + evidence
+   - No full re-review; only confirms resolution of prior findings
+   - New observations (e.g., fix introduced regressions) noted separately as "re-review observations" — these enter the normal practice-protected §4 disposition flow
+4. **All findings verified-closed** → proceed to step 6 (Persist)
+5. **Any still-open or partial** → present findings-resolution table to developer for disposition (practice-protected §4 applies)
+6. **Cycle cap**: max 2 fix→re-review cycles. If findings persist after cycle 2 → escalate to developer with full findings-resolution history. Developer decides: accept residual risk, manual fix, or abort.
 
 `openspec-plan` is blocked from editing implementation code.
 

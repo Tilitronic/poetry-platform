@@ -8,7 +8,7 @@ OpenWebUI intentionally runs per-developer (locally in WSL Docker) — not here.
 ```
 ┌──────────────────────────────────────────────────────────────┐
 │  dev container (poetry-dev)                                   │
-│   opencode + OMO slim · Node 24 · Python 3 · pnpm · bun      │
+│  opencode + OMO slim · Node 24 · Python 3 · pnpm · bun · mise│
 │   uv · Rust (wasm32) · Playwright · crawl4ai                 │
 │   /workspace = this monorepo (bind mount)                    │
 │   pnpm dev  →  turbo runs author-studio (Quasar dev server)  │

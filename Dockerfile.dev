@@ -2,7 +2,7 @@
 #
 # ONE container that holds everything for development:
 #   - opencode + OMO slim plugins
-#   - Node 24, pnpm, bun, uv, Volta, snip
+#   - Node 24, pnpm, bun, uv, mise, snip
 #   - Python 3 + uv for the FastAPI api-server
 #   - Rust toolchain (for stress-lang-core WASM builds, per architecture.md)
 #   - Playwright (chromium) + crawl4ai for browser automation
@@ -28,7 +28,6 @@ ARG SNIP_VERSION=0.22.0
 ARG DCP_VERSION=3.1.14
 ARG OPENSPEC_VERSION=1.7.0
 ARG UV_VERSION=0.11.29
-ARG VOLTA_VERSION=2.0.2
 ARG RUST_VERSION=1.83.0
 # tini: minimal init for PID 1 zombie reaping (see M9); pinned and
 # SHA256-verified like snip/uv below.
@@ -105,18 +104,6 @@ RUN npm install -g pnpm@${PNPM_VERSION} bun@${BUN_VERSION} \
     typescript@${TYPESCRIPT_VERSION} \
     pyright@${PYRIGHT_VERSION}
 
-# === Volta — JS tool manager ===
-# SEC-DOCKER-001: checksum verification is BLOCKED here — the volta-cli/volta
-# v2.0.2 release publishes no official digest for the binary tarballs
-# (volta.manifest lists binary names only, no hashes). Per the audit rule
-# "never guess a hash", this install is intentionally left unverified (ticket
-# DIA-030 stays open for volta). Revisit when upstream publishes checksums.
-RUN VOLTA_ARCH=$(case "${TARGETARCH:-$(uname -m)}" in x86_64|amd64) echo "linux" ;; aarch64|arm64) echo "linux-arm" ;; esac) && \
-    curl -fsSL "https://github.com/volta-cli/volta/releases/download/v${VOLTA_VERSION}/volta-${VOLTA_VERSION}-${VOLTA_ARCH}.tar.gz" -o /tmp/volta.tar.gz && \
-    tar xzf /tmp/volta.tar.gz -C /usr/local/bin/ && \
-    rm -f /tmp/volta.tar.gz && \
-    volta --version
-
 # === snip — command runner (checksum-verified) ===
 RUN SNIP_ARCH=$(case "${TARGETARCH:-$(uname -m)}" in x86_64|amd64) echo "amd64" ;; aarch64|arm64) echo "arm64" ;; esac) && \
     curl -fsSL "https://github.com/edouard-claude/snip/releases/download/v${SNIP_VERSION}/snip_${SNIP_VERSION}_linux_${SNIP_ARCH}.tar.gz" -o /tmp/snip.tar.gz && \
@@ -125,6 +112,28 @@ RUN SNIP_ARCH=$(case "${TARGETARCH:-$(uname -m)}" in x86_64|amd64) echo "amd64" 
     tar xzf /tmp/snip.tar.gz -C /usr/local/bin/ snip && \
     rm -f /tmp/snip.tar.gz /tmp/checksums.txt && \
     snip --version
+
+# === mise — JS tool manager (replaces Volta; DIA-030 closure) ===
+# SEC-DOCKER-001: restored — the mise release publishes a SHASUMS256.txt
+# manifest alongside every release. MISE_VERSION is pinned in concert with the
+# manifest, which is fetched from the same release and verified before
+# extraction (same grep|sed|sha256sum -c - shape as the snip/uv installs).
+# Resolved at implementation time (design flag b): v2026.8.0 — x64
+# 64183603854f319b78658305c545aacae935e0959a3a894b77a0f9416eab047b, arm64
+# 6d888ba3d0b5d78f676771a84846885b7f685fb4d1533f2927079eb9b75633a8.
+# No mise shims are installed: the tarball ships only the `mise` binary
+# (mise/bin/mise), and the repo-root .mise.toml (bind-mounted at /workspace)
+# is the tool-pin source; `mise install` inside the container resolves it.
+# MISE_VERSION carries NO leading "v" (repo convention — the URLs below add
+# it: v${MISE_VERSION} → v2026.8.0).
+ARG MISE_VERSION=2026.8.0
+RUN MISE_ARCH=$(case "${TARGETARCH:-$(uname -m)}" in x86_64|amd64) echo "x64" ;; aarch64|arm64) echo "arm64" ;; esac) && \
+    curl -fsSL "https://github.com/jdx/mise/releases/download/v${MISE_VERSION}/mise-v${MISE_VERSION}-linux-${MISE_ARCH}.tar.gz" -o /tmp/mise.tar.gz && \
+    curl -fsSL "https://github.com/jdx/mise/releases/download/v${MISE_VERSION}/SHASUMS256.txt" -o /tmp/mise.sha256 && \
+    grep "mise-v${MISE_VERSION}-linux-${MISE_ARCH}.tar.gz" /tmp/mise.sha256 | sed "s|\./mise-v${MISE_VERSION}-linux-${MISE_ARCH}.tar.gz|/tmp/mise.tar.gz|" | sha256sum -c - && \
+    tar xzf /tmp/mise.tar.gz -C /usr/local/bin/ --strip-components=2 mise/bin/mise && \
+    rm -f /tmp/mise.tar.gz /tmp/mise.sha256 && \
+    mise --version
 
 # === uv — fast Python package manager ===
 RUN UV_ARCH=$(case "${TARGETARCH:-$(uname -m)}" in x86_64|amd64) echo "x86_64" ;; aarch64|arm64) echo "aarch64" ;; esac) && \
@@ -200,7 +209,8 @@ ENV HOME=/home/dev \
     XDG_CACHE_HOME=/home/dev/.cache \
     OPENCODE_CONFIG_DIR=/home/dev/.config/opencode \
     DISPLAY=:99.0 \
-    PIP_BREAK_SYSTEM_PACKAGES=1
+    PIP_BREAK_SYSTEM_PACKAGES=1 \
+    MISE_TRUSTED_CONFIG_PATHS=/workspace
 
 WORKDIR /workspace
 

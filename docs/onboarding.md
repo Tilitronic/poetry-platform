@@ -32,6 +32,14 @@ A **poetry analysis platform** — a polyglot monorepo (TypeScript + Python) tha
 
 ## 2. Quick Start
 
+> **Prerequisite — mise (tool version manager):** the repo pins `node` and
+> `pnpm` in `.mise.toml` (node 24.18.0, pnpm 10.33.0) and the dev container
+> ships `mise` as the tool manager (replaces Volta — DIA-030 closure). On a
+> host shell, install mise from <https://mise.jdx.dev>, then run
+> `mise activate bash` (or `mise activate zsh`) once and add it to your shell
+> rc so the pinned versions resolve automatically. Inside the dev container,
+> `mise` is already on PATH; `make check-tools` verifies the pins resolve.
+
 ```bash
 git clone <repo-url>
 cd poetry-platform-monorepo

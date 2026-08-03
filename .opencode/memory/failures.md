@@ -17,3 +17,16 @@ Failed-loop lessons & preventive actions
   Root cause: NEXT-RUN.md's table listed `deepseek-v4-flash` as 64k (V3 value) while the real V4-Flash window is 1,000,000 tokens.
   Preventive action: when handoff thresholds are calculated from in-repo lookup tables, add a verify-on-use step that cross-checks models.dev (or the model vendor's model card) for current context windows. Record models.dev as the authoritative catalog near the threshold math to avoid future drift.
   Cross-reference: .opencode/memory/repo.md entry "Model context-window authoritative source (2026-08-03)".
+
+- Failure mode (2026-08-03): Orchestrator resume loop / lost reviewer report due to malformed resume calls
+  Symptom: the orchestrator attempted ~10 resume dispatches for a completed ai-specialist review session (ai--3). Each attempt spawned a fresh stateless session (ai--4..ai--13) which reported "no prior context". The background job board listed "Reusable Sessions: none". The final full report was missing because the original reviewer delivered only a summary verdict in the final message.
+  Root cause:
+    - Orchestrator omitted the required `task_id` parameter when calling the task tool to resume an existing subagent session, causing new sessions to be created instead of resuming.
+    - Completed subagent sessions are not context-reusable by alias in this environment unless resumed correctly; the sentinel "reusable" label does not carry conversation payload.
+    - The reviewer/agent delivered only a summary in the final message rather than the complete structured report, so the full deliverable could not be reconstructed from session fragments.
+  Preventive action / operational guidance:
+    1. Agents MUST include the complete structured deliverable (findings + evidence + compliance checklist) in their final message. Never leave the canonical report as a pointer or separate artifact that may be lost with ephemeral sessions.
+    2. To resume a prior subagent session, the caller MUST pass `task_id` equal to the original session ID in the task tool call. Treat omission of `task_id` as a hard failure mode.
+    3. Do not loop on malformed resume calls. After 3 failed resume attempts, escalate to human ownership and check the background job board for session reuse capabilities. Implement an automated 3-failure cap to avoid denial-of-service loop patterns.
+    4. If a report is lost (final message contained only a summary), the honest recovery path is a fresh re-run of the reviewer/agent to regenerate the full report; document the rerun and its session ID in tracked artifacts.
+  Cross-reference: messages.md row ~184 (session log), .opencode/memory/lessons.md entry about ephemeral session sidecars.

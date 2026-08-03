@@ -45,13 +45,22 @@ RUN echo "Installing OpenCode version: ${OPENCODE_VERSION}" && \
 
 RUN npm install -g pnpm@${PNPM_VERSION} bun@${BUN_VERSION} @tarquinen/opencode-dcp@${DCP_VERSION} @fission-ai/openspec@${OPENSPEC_VERSION}
 
-# Install Volta 2.0.2 — JS tool manager for automatic Node version switching
-ARG VOLTA_VERSION=2.0.2
-RUN VOLTA_ARCH=$(case "${TARGETARCH:-$(uname -m)}" in x86_64|amd64) echo "linux" ;; aarch64|arm64) echo "linux-arm" ;; esac) && \
-    curl -fsSL "https://github.com/volta-cli/volta/releases/download/v${VOLTA_VERSION}/volta-${VOLTA_VERSION}-${VOLTA_ARCH}.tar.gz" -o /tmp/volta.tar.gz && \
-    tar xzf /tmp/volta.tar.gz -C /usr/local/bin/ && \
-    rm -f /tmp/volta.tar.gz && \
-    volta --version
+# Install mise v2026.8.0 — JS tool manager (replaces Volta; DIA-030 closure)
+# SEC-DOCKER-001: SHA256-verified against the upstream SHASUMS256.txt manifest
+# (v2026.8.0: x64 64183603854f319b78658305c545aacae935e0959a3a894b77a0f9416eab047b,
+# arm64 6d888ba3d0b5d78f676771a84846885b7f685fb4d1533f2927079eb9b75633a8).
+# Same grep|sed|sha256sum -c - shape as the snip/uv installs; extraction uses
+# --strip-components=2 mise/bin/mise because the tarball nests the binary under
+# a mise/ prefix dir. No mise shims are installed (design dual-path contract).
+# MISE_VERSION carries NO leading "v" (repo convention — the URLs below add it).
+ARG MISE_VERSION=2026.8.0
+RUN MISE_ARCH=$(case "${TARGETARCH:-$(uname -m)}" in x86_64|amd64) echo "x64" ;; aarch64|arm64) echo "arm64" ;; esac) && \
+    curl -fsSL "https://github.com/jdx/mise/releases/download/v${MISE_VERSION}/mise-v${MISE_VERSION}-linux-${MISE_ARCH}.tar.gz" -o /tmp/mise.tar.gz && \
+    curl -fsSL "https://github.com/jdx/mise/releases/download/v${MISE_VERSION}/SHASUMS256.txt" -o /tmp/mise.sha256 && \
+    grep "mise-v${MISE_VERSION}-linux-${MISE_ARCH}.tar.gz" /tmp/mise.sha256 | sed "s|\./mise-v${MISE_VERSION}-linux-${MISE_ARCH}.tar.gz|/tmp/mise.tar.gz|" | sha256sum -c - && \
+    tar xzf /tmp/mise.tar.gz -C /usr/local/bin/ --strip-components=2 mise/bin/mise && \
+    rm -f /tmp/mise.tar.gz /tmp/mise.sha256 && \
+    mise --version
 
 RUN SNIP_ARCH=$(case "${TARGETARCH:-$(uname -m)}" in x86_64|amd64) echo "amd64" ;; aarch64|arm64) echo "arm64" ;; esac) && \
     curl -fsSL "https://github.com/edouard-claude/snip/releases/download/v${SNIP_VERSION}/snip_${SNIP_VERSION}_linux_${SNIP_ARCH}.tar.gz" -o /tmp/snip.tar.gz && \
@@ -91,7 +100,7 @@ RUN mkdir -p /opt/runtime-rootfs && \
       opencode node npm npx pnpm bun python3 pip3 Xvfb xclip wl-copy wl-paste git \
       mkdir find grep rg jq cat head tail sed awk tr \
       ls cp mv rm chmod wc sort cut env uname date dirname basename \
-      curl wget snip uv volta volta-migrate volta-shim dbus-send openspec
+      curl wget snip uv mise dbus-send openspec
 
 RUN cd /opt/runtime-rootfs && \
     for dir in bin sbin lib lib64; do \

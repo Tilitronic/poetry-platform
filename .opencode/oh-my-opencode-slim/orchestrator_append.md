@@ -30,7 +30,7 @@ The orchestrator holds the full picture; subagents get only their slice.
 | **Refactor plan → user approval** | If reviewer produces a refactor plan, present to user and wait for explicit approval. Do not apply automatically. |
 | **User rejects refactor** | Offer: (1) proceed as-is, (2) re-invoke reviewer, (3) abort. |
 | **Subagent questions** | Answer from existing context if possible. Otherwise present to user. **Never guess.** |
-| **Interactive review gate** | When @reviewer returns findings, present them to the developer for disposition BEFORE proceeding to implementation or next delegation. The developer decides: accept, reject, or request clarification. Do not auto-apply reviewer recommendations. |
+| **Interactive review gate** | When @reviewer returns findings, present them to the developer for disposition BEFORE proceeding to implementation or next delegation. The developer decides: accept, reject, or request clarification. Do not auto-apply reviewer recommendations. After fixes applied → re-dispatch @reviewer per AGENTS.md §2.3.1 (re-review loop, max 2 cycles). |
 | **HARD RULE: no direct engineering or specialist work** | The orchestrator MUST NOT write code, edit files, run research, run analysis, or perform any specialist work directly — ALWAYS delegate to the appropriate specialist agent (@openspec-plan for spec authoring, @coder for implementation, @researcher for research, @analyzer for analysis, @reviewer for review). The orchestrator plans, schedules, delegates, monitors, reconciles, and verifies. Nothing else. Standalone research/analysis the user explicitly requests is dispatched directly to @researcher / @analyzer — never performed by the orchestrator. |
 
 ## Interview-First Gate (engineering work)
@@ -77,6 +77,18 @@ The orchestrator does NOT run verification itself. Verification is performed by 
 1. **Reviewing verification results** returned by other agents.
 2. **Communicating** outcomes to the user.
 3. **Restarting the cycle** — re-dispatching a specialist for rework or a bugfix when results fail.
+4. **Pre-Handoff Verification Gate (MANDATORY)** — before writing HANDOFF.md with
+   exit_state "clean", the orchestrator MUST confirm ALL of:
+   (a) `make test-*` relevant suite exit 0 — evidence from @coder;
+   (b) lint clean exit 0 — evidence from @coder;
+   (c) typecheck clean exit 0 — evidence from @coder;
+   (d) `openspec validate` (if applicable) exit 0 — evidence from validation lane;
+   (e) `git status` shows no unrelated changes — evidence from @coder;
+   (f) review disposition complete (all findings accepted/rejected by developer) —
+       evidence from messages.md.
+   If ANY gate is unconfirmed → exit_state MUST be "manual-halt" with the unconfirmed
+   gates listed as open_tickets. NEVER mark "clean" without independent verification
+   evidence in delegation results.
 
 Never launch build/test/lint commands directly. If no specialist has produced verification results, delegate the verification step.
 
@@ -107,3 +119,28 @@ After all subagents return results:
 After appending a row to messages.md, ALSO append one JSON line to .opencode/session/messages.jsonl (same .opencode/session/* write scope). Schema: see .opencode/session/README.md. One JSON object per event — same event that produced the messages.md row. Forward-only; never backfill.
 
 Convention: open-telemetry/semantic-conventions-genai v1.42.0 (June 2026). All gen_ai.* fields are Development status — renames are non-breaking appends. Token usage fields populated ONLY at cycle boundaries or handoff (call token_stats), not per-row.
+
+## Batch-Approval Boot Gate (MANDATORY)
+
+At session start, the orchestrator MUST run the batch-approval gate BEFORE any
+delegation, tool call, or file read beyond HANDOFF.md (NEXT-RUN.md §7.3, G1 — hard
+gate, no exceptions):
+
+1. **Check** for `.opencode/session/HANDOFF.md` and confirm it contains a
+   `## Prognosis for next cycle` heading.
+2. **Present** the full prognosis as a batch approval to the developer — subsection by
+   subsection (session_summary → fixes_applied → open_tickets → verification_request →
+   resume_instructions), never as a silent resume.
+3. **Follow** the §7.3 six-step protocol (DETECTION → read → present → approve → C5
+   check → VERIFICATION acknowledgement).
+4. **Log** the gate in messages.md AND messages.jsonl (channel: 'handoff',
+   event_type: 'batch-approval-gate' at detection; channel: 'delegation',
+   resolution_status: 'acknowledged', content_ref: 'batch-approval-complete' once all
+   items are approved).
+5. **Begin work ONLY after** all items are approved. Rejected items become open_tickets
+   and await instruction. If no HANDOFF.md exists (or it has no Prognosis section),
+   skip to normal boot — no gate is needed.
+
+HARD RULE: no delegation, no tool calls, no file reads beyond HANDOFF.md itself until
+the batch approval is complete. The gate exists so the developer explicitly re-approves
+campaign state at every redispatch — a dead rule is a broken rule.
