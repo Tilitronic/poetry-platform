@@ -7,9 +7,9 @@ carries the full detail (description, verification, fix, re-verify evidence).
 
 ## Index
 
-| ID      | Title                                                    | Area            | Severity | Status | Ticket file              |
-| ------- | -------------------------------------------------------- | --------------- | -------- | ------ | ------------------------ |
-| DIA-037 | make test-skills gap — no validation of SKILL.md content | opencode-config | Minor    | OPEN   | [DIA-037.md](DIA-037.md) |
+| ID      | Title                                                    | Area            | Severity | Status      | Ticket file              |
+| ------- | -------------------------------------------------------- | --------------- | -------- | ----------- | ------------------------ |
+| DIA-037 | make test-skills gap — no validation of SKILL.md content | opencode-config | Minor    | IMPLEMENTED | [DIA-037.md](DIA-037.md) |
 
 ## Status summary
 
@@ -24,11 +24,11 @@ carries the full detail (description, verification, fix, re-verify evidence).
 
 | Status      | Count |
 | ----------- | ----- |
-| OPEN        | 1     |
+| OPEN        | 0     |
 | DEFERRED    | 0     |
 | MONITOR     | 0     |
 | FIXED       | 0     |
-| IMPLEMENTED | 0     |
+| IMPLEMENTED | 1     |
 | VERIFIED    | 0     |
 | CLOSED      | 0     |
 | BLOCKED     | 0     |

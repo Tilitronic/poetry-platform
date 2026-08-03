@@ -27,6 +27,7 @@ for script in \
   "$ROOT/scripts/verify-pre-commit.sh" \
   "$ROOT/scripts/verify-python.sh" \
   "$ROOT/scripts/lint-python-files.sh" \
+  "$ROOT/.opencode/scripts/validate-skills.sh" \
   "$ROOT/scripts/__tests__/test-helper.bash"; do
   bash -n "$script"
 done

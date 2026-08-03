@@ -14,12 +14,13 @@
 #
 #   make test-shell   unit-test dev-infra shell scripts (bats; Docker mocked)
 #   make test-infra   test-shell + full Docker compose smoke test (heavy)
-#   make test-config  validate OpenCode JSONC config syntax + interview enforcement
+#   make test-config  validate OpenCode JSONC config syntax + interview + skills gate
 #   make test-interview  run scripts/test-interview-enforcement.sh (5 checks)
+#   make test-skills  validate .opencode/skills/*/SKILL.md frontmatter (DIA-037)
 #   make audit-python  pip-audit both Python packages (requires uv + committed uv.lock)
 #   make context7-docs  fetch library docs from Context7 (requires CONTEXT7_API_KEY; dry-run without it)
 
-.PHONY: build up shell opencode dev stack install db-psql logs down clean gen-jsconfig test-shell test-python test-infra test-config test-interview audit-python context7-docs
+.PHONY: build up shell opencode dev stack install db-psql logs down clean gen-jsconfig test-shell test-python test-infra test-config test-interview test-skills audit-python context7-docs
 
 stack:
 	bash scripts/dev-stack.sh
@@ -97,8 +98,16 @@ test-python:
 test-interview:
 	bash scripts/test-interview-enforcement.sh
 
-# OpenCode JSONC config syntax validation + interview-enforcement regression checks.
-test-config: test-interview
+# Skill frontmatter validation (.opencode/scripts/validate-skills.sh, DIA-037).
+# Walks .opencode/skills/*/SKILL.md — HARD: valid YAML, name+description
+# present+non-empty, name==dirname; SOFT (warn-only): activation-phrase prefix,
+# license notice. Exit codes: 0 all pass, 1 HARD failure, 2 infra error.
+test-skills:
+	bash .opencode/scripts/validate-skills.sh
+
+# OpenCode JSONC config syntax validation + interview-enforcement regression
+# checks + skill frontmatter gate.
+test-config: test-interview test-skills
 	bash .opencode/scripts/validate-opencode-config.sh
 
 # Python dependency vulnerability audit via pip-audit (DIA-028). Exports the

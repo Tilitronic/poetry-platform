@@ -1,0 +1,330 @@
+#!/usr/bin/env bats
+# Meta-tests for .opencode/scripts/validate-skills.sh (DIA-037, change
+# test-skills-gate). The script validates the YAML frontmatter of every
+# .opencode/skills/*/SKILL.md.
+#
+# Exit-code contract under test:
+#   0  all skills pass HARD checks (SOFT warnings may print to stderr)
+#   1  at least one HARD check failed (collect-all, never fail-fast)
+#   2  infrastructure failure (python3 unavailable / skills root missing)
+#
+# Isolation: each test builds a temp fixture tree mirroring
+# .opencode/skills/<name>/SKILL.md under $BATS_TEST_TMPDIR and runs the script
+# against it via the SKILLS_ROOT env override — the real .opencode/skills/ is
+# never touched (T5 smoke-tests the real tree separately).
+
+load test-helper
+
+SKILLS_SCRIPT="$REPO_ROOT/.opencode/scripts/validate-skills.sh"
+
+setup() {
+  FIXTURES="$BATS_TEST_TMPDIR/skills"
+  mkdir -p "$FIXTURES"
+  # Resolve absolute interpreters up front: the python3-unavailable test
+  # rewrites PATH and needs an absolute bash to still invoke the script.
+  BASH_BIN="$(command -v bash)"
+}
+
+# write_skill <dirname> <file-content>: writes a SKILL.md into the fixture
+# root. <file-content> is passed through printf %s so no interpolation occurs.
+write_skill() {
+  local dir="$FIXTURES/$1"
+  mkdir -p "$dir"
+  printf '%s\n' "$2" > "$dir/SKILL.md"
+}
+
+# valid_skill <dirname>: writes a fully conforming SKILL.md whose body starts
+# with the "Use when" activation phrase and declares a license.
+valid_skill() {
+  local name="$1"
+  write_skill "$name" "---
+name: $name
+description: A fully conforming skill. Use when testing the validator.
+license: MIT
+---
+
+Use when running the validation suite.
+"
+}
+
+@test "validate-skills: valid SKILL.md exits 0 with no warnings" {
+  valid_skill "good-skill"
+
+  SKILLS_ROOT="$FIXTURES" run bash "$SKILLS_SCRIPT"
+
+  assert_status 0
+  assert_output_contains "ok:"
+  # C1: the summary line's exact counts/format are an implementation detail —
+  # assert the stable words (passed/failed/warnings) so a cosmetic summary
+  # change doesn't break the test. The zero-warning claim is covered by the
+  # not-contains "warn:" assertion below.
+  assert_output_contains "passed"
+  assert_output_contains "failed"
+  assert_output_contains "warnings"
+  assert_output_not_contains "FAIL:"
+  assert_output_not_contains "warn:"
+}
+
+@test "validate-skills: broken YAML inside delimiters exits 1 and names the file" {
+  # C3: this fixture exercises the PyYAML path only — `[unclosed` is a YAML
+  # ScannerError (unclosed flow sequence). The fallback subset parser would
+  # treat `[unclosed` as a plain scalar value, so this test is PyYAML-only by
+  # construction and is skipped implicitly on hosts without PyYAML (where the
+  # fallback path is covered by the flat-parser fixtures instead).
+  write_skill "broken-yaml" '---
+name: broken-yaml
+description: [unclosed
+---
+
+Use when testing.
+'
+
+  SKILLS_ROOT="$FIXTURES" run bash "$SKILLS_SCRIPT"
+
+  assert_status 1
+  assert_output_contains "YAML parse error"
+  assert_output_contains "broken-yaml/SKILL.md"
+}
+
+@test "validate-skills: missing closing delimiter (truncated frontmatter) exits 1" {
+  write_skill "truncated" '---
+name: truncated
+'
+
+  SKILLS_ROOT="$FIXTURES" run bash "$SKILLS_SCRIPT"
+
+  assert_status 1
+  assert_output_contains "truncated frontmatter"
+  assert_output_contains "truncated/SKILL.md"
+}
+
+@test "validate-skills: no frontmatter at all exits 1" {
+  write_skill "nofm" 'Just body text, no frontmatter delimiters anywhere.
+'
+
+  SKILLS_ROOT="$FIXTURES" run bash "$SKILLS_SCRIPT"
+
+  assert_status 1
+  assert_output_contains "no frontmatter found"
+  assert_output_contains "nofm/SKILL.md"
+}
+
+@test "validate-skills: missing name exits 1 and names the field" {
+  write_skill "noname" '---
+description: Has a description. Use when testing.
+license: MIT
+---
+
+Use when testing.
+'
+
+  SKILLS_ROOT="$FIXTURES" run bash "$SKILLS_SCRIPT"
+
+  assert_status 1
+  assert_output_contains "missing or empty: name"
+  assert_output_contains "noname/SKILL.md"
+}
+
+@test "validate-skills: empty name exits 1" {
+  write_skill "emptyname" '---
+name: ""
+description: Has a description. Use when testing.
+license: MIT
+---
+
+Use when testing.
+'
+
+  SKILLS_ROOT="$FIXTURES" run bash "$SKILLS_SCRIPT"
+
+  assert_status 1
+  assert_output_contains "missing or empty: name"
+}
+
+@test "validate-skills: missing description exits 1 and names the field" {
+  write_skill "nodesc" '---
+name: nodesc
+license: MIT
+---
+
+Use when testing.
+'
+
+  SKILLS_ROOT="$FIXTURES" run bash "$SKILLS_SCRIPT"
+
+  assert_status 1
+  assert_output_contains "missing or empty: description"
+  assert_output_contains "nodesc/SKILL.md"
+}
+
+@test "validate-skills: name/directory mismatch exits 1 with both values" {
+  write_skill "correct-name" '---
+name: wrong-name
+description: Has a description. Use when testing.
+license: MIT
+---
+
+Use when testing.
+'
+
+  SKILLS_ROOT="$FIXTURES" run bash "$SKILLS_SCRIPT"
+
+  assert_status 1
+  assert_output_contains "name mismatch"
+  assert_output_contains "expected 'correct-name', got 'wrong-name'"
+}
+
+@test "validate-skills: missing activation phrase exits 0 with a stderr warning" {
+  write_skill "noactivation" '---
+name: noactivation
+description: Has a description. Use when testing.
+license: MIT
+---
+
+This skill explains itself differently.
+'
+
+  SKILLS_ROOT="$FIXTURES" run bash "$SKILLS_SCRIPT"
+
+  assert_status 0
+  assert_output_contains "no activation phrase found"
+  # C1: stable-word assertion — the exact "N passed, 0 failed, 1 warnings"
+  # summary string is an implementation detail.
+  assert_output_contains "passed"
+  assert_output_contains "warnings"
+}
+
+@test "validate-skills: missing license exits 0 with a stderr warning" {
+  write_skill "nolicense" '---
+name: nolicense
+description: Has a description. Use when testing.
+---
+
+Use when testing.
+'
+
+  SKILLS_ROOT="$FIXTURES" run bash "$SKILLS_SCRIPT"
+
+  assert_status 0
+  assert_output_contains "no license declared"
+  # C1: stable-word assertion — the exact "N passed, 0 failed, 1 warnings"
+  # summary string is an implementation detail.
+  assert_output_contains "passed"
+  assert_output_contains "warnings"
+}
+
+@test "validate-skills: multiple HARD failures in one file are all collected" {
+  # Empty frontmatter (two delimiters, nothing between): PyYAML yields None,
+  # which the validator treats as an empty mapping -> both name and description
+  # are missing and BOTH errors must be reported (collect-all within a file).
+  write_skill "emptyfm" '---
+---
+'
+
+  SKILLS_ROOT="$FIXTURES" run bash "$SKILLS_SCRIPT"
+
+  assert_status 1
+  assert_output_contains "missing or empty: name"
+  assert_output_contains "missing or empty: description"
+  # C1: stable-word assertion — the "1 failed" count is an implementation
+  # detail; collect-all within the file is proven by the two errors above.
+  assert_output_contains "failed"
+}
+
+@test "validate-skills: multiple broken skills across the tree are all collected" {
+  write_skill "broken-a" '---
+description: Missing its name. Use when testing.
+license: MIT
+---
+
+Use when testing.
+'
+  write_skill "broken-b" '---
+name: broken-b
+license: MIT
+---
+
+Use when testing.
+'
+
+  SKILLS_ROOT="$FIXTURES" run bash "$SKILLS_SCRIPT"
+
+  assert_status 1
+  assert_output_contains "broken-a/SKILL.md"
+  assert_output_contains "broken-b/SKILL.md"
+  # C1: stable-word assertion — the "2 failed" count is an implementation
+  # detail; collect-all across the tree is proven by the two per-file errors.
+  assert_output_contains "failed"
+}
+
+@test "validate-skills: non-mapping YAML root (bare scalar) exits 1" {
+  write_skill "scalar" '---
+just a bare scalar
+---
+
+Use when testing.
+'
+
+  SKILLS_ROOT="$FIXTURES" run bash "$SKILLS_SCRIPT"
+
+  assert_status 1
+  assert_output_contains "not a YAML mapping"
+  assert_output_contains "scalar/SKILL.md"
+}
+
+@test "validate-skills: skill directory without SKILL.md exits 1" {
+  mkdir -p "$FIXTURES/empty-dir"
+
+  SKILLS_ROOT="$FIXTURES" run bash "$SKILLS_SCRIPT"
+
+  assert_status 1
+  assert_output_contains "no SKILL.md found"
+  assert_output_contains "empty-dir"
+}
+
+@test "validate-skills: exits 2 when python3 is unavailable" {
+  # Rebuild PATH dropping every directory that holds a python3 binary (on this
+  # host /usr/bin and /bin both carry one) while keeping everything else so
+  # bash and bats still resolve. The script must exit 2 BEFORE any skill is
+  # processed.
+  local new_path="" p
+  IFS=: read -ra parts <<< "$PATH"
+  for p in "${parts[@]}"; do
+    if [ -n "$p" ] && [ ! -x "$p/python3" ]; then
+      new_path="$new_path:$p"
+    fi
+  done
+  new_path="${new_path#:}"
+
+  PATH="$new_path" run "$BASH_BIN" "$SKILLS_SCRIPT"
+
+  assert_status 2
+  assert_output_contains "python3 is required"
+}
+
+@test "validate-skills: exits 2 when the skills directory is missing" {
+  SKILLS_ROOT="$FIXTURES/does-not-exist" run bash "$SKILLS_SCRIPT"
+
+  assert_status 2
+  assert_output_contains "skills directory not found"
+}
+
+@test "validate-skills: summary line aggregates multiple skills with warnings" {
+  valid_skill "alpha"
+  write_skill "beta" '---
+name: beta
+description: Beta skill. Use when testing.
+---
+
+Use when testing.
+'
+
+  SKILLS_ROOT="$FIXTURES" run bash "$SKILLS_SCRIPT"
+
+  assert_status 0
+  # C1: stable-word assertions — the exact "N passed, M failed, K warnings"
+  # summary string is an implementation detail.
+  assert_output_contains "passed"
+  assert_output_contains "failed"
+  assert_output_contains "warnings"
+}
