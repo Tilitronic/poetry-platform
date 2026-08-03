@@ -71,12 +71,12 @@ Until both conditions hold, the audit continues looping (inventory → vertical 
 
 ## Campaign Artifacts
 
-| Artifact               | Content                                                                                                                   |
-| ---------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| `inventory.md`         | Authoritative read-only recon output (verbatim).                                                                          |
-| `tickets/README.md`    | Ledger index (ID → title / area / severity / status / file).                                                              |
-| `tickets/_TEMPLATE.md` | Ticket template (fields + allowed values).                                                                                |
-| `tickets/DIA-*.md`     | One file per ticket (current set: DIA-003/006/030/034; completed tickets archived in the 2026-08-03 cleanup — see below). |
+| Artifact               | Content                                                                                                       |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `inventory.md`         | Authoritative read-only recon output (verbatim).                                                              |
+| `tickets/README.md`    | Ledger index (ID → title / area / severity / status / file).                                                  |
+| `tickets/_TEMPLATE.md` | Ticket template (fields + allowed values).                                                                    |
+| `tickets/DIA-*.md`     | One file per ticket (current set: DIA-037; completed tickets archived in the 2026-08-03 cleanup — see below). |
 
 ## Severity Guide
 
@@ -114,12 +114,11 @@ test-shell`, `make test-python`, `make test-config`, `make audit-python`, `pnpm
 verify` (JS + Python lanes), and `make test-infra`. The two severity-gated tickets
 (DIA-008 Critical and DIA-015 Blocker) were closed and validated during the fix
 lanes; their fix/re-verify evidence was archived with the 2026-08-03 ledger
-cleanup. The 4 remaining OPEN tickets are all non-blocking for the clean cycle:
-
-- **DIA-003** — deferred skills-lock pinning (format limitation).
-- **DIA-006** — deferred production Dockerfile (owner decision 2026-08-03: no deploy story; production-image need unproven).
-- **DIA-030** — monitored (volta digests when upstream ships them).
-- **DIA-034** — monitored (ecdsa advisory with no published fix).
+cleanup. The 4 tickets that remained after the initial cleanup (DIA-003 / DIA-006 /
+DIA-030 / DIA-034) were CLOSED and archived 2026-08-03 by owner directive
+(dispositions recorded in their archive files; see [Ticket ledger
+cleanup](#ticket-ledger-cleanup-2026-08-03)). The only active ledger row is
+**DIA-037** (OPEN, backlog — make test-skills gate).
 
 Clean-cycle criterion met: every automated gate passes and zero open
 Blocker/Critical tickets (the only Blocker/Critical tickets, DIA-008 and DIA-015,
@@ -133,11 +132,14 @@ delegation-only with path-scoped `read`/`edit` permissions, a session
 messages-log + HANDOFF self-rerun protocol (`.opencode/session/`, gitignored)
 was established, and `docs/dev-infra-audit/NEXT-RUN.md` was added — the
 operating manual the next orchestrator instance follows to rerun the audit flow
-and close the 4 open tickets (DIA-003/006/030/034). The DIA-036 ticket itself
-was validated and archived in the 2026-08-03 ledger cleanup. Ledger: **4 OPEN**
-(all non-blocking: 2 DEFERRED, 2 MONITOR).
+and track the ledger (single OPEN row: DIA-037, make test-skills gap). The
+DIA-036 ticket itself was validated and archived in the 2026-08-03 ledger
+cleanup. DIA-003/006/030/034 were CLOSED + archived 2026-08-03 (owner
+directive). Ledger: **1 OPEN** (DIA-037, Minor/backlog).
 
 ### Ticket ledger cleanup (2026-08-03)
 
 36 tickets audited 2026-08-03 → 32 completed+validated deleted (git-recoverable)
-→ 4 OPEN retained (2 DEFERRED, 2 MONITOR); zero open Blocker/Critical.
+→ 4 retained (2 DEFERRED, 2 MONITOR) CLOSED + archived 2026-08-03 (owner
+directive; dispositions in `tickets/archive/`) → single active row DIA-037
+(OPEN, backlog); zero open Blocker/Critical.

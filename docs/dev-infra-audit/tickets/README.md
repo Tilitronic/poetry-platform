@@ -7,13 +7,9 @@ carries the full detail (description, verification, fix, re-verify evidence).
 
 ## Index
 
-| ID      | Title                                                                                                        | Area            | Severity | Status   | Ticket file              |
-| ------- | ------------------------------------------------------------------------------------------------------------ | --------------- | -------- | -------- | ------------------------ |
-| DIA-003 | skills-lock.json contains only cli-review — pin all skills                                                   | opencode-config | Minor    | DEFERRED | [DIA-003.md](DIA-003.md) |
-| DIA-006 | api-server has no production Dockerfile — evaluate need                                                      | docker          | Major    | DEFERRED | [DIA-006.md](DIA-006.md) |
-| DIA-030 | unverified installs in Dockerfile.dev                                                                        | docker          | Medium   | MONITOR  | [DIA-030.md](DIA-030.md) |
-| DIA-034 | pip-audit finding: apps/api-server ecdsa 0.19.2 PYSEC-2026-1325 (transitive via python-jose), NO fix version | deps            | Medium   | MONITOR  | [DIA-034.md](DIA-034.md) |
-| DIA-037 | make test-skills gap — no validation of SKILL.md content                                                     | opencode-config | Minor    | OPEN     | [DIA-037.md](DIA-037.md) |
+| ID      | Title                                                    | Area            | Severity | Status | Ticket file              |
+| ------- | -------------------------------------------------------- | --------------- | -------- | ------ | ------------------------ |
+| DIA-037 | make test-skills gap — no validation of SKILL.md content | opencode-config | Minor    | OPEN   | [DIA-037.md](DIA-037.md) |
 
 ## Status summary
 
@@ -21,16 +17,16 @@ carries the full detail (description, verification, fix, re-verify evidence).
 | -------- | ----- |
 | Blocker  | 0     |
 | Critical | 0     |
-| Major    | 1     |
-| Medium   | 2     |
-| Minor    | 2     |
+| Major    | 0     |
+| Medium   | 0     |
+| Minor    | 1     |
 | Info     | 0     |
 
 | Status      | Count |
 | ----------- | ----- |
 | OPEN        | 1     |
-| DEFERRED    | 2     |
-| MONITOR     | 2     |
+| DEFERRED    | 0     |
+| MONITOR     | 0     |
 | FIXED       | 0     |
 | IMPLEMENTED | 0     |
 | VERIFIED    | 0     |
