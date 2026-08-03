@@ -1,16 +1,21 @@
 # DIA-XXX — <Title>
 
 <!-- Copy this template to a new file `DIA-<NNN>.md` and replace placeholders.
-     One line per field; keep the frontmatter block intact. -->
+     Keep the YAML frontmatter block intact. -->
 
 ---
 
-- **ID**: DIA-XXX
-- **Title**: <short title>
-- **Area**: <docker | opencode-config | js-tooling | git-hooks | python-tooling | scripts | docs | secrets | env | tests-infra | ci>
-- **Severity**: <Blocker | Critical | Major | Minor | Info>
-- **Status**: <OPEN | FIXED | VERIFIED | CLOSED | BLOCKED>
-- **Discovered**: <source: inventory | baseline | test-lane + YYYY-MM-DD>
+id: DIA-XXX
+title: "<short title>"
+area: <docker | opencode-config | js-tooling | git-hooks | python-tooling | scripts | docs | secrets | env | tests-infra | ci | deps>
+severity: <Blocker | Critical | Major | Medium | Minor | Info>
+status: <OPEN | DEFERRED | MONITOR | FIXED | IMPLEMENTED | VERIFIED | CLOSED | BLOCKED>
+blocked_by: [] # DIA-NNN refs, or empty
+discovered:
+source: <inventory | baseline | test-lane | fix-lane>
+date: YYYY-MM-DD
+created: YYYY-MM-DD
+updated: YYYY-MM-DD
 
 ---
 

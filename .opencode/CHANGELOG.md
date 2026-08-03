@@ -1,5 +1,22 @@
 # OpenCode Config Changelog
 
+## 2026-08-03 — OTel GenAI JSONL sidecar + ticket format standardization
+
+Change: orchestrator now dual-writes .opencode/session/messages.jsonl (OTel GenAI
+semconv-genai v1.42.0 attribute names, forward-only) alongside messages.md; ticket
+ledger standardized to YAML frontmatter + harmonized enums (severity +Medium; status
++DEFERRED/MONITOR/IMPLEMENTED) + archive/ policy.
+Reason: owner request — align orchestrator logging with OTel GenAI JSON convention;
+standardize ticket formats (markdown+YAML frontmatter, kanban-ready, archive instead
+of delete).
+Files: .opencode/session/README.md + messages.jsonl (gitignored);
+orchestrator_append.md; oh-my-opencode-slim.jsonc (3 preset prompts);
+docs/dev-infra-audit/tickets/_TEMPLATE.md + DIA-003/006/030/034/037.md + README.md +
+archive/README.md; .opencode/skills/to-tickets/SKILL.md.
+Pending: restart OpenCode (prompts + skill take effect); post-restart smoke (JSONL
+dual-write emits lines; to-tickets emits YAML frontmatter); commit decision after
+smoke.
+
 ## 2026-08-03 — mattpocock/skills fork+adapt: 5 skills for OpenCode workflows
 
 Change: Forked and adapted 5 skills from mattpocock/skills (MIT, 200k★) into

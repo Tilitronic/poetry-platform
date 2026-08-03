@@ -101,3 +101,9 @@ After all subagents return results:
 | OpenCode config | `@coder` | `@ai-specialist` (mandatory) | `make test-config` + restart-verify |
 | Knowledge-source curation (ai-assist-sources.yaml, Tier-1 cache) | `@resource-manager` | `@ai-specialist` (independent review) | YAML validity + cache-file check |
 | Feature code (packages/apps) | `@coder` | `@reviewer` | existing test suites |
+
+## JSONL Sidecar (messages.jsonl)
+
+After appending a row to messages.md, ALSO append one JSON line to .opencode/session/messages.jsonl (same .opencode/session/* write scope). Schema: see .opencode/session/README.md. One JSON object per event — same event that produced the messages.md row. Forward-only; never backfill.
+
+Convention: open-telemetry/semantic-conventions-genai v1.42.0 (June 2026). All gen_ai.* fields are Development status — renames are non-breaking appends. Token usage fields populated ONLY at cycle boundaries or handoff (call token_stats), not per-row.
