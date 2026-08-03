@@ -100,13 +100,13 @@ docs lane) → fix via delegation → re-verify. Repeat until the full cycle is 
 
 ## 4. Open Tickets to Close
 
-| ID      | Summary                                                   | Severity | Disposition                                                                                                                              |
-| ------- | --------------------------------------------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| DIA-003 | skills-lock pinning (all skills)                          | Minor    | DEFERRED — keep with note (format limitation)                                                                                            |
-| DIA-006 | api-server production Dockerfile                          | Major    | **DEFERRED** — owner decision 2026-08-03 (no CI/deploy story; production-image need unproven); revisit when deployment is planned        |
-| DIA-007 | split ai-specialist into resource-manager + specialist    | Major    | **IMPLEMENTED** — 2026-08-03 owner-approved split (all 6 decisions); resource-manager added, ai-specialist retained name; see DIA-007.md |
-| DIA-030 | unverified installs in Dockerfile.dev (volta)             | Medium   | MONITOR — re-check upstream for official digests; close only when verifiably resolved                                                    |
-| DIA-034 | ecdsa 0.19.2 PYSEC-2026-1325 (transitive via python-jose) | Medium   | MONITOR — re-check upstream for published fix; close only when resolved                                                                  |
+| ID      | Summary                                                   | Severity | Disposition                                                                                                                                                                |
+| ------- | --------------------------------------------------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| DIA-003 | skills-lock pinning (all skills)                          | Minor    | DEFERRED — keep with note (format limitation)                                                                                                                              |
+| DIA-006 | api-server production Dockerfile                          | Major    | **DEFERRED** — owner decision 2026-08-03 (no CI/deploy story; production-image need unproven); revisit when deployment is planned                                          |
+| DIA-007 | split ai-specialist into resource-manager + specialist    | Major    | **IMPLEMENTED** — 2026-08-03 owner-approved split (all 6 decisions); resource-manager added, ai-specialist retained name; see git history (DIA-007.md archived 2026-08-03) |
+| DIA-030 | unverified installs in Dockerfile.dev (volta)             | Medium   | MONITOR — re-check upstream for official digests; close only when verifiably resolved                                                                                      |
+| DIA-034 | ecdsa 0.19.2 PYSEC-2026-1325 (transitive via python-jose) | Medium   | MONITOR — re-check upstream for published fix; close only when resolved                                                                                                    |
 
 For the MONITOR tickets: delegate a read/research lane to check upstream, record the
 result in messages.md, then transition the ticket (OPEN → VERIFIED/CLOSED only when

@@ -43,7 +43,7 @@ Each loop is one complete pass over the campaign:
    - `make test-python` (pytest api-server)
    - `make test-config` (opencode config validation)
    - `pnpm verify` (format / js / js-tests / python) — subject to environment
-     readiness (see DIA-015)
+     readiness (see the archived DIA-015 ticket)
    - `make test-infra` (full stack smoke) — when a container run is warranted
 2. **Triage** — any failure or inventory defect becomes a ticket (or updates an
    existing one). Assign severity per the ticket severity guide.
@@ -71,16 +71,16 @@ Until both conditions hold, the audit continues looping (inventory → vertical 
 
 ## Campaign Artifacts
 
-| Artifact               | Content                                                      |
-| ---------------------- | ------------------------------------------------------------ |
-| `inventory.md`         | Authoritative read-only recon output (verbatim).             |
-| `tickets/README.md`    | Ledger index (ID → title / area / severity / status / file). |
-| `tickets/_TEMPLATE.md` | Ticket template (fields + allowed values).                   |
-| `tickets/DIA-*.md`     | One file per ticket (current set: DIA-001 … DIA-036).        |
+| Artifact               | Content                                                                                                                   |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `inventory.md`         | Authoritative read-only recon output (verbatim).                                                                          |
+| `tickets/README.md`    | Ledger index (ID → title / area / severity / status / file).                                                              |
+| `tickets/_TEMPLATE.md` | Ticket template (fields + allowed values).                                                                                |
+| `tickets/DIA-*.md`     | One file per ticket (current set: DIA-003/006/030/034; completed tickets archived in the 2026-08-03 cleanup — see below). |
 
 ## Severity Guide
 
-- **Blocker** — environment/gate cannot run at all (e.g. DIA-015); nothing else proceeds.
+- **Blocker** — environment/gate cannot run at all (e.g. a gate that cannot run because a required tool is missing); nothing else proceeds.
 - **Critical** — a gate is silently skipped or a hook/config risks loss or false-green.
 - **Major** — a gate is missing, misconfigured, or a real functional gap.
 - **Minor** — hygiene, docs, or configuration cleanup with no gate impact.
@@ -101,36 +101,43 @@ triaged into seed tickets DIA-001 … DIA-018.
 
 ### Phase C — Fix lanes (complete)
 
-Wave-1 fix lanes closed seed-ticket defects; wave-2 fix lanes recorded
-DIA-019 … DIA-035 from their fix evidence. Ledger rollup: **25 FIXED, 6 CLOSED,
-0 RESOLVED, 5 OPEN**. Zero open Blocker/Critical tickets.
+Wave-1 fix lanes closed seed-ticket defects (DIA-001 … DIA-018); wave-2 fix lanes
+recorded DIA-019 … DIA-035 from their fix evidence. All 32 completed tickets were
+validated post-fix and their ticket files archived in the 2026-08-03 ledger cleanup
+(see [Ticket ledger cleanup](#ticket-ledger-cleanup-2026-08-03)). Zero open
+Blocker/Critical tickets.
 
 ### Phase D — Full-cycle verification (complete — CLEAN)
 
 All 12 automated gates re-run in one clean pass and reported **PASS**: `make
 test-shell`, `make test-python`, `make test-config`, `make audit-python`, `pnpm
 verify` (JS + Python lanes), and `make test-infra`. The two severity-gated tickets
-are closed: **DIA-008 (Critical)** and **DIA-015 (Blocker)** — see their tickets
-for fix/re-verify evidence. The 5 remaining OPEN tickets are all non-blocking for
-the clean cycle:
+(DIA-008 Critical and DIA-015 Blocker) were closed and validated during the fix
+lanes; their fix/re-verify evidence was archived with the 2026-08-03 ledger
+cleanup. The 4 remaining OPEN tickets are all non-blocking for the clean cycle:
 
 - **DIA-003** — deferred skills-lock pinning (format limitation).
 - **DIA-006** — deferred production Dockerfile (owner decision 2026-08-03: no deploy story; production-image need unproven).
-- **DIA-007** — pending USER DECISION (ai-specialist split).
 - **DIA-030** — monitored (volta digests when upstream ships them).
 - **DIA-034** — monitored (ecdsa advisory with no published fix).
 
 Clean-cycle criterion met: every automated gate passes and zero open
 Blocker/Critical tickets (the only Blocker/Critical tickets, DIA-008 and DIA-015,
-are CLOSED). See the [Clean Cycle Definition](#clean-cycle-definition).
+were CLOSED before their tickets were archived). See the [Clean Cycle
+Definition](#clean-cycle-definition).
 
-### Phase E — Orchestrator operating model (DIA-036, complete)
+### Phase E — Orchestrator operating model (complete)
 
-Config-lane change (openCode-config, §10 route): the orchestrator was read-unrestricted
-and had no session-continuity mechanism. **DIA-036** locked it to delegation-only with
-path-scoped `read`/`edit` permissions, established a session messages-log + HANDOFF
-self-rerun protocol (`.opencode/session/`, gitignored), and added
-`docs/dev-infra-audit/NEXT-RUN.md` — the operating manual the next orchestrator
-instance follows to rerun the audit flow and close the 5 open tickets
-(DIA-003/006/007/030/034). Ledger rollup: **36 tickets total — 25 FIXED, 6 CLOSED,
-5 OPEN** (all non-blocking: 2 DEFERRED, 1 USER-DECISION, 2 MONITOR).
+Config-lane change (openCode-config, §10 route): the orchestrator was made
+delegation-only with path-scoped `read`/`edit` permissions, a session
+messages-log + HANDOFF self-rerun protocol (`.opencode/session/`, gitignored)
+was established, and `docs/dev-infra-audit/NEXT-RUN.md` was added — the
+operating manual the next orchestrator instance follows to rerun the audit flow
+and close the 4 open tickets (DIA-003/006/030/034). The DIA-036 ticket itself
+was validated and archived in the 2026-08-03 ledger cleanup. Ledger: **4 OPEN**
+(all non-blocking: 2 DEFERRED, 2 MONITOR).
+
+### Ticket ledger cleanup (2026-08-03)
+
+36 tickets audited 2026-08-03 → 32 completed+validated deleted (git-recoverable)
+→ 4 OPEN retained (2 DEFERRED, 2 MONITOR); zero open Blocker/Critical.
