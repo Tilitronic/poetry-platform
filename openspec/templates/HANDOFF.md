@@ -33,9 +33,11 @@
   producer's contract.
 -->
 
-## Session summary
+## Prognosis for next cycle
 
-<!-- Required. Concise narrative of what this cycle accomplished.
+### session_summary
+
+<!-- **Session summary** — Required. Concise narrative of what this cycle accomplished.
      On `exhausted`, the summary_narrative MUST be a postmortem of ≤200 characters
      (design.md §7, ADR-005). -->
 
@@ -63,9 +65,9 @@
   triggers fired; exit is clean and ready for fresh-session verification."
 -->
 
-## Fixes applied
+### fixes_applied
 
-<!-- Required. List of concrete changes made during this cycle. -->
+<!-- **Fixes applied** — Required. List of concrete changes made during this cycle. -->
 
 | Field       | Type   | Required | Description                                                       |
 | ----------- | ------ | -------- | ----------------------------------------------------------------- |
@@ -83,9 +85,9 @@
   test_status: no_tests_applicable
 -->
 
-## Open tickets
+### open_tickets
 
-<!-- Required. Unfinished work that the successor session must address.
+<!-- **Open tickets** — Required. Unfinished work that the successor session must address.
      Mark a ticket [BLOCKING] when blocking: true — C5 prognosis-debt detection
      depends on this (design.md §1). -->
 
@@ -109,9 +111,9 @@
   evidence: ["packages/auth/src/oauth.ts", "tests/auth.spec.ts: 3 failures"]
 -->
 
-## Verification request
+### verification_request
 
-<!-- Required. What the successor session must verify before declaring progress.
+<!-- **Verification request** — Required. What the successor session must verify before declaring progress.
      The fresh session executes these INDEPENDENTLY — the producer's claims are
      never accepted as verification (design.md §9, ADR-003). -->
 
@@ -131,9 +133,9 @@
   blocking: true
 -->
 
-## Resume instructions
+### resume_instructions
 
-<!-- Required. Step-by-step instructions for the successor session to resume work. -->
+<!-- **Resume instructions** — Required. Step-by-step instructions for the successor session to resume work. -->
 
 | Field           | Type     | Required | Description                                                     |
 | --------------- | -------- | -------- | --------------------------------------------------------------- |

@@ -195,9 +195,9 @@ model_selection_guidelines:
     researcher: "DS V4 Flash (Go) — volume research"
     conspecter: "DS V4 Flash (Go) — volume synthesis"
     analyzer: "Qwen3.7 Plus (Go) — 90.3% GPQA for analysis"
-    observer: "GPT-5 mini (Copilot) — passive monitoring, cheap"
-    ai_specialist: "Qwen3.7 Plus (Go) — research agent"
-    resource_manager: "DS V4 Flash (Go) — fast curation of sources.yaml, Tier-1 caching, cheap"
+    observer: "Gemini 3.6 Flash (Copilot) — multimodal passive monitoring"
+    ai-specialist: "Qwen3.7 Plus (Go) — research agent"
+    resource-manager: "DS V4 Flash (Go) — fast curation of sources.yaml, Tier-1 caching, cheap"
 
   rules:
     - "Always check current pricing from web before recommending — Go and Copilot rates change"

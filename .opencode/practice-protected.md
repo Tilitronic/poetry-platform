@@ -23,7 +23,7 @@ proceeding or applying changes.
 
 ### 4. Review disposition
 - When @reviewer produces findings, the developer decides disposition
-  (accept/reject/clarify) before the boss proceeds. The boss does not silently
+  (accept/reject/clarify) before the orchestrator proceeds. The orchestrator does not silently
   apply reviewer recommendations.
 - Exception: automated lint/format fixes that the reviewer labels as
   'mechanical' may be auto-applied if the developer has pre-approved mechanical
@@ -35,7 +35,7 @@ All agents fall into one of three permission tiers. New agents must declare thei
 
 | Tier | Permissions | Produces | Examples |
 |------|------------|----------|----------|
-| **pure-analyst** | `read_files` only | Output in conversation only | @architector, @ai_specialist, @reviewer, @openspec-plan |
+| **pure-analyst** | `read_files` only | Output in conversation only | @architector, @ai-specialist, @reviewer, @openspec-plan |
 | **artifact-producer** | Write+Bash, scoped to `knowledge/` | Structured reports, conspects, analyses | @analyzer, @conspecter, @resource-manager |
 | **executor** | Full Write+Bash | Implementation, refactoring, scribe work | @coder, @designer |
 

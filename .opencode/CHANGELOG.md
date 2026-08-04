@@ -1,5 +1,13 @@
 # OpenCode Config Changelog
 
+## 2026-08-04 — DIA-045 config-drift cleanup: stale aliases, observer model, HANDOFF template
+
+- **Change:** §10 lane fixed the DIA-045 config-drift backlog fix-now set — stale "boss"→"orchestrator" aliases (coder ×3 prompts, architector/analyzer orchestratorPrompts, practice-protected.md), underscore→hyphen agent names (ai-specialist, resource-manager) across ai-assist-sources.yaml + prompts, opencode-go observer → kimi-k2.7-code (multimodal) + role_mapping update, HANDOFF.md template restructured (## Prognosis for next cycle wrapper + 5 ### subsections matching the batch-approval gate).
+- **Reason:** DIA-045 (config drift from ai--1 22-finding audit, 2026-08-04); owner-approved fix-now set + 2 anomaly dispositions.
+- **Files:** oh-my-opencode-slim.jsonc · ai-assist-sources.yaml · practice-protected.md · openspec/templates/HANDOFF.md.
+- **Design decisions / review:** §10 two-sided audit — ai--1 Phase 1 gate → ai--2 Phase 5 APPROVE → cod-7 independent re-confirm; HANDOFF template option A (template carries the wrapper, gate check stays `## Prognosis for next cycle`).
+- Pending user: restart OpenCode + 4 post-restart smoke items (observer dispatch kimi, HANDOFF gate on template-produced HANDOFF, @ai-specialist/@resource-manager name resolution, coder escalation "orchestrator"); deferred items F18/F21/F15/F19/F20/F22 remain OPEN; commit pending owner decision.
+
 ## 2026-08-04 — Tickets System 2.0: Session-Attributed Delegation & Grounded Dispatch
 
 - **Change:** Tickets System 2.0 — session-attributed delegation & grounded dispatch (fixes false delegation + enables exact subagent-session recall).

@@ -2,6 +2,8 @@
 
 Last updated: 2026-08-02
 
+> Historical entries pre-2026-08-02 use 'boss' — canonical name is now 'orchestrator'.
+
 ## Knowledge Sources
 
 - **Dynamic experience:** This directory (`.opencode/learnings/`)
