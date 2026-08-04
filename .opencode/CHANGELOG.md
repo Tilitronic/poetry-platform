@@ -1,5 +1,13 @@
 # OpenCode Config Changelog
 
+## 2026-08-04 — Copilot legacy-annual pricing: observer fallback ≤6x (gpt-5-mini)
+
+- **Change:** cebula preset observer fallback `github-copilot/gemini-3.5-flash` (14x credit multiplier) → `github-copilot/gpt-5-mini` (0.33x) — GitHub's #1 recommended vision model on the legacy annual plan; knowledge update (NEW learnings `2026-08-04-copilot-legacy-annual-pricing.md` + index pointer row) and ai-assist-sources.yaml role_mapping observer label.
+- **Reason:** legacy ANNUAL GitHub Copilot Pro plan uses credit-multiplier (premium-request) billing — the credit multiplier governs cost. gemini-3.5-flash = 14x worst deal (~21 premium interactions/month); gpt-5-mini = 0.33x cheapest (~909/month); owner policy: models ≤6x multiplier. 42x cheaper per interaction.
+- **Files:** oh-my-opencode-slim.jsonc (cebula observer array fallback) · ai-assist-sources.yaml (role_mapping observer label) · learnings/external-patterns/2026-08-04-copilot-legacy-annual-pricing.md (NEW) · learnings/index.md (pointer row + Last updated) · CHANGELOG.md.
+- **Design decisions / review:** ai--3 authoritative research (fetched 2026-08-04, docs.github.com model-multipliers-for-annual-plans); §10 Phase 2 owner approval — observer fallback ≤6x (gpt-5-mini) + full knowledge update; primary opencode-go/kimi-k2.7-code [0] and last-resort opencode/big-pickle unchanged; opencode-go/free preset observers, council/councillor, coder/reviewer/designer models untouched.
+- Pending user: dcp.jsonc `gemini-3.5-flash` cleanup decision pending (2 occurrences: modelMaxLimits line 13, modelMinLimits line 30 — not changed by this lane).
+
 ## 2026-08-04 — DIA-045 observer model fix: cebula preset kimi-k2.7-code primary
 
 - **Change:** cebula preset observer primary model corrected to opencode-go/kimi-k2.7-code (multimodal); stale nonexistent github-copilot/gemini-3.6-flash replaced with github-copilot/gemini-3.5-flash fallback across 3 files (oh-my-opencode-slim.jsonc cebula observer array, dcp.jsonc model limits ×2, ai-assist-sources.yaml role_mapping label).

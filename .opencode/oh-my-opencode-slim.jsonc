@@ -290,7 +290,7 @@
       "observer": {
         "model": [
           "opencode-go/kimi-k2.7-code",
-          "github-copilot/gemini-3.5-flash",
+          "github-copilot/gpt-5-mini",
           "opencode/big-pickle"
         ],
         "variant": "low",

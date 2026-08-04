@@ -73,3 +73,6 @@ secrets/*
 
 # Orchestrator session state (transient, regenerated per session)
 .opencode/session/
+
+# === OpenCode clipboard/screenshot artifacts (transient) ===
+.opencode/images/
