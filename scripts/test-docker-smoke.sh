@@ -36,6 +36,12 @@
 #     Starting turbo dev is heavy, so when node_modules is not installed yet
 #     (fresh clone before `make install`) the probe is SKIPPED with a pointer
 #     to `make install` instead of failing the whole stack-health check.
+#     DIA-048 Fix b: the skip guard is now a FRESHNESS guard
+#     (scripts/author-studio-probe-guard.sh) — it also requires @quasar/app-vite
+#     to resolve through the installed tree and FAILS loudly (exit 1) when the
+#     tree is present but stale (stale pnpm_store named volume), instead of the
+#     old presence-only `-x turbo` check that silently skipped or crashed with
+#     MODULE_NOT_FOUND.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -243,34 +249,55 @@ fi
 echo "ok: Xvfb runs with -ac -noreset"
 
 echo "-> probing author-studio on :9000..."
-docker compose exec -T dev bash -c '
-  set -euo pipefail
-  if [ ! -x /workspace/node_modules/.bin/turbo ]; then
-    echo "skip: node_modules not installed yet; run make install then re-run the smoke test to probe author-studio"
-    exit 0
-  fi
+# DIA-048 Fix b: freshness guard, not presence-only. The guard lives in a
+# separate host-testable script (scripts/author-studio-probe-guard.sh) invoked
+# INSIDE the container — the repo is bind-mounted at /workspace, so the guard
+# is always current there without an image rebuild. Exit codes: 0 = toolchain
+# fresh (run the probe), 1 = node_modules present but stale/incomplete (FAIL
+# loudly — the old guard silently skipped or crashed with MODULE_NOT_FOUND),
+# 2 = node_modules absent (fresh clone before make install — skip with pointer).
+guard_out="$(docker compose exec -T dev bash /workspace/scripts/author-studio-probe-guard.sh 2>&1)" && guard_rc=0 || guard_rc=$?
+case "$guard_rc" in
+  0)
+    echo "$guard_out"
+    ;;
+  2)
+    echo "$guard_out"
+    echo "skip: author-studio probe not exercised (node_modules absent; stack-health checks still passed)"
+    ;;
+  *)
+    echo "error: author-studio probe precheck failed (guard exit $guard_rc):" >&2
+    echo "$guard_out" >&2
+    exit 1
+    ;;
+esac
+
+if [ "$guard_rc" = "0" ]; then
   # Start pnpm dev (turbo -> quasar dev on :9000) in the background, poll for
   # HTTP 200, then kill it. timeout guarantees the dev server dies even when
   # the probe fails; everything runs in-container so nothing leaks on the host.
-  timeout 180 pnpm dev >/tmp/smoke-pnpm-dev.log 2>&1 &
-  pid=$!
-  code=000
-  for i in $(seq 1 90); do
-    # --max-time 5: a dead/hung dev server would otherwise stall the probe
-    # until the default curl timeout (minutes) instead of failing fast (T6).
-    c=$(curl -s --max-time 5 -o /dev/null -w "%{http_code}" http://localhost:9000 2>/dev/null || true)
-    [ -n "$c" ] && code=$c
-    [ "$code" = "200" ] && break
-    sleep 2
-  done
-  kill "$pid" 2>/dev/null || true
-  wait "$pid" 2>/dev/null || true
-  if [ "$code" != "200" ]; then
-    echo "error: author-studio did not return HTTP 200 on :9000 (last code: $code)" >&2
-    tail -n 40 /tmp/smoke-pnpm-dev.log >&2 || true
-    exit 1
-  fi
-  echo "ok: author-studio returned HTTP 200 on :9000"
-'
+  docker compose exec -T dev bash -c '
+    set -euo pipefail
+    timeout 180 pnpm dev >/tmp/smoke-pnpm-dev.log 2>&1 &
+    pid=$!
+    code=000
+    for i in $(seq 1 90); do
+      # --max-time 5: a dead/hung dev server would otherwise stall the probe
+      # until the default curl timeout (minutes) instead of failing fast (T6).
+      c=$(curl -s --max-time 5 -o /dev/null -w "%{http_code}" http://localhost:9000 2>/dev/null || true)
+      [ -n "$c" ] && code=$c
+      [ "$code" = "200" ] && break
+      sleep 2
+    done
+    kill "$pid" 2>/dev/null || true
+    wait "$pid" 2>/dev/null || true
+    if [ "$code" != "200" ]; then
+      echo "error: author-studio did not return HTTP 200 on :9000 (last code: $code)" >&2
+      tail -n 40 /tmp/smoke-pnpm-dev.log >&2 || true
+      exit 1
+    fi
+    echo "ok: author-studio returned HTTP 200 on :9000"
+  '
+fi
 
 echo "ok: docker smoke test passed"

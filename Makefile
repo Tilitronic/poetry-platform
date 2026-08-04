@@ -13,6 +13,7 @@
 #   make clean        stop containers + wipe volumes (postgres data, pnpm store)
 #
 #   make test-shell   unit-test dev-infra shell scripts (bats; Docker mocked)
+#   make test-opencode-docker  static integrity gate for tools/opencode-docker (wired into test-shell)
 #   make check-tools  host-runnable tool integrity check (mise vs node/pnpm pins)
 #   make test-infra   test-shell + full Docker compose smoke test (heavy)
 #   make test-config  validate OpenCode JSONC config syntax + interview + skills gate
@@ -21,7 +22,7 @@
 #   make audit-python  pip-audit both Python packages (requires uv + committed uv.lock)
 #   make context7-docs  fetch library docs from Context7 (requires CONTEXT7_API_KEY; dry-run without it)
 
-.PHONY: build up shell opencode dev stack install db-psql logs down clean check-tools gen-jsconfig test-shell test-python test-infra test-config test-interview test-skills audit-python context7-docs jsonl-stats
+.PHONY: build up shell opencode dev stack install db-psql logs down clean check-tools gen-jsconfig test-shell test-opencode-docker test-python test-infra test-config test-interview test-skills audit-python context7-docs jsonl-stats
 
 stack:
 	bash scripts/dev-stack.sh
@@ -66,9 +67,19 @@ check-tools:
 	bash scripts/check-tools.sh
 
 # --- Test infrastructure (dev-infra artifacts) --------------------------------
+# Static integrity gate for the tools/opencode-docker subproject (DIA-044).
+# Host-runnable (no podman/docker daemon needed): asserts the subproject's
+# required files exist, its shell artifacts pass bash -n, bootstrap.py parses,
+# config/opencode.json is valid JSON, and its Makefile declares the canonical
+# targets. Wired into test-shell so BOTH `make test-shell` and `make test-infra`
+# (which pulls in test-shell) exercise it — the subproject can no longer drift
+# with zero automated signal.
+test-opencode-docker:
+	bash scripts/check-opencode-docker.sh
+
 # bats unit tests for scripts/dev-stack.sh + dev-entrypoint.sh. Docker is
 # mocked (never started); bats is vendored on first run if not installed.
-test-shell:
+test-shell: test-opencode-docker
 	bash scripts/__tests__/bats-wrapper.sh
 
 # Regenerate jsconfig.json from the current workspace layout (pnpm-workspace.yaml

@@ -28,6 +28,8 @@ for script in \
   "$ROOT/scripts/verify-python.sh" \
   "$ROOT/scripts/lint-python-files.sh" \
   "$ROOT/scripts/check-tools.sh" \
+  "$ROOT/scripts/check-opencode-docker.sh" \
+  "$ROOT/scripts/author-studio-probe-guard.sh" \
   "$ROOT/.opencode/scripts/validate-skills.sh" \
   "$ROOT/scripts/__tests__/test-helper.bash"; do
   bash -n "$script"
