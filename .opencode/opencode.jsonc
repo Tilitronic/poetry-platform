@@ -18,7 +18,7 @@
   "compaction": {
     "auto": true,
     "prune": true,
-    "reserved": 10000
+    "reserved": 16000
   },
 
   // Global permission baseline — the project overrides for team consistency.
@@ -157,10 +157,6 @@
     "observer": {
       "mode": "subagent",
       "color": "#A855F7"
-    },
-    "explorer": {
-      "mode": "subagent",
-      "color": "#10B981"
     },
     "memory-manager": {
       "mode": "subagent",
