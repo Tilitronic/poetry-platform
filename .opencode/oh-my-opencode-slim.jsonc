@@ -289,8 +289,8 @@
       },
       "observer": {
         "model": [
-          "github-copilot/gemini-3.6-flash",
           "opencode-go/kimi-k2.7-code",
+          "github-copilot/gemini-3.5-flash",
           "opencode/big-pickle"
         ],
         "variant": "low",

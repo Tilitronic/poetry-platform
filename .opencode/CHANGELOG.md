@@ -1,5 +1,13 @@
 # OpenCode Config Changelog
 
+## 2026-08-04 — DIA-045 observer model fix: cebula preset kimi-k2.7-code primary
+
+- **Change:** cebula preset observer primary model corrected to opencode-go/kimi-k2.7-code (multimodal); stale nonexistent github-copilot/gemini-3.6-flash replaced with github-copilot/gemini-3.5-flash fallback across 3 files (oh-my-opencode-slim.jsonc cebula observer array, dcp.jsonc model limits ×2, ai-assist-sources.yaml role_mapping label).
+- **Reason:** post-restart Smoke-1 dispatch error "Model not found: github-copilot/gemini-3.6-flash"; §10 Phase 1 root-cause — F7 incomplete (only opencode-go preset updated, cebula missed); Phase 4 cod-3 3 edits; Phase 5 ai--3 APPROVE-WITH-FINDINGS (F1..F4 dispositioned); Smoke-1 re-run (obs-2) PASS.
+- **Files:** oh-my-opencode-slim.jsonc (cebula observer array) · dcp.jsonc (modelMaxLimits/modelMinLimits) · ai-assist-sources.yaml (role_mapping label).
+- **Design decisions / review:** opencode-go/kimi-k2.7-code promoted to cebula observer primary (multimodal) with github-copilot/gemini-3.5-flash fallback; superseded gemini-3.6-flash GA claim annotated in learnings (2026-08-03-cebula-copilot-rebalance.md); §10 Phase 5 ai--3 APPROVE-WITH-FINDINGS (0 Blocker/Critical/Major — F1 ACCEPTED, F2 deferred, F3 closed, F4 no-action).
+- Pending user: 3-edit change set remains uncommitted — owner commit decision pending.
+
 ## 2026-08-04 — DIA-045 config-drift cleanup: stale aliases, observer model, HANDOFF template
 
 - **Change:** §10 lane fixed the DIA-045 config-drift backlog fix-now set — stale "boss"→"orchestrator" aliases (coder ×3 prompts, architector/analyzer orchestratorPrompts, practice-protected.md), underscore→hyphen agent names (ai-specialist, resource-manager) across ai-assist-sources.yaml + prompts, opencode-go observer → kimi-k2.7-code (multimodal) + role_mapping update, HANDOFF.md template restructured (## Prognosis for next cycle wrapper + 5 ### subsections matching the batch-approval gate).

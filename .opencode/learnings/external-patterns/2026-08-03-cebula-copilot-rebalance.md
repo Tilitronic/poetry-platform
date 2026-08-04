@@ -8,6 +8,7 @@
   - **Budget math:** OpenCode Go has a $60/mo cap with aggressive windows ($12/5h + $30/wk); Copilot Pro gives 1,500 credits = $15/mo. Target Copilot:Go spend ratio ≈ 8:1.
   - **Key insight:** Copilot $/token is 4.5–21x the bundled Go rates, so ONLY low-traffic lanes (observer, conspecter, code-navigator, resource-manager) can move — high-volume lanes (coder, analyzer, ai-specialist) must stay on Go.
   - **Models confirmed GA (as of 2026-07-21):** `gpt-5-mini` and `gemini-3.6-flash` are both generally available in the Copilot catalog.
+  - > **SUPERSEDED 2026-08-04:** `gemini-3.6-flash` does NOT exist (dispatch error "Model not found"); correct Copilot fallback model is `github-copilot/gemini-3.5-flash` — see DIA-045 observer fix + CHANGELOG 2026-08-04.
   - **Stale guideline found:** `ai-assist-sources.yaml:204` maps `observer` → "GPT-5 mini (Copilot) — passive monitoring, cheap", but GPT-5 mini is **NOT multimodal** and observer's lane is visual/media analysis (AGENTS.md §9 naming table) — the guideline is wrong; gemini-3.6-flash (multimodal) is the correct observer seat.
 - **applied**:
   - `oh-my-opencode-slim.jsonc` cebula preset — `observer` → `github-copilot/gemini-3.6-flash` (fallbacks: opencode-go/kimi-k2.7-code → opencode/big-pickle); `conspecter` → `github-copilot/gpt-5-mini` (fallbacks: opencode-go/deepseek-v4-flash → opencode/deepseek-v4-flash); `code-navigator` → `github-copilot/gpt-5-mini` (same fallbacks); `resource-manager` → `github-copilot/gpt-5-mini` (same fallbacks).
