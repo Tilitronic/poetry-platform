@@ -75,15 +75,9 @@ tier2_volatile_web:
       why: "Curated list of OpenCode tools, configs, extensions, and community resources. CRITICAL EVALUATION REQUIRED (see evaluation rules below)."
 
 tier3_local_references:
-  model_compendium:
-    path: "/home/qualt/Projects/visualPoetryResearch/knowledge/res001-ai-models-compendium/res001-ai-models-compendium-conspect.md"
-    why: "Complete model specs, benchmarks for Go + Copilot Pro models (stable data)"
-  model_analysis:
-    path: "/home/qualt/Projects/visualPoetryResearch/knowledge/ana001-ai-models-value/ana001-ai-models-detailed.md"
-    why: "Model rankings per priority, budget analysis"
   memory_shelf:
-    path: "/home/qualt/Projects/visualPoetryResearch/.opencode/memory-shelf.yaml"
-    why: "All research conspects, analyses, specs"
+    path: ".opencode/memory-shelf.yaml"
+    why: "Central index of this project's research conspects, analyses, specs"
   opencode_config:
     path: "/home/qualt/.config/opencode/opencode.jsonc"
     why: "Current provider config, base permissions, agent definitions"
@@ -91,7 +85,7 @@ tier3_local_references:
     path: "/home/qualt/.config/opencode/oh-my-opencode-slim.jsonc"
     why: "Active preset, all agent model assignments, council config"
   opencode_best_practices:
-    path: "/home/qualt/.config/opencode/oh-my-opencode-slim/knowledge/opencode-best-practices.md"
+    path: ".opencode/oh-my-opencode-slim/knowledge/opencode-best-practices.md"
     why: "Curated mid-2026 best practices for OpenCode agents, workflows, AGENTS.md files, and community resource evaluation"
 
 # Stable model benchmark reference (NOT pricing — pricing always from web)
@@ -192,13 +186,13 @@ model_benchmark_reference:
 model_selection_guidelines:
   role_mapping:
     orchestrator: "DS V4 Flash (Go) — fast routing, 1M ctx, cheap"
-    oracle: "Gemini 3.1 Pro (Copilot) — highest GPQA for architecture depth"
-    fixer: "DS V4 Flash (Go) — speed + value for implementation"
-    code_reviewer: "GPT-5.3-Codex (Copilot) — model diversity, 85% SWE"
+    architector: "Gemini 3.1 Pro (Copilot) — highest GPQA for architecture depth"
+    coder: "DS V4 Flash (Go) — speed + value for implementation"
+    reviewer: "GPT-5.3-Codex (Copilot) — model diversity, 85% SWE"
     openspec_plan: "Qwen3.7 Plus (Go) — volume for spec writing"
     designer: "Gemini 3 Flash (Copilot) or Kimi K2.6 (Go) — fast, multimodal"
-    explorer: "GPT-5 mini (Copilot) — fast code search, cheap"
-    librarian: "DS V4 Flash (Go) — volume research"
+    code_navigator: "GPT-5 mini (Copilot) — fast code search, cheap"
+    researcher: "DS V4 Flash (Go) — volume research"
     conspecter: "DS V4 Flash (Go) — volume synthesis"
     analyzer: "Qwen3.7 Plus (Go) — 90.3% GPQA for analysis"
     observer: "GPT-5 mini (Copilot) — passive monitoring, cheap"

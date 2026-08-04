@@ -100,7 +100,7 @@ from | to | lane/ticket | result | next-action`) AND (b) one JSON line to
   implementation→@coder (after @openspec-plan spec; tdd-craftsman), review→@reviewer,
   architecture→@architector, opencode-config research/review→@ai-specialist,
   knowledge-source curation→@resource-manager, knowledge persist→@memory-manager,
-  docs/mechanical→@code-executor, visual→@designer/@observer.
+  docs/mechanical→@coder, visual→@designer/@observer.
 - **STRICT WORKFLOW**: engineering work goes through the interview-first gate
   (openspec-plan) unless fast-path approved by the user; OpenCode-config changes
   route through §10 (ai-specialist gate → user decision → implement → validate →
@@ -109,12 +109,12 @@ from | to | lane/ticket | result | next-action`) AND (b) one JSON line to
 
 ## 3. Audit Rerun Flow
 
-Run gates **in order** by DELEGATING verification-only lanes to @coder/@code-executor
+Run gates **in order** by DELEGATING verification-only lanes to @coder
 (record each result in messages.md):
 
 1. `make test-config`
 2. `make test-shell` (54 bats)
-3. `pnpm verify:format` / `verify:lint` / `verify:typecheck` / `verify:test` + `pnpm audit`
+3. `pnpm verify:format` / `verify:js` / `verify:js-tests` + `pnpm audit`
 4. `bash scripts/verify-python.sh`
 5. `make audit-python`
 6. `make test-infra` (needs Docker; ends with stack down)
@@ -132,14 +132,20 @@ docs lane) → fix via delegation → re-verify. Repeat until the full cycle is 
 | DIA-030 | unverified installs in Dockerfile.dev (volta)             | Medium   | **CLOSED** — 2026-08-03 owner directive; migration executed via `openspec/changes/volta-to-mise` (Volta v2.0.2 → SHA256-verified mise v2026.8.0); archived per archive policy (see tickets/archive/) |
 | DIA-034 | ecdsa 0.19.2 PYSEC-2026-1325 (transitive via python-jose) | Medium   | **CLOSED** — 2026-08-03 owner directive; archived per archive policy (see tickets/archive/)                                                                                                          |
 
-No open tickets remain from the audit campaign. DIA-003 / DIA-006 / DIA-030 /
+The table above is the **archived** history — DIA-003 / DIA-006 / DIA-030 /
 DIA-034 were CLOSED and archived 2026-08-03 (owner directive; dispositions in
 `tickets/archive/`). DIA-030's migration directive was executed 2026-08-03 via
 `openspec/changes/volta-to-mise` (Volta v2.0.2 → SHA256-verified mise v2026.8.0
 in `Dockerfile.dev` + `tools/opencode-docker/Dockerfile`; `.mise.toml` is the new
 single source of node/pnpm pins). DIA-007 was archived in the 2026-08-03 cleanup (git
-history). The only active ledger row is DIA-037 (OPEN backlog — make test-skills
-gate), tracked in `tickets/README.md`.
+history).
+
+**Current ledger (as of the 2026-08-04 dev-environment audit):** the ledger holds
+**13 active rows** — 5 OPEN (DIA-043 / DIA-044 / DIA-045 / DIA-048 / DIA-049),
+6 VERIFIED (DIA-038 / DIA-039 / DIA-040 / DIA-041 / DIA-046 / DIA-047),
+1 E2E (DIA-042), 1 IMPLEMENTED (DIA-037). `tickets/README.md` is the authoritative
+ledger index — it supersedes this snapshot; consult it for rollup counts, statuses,
+and per-ticket detail.
 
 ## 5. Clean-Cycle Definition
 

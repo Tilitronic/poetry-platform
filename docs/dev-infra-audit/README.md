@@ -71,12 +71,12 @@ Until both conditions hold, the audit continues looping (inventory → vertical 
 
 ## Campaign Artifacts
 
-| Artifact               | Content                                                                                                       |
-| ---------------------- | ------------------------------------------------------------------------------------------------------------- |
-| `inventory.md`         | Authoritative read-only recon output (verbatim).                                                              |
-| `tickets/README.md`    | Ledger index (ID → title / area / severity / status / file).                                                  |
-| `tickets/_TEMPLATE.md` | Ticket template (fields + allowed values).                                                                    |
-| `tickets/DIA-*.md`     | One file per ticket (current set: DIA-037; completed tickets archived in the 2026-08-03 cleanup — see below). |
+| Artifact               | Content                                                                                                                             |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `inventory.md`         | Authoritative read-only recon output (verbatim).                                                                                    |
+| `tickets/README.md`    | Ledger index (ID → title / area / severity / status / file).                                                                        |
+| `tickets/_TEMPLATE.md` | Ticket template (fields + allowed values).                                                                                          |
+| `tickets/DIA-*.md`     | One file per ticket (current set: DIA-037 … DIA-049 — 13 active; completed tickets archived in the 2026-08-03 cleanup — see below). |
 
 ## Severity Guide
 
@@ -117,8 +117,10 @@ lanes; their fix/re-verify evidence was archived with the 2026-08-03 ledger
 cleanup. The 4 tickets that remained after the initial cleanup (DIA-003 / DIA-006 /
 DIA-030 / DIA-034) were CLOSED and archived 2026-08-03 by owner directive
 (dispositions recorded in their archive files; see [Ticket ledger
-cleanup](#ticket-ledger-cleanup-2026-08-03)). The only active ledger row is
-**DIA-037** (OPEN, backlog — make test-skills gate).
+cleanup](#ticket-ledger-cleanup-2026-08-03)). As of the 2026-08-03 cleanup, the
+only active ledger row was **DIA-037** (OPEN, backlog — make test-skills gate)
+— superseded 2026-08-04 by the dev-environment audit (13 active rows, see
+[below](#2026-08-04-dev-environment-audit-in-progress)).
 
 Clean-cycle criterion met: every automated gate passes and zero open
 Blocker/Critical tickets (the only Blocker/Critical tickets, DIA-008 and DIA-015,
@@ -135,11 +137,59 @@ operating manual the next orchestrator instance follows to rerun the audit flow
 and track the ledger (single OPEN row: DIA-037, make test-skills gap). The
 DIA-036 ticket itself was validated and archived in the 2026-08-03 ledger
 cleanup. DIA-003/006/030/034 were CLOSED + archived 2026-08-03 (owner
-directive). Ledger: **1 OPEN** (DIA-037, Minor/backlog).
+directive). Ledger (2026-08-03): **1 OPEN** (DIA-037, Minor/backlog).
 
 ### Ticket ledger cleanup (2026-08-03)
 
 36 tickets audited 2026-08-03 → 32 completed+validated deleted (git-recoverable)
 → 4 retained (2 DEFERRED, 2 MONITOR) CLOSED + archived 2026-08-03 (owner
 directive; dispositions in `tickets/archive/`) → single active row DIA-037
-(OPEN, backlog); zero open Blocker/Critical.
+(OPEN, backlog); zero open Blocker/Critical (as of 2026-08-03 — superseded
+2026-08-04, see below).
+
+### 2026-08-04 dev-environment audit (in progress)
+
+New audit loop opened 2026-08-04: **8 tickets filed** (DIA-038 … DIA-045) on
+top of the DIA-037 backlog row, plus 4 tickets from the validation and E2E
+phases (DIA-046 … DIA-049) — ledger now **13 active**. Gates run per the
+[NEXT-RUN.md §3 flow](NEXT-RUN.md#3-audit-rerun-flow):
+
+- **Validation phase (VALIDATE ×3 → VERIFIED)** — DIA-038 (Makefile gate
+  matrix: test-config / test-shell / jsonl-stats / check-tools), DIA-039 (pnpm
+  verify pipeline + pnpm audit), DIA-040 (Python gates: verify-python /
+  audit-python / container pytest). Covers NEXT-RUN.md §3 items 1–5. The loop
+  found 2 real gate failures — DIA-046 (prettier format) and DIA-047 (esbuild
+  audit) — both now VERIFIED; **validation loop all gates green**.
+- **E2E phase (E2E ×2 → complete)** — DIA-041 (Docker `make test-infra` full
+  run, ~18h, ends with the stack down; NEXT-RUN.md §3 item 6) then DIA-042
+  (browser Playwright flows; **blocked by DIA-041** — stack must be restored
+  with `make up` first; NEXT-RUN.md §3 item 7). DIA-041 **VERIFIED** — full
+  `make test-infra` PASS after the stale `pnpm_store` volume refresh (evidence
+  in the ticket's Re-verify). DIA-042 browser flows: author-studio PASS
+  (http://localhost:9000, HTTP 200, CM6 editor, 3/3 interactions, 0 console
+  errors, 0 failed requests); publishing-platform **FAIL** —
+  `ERR_CONNECTION_REFUSED` :3000 (stub app → **DIA-049**). DIA-042 stays
+  E2E/open until publishing-platform has a runnable dev entry. Stack restored
+  **UP** (`make up`) after the DIA-041 run.
+- **OPEN backlog (OPEN ×5)** — DIA-043 (Husky hooks not CI-enforced — re-scoped
+  Minor 2026-08-04 after confirming `.husky/` IS git-tracked per DIA-008
+  resolution), DIA-044 (tools/opencode-docker not wired into root Makefile
+  gates), DIA-045 (OpenCode config drift backlog — ai-specialist review
+  findings F6–F21), DIA-048 (stale pnpm_store named volume + presence-only skip
+  guard masks author-studio probe failures — Major; operational refresh done,
+  probe-freshness fix pending), DIA-049 (publishing-platform is a stub — no
+  runnable dev entry).
+
+Ledger rollup (2026-08-04, 13 active): severity **Major ×1 + Medium ×7 + Minor
+×5**; status **OPEN ×5 + VERIFIED ×6 + E2E ×1 + IMPLEMENTED ×1** (DIA-037). Zero
+open Blocker/Critical. `VALIDATE` / `E2E` are audit-phase statuses added to the
+ticket vocabulary (see `tickets/_TEMPLATE.md`); tickets transition to fix-lane
+states (FIXED → VERIFIED → CLOSED) via their Fix → Re-verify sections.
+
+**Fix-lane progress (2026-08-04):** validation loop all gates green after
+DIA-046 (prettier format: `pnpm exec prettier --check` on the 5 files +
+`pnpm verify:format` exit 0) and DIA-047 (esbuild advisory: `pnpm.overrides`
+esbuild `>=0.28.1` added; `pnpm install` + `pnpm audit` exit 0). E2E complete:
+DIA-041 (full `make test-infra`) PASS post volume-refresh and VERIFIED;
+DIA-042 browser flows — author-studio PASS, publishing-platform stub FAIL →
+DIA-049 (stays E2E/open). Stack restored UP (`make up`) for the browser E2E.

@@ -1,5 +1,11 @@
 # OpenCode Config Changelog
 
+## 2026-08-04 — F1–F5 opencode-config stale-reference cleanup (from ai--1 critical review)
+
+- **Change:** ai-specialist prompt global knowledge paths → project-relative (.opencode/oh-my-opencode-slim/knowledge/); ai-assist-sources.yaml role_mapping → AGENTS.md §9 current names; tier3_local_references cross-project visualPoetryResearch entries removed, memory_shelf repointed to this repo; opencode_best_practices → project-relative; NEXT-RUN.md @code-executor → @coder (×2, deduped).
+- **Reason:** 22-finding critical review (1 Blocker + 4 Critical); owner disposed Blocker+Critical now, rest → DIA-045.
+- **Verification:** make test-config exit 0; ai--2 Phase 5 APPROVE. Uncommitted.
+
 ## 2026-08-03 — Handoff protocol modernization (G1–G9)
 
 - **Change:** §10-approved modernization of the orchestrator handoff protocol per the handoff-protocol audit (learnings 2026-08-03-handoff-protocol-audit.md). 9 files modified, 1 script created, 0 deleted. Uncommitted.
