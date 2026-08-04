@@ -273,7 +273,8 @@
     "envsitter-guard@0.0.4",
     "@tarquinen/opencode-dcp@3.1.14",
     "opencode-telemetry@0.1.19",
-    "oh-my-opencode-slim@2.2.8"
+    "oh-my-opencode-slim@2.2.8",
+    "file://./.opencode/plugins/delegation-observer.ts"
   ],
 
   // ---------------------------------------------------------------------------

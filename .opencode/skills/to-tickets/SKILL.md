@@ -72,13 +72,24 @@ id: DIA-NNN
 title: "<short title>"
 area: <docker | opencode-config | js-tooling | git-hooks | python-tooling | scripts | docs | secrets | env | tests-infra | ci | deps>
 severity: <Blocker | Critical | Major | Medium | Minor | Info>
-status: <OPEN | DEFERRED | MONITOR | FIXED | IMPLEMENTED | VERIFIED | CLOSED | BLOCKED>
+status: <OPEN | DEFERRED | MONITOR | FIXED | IMPLEMENTED | VERIFIED | CLOSED | BLOCKED | DISPATCHED | RUNNING | COMPLETE>
 blocked_by: []  # DIA-NNN refs, or empty
 discovered:
     source: <inventory | baseline | test-lane | fix-lane>
     date: YYYY-MM-DD
 created: YYYY-MM-DD
 updated: YYYY-MM-DD
+# --- Session Attribution (v2 schema, optional) ---
+session_id: ""           # OpenCode session ID that owned this ticket
+lane_id: ""              # e.g. cod-1, ai--3
+agent: ""                # agent name (coder, reviewer, etc.)
+model: ""                # model ID used
+parent_session_id: ""    # orchestrator's session ID (populated via get-my-session-id tool)
+attempts: 0              # how many delegations attempted
+lease_expires_at: ""     # ISO-8601; set on DISPATCHED, cleared on COMPLETE
+files_touched: []        # list of file paths modified
+artifacts: []            # list of artifact references (commits, test outputs)
+evidence: []             # list of evidence URIs (messages.md#row, registry.jsonl#seq)
 ---
 
 ## Description
@@ -90,7 +101,8 @@ updated: YYYY-MM-DD
 <Acceptance criteria as checkboxes — how to prove the ticket is done.>
 ```
 
-- Status uses the project vocabulary: `OPEN` for new tickets. Use `DEFERRED` / `MONITOR` / `BLOCKED` when the disposition is known at creation time.
+- Status uses the project vocabulary: `OPEN` for new tickets. Use `DEFERRED` / `MONITOR` / `BLOCKED` when the disposition is known at creation time. `DISPATCHED` / `RUNNING` / `COMPLETE` are NOT manual values — they are set by the `delegation-observer` plugin at delegation time (DISPATCHED on task() invoke, RUNNING on child-session spawn, COMPLETE on session.idle) and should not be written by hand at ticket creation.
+- **Creation-vs-Completion Field Split**: ticket creation populates only the v1 creation fields — `id`, `title`, `area`, `severity`, `status: OPEN`, `blocked_by`, `discovered`, `created`, `updated`, `Description`, `Verification`. The session-attribution fields (`session_id`, `lane_id`, `agent`, `model`, `parent_session_id`, `attempts`, `lease_expires_at`, `files_touched`, `artifacts`, `evidence`) are populated at **delegation time** by the `delegation-observer` plugin and the orchestrator — NOT at creation. Leave them at their defaults when creating a ticket.
 - Severity includes Medium (harmonized 2026-08-03).
 - Verification holds the acceptance criteria: the end-to-end behaviour this ticket makes work, from the user's perspective — not a layer-by-layer implementation list.
 - Add a row to `docs/dev-infra-audit/tickets/README.md` and update the status/severity rollup counts.

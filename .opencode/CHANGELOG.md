@@ -1,5 +1,14 @@
 # OpenCode Config Changelog
 
+## 2026-08-04 — Tickets System 2.0: Session-Attributed Delegation & Grounded Dispatch
+
+- **Change:** Tickets System 2.0 — session-attributed delegation & grounded dispatch (fixes false delegation + enables exact subagent-session recall).
+- **Reason:** 3 confirmed false-delegation incidents in 2026-08-04 dev-audit (task() silently dropped when batched with edit()); tickets lacked session_id/lane_id/files_touched/artifacts linkage (ana005 report).
+- **Files:** delegation-observer.ts (NEW plugin), get-my-session-id.ts (NEW tool), opencode.jsonc, jsonl-stats.sh (F17 fix + dangling/orphan/telemetry), oh-my-opencode-slim.jsonc (PURE-DISPATCH ×3), orchestrator_append.md, NEXT-RUN.md §2, _TEMPLATE.md, to-tickets SKILL.md, session/README.md, registry.jsonl (gitignored, plugin-created).
+- **Design decisions:** plugin-as-hooks (OpenCode native hooks closed not-planned); task_id success-path-only (PR #13958 unmerged) + session.children fallback + session.prompt recall; registry.jsonl = business cross-ref index (gitignored) + native session APIs = lifecycle; gen_ai.agent.id + ticket_id = labeled Project Extensions (semconv v1.42.0); dispatch_state lifecycle invoked|running|completed|failed (+SILENT_FAILURE status); __task_no_id__ group_key exclusion; gatedSessions Set O(1); alert_note column.
+- **Review:** §10 two-sided audit — Phase 1 ai--1 APPROVE-WITH-CHANGES, recheck ai--2 UPDATES-REQUIRED, Phase 5 ai--3 APPROVE (95%); @reviewer rev-1 (BLOCKERS) → cod-3 → rev-2 (17/17 closed) → cod-4 (RR fixes) → rev-3 (5/5 closed, 0 regressions).
+- Pending user: restart OpenCode + post-restart smoke (V5/V6/V10–V13 + S1/S2) + commit decision.
+
 ## 2026-08-04 — F1–F5 opencode-config stale-reference cleanup (from ai--1 critical review)
 
 - **Change:** ai-specialist prompt global knowledge paths → project-relative (.opencode/oh-my-opencode-slim/knowledge/); ai-assist-sources.yaml role_mapping → AGENTS.md §9 current names; tier3_local_references cross-project visualPoetryResearch entries removed, memory_shelf repointed to this repo; opencode_best_practices → project-relative; NEXT-RUN.md @code-executor → @coder (×2, deduped).

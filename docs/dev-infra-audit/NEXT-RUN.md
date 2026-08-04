@@ -106,6 +106,19 @@ from | to | lane/ticket | result | next-action`) AND (b) one JSON line to
   route through §10 (ai-specialist gate → user decision → implement → validate →
   independent review → CHANGELOG); never auto-apply reviewer recommendations (the
   user disposes).
+- **PURE-DISPATCH RULE (A1, plugin-enforced)**: every `task()` call must be the
+  sole tool call in its message. The `delegation-observer` plugin watches
+  `tool.execute.before` and logs violations. Do NOT batch tool calls alongside task().
+- **RETROACTIVE CONSISTENCY CHECK (A3, plugin-enforced)**: the plugin compares
+  in-flight registry rows against actual session outcomes on every `session.idle` /
+  `session.error`. Dangling DISPATCHED/RUNNING rows without completion = silent
+  failure alert. On boot, scan registry.jsonl for rows stuck in non-terminal
+  `dispatch_state` and reconcile before delegating new work.
+- **STATUS-TRANSITION GUARD (C3)**: registry.jsonl status transitions are strictly
+  PENDING→INVOKED→RUNNING→COMPLETED/FAILED. The plugin enforces forward-only
+  transitions; backwards transitions (COMPLETE→RUNNING) are logged as anomalies.
+  Background-subagent mode (`OPENCODE_EXPERIMENTAL_BACKGROUND_SUBAGENTS`) may
+  alter blocking behavior — test both modes before relying on timing assumptions.
 
 ## 3. Audit Rerun Flow
 

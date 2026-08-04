@@ -120,6 +120,48 @@ After appending a row to messages.md, ALSO append one JSON line to .opencode/ses
 
 Convention: open-telemetry/semantic-conventions-genai v1.42.0 (June 2026). All gen_ai.* fields are Development status — renames are non-breaking appends. Token usage fields populated ONLY at cycle boundaries or handoff (call token_stats), not per-row.
 
+## Grounded Dispatch Discipline
+
+### A1 — Pure-Dispatch Rule (Plugin-Enforced)
+Every `task()` call MUST be the **sole tool call** in its message. No parallel tool
+calls alongside `task()`. The `delegation-observer` plugin enforces this mechanically
+via `tool.execute.before` — violations are logged as warnings in registry.jsonl.
+This eliminates the orchestrator-LLM-discipline single point of failure.
+
+### A2 — Task-ID Capture & Session Recall
+- **Success path**: `task()` returns `task_id` on success. The `delegation-observer`
+  plugin captures it via `tool.execute.after` and writes a DISPATCHED registry row.
+- **Abort/cancel/error paths**: PR #13958 closed without merge (Mar 2026); `task_id`
+  is NOT available on these paths (issue #13910 still open Jul 2026). The plugin
+  treats absence as expected and falls back to `session.children` of the orchestrator
+  session for last-child lookup. **Never claim DISPATCHED without evidence** — if
+  neither task_id nor child session is found, the registry row stays PENDING with
+  `dispatch_state: "invoked"` and a `fallback_note`.
+- **Recall/resume**: use native session API — `session.prompt({path:{id}})` (SDK) /
+  `POST /session/:id/message` (HTTP) — NOT re-invoke `task()`. registry.jsonl is the
+  business cross-reference index (ticket↔lane↔session_id↔refs); native session APIs
+  handle lifecycle (recall/status/resume/abort/export). Session IDs persist across
+  orchestrator sessions (OpenCode DB at `~/.local/share/opencode`).
+- **Version note**: as of OpenCode v1.18.12 (2026-08-04); PR #13958 is the tracking
+  PR for task_id on error paths. Re-check on upgrade.
+
+### A3 — Retroactive Consistency Check (Plugin-Enforced)
+On every `session.idle` or `session.error` event, the plugin compares the registry's
+in-flight rows against the actual session outcome. Dangling `result_ref` entries
+(DISPATCHED/RUNNING with no completion event) trigger a silent-failure alert in
+registry.jsonl. This is the native fix for the 3 original false-delegation
+incidents that motivated this system.
+
+### A4 — Artifact Gate
+Every delegation result MUST include at least one artifact reference (file path,
+commit hash, or test output). Registry rows record `artifacts[]` — empty arrays
+flag "no evidence produced" delegations for retrospective audit.
+
+### A5 — Final-Message Quality Gate
+The orchestrator's final message in any delegation cycle MUST include:
+(1) session_id attribution, (2) ticket cross-reference, (3) artifact summary.
+Plugin-logged via `session.idle` event on the orchestrator's own session.
+
 ## Batch-Approval Boot Gate (MANDATORY)
 
 At session start, the orchestrator MUST run the batch-approval gate BEFORE any
