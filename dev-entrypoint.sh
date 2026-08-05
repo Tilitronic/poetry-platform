@@ -54,4 +54,7 @@ if command -v Xvfb >/dev/null 2>&1; then
 fi
 
 # --- Exec the requested command ---
+if [ "$#" -eq 0 ]; then
+  set -- bash
+fi
 exec "$@"
