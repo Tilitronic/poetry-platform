@@ -343,7 +343,7 @@ User query received with #rag or #tag
 
 ## Platform & Auth Notes
 
-- **Any OS — use absolute path:** Always use the **absolute path**:
+- **Any OS — use repo-root-relative path:** Always run from the repo root:
   ```bash
   python3 .opencode/scripts/query_rag.py "#csc OOP"
   ```

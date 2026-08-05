@@ -11,6 +11,11 @@ load test-helper
 
 setup() {
   mock_docker
+  # Point the /home/qualt guard (POETRY_COMMANDS_DIR seam — mirror of the
+  # POETRY_WORKSPACE override) at an isolated empty dir so every test is
+  # hermetic regardless of the real repo's .opencode/commands state.
+  export POETRY_COMMANDS_DIR="$BATS_TEST_TMPDIR/commands"
+  mkdir -p "$POETRY_COMMANDS_DIR"
 }
 
 @test "verify-pre-push: skips with a warning when the dev container is not running" {
@@ -82,4 +87,43 @@ FAKEPNPM
   done
   # docker must never be invoked from inside the container
   [ ! -s "$FAKE_DOCKER_LOG" ]
+}
+
+@test "verify-pre-push: delegates a workspace path with spaces as one cd argument" {
+  export FAKE_DOCKER_SERVICES="dev"
+  export POETRY_WORKSPACE="$BATS_TEST_TMPDIR/ws with spaces"
+  mkdir -p "$POETRY_WORKSPACE"
+
+  run bash "$SCRIPTS_DIR/verify-pre-push.sh"
+
+  assert_status 0
+  # the delegated log must preserve the space-containing path as ONE quoted cd
+  # argument — an unquoted $WORKSPACE would split it at the first space (D2)
+  assert_file_contains "$FAKE_DOCKER_LOG" "cd \"$POETRY_WORKSPACE\" &&"
+}
+
+@test "verify-pre-push: blocks the push when a .opencode/commands file contains literal /home/qualt" {
+  export FAKE_DOCKER_SERVICES="dev"
+  local commands_dir="$BATS_TEST_TMPDIR/commands-dirty"
+  mkdir -p "$commands_dir"
+  printf 'bun run "/home/qualt/.cache/opencode/telemetry/report.ts"\n' > "$commands_dir/telemetry-report.md"
+  export POETRY_COMMANDS_DIR="$commands_dir"
+
+  run bash "$SCRIPTS_DIR/verify-pre-push.sh"
+
+  assert_status 1
+  assert_output_contains "ERROR: literal '/home/qualt'"
+  assert_output_contains "telemetry-report.md"
+  # the guard fires BEFORE container detection/delegation — docker must never
+  # be reached while a dirty .opencode/commands file exists
+  [ ! -s "$FAKE_DOCKER_LOG" ]
+}
+
+@test "verify-pre-push: passes when no .opencode/commands file contains literal /home/qualt" {
+  export FAKE_DOCKER_SERVICES="dev"
+
+  run bash "$SCRIPTS_DIR/verify-pre-push.sh"
+
+  assert_status 0
+  assert_output_contains "verification passed"
 }

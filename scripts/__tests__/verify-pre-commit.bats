@@ -16,6 +16,11 @@ load test-helper
 
 setup() {
   mock_docker
+  # Point the /home/qualt guard (POETRY_COMMANDS_DIR seam — mirror of the
+  # POETRY_WORKSPACE override) at an isolated empty dir so every test is
+  # hermetic regardless of the real repo's .opencode/commands state.
+  export POETRY_COMMANDS_DIR="$BATS_TEST_TMPDIR/commands"
+  mkdir -p "$POETRY_COMMANDS_DIR"
 }
 
 @test "verify-pre-commit: delegates lint-staged to the dev container when on the host" {
@@ -26,8 +31,9 @@ setup() {
   assert_status 0
   assert_output_contains "delegating to dev container"
   assert_output_contains "autofix passed"
-  # the full delegated command, including the --allow-empty flag
-  assert_file_contains "$FAKE_DOCKER_LOG" "cd /workspace && npx lint-staged --allow-empty"
+  # the full delegated command, including the --allow-empty flag; the inner cd
+  # target is escaped-quoted so a space-containing WORKSPACE stays one argument
+  assert_file_contains "$FAKE_DOCKER_LOG" "cd \"/workspace\" && npx lint-staged --allow-empty"
 }
 
 @test "verify-pre-commit: passes --allow-empty so empty commits are not blocked" {
@@ -83,4 +89,43 @@ FAKENPX
   assert_file_contains "$NPX_LOG" "lint-staged --allow-empty"
   # docker must never be invoked from inside the container
   [ ! -s "$FAKE_DOCKER_LOG" ]
+}
+
+@test "verify-pre-commit: delegates a workspace path with spaces as one cd argument" {
+  export FAKE_DOCKER_SERVICES="dev"
+  export POETRY_WORKSPACE="$BATS_TEST_TMPDIR/ws with spaces"
+  mkdir -p "$POETRY_WORKSPACE"
+
+  run bash "$SCRIPTS_DIR/verify-pre-commit.sh"
+
+  assert_status 0
+  # the delegated log must preserve the space-containing path as ONE quoted cd
+  # argument — an unquoted $WORKSPACE would split it at the first space (D2)
+  assert_file_contains "$FAKE_DOCKER_LOG" "cd \"$POETRY_WORKSPACE\" &&"
+}
+
+@test "verify-pre-commit: blocks the hook when a .opencode/commands file contains literal /home/qualt" {
+  export FAKE_DOCKER_SERVICES="dev"
+  local commands_dir="$BATS_TEST_TMPDIR/commands-dirty"
+  mkdir -p "$commands_dir"
+  printf 'bun run "/home/qualt/.cache/opencode/telemetry/report.ts"\n' > "$commands_dir/telemetry-report.md"
+  export POETRY_COMMANDS_DIR="$commands_dir"
+
+  run bash "$SCRIPTS_DIR/verify-pre-commit.sh"
+
+  assert_status 1
+  assert_output_contains "ERROR: literal '/home/qualt'"
+  assert_output_contains "telemetry-report.md"
+  # the guard fires BEFORE container detection/delegation — docker must never
+  # be reached while a dirty .opencode/commands file exists
+  [ ! -s "$FAKE_DOCKER_LOG" ]
+}
+
+@test "verify-pre-commit: passes when no .opencode/commands file contains literal /home/qualt" {
+  export FAKE_DOCKER_SERVICES="dev"
+
+  run bash "$SCRIPTS_DIR/verify-pre-commit.sh"
+
+  assert_status 0
+  assert_output_contains "autofix passed"
 }
