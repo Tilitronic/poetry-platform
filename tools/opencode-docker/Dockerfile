@@ -30,7 +30,11 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
 
 # Install Node.js 24.18.0 from official binaries (pinned, not from apt repo)
 # TARGETARCH may not be set in Podman without --platform; fallback to uname -m
-RUN NODE_ARCH=$(case "${TARGETARCH:-$(uname -m)}" in x86_64|amd64) echo "x64" ;; aarch64|arm64) echo "arm64" ;; esac) && \
+# Fail-fast on unsupported TARGETARCH: without a `*)` arm an unknown arch would
+# leave $*_ARCH empty and build a malformed download URL that fails opaquely
+# mid-RUN. The non-zero exit aborts the Docker build immediately with a clear
+# message. Same arm text in all four *_ARCH blocks below (NODE/MISE/SNIP/UV).
+RUN NODE_ARCH=$(case "${TARGETARCH:-$(uname -m)}" in x86_64|amd64) echo "x64" ;; aarch64|arm64) echo "arm64" ;; *) echo "ERROR: unsupported TARGETARCH='${TARGETARCH}'. Supported: amd64, arm64." >&2; exit 1 ;; esac) && \
     curl -fsSL "https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-${NODE_ARCH}.tar.gz" -o /tmp/node.tar.gz && \
     tar xzf /tmp/node.tar.gz -C /usr/local/ --strip-components=1 && \
     rm -f /tmp/node.tar.gz && \
@@ -54,7 +58,7 @@ RUN npm install -g pnpm@${PNPM_VERSION} bun@${BUN_VERSION} @tarquinen/opencode-d
 # a mise/ prefix dir. No mise shims are installed (design dual-path contract).
 # MISE_VERSION carries NO leading "v" (repo convention — the URLs below add it).
 ARG MISE_VERSION=2026.8.0
-RUN MISE_ARCH=$(case "${TARGETARCH:-$(uname -m)}" in x86_64|amd64) echo "x64" ;; aarch64|arm64) echo "arm64" ;; esac) && \
+RUN MISE_ARCH=$(case "${TARGETARCH:-$(uname -m)}" in x86_64|amd64) echo "x64" ;; aarch64|arm64) echo "arm64" ;; *) echo "ERROR: unsupported TARGETARCH='${TARGETARCH}'. Supported: amd64, arm64." >&2; exit 1 ;; esac) && \
     curl -fsSL "https://github.com/jdx/mise/releases/download/v${MISE_VERSION}/mise-v${MISE_VERSION}-linux-${MISE_ARCH}.tar.gz" -o /tmp/mise.tar.gz && \
     curl -fsSL "https://github.com/jdx/mise/releases/download/v${MISE_VERSION}/SHASUMS256.txt" -o /tmp/mise.sha256 && \
     grep "mise-v${MISE_VERSION}-linux-${MISE_ARCH}.tar.gz" /tmp/mise.sha256 | sed "s|\./mise-v${MISE_VERSION}-linux-${MISE_ARCH}.tar.gz|/tmp/mise.tar.gz|" | sha256sum -c - && \
@@ -62,7 +66,7 @@ RUN MISE_ARCH=$(case "${TARGETARCH:-$(uname -m)}" in x86_64|amd64) echo "x64" ;;
     rm -f /tmp/mise.tar.gz /tmp/mise.sha256 && \
     mise --version
 
-RUN SNIP_ARCH=$(case "${TARGETARCH:-$(uname -m)}" in x86_64|amd64) echo "amd64" ;; aarch64|arm64) echo "arm64" ;; esac) && \
+RUN SNIP_ARCH=$(case "${TARGETARCH:-$(uname -m)}" in x86_64|amd64) echo "amd64" ;; aarch64|arm64) echo "arm64" ;; *) echo "ERROR: unsupported TARGETARCH='${TARGETARCH}'. Supported: amd64, arm64." >&2; exit 1 ;; esac) && \
     curl -fsSL "https://github.com/edouard-claude/snip/releases/download/v${SNIP_VERSION}/snip_${SNIP_VERSION}_linux_${SNIP_ARCH}.tar.gz" -o /tmp/snip.tar.gz && \
     curl -fsSL "https://github.com/edouard-claude/snip/releases/download/v${SNIP_VERSION}/checksums.txt" -o /tmp/checksums.txt && \
     grep "snip_${SNIP_VERSION}_linux_${SNIP_ARCH}.tar.gz" /tmp/checksums.txt | sed "s|snip_${SNIP_VERSION}_linux_${SNIP_ARCH}.tar.gz|/tmp/snip.tar.gz|" | sha256sum -c - && \
@@ -72,7 +76,7 @@ RUN SNIP_ARCH=$(case "${TARGETARCH:-$(uname -m)}" in x86_64|amd64) echo "amd64" 
 
 # Install uv 0.11.29 — fast Python package installer
 ARG UV_VERSION=0.11.29
-RUN UV_ARCH=$(case "${TARGETARCH:-$(uname -m)}" in x86_64|amd64) echo "x86_64" ;; aarch64|arm64) echo "aarch64" ;; esac) && \
+RUN UV_ARCH=$(case "${TARGETARCH:-$(uname -m)}" in x86_64|amd64) echo "x86_64" ;; aarch64|arm64) echo "aarch64" ;; *) echo "ERROR: unsupported TARGETARCH='${TARGETARCH}'. Supported: amd64, arm64." >&2; exit 1 ;; esac) && \
     curl -fsSL "https://github.com/astral-sh/uv/releases/download/${UV_VERSION}/uv-${UV_ARCH}-unknown-linux-gnu.tar.gz" -o /tmp/uv.tar.gz && \
     curl -fsSL "https://github.com/astral-sh/uv/releases/download/${UV_VERSION}/sha256.sum" -o /tmp/uv.sha256 && \
     grep "uv-${UV_ARCH}-unknown-linux-gnu.tar.gz" /tmp/uv.sha256 | sed "s|uv-${UV_ARCH}-unknown-linux-gnu.tar.gz|/tmp/uv.tar.gz|" | sha256sum -c - && \

@@ -17,6 +17,16 @@ if [ -d /run/secrets ]; then
   for secret in /run/secrets/*; do
     [ -f "$secret" ] || continue
     name=$(basename "$secret")
+    # Parity with dev-entrypoint.sh (fix #6): zero-byte placeholder files are
+    # the documented "not configured" state — skip them so an empty value never
+    # overwrites a developer-provided env var. Strict `-s` check (E1):
+    # whitespace-only files are non-empty and still load. Same semantics as the
+    # entrypoint; only the log prefix differs so the two loaders are
+    # distinguishable in combined logs.
+    if [ ! -s "$secret" ]; then
+      echo "[dev-secrets-profile] [skip] secret '${name}': file empty or zero-byte, not wiring" >&2
+      continue
+    fi
     case "$name" in
       anthropic_api_key|openai_api_key|context7_api_key|github_token|exa_api_key)
         var_name=$(echo "$name" | tr '[:lower:]' '[:upper:]' | tr '-' '_')

@@ -95,3 +95,35 @@ setup_isolated() {
   assert_file_contains "$REPO_ROOT/Makefile" "test-shell: test-opencode-docker"
   assert_file_contains "$REPO_ROOT/Makefile" "bash scripts/check-opencode-docker.sh"
 }
+
+@test "opencode-docker Dockerfile: all four arch case blocks have *) fail-fast arms" {
+  # Fix #4 (Copilot review): each *_ARCH=$(case ...) block must fail fast on an
+  # unsupported TARGETARCH instead of silently producing an empty $*_ARCH and a
+  # malformed download URL. Static-grep assertion (Q7) — no docker build.
+  local df="$REPO_ROOT/tools/opencode-docker/Dockerfile"
+  local var start_line end_line block arm
+  # ANSI-C quoting: \' is a literal single quote, ${TARGETARCH} stays literal —
+  # the Dockerfile text contains the unexpanded form.
+  arm=$'*) echo "ERROR: unsupported TARGETARCH=\'${TARGETARCH}\'. Supported: amd64, arm64." >&2; exit 1 ;;'
+  for var in NODE_ARCH MISE_ARCH SNIP_ARCH UV_ARCH; do
+    # Extract the case block's line span (from the *_ARCH=$(case line to the
+    # matching esac) terminator) so a stray `*)` elsewhere in the file cannot
+    # satisfy the assertion (proposal risk mitigation).
+    start_line="$(grep -nF "${var}=\$(case" "$df" | head -n1 | cut -d: -f1)"
+    if [ -z "$start_line" ]; then
+      echo "Dockerfile: no ${var}=\$(case block found" >&2
+      return 1
+    fi
+    end_line="$(awk -v s="$start_line" 'NR >= s && /esac\)/ { print NR; exit }' "$df")"
+    if [ -z "$end_line" ]; then
+      echo "Dockerfile: no esac) terminator for ${var} block (from line ${start_line})" >&2
+      return 1
+    fi
+    block="$(sed -n "${start_line},${end_line}p" "$df")"
+    if ! grep -qF -- "$arm" <<<"$block"; then
+      echo "Dockerfile: ${var} case block (lines ${start_line}-${end_line}) missing *) fail-fast arm" >&2
+      printf '%s\n' "$block" >&2
+      return 1
+    fi
+  done
+}

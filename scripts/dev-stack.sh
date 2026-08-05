@@ -40,9 +40,14 @@ else
   docker compose exec -T dev pnpm install
 fi
 
-# --- 4. Start all app services via turbo -------------------------------------
-echo "-> starting all app services (turbo run dev)..."
+# --- 4. Start author-studio via turbo ----------------------------------------
+# turbo (`pnpm dev`) starts ONLY author-studio — the only app with a `dev`
+# script (docs/docker-dev.md:14-18). api-server (FastAPI/uvicorn) and
+# publishing-platform (no dev script) are started separately; see
+# docs/docker-dev.md for the manual commands. E4: doc-path pointers are allowed
+# in the human-readable note; they must not appear inside URL lines.
+echo "-> starting author-studio via turbo (pnpm dev)..."
 echo "   author-studio : http://localhost:9000"
-echo "   api-server    : http://localhost:8000"
-echo "   publishing    : http://localhost:3000"
+echo "   (api-server and publishing-platform are NOT started by turbo;"
+echo "    start them separately — see docs/docker-dev.md)"
 docker compose exec -it dev pnpm dev

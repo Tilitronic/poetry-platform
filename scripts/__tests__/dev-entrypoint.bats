@@ -144,3 +144,55 @@ NS
   # aws_access_key_id was removed from the whitelist (M2) -> never exported
   assert_output_contains "AWS=[]"
 }
+
+@test "dev-entrypoint: skips zero-byte secret files and wires non-empty ones" {
+  local secrets="$BATS_TEST_TMPDIR/secrets"
+  mkdir -p "$secrets"
+  # zero-byte placeholder = the documented "not configured" init state
+  # (secrets/README.md) — must be SKIPPED, not exported as empty
+  : > "$secrets/anthropic_api_key"
+  # non-empty secret must still wire exactly as before (regression guard)
+  printf 'sk-real' > "$secrets/openai_api_key"
+
+  export NS_SECRETS_DIR="$secrets"
+  run_entrypoint_ns bash -c 'printf "AK=[%s]\nOA=[%s]\n" "${ANTHROPIC_API_KEY:-}" "$OPENAI_API_KEY"'
+
+  assert_status 0
+  # zero-byte placeholder: env var stays UNSET (not wired, not empty)
+  assert_output_contains "AK=[]"
+  # non-empty secret wiring is unchanged
+  assert_output_contains "OA=[sk-real]"
+  # skip marker is logged to stderr, grep-able
+  assert_output_contains "[dev-entrypoint] [skip] secret 'anthropic_api_key': file empty or zero-byte, not wiring"
+}
+
+@test "dev-secrets-profile.sh: skips zero-byte secret files (parity with entrypoint)" {
+  require_unshare
+  local secrets="$BATS_TEST_TMPDIR/secrets"
+  mkdir -p "$secrets"
+  : > "$secrets/anthropic_api_key"
+  printf 'sk-real' > "$secrets/exa_api_key"
+
+  local ns="$BATS_TEST_TMPDIR/ns-profile-empty.sh"
+  cat > "$ns" <<'NS'
+#!/usr/bin/env bash
+set -euo pipefail
+mount -t tmpfs tmpfs /run
+mkdir -p /run/secrets
+cp -a "$NS_SECRETS_DIR/." /run/secrets/
+source "$REPO_ROOT/scripts/dev-secrets-profile.sh"
+exec "$@"
+NS
+  chmod +x "$ns"
+
+  run unshare -r -m env NS_SECRETS_DIR="$secrets" REPO_ROOT="$REPO_ROOT" \
+    bash "$ns" bash -c 'printf "AK=[%s]\nEXA=[%s]\n" "${ANTHROPIC_API_KEY:-}" "$EXA_API_KEY"'
+
+  assert_status 0
+  # zero-byte placeholder: env var stays UNSET
+  assert_output_contains "AK=[]"
+  # non-empty secret wiring is unchanged (parity regression guard)
+  assert_output_contains "EXA=[sk-real]"
+  # skip marker uses the profile-script prefix so loaders are distinguishable
+  assert_output_contains "[dev-secrets-profile] [skip] secret 'anthropic_api_key': file empty or zero-byte, not wiring"
+}

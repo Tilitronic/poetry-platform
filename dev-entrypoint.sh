@@ -23,10 +23,19 @@ ALLOWED_SECRETS=(
 if [ -d /run/secrets ]; then
   for secret in "${ALLOWED_SECRETS[@]}"; do
     file="/run/secrets/${secret}"
-    if [ -f "$file" ]; then
-      var_name=$(echo "${secret}" | tr '[:lower:]' '[:upper:]' | tr '-' '_')
-      export "${var_name}=$(cat "$file")"
+    if [ ! -f "$file" ]; then
+      continue
     fi
+    # Zero-byte files are the documented "not configured" placeholder state
+    # (secrets/README.md) — skip them (degraded boot, never crash) so an empty
+    # value never overwrites a developer-provided env var. Strict `-s` check
+    # (E1): whitespace-only files are non-empty and still load.
+    if [ ! -s "$file" ]; then
+      echo "[dev-entrypoint] [skip] secret '${secret}': file empty or zero-byte, not wiring" >&2
+      continue
+    fi
+    var_name=$(echo "${secret}" | tr '[:lower:]' '[:upper:]' | tr '-' '_')
+    export "${var_name}=$(cat "$file")"
   done
 fi
 

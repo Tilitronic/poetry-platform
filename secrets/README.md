@@ -37,6 +37,14 @@ A file must be **non-empty** to actually be mounted/loaded into its env var at
 container start (the entrypoint reads the file content verbatim; an empty file
 would produce an empty env var, so it is skipped instead).
 
+**The loaders now enforce this skip.** Both `dev-entrypoint.sh` and
+`scripts/dev-secrets-profile.sh` treat a zero-byte secret file as *unset*: they
+log `[skip] secret '<name>': file empty or zero-byte, not wiring` to stderr and
+do NOT export the env var. The dev env therefore boots **degraded** — the var is
+missing, not empty — and an app that needs the secret fails with a clear
+"API key missing" error instead of silently receiving an empty value. Empty
+placeholder files are SKIPPED, not wired.
+
 Fill a placeholder like this:
 
 ```bash
