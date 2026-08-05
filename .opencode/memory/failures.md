@@ -9,8 +9,7 @@ Failed-loop lessons & preventive actions
 - Failure mode: Double-/api base URL composition bug escaped mocked tests and caused live runs to 404. Root cause: mock-mode used a different base composition than real API. Preventive action: add a real-API smoke run (gated) and a URL-join helper for base + path to avoid double prefixing.
 
 - Failure mode: MCP header-name mismatch risk (opencode.jsonc configured CONTEXT7_API_KEY header literal). Root cause: naming mismatch between env var and accepted server header names. Preventive action: update MCP mapping to Authorization: Bearer or X-Context7-API-Key and include an MCP integration smoke test.
- - Failure mode: MCP header-name mismatch risk (opencode.jsonc configured CONTEXT7_API_KEY header literal). Root cause: naming mismatch between env var and accepted server header names. Preventive action: update MCP mapping to Authorization: Bearer or X-Context7-API-Key and include an MCP integration smoke test.
-   Resolution: Fixed by updating the Context7 MCP registration in .opencode/opencode.jsonc and tools/opencode-docker/config/opencode.json to use "Authorization: Bearer {env:CONTEXT7_API_KEY}", set "oauth": false to avoid false OAuth detection, and increase MCP timeout to 15000ms to accommodate remote latency. See .opencode/learnings/external-patterns/2026-08-02-context7-mcp-registration.md for source-verified details. Keep this failure entry for historical context; mark as resolved by the above config updates.
+  Resolution: Fixed by updating the Context7 MCP registration in .opencode/opencode.jsonc and tools/opencode-docker/config/opencode.json to use "Authorization: Bearer {env:CONTEXT7_API_KEY}", set "oauth": false to avoid false OAuth detection, and increase MCP timeout to 15000ms to accommodate remote latency. See .opencode/learnings/external-patterns/2026-08-02-context7-mcp-registration.md for source-verified details. Keep this failure entry for historical context; mark as resolved by the above config updates.
 
 - Failure mode (2026-08-03): Premature SELF-RERUN/HANDOFF triggered by stale model-window lookup.
   Symptom: a handoff fired at 95,627 tokens and was interpreted as high-context pressure under the assumption of a 64k-window model.
@@ -30,3 +29,23 @@ Failed-loop lessons & preventive actions
     3. Do not loop on malformed resume calls. After 3 failed resume attempts, escalate to human ownership and check the background job board for session reuse capabilities. Implement an automated 3-failure cap to avoid denial-of-service loop patterns.
     4. If a report is lost (final message contained only a summary), the honest recovery path is a fresh re-run of the reviewer/agent to regenerate the full report; document the rerun and its session ID in tracked artifacts.
   Cross-reference: messages.md row ~184 (session log), .opencode/memory/lessons.md entry about ephemeral session sidecars.
+
+- Failure mode (2026-08-04): dispatched-but-not-executed subagent tasks when batching edits
+  Symptom: orchestration logs showed lanes marked as 'DISPATCHED (in-flight)' while the corresponding task() call never executed. Observed 2–3× during this campaign when a single agent message contained multiple operations (edit tool calls + task() calls) batched together.
+  Root cause: batching task() calls with edit tool invocations in a single message caused the runtime to drop or silently ignore the task() invocation in some cases; pure task() messages reliably launched subagents.
+  Preventive action:
+    1. Avoid batching edit-tool calls and task() invocations in the same agent message; prefer single-responsibility messages where a task() call is the sole action to ensure reliable subagent dispatch.
+    2. Add a monitoring assertion in the orchestrator that verifies a dispatched lane transitions from DISPATCHED -> RUNNING within a short window, and raise an audible/logging alert if the lane remains DISPATCHED without a matching session startup event after N seconds.
+    3. Document this failure mode in operational runbooks and include an explicit test in the verification loop that simulates a batched edit+task message to detect regressions.
+  Notes: check existing failures.md for related resume/dispatch failure modes; this entry records the batching-specific trigger and mitigation.
+
+- Failure mode (2026-08-04): Hallucinated model ID propagated into active preset config
+  Symptom: post-restart observer agent failed to launch with "Model not found: github-copilot/gemini-3.6-flash" because the ACTIVE preset contained a non-existent primary model ID while a related preset (opencode-go) had been updated.
+  Root cause:
+    - A learnings file asserted a model (github-copilot/gemini-3.6-flash) as GA without live-catalog verification; that assertion propagated into a preset and into the ACTIVE preset array.
+    - The fix applied edits to one preset's observer model entry but did not reconcile the ACTIVE preset (cebula), leaving the stale ID as primary.
+  Preventive action:
+    1. When changing model assignments, always verify model IDs against the provider's live model catalog (models.dev or vendor model card) before committing. Do not rely on learnings or memory claims about availability unless a verification date and source are recorded.
+    2. When patching a single preset, perform a preset-resolution check: enumerate all presets, the ACTIVE preset, and any preset-alias resolution chain to ensure no stale model IDs remain as primary or fallback.
+    3. Add a post-restart smoke step to the change checklist that performs a dry-launch of critical agents (observer, orchestrator) and fails fast on "Model not found" errors.
+  Cross-reference: lessons.md entry about model metadata verification and campaign registration pattern.

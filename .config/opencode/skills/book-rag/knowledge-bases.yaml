@@ -1,7 +1,0 @@
-cached_at: '2026-08-03T09:01:47.264553+00:00'
-ttl_seconds: 3600
-kbs:
-  - tag: test_kb
-    name: test_kb
-    description: some desc
-    id: abc
