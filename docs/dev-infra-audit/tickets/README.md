@@ -10,6 +10,7 @@ carries the full detail (description, verification, fix, re-verify evidence).
 | ID      | Title                                                                            | Area            | Severity | Status | Ticket file              |
 | ------- | -------------------------------------------------------------------------------- | --------------- | -------- | ------ | ------------------------ |
 | DIA-045 | OpenCode config drift backlog (ai-specialist review 2026-08-04, findings F6–F21) | opencode-config | Medium   | OPEN   | [DIA-045.md](DIA-045.md) |
+| DIA-050 | .mise.toml ↔ Dockerfile.dev pin-sync gap (DIA-045 F15)                           | dev-infra       | Low      | OPEN   | [DIA-050.md](DIA-050.md) |
 
 ## Status summary
 
@@ -20,11 +21,12 @@ carries the full detail (description, verification, fix, re-verify evidence).
 | Major    | 0     |
 | Medium   | 1     |
 | Minor    | 0     |
+| Low      | 1     |
 | Info     | 0     |
 
 | Status      | Count |
 | ----------- | ----- |
-| OPEN        | 1     |
+| OPEN        | 2     |
 | VALIDATE    | 0     |
 | E2E         | 0     |
 | DEFERRED    | 0     |

@@ -30,6 +30,8 @@ for script in \
   "$ROOT/scripts/check-tools.sh" \
   "$ROOT/scripts/check-opencode-docker.sh" \
   "$ROOT/scripts/author-studio-probe-guard.sh" \
+  "$ROOT/scripts/validate-handoff.sh" \
+  "$ROOT/scripts/validate-agent-names.sh" \
   "$ROOT/.opencode/scripts/validate-skills.sh" \
   "$ROOT/scripts/__tests__/test-helper.bash"; do
   bash -n "$script"

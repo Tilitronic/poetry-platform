@@ -127,9 +127,12 @@ test-skills:
 	bash .opencode/scripts/validate-skills.sh
 
 # OpenCode JSONC config syntax validation + interview-enforcement regression
-# checks + skill frontmatter gate.
+# checks + skill frontmatter gate + agent-name cross-reference + HANDOFF
+# prognosis-schema gate (change dev-infra-config-validators, T4).
 test-config: test-interview test-skills
 	bash .opencode/scripts/validate-opencode-config.sh
+	bash scripts/validate-agent-names.sh
+	bash scripts/validate-handoff.sh
 
 # Python dependency vulnerability audit via pip-audit (DIA-028). Exports the
 # locked runtime dependency set per package with uv (exact pins + hashes) and
