@@ -5,6 +5,15 @@
  * cross-references tickets, lanes, sessions, and artifacts (Tickets System 2.0
  * Phase 3/4; arc-2 design, ai--2 fold-in).
  *
+ * ALSO maintains .opencode/session/messages.jsonl — the orchestrator-level
+ * semantic event log (silent session logging, ana007 Option E, arc-1). The
+ * split: messages.jsonl records delegations/decisions/handoffs (written by
+ * this plugin via hooks + the log_decision tool); registry.jsonl records the
+ * plugin lifecycle (task()/session spawn→complete/fail). Complementary files,
+ * reconciled in Phase 5 validation. messages.md is now a DERIVED VIEW
+ * regenerated from messages.jsonl by scripts/session-log render — never
+ * edited directly.
+ *
  * Hook surface (real @opencode-ai/plugin@1.18.10 shapes):
  *  - "tool.execute.before"  (input, output) — A1 pure-dispatch enforcement
  *  - "tool.execute.after"   (input, output) — A2 task_id capture (parsed from
@@ -19,9 +28,10 @@
  * consistency, A4 append-only registry discipline, A5 final-message gate,
  * C3 forward-only status transitions (S2 guard).
  */
+import { randomUUID } from "node:crypto"
 import { appendFileSync, existsSync, readFileSync } from "node:fs"
 import { join } from "node:path"
-import type { Hooks, Plugin } from "@opencode-ai/plugin"
+import { tool, type Hooks, type Plugin } from "@opencode-ai/plugin"
 
 /**
  * Parse a task() tool result to recover the child session id.
@@ -53,6 +63,51 @@ function errorMessage(err: unknown): string | undefined {
     return (err as { message: string }).message
   }
   return String(err)
+}
+
+/**
+ * Highest numeric row number in messages.md (the pre-derivation human log).
+ * The `#` column of the markdown table is `| <n> |`; VP-evidence rows have a
+ * non-numeric first column and are skipped by the regex. Used ONLY as the
+ * row_id seed source for the boot scan — after this plugin starts writing,
+ * messages.md is derived from messages.jsonl and this fallback is inert.
+ * Returns 0 when the file is absent or has no numbered rows.
+ */
+function lastMessagesMdRowNumber(mdPath: string): number {
+  if (!existsSync(mdPath)) return 0
+  let max = 0
+  for (const line of readFileSync(mdPath, "utf-8").split("\n")) {
+    const m = /^\|\s*(\d+)\s*\|/.exec(line)
+    if (m) {
+      const n = Number.parseInt(m[1], 10)
+      if (n > max) max = n
+    }
+  }
+  return max
+}
+
+/**
+ * Highest row_id present in an existing messages.jsonl (plugin-written rows).
+ * Legacy orchestrator-written rows (lines 1-474 at migration time) LACK
+ * row_id entirely, so this returns 0 for them — the authoritative seed then
+ * falls back to the messages.md row numbering (see nextRowId seeding).
+ * Malformed lines are skipped (same policy as the registry boot scan).
+ */
+function maxRowIdInJsonl(jsonlPath: string): number {
+  if (!existsSync(jsonlPath)) return 0
+  let max = 0
+  for (const line of readFileSync(jsonlPath, "utf-8").split("\n")) {
+    if (!line) continue
+    try {
+      const row = JSON.parse(line) as { row_id?: number }
+      if (typeof row.row_id === "number" && row.row_id > max) {
+        max = row.row_id
+      }
+    } catch {
+      // Malformed line — skip during the boot scan too.
+    }
+  }
+  return max
 }
 
 interface RegistryRow {
@@ -88,6 +143,34 @@ const delegationObserver: Plugin = async (ctx) => {
   // Resolve the registry from PluginInput.directory (preferred over
   // process.cwd() — survives invocations started from other directories).
   const registryPath = join(ctx.directory, ".opencode/session/registry.jsonl")
+
+  // messages.jsonl paths — the orchestrator-level semantic event log
+  // (silent session logging, ana007 Option E). Same directory discipline as
+  // registry.jsonl; appendFileSync is SILENT (plugin fs writes never appear
+  // in the transcript — proven by registry.jsonl's 634 rows, 0 pollution).
+  const messagesPath = join(ctx.directory, ".opencode/session/messages.jsonl")
+  const messagesMdPath = join(ctx.directory, ".opencode/session/messages.md")
+
+  // row_id seed logic (READER rule — "continue from the last row # across
+  // sessions, never restart"): the authoritative monotonic series is the
+  // messages.md row numbering (last row = 601 at implementation time).
+  // Legacy messages.jsonl rows LACK row_id, so nextRowId = MAX(max row_id
+  // in messages.jsonl, last messages.md row #) + 1 — at migration that is
+  // 602. Once plugin rows carry row_id, messages.md itself is derived from
+  // messages.jsonl and the two sources converge; the MAX keeps the seed
+  // correct even if messages.md was regenerated with fewer rows.
+  let nextRowId =
+    Math.max(maxRowIdInJsonl(messagesPath), lastMessagesMdRowNumber(messagesMdPath)) + 1
+
+  // Orchestrator session -> number of task() delegations dispatched since the
+  // last handoff row. Used for decision #3 (one handoff row per orchestrator
+  // idle turn that follows delegations) — reset on each handoff write so
+  // repeated orchestrator idles without new delegations stay silent.
+  const delegationsSinceHandoff = new Map<string, number>()
+
+  // Child session id (task_id) -> agent name captured at dispatch. Enriches
+  // completion/failure messages rows with the actual delegated agent.
+  const childSessionAgent = new Map<string, string>()
 
   // Seed the sequence from existing rows so registry rows stay strictly
   // monotonic across plugin re-inits and compactions.
@@ -167,7 +250,59 @@ const delegationObserver: Plugin = async (ctx) => {
     if (entry.group_key === TASK_NO_ID_GROUP_KEY) {
       entry.group_key = `${TASK_NO_ID_GROUP_KEY}${seq}`
     }
-    appendFileSync(registryPath, JSON.stringify(entry) + "\n")
+    // Failure policy (mirrors appendMessageRow): never crash the plugin — on
+    // write error console.warn and continue. A lost registry row is preferable
+    // to a crashed orchestrator (appendFileSync is atomic; the last row is
+    // lost, never corrupted).
+    try {
+      appendFileSync(registryPath, JSON.stringify(entry) + "\n")
+    } catch (err) {
+      console.warn(
+        `[delegation-observer] registry.jsonl write failed (seq=${seq}): ${errorMessage(err)}`
+      )
+    }
+  }
+
+  /**
+   * messages.jsonl writer — ONE JSON object + "\n", silent appendFileSync
+   * (mirrors the registry appendRow pattern). Row fields: row_id (monotonic
+   * campaign row number), event_uuid (idempotent event identity — the row
+   * survives replay/compaction without duplicating), timestamp, semconv
+   * v1.42.0 gen_ai.* attributes, project extensions (gen_ai.agent.id,
+   * ticket_id), writer provenance "plugin".
+   *
+   * No write queue (decision #4): appendFileSync is synchronous and blocks
+   * the event loop, but at the observed volume (registry: 634 rows) this is
+   * unmeasurable. Deferred to a ~10K-row threshold — when messages.jsonl
+   * approaches 10K rows, switch to an async write queue (e.g. a batched
+   * setImmediate drain) to keep the event loop responsive.
+   *
+   * Failure policy: never crash the plugin, never block the event loop — on
+   * write error console.warn and continue. A lost row is preferable to a
+   * crashed orchestrator (appendFileSync is atomic; the last row is lost,
+   * never corrupted).
+   */
+  function appendMessageRow(row: Record<string, unknown>): void {
+    nextRowId++
+    const entry: Record<string, unknown> = {
+      row_id: nextRowId,
+      event_uuid: randomUUID(),
+      timestamp: new Date().toISOString(),
+      // Best-effort provider default — the project's orchestrator provider
+      // is opencode-go (observed in every legacy row). Callers can override
+      // via the row spread. gen_ai.request.model is NOT set here: plugin
+      // hooks do not expose the model id, so writing one would be a lie.
+      "gen_ai.provider.name": "opencode-go",
+      writer: "plugin",
+      ...row,
+    }
+    try {
+      appendFileSync(messagesPath, JSON.stringify(entry) + "\n")
+    } catch (err) {
+      console.warn(
+        `[delegation-observer] messages.jsonl write failed (row_id=${nextRowId}): ${errorMessage(err)}`
+      )
+    }
   }
 
   /** Last registry row that carries this session_id (used by the S2 guard). */
@@ -292,6 +427,45 @@ const delegationObserver: Plugin = async (ctx) => {
           writer: "plugin",
         })
       }
+
+      // messages.jsonl delegation row (orchestrator-level log): one row per
+      // task() dispatch, resolution "in-flight". Agent/lane/task_ref come
+      // from the task() tool args (subagent_type / task_id / description |
+      // prompt — the OMO task-session-manager shape); the spawned child
+      // session id (taskId) enriches gen_ai.agent.id and the completion
+      // row written on session.idle. Do NOT double-write: registry.jsonl
+      // keeps its own task_success/task_no_id rows above.
+      const taskArgs = (input.args ?? {}) as Record<string, unknown>
+      const agentName =
+        typeof taskArgs.subagent_type === "string" && taskArgs.subagent_type
+          ? taskArgs.subagent_type
+          : "subagent"
+      const laneId =
+        typeof taskArgs.task_id === "string" && taskArgs.task_id
+          ? taskArgs.task_id
+          : undefined
+      const taskRef =
+        (typeof taskArgs.description === "string" && taskArgs.description
+          ? taskArgs.description
+          : typeof taskArgs.prompt === "string" && taskArgs.prompt
+            ? taskArgs.prompt
+            : "task() delegation"
+        ).slice(0, 300)
+      if (taskId) childSessionAgent.set(taskId, agentName)
+      delegationsSinceHandoff.set(
+        input.sessionID,
+        (delegationsSinceHandoff.get(input.sessionID) ?? 0) + 1
+      )
+      appendMessageRow({
+        "gen_ai.operation.name": "invoke_agent",
+        "gen_ai.agent.name": agentName,
+        ...(laneId ? { lane_id: laneId } : {}),
+        from: "orchestrator",
+        event_type: "delegation",
+        task_ref: taskRef,
+        resolution_status: "in-flight",
+        ...(taskId ? { "gen_ai.agent.id": taskId } : {}),
+      })
     },
 
     // C1: session lifecycle events arrive via the generic `event` catch-all —
@@ -363,6 +537,23 @@ const delegationObserver: Plugin = async (ctx) => {
                 writer: "plugin",
               })
             }
+            // Handoff row (decision #3, approved): write ONE event_type
+            // "handoff" row (operation invoke_workflow) on the orchestrator's
+            // own idle when the session has performed delegations since the
+            // last handoff — a single row per orchestrator idle turn, then
+            // reset so subsequent idles without new delegations stay silent.
+            const pending = delegationsSinceHandoff.get(sessionID) ?? 0
+            if (pending > 0) {
+              delegationsSinceHandoff.set(sessionID, 0)
+              appendMessageRow({
+                "gen_ai.operation.name": "invoke_workflow",
+                from: "orchestrator",
+                event_type: "handoff",
+                task_ref: "orchestrator idle turn — delegations complete",
+                resolution_status: "done",
+                "gen_ai.agent.id": sessionID,
+              })
+            }
             return
           }
 
@@ -392,6 +583,18 @@ const delegationObserver: Plugin = async (ctx) => {
             status: "COMPLETE",
             finished_at: new Date().toISOString(),
             writer: "plugin",
+          })
+          // messages.jsonl completion row: delegation resolved "done".
+          // gen_ai.agent.name is enriched from the dispatch capture
+          // (childSessionAgent) when available.
+          appendMessageRow({
+            "gen_ai.operation.name": "invoke_agent",
+            "gen_ai.agent.name": childSessionAgent.get(sessionID) ?? "subagent",
+            from: "orchestrator",
+            event_type: "delegation",
+            task_ref: "subagent session completed",
+            resolution_status: "done",
+            "gen_ai.agent.id": sessionID,
           })
           checkSilentFailures()
           return
@@ -434,6 +637,18 @@ const delegationObserver: Plugin = async (ctx) => {
             error: errorMessage(event.properties?.error),
             writer: "plugin",
           })
+          // messages.jsonl failure row: delegation resolution "escalated".
+          // Written for ANY failing session (child or orchestrator) — a
+          // failure is a crisis-level event in the orchestrator-level log.
+          appendMessageRow({
+            "gen_ai.operation.name": "invoke_agent",
+            "gen_ai.agent.name": childSessionAgent.get(sessionID) ?? role,
+            from: "orchestrator",
+            event_type: "delegation",
+            task_ref: "session error — delegation failed",
+            resolution_status: "escalated",
+            "gen_ai.agent.id": sessionID,
+          })
           checkSilentFailures()
           return
         }
@@ -463,6 +678,50 @@ const delegationObserver: Plugin = async (ctx) => {
             .join("\n")
         output.context.push(snapshot)
       }
+    },
+
+    // log_decision — compact semantic-event logger (decision #5, approved;
+    // ana007 Option E / Phase 3). Registered via Hooks.tool (the
+    // @opencode-ai/plugin@1.18.10 Hooks interface already carries `tool`), so
+    // the approved "{hooks, tool}" return shape maps to `Hooks.tool` — the
+    // delegation-observer is a standalone hooks-style plugin and must keep
+    // returning the Hooks contract its file already uses.
+    tool: {
+      log_decision: tool({
+        description:
+          "Log a semantic orchestrator event (decision/handoff/crisis) to the session messages.jsonl log. COMPACT replacement for manual messages.md/jsonl edits: use for owner decisions, handoffs, and crisis declarations; mechanical delegation events are captured automatically by hooks and must NOT be logged via this tool.",
+        args: {
+          event_type: tool.schema.enum(["decision", "handoff", "crisis"]),
+          task_ref: tool.schema.string(),
+          resolution_status: tool.schema.enum([
+            "done",
+            "in-flight",
+            "pending-owner",
+            "escalated",
+            "acknowledged",
+          ]),
+          lane_id: tool.schema.string().optional(),
+          cycle_id: tool.schema.string().optional(),
+          ticket_id: tool.schema.string().optional(),
+          content_ref: tool.schema.string().optional(),
+          next_action: tool.schema.string().optional(),
+        },
+        async execute(args) {
+          appendMessageRow({
+            "gen_ai.operation.name": "invoke_workflow",
+            from: "orchestrator",
+            event_type: args.event_type,
+            task_ref: args.task_ref,
+            resolution_status: args.resolution_status,
+            ...(args.lane_id ? { lane_id: args.lane_id } : {}),
+            ...(args.cycle_id ? { cycle_id: args.cycle_id } : {}),
+            ...(args.ticket_id ? { ticket_id: args.ticket_id } : {}),
+            ...(args.content_ref ? { content_ref: args.content_ref } : {}),
+            ...(args.next_action ? { next_action: args.next_action } : {}),
+          })
+          return `Logged: ${args.event_type} — ${args.task_ref.slice(0, 60)}`
+        },
+      }),
     },
   }
 

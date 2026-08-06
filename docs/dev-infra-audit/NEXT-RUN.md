@@ -38,15 +38,10 @@ with a read-only task) to report the current contents of:
   their final messages. The path-scoped permission block enforces this
   (`read` allows only `.opencode/session/*`, `docs/dev-infra-audit/NEXT-RUN.md`,
   `AGENTS.md`, `.opencode/practice-protected.md`).
-- **WRITE RESTRICTION**: you write ONLY to `.opencode/session/*` (messages.md append
-  - HANDOFF.md). Never edit code, config, or docs directly.
-- **MESSAGES-LOG DISCIPLINE**: after EVERY delegation result and every user decision,
-  append BOTH (a) one row to `.opencode/session/messages.md` (table: `# | timestamp |
-from | to | lane/ticket | result | next-action`) AND (b) one JSON line to
-  `.opencode/session/messages.jsonl` (semconv v1.42.0 — same event, one JSON object).
-  Row numbering MUST be strictly monotonic — continue from the last row # across
-  sessions, never restart on a fresh session; an empty file starts at 1. Also append
-  campaign-state snapshots before any session end.
+- **WRITE RESTRICTION**: you write ONLY to `.opencode/session/HANDOFF.md`. Never edit
+  code, config, or docs directly. messages.md / messages.jsonl are plugin-managed —
+  never append to them (see SESSION LOGGING below).
+- **SESSION LOGGING**: automatic via delegation-observer plugin; use `log_decision` tool for semantic events; do NOT manually edit messages.md or messages.jsonl
 - **SELF-RERUN**: OpenCode native compaction (`compaction.auto: true`, opencode.jsonc)
   handles RAW context pressure within a session — no human action needed for compaction
   events. SELF-RERUN is triggered by: (a) **CAMPAIGN MILESTONE** — a major phase
@@ -57,8 +52,9 @@ from | to | lane/ticket | result | next-action`) AND (b) one JSON line to
   > = 30% of the model context window (300K tokens for 1M-window models); (d) **HARD
   > SAFETY-NET** — context usage >= 50% (unconditional force). On ANY trigger: write
   > `.opencode/session/HANDOFF.md` (previous session id, last message #, reason, campaign
-  > state incl. active tickets + next lane + gates passed, resume instructions), append a
-  > final log row, then end your turn telling the user a fresh session should be started —
+  > state incl. active tickets + next lane + gates passed, resume instructions), log the
+  > handoff via `log_decision` (event_type: 'handoff', resolution_status: 'done'), then
+  > end your turn telling the user a fresh session should be started —
   > the next instance reads HANDOFF.md + messages.md and resumes. Detection: call
   > `token_stats`; compute (input+output)/model_context_window using this lookup
   > (estimates): qwen3.7-max 1,000,000; qwen3.7-plus 1,000,000 (per models.dev; verify on
@@ -75,8 +71,8 @@ from | to | lane/ticket | result | next-action`) AND (b) one JSON line to
   file written, no test status change, no git diff). C4: hard context overflow/truncation —
   fires; ≥50% context rerun (soft) — flagged only, does NOT fire. C5: a `[BLOCKING]` prognosis
   ticket unresolved for 1 full cycle (fires at the start of cycle N+2). **On crisis:** STOP all
-  work, write a crisis HANDOFF.md with all 5 subsections, abbreviated in content (design.md §1 Option A): session_summary includes crisis_triggers; fixes_applied may be empty; open_tickets populated; verification_request/resume_instructions describe crisis-handling only, append a
-  final messages.md row, end the turn telling the user a FRESH session must be started — crisis
+  work, write a crisis HANDOFF.md with all 5 subsections, abbreviated in content (design.md §1 Option A): session_summary includes crisis_triggers; fixes_applied may be empty; open_tickets populated; verification_request/resume_instructions describe crisis-handling only, log the crisis via
+  `log_decision` (event_type: 'crisis', resolution_status: 'escalated'), end the turn telling the user a FRESH session must be started — crisis
   takes precedence over SELF-RERUN (no self-rerun from the same context).
 - **COUNCIL-BUDGET-GUARD**: the orchestrator MUST monitor cumulative council-dispatch credit
   spend against a 1500-credit session budget. **Warn** at 75% (1125 credits): emit a visible
@@ -101,7 +97,7 @@ from | to | lane/ticket | result | next-action`) AND (b) one JSON line to
   campaign milestone: (a) after any implementation lane completes; (b) after any review
   disposition is finalized; (c) after any commit lane lands; (d) at campaign completion.
   Each rewrite captures the current state snapshot — supersede, do not accumulate stale
-  sections. Detection: after logging a messages.md row whose result contains
+  sections. Detection: after a plugin-logged delegation row whose result contains
   DONE/COMPLETE/PASS for an implementation/review/commit lane, rewrite HANDOFF.md within
   the same delegation cycle.
 - **DELEGATION MAP**: research→@researcher, analysis→@analyzer, inventory→@code-navigator,
@@ -131,7 +127,7 @@ from | to | lane/ticket | result | next-action`) AND (b) one JSON line to
 ## 3. Audit Rerun Flow
 
 Run gates **in order** by DELEGATING verification-only lanes to @coder
-(record each result in messages.md):
+(delegations are plugin-logged automatically; gate outcomes go through `log_decision`):
 
 1. `make test-config`
 2. `make test-shell` (54 bats)
@@ -175,8 +171,10 @@ tickets are only DEFERRED / USER-DECISION / MONITOR (non-blocking).
 
 ## 6. Session Continuity
 
-`messages.md` is your memory; never lose state — append before ending any session;
-handoff protocol per rule 2 (30% primary threshold / 50% safety-net; campaign milestones).
+`messages.jsonl` is your memory (plugin-logged); never lose state — the
+delegation-observer plugin logs delegations automatically; log semantic events via
+`log_decision` before ending any session; handoff protocol per rule 2 (30% primary
+threshold / 50% safety-net; campaign milestones).
 
 ## 7. Redispatch Protocol (dia-redispatch-cycle)
 
@@ -202,7 +200,8 @@ At cycle termination (clean / crisis / exhausted / manual-halt), the outgoing se
    template `openspec/templates/HANDOFF.md`.
 2. Record the cycle budget in the HANDOFF.md (cycle current/max, clean-re-audit,
    budget-exhausted) + the campaign trigger manifest — NOT in this file (design.md §7).
-3. Append a final row to messages.md and end the turn telling the user a fresh session
+3. Log a final handoff event via `log_decision` (event_type: 'handoff',
+   resolution_status: 'done') and end the turn telling the user a fresh session
    should be started (or, on crisis, that a fresh session is REQUIRED — crisis
    precedence over SELF-RERUN, design.md §1).
 
@@ -214,8 +213,8 @@ any delegation or tool use (design.md §8):
 
 0. **DETECTION** — at session start, check for `.opencode/session/HANDOFF.md`. If it
    exists AND contains a `## Prognosis for next cycle` heading, the batch-approval
-   protocol is MANDATORY: log a messages.md row (channel: 'handoff',
-   event_type: 'batch-approval-gate') before proceeding. If no HANDOFF.md exists or it
+   protocol is MANDATORY: log a handoff event via `log_decision` (event_type: 'handoff',
+   task_ref: 'batch-approval-gate') before proceeding. If no HANDOFF.md exists or it
    has no Prognosis section, skip to normal boot (§1).
 1. Read HANDOFF.md and parse the prognosis section.
 2. Present each subsection as a batch: session_summary → fixes_applied → open_tickets →
@@ -224,8 +223,8 @@ any delegation or tool use (design.md §8):
 4. Rejected items become new open_tickets; deferred items carry forward.
 5. During open_tickets review, run the **C5 check**: if a `[BLOCKING]` ticket from the
    predecessor was supposed to be resolved but wasn't, C5 fires (design.md §1).
-6. **VERIFICATION** — after the developer approves ALL items, log a messages.md row
-   (channel: 'delegation', resolution_status: 'acknowledged',
+6. **VERIFICATION** — after the developer approves ALL items, log a decision event via
+   `log_decision` (event_type: 'decision', resolution_status: 'acknowledged',
    content_ref: 'batch-approval-complete'); ONLY THEN begin work. Rejected items become
    new open_tickets and await instruction — they are not silently carried forward.
 

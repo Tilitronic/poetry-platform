@@ -31,11 +31,13 @@ for script in \
   "$ROOT/scripts/check-host-jq.sh" \
   "$ROOT/scripts/check-host-lsp.sh" \
   "$ROOT/scripts/install-host-lsp.sh" \
+  "$ROOT/scripts/session-log" \
   "$ROOT/scripts/check-opencode-docker.sh" \
   "$ROOT/scripts/author-studio-probe-guard.sh" \
   "$ROOT/scripts/validate-handoff.sh" \
   "$ROOT/scripts/validate-agent-names.sh" \
   "$ROOT/.opencode/scripts/validate-skills.sh" \
+  "$ROOT/.opencode/scripts/jsonl-cross-check.sh" \
   "$ROOT/scripts/__tests__/test-helper.bash"; do
   bash -n "$script"
 done

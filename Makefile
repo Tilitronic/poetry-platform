@@ -22,7 +22,7 @@
 #   make audit-python  pip-audit both Python packages (requires uv + committed uv.lock)
 #   make context7-docs  fetch library docs from Context7 (requires CONTEXT7_API_KEY; dry-run without it)
 
-.PHONY: build up shell opencode dev stack install db-psql logs down clean check-tools check-host-jq check-host-lsp gen-jsconfig test-shell test-opencode-docker test-python test-infra test-config test-interview test-skills audit-python context7-docs jsonl-stats
+.PHONY: build up shell opencode dev stack install db-psql logs down clean check-tools check-host-jq check-host-lsp gen-jsconfig test-shell test-opencode-docker test-python test-infra test-config test-interview test-skills audit-python context7-docs jsonl-stats session-log-render jsonl-cross-check
 
 stack:
 	bash scripts/dev-stack.sh
@@ -181,3 +181,20 @@ context7-docs:
 # Requires jq for detail; degrades to a plain line count otherwise.
 jsonl-stats:
 	@bash .opencode/scripts/jsonl-stats.sh
+
+# Regenerate the derived messages.md view from messages.jsonl (ana007 Option E
+# Phase 2 — silent session logging: messages.jsonl is the canonical source of
+# truth written by the delegation-observer plugin; messages.md is derived, never
+# hand-edited). On-demand CLI (scripts/session-log); deliberately NOT wired into
+# test-shell/test-infra/test-config, consistent with the jsonl-stats precedent.
+session-log-render:
+	@bash scripts/session-log render
+
+# Cross-check messages.jsonl against registry.jsonl (ana007 Option E Phase 5 —
+# silent session logging: every plugin delegation in registry.jsonl must be
+# present in messages.jsonl within the ±5s timestamp tolerance; target >=99%).
+# On-demand CLI (.opencode/scripts/jsonl-cross-check.sh); deliberately NOT
+# wired into test-shell/test-infra/test-config, consistent with the jsonl-stats
+# and session-log-render precedent.
+jsonl-cross-check:
+	@bash .opencode/scripts/jsonl-cross-check.sh
