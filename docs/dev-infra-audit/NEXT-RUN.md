@@ -78,6 +78,14 @@ from | to | lane/ticket | result | next-action`) AND (b) one JSON line to
   work, write a crisis HANDOFF.md with all 5 subsections, abbreviated in content (design.md §1 Option A): session_summary includes crisis_triggers; fixes_applied may be empty; open_tickets populated; verification_request/resume_instructions describe crisis-handling only, append a
   final messages.md row, end the turn telling the user a FRESH session must be started — crisis
   takes precedence over SELF-RERUN (no self-rerun from the same context).
+- **COUNCIL-BUDGET-GUARD**: the orchestrator MUST monitor cumulative council-dispatch credit
+  spend against a 1500-credit session budget. **Warn** at 75% (1125 credits): emit a visible
+  notice to the developer with the current spend + remaining budget; continue dispatching.
+  **Hard-stop** at 90% (1350 credits): cease all council dispatches for the remainder of the
+  session; notify the developer; hand off remaining council-needs to the next session via the
+  HANDOFF.md prognosis. Detection: `token_stats` + the council-dispatch subset of the spend;
+  credit cost per councillor dispatch is model-dependent (use the live `token_stats` cost
+  field, not a static lookup).
 - **PROGNOSIS-DISCIPLINE**: every cycle termination (clean / crisis / exhausted / manual-halt)
   MUST produce a HANDOFF.md containing exactly one "Prognosis for next cycle" section with five
   folded subsections (session_summary / fixes_applied / open_tickets / verification_request /
