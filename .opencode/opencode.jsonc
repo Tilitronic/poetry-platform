@@ -196,7 +196,7 @@
       }
     },
     "ai-specialist": {
-      "description": "Researches agent/skill/config best practices for OpenCode itself. Read-only — findings routed through orchestrator for persistence.",
+      "description": "Read-only researcher of agent/skill/config best practices for OpenCode itself. Findings routed through orchestrator for persistence. Scope: documentation + config review only; no runtime dispatch authority; no implementation.",
       "mode": "subagent",
       "model": "opencode-go/qwen3.7-plus",
       "temperature": 0.3,
@@ -209,6 +209,45 @@
           "*": "deny"
         },
         "task": "deny"
+      }
+    },
+    // ai-auditor — independent read-only reviewer for §10 config changes
+    // (DIA-053). Pure-analyst tier: findings routed via orchestrator for
+    // persistence. Orchestrator brief SUPERSEDES design.md §2: bash FULLY
+    // denied (no curl/wget — the auditor has no network need). envsitter keys
+    // enumerate the envsitter-guard plugin's actual tool names (the brief's
+    // envsitter_read/envsitter_edit map to these individual names).
+    "ai-auditor": {
+      "description": "Independent read-only reviewer for §10 config changes. Pure-analyst tier — findings routed via orchestrator for persistence.",
+      "mode": "subagent",
+      "color": "#10B981",
+      "permission": {
+        "edit": "deny",
+        "bash": "deny",
+        "apply_patch": "deny",
+        "ast_grep_replace": "deny",
+        "webfetch": "deny",
+        "task": "deny",
+        "token_export": "deny",
+        "envsitter_set": "deny",
+        "envsitter_add": "deny",
+        "envsitter_delete": "deny",
+        "envsitter_unset": "deny",
+        "envsitter_annotate": "deny",
+        "envsitter_format": "deny",
+        "envsitter_reorder": "deny",
+        "envsitter_copy": "deny",
+        "envsitter_keys": "deny",
+        "envsitter_scan": "deny",
+        "envsitter_match": "deny",
+        "envsitter_match_by_key": "deny",
+        "envsitter_fingerprint": "deny",
+        "envsitter_validate": "deny",
+        "envsitter_help": "deny",
+        "read": "allow",
+        "glob": "allow",
+        "grep": "allow",
+        "list": "allow"
       }
     }
   },
