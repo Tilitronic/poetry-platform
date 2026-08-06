@@ -22,7 +22,7 @@
 #   make audit-python  pip-audit both Python packages (requires uv + committed uv.lock)
 #   make context7-docs  fetch library docs from Context7 (requires CONTEXT7_API_KEY; dry-run without it)
 
-.PHONY: build up shell opencode dev stack install db-psql logs down clean check-tools gen-jsconfig test-shell test-opencode-docker test-python test-infra test-config test-interview test-skills audit-python context7-docs jsonl-stats
+.PHONY: build up shell opencode dev stack install db-psql logs down clean check-tools check-host-jq check-host-lsp gen-jsconfig test-shell test-opencode-docker test-python test-infra test-config test-interview test-skills audit-python context7-docs jsonl-stats
 
 stack:
 	bash scripts/dev-stack.sh
@@ -77,9 +77,26 @@ check-tools:
 test-opencode-docker:
 	bash scripts/check-opencode-docker.sh
 
+# Host-runnable LSP integrity check (scripts/check-host-lsp.sh). Verifies the
+# three LS binaries (TS/Python/Rust) are on PATH at the pinned versions from
+# scripts/lsp-versions.env. Wired into test-shell so `make test-shell` fails
+# fast on host-tool drift — Gate B of the host-scope 3-gate acceptance
+# (proposal.md). rust-analyzer is skippable via SKIP_RUST=1 (see
+# docs/dev-infra/host-lsp-setup.md).
+check-host-lsp:
+	bash scripts/check-host-lsp.sh
+
+# Host-runnable jq integrity check (scripts/check-host-jq.sh). Verifies jq is on
+# PATH and functional (jq -n '1+1' returns 2). Wired into test-shell so `make
+# test-shell` fails fast on host-tool drift — Gate B of the jq probe acceptance
+# (proposal.md). No version pin; presence + functional smoke only. See
+# docs/dev-infra/host-lsp-setup.md.
+check-host-jq:
+	bash scripts/check-host-jq.sh
+
 # bats unit tests for scripts/dev-stack.sh + dev-entrypoint.sh. Docker is
 # mocked (never started); bats is vendored on first run if not installed.
-test-shell: test-opencode-docker
+test-shell: check-host-jq check-host-lsp test-opencode-docker
 	bash scripts/__tests__/bats-wrapper.sh
 
 # Regenerate jsconfig.json from the current workspace layout (pnpm-workspace.yaml

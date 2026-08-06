@@ -91,8 +91,10 @@ setup_isolated() {
 
 @test "opencode-docker gate: root Makefile wires the gate into test-shell" {
   assert_file_contains "$REPO_ROOT/Makefile" "test-opencode-docker"
-  # fixed-string match on the exact target line (test-helper uses grep -F)
-  assert_file_contains "$REPO_ROOT/Makefile" "test-shell: test-opencode-docker"
+  # fixed-string match on the exact target line (test-helper uses grep -F).
+  # The test-shell prereq line is `test-shell: check-host-lsp test-opencode-docker`
+  # since dev-infra-language-servers T10 wired the host LSP probe in first.
+  assert_file_contains "$REPO_ROOT/Makefile" "test-shell: check-host-jq check-host-lsp test-opencode-docker"
   assert_file_contains "$REPO_ROOT/Makefile" "bash scripts/check-opencode-docker.sh"
 }
 

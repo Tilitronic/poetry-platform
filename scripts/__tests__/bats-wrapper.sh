@@ -28,6 +28,9 @@ for script in \
   "$ROOT/scripts/verify-python.sh" \
   "$ROOT/scripts/lint-python-files.sh" \
   "$ROOT/scripts/check-tools.sh" \
+  "$ROOT/scripts/check-host-jq.sh" \
+  "$ROOT/scripts/check-host-lsp.sh" \
+  "$ROOT/scripts/install-host-lsp.sh" \
   "$ROOT/scripts/check-opencode-docker.sh" \
   "$ROOT/scripts/author-studio-probe-guard.sh" \
   "$ROOT/scripts/validate-handoff.sh" \
