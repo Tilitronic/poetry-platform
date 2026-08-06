@@ -80,6 +80,12 @@ After all subagents return results:
 
 **Skip**: trivial tasks (questions, <10 line fixes).
 
+## Session Reuse
+
+- Prefer reusing an existing specialist session when the same lane and scope still fit.
+- When reusing a specialist session, pass the existing session or alias in the `task_id` argument.
+- task calls without task_id are forbidden when a matching session exists.
+
 # Canonical source: AGENTS.md §2.2/§2.3 (features) + §2.4/§2.5 (dev-infra/config). This table is the boss-agent-local projection — keep in sync.
 
 ## Change Routing

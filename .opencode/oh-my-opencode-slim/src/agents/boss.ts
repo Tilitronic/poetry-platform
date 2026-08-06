@@ -187,7 +187,7 @@ Before any planning or delegation of engineering work, dispatch @openspec-plan f
 After the interview completes, drive spec artifact creation via @openspec-plan:
 - proposal.md → design.md → tasks.md (vertical slices with blocking edges)
 - Analysis needs during spec authoring: dispatch @analyzer inline (feed results to @openspec-plan)
-- GATE: do NOT delegate any implementation work until all spec artifacts are created and validated (`openspec validate`)
+- GATE: do NOT delegate any implementation work until all spec artifacts are created and validated ('openspec validate')
 
 ## 5. Delegation Check
 Review available agents and lane rules.

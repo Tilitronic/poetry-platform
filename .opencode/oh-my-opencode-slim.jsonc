@@ -54,7 +54,7 @@
         "mcps": []
       },
       "coder": {
-        "model": "opencode-go/deepseek-v4-flash",
+        "model": "opencode-go/deepseek-v4-pro",
         "variant": "medium",
         "skills": [
           "simplify",
@@ -106,7 +106,7 @@
         ]
       },
       "resource-manager": {
-        "model": "opencode-go/deepseek-v4-flash",
+        "model": "opencode-go/deepseek-v4-pro",
         "variant": "low",
         "skills": [],
         "mcps": [
@@ -125,7 +125,7 @@
         "mcps": []
       },
       "conspecter": {
-        "model": "opencode-go/deepseek-v4-flash",
+        "model": "opencode-go/deepseek-v4-pro",
         "mcps": [
           "websearch"
         ]
@@ -146,7 +146,7 @@
         ]
       },
       "memory-manager": {
-        "model": "opencode-go/deepseek-v4-flash",
+        "model": "opencode-go/deepseek-v4-pro",
         "variant": "low",
         "skills": [
           "git-diff"
@@ -161,13 +161,13 @@
         "mcps": []
       },
       "code-navigator": {
-        "model": "opencode-go/deepseek-v4-flash",
+        "model": "opencode-go/deepseek-v4-pro",
         "variant": "low",
         "skills": [],
         "mcps": []
       },
       "researcher": {
-        "model": "opencode-go/deepseek-v4-flash",
+        "model": "opencode-go/deepseek-v4-pro",
         "variant": "low",
         "temperature": 0.7,
         "skills": [
@@ -183,7 +183,7 @@
     },
     "cebula": {
       "orchestrator": {
-        "model": ["opencode-go/deepseek-v4-flash", "opencode/deepseek-v4-flash"],
+        "model": ["opencode-go/deepseek-v4-pro", "opencode/deepseek-v4-pro"],
         "variant": "high",
         "temperature": 0.3,
         "skills": [
@@ -239,7 +239,7 @@
         }
       },
       "coder": {
-        "model": ["opencode-go/deepseek-v4-flash", "opencode/deepseek-v4-flash"],
+        "model": ["opencode-go/deepseek-v4-pro", "opencode/deepseek-v4-pro"],
         "variant": "medium",
         "skills": [
           "simplify",
@@ -277,7 +277,7 @@
         "mcps": []
       },
       "conspecter": {
-        "model": ["github-copilot/gpt-5-mini", "opencode-go/deepseek-v4-flash", "opencode/deepseek-v4-flash"],
+        "model": "opencode-go/deepseek-v4-pro",
         "mcps": [
           "websearch"
         ]
@@ -328,7 +328,7 @@
         ]
       },
       "resource-manager": {
-        "model": ["github-copilot/gpt-5-mini", "opencode-go/deepseek-v4-flash", "opencode/deepseek-v4-flash"],
+        "model": "opencode-go/deepseek-v4-pro",
         "variant": "low",
         "skills": [],
         "mcps": [
@@ -338,8 +338,8 @@
       "memory-manager": {
         "model": [
           "github-copilot/gpt-5-mini",
-          "opencode-go/deepseek-v4-flash",
-          "opencode/deepseek-v4-flash"
+          "opencode-go/deepseek-v4-pro",
+          "opencode/deepseek-v4-pro"
         ],
         "variant": "low",
         "skills": [
@@ -349,13 +349,13 @@
         "temperature": 0.1
       },
       "code-navigator": {
-        "model": ["github-copilot/gpt-5-mini", "opencode-go/deepseek-v4-flash", "opencode/deepseek-v4-flash"],
+        "model": "opencode-go/deepseek-v4-pro",
         "variant": "low",
         "skills": [],
         "mcps": []
       },
       "researcher": {
-        "model": ["opencode-go/deepseek-v4-flash", "opencode/deepseek-v4-flash"],
+        "model": ["opencode-go/deepseek-v4-pro", "opencode/deepseek-v4-pro"],
         "variant": "low",
         "temperature": 0.7,
         "skills": [
@@ -426,7 +426,7 @@
         }
       },
       "coder": {
-        "model": "opencode/deepseek-v4-flash",
+        "model": "opencode/deepseek-v4-pro",
         "variant": "medium",
         "skills": [
           "playwright-browser",
@@ -507,7 +507,7 @@
         ]
       },
       "resource-manager": {
-        "model": "opencode/deepseek-v4-flash",
+        "model": "opencode/deepseek-v4-pro",
         "variant": "low",
         "skills": [],
         "mcps": [
@@ -515,7 +515,7 @@
         ]
       },
       "memory-manager": {
-        "model": "opencode/deepseek-v4-flash",
+        "model": "opencode/deepseek-v4-pro",
         "variant": "low",
         "skills": [
           "git-diff"
@@ -524,13 +524,13 @@
         "temperature": 0.1
       },
       "code-navigator": {
-        "model": "opencode/deepseek-v4-flash",
+        "model": "opencode/deepseek-v4-pro",
         "variant": "low",
         "skills": [],
         "mcps": []
       },
       "researcher": {
-        "model": "opencode/deepseek-v4-flash",
+        "model": "opencode/deepseek-v4-pro",
         "variant": "low",
         "temperature": 0.7,
         "skills": [
@@ -582,7 +582,7 @@
     "presets": {
       "default": {
         "deepseek": {
-          "model": "opencode-go/deepseek-v4-flash",
+          "model": "opencode-go/deepseek-v4-pro",
           "prompt": "You are DeepSeek — a pragmatic, direct councillor. Give concise, practical opinions. Prioritize actionable solutions over theoretical analysis."
         },
         "gemini-3.1-pro": {
