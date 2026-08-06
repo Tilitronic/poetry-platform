@@ -20,15 +20,31 @@ SKILLS_SCRIPT="$REPO_ROOT/.opencode/scripts/validate-skills.sh"
 setup() {
   FIXTURES="$BATS_TEST_TMPDIR/skills"
   mkdir -p "$FIXTURES"
+  GLOBAL_FIXTURES="$BATS_TEST_TMPDIR/global-skills"
+  mkdir -p "$GLOBAL_FIXTURES"
+  # DIA-052 (T1): the validator now also consults the global skills tree
+  # (GLOBAL_SKILLS_ROOT, default $HOME/.config/opencode/skills). Point it at
+  # an empty per-test temp dir so the pre-existing tests stay hermetic — the
+  # real global tree is never read, and an empty global root skips dup checks.
+  export GLOBAL_SKILLS_ROOT="$GLOBAL_FIXTURES"
   # Resolve absolute interpreters up front: the python3-unavailable test
   # rewrites PATH and needs an absolute bash to still invoke the script.
   BASH_BIN="$(command -v bash)"
 }
 
-# write_skill <dirname> <file-content>: writes a SKILL.md into the fixture
-# root. <file-content> is passed through printf %s so no interpolation occurs.
+# write_skill <dirname> <file-content>: writes a SKILL.md into the project
+# fixture root. <file-content> is passed through printf %s so no interpolation
+# occurs.
 write_skill() {
   local dir="$FIXTURES/$1"
+  mkdir -p "$dir"
+  printf '%s\n' "$2" > "$dir/SKILL.md"
+}
+
+# write_global_skill <dirname> <file-content>: writes a SKILL.md into the
+# global fixture root (DIA-052 dup-detection fixture matrix).
+write_global_skill() {
+  local dir="$GLOBAL_FIXTURES/$1"
   mkdir -p "$dir"
   printf '%s\n' "$2" > "$dir/SKILL.md"
 }
@@ -327,4 +343,147 @@ Use when testing.
   assert_output_contains "passed"
   assert_output_contains "failed"
   assert_output_contains "warnings"
+}
+
+# --- DIA-052 (T1): cross-location duplicate detection fixture matrix --------
+# Each test builds isolated project + global fixture trees under
+# $BATS_TEST_TMPDIR and sets SKILLS_ROOT + GLOBAL_SKILLS_ROOT explicitly so the
+# real .opencode/skills/ and ~/.config/opencode/skills/ are never touched.
+
+@test "validate-skills: clean tree with no duplicates exits 0 without dup warnings" {
+  # Distinct names across the two roots: no byte-exact match, no same-named
+  # global to diff against -> no dup findings at all.
+  valid_skill "proj-only-a"
+  valid_skill "proj-only-b"
+  write_global_skill "global-only" '---
+name: global-only
+description: A global skill with no project counterpart. Use when testing the validator.
+license: MIT
+---
+
+Use when running the validation suite.
+'
+
+  SKILLS_ROOT="$FIXTURES" GLOBAL_SKILLS_ROOT="$GLOBAL_FIXTURES" run bash "$SKILLS_SCRIPT"
+
+  assert_status 0
+  assert_output_contains "passed"
+  assert_output_not_contains "FAIL:"
+  assert_output_not_contains "near-duplicate skill"
+  assert_output_not_contains "duplicate skill"
+}
+
+@test "validate-skills: byte-exact duplicate exits 1 and names the pair" {
+  # Identical SKILL.md content in both roots -> same sha256 -> HARD finding.
+  local content
+  content='---
+name: dup-skill
+description: A duplicated skill. Use when testing the validator.
+license: MIT
+---
+
+Use when running the validation suite.
+'
+  write_skill "dup-skill" "$content"
+  write_global_skill "dup-skill" "$content"
+
+  SKILLS_ROOT="$FIXTURES" GLOBAL_SKILLS_ROOT="$GLOBAL_FIXTURES" run bash "$SKILLS_SCRIPT"
+
+  assert_status 1
+  assert_output_contains "FAIL: duplicate skill 'dup-skill'"
+  assert_output_contains "byte-exact match with global"
+  assert_output_contains "failed"
+}
+
+@test "validate-skills: near-duplicate exits 0 with a stderr warning" {
+  # Same dirname in both roots but the project copy differs by one comment
+  # line -> NOT byte-exact; diff -r reports a difference -> SOFT warning only.
+  write_skill "near-skill" '---
+name: near-skill
+description: A near-duplicate skill. Use when testing the validator.
+license: MIT
+---
+
+Use when running the validation suite.
+'
+  write_global_skill "near-skill" '---
+name: near-skill
+description: A near-duplicate skill. Use when testing the validator.
+license: MIT
+---
+
+Use when running the validation suite.
+# global-only comment line makes the trees differ
+'
+
+  SKILLS_ROOT="$FIXTURES" GLOBAL_SKILLS_ROOT="$GLOBAL_FIXTURES" run bash "$SKILLS_SCRIPT"
+
+  assert_status 0
+  assert_output_contains "warn: near-duplicate skill 'near-skill'"
+  assert_output_contains "differs from global"
+  assert_output_not_contains "FAIL:"
+}
+
+@test "validate-skills: empty project skills dir exits 0 and skips dup detection" {
+  # Project root exists but holds no skill subdirectories; the global fixture
+  # is non-empty. The validator must not run dup detection (nothing to detect)
+  # and must fall through to the summary with exit 0.
+  write_global_skill "global-only" '---
+name: global-only
+description: A global skill with no project counterpart. Use when testing the validator.
+license: MIT
+---
+
+Use when running the validation suite.
+'
+
+  SKILLS_ROOT="$FIXTURES" GLOBAL_SKILLS_ROOT="$GLOBAL_FIXTURES" run bash "$SKILLS_SCRIPT"
+
+  assert_status 0
+  assert_output_contains "passed"
+  assert_output_contains "0 failed"
+  assert_output_not_contains "FAIL:"
+  assert_output_not_contains "near-duplicate skill"
+}
+
+@test "validate-skills: missing global skills dir exits 2 (INFRA)" {
+  valid_skill "good-skill"
+
+  SKILLS_ROOT="$FIXTURES" GLOBAL_SKILLS_ROOT="$FIXTURES/does-not-exist" run bash "$SKILLS_SCRIPT"
+
+  assert_status 2
+  assert_output_contains "global skills directory not found"
+}
+
+@test "validate-skills: multiple byte-exact duplicates are all reported (collect-all)" {
+  # Two distinct duplicate pairs in one run: both must be reported (never
+  # fail-fast) with one FAIL line per pair.
+  local content_a content_b
+  content_a='---
+name: dup-a
+description: First duplicated skill. Use when testing the validator.
+license: MIT
+---
+
+Use when running the validation suite.
+'
+  content_b='---
+name: dup-b
+description: Second duplicated skill. Use when testing the validator.
+license: MIT
+---
+
+Use when running the validation suite.
+'
+  write_skill "dup-a" "$content_a"
+  write_global_skill "dup-a" "$content_a"
+  write_skill "dup-b" "$content_b"
+  write_global_skill "dup-b" "$content_b"
+
+  SKILLS_ROOT="$FIXTURES" GLOBAL_SKILLS_ROOT="$GLOBAL_FIXTURES" run bash "$SKILLS_SCRIPT"
+
+  assert_status 1
+  assert_output_contains "FAIL: duplicate skill 'dup-a'"
+  assert_output_contains "FAIL: duplicate skill 'dup-b'"
+  assert_output_contains "failed"
 }

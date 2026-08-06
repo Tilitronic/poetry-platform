@@ -25,10 +25,20 @@
 # frontmatter / no extracted body to inspect).
 #
 # Exit codes: 0 all HARD pass (SOFT warnings may print), 1 HARD failure,
-# 2 infrastructure failure (python3 missing / skills root missing).
+# 2 infrastructure failure (python3 missing / skills root missing / global
+# skills root missing / sha256sum missing).
 #
 # SKILLS_ROOT env override points the walk elsewhere (defaults to the repo's
 # .opencode/skills) — bats meta-tests use it to validate temp fixture trees.
+#
+# Cross-location duplicate detection (DIA-052): after the per-skill loop, the
+# project tree (SKILLS_ROOT) is compared against the global skills tree
+# (GLOBAL_SKILLS_ROOT, default $HOME/.config/opencode/skills) in two tiers:
+#   HARD (exit 1)  — byte-exact duplicate (same sha256 in both trees).
+#   SOFT (warn)    — near-duplicate (same dirname, different content).
+# Matching policy is a human contract, documented not enforced: CASE-SENSITIVE
+# exact match, and FOLLOWS SYMLINKS (sha256sum hashes the resolved file
+# content, so a symlinked SKILL.md is compared by its target's bytes).
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
@@ -288,6 +298,93 @@ for skill_dir in "$SKILLS_ROOT"/*/; do
   fi
   warnings=$((warnings + file_warned))
 done
+
+# ---------------------------------------------------------------------------
+# DIA-052 (T1) — two-tier cross-location duplicate detection.
+#
+# Tier 1 (HARD, exit 1) — byte-exact duplicate. Every SKILL.md under both
+# trees is hashed once (O(n) hashing); a project file whose hash appears in
+# the global tree is a byte-exact duplicate. One FAIL per project/global
+# pair, collect-all (never fail-fast). Group-by-hash avoids the O(n^2)
+# content comparison of the naive pairwise diff (design.md Q3 ruling).
+#
+# Tier 2 (SOFT, warn-only) — near-duplicate. A project skill that did NOT
+# match byte-exact but shares its dirname with a global skill is diffed
+# (`diff -r`); any difference emits one warn and joins the warnings bucket.
+# Never flips the exit code — legitimate project-local divergence must not
+# fail the build (design.md Q2 ruling).
+#
+# Empty project OR global tree -> dup checks are skipped (falls through to
+# the summary). Missing global dir -> exit 2 INFRA (the check cannot run).
+# Missing sha256sum command -> exit 2 INFRA.
+# ---------------------------------------------------------------------------
+GLOBAL_SKILLS_ROOT="${GLOBAL_SKILLS_ROOT:-$HOME/.config/opencode/skills}"
+
+if ! command -v sha256sum >/dev/null 2>&1; then
+  echo "error: sha256sum is required for duplicate detection." >&2
+  exit 2
+fi
+
+if [ ! -d "$GLOBAL_SKILLS_ROOT" ]; then
+  echo "error: global skills directory not found: $GLOBAL_SKILLS_ROOT" >&2
+  exit 2
+fi
+
+# has_skill_dirs <root>: returns 0 iff <root> holds at least one
+# subdirectory. With nullglob off, an empty root leaves the literal glob
+# pattern — the [ -d ] guard catches that. Shared by the empty-tree guard
+# below (the full processing loop keeps its inline per-dir guard to stay a
+# minimal-diff from the pre-DIA-052 shape).
+has_skill_dirs() {
+  local root="$1"
+  for d in "$root"/*/; do
+    [ -d "$d" ] && return 0
+  done
+  return 1
+}
+
+# Empty-tree guard: no dup checks when either root holds no skill dirs
+# (parallel to the existing empty-SKILLS_ROOT fall-through, design.md Q5).
+if has_skill_dirs "$SKILLS_ROOT" && has_skill_dirs "$GLOBAL_SKILLS_ROOT"; then
+  # Tier 1 pre-pass: hash every global SKILL.md once into an associative
+  # array (hash -> dirname). O(n) build + O(1) lookups keep the detection
+  # phase linear end-to-end (design.md §1); a per-project linear scan of a
+  # flat file would be O(n*m). Requires bash 4+ (declared shebang bash).
+  declare -A hash_to_name
+  for skill_file in "$GLOBAL_SKILLS_ROOT"/*/SKILL.md; do
+    [ -f "$skill_file" ] || continue
+    hash_to_name["$(sha256sum "$skill_file" | cut -d' ' -f1)"]="$(basename "$(dirname "$skill_file")")"
+  done
+
+  for skill_dir in "$SKILLS_ROOT"/*/; do
+    [ -d "$skill_dir" ] || continue
+    skill_dir="${skill_dir%/}"
+    skill_name="$(basename "$skill_dir")"
+    skill_file="$skill_dir/SKILL.md"
+    [ -f "$skill_file" ] || continue
+
+    project_hash="$(sha256sum "$skill_file" | cut -d' ' -f1)"
+    # O(1) hash lookup (bash 4+ assoc array). The ${var:-} guard is required
+    # under `set -u`: a hash absent from the global table is an unset key.
+    global_name="${hash_to_name[$project_hash]:-}"
+    if [ -n "$global_name" ]; then
+      # Tier 1 — byte-exact duplicate (HARD): identical content is loaded from
+      # both locations, wasting context and masking drift. Name the global
+      # counterpart so the project copy can be deleted (the global remains
+      # authoritative).
+      echo "FAIL: duplicate skill '$skill_name' (byte-exact match with global '$GLOBAL_SKILLS_ROOT/$global_name/SKILL.md')" >&2
+      failures=$((failures + 1))
+    elif [ -d "$GLOBAL_SKILLS_ROOT/$skill_name" ]; then
+      # Tier 2 — near-duplicate (SOFT, warn-only): same dirname in both roots
+      # but different content (whitespace/comment drift or an intentional
+      # project-local extension such as playwright-browser / git-diff).
+      if ! diff -r "$skill_dir" "$GLOBAL_SKILLS_ROOT/$skill_name" >/dev/null 2>&1; then
+        echo "warn: near-duplicate skill '$skill_name' (differs from global '$GLOBAL_SKILLS_ROOT/$skill_name')" >&2
+        warnings=$((warnings + 1))
+      fi
+    fi
+  done
+fi
 
 echo "$passed passed, $failures failed, $warnings warnings"
 if [ "$failures" -gt 0 ]; then
