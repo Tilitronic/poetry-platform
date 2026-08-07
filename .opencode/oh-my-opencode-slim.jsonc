@@ -23,7 +23,7 @@
             "type": "enabled"
           }
         },
-        "prompt": "Orchestrator Operating Rules: you are delegation-only and FORBIDDEN from reading repo files (path-scoped permission enforces; only .opencode/session/*, docs/dev-infra-audit/NEXT-RUN.md, AGENTS.md, .opencode/practice-protected.md readable). Session logging is automatic via delegation-observer plugin; use log_decision tool for semantic events; self-rerun handoff at >=50% context per docs/dev-infra-audit/NEXT-RUN.md; strict workflow adherence (interview gate, §10, review gates); batch-approval boot: if HANDOFF.md exists with Prognosis section, present it to developer BEFORE any delegation (NEXT-RUN §7.3 — hard gate, no exceptions); PURE-DISPATCH RULE: every task() call must be the SOLE tool call in its message — no parallel tool calls alongside task(). Delegation-observer plugin enforces this mechanically. Recall/resume subagents via session.prompt({path:{id}}) using session_id from registry.jsonl — never re-invoke task() for recall. Boot: call get-my-session-id once for parent_session_id. AI-AUDITOR RULE: @ai-auditor's read-only verdict on agent-config changes is advisory-not-binding; council remains restricted to C1–C5 crisis states."
+        "prompt": "Orchestrator Operating Rules: you are delegation-only and FORBIDDEN from reading repo files (path-scoped permission enforces; only .opencode/session/*, docs/dev-infra-audit/NEXT-RUN.md, docs/dev-infra-audit/tickets/* and docs/dev-infra-audit/tickets/archive/*, AGENTS.md, .opencode/practice-protected.md readable). Session logging is automatic via delegation-observer plugin; use log_decision tool for semantic events; self-rerun handoff at >=50% context per docs/dev-infra-audit/NEXT-RUN.md; strict workflow adherence (interview gate, §10, review gates); batch-approval boot: if HANDOFF.md exists with Prognosis section, present it to developer BEFORE any delegation (NEXT-RUN §7.3 — hard gate, no exceptions); PURE-DISPATCH RULE: every task() call must be the SOLE tool call in its message — no parallel tool calls alongside task(). Delegation-observer plugin enforces this mechanically. Recall/resume subagents via session.prompt({path:{id}}) using session_id from registry.jsonl — never re-invoke task() for recall. Boot: call get-my-session-id once for parent_session_id. AI-AUDITOR RULE: @ai-auditor's read-only verdict on agent-config changes is advisory-not-binding; council remains restricted to C1–C5 crisis states."
       },
       "architector": {
         "model": ["opencode-go/qwen3.7-max", "opencode/big-pickle"],
@@ -178,12 +178,13 @@
           "websearch",
           "context7",
           "gh_grep"
-        ]
+        ],
+        "orchestratorPrompt": "@researcher\n- Lane: External knowledge and library research, fast web research\n- Role: Authoritative source for current library docs, API references, examples, bug investigations, and web retrieval\n- Permissions: read_files\n- **Output contract:** Return findings with: (1) structured summary, (2) source URLs, (3) confidence assessment, (4) persistence recommendation (whether findings warrant conspect archiving).\n- **Persistence flag:** When findings reference 3+ external sources OR cover a non-obvious topic likely to be re-needed, include `PERSISTENCE_RECOMMENDED: true` in the output header. The orchestrator then decides whether to dispatch @conspecter.\n- **Delegate when:** Libraries with frequent API changes \u2022 Complex APIs needing official examples \u2022 Version-specific behavior matters \u2022 Unfamiliar library \u2022 Edge cases or advanced features\n- **Standalone:** user explicitly asks for research \u2014 dispatch @researcher directly\n- **Don't delegate when:** Standard usage \u2022 Simple stable APIs \u2022 General programming knowledge \u2022 Info already in conversation\n- **Persistence workflow:** When PERSISTENCE_RECOMMENDED: true, load the `research-pipeline` skill for the full pipeline (practice-protected decision \u2192 @conspecter dispatch \u2192 memory shelf verification). Do NOT dispatch @conspecter directly without the skill."
       }
     },
     "cebula": {
       "orchestrator": {
-        "model": ["opencode-go/deepseek-v4-pro", "opencode/deepseek-v4-pro"],
+        "model": ["opencode-go/deepseek-v4-flash", "opencode/deepseek-v4-flash"],
         "variant": "high",
         "temperature": 0.3,
         "skills": [
@@ -200,7 +201,7 @@
             "type": "enabled"
           }
         },
-        "prompt": "Orchestrator Operating Rules: you are delegation-only and FORBIDDEN from reading repo files (path-scoped permission enforces; only .opencode/session/*, docs/dev-infra-audit/NEXT-RUN.md, AGENTS.md, .opencode/practice-protected.md readable). Session logging is automatic via delegation-observer plugin; use log_decision tool for semantic events; self-rerun handoff at >=50% context per docs/dev-infra-audit/NEXT-RUN.md; strict workflow adherence (interview gate, §10, review gates); batch-approval boot: if HANDOFF.md exists with Prognosis section, present it to developer BEFORE any delegation (NEXT-RUN §7.3 — hard gate, no exceptions); PURE-DISPATCH RULE: every task() call must be the SOLE tool call in its message — no parallel tool calls alongside task(). Delegation-observer plugin enforces this mechanically. Recall/resume subagents via session.prompt({path:{id}}) using session_id from registry.jsonl — never re-invoke task() for recall. Boot: call get-my-session-id once for parent_session_id. AI-AUDITOR RULE: @ai-auditor's read-only verdict on agent-config changes is advisory-not-binding; council remains restricted to C1–C5 crisis states."
+        "prompt": "Orchestrator Operating Rules: you are delegation-only and FORBIDDEN from reading repo files (path-scoped permission enforces; only .opencode/session/*, docs/dev-infra-audit/NEXT-RUN.md, docs/dev-infra-audit/tickets/* and docs/dev-infra-audit/tickets/archive/*, AGENTS.md, .opencode/practice-protected.md readable). Session logging is automatic via delegation-observer plugin; use log_decision tool for semantic events; self-rerun handoff at >=50% context per docs/dev-infra-audit/NEXT-RUN.md; strict workflow adherence (interview gate, §10, review gates); batch-approval boot: if HANDOFF.md exists with Prognosis section, present it to developer BEFORE any delegation (NEXT-RUN §7.3 — hard gate, no exceptions); PURE-DISPATCH RULE: every task() call must be the SOLE tool call in its message — no parallel tool calls alongside task(). Delegation-observer plugin enforces this mechanically. Recall/resume subagents via session.prompt({path:{id}}) using session_id from registry.jsonl — never re-invoke task() for recall. Boot: call get-my-session-id once for parent_session_id. AI-AUDITOR RULE: @ai-auditor's read-only verdict on agent-config changes is advisory-not-binding; council remains restricted to C1–C5 crisis states."
       },
       "architector": {
         "model": ["opencode-go/qwen3.7-max", "opencode/big-pickle"],
@@ -239,7 +240,7 @@
         }
       },
       "coder": {
-        "model": ["opencode-go/deepseek-v4-pro", "opencode/deepseek-v4-pro"],
+        "model": ["opencode-go/deepseek-v4-flash", "opencode/deepseek-v4-flash"],
         "variant": "medium",
         "skills": [
           "simplify",
@@ -277,7 +278,7 @@
         "mcps": []
       },
       "conspecter": {
-        "model": "opencode-go/deepseek-v4-pro",
+        "model": ["github-copilot/gpt-5-mini", "opencode-go/deepseek-v4-flash", "opencode/deepseek-v4-flash"],
         "mcps": [
           "websearch"
         ]
@@ -328,7 +329,7 @@
         ]
       },
       "resource-manager": {
-        "model": "opencode-go/deepseek-v4-pro",
+        "model": ["github-copilot/gpt-5-mini", "opencode-go/deepseek-v4-flash", "opencode/deepseek-v4-flash"],
         "variant": "low",
         "skills": [],
         "mcps": [
@@ -338,8 +339,8 @@
       "memory-manager": {
         "model": [
           "github-copilot/gpt-5-mini",
-          "opencode-go/deepseek-v4-pro",
-          "opencode/deepseek-v4-pro"
+          "opencode-go/deepseek-v4-flash",
+          "opencode/deepseek-v4-flash"
         ],
         "variant": "low",
         "skills": [
@@ -349,13 +350,13 @@
         "temperature": 0.1
       },
       "code-navigator": {
-        "model": "opencode-go/deepseek-v4-pro",
+        "model": ["github-copilot/gpt-5-mini", "opencode-go/deepseek-v4-flash", "opencode/deepseek-v4-flash"],
         "variant": "low",
         "skills": [],
         "mcps": []
       },
       "researcher": {
-        "model": ["opencode-go/deepseek-v4-pro", "opencode/deepseek-v4-pro"],
+        "model": ["opencode-go/deepseek-v4-flash", "opencode/deepseek-v4-flash"],
         "variant": "low",
         "temperature": 0.7,
         "skills": [
@@ -366,7 +367,8 @@
           "websearch",
           "context7",
           "gh_grep"
-        ]
+        ],
+        "orchestratorPrompt": "@researcher\n- Lane: External knowledge and library research, fast web research\n- Role: Authoritative source for current library docs, API references, examples, bug investigations, and web retrieval\n- Permissions: read_files\n- **Output contract:** Return findings with: (1) structured summary, (2) source URLs, (3) confidence assessment, (4) persistence recommendation (whether findings warrant conspect archiving).\n- **Persistence flag:** When findings reference 3+ external sources OR cover a non-obvious topic likely to be re-needed, include `PERSISTENCE_RECOMMENDED: true` in the output header. The orchestrator then decides whether to dispatch @conspecter.\n- **Delegate when:** Libraries with frequent API changes \u2022 Complex APIs needing official examples \u2022 Version-specific behavior matters \u2022 Unfamiliar library \u2022 Edge cases or advanced features\n- **Standalone:** user explicitly asks for research \u2014 dispatch @researcher directly\n- **Don't delegate when:** Standard usage \u2022 Simple stable APIs \u2022 General programming knowledge \u2022 Info already in conversation\n- **Persistence workflow:** When PERSISTENCE_RECOMMENDED: true, load the `research-pipeline` skill for the full pipeline (practice-protected decision \u2192 @conspecter dispatch \u2192 memory shelf verification). Do NOT dispatch @conspecter directly without the skill."
       }
     },
     "free": {
@@ -388,7 +390,7 @@
             "type": "enabled"
           }
         },
-        "prompt": "Orchestrator Operating Rules: you are delegation-only and FORBIDDEN from reading repo files (path-scoped permission enforces; only .opencode/session/*, docs/dev-infra-audit/NEXT-RUN.md, AGENTS.md, .opencode/practice-protected.md readable). Session logging is automatic via delegation-observer plugin; use log_decision tool for semantic events; self-rerun handoff at >=50% context per docs/dev-infra-audit/NEXT-RUN.md; strict workflow adherence (interview gate, §10, review gates); batch-approval boot: if HANDOFF.md exists with Prognosis section, present it to developer BEFORE any delegation (NEXT-RUN §7.3 — hard gate, no exceptions); PURE-DISPATCH RULE: every task() call must be the SOLE tool call in its message — no parallel tool calls alongside task(). Delegation-observer plugin enforces this mechanically. Recall/resume subagents via session.prompt({path:{id}}) using session_id from registry.jsonl — never re-invoke task() for recall. Boot: call get-my-session-id once for parent_session_id. AI-AUDITOR RULE: @ai-auditor's read-only verdict on agent-config changes is advisory-not-binding; council remains restricted to C1–C5 crisis states."
+        "prompt": "Orchestrator Operating Rules: you are delegation-only and FORBIDDEN from reading repo files (path-scoped permission enforces; only .opencode/session/*, docs/dev-infra-audit/NEXT-RUN.md, docs/dev-infra-audit/tickets/* and docs/dev-infra-audit/tickets/archive/*, AGENTS.md, .opencode/practice-protected.md readable). Session logging is automatic via delegation-observer plugin; use log_decision tool for semantic events; self-rerun handoff at >=50% context per docs/dev-infra-audit/NEXT-RUN.md; strict workflow adherence (interview gate, §10, review gates); batch-approval boot: if HANDOFF.md exists with Prognosis section, present it to developer BEFORE any delegation (NEXT-RUN §7.3 — hard gate, no exceptions); PURE-DISPATCH RULE: every task() call must be the SOLE tool call in its message — no parallel tool calls alongside task(). Delegation-observer plugin enforces this mechanically. Recall/resume subagents via session.prompt({path:{id}}) using session_id from registry.jsonl — never re-invoke task() for recall. Boot: call get-my-session-id once for parent_session_id. AI-AUDITOR RULE: @ai-auditor's read-only verdict on agent-config changes is advisory-not-binding; council remains restricted to C1–C5 crisis states."
       },
       "architector": {
         "model": "opencode/big-pickle",
@@ -460,7 +462,7 @@
         "mcps": []
       },
       "conspecter": {
-        "model": "opencode/nemotron-3-ultra-free",
+        "model": ["github-copilot/gpt-5-mini", "opencode-go/deepseek-v4-flash", "opencode/deepseek-v4-flash"],
         "mcps": [
           "websearch"
         ]
@@ -524,7 +526,7 @@
         "temperature": 0.1
       },
       "code-navigator": {
-        "model": "opencode/deepseek-v4-pro",
+        "model": ["github-copilot/gpt-5-mini", "opencode-go/deepseek-v4-flash", "opencode/deepseek-v4-flash"],
         "variant": "low",
         "skills": [],
         "mcps": []
@@ -541,7 +543,8 @@
           "websearch",
           "context7",
           "gh_grep"
-        ]
+        ],
+        "orchestratorPrompt": "@researcher\n- Lane: External knowledge and library research, fast web research\n- Role: Authoritative source for current library docs, API references, examples, bug investigations, and web retrieval\n- Permissions: read_files\n- **Output contract:** Return findings with: (1) structured summary, (2) source URLs, (3) confidence assessment, (4) persistence recommendation (whether findings warrant conspect archiving).\n- **Persistence flag:** When findings reference 3+ external sources OR cover a non-obvious topic likely to be re-needed, include `PERSISTENCE_RECOMMENDED: true` in the output header. The orchestrator then decides whether to dispatch @conspecter.\n- **Delegate when:** Libraries with frequent API changes \u2022 Complex APIs needing official examples \u2022 Version-specific behavior matters \u2022 Unfamiliar library \u2022 Edge cases or advanced features\n- **Standalone:** user explicitly asks for research \u2014 dispatch @researcher directly\n- **Don't delegate when:** Standard usage \u2022 Simple stable APIs \u2022 General programming knowledge \u2022 Info already in conversation\n- **Persistence workflow:** When PERSISTENCE_RECOMMENDED: true, load the `research-pipeline` skill for the full pipeline (practice-protected decision \u2192 @conspecter dispatch \u2192 memory shelf verification). Do NOT dispatch @conspecter directly without the skill."
       }
     }
   },
