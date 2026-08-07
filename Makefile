@@ -58,8 +58,9 @@ clean:
 	docker compose down -v
 
 # Standalone source-parity validator (scripts/check-pin-sync.sh). Asserts
-# .mise.toml ↔ Dockerfile.dev pin parity for node/pnpm. Exit precedence
-# 2>1>0 (INFRA>mismatch>match). See openspec/changes/dev-infra-pin-sync/.
+# .mise.toml ↔ Dockerfile parity (Dockerfile.dev + tools/opencode-docker/Dockerfile)
+# for node/pnpm. Exit precedence 2>1>0 (INFRA>mismatch>match). 4 comparisons
+# total (2 pins × 2 Dockerfiles). See openspec/changes/dev-infra-pin-sync/.
 check-pin-sync:
 	bash scripts/check-pin-sync.sh
 

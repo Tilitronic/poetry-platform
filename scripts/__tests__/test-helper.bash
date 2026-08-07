@@ -204,26 +204,29 @@ setup_check_tools_tree() {
   echo "$tree"
 }
 
-# setup_pin_sync_tree <with_mise_toml 0|1> <with_dockerfile 0|1>
-#   <mise_node_pin> <mise_pnpm_pin> <docker_node_pin> <docker_pnpm_pin>
-#   [variant]
+# setup_pin_sync_tree <with_mise_toml 0|1> <with_dockerfile_dev 0|1>
+#   <with_dockerfile_oc 0|1> <mise_node_pin> <mise_pnpm_pin>
+#   <docker_dev_node_pin> <docker_dev_pnpm_pin> <docker_oc_node_pin>
+#   <docker_oc_pnpm_pin> [variant]
 # Copies check-pin-sync.sh into an isolated tree and plants controlled
-# .mise.toml / Dockerfile.dev fixtures. The optional variant selects fixture
-# formatting:
-#   default     — node = "<pin>", pnpm = "<pin>", ARG NODE_VERSION=<pin>
-#   quotes      — mixed single/double/unquoted spellings
-#   crlf        — CRLF line endings in both fixture files
-#   whitespace  — extra spaces around '=' and inside values
-#   dup-mise    — duplicate node key under [tools] (INFRA fixture)
-#   dup-docker  — duplicate ARG NODE_VERSION line (INFRA fixture)
+# .mise.toml / Dockerfile.dev / tools/opencode-docker/Dockerfile fixtures.
+# The optional variant selects fixture formatting (applies per source):
+#   default       — node = "<pin>", pnpm = "<pin>", ARG NODE_VERSION=<pin>
+#   quotes        — mixed single/double/unquoted spellings
+#   crlf          — CRLF line endings in all fixture files
+#   whitespace    — extra spaces around '=' and inside values
+#   dup-mise      — duplicate node key under [tools] (INFRA fixture)
+#   dup-docker    — duplicate ARG NODE_VERSION in Dockerfile.dev (INFRA fixture)
+#   dup-docker-oc — duplicate ARG NODE_VERSION in tools/opencode-docker/Dockerfile
 # Echoes the tree root.
 setup_pin_sync_tree() {
-  local with_mise="${1:-1}" with_docker="${2:-1}"
-  local mise_node="${3:-24.18.0}" mise_pnpm="${4:-10.33.0}"
-  local docker_node="${5:-24.18.0}" docker_pnpm="${6:-10.33.0}"
-  local variant="${7:-}"
+  local with_mise="${1:-1}" with_docker_dev="${2:-1}" with_docker_oc="${3:-1}"
+  local mise_node="${4:-24.18.0}" mise_pnpm="${5:-10.33.0}"
+  local docker_dev_node="${6:-24.18.0}" docker_dev_pnpm="${7:-10.33.0}"
+  local docker_oc_node="${8:-24.18.0}" docker_oc_pnpm="${9:-10.33.0}"
+  local variant="${10:-}"
   local tree="$BATS_TEST_TMPDIR/pin-sync"
-  mkdir -p "$tree/scripts"
+  mkdir -p "$tree/scripts" "$tree/tools/opencode-docker"
   cp "$REPO_ROOT/scripts/check-pin-sync.sh" "$tree/scripts/check-pin-sync.sh"
   if [ "$with_mise" = "1" ]; then
     case "$variant" in
@@ -257,31 +260,60 @@ EOF
         ;;
     esac
   fi
-  if [ "$with_docker" = "1" ]; then
+  if [ "$with_docker_dev" = "1" ]; then
     case "$variant" in
       dup-docker)
         cat > "$tree/Dockerfile.dev" <<EOF
-ARG NODE_VERSION=$docker_node
-ARG NODE_VERSION=$docker_node
-ARG PNPM_VERSION=$docker_pnpm
+ARG NODE_VERSION=$docker_dev_node
+ARG NODE_VERSION=$docker_dev_node
+ARG PNPM_VERSION=$docker_dev_pnpm
 EOF
         ;;
       quotes)
         cat > "$tree/Dockerfile.dev" <<EOF
-ARG NODE_VERSION=$docker_node
-ARG PNPM_VERSION="$docker_pnpm"
+ARG NODE_VERSION=$docker_dev_node
+ARG PNPM_VERSION="$docker_dev_pnpm"
 EOF
         ;;
       whitespace)
-        printf '  ARG NODE_VERSION=%s\nARG PNPM_VERSION=%s   \n' "$docker_node" "$docker_pnpm" > "$tree/Dockerfile.dev"
+        printf '  ARG NODE_VERSION=%s\nARG PNPM_VERSION=%s   \n' "$docker_dev_node" "$docker_dev_pnpm" > "$tree/Dockerfile.dev"
         ;;
       crlf)
-        printf 'ARG NODE_VERSION=%s\r\nARG PNPM_VERSION=%s\r\n' "$docker_node" "$docker_pnpm" > "$tree/Dockerfile.dev"
+        printf 'ARG NODE_VERSION=%s\r\nARG PNPM_VERSION=%s\r\n' "$docker_dev_node" "$docker_dev_pnpm" > "$tree/Dockerfile.dev"
         ;;
       *)
         cat > "$tree/Dockerfile.dev" <<EOF
-ARG NODE_VERSION=$docker_node
-ARG PNPM_VERSION=$docker_pnpm
+ARG NODE_VERSION=$docker_dev_node
+ARG PNPM_VERSION=$docker_dev_pnpm
+EOF
+        ;;
+    esac
+  fi
+  if [ "$with_docker_oc" = "1" ]; then
+    case "$variant" in
+      dup-docker-oc)
+        cat > "$tree/tools/opencode-docker/Dockerfile" <<EOF
+ARG NODE_VERSION=$docker_oc_node
+ARG NODE_VERSION=$docker_oc_node
+ARG PNPM_VERSION=$docker_oc_pnpm
+EOF
+        ;;
+      quotes)
+        cat > "$tree/tools/opencode-docker/Dockerfile" <<EOF
+ARG NODE_VERSION=$docker_oc_node
+ARG PNPM_VERSION="$docker_oc_pnpm"
+EOF
+        ;;
+      whitespace)
+        printf '  ARG NODE_VERSION=%s\nARG PNPM_VERSION=%s   \n' "$docker_oc_node" "$docker_oc_pnpm" > "$tree/tools/opencode-docker/Dockerfile"
+        ;;
+      crlf)
+        printf 'ARG NODE_VERSION=%s\r\nARG PNPM_VERSION=%s\r\n' "$docker_oc_node" "$docker_oc_pnpm" > "$tree/tools/opencode-docker/Dockerfile"
+        ;;
+      *)
+        cat > "$tree/tools/opencode-docker/Dockerfile" <<EOF
+ARG NODE_VERSION=$docker_oc_node
+ARG PNPM_VERSION=$docker_oc_pnpm
 EOF
         ;;
     esac
