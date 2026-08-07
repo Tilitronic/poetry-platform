@@ -141,6 +141,155 @@ setup_dev_stack_tree() {
 }
 
 # ---------------------------------------------------------------------------
+# check-tools.sh / check-pin-sync.sh fixtures (FAKE-mock seam)
+# ---------------------------------------------------------------------------
+
+# install_check_tools_fakes <dir>: plants fake mise/node/pnpm in <dir> and
+# prepends it to PATH. Behavior is driven by env (set per test):
+#   FAKE_MISE_WHICH_FAIL=1          mise which exits 1 (shim not active)
+#   FAKE_MISE_CURRENT_MISMATCH=1    mise current reports a wrong version
+#   FAKE_NODE_MISMATCH=1            node --version reports a wrong version
+#   FAKE_PNPM_MISMATCH=1            pnpm --version reports a wrong version
+install_check_tools_fakes() {
+  local dir="$1"
+  mkdir -p "$dir"
+  cat > "$dir/mise" <<'FAKEMISE'
+#!/usr/bin/env bash
+case "${1:-}" in
+  trust) exit 0 ;;
+  install) exit 0 ;;
+  which)
+    [ "${FAKE_MISE_WHICH_FAIL:-}" = "1" ] && exit 1
+    printf '%s\n' "/fake/installs/${2}/current/bin/${2}"
+    exit 0
+    ;;
+  current)
+    if [ "${FAKE_MISE_CURRENT_MISMATCH:-}" = "1" ]; then
+      printf '%s\n' "99.0.0"
+      exit 0
+    fi
+    case "${2:-}" in
+      node) printf '%s\n' "24.18.0" ;;
+      pnpm) printf '%s\n' "10.33.0" ;;
+      *) exit 1 ;;
+    esac
+    ;;
+  *) exit 1 ;;
+esac
+FAKEMISE
+  cat > "$dir/node" <<'FAKENODE'
+#!/usr/bin/env bash
+[ "${FAKE_NODE_MISMATCH:-}" = "1" ] && { printf '%s\n' "v99.0.0"; exit 0; }
+printf '%s\n' "v24.18.0"
+FAKENODE
+  cat > "$dir/pnpm" <<'FAKEPNPM'
+#!/usr/bin/env bash
+[ "${FAKE_PNPM_MISMATCH:-}" = "1" ] && { printf '%s\n' "99.0.0"; exit 0; }
+printf '%s\n' "10.33.0"
+FAKEPNPM
+  chmod +x "$dir/mise" "$dir/node" "$dir/pnpm"
+  PATH="$dir:$PATH"
+  export PATH
+}
+
+# setup_check_tools_tree <with_mise_toml 0|1>: copies check-tools.sh into an
+# isolated tree and (optionally) seeds it with a .mise.toml copy. Echoes root.
+setup_check_tools_tree() {
+  local tree="$BATS_TEST_TMPDIR/tree"
+  mkdir -p "$tree/scripts"
+  cp "$REPO_ROOT/scripts/check-tools.sh" "$tree/scripts/check-tools.sh"
+  if [ "${1:-1}" = "1" ]; then
+    cp "$REPO_ROOT/.mise.toml" "$tree/.mise.toml"
+  fi
+  echo "$tree"
+}
+
+# setup_pin_sync_tree <with_mise_toml 0|1> <with_dockerfile 0|1>
+#   <mise_node_pin> <mise_pnpm_pin> <docker_node_pin> <docker_pnpm_pin>
+#   [variant]
+# Copies check-pin-sync.sh into an isolated tree and plants controlled
+# .mise.toml / Dockerfile.dev fixtures. The optional variant selects fixture
+# formatting:
+#   default     — node = "<pin>", pnpm = "<pin>", ARG NODE_VERSION=<pin>
+#   quotes      — mixed single/double/unquoted spellings
+#   crlf        — CRLF line endings in both fixture files
+#   whitespace  — extra spaces around '=' and inside values
+#   dup-mise    — duplicate node key under [tools] (INFRA fixture)
+#   dup-docker  — duplicate ARG NODE_VERSION line (INFRA fixture)
+# Echoes the tree root.
+setup_pin_sync_tree() {
+  local with_mise="${1:-1}" with_docker="${2:-1}"
+  local mise_node="${3:-24.18.0}" mise_pnpm="${4:-10.33.0}"
+  local docker_node="${5:-24.18.0}" docker_pnpm="${6:-10.33.0}"
+  local variant="${7:-}"
+  local tree="$BATS_TEST_TMPDIR/pin-sync"
+  mkdir -p "$tree/scripts"
+  cp "$REPO_ROOT/scripts/check-pin-sync.sh" "$tree/scripts/check-pin-sync.sh"
+  if [ "$with_mise" = "1" ]; then
+    case "$variant" in
+      dup-mise)
+        cat > "$tree/.mise.toml" <<EOF
+[tools]
+node = "$mise_node"
+node = "$mise_node"
+pnpm = "$mise_pnpm"
+EOF
+        ;;
+      quotes)
+        cat > "$tree/.mise.toml" <<EOF
+[tools]
+node="$mise_node"
+pnpm='$mise_pnpm'
+EOF
+        ;;
+      whitespace)
+        printf '[tools]\nnode   =   "%s"\npnpm = "%s"\n' "$mise_node" "$mise_pnpm" > "$tree/.mise.toml"
+        ;;
+      crlf)
+        printf '[tools]\r\nnode = "%s"\r\npnpm = "%s"\r\n' "$mise_node" "$mise_pnpm" > "$tree/.mise.toml"
+        ;;
+      *)
+        cat > "$tree/.mise.toml" <<EOF
+[tools]
+node = "$mise_node"
+pnpm = "$mise_pnpm"
+EOF
+        ;;
+    esac
+  fi
+  if [ "$with_docker" = "1" ]; then
+    case "$variant" in
+      dup-docker)
+        cat > "$tree/Dockerfile.dev" <<EOF
+ARG NODE_VERSION=$docker_node
+ARG NODE_VERSION=$docker_node
+ARG PNPM_VERSION=$docker_pnpm
+EOF
+        ;;
+      quotes)
+        cat > "$tree/Dockerfile.dev" <<EOF
+ARG NODE_VERSION=$docker_node
+ARG PNPM_VERSION="$docker_pnpm"
+EOF
+        ;;
+      whitespace)
+        printf '  ARG NODE_VERSION=%s\nARG PNPM_VERSION=%s   \n' "$docker_node" "$docker_pnpm" > "$tree/Dockerfile.dev"
+        ;;
+      crlf)
+        printf 'ARG NODE_VERSION=%s\r\nARG PNPM_VERSION=%s\r\n' "$docker_node" "$docker_pnpm" > "$tree/Dockerfile.dev"
+        ;;
+      *)
+        cat > "$tree/Dockerfile.dev" <<EOF
+ARG NODE_VERSION=$docker_node
+ARG PNPM_VERSION=$docker_pnpm
+EOF
+        ;;
+    esac
+  fi
+  echo "$tree"
+}
+
+# ---------------------------------------------------------------------------
 # dev-entrypoint.sh tests (user-namespace isolation)
 # ---------------------------------------------------------------------------
 

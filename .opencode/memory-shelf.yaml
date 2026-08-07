@@ -62,5 +62,10 @@ shelf:
       path: "openspec/changes/ai-self-improvement-auditor-and-cleanup/"
       created: 2026-08-06
       status: implemented
+    - name: "dev-infra-pin-sync"
+      description: "OpenSpec change: enforces the volta-to-mise §2.1 contract — .mise.toml ↔ Dockerfile.dev pin parity for node/pnpm. New standalone scripts/check-pin-sync.sh (~60-80L, bash-3 compatible, 4 functions: parse_reference/parse_dockerfile/compare/aggregate; grep/awk-based parsing, no TOML library; last-wins ARG semantics with duplicate-detection short-circuit; quote/CRLF/whitespace stripping; exit precedence 2>1>0 (INFRA>mismatch>match); report-ALL, not fail-fast; output contract: ok→stdout, fail→stderr, summary on both). 10-scenario bats suite T1-T10 (match / single-mismatch / multi-mismatch / missing-.mise.toml / missing-Dockerfile.dev / duplicate-[tools]-key INFRA / duplicate-ARG INFRA / quote-variations / CRLF / whitespace-variations). Shared fixture helpers (install_fakes/setup_tree pattern from check-tools.bats) promoted to test-helper.bash for reuse. Makefile wiring: new check-pin-sync target + test-shell prereq chain (validator runs before any bats, fails fast on pin drift) + bats-wrapper.sh bash -n allowlist. Closes DIA-050 (OPEN since 2026-08-05, tracked the .mise.toml ↔ Dockerfile.dev parity gap from DIA-045 F15). 3 vertical slices: T1 core script, T2 bats suite + helper promotion, T3 Makefile wiring + DIA-050 close. No .sdd/ document (dev-infra within existing module boundaries — .sdd/ layer has only README.md today). No §10 routing (pure dev-infra artifact, not AI-tooling config). Rollback: file deletion / git checkout; no .mise.toml or Dockerfile.dev edits."
+      path: "openspec/changes/dev-infra-pin-sync/"
+      created: 2026-08-07
+      status: implemented
   architectures: []
   rag_bases: []

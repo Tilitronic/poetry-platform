@@ -27,6 +27,7 @@ for script in \
   "$ROOT/scripts/verify-pre-commit.sh" \
   "$ROOT/scripts/verify-python.sh" \
   "$ROOT/scripts/lint-python-files.sh" \
+  "$ROOT/scripts/check-pin-sync.sh" \
   "$ROOT/scripts/check-tools.sh" \
   "$ROOT/scripts/check-host-jq.sh" \
   "$ROOT/scripts/check-host-lsp.sh" \

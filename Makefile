@@ -22,7 +22,7 @@
 #   make audit-python  pip-audit both Python packages (requires uv + committed uv.lock)
 #   make context7-docs  fetch library docs from Context7 (requires CONTEXT7_API_KEY; dry-run without it)
 
-.PHONY: build up shell opencode dev stack install db-psql logs down clean check-tools check-host-jq check-host-lsp gen-jsconfig test-shell test-opencode-docker test-python test-infra test-config test-interview test-skills audit-python context7-docs jsonl-stats session-log-render jsonl-cross-check
+.PHONY: build up shell opencode dev stack install db-psql logs down clean check-pin-sync check-tools check-host-jq check-host-lsp gen-jsconfig test-shell test-opencode-docker test-python test-infra test-config test-interview test-skills audit-python context7-docs jsonl-stats session-log-render jsonl-cross-check
 
 stack:
 	bash scripts/dev-stack.sh
@@ -56,6 +56,12 @@ down:
 
 clean:
 	docker compose down -v
+
+# Standalone source-parity validator (scripts/check-pin-sync.sh). Asserts
+# .mise.toml ↔ Dockerfile.dev pin parity for node/pnpm. Exit precedence
+# 2>1>0 (INFRA>mismatch>match). See openspec/changes/dev-infra-pin-sync/.
+check-pin-sync:
+	bash scripts/check-pin-sync.sh
 
 # Host-runnable tool integrity check (seam S2; scripts/check-tools.sh). Verifies
 # mise is on PATH, .mise.toml exists, `mise install` resolves the pins, and the
@@ -96,7 +102,7 @@ check-host-jq:
 
 # bats unit tests for scripts/dev-stack.sh + dev-entrypoint.sh. Docker is
 # mocked (never started); bats is vendored on first run if not installed.
-test-shell: check-host-jq check-host-lsp test-opencode-docker
+test-shell: check-pin-sync check-host-jq check-host-lsp test-opencode-docker
 	bash scripts/__tests__/bats-wrapper.sh
 
 # Regenerate jsconfig.json from the current workspace layout (pnpm-workspace.yaml

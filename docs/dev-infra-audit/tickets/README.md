@@ -10,7 +10,7 @@ carries the full detail (description, verification, fix, re-verify evidence).
 | ID      | Title                                                                                | Area            | Severity | Status | Ticket file              |
 | ------- | ------------------------------------------------------------------------------------ | --------------- | -------- | ------ | ------------------------ |
 | DIA-045 | OpenCode config drift backlog (ai-specialist review 2026-08-04, findings F6–F21)     | opencode-config | Medium   | OPEN   | [DIA-045.md](DIA-045.md) |
-| DIA-050 | .mise.toml ↔ Dockerfile.dev pin-sync gap (DIA-045 F15)                               | dev-infra       | Low      | OPEN   | [DIA-050.md](DIA-050.md) |
+| DIA-050 | .mise.toml ↔ Dockerfile.dev pin-sync gap (DIA-045 F15)                               | dev-infra       | Low      | CLOSED | [DIA-050.md](DIA-050.md) |
 | DIA-051 | Raw JSONL telemetry leak into human chat UI (messages.jsonl sidecar)                 | opencode-config | Medium   | CLOSED | [DIA-051.md](DIA-051.md) |
 | DIA-052 | Skill dup cleanup + two-tier dup detection in validate-skills.sh (5 dirs)            | scripts         | Major    | DONE   | [DIA-052.md](DIA-052.md) |
 | DIA-053 | @ai-auditor 4-source registration + @ai-specialist docs-only narrowing               | opencode-config | Medium   | DONE   | [DIA-053.md](DIA-053.md) |
@@ -19,7 +19,7 @@ carries the full detail (description, verification, fix, re-verify evidence).
 | DIA-056 | @ai-auditor subagent token-tool stacking loop (session error, cancelled)             | opencode-config | Medium   | OPEN   | [DIA-056.md](DIA-056.md) |
 | DIA-057 | Knowledge-workflow violation — conspect not created on research request (2026-08-06) | docs            | Low      | OPEN   | [DIA-057.md](DIA-057.md) |
 | DIA-058 | Research persistence gap — PERSISTENCE_RECOMMENDED flag auto-ignored by orchestrator  | docs            | Medium   | OPEN   | [DIA-058.md](DIA-058.md) |
-| DIA-059 | §10 gate plugin not activated — silent failure on .opencode edits                     | opencode-config | Blocker  | IMPLEMENTED | [DIA-059.md](DIA-059.md) |
+| DIA-059 | §10 gate plugin not activated — silent failure on .opencode edits                     | opencode-config | Blocker  | VERIFIED | [DIA-059.md](DIA-059.md) |
 | DIA-060 | Orchestrator read scope missing tickets directory                                    | opencode-config | Blocker  | VERIFIED | [DIA-060.md](DIA-060.md) |
 | DIA-061 | Orchestrator fails to produce handoff files autonomously — core mechanism not triggered | opencode-config | Blocker  | IMPLEMENTED | [DIA-061.md](DIA-061.md) |
 | DIA-062 | Orchestrator running on deepseek-v4-pro instead of deepseek-v4-flash — model misconfiguration | opencode-config | Blocker  | VERIFIED | [DIA-062.md](DIA-062.md) |
@@ -39,16 +39,16 @@ carries the full detail (description, verification, fix, re-verify evidence).
 
 | Status      | Count |
 | ----------- | ----- |
-| OPEN        | 6     |
+| OPEN        | 5     |
 | DONE        | 3     |
 | VALIDATE    | 0     |
 | E2E         | 0     |
 | DEFERRED    | 0     |
 | MONITOR     | 0     |
 | FIXED       | 0     |
-| IMPLEMENTED | 2     |
-| VERIFIED    | 3     |
-| CLOSED      | 1     |
+| IMPLEMENTED | 1     |
+| VERIFIED    | 4     |
+| CLOSED      | 2     |
 | BLOCKED     | 0     |
 
 ## How to add a ticket

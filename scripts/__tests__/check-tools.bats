@@ -10,69 +10,9 @@ load test-helper
 
 REPO_ROOT="$(cd "$(dirname "$BATS_TEST_FILENAME")/../.." && pwd)"
 
-# install_fakes <dir>: plants fake mise/node/pnpm in <dir> and prepends it to
-# PATH. Behavior is driven by env (set per test):
-#   FAKE_MISE_WHICH_FAIL=1          mise which exits 1 (shim not active)
-#   FAKE_MISE_CURRENT_MISMATCH=1    mise current reports a wrong version
-#   FAKE_NODE_MISMATCH=1            node --version reports a wrong version
-#   FAKE_PNPM_MISMATCH=1            pnpm --version reports a wrong version
-install_fakes() {
-  local dir="$1"
-  mkdir -p "$dir"
-  cat > "$dir/mise" <<'FAKEMISE'
-#!/usr/bin/env bash
-case "${1:-}" in
-  trust) exit 0 ;;
-  install) exit 0 ;;
-  which)
-    [ "${FAKE_MISE_WHICH_FAIL:-}" = "1" ] && exit 1
-    printf '%s\n' "/fake/installs/${2}/current/bin/${2}"
-    exit 0
-    ;;
-  current)
-    if [ "${FAKE_MISE_CURRENT_MISMATCH:-}" = "1" ]; then
-      printf '%s\n' "99.0.0"
-      exit 0
-    fi
-    case "${2:-}" in
-      node) printf '%s\n' "24.18.0" ;;
-      pnpm) printf '%s\n' "10.33.0" ;;
-      *) exit 1 ;;
-    esac
-    ;;
-  *) exit 1 ;;
-esac
-FAKEMISE
-  cat > "$dir/node" <<'FAKENODE'
-#!/usr/bin/env bash
-[ "${FAKE_NODE_MISMATCH:-}" = "1" ] && { printf '%s\n' "v99.0.0"; exit 0; }
-printf '%s\n' "v24.18.0"
-FAKENODE
-  cat > "$dir/pnpm" <<'FAKEPNPM'
-#!/usr/bin/env bash
-[ "${FAKE_PNPM_MISMATCH:-}" = "1" ] && { printf '%s\n' "99.0.0"; exit 0; }
-printf '%s\n' "10.33.0"
-FAKEPNPM
-  chmod +x "$dir/mise" "$dir/node" "$dir/pnpm"
-  PATH="$dir:$PATH"
-  export PATH
-}
-
-# setup_tree <with_mise_toml 0|1>: copies check-tools.sh into an isolated tree
-# and (optionally) seeds it with a .mise.toml copy. Echoes the tree root.
-setup_tree() {
-  local tree="$BATS_TEST_TMPDIR/tree"
-  mkdir -p "$tree/scripts"
-  cp "$REPO_ROOT/scripts/check-tools.sh" "$tree/scripts/check-tools.sh"
-  if [ "${1:-1}" = "1" ]; then
-    cp "$REPO_ROOT/.mise.toml" "$tree/.mise.toml"
-  fi
-  echo "$tree"
-}
-
 @test "check-tools: mise present + pins match -> exit 0 with ok summary" {
-  install_fakes "$BATS_TEST_TMPDIR/fakes"
-  tree="$(setup_tree 1)"
+  install_check_tools_fakes "$BATS_TEST_TMPDIR/fakes"
+  tree="$(setup_check_tools_tree 1)"
 
   run bash "$tree/scripts/check-tools.sh"
 
@@ -82,7 +22,7 @@ setup_tree() {
 }
 
 @test "check-tools: mise absent -> exit 1 with 'run make build first' pointer" {
-  tree="$(setup_tree 1)"
+  tree="$(setup_check_tools_tree 1)"
 
   # Strip PATH to a known-good base that cannot contain mise.
   run env PATH="/usr/bin:/bin" bash "$tree/scripts/check-tools.sh"
@@ -92,8 +32,8 @@ setup_tree() {
 }
 
 @test "check-tools: .mise.toml missing -> exit 1 with clear message" {
-  install_fakes "$BATS_TEST_TMPDIR/fakes"
-  tree="$(setup_tree 0)"
+  install_check_tools_fakes "$BATS_TEST_TMPDIR/fakes"
+  tree="$(setup_check_tools_tree 0)"
 
   run bash "$tree/scripts/check-tools.sh"
 
@@ -102,8 +42,8 @@ setup_tree() {
 }
 
 @test "check-tools: mise which fails (shim not active) -> exit 1" {
-  install_fakes "$BATS_TEST_TMPDIR/fakes"
-  tree="$(setup_tree 1)"
+  install_check_tools_fakes "$BATS_TEST_TMPDIR/fakes"
+  tree="$(setup_check_tools_tree 1)"
   export FAKE_MISE_WHICH_FAIL=1
 
   run bash "$tree/scripts/check-tools.sh"
@@ -113,8 +53,8 @@ setup_tree() {
 }
 
 @test "check-tools: mise current mismatch (wrong pin) -> exit 1" {
-  install_fakes "$BATS_TEST_TMPDIR/fakes"
-  tree="$(setup_tree 1)"
+  install_check_tools_fakes "$BATS_TEST_TMPDIR/fakes"
+  tree="$(setup_check_tools_tree 1)"
   export FAKE_MISE_CURRENT_MISMATCH=1
 
   run bash "$tree/scripts/check-tools.sh"
@@ -124,8 +64,8 @@ setup_tree() {
 }
 
 @test "check-tools: real tool mismatch (node --version differs) -> exit 1" {
-  install_fakes "$BATS_TEST_TMPDIR/fakes"
-  tree="$(setup_tree 1)"
+  install_check_tools_fakes "$BATS_TEST_TMPDIR/fakes"
+  tree="$(setup_check_tools_tree 1)"
   export FAKE_NODE_MISMATCH=1
 
   run bash "$tree/scripts/check-tools.sh"
