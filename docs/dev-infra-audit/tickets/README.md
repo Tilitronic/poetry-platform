@@ -19,7 +19,7 @@ carries the full detail (description, verification, fix, re-verify evidence).
 | DIA-056 | @ai-auditor subagent token-tool stacking loop (session error, cancelled)             | opencode-config | Medium   | OPEN   | [DIA-056.md](DIA-056.md) |
 | DIA-057 | Knowledge-workflow violation — conspect not created on research request (2026-08-06) | docs            | Low      | OPEN   | [DIA-057.md](DIA-057.md) |
 | DIA-058 | Research persistence gap — PERSISTENCE_RECOMMENDED flag auto-ignored by orchestrator  | docs            | Medium   | OPEN   | [DIA-058.md](DIA-058.md) |
-| DIA-059 | §10 gate plugin not activated — silent failure on .opencode edits                     | opencode-config | Blocker  | OPEN     | [DIA-059.md](DIA-059.md) |
+| DIA-059 | §10 gate plugin not activated — silent failure on .opencode edits                     | opencode-config | Blocker  | IMPLEMENTED | [DIA-059.md](DIA-059.md) |
 | DIA-060 | Orchestrator read scope missing tickets directory                                    | opencode-config | Blocker  | VERIFIED | [DIA-060.md](DIA-060.md) |
 | DIA-061 | Orchestrator fails to produce handoff files autonomously — core mechanism not triggered | opencode-config | Blocker  | OPEN     | [DIA-061.md](DIA-061.md) |
 | DIA-062 | Orchestrator running on deepseek-v4-pro instead of deepseek-v4-flash — model misconfiguration | opencode-config | Blocker  | VERIFIED | [DIA-062.md](DIA-062.md) |
@@ -39,14 +39,14 @@ carries the full detail (description, verification, fix, re-verify evidence).
 
 | Status      | Count |
 | ----------- | ----- |
-| OPEN        | 8     |
+| OPEN        | 7     |
 | DONE        | 3     |
 | VALIDATE    | 0     |
 | E2E         | 0     |
 | DEFERRED    | 0     |
 | MONITOR     | 0     |
 | FIXED       | 0     |
-| IMPLEMENTED | 0     |
+| IMPLEMENTED | 1     |
 | VERIFIED    | 3     |
 | CLOSED      | 1     |
 | BLOCKED     | 0     |

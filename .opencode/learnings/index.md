@@ -15,6 +15,8 @@ Last updated: 2026-08-07
 
 - [2026-08-07](external-patterns/2026-08-07-research-persistence-pipeline.md): Research-to-persistence pipeline — two-level fix (orchestrator skill + researcher output contract) for the @researcher → @conspecter handoff gap
 
+- [2026-08-07](external-patterns/2026-08-07-plugin-hook-args-contract.md): Plugin hook args contract — `tool.execute.before` reads **`output.args`**, NOT `input.args` (DIA-059). Reading `input.args` yields `undefined` at runtime → fail-open security gates. After-hooks DO read `input.args` — do not "fix" those.
+
 See `external-patterns/` for findings from external research (Anthropic blog,
 OpenCode docs, oh-my-opencode-slim best practices).
 

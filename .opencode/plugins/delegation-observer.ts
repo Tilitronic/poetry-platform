@@ -28,9 +28,20 @@
  * consistency, A4 append-only registry discipline, A5 final-message gate,
  * C3 forward-only status transitions (S2 guard).
  */
-import { randomUUID } from "node:crypto"
-import { appendFileSync, existsSync, readFileSync } from "node:fs"
-import { join } from "node:path"
+import { createHash, randomUUID } from "node:crypto"
+import {
+  appendFileSync,
+  closeSync,
+  existsSync,
+  fsyncSync,
+  mkdirSync,
+  openSync,
+  readFileSync,
+  renameSync,
+  unlinkSync,
+  writeFileSync,
+} from "node:fs"
+import { dirname, isAbsolute, join, relative, resolve } from "node:path"
 import { tool, type Hooks, type Plugin } from "@opencode-ai/plugin"
 
 /**
@@ -150,6 +161,26 @@ const delegationObserver: Plugin = async (ctx) => {
   // in the transcript — proven by registry.jsonl's 634 rows, 0 pollution).
   const messagesPath = join(ctx.directory, ".opencode/session/messages.jsonl")
   const messagesMdPath = join(ctx.directory, ".opencode/session/messages.md")
+
+  // §10 AI Devtools Modernization gate: the gate token file that @ai-specialist
+  // writes after completing its gate review. Edits to .opencode/ and AGENTS.md
+  // are mechanically blocked until this file exists with valid content.
+  const gateTokenPath = join(
+    ctx.directory,
+    ".opencode/session/gate-tokens/ai-specialist-reviewed"
+  )
+  const gateTokenDir = dirname(gateTokenPath)
+
+  // Handoff paths — deterministic fixed path under .opencode/session/ (the
+  // orchestrator artifact directory). No separate directory needed; the session
+  // directory already exists and is gitignored. The consumer always reads the
+  // SAME path via read(); no glob needed.
+  const handoffDir = join(ctx.directory, ".opencode/session")
+  const handoffPath = join(handoffDir, "current-handoff.json")
+  const handoffTmpPath = join(handoffDir, ".current-handoff.json.tmp")
+
+  /** Paths (relative to workspace root) that require @ai-specialist gate review. */
+  const protectedPaths = [".opencode/", "AGENTS.md"]
 
   // row_id seed logic (READER rule — "continue from the last row # across
   // sessions, never restart"): the authoritative monotonic series is the
@@ -315,6 +346,84 @@ const delegationObserver: Plugin = async (ctx) => {
   }
 
   /**
+   * §10 gate token check: returns true if the @ai-specialist gate review token
+   * file exists and contains valid JSON with required fields. Fail-soft: if
+   * the check itself crashes (e.g. disk error), returns false so the gate
+   * blocks edits — a failed gate check is safer than allowing un-reviewed edits.
+   */
+  function gateTokenValid(): boolean {
+    try {
+      if (!existsSync(gateTokenPath)) return false
+      const raw = readFileSync(gateTokenPath, "utf-8")
+      const token = JSON.parse(raw) as {
+        session_id?: string
+        timestamp?: string
+        event_uuid?: string
+      }
+      return Boolean(token.session_id && token.timestamp && token.event_uuid)
+    } catch {
+      return false
+    }
+  }
+
+  /**
+   * Compute SHA256 checksum of the prognosis object. The checksum covers only
+   * the prognosis, not the wrapper fields — this way integrity verification is
+   * independent of status/timestamp/session_id changes.
+   */
+  function computeChecksum(prognosis: object): string {
+    return createHash("sha256")
+      .update(JSON.stringify(prognosis))
+      .digest("hex")
+  }
+
+  /**
+   * Atomic write of the handoff JSON file. Pattern: temp file → fsync →
+   * atomic rename → fsync directory. On same-filesystem rename is atomic by
+   * POSIX guarantee — the reader sees either the old file or the new file,
+   * never a partial write. Catches errors: unlinks tmp on failure (if not yet
+   * renamed).
+   */
+  function atomicWriteHandoff(content: Record<string, unknown>): void {
+    const json = JSON.stringify(content, null, 2) + "\n"
+    try {
+      writeFileSync(handoffTmpPath, json)
+      const tmpFd = openSync(handoffTmpPath, "r+")
+      fsyncSync(tmpFd)
+      closeSync(tmpFd)
+      renameSync(handoffTmpPath, handoffPath)
+      const dirFd = openSync(handoffDir, "r")
+      fsyncSync(dirFd)
+      closeSync(dirFd)
+    } catch (err) {
+      // Best-effort cleanup: unlink tmp if it still exists (rename failed).
+      try {
+        if (existsSync(handoffTmpPath)) unlinkSync(handoffTmpPath)
+      } catch {
+        // Secondary failure — nothing more we can do.
+      }
+      throw err
+    }
+  }
+
+  /**
+   * Check whether `filePath` (absolute or relative) is under a protected
+   * directory or equals a protected file. Resolves against the workspace root.
+   */
+  function isProtectedPath(filePath: string): boolean {
+    // Resolve to an absolute path first, then make it relative to workspace.
+    const absolute = isAbsolute(filePath)
+      ? filePath
+      : resolve(ctx.directory, filePath)
+    const rel = relative(ctx.directory, absolute)
+    // A path is protected if it startsWith any prefix or equals any exact file.
+    for (const prefix of protectedPaths) {
+      if (rel === prefix || rel.startsWith(prefix)) return true
+    }
+    return false
+  }
+
+  /**
    * S1 (A3): retroactive consistency check. After a terminal event, scan the
    * whole registry for delegation groups (keyed by session_id ?? task_id —
    * the same id space: task() returns the child session id) that still have
@@ -370,7 +479,7 @@ const delegationObserver: Plugin = async (ctx) => {
     // A1: enforce pure-dispatch — task() must be the SOLE tool call in its
     // message. Grouped per session (message_id does not exist in the input);
     // the per-session list is reset on tool.execute.after.
-    "tool.execute.before": async (input, _output) => {
+    "tool.execute.before": async (input, output) => {
       const calls = turnToolCalls.get(input.sessionID) ?? []
       calls.push(input.tool)
       turnToolCalls.set(input.sessionID, calls)
@@ -386,6 +495,64 @@ const delegationObserver: Plugin = async (ctx) => {
           writer: "plugin",
         })
       }
+
+      // §10 gate: mechanically block edits to .opencode/ and AGENTS.md until
+      // @ai-specialist gate review has been completed (token file exists).
+      // Intercept edit, write, apply_patch; bash is excluded (too many false
+      // positives from sed/git operations). The check is fail-soft: if the
+      // path resolution or gate-token check itself throws, we allow the edit
+      // rather than breaking the session — a broken gate is worse than no gate.
+      if (
+        input.tool === "edit" ||
+        input.tool === "write" ||
+        input.tool === "apply_patch"
+      ) {
+        try {
+          // The before-hook type doesn't declare `args`, but it's present at
+          // runtime — cast through unknown to access it.
+          const args =
+            ((output as unknown as { args?: unknown }).args ??
+              {}) as Record<string, unknown>
+          let filePath: string | undefined
+          if (input.tool === "edit" || input.tool === "write") {
+            filePath =
+              typeof args.filePath === "string" ? args.filePath : undefined
+          } else if (input.tool === "apply_patch") {
+            // Parse the first Index: or diff --git line to extract the path.
+            const patchText =
+              typeof args.patchText === "string" ? args.patchText : ""
+            const firstLine = patchText.split(/\r?\n/, 1)[0] ?? ""
+            const indexMatch = /^Index:\s*(\S+)/i.exec(firstLine)
+            const diffMatch = /^diff\s+--git\s+a\/\S+\s+b\/(\S+)/.exec(
+              firstLine
+            )
+            filePath = indexMatch?.[1] ?? diffMatch?.[1]
+          }
+          if (filePath && isProtectedPath(filePath)) {
+            if (!gateTokenValid()) {
+              const gateError = new Error(
+                "§10 GATE: Editing .opencode/ files requires @ai-specialist gate review.\n" +
+                  "The §10 workflow (AGENTS.md §10, AGENTS.md §2.5) requires:\n" +
+                  "  1. @ai-specialist gate research → findings\n" +
+                  "  2. User reviews & approves\n" +
+                  "  3. THEN implementation can proceed\n" +
+                  "Action: dispatch @ai-specialist for gate research first."
+              )
+              throw gateError
+            }
+          }
+        } catch (err) {
+          // Re-throw §10 gate errors; all other errors (path resolution,
+          // gate-token read failure) are fail-soft — a broken gate is worse
+          // than no gate.
+          if (
+            err instanceof Error &&
+            err.message.startsWith("§10 GATE:")
+          ) {
+            throw err
+          }
+        }
+      }
     },
 
     // A2 (B3): capture task_id from the task() tool RESULT. Per the d.ts the
@@ -394,6 +561,36 @@ const delegationObserver: Plugin = async (ctx) => {
     "tool.execute.after": async (input, output) => {
       // Reset the per-session turn-tracking list (message-boundary heuristic).
       turnToolCalls.delete(input.sessionID)
+
+      // §10 gate token: log_decision events with event_type "gate-token"
+      // write or clear the @ai-specialist gate review token file.
+      if (input.tool === "log_decision") {
+        const args = (input.args ?? {}) as Record<string, unknown>
+        if (args.event_type === "gate-token") {
+          try {
+            if (args.resolution_status === "done") {
+              mkdirSync(gateTokenDir, { recursive: true })
+              writeFileSync(
+                gateTokenPath,
+                JSON.stringify({
+                  session_id: input.sessionID,
+                  timestamp: new Date().toISOString(),
+                  event_uuid: randomUUID(),
+                })
+              )
+            } else if (args.resolution_status === "cleared") {
+              if (existsSync(gateTokenPath)) {
+                unlinkSync(gateTokenPath)
+              }
+            }
+          } catch (err) {
+            console.warn(
+              `[delegation-observer] gate-token write failed: ${errorMessage(err)}`
+            )
+          }
+        }
+        return
+      }
 
       if (input.tool !== "task") return
 
@@ -691,7 +888,12 @@ const delegationObserver: Plugin = async (ctx) => {
         description:
           "Log a semantic orchestrator event (decision/handoff/crisis) to the session messages.jsonl log. COMPACT replacement for manual messages.md/jsonl edits: use for owner decisions, handoffs, and crisis declarations; mechanical delegation events are captured automatically by hooks and must NOT be logged via this tool.",
         args: {
-          event_type: tool.schema.enum(["decision", "handoff", "crisis"]),
+          event_type: tool.schema.enum([
+            "decision",
+            "handoff",
+            "crisis",
+            "gate-token",
+          ]),
           task_ref: tool.schema.string(),
           resolution_status: tool.schema.enum([
             "done",
@@ -699,14 +901,56 @@ const delegationObserver: Plugin = async (ctx) => {
             "pending-owner",
             "escalated",
             "acknowledged",
+            "cleared",
           ]),
           lane_id: tool.schema.string().optional(),
           cycle_id: tool.schema.string().optional(),
           ticket_id: tool.schema.string().optional(),
           content_ref: tool.schema.string().optional(),
           next_action: tool.schema.string().optional(),
+          /** JSON-stringified prognosis object — only meaningful for handoff events. */
+          prognosis: tool.schema.string().optional(),
         },
         async execute(args) {
+          // When event_type is "handoff" and prognosis is provided, write the
+          // atomic handoff JSON to .opencode/session/current-handoff.json so the
+          // successor session can detect it via a deterministic read() — no
+          // glob needed (eliminates the fast-glob dot:false footgun).
+          if (
+            args.event_type === "handoff" &&
+            typeof args.prognosis === "string" &&
+            args.prognosis
+          ) {
+            try {
+              const prognosis = JSON.parse(args.prognosis) as Record<
+                string,
+                unknown
+              >
+              const statusMap: Record<string, string> = {
+                done: "done",
+                escalated: "failed",
+                "pending-owner": "manual-halt",
+              }
+              const status =
+                statusMap[args.resolution_status] ?? "manual-halt"
+              const checksum = computeChecksum(prognosis)
+              atomicWriteHandoff({
+                status,
+                session_id: parentSessionId ?? args.lane_id ?? "unknown",
+                cycle_id: args.cycle_id ?? null,
+                timestamp: new Date().toISOString(),
+                checksum,
+                prognosis,
+              })
+            } catch (err) {
+              console.warn(
+                `[delegation-observer] handoff atomic write failed: ${errorMessage(err)}`
+              )
+              // Fall through: still log the message row below. A lost handoff
+              // file is recoverable (orchestrator can retry), but a lost log
+              // row means the event is invisible.
+            }
+          }
           appendMessageRow({
             "gen_ai.operation.name": "invoke_workflow",
             from: "orchestrator",

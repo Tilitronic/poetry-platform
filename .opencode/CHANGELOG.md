@@ -1,5 +1,13 @@
 # OpenCode Config Changelog
 
+## 2026-08-07 — DIA-059 §10 gate plugin fix: before-hook args contract corrected (output.args)
+
+- **Change:** `.opencode/plugins/delegation-observer.ts` `tool.execute.before` hook args contract fixed — L482 `async (input, _output)` → `async (input, output)`; L514 `(input as unknown as { args }).args` → `(output as unknown as { args }).args`. Tool arguments live in **`output.args`**, NOT `input.args` (input is read-only `{ tool, sessionID?, callID?, directory? }`). The gate was **fail-open**: reading args from `input.args` yielded `undefined` at runtime, so `filePath` guards silently never fired and `.opencode/` edits bypassed the §10 gate. NEW learnings entry `external-patterns/2026-08-07-plugin-hook-args-contract.md` + index pointer; DIA-059 status OPEN → IMPLEMENTED.
+- **Reason:** post-restart re-verify (2026-08-07) showed the plugin binary live (event hooks fire) but the gate did not block edit/write on `.opencode/**` — root cause was the before-hook args contract, not hook dispatch.
+- **Files:** .opencode/plugins/delegation-observer.ts · .opencode/learnings/external-patterns/2026-08-07-plugin-hook-args-contract.md (NEW) · .opencode/learnings/index.md (pointer) · docs/dev-infra-audit/tickets/DIA-059.md · docs/dev-infra-audit/tickets/README.md · CHANGELOG.md.
+- **Verification:** `npx tsc --noEmit --strict --skipLibCheck --target ESNext --module preserve --moduleResolution bundler .opencode/plugins/delegation-observer.ts` exit 0; `make test-config` exit 0; Phase 6 audit APPROVE-WITH-NOTES (ai-auditor ses_0247422b5ffe7hA6yrWqmJXUk5).
+- Pending user: restart OpenCode → gate smoke verification (blocked → gate-token → allowed → cleared → blocked) + apply_patch edge case + CI regression grep.
+
 ## 2026-08-07 — cebula preset: reverted 7 agents to pre-commit all-flash model assignments (DIA-064)
 
 - **Change:** Reverted 7 agent model assignments in the `cebula` preset to their pre-commit (2e0c4f3e) all-flash state: orchestrator (`["opencode-go/deepseek-v4-flash", "opencode/deepseek-v4-flash"]`), coder (`["opencode-go/deepseek-v4-flash", "opencode/deepseek-v4-flash"]`), conspecter (`["github-copilot/gpt-5-mini", "opencode-go/deepseek-v4-flash", "opencode/deepseek-v4-flash"]`), resource-manager (`["github-copilot/gpt-5-mini", "opencode-go/deepseek-v4-flash", "opencode/deepseek-v4-flash"]`), memory-manager (`["github-copilot/gpt-5-mini", "opencode-go/deepseek-v4-flash", "opencode/deepseek-v4-flash"]`), code-navigator (`["github-copilot/gpt-5-mini", "opencode-go/deepseek-v4-flash", "opencode/deepseek-v4-flash"]`), researcher (`["opencode-go/deepseek-v4-flash", "opencode/deepseek-v4-flash"]`). 5 agents also restored their `github-copilot/gpt-5-mini` primary/fallback entries.
