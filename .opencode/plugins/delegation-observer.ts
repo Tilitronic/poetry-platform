@@ -518,15 +518,41 @@ const delegationObserver: Plugin = async (ctx) => {
             filePath =
               typeof args.filePath === "string" ? args.filePath : undefined
           } else if (input.tool === "apply_patch") {
-            // Parse the first Index: or diff --git line to extract the path.
+            // Multi-marker, multi-file path scan (DIA-059 §10 gate hardening).
+            // Two fail-open triggers motivated this: (1) the old parse looked
+            // only at the FIRST line, so patches with leading blank lines /
+            // format-patch / MIME headers resolved no path -> gate opened; (2)
+            // omo's rewritePatch runs BEFORE this hook (opencode.jsonc plugin
+            // array order: oh-my-opencode-slim before this plugin) and rewrites
+            // patches to `*** Begin Patch` / `*** Add File:` / `*** Update
+            // File:` / `*** Delete File:` markers that match neither
+            // `Index:` nor `diff --git` -> gate opened for every rewritten
+            // patch touching .opencode/**. Scanning ALL lines for every marker
+            // and checking each candidate against isProtectedPath() closes both
+            // gaps and also covers multi-file patches (blocked if ANY
+            // protected file appears in them).
             const patchText =
               typeof args.patchText === "string" ? args.patchText : ""
-            const firstLine = patchText.split(/\r?\n/, 1)[0] ?? ""
-            const indexMatch = /^Index:\s*(\S+)/i.exec(firstLine)
-            const diffMatch = /^diff\s+--git\s+a\/\S+\s+b\/(\S+)/.exec(
-              firstLine
-            )
-            filePath = indexMatch?.[1] ?? diffMatch?.[1]
+            const lines = patchText.split(/\r?\n/)
+            for (const line of lines) {
+              const indexMatch = /^Index:\s*(\S+)/i.exec(line)
+              const diffMatch = /^diff\s+--git\s+a\/\S+\s+b\/(\S+)/.exec(line)
+              const plusPlusMatch = /^\+\+\+\s+b\/(\S+)/.exec(line)
+              const addFileMatch = /^\*\*\*\s+Add File:\s*(.+)/.exec(line)
+              const updateFileMatch = /^\*\*\*\s+Update File:\s*(.+)/.exec(line)
+              const deleteFileMatch = /^\*\*\*\s+Delete File:\s*(.+)/.exec(line)
+              const matchedPath =
+                indexMatch?.[1] ??
+                diffMatch?.[1] ??
+                plusPlusMatch?.[1] ??
+                addFileMatch?.[1]?.trim() ??
+                updateFileMatch?.[1]?.trim() ??
+                deleteFileMatch?.[1]?.trim()
+              if (matchedPath && isProtectedPath(matchedPath)) {
+                filePath = matchedPath
+                break
+              }
+            }
           }
           if (filePath && isProtectedPath(filePath)) {
             if (!gateTokenValid()) {

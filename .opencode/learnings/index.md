@@ -17,6 +17,8 @@ Last updated: 2026-08-07
 
 - [2026-08-07](external-patterns/2026-08-07-plugin-hook-args-contract.md): Plugin hook args contract — `tool.execute.before` reads **`output.args`**, NOT `input.args` (DIA-059). Reading `input.args` yields `undefined` at runtime → fail-open security gates. After-hooks DO read `input.args` — do not "fix" those.
 
+- [2026-08-07](external-patterns/2026-08-07-plugin-hook-order-and-gate-gaps.md): Plugin hook execution order (opencode.jsonc `plugin` array order — omo before-hook runs BEFORE delegation-observer's) + omo rewritePatch output format (`*** Begin Patch` / `*** Add/Update/Delete File:`) + the two §10-gate apply_patch fail-open triggers and their multi-marker multi-file fix (DIA-059) + canonical handoff checksum serialization `jq -c '.prognosis | to_entries | sort_by(.key) | from_entries'` (DIA-061).
+
 See `external-patterns/` for findings from external research (Anthropic blog,
 OpenCode docs, oh-my-opencode-slim best practices).
 

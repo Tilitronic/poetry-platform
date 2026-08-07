@@ -21,7 +21,7 @@ carries the full detail (description, verification, fix, re-verify evidence).
 | DIA-058 | Research persistence gap — PERSISTENCE_RECOMMENDED flag auto-ignored by orchestrator  | docs            | Medium   | OPEN   | [DIA-058.md](DIA-058.md) |
 | DIA-059 | §10 gate plugin not activated — silent failure on .opencode edits                     | opencode-config | Blocker  | IMPLEMENTED | [DIA-059.md](DIA-059.md) |
 | DIA-060 | Orchestrator read scope missing tickets directory                                    | opencode-config | Blocker  | VERIFIED | [DIA-060.md](DIA-060.md) |
-| DIA-061 | Orchestrator fails to produce handoff files autonomously — core mechanism not triggered | opencode-config | Blocker  | OPEN     | [DIA-061.md](DIA-061.md) |
+| DIA-061 | Orchestrator fails to produce handoff files autonomously — core mechanism not triggered | opencode-config | Blocker  | IMPLEMENTED | [DIA-061.md](DIA-061.md) |
 | DIA-062 | Orchestrator running on deepseek-v4-pro instead of deepseek-v4-flash — model misconfiguration | opencode-config | Blocker  | VERIFIED | [DIA-062.md](DIA-062.md) |
 | DIA-064 | cebula preset models reverted flash→pro in commit 2e0c4f3e — restore pre-commit all-flash state | opencode-config | Critical | VERIFIED | [DIA-064.md](DIA-064.md) |
 
@@ -39,14 +39,14 @@ carries the full detail (description, verification, fix, re-verify evidence).
 
 | Status      | Count |
 | ----------- | ----- |
-| OPEN        | 7     |
+| OPEN        | 6     |
 | DONE        | 3     |
 | VALIDATE    | 0     |
 | E2E         | 0     |
 | DEFERRED    | 0     |
 | MONITOR     | 0     |
 | FIXED       | 0     |
-| IMPLEMENTED | 1     |
+| IMPLEMENTED | 2     |
 | VERIFIED    | 3     |
 | CLOSED      | 1     |
 | BLOCKED     | 0     |

@@ -115,6 +115,46 @@ else
   failed=1
 fi
 
+# Checksum validation (DIA-061) — reject placeholder/fake checksums and verify
+# integrity against the canonical serialization
+# (`jq -c '.prognosis | to_entries | sort_by(.key) | from_entries'` — sorted
+# keys, compact JSON). The block applies only to JSON handoffs
+# (current-handoff.json): the no-argument / `make test-config` path validates
+# the markdown reference template (openspec/templates/HANDOFF.md), which has no
+# `checksum` field — that path skips checksum validation so the
+# prognosis-schema gate stays green (DIA-061 does not change the markdown
+# template contract).
+if jq -e . "$HANDOFF" >/dev/null 2>&1; then
+  checksum_field="$(jq -r '.checksum // empty' "$HANDOFF" 2>/dev/null || true)"
+  if [ -z "$checksum_field" ]; then
+    echo "FAIL: missing or empty 'checksum' field" >&2
+    failed=$((failed + 1))
+  elif ! echo "$checksum_field" | grep -qE '^[0-9a-f]{64}$'; then
+    echo "FAIL: 'checksum' is not a valid 64-hex SHA256: $checksum_field" >&2
+    failed=$((failed + 1))
+  elif echo "$checksum_field" | grep -qE '^(0{64}|f{64}|a{64})$'; then
+    echo "FAIL: 'checksum' is a placeholder (all-same-char): $checksum_field" >&2
+    failed=$((failed + 1))
+  else
+    prognosis_canonical="$(jq -c '.prognosis | to_entries | sort_by(.key) | from_entries' "$HANDOFF" 2>/dev/null || true)"
+    if [ -n "$prognosis_canonical" ]; then
+      computed_checksum="$(printf '%s' "$prognosis_canonical" | sha256sum | cut -d' ' -f1)"
+      if [ "$computed_checksum" != "$checksum_field" ]; then
+        echo "FAIL: checksum mismatch (computed=$computed_checksum, stored=$checksum_field)" >&2
+        failed=$((failed + 1))
+      else
+        echo "ok: checksum verified"
+        passed=$((passed + 1))
+      fi
+    else
+      echo "warn: could not extract prognosis for checksum verification" >&2
+      warnings=$((warnings + 1))
+    fi
+  fi
+else
+  echo "skip: not a JSON handoff — checksum validation not applicable" >&2
+fi
+
 echo "$passed passed, $failed failed, $warnings warnings"
 if [ "$failed" -gt 0 ]; then
   exit 1
