@@ -1,5 +1,13 @@
 # OpenCode Config Changelog
 
+## 2026-08-07 — DIA-057/058 research-persistence workflow (mechanical trigger + hard gate + agents)
+
+- **Change:** (A) `.opencode/plugins/delegation-observer.ts` PERSISTENCE_RECOMMENDED mechanical trigger — `tool.execute.after` task-completion detector (researcher lane only, `<task_result>` payload-scoped) writes `.opencode/session/persistence-pending.json` (overwrite-based, latest event wins); (D) `.opencode/oh-my-opencode-slim/orchestrator_append.md` Research Persistence Gate — hard-gate the orchestrator on the pending file; (E) NEW `.opencode/agents/analyzer.md` (pure-analyst runtime-truth + stale-contradiction docs + coder fallback) + `.opencode/agents/conspecter.md` (two-phase + guard gate).
+- **Reason:** DIA-057 knowledge-workflow order violation (analysis/conspect before research completed); DIA-058 PERSISTENCE_RECOMMENDED auto-ignore (no mechanical detection path).
+- **Files:** .opencode/plugins/delegation-observer.ts · .opencode/oh-my-opencode-slim/orchestrator_append.md · .opencode/agents/analyzer.md (NEW) · .opencode/agents/conspecter.md (NEW) · .opencode/learnings/external-patterns/2026-08-07-research-persistence-pipeline.md (extended) · .opencode/learnings/index.md (pointer) · CHANGELOG.md.
+- **Review:** ai-auditor ai--4 APPROVE-WITH-FINDINGS (3); all findings accepted — F1 CHANGELOG registration, F2 learnings plugin-feasibility extension, F3 researcher-lane plugin trigger scoping.
+- **Verification:** `make test-config` exit 0; `npx tsc --noEmit` (project flags, delegation-observer.ts) exit 0. Pending: restart OpenCode + next-session smoke.
+
 ## 2026-08-07 — DIA-055/056 token-tool permission hardening (wildcard denies)
 
 - **Change:** `.opencode/opencode.jsonc` agent permission blocks — orchestrator `token_export: allow` (explicit); architector/analyzer/reviewer/council/resource-manager/ai-specialist `token_*: deny`; ai-auditor `token_export: deny` → `token_*: deny` (wildcard).

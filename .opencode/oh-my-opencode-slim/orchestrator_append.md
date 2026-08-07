@@ -46,6 +46,30 @@ ALL engineering work (features, implementation, bug fixes, refactors, config, de
 - Pure conversation (no code/files) → answer directly.
 - Standalone research/analysis the user explicitly requests → dispatch @researcher / @analyzer directly; do not force through the full interview-spec chain.
 
+### Research Persistence Gate (DIA-057, DIA-058)
+
+When `@researcher` returns findings with `PERSISTENCE_RECOMMENDED: true`:
+
+1. **MUST load the `research-pipeline` skill** BEFORE closing the research lane.
+2. **MUST present the persistence decision to the developer** (practice-protected §5).
+3. **MUST NOT dispatch analysis** until the research-pipeline skill confirms:
+   - `knowledge/res<id>-<topic>/sources/` exists with .md files
+   - `knowledge/res<id>-<topic>/res<id>-<topic>-conspect.md` exists
+   - `.opencode/memory-shelf.yaml` has a `shelf.conspects` entry for this res<id>
+4. **Mechanical trigger (plugin-enforced):** the delegation-observer plugin writes
+   `.opencode/session/persistence-pending.json` when a completed task result contains
+   `PERSISTENCE_RECOMMENDED: true`. At session start and after each researcher
+   completion, check for this file. If present: load the `research-pipeline` skill,
+   present the persistence decision to the developer, and after pipeline completion
+   (or explicit developer skip) DELETE the flag file.
+5. **Missing flag fallback:** If the researcher's output does not include
+   `PERSISTENCE_RECOMMENDED`, apply the research-pipeline skill's Phase 2 criteria
+   table before closing the lane.
+
+This is a HARD GATE — the orchestrator refuses to close a researcher lane with
+PERSISTENCE_RECOMMENDED: true until the pipeline artifacts are verified or the
+developer explicitly skips.
+
 ### Fast-Path Opt-In (engineering work only)
 
 The interview gate may be bypassed ONLY when ALL of the following are true:
