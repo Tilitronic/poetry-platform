@@ -58,6 +58,19 @@ checksums. The orchestrator boot gate (orchestrator_append.md) refuses to
 resume on any of those conditions (log_decision event_type 'handoff',
 resolution_status 'escalated', content_ref 'checksum-mismatch').
 
+## Update — Phase 6 audit fixes (2026-08-07, re-review cycle 1/2 on 8672917)
+- **Writer-side canonical serialization aligned (DIA-061 Finding 1):**
+  `delegation-observer.ts` `computeChecksum` now builds a top-level-key-sorted object
+  (`Object.keys(prognosis).sort()` + `JSON.stringify`) before hashing — byte-identical
+  contract with the validator: TS `Object.keys().sort() + JSON.stringify` == jq
+  `-c '.prognosis | to_entries | sort_by(.key) | from_entries'` piped via `printf '%s'`
+  (no trailing newline). Verified: the writer's serialization of the current handoff
+  prognosis reproduces the stored checksum 0eee533e… exactly.
+- **`*** Move to:` marker coverage (DIA-059 Finding 2):** the apply_patch marker chain
+  now also scans omo's rename-destination marker (`*** Move to: <path>`, codec.ts
+  `formatPatch` L343) so a patch that MOVES a file INTO `.opencode/**` is blocked by the
+  §10 gate, not just Add/Update/Delete.
+
 ## Evidence / sources
 - `.opencode/plugins/delegation-observer.ts` `tool.execute.before` apply_patch branch (L520-556)
 - `.opencode/oh-my-opencode-slim/src/hooks/apply-patch/codec.ts` L326-352 (`formatPatch`)

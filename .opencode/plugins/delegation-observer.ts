@@ -372,8 +372,19 @@ const delegationObserver: Plugin = async (ctx) => {
    * independent of status/timestamp/session_id changes.
    */
   function computeChecksum(prognosis: object): string {
+    // Canonical serialization MUST stay byte-identical with
+    // scripts/validate-handoff.sh (jq -c '.prognosis | to_entries |
+    // sort_by(.key) | from_entries' via printf '%s' — no trailing newline).
+    // Top-level keys are byte-sorted (Object.keys().sort() == jq's sort_by(.key)
+    // for ASCII keys); nested objects keep their existing insertion order
+    // (matches jq's parse order). JSON.stringify emits compact JSON with no
+    // trailing newline — byte-identical to the validator's pipeline.
+    const canonical: Record<string, unknown> = {}
+    for (const key of Object.keys(prognosis).sort()) {
+      canonical[key] = (prognosis as Record<string, unknown>)[key]
+    }
     return createHash("sha256")
-      .update(JSON.stringify(prognosis))
+      .update(JSON.stringify(canonical))
       .digest("hex")
   }
 
@@ -541,13 +552,18 @@ const delegationObserver: Plugin = async (ctx) => {
               const addFileMatch = /^\*\*\*\s+Add File:\s*(.+)/.exec(line)
               const updateFileMatch = /^\*\*\*\s+Update File:\s*(.+)/.exec(line)
               const deleteFileMatch = /^\*\*\*\s+Delete File:\s*(.+)/.exec(line)
+              // omo rename destination (codec.ts formatPatch L343: `*** Move to:
+              // <path>`) — a patch that MOVES a file INTO .opencode/** must be
+              // blocked just like Add/Update/Delete.
+              const moveToMatch = /^\*\*\*\s+Move to:\s*(.+)/.exec(line)
               const matchedPath =
                 indexMatch?.[1] ??
                 diffMatch?.[1] ??
                 plusPlusMatch?.[1] ??
                 addFileMatch?.[1]?.trim() ??
                 updateFileMatch?.[1]?.trim() ??
-                deleteFileMatch?.[1]?.trim()
+                deleteFileMatch?.[1]?.trim() ??
+                moveToMatch?.[1]?.trim()
               if (matchedPath && isProtectedPath(matchedPath)) {
                 filePath = matchedPath
                 break

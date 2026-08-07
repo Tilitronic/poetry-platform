@@ -132,7 +132,9 @@ if jq -e . "$HANDOFF" >/dev/null 2>&1; then
   elif ! echo "$checksum_field" | grep -qE '^[0-9a-f]{64}$'; then
     echo "FAIL: 'checksum' is not a valid 64-hex SHA256: $checksum_field" >&2
     failed=$((failed + 1))
-  elif echo "$checksum_field" | grep -qE '^(0{64}|f{64}|a{64})$'; then
+  elif echo "$checksum_field" | grep -qE '^(.)\1{63}$'; then
+    # Any 64-identical-char value is a placeholder — a real SHA256 hex digest
+    # can never be 64 identical characters (rejects 0{64}, f{64}, a{64}, 1{64}, …).
     echo "FAIL: 'checksum' is a placeholder (all-same-char): $checksum_field" >&2
     failed=$((failed + 1))
   else

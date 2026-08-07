@@ -167,8 +167,10 @@ gate, no exceptions):
    contains a `prognosis` field with populated subsections.
 2. **Verify SHA256 integrity — HARD GATE (DIA-061).** Recompute the checksum with the
    CANONICAL serialization — sorted keys, compact JSON:
-   `jq -c '.prognosis | to_entries | sort_by(.key) | from_entries' .opencode/session/current-handoff.json | sha256sum`
+   `jq -c '.prognosis | to_entries | sort_by(.key) | from_entries' .opencode/session/current-handoff.json | tr -d '\n' | sha256sum`
    and compare the first hex field against the stored `checksum` field (must be 64-hex SHA256).
+   The checksum is computed over the compact JSON WITHOUT the trailing newline (printf '%s'
+   semantics); byte-mismatch vs the script's method will produce a false checksum-mismatch.
    - **On MISMATCH — or when `checksum` is missing, empty, or not 64-hex: REFUSE TO RESUME.**
      Log via `log_decision` (event_type: 'handoff', resolution_status: 'escalated',
      content_ref: 'checksum-mismatch', prognosis recording computed= vs stored=), escalate to
