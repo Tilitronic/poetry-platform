@@ -204,7 +204,7 @@ model_selection_guidelines:
     - "Default to Go models for volume work (DS V4 Flash, Qwen3.7 Plus)"
     - "Copilot credits: 1,500/mo for Pro, 7,000/mo for Pro+ — reserve for model diversity"
     - "Never recommend a model the user doesn't have access to"
-    - "For review diversity: code-reviewer must be different model family than fixer"
+    - "For review diversity: reviewer must be different model family than coder"
     - "Qwen3.7 Max is special ammo — not a default for any agent (6x cost for 2% gain)"
 
 community_source_evaluation:
