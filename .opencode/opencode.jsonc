@@ -107,7 +107,8 @@
         "wait_for_user": "allow",
         "todowrite": "allow",
         "skill": "allow",
-        "websearch": "allow"
+        "websearch": "allow",
+        "token_export": "allow"
       }
     },
     "architector": {
@@ -115,7 +116,8 @@
       "permission": {
         "edit": "deny",
         "bash": "deny",
-        "task": "deny"
+        "task": "deny",
+        "token_*": "deny"
       }
     },
     "analyzer": {
@@ -124,7 +126,8 @@
       "permission": {
         "edit": "deny",
         "bash": "deny",
-        "task": "deny"
+        "task": "deny",
+        "token_*": "deny"
       }
     },
     "reviewer": {
@@ -132,7 +135,8 @@
       "permission": {
         "edit": "deny",
         "bash": "deny",
-        "task": "deny"
+        "task": "deny",
+        "token_*": "deny"
       }
     },
     // coder deliberately has NO permission restrictions (unlike architector/analyzer/
@@ -169,7 +173,8 @@
         "edit": "deny",
         "bash": {
           "*": "deny"
-        }
+        },
+        "token_*": "deny"
       }
     },
     // resource-manager — knowledge-source curation lane (DIA-007 split).
@@ -193,7 +198,8 @@
           "trafilatura": "allow",
           "*": "deny"
         },
-        "task": "allow"
+        "task": "allow",
+        "token_*": "deny"
       }
     },
     "ai-specialist": {
@@ -209,7 +215,8 @@
           "wget": "allow",
           "*": "deny"
         },
-        "task": "deny"
+        "task": "deny",
+        "token_*": "deny"
       }
     },
     // ai-auditor — independent read-only reviewer for §10 config changes
@@ -229,7 +236,7 @@
         "ast_grep_replace": "deny",
         "webfetch": "deny",
         "task": "deny",
-        "token_export": "deny",
+        "token_*": "deny",
         "envsitter_set": "deny",
         "envsitter_add": "deny",
         "envsitter_delete": "deny",

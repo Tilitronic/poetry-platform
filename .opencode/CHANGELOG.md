@@ -1,5 +1,13 @@
 # OpenCode Config Changelog
 
+## 2026-08-07 — DIA-055/056 token-tool permission hardening (wildcard denies)
+
+- **Change:** `.opencode/opencode.jsonc` agent permission blocks — orchestrator `token_export: allow` (explicit); architector/analyzer/reviewer/council/resource-manager/ai-specialist `token_*: deny`; ai-auditor `token_export: deny` → `token_*: deny` (wildcard).
+- **Reason:** write-capable `token_export` was default-allow for all agents (DIA-055); DIA-056 ai-auditor token-tool stacking closed via config-block inspection (candidate c/d fold).
+- **Files:** .opencode/opencode.jsonc (4 deltas) · .opencode/learnings/external-patterns/2026-08-07-token-tool-permission-model.md · .opencode/learnings/index.md (pointer) · CHANGELOG.md.
+- **Review:** independent @ai-specialist review (ai--2) APPROVE-WITH-FINDINGS; developer accepted findings 1/3/4 — CHANGELOG registration, learnings index pointer, envsitter wording reconciliation.
+- **Verification:** `make test-config` exit 0.
+
 ## 2026-08-07 — DIA-059 apply_patch §10 gate hardening + DIA-061 handoff checksum enforcement
 
 - **Change:** (1) `.opencode/plugins/delegation-observer.ts` apply_patch branch hardened — first-line-only `Index:`/`diff --git` parse replaced with a multi-marker, multi-file scan (`Index:`, `diff --git`, `+++ b/`, omo `*** Add/Update/Delete File:` markers) that stops at the first `isProtectedPath()` match. Closes two fail-open triggers: leading-blank/format-patch/MIME-header patches, and omo rewritePatch output (codec.ts `formatPatch`) that matched neither git-style regex. (2) `scripts/validate-handoff.sh` — new checksum block (DIA-061): rejects missing/empty/non-64-hex/placeholder checksums and verifies integrity against the canonical serialization `jq -c '.prognosis | to_entries | sort_by(.key) | from_entries'`; non-JSON inputs (markdown template via `make test-config`) skip the block. (3) `orchestrator_append.md` boot gate — SHA256 verify upgraded to HARD GATE: mismatch/missing/non-64-hex → REFUSE TO RESUME + `log_decision` ('handoff','escalated','checksum-mismatch', computed= vs stored=) + escalate; match → `log_decision` ('handoff','acknowledged','checksum-verified'). (4) current-handoff.json checksum recomputed to canonical (0eee533e…) — stored 25646ee… was written with a non-canonical serialization. NEW learnings entry `external-patterns/2026-08-07-plugin-hook-order-and-gate-gaps.md` + index pointer; DIA-061 status OPEN → IMPLEMENTED.
