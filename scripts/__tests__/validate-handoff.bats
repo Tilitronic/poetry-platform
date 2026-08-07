@@ -71,6 +71,29 @@ fixture_template() {
     "### resume_instructions"
 }
 
+# write_json_handoff <file> [tamper_key]: writes a JSON handoff fixture with a
+# prognosis object carrying the 5 canonical subsection keys and a checksum
+# computed over the canonical prognosis serialization — the DIA-061 method:
+# `jq -c '.prognosis | to_entries | sort_by(.key) | from_entries'` piped to
+# sha256sum via printf '%s' (NO trailing newline). When [tamper_key] is given,
+# the prognosis value for that key is rewritten AFTER the checksum is computed,
+# so the stored checksum no longer matches the file's canonical serialization
+# (simulates a tampered handoff).
+write_json_handoff() {
+  local file="$1"
+  local tamper_key="${2:-}"
+  jq -n --arg ss "cycle summary" --arg fa "fix a" --arg ot "ticket 1" \
+    --arg vr "verify x" --arg ri "resume here" \
+    '{cycle_id: "c-fixture", checksum: "0000000000000000000000000000000000000000000000000000000000000000", prognosis: {session_summary: $ss, fixes_applied: $fa, open_tickets: $ot, verification_request: $vr, resume_instructions: $ri}}' > "$file"
+  local canonical checksum
+  canonical="$(jq -c '.prognosis | to_entries | sort_by(.key) | from_entries' "$file")"
+  checksum="$(printf '%s' "$canonical" | sha256sum | cut -d' ' -f1)"
+  jq --arg cs "$checksum" '.checksum = $cs' "$file" > "$file.tmp" && mv "$file.tmp" "$file"
+  if [ -n "$tamper_key" ]; then
+    jq --arg k "$tamper_key" --arg v "TAMPERED value" '.prognosis[$k] = $v' "$file" > "$file.tmp" && mv "$file.tmp" "$file"
+  fi
+}
+
 setup() {
   FIXTURES="$BATS_TEST_TMPDIR"
   TPL="$FIXTURES/reference-template.md"
@@ -184,4 +207,39 @@ setup() {
 
   assert_status 2
   assert_output_contains "FAIL:"
+}
+
+@test "validate-handoff: valid JSON handoff skips markdown check and verifies checksum, exit 0" {
+  # DIA-045 F6: JSON handoffs (current-handoff.json) must NOT run the markdown
+  # heading/subsection schema — the checksum block is the authoritative gate.
+  local f="$FIXTURES/valid.json"
+  write_json_handoff "$f"
+
+  HANDOFF_TEMPLATE="$TPL" run bash "$HANDOFF_SCRIPT" "$f"
+
+  assert_status 0
+  assert_output_contains "info: JSON handoff detected"
+  assert_output_contains "skipping markdown schema check"
+  assert_output_contains "ok: checksum verified"
+  assert_output_contains "1 passed, 0 failed, 0 warnings"
+  # The markdown schema branch was skipped entirely: no heading FAIL and no
+  # per-subsection ok:/FAIL: lines from the markdown block.
+  assert_output_not_contains "missing required heading '## Prognosis for next cycle'"
+  assert_output_not_contains "missing required subsection"
+  assert_output_not_contains "ok: session_summary"
+}
+
+@test "validate-handoff: tampered JSON handoff fails checksum validation, exit 1" {
+  # DIA-045 F6: a JSON handoff whose stored checksum no longer matches the
+  # canonical prognosis serialization must fail hard (exit 1) — never fall
+  # through to a markdown-heading error.
+  local f="$FIXTURES/tampered.json"
+  write_json_handoff "$f" "session_summary"
+
+  HANDOFF_TEMPLATE="$TPL" run bash "$HANDOFF_SCRIPT" "$f"
+
+  assert_status 1
+  assert_output_contains "FAIL: checksum mismatch"
+  assert_output_contains "0 passed, 1 failed, 0 warnings"
+  assert_output_not_contains "missing required heading '## Prognosis for next cycle'"
 }

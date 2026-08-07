@@ -81,7 +81,16 @@ prognosis_subsection_names() {
   ' "$1"
 }
 
-if grep -qxF "## Prognosis for next cycle" "$HANDOFF"; then
+# JSON-detection branch (DIA-045 F6): JSON handoffs (e.g. the live
+# .opencode/session/current-handoff.json) carry the `checksum` field and are
+# validated by the checksum block below — the markdown heading/subsection
+# schema applies only to markdown handoffs. Previously the markdown check ran
+# first, so a JSON handoff spuriously FAILed with "missing required heading"
+# and never reached checksum validation. `jq -e .` is the JSON parse probe:
+# valid JSON exits 0, any non-JSON (markdown) input exits 1.
+if jq -e . "$HANDOFF" >/dev/null 2>&1; then
+  echo "info: JSON handoff detected — skipping markdown schema check" >&2
+elif grep -qxF "## Prognosis for next cycle" "$HANDOFF"; then
   section_names="$(prognosis_subsection_names "$HANDOFF")"
 
   for name in "${REQUIRED_SUBSECTIONS[@]}"; do
