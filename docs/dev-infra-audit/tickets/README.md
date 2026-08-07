@@ -15,10 +15,10 @@ carries the full detail (description, verification, fix, re-verify evidence).
 | DIA-052 | Skill dup cleanup + two-tier dup detection in validate-skills.sh (5 dirs)            | scripts         | Major    | DONE   | [DIA-052.md](DIA-052.md) |
 | DIA-053 | @ai-auditor 4-source registration + @ai-specialist docs-only narrowing               | opencode-config | Medium   | DONE   | [DIA-053.md](DIA-053.md) |
 | DIA-054 | NEXT-RUN.md §2 council budget guard (COUNCIL-BUDGET-GUARD)                           | docs            | Medium   | DONE   | [DIA-054.md](DIA-054.md) |
-| DIA-055 | Write-capable token_export exposed to all subagents (permission default-allow)       | opencode-config | Medium   | OPEN   | [DIA-055.md](DIA-055.md) |
-| DIA-056 | @ai-auditor subagent token-tool stacking loop (session error, cancelled)             | opencode-config | Medium   | OPEN   | [DIA-056.md](DIA-056.md) |
-| DIA-057 | Knowledge-workflow violation — conspect not created on research request (2026-08-06) | docs            | Low      | OPEN   | [DIA-057.md](DIA-057.md) |
-| DIA-058 | Research persistence gap — PERSISTENCE_RECOMMENDED flag auto-ignored by orchestrator  | docs            | Medium   | OPEN   | [DIA-058.md](DIA-058.md) |
+| DIA-055 | Write-capable token_export exposed to all subagents (permission default-allow)       | opencode-config | Medium   | IMPLEMENTED | [DIA-055.md](DIA-055.md) |
+| DIA-056 | @ai-auditor subagent token-tool stacking loop (session error, cancelled)             | opencode-config | Medium   | IMPLEMENTED | [DIA-056.md](DIA-056.md) |
+| DIA-057 | Knowledge-workflow violation — conspect not created on research request (2026-08-06) | docs            | Low      | IMPLEMENTED | [DIA-057.md](DIA-057.md) |
+| DIA-058 | Research persistence gap — PERSISTENCE_RECOMMENDED flag auto-ignored by orchestrator  | docs            | Medium   | IMPLEMENTED | [DIA-058.md](DIA-058.md) |
 | DIA-059 | §10 gate plugin not activated — silent failure on .opencode edits                     | opencode-config | Blocker  | VERIFIED | [DIA-059.md](DIA-059.md) |
 | DIA-060 | Orchestrator read scope missing tickets directory                                    | opencode-config | Blocker  | VERIFIED | [DIA-060.md](DIA-060.md) |
 | DIA-061 | Orchestrator fails to produce handoff files autonomously — core mechanism not triggered | opencode-config | Blocker  | IMPLEMENTED | [DIA-061.md](DIA-061.md) |
@@ -39,14 +39,14 @@ carries the full detail (description, verification, fix, re-verify evidence).
 
 | Status      | Count |
 | ----------- | ----- |
-| OPEN        | 5     |
+| OPEN        | 1     |
 | DONE        | 3     |
 | VALIDATE    | 0     |
 | E2E         | 0     |
 | DEFERRED    | 0     |
 | MONITOR     | 0     |
 | FIXED       | 0     |
-| IMPLEMENTED | 1     |
+| IMPLEMENTED | 5     |
 | VERIFIED    | 4     |
 | CLOSED      | 2     |
 | BLOCKED     | 0     |
