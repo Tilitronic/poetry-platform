@@ -86,6 +86,9 @@ write_json_handoff() {
     --arg vr "verify x" --arg ri "resume here" \
     '{cycle_id: "c-fixture", checksum: "0000000000000000000000000000000000000000000000000000000000000000", prognosis: {session_summary: $ss, fixes_applied: $fa, open_tickets: $ot, verification_request: $vr, resume_instructions: $ri}}' > "$file"
   local canonical checksum
+  # MUST stay byte-identical to the canonical serialization in
+  # validate-handoff.sh (jq sorted-keys + printf '%s' + sha256sum) — change
+  # one, change both.
   canonical="$(jq -c '.prognosis | to_entries | sort_by(.key) | from_entries' "$file")"
   checksum="$(printf '%s' "$canonical" | sha256sum | cut -d' ' -f1)"
   jq --arg cs "$checksum" '.checksum = $cs' "$file" > "$file.tmp" && mv "$file.tmp" "$file"

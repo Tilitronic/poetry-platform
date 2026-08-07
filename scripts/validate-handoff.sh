@@ -22,8 +22,9 @@
 #     openspec/templates/HANDOFF.md (strict literal match, Q2 ruling 7).
 #   - Extra `###` subsections under `## Prognosis for next cycle` are SOFT
 #     warnings (do not flip the exit code, Q5 ruling).
-#   - Stream contract: `ok:` to stdout, `FAIL:`/`warn:` to stderr, final
-#     `N passed, M failed, K warnings` to stdout. Collect-all, never fail-fast.
+#   - Stream contract: `ok:` to stdout; `FAIL:`/`warn:`/`info:`/`skip:` to
+#     stderr; final `N passed, M failed, K warnings` to stdout. Collect-all,
+#     never fail-fast.
 #
 # Exit codes: 0 all required headings/subsections present (SOFT warnings may
 # print), 1 HARD failure (missing heading or subsection), 2 infrastructure
@@ -81,14 +82,20 @@ prognosis_subsection_names() {
   ' "$1"
 }
 
-# JSON-detection branch (DIA-045 F6): JSON handoffs (e.g. the live
+# JSON-handoff detection (DIA-045 F6): JSON handoffs (e.g. the live
 # .opencode/session/current-handoff.json) carry the `checksum` field and are
 # validated by the checksum block below — the markdown heading/subsection
 # schema applies only to markdown handoffs. Previously the markdown check ran
 # first, so a JSON handoff spuriously FAILed with "missing required heading"
 # and never reached checksum validation. `jq -e .` is the JSON parse probe:
-# valid JSON exits 0, any non-JSON (markdown) input exits 1.
+# valid JSON exits 0, any non-JSON (markdown) input exits 1. The probe runs
+# exactly once; both the markdown/checksum branches branch on the flag.
+json_handoff=0
 if jq -e . "$HANDOFF" >/dev/null 2>&1; then
+  json_handoff=1
+fi
+
+if [ "$json_handoff" -eq 1 ]; then
   echo "info: JSON handoff detected — skipping markdown schema check" >&2
 elif grep -qxF "## Prognosis for next cycle" "$HANDOFF"; then
   section_names="$(prognosis_subsection_names "$HANDOFF")"
@@ -133,7 +140,7 @@ fi
 # `checksum` field — that path skips checksum validation so the
 # prognosis-schema gate stays green (DIA-061 does not change the markdown
 # template contract).
-if jq -e . "$HANDOFF" >/dev/null 2>&1; then
+if [ "$json_handoff" -eq 1 ]; then
   checksum_field="$(jq -r '.checksum // empty' "$HANDOFF" 2>/dev/null || true)"
   if [ -z "$checksum_field" ]; then
     echo "FAIL: missing or empty 'checksum' field" >&2
