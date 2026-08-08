@@ -267,3 +267,39 @@ Applied closure: added per-agent token_* deny entries for six residual agents (c
 ### Related / Follow-up
 
 DIA-066 spun off as a follow-up low-priority ticket to implement a tool-coverage audit script (investigate tool enumeration gaps across config layers).
+
+
+## ADR: Interim guard → vendored patch → upstream PR pattern (DIA-069)
+
+### Status
+
+Accepted — 2026-08-08
+
+### Context
+
+When a third-party or vendored plugin performs destructive or non-idempotent writes to tracked repository files at runtime (for example, rewriting command docs with absolute HOME paths), the working tree can be polluted repeatedly even when pre-commit guards block commits. Such pollution is a runtime behaviour and is not recoverable from git history alone. A repeatable, low-risk mitigation pattern was exercised during DIA-069 and deserves ADR-level capture so future teams follow the safe containment→fix→reconcile flow.
+
+### Decision
+
+Adopt the following pattern when a vendored plugin clobbers tracked files on load:
+
+1. Immediate containment: commit a portable baseline of the affected files (templates that include $HOME placeholders or safe defaults) and add an owner-run restore script + Makefile target to restore the baseline quickly. Add watcher.ignore for the affected paths to avoid watcher-trigger loops during verification.
+2. Short-term durability: apply a vendored runtime patch in the local package cache (with backups, e.g. .bak-dia069) to make the plugin respect existing files or be idempotent. This reduces local noise for developers and CI while the upstream fix is prepared.
+3. Durable upstream fix: prepare an upstream patch/PR with an audit-able changelist and submit it through normal repo/owner flows. Do not rely solely on vendored patches as a long-term solution.
+4. Reconciliation: after upstream merges and a version bump, remove the interim guard artifacts (restore script, watcher.ignore) and prefer the upstream package as the single source of truth.
+
+### Rationale
+
+- Containment minimises blast radius: committing a guarded baseline and a restore script prevents accidental commits of polluted files and gives developers a simple recovery path.
+- Vendored runtime patch reduces developer friction during verification and restart cycles while the upstream process completes.
+- Upstream PR ensures the fix reaches all users and avoids long-lived local forks in caches.
+
+### Consequences
+
+- Document and version the vendored patch (path, backups) and keep a regenerated PR branch in a host-accessible staging location. Do not assume devcontainer /tmp clones are visible to host-side reviewers or CI.
+- The interim guard must be removed promptly after upstream resolution to avoid drift and maintenance burden.
+
+### Metadata
+
+- Created: 2026-08-08
+- Related: DIA-069, .opencode/learnings/external-patterns/2026-08-08-dia069-telemetry-plugin.md, scripts/restore-telemetry-commands.sh, Makefile targets: make restore-telemetry-commands, make test-telemetry-guard
