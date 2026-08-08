@@ -711,16 +711,19 @@ const delegationObserver: Plugin = async (ctx) => {
       // the persistence flag, write .opencode/session/persistence-pending.json
       // so the orchestrator's Research Persistence Gate
       // (orchestrator_append.md) can pick it up. The task() output wraps the
-      // subagent's final result in <task_result>...</task_result> with
-      // `state: completed` present in the task header on completion (per OMO
-      // src/utils/task.ts parseTaskResultFromOutput). Researcher lane only —
-      // avoids false positives from other agents quoting the flag string in a
-      // prompt or meta-comment: the lane check uses input.args.subagent_type
-      // (falling back to the resolved child session agent), and the flag regex
-      // is applied to the <task_result> payload segment only. Pure additive —
-      // no changes to registry rows, checksum logic, gate logic, or other
-      // hooks. Same failure policy as the registry writes: never crash the
-      // plugin, console.warn and continue.
+      // subagent's final result in <task_result>...</task_result> and the
+      // <task> header carries `state="completed"` as an XML ATTRIBUTE on
+      // completion (per OMO parseTaskStateFromOutput — XML attribute form is
+      // primary, `state: completed` colon form is fallback; the state regex
+      // below therefore tolerates both `state=`/`state:` and optional
+      // quotes). Researcher lane only — avoids false positives from other
+      // agents quoting the flag string in a prompt or meta-comment: the lane
+      // check uses input.args.subagent_type (falling back to the resolved
+      // child session agent), and the flag regex is applied to the
+      // <task_result> payload segment only. Pure additive — no changes to
+      // registry rows, checksum logic, gate logic, or other hooks. Same
+      // failure policy as the registry writes: never crash the plugin,
+      // console.warn and continue.
       const isResearcherLane =
         agentName === "researcher" ||
         childSessionAgent.get(taskId ?? "") === "researcher"
@@ -733,7 +736,7 @@ const delegationObserver: Plugin = async (ctx) => {
       const flagText = taskResultBody ? taskResultBody[1] : text
       if (
         isResearcherLane &&
-        /state:\s*completed/i.test(text) &&
+        /state\b\s*[:=]\s*["']?completed["']?/i.test(text) &&
         /PERSISTENCE_RECOMMENDED:\s*true/i.test(flagText)
       ) {
         try {
