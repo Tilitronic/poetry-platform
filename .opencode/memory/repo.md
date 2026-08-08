@@ -29,6 +29,12 @@ Note: These are navigational facts to help future humans find the infra/test art
   - Observation: runtime plugin behaviour was observed to rewrite `.opencode/commands/telemetry-report.md` and `telemetry-inspect.md`, injecting a literal `/home/qualt/...` path rather than preserving the `$HOME` placeholder. Because this rewrite happens at plugin load time, it reintroduced portability regressions into working trees and tripped the pre-commit guard_no_home_qualt intermittently.
   - Why stored here: commit history recorded the repeated reverts but did not explain the runtime source; this repo-level pointer records the provenance and that the long-term fix belongs in the plugin registerCommands() implementation.
 
+
+- DIA-070 telemetry DB & cache facts (2026-08-08):
+  - Telemetry DB path observed at runtime: `~/.local/share/opencode-telemetry/data.db` (session-local; verify on host). The telemetry plugin stores schema_version in a `_meta` key/value table (key `schema_version`) — PRAGMA user_version remained 0 in observed runs.
+  - Runtime caches observed: `~/.cache/opencode/packages/` (pnpm-style per-package cache) and `~/.config/opencode/node_modules/` (user-installed node_modules). Vendored patches must consider both paths and any pnpm/volta store aliases.
+  - Why irrecoverable: exact DB path, live schema_version value, and runtime cache resolutions are environment-state observations from the campaign and are not reconstructible from git or plugin source alone.
+
 - Local dev host Python/YAML fact (2026-08-03): this developer host has PyYAML 6.0.3 installed for the system python3 interpreter. During the DIA-037 work that exercised .opencode/scripts/validate-skills.sh the primary PyYAML code path ran (the script's optional fallback parser was NOT exercised on this host). The fallback parser path is still relevant for CI/containers that lack PyYAML; the fallback behavior (extra nested-skip WARN messages) was validated by forcing a PYTHONPATH stub on this host. Record this host-level environment fact because the presence/absence of PyYAML on a developer/CI machine is not recoverable from repository commits.
 
 - Agent naming runtime semantics (irrecoverable repo fact):

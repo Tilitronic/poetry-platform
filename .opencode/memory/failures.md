@@ -30,6 +30,16 @@ Failed-loop lessons & preventive actions
     4. If a report is lost (final message contained only a summary), the honest recovery path is a fresh re-run of the reviewer/agent to regenerate the full report; document the rerun and its session ID in tracked artifacts.
   Cross-reference: messages.md row ~184 (session log), .opencode/memory/lessons.md entry about ephemeral session sidecars.
 
+
+- DIA-070: restart-not-effective trap (verification loop root cause, 2026-08-08):
+  - Symptom: session/TUI-level restart did not load patched plugin code; only a true process-level restart (kill old PID + start fresh) caused the runtime to pick up the vendored patches. Two verification attempts that used the TUI restart mechanism failed before a full process restart succeeded.
+  - Root cause: OpenCode plugin resolution happens at process startup and caches loaded module paths; in-place TUI restart reused the existing process image or a supervisor that restored unpatched module paths.
+  - Preventive actions:
+    1. For verification of runtime-level plugin changes, perform a hard process restart (kill the old PID and launch the process) and verify PID and start timestamp differ from the pre-patch process. Do not rely on in-process/TUI restart commands for verification of patched plugin code.
+    2. Add a restart checklist item to the verification procedure that explicitly requires checking `ps`/PID, plugin checksum, and telemetry schema_version/database index state after restart.
+    3. Where possible, automate the post-restart verification (smoke script) that checks critical invariants: plugin file checksum, telemetry DB schema_version, presence of expected DB indices, and zero duplicate rows for dedup fixes.
+  - Cross-reference: lessons.md vendored-patch shadow-copy hazard; repo.md telemetry DB path and schema_version pointer.
+
 - Failure mode (2026-08-08): MAXIMUM_STEPS mid-protocol (cod-2)
   Symptom: a combined probe+test-config lane caused cod-2 to hit MAXIMUM STEPS mid-protocol and required resumption in cod-3. The combined lane shape made the step-cap more likely to be reached.
   Preventive action: split probe and verification lanes into smaller, single-responsibility lanes; keep per-lane step budgets conservative and prefer short-lived probe lanes.

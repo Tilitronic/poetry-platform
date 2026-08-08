@@ -151,6 +151,16 @@ These lessons capture irrecoverable, human-context knowledge discovered during t
   - Mitigation/workaround: locally restore with `git restore -- .opencode/commands/telemetry-report.md .opencode/commands/telemetry-inspect.md` and rely on the pre-commit guard `guard_no_home_qualt` to block accidental commits until the plugin fix lands.
 
 
+- DIA-070: vendored-patch / volatile-cache shadow-copy hazard (2026-08-08):
+  - Symptom: applying hotfixes by vendoring patched dist files into the volatile npm cache (e.g. `~/.cache/opencode/packages/`) left other runtime-installation locations unpatched (example: `~/.config/opencode/node_modules/opencode-telemetry` and unscoped/@latest cache aliases). A fresh process restart sometimes loaded an unpatched copy, silently regressing the fix.
+  - Why irrecoverable: the presence of multiple runtime install/cache paths and their state during a session is environment-level and not reconstructible from git or the plugin repo. The exact regression path depended on which cache alias the runtime resolved at startup.
+  - Preventive actions (operational):
+    1. When vendoring patches into a runtime cache, map and patch every possible install path and cache alias that the runtime may resolve at startup (global, user config, scoped/@latest aliases). Do a targeted `ls` of `~/.cache/opencode/packages/`, `~/.config/opencode/node_modules/`, and any pnpm/volta stores that can shadow installs.
+    2. Prefer a durable runtime source-of-truth: either (a) publish a patch release to the artifact registry and pin the runtime to that release, or (b) install patched artifacts into the active runtime's permanent node_modules (not only the volatile cache) so process restarts consistently load the patched code.
+    3. Add a startup fingerprint/checksum guard in process bootstrap that verifies critical plugin dist files match an expected checksum and refuse to start (or emit a loud warning) if mismatches exist. This prevents silent regressions when caches are partially patched.
+  - Cross-reference: failures.md restart-not-effective trap; repo.md telemetry cache/paths pointer.
+
+
 - delegation-observer regex detection bug (2026-08-08):
   - Symptom: the delegation-observer plugin's state-detection regex expected `state: completed` (colon form) but the native OpenCode task() tool emits `state="completed"` (XML-attribute form). The AND condition at L736 therefore never matched and `persistence-pending.json` was never written, blocking downstream research-persistence triggers.
   - Lesson: when a plugin detects output from another tool, validate against the ACTUAL runtime output format (capture a real sample) rather than assuming tolerance based on other parsers or docs. The fix direction: adopt a form-tolerant regex such as `/state\s*[:=]\s*["']?completed/i` or remove the redundant state check and rely on a single authoritative signal.
