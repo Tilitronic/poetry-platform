@@ -25,6 +25,10 @@ Note: These are navigational facts to help future humans find the infra/test art
   - Why record: res003 (conspecter) was PAUSED due to missing trafilatura CLI and the research lane could not finish. Since res003 is paused, capture these debug-agent facts now because they materially informed the DIA-066 tool-coverage audit design and are not yet fully recorded elsewhere.
   - Tracking: res003 remains paused; further research should be resumed under the res003 ticket when the trafilatura/docker host blocker is resolved (tracked as DIA-067).
 
+- Telemetry command docs portability note (2026-08-08):
+  - Observation: runtime plugin behaviour was observed to rewrite `.opencode/commands/telemetry-report.md` and `telemetry-inspect.md`, injecting a literal `/home/qualt/...` path rather than preserving the `$HOME` placeholder. Because this rewrite happens at plugin load time, it reintroduced portability regressions into working trees and tripped the pre-commit guard_no_home_qualt intermittently.
+  - Why stored here: commit history recorded the repeated reverts but did not explain the runtime source; this repo-level pointer records the provenance and that the long-term fix belongs in the plugin registerCommands() implementation.
+
 - Local dev host Python/YAML fact (2026-08-03): this developer host has PyYAML 6.0.3 installed for the system python3 interpreter. During the DIA-037 work that exercised .opencode/scripts/validate-skills.sh the primary PyYAML code path ran (the script's optional fallback parser was NOT exercised on this host). The fallback parser path is still relevant for CI/containers that lack PyYAML; the fallback behavior (extra nested-skip WARN messages) was validated by forcing a PYTHONPATH stub on this host. Record this host-level environment fact because the presence/absence of PyYAML on a developer/CI machine is not recoverable from repository commits.
 
 - Agent naming runtime semantics (irrecoverable repo fact):

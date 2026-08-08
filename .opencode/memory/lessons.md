@@ -212,6 +212,16 @@ Notes:
   - Practical remedy (operational, not inferable from code alone): before attempting the commit-plan, either (1) restore the excluded files to the guard-safe form (e.g. `${HOME:?HOME must be set}`) so the guard passes locally, or (2) remove/clean the offending working-tree changes. Do NOT rely on `--no-verify` as the first resort; the owner-preferred flow in this campaign was to restore guard-safe content and re-run verification.
   - Why irrecoverable: the script itself exists in repo, but the cross-file interaction and owner-exclusion policy (leaving files dirty yet expecting commits to proceed) plus the chosen human remedy are session-scoped operational knowledge not recoverable from code diffs or commit history.
 
+- Git staging pitfall (working-tree vs index):
+  - Symptom: `git restore --worktree --source=<ref>` repaired the working tree but left the INDEX holding the old content; `git status` showed `MM`. A subsequent plain `git commit` would have committed the stale index version (including literal HOME expansions).
+  - Fix sequence: run `git reset HEAD -- <files>` to clear the index for those paths, then `git add <files>` to re-stage the intended content before committing.
+  - Why stored: this is an operational footgun tied to transient index state and is not reconstructible from commits or diffs.
+
+- Environment wrapper lesson (code-executor/coder lanes):
+  - Symptom: inline `git commit -m "<long message>"` inside shell-wrappered lanes can be corrupted by the wrapper (token injection or arg munging), producing truncated or altered commit messages.
+  - Mitigation: prefer `git commit -F <message-file>` (or `--amend -F`) to avoid shell interpolation issues and ensure long messages are preserved.
+  - Why stored: operational tooling behavior not recoverable from repo history.
+
 
 - pre-push format gate rejection on NEW files and the safe recovery sequence (irrecoverable operational lesson):
   - Symptom: a pre-push gate runs `pnpm prettier --check` (format:check) and will reject pushes when NEW files in the push are not yet prettier-formatted. In our run, the first push attempt was rejected because `openspec/changes/dev-infra-language-servers/verification-T11.md` was committed unformatted in C1.
