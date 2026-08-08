@@ -24,9 +24,12 @@ carries the full detail (description, verification, fix, re-verify evidence).
 | DIA-061 | Orchestrator fails to produce handoff files autonomously — core mechanism not triggered         | opencode-config | Blocker  | VERIFIED    | [DIA-061.md](DIA-061.md) |
 | DIA-062 | Orchestrator running on deepseek-v4-pro instead of deepseek-v4-flash — model misconfiguration   | opencode-config | Blocker  | VERIFIED    | [DIA-062.md](DIA-062.md) |
 | DIA-064 | cebula preset models reverted flash→pro in commit 2e0c4f3e — restore pre-commit all-flash state | opencode-config | Critical | VERIFIED    | [DIA-064.md](DIA-064.md) |
-| DIA-066 | Tool-coverage audit script — surface unlisted default-allow tools                               | scripts         | Low      | IMPLEMENTED | [DIA-066.md](DIA-066.md) |
-| DIA-067 | Docker dev-tool access gap — agents cannot invoke trafilatura (blocks res003 persistence)       | docker          | Blocker  | OPEN        | [DIA-067.md](DIA-067.md) |
-| DIA-068 | delegation-observer persistence trigger never fires — state-check regex format mismatch         | opencode-config | Major    | OPEN        | [DIA-068.md](DIA-068.md) |
+| DIA-066 | Tool-coverage audit script — surface unlisted default-allow tools                               | scripts         | Low      | VERIFIED    | [DIA-066.md](DIA-066.md) |
+| DIA-067 | Docker dev-tool access gap — agents cannot invoke trafilatura (blocks res003 persistence)       | docker          | Blocker  | IMPLEMENTED | [DIA-067.md](DIA-067.md) |
+| DIA-068 | delegation-observer persistence trigger never fires — state-check regex format mismatch         | opencode-config | Major    | IMPLEMENTED | [DIA-068.md](DIA-068.md) |
+| DIA-069 | opencode-telemetry registerCommands() rewrites command docs with literal $HOME paths            | opencode-config | Major    | OPEN        | [DIA-069.md](DIA-069.md) |
+| DIA-070 | Telemetry plugin P2/P4 re-entrancy guard gaps (DIA-056(b) residuals)                            | opencode-config | Medium   | OPEN        | [DIA-070.md](DIA-070.md) |
+| DIA-071 | make test-infra/test-shell exit 2 — host check-host-lsp gate fails                              | dev-infra       | Low      | OPEN        | [DIA-071.md](DIA-071.md) |
 
 ## Status summary
 
@@ -34,23 +37,23 @@ carries the full detail (description, verification, fix, re-verify evidence).
 | -------- | ----- |
 | Blocker  | 5     |
 | Critical | 1     |
-| Major    | 2     |
-| Medium   | 7     |
+| Major    | 3     |
+| Medium   | 8     |
 | Minor    | 0     |
-| Low      | 3     |
+| Low      | 4     |
 | Info     | 0     |
 
 | Status      | Count |
 | ----------- | ----- |
-| OPEN        | 2     |
+| OPEN        | 3     |
 | DONE        | 3     |
 | VALIDATE    | 0     |
 | E2E         | 0     |
 | DEFERRED    | 0     |
 | MONITOR     | 0     |
 | FIXED       | 0     |
-| IMPLEMENTED | 1     |
-| VERIFIED    | 9     |
+| IMPLEMENTED | 2     |
+| VERIFIED    | 10    |
 | CLOSED      | 3     |
 | BLOCKED     | 0     |
 
