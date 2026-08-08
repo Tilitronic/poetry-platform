@@ -15,24 +15,26 @@ carries the full detail (description, verification, fix, re-verify evidence).
 | DIA-052 | Skill dup cleanup + two-tier dup detection in validate-skills.sh (5 dirs)                       | scripts         | Major    | DONE        | [DIA-052.md](DIA-052.md) |
 | DIA-053 | @ai-auditor 4-source registration + @ai-specialist docs-only narrowing                          | opencode-config | Medium   | DONE        | [DIA-053.md](DIA-053.md) |
 | DIA-054 | NEXT-RUN.md §2 council budget guard (COUNCIL-BUDGET-GUARD)                                      | docs            | Medium   | DONE        | [DIA-054.md](DIA-054.md) |
-| DIA-055 | Write-capable token_export exposed to all subagents (permission default-allow)                  | opencode-config | Medium   | IMPLEMENTED | [DIA-055.md](DIA-055.md) |
-| DIA-056 | @ai-auditor subagent token-tool stacking loop (session error, cancelled)                        | opencode-config | Medium   | IMPLEMENTED | [DIA-056.md](DIA-056.md) |
-| DIA-057 | Knowledge-workflow violation — conspect not created on research request (2026-08-06)            | docs            | Low      | IMPLEMENTED | [DIA-057.md](DIA-057.md) |
-| DIA-058 | Research persistence gap — PERSISTENCE_RECOMMENDED flag auto-ignored by orchestrator            | docs            | Medium   | IMPLEMENTED | [DIA-058.md](DIA-058.md) |
+| DIA-055 | Write-capable token_export exposed to all subagents (permission default-allow)                  | opencode-config | Medium   | VERIFIED    | [DIA-055.md](DIA-055.md) |
+| DIA-056 | @ai-auditor subagent token-tool stacking loop (session error, cancelled)                        | opencode-config | Medium   | VERIFIED    | [DIA-056.md](DIA-056.md) |
+| DIA-057 | Knowledge-workflow violation — conspect not created on research request (2026-08-06)            | docs            | Low      | VERIFIED    | [DIA-057.md](DIA-057.md) |
+| DIA-058 | Research persistence gap — PERSISTENCE_RECOMMENDED flag auto-ignored by orchestrator            | docs            | Medium   | VERIFIED    | [DIA-058.md](DIA-058.md) |
 | DIA-059 | §10 gate plugin not activated — silent failure on .opencode edits                               | opencode-config | Blocker  | VERIFIED    | [DIA-059.md](DIA-059.md) |
 | DIA-060 | Orchestrator read scope missing tickets directory                                               | opencode-config | Blocker  | VERIFIED    | [DIA-060.md](DIA-060.md) |
 | DIA-061 | Orchestrator fails to produce handoff files autonomously — core mechanism not triggered         | opencode-config | Blocker  | VERIFIED    | [DIA-061.md](DIA-061.md) |
 | DIA-062 | Orchestrator running on deepseek-v4-pro instead of deepseek-v4-flash — model misconfiguration   | opencode-config | Blocker  | VERIFIED    | [DIA-062.md](DIA-062.md) |
 | DIA-064 | cebula preset models reverted flash→pro in commit 2e0c4f3e — restore pre-commit all-flash state | opencode-config | Critical | VERIFIED    | [DIA-064.md](DIA-064.md) |
-| DIA-066 | Tool-coverage audit script — surface unlisted default-allow tools                               | scripts         | Low      | OPEN        | [DIA-066.md](DIA-066.md) |
+| DIA-066 | Tool-coverage audit script — surface unlisted default-allow tools                               | scripts         | Low      | IMPLEMENTED | [DIA-066.md](DIA-066.md) |
+| DIA-067 | Docker dev-tool access gap — agents cannot invoke trafilatura (blocks res003 persistence)       | docker          | Blocker  | OPEN        | [DIA-067.md](DIA-067.md) |
+| DIA-068 | delegation-observer persistence trigger never fires — state-check regex format mismatch         | opencode-config | Major    | OPEN        | [DIA-068.md](DIA-068.md) |
 
 ## Status summary
 
 | Severity | Count |
 | -------- | ----- |
-| Blocker  | 4     |
+| Blocker  | 5     |
 | Critical | 1     |
-| Major    | 1     |
+| Major    | 2     |
 | Medium   | 7     |
 | Minor    | 0     |
 | Low      | 3     |
@@ -40,15 +42,15 @@ carries the full detail (description, verification, fix, re-verify evidence).
 
 | Status      | Count |
 | ----------- | ----- |
-| OPEN        | 1     |
+| OPEN        | 2     |
 | DONE        | 3     |
 | VALIDATE    | 0     |
 | E2E         | 0     |
 | DEFERRED    | 0     |
 | MONITOR     | 0     |
 | FIXED       | 0     |
-| IMPLEMENTED | 4     |
-| VERIFIED    | 5     |
+| IMPLEMENTED | 1     |
+| VERIFIED    | 9     |
 | CLOSED      | 3     |
 | BLOCKED     | 0     |
 

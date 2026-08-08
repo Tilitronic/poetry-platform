@@ -38,6 +38,12 @@ Failed-loop lessons & preventive actions
   Symptom: ai-specialist returned a stub summary message without the substantive findings artifact, violating the A4 artifact gate and requiring a resume/re-run to obtain the full deliverable.
   Preventive action: enforce artifact-content on ai-specialist results; treat stub-only results as non-deliverable and require resumption (task() with original task_id) or human escalation. Add a resume-cap (3 retries) before escalating.
 
+
+- Failure mode: coder implementation sessions failing pre-write (DIA-066 observations)
+  - Symptom: several coder/session implementations failed before writing any repo files: observed finish:unknown provider stream failures (0 output tokens) and finish:length context exhaustion after prolonged analysis (~10min). Examples: cod-5 finish:unknown, cod-7 finish:length, ope-2 finish:unknown mid-5th-edit.
+  - Mitigation that worked: re-dispatch the task with the FULL task spec embedded in the prompt and an explicit 'WRITE EARLY' instruction (create a minimal skeleton or perform an early partial write, then iterate). This reduces the chance that large analysis or context pressure prevents early persistence.
+  - Preventive action: for multi-slice implementation dispatches embed the complete task spec in the prompt (do not rely on the agent re-reading external artifacts) and mandate an early-write-first strategy in the brief ('WRITE EARLY — produce file skeletons before deep analysis'). Record this as an operational failure lesson — the failure traces appear in telemetry but the behavioural countermeasure is not reconstructible purely from logs.
+
 - Failure mode (2026-08-06): reviewer empty-result resume pattern — risk of re-dispatching fresh instance
   Symptom: a reviewer task completed with an EMPTY result (no report). Consumers attempted to recover by re-dispatching a fresh reviewer which created a new stateless session and lost the original context. The correct recovery was to resume the original reviewer instance using its task_id (resume succeeded and returned the full report).
   Root cause: orchestration lanes re-dispatched a fresh reviewer rather than resuming the exact prior instance; failure to capture/persist the original task_id made resume harder.

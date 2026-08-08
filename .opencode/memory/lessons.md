@@ -144,6 +144,12 @@ These lessons capture irrecoverable, human-context knowledge discovered during t
   - Reference: audit revert patch `/tmp/opencode/telemetry-revert-4th-20260806-1151.patch` and session rows 508-510.
 
 
+- delegation-observer regex detection bug (2026-08-08):
+  - Symptom: the delegation-observer plugin's state-detection regex expected `state: completed` (colon form) but the native OpenCode task() tool emits `state="completed"` (XML-attribute form). The AND condition at L736 therefore never matched and `persistence-pending.json` was never written, blocking downstream research-persistence triggers.
+  - Lesson: when a plugin detects output from another tool, validate against the ACTUAL runtime output format (capture a real sample) rather than assuming tolerance based on other parsers or docs. The fix direction: adopt a form-tolerant regex such as `/state\s*[:=]\s*["']?completed/i` or remove the redundant state check and rely on a single authoritative signal.
+  - Reference: tracked follow-up ticket DIA-068 (research-persistence trigger missing). This is a behavioural/decision lesson (why the mismatch occurred and the recommended tolerant fix) and is not recoverable purely from code diffs.
+
+
 - reviewer empty-result → resume-exact-instance pattern (2026-08-06): during the dev-infra-language-servers review a reviewer task (rev-1) completed with an EMPTY result (no report). Resuming the exact prior reviewer instance by passing its original task_id successfully returned the full report on resume (rev-2). Operational guidance:
   1. When a subagent returns an EMPTY result but prior context is expected, DO NOT re-dispatch a fresh reviewer. Instead resume the original session by calling task() with the original task_id.
   2. Capture and persist task() result.task_id at dispatch time in the registry.jsonl/messages.md sidecar to enable exact-instance resume across restarts.

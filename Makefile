@@ -152,11 +152,17 @@ test-skills:
 
 # OpenCode JSONC config syntax validation + interview-enforcement regression
 # checks + skill frontmatter gate + agent-name cross-reference + HANDOFF
-# prognosis-schema gate (change dev-infra-config-validators, T4).
+# prognosis-schema gate (change dev-infra-config-validators, T4) + tool-coverage
+# audit (change dia-066-tool-coverage-audit, T6). Invariant: test-config passes
+# iff no HARD write-capable gaps remain — WARN-only gaps (the ~440 unlisted
+# default-allow non-write-capable tools) do NOT break the gate (Decision 6
+# scoping; see scripts/audit-agent-tool-coverage.sh).
 test-config: test-interview test-skills
 	bash .opencode/scripts/validate-opencode-config.sh
 	bash scripts/validate-agent-names.sh
 	bash scripts/validate-handoff.sh
+	bash scripts/audit-agent-tool-coverage.sh .opencode/opencode.jsonc
+	bash scripts/audit-agent-tool-coverage.sh tools/opencode-docker/config/opencode.json
 
 # Python dependency vulnerability audit via pip-audit (DIA-028). Exports the
 # locked runtime dependency set per package with uv (exact pins + hashes) and

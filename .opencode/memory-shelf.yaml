@@ -11,6 +11,10 @@ shelf:
       description: "Conspect gathering canonical sources and operational guidance to make orchestrator session logging silent: plugin-driven NDJSON canonical store, derived Markdown views, and compact semantic tool calls."
       path: "knowledge/res002-silent-session-logging/res002-silent-session-logging-conspect.md"
       created: 2026-08-06
+    - name: "Telemetry re-entrancy guards"
+      description: "Conspect synthesizing guard-pattern taxonomy and OpenCode failure classes for telemetry re-entrancy and suppression."
+      path: "knowledge/res003-telemetry-reentrancy-guards/res003-telemetry-reentrancy-guards-conspect.md"
+      created: 2026-08-08
   analyses:
     - name: "Agent Alignment Audit"
       description: "MECE inventory of all agent definitions across OMO Slim, native OpenCode, project config, and AGENTS.md. Finds 4 critical issues (dual dispatch hierarchy, 2 ghost agents, architector missing model, analyzer↔council contradiction), 5 major issues (naming mismatches, dual prompts, orphan agents), and 4 minor issues. 20 unique agents across all files, 2 ghosts, 4 orphans."
@@ -67,5 +71,10 @@ shelf:
       path: "openspec/changes/dev-infra-pin-sync/"
       created: 2026-08-07
       status: implemented
+    - name: "dia-066-tool-coverage-audit"
+      description: "OpenSpec change: hybrid tool-coverage auditor script that surfaces unlisted default-allow tools in OpenCode permission configs. Enumeration strategy: one `opencode debug agent <canonical-agent>` runtime invocation (first alphabetical agent) for the complete tool universe (built-ins + plugin-registered + MCP) + static JSONC parse of each agent's permission block. Cross-reference computes effective coverage (global ∪ per-agent merge) and reports gaps = (tool universe − effective coverage) where default disposition is allow. Exit-code contract: 0 (no HARD gaps) / 1 (HARD gap found OR malformed JSONC) / 2 (INFRA: no opencode, no python3, no default model, v2 schema detected, missing config file). Output contract: FAIL:/WARN: to stderr, ok: to stdout, final summary `N agents audited, M gaps, K warnings` to stdout. Blanket-form detection as first-class WARN category (does not attempt per-tool enumeration against blanket). v1 schema assertion; snip v2 rejection (exit 2). Default-ask/deny tools as SOFT findings (hint column, no exit-code flip). Hermetic bats tests via AUDIT_TOOL_CENSUS_FILE env override (pre-recorded JSON file — tests do NOT require live opencode install). Makefile wiring: test-config invokes auditor for both .opencode/opencode.jsonc and tools/opencode-docker/config/opencode.json (separate passes). Script path: scripts/audit-agent-tool-coverage.sh. Test path: scripts/__tests__/audit-agent-tool-coverage.bats. skip_specs: true (dev-infra within existing boundaries, no spec-level behavior changes). Source ticket: DIA-066 (tool-coverage audit script — surface unlisted default-allow tools). 6 vertical slices: T1 script skeleton + argument parsing + exit-code contract, T2 static JSONC parse (agents + permission blocks), T3 runtime census integration (AUDIT_TOOL_CENSUS_FILE seam), T4 cross-reference logic + output formatting + gap detection, T5 blanket-form detection + v2 schema detection, T6 Makefile wiring + integration test. No .sdd/ document (dev-infra within existing module boundaries — .sdd/ layer does not govern scripts/ surface)."
+      path: "openspec/changes/dia-066-tool-coverage-audit/"
+      created: 2026-08-08
+      status: proposed
   architectures: []
   rag_bases: []
