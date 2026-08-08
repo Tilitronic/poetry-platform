@@ -185,7 +185,7 @@ bats tests in `scripts/__tests__/audit-agent-tool-coverage.bats`. Uses `AUDIT_TO
 - The script reports write-capable gaps with `FAIL: <file>:<line> agent=<name> tool=<tool-id> default=allow severity=HARD` on stderr.
 - The script reports non-write-capable gaps with `WARN: <file>:<line> agent=<name> tool=<tool-id> default=allow severity=WARN` on stderr.
 - The script reports clean agents with `ok: agent=<name> <N> tools covered, 0 hard gaps` on stdout.
-- The script reports a final summary `N agents audited, M hard gaps, K warnings` on stdout.
+- The script reports a final summary `N agents audited, M gaps, K warnings` on stdout.
 - The script exits 1 if any HARD (write-capable) gaps found; exit 0 otherwise. WARN-only gaps do NOT flip the exit code.
 - The bats tests pass.
 
