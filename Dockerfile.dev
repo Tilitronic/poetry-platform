@@ -146,6 +146,23 @@ RUN UV_ARCH=$(case "${TARGETARCH:-$(uname -m)}" in x86_64|amd64) echo "x86_64" ;
     rm -f /tmp/uv.tar.gz /tmp/uv.sha256 && \
     uv --version
 
+# === trafilatura — source-capture CLI for @conspecter Phase A (DIA-067) ===
+# Version pinned via ARG for deterministic builds (same pattern as UV_VERSION,
+# RUST_VERSION, MISE_VERSION, SNIP_VERSION).
+# FALLBACK APPLIED (2026-08-08): Option C (`uv tool install` + ENV
+# UV_TOOL_BIN_DIR=/usr/local/bin) proved broken at runtime — the launcher
+# symlink landed in /usr/local/bin but the tool environment stayed under
+# /root/.local/share/uv/tools/ (build-time ENV HOME=/root), and /root is
+# drwx------ so the non-root `dev` user could not read the symlink target
+# (`trafilatura --version` → Permission denied; T1 verification failed).
+# Switched to Option A (design.md §Risk 1 / §Migration Plan fallback):
+# `uv pip install --system --break-system-packages` — the playwright/crawl4ai
+# pattern — installs the console script to /usr/local/bin and packages into
+# system site-packages, both readable/executable by all users.
+ARG TRAFILATURA_VERSION=2.2.0
+RUN uv pip install --system --break-system-packages trafilatura==${TRAFILATURA_VERSION} && \
+    trafilatura --version
+
 # === Rust toolchain (for stress-lang-core Rust FST → WASM) ===
 # Installed into /opt/rust (not /root/.cargo) so the non-root `dev` user can
 # access it at runtime. CARGO_HOME/RUSTUP_HOME keep everything in one tree.

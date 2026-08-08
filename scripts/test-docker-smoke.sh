@@ -13,6 +13,7 @@
 #   5. browser automation: playwright present, /opt/ms-playwright exists +
 #      owned by dev, chromium actually launches headless (C1)
 #   6. openspec is 1.7.0 and make is present (C2/C3)
+#   6.5 trafilatura is present and version 2.2.0 (DIA-067)
 #   7. secrets: /etc/profile.d/secrets.sh installed (H5); mounted-file probes
 #      for the 5 active secrets only when the host file is non-empty (M2)
 #   8. the entrypoint actually ran: Xvfb is up, DISPLAY is exported, and
@@ -126,6 +127,22 @@ fi
 echo "ok: openspec ${osver}"
 docker compose exec -T dev make --version >/dev/null
 echo "ok: make present in dev container"
+
+echo "-> verifying trafilatura (DIA-067: source-capture for @conspecter)..."
+# DIA-067: trafilatura is installed in Dockerfile.dev via the Option A fallback
+# (`uv pip install --system --break-system-packages trafilatura==2.2.0`) —
+# Option C (`uv tool install` + UV_TOOL_BIN_DIR) left the tool env under
+# /root, unreadable by the dev user (see design.md §Risk 1).
+# The probe asserts the binary is on PATH for the dev user and the version
+# matches the pinned ARG. Follows the openspec version probe pattern (lines
+# 118-128): `docker compose exec -T dev <tool> --version` + version-string
+# assertion + `echo "ok: <tool> ${ver}"`.
+traf_ver="$(docker compose exec -T dev trafilatura --version 2>&1)"
+if [[ "$traf_ver" != *"2.2.0"* ]]; then
+  echo "error: trafilatura --version is '$traf_ver', expected 2.2.0" >&2
+  exit 1
+fi
+echo "ok: trafilatura ${traf_ver}"
 
 # 7 probes (vs spec's 3): presence + resolution + pin parity (mise current == pins) + ENV + no-volta-remnants (AC1/AC2 runtime verification) — defensive testing for DIA-030 closure.
 echo "-> verifying mise toolchain (replaces Volta; DIA-030 closure)..."
