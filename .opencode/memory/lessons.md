@@ -143,11 +143,17 @@ These lessons capture irrecoverable, human-context knowledge discovered during t
   - Operational lesson: expect and accept local revert noise from an unidentified writer so long as the committed guard holds. Document that local reverts are EXPECTED and non-blocking; do not escalate unless the guard is bypassed or commits contain the literal HOME expansion.
   - Reference: audit revert patch `/tmp/opencode/telemetry-revert-4th-20260806-1151.patch` and session rows 508-510.
 
+- opencode-telemetry registerCommands working-tree pollution (2026-08-08):
+  - Symptom: the opencode-telemetry plugin's registerCommands() unconditionally wrote `.opencode/commands/telemetry-report.md` and `.opencode/commands/telemetry-inspect.md` with expanded absolute $HOME paths on every plugin load, leaving those files dirty in the working tree after any OpenCode restart. The literal HOME insertion was observed repeatedly during the session and restored locally with `git restore -- <files>`.
+  - Why irrecoverable: the repeated working-tree pollution is a runtime/plugin behaviour (not present in our repo commits) and therefore not reconstructible from git history alone. A ticket was opened (DIA-069) to stop unconditional writes and make the operation idempotent or guarded.
+  - Mitigation/workaround: locally restore with `git restore -- .opencode/commands/telemetry-report.md .opencode/commands/telemetry-inspect.md` and rely on the pre-commit guard `guard_no_home_qualt` to block accidental commits until the plugin fix lands.
+
 
 - delegation-observer regex detection bug (2026-08-08):
   - Symptom: the delegation-observer plugin's state-detection regex expected `state: completed` (colon form) but the native OpenCode task() tool emits `state="completed"` (XML-attribute form). The AND condition at L736 therefore never matched and `persistence-pending.json` was never written, blocking downstream research-persistence triggers.
   - Lesson: when a plugin detects output from another tool, validate against the ACTUAL runtime output format (capture a real sample) rather than assuming tolerance based on other parsers or docs. The fix direction: adopt a form-tolerant regex such as `/state\s*[:=]\s*["']?completed/i` or remove the redundant state check and rely on a single authoritative signal.
   - Reference: tracked follow-up ticket DIA-068 (research-persistence trigger missing). This is a behavioural/decision lesson (why the mismatch occurred and the recommended tolerant fix) and is not recoverable purely from code diffs.
+  - RESOLUTION NOTE (2026-08-08): during the session the plugin was updated to a form-tolerant detection approach (accepting both XML-attribute and colon forms). DIA-068 was advanced to IMPLEMENTED and typecheck/ai-auditor review passed; a restart-verify and mechanical re-smoke are pending. This note is stored so readers don't assume the bug remains open.
 
 
 - reviewer empty-result → resume-exact-instance pattern (2026-08-06): during the dev-infra-language-servers review a reviewer task (rev-1) completed with an EMPTY result (no report). Resuming the exact prior reviewer instance by passing its original task_id successfully returned the full report on resume (rev-2). Operational guidance:
