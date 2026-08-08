@@ -164,7 +164,7 @@ Following the dev-infra audit and owner directive (DIA-036), the team formalised
 ### Decision
 
 1. The orchestrator will be delegation-only: it must not perform direct code edits. Its role is messaging, workflow orchestration, and strict delegation to human or coder agents.
-2. Read-restriction: the orchestrator is forbidden from reading repo files except for its own session messages-log under .opencode/session/ and a small set of boot/rules files: AGENTS.md, .opencode/practice-protected.md, docs/dev-infra-audit/NEXT-RUN.md. The messages-log is gitignored and treated ephemeral.
+2. Read-restriction: the orchestrator is forbidden from reading repo files except for its own session messages-log under .opencode/session/, the ticket ledger under docs/dev-infra-audit/tickets/, and a small set of boot/rules files: AGENTS.md, .opencode/practice-protected.md, docs/dev-infra-audit/NEXT-RUN.md. The messages-log is gitignored and treated ephemeral.
 3. Session-continuity handoff: when the orchestrator's session context usage reaches the configured threshold (owner-specified threshold — manual: token_stats vs model-window lookup table in NEXT-RUN.md), the orchestrator performs a manual handoff: a human-instigated restart of a new orchestrator instance that resumes from HANDOFF.md + messages.md. Child-dispatch automatic handoff is NOT used; the owner explicitly approved manual handoff.
 
 ### Rationale (irrecoverable context)
@@ -180,3 +180,90 @@ Following the dev-infra audit and owner directive (DIA-036), the team formalised
 - Implementations must make boot tolerant of a missing .opencode/session/ (no messages.md) to support fresh clones and scripted CI runs.
 - Monitoring: add a small operational monitor that alerts when session context usage crosses the 50% threshold to schedule a manual handoff. Token->window math should be documented in NEXT-RUN.md.
 - Policy: reviewers and auditors should confirm orchestrator code and configs only reference permitted files; runtime checks should enforce read restrictions where possible.
+
+## ADR: Agent-naming contract — declared-⊆-resolved containment
+
+### Status
+
+Accepted — 2026-08-04
+
+### Context
+
+During the DIA-045 dev-infra-config-validators cycle we attempted to codify a strict 4-source equality contract for canonical agent names (AGENTS.md §9, .opencode/opencode.jsonc agent block, .opencode/oh-my-opencode-slim.jsonc, and `.opencode/agents/` files). Runtime discovery showed two irreconcilable facts: `.opencode/agents/` is an auto-loaded runtime source (creating .md files registers agents at startup), and the `council` block in oh-my-opencode-slim.jsonc holds model/preset seats, not agent-name declarations.
+
+### Decision
+
+Adopt a containment contract: AGENTS.md §9 remains the human-canonical list (S1). The enforced invariant is declared-⊆-resolved containment: every canonical name in AGENTS.md must resolve in at least one runtime source (S2 ∪ S3 ∪ S4), and every name declared in S2 ∪ S3 must appear in the canonical list (AGENTS.md) when they represent canonical agent names. Council entries are treated as model/preset seats and are not canonical agent names.
+
+### Rationale
+
+- Practical runtime semantics: `.opencode/agents/` auto-loads agent .md files at startup; treating S4 as authoritative for runtime-enablement prevents accidental name drift.
+- The council block contains model seat identifiers; conflating them with agent names caused false assumptions during validator design.
+- Containment is easier to enforce and aligns with OpenCode's runtime behaviour.
+
+### Consequences
+
+- Validators implement containment checks (declared -> resolves) rather than strict 4-way equality. Update AGENTS.md language to mirror the algorithmic contract and reference this ADR for traceability.
+- When adding or disabling agent names, update AGENTS.md and ensure at least one runtime source will resolve the name (create or remove .opencode/agents/*.md as needed).
+
+## ADR: Plugins-as-hooks — delegation-observer plugin
+
+### Status
+
+Accepted — 2026-08-04
+
+### Context
+
+During the Tickets System 2.0 campaign we experimented with a lightweight plugin that observes and records delegation lifecycle events (dispatch, start, complete, compact) to an append-only registry (registry.jsonl) to detect silent dispatch failures and enable exact subagent-session recall. There was a debate whether to treat plugins as full lifecycle hooks or keep a separate bespoke hook mechanism. The implementation (`.opencode/plugins/delegation-observer.ts`) subscribes to the runtime's tool.execute.before/after events and a generic event catch-all; it also writes an experimental.session.compacting record when sessions are compacted for long-term storage.
+
+### Decision
+
+Treat OpenCode plugins as the canonical lightweight hook mechanism for lifecycle observation in this repository. The delegation-observer plugin pattern (subscribe -> record -> emit sidecar) is accepted as the standard for non-invasive lifecycle instrumentation and monitoring where a full hook subsystem is unnecessary.
+
+### Rationale (irrecoverable context)
+
+- Owner preference for minimal, git-ignored sidecars: the registry.jsonl is append-only and gitignored by design to avoid leaking ephemeral session payloads into commits. This operational choice and the rationale (reduce leaks, keep tracked commits clean) are policy-level and not reconstructible solely from code diffs.
+- Reduced blast radius: plugins run as observers and do not change dispatch semantics; they can detect silent drops (A3) without altering runtime behaviour. This makes them suitable for forensic recording and automated monitoring while preserving the delegatory operating model.
+- Practicality: subscribing to tool.execute.before/after provides reliable dispatch/start/finish signals without invasive runtime patches; the pattern proved effective in the Tickets System 2.0 run.
+
+### Consequences
+
+- Adopt the delegation-observer plugin pattern for future lifecycle monitoring needs instead of introducing a separate hook subsystem.
+- Document plugin subscriptions and the registry.jsonl schema in the session/ README and memory entries when their semantics are policy-relevant.
+
+## ADR-003 verification result (c-20260804-0900)
+
+- Date: 2026-08-04
+- Verified-by: coder (ses_031c09d51ffeZwaUAF5Yk00rs8)
+- Verdict: PASS-WITH-EXPECTED-RESIDUAL
+
+Notes:
+- Fresh-session independence checks (NEXT-RUN.md §3) executed verbatim; all gates exit 0 except two expected residuals:
+  - audit-python exit 2: known pip-audit finding (ecdsa 0.19.2 PYSEC-2026-1325). Fix Versions empty; DIA-034 accepted-with-justification.
+  - check-tools exit 2: host-conditional behaviour (host lacks `mise` on PATH; `mise` ships in dev container). Matches Makefile comment and campaign reviewer flag F5.
+
+Decision rationale:
+- Record the PASS-WITH-EXPECTED-RESIDUAL state so the ADR's compliance history is preserved outside the gitignored session log. The session messages (rows 346-348) are gitignored and therefore not a durable archive.
+
+
+## ADR: Per-agent token tool deny model (DIA-055) — closure of default-allow surface
+
+### Status
+
+Accepted — 2026-08-08
+
+### Decision
+
+Adopt the per-agent "token_*": "deny" permission model as the canonical permission-hardening approach for token-related tools (token_export, token_stats, token_history). Do not rely on a global deny + per-agent allow pattern; enforce deny entries per-agent in .opencode/opencode.jsonc to ensure consistent, auditable tool surfaces.
+
+### Rationale (irrecoverable context)
+
+The decision was driven by observed runtime behaviour where plugin arrays and config layers concatenate, making global-level deny semantics unreliable without per-agent overrides. The owner-approved fix explicitly enumerated per-agent deny entries for agents that previously had default access.
+
+### Consequences
+
+Applied closure: added per-agent token_* deny entries for six residual agents (coder, code-navigator, researcher, designer, observer, memory-manager) bringing the repository total to 13 token_* deny entries (7 pre-existing + 6 newly-denied). This change is an operational permission model decision and should be audited per-release.
+
+### Related / Follow-up
+
+DIA-066 spun off as a follow-up low-priority ticket to implement a tool-coverage audit script (investigate tool enumeration gaps across config layers).

@@ -1,5 +1,14 @@
 # OpenCode Config Changelog
 
+## 2026-08-08 — DIA-055 R1 token_* deny closure (6 agents)
+
+- **Change:** `.opencode/opencode.jsonc` agent permission blocks — coder/code-navigator/researcher/designer/observer/memory-manager `token_*: deny`. coder gains its first permission entry; the preserved "deliberately no restrictions" comment (M2 decision) now notes token_* is the explicit carve-out (edit/bash/task rationale untouched). Total `"token_*": "deny"` entries: 13 (7 prior + 6 new). R2 spin-off DIA-066 (tool-coverage audit script, OPEN); R3 upstream monitoring recurring (no permission changes v1.18.12→v1.18.15); resource-manager bash-gap closed as not a real gap (curl/wget/trafilatura allow + `*: deny` at opencode.jsonc:195-214).
+- **Reason:** confirmed write-capable `token_export` default-allow leak (arbitrary `file_path`, no allowlist); driven by §10 gate research (DIA-055).
+- **Files:** .opencode/opencode.jsonc (6 deltas) · docs/dev-infra-audit/tickets/DIA-066.md (NEW) · docs/dev-infra-audit/tickets/DIA-055.md (closure delta) · docs/dev-infra-audit/tickets/README.md · CHANGELOG.md.
+- **Review:** §10 gate — @ai-specialist findings (line-refs verified) + Phase 2 developer decision "Proceed R1 + spin DIA-066"; gate token `ai-specialist-reviewed` present 2026-08-08.
+- **Verification:** `make test-config` exit 0; JSONC parse of opencode.jsonc passes (validate-opencode-config.sh).
+- Pending user: restart OpenCode → Phase 5 smoke (DIA-055 VERIFIED status).
+
 ## 2026-08-07 — DIA-057/058 research-persistence workflow (mechanical trigger + hard gate + agents)
 
 - **Change:** (A) `.opencode/plugins/delegation-observer.ts` PERSISTENCE_RECOMMENDED mechanical trigger — `tool.execute.after` task-completion detector (researcher lane only, `<task_result>` payload-scoped) writes `.opencode/session/persistence-pending.json` (overwrite-based, latest event wins); (D) `.opencode/oh-my-opencode-slim/orchestrator_append.md` Research Persistence Gate — hard-gate the orchestrator on the pending file; (E) NEW `.opencode/agents/analyzer.md` (pure-analyst runtime-truth + stale-contradiction docs + coder fallback) + `.opencode/agents/conspecter.md` (two-phase + guard gate).

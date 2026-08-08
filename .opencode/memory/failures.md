@@ -30,6 +30,23 @@ Failed-loop lessons & preventive actions
     4. If a report is lost (final message contained only a summary), the honest recovery path is a fresh re-run of the reviewer/agent to regenerate the full report; document the rerun and its session ID in tracked artifacts.
   Cross-reference: messages.md row ~184 (session log), .opencode/memory/lessons.md entry about ephemeral session sidecars.
 
+- Failure mode (2026-08-08): MAXIMUM_STEPS mid-protocol (cod-2)
+  Symptom: a combined probe+test-config lane caused cod-2 to hit MAXIMUM STEPS mid-protocol and required resumption in cod-3. The combined lane shape made the step-cap more likely to be reached.
+  Preventive action: split probe and verification lanes into smaller, single-responsibility lanes; keep per-lane step budgets conservative and prefer short-lived probe lanes.
+
+- Failure mode (2026-08-08): ai-specialist stub-result returned without artifact
+  Symptom: ai-specialist returned a stub summary message without the substantive findings artifact, violating the A4 artifact gate and requiring a resume/re-run to obtain the full deliverable.
+  Preventive action: enforce artifact-content on ai-specialist results; treat stub-only results as non-deliverable and require resumption (task() with original task_id) or human escalation. Add a resume-cap (3 retries) before escalating.
+
+- Failure mode (2026-08-06): reviewer empty-result resume pattern — risk of re-dispatching fresh instance
+  Symptom: a reviewer task completed with an EMPTY result (no report). Consumers attempted to recover by re-dispatching a fresh reviewer which created a new stateless session and lost the original context. The correct recovery was to resume the original reviewer instance using its task_id (resume succeeded and returned the full report).
+  Root cause: orchestration lanes re-dispatched a fresh reviewer rather than resuming the exact prior instance; failure to capture/persist the original task_id made resume harder.
+  Preventive action:
+    1. Persist task() result.task_id for any dispatched reviewer/ai-specialist tasks in the registry.jsonl/messages.md sidecar at dispatch-time.
+    2. When an EMPTY result is observed but prior context is expected, resume by calling task() with the original task_id instead of re-dispatching a fresh reviewer.
+    3. After N failed resume attempts, escalate rather than looping re-dispatches which create noisy fresh sessions. Implement an automated 3-failure cap.
+  Notes: this is an operational failure pattern discovered on 2026-08-06 and is not recoverable from git diffs alone.
+
 - Failure mode (2026-08-04): dispatched-but-not-executed subagent tasks when batching edits
   Symptom: orchestration logs showed lanes marked as 'DISPATCHED (in-flight)' while the corresponding task() call never executed. Observed 2–3× during this campaign when a single agent message contained multiple operations (edit tool calls + task() calls) batched together.
   Root cause: batching task() calls with edit tool invocations in a single message caused the runtime to drop or silently ignore the task() invocation in some cases; pure task() messages reliably launched subagents.
@@ -38,6 +55,16 @@ Failed-loop lessons & preventive actions
     2. Add a monitoring assertion in the orchestrator that verifies a dispatched lane transitions from DISPATCHED -> RUNNING within a short window, and raise an audible/logging alert if the lane remains DISPATCHED without a matching session startup event after N seconds.
     3. Document this failure mode in operational runbooks and include an explicit test in the verification loop that simulates a batched edit+task message to detect regressions.
   Notes: check existing failures.md for related resume/dispatch failure modes; this entry records the batching-specific trigger and mitigation.
+
+- Failure mode (2026-08-07): code-executor / subagent "step-cap" verification stall (commit-lane step-cap)
+  Symptom: during verification-heavy change commits, code-executor subagents repeatedly hit a configured step/verification cap before executing the final commit action. The session required six resume attempts because each resumed run re-ran verification steps (re-checking byte-identical hunks) instead of performing the previously planned commit. This produced a repeated re-verification loop and delayed delivery.
+  Root cause: resume/dispatch prompts omitted an explicit instruction to skip re-verification and execute the previously-verified commands; the subagent default behaviour is to re-run verification steps unless told otherwise. Additionally, fresh dispatches create a new session that redoes analysis rather than continuing the verified run.
+  Preventive action / mitigation that worked:
+    1. Resume by reusing the original task_id (exact-instance resume) rather than fresh dispatches so the prior run's verified state is available.
+    2. When resuming, include the prior run's verified analysis and the exact commands to run verbatim in the resume prompt and add an explicit instruction: "do NOT re-verify, execute the following commands".
+    3. Add an orchestrator-side resume checklist item: capture and persist the subagent's last verification digest (hunk map + checksum) at dispatch time so resumes can assert equivalence and safely skip verification.
+    4. Implement a small resume-time guard in the orchestrator: if a resumed session is detected and the digest matches, set a `skip_verification` flag in the prompt payload; otherwise, fall back to full verification.
+  Why persist: this is an operational failure pattern tied to agent step-cap and resume semantics observed in-session and is not reconstructible from code diffs or commit history alone. Recording the precise mitigation (task_id resume + verbatim commands + skip_verification flag) prevents repeated lost-time loops in future commit-lane operations.
 
 - Failure mode (2026-08-04): Hallucinated model ID propagated into active preset config
   Symptom: post-restart observer agent failed to launch with "Model not found: github-copilot/gemini-3.6-flash" because the ACTIVE preset contained a non-existent primary model ID while a related preset (opencode-go) had been updated.

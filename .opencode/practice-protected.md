@@ -29,7 +29,10 @@ proceeding or applying changes.
   'mechanical' may be auto-applied if the developer has pre-approved mechanical
   fixes.
 
-## 5. Agent Permission Classification
+### 5. Research persistence decision
+- When `@researcher` returns findings with `PERSISTENCE_RECOMMENDED: true`, the orchestrator presents the persistence decision to the developer (persist, skip, or partial). The orchestrator does not auto-decide.
+
+## 6. Agent Permission Classification
 
 All agents fall into one of three permission tiers. New agents must declare their tier.
 
@@ -54,7 +57,7 @@ and never modify source files.
 > terms, and never modifies source files or config. It may dispatch
 > @researcher/@conspecter (`task: allow`) to gather curation evidence.
 
-## 6. Artifact Ownership Tracking
+## 7. Artifact Ownership Tracking
 
 All practice-protected artifacts (proposal.md, design.md, tasks.md, .sdd/ documents) must note authorship in their YAML frontmatter or a trailing metadata block:
 ```

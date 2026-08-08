@@ -22,7 +22,7 @@
 | Campaign log | `.opencode/session/messages.md` rows 190–232 | Orchestrator narrative (43 rows present, 11 MISSING) |
 | Telemetry sidecar | `.opencode/session/messages.jsonl` lines 67–109 | Machine-readable events |
 | Documented failure | `.opencode/memory/failures.md` | "dispatched-but-not-executed task() when batching edits" |
-| Campaign handoff | `.opencode/session/HANDOFF.md` | Campaign summary + prognosis |
+| Campaign handoff | `.opencode/session/current-handoff.json` | Campaign summary + prognosis |
 
 ### Key Finding: JSONL References MISSING Rows
 The JSONL sidecar's `result_ref` fields point to messages.md rows that DON'T EXIST: rows #192, #194, #198, #201, #204, #207, #209, #211, #214, #218, #221 — 11 dangling references out of 43 campaign rows (25.6% gap rate).
@@ -100,5 +100,5 @@ Records lane ids only in prose ("cod-12 + cod-14"); no session IDs, no file link
 - `.opencode/session/messages.md` (campaign log rows 190–232)
 - `.opencode/session/messages.jsonl` (telemetry sidecar lines 67–109)
 - `.opencode/memory/failures.md` (documented failure mode)
-- `.opencode/session/HANDOFF.md` (campaign handoff)
+- `.opencode/session/current-handoff.json` (campaign handoff)
 - `docs/dev-infra-audit/tickets/_TEMPLATE.md` + sample tickets DIA-038/041/045/048/049

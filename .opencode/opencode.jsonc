@@ -63,9 +63,10 @@
     // The orchestrator is the plugin's real delegating agent (oh-my-opencode-slim@2.2.8
     // registers it as `orchestrator`). It must NEVER perform engineering work itself:
     // bash/apply_patch/ast_grep_replace/webfetch/envsitter are denied so delegation
-    // is mechanically enforced. DIA-036: read is path-scoped to the session dir +
-    // boot/rules files (the orchestrator knows NOTHING about the codebase except
-    // what delegation results report); edit is path-scoped to .opencode/session/*
+    // is mechanically enforced. DIA-036 + DIA-060: read is path-scoped to the session dir
+    // + boot/rules files + ticket ledger (the orchestrator knows NOTHING about the
+    // codebase except what delegation results report); edit is path-scoped to
+    // .opencode/session/*
     // (covers write+apply_patch per OpenCode docs — flat `write` key removed).
     "orchestrator": {
       "color": "#6366F1",
@@ -86,6 +87,8 @@
           "*": "deny",
           ".opencode/session/*": "allow",
           "docs/dev-infra-audit/NEXT-RUN.md": "allow",
+          "docs/dev-infra-audit/tickets/*": "allow",
+          "docs/dev-infra-audit/tickets/archive/*": "allow",
           ".opencode/practice-protected.md": "allow",
           "AGENTS.md": "allow"
         },
@@ -95,7 +98,9 @@
         },
         "glob": {
           "*": "deny",
-          ".opencode/session/*": "allow"
+          ".opencode/session/*": "allow",
+          "docs/dev-infra-audit/tickets/*": "allow",
+          "docs/dev-infra-audit/tickets/archive/*": "allow"
         },
         "grep": "deny",
         "task": "allow",
@@ -143,29 +148,53 @@
     // reviewer). It is the implementer: it must edit files, run bash (dev build, lint,
     // tests) and dispatch subagents. Denying any of these breaks its core function.
     // M2 decision (2026-08-01): document intent instead of restricting.
+    // token_* is the one explicit carve-out: token_export writes arbitrary file paths
+    // (no path allowlist) and serves no implementation purpose — the "no restrictions"
+    // rationale above covers edit/bash/task, not token telemetry writes.
     "coder": {
       "mode": "subagent",
-      "color": "#3B82F6"
+      "color": "#3B82F6",
+      "permission": {
+        "token_*": "deny"
+      }
     },
     "code-navigator": {
       "mode": "subagent",
-      "color": "#06B6D4"
+      "color": "#06B6D4",
+      "permission": {
+        "token_*": "deny"
+      }
     },
     "researcher": {
       "mode": "subagent",
-      "color": "#84CC16"
+      "color": "#84CC16",
+      "permission": {
+        "edit": "deny",
+        "bash": "deny",
+        "task": "deny",
+        "token_*": "deny"
+      }
     },
     "designer": {
       "mode": "subagent",
-      "color": "#EC4899"
+      "color": "#EC4899",
+      "permission": {
+        "token_*": "deny"
+      }
     },
     "observer": {
       "mode": "subagent",
-      "color": "#A855F7"
+      "color": "#A855F7",
+      "permission": {
+        "token_*": "deny"
+      }
     },
     "memory-manager": {
       "mode": "subagent",
-      "color": "#F472B6"
+      "color": "#F472B6",
+      "permission": {
+        "token_*": "deny"
+      }
     },
     // Council subagents — read-only
     "council": {

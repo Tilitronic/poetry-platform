@@ -11,12 +11,16 @@ through delegated lanes.
 
 Read these files **in this order** when a session starts:
 
-1. `.opencode/session/HANDOFF.md` — if it exists, read it **FIRST**. It is the resume
-   point from a previous instance (previous session id, last message #, reason,
-   campaign state, resume instructions).
-   1.5. **BATCH-APPROVAL GATE (G1)** — if HANDOFF.md exists and contains a "Prognosis for
-   next cycle" section, present the full prognosis to the developer as a **batch
-   approval** BEFORE reading messages.md or delegating any work. See §7.3 for protocol.
+1. `.opencode/session/current-handoff.json` — if it exists, read it **FIRST** via direct
+   `read()` (deterministic path, no glob). It is the resume point from a previous
+   instance (previous session id, last message #, reason, campaign state, resume
+   instructions). Verify integrity: compute SHA256 of the `prognosis` section and
+   compare against the `checksum` field.
+   1.5. **BATCH-APPROVAL GATE (G1)** — if the handoff file exists and contains a
+   "Prognosis for next cycle" section (inside the `prognosis` field), present the
+   full prognosis to the developer as a **batch approval** BEFORE reading
+   messages.md or delegating any work. Verify checksum integrity before presenting.
+   See §7.3 for protocol.
 2. `.opencode/session/messages.md` — the session history record. Read the **last ~20
    entries** to reconstruct what happened and what the next action is.
 3. **This file** (`docs/dev-infra-audit/NEXT-RUN.md`) — the operating manual.
@@ -38,7 +42,7 @@ with a read-only task) to report the current contents of:
   their final messages. The path-scoped permission block enforces this
   (`read` allows only `.opencode/session/*`, `docs/dev-infra-audit/NEXT-RUN.md`,
   `AGENTS.md`, `.opencode/practice-protected.md`).
-- **WRITE RESTRICTION**: you write ONLY to `.opencode/session/HANDOFF.md`. Never edit
+- **WRITE RESTRICTION**: you write ONLY to `.opencode/session/current-handoff.json`. Never edit
   code, config, or docs directly. messages.md / messages.jsonl are plugin-managed —
   never append to them (see SESSION LOGGING below).
 - **SESSION LOGGING**: automatic via delegation-observer plugin; use `log_decision` tool for semantic events; do NOT manually edit messages.md or messages.jsonl
@@ -47,15 +51,15 @@ with a read-only task) to report the current contents of:
   events. SELF-RERUN is triggered by: (a) **CAMPAIGN MILESTONE** — a major phase
   completes (implementation done, review disposition finalized, campaign complete) and
   the next phase benefits from a fresh session; (b) **CONTEXT DEGRADATION** — compaction
-  has compacted campaign-critical context (HANDOFF.md, prognosis, cycle state) so the
+  has compacted campaign-critical context (the handoff file, prognosis, cycle state) so the
   orchestrator cannot reliably continue; (c) **PRIMARY THRESHOLD** — context usage
   > = 30% of the model context window (300K tokens for 1M-window models); (d) **HARD
   > SAFETY-NET** — context usage >= 50% (unconditional force). On ANY trigger: write
-  > `.opencode/session/HANDOFF.md` (previous session id, last message #, reason, campaign
+  > `.opencode/session/current-handoff.json` (previous session id, last message #, reason, campaign
   > state incl. active tickets + next lane + gates passed, resume instructions), log the
   > handoff via `log_decision` (event_type: 'handoff', resolution_status: 'done'), then
   > end your turn telling the user a fresh session should be started —
-  > the next instance reads HANDOFF.md + messages.md and resumes. Detection: call
+  > the next instance reads the handoff file + messages.md and resumes. Detection: call
   > `token_stats`; compute (input+output)/model_context_window using this lookup
   > (estimates): qwen3.7-max 1,000,000; qwen3.7-plus 1,000,000 (per models.dev; verify on
   > next refresh); deepseek-v4-flash 1,000,000;
@@ -71,7 +75,7 @@ with a read-only task) to report the current contents of:
   file written, no test status change, no git diff). C4: hard context overflow/truncation —
   fires; ≥50% context rerun (soft) — flagged only, does NOT fire. C5: a `[BLOCKING]` prognosis
   ticket unresolved for 1 full cycle (fires at the start of cycle N+2). **On crisis:** STOP all
-  work, write a crisis HANDOFF.md with all 5 subsections, abbreviated in content (design.md §1 Option A): session_summary includes crisis_triggers; fixes_applied may be empty; open_tickets populated; verification_request/resume_instructions describe crisis-handling only, log the crisis via
+  work, write a crisis handoff file (.opencode/session/current-handoff.json) with all 5 subsections, abbreviated in content (design.md §1 Option A): session_summary includes crisis_triggers; fixes_applied may be empty; open_tickets populated; verification_request/resume_instructions describe crisis-handling only, log the crisis via
   `log_decision` (event_type: 'crisis', resolution_status: 'escalated'), end the turn telling the user a FRESH session must be started — crisis
   takes precedence over SELF-RERUN (no self-rerun from the same context).
 - **COUNCIL-BUDGET-GUARD**: the orchestrator MUST monitor cumulative council-dispatch credit
@@ -79,26 +83,27 @@ with a read-only task) to report the current contents of:
   notice to the developer with the current spend + remaining budget; continue dispatching.
   **Hard-stop** at 90% (1350 credits): cease all council dispatches for the remainder of the
   session; notify the developer; hand off remaining council-needs to the next session via the
-  HANDOFF.md prognosis. Detection: `token_stats` + the council-dispatch subset of the spend;
+  handoff file's prognosis. Detection: `token_stats` + the council-dispatch subset of the spend;
   credit cost per councillor dispatch is model-dependent (use the live `token_stats` cost
   field, not a static lookup).
 - **PROGNOSIS-DISCIPLINE**: every cycle termination (clean / crisis / exhausted / manual-halt)
-  MUST produce a HANDOFF.md containing exactly one "Prognosis for next cycle" section with five
-  folded subsections (session_summary / fixes_applied / open_tickets / verification_request /
-  resume_instructions) — no separate PROGNOSIS.md (ADR-001). The prognosis is the single source
-  of truth for the successor session, must be self-contained (successor reconstructs context
-  from HANDOFF.md alone), structured, honest (no sandbagging), and actionable. Clean termination
-  requires FRESH-session independent verification — **no self-certification**; "I verified"
-  markers are UNTRUSTED and block SELF-RERUN (ADR-003). Cycles budget (default max-cycles=3,
-  override 2..10 clamped, 1 disallowed, >10 requires split) is recorded in the cycle HANDOFF.md
-  (current/max, clean-re-audit, budget-exhausted) + the campaign trigger manifest — NOT in this
-  file. Full rule text: design.md §2 / §7 / §9.
-- **HANDOFF-REFRESH (G2)**: HANDOFF.md must be **REWRITTEN** (not appended) at each
+  MUST produce a handoff file (.opencode/session/current-handoff.json) containing exactly one "Prognosis
+  for next cycle" section with five folded subsections (session_summary / fixes_applied /
+  open_tickets / verification_request / resume_instructions) — no separate PROGNOSIS.md
+  (ADR-001). The prognosis is the single source of truth for the successor session, must be
+  self-contained (successor reconstructs context from the handoff file alone), structured, honest
+  (no sandbagging), and actionable. Includes a SHA256 `checksum` field over the prognosis for
+  integrity verification. Clean termination requires FRESH-session independent verification —
+  **no self-certification**; "I verified" markers are UNTRUSTED and block SELF-RERUN (ADR-003).
+  Cycles budget (default max-cycles=3, override 2..10 clamped, 1 disallowed, >10 requires
+  split) is recorded in the cycle handoff file (current/max, clean-re-audit, budget-exhausted) +
+  the campaign trigger manifest — NOT in this file. Full rule text: design.md §2 / §7 / §9.
+- **HANDOFF-REFRESH (G2)**: the handoff file must be **REWRITTEN** (not appended) at each
   campaign milestone: (a) after any implementation lane completes; (b) after any review
   disposition is finalized; (c) after any commit lane lands; (d) at campaign completion.
   Each rewrite captures the current state snapshot — supersede, do not accumulate stale
   sections. Detection: after a plugin-logged delegation row whose result contains
-  DONE/COMPLETE/PASS for an implementation/review/commit lane, rewrite HANDOFF.md within
+  DONE/COMPLETE/PASS for an implementation/review/commit lane, rewrite the handoff file within
   the same delegation cycle.
 - **DELEGATION MAP**: research→@researcher, analysis→@analyzer, inventory→@code-navigator,
   implementation→@coder (after @openspec-plan spec; tdd-craftsman), review→@reviewer,
@@ -194,11 +199,12 @@ This section is the orchestrator-operating summary of the protocol.
 
 At cycle termination (clean / crisis / exhausted / manual-halt), the outgoing session MUST:
 
-1. Write a HANDOFF.md containing the "Prognosis for next cycle" section with the five
-   folded subsections (session_summary / fixes_applied / open_tickets /
-   verification_request / resume_instructions) per the schema in design.md §3 and the
-   template `openspec/templates/HANDOFF.md`.
-2. Record the cycle budget in the HANDOFF.md (cycle current/max, clean-re-audit,
+1. Write the handoff file (.opencode/session/current-handoff.json) containing the "Prognosis
+   for next cycle" section with the five folded subsections (session_summary /
+   fixes_applied / open_tickets / verification_request / resume_instructions) per the
+   schema in design.md §3 and the template `openspec/templates/HANDOFF.md`. Include the
+   SHA256 `checksum` of the prognosis section for integrity verification.
+2. Record the cycle budget in the handoff file (cycle current/max, clean-re-audit,
    budget-exhausted) + the campaign trigger manifest — NOT in this file (design.md §7).
 3. Log a final handoff event via `log_decision` (event_type: 'handoff',
    resolution_status: 'done') and end the turn telling the user a fresh session
@@ -207,31 +213,35 @@ At cycle termination (clean / crisis / exhausted / manual-halt), the outgoing se
 
 ### 7.3 Incoming (successor) session — boot
 
-The incoming session's FIRST action is to read the predecessor HANDOFF.md and present
+The incoming session's FIRST action is to read the predecessor handoff file and present
 the "Prognosis for next cycle" section as a **batch approval** to the developer BEFORE
 any delegation or tool use (design.md §8):
 
-0. **DETECTION** — at session start, check for `.opencode/session/HANDOFF.md`. If it
-   exists AND contains a `## Prognosis for next cycle` heading, the batch-approval
-   protocol is MANDATORY: log a handoff event via `log_decision` (event_type: 'handoff',
-   task_ref: 'batch-approval-gate') before proceeding. If no HANDOFF.md exists or it
-   has no Prognosis section, skip to normal boot (§1).
-1. Read HANDOFF.md and parse the prognosis section.
-2. Present each subsection as a batch: session_summary → fixes_applied → open_tickets →
+0. **DETECTION** — at session start, check for `.opencode/session/current-handoff.json` via
+   direct `read()` (deterministic path, no glob). If it exists AND contains a `prognosis`
+   field with populated subsections, the batch-approval protocol is MANDATORY: log a
+   handoff event via `log_decision` (event_type: 'handoff',
+   task_ref: 'batch-approval-gate') before proceeding. If no handoff file exists or it
+   has no prognosis section, skip to normal boot (§1).
+1. **VERIFY INTEGRITY** — compute SHA256 of the `prognosis` object (JSON-stringified),
+   compare against the `checksum` field. Mismatch → treat as tampered/corrupted, escalate
+   to developer.
+2. Read the handoff file and parse the `prognosis` section.
+3. Present each subsection as a batch: session_summary → fixes_applied → open_tickets →
    verification_request → resume_instructions.
-3. Developer approves per item (approve / defer / reject).
-4. Rejected items become new open_tickets; deferred items carry forward.
-5. During open_tickets review, run the **C5 check**: if a `[BLOCKING]` ticket from the
+4. Developer approves per item (approve / defer / reject).
+5. Rejected items become new open_tickets; deferred items carry forward.
+6. During open_tickets review, run the **C5 check**: if a `[BLOCKING]` ticket from the
    predecessor was supposed to be resolved but wasn't, C5 fires (design.md §1).
-6. **VERIFICATION** — after the developer approves ALL items, log a decision event via
+7. **VERIFICATION** — after the developer approves ALL items, log a decision event via
    `log_decision` (event_type: 'decision', resolution_status: 'acknowledged',
    content_ref: 'batch-approval-complete'); ONLY THEN begin work. Rejected items become
    new open_tickets and await instruction — they are not silently carried forward.
 
 ### 7.4 Crisis handling
 
-On any C1–C5 trigger (design.md §1): halt the cycle, produce a crisis HANDOFF.md
-(all 5 subsections, abbreviated in content — session_summary includes crisis_triggers; fixes_applied may be empty; open_tickets populated; verification_request/resume_instructions describe crisis-handling only), notify the developer with trigger
+On any C1–C5 trigger (design.md §1): halt the cycle, produce a crisis handoff file
+(.opencode/session/current-handoff.json) (all 5 subsections, abbreviated in content — session_summary includes crisis_triggers; fixes_applied may be empty; open_tickets populated; verification_request/resume_instructions describe crisis-handling only), notify the developer with trigger
 identity and evidence, and let the developer decide: extend the cycle, start a fresh
 cycle (counts against budget), or close the change.
 
@@ -239,10 +249,11 @@ cycle (counts against budget), or close the change.
 
 A `clean` exit requires fresh-session independent verification (design.md §9, ADR-003):
 the session that produced the work cannot certify its own completion. The fresh session
-reads HANDOFF.md, executes each verification_request independently, and confirms or
-downgrades exit_state. Procedure: the fresh session APPENDS a `## Verification Result`
-section to HANDOFF.md with, per verification_id, a status (verified-pass |
-verified-fail | verified-partial), evidence, the verifier session ID, and a timestamp.
+reads the handoff file (.opencode/session/current-handoff.json), executes each
+verification_request independently, and confirms or downgrades exit_state. Procedure:
+the fresh session APPENDS a `## Verification Result` section to the handoff file with,
+per verification_id, a status (verified-pass | verified-fail | verified-partial),
+evidence, the verifier session ID, and a timestamp.
 All verified-pass → confirm 'clean'; any verified-fail → downgrade exit_state to
 'crisis' (and append failure details); mixed pass+partial → 'manual-halt'. The producer
 session NEVER writes the Verification Result — it is the verifier's contract only; no
@@ -254,7 +265,7 @@ self-certification; untrusted markers block SELF-RERUN.
   requires a change split (design.md §7, ADR-004).
 - Exit states: `clean` / `crisis` / `exhausted` / `manual-halt`. `exhausted` is a soft
   non-crisis exit with a ≤200-char postmortem and NO C6 trigger (ADR-005).
-- Budget increments only on full audit pass (complete HANDOFF.md + successor
+- Budget increments only on full audit pass (complete handoff file + successor
   acknowledgment via batch approval); ≥50% context reruns are tracked but do not
   consume budget unless the cycle terminates.
 

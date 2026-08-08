@@ -1,6 +1,6 @@
 # Learnings Index
 
-Last updated: 2026-08-07
+Last updated: 2026-08-08
 
 > Historical entries pre-2026-08-02 use 'boss' — canonical name is now 'orchestrator'.
 
@@ -20,6 +20,8 @@ Last updated: 2026-08-07
 - [2026-08-07](external-patterns/2026-08-07-plugin-hook-order-and-gate-gaps.md): Plugin hook execution order (opencode.jsonc `plugin` array order — omo before-hook runs BEFORE delegation-observer's) + omo rewritePatch output format (`*** Begin Patch` / `*** Add/Update/Delete File:`) + the two §10-gate apply_patch fail-open triggers and their multi-marker multi-file fix (DIA-059) + canonical handoff checksum serialization `jq -c '.prognosis | to_entries | sort_by(.key) | from_entries'` (DIA-061).
 
 - [2026-08-07](external-patterns/2026-08-07-token-tool-permission-model.md): Token-tool permission model — plugin-array concatenation across config layers, default-allow permission model, wildcard `tool_*` syntax supported (`token_*` as new application), token_export write-capability, DIA-055 S5 correction, DIA-056 fold via config-block inspection.
+
+- [2026-08-08](external-patterns/2026-08-08-dia055-token-permission-closure.md): DIA-055 §10 gate closure — 6 agents (coder, code-navigator, researcher, designer, observer, memory-manager) still default-allow write-capable `token_export`; R1 per-agent `token_*: deny` (implementation deferred); R2 tool-coverage audit script (DIA-066 candidate); R3 quarterly upstream permission-model monitoring (no changes v1.18.12→v1.18.15); resource-manager bash-gap closed.
 
 See `external-patterns/` for findings from external research (Anthropic blog,
 OpenCode docs, oh-my-opencode-slim best practices).
@@ -51,3 +53,4 @@ Each entry should include:
 | 2026-08-07 | orchestrator + ai-specialist (gate) + coder | Research-to-persistence pipeline: NEW skill research-pipeline + researcher agent file + orchestratorPrompt ×3 presets + plugin mechanical-detection pattern (DIA-057/058: task_result wrapper + state:completed header + researcher-lane-scoped flag regex → `.opencode/session/persistence-pending.json`, overwrite-based). Closes @researcher → @conspecter handoff gap. See `external-patterns/2026-08-07-research-persistence-pipeline.md`. | applied |
 | 2026-08-07 | code-executor (§10 Phase 4) | cebula preset: full revert of 7 agents to pre-commit all-flash model assignments (DIA-064). Commit 2e0c4f3e had changed all 7 from flash→pro — cost-critical leak. Approved Option A. Lesson: preset model changes in config commits need explicit review. See `external-patterns/2026-08-07-cebula-preset-revert.md`. | applied |
 | 2026-08-07 | §10 Phase-1 gate research (ai-specialist) + executor lane | Token-tool permission model: plugin arrays concatenate across config layers; permissions default-allow; wildcard `tool_*` syntax supported (`token_*` new application, envsitter keys remain explicit); token_export write-capable → per-agent deny; DIA-055 S5 existence correction; DIA-056 fold via config-block inspection. See `external-patterns/2026-08-07-token-tool-permission-model.md`. | applied |
+| 2026-08-08 | §10 Phase-1 gate research (ai-specialist) + executor lane | DIA-055 token_export default-allow closure: 6 agents (coder, code-navigator, researcher, designer, observer, memory-manager) still default-allow write-capable `token_export`; R1 per-agent `token_*: deny` (implementation deferred); R2 tool-coverage audit script (DIA-066 candidate, MEDIUM); R3 quarterly upstream monitoring; resource-manager bash-gap CLOSED. See `external-patterns/2026-08-08-dia055-token-permission-closure.md`. | registered |
