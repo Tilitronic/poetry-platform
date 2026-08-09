@@ -11,6 +11,11 @@ Failed-loop lessons & preventive actions
 - Failure mode: MCP header-name mismatch risk (opencode.jsonc configured CONTEXT7_API_KEY header literal). Root cause: naming mismatch between env var and accepted server header names. Preventive action: update MCP mapping to Authorization: Bearer or X-Context7-API-Key and include an MCP integration smoke test.
   Resolution: Fixed by updating the Context7 MCP registration in .opencode/opencode.jsonc and tools/opencode-docker/config/opencode.json to use "Authorization: Bearer {env:CONTEXT7_API_KEY}", set "oauth": false to avoid false OAuth detection, and increase MCP timeout to 15000ms to accommodate remote latency. See .opencode/learnings/external-patterns/2026-08-02-context7-mcp-registration.md for source-verified details. Keep this failure entry for historical context; mark as resolved by the above config updates.
 
+- Failure mode: pre-commit hook blocks local commits (2026-08-09)
+  - Symptom: `git commit` fails with a husky pre-commit script exit (code 1) and message: "!! dev container not running — start with 'make up', then commit again." Observed twice during this campaign when attempting local commits outside the running dev container.
+  - Root cause: the repository's pre-commit guard enforces dev-container runtime preconditions and intentionally blocks commits when the developer environment is not in the expected devcontainer state.
+  - Preventive action / workaround: start the dev container (`make up`) so the pre-commit checks run in the intended environment, then commit normally. Do NOT bypass the hook with `--no-verify` unless you fully understand and document why. This operational/workflow quirk is session-specific and not reconstructible from git diffs alone, so record the observed message and workaround here.
+
 - Failure mode (2026-08-03): Premature SELF-RERUN/HANDOFF triggered by stale model-window lookup.
   Symptom: a handoff fired at 95,627 tokens and was interpreted as high-context pressure under the assumption of a 64k-window model.
   Root cause: NEXT-RUN.md's table listed `deepseek-v4-flash` as 64k (V3 value) while the real V4-Flash window is 1,000,000 tokens.
