@@ -30,7 +30,7 @@ carries the full detail (description, verification, fix, re-verify evidence).
 | DIA-069 | opencode-telemetry registerCommands() rewrites command docs with literal $HOME paths            | opencode-config | Major    | OPEN     | [DIA-069.md](DIA-069.md) |
 | DIA-070 | Telemetry plugin P2/P4 re-entrancy guard gaps (DIA-056(b) residuals)                            | opencode-config | Medium   | CLOSED   | [DIA-070.md](DIA-070.md) |
 | DIA-071 | make test-infra/test-shell exit 2 — host check-host-lsp gate fails                              | dev-infra       | Low      | OPEN     | [DIA-071.md](DIA-071.md) |
-| DIA-072 | researcher returns unarchived facts: 4/16 sources failed to persist during conspect Phase A       | docs            | Medium   | OPEN     | [DIA-072.md](DIA-072.md) |
+| DIA-072 | researcher returns unarchived facts: 4/16 sources failed to persist during conspect Phase A       | docs            | Medium   | CLOSED   | [DIA-072.md](DIA-072.md) |
 | DIA-073 | Investigate handoff coordination for parallel OpenCode sessions via session IDs                   | docs            | Medium   | CLOSED   | [DIA-073.md](DIA-073.md) |
 
 ## Status summary
@@ -47,7 +47,7 @@ carries the full detail (description, verification, fix, re-verify evidence).
 
 | Status      | Count |
 | ----------- | ----- |
-| OPEN        | 3     |
+| OPEN        | 2     |
 | DONE        | 3     |
 | VALIDATE    | 0     |
 | E2E         | 0     |
@@ -56,7 +56,7 @@ carries the full detail (description, verification, fix, re-verify evidence).
 | FIXED       | 0     |
 | IMPLEMENTED | 0     |
 | VERIFIED    | 12    |
-| CLOSED      | 5     |
+| CLOSED      | 6     |
 | BLOCKED     | 0     |
 
 ## How to add a ticket

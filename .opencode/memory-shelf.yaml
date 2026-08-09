@@ -1,104 +1,288 @@
-# Memory Shelf — Central Knowledge Registry
-# Last updated: 2026-08-06
-
 shelf:
   conspects:
-    - name: "OpenSpec, SDD/TSS, and code_architect Reconciliation"
-      description: "Analysis of the three parallel design documentation approaches (OpenSpec openspec/, .sdd/.tss directories, and code_architect architecture documents), their overlap, and a recommended reconciliation into a three-layer model."
-      path: "knowledge/res001-openspec-sdd-reconciliation/res001-openspec-sdd-reconciliation-conspect.md"
-      created: 2026-07-13
-    - name: "Silent Session Logging"
-      description: "Conspect gathering canonical sources and operational guidance to make orchestrator session logging silent: plugin-driven NDJSON canonical store, derived Markdown views, and compact semantic tool calls."
-      path: "knowledge/res002-silent-session-logging/res002-silent-session-logging-conspect.md"
-      created: 2026-08-06
-    - name: "Telemetry re-entrancy guards"
-      description: "Conspect synthesizing guard-pattern taxonomy and OpenCode failure classes for telemetry re-entrancy and suppression."
-      path: "knowledge/res003-telemetry-reentrancy-guards/res003-telemetry-reentrancy-guards-conspect.md"
-      created: 2026-08-08
-    - name: "Tool enumeration in OpenCode"
-      description: "Tool enumeration in OpenCode — CLI mechanisms, permission model, plugin registration"
-      path: "knowledge/res004-tool-enumeration/res004-tool-enumeration-conspect.md"
-      created: 2026-08-08
-    - name: "opencode-telemetry upstream fix (DIA-069)"
-      description: "Conspect documenting root cause and upstream fix strategy for opencode-telemetry command-template $HOME/absolute-path pollution."
-      path: "knowledge/res005-opencode-telemetry-upstream-fix/res005-opencode-telemetry-upstream-fix-conspect.md"
-      created: 2026-08-08
-    - name: "Telemetry plugin alternatives"
-      description: "Conspect comparing opencode-telemetry, opencode-token-monitor, Tokenscope, opencode-plugin-otel, Context-Analysis, and native OpenCode capabilities; notes on operational issues and archival gaps."
-      path: "knowledge/res006-telemetry-plugin-alternatives/res006-telemetry-plugin-alternatives-conspect.md"
-      created: 2026-08-09
-    - name: "TUI corruption: stdout/stderr painted over TUI"
-      description: "Conspect documenting TUI corruption root cause, local plugin that writes to stdout, and mitigation guidance."
-      path: "knowledge/res007-tui-corruption-stdout/res007-tui-corruption-stdout-conspect.md"
-      created: 2026-08-09
+  - name: OpenSpec, SDD/TSS, and code_architect Reconciliation
+    description: Analysis of the three parallel design documentation approaches (OpenSpec
+      openspec/, .sdd/.tss directories, and code_architect architecture documents),
+      their overlap, and a recommended reconciliation into a three-layer model.
+    path: knowledge/res001-openspec-sdd-reconciliation/res001-openspec-sdd-reconciliation-conspect.md
+    created: 2026-07-13
+  - name: Silent Session Logging
+    description: 'Conspect gathering canonical sources and operational guidance to
+      make orchestrator session logging silent: plugin-driven NDJSON canonical store,
+      derived Markdown views, and compact semantic tool calls.'
+    path: knowledge/res002-silent-session-logging/res002-silent-session-logging-conspect.md
+    created: 2026-08-06
+  - name: Telemetry re-entrancy guards
+    description: Conspect synthesizing guard-pattern taxonomy and OpenCode failure
+      classes for telemetry re-entrancy and suppression.
+    path: knowledge/res003-telemetry-reentrancy-guards/res003-telemetry-reentrancy-guards-conspect.md
+    created: 2026-08-08
+  - name: Tool enumeration in OpenCode
+    description: "Tool enumeration in OpenCode \u2014 CLI mechanisms, permission model,\
+      \ plugin registration"
+    path: knowledge/res004-tool-enumeration/res004-tool-enumeration-conspect.md
+    created: 2026-08-08
+  - name: opencode-telemetry upstream fix (DIA-069)
+    description: Conspect documenting root cause and upstream fix strategy for opencode-telemetry
+      command-template $HOME/absolute-path pollution.
+    path: knowledge/res005-opencode-telemetry-upstream-fix/res005-opencode-telemetry-upstream-fix-conspect.md
+    created: 2026-08-08
+  - name: Telemetry plugin alternatives
+    description: Conspect comparing opencode-telemetry, opencode-token-monitor, Tokenscope,
+      opencode-plugin-otel, Context-Analysis, and native OpenCode capabilities; notes
+      on operational issues and archival gaps.
+    path: knowledge/res006-telemetry-plugin-alternatives/res006-telemetry-plugin-alternatives-conspect.md
+    created: 2026-08-09
+  - name: 'TUI corruption: stdout/stderr painted over TUI'
+    description: Conspect documenting TUI corruption root cause, local plugin that
+      writes to stdout, and mitigation guidance.
+    path: knowledge/res007-tui-corruption-stdout/res007-tui-corruption-stdout-conspect.md
+    created: 2026-08-09
+  - name: Source-archival fallback strategies (DIA-072)
+    description: Validated tiered archival strategy for npm registry and JS-heavy
+      pages (trafilatura, curl+UA, crawl4ai). Includes per-URL results for the DIA-072
+      acceptance list.
+    path: knowledge/res008-source-archival-fallbacks/res008-source-archival-fallbacks-conspect.md
+    created: '2026-08-09'
   analyses:
-    - name: "Agent Alignment Audit"
-      description: "MECE inventory of all agent definitions across OMO Slim, native OpenCode, project config, and AGENTS.md. Finds 4 critical issues (dual dispatch hierarchy, 2 ghost agents, architector missing model, analyzer↔council contradiction), 5 major issues (naming mismatches, dual prompts, orphan agents), and 4 minor issues. 20 unique agents across all files, 2 ghosts, 4 orphans."
-      path: "knowledge/ana002-agent-alignment-audit/ana002-agent-alignment-audit-report.md"
-      created: 2026-07-17
-    - name: "Spec Authoring Philosophy Audit"
-      description: "Audit of whether the 'interview-first / grill-the-developer' spec authoring philosophy is durably embedded in OpenCode/OMO/OpenSpec config. Verdict: 52/100 — embedded as intent, not enforcement. 4 hard bypass paths (/opsx-propose, /opsx-new, /tdd-cycle, skills:['*']) outrank 4 soft ALIGNED layers (boss_append, @openspec-plan, practice-protected, AGENTS.md §2). Root cause: philosophy lives in prompt append + convention while hard paths bypass it; the boss.ts fork patch was written but never built. 3-phase remediation plan: Phase 1 kill one-shot defaults (~2h, score →75), Phase 2 structural gate via fork/build, Phase 3 port AIHero grill protocol into @openspec-plan."
-      path: "knowledge/ana004-spec-authoring-philosophy/ana004-spec-authoring-philosophy-report.md"
-      created: 2026-08-02
-    - name: "False-Delegation Incidents & Tickets-System Connectivity Audit"
-      description: "Forensic analysis of 2026-08-04 dev-environment audit campaign. 3 confirmed false-delegation incidents (ai--1, cod-4, cod-6) where orchestrator claimed dispatch but task() was dropped due to batching with edit() calls (11 dangling JSONL result_refs, 25.6% gap rate). Tickets-system audit: 4 Major connectivity gaps (no session_id/lane_id/files_touched/research_artifacts in ticket template). Recommendations: pure-task() messages, DISPATCHED→RUNNING assertion, session_id + lane_id + files_touched fields."
-      path: "knowledge/ana005-false-delegation-ticket-audit/ana005-false-delegation-ticket-audit-report.md"
-      created: 2026-08-04
-    - name: "GitHub Issues vs Local DIA Ledger — Architecture Decision"
-      description: "Comparative analysis of GitHub Issues integration vs local DIA ledger. Verdict: local DIA ledger is architecturally correct (zero network dependency, zero auth surface, native evidence citations, simple plugin architecture). GitHub Issues would add 70-132h migration cost, broken evidence citations, network dependency, and auth complexity for zero user-visible benefit. Read-only export is the right move if web visibility is ever needed."
-      path: "knowledge/ana006-issue-tracker-comparison/ana006-issue-tracker-comparison-report.md"
-      created: 2026-08-06
-    - name: "Silent Session Logging"
-      description: "Analysis of orchestrator session-log pollution (m0001). Verdict: Option E (hybrid — plugin jsonl + derived md + log_decision tool) scores 10/10. Re-grounded 2026-08-06 against conspect res002 (10 MLA-cited sources). Plugin fs writes proven silent (registry.jsonl 634 rows, 0 pollution); dual-maintained messages.md + messages.jsonl is an anti-pattern (drift rows 1-131, double token cost, 1,170 visible edit tool calls per 585-row session). Dual-write DROPPED (row 589): no second writer ever runs; Phase 5 validates completeness via messages.jsonl ↔ registry.jsonl cross-check. Target: messages.jsonl canonical NDJSON, messages.md derived on-demand view, plugin sole writer, log_decision tool for semantic events, SQLite unchanged. 5-phase migration 44-68h; pollution reduction 100% → 1%; Phases 1/3/4 require §10 routing. Option D (SQLite-only) rejected 3/10."
-      path: "knowledge/ana007-session-log-silencing/ana007-session-log-silencing-report.md"
-      created: 2026-08-06
-    - name: "P5 jsonl-Cross-Check Readiness"
-      description: "Analysis of why the P5 registry↔messages cross-check gate computed 3.35% on the 2026-08-06 corpus. Root cause: the universe was ALL registry task_success rows (209), of which 202 (96.7%) are pre-plugin legacy rows (seq 1-682, 08-04/05) written before the messages.jsonl plugin writer existed — structurally unmatchable (no gen_ai.agent.id in their messages rows). Plugin itself healthy (7/7 smoke = 100%). Owner-verified correction: writer==plugin filter is a NO-OP (all 704 registry rows already carry writer:plugin); the only reliable discriminator is TIMESTAMP. Owner-approved fix: timestamp filter with --since default 2026-08-06T19:30:00Z (plugin messages-writer activation; first plugin row 19:30:20.746Z) + report-split diagnostic (legacy vs in-universe counts). Verified in implementing lane: real-data gate 8/8 = 100% PASS."
-      path: "knowledge/ana008-crosscheck-readiness/ana008-crosscheck-readiness-report.md"
-      created: 2026-08-06
-    - name: "DIA-067 Container Strategy Analysis: trafilatura Availability"
-      description: "Multi-criteria decision analysis of 6 container strategies (bake into image, venv per run, uv tool install, dedicated tool container, mise Python, apt package) for trafilatura availability in the dev container. Decision: Option C (uv tool install) recommended — highest weighted score 9.0/10, zero per-run latency, deterministic version pinning via TRAFILATURA_VERSION ARG, no --break-system-packages needed, aligns with all 5 established patterns (build-time provisioning, uv for Python tooling, PEP668 handling, one-container architecture, test-infra gates). Option A (bake into dev image, 8.7/10) is the fallback. Ticket: DIA-067."
-      path: "knowledge/ana001-docker-trafilatura-strategy/ana001-docker-trafilatura-strategy-report.md"
-      created: 2026-08-08
-    - name: "Telemetry Re-Entrancy Audit"
-      description: "Root-cause audit of opencode-telemetry@0.1.19 and opencode-token-monitor@0.5.0 for recursive telemetry and re-entrancy failure modes. Finds no active infinite loops but identifies P1-P4 guard gaps: telemetry lacks P1/P2/P3 (has P4 message dedup but loses state on restart); token-monitor lacks P2/P3/P4 (has P1 session-level in-flight guard but no message dedup); both lack P2 context suppression. opencode-subagent-output not loaded at runtime. Recommendations: (1) add P2 context suppression to both plugins, (2) persist telemetry's seenMessageIds to survive restarts, (3) add message dedup to token-monitor, (4) isolate telemetry I/O in separate process, (5) fix telemetry's registerCommands path portability (DIA-068). Mermaid systems map and P1-P4 classification table included."
-      path: "knowledge/ana009-telemetry-reentrancy-audit/ana009-telemetry-reentrancy-audit-report.md"
-      created: 2026-08-08
+  - name: Agent Alignment Audit
+    description: "MECE inventory of all agent definitions across OMO Slim, native\
+      \ OpenCode, project config, and AGENTS.md. Finds 4 critical issues (dual dispatch\
+      \ hierarchy, 2 ghost agents, architector missing model, analyzer\u2194council\
+      \ contradiction), 5 major issues (naming mismatches, dual prompts, orphan agents),\
+      \ and 4 minor issues. 20 unique agents across all files, 2 ghosts, 4 orphans."
+    path: knowledge/ana002-agent-alignment-audit/ana002-agent-alignment-audit-report.md
+    created: 2026-07-17
+  - name: Spec Authoring Philosophy Audit
+    description: "Audit of whether the 'interview-first / grill-the-developer' spec\
+      \ authoring philosophy is durably embedded in OpenCode/OMO/OpenSpec config.\
+      \ Verdict: 52/100 \u2014 embedded as intent, not enforcement. 4 hard bypass\
+      \ paths (/opsx-propose, /opsx-new, /tdd-cycle, skills:['*']) outrank 4 soft\
+      \ ALIGNED layers (boss_append, @openspec-plan, practice-protected, AGENTS.md\
+      \ \xA72). Root cause: philosophy lives in prompt append + convention while hard\
+      \ paths bypass it; the boss.ts fork patch was written but never built. 3-phase\
+      \ remediation plan: Phase 1 kill one-shot defaults (~2h, score \u219275), Phase\
+      \ 2 structural gate via fork/build, Phase 3 port AIHero grill protocol into\
+      \ @openspec-plan."
+    path: knowledge/ana004-spec-authoring-philosophy/ana004-spec-authoring-philosophy-report.md
+    created: 2026-08-02
+  - name: False-Delegation Incidents & Tickets-System Connectivity Audit
+    description: "Forensic analysis of 2026-08-04 dev-environment audit campaign.\
+      \ 3 confirmed false-delegation incidents (ai--1, cod-4, cod-6) where orchestrator\
+      \ claimed dispatch but task() was dropped due to batching with edit() calls\
+      \ (11 dangling JSONL result_refs, 25.6% gap rate). Tickets-system audit: 4 Major\
+      \ connectivity gaps (no session_id/lane_id/files_touched/research_artifacts\
+      \ in ticket template). Recommendations: pure-task() messages, DISPATCHED\u2192\
+      RUNNING assertion, session_id + lane_id + files_touched fields."
+    path: knowledge/ana005-false-delegation-ticket-audit/ana005-false-delegation-ticket-audit-report.md
+    created: 2026-08-04
+  - name: "GitHub Issues vs Local DIA Ledger \u2014 Architecture Decision"
+    description: 'Comparative analysis of GitHub Issues integration vs local DIA ledger.
+      Verdict: local DIA ledger is architecturally correct (zero network dependency,
+      zero auth surface, native evidence citations, simple plugin architecture). GitHub
+      Issues would add 70-132h migration cost, broken evidence citations, network
+      dependency, and auth complexity for zero user-visible benefit. Read-only export
+      is the right move if web visibility is ever needed.'
+    path: knowledge/ana006-issue-tracker-comparison/ana006-issue-tracker-comparison-report.md
+    created: 2026-08-06
+  - name: Silent Session Logging
+    description: "Analysis of orchestrator session-log pollution (m0001). Verdict:\
+      \ Option E (hybrid \u2014 plugin jsonl + derived md + log_decision tool) scores\
+      \ 10/10. Re-grounded 2026-08-06 against conspect res002 (10 MLA-cited sources).\
+      \ Plugin fs writes proven silent (registry.jsonl 634 rows, 0 pollution); dual-maintained\
+      \ messages.md + messages.jsonl is an anti-pattern (drift rows 1-131, double\
+      \ token cost, 1,170 visible edit tool calls per 585-row session). Dual-write\
+      \ DROPPED (row 589): no second writer ever runs; Phase 5 validates completeness\
+      \ via messages.jsonl \u2194 registry.jsonl cross-check. Target: messages.jsonl\
+      \ canonical NDJSON, messages.md derived on-demand view, plugin sole writer,\
+      \ log_decision tool for semantic events, SQLite unchanged. 5-phase migration\
+      \ 44-68h; pollution reduction 100% \u2192 1%; Phases 1/3/4 require \xA710 routing.\
+      \ Option D (SQLite-only) rejected 3/10."
+    path: knowledge/ana007-session-log-silencing/ana007-session-log-silencing-report.md
+    created: 2026-08-06
+  - name: P5 jsonl-Cross-Check Readiness
+    description: "Analysis of why the P5 registry\u2194messages cross-check gate computed\
+      \ 3.35% on the 2026-08-06 corpus. Root cause: the universe was ALL registry\
+      \ task_success rows (209), of which 202 (96.7%) are pre-plugin legacy rows (seq\
+      \ 1-682, 08-04/05) written before the messages.jsonl plugin writer existed \u2014\
+      \ structurally unmatchable (no gen_ai.agent.id in their messages rows). Plugin\
+      \ itself healthy (7/7 smoke = 100%). Owner-verified correction: writer==plugin\
+      \ filter is a NO-OP (all 704 registry rows already carry writer:plugin); the\
+      \ only reliable discriminator is TIMESTAMP. Owner-approved fix: timestamp filter\
+      \ with --since default 2026-08-06T19:30:00Z (plugin messages-writer activation;\
+      \ first plugin row 19:30:20.746Z) + report-split diagnostic (legacy vs in-universe\
+      \ counts). Verified in implementing lane: real-data gate 8/8 = 100% PASS."
+    path: knowledge/ana008-crosscheck-readiness/ana008-crosscheck-readiness-report.md
+    created: 2026-08-06
+  - name: 'DIA-067 Container Strategy Analysis: trafilatura Availability'
+    description: "Multi-criteria decision analysis of 6 container strategies (bake\
+      \ into image, venv per run, uv tool install, dedicated tool container, mise\
+      \ Python, apt package) for trafilatura availability in the dev container. Decision:\
+      \ Option C (uv tool install) recommended \u2014 highest weighted score 9.0/10,\
+      \ zero per-run latency, deterministic version pinning via TRAFILATURA_VERSION\
+      \ ARG, no --break-system-packages needed, aligns with all 5 established patterns\
+      \ (build-time provisioning, uv for Python tooling, PEP668 handling, one-container\
+      \ architecture, test-infra gates). Option A (bake into dev image, 8.7/10) is\
+      \ the fallback. Ticket: DIA-067."
+    path: knowledge/ana001-docker-trafilatura-strategy/ana001-docker-trafilatura-strategy-report.md
+    created: 2026-08-08
+  - name: Telemetry Re-Entrancy Audit
+    description: 'Root-cause audit of opencode-telemetry@0.1.19 and opencode-token-monitor@0.5.0
+      for recursive telemetry and re-entrancy failure modes. Finds no active infinite
+      loops but identifies P1-P4 guard gaps: telemetry lacks P1/P2/P3 (has P4 message
+      dedup but loses state on restart); token-monitor lacks P2/P3/P4 (has P1 session-level
+      in-flight guard but no message dedup); both lack P2 context suppression. opencode-subagent-output
+      not loaded at runtime. Recommendations: (1) add P2 context suppression to both
+      plugins, (2) persist telemetry''s seenMessageIds to survive restarts, (3) add
+      message dedup to token-monitor, (4) isolate telemetry I/O in separate process,
+      (5) fix telemetry''s registerCommands path portability (DIA-068). Mermaid systems
+      map and P1-P4 classification table included.'
+    path: knowledge/ana009-telemetry-reentrancy-audit/ana009-telemetry-reentrancy-audit-report.md
+    created: 2026-08-08
   adrs:
-    - name: "Memory Storage Strategy"
-      description: "Evaluation of Claude-Mem, Honcho, and current hand-written memory manager. Decision: keep current markdown-based approach. Neither external tool improves architecture for our scale. Escalation path defined from Level 0 (current) to Level 4 (API-based)."
-      path: ".opencode/memory/adr.md"
-      created: 2026-07-20
+  - name: Memory Storage Strategy
+    description: 'Evaluation of Claude-Mem, Honcho, and current hand-written memory
+      manager. Decision: keep current markdown-based approach. Neither external tool
+      improves architecture for our scale. Escalation path defined from Level 0 (current)
+      to Level 4 (API-based).'
+    path: .opencode/memory/adr.md
+    created: 2026-07-20
   specs:
-    - name: "context7-docs-pipeline"
-      description: "OpenSpec change: fetches Context7 library documentation for monorepo workspace dependencies. Key-optional (dry-run without CONTEXT7_API_KEY), deduplicates by package name (highest version wins, logs skew), stores as markdown in knowledge/context7-docs/. Node ESM script in scripts/, bats tests with dry-run + mock mode. API contract: context7.com/api/v2 (NOT api.context7.com). 3 vertical slices: scanner+dedup+inventory, API client+mock+markdown, Makefile+gitignore wiring."
-      path: "openspec/changes/context7-docs-pipeline/"
-      created: 2026-08-02
-      status: implemented
-    - name: "dia-redispatch-cycle"
-      description: "OpenSpec change: dev-infra campaign protocol for AI-assisted development cycle management. Three interlocking protocols: CRISIS-DETECTION (C1–C5 binary OR triggers — same-task failure loop, re-plan churn, tool-call stagnation, context overflow, prognosis debt), PROGNOSIS-DISCIPLINE (HANDOFF.md with 5 folded subsections: session_summary/fixes_applied/open_tickets/verification_request/resume_instructions), and cycle-budget management (default max-cycles=3, override 2..10 clamped, 4 exit states: clean/crisis/exhausted/manual-halt). Includes: messages.md 8→9-column schema extension (nullable, backward-compatible, no migration), T5 row schema with cycle attribution, cycle-id format c-YYYYMMDD-HHMMss UTC, batch-approval boot protocol, clean-termination via fresh-session independent verification (no self-certification). Seeds .sdd/dia-redispatch-cycle/ with 5 ADRs. 6 vertical slices: spec-infra scaffold, messages schema fixture, crisis drills, budget edge cases, independence verification, integration end-to-end."
-      path: "openspec/changes/dia-redispatch-cycle/"
-      created: 2026-08-03
-      status: implemented
-    - name: "volta-to-mise"
-      description: "OpenSpec change: replace the unmaintained Volta JS tool manager with the SHA256-verifiable mise tool manager in the dev container. Closes DIA-030 (CLOSED 2026-08-03 with owner migration directive — Volta is officially unmaintained per issue #2080, v2.0.2 2024-12-05 stale, upstream recommends mise, no checksums ever coming). Dual-path contract: mise tarball installs (SHA256-verified in Dockerfile.dev + tools/opencode-docker/Dockerfile) + .mise.toml declares (repo root, [tools] only, no env/plugins/settings — interview Q8). MISE_VERSION ARG + SHA256 resolved at implementation time via flag (b) fetch command (TODO — spec does not invent hashes). MISE_TRUSTED_CONFIG_PATHS=/workspace ENV so non-root dev user reads mounted .mise.toml. Seams S1 Dockerfile install block, S2 make check-tools + bats, S3 smoke-test runtime probes, S4 .mise.toml integrity. Removes both volta blocks (Dockerfile.dev lines 108-118 + tools/opencode-docker/Dockerfile lines 48-54) + both package.json volta blocks (root + apps/author-studio). Renames volta* → mise in collect-runtime-deps.sh whitelist. Adds make check-tools (host-runnable, NOT wired into test-shell/test-infra — requires mise on PATH). Adds 3 smoke probes (mise --version, mise install+mise which node, MISE_TRUSTED_CONFIG_PATHS set). 5 vertical slices: T1 .mise.toml+volta-removals+check-tools+bats (foundation), T2 Dockerfile.dev+S2 ENV+smoke probes (depends T1), T3 tools/opencode-docker Dockerfile swap+whitelist rename (depends T2 — copies FLAG_B pattern), T4 docs updates (depends T1, parallel with T2/T3), T5 full validation gate (depends T2/T3/T4). Rollback: git revert + make build && make test-infra. AC1-AC14 testable at seams. No .sdd/ module doc created (dev-infra within existing boundaries, no @architector dispatch)."
-      path: "openspec/changes/volta-to-mise/"
-      created: 2026-08-03
-      status: proposed
-    - name: "ai-self-improvement-auditor-and-cleanup"
-      description: "OpenSpec change (4-phase self-improvement campaign, §10 gate ai--1 2026-08-05/06): skill shadowing cleanup — delete 5 byte-exact duplicate skills from .opencode/skills/ (book-rag, mermaid-diagramming, console-charting, debugging-workflow, teaching); keep playwright-browser (4-line intentional diff → SOFT warn) and git-diff (project version better). validate-skills.sh (.opencode/scripts/, 296L, exit 0/1/2, wired via make test-skills) gains two-tier duplicate detection (byte-exact = hard error, near-dupe = SOFT warn). Registers @ai-auditor via 4-source containment contract (S1 AGENTS.md §9 row + S2 opencode.jsonc read-only block + S3 OMO agents+3 presets + S4 .opencode/agents/ai-auditor.md; frontmatter mirrors memory-manager.md — permissions live in opencode.jsonc; models github-copilot/gpt-5.3-codex primary, github-copilot/gemini-3.1-pro-preview fallback). Narrows @ai-specialist. Adds NEXT-RUN.md §2 COUNCIL-BUDGET-GUARD: council only at C1–C5 crisis, Copilot-credit 75% warn 1125 / 90% hard-stop 1350 of 1500. Gate rulings folded in: D1 CLASH dropped (issue #197 monitored), D5 dcp.jsonc is compaction-limits only (no skill alignment), D6 openspec-plan skip-mode already implemented (OMO line 531 — no model swap)."
-      path: "openspec/changes/ai-self-improvement-auditor-and-cleanup/"
-      created: 2026-08-06
-      status: implemented
-    - name: "dev-infra-pin-sync"
-      description: "OpenSpec change: enforces the volta-to-mise §2.1 contract — .mise.toml ↔ Dockerfile pin parity for node/pnpm across BOTH Dockerfiles (Dockerfile.dev + tools/opencode-docker/Dockerfile; 4 comparisons total: 2 pins × 2 Dockerfiles). New standalone scripts/check-pin-sync.sh (~70-90L, bash-3 compatible, 4 functions: parse_reference/parse_dockerfile(file,label)/compare/aggregate; grep/awk-based parsing, no TOML library; parse_dockerfile invoked per source with label, results saved to per-source var pairs DOCKER_DEV_NODE/DOCKER_DEV_PNPM + DOCKER_OC_NODE/DOCKER_OC_PNPM; last-wins ARG semantics with duplicate-detection short-circuit; quote/CRLF/whitespace stripping; exit precedence 2>1>0 (INFRA>mismatch>match); report-ALL, not fail-fast; output contract: ok→stdout, fail→stderr, summary on both; ok/fail lines carry the source label; MISE_VERSION parity out of scope — OC Dockerfile is read-only). 13-scenario bats suite T1-T13 (match across both Dockerfiles / single-mismatch in either Dockerfile / multi-mismatch report-ALL / missing source ×3: .mise.toml + Dockerfile.dev + tools/opencode-docker/Dockerfile / duplicate key ×3: [tools] + Dockerfile.dev ARG + OC Dockerfile ARG / quote-variations / CRLF / whitespace-variations) + S4 real-.mise.toml structural assertion. Shared fixture helpers (install_fakes/setup_tree pattern from check-tools.bats) promoted to test-helper.bash; setup_pin_sync_tree extended to 9-param signature (3 flags + 6 pins) planting all three source fixtures incl. tools/opencode-docker/Dockerfile. Makefile wiring: new check-pin-sync target + test-shell prereq chain (validator runs before any bats, fails fast on pin drift) + bats-wrapper.sh bash -n allowlist. Closes DIA-050 (OPEN since 2026-08-05, tracked the .mise.toml ↔ Dockerfile parity gap from DIA-045 F15). 3 vertical slices: T1 core script, T2 bats suite + helper promotion, T3 Makefile wiring + DIA-050 close. No .sdd/ document (dev-infra within existing module boundaries — .sdd/ layer has only README.md today). No §10 routing (pure dev-infra artifact, not AI-tooling config). Rollback: file deletion / git checkout; no .mise.toml or Dockerfile edits."
-      path: "openspec/changes/dev-infra-pin-sync/"
-      created: 2026-08-07
-      status: implemented
-    - name: "dia-066-tool-coverage-audit"
-      description: "OpenSpec change: hybrid tool-coverage auditor script that surfaces unlisted default-allow tools in OpenCode permission configs. Enumeration strategy: one `opencode debug agent <canonical-agent>` runtime invocation (first alphabetical agent) for the complete tool universe (built-ins + plugin-registered + MCP) + static JSONC parse of each agent's permission block. Cross-reference computes effective coverage (global ∪ per-agent merge) and reports gaps = (tool universe − effective coverage) where default disposition is allow. Exit-code contract: 0 (no HARD gaps) / 1 (HARD gap found OR malformed JSONC) / 2 (INFRA: no opencode, no python3, no default model, v2 schema detected, missing config file). Output contract: FAIL:/WARN: to stderr, ok: to stdout, final summary `N agents audited, M gaps, K warnings` to stdout. Blanket-form detection as first-class WARN category (does not attempt per-tool enumeration against blanket). v1 schema assertion; snip v2 rejection (exit 2). Default-ask/deny tools as SOFT findings (hint column, no exit-code flip). Hermetic bats tests via AUDIT_TOOL_CENSUS_FILE env override (pre-recorded JSON file — tests do NOT require live opencode install). Makefile wiring: test-config invokes auditor for both .opencode/opencode.jsonc and tools/opencode-docker/config/opencode.json (separate passes). Script path: scripts/audit-agent-tool-coverage.sh. Test path: scripts/__tests__/audit-agent-tool-coverage.bats. skip_specs: true (dev-infra within existing boundaries, no spec-level behavior changes). Source ticket: DIA-066 (tool-coverage audit script — surface unlisted default-allow tools). 6 vertical slices: T1 script skeleton + argument parsing + exit-code contract, T2 static JSONC parse (agents + permission blocks), T3 runtime census integration (AUDIT_TOOL_CENSUS_FILE seam), T4 cross-reference logic + output formatting + gap detection, T5 blanket-form detection + v2 schema detection, T6 Makefile wiring + integration test. No .sdd/ document (dev-infra within existing module boundaries — .sdd/ layer does not govern scripts/ surface)."
-      path: "openspec/changes/dia-066-tool-coverage-audit/"
-      created: 2026-08-08
-      status: proposed
+  - name: context7-docs-pipeline
+    description: 'OpenSpec change: fetches Context7 library documentation for monorepo
+      workspace dependencies. Key-optional (dry-run without CONTEXT7_API_KEY), deduplicates
+      by package name (highest version wins, logs skew), stores as markdown in knowledge/context7-docs/.
+      Node ESM script in scripts/, bats tests with dry-run + mock mode. API contract:
+      context7.com/api/v2 (NOT api.context7.com). 3 vertical slices: scanner+dedup+inventory,
+      API client+mock+markdown, Makefile+gitignore wiring.'
+    path: openspec/changes/context7-docs-pipeline/
+    created: 2026-08-02
+    status: implemented
+  - name: dia-redispatch-cycle
+    description: "OpenSpec change: dev-infra campaign protocol for AI-assisted development\
+      \ cycle management. Three interlocking protocols: CRISIS-DETECTION (C1\u2013\
+      C5 binary OR triggers \u2014 same-task failure loop, re-plan churn, tool-call\
+      \ stagnation, context overflow, prognosis debt), PROGNOSIS-DISCIPLINE (HANDOFF.md\
+      \ with 5 folded subsections: session_summary/fixes_applied/open_tickets/verification_request/resume_instructions),\
+      \ and cycle-budget management (default max-cycles=3, override 2..10 clamped,\
+      \ 4 exit states: clean/crisis/exhausted/manual-halt). Includes: messages.md\
+      \ 8\u21929-column schema extension (nullable, backward-compatible, no migration),\
+      \ T5 row schema with cycle attribution, cycle-id format c-YYYYMMDD-HHMMss UTC,\
+      \ batch-approval boot protocol, clean-termination via fresh-session independent\
+      \ verification (no self-certification). Seeds .sdd/dia-redispatch-cycle/ with\
+      \ 5 ADRs. 6 vertical slices: spec-infra scaffold, messages schema fixture, crisis\
+      \ drills, budget edge cases, independence verification, integration end-to-end."
+    path: openspec/changes/dia-redispatch-cycle/
+    created: 2026-08-03
+    status: implemented
+  - name: volta-to-mise
+    description: "OpenSpec change: replace the unmaintained Volta JS tool manager\
+      \ with the SHA256-verifiable mise tool manager in the dev container. Closes\
+      \ DIA-030 (CLOSED 2026-08-03 with owner migration directive \u2014 Volta is\
+      \ officially unmaintained per issue #2080, v2.0.2 2024-12-05 stale, upstream\
+      \ recommends mise, no checksums ever coming). Dual-path contract: mise tarball\
+      \ installs (SHA256-verified in Dockerfile.dev + tools/opencode-docker/Dockerfile)\
+      \ + .mise.toml declares (repo root, [tools] only, no env/plugins/settings \u2014\
+      \ interview Q8). MISE_VERSION ARG + SHA256 resolved at implementation time via\
+      \ flag (b) fetch command (TODO \u2014 spec does not invent hashes). MISE_TRUSTED_CONFIG_PATHS=/workspace\
+      \ ENV so non-root dev user reads mounted .mise.toml. Seams S1 Dockerfile install\
+      \ block, S2 make check-tools + bats, S3 smoke-test runtime probes, S4 .mise.toml\
+      \ integrity. Removes both volta blocks (Dockerfile.dev lines 108-118 + tools/opencode-docker/Dockerfile\
+      \ lines 48-54) + both package.json volta blocks (root + apps/author-studio).\
+      \ Renames volta* \u2192 mise in collect-runtime-deps.sh whitelist. Adds make\
+      \ check-tools (host-runnable, NOT wired into test-shell/test-infra \u2014 requires\
+      \ mise on PATH). Adds 3 smoke probes (mise --version, mise install+mise which\
+      \ node, MISE_TRUSTED_CONFIG_PATHS set). 5 vertical slices: T1 .mise.toml+volta-removals+check-tools+bats\
+      \ (foundation), T2 Dockerfile.dev+S2 ENV+smoke probes (depends T1), T3 tools/opencode-docker\
+      \ Dockerfile swap+whitelist rename (depends T2 \u2014 copies FLAG_B pattern),\
+      \ T4 docs updates (depends T1, parallel with T2/T3), T5 full validation gate\
+      \ (depends T2/T3/T4). Rollback: git revert + make build && make test-infra.\
+      \ AC1-AC14 testable at seams. No .sdd/ module doc created (dev-infra within\
+      \ existing boundaries, no @architector dispatch)."
+    path: openspec/changes/volta-to-mise/
+    created: 2026-08-03
+    status: proposed
+  - name: ai-self-improvement-auditor-and-cleanup
+    description: "OpenSpec change (4-phase self-improvement campaign, \xA710 gate\
+      \ ai--1 2026-08-05/06): skill shadowing cleanup \u2014 delete 5 byte-exact duplicate\
+      \ skills from .opencode/skills/ (book-rag, mermaid-diagramming, console-charting,\
+      \ debugging-workflow, teaching); keep playwright-browser (4-line intentional\
+      \ diff \u2192 SOFT warn) and git-diff (project version better). validate-skills.sh\
+      \ (.opencode/scripts/, 296L, exit 0/1/2, wired via make test-skills) gains two-tier\
+      \ duplicate detection (byte-exact = hard error, near-dupe = SOFT warn). Registers\
+      \ @ai-auditor via 4-source containment contract (S1 AGENTS.md \xA79 row + S2\
+      \ opencode.jsonc read-only block + S3 OMO agents+3 presets + S4 .opencode/agents/ai-auditor.md;\
+      \ frontmatter mirrors memory-manager.md \u2014 permissions live in opencode.jsonc;\
+      \ models github-copilot/gpt-5.3-codex primary, github-copilot/gemini-3.1-pro-preview\
+      \ fallback). Narrows @ai-specialist. Adds NEXT-RUN.md \xA72 COUNCIL-BUDGET-GUARD:\
+      \ council only at C1\u2013C5 crisis, Copilot-credit 75% warn 1125 / 90% hard-stop\
+      \ 1350 of 1500. Gate rulings folded in: D1 CLASH dropped (issue #197 monitored),\
+      \ D5 dcp.jsonc is compaction-limits only (no skill alignment), D6 openspec-plan\
+      \ skip-mode already implemented (OMO line 531 \u2014 no model swap)."
+    path: openspec/changes/ai-self-improvement-auditor-and-cleanup/
+    created: 2026-08-06
+    status: implemented
+  - name: dev-infra-pin-sync
+    description: "OpenSpec change: enforces the volta-to-mise \xA72.1 contract \u2014\
+      \ .mise.toml \u2194 Dockerfile pin parity for node/pnpm across BOTH Dockerfiles\
+      \ (Dockerfile.dev + tools/opencode-docker/Dockerfile; 4 comparisons total: 2\
+      \ pins \xD7 2 Dockerfiles). New standalone scripts/check-pin-sync.sh (~70-90L,\
+      \ bash-3 compatible, 4 functions: parse_reference/parse_dockerfile(file,label)/compare/aggregate;\
+      \ grep/awk-based parsing, no TOML library; parse_dockerfile invoked per source\
+      \ with label, results saved to per-source var pairs DOCKER_DEV_NODE/DOCKER_DEV_PNPM\
+      \ + DOCKER_OC_NODE/DOCKER_OC_PNPM; last-wins ARG semantics with duplicate-detection\
+      \ short-circuit; quote/CRLF/whitespace stripping; exit precedence 2>1>0 (INFRA>mismatch>match);\
+      \ report-ALL, not fail-fast; output contract: ok\u2192stdout, fail\u2192stderr,\
+      \ summary on both; ok/fail lines carry the source label; MISE_VERSION parity\
+      \ out of scope \u2014 OC Dockerfile is read-only). 13-scenario bats suite T1-T13\
+      \ (match across both Dockerfiles / single-mismatch in either Dockerfile / multi-mismatch\
+      \ report-ALL / missing source \xD73: .mise.toml + Dockerfile.dev + tools/opencode-docker/Dockerfile\
+      \ / duplicate key \xD73: [tools] + Dockerfile.dev ARG + OC Dockerfile ARG /\
+      \ quote-variations / CRLF / whitespace-variations) + S4 real-.mise.toml structural\
+      \ assertion. Shared fixture helpers (install_fakes/setup_tree pattern from check-tools.bats)\
+      \ promoted to test-helper.bash; setup_pin_sync_tree extended to 9-param signature\
+      \ (3 flags + 6 pins) planting all three source fixtures incl. tools/opencode-docker/Dockerfile.\
+      \ Makefile wiring: new check-pin-sync target + test-shell prereq chain (validator\
+      \ runs before any bats, fails fast on pin drift) + bats-wrapper.sh bash -n allowlist.\
+      \ Closes DIA-050 (OPEN since 2026-08-05, tracked the .mise.toml \u2194 Dockerfile\
+      \ parity gap from DIA-045 F15). 3 vertical slices: T1 core script, T2 bats suite\
+      \ + helper promotion, T3 Makefile wiring + DIA-050 close. No .sdd/ document\
+      \ (dev-infra within existing module boundaries \u2014 .sdd/ layer has only README.md\
+      \ today). No \xA710 routing (pure dev-infra artifact, not AI-tooling config).\
+      \ Rollback: file deletion / git checkout; no .mise.toml or Dockerfile edits."
+    path: openspec/changes/dev-infra-pin-sync/
+    created: 2026-08-07
+    status: implemented
+  - name: dia-066-tool-coverage-audit
+    description: "OpenSpec change: hybrid tool-coverage auditor script that surfaces\
+      \ unlisted default-allow tools in OpenCode permission configs. Enumeration strategy:\
+      \ one `opencode debug agent <canonical-agent>` runtime invocation (first alphabetical\
+      \ agent) for the complete tool universe (built-ins + plugin-registered + MCP)\
+      \ + static JSONC parse of each agent's permission block. Cross-reference computes\
+      \ effective coverage (global \u222A per-agent merge) and reports gaps = (tool\
+      \ universe \u2212 effective coverage) where default disposition is allow. Exit-code\
+      \ contract: 0 (no HARD gaps) / 1 (HARD gap found OR malformed JSONC) / 2 (INFRA:\
+      \ no opencode, no python3, no default model, v2 schema detected, missing config\
+      \ file). Output contract: FAIL:/WARN: to stderr, ok: to stdout, final summary\
+      \ `N agents audited, M gaps, K warnings` to stdout. Blanket-form detection as\
+      \ first-class WARN category (does not attempt per-tool enumeration against blanket).\
+      \ v1 schema assertion; snip v2 rejection (exit 2). Default-ask/deny tools as\
+      \ SOFT findings (hint column, no exit-code flip). Hermetic bats tests via AUDIT_TOOL_CENSUS_FILE\
+      \ env override (pre-recorded JSON file \u2014 tests do NOT require live opencode\
+      \ install). Makefile wiring: test-config invokes auditor for both .opencode/opencode.jsonc\
+      \ and tools/opencode-docker/config/opencode.json (separate passes). Script path:\
+      \ scripts/audit-agent-tool-coverage.sh. Test path: scripts/__tests__/audit-agent-tool-coverage.bats.\
+      \ skip_specs: true (dev-infra within existing boundaries, no spec-level behavior\
+      \ changes). Source ticket: DIA-066 (tool-coverage audit script \u2014 surface\
+      \ unlisted default-allow tools). 6 vertical slices: T1 script skeleton + argument\
+      \ parsing + exit-code contract, T2 static JSONC parse (agents + permission blocks),\
+      \ T3 runtime census integration (AUDIT_TOOL_CENSUS_FILE seam), T4 cross-reference\
+      \ logic + output formatting + gap detection, T5 blanket-form detection + v2\
+      \ schema detection, T6 Makefile wiring + integration test. No .sdd/ document\
+      \ (dev-infra within existing module boundaries \u2014 .sdd/ layer does not govern\
+      \ scripts/ surface)."
+    path: openspec/changes/dia-066-tool-coverage-audit/
+    created: 2026-08-08
+    status: proposed
   architectures: []
   rag_bases: []
