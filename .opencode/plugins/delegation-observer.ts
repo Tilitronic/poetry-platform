@@ -1066,6 +1066,173 @@ const delegationObserver: Plugin = async (ctx) => {
           return `Logged: ${args.event_type} — ${args.task_ref.slice(0, 60)}`
         },
       }),
+
+      // context_usage — context-window usage estimate from proxy signals
+      // (approved plugin-removal campaign §10 Phase 3 design, option (e)).
+      // Replaces the removed token_stats tool for the two orchestrator
+      // safety mechanisms (self-rerun detection, council budget guard).
+      // NOT token-accurate: registry.jsonl activity rows + messages.jsonl
+      // line count + session metadata are proxies, not real token counts.
+      // The formula deliberately UNDER-estimates (conservative): the
+      // self-rerun thresholds fire on the estimated fraction, so a low
+      // estimate keeps the orchestrator rerunning earlier rather than
+      // risking context degradation (campaign-critical state loss).
+      context_usage: tool({
+        description:
+          "Estimate context-window usage for the current session. Returns JSON with estimated usage fraction, delegation counts, and optional council-scoped breakdown. NOT token-accurate — uses registry.jsonl activity signals as a proxy. Sufficient for self-rerun (>=50%) and council budget guard decisions.",
+        args: {
+          scope: tool.schema
+            .enum(["session", "council"])
+            .optional()
+            .describe(
+              "Scope: 'session' (default) = full session; 'council' = council-dispatch subset only."
+            ),
+        },
+        async execute(args) {
+          const scope = args.scope ?? "session"
+
+          // Signal 1 — registry delegation count. Delegation/session-spawn
+          // events only (task_success, task_no_id, session_spawn); terminal
+          // and gate rows are outcomes, not dispatches, and would double
+          // count. Fail-soft: unreadable registry yields an empty list.
+          const DELEGATION_EVENTS = new Set([
+            "task_success",
+            "task_no_id",
+            "session_spawn",
+          ])
+          let registryRows: RegistryRow[] = []
+          try {
+            registryRows = readRegistryRows()
+          } catch {
+            registryRows = []
+          }
+          const delegationRows = registryRows.filter((r) =>
+            DELEGATION_EVENTS.has(r.event ?? "")
+          )
+
+          // Council scope needs agent attribution, but registry rows carry no
+          // agent field (the plugin never writes one). Attribute via the
+          // dispatch capture (childSessionAgent: task_id -> agent) enriched
+          // with the messages log's gen_ai.agent.id -> gen_ai.agent.name
+          // mapping so pre-boot dispatches (ids not in the in-memory map) are
+          // still attributed. Last row wins (append-only log; completion rows
+          // repeat the same agent, so the overwrite is idempotent in practice).
+          const isCouncilAgent = (agent: string | undefined): boolean =>
+            agent === "council" || agent === "councillor"
+          const attribution = new Map<string, string>()
+          if (scope === "council") {
+            for (const [id, agent] of childSessionAgent) {
+              attribution.set(id, agent)
+            }
+            try {
+              if (existsSync(messagesPath)) {
+                for (const line of readFileSync(messagesPath, "utf-8").split("\n")) {
+                  if (!line) continue
+                  try {
+                    const row = JSON.parse(line) as {
+                      "gen_ai.agent.id"?: unknown
+                      "gen_ai.agent.name"?: unknown
+                    }
+                    if (
+                      typeof row["gen_ai.agent.id"] === "string" &&
+                      row["gen_ai.agent.id"] &&
+                      typeof row["gen_ai.agent.name"] === "string" &&
+                      row["gen_ai.agent.name"]
+                    ) {
+                      attribution.set(
+                        row["gen_ai.agent.id"],
+                        row["gen_ai.agent.name"]
+                      )
+                    }
+                  } catch {
+                    // Malformed line — skip (same policy as readRegistryRows).
+                  }
+                }
+              }
+            } catch {
+              // Fail-soft: unreadable messages log leaves the attribution map
+              // with only the in-memory childSessionAgent entries.
+            }
+          }
+          const isCouncilRow = (r: RegistryRow): boolean =>
+            isCouncilAgent(attribution.get(r.session_id ?? r.task_id ?? ""))
+
+          const delegationCount =
+            scope === "council"
+              ? delegationRows.filter(isCouncilRow).length
+              : delegationRows.length
+
+          // Signal 2 — messages row count (session scope only). Fail-soft:
+          // unreadable log yields 0, mirroring the plugin's fail-soft policy.
+          let messageCount = 0
+          if (scope === "session") {
+            try {
+              if (existsSync(messagesPath)) {
+                messageCount = readFileSync(messagesPath, "utf-8")
+                  .split("\n")
+                  .filter((line) => line.trim() !== "").length
+              }
+            } catch {
+              messageCount = 0
+            }
+          }
+
+          // Signal 3 — session count. Session scope: the plugin's tracked
+          // session metadata (root + children). Council scope: distinct
+          // council-attributed delegation ids (the council child sessions).
+          let sessionCount = 0
+          if (scope === "council") {
+            const councilIds = new Set<string>()
+            for (const r of delegationRows) {
+              if (isCouncilRow(r)) {
+                const key = r.session_id ?? r.task_id
+                if (key) councilIds.add(key)
+              }
+            }
+            sessionCount = councilIds.size
+          } else {
+            sessionCount = sessionMeta.size
+          }
+
+          // Conservative estimation formula (approved design): per-delegation
+          // weight 3000, per-message weight 1000 (session scope only),
+          // per-session weight 10000. Context window hardcoded to 1M — the
+          // plugin has no model metadata access and the orchestrator models
+          // are the deepseek-v4-flash / qwen3.7-max 1M-window class.
+          const estimatedTokens =
+            delegationCount * 3000 +
+            (scope === "session" ? messageCount * 1000 : 0) +
+            sessionCount * 10000
+          const contextWindow = 1_000_000
+          const usageFraction = Math.min(estimatedTokens / contextWindow, 1)
+          const estimatedCredits =
+            scope === "council" ? delegationCount * 150 : undefined
+
+          const result: Record<string, unknown> = {
+            scope,
+            estimated_tokens: estimatedTokens,
+            context_window: contextWindow,
+            usage_fraction: Number(usageFraction.toFixed(6)),
+            usage_percent: `${Math.round(usageFraction * 100)}%`,
+            delegation_count: delegationCount,
+            session_count: sessionCount,
+            threshold_30pct: usageFraction >= 0.3,
+            threshold_50pct: usageFraction >= 0.5,
+            confidence: "low — proxy estimation, not token-accurate",
+            fallback_note:
+              "If this seems inaccurate, use registry.jsonl row count × 3000 as a rough guide",
+          }
+          if (scope === "session") {
+            result.message_count = messageCount
+          }
+          if (scope === "council") {
+            result.estimated_credits = estimatedCredits
+            result.council_budget_75pct = (estimatedCredits ?? 0) >= 1125
+            result.council_budget_90pct = (estimatedCredits ?? 0) >= 1350
+          }
+          return JSON.stringify(result, null, 2)
+        },
+      }),
     },
   }
 

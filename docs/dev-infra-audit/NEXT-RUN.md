@@ -60,11 +60,13 @@ with a read-only task) to report the current contents of:
   > handoff via `log_decision` (event_type: 'handoff', resolution_status: 'done'), then
   > end your turn telling the user a fresh session should be started —
   > the next instance reads the handoff file + messages.md and resumes. Detection: call
-  > `token_stats`; compute (input+output)/model_context_window using this lookup
-  > (estimates): qwen3.7-max 1,000,000; qwen3.7-plus 1,000,000 (per models.dev; verify on
-  > next refresh); deepseek-v4-flash 1,000,000;
-  > big-pickle 200,000 (unverified); others 131,072 unless known. Context windows per
-  > models.dev, verified 2026-08-03. NOTE: compaction is size-triggered, not
+  > `context_usage` (delegation-observer plugin tool); it returns estimated usage as a
+  > fraction of the model context window using registry.jsonl activity signals and
+  > session metadata. The tool handles model context-window lookup internally (1M
+  > default). If the plugin is not loaded (tool unavailable), fall back to manual
+  > estimation: count delegations dispatched × ~2000 tokens average per delegation,
+  > add to visible conversation length heuristic, and apply the 30%/50% thresholds
+  > conservatively (trigger earlier when uncertain). NOTE: compaction is size-triggered, not
   > relevance-triggered, and loses campaign-critical detail — hence the 30% primary
   > threshold (research-refined division of labor).
 - **CRISIS-DETECTION**: a cycle is in crisis when **ANY** of C1–C5 fires (binary OR — ADR-002,
@@ -83,9 +85,12 @@ with a read-only task) to report the current contents of:
   notice to the developer with the current spend + remaining budget; continue dispatching.
   **Hard-stop** at 90% (1350 credits): cease all council dispatches for the remainder of the
   session; notify the developer; hand off remaining council-needs to the next session via the
-  handoff file's prognosis. Detection: `token_stats` + the council-dispatch subset of the spend;
-  credit cost per councillor dispatch is model-dependent (use the live `token_stats` cost
-  field, not a static lookup).
+  handoff file's prognosis. Detection: `context_usage` (delegation-observer plugin tool)
+  with `scope: council` to get the council-dispatch subset; credit cost per councillor
+  dispatch is model-dependent (use the `estimated_credits` field from `context_usage`,
+  not a static lookup). If the plugin is not loaded, fall back to counting council
+  dispatches from registry.jsonl rows where agent='council' or agent='councillor'
+  (visible via read() of registry.jsonl) × model cost estimate.
 - **PROGNOSIS-DISCIPLINE**: every cycle termination (clean / crisis / exhausted / manual-halt)
   MUST produce a handoff file (.opencode/session/current-handoff.json) containing exactly one "Prognosis
   for next cycle" section with five folded subsections (session_summary / fixes_applied /
