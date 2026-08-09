@@ -48,21 +48,6 @@
   // LSP enables type-aware diagnostics for the AI.
   "lsp": true,
 
-  // DIA-069 interim guard: the opencode-telemetry@0.1.19 plugin rewrites
-  // .opencode/commands/telemetry-{report,inspect}.md with literal /home/qualt
-  // paths on every plugin load. watcher.ignore stops the file watcher from
-  // re-triggering on those rewrites while the restore guard is in place.
-  // REMOVE-WHEN-UPSTREAM-PATCH-LANDS: this block exists only until the
-  // upstream plugin patch (DIA-069 part 2, src/commands.ts) makes the plugin
-  // honor the shipped portable command templates. Delete both ignore entries
-  // with that patch.
-  "watcher": {
-    "ignore": [
-      ".opencode/commands/telemetry-report.md",
-      ".opencode/commands/telemetry-inspect.md"
-    ]
-  },
-
   // ---------------------------------------------------------------------------
   // Agent Definitions
   // ---------------------------------------------------------------------------
@@ -127,8 +112,7 @@
         "wait_for_user": "allow",
         "todowrite": "allow",
         "skill": "allow",
-        "websearch": "allow",
-        "token_export": "allow"
+        "websearch": "allow"
       }
     },
     "architector": {
@@ -136,8 +120,7 @@
       "permission": {
         "edit": "deny",
         "bash": "deny",
-        "task": "deny",
-        "token_*": "deny"
+        "task": "deny"
       }
     },
     "analyzer": {
@@ -146,8 +129,7 @@
       "permission": {
         "edit": "deny",
         "bash": "deny",
-        "task": "deny",
-        "token_*": "deny"
+        "task": "deny"
       }
     },
     "reviewer": {
@@ -155,30 +137,20 @@
       "permission": {
         "edit": "deny",
         "bash": "deny",
-        "task": "deny",
-        "token_*": "deny"
+        "task": "deny"
       }
     },
     // coder deliberately has NO permission restrictions (unlike architector/analyzer/
     // reviewer). It is the implementer: it must edit files, run bash (dev build, lint,
     // tests) and dispatch subagents. Denying any of these breaks its core function.
     // M2 decision (2026-08-01): document intent instead of restricting.
-    // token_* is the one explicit carve-out: token_export writes arbitrary file paths
-    // (no path allowlist) and serves no implementation purpose — the "no restrictions"
-    // rationale above covers edit/bash/task, not token telemetry writes.
     "coder": {
       "mode": "subagent",
-      "color": "#3B82F6",
-      "permission": {
-        "token_*": "deny"
-      }
+      "color": "#3B82F6"
     },
     "code-navigator": {
       "mode": "subagent",
-      "color": "#06B6D4",
-      "permission": {
-        "token_*": "deny"
-      }
+      "color": "#06B6D4"
     },
     "researcher": {
       "mode": "subagent",
@@ -186,30 +158,20 @@
       "permission": {
         "edit": "deny",
         "bash": "deny",
-        "task": "deny",
-        "token_*": "deny"
+        "task": "deny"
       }
     },
     "designer": {
       "mode": "subagent",
-      "color": "#EC4899",
-      "permission": {
-        "token_*": "deny"
-      }
+      "color": "#EC4899"
     },
     "observer": {
       "mode": "subagent",
-      "color": "#A855F7",
-      "permission": {
-        "token_*": "deny"
-      }
+      "color": "#A855F7"
     },
     "memory-manager": {
       "mode": "subagent",
-      "color": "#F472B6",
-      "permission": {
-        "token_*": "deny"
-      }
+      "color": "#F472B6"
     },
     // Council subagents — read-only
     "council": {
@@ -217,8 +179,7 @@
         "edit": "deny",
         "bash": {
           "*": "deny"
-        },
-        "token_*": "deny"
+        }
       }
     },
     // resource-manager — knowledge-source curation lane (DIA-007 split).
@@ -242,8 +203,7 @@
           "trafilatura": "allow",
           "*": "deny"
         },
-        "task": "allow",
-        "token_*": "deny"
+        "task": "allow"
       }
     },
     "ai-specialist": {
@@ -259,8 +219,7 @@
           "wget": "allow",
           "*": "deny"
         },
-        "task": "deny",
-        "token_*": "deny"
+        "task": "deny"
       }
     },
     // ai-auditor — independent read-only reviewer for §10 config changes
@@ -280,7 +239,6 @@
         "ast_grep_replace": "deny",
         "webfetch": "deny",
         "task": "deny",
-        "token_*": "deny",
         "envsitter_set": "deny",
         "envsitter_add": "deny",
         "envsitter_delete": "deny",
@@ -359,7 +317,6 @@
   "plugin": [
     "envsitter-guard@0.0.4",
     "@tarquinen/opencode-dcp@3.1.14",
-    "opencode-telemetry@0.1.19",
     "oh-my-opencode-slim@2.2.8",
     "file://./.opencode/plugins/delegation-observer.ts"
   ],
