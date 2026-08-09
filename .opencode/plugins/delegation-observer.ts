@@ -495,9 +495,13 @@ const delegationObserver: Plugin = async (ctx) => {
       calls.push(input.tool)
       turnToolCalls.set(input.sessionID, calls)
       if (input.tool === "task" && calls.length > 1) {
-        console.warn(
-          `[delegation-observer] A1 VIOLATION: task() called alongside ${calls.length - 1} other tool(s) in session ${input.sessionID}`
-        )
+        ctx.client.app.log({
+          body: {
+            service: "delegation-observer",
+            level: "warn",
+            message: `[delegation-observer] A1 VIOLATION: task() called alongside ${calls.length - 1} other tool(s) in session ${input.sessionID}`,
+          },
+        })
         appendRow({
           event: "a1_violation",
           session_id: input.sessionID,
@@ -756,7 +760,22 @@ const delegationObserver: Plugin = async (ctx) => {
               2
             )
           )
-          console.log(`[delegation-observer] persistence flag: ${taskId}`)
+          // TUI-safe logging (res007 / external-patterns/2026-08-09-tui-plugin-
+          // stdout-corruption.md): raw console.* writes from plugins interleave
+          // with the TUI render surface (no alt-screen buffer +
+          // disableStdoutInterception). Use the SDK logger ctx.client.app.log()
+          // instead. The @opencode-ai/sdk v1 client (createOpencodeClient from
+          // the sdk root, which @opencode-ai/plugin exposes as ctx.client)
+          // takes the payload inside `body` (Options<AppLogData>). Fail-soft:
+          // default ThrowOnError=false returns errors in the result shape
+          // rather than throwing, so an unawaited call cannot crash the plugin.
+          ctx.client.app.log({
+            body: {
+              service: "delegation-observer",
+              level: "info",
+              message: `[delegation-observer] persistence flag: ${taskId}`,
+            },
+          })
         } catch (err) {
           console.warn(
             `[delegation-observer] persistence-pending.json write failed: ${errorMessage(err)}`
