@@ -59,6 +59,18 @@ Confirm with developer: pipeline complete.
 - **No duplicate IDs** — always check existing res* directories before assigning `<id>`
 - **Quick lookups skip this skill** — single-source fact checks, general programming questions, ephemeral findings do not trigger this pipeline
 
+## Archive-Before-Claim Policy
+- A fact without a saved source must not count in the conspect.
+- If conspecter Phase A cannot archive a URL (all methods exhausted),
+  the corresponding claims are EXCLUDED from the conspect body and
+  listed separately under "Unarchived Sources" with the flag
+  `[source not archived — excluded per DIA-072 policy]`.
+- The orchestrator reviews excluded claims and decides whether to
+  retry with alternative URLs or accept the gap.
+- The conspecter's Phase A MUST use the 3-tier fallback chain (JSON API
+  for registry.npmjs.org → trafilatura markdown → curl+browser-UA →
+  crawl4ai headless) before declaring a source unarchivable.
+
 ## Delegation Rules
 - Phase 1: `@researcher` (read-only, returns findings in conversation)
 - Phase 2: Orchestrator + developer (practice-protected decision)
