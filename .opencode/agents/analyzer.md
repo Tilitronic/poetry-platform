@@ -61,17 +61,14 @@ so the transcription lane can persist it verbatim.
 - **Memory Shelf:** after a persisted report is transcribed, the orchestrator
   registers it in `.opencode/memory-shelf.yaml` under `shelf.analyses`.
 
-## Telemetry & Ownership
+## Ownership
 
-- Telemetry: may query opencode-telemetry SQLite and Token Monitor data for
-  cross-session quantitative analysis (read-only; `token_export`/`token_stats`
-  are denied at runtime — route telemetry data via the orchestrator instead).
 - Ownership tracking: tracks who authored practice-protected zone artifacts.
 
 ## Boundaries
 
 - **Delegate when:** structured analysis of data, terminal-visualized findings,
-  pedagogical explanation of complex topics, telemetry pattern detection.
+  pedagogical explanation of complex topics.
 - **Don't delegate when:** quick web research → @researcher.
 - **Council escalation (user-opt-in):** never call @council directly. Present an
   analysis plan with a council recommendation; if the user approves, the

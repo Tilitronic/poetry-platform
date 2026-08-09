@@ -23,6 +23,14 @@ shelf:
       description: "Conspect documenting root cause and upstream fix strategy for opencode-telemetry command-template $HOME/absolute-path pollution."
       path: "knowledge/res005-opencode-telemetry-upstream-fix/res005-opencode-telemetry-upstream-fix-conspect.md"
       created: 2026-08-08
+    - name: "Telemetry plugin alternatives"
+      description: "Conspect comparing opencode-telemetry, opencode-token-monitor, Tokenscope, opencode-plugin-otel, Context-Analysis, and native OpenCode capabilities; notes on operational issues and archival gaps."
+      path: "knowledge/res006-telemetry-plugin-alternatives/res006-telemetry-plugin-alternatives-conspect.md"
+      created: 2026-08-09
+    - name: "TUI corruption: stdout/stderr painted over TUI"
+      description: "Conspect documenting TUI corruption root cause, local plugin that writes to stdout, and mitigation guidance."
+      path: "knowledge/res007-tui-corruption-stdout/res007-tui-corruption-stdout-conspect.md"
+      created: 2026-08-09
   analyses:
     - name: "Agent Alignment Audit"
       description: "MECE inventory of all agent definitions across OMO Slim, native OpenCode, project config, and AGENTS.md. Finds 4 critical issues (dual dispatch hierarchy, 2 ghost agents, architector missing model, analyzer↔council contradiction), 5 major issues (naming mismatches, dual prompts, orphan agents), and 4 minor issues. 20 unique agents across all files, 2 ghosts, 4 orphans."
