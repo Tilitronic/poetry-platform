@@ -32,6 +32,7 @@ carries the full detail (description, verification, fix, re-verify evidence).
 | DIA-071 | make test-infra/test-shell exit 2 — host check-host-lsp gate fails                              | dev-infra       | Low      | OPEN     | [DIA-071.md](DIA-071.md) |
 | DIA-072 | researcher returns unarchived facts: 4/16 sources failed to persist during conspect Phase A       | docs            | Medium   | CLOSED   | [DIA-072.md](DIA-072.md) |
 | DIA-073 | Investigate handoff coordination for parallel OpenCode sessions via session IDs                   | docs            | Medium   | CLOSED   | [DIA-073.md](DIA-073.md) |
+| DIA-074 | Ticket filenames lack human-readable descriptors — orchestrator ticket references are opaque to the developer | docs | Medium | OPEN | [DIA-074.md](DIA-074.md) |
 
 ## Status summary
 
@@ -40,14 +41,14 @@ carries the full detail (description, verification, fix, re-verify evidence).
 | Blocker  | 5     |
 | Critical | 1     |
 | Major    | 3     |
-| Medium   | 10    |
+| Medium   | 11    |
 | Minor    | 0     |
 | Low      | 4     |
 | Info     | 0     |
 
 | Status      | Count |
 | ----------- | ----- |
-| OPEN        | 2     |
+| OPEN        | 3     |
 | DONE        | 3     |
 | VALIDATE    | 0     |
 | E2E         | 0     |
