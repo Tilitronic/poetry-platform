@@ -21,20 +21,53 @@ proceeding or applying changes.
   present the options with trade-offs and wait for explicit user direction.
 - Do not silently choose an architecture path and implement it.
 
-## 4. Agent Permission Classification
+### 4. Review disposition
+- When @reviewer produces findings, the developer decides disposition
+  (accept/reject/clarify) before the orchestrator proceeds. The orchestrator does not silently
+  apply reviewer recommendations.
+- Exception: automated lint/format fixes that the reviewer labels as
+  'mechanical' may be auto-applied if the developer has pre-approved mechanical
+  fixes.
+
+### 5. Research persistence decision
+- When `@researcher` returns findings with `PERSISTENCE_RECOMMENDED: true`, the orchestrator presents the persistence decision to the developer (persist, skip, or partial). The orchestrator does not auto-decide.
+
+## 6. Agent Permission Classification
 
 All agents fall into one of three permission tiers. New agents must declare their tier.
 
 | Tier | Permissions | Produces | Examples |
 |------|------------|----------|----------|
-| **pure-analyst** | `read_files` only | Output in conversation only | @architector, @ai_assist_specialist, @reviewer, @openspec-plan |
-| **artifact-producer** | Write+Bash, scoped to `knowledge/` | Structured reports, conspects, analyses | @analyzer, @conspecter |
+| **pure-analyst** | `read_files` only | Output in conversation only | @architector, @ai-specialist, @reviewer, @openspec-plan |
+| **artifact-producer** | Write+Bash, scoped to `knowledge/` | Structured reports, conspects, analyses | @analyzer, @conspecter, @resource-manager |
 | **executor** | Full Write+Bash | Implementation, refactoring, scribe work | @coder, @designer |
 
 **Rule:** If a pure-analyst agent's output needs to be persisted as a file, the
 orchestrator delegates to an executor for transcription. Pure-analysts never
 write files. Artifact-producers write only to their designated output directory
 and never modify source files.
+
+> **Note (ai-specialist):** Classified pure-analyst (read-only). It is granted
+> `bash: curl/wget` for read-only web research (fetching docs); it never writes
+> files and never dispatches subagents (`edit: deny`, `task: deny`).
+
+> **Note (resource-manager):** Classified artifact-producer (DIA-007). Its `edit`
+> permission is scoped to `.opencode/oh-my-opencode-slim/knowledge/*` ONLY — it
+> curates ai-assist-sources.yaml, Tier-1 Markdown caches, and per-source review
+> terms, and never modifies source files or config. It may dispatch
+> @researcher/@conspecter (`task: allow`) to gather curation evidence.
+
+## 7. Artifact Ownership Tracking
+
+All practice-protected artifacts (proposal.md, design.md, tasks.md, .sdd/ documents) must note authorship in their YAML frontmatter or a trailing metadata block:
+```
+ownership:
+  substance: developer | AI | collaborative
+  structure: AI
+  interview_depth: full | compressed | skip
+  interview_reason: "<reason if skip>"
+```
+Rules: `substance: developer` = developer wrote core content, agent structured/formatted; `substance: AI` = agent drafted from interview transcript (allowed ONLY when developer confirmed the interview summary and explicitly delegated drafting); `substance: collaborative` = co-authoring with developer edits on AI draft. The agent ALWAYS records the interview depth mode and reason.
 
 ## Enforcement
 

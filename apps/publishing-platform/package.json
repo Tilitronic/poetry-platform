@@ -2,10 +2,7 @@
   "name": "@poetry/publishing-platform",
   "private": true,
   "type": "module",
-  "scripts": {
-    "lint": "eslint .",
-    "typecheck": "vue-tsc --noEmit"
-  },
+  "scripts": {},
   "dependencies": {
     "@poetry/visualizer-2d": "workspace:*",
     "@poetry/visualizer-3d": "workspace:*",

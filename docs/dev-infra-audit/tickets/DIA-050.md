@@ -1,0 +1,84 @@
+# DIA-050 — .mise.toml ↔ Dockerfile.dev pin-sync gap (DIA-045 F15)
+
+<!-- Tracking note for DIA-045 finding F15 — cross-ref bookkeeping for the
+     .mise.toml ↔ Dockerfile.dev pin-sync gap. Created by change
+     openspec/changes/dev-infra-config-validators (T1). Remediation is OUT of
+     scope for that change; this ticket tracks the gap separately. -->
+
+---
+
+id: DIA-050
+title: ".mise.toml ↔ Dockerfile.dev pin-sync gap (DIA-045 F15)"
+area: dev-infra
+severity: Low
+status: CLOSED
+blocked_by: []
+discovered: 2026-08-05
+source: dia-045-followup
+date: 2026-08-05
+created: 2026-08-05
+updated: 2026-08-07
+
+# --- Session Attribution (v2 schema, optional — GRANDFATHERED for DIA-001..049) ---
+
+session_id: ""
+lane_id: ""
+agent: ""
+model: ""
+parent_session_id: ""
+attempts: 0
+lease_expires_at: ""
+files_touched: []
+artifacts: []
+evidence: []
+
+---
+
+## Description
+
+Carried forward from DIA-045's Major findings list (verbatim):
+
+> **F15** — `.mise.toml` ↔ `Dockerfile.dev` pin sync gap untracked; D5 — file a
+> tracking note.
+
+The tool versions that drive the dev environment live in **three** manual-sync
+points that must stay in parity with **no automated enforcement**:
+
+1. `.mise.toml` — `[tools]` pins `node = "24.18.0"` and `pnpm = "10.33.0"`.
+2. `Dockerfile.dev` — the `NODE_VERSION` / `PNPM_VERSION` ARGs consumed by the
+   node/pnpm install blocks.
+3. `tools/opencode-docker/Dockerfile` — the same ARG pattern (mise
+   2026.8.0) for the opencode-docker subproject.
+
+`openspec/changes/volta-to-mise/design.md` §2.1 documents the current
+**one-time manual sync** contract: the `.mise.toml` header comment states the
+node/pnpm versions are "derived from Dockerfile.dev ARGs at spec-author time"
+and that bumping either version requires updating BOTH the Dockerfile ARGs and
+the `[tools]` entry. The gap is that **no automated validator enforces parity**
+— `scripts/check-tools.sh` checks `NODE_PIN`/`PNPM_PIN` against the
+mise-declared pins at runtime, but nothing cross-checks those pins against the
+Dockerfile ARG values. Present drift: **none** (all three points currently
+agree). Enforcement: **none** (three manual-sync points + check-tools.sh
+NODE_PIN/PNPM_PIN).
+
+Remediation (e.g., a validator that compares `.mise.toml` pins against the
+Dockerfile ARGs) is **out of scope** for the `dev-infra-config-validators`
+change — this ticket tracks the gap for separate disposition.
+
+Cross-references: DIA-045 (F15, audit-gaps 1–3), `openspec/changes/volta-to-mise/`.
+
+## Verification
+
+1. `diff <(grep -E 'node =|pnpm =' .mise.toml) <(grep -E 'NODE_VERSION|PNPM_VERSION' Dockerfile.dev)` — expect matching pins (24.18.0 / 10.33.0).
+2. `grep -E 'MISE_VERSION' tools/opencode-docker/Dockerfile` — expect 2026.8.0.
+3. Manual: confirm no automated gate enforces parity (search `Makefile` / `scripts/` for a pin-sync validator).
+
+## Fix
+
+Closed by change `openspec/changes/dev-infra-pin-sync/`. `scripts/check-pin-sync.sh` asserts `.mise.toml` ↔ Dockerfile parity (`Dockerfile.dev` + `tools/opencode-docker/Dockerfile`) for `node`/`pnpm` under `make test-shell`. 13-scenario bats suite (T1–T13) covers match/mismatch/missing/duplicate/normalization branches across both Dockerfile sources. Exit precedence `2>1>0` (INFRA>mismatch>match). 4 comparisons total (2 pins × 2 Dockerfiles).
+
+## Re-verify
+
+1. `bash scripts/check-pin-sync.sh` exits 0 with four ok lines (one per pin per Dockerfile: `Dockerfile.dev` + `tools/opencode-docker/Dockerfile`) + `summary: 4 ok, 0 fail`.
+2. `make test-shell` exits 0; includes 13 new `check-pin-sync.bats` cases.
+3. `make check-pin-sync` exits 0 (standalone invocation).

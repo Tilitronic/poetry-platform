@@ -1,5 +1,10 @@
 # Container Setup — Poetry Platform + OmO-slim
 
+> **Note (2026-07-27):** A dedicated dev environment now exists — see
+> `docs/docker-dev.md` and the root `docker-compose.yml`. It provides one dev
+> workstation container (opencode + all runtimes) plus a PostgreSQL container.
+> The Dockerfile below is retained as a minimal reference for the base tools.
+
 ## Required System Dependencies
 
 ```dockerfile
@@ -56,28 +61,28 @@ a1918d9 feat: agentic workflow v 2.4 before rebasing onto OmO-slim
 3. **bae57fd** — Rename `orchestrator` → `boss`, `explorer` → `code-navigator`, etc.
 4. **ee2ab02** — Enhanced prompts for architector and reviewer agents + DCP model limits
 5. **f11d6ce** — Added 4 custom skills to `custom-skills-registry.ts`
-6. **a77e9b9** — Fixed truncated prompts (restored full content), test fixes (orchestrator→boss), DCP limits, snip plugin vendored, opencode.json updated
+6. **a77e9b9** — Fixed truncated prompts (restored full content), test fixes (orchestrator→boss), DCP limits, snip plugin vendored, opencode.jsonc updated
 
 ### Key changed files (vs origin/main)
 
-| Area | Files |
-|------|-------|
-| Agent prompts | `src/agents/architector.ts`, `src/agents/reviewer.ts` — full 75/71 line prompts |
-| Renames | `orchestrator.ts` → `boss.ts`, `explorer.ts` → `code-navigator.ts`, constants, aliases |
-| Custom skills | 4 new entries in `custom-skills-registry.ts` + skill dirs |
-| Tests fixed | `providers.test.ts` (orchestrator→boss ×10), `config-io.test.ts` (×2) |
-| DCP config | `.opencode/dcp.jsonc` — model limits for 21 models |
-| Snip plugin | `.opencode/plugins/snip/index.ts` — vendored, SKIP_SNIP extended |
-| Project config | `.opencode/opencode.json` — snip path, `.opencode/oh-my-opencode-slim.jsonc` — custom agents |
+| Area           | Files                                                                                         |
+| -------------- | --------------------------------------------------------------------------------------------- |
+| Agent prompts  | `src/agents/architector.ts`, `src/agents/reviewer.ts` — full 75/71 line prompts               |
+| Renames        | `orchestrator.ts` → `boss.ts`, `explorer.ts` → `code-navigator.ts`, constants, aliases        |
+| Custom skills  | 4 new entries in `custom-skills-registry.ts` + skill dirs                                     |
+| Tests fixed    | `providers.test.ts` (orchestrator→boss ×10), `config-io.test.ts` (×2)                         |
+| DCP config     | `.opencode/dcp.jsonc` — model limits for 21 models                                            |
+| Snip plugin    | `.opencode/plugins/snip/index.ts` — vendored, SKIP_SNIP extended                              |
+| Project config | `.opencode/opencode.jsonc` — snip path, `.opencode/oh-my-opencode-slim.jsonc` — custom agents |
 
 ---
 
 ## OpenSpec Status
 
-- **Not installed.** The `openspec-plan` agent is a custom prompt-based agent defined in `oh-my-opencode-slim.jsonc` (lines 414–416), not the actual OpenSpec CLI.
-- A project config exists at `openspec/config.yaml` (created 2026-07-13).
-- To install: `npm install -g @fission-ai/openspec@latest && cd /workspace && openspec init`
-- Or use an OpenCode plugin like `@devcxl/opencode-spec` or `opencode-plugin-openspec`.
+- **Installed** (global): `@fission-ai/openspec@1.7.0` (`npm i -g @fission-ai/openspec@latest`). Verify with `openspec --version`.
+- The `openspec-plan` agent authors change artifacts under `openspec/changes/<name>/` via the CLI. Project rules (vertical-slice tasks, seams, Testing Decisions, apply guidance) live in `openspec/config.yaml`.
+- A project config exists at `openspec/config.yaml` (created 2026-07-13, extended 2026-08-01).
+- On a fresh container: reinstall with `npm install -g @fission-ai/openspec@latest`. No `openspec init` needed — `openspec doctor` confirms the root resolves.
 
 ---
 

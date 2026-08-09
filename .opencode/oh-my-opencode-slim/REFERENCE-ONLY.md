@@ -1,0 +1,2 @@
+# REFERENCE-ONLY — not the running plugin
+This directory is a FORK CHECKOUT of oh-my-opencode-slim (registers `boss`, contains unbuilt source edits in `src/agents/boss.ts`). It is NOT loaded at runtime and has no package.json/dist. The RUNNING plugin is the npm-installed `oh-my-opencode-slim@2.2.8` (project + global `opencode.jsonc` plugin arrays). Keep this checkout for diff/reference only — do not edit or build it as the live plugin.

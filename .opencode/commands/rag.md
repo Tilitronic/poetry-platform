@@ -4,7 +4,7 @@ description: >-
   query for effective retrieval, pick the right KB, and run the search.
   The user shouldn't need to remember #tag names. Supports flags:
   --list, --route, --refresh, --books, --stats.
-agent: build
+agent: coder
 ---
 
 # RAG query
@@ -48,21 +48,21 @@ cross-cutting topics. Example: "visualize ML model performance" →
 query `#ml` for ML content + `#visualization` for visualization techniques.
 
 ### 3. Execute and synthesize
-Run `python .../query_rag.py "#tag <redesigned query>"` for each KB.
+Run `python3 .../query_rag.py "#tag <redesigned query>"` for each KB.
 If multiple KBs, synthesize results. Cite source books.
 
 ## Script call
 
 ```bash
-python C:\Users\qualt\.config\opencode\scripts\query_rag.py "$ARGUMENTS"
+python3 .opencode/scripts/query_rag.py "$ARGUMENTS"
 ```
 
 ## Examples
 
 | User types | You redesign to | Route | You run |
 |---|---|---|---|
-| `rag TypeScript generics` | `"TypeScript generics constraints extends"` | `#js` | `python .../query_rag.py "#js TypeScript generics constraints extends"` |
-| `rag how to handle errors in Rust` | `"Rust error handling Result Option propagation"` | `#rust` | `python .../query_rag.py "#rust Rust error handling Result Option propagation"` |
+| `rag TypeScript generics` | `"TypeScript generics constraints extends"` | `#js` | `python3 .../query_rag.py "#js TypeScript generics constraints extends"` |
+| `rag how to handle errors in Rust` | `"Rust error handling Result Option propagation"` | `#rust` | `python3 .../query_rag.py "#rust Rust error handling Result Option propagation"` |
 | `rag compare Python and Rust concurrency` | `"Python async await concurrency"` + `"Rust async tokio concurrency"` | `#python` + `#rust` | Run both queries, synthesize |
-| `rag --list` | — | — | `python .../query_rag.py --list` |
-| `rag #rust lifetimes` | (user chose) | `#rust` | `python .../query_rag.py "#rust lifetimes"` |
+| `rag --list` | — | — | `python3 .../query_rag.py --list` |
+| `rag #rust lifetimes` | (user chose) | `#rust` | `python3 .../query_rag.py "#rust lifetimes"` |

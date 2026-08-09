@@ -1,4 +1,5 @@
-import { Extension, EditorState, EditorSelection } from '@codemirror/state';
+import type { Extension } from '@codemirror/state';
+import { EditorState, EditorSelection } from '@codemirror/state';
 
 // ---------------------------------------------------------------------------
 // Compile-once regex constants
@@ -14,7 +15,7 @@ const LEADING_WS_RE = /^[ \t]+/;
 const NEEDS_CLEAN_RE = /[ \t\n\r,:\-;'\u2019]/;
 
 /** Collapse repeated punctuation: ,, :: ;; -- '' ’’. */
-const DUP_PUNCT_RE = /([,:'\u2019;\-])\1+/g;
+const DUP_PUNCT_RE = /([,:'\u2019;-])\1+/g;
 
 // Characters that trigger double-punctuation blocking on live typing.
 const REPEATABLE_PUNCT = new Set([',', ':', ';', '-', "'", '’']);
@@ -153,28 +154,6 @@ function handleSpace(
 }
 
 // ---------------------------------------------------------------------------
-// handlePunctuation
-//
-// Blocks double consecutive punctuation marks (, : ; - ' ’).
-// Returns a ChangeSpec to apply, or null to let it pass through.
-// ---------------------------------------------------------------------------
-function handlePunctuation(
-  doc: EditorState['doc'],
-  fromA: number,
-  toA: number,
-  text: string,
-): { from: number; to: number; insert: string } | null {
-  if (text.length !== 1 || fromA <= 0) return null;
-  if (!REPEATABLE_PUNCT.has(text)) return null;
-
-  const before = charBefore(doc, fromA);
-  if (before === text) {
-    return change(fromA, toA, '');
-  }
-  return null; // single punctuation mark is fine
-}
-
-// ---------------------------------------------------------------------------
 // processSegment
 //
 // Entry point for processing a single change segment.  Routes to the
@@ -261,7 +240,9 @@ export function opusFormattingFilter(): Extension {
     // array + object allocation on the 99.9% of keystrokes (regular chars).
 
     let firstReplacement: { from: number; to: number; insert: string } | null = null;
-    let firstFrom = 0, firstTo = 0, firstText = '';
+    let firstFrom = 0,
+      firstTo = 0,
+      firstText = '';
     let anyModified = false;
     let segmentIndex = 0;
 
@@ -286,9 +267,7 @@ export function opusFormattingFilter(): Extension {
         // backfill the first segment into it.
         if (!multiSegment) {
           multiSegment = [];
-          multiSegment.push(
-            firstReplacement ?? change(firstFrom, firstTo, firstText),
-          );
+          multiSegment.push(firstReplacement ?? change(firstFrom, firstTo, firstText));
         }
         if (replacement !== null) {
           multiSegment.push(replacement);

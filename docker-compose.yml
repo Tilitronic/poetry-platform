@@ -1,0 +1,116 @@
+# Poetry Platform — Dev Orchestration
+#
+# Architecture:
+#   - `dev`       — ONE dev workstation container (opencode + all runtimes).
+#                   Monorepo mounted at /workspace; app services run inside
+#                   via `pnpm dev` (turbo). Ports for browser access only.
+#   - `postgres`  — stateful infrastructure service. Data survives restarts
+#                   (named volume `pgdata`). Reachable from dev as `postgres:5432`.
+#
+# OpenWebUI intentionally NOT here — each developer runs it locally in WSL Docker.
+#
+# Usage:
+#   cp .env.example .env         # configure secrets/ports
+#   docker compose up -d         # build dev image + start postgres
+#   docker compose exec dev bash # shell into the workstation
+#   docker compose exec dev pnpm dev   # start all app services (turbo)
+#   docker compose down          # stop
+#   docker compose down -v       # stop + wipe postgres data
+
+services:
+  dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    image: poetry-platform-dev:latest
+    container_name: poetry-dev
+    hostname: poetry-dev
+    # Author-studio (Quasar/Vite), api-server (FastAPI), publishing-platform (Nuxt)
+    ports:
+      - '${AUTHOR_STUDIO_PORT:-9000}:9000'
+      - '${API_SERVER_PORT:-8000}:8000'
+      - '${PUBLISHING_PORT:-3000}:3000'
+    # Optional: expose postgres from host for psql tooling (disable if unwanted)
+    # - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - .:/workspace:Z
+      # Named volume to keep pnpm store + node_modules inside container.
+      # Host node_modules (if any) must not overwrite the container's.
+      - pnpm_store:/workspace/node_modules
+      - dev_state:/home/dev/.local/share
+      - dev_cache:/home/dev/.cache
+    # DEV-ONLY credentials (SEC-DOCKER-003): the `poetry` user/password
+    # fallback is for local development only. Outside dev (CI, staging, prod)
+    # POSTGRES_USER/POSTGRES_PASSWORD/POSTGRES_DB MUST be set explicitly —
+    # never rely on these defaults. There is intentionally no env validation
+    # here: `make up` must keep working for fresh checkouts without a .env.
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-poetry}:${POSTGRES_PASSWORD:-poetry}@postgres:5432/${POSTGRES_DB:-poetry}
+      - OPENCODE_ENABLE_EXA=1
+      # Secrets are NOT passed through env (SEC-DOCKER-002): the API keys live
+      # in the read-only /run/secrets mounts below and are loaded by the
+      # entrypoint (dev-entrypoint.sh). The /etc/profile.d/secrets.sh hook
+      # (H5) re-loads them for `docker compose exec` login shells. Duplicating
+      # them as env vars would leak them to `docker inspect` for no benefit.
+    secrets:
+      - anthropic_api_key
+      - openai_api_key
+      - context7_api_key
+      - github_token
+      - exa_api_key
+    depends_on:
+      postgres:
+        condition: service_healthy
+    stdin_open: true
+    tty: true
+    # Match postgres: restart the dev workstation when the daemon/host reboots.
+    restart: unless-stopped
+    networks:
+      - poetry-net
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: poetry-postgres
+    restart: unless-stopped
+    # DEV-ONLY credential defaults (SEC-DOCKER-003): weak `poetry` fallback is
+    # acceptable for local development only. Any non-dev deployment must set
+    # POSTGRES_PASSWORD explicitly; treat this default as an active risk marker.
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-poetry}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-poetry}
+      POSTGRES_DB: ${POSTGRES_DB:-poetry}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    # Optional: expose on host for external tooling (pgAdmin, psql from host)
+    # ports:
+    #   - "${POSTGRES_PORT:-5432}:5432"
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-poetry} -d ${POSTGRES_DB:-poetry}']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    networks:
+      - poetry-net
+
+secrets:
+  anthropic_api_key:
+    file: ./secrets/anthropic_api_key
+  openai_api_key:
+    file: ./secrets/openai_api_key
+  context7_api_key:
+    file: ./secrets/context7_api_key
+  github_token:
+    file: ./secrets/github_token
+  exa_api_key:
+    file: ./secrets/exa_api_key
+
+volumes:
+  pgdata:
+  pnpm_store:
+  dev_state:
+  dev_cache:
+
+networks:
+  poetry-net:
+    driver: bridge

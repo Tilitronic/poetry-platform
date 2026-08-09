@@ -14,15 +14,6 @@ function createState(doc = ''): EditorState {
   });
 }
 
-/** Create state with cursor at a given position. */
-function stateWithCursor(doc: string, pos: number): EditorState {
-  return EditorState.create({
-    doc,
-    selection: { anchor: pos },
-    extensions: [opusFormattingFilter()],
-  });
-}
-
 /**
  * Simulate inserting text at a given cursor position (live typing).
  *
@@ -42,12 +33,7 @@ function insertAt(state: EditorState, pos: number, text: string) {
 /**
  * Simulate replacing a selection range with text (e.g. paste over selection).
  */
-function replaceRange(
-  state: EditorState,
-  from: number,
-  to: number,
-  text: string,
-) {
+function replaceRange(state: EditorState, from: number, to: number, text: string) {
   const withSelection = state.update({
     selection: { anchor: from, head: to },
   }).state;
@@ -167,9 +153,9 @@ describe('opusFormattingFilter — no leading space at line start', () => {
     // Simulate: user types "hello" + Enter (→ "hello \n"), then tries
     // to type space on the new line before typing text
     let state = createState('');
-    state = insertAt(state, 0, 'hello').state;     // → "hello"
-    state = insertAt(state, 5, '\n').state;        // → "hello \n"
-    state = insertAt(state, 7, ' ').state;         // → space BLOCKED
+    state = insertAt(state, 0, 'hello').state; // → "hello"
+    state = insertAt(state, 5, '\n').state; // → "hello \n"
+    state = insertAt(state, 7, ' ').state; // → space BLOCKED
     expect(doc(state)).toBe('hello \n');
   });
 
@@ -315,9 +301,9 @@ describe('opusFormattingFilter — live typing: newline (Enter)', () => {
     // Simulate "hello \n\nworld" — the blank-line scenario
     let state = createState('');
     state = insertAt(state, 0, 'hello').state;
-    state = insertAt(state, 5, '\n').state;  // → "hello \n"
-    state = insertAt(state, 7, '\n').state;  // → "hello \n\n"
-    state = insertAt(state, 8, 'world').state;// → "hello \n\nworld"
+    state = insertAt(state, 5, '\n').state; // → "hello \n"
+    state = insertAt(state, 7, '\n').state; // → "hello \n\n"
+    state = insertAt(state, 8, 'world').state; // → "hello \n\nworld"
     expect(doc(state)).toBe('hello \n\nworld');
     const lines = doc(state).split('\n');
     expect(lines).toHaveLength(3);
@@ -328,11 +314,11 @@ describe('opusFormattingFilter — live typing: newline (Enter)', () => {
 
   it('full flow: word + Enter + Enter + Enter → triple blocked', () => {
     let state = createState('');
-    state = insertAt(state, 0, 'a').state;     // → "a"
-    state = insertAt(state, 1, '\n').state;    // → "a \n"
-    state = insertAt(state, 3, '\n').state;    // → "a \n\n"
-    state = insertAt(state, 4, '\n').state;    // → "a \n\n" (blocked!)
-    state = insertAt(state, 4, '\n').state;    // → "a \n\n" (blocked!)
+    state = insertAt(state, 0, 'a').state; // → "a"
+    state = insertAt(state, 1, '\n').state; // → "a \n"
+    state = insertAt(state, 3, '\n').state; // → "a \n\n"
+    state = insertAt(state, 4, '\n').state; // → "a \n\n" (blocked!)
+    state = insertAt(state, 4, '\n').state; // → "a \n\n" (blocked!)
     expect(doc(state)).toBe('a \n\n');
     expect(doc(state).split('\n').length).toBeLessThanOrEqual(3);
   });
@@ -615,9 +601,9 @@ describe('opusFormattingFilter — double punctuation', () => {
 
   it('blocks triple comma', () => {
     const state = createState('a,');
-    const t1 = insertAt(state, 2, ',');  // blocked → 'a,'
+    const t1 = insertAt(state, 2, ','); // blocked → 'a,'
     expect(doc(t1.state)).toBe('a,');
-    const t2 = insertAt(t1.state, 2, ',');  // still blocked
+    const t2 = insertAt(t1.state, 2, ','); // still blocked
     expect(doc(t2.state)).toBe('a,');
   });
 
@@ -683,8 +669,8 @@ describe('opusFormattingFilter — double punctuation', () => {
 
   it('allows single comma at start of new line after Enter', () => {
     let state = createState('hello');
-    state = insertAt(state, 5, '\n').state;  // → "hello \n"
-    state = insertAt(state, 7, ',').state;   // → "hello \n,"
+    state = insertAt(state, 5, '\n').state; // → "hello \n"
+    state = insertAt(state, 7, ',').state; // → "hello \n,"
     expect(doc(state)).toBe('hello \n,');
   });
 });

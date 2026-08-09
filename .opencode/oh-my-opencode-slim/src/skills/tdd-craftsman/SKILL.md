@@ -1,15 +1,19 @@
 ---
 name: tdd-craftsman
-description: Polyglot RED-GREEN-REFACTOR TDD cycle for Python/Rust/C/C++/TS monorepos (Turborepo), with explicit ownership safeguards for AI-assisted development
+description: Polyglot RED-GREEN TDD cycle in vertical slices for Python/Rust/C/C++/TS monorepos (Turborepo) — tracer bullets at pre-agreed seams, with explicit ownership safeguards for AI-assisted development
+compatibility: opencode
+metadata:
+  audience: developers
+  workflow: testing
 ---
 
 ## What I Do
 
 When invoked to implement a feature using TDD, I execute the full
-**RED → GREEN → REFACTOR** cycle, language-agnostically, across this
+**RED → GREEN** cycle in vertical slices, language-agnostically, across this
 monorepo's Python, Rust, C/C++, and TypeScript packages. I write failing
-tests first, implement the minimal code to pass them, then optimize for
-performance and readability without breaking tests — orchestrated through
+tests first, implement the minimal code to pass them, one slice at a time,
+then hand off cleanup to the `@reviewer` pass — orchestrated through
 Turborepo so the same gate sequence applies regardless of which package
 the change lives in.
 
@@ -33,6 +37,29 @@ Route to this skill if ANY of the following are true:
 
 **Do NOT activate** for: quick scripts, exploratory/throwaway prototypes,
 or when the user explicitly says "skip tests" / "just make it work".
+
+---
+
+## 0.0 Stack Detection (read before activating any language-specific section)
+
+Inspect the target package's manifest (`package.json` / `pyproject.toml` /
+`Cargo.toml`) to determine the active test stack. Do NOT apply language
+sections that don't match the package under test:
+
+- **TypeScript (Vitest)** — primary today across the poetry-platform monorepo.
+- **Python (pytest)** — activates for `packages/analytics-pipeline` and any
+  future Python package.
+- **Rust** — activates for the Rust FST / FlatBuffers codegen paths when they
+  land.
+- **C/C++** — activates for native kernels if/when introduced.
+
+§3a (Scientific Code Verification) activates only for code with mathematical
+invariants or hot-path numerical kernels (e.g., `packages/phonetics-core` ring
+buffer, `packages/analytics-pipeline` NumPy kernels) — never for ordinary
+aggregates like `calculate_average`.
+
+**Note:** the monorepo today is TS/Vitest-only in its test suite. Do not
+scaffold Rust or Python tests inside a TS package.
 
 ---
 
@@ -69,6 +96,25 @@ now maintaining code they didn't really write.
   pass.** Test-implementation pairs are reviewed and owned one behavior
   at a time. Bulk-generated test suites are exactly the "nobody owns
   this" failure mode.
+- **Tracer-bullet first.** The very first RED-GREEN cycle is a tracer
+  bullet: one test that proves a single narrow but COMPLETE path
+  end-to-end through the public interface (schema → state → API → tests,
+  wherever the seam sits), before building outward. Never write all tests
+  up front (horizontal slicing) — one test, then just enough code to pass
+  it, then the next, each cycle informed by what the last one taught you.
+  Batch tests verify imagined behavior; vertical slices verify real
+  behavior.
+- **No test at an unconfirmed seam.** A seam is the public boundary at
+  which you observe behavior without reaching inside. Before writing ANY
+  test, write down the seams under test and confirm them with the user.
+  Prefer existing seams; use the highest seam possible; the fewer seams
+  the better — the ideal is one. Tests only ever cross these confirmed
+  seams, never internal collaborators or private methods.
+- **No tautological tests.** Expected values must come from an independent
+  source of truth — a known-good literal, a worked example, the spec.
+  Never recompute the expected value the way the code computes it (e.g.,
+  `expect(add(a, b)).toBe(a + b)`), because such a test passes by
+  construction and can never disagree with the code.
 
 ---
 
@@ -122,7 +168,7 @@ separately from fast unit suites:
 
 | Language | Unit framework | Property-based | Notes |
 |---|---|---|---|
-| TypeScript | Vitest | `fast-check` | For CM6 extension tests: create `EditorState` directly with the extension. Use Playwright ONLY when DOM/browser interaction is essential. |
+| TypeScript | Vitest | `fast-check` | For CM6 extension tests: create `EditorState` directly with the extension. Use Playwright ONLY when DOM/browser interaction is essential. For browser-based testing workflows, see the `playwright-browser` skill. |
 | Python | pytest | `hypothesis` | Use `pytest-benchmark` for perf gates. NumPy array tests use `np.testing.assert_array_equal` / `assert_allclose`, never `==`. |
 | Rust | built-in `#[test]` / `cargo test` | `proptest` or `quickcheck` | `cargo bench` (criterion.rs) for perf gates. Prefer `Result<(), E>`-returning tests over `.unwrap()` chains where failure context matters. |
 | C/C++ | GoogleTest | `rapidcheck` (GTest integration) or `fuzztest` | Use `ASSERT_*` for fatal preconditions, `EXPECT_*` for the actual behavioral checks so one failure doesn't hide the next. AddressSanitizer/UBSan enabled in the test build config — see Memory Safety Gate below. |
@@ -152,7 +198,7 @@ deliberately isn't yet). This is the ownership checkpoint from section 0.
 - Write the MINIMUM code to pass the tests. No speculative features.
 - Prefer simple conditionals over abstraction.
 - If the test passes with a trivial implementation, that's fine —
-  optimization comes in REFACTOR.
+  optimization belongs to the `@reviewer` pass, not this cycle.
 
 ### Language-specific GREEN discipline
 
@@ -165,8 +211,8 @@ deliberately isn't yet). This is the ownership checkpoint from section 0.
   codebase's conventions. "Minimal" applies to scope, not to safety
   shortcuts.
 - **Python:** prefer explicit types (type hints) even at GREEN; don't
-  defer typing to REFACTOR — `mypy`/`pyright` gate (see Verification
-  Gates) will fail otherwise and the rework cost is higher later.
+  defer typing — the `mypy`/`pyright` gate (see Verification Gates)
+  will fail otherwise and the rework cost is higher later.
 
 ### Commit Often
 
@@ -174,56 +220,28 @@ After all tests pass, commit with a message describing WHAT was fixed
 (e.g., `fix(editor): block double space on live typing`), including the
 package scope per Turborepo convention.
 
-This is **commit #1 of 2** for the cycle: RED+GREEN together as one
-commit (the test and the minimal implementation that satisfies it).
-REFACTOR gets its own commit afterward. Don't squash the two — keeping
-them separate preserves "this is what made it pass" vs "this is what
-made it clean" in history, which matters for review and for blame/bisect
-later.
+This is the **one commit per RED-GREEN cycle**: the failing test and the
+minimal implementation that satisfies it land together. Cleanup has no
+commit of its own here — it belongs to the `@reviewer` pass (§3).
 
 Per the Ownership Protocol: the commit body includes the one-line
 rationale for any non-obvious approach.
 
 ---
 
-## 3. REFACTOR Phase — Optimize Without Breaking Tests
+## 3. Refactoring Belongs to Review — Not the Loop
 
-### Safety Net
+Refactoring is deliberately NOT part of the RED-GREEN loop. Cleanup, renaming,
+extraction, and performance optimization happen in the `@reviewer` pass, which
+uses a different model family to challenge structural choices the coder would
+never question. RED-GREEN proves the spec; refactoring inside the same loop
+would let the author rewrite their own code unchecked and risk breaking the
+behavior the test just cemented.
 
-- Run the full test suite before and after each refactoring step:
-  `turbo run test --filter=<package>`.
-- Never refactor without a passing test suite first.
-
-### Performance First
-
-Optimize in order of impact (language-specific tactics in parens):
-
-1. **Hot-path allocation elimination** — avoid heap allocation on the hot
-   path. (TS: avoid arrays/objects per call; Rust: prefer borrows/slices
-   over `Vec`/`String` clones; C/C++: stack allocation or arena/pool
-   reuse over `malloc`/`new` per call; Python: avoid list comprehensions
-   inside tight loops, prefer generators/NumPy vectorization.)
-2. **Lazy computation** — defer expensive operations until actually
-   needed. Move expensive string/array operations inside the branches
-   that need them.
-3. **Pre-compile constants** — move regexes, lookup tables, and compiled
-   patterns to module/file scope (or `static`/`const` in Rust/C++) so
-   they're built once, not per call.
-4. **Quick-exit patterns** — exit early when no work is needed (guard
-   clauses before the expensive path).
-5. **Avoid duplicate work** — compute normalization/parsing once and
-   reuse; cache repeated conversions (`toString()`, `str()`, `.to_string()`).
-
-### Readability
-
-After performance optimization, refactor for clarity:
-- Extract named helper functions.
-- Name variables by intent.
-- Remove dead code and unused constants/imports.
-- Comments explain WHY, not WHAT.
-
-This is **commit #2 of 2**: `refactor(<package>): <what was optimized/clarified>`,
-made only after the verification gates in section 4 pass.
+**Handoff note for GREEN:** if you notice obvious cleanup while writing the
+minimal implementation, capture it as a one-line TODO in the rationale comment
+(see §0) rather than expanding scope. Do not refactor while the loop is red,
+and do not extend GREEN to polish — the reviewer owns that.
 
 ---
 
@@ -250,7 +268,7 @@ are sufficient. This section is for simulation kernels, numerical
 solvers, signal-processing pipelines, and similarly structural code.
 
 When implementing qualifying code, add these steps after the standard
-REFACTOR phase:
+cycle (GREEN + verification gates):
 
 ### Property-based testing
 
@@ -407,9 +425,8 @@ A failed gate routes back to a phase — it is never a signal to suppress
 the error:
 
 - **Gate 1–2 fail** → back to GREEN: the implementation is incomplete or wrong.
-- **Gate 3 fails (benchmark regression)** → back to REFACTOR: revisit
-  the performance optimizations in section 3, don't relax the threshold
-  to pass.
+- **Gate 3 fails (benchmark regression)** → route to `@reviewer` with the
+  benchmark regression flagged; do not relax the threshold to pass.
 - **Gate 4 fails (type/static check)** → fix the actual type/contract.
   Never silence with `as any`, `# type: ignore`, `unwrap_or_default()`
   used purely to dodge a Result, or `(void)` casts to suppress a
@@ -421,8 +438,7 @@ the error:
   cross-package dependency issue — check `turbo.json` task dependencies
   before assuming it's local to your package.
 - **Gate 7 fails (ASan/UBSan/Miri)** → this is a real bug regardless of
-  whether the unit tests passed. Treat it as RED, not as a REFACTOR
-  cleanup item.
+  whether the unit tests passed. Treat it as RED, not as a cleanup item.
 - **Gate 9 fails (ownership checkpoint)** → stop and have the human
   review before continuing, even if gates 1-8 are green. This gate
   exists specifically because passing tests don't guarantee the team
@@ -437,19 +453,22 @@ forward while one is red.
 
 ```ascii
 RED:      write failing test (unit + property)     ──→  turbo run test  →  FAIL (correct reason)
-                                                     │
+          (tracer bullet first, at a pre-agreed seam)
+                                                      │
           [if multi-file/new API: state test plan, pause for ownership checkpoint]
-                                                     │
-GREEN:    implement minimum, rationale comment      ──→  turbo run test  →  PASS  →  commit (1/2)
-                                                     │
-REFACTOR: optimize + clean                          ──→  turbo run test     → PASS
-                                                          turbo run bench    → PASS (if 3a)
-                                                          turbo run typecheck → PASS
-                                                          turbo run lint      → PASS
-                                                          turbo run build     → PASS
-                                                          ASan/UBSan/Miri     → PASS (if 3a)
-                                                          ownership checkpoint → PASS
-                                                          commit (2/2)
+                                                      │
+GREEN:    implement minimum, rationale comment      ──→  turbo run test  →  PASS  →  commit
+                                                      │
+          repeat for the next vertical slice (one test → one implementation)
+                                                      │
+REVIEW:   @reviewer two-axis pass                    ──→  Standards (repo + Fowler baseline)
+                                                           Spec (fidelity to originating spec)
+                                                           turbo run bench    → PASS (if 3a)
+                                                           turbo run typecheck → PASS
+                                                           turbo run lint      → PASS
+                                                           turbo run build     → PASS
+                                                           ASan/UBSan/Miri     → PASS (if 3a)
+                                                           ownership checkpoint → PASS
 ```
 
 For scientific/numerical code (section 3a applies), also run:

@@ -1,8 +1,6 @@
 import { atom, computed } from 'signia';
 import type { LineDecoration } from './decorations';
 
-type Language = 'en' | 'ua' | 'pl' | 'by';
-
 export interface LineAtomValue {
   id: string;
   text: string;

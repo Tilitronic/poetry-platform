@@ -1,6 +1,6 @@
 # OpenCode Best Practices Reference (Mid-2026)
 
-> Curated knowledge for ai-assist-specialist. Compiled from official docs, community guides, and GitHub analyses.
+> Curated knowledge for ai-specialist and resource-manager. Compiled from official docs, community guides, and GitHub analyses.
 > Sources drawn primarily from last ~3-6 months (early-to-mid 2026).
 
 ---

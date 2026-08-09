@@ -19,22 +19,28 @@ Route to this skill when:
 
 ## Multi-Agent Debugging Flow
 
-Debugging follows a **5-stage multi-agent pipeline**. Each stage produces output consumed by the next stage:
+Debugging follows a **6-stage multi-agent pipeline**. Each stage produces output consumed by the next stage:
 
 ```
 User Bug Report
   │
   ▼
-Stage 1 — Reproduce & Capture    (@fixer + debugging-workflow skill)
+Stage 1 — Reproduce & Capture    (@coder + debugging-workflow skill)
   │  - Create minimal reproduction
   │  - Capture exact inputs, env, versions
   │  - Add structured logging at key points
   │  - Output: annotated bug note + debug artifacts
   ▼
-Stage 2 — Isolate Root Cause      (@fixer + debugging-workflow skill)
+Stage 1.5 — Build a Feedback Loop (@coder + debugging-workflow skill)
+  │  - One red-capable, deterministic, fast, agent-runnable command before any theory
+  │  - Tighten the loop (faster, sharper signal, more deterministic)
+  │  - Output: a command that fails on the bug
+  ▼
+Stage 2 — Isolate Root Cause      (@coder + debugging-workflow skill)
   │  - Strategic breakpoints at critical junctions
   │  - Binary search on code path
   │  - git bisect for regressions
+  │  - Ranked hypotheses before testing
   │  - Output: narrowed scope (file/function/line)
   ▼
 Stage 3 — Analyze Causality       (@analyzer)
@@ -47,11 +53,17 @@ Stage 4 — Design Solution          (@architector or council)
   │  - Consider spec compliance
   │  - Output: fix specification
   ▼
-Stage 5 — Implement & Verify      (@fixer)
+Stage 5 — Implement & Verify      (@coder)
   │  - Apply the minimum fix
   │  - Write regression test
-  │  - Verify no regressions
+  │  - Verify no regressions; confirm the correct test seam
   │  - Output: fixed code + test
+  ▼
+Stage 6 — Cleanup + Post-mortem   (@coder)
+  │  - Repro no longer reproduces
+  │  - All [DEBUG-*] instrumentation removed
+  │  - Throwaway prototypes deleted
+  │  - Output: post-mortem (what would have prevented this bug?)
 ```
 
 ## Stage 1: Reproduce & Capture
@@ -73,6 +85,54 @@ Add logging at these 5 points before running interactive debuggers:
 3. Data transformation (input vs output at each step)
 4. Loop iteration boundaries (iteration count, values at boundaries)
 5. Error handlers (what was caught, re-raised, or swallowed)
+
+## Stage 1.5: Build a Feedback Loop (the discipline)
+
+Before theorising about the cause, you must be able to *observe* the bug. Build a feedback loop first — a way to run the buggy code and see it fail, on demand.
+
+### Construction methods
+
+Pick the cheapest one that gives you a red signal:
+
+- **Failing test** — capture the bug as a test; it fails before the fix, passes after
+- **curl script** — a saved command that reproduces the API/server bug
+- **CLI invocation** — the exact command with the exact inputs, saved
+- **Headless browser** — a Playwright script that drives the UI to the broken state
+- **Replay trace** — recorded input/log replay that hits the bug
+- **Throwaway harness** — a small script that calls the function with the failing inputs
+- **Property/fuzz** — a property-based test or fuzz target that finds counterexamples
+- **Bisection harness** — the script `git bisect` will run (exit 0 good / non-zero bad)
+- **Differential loop** — run old vs new code on the same input and diff outputs
+- **HITL bash script** — a script that pauses for human confirmation at each step
+
+### Tighten-the-loop checklist
+
+Each iteration should make the loop:
+
+- **Faster** — reduce setup, cache dependencies, target one module
+- **Sharper signal** — the failure message should point at the root cause, not a generic error
+- **More deterministic** — remove randomness, fix seeds, pin versions, remove timing dependence
+
+### Non-deterministic bug strategy
+
+If the bug won't reproduce reliably:
+
+- **Raise the reproduction rate** — loop it, widen the input space, add stress
+- **Parallelize** — run many instances; the one that fails is your repro
+- **Stress** — increase load, memory pressure, or timing sensitivity
+
+### Completion criterion
+
+Done when you can name **ONE command** you have already run at least once that is:
+
+- **red-capable** — it can fail with this bug
+- **deterministic** — same input, same failure
+- **fast** — you will run it many times
+- **agent-runnable** — it needs no human interaction
+
+### Gate
+
+If you catch yourself reading code to build a theory before this command exists, STOP. Go back and build the loop.
 
 ## Stage 2: Isolate Root Cause
 
@@ -105,6 +165,22 @@ git bisect good <tag>    # last known good commit
 # Repeat ~6 times for 100 commits
 git bisect reset         # exit bisect mode
 ```
+
+### Hypothesis Discipline
+
+Before testing ANY hypothesis:
+
+1. Generate **3–5 ranked hypotheses** about the root cause — including at least one "the test/repro is wrong" hypothesis.
+2. Show the ranked list to the user and get the go-ahead before testing.
+3. Test them in rank order; after each test, update confidence and re-rank.
+
+### Instrumentation Convention
+
+When adding temporary logging/breakpoints during isolation:
+
+- Tag every temporary log with `[DEBUG-xxxx]` (a short unique id) so it is trivially findable for removal.
+- Track each `[DEBUG-xxxx]` tag in your notes. Everything tagged must be removed before handoff.
+- Cleanup rule: all `[DEBUG-*]` instrumentation is removed at the end of debugging — never commit debug code.
 
 ## Language-Specific Debugging Tools
 
@@ -229,3 +305,20 @@ set(CMAKE_LINKER_FLAGS_DEBUG "${CMAKE_LINKER_FLAGS_DEBUG} -fsanitize=address -fs
 2. **Write a regression test** — it should fail without the fix and pass with it
 3. **Document the root cause** — what was the bug, what was the fix, how was it found
 4. **Notify the @analyzer** if the root cause reveals a systemic issue — RCA may prevent future bugs
+
+## Stage 5: Implement & Verify
+
+Apply the minimum fix, write the regression test, and verify no regressions.
+
+### The correct test seam
+
+When verifying, check that the regression test sits at a **meaningful seam** — the public boundary at which the buggy behaviour is observable. If the only available test seam is too shallow (you have to reach into internals, mock the unit under test, or the test can't express the original failure), **that itself is the finding**: the architecture lacks an observable boundary, and the fix should include creating one. Do not paper over it with an invasive test.
+
+## Stage 6: Cleanup + Post-mortem
+
+Before declaring the fix done:
+
+1. **Original repro no longer reproduces** — run the Stage 1.5 feedback-loop command and confirm it is now green.
+2. **All `[DEBUG-*]` instrumentation removed** — every tagged log/breakpoint from Stage 2 is gone. Grep for `DEBUG-` to confirm.
+3. **Throwaway prototypes deleted** — harnesses, scratch scripts, and temp files created during debugging are removed (or moved to a clearly-labelled scratch area if genuinely reusable).
+4. **Post-mortem** — write down what would have prevented this bug: a missing test? a missing invariant? a tooling gap? If the root cause reveals a systemic issue, notify @analyzer for RCA.

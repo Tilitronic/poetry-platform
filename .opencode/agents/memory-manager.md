@@ -29,7 +29,7 @@ Write to `.opencode/memory/`:
 ## Process
 
 1. Check `git log --oneline -10` for commit history — who did what, when
-2. Read `.openspec/changes/` for the current change — compare planned (design/tasks) vs. delivered (diffs)
+2. Read `openspec/changes/` for the current change — compare planned (design/tasks) vs. delivered (diffs)
 3. Scan completed task: git diff, test results, agent outputs
 4. Check existing memory files for duplicates; update > create new
 5. Write only irrecoverable knowledge
