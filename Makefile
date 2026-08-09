@@ -19,12 +19,10 @@
 #   make test-config  validate OpenCode JSONC config syntax + interview + skills gate
 #   make test-interview  run scripts/test-interview-enforcement.sh (5 checks)
 #   make test-skills  validate .opencode/skills/*/SKILL.md frontmatter (DIA-037)
-#   make restore-telemetry-commands  restore polluted telemetry command docs to the committed portable baseline (DIA-069 interim guard)
-#   make test-telemetry-guard  run the 5-assertion DIA-069 interim-guard verification (scripts/verify-telemetry-guard.sh)
 #   make audit-python  pip-audit both Python packages (requires uv + committed uv.lock)
 #   make context7-docs  fetch library docs from Context7 (requires CONTEXT7_API_KEY; dry-run without it)
 
-.PHONY: build up shell opencode dev stack install db-psql logs down clean check-pin-sync check-tools check-host-jq check-host-lsp gen-jsconfig test-shell test-opencode-docker test-python test-infra test-config test-interview test-skills audit-python context7-docs jsonl-stats session-log-render jsonl-cross-check restore-telemetry-commands test-telemetry-guard
+.PHONY: build up shell opencode dev stack install db-psql logs down clean check-pin-sync check-tools check-host-jq check-host-lsp gen-jsconfig test-shell test-opencode-docker test-python test-infra test-config test-interview test-skills audit-python context7-docs jsonl-stats session-log-render jsonl-cross-check
 
 stack:
 	bash scripts/dev-stack.sh
@@ -165,22 +163,6 @@ test-config: test-interview test-skills
 	bash scripts/validate-handoff.sh
 	bash scripts/audit-agent-tool-coverage.sh .opencode/opencode.jsonc
 	bash scripts/audit-agent-tool-coverage.sh tools/opencode-docker/config/opencode.json
-
-# DIA-069 interim guard: restore the two telemetry command docs
-# (.opencode/commands/telemetry-{report,inspect}.md) to the committed portable
-# baseline. The opencode-telemetry@0.1.19 plugin rewrites them with literal
-# /home/qualt paths on EVERY plugin load — run this BETWEEN restart and
-# verification until the upstream patch (DIA-069 part 2) lands.
-restore-telemetry-commands:
-	bash scripts/restore-telemetry-commands.sh
-
-# DIA-069 interim-guard verification (scripts/verify-telemetry-guard.sh): the
-# 5 automated assertions — no /home/qualt (A1), portable runtime-resolved form
-# present (A2), git status clean for the two docs (A3), make test-config exit 0
-# (A4), frontmatter valid YAML (A5) — plus a manual restart-twice note. Exit
-# non-zero on any failure.
-test-telemetry-guard:
-	bash scripts/verify-telemetry-guard.sh
 
 # Python dependency vulnerability audit via pip-audit (DIA-028). Exports the
 # locked runtime dependency set per package with uv (exact pins + hashes) and
