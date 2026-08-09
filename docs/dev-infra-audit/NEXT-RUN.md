@@ -222,6 +222,13 @@ The incoming session's FIRST action is to read the predecessor handoff file and 
 the "Prognosis for next cycle" section as a **batch approval** to the developer BEFORE
 any delegation or tool use (design.md §8):
 
+0.5. PARALLELISM-CONSTRAINT — For true parallel sessions (multiple sessions
+     working simultaneously), use worktrees (separate checkouts → separate
+     .opencode/session/ dirs → no coordination). Within a single working
+     directory, at most ONE session owns the handoff file at any time. Other
+     in-directory sessions rely on their own messages.jsonl + registry.jsonl
+     + native session recall for their state; they do not write
+     current-handoff.json.
 0. **DETECTION** — at session start, check for `.opencode/session/current-handoff.json` via
    direct `read()` (deterministic path, no glob). If it exists AND contains a `prognosis`
    field with populated subsections, the batch-approval protocol is MANDATORY: log a
@@ -281,3 +288,15 @@ self-certification; untrusted markers block SELF-RERUN.
 - Fixtures: `openspec/changes/dia-redispatch-cycle/fixtures/` — crisis drills (VP-2),
   budget edge cases (VP-4), batch-approval simulation (VP-3), independence verification
   (VP-5), messages schema fixture (VP-6), integration simulation (VP-7).
+
+### 7.8 Handoff-file loss recovery
+
+If current-handoff.json is clobbered or missing, the prognosis can be
+reconstructed from:
+(a) messages.jsonl (full message log, plugin-managed)
+(b) registry.jsonl (ticket↔lane↔session_id cross-refs, A2)
+(c) Native session recall (session.prompt({path:{id}}))
+(d) log_decision events (semantic events: handoffs, crises, decisions)
+
+This is slower than the convenience file but lossless. The handoff file is
+an optimization, not the source of truth.

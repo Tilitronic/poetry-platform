@@ -31,7 +31,7 @@ carries the full detail (description, verification, fix, re-verify evidence).
 | DIA-070 | Telemetry plugin P2/P4 re-entrancy guard gaps (DIA-056(b) residuals)                            | opencode-config | Medium   | CLOSED   | [DIA-070.md](DIA-070.md) |
 | DIA-071 | make test-infra/test-shell exit 2 — host check-host-lsp gate fails                              | dev-infra       | Low      | OPEN     | [DIA-071.md](DIA-071.md) |
 | DIA-072 | researcher returns unarchived facts: 4/16 sources failed to persist during conspect Phase A       | docs            | Medium   | OPEN     | [DIA-072.md](DIA-072.md) |
-| DIA-073 | Investigate handoff coordination for parallel OpenCode sessions via session IDs                   | docs            | Medium   | OPEN     | [DIA-073.md](DIA-073.md) |
+| DIA-073 | Investigate handoff coordination for parallel OpenCode sessions via session IDs                   | docs            | Medium   | CLOSED   | [DIA-073.md](DIA-073.md) |
 
 ## Status summary
 
@@ -47,7 +47,7 @@ carries the full detail (description, verification, fix, re-verify evidence).
 
 | Status      | Count |
 | ----------- | ----- |
-| OPEN        | 4     |
+| OPEN        | 3     |
 | DONE        | 3     |
 | VALIDATE    | 0     |
 | E2E         | 0     |
@@ -56,7 +56,7 @@ carries the full detail (description, verification, fix, re-verify evidence).
 | FIXED       | 0     |
 | IMPLEMENTED | 0     |
 | VERIFIED    | 12    |
-| CLOSED      | 4     |
+| CLOSED      | 5     |
 | BLOCKED     | 0     |
 
 ## How to add a ticket
