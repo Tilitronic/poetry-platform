@@ -25,6 +25,8 @@
 
 Break the idea into specific features. Write specs for each feature. Each feature is broken into concrete tasks.
 
+> Phase ② is led by the **`@openspec-plan` AGENT** (Socratic interview → spec artifacts `proposal.md` → `design.md` → `tasks.md`). The table lists the **SKILLS** that agent — and the boss's OpenSpec cascade — uses.
+
 | #   | Tool                      | Type  | Purpose                            | Status       |
 | --- | ------------------------- | ----- | ---------------------------------- | ------------ |
 | 1   | `openspec-explore`        | Skill | Explore ideas before spec creation | ✅ ESSENTIAL |
@@ -34,7 +36,7 @@ Break the idea into specific features. Write specs for each feature. Each featur
 | 5   | `openspec-archive-change` | Skill | Archive completed change           | ✅ ESSENTIAL |
 | 6   | `openspec-apply-change`   | Skill | Implement tasks from the change    | ✅ ESSENTIAL |
 
-**Removed:** `openspec-plan` (redundant), `openspec-review` (folded into propose/update), `openspec-validate` (CLI validates structurally), `writing-skills` (not for spec auth).
+**Removed:** `writing-skills` (not for spec auth).
 
 ## ③ TDD
 

@@ -96,7 +96,7 @@
         ]
       },
       "ai-auditor": {
-        "model": "github-copilot/gpt-5.3-codex",
+        "model": ["github-copilot/gpt-5.3-codex", "opencode-go/deepseek-v4-pro"],
         "variant": "high",
         "skills": [
           "teaching"
@@ -319,7 +319,7 @@
         ]
       },
       "ai-auditor": {
-        "model": ["github-copilot/gpt-5.3-codex", "github-copilot/gemini-3.1-pro-preview"],
+        "model": ["github-copilot/gpt-5.3-codex", "github-copilot/gemini-3.1-pro-preview", "opencode/big-pickle"],
         "variant": "high",
         "skills": [
           "teaching"
@@ -499,7 +499,7 @@
         ]
       },
       "ai-auditor": {
-        "model": "github-copilot/gpt-5.3-codex",
+        "model": ["github-copilot/gpt-5.3-codex", "opencode/big-pickle"],
         "variant": "high",
         "skills": [
           "teaching"
