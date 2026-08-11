@@ -20,6 +20,18 @@ Write to `.opencode/memory/`:
 | `repo.md` | Codebase structure facts ("auth is in backend/auth/") | architect |
 | `failures.md` | Failed loop root causes + preventive actions | orchestrator |
 
+### Memory Shelf Registration
+
+If the task's findings affect the project's knowledge index, register the
+change in `.opencode/memory-shelf.yaml` under the appropriate section
+(`shelf.memories`, `shelf.architectures`, etc.). Follow these YAML rules:
+
+- **Two-space indentation**. Never tabs.
+- Multiline descriptions: use explicit `\n` escapes; avoid block scalars.
+- path values: always double-quoted.
+- created dates: ISO 8601 (`YYYY-MM-DD`), unquoted.
+- Verify with `python3 -c "import yaml; yaml.safe_load(open('$FILE'))"` after writing.
+
 ## When to Run
 
 - ✅ After task/feature completion

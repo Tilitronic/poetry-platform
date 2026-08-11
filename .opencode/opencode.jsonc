@@ -247,7 +247,8 @@
           "wget": "allow",
           "trafilatura": "allow",
           "*": "deny"
-        }
+        },
+        "task": "deny"
       }
     },
     // openspec-plan — spec authoring (Socratic interview over OpenSpec CLI).
@@ -267,7 +268,8 @@
         "bash": {
           "openspec": "allow",
           "*": "deny"
-        }
+        },
+        "task": "deny"
       }
     },
     // Council subagents — read-only

@@ -35,7 +35,15 @@ No need for @coder transcription.
   p5js-integration-ssr-safety, sketch-performance-benchmarks.
 - **Memory Shelf:** After writing the report, register it in
   `.opencode/memory-shelf.yaml` under `shelf.analyses` with name, description,
-  path, and created date.
+  path, and created date. Follow these YAML formatting rules to prevent parse
+  errors:
+  - Use **two-space indentation**. Never tabs.
+  - Multiline descriptions: use explicit `\n` escapes in a single-quoted or
+    unquoted scalar; avoid YAML block scalars (`|`, `>`).
+  - path values: always double-quoted (`"knowledge/ana.../report.md"`).
+  - created dates: ISO 8601 format (`YYYY-MM-DD`), unquoted.
+  - Verify YAML validity with `python3 -c "import yaml; yaml.safe_load(open('$FILE'))"`
+    after writing (if yaml module available).
 
 ## Ownership
 
