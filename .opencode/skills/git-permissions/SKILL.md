@@ -67,9 +67,12 @@ Still interactive (ask):
 ## Main-Branch Rule
 
 Only the developer may push to main. No agent lane may push to main, even
-with a force flag or through an alias. The permission deny rules gate agent
-tool calls only; they never restrict the developer's terminal. When a lane
-needs a main push, the lane must ask the developer to run it manually.
+with a force flag or through an alias. Bypass forms that resolve to main are
+also denied: `HEAD:main` refspecs, `--all` / `--mirror` pushes, plus-force
+refspecs (e.g. `+HEAD:main`), and delete-by-refspec (`:main`). The permission
+deny rules gate agent tool calls only; they never restrict the developer's
+terminal. When a lane needs a main push, the lane must ask the developer to
+run it manually.
 
 ## Safe-Push Cookbook for Lanes
 
