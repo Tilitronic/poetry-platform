@@ -113,3 +113,14 @@ Deliverables per brief acceptance criteria:
 - [ ] Document the resume-after-stop procedure with DIA-098 cross-reference.
 - [ ] Walk one worked example end-to-end: two sessions, one stops mid-task.
 - [ ] Split recommendation into "do now with current tooling" vs "requires new infrastructure".
+
+## Session-11 dispositions (2026-08-11)
+
+Developer decision: DEFER. Build the claim + heartbeat protocol only when
+parallel-session work actually starts (DIA-101/100). This is a deferred-build
+ticket, not closed.
+
+Report: `knowledge/ana011-parallel-sessions-coordination/ana011-parallel-sessions-coordination-report.md`.
+
+Status: OPEN (deferred build; frontmatter status left unchanged, consistent
+with the existing OPEN convention for this ticket).

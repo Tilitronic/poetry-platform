@@ -116,3 +116,13 @@ Deployment concern to flag (from post-rebase audit):
 - [ ] Produce a findings list: misplaced, duplicate, obsolete, inconsistent, unowned.
 - [ ] Apply a consistent organization strategy where appropriate; record what changed.
 - [ ] Document the project-vs-global skill location convention and the resolution risk outside this user home.
+
+## Session-11 dispositions (2026-08-11)
+
+Audit report: `knowledge/ana010-artifacts-folder-audit/ana010-artifacts-folder-audit-report.md`.
+
+Developer disposition: chose "research it deeper" for the skill-location risk
+(project-vs-global skill resolution outside this user home). ai-specialist lane
+to follow with the deeper research.
+
+Status: OPEN.

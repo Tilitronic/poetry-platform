@@ -56,6 +56,11 @@ shelf:
     description: Conspect documenting opencode-snip (plugin) + snip (binary) mechanics, permission-matching failures from command-prefix rewriting, upstream bug intersections, and a removal-risk assessment with native OpenCode mitigation guidance (DIA-092 cross-reference).
     path: knowledge/res011-opencode-snip-mechanical-lock/res011-opencode-snip-mechanical-lock-conspect.md
     created: 2026-08-11
+  - name: Scientific Methodology for AI-driven Research Agents
+    description: 'Conspect synthesizing best practices for machine-driven scientific workflows: structured hypotheses, novelty checks, experiment journals, falsification, verification, provenance, test-driven SWE agents, eval-driven development, failure modes, and solo-developer SCOPE GUARD guidance.'
+    path: knowledge/res012-scientific-methodology/res012-scientific-methodology-conspect.md
+    created: 2026-08-11
+
   analyses:
   - name: Agent Alignment Audit
     description: "MECE inventory of all agent definitions across OMO Slim, native\
@@ -158,6 +163,18 @@ shelf:
   - name: "Post-Rebase Comprehensive Audit (omo-slim-changes)"
     description: "19-point audit after rebase onto origin/omo-slim-changes (56cc42b). 6 rebased commits d026a52..f87df23. 13 PASS, 3 WARN, 3 FAIL. HIGH: memory-shelf.yaml YAML parse error (line 154 indentation break), 3 dangling skill refs (teaching, mermaid-diagramming, console-charting), dangling shelf path (ai-self-improvement-auditor-and-cleanup dir missing). MEDIUM: explore/general in opencode.jsonc but not disabled anywhere despite AGENTS.md saying disabled. LOW: finishing-a-development-branch skill duplicate, conspecter missing explicit task deny. Rebase itself clean (no conflict markers, validate-agent-names.sh 22/22, OMO dist up-to-date, pnpm-lock has typescript-eslint@8.67.0)."
     path: "knowledge/ana-post-rebase-audit/ana-post-rebase-audit-report.md"
+    created: 2026-08-11
+  - name: "Artifacts Folder Audit (DIA-084)"
+    description: "Full audit of all artifact folders (knowledge/, memory-shelf, learnings/, session/, openspec/, .sdd/, .tss/). Finds 3 naming violations (ana-post-*, context7-docs), 1 dangling shelf ref (ai-self-improvement archived path), 4 status mismatches (shelf vs proposal.md), 10 unregistered openspec changes, 1 orphan directory (res003-tui-corruption-stdout), 1 committed-but-ignored source file, 1 empty change scaffold (dia-071). Skill-location risk: 13 global-only skills would fail outside this user home. 5 safe-to-apply + 9 needs-developer-decision recommendations."
+    path: "knowledge/ana010-artifacts-folder-audit/ana010-artifacts-folder-audit-report.md"
+    created: 2026-08-11
+  - name: "Parallel Orchestrator Sessions Coordination (DIA-085)"
+    description: "Coordination model for 2+ parallel orchestrator sessions on top of DIA-073 worktree isolation. File-based claim + heartbeat protocol: claims live in .opencode/session/claims/<ticket>.claim.json (atomic write via rename), heartbeat every 5 min, stale threshold 15 min, dead threshold 60 min. Conflict detection via pre-claim scan of active claims (same ticket, overlapping files_touched, branch collision). Resume-after-stop procedure: liveness verify via registry.jsonl -> inspect dead worktree -> rescue uncommitted changes via git stash -> supersede stale claim in claims/history/ -> write new claim. Worked example walks two sessions (A alive, B stops at T+11 via DIA-098 class C3, A reclaims at T+66). Do-now: ~14h of shell helpers (claim-ticket.sh, heartbeat.sh, list-claims.sh, reclaim-ticket.sh), zero new dependencies. Rejected: lock server, shared SQLite DB, supervisor process, distributed consensus (overhead-disproportionate per DIA-086 SCOPE GUARD). Cross-references DIA-073/098/100/061/086."
+    path: "knowledge/ana011-parallel-sessions-coordination/ana011-parallel-sessions-coordination-report.md"
+    created: 2026-08-11
+  - name: "Scientific-Workflow Proposal (DIA-086)"
+    description: "Internal mapping pass of the 50-source scientific-methodology survey (res012 conspect) onto existing project mechanisms. Gap analysis: 6 of 10 survey practices already mapped (novelty checks via research-pipeline + DIA-072, experiment logs via delegation-observer, independent reviewer via two-axis @reviewer, provenance via DIA-072 Archive-Before-Claim, test-driven via tdd-craftsman, uncertainty via researcher confidence). 2 structural gaps confirmed: (A) falsification/'break your own claim' not present as distinct step (review-re-verify only verifies prior findings), (B) competing-hypothesis comparison not present in analysis reports. 5 mandatory lightweight additions proposed (<12h total): M1 claim/evidence/confidence template for lane reports, M2 experiment-log header convention, M3 'break your claim' section in @reviewer two-axis, M4 explicit hypothesis line in openspec-plan Socratic interviews, M5 frozen lite eval set (20-50 tasks) via make eval-lite. 6 optional/rejected per SCOPE GUARD: full autonomous research pipelines (AI Scientist/AutoSci/DASES), POPPER statistical machinery, dogmatic enforced TDD on exploratory code, full novelty checks, failure-mode ledger, competing-hypothesis matrix. Before/after comparison table for interview-spec-implement-review-persist-eval stages. All proposals MLA-cited to archived sources in knowledge/res012-scientific-methodology/sources/."
+    path: "knowledge/ana012-scientific-workflow-proposal/ana012-scientific-workflow-proposal-report.md"
     created: 2026-08-11
   adrs:
   - name: Memory Storage Strategy
@@ -306,3 +323,4 @@ shelf:
     status: proposed
   architectures: []
   rag_bases: []
+  

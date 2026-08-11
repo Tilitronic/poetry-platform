@@ -78,3 +78,19 @@ process overhead disproportionate to the team size.
 
 Acceptance: concrete workflow proposal, already-implemented inventory,
 mandatory-vs-optional split, overhead-risk flags.
+
+## Session-11 dispositions (2026-08-11)
+
+Pipeline complete. External survey persisted at
+`knowledge/res012-scientific-methodology/` (50/50 sources archived, conspect +
+memory-shelf entry). Workflow proposal at
+`knowledge/ana012-scientific-workflow-proposal/` (M1-M5 mandatory, O1-O6
+rejected per SCOPE GUARD).
+
+Developer APPROVED M1-M5 for implementation via the spec chain. Interview-first
+gate applies: dispatch `openspec-plan` next to author the change artifacts
+(proposal/design/tasks) before implementation.
+
+DIA-085 coordination build DEFERRED until parallel work starts.
+
+Status: OPEN (implementation pending).
