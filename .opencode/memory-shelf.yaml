@@ -321,6 +321,13 @@ shelf:
     path: openspec/changes/dia-066-tool-coverage-audit/
     created: 2026-08-08
     status: proposed
+  - name: M1-M5 Scientific-Workflow Mandates (DIA-086)
+    description: 'Agent output contracts (M1/M2), reviewer Falsification axis (M3),
+      hypothesis question (M4), eval-lite harness (M5) - implemented per DIA-086,
+      archived 2026-08-11'
+    path: openspec/changes/archive/2026-08-11-dia-086-m1-m5-agent-contracts-eval-lite/
+    created: 2026-08-11
+    status: implemented
   architectures: []
   rag_bases: []
   

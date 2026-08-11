@@ -259,4 +259,30 @@ Every proposal cites the archived source in knowledge/res012-scientific-methodol
 
 ---
 
+## 8. Implementation Status (2026-08-11)
+
+**Status:** PROPOSAL -> IMPLEMENTED. All five mandatory additions (M1-M5) were
+delivered and archived on 2026-08-11 as the change
+`dia-086-m1-m5-agent-contracts-eval-lite`
+(`openspec/changes/archive/2026-08-11-dia-086-m1-m5-agent-contracts-eval-lite/`).
+
+| Mandate | Delivered Artifact | Gate |
+|---------|--------------------|------|
+| M1 analyzer output contract | `ANALYZER-OUTPUT-CONTRACT` header block in `.opencode/agents/analyzer.md` (schema-version, agent, claim-type, evidence-source, confidence, shelf-registration) + `scripts/validate-output-contracts.sh` | make test-config |
+| M2 conspecter output contract | `CONSPECTER-OUTPUT-CONTRACT` header block in `.opencode/agents/conspecter.md` (schema-version, agent, phase-a-source-count, phase-a-failures, shelf-registration) + same validator | make test-config |
+| M3 reviewer Falsification axis | `## Falsification` section in `.opencode/oh-my-opencode-slim/reviewer.md` between `## Spec` and `## Summary`, exactly 3 severity-labelled `[FALSIFICATION-N]` claims + `scripts/validate-reviewer-sections.sh` | make test-config |
+| M4 hypothesis question | Identical question in `.opencode/skills/openspec-propose/SKILL.md` + `.opencode/skills/domain-grilling/SKILL.md` after `<!-- FIRST-QUESTION -->` anchor + `validate-skills.sh` extension | make test-skills |
+| M5 eval-lite harness | `scripts/eval-lite.sh`, `docs/dev-infra/eval-lite-tasks.md` (20-task manifest), `scripts/__tests__/eval-lite.bats`, Makefile `eval-lite` target + test-config wiring | make eval-lite |
+
+**Review chains:** Slice A (M1-M4, config-tooling per AGENTS.md 2.5) @coder + @ai-auditor
+APPROVE; Slice B (M5, dev-infra per AGENTS.md 2.4) @coder + @reviewer APPROVE on both axes.
+
+**Gate evidence (2026-08-11):** `make eval-lite` 20/20 (~22s); `make test-shell` 193/0;
+`make test-config` exit 0 (224 pre-existing WARNs); `openspec validate` 15/15 post-archive.
+
+**Memory-shelf registration:** COMPLETE (2026-08-11) - `shelf.specs` entry added for the
+archived change; the "Pending" note in section 7 is superseded.
+
+---
+
 **END OF REPORT**
