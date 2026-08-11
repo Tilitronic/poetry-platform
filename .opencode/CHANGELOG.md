@@ -1,5 +1,13 @@
 # OpenCode Config Changelog
 
+## 2026-08-11 - DIA-080 context_usage session-scoping fix (in-memory per-session counters + ToolContext.sessionID) + S10-P6 registration
+
+- **Change:** delegation-observer.ts context_usage re-scoped to the CURRENT session: in-memory per-session counters replace the cumulative registry/messages-wide estimate (was always ~100% -> false >=50% self-rerun trigger on every session); calling-session key resolved from ToolContext.sessionID (review nit fix).
+- **Reason:** DIA-080 (Major): the context_usage proxy was CUMULATIVE across sessions - zero session filtering; estimated_tokens 5,524,000 vs context_window 1,000,000; message_count 1716 / delegation_count 1226 accumulated since 2026-08-04 - so the proxy ALWAYS read >= the NEXT-RUN.md self-rerun threshold and fired premature idle/handoff stops on every session regardless of true current-session usage.
+- **Files:** .opencode/plugins/delegation-observer.ts (commit 4f5bb46 - Option A in-memory per-session counters; commit 84be46f - session key resolved from ToolContext.sessionID) - docs/dev-infra-audit/tickets/DIA-080-orchestrator-frequent-stops.md (resolution block; status kept OPEN pending-validate) - .opencode/learnings/external-patterns/2026-08-11-context-usage-session-scope.md (NEW) - CHANGELOG.md.
+- **Review:** ai-auditor cycle 1 (4f5bb46) approve-with-nits, 1 Major finding (session key drift); cycle 2 (84be46f) VERDICT approve - prior finding verified-closed, all regression checks clean, no new observations, RESTART_VERIFY_READY yes.
+- **Verification:** `docker compose ps` shows poetry-dev + poetry-postgres running (DIA-094 docker gate); husky pre-commit ran live (no --no-verify); ASCII-only (DIA-079). Restart-verify PENDING (S10 Phase 5): next OpenCode boot - context_usage should read low/session-scoped instead of 100%; S10-P6 registration complete 2026-08-11.
+
 ## 2026-08-11 - DIA-095 AGENTS.md section 6 Project Ops Quick Reference (Option A) + S10-P6 registration
 
 - **Change:** AGENTS.md: add section 6 Project Ops Quick Reference (bring-up commands + docker gate + pre-work gates).

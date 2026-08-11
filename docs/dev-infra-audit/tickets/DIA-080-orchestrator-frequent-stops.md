@@ -116,3 +116,11 @@ May be §10-routed depending on root cause (config/plugin/prompt).
 ## Re-verify
 
 > To be filled at re-verify time.
+
+## Resolution (S10-P6 registration 2026-08-11)
+
+- **Implementation (Option A):** commit 4f5bb46 - in-memory per-session counters: context_usage estimate computed from the current session only (session-scoped message/delegation counts), no longer cumulative across sessions (was always ~100%: estimated_tokens 5,524,000 vs context_window 1,000,000 from 1716 messages / 1226 delegations since 2026-08-04).
+- **Review nit fix:** commit 84be46f - calling-session key resolved from ToolContext.sessionID (ai-auditor cycle-1 Major finding: session key drift), closing the finding.
+- **ai-auditor cycle 2:** VERDICT APPROVE - prior finding verified-closed, all regression checks clean, no new observations, RESTART_VERIFY_READY yes.
+- **Restart-verify:** PENDING (S10 Phase 5) - on next OpenCode boot, context_usage should report a low session-scoped fraction instead of 100%. Status remains OPEN (pending-validate restart-verify); do NOT flip to CLOSED until the post-restart reading is confirmed.
+- **Frontmatter:** status stays `OPEN` (pending-validate restart-verify) - unchanged from discovery.
