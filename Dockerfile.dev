@@ -37,6 +37,11 @@ ARG TINI_VERSION=0.19.0
 ARG TYPESCRIPT_LS_VERSION=5.3.0
 ARG TYPESCRIPT_VERSION=5.9.3
 ARG PYRIGHT_VERSION=1.1.411
+# rust-analyzer is pinned independently of the compiler toolchain (RUST_VERSION):
+# the LSP gate (scripts/check-host-lsp.sh) resolves it through the dev
+# container, and it is provisioned on its own rustup toolchain below so
+# rustc/cargo stay on RUST_VERSION for stress-lang-core WASM builds.
+ARG RUST_ANALYZER_VERSION=1.97.1
 
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -174,7 +179,10 @@ RUN uv pip install --system --break-system-packages trafilatura==${TRAFILATURA_V
 # so the installer must not rewrite /etc/profile.d for root.
 ENV RUSTUP_HOME=/opt/rust/rustup \
     CARGO_HOME=/opt/rust/cargo \
-    PATH="/opt/rust/cargo/bin:${PATH}"
+    # /usr/local/bin precedes the rustup shim dir so the pinned rust-analyzer
+    # wrapper (see rust section below) shadows the RUST_VERSION toolchain's
+    # rustup shim; rustc/cargo still resolve through /opt/rust/cargo/bin.
+    PATH="/usr/local/bin:/opt/rust/cargo/bin:${PATH}"
 RUN RUSTUP_ARCH=$(case "${TARGETARCH:-$(uname -m)}" in x86_64|amd64) echo "x86_64-unknown-linux-gnu" ;; aarch64|arm64) echo "aarch64-unknown-linux-gnu" ;; esac) && \
     curl -fsSL "https://static.rust-lang.org/rustup/dist/${RUSTUP_ARCH}/rustup-init" -o /tmp/rustup-init && \
     case "${RUSTUP_ARCH}" in \
@@ -185,7 +193,18 @@ RUN RUSTUP_ARCH=$(case "${TARGETARCH:-$(uname -m)}" in x86_64|amd64) echo "x86_6
     /tmp/rustup-init -y --profile minimal --default-toolchain "${RUST_VERSION}" --no-modify-path && \
     rm -f /tmp/rustup-init && \
     rustup target add wasm32-unknown-unknown && \
-    rustup component add rust-analyzer && \
+    # rust-analyzer is bound to RUST_ANALYZER_VERSION (mirrored from
+    # scripts/lsp-versions.env), NOT to the default compiler toolchain: it is
+    # installed on its own toolchain so rustc/cargo stay on RUST_VERSION for
+    # stress-lang-core WASM builds while the LSP gate resolves the pinned
+    # version. The wrapper in /usr/local/bin (PATH-first, see ENV above)
+    # shadows the rustup shim for RUST_VERSION's rust-analyzer. It invokes
+    # rustup by ABSOLUTE path because `bash -lc` login shells (how the LSP
+    # gate probes the container) reset PATH to the Debian default and would
+    # not find the bare `rustup` (only /usr/local/bin survives).
+    rustup toolchain install "${RUST_ANALYZER_VERSION}" --profile minimal --component rust-analyzer && \
+    printf '#!/usr/bin/env bash\nexec /opt/rust/cargo/bin/rustup run %s rust-analyzer "$@"\n' "${RUST_ANALYZER_VERSION}" > /usr/local/bin/rust-analyzer && \
+    chmod +x /usr/local/bin/rust-analyzer && \
     rustc --version && cargo --version
 
 # === Playwright (chromium) + crawl4ai for browser automation ===
