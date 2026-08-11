@@ -146,12 +146,20 @@
         "task": "deny"
       }
     },
+    // analyzer — artifact-producer tier (DIA-057/F3 fix).
+    // Writes analysis reports to knowledge/<type><id>-<topic>/
+    // and registers them in memory-shelf.yaml. Bash allowed for
+    // Mermaid CLI + analysis tooling; edit scoped to output dirs only.
     "analyzer": {
       "mode": "subagent",
       "color": "#14B8A6",
       "permission": {
-        "edit": "deny",
-        "bash": "deny",
+        "edit": {
+          "*": "deny",
+          "knowledge/*": "allow",
+          ".opencode/memory-shelf.yaml": "allow"
+        },
+        "bash": "allow",
         "task": "deny"
       }
     },
