@@ -4,8 +4,10 @@
 # Tier 2 — Volatile sources (ALWAYS fetch fresh from web — prices change)
 # Tier 3 — Local reference data (conspects, config files)
 #
-# Model pricing is NEVER stored here — it changes dynamically.
+# Authoritative model pricing is NEVER stored here — it changes dynamically.
 # Always fetch latest pricing from live URLs in Tier 2.
+# (Inline prices that appear in "strong_sides" below are contextual weakness
+# notes, reference-only snapshots at last review — NOT authoritative.)
 
 tier1_fundamentals:
   anthropic_engineering:
@@ -148,6 +150,9 @@ model_benchmark_reference:
         pool: Copilot
 
   strong_sides:
+    # NOTE: Prices listed inline below are contextual weakness notes, captured
+    # as a reference-only snapshot at the last review. They are NOT authoritative
+    # — always fetch current pricing live from Tier 2 URLs before recommending.
     deepseek_v4_flash:
       - "Fastest and cheapest on Go ($0.14/$0.28)"
       - "79% SWE-bench — best price/performance ratio"
@@ -191,7 +196,7 @@ model_selection_guidelines:
     reviewer: "GPT-5.3-Codex (Copilot) — model diversity, 85% SWE"
     openspec_plan: "Qwen3.7 Plus (Go) — volume for spec writing"
     designer: "Gemini 3 Flash (Copilot) or Kimi K2.6 (Go) — fast, multimodal"
-    code_navigator: "GPT-5 mini (Copilot) — fast code search, cheap"
+    code_navigator: "DS V4 Flash (Go) — fast code search, cheap"
     researcher: "DS V4 Flash (Go) — volume research"
     conspecter: "DS V4 Flash (Go) — volume synthesis"
     analyzer: "Qwen3.7 Plus (Go) — 90.3% GPQA for analysis"
