@@ -102,6 +102,50 @@ See `.opencode/practice-protected.md` for zones where agents must ask guiding qu
 - When writing tests: invoke the `tdd-craftsman` skill at the start of the workflow.
 - For new features: dispatch `@openspec-plan` to gather specs and author the OpenSpec change (`openspec/changes/<name>/{proposal,design,tasks}.md`). It is the spec-interview role.
 
+## 6. Project Ops Quick Reference
+
+The project runs inside Docker. One dev workstation container
+(`poetry-dev`) + one stateful postgres container (`poetry-postgres`).
+Full setup docs: `docs/docker-dev.md`.
+
+### Bring-up (host commands)
+
+    cp .env.example .env          # first run only
+    make up                       # docker compose up -d (dev + postgres)
+    make shell                    # bash into the dev container
+    make install                  # pnpm install (first time / dep changes)
+    make dev                      # pnpm dev -> turbo (author-studio on :9000)
+    make opencode                 # run opencode inside the dev container
+    make down                     # stop containers (keep data)
+    make clean                    # stop containers + wipe volumes
+
+### Gates that REQUIRE the container running
+
+| Gate            | Command                        | Notes                                         |
+| --------------- | ------------------------------ | --------------------------------------------- |
+| Pre-commit hook | `scripts/verify-pre-commit.sh` | HARD-FAILS when container is down (DIA-094)   |
+| Python tests    | `make test-python`             | pytest inside dev container                   |
+| Full infra test | `make test-infra`              | needs Docker daemon; smoke test + test-python |
+
+### Gates that run on the host (no container needed)
+
+| Gate              | Command                                 |
+| ----------------- | --------------------------------------- |
+| Config validation | `make test-config`                      |
+| Shell unit tests  | `make test-shell` (bats, docker mocked) |
+
+### Pre-work gates (MANDATORY)
+
+1. **Docker gate (DIA-094):** implementation work AND commits MUST NOT
+   proceed without a running docker dev container. The pre-commit hook
+   HARD-FAILS when the container is down. Never bypass with
+   `--no-verify` or manual host checks.
+2. **Ticket gate (DIA-063):** no engineering work starts without a DIA
+   ticket.
+3. **ASCII-only protocol (DIA-079):** all lane dispatch payloads and
+   reports use ASCII-only text (no em-dashes, no smart quotes, no
+   non-ASCII punctuation) to prevent JSON serialization failures.
+
 ## 9. Agent Naming Convention
 
 Canonical display→internal mapping for every agent the project declares (active or disabled). This table is S1 of the 4-source agent-name lockstep contract (`scripts/validate-agent-names.sh`): the "Internal name" column must stay in equality with the `.opencode/opencode.jsonc` `agent` block keys, the `.opencode/oh-my-opencode-slim.jsonc` `agents`/preset/`disabled_agents` keys, and the `.opencode/agents/*.md` filename stems.
