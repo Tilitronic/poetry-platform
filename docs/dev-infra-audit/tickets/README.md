@@ -53,9 +53,9 @@ carries the full detail (description, verification, fix, re-verify evidence).
 | DIA-091 | orchestrator repeatedly reports "I have no bash" across sessions — document and enforce the bash-delegation pattern                          | opencode-config | Major    | CLOSED   | [DIA-091-orchestrator-no-bash-recurring.md](DIA-091-orchestrator-no-bash-recurring.md)                     |
 | DIA-092 | §10 snip-plugin-removal — remove opencode-snip@1.6.1 mechanical lock (root cause of DIA-075/DIA-078; blocks ALL bash lanes)                  | opencode-config | Major    | OPEN     | [DIA-092-snip-plugin-removal-s10.md](DIA-092-snip-plugin-removal-s10.md)                                   |
 | DIA-093 | Orchestrator boot: "I have no bash tool" - DIA-061 checksum not delegated to coder lane                                                      | opencode-config | Major    | OPEN     | [DIA-093-orchestrator-no-bash-checksum-delegation.md](DIA-093-orchestrator-no-bash-checksum-delegation.md) |
-| DIA-094 | Husky pre-commit hook cannot run in WSL - docker unavailable, quality gate bypassed via --no-verify                                          | dev-infra       | Major    | OPEN     | [DIA-094-husky-precommit-wsl-docker-unavailable.md](DIA-094-husky-precommit-wsl-docker-unavailable.md)     |
+| DIA-094 | Husky pre-commit hook cannot run in WSL - docker unavailable, quality gate bypassed via --no-verify                                          | dev-infra       | Major    | CLOSED   | [DIA-094-husky-precommit-wsl-docker-unavailable.md](DIA-094-husky-precommit-wsl-docker-unavailable.md)     |
 | DIA-095 | Orchestrator needs an optimized project-ops reference - how to run the project, bring up docker, required gates                              | dev-infra       | Major    | CLOSED   | [DIA-095-orchestrator-project-ops-reference.md](DIA-095-orchestrator-project-ops-reference.md)             |
-| DIA-096 | Git push permission policy - allow safe branch push, deny destructive commands and main push (config + git-permissions skill)                | opencode-config | Major    | OPEN     | [DIA-096-git-push-permission-policy.md](DIA-096-git-push-permission-policy.md)                             |
+| DIA-096 | Git push permission policy - allow safe branch push, deny destructive commands and main push (config + git-permissions skill)                | opencode-config | Major    | CLOSED   | [DIA-096-git-push-permission-policy.md](DIA-096-git-push-permission-policy.md)                             |
 | DIA-097 | Orchestrator role consolidation: task/resource mgmt, delegation, heavy-thinking separation, bash-delegation, automation-of-repetition        | opencode-config | Major    | OPEN     | [DIA-097-orchestrator-role-delegation.md](DIA-097-orchestrator-role-delegation.md)                         |
 | DIA-098 | Spontaneous subagent/session stops: stalled-agent detection, auto-resume, complete-vs-interrupted classification                             | opencode-config | Major    | OPEN     | [DIA-098-spontaneous-session-stops.md](DIA-098-spontaneous-session-stops.md)                               |
 | DIA-099 | Truncated/partial subagent responses: detect-preserve-resume-validate mechanism                                                              | opencode-config | Major    | OPEN     | [DIA-099-truncated-subagent-responses.md](DIA-099-truncated-subagent-responses.md)                         |
@@ -80,7 +80,7 @@ carries the full detail (description, verification, fix, re-verify evidence).
 
 | Status      | Count |
 | ----------- | ----- |
-| OPEN        | 24    |
+| OPEN        | 22    |
 | DONE        | 3     |
 | VALIDATE    | 0     |
 | E2E         | 0     |
@@ -89,7 +89,7 @@ carries the full detail (description, verification, fix, re-verify evidence).
 | FIXED       | 0     |
 | IMPLEMENTED | 0     |
 | VERIFIED    | 15    |
-| CLOSED      | 12    |
+| CLOSED      | 14    |
 | BLOCKED     | 0     |
 
 ## How to add a ticket

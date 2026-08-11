@@ -19,7 +19,7 @@ title: "Git push permission policy - allow push, restrict destructive commands a
 area: opencode-config
 severity: Major
 priority: HIGH
-status: OPEN
+status: CLOSED
 blocked_by: [] # cross-referenced in Description: DIA-094, DIA-063, DIA-095
 discovered: 2026-08-11
 source: developer-directive
@@ -312,3 +312,30 @@ the next OpenCode restart so the new config is live.
   variants) denied; developer terminal push unaffected; `make test-config` exit 0. Ticket
   stays OPEN pending-validate - do NOT flip to CLOSED until the next-boot restart-verify
   passes (DIA-096 restart-verify is still pending because session-10 item 1 FAILed).
+
+## Session-11 restart-verify result (2026-08-11)
+
+Session-11 boot restart-verify of the DIA-096 policy (branch `omo-slim-changes`, campaign
+c-20260809-residual-closure). The project-scoped allow override (`.opencode/opencode.jsonc`
+line 29) was live this session, so the targeted deny patterns were the enforcing rules.
+
+1. **Item 1 - lane feature-branch push: PASS.** cod-2 pushed `omo-slim-changes`
+   (`2156570..36bd373`) via the project allow rule (`.opencode/opencode.jsonc` line 29);
+   the pre-push hook passed ALL gates inside the dev container: prettier, lint 7/7,
+   typecheck 7/7, vitest editor-engine 91/91 + phonetics-core 25/25, author-studio build
+   - test, pytest 2/2 + 4/4. Origin advanced to `36bd373` (17 commits).
+2. **Item 2 - force-push denied: PASS.** `git push --force origin omo-slim-changes` and
+   `git push --force origin main` were both denied by the permission layer BEFORE git
+   executed (rule `git push --force *`, line 57 of `.opencode/opencode.jsonc`).
+3. **Item 3 - push-to-main and bypass forms denied: PASS.** `git push origin main` denied
+   (line 68); `git push origin --all` denied (line 84, DIA-096 remote-first);
+   `git push origin --mirror` denied (line 87, DIA-096 remote-first). `git ls-remote`
+   BEFORE/AFTER snapshots byte-identical (7 refs, verified with cmp) - no refs mutated.
+4. **Item 4 - developer terminal unaffected: PASS by design.** Global
+   `~/.config/opencode/opencode.jsonc` line 11 blanket deny `git push *` still present and
+   unchanged; the permission layer gates agent tool calls only, never the developer
+   terminal.
+5. **Item 5 - make test-config: PASS.** `make test-config` exit 0.
+
+Status: all 5 items PASS -> ticket flips to CLOSED. Resolution complete (S10 phases 1-7
+done: gate, design, implement, validate, audit approve, restart-verify PASS, register).
