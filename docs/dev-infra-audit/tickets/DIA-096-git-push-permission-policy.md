@@ -242,3 +242,17 @@ test-config` must exit 0.
 - **Registration (S10 Phase 7):** CHANGELOG entry added (`.opencode/CHANGELOG.md`, 2026-08-11); learnings registered (`.opencode/learnings/external-patterns/2026-08-11-git-permission-pattern-matching.md`, outcome "implemented + approve-with-nits, restart-verify pending"); this ticket resolution block added.
 - **Restart-verify:** PENDING (S10 Phase 5) - on next OpenCode boot: lane push of a feature branch succeeds; force-push / main-push / bypass forms denied; developer terminal push unaffected; `make test-config` exit 0. Status remains OPEN (pending-validate restart-verify); do NOT flip to CLOSED until the restart-verify is confirmed.
 - **Frontmatter:** status stays `OPEN` (pending-validate restart-verify) - unchanged from discovery; `updated` already 2026-08-11.
+
+## Session-9 restart-verify checklist (session-8 wrap, 2026-08-11)
+
+Run at session-9 boot after DIA-096 config is live. Flip ticket CLOSED on full PASS.
+
+1. Lane feature-branch push succeeds: git push -u origin <feature-branch>
+2. Force-push denied from lanes: git push --force / -f / --force-with-lease
+3. Push-to-main and bypass forms denied from lanes: origin main, origin main:\*, origin HEAD:main, origin +HEAD:main, origin :main, --all, --all origin, --mirror, --mirror origin, plus option-order variants git push origin --all and git push origin --mirror
+4. Developer terminal push to main unaffected (deny rules gate agent tool calls only)
+5. make test-config exits 0
+
+## Push-deferral decision (session-8 wrap)
+
+Developer directive 2026-08-11: defer the push of omo-slim-changes to session 9, because the DIA-096 allow-push permission config only takes effect at the next OpenCode boot; a push lane in session 8 would still hit the old blanket 'git push \*' deny. Push lane is scheduled FIRST at session 9 start. stash@{0} remains HELD as safety net until the push succeeds.
