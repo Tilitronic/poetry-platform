@@ -54,7 +54,7 @@
         "mcps": []
       },
       "coder": {
-        "model": "opencode-go/deepseek-v4-pro",
+        "model": "opencode-go/deepseek-v4-flash",
         "variant": "medium",
         "skills": [
           "simplify",
@@ -112,7 +112,7 @@
         ]
       },
       "resource-manager": {
-        "model": "opencode-go/deepseek-v4-pro",
+        "model": "opencode-go/deepseek-v4-flash",
         "variant": "low",
         "skills": [],
         "mcps": [
@@ -131,7 +131,7 @@
         "mcps": []
       },
       "conspecter": {
-        "model": "opencode-go/deepseek-v4-pro",
+        "model": "opencode-go/deepseek-v4-flash",
         "mcps": [
           "websearch"
         ]
@@ -152,7 +152,7 @@
         ]
       },
       "memory-manager": {
-        "model": "opencode-go/deepseek-v4-pro",
+        "model": "opencode-go/deepseek-v4-flash",
         "variant": "low",
         "skills": [
           "git-diff"
@@ -167,13 +167,13 @@
         "mcps": []
       },
       "code-navigator": {
-        "model": "opencode-go/deepseek-v4-pro",
+        "model": "opencode-go/deepseek-v4-flash",
         "variant": "low",
         "skills": [],
         "mcps": []
       },
       "researcher": {
-        "model": "opencode-go/deepseek-v4-pro",
+        "model": "opencode-go/deepseek-v4-flash",
         "variant": "low",
         "temperature": 0.7,
         "skills": [
@@ -210,7 +210,7 @@
         "prompt": "Orchestrator Operating Rules: you are delegation-only and FORBIDDEN from reading repo files (path-scoped permission enforces; only .opencode/session/*, docs/dev-infra-audit/NEXT-RUN.md, docs/dev-infra-audit/tickets/* and docs/dev-infra-audit/tickets/archive/*, AGENTS.md, .opencode/practice-protected.md readable). Session logging is automatic via delegation-observer plugin; use log_decision tool for semantic events; self-rerun handoff at >=50% context per docs/dev-infra-audit/NEXT-RUN.md; strict workflow adherence (interview gate, §10, review gates); batch-approval boot: if HANDOFF.md exists with Prognosis section, present it to developer BEFORE any delegation (NEXT-RUN §7.3 — hard gate, no exceptions); HANDOFF-CHECKSUM VERIFICATION (delegated, DIA-061): the DIA-061 checksum of .opencode/session/current-handoff.json is computed by a coder lane as lane-0 immediately after batch approval (see boot gate lane-0 step). The orchestrator has no bash tool by design (delegation-only). Never attempt the checksum pipeline yourself; never fabricate a checksum. PURE-DISPATCH RULE: every task() call must be the SOLE tool call in its message — no parallel tool calls alongside task(). Delegation-observer plugin enforces this mechanically. Recall/resume subagents via session.prompt({path:{id}}) using session_id from registry.jsonl — never re-invoke task() for recall. Boot: call get-my-session-id once for parent_session_id. AI-AUDITOR RULE: @ai-auditor's read-only verdict on agent-config changes is advisory-not-binding; council remains restricted to C1–C5 crisis states."
       },
       "architector": {
-        "model": ["opencode-go/qwen3.7-max", "opencode/big-pickle"],
+        "model": ["github-copilot/gemini-3.1-pro-preview", "opencode/big-pickle"],
         "variant": "high",
         "temperature": 0.1,
         "skills": [
@@ -290,7 +290,7 @@
         "mcps": []
       },
       "conspecter": {
-        "model": ["github-copilot/gpt-5-mini", "opencode-go/deepseek-v4-flash", "opencode/deepseek-v4-flash"],
+        "model": ["opencode-go/deepseek-v4-flash", "opencode/deepseek-v4-flash"],
         "mcps": [
           "websearch"
         ]
@@ -341,7 +341,7 @@
         ]
       },
       "resource-manager": {
-        "model": ["github-copilot/gpt-5-mini", "opencode-go/deepseek-v4-flash", "opencode/deepseek-v4-flash"],
+        "model": ["opencode-go/deepseek-v4-flash", "opencode/deepseek-v4-flash"],
         "variant": "low",
         "skills": [],
         "mcps": [
@@ -349,11 +349,7 @@
         ]
       },
       "memory-manager": {
-        "model": [
-          "github-copilot/gpt-5-mini",
-          "opencode-go/deepseek-v4-flash",
-          "opencode/deepseek-v4-flash"
-        ],
+        "model": ["opencode-go/deepseek-v4-flash", "opencode/deepseek-v4-flash"],
         "variant": "low",
         "skills": [
           "git-diff"
@@ -362,7 +358,7 @@
         "temperature": 0.1
       },
       "code-navigator": {
-        "model": ["github-copilot/gpt-5-mini", "opencode-go/deepseek-v4-flash", "opencode/deepseek-v4-flash"],
+        "model": ["opencode-go/deepseek-v4-flash", "opencode/deepseek-v4-flash"],
         "variant": "low",
         "skills": [],
         "mcps": []

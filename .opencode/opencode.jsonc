@@ -347,7 +347,6 @@
     "resource-manager": {
       "description": "Curates ai-assist-sources.yaml and Tier-1 knowledge caches (Markdown), re-fetches Tier-2 volatile sources, and evaluates awesome-opencode tools by star count (<100 experimental, 100-500 reasonable, 500+ established). Artifact-producer — edit scoped to knowledge/ only.",
       "mode": "subagent",
-      "model": "opencode-go/deepseek-v4-flash",
       "color": "#0891B2",
       "permission": {
         "edit": {
