@@ -26,6 +26,7 @@
     "edit": "allow",
     "bash": {
       "*": "allow",
+      "git push *": "allow",
 
       "sudo *": "deny",
 
