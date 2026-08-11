@@ -23,6 +23,20 @@ the fallback, so anything not explicitly listed is allowed. Every command in
 the deny lists below is blocked for agent tool calls; every command in the
 safe list is allowed because it falls through to the allow rule.
 
+## Project-Scoped Override (DIA-096)
+
+This project INTENTIONALLY overrides the global OpenCode config
+(`~/.config/opencode/opencode.jsonc`), which denies `"git push *"`, with a
+project-scoped `"git push *": "allow"` in `.opencode/opencode.jsonc` (line 29).
+OpenCode merges project config over global config (project-overrides-global
+merge semantics), so within this repo agent tool calls may push feature
+branches without asking. This is NOT a misconfiguration: safe pushes were
+chosen to be frictionless for lanes. Every destructive form remains denied by
+explicit patterns listed below, including `--all` / `--mirror` in both
+flag-first and remote-first orderings, so main-push and force-push protection
+is preserved. Future maintainers: keep the project allow line, and keep every
+destructive deny pattern (both argument orders) alongside it.
+
 ### Safe (allowed, falls through to allow)
 
 - `git push <branch>` - pushing a feature branch to its own upstream
@@ -68,8 +82,11 @@ Still interactive (ask):
 
 Only the developer may push to main. No agent lane may push to main, even
 with a force flag or through an alias. Bypass forms that resolve to main are
-also denied: `HEAD:main` refspecs, `--all` / `--mirror` pushes, plus-force
-refspecs (e.g. `+HEAD:main`), and delete-by-refspec (`:main`). The permission
+also denied: `HEAD:main` refspecs, `--all` / `--mirror` pushes in BOTH
+argument orders (flag-first `git push --all ...` / `git push --mirror ...`
+and remote-first `git push <remote> --all ...` / `git push <remote> --mirror
+...`, e.g. `git push origin --all`), plus-force refspecs (e.g. `+HEAD:main`),
+and delete-by-refspec (`:main`). The permission
 deny rules gate agent tool calls only; they never restrict the developer's
 terminal. When a lane needs a main push, the lane must ask the developer to
 run it manually.

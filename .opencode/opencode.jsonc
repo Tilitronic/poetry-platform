@@ -75,6 +75,16 @@
       "git push --all": "deny",
       "git push --mirror *": "deny",
       "git push --mirror": "deny",
+      // Remote-first option-order variants (DIA-096 follow-up): --all/--mirror
+      // must stay denied regardless of argument order (e.g. `git push origin --all`).
+      // Without these, the project-scoped "git push *": "allow" above would let
+      // remote-first forms bypass the flag-first denies.
+      "git push * --all *": "deny",
+      "git push * --all": "deny",
+      "git push origin --all": "deny",
+      "git push * --mirror *": "deny",
+      "git push * --mirror": "deny",
+      "git push origin --mirror": "deny",
       "git push origin +*:main": "deny",
       "git push * +*:main": "deny",
       "git push origin :main": "deny",
