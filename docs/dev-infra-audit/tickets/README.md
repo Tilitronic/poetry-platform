@@ -64,6 +64,7 @@ carries the full detail (description, verification, fix, re-verify evidence).
 | DIA-102 | Specification-document workflow: lifecycle, naming, commit policy, obsolete handling, spec-impl linkage, agent discovery                     | docs            | Medium   | OPEN     | [DIA-102-specification-workflow.md](DIA-102-specification-workflow.md)                                     |
 | DIA-103 | Interview batch completeness enforcement: verify workflow captures ALL questions, not just the first                                         | opencode-config | Medium   | OPEN     | [DIA-103-interview-batch-completeness.md](DIA-103-interview-batch-completeness.md)                         |
 | DIA-104 | Mandatory developer grilling/design review gate: trigger conditions, stages, exit criteria, blocking conditions                              | docs            | Medium   | OPEN     | [DIA-104-mandatory-developer-grilling-gate.md](DIA-104-mandatory-developer-grilling-gate.md)               |
+| DIA-105 | Edit-time formatter hooks - run formatters automatically after edits (Claude Code hooks pattern)                                             | opencode-config | Medium   | OPEN     | [DIA-105-edit-time-formatter-hooks.md](DIA-105-edit-time-formatter-hooks.md)                               |
 
 ## Status summary
 
@@ -72,14 +73,14 @@ carries the full detail (description, verification, fix, re-verify evidence).
 | Blocker  | 7     |
 | Critical | 1     |
 | Major    | 19    |
-| Medium   | 23    |
+| Medium   | 24    |
 | Minor    | 0     |
 | Low      | 5     |
 | Info     | 0     |
 
 | Status      | Count |
 | ----------- | ----- |
-| OPEN        | 23    |
+| OPEN        | 24    |
 | DONE        | 3     |
 | VALIDATE    | 0     |
 | E2E         | 0     |
