@@ -95,6 +95,25 @@ escalate empty/truncated returns immediately (never 3rd in-lane retry,
 L20260810-001); front-load full remaining-state into resume prompts
 (L20260810-003).
 
+## Recurrence + confirmed root cause (2026-08-11, session-8 -> session-9 boundary)
+
+Second observed occurrence, identical failure class (screenshot 2026-08-11, obs-1 analysis of clipboard-550894fb.png):
+
+    [delegation-observer] handoff atomic write failed: JSON Parse error: Unexpected identifier "Session"
+
+CONFIRMED ROOT CAUSE (cod-7 recon, 2026-08-11):
+
+- Choke point: .opencode/plugins/delegation-observer.ts:1463 - `const prognosis = JSON.parse(args.prognosis)` is the ONLY JSON.parse inside the log_decision handoff branch try block (1457-1486).
+- The orchestrator LLM hand-assembles the `prognosis` argument string (no JSON.stringify; written by hand per the HANDOFF.md template). LLM-authored "JSON" routinely contains JSON5/JS-object-literal artifacts: unquoted keys, single quotes, and string values written as bare identifiers with no quotes.
+- Session-metadata prose contains a capitalized word "Session" (e.g. "Session 9 of N" or the literal "Session halted at context threshold..." recorded in DIA-080). When interpolated without double quotes, strict JSON.parse throws SyntaxError: Unexpected identifier "Session".
+- The catch at 1483-1486 logs the misleading message; atomicWriteHandoff() (634-654, JSON.stringify at 635 - always emits valid JSON) NEVER executes. Net effect: current-handoff.json silently not written -> breaks the DIA-061 boot gate and campaign resume continuity.
+- Same class as the original "computed" failure: caller-supplied prognosis string is JSON5-ish, not strict JSON.
+
+FIX SURFACE (queued for the next session, S10-routed - plugin + config change):
+
+- Primary (hardening) delegation-observer.ts:1462-1491: on strict JSON.parse failure, do NOT abandon the write - construct a minimal valid prognosis object carrying the raw text (e.g. { parse_error: "strict JSON parse failed", raw: <string> }) so atomicWriteHandoff ALWAYS writes valid JSON; the successor boot gate (DIA-061) still sees a file (checksum mismatch escalates to the developer instead of silent loss). Improve the catch (1483-1486) to include a truncated, ASCII-sanitized view of the offending string.
+- Secondary (prevention, S10-routed prompt/config): state explicitly in the orchestrator prompt (.opencode/oh-my-opencode-slim.jsonc:26/204/393), orchestrator_append.md:105-119, NEXT-RUN.md section 7.2 (217-227), and the log_decision tool description (delegation-observer.ts:1426-1427) that `prognosis` MUST be strict JSON - all keys and string values double-quoted, e.g. "session": "Session 9 of N".
+
 ## Verification
 
 - [ ] Trigger a handoff write while a log_decision/registry prognosis contains the word "computed"; observe whether the atomic write fails with the JSON Parse error.
@@ -106,7 +125,7 @@ L20260810-001); front-load full remaining-state into resume prompts
 
 §10-routed (plugin change — delegation-observer, .opencode/ plugin).
 
-> To be filled at fix time.
+Fix surface confirmed by cod-7 recon 2026-08-11 - see "Recurrence + confirmed root cause" section above.
 
 ## Re-verify
 
