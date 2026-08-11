@@ -17,6 +17,9 @@ Interview the user relentlessly about a plan, decision, or idea until we reach a
 
 ## Phase 1 — Grilling (the interview)
 
+<!-- FIRST-QUESTION -->
+- Example question: Which existing behavior changes, and for whom?
+- What is the primary hypothesis this feature/design validates, and how will you know if it is falsified?
 - Walk down each branch of the decision tree, resolving dependencies between decisions one-by-one. For each question, provide your recommended answer.
 - Ask the questions **one at a time**, waiting for feedback on each question before continuing. Asking multiple questions at once is bewildering.
 - If a *fact* can be found by exploring the environment (filesystem, tools, etc.), look it up rather than asking. The *decisions*, though, are the user's — put each one to them and wait for their answer.

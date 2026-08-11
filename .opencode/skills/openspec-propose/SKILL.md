@@ -27,6 +27,10 @@ Propose a new change — interview-first, then synthesize. I will NOT generate s
 
 1. **Socratic Interview (MANDATORY — no skipping)**
 
+   <!-- FIRST-QUESTION -->
+   - Example question: What problem does this change solve for the user, and what would 'done' look like?
+   - What is the primary hypothesis this feature/design validates, and how will you know if it is falsified?
+
    Dispatch **@openspec-plan** for the structured Socratic interview BEFORE any artifact work. The interview protocol:
    - One question at a time, each with the model's recommended answer ("My recommendation: [answer]. Agree, or what should change?")
    - Look up facts in the codebase rather than asking the developer — explore and report findings

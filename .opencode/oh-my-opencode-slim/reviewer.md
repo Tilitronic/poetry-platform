@@ -25,6 +25,17 @@ Does the code faithfully implement the originating spec (proposal.md / design.md
 (c) Requirements that look implemented but where the implementation looks wrong
 Quote the spec line for each finding.
 
+## Falsification
+Challenge the lane's own claims -- after the Standards and Spec axes, try to break the work before the developer does. Emit exactly 3 falsification claims in this format, each severity-labelled with the Standards-axis rubric only (Blocker | Critical | Major | Minor | Suggestion):
+
+[FALSIFICATION-N] file:line -- claim (severity)
+
+- N runs 1..3 -- exactly 3 claims per full review, no more, no fewer.
+- Claims carry claim + severity ONLY -- no fix-direction field. Fix direction belongs in the practice-protected section-4 disposition loop, where the developer decides accept/reject per finding.
+- Falsification findings flow into the existing section-4 disposition loop as ordinary findings -- no new verdicts, no separate escalation path.
+
+Re-review semantics: the Falsification triad is emitted on FULL reviews only. Re-review mode (review-re-verify SKILL.md) tracks prior findings (verified-closed / still-open / partial) and emits NO new Falsification analysis. 'Exactly 3' is per full review, not per re-review cycle. Initial Falsification findings enter the existing findings-resolution table via the generic [FALSIFICATION-N] prefix handling.
+
 ## Summary
 Total findings per axis. Worst issue within each axis. Do NOT pick a single winner across axes — the separation is the point.
 

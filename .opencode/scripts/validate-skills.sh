@@ -300,6 +300,70 @@ for skill_dir in "$SKILLS_ROOT"/*/; do
 done
 
 # ---------------------------------------------------------------------------
+# M4 check (change dia-086-m1-m5-agent-contracts-eval-lite, task 4.2;
+# design.md Seam S3): the hypothesis question must appear AFTER the
+# `<!-- FIRST-QUESTION -->` anchor in the two Socratic-interview skills, and
+# each file must carry at least one explicit '?'-ending example question after
+# the anchor (defense-in-depth so the anchor is never orphaned). Scoped to
+# the two files below -- other skill files are unaffected (task 4.2 AC5).
+# Participates in the shared HARD accounting: a missing anchor, missing
+# question, wrong line order, or missing example question all FAIL and
+# contribute to the existing exit-1 path.
+# ---------------------------------------------------------------------------
+M4_ANCHOR='<!-- FIRST-QUESTION -->'
+M4_QUESTION='What is the primary hypothesis this feature/design validates, and how will you know if it is falsified?'
+for m4_file in "$SKILLS_ROOT/openspec-propose/SKILL.md" "$SKILLS_ROOT/domain-grilling/SKILL.md"; do
+  if [ ! -f "$m4_file" ]; then
+    echo "FAIL: M4: missing skill file $m4_file" >&2
+    failures=$((failures + 1))
+    continue
+  fi
+
+  # `|| true` guards `set -e` when grep finds no match (exit 1).
+  anchor_line="$(grep -nF "$M4_ANCHOR" "$m4_file" | head -n1 | cut -d: -f1 || true)"
+  question_line="$(grep -nF "$M4_QUESTION" "$m4_file" | head -n1 | cut -d: -f1 || true)"
+
+  m4_failed=0
+  if [ -z "$anchor_line" ]; then
+    echo "FAIL: M4: missing <!-- FIRST-QUESTION --> anchor in $m4_file" >&2
+    m4_failed=1
+  fi
+  if [ -z "$question_line" ]; then
+    echo "FAIL: M4: missing hypothesis question in $m4_file" >&2
+    m4_failed=1
+  elif [ -n "$anchor_line" ] && [ "$question_line" -le "$anchor_line" ]; then
+    echo "FAIL: M4: hypothesis question (line $question_line) must appear after the FIRST-QUESTION anchor (line $anchor_line) in $m4_file" >&2
+    m4_failed=1
+  fi
+
+  # Defense-in-depth: at least one explicit '?'-ending example question AFTER
+  # the anchor, distinct from the hypothesis question itself. The scan stops at
+  # the next section heading (`## ` or numbered step line) so it stays within
+  # the file's Phase 1 section rather than counting unrelated `?`-ending lines
+  # in later sections.
+  if [ -n "$anchor_line" ]; then
+    example_count="$(awk -v start="$anchor_line" -v skip="$question_line" '
+      NR > start && NR != skip {
+        if ($0 ~ /^## / || $0 ~ /^[0-9]+\. /) { exit }
+        if ($0 ~ /\?[[:space:]]*$/) { n++ }
+      }
+      END { print n + 0 }
+    ' "$m4_file")"
+    if [ "$example_count" -lt 1 ]; then
+      echo "FAIL: M4: no explicit '?'-ending example question after the FIRST-QUESTION anchor in $m4_file" >&2
+      m4_failed=1
+    fi
+  fi
+
+  if [ "$m4_failed" -eq 1 ]; then
+    failures=$((failures + 1))
+  else
+    echo "ok: M4 hypothesis-question placement: $m4_file"
+    passed=$((passed + 1))
+  fi
+done
+
+# ---------------------------------------------------------------------------
 # DIA-052 (T1) — two-tier cross-location duplicate detection.
 #
 # Tier 1 (HARD, exit 1) — byte-exact duplicate. Every SKILL.md under both

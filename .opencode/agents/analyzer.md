@@ -45,6 +45,22 @@ No need for @coder transcription.
   - Verify YAML validity with `python3 -c "import yaml; yaml.safe_load(open('$FILE'))"`
     after writing (if yaml module available).
 
+- **Output contract header (M1, additive):** every report MUST carry the
+  following HTML comment block immediately after the title, filling in the
+  concrete values. The block is invisible in rendered Markdown but parseable
+  by `scripts/validate-output-contracts.sh`. Allowed `confidence` values:
+  High | Medium | Low. `claim-type` is one of: finding | recommendation |
+  risk. `evidence-source` is a file path or session-id string.
+
+<!-- ANALYZER-OUTPUT-CONTRACT
+schema-version: 1.0
+agent: analyzer
+claim-type: <finding | recommendation | risk>
+evidence-source: <file path or session-id>
+confidence: High
+shelf-registration: .opencode/memory-shelf.yaml (shelf.analyses)
+-->
+
 ## Ownership
 
 - Ownership tracking: tracks who authored practice-protected zone artifacts.

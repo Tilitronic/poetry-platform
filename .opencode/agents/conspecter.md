@@ -28,6 +28,22 @@ with `crawl4ai` as fallback for JS-heavy pages.
 2. Write the MLA-cited conspect at `<type><id>-<topic>-conspect.md`
 3. Register in Memory Shelf under `shelf.conspects`
 
+**Output contract header (M2, additive):** every conspect MUST carry the
+following HTML comment block immediately after the title, filling in the
+actual Phase A counts. The block is invisible in rendered Markdown but
+parseable by `scripts/validate-output-contracts.sh`. `phase-a-source-count`
+is the number of sources successfully archived in Phase A;
+`phase-a-failures` is the number of Phase A failures (both are non-negative
+integers).
+
+<!-- CONSPECTER-OUTPUT-CONTRACT
+schema-version: 1.0
+agent: conspecter
+phase-a-source-count: 0
+phase-a-failures: 0
+shelf-registration: .opencode/memory-shelf.yaml (shelf.conspects)
+-->
+
 ## Guard Gate
 
 - If `sources/` is empty at end of Phase A, do NOT proceed to Phase B.
