@@ -240,8 +240,11 @@ COPY --chmod=0755 dev-entrypoint.sh /usr/local/bin/dev-entrypoint.sh
 # script lives in the repo (scripts/dev-secrets-profile.sh) so bats can test
 # it; the whitelist must stay in sync with dev-entrypoint.sh ALLOWED_SECRETS.
 COPY --chmod=0644 scripts/dev-secrets-profile.sh /etc/profile.d/secrets.sh
+COPY --chmod=0644 scripts/dev-git-turbo-profile.sh /etc/profile.d/git-turbo.sh
 
 USER ${USER_UID}:${USER_GID}
+
+RUN git config --global --add safe.directory /workspace
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
     CMD opencode --version >/dev/null 2>&1 || exit 1

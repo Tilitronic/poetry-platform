@@ -19,6 +19,7 @@
 
 services:
   dev:
+    user: '0:0'
     build:
       context: .
       dockerfile: Dockerfile.dev
@@ -33,7 +34,7 @@ services:
     # Optional: expose postgres from host for psql tooling (disable if unwanted)
     # - "${POSTGRES_PORT:-5432}:5432"
     volumes:
-      - .:/workspace:Z
+      - .:/workspace:z
       # Named volume to keep pnpm store + node_modules inside container.
       # Host node_modules (if any) must not overwrite the container's.
       - pnpm_store:/workspace/node_modules
