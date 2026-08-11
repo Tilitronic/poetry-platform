@@ -66,7 +66,7 @@ carries the full detail (description, verification, fix, re-verify evidence).
 | DIA-104 | Mandatory developer grilling/design review gate: trigger conditions, stages, exit criteria, blocking conditions                              | docs            | Medium   | OPEN     | [DIA-104-mandatory-developer-grilling-gate.md](DIA-104-mandatory-developer-grilling-gate.md)               |
 | DIA-105 | Edit-time formatter hooks - run formatters automatically after edits (Claude Code hooks pattern)                                             | opencode-config | Medium   | OPEN     | [DIA-105-edit-time-formatter-hooks.md](DIA-105-edit-time-formatter-hooks.md)                               |
 | DIA-106 | Container-first rust-analyzer for LSP gate (pin 1.83.0->1.97.1, container-aware check-host-lsp)                                              | dev-infra       | Medium   | CLOSED   | [DIA-106-rust-analyzer-container-setup.md](DIA-106-rust-analyzer-container-setup.md)                       |
-| DIA-107 | rust-analyzer container setup review-cycle re-verify (section 2.3.1 cycle 1/2 of close-out commit 1dc8f76)                                   | dev-infra       | Low      | OPEN     | [DIA-107-rust-analyzer-review-cycle-reverify.md](DIA-107-rust-analyzer-review-cycle-reverify.md)           |
+| DIA-107 | rust-analyzer container setup review-cycle re-verify (section 2.3.1 cycle 1/2 of close-out commit 1dc8f76)                                   | dev-infra       | Low      | CLOSED   | [DIA-107-rust-analyzer-review-cycle-reverify.md](DIA-107-rust-analyzer-review-cycle-reverify.md)           |
 
 ## Status summary
 
@@ -82,7 +82,7 @@ carries the full detail (description, verification, fix, re-verify evidence).
 
 | Status      | Count |
 | ----------- | ----- |
-| OPEN        | 23    |
+| OPEN        | 22    |
 | DONE        | 3     |
 | VALIDATE    | 0     |
 | E2E         | 0     |
@@ -91,7 +91,7 @@ carries the full detail (description, verification, fix, re-verify evidence).
 | FIXED       | 0     |
 | IMPLEMENTED | 0     |
 | VERIFIED    | 15    |
-| CLOSED      | 15    |
+| CLOSED      | 16    |
 | BLOCKED     | 0     |
 
 ## How to add a ticket

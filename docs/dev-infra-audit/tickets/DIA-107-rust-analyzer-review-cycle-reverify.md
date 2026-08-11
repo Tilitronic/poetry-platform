@@ -6,7 +6,7 @@ id: DIA-107
 title: "rust-analyzer container setup review-cycle re-verify"
 area: dev-infra
 severity: Low
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 discovered: 2026-08-11
 source: test-lane
@@ -94,3 +94,18 @@ SKIP_RUST=1, container-probe logic).
   ticket gate for the section 2.3.1 re-review dispatch (cycle 1/2) of the
   closed rust-analyzer container setup ticket DIA-106's close-out commit
   1dc8f76.
+- 2026-08-11 (Session-11 close-out): rev-3 re-review complete: S1/S3/S5
+  verified-closed (3/3), S4 close-out verified, S2/P1/P2 accepted-as-is,
+  0 still-open/0 partial, regression scan clean (extract_version refactor
+  behavior-identical), no new observations, no cycle 2 needed. DIA-107 CLOSED.
+
+## Informational note (not a finding, non-blocking)
+
+The version-extraction regex `[0-9]+(\.[0-9]+)+` now exists in 3 places:
+
+- scripts/check-host-lsp.sh: `extract_version()` (lines 56-58)
+- scripts/install-host-lsp.sh: `tool_version()` (lines 46-48)
+- scripts/check-host-jq.sh: inline (line 39)
+
+Cross-script duplication, out of DIA-106 scope; consider a future
+consolidation ticket if desired. Informational only - not a finding.
