@@ -232,3 +232,13 @@ test-config` must exit 0.
 > branch to origin; `git push --force` and `git push origin main` from lanes
 > are denied; developer manual push to main works; `make test-config` exits 0;
 > no existing deny rules regressed. Record the actual gate output/exit code.
+
+## Resolution (S10-P6 registration 2026-08-11)
+
+- **Implementation (Option A+B):** commit 31a6cce2 - config deny-list replacing the blanket `git push *` deny: safe push falls through to the catch-all allow; force-push (--force / -f / --force-with-lease in any position), push targeting main, push --delete, and destructive local commands (reset --hard, clean -f\*, checkout -- ., restore, branch -D, filter-branch/repo, tag -d, remote mutations) explicitly denied; rm/chmod/chown stay ask. Companion documentation layer `.opencode/skills/git-permissions/SKILL.md` (safe vs destructive split + main-branch rule).
+- **ai-auditor cycle 1:** REQUEST-CHANGES - Major finding: main-push bypass vectors not covered (`HEAD:main` refspecs, `--all`, `--mirror`, plus-force refspecs, `:main` delete-by-refspec).
+- **Fix:** commit 1759575 - 10 deny patterns closing all 5 bypass vectors (`git push origin HEAD:main`, `git push * HEAD:main`, `git push --all *` / `--all`, `git push --mirror *` / `--mirror`, `git push origin +*:main`, `git push * +*:main`, `git push origin :main`, `git push * :main`) + skill doc line covering the bypass forms.
+- **ai-auditor cycle 2:** VERDICT APPROVE-WITH-NITS - Major finding verified-closed, RESTART_VERIFY_READY yes. Non-blocking: option-order variants (`git push <remote> --all` / `--mirror`) to verify at next boot; upstream-main caveat accepted by design.
+- **Registration (S10 Phase 7):** CHANGELOG entry added (`.opencode/CHANGELOG.md`, 2026-08-11); learnings registered (`.opencode/learnings/external-patterns/2026-08-11-git-permission-pattern-matching.md`, outcome "implemented + approve-with-nits, restart-verify pending"); this ticket resolution block added.
+- **Restart-verify:** PENDING (S10 Phase 5) - on next OpenCode boot: lane push of a feature branch succeeds; force-push / main-push / bypass forms denied; developer terminal push unaffected; `make test-config` exit 0. Status remains OPEN (pending-validate restart-verify); do NOT flip to CLOSED until the restart-verify is confirmed.
+- **Frontmatter:** status stays `OPEN` (pending-validate restart-verify) - unchanged from discovery; `updated` already 2026-08-11.
