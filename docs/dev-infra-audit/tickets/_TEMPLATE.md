@@ -1,6 +1,7 @@
 # DIA-XXX — <Title>
 
-<!-- Copy this template to a new file `DIA-<NNN>.md` and replace placeholders.
+<!-- Copy this template to a new file `DIA-<NNN>-<human-slug>.md` (bare
+     `DIA-<NNN>.md` names are deprecated per DIA-110) and replace placeholders.
      Keep the YAML frontmatter block intact. Statuses VALIDATE and E2E (added
      2026-08-04, ticket-vocabulary drift fix) are audit-phase statuses — used
      while the gate-matrix validation / Docker+browser end-to-end runs are

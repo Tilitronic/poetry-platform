@@ -36,7 +36,7 @@ model: ""
 parent_session_id: ""
 attempts: 0
 lease_expires_at: ""
-files_touched: ["docs/dev-infra-audit/tickets/DIA-056.md", "docs/dev-infra-audit/tickets/README.md"]
+files_touched: ["docs/dev-infra-audit/tickets/DIA-056-ai-auditor-token-tool-loop.md", "docs/dev-infra-audit/tickets/README.md"]
 artifacts: []
 evidence: ["messages.md#494", "messages.md#504"]
 

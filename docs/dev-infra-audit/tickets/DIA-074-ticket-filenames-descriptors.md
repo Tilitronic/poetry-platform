@@ -34,7 +34,7 @@ model: "deepseek-v4-flash"
 parent_session_id: ""
 attempts: 0
 lease_expires_at: ""
-files_touched: ["docs/dev-infra-audit/tickets/DIA-074.md", "docs/dev-infra-audit/tickets/README.md"]
+files_touched: ["docs/dev-infra-audit/tickets/DIA-074-ticket-filenames-descriptors.md", "docs/dev-infra-audit/tickets/README.md"]
 artifacts: []
 evidence: []
 

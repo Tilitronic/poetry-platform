@@ -29,7 +29,7 @@ model: ""
 parent_session_id: ""
 attempts: 0
 lease_expires_at: ""
-files_touched: ["docs/dev-infra-audit/tickets/DIA-059.md", "docs/dev-infra-audit/tickets/README.md"]
+files_touched: ["docs/dev-infra-audit/tickets/DIA-059-gate-plugin-not-activated.md", "docs/dev-infra-audit/tickets/README.md"]
 artifacts: []
 evidence: [".opencode/session/HANDOFF.md exit_state=manual-halt with note 'plugin needs OpenCode restart; post-restart gate test pending'", "ses_024ddc0b6ffenyneU5XpCYQ4qN — @coder edited .opencode/plugins/delegation-observer.ts, NEXT-RUN.md, and 5+ other .opencode/ files without gate blocking"]
 

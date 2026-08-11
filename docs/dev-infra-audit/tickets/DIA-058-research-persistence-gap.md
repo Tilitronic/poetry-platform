@@ -32,7 +32,7 @@ model: ""
 parent_session_id: ""
 attempts: 0
 lease_expires_at: ""
-files_touched: ["docs/dev-infra-audit/tickets/DIA-058.md", "docs/dev-infra-audit/tickets/README.md"]
+files_touched: ["docs/dev-infra-audit/tickets/DIA-058-research-persistence-gap.md", "docs/dev-infra-audit/tickets/README.md"]
 artifacts: []
 evidence: ["ses_024f0b48effeHUn16O36WcOR6l (researcher task res-1: 22 external sources, 6 domains, PERSISTENCE_RECOMMENDED: true, no artifact created)"]
 

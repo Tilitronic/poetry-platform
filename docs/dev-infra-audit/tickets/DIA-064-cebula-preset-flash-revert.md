@@ -28,7 +28,7 @@ model: "deepseek-v4-pro"
 parent_session_id: ""
 attempts: 0
 lease_expires_at: ""
-files_touched: ["docs/dev-infra-audit/tickets/DIA-064.md", ".opencode/oh-my-opencode-slim.jsonc", ".opencode/CHANGELOG.md", ".opencode/learnings/external-patterns/2026-08-07-cebula-preset-revert.md"]
+files_touched: ["docs/dev-infra-audit/tickets/DIA-064-cebula-preset-flash-revert.md", ".opencode/oh-my-opencode-slim.jsonc", ".opencode/CHANGELOG.md", ".opencode/learnings/external-patterns/2026-08-07-cebula-preset-revert.md"]
 artifacts: []
 evidence: []
 
@@ -96,7 +96,7 @@ schema and idempotency rules respected.
 
 - `make test-config` → exit 0 (ses_024811f14ffePZkr6mQygtnAMz).
 - **Orchestrator on flash post-restart confirmed:** this orchestrator session's system prompt header reads "You are powered by the model named deepseek-v4-flash. The exact model ID is opencode-go/deepseek-v4-flash".
-- **Commit `b9fc61c` landed the revert** (7 paths: `docs/dev-infra-audit/tickets/DIA-064.md`, `.opencode/CHANGELOG.md`, `.opencode/learnings/external-patterns/2026-08-07-cebula-preset-revert.md`, `.opencode/learnings/index.md`, `.opencode/oh-my-opencode-slim.jsonc`, `docs/dev-infra-audit/tickets/DIA-060.md`, `docs/dev-infra-audit/tickets/DIA-062.md`).
+- **Commit `b9fc61c` landed the revert** (7 paths: `docs/dev-infra-audit/tickets/DIA-064-cebula-preset-flash-revert.md`, `.opencode/CHANGELOG.md`, `.opencode/learnings/external-patterns/2026-08-07-cebula-preset-revert.md`, `.opencode/learnings/index.md`, `.opencode/oh-my-opencode-slim.jsonc`, `docs/dev-infra-audit/tickets/DIA-060-orchestrator-read-scope-tickets.md`, `docs/dev-infra-audit/tickets/DIA-062-orchestrator-model-misconfiguration.md`).
 - **Scope fence re-confirmed in Phase 6 review:** ai-specialist ses_02486168fffeJc2436w6irKkE4 APPROVE — only cebula preset touched; opencode-go/free/council entries unchanged.
 
 Status: OPEN → VERIFIED.

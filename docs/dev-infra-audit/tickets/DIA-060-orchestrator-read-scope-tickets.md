@@ -29,7 +29,7 @@ model: ""
 parent_session_id: ""
 attempts: 0
 lease_expires_at: ""
-files_touched: ["docs/dev-infra-audit/tickets/DIA-060.md"]
+files_touched: ["docs/dev-infra-audit/tickets/DIA-060-orchestrator-read-scope-tickets.md"]
 artifacts: []
 evidence: []
 
@@ -76,7 +76,7 @@ also not yet activated — needs a restart).
    via an unnecessary subagent hop.
 
 3. **Post-fix (after permission rules updated):**
-   - Orchestrator calls `read` on `docs/dev-infra-audit/tickets/DIA-060.md` →
+   - Orchestrator calls `read` on `docs/dev-infra-audit/tickets/DIA-060-orchestrator-read-scope-tickets.md` →
      expect ALLOWED (file contents returned)
    - Orchestrator calls `glob` with pattern `docs/dev-infra-audit/tickets/DIA-*.md` →
      expect ALLOWED (matching files returned)
@@ -101,7 +101,7 @@ also not yet activated — needs a restart).
 
 **Re-verify 2026-08-07 — PASSED:**
 
-- Orchestrator direct `read` of `docs/dev-infra-audit/tickets/DIA-060.md` → ALLOWED (2026-08-07, ses_024835767ffe4TDoTZGh3Tifk6).
+- Orchestrator direct `read` of `docs/dev-infra-audit/tickets/DIA-060-orchestrator-read-scope-tickets.md` → ALLOWED (2026-08-07, ses_024835767ffe4TDoTZGh3Tifk6).
 - `glob docs/dev-infra-audit/tickets/DIA-*.md` → ALLOWED (16 tickets).
 - `read` of `docs/dev-infra-audit/tickets/README.md` → ALLOWED.
 - No write access gained — read scope only (write to the tickets directory remains denied for the orchestrator).

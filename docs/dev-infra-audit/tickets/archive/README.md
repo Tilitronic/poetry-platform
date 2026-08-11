@@ -15,7 +15,7 @@ A ticket qualifies for archiving when **all** hold:
 
 ## Process
 
-1. `git mv DIA-NNN.md archive/DIA-NNN.md`
+1. `git mv DIA-NNN-<slug>.md archive/DIA-NNN-<slug>.md`
 2. Remove the index row from `tickets/README.md`
 3. Update the status rollup counts in `tickets/README.md`
 4. Commit

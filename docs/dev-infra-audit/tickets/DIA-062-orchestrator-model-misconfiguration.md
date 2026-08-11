@@ -30,7 +30,7 @@ model: ""
 parent_session_id: ""
 attempts: 0
 lease_expires_at: ""
-files_touched: ["docs/dev-infra-audit/tickets/DIA-062.md"]
+files_touched: ["docs/dev-infra-audit/tickets/DIA-062-orchestrator-model-misconfiguration.md"]
 artifacts: []
 evidence: []
 

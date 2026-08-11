@@ -37,7 +37,7 @@ model: ""
 parent_session_id: ""
 attempts: 1
 lease_expires_at: ""
-files_touched: ["Dockerfile.dev", "scripts/test-docker-smoke.sh", "docs/dev-infra-audit/tickets/DIA-067.md"]
+files_touched: ["Dockerfile.dev", "scripts/test-docker-smoke.sh", "docs/dev-infra-audit/tickets/DIA-067-docker-dev-tool-access-gap.md"]
 artifacts: []
 evidence: ["ses_02110793fffeKFqhWUcZSiXLYI (conspecter con-1: Phase A ×2 attempts, 11 source files EMPTY 0B)", "implementation lane: docker compose build dev exit 0; smoke test exit 0 incl. trafilatura probe", "ses_01e1416c3ffeX6ulgERMXvzHHE (conspecter con-5 re-verify: Phase A 11/11 sources > 0B + Phase B conspect res004 + memory-shelf entry; make test-config exit 0)"]
 

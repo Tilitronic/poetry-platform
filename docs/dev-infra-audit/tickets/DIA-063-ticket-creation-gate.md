@@ -34,7 +34,7 @@ model: ""
 parent_session_id: ""
 attempts: 0
 lease_expires_at: ""
-files_touched: ["docs/dev-infra-audit/tickets/DIA-063.md"]
+files_touched: ["docs/dev-infra-audit/tickets/DIA-063-ticket-creation-gate.md"]
 artifacts: []
 evidence: []
 

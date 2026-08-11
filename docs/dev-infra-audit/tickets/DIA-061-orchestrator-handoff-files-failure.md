@@ -32,7 +32,7 @@ model: ""
 parent_session_id: ""
 attempts: 0
 lease_expires_at: ""
-files_touched: ["docs/dev-infra-audit/tickets/DIA-061.md", "scripts/validate-handoff.sh", ".opencode/oh-my-opencode-slim/orchestrator_append.md", ".opencode/learnings/external-patterns/2026-08-07-plugin-hook-order-and-gate-gaps.md", ".opencode/learnings/index.md", ".opencode/CHANGELOG.md", "docs/dev-infra-audit/tickets/DIA-059.md", "docs/dev-infra-audit/tickets/README.md", ".opencode/plugins/delegation-observer.ts"]
+files_touched: ["docs/dev-infra-audit/tickets/DIA-061-orchestrator-handoff-files-failure.md", "scripts/validate-handoff.sh", ".opencode/oh-my-opencode-slim/orchestrator_append.md", ".opencode/learnings/external-patterns/2026-08-07-plugin-hook-order-and-gate-gaps.md", ".opencode/learnings/index.md", ".opencode/CHANGELOG.md", "docs/dev-infra-audit/tickets/DIA-059-gate-plugin-not-activated.md", "docs/dev-infra-audit/tickets/README.md", ".opencode/plugins/delegation-observer.ts"]
 artifacts: []
 evidence: ["make test-config exit 0 (post-checksum-block)", "validate-handoff.sh checksum block negative tests: placeholder / mismatch / missing all FAIL as expected", "canonical checksum recompute of current-handoff.json: stored 25646ee… -> 0eee533e…"]
 

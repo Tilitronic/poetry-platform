@@ -29,7 +29,7 @@ model: ""
 parent_session_id: ""
 attempts: 0
 lease_expires_at: ""
-files_touched: ["docs/dev-infra-audit/tickets/DIA-057.md", "docs/dev-infra-audit/tickets/README.md"]
+files_touched: ["docs/dev-infra-audit/tickets/DIA-057-knowledge-workflow-conspect-violation.md", "docs/dev-infra-audit/tickets/README.md"]
 artifacts: []
 evidence: ["knowledge/ana007-session-log-silencing/ana007-session-log-silencing-report.md", "knowledge/res002-silent-session-logging/res002-silent-session-logging-conspect.md"]
 

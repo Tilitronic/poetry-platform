@@ -24,7 +24,7 @@ flagged:
 
 - `.sdd/README.md` + `CONTEXT.md` — pre-existing baseline violations, previously
   accepted.
-- `docs/dev-infra-audit/tickets/DIA-038.md`, `DIA-040.md`, `DIA-045.md` — new
+- `docs/dev-infra-audit/tickets/DIA-038-makefile-gate-matrix-validation.md`, `DIA-040-python-gates.md`, `DIA-045-opencode-config-drift-backlog.md` — new
   ticket files written without prettier formatting (markdown table / code-block
   alignment drift).
 
@@ -58,5 +58,7 @@ longer part of the open set; the 5 files above remain.
 ## Re-verify
 
 Re-verify 2026-08-04 (cod-10): `pnpm exec prettier --check` on all 5 files
-(`.sdd/README.md`, `CONTEXT.md`, DIA-038/040/045.md) exit 0; `pnpm verify:format`
+(`.sdd/README.md`, `CONTEXT.md`,
+DIA-038-makefile-gate-matrix-validation.md / DIA-040-python-gates.md /
+DIA-045-opencode-config-drift-backlog.md) exit 0; `pnpm verify:format`
 exit 0.

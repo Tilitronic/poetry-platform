@@ -28,7 +28,7 @@ model: ""
 parent_session_id: ""
 attempts: 1
 lease_expires_at: ""
-files_touched: ["docs/dev-infra-audit/tickets/DIA-068.md", "docs/dev-infra-audit/tickets/README.md", ".opencode/plugins/delegation-observer.ts"]
+files_touched: ["docs/dev-infra-audit/tickets/DIA-068-delegation-observer-persistence-trigger.md", "docs/dev-infra-audit/tickets/README.md", ".opencode/plugins/delegation-observer.ts"]
 artifacts: []
 evidence: ["ses_0211b6e98ffelpQq6owaaKkMmy (cod-4 root-cause session)", "ses_0211d3a8dffeIiu6EQV1Josbii (res-2 smoke)", "ses_01ffd9279ffetxzRDk7N7YF3dH (implementation lane: regex fix + comment rewrite; typecheck exit 0, regex sanity 4/4 + 8/8, make test-config exit 0)", "ses_01fb040a7ffeOC3tdchFI4IcEb (ai-auditor Phase 6 review: 3 PASS + 2 RISK-low)", "ses_01e8307d3ffeAI39rpfiNCq8re (restart-verify positive smoke: persistence-pending.json written)", "ses_01e7f794bffeMw7WJ4IGjkQAvG (restart-verify negative control: non-researcher lane, file NOT re-created)"]
 

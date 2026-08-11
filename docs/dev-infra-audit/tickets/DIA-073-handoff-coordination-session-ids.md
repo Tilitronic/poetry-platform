@@ -36,7 +36,7 @@ model: "deepseek-v4-flash"
 parent_session_id: "ses_01cca6ac1ffeKQo8pVqXS0kKgk"
 attempts: 0
 lease_expires_at: ""
-files_touched: ["docs/dev-infra-audit/tickets/DIA-073.md", "docs/dev-infra-audit/tickets/README.md"]
+files_touched: ["docs/dev-infra-audit/tickets/DIA-073-handoff-coordination-session-ids.md", "docs/dev-infra-audit/tickets/README.md"]
 artifacts: []
 evidence: ["ses_01cca6ac1ffeKQo8pVqXS0kKgk (orchestrator — ticket requested in plugin-removal campaign session)", "ses_01a73ee5dffeJjx1zkG1Ub7tnJ (coder lane dia-073-ticket — ticket created)"]
 

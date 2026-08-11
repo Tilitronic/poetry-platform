@@ -32,7 +32,7 @@ model: ""
 parent_session_id: ""
 attempts: 0
 lease_expires_at: ""
-files_touched: ["docs/dev-infra-audit/tickets/DIA-072.md"]
+files_touched: ["docs/dev-infra-audit/tickets/DIA-072-researcher-unarchived-facts.md"]
 artifacts: ["knowledge/res006-telemetry-plugin-alternatives/res006-telemetry-plugin-alternatives-conspect.md", "knowledge/res006-telemetry-plugin-alternatives/sources/", "knowledge/res006-telemetry-plugin-alternatives/sources/.source-urls.txt"]
 evidence: ["ses_01cca6ac1ffeKQo8pVqXS0kKgk (orchestrator)", "ses_01c25478dffeOisBBzKW352HQW (researcher lane res-1)", "ses_01c21c2f2ffeE4JrjPUd3xKUy1 (conspecter Phase A con-1)", "ses_01c1e0c4dffeokeKNAZqE59bLH (conspecter con-2)"]
 
