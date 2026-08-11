@@ -14,7 +14,7 @@ discovered: 2026-08-10
 source: inventory
 date: 2026-08-10
 created: 2026-08-10
-updated: 2026-08-10
+updated: 2026-08-11
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -52,3 +52,29 @@ researcher + conspect + analysis pipelines, hypothesis-test loops).
 ## Re-verify
 
 > To be filled at re-verify time.
+
+## Scope extension (batch brief 2026-08-11)
+
+1. Investigate modern scientific methodology for agentic workflows:
+   hypothesis formation, explicit assumptions, theory construction,
+   literature/research review, evidence collection, experiment design,
+   controlled testing, validation, reproduction, independent verification,
+   falsification, confidence/uncertainty, provenance/citations, experiment
+   logs, competing hypotheses, systematic comparison, peer/reviewer-style
+   critique.
+2. Survey how similar approaches are implemented in agentic AI systems, AI
+   research agents, scientific-agent frameworks, software engineering
+   agents, autonomous coding/research workflows.
+3. Determine: which practices are realistically useful for this project;
+   which are already implemented; which are missing; which should become
+   mandatory workflow steps; which stay optional depending on task
+   complexity.
+4. Produce a concrete proposed workflow, not a generic discussion.
+
+SCOPE GUARD: this is a solo-developer system, not a research lab. Weight the
+output toward "what's cheap and actually gets used" over building a full
+methodology framework - flag anywhere the recommendation risks adding
+process overhead disproportionate to the team size.
+
+Acceptance: concrete workflow proposal, already-implemented inventory,
+mandatory-vs-optional split, overhead-risk flags.

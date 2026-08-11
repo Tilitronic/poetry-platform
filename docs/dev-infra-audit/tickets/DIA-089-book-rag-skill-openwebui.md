@@ -74,3 +74,37 @@ Pending developer action: start the OpenWebUI server, set OPENWEBUI_URL, and
 set OPENWEBUI_DATA_DIR to the WSL path
 (/mnt/c/Users/qualt/AppData/Roaming/open-webui/data) or set
 OPENWEBUI_API_KEY; then re-run the retrieval test (Verification item 3).
+
+## Scope restructure: multi-phase (batch brief 2026-08-11)
+
+This is a small RAG build, not a simple recovery - scope it with phases:
+
+Phase A (investigation, do FIRST before any implementation):
+
+- [ ] Inspect existing RAG infrastructure (book-rag skill is present at
+      .opencode/skills/book-rag/ AND global - verify what exists and avoid
+      duplicating).
+- [ ] Inspect current OpenWebUI configuration.
+- [ ] Define intended architecture: ingestion, chunking, embeddings,
+      retrieval, metadata, citation/source tracking, querying.
+- [ ] Document dependencies and interfaces with the existing agent
+      workflow.
+
+Phase B (MVP implementation, depends on Phase A):
+
+- [ ] Book ingestion + chunking pipeline.
+- [ ] Embedding generation and storage.
+- [ ] Basic retrieval (query to relevant chunks).
+- [ ] Minimal citation/source tracking (which book/page/section a chunk
+      came from).
+
+Phase C (retrieval quality + integration, depends on Phase B functional):
+
+- [ ] Connect to OpenWebUI where appropriate.
+- [ ] Acceptance tests for retrieval quality (precision of returned chunks
+      against known queries).
+- [ ] Acceptance tests for citation/source traceability (every answer
+      traces to a specific source chunk).
+
+Dependency note: do NOT start Phase B until Phase A investigation is
+closed. Status stays OPEN with phases noted.

@@ -10,13 +10,13 @@ id: DIA-091
 title: "orchestrator repeatedly reports \"I have no bash\" across sessions — document and enforce the bash-delegation pattern"
 area: opencode-config
 severity: Major
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 discovered: 2026-08-10
 source: test-lane
 date: 2026-08-10
 created: 2026-08-10
-updated: 2026-08-10
+updated: 2026-08-11
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -62,3 +62,5 @@ analyzer/resource-manager lacking bash).
 ## Re-verify
 
 > To be filled at re-verify time.
+
+## Resolution (2026-08-11): subsumed by DIA-097 (orchestrator role consolidation) per batch-brief disposition - bash-delegation pattern requirements are tracked under DIA-097.

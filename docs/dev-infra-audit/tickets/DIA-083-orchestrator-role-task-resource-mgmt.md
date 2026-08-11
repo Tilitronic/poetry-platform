@@ -8,13 +8,13 @@ id: DIA-083
 title: "orchestrator's main role is task/resource management — automate repetition by dispatching @coder to create scripts/tools"
 area: opencode-config
 severity: Major
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 discovered: 2026-08-10
 source: test-lane
 date: 2026-08-10
 created: 2026-08-10
-updated: 2026-08-10
+updated: 2026-08-11
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -56,3 +56,5 @@ May be §10-routed if it touches .opencode/ prompts or config (prompt guidance f
 ## Re-verify
 
 > To be filled at re-verify time.
+
+## Resolution (2026-08-11): subsumed by DIA-097 (orchestrator role consolidation) per batch-brief disposition - task/resource mgmt + automation requirements are tracked under DIA-097.

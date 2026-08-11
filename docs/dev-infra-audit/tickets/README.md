@@ -38,11 +38,11 @@ carries the full detail (description, verification, fix, re-verify evidence).
 | DIA-076 | Implement DIA-063 ticket-gate fix + DIA-075 snip guardrails                                                                                  | opencode-config | Major    | VERIFIED | [DIA-076-dia063-fix-implementation.md](archive/DIA-076-dia063-fix-implementation.md)                       |
 | DIA-077 | OMO background job board shows stale objective for coder-lane sessions (description-reuse)                                                   | opencode-config | Low      | DEFERRED | [DIA-077-job-board-stale-objective.md](DIA-077-job-board-stale-objective.md)                               |
 | DIA-078 | coder lane repeatedly prefixes commands with snip wrapper — identical-command loop (DIA-075 recurrence, broader than jq)                     | opencode-config | Major    | OPEN     | [DIA-078-coder-snip-wrapper-loop.md](DIA-078-coder-snip-wrapper-loop.md)                                   |
-| DIA-079 | delegation-observer handoff atomic write fails — JSON Parse error: Unexpected identifier "computed"                                          | opencode-config | Major    | OPEN     | [DIA-079-handoff-write-json-parse-error.md](DIA-079-handoff-write-json-parse-error.md)                     |
-| DIA-080 | orchestrator halts/stops mid-work repeatedly across sessions — requires developer "continue" nudges                                          | opencode-config | Major    | OPEN     | [DIA-080-orchestrator-frequent-stops.md](DIA-080-orchestrator-frequent-stops.md)                           |
+| DIA-079 | delegation-observer handoff atomic write fails — JSON Parse error: Unexpected identifier "computed"                                          | opencode-config | Major    | MONITOR  | [DIA-079-handoff-write-json-parse-error.md](DIA-079-handoff-write-json-parse-error.md)                     |
+| DIA-080 | orchestrator halts/stops mid-work repeatedly across sessions — requires developer "continue" nudges                                          | opencode-config | Major    | CLOSED   | [DIA-080-orchestrator-frequent-stops.md](DIA-080-orchestrator-frequent-stops.md)                           |
 | DIA-081 | orchestrator boots without task tool — permission.task '\*': 'deny' last-key ordering removes task tool entirely (visibleTools findLast)     | opencode-config | Blocker  | CLOSED   | [DIA-081-orchestrator-task-tool-loss.md](archive/DIA-081-orchestrator-task-tool-loss.md)                   |
-| DIA-082 | orchestrator must not perform heavy thinking/analysis itself — delegate to @analyzer; @analyzer may propose council dispatch when warranted  | opencode-config | Major    | OPEN     | [DIA-082-orchestrator-heavy-thinking-delegation.md](DIA-082-orchestrator-heavy-thinking-delegation.md)     |
-| DIA-083 | orchestrator's main role is task/resource management — automate repetition by dispatching @coder to create scripts/tools                     | opencode-config | Major    | OPEN     | [DIA-083-orchestrator-role-task-resource-mgmt.md](DIA-083-orchestrator-role-task-resource-mgmt.md)         |
+| DIA-082 | orchestrator must not perform heavy thinking/analysis itself — delegate to @analyzer; @analyzer may propose council dispatch when warranted  | opencode-config | Major    | CLOSED   | [DIA-082-orchestrator-heavy-thinking-delegation.md](DIA-082-orchestrator-heavy-thinking-delegation.md)     |
+| DIA-083 | orchestrator's main role is task/resource management — automate repetition by dispatching @coder to create scripts/tools                     | opencode-config | Major    | CLOSED   | [DIA-083-orchestrator-role-task-resource-mgmt.md](DIA-083-orchestrator-role-task-resource-mgmt.md)         |
 | DIA-084 | audit the artifacts folders — ensure proper order/structure, naming conventions, archive policies, index files, cross-references             | docs            | Medium   | OPEN     | [DIA-084-artifacts-folder-audit.md](DIA-084-artifacts-folder-audit.md)                                     |
 | DIA-085 | investigate parallel orchestrator sessions — handoff coordination between them (session IDs, worktrees, handoff-file ownership)              | docs            | Medium   | OPEN     | [DIA-085-handoff-parallel-orchestrator-sessions.md](DIA-085-handoff-parallel-orchestrator-sessions.md)     |
 | DIA-086 | improve workflows with a modern scientific-methodology approach — evidence-based reasoning, source citing, reproduction, hypothesis building | docs            | Medium   | OPEN     | [DIA-086-scientific-methodology-workflow.md](DIA-086-scientific-methodology-workflow.md)                   |
@@ -50,11 +50,20 @@ carries the full detail (description, verification, fix, re-verify evidence).
 | DIA-088 | teaching skill missing from the active skill registry - recover it                                                                           | skills          | Medium   | VERIFIED | [DIA-088-recover-teaching-skill.md](DIA-088-recover-teaching-skill.md)                                     |
 | DIA-089 | add the book_rag skill and connect it to OpenWebUI (hybrid RAG over local engineering textbooks)                                             | skills          | Medium   | OPEN     | [DIA-089-book-rag-skill-openwebui.md](DIA-089-book-rag-skill-openwebui.md)                                 |
 | DIA-090 | recover mermaid-diagramming and console-charting skills (source: opencode backup folder)                                                     | skills          | Medium   | VERIFIED | [DIA-090-recover-mermaid-console-charting-skills.md](DIA-090-recover-mermaid-console-charting-skills.md)   |
-| DIA-091 | orchestrator repeatedly reports "I have no bash" across sessions — document and enforce the bash-delegation pattern                          | opencode-config | Major    | OPEN     | [DIA-091-orchestrator-no-bash-recurring.md](DIA-091-orchestrator-no-bash-recurring.md)                     |
+| DIA-091 | orchestrator repeatedly reports "I have no bash" across sessions — document and enforce the bash-delegation pattern                          | opencode-config | Major    | CLOSED   | [DIA-091-orchestrator-no-bash-recurring.md](DIA-091-orchestrator-no-bash-recurring.md)                     |
 | DIA-092 | §10 snip-plugin-removal — remove opencode-snip@1.6.1 mechanical lock (root cause of DIA-075/DIA-078; blocks ALL bash lanes)                  | opencode-config | Major    | OPEN     | [DIA-092-snip-plugin-removal-s10.md](DIA-092-snip-plugin-removal-s10.md)                                   |
 | DIA-093 | Orchestrator boot: "I have no bash tool" - DIA-061 checksum not delegated to coder lane                                                      | opencode-config | Major    | OPEN     | [DIA-093-orchestrator-no-bash-checksum-delegation.md](DIA-093-orchestrator-no-bash-checksum-delegation.md) |
 | DIA-094 | Husky pre-commit hook cannot run in WSL - docker unavailable, quality gate bypassed via --no-verify                                          | dev-infra       | Major    | OPEN     | [DIA-094-husky-precommit-wsl-docker-unavailable.md](DIA-094-husky-precommit-wsl-docker-unavailable.md)     |
-| DIA-095 | Orchestrator needs an optimized project-ops reference - how to run the project, bring up docker, required gates                              | dev-infra       | Major    | OPEN     | [DIA-095-orchestrator-project-ops-reference.md](DIA-095-orchestrator-project-ops-reference.md)             |
+| DIA-095 | Orchestrator needs an optimized project-ops reference - how to run the project, bring up docker, required gates                              | dev-infra       | Major    | CLOSED   | [DIA-095-orchestrator-project-ops-reference.md](DIA-095-orchestrator-project-ops-reference.md)             |
+| DIA-096 | Git push permission policy - allow safe branch push, deny destructive commands and main push (config + git-permissions skill)                | opencode-config | Major    | OPEN     | [DIA-096-git-push-permission-policy.md](DIA-096-git-push-permission-policy.md)                             |
+| DIA-097 | Orchestrator role consolidation: task/resource mgmt, delegation, heavy-thinking separation, bash-delegation, automation-of-repetition        | opencode-config | Major    | OPEN     | [DIA-097-orchestrator-role-delegation.md](DIA-097-orchestrator-role-delegation.md)                         |
+| DIA-098 | Spontaneous subagent/session stops: stalled-agent detection, auto-resume, complete-vs-interrupted classification                             | opencode-config | Major    | OPEN     | [DIA-098-spontaneous-session-stops.md](DIA-098-spontaneous-session-stops.md)                               |
+| DIA-099 | Truncated/partial subagent responses: detect-preserve-resume-validate mechanism                                                              | opencode-config | Major    | OPEN     | [DIA-099-truncated-subagent-responses.md](DIA-099-truncated-subagent-responses.md)                         |
+| DIA-100 | Git worktrees for parallel dev sessions: isolation, branch mgmt, merge/conflict, cleanup, OpenCode interaction                               | dev-infra       | Medium   | OPEN     | [DIA-100-git-worktrees-parallel-dev.md](DIA-100-git-worktrees-parallel-dev.md)                             |
+| DIA-101 | Parallel subagent execution optimization: parallelization rules, dependency detection, resource/shared-file conflicts                        | opencode-config | Medium   | OPEN     | [DIA-101-parallel-subagent-execution.md](DIA-101-parallel-subagent-execution.md)                           |
+| DIA-102 | Specification-document workflow: lifecycle, naming, commit policy, obsolete handling, spec-impl linkage, agent discovery                     | docs            | Medium   | OPEN     | [DIA-102-specification-workflow.md](DIA-102-specification-workflow.md)                                     |
+| DIA-103 | Interview batch completeness enforcement: verify workflow captures ALL questions, not just the first                                         | opencode-config | Medium   | OPEN     | [DIA-103-interview-batch-completeness.md](DIA-103-interview-batch-completeness.md)                         |
+| DIA-104 | Mandatory developer grilling/design review gate: trigger conditions, stages, exit criteria, blocking conditions                              | docs            | Medium   | OPEN     | [DIA-104-mandatory-developer-grilling-gate.md](DIA-104-mandatory-developer-grilling-gate.md)               |
 
 ## Status summary
 
@@ -62,24 +71,24 @@ carries the full detail (description, verification, fix, re-verify evidence).
 | -------- | ----- |
 | Blocker  | 7     |
 | Critical | 1     |
-| Major    | 15    |
-| Medium   | 18    |
+| Major    | 19    |
+| Medium   | 23    |
 | Minor    | 0     |
 | Low      | 5     |
 | Info     | 0     |
 
 | Status      | Count |
 | ----------- | ----- |
-| OPEN        | 20    |
+| OPEN        | 23    |
 | DONE        | 3     |
 | VALIDATE    | 0     |
 | E2E         | 0     |
 | DEFERRED    | 1     |
-| MONITOR     | 0     |
+| MONITOR     | 1     |
 | FIXED       | 0     |
 | IMPLEMENTED | 0     |
 | VERIFIED    | 15    |
-| CLOSED      | 7     |
+| CLOSED      | 12    |
 | BLOCKED     | 0     |
 
 ## How to add a ticket

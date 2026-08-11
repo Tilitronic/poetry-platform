@@ -9,7 +9,7 @@ id: DIA-079
 title: "delegation-observer handoff atomic write fails — JSON Parse error: Unexpected identifier \"computed\""
 area: opencode-config
 severity: Major
-status: OPEN
+status: MONITOR
 blocked_by: [] # DIA-NNN refs, or empty (cross-ref DIA-061 in Description)
 discovered: 2026-08-10
 source: test-lane
@@ -130,3 +130,20 @@ Fix surface confirmed by cod-7 recon 2026-08-11 - see "Recurrence + confirmed ro
 ## Re-verify
 
 > To be filled at re-verify time.
+
+## Resolution (2026-08-11, merge b005277)
+
+- Defensive parsePrognosis helper landed in delegation-observer.ts (lines 1456-1470) via merge b005277 (COMBINE resolution: THEIRS helper + OURS context param, developer disposition).
+- make test-config exit 0; targeted tsc (upstream @opencode-ai/plugin types) exit 0.
+- Status OPEN -> MONITOR: fix applied, runtime handoff-write verification pending next boot.
+- Transition path: MONITOR -> VERIFIED after next-boot runtime check passes -> CLOSED.
+
+## Restart-verify checklist (next boot)
+
+1. Orchestrator session boots with parsePrognosis helper live.
+2. Write a handoff (log_decision with event_type=handoff + prognosis).
+3. Observe NO "[delegation-observer] handoff atomic write failed" error.
+4. Verify current-handoff.json exists and parses cleanly (jq .).
+5. Verify DIA-061 checksum gate passes on successor boot.
+6. If parse failed but fallback caught it: note "fallback triggered" in evidence, still VERIFIED (write succeeded with wrapped prognosis).
+7. Flip MONITOR -> VERIFIED with evidence block.

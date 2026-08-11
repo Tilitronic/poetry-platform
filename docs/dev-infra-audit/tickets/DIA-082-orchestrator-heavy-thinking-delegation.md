@@ -9,13 +9,13 @@ id: DIA-082
 title: "orchestrator must not perform heavy thinking/analysis itself — delegate to @analyzer; @analyzer may propose council dispatch when warranted"
 area: opencode-config
 severity: Major
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 discovered: 2026-08-10
 source: test-lane
 date: 2026-08-10
 created: 2026-08-10
-updated: 2026-08-10
+updated: 2026-08-11
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -57,3 +57,5 @@ May be §10-routed if it touches .opencode/ prompts or config.
 ## Re-verify
 
 > To be filled at re-verify time.
+
+## Resolution (2026-08-11): subsumed by DIA-097 (orchestrator role consolidation) per batch-brief disposition - heavy-thinking-delegation requirements are tracked under DIA-097.
