@@ -71,7 +71,7 @@ installs:
 | ---------------------------- | -------------- | -------------------------------------------------------- |
 | `typescript-language-server` | 5.3.0          | `npm install -g --prefix "$HOME/.local"`                 |
 | `pyright`                    | 1.1.411        | `npm install -g --prefix "$HOME/.local"`                 |
-| `rust-analyzer`              | 1.83.0         | `rustup component add rust-analyzer` (if rustup present) |
+| `rust-analyzer`              | 1.97.1         | `rustup component add rust-analyzer` (if rustup present) |
 
 It is idempotent: re-running emits `already installed: ...` lines and skips.
 Exit codes are `0` on full or partial success and `1` only on unrecoverable
@@ -104,9 +104,17 @@ Expected output on a fully configured host:
 ```
 ok: typescript-language-server 5.3.0 (host, version matches scripts/lsp-versions.env)
 ok: pyright 1.1.411 (host, version matches scripts/lsp-versions.env)
-ok: rust-analyzer 1.83.0 (host, version matches scripts/lsp-versions.env)
+ok: rust-analyzer 1.97.1 (host, version matches scripts/lsp-versions.env)
 summary: 3 ok, 0 fail, 0 skip
 ```
+
+> **rust-analyzer is container-first (DIA-106):** `check-host-lsp` probes
+> rust-analyzer THROUGH the dev container (`docker compose exec`), not the
+> host PATH. When the dev container is up, the ok-line reads `(container
+poetry-dev, ...)`. The host PATH probe runs only as a fallback while the
+> container is down (designed drift detection: the host rustup default stays
+> 1.83.0, so the host fallback reports `fail:` against the 1.97.1 pin until
+> the host toolchain is bumped).
 
 Exit `0` = all good. Exit `1` = at least one failure; the script lists every
 failing tool before exiting.

@@ -42,7 +42,7 @@ SKIP_RUST="${SKIP_RUST:-0}"
 # tool_version <tool>: prints the tool's version as the first dotted-number
 # token from `--version`, or nothing. Works across output shapes: TS LS prints
 # a bare version ("5.3.0"), pyright prints "pyright 1.1.411", rust-analyzer
-# prints "rust-analyzer 1.83.0 (hash 2026-01-01)".
+# prints "rust-analyzer 1.97.1 (hash 2026-01-01)".
 tool_version() {
   "${1}" --version 2>/dev/null | grep -oE '[0-9]+(\.[0-9]+)+' | head -n1 || true
 }

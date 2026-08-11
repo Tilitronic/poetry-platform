@@ -46,6 +46,17 @@ fail=0
 skip=0
 status=0
 
+# extract_version <raw_output>: prints the first dotted-number token from a
+# tool's --version output, or nothing. WHY: shared by the host PATH probe
+# (probe_tool) and the container probe (probe_rust_analyzer_container) so the
+# version-extraction regex lives in ONE place; both probe paths must
+# normalize --version output identically. Works across output shapes: TS LS
+# prints a bare version ("5.3.0"), pyright prints "pyright 1.1.411",
+# rust-analyzer prints "rust-analyzer 1.97.1 (hash 2026-01-01)".
+extract_version() {
+  printf '%s\n' "${1:-}" | grep -oE '[0-9]+(\.[0-9]+)+' | head -n1 || true
+}
+
 # probe_tool <tool> <pinned>: emits ok:/fail: for one tool and aggregates.
 probe_tool() {
   local tool="$1"
@@ -58,11 +69,10 @@ probe_tool() {
     return
   fi
 
-  # Extract the first dotted-number token from `--version` output — works
-  # across output shapes (TS LS: "5.3.0"; pyright: "pyright 1.1.411";
-  # rust-analyzer: "rust-analyzer 1.83.0 (hash 2026-01-01)").
-  local actual
-  actual="$("${tool}" --version 2>/dev/null | grep -oE '[0-9]+(\.[0-9]+)+' | head -n1 || true)"
+  # Normalize --version output via extract_version (shared regex, see above).
+  local raw actual
+  raw="$("${tool}" --version 2>/dev/null || true)"
+  actual="$(extract_version "${raw}")"
   if [ "${actual}" != "${pinned}" ]; then
     echo "fail: ${tool} — ${actual:-<unknown>} on PATH, expected ${pinned}. Run scripts/install-host-lsp.sh" >&2
     fail=$((fail + 1))
@@ -90,7 +100,7 @@ probe_rust_analyzer_container() {
     return 1
   fi
 
-  actual="$(printf '%s\n' "${version_output}" | grep -oE '[0-9]+(\.[0-9]+)+' | head -n1 || true)"
+  actual="$(extract_version "${version_output}")"
   if [ "${actual}" != "${pinned}" ]; then
     echo "fail: rust-analyzer - ${actual:-<unknown>} in dev container, expected ${pinned} (scripts/lsp-versions.env). Rebuild: docker compose build dev && docker compose up -d dev" >&2
     fail=$((fail + 1))

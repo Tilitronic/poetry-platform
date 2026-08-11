@@ -6,7 +6,7 @@ id: DIA-106
 title: "Container-first rust-analyzer for LSP gate (pin 1.83.0->1.97.1, container-aware check-host-lsp)"
 area: dev-infra
 severity: Medium
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 discovered: 2026-08-11
 source: fix-lane
@@ -138,3 +138,42 @@ EXIT 0 via container path, `make test-shell` EXIT 0 (193 ok / 0 not-ok),
   1.97.1 (rustup stable) + container-first tooling (tooling THROUGH the dev
   Docker container, matching the pre-commit delegation pattern). Created for
   DIA-063 ticket-gate compliance.
+- 2026-08-11 (rev-2 review APPROVE): rev-2 review approved BOTH axes
+  (Standards + Spec fidelity). Developer post-facto approval of the 5th-file
+  modification (scripts/**tests**/check-host-lsp.bats) noted per rev-2 S3.
+  Close-out fold: S1 (extract duplicated version-extraction regex into a
+  helper in scripts/check-host-lsp.sh), S3 (this History entry), S5 (doc and
+  install-script version bumps 1.83.0 -> 1.97.1 + container-first note).
+  S2, S4, P1, P2 accepted as-is.
+
+## Session-11 close-out (2026-08-11)
+
+CLOSED. All review findings dispositioned: rev-2 review APPROVE both axes
+(Standards + Spec fidelity); developer post-facto approval of the 5th-file
+modification (scripts/**tests**/check-host-lsp.bats) noted per rev-2 S3;
+S1/S3/S5 folded into this close-out; S2/S4/P1/P2 accepted as-is.
+
+Close-out changes applied:
+
+- S1: extracted the duplicated version-extraction regex
+  `grep -oE '[0-9]+(\.[0-9]+)+' | head -n1` (previously inlined in both
+  probe_tool and probe_rust_analyzer_container) into the `extract_version`
+  helper in scripts/check-host-lsp.sh; both probe paths now call it.
+  Behavior identical; bats suite unchanged and green (9/9).
+- S5: docs/dev-infra/host-lsp-setup.md install table + ok-line example
+  bumped 1.83.0 -> 1.97.1, plus a container-first note (primary LSP probe
+  path delegates into the dev container); scripts/install-host-lsp.sh
+  tool_version comment example bumped 1.83.0 -> 1.97.1.
+- S3: this History entry appended (rev-2 APPROVE + developer post-facto
+  5th-file approval).
+
+Verification evidence at close-out:
+
+- `bash -n scripts/check-host-lsp.sh` exit 0 (no syntax errors).
+- `bash scripts/check-host-lsp.sh` exit 0 via container path
+  (rust-analyzer 1.97.1 ok).
+- `make test-shell` exit 0 (193 ok / 0 not-ok; check-host-lsp.bats 9/9 green
+  after the S1 refactor).
+- `make test-config` exit 0 (224 pre-existing WARNs).
+- Committed + pushed via the container-delegated pre-commit hook, no
+  --no-verify (DIA-094 / DIA-096).
