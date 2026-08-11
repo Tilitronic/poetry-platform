@@ -1424,7 +1424,7 @@ const delegationObserver: Plugin = async (ctx) => {
     tool: {
       log_decision: tool({
         description:
-          "Log a semantic orchestrator event (decision/handoff/crisis) to the session messages.jsonl log. COMPACT replacement for manual messages.md/jsonl edits: use for owner decisions, handoffs, and crisis declarations; mechanical delegation events are captured automatically by hooks and must NOT be logged via this tool.",
+          "Log a semantic orchestrator event (decision/handoff/crisis) to the session messages.jsonl log. COMPACT replacement for manual messages.md/jsonl edits: use for owner decisions, handoffs, and crisis declarations; mechanical delegation events are captured automatically by hooks and must NOT be logged via this tool. IMPORTANT: when event_type='handoff' and prognosis is provided, prognosis MUST be JSON.stringify()'d (the plugin parses it via JSON.parse to write the handoff file).",
         args: {
           event_type: tool.schema.enum([
             "decision",
@@ -1450,6 +1450,24 @@ const delegationObserver: Plugin = async (ctx) => {
           prognosis: tool.schema.string().optional(),
         },
         async execute(args, context) {
+          // Parse prognosis defensively: the orchestrator LLM may pass plain
+          // text instead of a JSON-stringified object (no JSON contract hint
+          // reaches it). Fall back to a plain-text wrapper instead of failing.
+          function parsePrognosis(raw: string | undefined): Record<string, unknown> {
+            if (!raw) return {};
+            try {
+              return JSON.parse(raw);
+            } catch {
+              console.warn("[delegation-observer] prognosis parse failed — falling back to plain-text wrapper");
+              return {
+                session_summary: { note: raw },
+                fixes_applied: [],
+                open_tickets: [],
+                verification_request: [],
+                resume_instructions: ""
+              };
+            }
+          }
           // When event_type is "handoff" and prognosis is provided, write the
           // atomic handoff JSON to .opencode/session/current-handoff.json so the
           // successor session can detect it via a deterministic read() — no
@@ -1460,7 +1478,7 @@ const delegationObserver: Plugin = async (ctx) => {
             args.prognosis
           ) {
             try {
-              const prognosis = JSON.parse(args.prognosis) as Record<
+              const prognosis = parsePrognosis(args.prognosis) as Record<
                 string,
                 unknown
               >

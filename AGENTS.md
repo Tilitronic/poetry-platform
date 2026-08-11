@@ -82,7 +82,7 @@ After the developer disposes review findings (accept/reject per practice-protect
 Before any code change, check these files for governing constraints (in order):
 
 1. `architecture.md` — authoritative system architecture and data flow
-2. `.sdd/` — software design documents (module-level; currently only `.sdd/README.md` exists — no module docs authored yet)
+2. `.sdd/` — software design documents (module-level)
 3. `.tss/` — technical specifications (planned future layer — not yet created)
 4. `openspec/` — OpenSpec artifacts (if present)
 5. `CONTEXT.md` — domain glossary (the domain-vocabulary layer; maintained by `domain-grilling`)

@@ -222,9 +222,13 @@ required`.
 2. Record the cycle budget in the handoff file (cycle current/max, clean-re-audit,
    budget-exhausted) + the campaign trigger manifest — NOT in this file (design.md §7).
 3. Log a final handoff event via `log_decision` (event_type: 'handoff',
-   resolution_status: 'done') and end the turn telling the user a fresh session
-   should be started (or, on crisis, that a fresh session is REQUIRED — crisis
-   precedence over SELF-RERUN, design.md §1).
+   resolution_status: 'done', prognosis: JSON.stringify(prognosisObject)) and end
+   the turn telling the user a fresh session should be started (or, on crisis,
+   that a fresh session is REQUIRED — crisis precedence over SELF-RERUN,
+   design.md §1). **CRITICAL**: the `prognosis` parameter MUST be
+   `JSON.stringify()`'d — the plugin parses it via `JSON.parse()` to write the
+   handoff file. Plain text/objects will cause a silent parse failure and the
+   handoff file will not be written.
 
 ### 7.3 Incoming (successor) session — boot
 

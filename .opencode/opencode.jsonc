@@ -193,12 +193,20 @@
         "task": "deny"
       }
     },
+    // analyzer — artifact-producer tier (DIA-057/F3 fix).
+    // Writes analysis reports to knowledge/<type><id>-<topic>/
+    // and registers them in memory-shelf.yaml. Bash allowed for
+    // Mermaid CLI + analysis tooling; edit scoped to output dirs only.
     "analyzer": {
       "mode": "subagent",
       "color": "#14B8A6",
       "permission": {
-        "edit": "deny",
-        "bash": "deny",
+        "edit": {
+          "*": "deny",
+          "knowledge/*": "allow",
+          ".opencode/memory-shelf.yaml": "allow"
+        },
+        "bash": "allow",
         "task": "deny"
       }
     },
@@ -232,7 +240,10 @@
     },
     "code-navigator": {
       "mode": "subagent",
-      "color": "#06B6D4"
+      "color": "#06B6D4",
+      "permission": {
+        "edit": "deny"
+      }
     },
     "researcher": {
       "mode": "subagent",
@@ -249,11 +260,64 @@
     },
     "observer": {
       "mode": "subagent",
-      "color": "#A855F7"
+      "color": "#A855F7",
+      "permission": {
+        "edit": "deny"
+      }
     },
     "memory-manager": {
       "mode": "subagent",
-      "color": "#F472B6"
+      "color": "#F472B6",
+      "permission": {
+        "edit": {
+          "*": "deny",
+          ".opencode/memory/*": "allow",
+          ".opencode/memory-shelf.yaml": "allow"
+        }
+      }
+    },
+    // conspecter — two-phase source archiving and conspect creation.
+    // Artifact-producer tier (practice-protected.md §6): writes source captures +
+    // MLA-cited conspects under knowledge/; bash limited to curl/wget/trafilatura
+    // for Phase A source capture. Never modifies source files.
+    "conspecter": {
+      "mode": "subagent",
+      "color": "#8B5CF6",
+      "permission": {
+        "edit": {
+          "*": "deny",
+          "knowledge/*": "allow",
+          ".opencode/memory-shelf.yaml": "allow"
+        },
+        "bash": {
+          "curl": "allow",
+          "wget": "allow",
+          "trafilatura": "allow",
+          "*": "deny"
+        },
+        "task": "deny"
+      }
+    },
+    // openspec-plan — spec authoring (Socratic interview over OpenSpec CLI).
+    // Practice-protected: agent guides/interviews, user writes substance.
+    // Permissions: read_files (default), bash scoped to openspec commands only,
+    // edit denied (blocked from editing implementation code).
+    "openspec-plan": {
+      "description": "Specification architect (Socratic mode) over the OpenSpec CLI. Guides the user through spec authoring by interviewing, clarifying requirements, and providing structure. Practice-protected zone — user writes the substance.",
+      "mode": "subagent",
+      "model": "opencode-go/qwen3.7-plus",
+      "color": "#F59E0B",
+      "permission": {
+        "edit": {
+          "*": "deny",
+          "openspec/*": "allow"
+        },
+        "bash": {
+          "openspec": "allow",
+          "*": "deny"
+        },
+        "task": "deny"
+      }
     },
     // Council subagents — read-only
     "council": {
@@ -399,8 +463,8 @@
   "plugin": [
     "envsitter-guard@0.0.4",
     "@tarquinen/opencode-dcp@3.1.14",
-    "oh-my-opencode-slim@2.2.8",
-    "file://./.opencode/plugins/delegation-observer.ts"
+    "file:///workspace/.opencode/oh-my-opencode-slim",
+    "file:///workspace/.opencode/plugins/delegation-observer.ts"
   ],
 
   // ---------------------------------------------------------------------------

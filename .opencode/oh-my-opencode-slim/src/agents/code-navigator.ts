@@ -1,7 +1,7 @@
 import { READONLY_FILE_OPERATIONS_RULES } from '../config';
 import type { AgentDefinition } from './boss';
 
-const EXPLORER_PROMPT = `You are Code Navigator - a fast codebase navigation specialist.
+const CODE_NAVIGATOR_PROMPT = `You are Code Navigator - a fast codebase navigation specialist.
 
 **Role**: Quick contextual grep for codebases. Answer "Where is X?", "Find Y", "Which file has Z".
 
@@ -38,12 +38,12 @@ export function createCodeNavigatorAgent(
   customPrompt?: string,
   customAppendPrompt?: string,
 ): AgentDefinition {
-  let prompt = EXPLORER_PROMPT;
+  let prompt = CODE_NAVIGATOR_PROMPT;
 
   if (customPrompt) {
     prompt = customPrompt;
   } else if (customAppendPrompt) {
-    prompt = `${EXPLORER_PROMPT}\n\n${customAppendPrompt}`;
+    prompt = `${CODE_NAVIGATOR_PROMPT}\n\n${customAppendPrompt}`;
   }
 
   return {

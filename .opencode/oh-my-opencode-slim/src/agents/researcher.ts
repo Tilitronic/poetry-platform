@@ -1,7 +1,7 @@
 import { READONLY_FILE_OPERATIONS_RULES } from '../config';
 import type { AgentDefinition } from './boss';
 
-const LIBRARIAN_PROMPT = `You are Librarian - a research specialist for codebases and documentation.
+const RESEARCHER_PROMPT = `You are Researcher - a research specialist for external documentation, codebases, and libraries.
 
 **Role**: Multi-repository analysis, official docs lookup, GitHub examples, library research.
 
@@ -30,12 +30,12 @@ export function createResearcherAgent(
   customPrompt?: string,
   customAppendPrompt?: string,
 ): AgentDefinition {
-  let prompt = LIBRARIAN_PROMPT;
+  let prompt = RESEARCHER_PROMPT;
 
   if (customPrompt) {
     prompt = customPrompt;
   } else if (customAppendPrompt) {
-    prompt = `${LIBRARIAN_PROMPT}\n\n${customAppendPrompt}`;
+    prompt = `${RESEARCHER_PROMPT}\n\n${customAppendPrompt}`;
   }
 
   return {

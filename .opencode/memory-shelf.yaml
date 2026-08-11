@@ -151,6 +151,14 @@ shelf:
       map and P1-P4 classification table included.'
     path: knowledge/ana009-telemetry-reentrancy-audit/ana009-telemetry-reentrancy-audit-report.md
     created: 2026-08-08
+  - name: "Post-Cherry-Pick Audit (omo-slim-changes)"
+    description: "10-point audit of the omo-slim-changes branch after cherry-pick. 7 PASS, 2 WARN, 2 FAIL. Critical issues: openspec-plan edit permission is flat deny (should scope to openspec/), pnpm-lock.yaml stale (typescript-eslint@^8.67.0 missing). Warnings: validate-agent-names.sh script missing, delegation-observer plugin path double-resolves."
+    path: "knowledge/ana-post-cherry-pick-audit/ana-post-cherry-pick-audit-report.md"
+    created: 2026-08-11
+  - name: "Post-Rebase Comprehensive Audit (omo-slim-changes)"
+    description: "19-point audit after rebase onto origin/omo-slim-changes (56cc42b). 6 rebased commits d026a52..f87df23. 13 PASS, 3 WARN, 3 FAIL. HIGH: memory-shelf.yaml YAML parse error (line 154 indentation break), 3 dangling skill refs (teaching, mermaid-diagramming, console-charting), dangling shelf path (ai-self-improvement-auditor-and-cleanup dir missing). MEDIUM: explore/general in opencode.jsonc but not disabled anywhere despite AGENTS.md saying disabled. LOW: finishing-a-development-branch skill duplicate, conspecter missing explicit task deny. Rebase itself clean (no conflict markers, validate-agent-names.sh 22/22, OMO dist up-to-date, pnpm-lock has typescript-eslint@8.67.0)."
+    path: "knowledge/ana-post-rebase-audit/ana-post-rebase-audit-report.md"
+    created: 2026-08-11
   adrs:
   - name: Memory Storage Strategy
     description: 'Evaluation of Claude-Mem, Honcho, and current hand-written memory

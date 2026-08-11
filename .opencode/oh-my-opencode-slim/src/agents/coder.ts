@@ -1,7 +1,7 @@
 import { WRITABLE_FILE_OPERATIONS_RULES } from '../config';
 import type { AgentDefinition } from './boss';
 
-const FIXER_PROMPT = `You are Coder — a multi-mode implementation specialist.
+const CODER_PROMPT = `You are Coder — a multi-mode implementation specialist.
 
 **Three Operational Modes:**
 
@@ -66,12 +66,12 @@ export function createCoderAgent(
   customPrompt?: string,
   customAppendPrompt?: string,
 ): AgentDefinition {
-  let prompt = FIXER_PROMPT;
+  let prompt = CODER_PROMPT;
 
   if (customPrompt) {
     prompt = customPrompt;
   } else if (customAppendPrompt) {
-    prompt = `${FIXER_PROMPT}\n\n${customAppendPrompt}`;
+    prompt = `${CODER_PROMPT}\n\n${customAppendPrompt}`;
   }
 
   return {
