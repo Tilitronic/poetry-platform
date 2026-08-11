@@ -138,26 +138,35 @@ We have **14 active agents**, each with a different job and different permission
 
 Skills are like **cookbook recipes** the AI follows to the letter.
 
-| Skill                     | Location                              | What it does                                                      |
-| ------------------------- | ------------------------------------- | ----------------------------------------------------------------- |
-| `tdd-craftsman`           | Global (`~/.config/opencode/skills/`) | Full RED → GREEN → REFACTOR cycle with scientific verification    |
-| `openspec-propose`        | Project (`.opencode/skills/`)         | Interview-first OpenSpec change authoring (proposal/design/tasks) |
-| `openspec-apply-change`   | Project (`.opencode/skills/`)         | Implement tasks from an OpenSpec change                           |
-| `openspec-update-change`  | Project (`.opencode/skills/`)         | Revise a change's planning artifacts                              |
-| `openspec-explore`        | Project (`.opencode/skills/`)         | Thinking-partner mode for exploring ideas/requirements            |
-| `openspec-archive-change` | Project (`.opencode/skills/`)         | Archive a completed change                                        |
-| `openspec-sync-specs`     | Project (`.opencode/skills/`)         | Sync delta specs to main specs                                    |
-| `book-rag`                | Project (`.opencode/skills/`)         | Query local engineering textbooks via OpenWebUI RAG               |
-| `console-charting`        | Project (`.opencode/skills/`)         | Terminal charts/tables for data-driven reports                    |
-| `debugging-workflow`      | Project (`.opencode/skills/`)         | Language-specific debugging tools and techniques                  |
-| `frontend-design`         | Project (`.opencode/skills/`)         | Production-grade frontend/UI design                               |
-| `git-diff`                | Project (`.opencode/skills/`)         | Inject current git status + diff context                          |
-| `mermaid-diagramming`     | Project (`.opencode/skills/`)         | Mermaid diagram best practices                                    |
-| `playwright-browser`      | Project (`.opencode/skills/`)         | Browser automation for acceptance/E2E tests                       |
-| `teaching`                | Project (`.opencode/skills/`)         | Pedagogical explanations (mental models, worked examples)         |
-| `writing-skills`          | Project (`.opencode/skills/`)         | Authoring, editing, and verifying skills                          |
+| Skill                     | Location                      | What it does                                                      |
+| ------------------------- | ----------------------------- | ----------------------------------------------------------------- |
+| `tdd-craftsman`           | Project (`.opencode/skills/`) | Full RED → GREEN → REFACTOR cycle with scientific verification    |
+| `openspec-propose`        | Project (`.opencode/skills/`) | Interview-first OpenSpec change authoring (proposal/design/tasks) |
+| `openspec-apply-change`   | Project (`.opencode/skills/`) | Implement tasks from an OpenSpec change                           |
+| `openspec-update-change`  | Project (`.opencode/skills/`) | Revise a change's planning artifacts                              |
+| `openspec-explore`        | Project (`.opencode/skills/`) | Thinking-partner mode for exploring ideas/requirements            |
+| `openspec-archive-change` | Project (`.opencode/skills/`) | Archive a completed change                                        |
+| `openspec-sync-specs`     | Project (`.opencode/skills/`) | Sync delta specs to main specs                                    |
+| `book-rag`                | Project (`.opencode/skills/`) | Query local engineering textbooks via OpenWebUI RAG               |
+| `console-charting`        | Project (`.opencode/skills/`) | Terminal charts/tables for data-driven reports                    |
+| `debugging-workflow`      | Project (`.opencode/skills/`) | Language-specific debugging tools and techniques                  |
+| `git-diff`                | Project (`.opencode/skills/`) | Inject current git status + diff context                          |
+| `mermaid-diagramming`     | Project (`.opencode/skills/`) | Mermaid diagram best practices                                    |
+| `playwright-browser`      | Project (`.opencode/skills/`) | Browser automation for acceptance/E2E tests                       |
+| `simplify`                | Project (`.opencode/skills/`) | Simplifies code for clarity without changing behavior             |
+| `teaching`                | Project (`.opencode/skills/`) | Pedagogical explanations (mental models, worked examples)         |
 
 **Why skills instead of just telling the AI?** The AI can "forget" a step or take shortcuts. Skills are structured documents it must follow — they make the workflow repeatable and auditable.
+
+> **Skill location convention (DIA-084, 2026-08-11):** this project follows a
+> two-tier skill layout. Project skills live in `.opencode/skills/` (tracked in
+> git — reproducible on any machine); the remaining per-user skills live in
+> `~/.config/opencode/skills/` and are intentionally **non-load-bearing** for
+> this repo (personal workflow tools only). Skills relevant to the project are
+> pinned at project level so they resolve in CI / containers / other machines
+> without this user's home directory. See
+> `.opencode/skills/README.md` for the full convention, resolution order, and
+> the risk outside this user home.
 
 ### Layer 3: Turbo Build Pipeline
 
@@ -319,7 +328,7 @@ poetry-platform-monorepo/
 │   ├── oh-my-opencode-slim.jsonc  OMO Slim plugin config (agent prompts/presets)
 │   ├── agents/                 Project-specific agent prompt overrides
 │   ├── commands/               Project-specific AI commands (Ctrl+K)
-│   ├── skills/                 Project-specific AI skills (15)
+│   ├── skills/                 Project-specific AI skills (22)
 │   ├── scripts/                Python bridge scripts (query_rag.py, query_web.py)
 │   └── memory-shelf.yaml       Central index of RAG KBs, conspects, specs
 ├── apps/
