@@ -43,10 +43,10 @@ carries the full detail (description, verification, fix, re-verify evidence).
 | DIA-081 | orchestrator boots without task tool — permission.task '\*': 'deny' last-key ordering removes task tool entirely (visibleTools findLast)     | opencode-config | Blocker  | CLOSED   | [DIA-081-orchestrator-task-tool-loss.md](archive/DIA-081-orchestrator-task-tool-loss.md)                   |
 | DIA-082 | orchestrator must not perform heavy thinking/analysis itself — delegate to @analyzer; @analyzer may propose council dispatch when warranted  | opencode-config | Major    | CLOSED   | [DIA-082-orchestrator-heavy-thinking-delegation.md](DIA-082-orchestrator-heavy-thinking-delegation.md)     |
 | DIA-083 | orchestrator's main role is task/resource management — automate repetition by dispatching @coder to create scripts/tools                     | opencode-config | Major    | CLOSED   | [DIA-083-orchestrator-role-task-resource-mgmt.md](DIA-083-orchestrator-role-task-resource-mgmt.md)         |
-| DIA-084 | audit the artifacts folders — ensure proper order/structure, naming conventions, archive policies, index files, cross-references             | docs            | Medium   | OPEN     | [DIA-084-artifacts-folder-audit.md](DIA-084-artifacts-folder-audit.md)                                     |
+| DIA-084 | audit the artifacts folders — ensure proper order/structure, naming conventions, archive policies, index files, cross-references             | docs            | Medium   | CLOSED   | [DIA-084-artifacts-folder-audit.md](DIA-084-artifacts-folder-audit.md)                                     |
 | DIA-085 | investigate parallel orchestrator sessions — handoff coordination between them (session IDs, worktrees, handoff-file ownership)              | docs            | Medium   | OPEN     | [DIA-085-handoff-parallel-orchestrator-sessions.md](DIA-085-handoff-parallel-orchestrator-sessions.md)     |
-| DIA-086 | improve workflows with a modern scientific-methodology approach — evidence-based reasoning, source citing, reproduction, hypothesis building | docs            | Medium   | OPEN     | [DIA-086-scientific-methodology-workflow.md](DIA-086-scientific-methodology-workflow.md)                   |
-| DIA-087 | audit picked models and model variants for current agents — is the assignment optimal?                                                       | opencode-config | Medium   | OPEN     | [DIA-087-agent-model-variant-audit.md](DIA-087-agent-model-variant-audit.md)                               |
+| DIA-086 | improve workflows with a modern scientific-methodology approach — evidence-based reasoning, source citing, reproduction, hypothesis building | docs            | Medium   | CLOSED   | [DIA-086-scientific-methodology-workflow.md](DIA-086-scientific-methodology-workflow.md)                   |
+| DIA-087 | audit picked models and model variants for current agents — is the assignment optimal?                                                       | opencode-config | Medium   | CLOSED   | [DIA-087-agent-model-variant-audit.md](DIA-087-agent-model-variant-audit.md)                               |
 | DIA-088 | teaching skill missing from the active skill registry - recover it                                                                           | skills          | Medium   | VERIFIED | [DIA-088-recover-teaching-skill.md](DIA-088-recover-teaching-skill.md)                                     |
 | DIA-089 | add the book_rag skill and connect it to OpenWebUI (hybrid RAG over local engineering textbooks)                                             | skills          | Medium   | OPEN     | [DIA-089-book-rag-skill-openwebui.md](DIA-089-book-rag-skill-openwebui.md)                                 |
 | DIA-090 | recover mermaid-diagramming and console-charting skills (source: opencode backup folder)                                                     | skills          | Medium   | VERIFIED | [DIA-090-recover-mermaid-console-charting-skills.md](DIA-090-recover-mermaid-console-charting-skills.md)   |
@@ -82,7 +82,7 @@ carries the full detail (description, verification, fix, re-verify evidence).
 
 | Status      | Count |
 | ----------- | ----- |
-| OPEN        | 22    |
+| OPEN        | 19    |
 | DONE        | 3     |
 | VALIDATE    | 0     |
 | E2E         | 0     |
@@ -91,7 +91,7 @@ carries the full detail (description, verification, fix, re-verify evidence).
 | FIXED       | 0     |
 | IMPLEMENTED | 0     |
 | VERIFIED    | 15    |
-| CLOSED      | 16    |
+| CLOSED      | 19    |
 | BLOCKED     | 0     |
 
 ## How to add a ticket

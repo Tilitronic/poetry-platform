@@ -8,7 +8,7 @@ id: DIA-084
 title: "audit the artifacts folders — ensure proper order/structure, naming conventions, archive policies, index files, cross-references"
 area: docs
 severity: Medium
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 discovered: 2026-08-10
 source: inventory
@@ -117,6 +117,39 @@ Deployment concern to flag (from post-rebase audit):
 - [ ] Apply a consistent organization strategy where appropriate; record what changed.
 - [ ] Document the project-vs-global skill location convention and the resolution risk outside this user home.
 
+## Fix
+
+Skill-location reconcile implemented 2026-08-11 (commit 49459a8). Hybrid
+pin + reconcile:
+
+- 5 skills pinned at project level from the global tree: tdd-craftsman, teaching,
+  mermaid-diagramming, console-charting, simplify — resolve in CI/containers/other
+  machines without this user's home.
+- 4 global overlap copies deleted: book-rag, debugging-workflow, git-diff,
+  playwright-browser. debugging-workflow was the precedence bug — the global copy
+  referenced disabled agents (@fixer/@code_architect) and shadowed the project copy
+  (@coder); deleting the global copy lets the project version load.
+- 8 global-only skills remain (non-load-bearing, accepted): clonedeps, codemap,
+  deepwork, oh-my-opencode-slim, reflect, release-smoke-test,
+  verification-planning, worktrees.
+- Two-tier convention documented in .opencode/skills/README.md (which skills live
+  where, why, resolution order, one-skill-one-location rule).
+- Risk outside this home dir documented: a runtime without ~/.config/opencode will
+  NOT resolve the 8 global-only skills; mitigation = pin at project level whenever
+  a workflow makes one load-bearing.
+
+## Re-verify
+
+Verified 2026-08-11:
+
+- make test-config exit 0 (224 known WARNs) — validate-skills.sh confirms no
+  cross-location duplicate skill names remain (byte-exact duplicates would be HARD
+  failures).
+- .opencode/skills/README.md present and documents the two-tier convention.
+- husky pre-commit ran live (no --no-verify); docker gate poetry-dev +
+  poetry-postgres healthy.
+- Status: CLOSED.
+
 ## Session-11 dispositions (2026-08-11)
 
 Audit report: `knowledge/ana010-artifacts-folder-audit/ana010-artifacts-folder-audit-report.md`.
@@ -125,4 +158,4 @@ Developer disposition: chose "research it deeper" for the skill-location risk
 (project-vs-global skill resolution outside this user home). ai-specialist lane
 to follow with the deeper research.
 
-Status: OPEN.
+Status: CLOSED (2026-08-11, skill-location reconcile + registration complete).

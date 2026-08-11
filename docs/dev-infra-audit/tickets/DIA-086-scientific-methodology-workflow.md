@@ -8,7 +8,7 @@ id: DIA-086
 title: "improve workflows with a modern scientific-methodology approach — evidence-based reasoning, source citing, reproduction, hypothesis building"
 area: docs
 severity: Medium
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 discovered: 2026-08-10
 source: inventory
@@ -132,3 +132,11 @@ Change archived via openspec-archive-change to:
 `openspec/changes/archive/2026-08-11-dia-086-m1-m5-agent-contracts-eval-lite/`
 
 M1-M5 fully delivered. Frontmatter status left OPEN (post-merge shelf/CHANGELOG registration is a separate lane).
+
+## Close-out (2026-08-11)
+
+Post-merge registration lane complete: shelf.specs entry + ana012 implementation-status
+section + CHANGELOG entry (commit 4feb497); archive already performed (9e14d25). All
+M1-M5 mandates implemented, reviewed (ai-auditor + reviewer APPROVE), and validated
+(make eval-lite 20/20, make test-shell 193/0, make test-config exit 0, openspec
+validate 15/15). Status: CLOSED.
