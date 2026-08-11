@@ -94,3 +94,41 @@ gate applies: dispatch `openspec-plan` next to author the change artifacts
 DIA-085 coordination build DEFERRED until parallel work starts.
 
 Status: OPEN (implementation pending).
+
+## Session-11 implementation + archive complete (2026-08-11)
+
+All M1-M5 slices fully implemented, reviewed, and archived.
+
+### Slice A: Config-tooling (M1-M4) -- commit 01c2e5a
+
+- M1: analyzer output contract (HTML-comment header block in analyzer.md + validate-output-contracts.sh)
+- M2: conspecter output contract (HTML-comment header block in conspecter.md + same validator)
+- M3: reviewer Falsification axis (## Falsification section in reviewer.md + validate-reviewer-sections.sh)
+- M4: hypothesis question in openspec-propose + domain-grilling skills (<!-- FIRST-QUESTION --> anchor + validate-skills.sh extension)
+- Review chain: @coder + @ai-auditor -- APPROVE (ai--1)
+
+### Slice B: Dev-infra (M5) -- commits b9c2818..b9666b9
+
+- 5.1: eval-lite task manifest (docs/dev-infra/eval-lite-tasks.md, 20 curated tasks) -- b9c2818
+- 6.1: eval-lite harness script (scripts/eval-lite.sh) -- 4ea25d5
+- 7.1: eval-lite bats test suite (scripts/**tests**/eval-lite.bats) -- 168330d
+- 8.1: Makefile eval-lite target + test-config validator wiring + bats-wrapper allowlist -- faf8c92
+- validate-skills.bats M4 fixture remediation -- b9666b9
+- Review chain: @coder + @reviewer -- APPROVE both axes (rev-1)
+- Developer acknowledged all 6 minor findings; review loop closed
+
+### Gate summary (all green)
+
+| Gate              | Result                                                                                     |
+| ----------------- | ------------------------------------------------------------------------------------------ |
+| make eval-lite    | 20 passed, 0 failed, ~22s                                                                  |
+| make test-shell   | 193 ok, 0 not-ok (check-host-lsp prereq passes via container-first rust-analyzer, DIA-106) |
+| make test-config  | 0 failures (224 pre-existing WARNs)                                                        |
+| openspec validate | 15 passed, 0 failed (post-archive)                                                         |
+
+### Archive
+
+Change archived via openspec-archive-change to:
+`openspec/changes/archive/2026-08-11-dia-086-m1-m5-agent-contracts-eval-lite/`
+
+M1-M5 fully delivered. Frontmatter status left OPEN (post-merge shelf/CHANGELOG registration is a separate lane).
