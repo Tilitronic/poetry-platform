@@ -13,7 +13,7 @@ id: DIA-110
 title: "add human-readable descriptors to ALL DIA ticket filenames (critical)"
 area: docs
 severity: Critical
-status: OPEN
+status: CLOSED
 blocked_by: []
 discovered: 2026-08-12
 source: owner-reported
@@ -30,9 +30,9 @@ model: ""
 parent_session_id: ""
 attempts: 0
 lease_expires_at: ""
-files_touched: ["docs/dev-infra-audit/tickets/DIA-110-unreadable-ticket-filenames.md"]
-artifacts: []
-evidence: []
+files_touched: ["docs/dev-infra-audit/tickets/DIA-110-unreadable-ticket-filenames.md", "docs/dev-infra-audit/tickets/README.md"]
+artifacts: ["4ce939c docs(tickets): rename bare DIA-NNN.md files to slugged filenames (DIA-110)"]
+evidence: ["41 bare DIA-NNN.md files renamed via git mv (25 active + 16 archive)", "all refs updated", "0 broken DIA-*.md links", "pushed to origin/omo-slim-changes"]
 
 ---
 
@@ -89,8 +89,34 @@ Verification before close:
       docs/dev-infra-audit/ (excluding git history and session logs).
 - [ ] git mv used so history is preserved; commit via pre-commit hooks.
 
+## Fix
+
+RESOLVED (2026-08-12, commit 4ce939c): all 41 bare `DIA-<NNN>.md` files
+renamed to slugged filenames via `git mv` (25 in the ACTIVE tickets dir +
+16 in the ARCHIVE tickets dir), covering every status (OPEN, DONE, VERIFIED,
+CLOSED). Commit message: "docs(tickets): rename bare DIA-NNN.md files to
+slugged filenames (DIA-110)".
+
+- README index links and the archive README updated to the slugged filenames.
+- Cross-references in live files updated; git history preserves the prior
+  bare names (rename detection: 41 R entries in 4ce939c).
+- Commit pushed to origin/omo-slim-changes (no --no-verify; pre-commit and
+  pre-push hooks passed).
+- Orchestrator reference discipline (direction b) now in effect: quote
+  ID + slug in user-facing references going forward.
+
 ## Re-verify
 
-> To be filled at re-verify time.
+Close-out evidence (2026-08-12):
+
+- [x] No bare `DIA-<NNN>.md` filename remains in docs/dev-infra-audit/tickets/
+      or tickets/archive/ (verified: 0 bare files in both dirs).
+- [x] Every renamed file's frontmatter `id:` field matches the new filename ID.
+- [x] README.md index links all resolve - 0 broken DIA-\*.md links under
+      docs/dev-infra-audit/ (grep for bare DIA-<NNN>.md references: 0 hits
+      outside git history and session logs).
+- [x] `git mv` used (history preserved); commit 4ce939c contains 41 rename
+      entries and is contained in origin/omo-slim-changes.
+- [x] Committed via pre-commit hooks (no --no-verify).
 
 ---
