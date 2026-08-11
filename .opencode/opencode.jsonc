@@ -250,6 +250,170 @@
         }
       }
     },
+    // openspec-plan — spec authoring (Socratic interview over OpenSpec CLI).
+    // Practice-protected: agent guides/interviews, user writes substance.
+    // Permissions: read_files (default), bash scoped to openspec commands only,
+    // edit denied (blocked from editing implementation code).
+    "openspec-plan": {
+      "description": "Specification architect (Socratic mode) over the OpenSpec CLI. Guides the user through spec authoring by interviewing, clarifying requirements, and providing structure. Practice-protected zone — user writes the substance.",
+      "mode": "subagent",
+      "model": "opencode-go/qwen3.7-plus",
+      "color": "#F59E0B",
+      "permission": {
+        "edit": {
+          "*": "deny",
+          "openspec/*": "allow"
+        },
+        "bash": {
+          "openspec": "allow",
+          "*": "deny"
+        }
+      }
+    },
+    // Council subagents — read-only
+    "council": {
+      "permission": {
+        "edit": "deny",
+        "bash": {
+          "*": "deny"
+        }
+      }
+    },
+    // resource-manager — knowledge-source curation lane (DIA-007 split).
+    // Artifact-producer tier (practice-protected.md §5): edit scoped to the OMO
+    // knowledge/ dir ONLY; bash limited to curl/wget/trafilatura for Tier-1
+    // Markdown caching + Tier-2 re-fetch. May dispatch @researcher/@conspecter
+    // (task: allow) to gather curation evidence (star counts, pricing, terms).
+    "resource-manager": {
+      "description": "Curates ai-assist-sources.yaml and Tier-1 knowledge caches (Markdown), re-fetches Tier-2 volatile sources, and evaluates awesome-opencode tools by star count (<100 experimental, 100-500 reasonable, 500+ established). Artifact-producer — edit scoped to knowledge/ only.",
+      "mode": "subagent",
+      "model": "opencode-go/deepseek-v4-flash",
+      "color": "#0891B2",
+      "permission": {
+        "edit": {
+          "*": "deny",
+          ".opencode/oh-my-opencode-slim/knowledge/*": "allow"
+        },
+        "bash": {
+          "curl": "allow",
+          "wget": "allow",
+          "trafilatura": "allow",
+          "*": "deny"
+        },
+        "task": "allow"
+      }
+    },
+    "ai-specialist": {
+      "description": "Read-only researcher of agent/skill/config best practices for OpenCode itself. Findings routed through orchestrator for persistence. Scope: documentation + config review only; no runtime dispatch authority; no implementation.",
+      "mode": "subagent",
+      "model": "opencode-go/qwen3.7-plus",
+      "temperature": 0.3,
+      "color": "info",
+      "permission": {
+        "edit": "deny",
+        "bash": {
+          "curl": "allow",
+          "wget": "allow",
+          "*": "deny"
+        },
+        "task": "deny"
+      }
+    },
+    // ai-auditor — independent read-only reviewer for §10 config changes
+    // (DIA-053). Pure-analyst tier: findings routed via orchestrator for
+    // persistence. Orchestrator brief SUPERSEDES design.md §2: bash FULLY
+    // denied (no curl/wget — the auditor has no network need). envsitter keys
+    // enumerate the envsitter-guard plugin's actual tool names (the brief's
+    // envsitter_read/envsitter_edit map to these individual names).
+    "ai-auditor": {
+      "description": "Independent read-only reviewer for §10 config changes. Pure-analyst tier — findings routed via orchestrator for persistence.",
+      "mode": "subagent",
+      "color": "#10B981",
+      "permission": {
+        "edit": "deny",
+        "bash": "deny",
+        "apply_patch": "deny",
+        "ast_grep_replace": "deny",
+        "webfetch": "deny",
+        "task": "deny",
+        "envsitter_set": "deny",
+        "envsitter_add": "deny",
+        "envsitter_delete": "deny",
+        "envsitter_unset": "deny",
+        "envsitter_annotate": "deny",
+        "envsitter_format": "deny",
+        "envsitter_reorder": "deny",
+        "envsitter_copy": "deny",
+        "envsitter_keys": "deny",
+        "envsitter_scan": "deny",
+        "envsitter_match": "deny",
+        "envsitter_match_by_key": "deny",
+        "envsitter_fingerprint": "deny",
+        "envsitter_validate": "deny",
+        "envsitter_help": "deny",
+        "read": "allow",
+        "glob": "allow",
+        "grep": "allow",
+        "list": "allow"
+      }
+    }
+  },
+
+  // ---------------------------------------------------------------------------
+  // Provider Definitions — models available for all agents
+  // ---------------------------------------------------------------------------
+  "provider": {
+    "ollama": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "Ollama (local)",
+      "options": {
+        "baseURL": "http://127.0.0.1:11434/v1"
+      },
+      "models": {
+        "qwen2.5-coder:14b": {
+          "name": "Qwen 2.5 Coder 14B (FAST)",
+          "roles": [
+            "chat",
+            "edit",
+            "apply"
+          ]
+        },
+        "qwen3-coder:30b": {
+          "name": "Qwen 3 Coder 30B (Heavy reasoning)",
+          "roles": [
+            "chat",
+            "edit",
+            "apply"
+          ]
+        },
+        "gemma3:12b": {
+          "name": "Gemma 3 12B (Lightweight — RAG / theory)",
+          "roles": [
+            "chat",
+            "edit",
+            "apply"
+          ]
+        }
+      }
+    }
+  },
+
+  // ---------------------------------------------------------------------------
+  // References — Memory Shelf location
+  // ---------------------------------------------------------------------------
+  "references": {
+    "shelf": {
+      "path": ".opencode/memory-shelf.yaml",
+      "description": "Memory Shelf, agent config, and opencode project settings. Read .opencode/memory-shelf.yaml first — it's the central index of all RAG knowledge bases, research conspects, specs, and analyses."
+    }
+  },
+
+  // ---------------------------------------------------------------------------
+  // Plugins — loaded by OpenCode for this project
+  // ---------------------------------------------------------------------------
+  "plugin": [
+    "envsitter-guard@0.0.4",
+    "@tarquinen/opencode-dcp@3.1.14",
     "file:///workspace/.opencode/oh-my-opencode-slim",
     "file://./.opencode/plugins/delegation-observer.ts"
   ],

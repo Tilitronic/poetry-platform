@@ -151,6 +151,10 @@ shelf:
       map and P1-P4 classification table included.'
     path: knowledge/ana009-telemetry-reentrancy-audit/ana009-telemetry-reentrancy-audit-report.md
     created: 2026-08-08
+    - name: "Post-Cherry-Pick Audit (omo-slim-changes)"
+      description: "10-point audit of the omo-slim-changes branch after cherry-pick. 7 PASS, 2 WARN, 2 FAIL. Critical issues: openspec-plan edit permission is flat deny (should scope to openspec/), pnpm-lock.yaml stale (typescript-eslint@^8.67.0 missing). Warnings: validate-agent-names.sh script missing, delegation-observer plugin path double-resolves."
+      path: "knowledge/ana-post-cherry-pick-audit/ana-post-cherry-pick-audit-report.md"
+      created: 2026-08-11
   adrs:
   - name: Memory Storage Strategy
     description: 'Evaluation of Claude-Mem, Honcho, and current hand-written memory
