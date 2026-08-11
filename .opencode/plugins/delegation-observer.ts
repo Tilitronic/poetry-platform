@@ -531,7 +531,10 @@ const delegationObserver: Plugin = async (ctx) => {
    * crashed orchestrator (appendFileSync is atomic; the last row is lost,
    * never corrupted).
    */
-  function appendMessageRow(row: Record<string, unknown>): void {
+  function appendMessageRow(
+    row: Record<string, unknown>,
+    sessionID?: string
+  ): void {
     nextRowId++
     const entry: Record<string, unknown> = {
       row_id: nextRowId,
@@ -553,12 +556,16 @@ const delegationObserver: Plugin = async (ctx) => {
       )
     }
     // DIA-080: per-session message counter for the context_usage estimate.
-    // appendMessageRow has no sessionID parameter - every row is an
-    // orchestrator-level log row, so parentSessionId (the captured
-    // orchestrator session) is the writer key. Rows written before the first
-    // task() dispatch (parentSessionId still unset) fall under "unknown",
-    // which is the same key context_usage reads when it is called that early.
-    const writerSession = parentSessionId ?? "unknown"
+    // Keyed by the session that triggers the row - callers pass the CURRENT
+    // session id (input.sessionID for task() dispatch, context.sessionID for
+    // log_decision, the lifecycle sessionID or its parent orchestrator for
+    // idle/error rows). NOT the sticky parentSessionId: that single
+    // process-level capture would attribute every row of a
+    // multi-orchestrator-session process to the FIRST orchestrator, making
+    // context_usage report the wrong session (DIA-080 review nit). Fallbacks:
+    // parentSessionId (best effort before tool context) then "unknown", which
+    // is the same key context_usage reads when called that early.
+    const writerSession = sessionID ?? parentSessionId ?? "unknown"
     sessionMessageCount.set(
       writerSession,
       (sessionMessageCount.get(writerSession) ?? 0) + 1
@@ -1090,16 +1097,19 @@ const delegationObserver: Plugin = async (ctx) => {
         input.sessionID,
         (sessionDelegationCount.get(input.sessionID) ?? 0) + 1
       )
-      appendMessageRow({
-        "gen_ai.operation.name": "invoke_agent",
-        "gen_ai.agent.name": agentName,
-        ...(laneId ? { lane_id: laneId } : {}),
-        from: "orchestrator",
-        event_type: "delegation",
-        task_ref: taskRef,
-        resolution_status: "in-flight",
-        ...(taskId ? { "gen_ai.agent.id": taskId } : {}),
-      })
+      appendMessageRow(
+        {
+          "gen_ai.operation.name": "invoke_agent",
+          "gen_ai.agent.name": agentName,
+          ...(laneId ? { lane_id: laneId } : {}),
+          from: "orchestrator",
+          event_type: "delegation",
+          task_ref: taskRef,
+          resolution_status: "in-flight",
+          ...(taskId ? { "gen_ai.agent.id": taskId } : {}),
+        },
+        input.sessionID
+      )
 
       // PERSISTENCE_RECOMMENDED detector (DIA-057/DIA-058, ai--3 fold-in +
       // Phase-6 lane scoping): when a COMPLETED researcher task result carries
@@ -1252,14 +1262,17 @@ const delegationObserver: Plugin = async (ctx) => {
             const pending = delegationsSinceHandoff.get(sessionID) ?? 0
             if (pending > 0) {
               delegationsSinceHandoff.set(sessionID, 0)
-              appendMessageRow({
-                "gen_ai.operation.name": "invoke_workflow",
-                from: "orchestrator",
-                event_type: "handoff",
-                task_ref: "orchestrator idle turn — delegations complete",
-                resolution_status: "done",
-                "gen_ai.agent.id": sessionID,
-              })
+              appendMessageRow(
+                {
+                  "gen_ai.operation.name": "invoke_workflow",
+                  from: "orchestrator",
+                  event_type: "handoff",
+                  task_ref: "orchestrator idle turn — delegations complete",
+                  resolution_status: "done",
+                  "gen_ai.agent.id": sessionID,
+                },
+                sessionID
+              )
             }
             return
           }
@@ -1293,16 +1306,22 @@ const delegationObserver: Plugin = async (ctx) => {
           })
           // messages.jsonl completion row: delegation resolved "done".
           // gen_ai.agent.name is enriched from the dispatch capture
-          // (childSessionAgent) when available.
-          appendMessageRow({
-            "gen_ai.operation.name": "invoke_agent",
-            "gen_ai.agent.name": childSessionAgent.get(sessionID) ?? "subagent",
-            from: "orchestrator",
-            event_type: "delegation",
-            task_ref: "subagent session completed",
-            resolution_status: "done",
-            "gen_ai.agent.id": sessionID,
-          })
+          // (childSessionAgent) when available. Message counter key: the
+          // child's parent orchestrator (the session that spawned it), so the
+          // row counts under the orchestrator that triggered it, not the
+          // sticky first-captured parentSessionId.
+          appendMessageRow(
+            {
+              "gen_ai.operation.name": "invoke_agent",
+              "gen_ai.agent.name": childSessionAgent.get(sessionID) ?? "subagent",
+              from: "orchestrator",
+              event_type: "delegation",
+              task_ref: "subagent session completed",
+              resolution_status: "done",
+              "gen_ai.agent.id": sessionID,
+            },
+            sessionMeta.get(sessionID)?.parentID
+          )
           checkSilentFailures()
           return
         }
@@ -1347,15 +1366,24 @@ const delegationObserver: Plugin = async (ctx) => {
           // messages.jsonl failure row: delegation resolution "escalated".
           // Written for ANY failing session (child or orchestrator) — a
           // failure is a crisis-level event in the orchestrator-level log.
-          appendMessageRow({
-            "gen_ai.operation.name": "invoke_agent",
-            "gen_ai.agent.name": childSessionAgent.get(sessionID) ?? role,
-            from: "orchestrator",
-            event_type: "delegation",
-            task_ref: "session error — delegation failed",
-            resolution_status: "escalated",
-            "gen_ai.agent.id": sessionID,
-          })
+          // Message counter key: the parent orchestrator for subagent rows
+          // (the session that spawned the child), the session itself for
+          // orchestrator rows — never the sticky first-captured
+          // parentSessionId.
+          appendMessageRow(
+            {
+              "gen_ai.operation.name": "invoke_agent",
+              "gen_ai.agent.name": childSessionAgent.get(sessionID) ?? role,
+              from: "orchestrator",
+              event_type: "delegation",
+              task_ref: "session error — delegation failed",
+              resolution_status: "escalated",
+              "gen_ai.agent.id": sessionID,
+            },
+            role === "subagent"
+              ? sessionMeta.get(sessionID)?.parentID
+              : sessionID
+          )
           checkSilentFailures()
           return
         }
@@ -1421,7 +1449,7 @@ const delegationObserver: Plugin = async (ctx) => {
           /** JSON-stringified prognosis object — only meaningful for handoff events. */
           prognosis: tool.schema.string().optional(),
         },
-        async execute(args) {
+        async execute(args, context) {
           // When event_type is "handoff" and prognosis is provided, write the
           // atomic handoff JSON to .opencode/session/current-handoff.json so the
           // successor session can detect it via a deterministic read() — no
@@ -1461,18 +1489,24 @@ const delegationObserver: Plugin = async (ctx) => {
               // row means the event is invisible.
             }
           }
-          appendMessageRow({
-            "gen_ai.operation.name": "invoke_workflow",
-            from: "orchestrator",
-            event_type: args.event_type,
-            task_ref: args.task_ref,
-            resolution_status: args.resolution_status,
-            ...(args.lane_id ? { lane_id: args.lane_id } : {}),
-            ...(args.cycle_id ? { cycle_id: args.cycle_id } : {}),
-            ...(args.ticket_id ? { ticket_id: args.ticket_id } : {}),
-            ...(args.content_ref ? { content_ref: args.content_ref } : {}),
-            ...(args.next_action ? { next_action: args.next_action } : {}),
-          })
+          appendMessageRow(
+            {
+              "gen_ai.operation.name": "invoke_workflow",
+              from: "orchestrator",
+              event_type: args.event_type,
+              task_ref: args.task_ref,
+              resolution_status: args.resolution_status,
+              ...(args.lane_id ? { lane_id: args.lane_id } : {}),
+              ...(args.cycle_id ? { cycle_id: args.cycle_id } : {}),
+              ...(args.ticket_id ? { ticket_id: args.ticket_id } : {}),
+              ...(args.content_ref ? { content_ref: args.content_ref } : {}),
+              ...(args.next_action ? { next_action: args.next_action } : {}),
+            },
+            // context.sessionID is the CURRENT session invoking the tool (the
+            // orchestrator), so the row counts under that session - not the
+            // sticky first-captured parentSessionId (DIA-080 review nit).
+            context?.sessionID
+          )
           return `Logged: ${args.event_type} — ${args.task_ref.slice(0, 60)}`
         },
       }),
@@ -1498,18 +1532,24 @@ const delegationObserver: Plugin = async (ctx) => {
               "Scope: 'session' (default) = full session; 'council' = council-dispatch subset only."
             ),
         },
-        async execute(args) {
+        async execute(args, context) {
           const scope = args.scope ?? "session"
 
           // DIA-080 (Option A): the session scope estimates from in-memory
           // per-session counters instead of reading every registry/messages
           // row since project start (which summed all sessions and always
           // read ~100%). The counters are keyed by the orchestrator session -
-          // parentSessionId, captured at the first task() dispatch - because
-          // context_usage is called by that same orchestrator. The council
-          // scope keeps the file-derived path: agent attribution lives only in
-          // the logs / childSessionAgent, so it cannot come from counters.
-          const callingSession = parentSessionId ?? "unknown"
+          // the CURRENT calling session comes from the tool invocation
+          // context (ToolContext.sessionID), NOT the sticky parentSessionId
+          // captured at the first task() dispatch: with multiple orchestrator
+          // sessions in one process, the sticky capture would report the
+          // FIRST orchestrator's counts (DIA-080 review nit). parentSessionId
+          // remains as a pre-context fallback, then "unknown" for pre-session
+          // calls. The council scope keeps the file-derived path: agent
+          // attribution lives only in the logs / childSessionAgent, so it
+          // cannot come from counters.
+          const callingSession =
+            context?.sessionID ?? parentSessionId ?? "unknown"
 
           let delegationCount: number
           let messageCount = 0
