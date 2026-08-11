@@ -27,6 +27,15 @@ setup() {
   # an empty per-test temp dir so the pre-existing tests stay hermetic — the
   # real global tree is never read, and an empty global root skips dup checks.
   export GLOBAL_SKILLS_ROOT="$GLOBAL_FIXTURES"
+  # DIA-086 (task 4.2): validate-skills.sh hard-requires the two Socratic
+  # interview skills to pass its M4 checks (FIRST-QUESTION anchor, the exact
+  # hypothesis question after it, and an example '?'-ending question). Plant
+  # M4-compliant fixtures for both so every test tree mirrors the real
+  # .opencode/skills/ tree. Without them the M4 "missing skill file" FAILs
+  # flip every exit-0 expectation to exit 1 - the drift this suite suffered
+  # when the M4 checks landed without fixture updates.
+  write_m4_skill "openspec-propose"
+  write_m4_skill "domain-grilling"
   # Resolve absolute interpreters up front: the python3-unavailable test
   # rewrites PATH and needs an absolute bash to still invoke the script.
   BASH_BIN="$(command -v bash)"
@@ -60,6 +69,28 @@ license: MIT
 ---
 
 Use when running the validation suite.
+"
+}
+
+# write_m4_skill <name>: writes an M4-compliant SKILL.md for one of the two
+# Socratic-interview skills that validate-skills.sh hard-requires (DIA-086
+# change dia-086-m1-m5-agent-contracts-eval-lite, task 4.2): the
+# `<!-- FIRST-QUESTION -->` anchor must appear before the exact hypothesis
+# question, followed by at least one explicit '?'-ending example question.
+# The fixture mirrors the real skills' shape (flat frontmatter, declared
+# license, activation-phrase body) so the M4 checks PASS and emit no warnings.
+write_m4_skill() {
+  local name="$1"
+  write_skill "$name" "---
+name: $name
+description: M4 fixture copy of the $name Socratic skill. Use when testing the validator.
+license: MIT
+---
+
+Use when testing the validator.
+<!-- FIRST-QUESTION -->
+What is the primary hypothesis this feature/design validates, and how will you know if it is falsified?
+Example: what is the most important thing to verify first?
 "
 }
 
@@ -424,10 +455,14 @@ Use when running the validation suite.
   assert_output_not_contains "FAIL:"
 }
 
-@test "validate-skills: empty project skills dir exits 0 and skips dup detection" {
-  # Project root exists but holds no skill subdirectories; the global fixture
-  # is non-empty. The validator must not run dup detection (nothing to detect)
-  # and must fall through to the summary with exit 0.
+@test "validate-skills: empty project skills dir fails M4 and exits 1" {
+  # M4 (DIA-086 task 4.2) made an empty project tree a HARD failure: the two
+  # Socratic-interview skills are required, so a "missing skill file" FAIL is
+  # emitted for each before the summary. Dup detection is still skipped (the
+  # project side has no skill dirs to hash). This documents the post-M4
+  # contract for the previously-exit-0 empty-tree scenario.
+  local empty_proj="$FIXTURES/empty-proj"
+  mkdir -p "$empty_proj"
   write_global_skill "global-only" '---
 name: global-only
 description: A global skill with no project counterpart. Use when testing the validator.
@@ -437,12 +472,14 @@ license: MIT
 Use when running the validation suite.
 '
 
-  SKILLS_ROOT="$FIXTURES" GLOBAL_SKILLS_ROOT="$GLOBAL_FIXTURES" run bash "$SKILLS_SCRIPT"
+  SKILLS_ROOT="$empty_proj" GLOBAL_SKILLS_ROOT="$GLOBAL_FIXTURES" run bash "$SKILLS_SCRIPT"
 
-  assert_status 0
-  assert_output_contains "passed"
-  assert_output_contains "0 failed"
-  assert_output_not_contains "FAIL:"
+  assert_status 1
+  assert_output_contains "M4: missing skill file"
+  assert_output_contains "openspec-propose/SKILL.md"
+  assert_output_contains "domain-grilling/SKILL.md"
+  assert_output_contains "2 failed"
+  assert_output_not_contains "duplicate skill"
   assert_output_not_contains "near-duplicate skill"
 }
 
