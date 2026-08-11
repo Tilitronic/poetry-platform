@@ -78,7 +78,19 @@ quality / speed / usage-efficiency / cost ratio for this workload pattern.
 
 ## Fix
 
-> To be filled at fix time.
+Research phase completed 2026-08-12 (ai-specialist lane, web-fresh; 7 sources archived at knowledge/res013-opencode-model-pricing-audit/, conspect registered in memory-shelf shelf.conspects).
+
+Key findings:
+
+- Current model assignments are well-optimized (DIA-087 tiering sound); no primary model changes recommended.
+- One config change was proposed: designer claude-sonnet-4.5 -> claude-sonnet-5 (Copilot, $2/$10 promo, 85.2% SWE-bench). DEVELOPER REJECTED: Claude Sonnet 5 is NOT in the actual Copilot Pro subscription model list. Recommendation withdrawn. No config change applied.
+- New escalation option identified: Kimi K3 (93.4% SWE-bench Verified, best Go model; 490 req/mo cap - reserve for <5 escalations/mo). Not applied - informational.
+- ai-assist-sources.yaml has 6+ stale entries + 8 missing new Go models (Kimi K3, Grok 4.5, GPT 5.6 Luna, MiniMax M3, Qwen3.8 Max, Hy3, MiMo-V2.5-Pro, GLM-5.2) + stale reviewer/observer role_mapping. Needs @resource-manager dispatch.
+- Usage headroom MASSIVE: 2-5% utilization across all pools under stated workload (4-6h weekends + up to 2h weekdays); $10/mo Go + Copilot Pro provide ~40x headroom; no bottlenecks; no new subscriptions needed.
+
+Quality lesson (developer disposition): pricing-page availability does NOT imply subscription availability - model availability MUST be validated against the actual subscription's model list before recommending a config change.
+
+Status note: research + persistence complete; remaining work = ai-assist-sources.yaml refresh (resource-manager), R5 MiMo evaluation, optional Kimi K3 escalation adoption. Ticket stays OPEN until those or developer closes.
 
 ## Re-verify
 

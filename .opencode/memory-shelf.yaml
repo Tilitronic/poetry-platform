@@ -60,6 +60,10 @@ shelf:
     description: 'Conspect synthesizing best practices for machine-driven scientific workflows: structured hypotheses, novelty checks, experiment journals, falsification, verification, provenance, test-driven SWE agents, eval-driven development, failure modes, and solo-developer SCOPE GUARD guidance.'
     path: knowledge/res012-scientific-methodology/res012-scientific-methodology-conspect.md
     created: 2026-08-11
+  - name: OpenCode Model Pricing Audit (DIA-108)
+    description: 'Conspect synthesizing OpenCode Go pricing and usage limits (18 models, $5 first month then $10/mo, $12/5h, $30/wk, $60/mo caps), GitHub Copilot per-1M-token pricing and AI-credit plan allowances, SWE-bench Verified scores from BenchLM/Vals/official trackers, variant/mode notes, and key findings (Kimi K3 93.4% best Go model at 490 req/mo; Grok 4.5 86.6% at 600 req/mo; GPT 5.6 Luna cheap lightweight; DeepSeek V4 Flash volume king 158K req/mo at $0.14/$0.28; MiniMax M3 80.5%). Records the DIA-108 developer disposition: Claude Sonnet 5 recommendation REJECTED because that model is not in the actual Copilot Pro subscription model list - pricing-page availability does not imply subscription availability.'
+    path: knowledge/res013-opencode-model-pricing-audit/res013-opencode-model-pricing-audit-conspect.md
+    created: 2026-08-12
 
   analyses:
   - name: Agent Alignment Audit

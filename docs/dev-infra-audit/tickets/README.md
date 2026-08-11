@@ -69,22 +69,26 @@ carries the full detail (description, verification, fix, re-verify evidence).
 | DIA-107 | rust-analyzer container setup review-cycle re-verify (section 2.3.1 cycle 1/2 of close-out commit 1dc8f76)                                   | dev-infra       | Low      | CLOSED   | [DIA-107-rust-analyzer-review-cycle-reverify.md](DIA-107-rust-analyzer-review-cycle-reverify.md)           |
 | DIA-108 | audit optimal model assignment across OpenCode agents (usage-driven)                                                                         | opencode-config | Medium   | OPEN     | [DIA-108-optimal-model-assignment-audit.md](DIA-108-optimal-model-assignment-audit.md)                     |
 | DIA-109 | restart-verify DIA-087/084 config changes (section-10 Phase 5)                                                                               | opencode-config | Low      | OPEN     | [DIA-109-restart-verify-dia087-084-config.md](DIA-109-restart-verify-dia087-084-config.md)                 |
+| DIA-110 | add human-readable descriptors to ALL DIA ticket filenames (critical)                                                                        | docs            | Critical | OPEN     | [DIA-110-unreadable-ticket-filenames.md](DIA-110-unreadable-ticket-filenames.md)                           |
+| DIA-111 | model escalation routing for coder and analyzer agents (research-first)                                                                      | opencode-config | Medium   | OPEN     | [DIA-111-coder-analyzer-model-escalation.md](DIA-111-coder-analyzer-model-escalation.md)                   |
+| DIA-112 | section-10 ticket gate fires despite OPEN + indexed + referenced ticket (correlation bug)                                                    | opencode-config | Major    | CLOSED   | [DIA-112-ticket-gate-correlation-bug.md](DIA-112-ticket-gate-correlation-bug.md)                           |
+| DIA-113 | audit workflow-adherence discipline + agentic autonomy configuration vs newest best practices                                                | opencode-config | Major    | OPEN     | [DIA-113-workflow-adherence-autonomy-audit.md](DIA-113-workflow-adherence-autonomy-audit.md)               |
 
 ## Status summary
 
 | Severity | Count |
 | -------- | ----- |
 | Blocker  | 7     |
-| Critical | 1     |
-| Major    | 19    |
-| Medium   | 25    |
+| Critical | 2     |
+| Major    | 21    |
+| Medium   | 27    |
 | Minor    | 0     |
 | Low      | 7     |
 | Info     | 0     |
 
 | Status      | Count |
 | ----------- | ----- |
-| OPEN        | 21    |
+| OPEN        | 24    |
 | DONE        | 3     |
 | VALIDATE    | 0     |
 | E2E         | 0     |
@@ -93,7 +97,7 @@ carries the full detail (description, verification, fix, re-verify evidence).
 | FIXED       | 0     |
 | IMPLEMENTED | 0     |
 | VERIFIED    | 15    |
-| CLOSED      | 19    |
+| CLOSED      | 20    |
 | BLOCKED     | 0     |
 
 ## How to add a ticket
