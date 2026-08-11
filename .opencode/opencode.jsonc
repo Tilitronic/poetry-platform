@@ -185,7 +185,10 @@
     },
     "code-navigator": {
       "mode": "subagent",
-      "color": "#06B6D4"
+      "color": "#06B6D4",
+      "permission": {
+        "edit": "deny"
+      }
     },
     "researcher": {
       "mode": "subagent",
@@ -202,11 +205,42 @@
     },
     "observer": {
       "mode": "subagent",
-      "color": "#A855F7"
+      "color": "#A855F7",
+      "permission": {
+        "edit": "deny"
+      }
     },
     "memory-manager": {
       "mode": "subagent",
-      "color": "#F472B6"
+      "color": "#F472B6",
+      "permission": {
+        "edit": {
+          "*": "deny",
+          ".opencode/memory/*": "allow",
+          ".opencode/memory-shelf.yaml": "allow"
+        }
+      }
+    },
+    // conspecter — two-phase source archiving and conspect creation.
+    // Artifact-producer tier (practice-protected.md §6): writes source captures +
+    // MLA-cited conspects under knowledge/; bash limited to curl/wget/trafilatura
+    // for Phase A source capture. Never modifies source files.
+    "conspecter": {
+      "mode": "subagent",
+      "color": "#8B5CF6",
+      "permission": {
+        "edit": {
+          "*": "deny",
+          "knowledge/*": "allow",
+          ".opencode/memory-shelf.yaml": "allow"
+        },
+        "bash": {
+          "curl": "allow",
+          "wget": "allow",
+          "trafilatura": "allow",
+          "*": "deny"
+        }
+      }
     },
     "file:///workspace/.opencode/oh-my-opencode-slim",
     "file://./.opencode/plugins/delegation-observer.ts"
