@@ -77,6 +77,10 @@ These lessons capture irrecoverable, human-context knowledge discovered during t
 
 - dev-infra-jq-probe snip-wrapper lesson (2026-08-08): a `snip` shell wrapper corrupts pipe-fed jq pipelines and produced an incorrect canonical checksum when used to run the handoff gate command. Lesson: run the canonical gate command raw (no wrapper). jq -c emits a trailing '\n'; use `tr -d '\n'` when computing byte-for-byte canonical checksums. The pipeline to validate handoff uses `jq -c '.prognosis | to_entries | sort_by(.key) | from_entries' | tr -d '\n' | sha256sum` and must not be wrapped. This operational I/O quirk was observed during a real restart boundary and is not recoverable from code diffs.
 
+- snip-guardrail scoping lesson (2026-08-10): previous fixes forbade `snip`-prefixing for the `jq` probe only which left a failure-class hole. Lesson: guardrails that aim to prevent a behavioural class (e.g., snip-wrapper no-op loops) must be specified and enforced against the entire class (forbid `snip` as a command-prefix in any tool invocation) rather than a single command example. Implementation guidance: (1) make the guardrail rule declarative and pattern-based (`^snip\s+`) so it covers all commands, (2) include unit tests simulating multiple command forms, and (3) add an anti-loop watchdog that escalates after N identical, no-effect runs.
+
+- verification-evidence capture (2026-08-10): truncated or snipped logs caused false-positive verification (truncated /tmp/opencode/test-config-full.log missed final summary lines). Lesson: always persist full run output to disk and attach the untruncated file to the ticket/registry entry. Prefer direct shell redirection (`command > /tmp/full.out 2>&1`) or git-plumbing blob extraction for artifacts that may be mangled by wrappers. Do not accept truncated snippets as sole evidence of success.
+
 - trafilatura stdin gotcha (2026-08-09): empirical verification against trafilatura 2.1.0 found that the CLI's `--input -` convention is ambiguous and can error (exit code 2) because `--input` may match `--input-file` or `--input-dir` forms. Using `--input-file -` treats '-' as a literal filename and produces a FileNotFoundError. The reliable stdin usage observed in-session is the bare pipe form: `curl -s <url> | trafilatura --output-format markdown` (or `... | trafilatura --output-format markdown -`). Do not rely on `--input -` or `--input-file -` for piping stdin into trafilatura; use a bare pipe and direct trafilatura to read from stdin. This is an empirically-verified CLI behaviour (trafilatura 2.1.0 quickstart) and is not reconstructible from repo diffs or generic docs; record here to prevent future broken archival pipelines that assume `--input -` semantics.
 
 - dev-container /tmp isolation (2026-08-08): when creating staging artifacts inside a devcontainer, the container's /tmp is not the same as the host's /tmp (WSL/container boundary and some devcontainer runtimes isolate ephemeral temp paths). In our run an upstream staging clone created in the devcontainer's /tmp was not visible to the host-side tools and the host Docker CLI was not reachable from that WSL distro (the distro's shell could not find `docker`). Practical consequence: do not rely on container /tmp as an authoritative cross-environment staging area. Persist important artifacts on the host or in the repository (or use a well-known shared path) so host-side reviewers and CI can access them. This is an environment-specific operational lesson and is not reconstructible from repo diffs.
@@ -84,6 +88,20 @@ These lessons capture irrecoverable, human-context knowledge discovered during t
 - stale gate-token liveness probe lesson (2026-08-08): delegation-observer §10 liveness probes can be inconclusive if a stale valid gate token file exists at `.opencode/session/gate-tokens/ai-specialist-reviewed`. With the token present, writes to `.opencode/**` succeed (inconclusive); with the token absent, writes are BLOCKED with the message: "§10 GATE: Editing .opencode/ files requires @ai-specialist gate review." Recommendation: clear the gate-token before running liveness/blocked-path tests and restore it after via `log_decision gate-token/done`. Token lifecycle is managed by the plugin — do not attempt manual edits to token files.
 
 - ai-specialist stub-result lesson (2026-08-08): an ai-specialist independent review returned an empty/stub result message (`"Review complete. Findings logged via log_decision"`) without the substantive artifact payload, violating the A4 artifact gate. Operational mitigation: enforce artifact-content on ai-specialist results; treat a stub as non-deliverable and resume the original reviewer session (call task() with the original task_id) to retrieve the full report. If resume repeatedly returns empty, escalate to human ownership.
+
+
+- Phase-6 §10 independent review lane = @ai-auditor (2026-08-10)
+  - Lesson: Phase-6 independent review is the responsibility of @ai-auditor; ai-specialist covers Phases 1–5 only. AGENTS.md §2.5 was updated 2026-08-10 to reflect this lane boundary. Operational rule: route Phase-6 independent review requests to @ai-auditor and require persisted findings (findings + evidence) before closing Phase-6.
+
+
+- Registry description-capture quirk (observability defect)
+  - Symptom: the delegation-observer background job board showed the stale objective "Verify handoff checksum DIA-061" for ALL coder-lane sessions (cod-1..cod-5) regardless of actual dispatch description, while ai-specialist/ai-auditor/conspecter lanes showed correct descriptions.
+  - Likely cause: description reuse or sentinel-label collision for coder lanes in the delegation-observer mapping.
+  - Impact: misleading background job board descriptions (observability defect) though session results remained correct. Not blocking but confusing for operators. Consider opening a follow-up DIA ticket to track the fix.
+
+
+- Gate correlation for §10 dispatches pre-fix (operational rule)
+  - Lesson: until the tri-state explicit-id precedence plugin fix (DIA-063/DIA-076) is live, any §10-scoped dispatch that must persist artifacts should reference a TODAY-dated OPEN ticket (e.g. DIA-076) in the dispatch text to avoid the recency cliff blocking legitimate persistence work.
 
 - probe-lane sizing lesson (2026-08-08): a combined probe + test-config lane caused cod-2 to hit MAXIMUM STEPS mid-protocol and required resumption (cod-3). Lesson: split probe and verification lanes into smaller, single-responsibility lanes to avoid step-cap exhaustion and make failures easier to resume.
 
@@ -254,3 +272,21 @@ Notes:
 
 
 - sdk-app-log-v1-shape-gotcha (2026-08-09): Plugin authors beware: this project's runtime resolved to the v1 `@opencode-ai/sdk` client (via `@opencode-ai/plugin@1.18.10`). In v1 the TUI-safe logging call expects the payload under an Options wrapper `body`: `ctx.client.app.log({ body: { service, level: "info", message } })`. A v2-style flat call (`{ service, level, message }`) fails TypeScript typecheck at edit-time. Mitigation: verify the installed SDK version and consult `node_modules/@opencode-ai/sdk/dist/gen/sdk.gen.d.ts` for the exact call shape before editing plugins; prefer the v1 wrapper form when uncertain. This mismatch caused a typecheck iteration cost during the campaign and is not obvious from repo-level plugin code alone.
+
+
+## c-20260809-residual-closure (session 2) — addenda (2026-08-10)
+
+- L20260810-001: Empty-return escalation pattern
+  - Symptom: coder lanes returned completely empty final messages twice and produced no file changes during DIA-078 fix attempts (session ids are recorded in campaign logs).
+  - Operational lesson (persisted): when a subagent returns an empty/blank final result and in-scope artifacts show no changes, immediately escalate: 1) invoke @ai-auditor for a ground-truth read of the repo/state; 2) if auditor confirms no landed changes, mark the original lane as failed and re-route implementation to code-executor. Do NOT allow a 3rd in-lane retry. Rationale: orchestration pattern not reconstructible from git diffs or tests. Reference: docs/dev-infra-audit/tickets/archive/DIA-076-dia063-fix-implementation.md and session logs.
+
+- L20260810-002: Prompt-learned habit persistence — `snip` prefix
+  - Symptom: multiple coder agents continued to habitually prefix commands with `snip` across lanes after DIA-078 guardrail (residual occurrences reported by cod-4..cod-7).
+  - Implication: mechanical guardrails (doom_loop: deny; narrow jq-scoped rule) reduced impact but did not eliminate model-learned prompt habits. Persist as operational risk: if identical slip recurs in 2+ consecutive sessions, escalate to permission-level deny for bash-level `snip` prefix patterns in agent.coder.permission and add instrumentation to flag prefix usage in dispatch prompts. Cross-reference: .opencode/oh-my-opencode-slim.jsonc; opencode.jsonc L151; knowledge/res010-dia078-loop-hardening/ (conspect).
+
+- L20260810-003: Step-budget resumption pattern
+  - Symptom: lanes hit max-steps mid-protocol when recon + heavy verification consumed the budget (observed in cod-5/cod-6 runs).
+  - Recovery pattern (persisted): when resuming a step-budget-limited lane, pass the full remaining-state list in the dispatch prompt and instruct the agent to skip recon and start at the remaining edits. Front-load state into the resume prompt to avoid re-running recon/verification steps. This precise resume prompt pattern is not reconstructible from git commits and is therefore recorded here.
+
+## c-20260809-residual-closure - post-mortem correction (2026-08-11)
+- L20260810-002 correction: The DIA-078 defense-in-depth deny rules (global L95-96, project L180-181) were added 2026-08-10 but caused a mechanical lock when combined with the opencode-snip plugin (which rewrites ALL bash commands to `snip <cmd>` via tool.execute.before). The root-cause fix is plugin removal: opencode-snip@1.6.1 removed from the global plugin array (DIA-092, res011 conspect). The deny rules are KEPT as a dormant zero-cost hallucination guardrail (council 5/5). Anti-priming lesson: orchestrator prompts must never name the forbidden token ("do not use `snip jq`" primed the prefix - DIA-078 L99). Truncation-defaults note: relying on native OpenCode tool_output defaults (max_lines=2000, max_bytes=50KB) + compaction.prune:true (project .opencode/opencode.jsonc L20); revisit explicit tool_output config only if token overflow is observed. Cross-reference: DIA-075, DIA-078, DIA-092, res011.

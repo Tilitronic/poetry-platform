@@ -44,6 +44,18 @@ shelf:
       acceptance list.
     path: knowledge/res008-source-archival-fallbacks/res008-source-archival-fallbacks-conspect.md
     created: '2026-08-09'
+  - name: snip jq filter truncation
+    description: Conspect summarizing snip configuration (filters, caps, tee), opencode-snip integration, pipe-splitting bug context, and practical guidance to preserve checksum integrity (disable jq filter or use tee). Correlates with DIA-075 investigation; tracking ticket DIA-076.
+    path: knowledge/res009-snip-jq-filter-truncation/res009-snip-jq-filter-truncation-conspect.md
+    created: 2026-08-10
+  - name: 'DIA-078 Loop hardening: doom_loop and snip-wrapper'
+    description: Conspect synthesizing `doom_loop` permission semantics, anti-loop detector patterns, and recommended remediation for DIA-078 (snip wrapper loop recurrence).
+    path: knowledge/res010-dia078-loop-hardening/res010-dia078-loop-hardening-conspect.md
+    created: 2026-08-10
+  - name: opencode-snip mechanical lock
+    description: Conspect documenting opencode-snip (plugin) + snip (binary) mechanics, permission-matching failures from command-prefix rewriting, upstream bug intersections, and a removal-risk assessment with native OpenCode mitigation guidance (DIA-092 cross-reference).
+    path: knowledge/res011-opencode-snip-mechanical-lock/res011-opencode-snip-mechanical-lock-conspect.md
+    created: 2026-08-11
   analyses:
   - name: Agent Alignment Audit
     description: "MECE inventory of all agent definitions across OMO Slim, native\

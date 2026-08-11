@@ -161,6 +161,7 @@ test-config: test-interview test-skills
 	bash .opencode/scripts/validate-opencode-config.sh
 	bash scripts/validate-agent-names.sh
 	bash scripts/validate-handoff.sh
+	bash scripts/test-ticket-gate.sh
 	bash scripts/audit-agent-tool-coverage.sh .opencode/opencode.jsonc
 	bash scripts/audit-agent-tool-coverage.sh tools/opencode-docker/config/opencode.json
 

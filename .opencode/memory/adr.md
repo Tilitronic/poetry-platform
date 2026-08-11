@@ -231,6 +231,15 @@ Treat OpenCode plugins as the canonical lightweight hook mechanism for lifecycle
 - Adopt the delegation-observer plugin pattern for future lifecycle monitoring needs instead of introducing a separate hook subsystem.
 - Document plugin subscriptions and the registry.jsonl schema in the session/ README and memory entries when their semantics are policy-relevant.
 
+### Amendment (2026-08-09) — enforcement-gate exception
+
+Plugins remain the canonical OBSERVER hook mechanism — but enforcement gates are an accepted extension for workflow invariants (precedent: §10 edit-gate + DIA-063 ticket-creation gate in `.opencode/plugins/delegation-observer.ts`). An enforcement gate may intentionally block dispatches/edits where the workflow contract requires it. Any enforcement gate must:
+
+1. be additive — never alter the observed lifecycle rows or the registry schema;
+2. fail-soft on scan errors — a broken gate is worse than no gate (warn + allow + `ticket_gate_scan_failed` row);
+3. log every blocked attempt to registry.jsonl (e.g. `ticket_gate_blocked`, `a1_violation`, §10 gate) for observability;
+4. carry a rollback plan — `git checkout .opencode/plugins/delegation-observer.ts` + restart OpenCode restores observer-only behavior.
+
 ## ADR-003 verification result (c-20260804-0900)
 
 - Date: 2026-08-04

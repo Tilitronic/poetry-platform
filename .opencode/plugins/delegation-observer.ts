@@ -37,7 +37,9 @@ import {
   mkdirSync,
   openSync,
   readFileSync,
+  readdirSync,
   renameSync,
+  statSync,
   unlinkSync,
   writeFileSync,
 } from "node:fs"
@@ -74,6 +76,116 @@ function errorMessage(err: unknown): string | undefined {
     return (err as { message: string }).message
   }
   return String(err)
+}
+
+/**
+ * Minimal YAML-frontmatter field extractor (ticket-gate scan, DIA-063).
+ * Supports the constrained YAML subset the ticket schema uses
+ * (docs/dev-infra-audit/tickets/_TEMPLATE.md): `key: value` pairs only — no
+ * lists/maps/multi-line values. Robustness rules (finding E):
+ *  - Locates the FIRST `---` delimiter line anywhere in the file (tickets
+ *    carry an HTML comment header before the frontmatter, e.g. DIA-071) and
+ *    parses until the next `---` delimiter.
+ *  - Lines starting with `#` are comments and ignored (e.g. the
+ *    "# --- Session Attribution" divider in every ticket).
+ *  - Values may be single- or double-quoted; surrounding quotes are stripped.
+ *    Quoted values may carry an inline ` # comment` suffix (as in _TEMPLATE.md)
+ *    — the comment is dropped.
+ *  - Unknown fields are ignored — the gate only reads status, session_id,
+ *    discovered, title.
+ * Returns {} when the file has no frontmatter block.
+ */
+function parseFrontmatterFields(raw: string): Record<string, string> {
+  const fields: Record<string, string> = {}
+  const lines = raw.split(/\r?\n/)
+  let start = -1
+  for (let i = 0; i < lines.length; i++) {
+    if (lines[i].trim() === "---") {
+      start = i
+      break
+    }
+  }
+  if (start === -1) return fields
+  for (let i = start + 1; i < lines.length; i++) {
+    const line = lines[i]
+    if (line.trim() === "---") break
+    const trimmed = line.trim()
+    if (!trimmed || trimmed.startsWith("#")) continue
+    const m = /^([A-Za-z_][A-Za-z0-9_-]*)\s*:\s*(.*)$/.exec(trimmed)
+    if (!m) continue
+    let value = m[2].trim()
+    if (value.startsWith('"') || value.startsWith("'")) {
+      const quote = value[0]
+      const close = value.indexOf(quote, 1)
+      if (close !== -1) value = value.slice(1, close).trim()
+    }
+    fields[m[1]] = value
+  }
+  return fields
+}
+
+/**
+ * Robust ticket-date parsing (DIA-063 finding C): accepts date-only
+ * (`YYYY-MM-DD`, anchored at LOCAL midnight — a date means "that day") and
+ * full ISO timestamps (values containing `T` or `Z`, parsed verbatim via
+ * Date.parse). Unparseable input returns null — callers treat null as "does
+ * NOT satisfy the recency check", never as a throw.
+ */
+function parseTicketDate(raw: string): number | null {
+  const value = raw.trim()
+  if (!value) return null
+  const ts = /[TZ]/.test(value)
+    ? Date.parse(value)
+    : Date.parse(`${value}T00:00:00`)
+  return Number.isFinite(ts) ? ts : null
+}
+
+/** Flat ticket model built by scanTickets (DIA-063). */
+interface ScannedTicket {
+  id: string
+  status: string
+  sessionId: string
+  discoveredMs: number | null
+  title: string
+  filename: string
+}
+
+/**
+ * Statuses the ticket gate accepts as "work in progress" (DIA-063). Compared
+ * case-insensitively (scanTickets upper-cases the frontmatter value first).
+ */
+const OPEN_TICKET_STATUSES = new Set([
+  "OPEN",
+  "IN-PROGRESS",
+  "DISPATCHED",
+])
+
+/**
+ * Stopwords excluded from ticket-title keyword correlation (DIA-063 finding B
+ * fallback). Deliberately small — the correlation is a conservative
+ * best-effort signal, not NLP.
+ */
+const TICKET_KEYWORD_STOPWORDS = new Set([
+  "the", "a", "an", "for", "with", "and", "or", "of", "to", "in", "on",
+  "by", "from", "at", "this", "that", "these", "those", "it", "is", "are",
+  "ticket", "dia", "work", "create", "new", "implement", "dispatch",
+  "please", "gate", "phase", "fix", "research", "add", "update",
+])
+
+/**
+ * Loose keyword overlap between the dispatch text and a ticket title
+ * (DIA-063 finding B path-3): true when any significant word from the
+ * dispatch text appears in the title. Ambiguity (no overlap) returns false —
+ * the caller then BLOCKS (the whole point is to force a ticket). The
+ * latest-session escape hatch was removed in the cycle-2 rework.
+ */
+function keywordsCorrelate(dispatchText: string, title: string): boolean {
+  if (!title) return false
+  const titleLower = title.toLowerCase()
+  const words = dispatchText.toLowerCase().match(/[a-z0-9][a-z0-9-]{2,}/g) ?? []
+  return words.some(
+    (w) => !TICKET_KEYWORD_STOPWORDS.has(w) && titleLower.includes(w)
+  )
 }
 
 /**
@@ -292,6 +404,102 @@ const delegationObserver: Plugin = async (ctx) => {
         `[delegation-observer] registry.jsonl write failed (seq=${seq}): ${errorMessage(err)}`
       )
     }
+  }
+
+  /**
+   * Scan the tickets directory into a flat ticket model (DIA-063). THROWS on
+   * scan errors — including a MISSING directory (finding D) — so the caller's
+   * fail-soft wrapper treats them as "broken gate → warn + allow + scan-failed
+   * row" rather than "no valid ticket → block".
+   */
+  function scanTickets(ticketsDir: string): ScannedTicket[] {
+    if (!existsSync(ticketsDir)) {
+      throw new Error(`tickets directory missing: ${ticketsDir}`)
+    }
+    const tickets: ScannedTicket[] = []
+    for (const entry of readdirSync(ticketsDir)) {
+      if (!entry.endsWith(".md")) continue
+      if (entry === "README.md" || entry === "_TEMPLATE.md") continue
+      const ticketPath = join(ticketsDir, entry)
+      if (!statSync(ticketPath).isFile()) continue
+      const fm = parseFrontmatterFields(readFileSync(ticketPath, "utf-8"))
+      const idMatch = /^DIA-(\d+)/.exec(entry)
+      tickets.push({
+        id: idMatch ? `DIA-${idMatch[1]}` : "",
+        status: (fm.status ?? "").trim().toUpperCase(),
+        sessionId: (fm.session_id ?? "").trim(),
+        discoveredMs: parseTicketDate((fm.discovered ?? "").trim()),
+        title: (fm.title ?? "").trim(),
+        filename: entry,
+      })
+    }
+    return tickets
+  }
+
+  /**
+   * Work-to-ticket correlation (DIA-063 finding B). Returns true when the
+   * dispatch has a credible ticket backing. Path order (first match wins):
+   *   1. A DIA-id is mentioned in the dispatch → gate passes immediately when
+   *      a ticket with that exact id exists AND is open (strongest signal; no
+   *      recency/session-ownership requirement — DIA-076 A1). STRICT
+   *      tri-state (DIA-076 C1): when an explicit DIA-id is present,
+   *      resolution happens ONLY against it — a referenced id matching NO
+   *      open ticket FAILS here and never falls through to Path-2/Path-3.
+   *   2. No DIA-id mentioned → an open ticket owned by the current session
+   *      (any recency).
+   *   3. No DIA-id + no session-owned → a recent (≤24h) open ticket whose
+   *      title keywords correlate with the dispatch (via keywordsCorrelate).
+   *      The latest-registry-session heuristic was REMOVED (cycle-2 rework):
+   *      an unrelated recent ticket from a previous session must NOT unlock a
+   *      dispatch it has nothing to do with.
+   *   Otherwise → return false → caller BLOCKS (the whole point is to force a
+   *   ticket).
+   */
+  function evaluateTicketCorrelation(
+    tickets: ScannedTicket[],
+    sessionID: string,
+    dispatchText: string,
+    diaIds: string[]
+  ): boolean {
+    const open = tickets.filter((t) => OPEN_TICKET_STATUSES.has(t.status))
+    const now = Date.now()
+    const dayMs = 24 * 60 * 60 * 1000
+    const isRecent = (t: ScannedTicket): boolean =>
+      t.discoveredMs !== null &&
+      t.discoveredMs <= now &&
+      now - t.discoveredMs <= dayMs
+    const isSessionOwned = (t: ScannedTicket): boolean =>
+      t.sessionId === sessionID
+
+    // Path 1 — explicit DIA-id correlation (STRICT tri-state, DIA-076 C1).
+    // OPEN ticket is the STRONGEST correlation signal — an explicit DIA-id
+    // matching an OPEN ticket suffices on its own, no recency/session-
+    // ownership requirement. The old guard protected a hypothetical
+    // stale-ticket-abuse scenario never observed in practice, and its
+    // time-dependence (date-only `discovered` parses to LOCAL midnight →
+    // sharp 24h cliff in parseTicketDate) made the gate non-deterministic
+    // across the same nominal dispatch. Tri-state: when an explicit DIA-id is
+    // present, resolution happens ONLY against it — referenced ids matching
+    // NO open ticket FAIL here; Path-2/Path-3 are reached only when NO
+    // explicit DIA-id is present.
+    if (diaIds.length > 0) {
+      const mentioned = open.filter((t) => diaIds.includes(t.id))
+      // Tri-state (C1, DIA-076): when an explicit DIA-id is present, resolve
+      // ONLY against it — any referenced id matching an OPEN ticket passes;
+      // referenced ids matching NO open ticket FAIL here (never fall through
+      // to Path-2/Path-3, which would mask an explicit citation that does not
+      // resolve to live work). Path-2/3 are only for dispatches with NO
+      // explicit DIA-id.
+      return mentioned.length > 0
+    }
+
+    // Path 2 — session-owned open ticket (recency irrelevant).
+    if (open.some(isSessionOwned)) return true
+
+    // Path 3 — genuinely-new-work fallback: a recent open ticket whose title
+    // keyword-correlates with the dispatch. No latest-session escape hatch.
+    const recentOpen = open.filter(isRecent)
+    return recentOpen.some((t) => keywordsCorrelate(dispatchText, t.title))
   }
 
   /**
@@ -597,6 +805,161 @@ const delegationObserver: Plugin = async (ctx) => {
           ) {
             throw err
           }
+        }
+      }
+
+      // §10 TICKET GATE (DIA-063): before §10-scoped lanes are dispatched, a
+      // DIA ticket must exist in docs/dev-infra-audit/tickets/ tracking the
+      // work (the "create a ticket before starting work" process rule). Scope:
+      // primary trigger = ai-specialist (Phase-1 research lane); robustness
+      // trigger = any lane whose description/prompt signals .opencode/ config
+      // work (conservative heuristic — when in doubt, do NOT fire). Exempt:
+      // explicit ticket-CREATION dispatches only (description/prompt ask to
+      // create/author/write a ticket — a bare DIA-id mention is NOT exempt;
+      // it is the correlation signal, finding A).
+      // Fail-soft: any scan error (missing dir included, finding D) allows the
+      // dispatch — a broken gate is worse than no gate (mirrors the §10
+      // edit-gate fail-soft pattern above).
+      if (input.tool === "task") {
+        let subagentType = ""
+        let description = ""
+        try {
+          // Same runtime args contract as the §10 edit-gate block above:
+          // tool args live in output.args, accessed through unknown.
+          const args =
+            ((output as unknown as { args?: unknown }).args ??
+              {}) as Record<string, unknown>
+          subagentType =
+            typeof args.subagent_type === "string" ? args.subagent_type : ""
+          description =
+            typeof args.description === "string" ? args.description : ""
+          const prompt =
+            typeof args.prompt === "string" ? args.prompt : ""
+          const dispatchText = `${description}\n${prompt}`
+
+          // Scope gate: fire for ai-specialist, or for any lane describing
+          // config work (config-file pattern AND config-work words).
+          // Conservative: routine lanes (code-navigator recon, researcher
+          // lookup, coder implementation, reviewer, etc.) do not match unless
+          // they explicitly describe config work. The first regex
+          // deliberately EXCLUDES `.opencode\/`: .opencode/session/* and
+          // .opencode/learnings/* are runtime artifacts, not config —
+          // referencing them is not §10 work (DIA-076 A3).
+          const configWorkHint =
+            /opencode\.jsonc|AGENTS\.md|skill|plugin/i.test(
+              dispatchText
+            ) &&
+            /config|edit|change|implement|modify|update|gate|review|fix/i.test(
+              dispatchText
+            )
+          if (subagentType !== "ai-specialist" && !configWorkHint) return
+
+          // Exempt ticket-CREATION dispatches ONLY (README "How to add a
+          // ticket" flows): the dispatch must ask to create/author/write a
+          // ticket. A bare DIA-id mention is NOT exempt — it is the
+          // work-to-ticket correlation signal below (finding A: the old
+          // /DIA-\d+/ exemption was a direct bypass).
+          // ALSO exempt mechanical boot-gate checksum verification (DIA-061/
+          // DIA-075): the canonical `bash -c "jq ..."` passthrough checksum
+          // comparison is a mechanical BOOT task, not §10 work. Without this
+          // exemption it creates a circular deadlock: the boot gate requires
+          // verification → the §10 ticket gate blocks the verification lane →
+          // ticket creation is itself forbidden before batch approval.
+          // Boot-gate verification dispatches phrase the task as "handoff
+          // checksum verification" (canonical Layer-3 brief), which
+          // `checksum\s+verif` matches; the bare `sha256\b` arm was dropped
+          // (DIA-076 M1) because a bare keyword is too easy to trigger in
+          // unrelated §10 text.
+          if (
+            /create\s+(a\s+)?ticket\b|new\s+ticket\b|ticket\s+creation|author\s+ticket\b|checksum\s+verif|handoff\s*integrit/i.test(
+              dispatchText
+            )
+          ) {
+            return
+          }
+
+          // Work-to-ticket correlation (finding B): the dispatch must
+          // reference a valid open ticket by DIA-id, or be owned by this
+          // session, or (genuinely-new work) correlate with a recent open
+          // ticket. scanTickets THROWS on scan errors — including a missing
+          // tickets directory (finding D) — and the catch below converts any
+          // non-gate throw into warn + allow + ticket_gate_scan_failed
+          // (fail-soft: a broken gate is worse than no gate).
+          const ticketsDir = join(
+            ctx.directory,
+            "docs/dev-infra-audit/tickets"
+          )
+          const diaIds =
+            dispatchText.match(/DIA-\d+/gi)?.map((s) => s.toUpperCase()) ?? []
+          const tickets = scanTickets(ticketsDir)
+          const hasValidTicket = evaluateTicketCorrelation(
+            tickets,
+            input.sessionID,
+            dispatchText,
+            diaIds
+          )
+          if (hasValidTicket) return
+
+          // No correlating ticket → decide block vs warn based on whether the
+          // dispatch carried an explicit DIA-id (DIA-076 A4):
+          if (diaIds.length === 0) {
+            // Path-3-only failure (no DIA-id mentioned anywhere): keyword
+            // correlation is weak by nature — blocking on it produced false
+            // positives. Warn + allow + log a registry row; do NOT throw.
+            appendRow({
+              event: "ticket_gate_weak_correlation",
+              session_id: input.sessionID,
+              subagent_type: subagentType,
+              description: description.slice(0, 300),
+              writer: "plugin",
+            })
+            console.warn(
+              `[DIA-063] §10 ticket gate: no DIA-id in dispatch and no keyword correlation — allowing ${subagentType || "unknown lane"} (weak-correlation pass)`
+            )
+            return
+          }
+
+          // diaIds.length > 0 but NONE matched an OPEN ticket: an explicit
+          // citation that does not resolve to live work is a clear §10
+          // violation — keep the hard throw (registry row follows the
+          // appendRow pattern).
+          appendRow({
+            event: "ticket_gate_blocked",
+            session_id: input.sessionID,
+            subagent_type: subagentType,
+            description: description.slice(0, 300),
+            writer: "plugin",
+          })
+          throw new Error(
+            "§10 TICKET GATE: No correlating DIA ticket found for this §10 work.\n" +
+              "Before §10 engineering work begins, a DIA ticket must exist in " +
+              "docs/dev-infra-audit/tickets/ tracking the work.\n" +
+              "Action: create a DIA ticket (via @coder docs lane — see " +
+              "docs/dev-infra-audit/tickets/README.md \"How to add a ticket\": " +
+              "copy _TEMPLATE.md to DIA-<NNN>-<slug>.md, fill the frontmatter, " +
+              "add an index row), reference the ticket ID in the dispatch, " +
+              "then re-dispatch."
+          )
+        } catch (err) {
+          // Re-throw §10 TICKET GATE errors; all other errors (fs error,
+          // malformed frontmatter, missing dir) are fail-soft — a broken gate
+          // is worse than no gate.
+          if (
+            err instanceof Error &&
+            err.message.startsWith("§10 TICKET GATE:")
+          ) {
+            throw err
+          }
+          console.warn(
+            `[DIA-063] ticket-gate scan failed, allowing dispatch: ${errorMessage(err)}`
+          )
+          appendRow({
+            event: "ticket_gate_scan_failed",
+            session_id: input.sessionID,
+            subagent_type: subagentType,
+            description: description.slice(0, 300),
+            writer: "plugin",
+          })
         }
       }
     },

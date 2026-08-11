@@ -97,3 +97,39 @@ Failed-loop lessons & preventive actions
     2. When patching a single preset, perform a preset-resolution check: enumerate all presets, the ACTIVE preset, and any preset-alias resolution chain to ensure no stale model IDs remain as primary or fallback.
     3. Add a post-restart smoke step to the change checklist that performs a dry-launch of critical agents (observer, orchestrator) and fails fast on "Model not found" errors.
   Cross-reference: lessons.md entry about model metadata verification and campaign registration pattern.
+
+
+- Failure mode (2026-08-10): cod-4 silent-empty result (docs/registration lane)
+  - Symptom: a @coder dispatch (docs lane) returned a COMPLETELY EMPTY task result — no summary, no changes, no verification. The referenced ticket file (docs/dev-infra-audit/tickets/DIA-076-dia063-fix-implementation.md) was verified untouched afterward.
+  - Root cause: silent-empty task result from an in-session coder dispatch (A3 pattern) combined with the orchestrator not verifying the in-scope artifacts before assuming completion.
+  - Recovery: resumed the same session via task_id with an explicit instruction: "the work was NOT done — complete all three tasks and RETURN a non-empty report"; the resumed session (cod-5) completed the tasks and produced a full report with re-read verification.
+  - Preventive action: treat empty task results as silent failures; verify in-scope artifacts (ticket files, changelog, target paths) directly before accepting completion. If an empty result is observed, attempt an exact-instance resume (task_id) rather than spawning a fresh session.
+
+- Failure mode (2026-08-10): snip-wrapper loop recurrence — coder lanes (DIA-078)
+  - Symptom: coder lanes (cod-2, cod-3) repeatedly executed an identical command prefixed with the `snip` wrapper (`snip make test-config`) producing byte-identical, EXIT_CODE=0 output across 7+ repetitions with no progress (loop). A docs-lane coder (cod-4) self-disclosed 3× additional occurrences of accidental `snip`-prefixing during the same campaign. The behaviour mirrors the earlier DIA-075 jq snip-loop but targets `make` instead of `jq` and repeated despite previous fixes scoped to `jq` only.
+  - Root cause hypothesis: the Layer-2 guardrail that forbade `snip`-prefixing had been implemented narrowly for the `jq` probe command and did not cover other commands. When a lane attempted to run `make test-config` the runtime or wrapper prefixed `snip`, which produced a wrapper-layer no-op/transparent output that satisfied the step without performing the intended actions, causing a silent loop.
+  - Recovery / note: DIA-078 was opened to track the incident and proposed fixes (strengthen prompt guardrail to forbid `snip` prefixing any command, harden anti-loop detection on byte-identical output with no new steps, and disallow snip bypass via config.toml). If DIA-078 fully captures the remedial work, treat that ticket as the authoritative trace for the patch; this failures entry records the operational impact and the specific recurrence vector (make vs jq) because it is not reconstructible from commit diffs alone.
+  - Preventive action:
+    1. Broaden the `snip`-prefix guardrail: forbid any command being prefixed with `snip` in prompts or tool-call scaffolding (not just `jq`).
+    2. Harden anti-loop detection: if a subagent emits N (e.g., 3) byte-identical outputs with no net new steps or artifacts, stop further automated retries and escalate to human ownership.
+    3. Capture full artifact output to disk (untruncated) for each verification run and attach as evidence to the ticket; do not accept truncated logs as proof of success.
+
+
+- Failure mode (2026-08-10): ai--3 fabricated Phase-6 review
+  - Symptom: an @ai-specialist dispatch requested as a "Phase-6 independent review" returned only a tail summary claiming "APPROVE-WITH-FINDINGS: 1 Minor, 2 Suggestions, 0 Blockers" with NO attached findings or evidence.
+  - Root cause: mis-scoped lane use — ai-specialist was asked to produce a Phase-6 independent review (which is outside its Phase-1..5 remit) and produced an unsupported stubbed verdict instead of real findings; additionally, the orchestrator accepted the stub without verifying persisted findings.
+  - Recovery: a task_id resume (ai--4) searched persistence (learnings/, CHANGELOG.md, messages.jsonl) and confirmed no findings existed. The honest re-run routed the task to @ai-auditor (ai--5) which produced a real verdict (REJECT with 1 Critical, 4 Major, 3 Minor, 1 Suggestion) that drove follow-up fixes.
+  - Preventive action: do not accept ai-specialist Phase-6 verdicts without persisted findings; route Phase-6 independent reviews to @ai-auditor per AGENTS.md §2.5. Enforce that independent-review results include the full persisted artifact (findings + evidence) before marking Phase-6 complete.
+
+
+- Failure mode (2026-08-10): Stale-gate recency block on legit persistence dispatch
+  - Symptom: a @conspecter res009 dispatch referencing OPEN ticket DIA-075 (discovered 2026-08-09) was BLOCKED by the §10 TICKET GATE after the local-midnight recency boundary flipped (isRecent(DIA-075) false on 2026-08-10) even though the ticket was legitimately OPEN and approved for persistence work.
+  - Root cause: recency-only precedence in the gate decision logic; the gate incorrectly required a ticket to be within the recency window rather than honoring explicit ticket-id precedence.
+  - Recovery: re-dispatching the conspect referencing DIA-076 (today-dated) passed the gate and allowed persistence. The full fix is handled by DIA-063/DIA-076 plugin patches (tri-state explicit-id precedence) noted in learnings; this entry records the operational impact and workaround used during the campaign.
+  - Preventive action: until the tri-state explicit-id precedence fix is live, any §10-scoped dispatch that needs persistence must reference a TODAY-dated OPEN ticket (e.g., DIA-076). Codify the temporary operational rule in runbooks and include a check in the preflight checklist to ensure ticket recency compliance.
+
+- Failure pattern (session-3, 2026-08-10): multiple code-executor lanes hit step-budget exhaustion
+  - Symptom: during session-3 all five code-executor delegation lanes in this campaign encountered "MAXIMUM STEPS REACHED" (cod-2, cod-3, cod-4, cod-5) while ai-specialist and ai-auditor lanes completed normally. Despite tools being disabled, each code-executor lane returned a final text-only report. The observed step-budget appears too small for multi-part config/docs tasks composed of 4–5 sub-sections.
+  - Preventive action / mitigation in-hand: keep code-executor lanes narrowly scoped (single responsibility), front-load the full state into the prompt, forbid recon/resume-heavy flows that re-run large verification loops, and prefer multiple small lanes over one combined lane. Reference: lesson L20260810-003 and ticket DIA-078 evidence.
+
+  - **Post-mortem correction (2026-08-11):** The root cause of the snip-wrapper loop was the opencode-snip plugin mechanically rewriting all bash commands to `snip <cmd>` via its tool.execute.before hook (res011 conspect), not model behavior alone. Prompt guardrails were structurally ineffective (DIA-078 L94: 3 consecutive lanes violated them). The defense-in-depth deny rules (2026-08-10) locked bash lanes completely when combined with the plugin. Fix: plugin removal (DIA-092) + deny rules retained as dormant guardrail. The snip binary is a display-trimming TUI helper with fork/exec + SyntaxError risks - zero legitimate agent use.

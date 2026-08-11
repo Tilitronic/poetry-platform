@@ -11,16 +11,20 @@ through delegated lanes.
 
 Read these files **in this order** when a session starts:
 
-1. `.opencode/session/current-handoff.json` — if it exists, read it **FIRST** via direct
+1. `.opencode/session/current-handoff.json` - if it exists, read it **FIRST** via direct
    `read()` (deterministic path, no glob). It is the resume point from a previous
    instance (previous session id, last message #, reason, campaign state, resume
-   instructions). Verify integrity: compute SHA256 of the `prognosis` section and
-   compare against the `checksum` field.
-   1.5. **BATCH-APPROVAL GATE (G1)** — if the handoff file exists and contains a
+   instructions). During detection, NOTE the stored `checksum` field state (present
+   64-hex / null / missing); do NOT compute or compare SHA256 here - the
+   orchestrator has no bash tool by design (DIA-093). Present the checksum state in
+   the prognosis presentation; actual computation and verification is delegated to
+   the lane-0 coder step AFTER batch approval (section 7.3 step 7).
+   1.5. **BATCH-APPROVAL GATE (G1)** - if the handoff file exists and contains a
    "Prognosis for next cycle" section (inside the `prognosis` field), present the
-   full prognosis to the developer as a **batch approval** BEFORE reading
-   messages.md or delegating any work. Verify checksum integrity before presenting.
-   See §7.3 for protocol.
+   full prognosis (including the noted checksum state) to the developer as a
+   **batch approval** BEFORE reading messages.md or delegating any work. Checksum
+   computation and integrity comparison happen in the lane-0 coder step after
+   approval, not at presentation. See section 7.3 for protocol.
 2. `.opencode/session/messages.md` — the session history record. Read the **last ~20
    entries** to reconstruct what happened and what the next action is.
 3. **This file** (`docs/dev-infra-audit/NEXT-RUN.md`) — the operating manual.
@@ -204,6 +208,12 @@ This section is the orchestrator-operating summary of the protocol.
 
 At cycle termination (clean / crisis / exhausted / manual-halt), the outgoing session MUST:
 
+0. **CHECKSUM DELEGATION (DIA-093, FIX E):** before writing the handoff file, dispatch a
+   coder lane to compute the SHA256 checksum of the prognosis per the DIA-061 canonical
+   serialization; write the returned 64-hex value into the `checksum` field. NEVER write
+   `checksum: null` unless the exit is a crisis/crash where coder dispatch is impossible -
+   in that case `resume_instructions` MUST explicitly flag `lane-0 checksum delegation
+required`.
 1. Write the handoff file (.opencode/session/current-handoff.json) containing the "Prognosis
    for next cycle" section with the five folded subsections (session_summary /
    fixes_applied / open_tickets / verification_request / resume_instructions) per the
@@ -223,21 +233,24 @@ the "Prognosis for next cycle" section as a **batch approval** to the developer 
 any delegation or tool use (design.md §8):
 
 0.5. PARALLELISM-CONSTRAINT — For true parallel sessions (multiple sessions
-     working simultaneously), use worktrees (separate checkouts → separate
-     .opencode/session/ dirs → no coordination). Within a single working
-     directory, at most ONE session owns the handoff file at any time. Other
-     in-directory sessions rely on their own messages.jsonl + registry.jsonl
-     + native session recall for their state; they do not write
-     current-handoff.json.
-0. **DETECTION** — at session start, check for `.opencode/session/current-handoff.json` via
-   direct `read()` (deterministic path, no glob). If it exists AND contains a `prognosis`
-   field with populated subsections, the batch-approval protocol is MANDATORY: log a
-   handoff event via `log_decision` (event_type: 'handoff',
-   task_ref: 'batch-approval-gate') before proceeding. If no handoff file exists or it
-   has no prognosis section, skip to normal boot (§1).
-1. **VERIFY INTEGRITY** — compute SHA256 of the `prognosis` object (JSON-stringified),
-   compare against the `checksum` field. Mismatch → treat as tampered/corrupted, escalate
-   to developer.
+working simultaneously), use worktrees (separate checkouts → separate
+.opencode/session/ dirs → no coordination). Within a single working
+directory, at most ONE session owns the handoff file at any time. Other
+in-directory sessions rely on their own messages.jsonl + registry.jsonl + native session recall for their state; they do not write
+current-handoff.json. 0. **DETECTION** — at session start, check for `.opencode/session/current-handoff.json` via
+direct `read()` (deterministic path, no glob). If it exists AND contains a `prognosis`
+field with populated subsections, the batch-approval protocol is MANDATORY: log a
+handoff event via `log_decision` (event_type: 'handoff',
+task_ref: 'batch-approval-gate') before proceeding. If no handoff file exists or it
+has no prognosis section, skip to normal boot (§1).
+
+1. **VERIFY INTEGRITY (delegated, DIA-093)** - the DIA-061 SHA256 of the `prognosis`
+   object is computed by a coder lane as lane-0 immediately after batch approval (step 7),
+   not by the orchestrator (no bash tool by design). At this step only NOTE the stored
+   `checksum` field state (present 64-hex / null / missing). A missing or invalid checksum
+   does NOT block presentation - it is flagged in the prognosis presentation and resolved
+   by the lane-0 delegation (step 7). A MISMATCH after lane-0 computation is treated as
+   tampered/corrupted: escalate to developer immediately.
 2. Read the handoff file and parse the `prognosis` section.
 3. Present each subsection as a batch: session_summary → fixes_applied → open_tickets →
    verification_request → resume_instructions.
@@ -245,7 +258,16 @@ any delegation or tool use (design.md §8):
 5. Rejected items become new open_tickets; deferred items carry forward.
 6. During open_tickets review, run the **C5 check**: if a `[BLOCKING]` ticket from the
    predecessor was supposed to be resolved but wasn't, C5 fires (design.md §1).
-7. **VERIFICATION** — after the developer approves ALL items, log a decision event via
+7. **LANE-0 CHECKSUM DELEGATION (automatic; no waiver menu).** Immediately after batch
+   approval and BEFORE any verification_request item, dispatch @coder on a single-task
+   brief to compute the DIA-061 canonical checksum:
+   `jq -c '.prognosis | to_entries | sort_by(.key) | from_entries' .opencode/session/current-handoff.json | tr -d '\n' | sha256sum`
+   On return: (a) write the computed checksum into the handoff file's `checksum` field;
+   (b) if a stored checksum existed, compare - mismatch means tampered handoff: refuse
+   further work, escalate to developer immediately; (c) if checksum was null/missing, the
+   computed value now validates the handoff - proceed. Developer waiver exists ONLY for
+   crash exits where coder dispatch itself fails.
+8. **VERIFICATION** — after the developer approves ALL items, log a decision event via
    `log_decision` (event_type: 'decision', resolution_status: 'acknowledged',
    content_ref: 'batch-approval-complete'); ONLY THEN begin work. Rejected items become
    new open_tickets and await instruction — they are not silently carried forward.

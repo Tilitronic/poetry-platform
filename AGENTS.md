@@ -73,9 +73,9 @@ After the developer disposes review findings (accept/reject per practice-protect
   3. **Design** — if non-trivial, `@architector`; every decision traces to a best-practice rule.
   4. **Implement** — `@coder` applies approved design.
   5. **Validate** — config validation (`make test-config`), schema/JSONC validity, restart OpenCode + functional smoke test.
-  6. **Independent review** — `@ai-specialist` reviews the implemented change against best practices + AIHero patterns. ai-specialist is THE independent reviewer for config changes.
+  6. **Independent review** — `@ai-auditor` reviews the implemented change against best practices + AIHero patterns. ai-auditor is THE independent reviewer for config changes.
   7. **Register** — update CHANGELOG + learnings outcome field.
-- **Review matrix**: dev-infra → `@reviewer`; opencode config → `@ai-specialist`.
+- **Review matrix**: dev-infra → `@reviewer`; opencode config → `@ai-auditor`.
 
 ## 3. Design Authority
 
