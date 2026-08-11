@@ -25,23 +25,60 @@
   "permission": {
     "edit": "allow",
     "bash": {
+      "*": "allow",
+
       "sudo *": "deny",
-      "git push *": "deny",
+
       "git remote set-url *": "deny",
       "git remote add *": "deny",
       "git remote remove *": "deny",
       "git remote prune *": "deny",
       "git remote rename *": "deny",
-      "git reset --hard*": "ask",
-      "git clean -f*": "ask",
-      "git checkout -- .": "ask",
-      "git restore .": "ask",
+
+      "git reset --hard *": "deny",
+      "git reset --hard": "deny",
+      "git clean -fdx *": "deny",
+      "git clean -fdx": "deny",
+      "git clean -fd *": "deny",
+      "git clean -fd": "deny",
+      "git clean -f *": "deny",
+      "git clean -f": "deny",
+      "git checkout -- .": "deny",
+      "git restore .": "deny",
+      "git restore --staged .": "deny",
+      "git branch -D *": "deny",
+      "git filter-branch *": "deny",
+      "git filter-repo *": "deny",
+      "git tag -d *": "deny",
+
+      "git push --force-with-lease *": "deny",
+      "git push --force-with-lease": "deny",
+      "git push --force *": "deny",
+      "git push --force": "deny",
+      "git push -f *": "deny",
+      "git push -f": "deny",
+      "git push * --force-with-lease *": "deny",
+      "git push * --force-with-lease": "deny",
+      "git push * --force *": "deny",
+      "git push * --force": "deny",
+      "git push * -f *": "deny",
+      "git push * -f": "deny",
+
+      "git push origin main": "deny",
+      "git push origin main:*": "deny",
+      "git push * origin main": "deny",
+      "git push * origin main:*": "deny",
+
+      "git push --delete *": "deny",
+      "git push --delete": "deny",
+      "git push origin --delete *": "deny",
+      "git push * --delete *": "deny",
+
       "rm -rf *": "ask",
       "rm *": "ask",
       "rmdir *": "ask",
       "chmod *": "ask",
-      "chown *": "ask",
-      "*": "allow"
+      "chown *": "ask"
     }
   },
 
