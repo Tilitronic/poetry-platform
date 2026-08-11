@@ -1,4 +1,3 @@
----
 # DIA-111 - model escalation routing for coder and analyzer agents (research-first)
 
 <!-- Filed 2026-08-12 by developer request. Design an escalation ladder for the
@@ -6,6 +5,7 @@ coder agent (complex/advanced problem-fix tasks) and the analyzer agent
 ("we don't understand the problem" -> expert analysis), backed by research
 (benchmarks + escalation approaches) BEFORE any implementation. Config
 changes, if any, route through the section-10 chain. -->
+
 ---
 
 id: DIA-111
