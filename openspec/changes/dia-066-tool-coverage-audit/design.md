@@ -43,7 +43,7 @@ See proposal.md — §Why and §What Changes for motivation and scope. This desi
 
 **Rationale:**
 
-- Pure-static (JSONC parse only) cannot see plugin-registered tools (envsitter*\*, console-ninja*_, dcp\__, token\_\*) or MCP tools without maintaining a hardcoded list. The list becomes stale the moment a plugin upgrades — **this is exactly the gap DIA-066 exists to close**.
+- Pure-static (JSONC parse only) cannot see plugin-registered tools (envsitter*\*, console-ninja*\_, dcp\_\_, token\_\*) or MCP tools without maintaining a hardcoded list. The list becomes stale the moment a plugin upgrades — **this is exactly the gap DIA-066 exists to close**.
 - Pure-runtime (per-agent `opencode debug agent` calls) has N× cold-start cost (16+ agents × provider startup) and does not include `file:line` source locations in the output.
 - Hybrid gives census truth (one invocation) + static source locations (JSONC parse).
 

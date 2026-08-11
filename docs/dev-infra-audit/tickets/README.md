@@ -47,12 +47,14 @@ carries the full detail (description, verification, fix, re-verify evidence).
 | DIA-085 | investigate parallel orchestrator sessions — handoff coordination between them (session IDs, worktrees, handoff-file ownership)              | docs            | Medium   | OPEN     | [DIA-085-handoff-parallel-orchestrator-sessions.md](DIA-085-handoff-parallel-orchestrator-sessions.md)     |
 | DIA-086 | improve workflows with a modern scientific-methodology approach — evidence-based reasoning, source citing, reproduction, hypothesis building | docs            | Medium   | OPEN     | [DIA-086-scientific-methodology-workflow.md](DIA-086-scientific-methodology-workflow.md)                   |
 | DIA-087 | audit picked models and model variants for current agents — is the assignment optimal?                                                       | opencode-config | Medium   | OPEN     | [DIA-087-agent-model-variant-audit.md](DIA-087-agent-model-variant-audit.md)                               |
-| DIA-088 | teaching skill missing from the active skill registry — recover it                                                                           | skills          | Medium   | OPEN     | [DIA-088-recover-teaching-skill.md](DIA-088-recover-teaching-skill.md)                                     |
+| DIA-088 | teaching skill missing from the active skill registry - recover it                                                                           | skills          | Medium   | VERIFIED | [DIA-088-recover-teaching-skill.md](DIA-088-recover-teaching-skill.md)                                     |
 | DIA-089 | add the book_rag skill and connect it to OpenWebUI (hybrid RAG over local engineering textbooks)                                             | skills          | Medium   | OPEN     | [DIA-089-book-rag-skill-openwebui.md](DIA-089-book-rag-skill-openwebui.md)                                 |
-| DIA-090 | recover mermaid-diagramming and console-charting skills (source: opencode backup folder)                                                     | skills          | Medium   | OPEN     | [DIA-090-recover-mermaid-console-charting-skills.md](DIA-090-recover-mermaid-console-charting-skills.md)   |
+| DIA-090 | recover mermaid-diagramming and console-charting skills (source: opencode backup folder)                                                     | skills          | Medium   | VERIFIED | [DIA-090-recover-mermaid-console-charting-skills.md](DIA-090-recover-mermaid-console-charting-skills.md)   |
 | DIA-091 | orchestrator repeatedly reports "I have no bash" across sessions — document and enforce the bash-delegation pattern                          | opencode-config | Major    | OPEN     | [DIA-091-orchestrator-no-bash-recurring.md](DIA-091-orchestrator-no-bash-recurring.md)                     |
 | DIA-092 | §10 snip-plugin-removal — remove opencode-snip@1.6.1 mechanical lock (root cause of DIA-075/DIA-078; blocks ALL bash lanes)                  | opencode-config | Major    | OPEN     | [DIA-092-snip-plugin-removal-s10.md](DIA-092-snip-plugin-removal-s10.md)                                   |
 | DIA-093 | Orchestrator boot: "I have no bash tool" - DIA-061 checksum not delegated to coder lane                                                      | opencode-config | Major    | OPEN     | [DIA-093-orchestrator-no-bash-checksum-delegation.md](DIA-093-orchestrator-no-bash-checksum-delegation.md) |
+| DIA-094 | Husky pre-commit hook cannot run in WSL - docker unavailable, quality gate bypassed via --no-verify                                          | dev-infra       | Major    | OPEN     | [DIA-094-husky-precommit-wsl-docker-unavailable.md](DIA-094-husky-precommit-wsl-docker-unavailable.md)     |
+| DIA-095 | Orchestrator needs an optimized project-ops reference - how to run the project, bring up docker, required gates                              | dev-infra       | Major    | OPEN     | [DIA-095-orchestrator-project-ops-reference.md](DIA-095-orchestrator-project-ops-reference.md)             |
 
 ## Status summary
 
@@ -60,7 +62,7 @@ carries the full detail (description, verification, fix, re-verify evidence).
 | -------- | ----- |
 | Blocker  | 7     |
 | Critical | 1     |
-| Major    | 13    |
+| Major    | 15    |
 | Medium   | 18    |
 | Minor    | 0     |
 | Low      | 5     |
@@ -76,7 +78,7 @@ carries the full detail (description, verification, fix, re-verify evidence).
 | MONITOR     | 0     |
 | FIXED       | 0     |
 | IMPLEMENTED | 0     |
-| VERIFIED    | 13    |
+| VERIFIED    | 15    |
 | CLOSED      | 7     |
 | BLOCKED     | 0     |
 

@@ -39,7 +39,7 @@ T3 — Makefile wiring + bats-wrapper + DIA-050 close
     edits Makefile: .PHONY, new check-pin-sync target, test-shell prereq chain
     edits scripts/__tests__/bats-wrapper.sh: bash -n allowlist
     edits docs/dev-infra-audit/tickets/DIA-050.md: OPEN → CLOSED + Fix/Re-verify
-    
+
     verification: make check-pin-sync (exit 0; real-host)
                   make test-shell (exit 0; validator runs as prereq + 10 bats cases)
                   make test-infra (exit 0; end-to-end dev-infra)
@@ -185,19 +185,19 @@ The coder runs the following checks and reports the results in the handoff evide
 - Header comment describing the 13-case matrix (T1–T13) + the FAKE-mock invariant (bats NEVER reads real repo files, except one S4-style structural assertion).
 - `load test-helper`.
 - 13 `@test` blocks:
-   - **T1** — `all pins match across both Dockerfiles -> exit 0 + four ok lines + summary: 4 ok, 0 fail`.
-   - **T2** — `single pin mismatch in Dockerfile.dev (node) -> exit 1 + mismatch fail line + summary: 3 ok, 1 fail`.
-   - **T3** — `multiple pin mismatches across both Dockerfiles (report-ALL) -> exit 1 + all fail lines + summary`.
-   - **T4** — `.mise.toml missing -> exit 2 (INFRA) + source-defective fail line`.
-   - **T5** — `Dockerfile.dev missing -> exit 2 (INFRA) + source-defective fail line`.
-   - **T6** — `duplicate [tools] key in .mise.toml -> exit 2 (INFRA) + duplicate-key fail line` (the INFRA ruling).
-   - **T7** — `duplicate ARG in Dockerfile.dev -> exit 2 (INFRA) + duplicate-ARG fail line`.
-   - **T8** — `quote variations (single/double/unquoted, in any source file) -> exit 0 after stripping`.
-   - **T9** — `CRLF line endings (in any source file) -> exit 0 after stripping`.
-   - **T10** — `whitespace variations (extra spaces around =, in any source file) -> exit 0 after stripping`.
-   - **T11** — `tools/opencode-docker/Dockerfile missing -> exit 2 (INFRA) + source-defective fail line`.
-   - **T12** — `single pin mismatch in tools/opencode-docker/Dockerfile (node only; Dockerfile.dev matches) -> exit 1 + mismatch fail line + summary: 3 ok, 1 fail`.
-   - **T13** — `duplicate ARG in tools/opencode-docker/Dockerfile -> exit 2 (INFRA) + duplicate-ARG fail line`.
+  - **T1** — `all pins match across both Dockerfiles -> exit 0 + four ok lines + summary: 4 ok, 0 fail`.
+  - **T2** — `single pin mismatch in Dockerfile.dev (node) -> exit 1 + mismatch fail line + summary: 3 ok, 1 fail`.
+  - **T3** — `multiple pin mismatches across both Dockerfiles (report-ALL) -> exit 1 + all fail lines + summary`.
+  - **T4** — `.mise.toml missing -> exit 2 (INFRA) + source-defective fail line`.
+  - **T5** — `Dockerfile.dev missing -> exit 2 (INFRA) + source-defective fail line`.
+  - **T6** — `duplicate [tools] key in .mise.toml -> exit 2 (INFRA) + duplicate-key fail line` (the INFRA ruling).
+  - **T7** — `duplicate ARG in Dockerfile.dev -> exit 2 (INFRA) + duplicate-ARG fail line`.
+  - **T8** — `quote variations (single/double/unquoted, in any source file) -> exit 0 after stripping`.
+  - **T9** — `CRLF line endings (in any source file) -> exit 0 after stripping`.
+  - **T10** — `whitespace variations (extra spaces around =, in any source file) -> exit 0 after stripping`.
+  - **T11** — `tools/opencode-docker/Dockerfile missing -> exit 2 (INFRA) + source-defective fail line`.
+  - **T12** — `single pin mismatch in tools/opencode-docker/Dockerfile (node only; Dockerfile.dev matches) -> exit 1 + mismatch fail line + summary: 3 ok, 1 fail`.
+  - **T13** — `duplicate ARG in tools/opencode-docker/Dockerfile -> exit 2 (INFRA) + duplicate-ARG fail line`.
 - One S4-style structural-integrity test (asserting the real repo `.mise.toml` has `[tools]` + `node = "24.18.0"` + `pnpm = "10.33.0"` + header comment) — this is the ONE case that reads the real repo file, explicitly documented as an exception to the FAKE-mock invariant.
 
 > **Old → new matrix traceability (for implementer/reviewer):**
@@ -248,21 +248,21 @@ The coder runs:
 
 **Sub-step (a): Edit `scripts/__tests__/bats-wrapper.sh`**
 
-- Add `"$ROOT/scripts/check-pin-sync.sh" \` to the `bash -n` syntax-check loop (lines 20-38), placed adjacent to `check-tools.sh` (alphabetical within the check-* prefix).
+- Add `"$ROOT/scripts/check-pin-sync.sh" \` to the `bash -n` syntax-check loop (lines 20-38), placed adjacent to `check-tools.sh` (alphabetical within the check-\* prefix).
 - **Verification:** `bash scripts/__tests__/bats-wrapper.sh` runs `bash -n` on the new script as part of its normal flow.
 
 **Sub-step (b): Edit `Makefile`**
 
 - `.PHONY` line (25): append `check-pin-sync` adjacent to `check-tools` (alphabetical; `check-pin-sync` sorts before `check-tools` — `pi` < `to`). Result: `... check-pin-sync check-tools check-host-jq ...`.
 - New `check-pin-sync` target adjacent to `check-tools` target (lines 60-67, pin-sync before tools alphabetically):
-   ```makefile
-   # Standalone source-parity validator (scripts/check-pin-sync.sh). Asserts
-   # .mise.toml ↔ Dockerfile parity (Dockerfile.dev + tools/opencode-docker/Dockerfile)
-   # for node/pnpm. Exit precedence 2>1>0 (INFRA>mismatch>match). 4 comparisons
-   # total. See openspec/changes/dev-infra-pin-sync/.
-   check-pin-sync:
-   	bash scripts/check-pin-sync.sh
-   ```
+  ```makefile
+  # Standalone source-parity validator (scripts/check-pin-sync.sh). Asserts
+  # .mise.toml ↔ Dockerfile parity (Dockerfile.dev + tools/opencode-docker/Dockerfile)
+  # for node/pnpm. Exit precedence 2>1>0 (INFRA>mismatch>match). 4 comparisons
+  # total. See openspec/changes/dev-infra-pin-sync/.
+  check-pin-sync:
+  	bash scripts/check-pin-sync.sh
+  ```
 - `test-shell:` prereq line (99): insert `check-pin-sync` before `check-host-jq` (the validator runs before any bats, failing fast on pin drift). Result:
   `test-shell: check-pin-sync check-host-jq check-host-lsp test-opencode-docker`
 
@@ -272,11 +272,11 @@ The coder runs:
   - `status: OPEN` → `status: CLOSED`
   - `updated: 2026-08-05` → `updated: 2026-08-07` (today's date; adjust to actual closure date).
   - `Fix` section: populate with:
-     > Closed by change `openspec/changes/dev-infra-pin-sync/`. `scripts/check-pin-sync.sh` asserts `.mise.toml` ↔ Dockerfile parity (`Dockerfile.dev` + `tools/opencode-docker/Dockerfile`) for `node`/`pnpm` under `make test-shell`. 13-scenario bats suite (T1–T13) covers match/mismatch/missing/duplicate/normalization branches across both Dockerfile sources. Exit precedence `2>1>0` (INFRA>mismatch>match). 4 comparisons total (2 pins × 2 Dockerfiles).
+    > Closed by change `openspec/changes/dev-infra-pin-sync/`. `scripts/check-pin-sync.sh` asserts `.mise.toml` ↔ Dockerfile parity (`Dockerfile.dev` + `tools/opencode-docker/Dockerfile`) for `node`/`pnpm` under `make test-shell`. 13-scenario bats suite (T1–T13) covers match/mismatch/missing/duplicate/normalization branches across both Dockerfile sources. Exit precedence `2>1>0` (INFRA>mismatch>match). 4 comparisons total (2 pins × 2 Dockerfiles).
   - `Re-verify` section: populate with:
-     > 1. `bash scripts/check-pin-sync.sh` exits 0 with four ok lines (one per pin per Dockerfile) + `summary: 4 ok, 0 fail`.
-     > 2. `make test-shell` exits 0; includes 13 new `check-pin-sync.bats` cases.
-     > 3. `make check-pin-sync` exits 0 (standalone invocation).
+    > 1.  `bash scripts/check-pin-sync.sh` exits 0 with four ok lines (one per pin per Dockerfile) + `summary: 4 ok, 0 fail`.
+    > 2.  `make test-shell` exits 0; includes 13 new `check-pin-sync.bats` cases.
+    > 3.  `make check-pin-sync` exits 0 (standalone invocation).
 
 **Sub-step (d): Full verification gate**
 
@@ -335,17 +335,17 @@ The coder runs the following checks and reports the results in the handoff evide
 
 ## Verification gate summary
 
-| Gate                                       | When          | Required                                                                                   |
-| ------------------------------------------ | ------------- | ------------------------------------------------------------------------------------------ |
-| `bash -n scripts/check-pin-sync.sh`        | T1 sub-step g | Exit 0 (syntax valid, bash-3 compatible)                                                   |
-| `bash scripts/check-pin-sync.sh` (real)    | T1 sub-step g | Exit 0 on current repo (all three sync points agree at 24.18.0 / 10.33.0; 4 ok lines)      |
-| Bash-3 compliance grep                     | T1/T2/T3      | No matches for `declare -A\|\$\{!\|\[\[ \|\*\*\|printf -v`                                  |
-| Line count of script                       | T1 sub-step g | ≤ 90 lines                                                                                 |
-| `make test-shell`                          | T2 sub-step d | Exit 0; existing 7 `check-tools.bats` cases still pass (refactor check)                    |
-| `make test-shell`                          | T3 sub-step d | Exit 0; includes 13 new `check-pin-sync.bats` cases (Gate A FAKE-mock)                     |
-| `make check-pin-sync`                      | T3 sub-step d | Exit 0 on current repo (Gate B real-host standalone invocation; 4 ok lines)                |
-| `make test-infra`                          | T3 sub-step d | Exit 0 (end-to-end dev-infra)                                                              |
-| `make test-config`                         | T3 sub-step d | Exit 0 (unaffected)                                                                        |
-| `make test-skills`                         | T3 sub-step d | Exit 0 (unaffected)                                                                        |
-| `openspec validate dev-infra-pin-sync`     | T3 sub-step d | Exit 0 (coder lane — openspec CLI blocked in @openspec-plan's lane)                        |
-| Visual: DIA-050.md status                  | T3 sub-step d | `status: CLOSED` + Fix/Re-verify populated + `updated` date matches closure date           |
+| Gate                                    | When          | Required                                                                              |
+| --------------------------------------- | ------------- | ------------------------------------------------------------------------------------- |
+| `bash -n scripts/check-pin-sync.sh`     | T1 sub-step g | Exit 0 (syntax valid, bash-3 compatible)                                              |
+| `bash scripts/check-pin-sync.sh` (real) | T1 sub-step g | Exit 0 on current repo (all three sync points agree at 24.18.0 / 10.33.0; 4 ok lines) |
+| Bash-3 compliance grep                  | T1/T2/T3      | No matches for `declare -A\|\$\{!\|\[\[ \|\*\*\|printf -v`                            |
+| Line count of script                    | T1 sub-step g | ≤ 90 lines                                                                            |
+| `make test-shell`                       | T2 sub-step d | Exit 0; existing 7 `check-tools.bats` cases still pass (refactor check)               |
+| `make test-shell`                       | T3 sub-step d | Exit 0; includes 13 new `check-pin-sync.bats` cases (Gate A FAKE-mock)                |
+| `make check-pin-sync`                   | T3 sub-step d | Exit 0 on current repo (Gate B real-host standalone invocation; 4 ok lines)           |
+| `make test-infra`                       | T3 sub-step d | Exit 0 (end-to-end dev-infra)                                                         |
+| `make test-config`                      | T3 sub-step d | Exit 0 (unaffected)                                                                   |
+| `make test-skills`                      | T3 sub-step d | Exit 0 (unaffected)                                                                   |
+| `openspec validate dev-infra-pin-sync`  | T3 sub-step d | Exit 0 (coder lane — openspec CLI blocked in @openspec-plan's lane)                   |
+| Visual: DIA-050.md status               | T3 sub-step d | `status: CLOSED` + Fix/Re-verify populated + `updated` date matches closure date      |

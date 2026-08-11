@@ -8,13 +8,13 @@ id: DIA-090
 title: "recover mermaid-diagramming and console-charting skills (source: opencode backup folder)"
 area: skills
 severity: Medium
-status: OPEN
+status: VERIFIED
 blocked_by: [] # DIA-NNN refs, or empty
 discovered: 2026-08-10
 source: inventory
 date: 2026-08-10
 created: 2026-08-10
-updated: 2026-08-10
+updated: 2026-08-11
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -40,9 +40,9 @@ from backup if needed, validate activation.
 
 ## Verification
 
-- [ ] Check registration at ~/.config/opencode/skills/mermaid-diagramming and ~/.config/opencode/skills/console-charting.
-- [ ] Restore from the opencode backup folder if missing.
-- [ ] Validate activation (skills appear in the available-skills list; a minimal mermaid/charting prompt invokes them).
+- [x] Check registration at ~/.config/opencode/skills/mermaid-diagramming and ~/.config/opencode/skills/console-charting. (PASS 2026-08-11 - both exist)
+- [x] Restore from the opencode backup folder if missing. (PASS 2026-08-11 - restore NOT needed; both present)
+- [x] Validate activation (skills appear in the available-skills list; a minimal mermaid/charting prompt invokes them). (PASS 2026-08-11 - active in OMO arrays + runtime registry)
 
 ## Fix
 
@@ -52,4 +52,17 @@ from backup if needed, validate activation.
 
 ## Re-verify
 
-> To be filled at re-verify time.
+**VERIFIED 2026-08-11 (session 6, wrap-up lane, campaign
+c-20260809-residual-closure).** Status OPEN -> VERIFIED; no action needed.
+
+Session-6 verification (2026-08-11):
+
+- PASS - mermaid-diagramming skill source exists at
+  ~/.config/opencode/skills/mermaid-diagramming/SKILL.md (frontmatter valid).
+- PASS - console-charting skill source exists at
+  ~/.config/opencode/skills/console-charting/SKILL.md (frontmatter valid).
+- PASS - BOTH ALREADY REGISTERED + ACTIVE: present in OMO per-agent skill
+  arrays (oh-my-opencode-slim.jsonc) and in the runtime available-skills
+  registry.
+- The ticket premise (skills missing) was incorrect; the skills were never
+  lost. Closed as verified, no restore/fix required.

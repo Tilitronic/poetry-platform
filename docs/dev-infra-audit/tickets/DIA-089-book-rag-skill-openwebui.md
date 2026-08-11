@@ -14,7 +14,7 @@ discovered: 2026-08-10
 source: inventory
 date: 2026-08-10
 created: 2026-08-10
-updated: 2026-08-10
+updated: 2026-08-11
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -40,9 +40,9 @@ OpenWebUI endpoint, and test retrieval.
 
 ## Verification
 
-- [ ] Confirm .opencode/skills/book-rag/SKILL.md exists and is registered.
-- [ ] Configure the OpenWebUI endpoint (hybrid RAG over local engineering textbooks).
-- [ ] Run a retrieval test against a local textbook and confirm relevant results.
+- [x] Confirm .opencode/skills/book-rag/SKILL.md exists and is registered. (PASS 2026-08-11)
+- [ ] Configure the OpenWebUI endpoint (hybrid RAG over local engineering textbooks). (BLOCKED on developer 2026-08-11)
+- [ ] Run a retrieval test against a local textbook and confirm relevant results. (BLOCKED on developer 2026-08-11)
 
 ## Fix
 
@@ -52,4 +52,25 @@ OpenWebUI endpoint, and test retrieval.
 
 ## Re-verify
 
-> To be filled at re-verify time.
+**Session-6 verification (2026-08-11, wrap-up lane, campaign
+c-20260809-residual-closure).** Status stays OPEN; OpenWebUI connection blocked
+on developer action.
+
+- PASS - .opencode/skills/book-rag/SKILL.md exists, frontmatter valid
+  (name: book-rag, compatibility: opencode), registered + active (present in
+  OMO per-agent skill arrays + runtime available-skills registry).
+- FAIL (environment) - OpenWebUI connection NOT functional:
+  - Server not running: nothing listening on localhost:8080, ports 3000/8000,
+    or Ollama 11434 (ss scan 2026-08-11).
+  - Env vars UNSET: OPENWEBUI_URL / OPENWEBUI_API_KEY / OPENWEBUI_DATA_DIR
+    (printenv exit 1).
+  - Script default OPENWEBUI_DATA_DIR resolves wrong on Linux (APPDATA empty).
+  - Real key present at
+    /mnt/c/Users/qualt/AppData/Roaming/open-webui/data/.key (128 bytes).
+- STALE CLAIM - SKILL.md line 354 states 'OPENWEBUI_API_KEY is set as a user
+  env var'; NOT true in this runtime (unset).
+
+Pending developer action: start the OpenWebUI server, set OPENWEBUI_URL, and
+set OPENWEBUI_DATA_DIR to the WSL path
+(/mnt/c/Users/qualt/AppData/Roaming/open-webui/data) or set
+OPENWEBUI_API_KEY; then re-run the retrieval test (Verification item 3).

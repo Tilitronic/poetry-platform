@@ -79,14 +79,14 @@ The script is wired into `make test-shell` as a prerequisite (same shape as `che
 
 Every artifact added by this change is independently revertable. The validator + its wiring is one conceptual unit; rolling back any piece does not force rollback of the others.
 
-| Artifact                                                                       | Revert                          |
-| ------------------------------------------------------------------------------ | ------------------------------- |
-| `scripts/check-pin-sync.sh`                                                    | Delete file                     |
-| `scripts/__tests__/check-pin-sync.bats`                                        | Delete file                     |
-| `scripts/__tests__/test-helper.bash` (helper promotions)                       | `git checkout` to prior version |
-| Makefile `.PHONY` / `check-pin-sync` target / `test-shell:` prereq edit        | `git checkout` to prior version |
-| `scripts/__tests__/bats-wrapper.sh` allowlist edit                             | `git checkout` to prior version |
-| `docs/dev-infra-audit/tickets/DIA-050.md` (reopened)                           | `git checkout` to prior version |
+| Artifact                                                                | Revert                          |
+| ----------------------------------------------------------------------- | ------------------------------- |
+| `scripts/check-pin-sync.sh`                                             | Delete file                     |
+| `scripts/__tests__/check-pin-sync.bats`                                 | Delete file                     |
+| `scripts/__tests__/test-helper.bash` (helper promotions)                | `git checkout` to prior version |
+| Makefile `.PHONY` / `check-pin-sync` target / `test-shell:` prereq edit | `git checkout` to prior version |
+| `scripts/__tests__/bats-wrapper.sh` allowlist edit                      | `git checkout` to prior version |
+| `docs/dev-infra-audit/tickets/DIA-050.md` (reopened)                    | `git checkout` to prior version |
 
 All rollbacks are file deletions or `git checkout` to prior versions. No existing production code, Dockerfile.dev, or `.mise.toml` content is modified. Rollback restores prior `test-shell` behavior (validator absent, prereq absent, DIA-050 re-OPEN) — the pre-change live-state. No data migrations. No side effects on running services.
 
@@ -107,19 +107,19 @@ The verification covers every branch of the validator across all three sync poin
 - **Location:** `scripts/__tests__/check-pin-sync.bats`
 - **Pattern:** mirrors `check-tools.bats` — `install_fakes()`-style temp tree builder, fixture files planted under `$BATS_TEST_TMPDIR`, the script under test invoked against the fixture tree. Fixture helpers promoted to `scripts/__tests__/test-helper.bash` for reuse.
 - **13-case matrix (T1–T13):**
-   1. **T1 — all pins match across both Dockerfiles** → exit 0, four `ok:` lines (one per pin per Dockerfile) + `summary: 4 ok, 0 fail`.
-   2. **T2 — single pin mismatch in `Dockerfile.dev` (node)** → exit 1, `fail: node — .mise.toml=24.18.0 Dockerfile.dev=24.19.0` + `summary: 3 ok, 1 fail`.
-   3. **T3 — multiple pin mismatches across both Dockerfiles (report-ALL, not fail-fast)** → exit 1, all fail lines emitted + `summary: N ok, M fail` (M≥2).
-   4. **T4 — `.mise.toml` missing** → exit 2 (INFRA), `fail: source defective: .mise.toml not found at <path>` + summary.
-   5. **T5 — `Dockerfile.dev` missing** → exit 2 (INFRA), `fail: source defective: Dockerfile.dev not found at <path>` + summary.
-   6. **T6 — duplicate `[tools]` key in `.mise.toml` (INFRA ruling)** → exit 2 (INFRA), `fail: source defective: .mise.toml has duplicate key 'node' under [tools]` + summary. Exit 2 takes precedence over any mismatch that would otherwise be detected.
-   7. **T7 — duplicate `ARG NODE_VERSION=...` in `Dockerfile.dev`** → exit 2 (INFRA, last-wins source is structurally suspicious) — per INFRA ruling, the validator refuses to operate on a Dockerfile with multiple ARG declarations for the same pin.
-   8. **T8 — quote variations** (`node = "24.18.0"` vs `pnpm='10.33.0'` vs unquoted, in any source file) → exit 0 after stripping. Verifies the parser's defensive normalization.
-   9. **T9 — CRLF line endings** (Windows-authored fixture, in any source file) → exit 0 after stripping. Verifies CR removal in all parsers.
-   10. **T10 — whitespace variations** (extra spaces around `=`, leading/trailing spaces in values, in any source file) → exit 0 after stripping.
-   11. **T11 — `tools/opencode-docker/Dockerfile` missing** → exit 2 (INFRA), `fail: source defective: tools/opencode-docker/Dockerfile not found at <path>` + summary.
-   12. **T12 — single pin mismatch in `tools/opencode-docker/Dockerfile` (node only; `Dockerfile.dev` matches)** → exit 1, `fail: node — .mise.toml=24.18.0 tools/opencode-docker/Dockerfile=24.19.0` + `summary: 3 ok, 1 fail`.
-   13. **T13 — duplicate `ARG NODE_VERSION=...` in `tools/opencode-docker/Dockerfile`** → exit 2 (INFRA), `fail: source defective: tools/opencode-docker/Dockerfile has duplicate ARG 'NODE_VERSION'` + summary.
+  1.  **T1 — all pins match across both Dockerfiles** → exit 0, four `ok:` lines (one per pin per Dockerfile) + `summary: 4 ok, 0 fail`.
+  2.  **T2 — single pin mismatch in `Dockerfile.dev` (node)** → exit 1, `fail: node — .mise.toml=24.18.0 Dockerfile.dev=24.19.0` + `summary: 3 ok, 1 fail`.
+  3.  **T3 — multiple pin mismatches across both Dockerfiles (report-ALL, not fail-fast)** → exit 1, all fail lines emitted + `summary: N ok, M fail` (M≥2).
+  4.  **T4 — `.mise.toml` missing** → exit 2 (INFRA), `fail: source defective: .mise.toml not found at <path>` + summary.
+  5.  **T5 — `Dockerfile.dev` missing** → exit 2 (INFRA), `fail: source defective: Dockerfile.dev not found at <path>` + summary.
+  6.  **T6 — duplicate `[tools]` key in `.mise.toml` (INFRA ruling)** → exit 2 (INFRA), `fail: source defective: .mise.toml has duplicate key 'node' under [tools]` + summary. Exit 2 takes precedence over any mismatch that would otherwise be detected.
+  7.  **T7 — duplicate `ARG NODE_VERSION=...` in `Dockerfile.dev`** → exit 2 (INFRA, last-wins source is structurally suspicious) — per INFRA ruling, the validator refuses to operate on a Dockerfile with multiple ARG declarations for the same pin.
+  8.  **T8 — quote variations** (`node = "24.18.0"` vs `pnpm='10.33.0'` vs unquoted, in any source file) → exit 0 after stripping. Verifies the parser's defensive normalization.
+  9.  **T9 — CRLF line endings** (Windows-authored fixture, in any source file) → exit 0 after stripping. Verifies CR removal in all parsers.
+  10. **T10 — whitespace variations** (extra spaces around `=`, leading/trailing spaces in values, in any source file) → exit 0 after stripping.
+  11. **T11 — `tools/opencode-docker/Dockerfile` missing** → exit 2 (INFRA), `fail: source defective: tools/opencode-docker/Dockerfile not found at <path>` + summary.
+  12. **T12 — single pin mismatch in `tools/opencode-docker/Dockerfile` (node only; `Dockerfile.dev` matches)** → exit 1, `fail: node — .mise.toml=24.18.0 tools/opencode-docker/Dockerfile=24.19.0` + `summary: 3 ok, 1 fail`.
+  13. **T13 — duplicate `ARG NODE_VERSION=...` in `tools/opencode-docker/Dockerfile`** → exit 2 (INFRA), `fail: source defective: tools/opencode-docker/Dockerfile has duplicate ARG 'NODE_VERSION'` + summary.
 - **Invariant:** bats NEVER reads the real repo `.mise.toml`, `Dockerfile.dev`, or `tools/opencode-docker/Dockerfile`. Every test operates on a fixture tree planted under `$BATS_TEST_TMPDIR`. (Exception: one structural-integrity test — see below — that asserts the real `.mise.toml` is well-formed. This is the S4-style assertion mirroring `check-tools.bats` line 137.)
 - **Runs under:** `make test-shell` (via bats-wrapper auto-discovery; baseline → baseline+13).
 
