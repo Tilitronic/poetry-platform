@@ -156,7 +156,7 @@ model_benchmark_reference:
     deepseek_v4_pro:
       - "80.6% SWE-bench — best coding score on Go"
       - "1M context window"
-      - "Weak: more expensive ($1.74/$3.48)"
+      - "Weak: more expensive than Flash ($0.435/$0.87)"
     qwen37_plus:
       - "77.7% SWE, 90.3% GPQA — excellent all-rounder on Go"
       - "Very cheap ($0.40/$1.60)"
