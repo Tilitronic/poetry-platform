@@ -2,8 +2,8 @@
 
 - **Date:** 2026-08-11
 - **Source:** DIA-096 (git push permission policy - allow push, restrict destructive commands and main) - developer directive 2026-08-11 filed by the coder lane; Option A+B implemented by coder lane (commits 31a6cce2 + 1759575); S10-P6 registration by code-executor lane.
-- **Status:** IMPLEMENTED + ai-auditor APPROVE-WITH-NITS (cycle 2, Major finding verified-closed); restart-verify PENDING (next OpenCode boot).
-- **Outcome note:** safe branch push now allowed (falls through to catch-all allow) while force-push / main-push / destructive commands are explicitly denied; ticket DIA-096 stays OPEN pending-validate until the restart-verify (lane push succeeds; force-push / main-push / bypass forms denied; developer terminal push unaffected; make test-config exit 0) is confirmed at next OpenCode boot.
+- **Status:** IMPLEMENTED + ai-auditor APPROVE-WITH-NITS (cycle 2, Major finding verified-closed); session-10 project-scoped override committed (c8a2c5b + 82d03d38) with ai-auditor APPROVE (cycle 2); restart-verify re-scheduled (next OpenCode boot) after the session-10 item-1 FAIL.
+- **Outcome note:** safe branch push now allowed (falls through to catch-all allow) while force-push / main-push / destructive commands are explicitly denied; session-10 added the project-scoped override (global blanket deny was shadowing the project allow-list in the merged ruleset - see `2026-08-11-git-permission-merge-semantics.md`) and closed the remote-first --all/--mirror option-order nit; ticket DIA-096 stays OPEN pending-validate until the next-boot restart-verify (lane push succeeds; force-push / main-push / bypass forms denied; developer terminal push unaffected; make test-config exit 0) is confirmed.
 
 ## Ticket
 
@@ -39,6 +39,7 @@
 - Commit 1759575 (ai-auditor cycle-1 fix): 10 deny patterns closing all 5 main-push bypass vectors (HEAD:main x2, --all x2, --mirror x2, +*:main x2, :main x2) + skill doc line covering the bypass forms.
 - ai-auditor cycle 2 VERDICT APPROVE-WITH-NITS: Major finding verified-closed, RESTART_VERIFY_READY yes. Non-blocking: option-order variants to verify at next boot; upstream-main caveat accepted by design.
 - Restart-verify PENDING (S10 Phase 5): on next OpenCode boot, a lane push of a feature branch should succeed, force-push / main-push / bypass forms should be denied, the developer terminal push should be unaffected, and `make test-config` should exit 0. Ticket stays OPEN pending-validate - do NOT flip to CLOSED.
+- **Session-10 resolution (2026-08-11, DIA-096):** boot restart-verify item 1 FAIL - lane `git push -u origin omo-slim-changes` denied by the GLOBAL blanket `git push *` deny (`~/.config/opencode/opencode.jsonc` line 11) shadowing the project allow-list in the merged ruleset (see `2026-08-11-git-permission-merge-semantics.md`). Fix: commit c8a2c5b (project-scoped `"git push *": "allow"` at `.opencode/opencode.jsonc` line 29) + commit 82d03d38 (6 remote-first option-order deny patterns at lines 82-87: `git push * --all *` / `git push * --all` / `git push origin --all` / `git push * --mirror *` / `git push * --mirror` / `git push origin --mirror` + comment block 78-81 + git-permissions skill doc update). ai-auditor cycle 1 REQUEST-CHANGES (remote-first option-order gap) -> cycle 2 APPROVE (both findings verified-closed). This closes the previously-accepted option-order nit from the cycle-2 APPROVE-WITH-NITS. `make test-config` exit 0 both times; husky pre-commit passed; global config UNCHANGED; no push performed. Restart-verify re-scheduled at next boot - DIA-096 stays OPEN pending-validate (session-10 item 1 FAILed, so the restart-verify has NOT fully passed yet).
 
 ## Reusable lesson
 

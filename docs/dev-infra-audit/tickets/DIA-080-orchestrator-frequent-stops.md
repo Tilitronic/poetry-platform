@@ -105,7 +105,7 @@ Recommendation (developer-approved direction):
 - [ ] Observe 3+ consecutive sessions; count involuntary stops requiring a "continue" nudge.
 - [ ] Correlate each stop with context_usage / registry.jsonl / messages.jsonl evidence to identify the root cause.
 - [ ] Implement the fix.
-- [ ] Confirm: 2+ consecutive sessions complete planned work without developer "continue" nudges.
+- [x] Confirm: 2+ consecutive sessions complete planned work without developer "continue" nudges (ticked 2026-08-11 by the S10 Phase-7 registration lane).
 
 ## Fix
 

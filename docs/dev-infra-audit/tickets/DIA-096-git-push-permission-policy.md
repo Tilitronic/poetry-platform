@@ -38,7 +38,7 @@ attempts: 0
 lease_expires_at: ""
 files_touched: ["docs/dev-infra-audit/tickets/DIA-096-git-push-permission-policy.md"]
 artifacts: []
-evidence: ["OpenCode permission config hard-denies `git push *` (observed session 7: coder lane push of omo-slim-changes blocked, developer forced to push manually)", "current permission state allows destructive git commands by default unless denied elsewhere"]
+evidence: ["OpenCode permission config hard-denies `git push *` (observed session 7: coder lane push of omo-slim-changes blocked, developer forced to push manually)", "current permission state allows destructive git commands by default unless denied elsewhere", "session-10 restart-verify item 1 FAIL (2026-08-11): lane push of omo-slim-changes denied by the GLOBAL blanket `git push *` deny shadowing the project allow-list in the merged ruleset (evidence: {\"permission\":\"bash\",\"pattern\":\"git push *\",\"action\":\"deny\"} from ~/.config/opencode/opencode.jsonc line 11)", "session-10 fix commits (2026-08-11): c8a2c5b (project-scoped `git push *` allow at .opencode/opencode.jsonc line 29) + 82d03d38 (6 remote-first --all/--mirror deny patterns at lines 82-87 + git-permissions skill doc update)"]
 
 ---
 
@@ -256,3 +256,59 @@ Run at session-9 boot after DIA-096 config is live. Flip ticket CLOSED on full P
 ## Push-deferral decision (session-8 wrap)
 
 Developer directive 2026-08-11: defer the push of omo-slim-changes to session 9, because the DIA-096 allow-push permission config only takes effect at the next OpenCode boot; a push lane in session 8 would still hit the old blanket 'git push \*' deny. Push lane is scheduled FIRST at session 9 start. stash@{0} remains HELD as safety net until the push succeeds.
+
+## Session-10 restart-verify result (2026-08-11)
+
+Session-10 boot restart-verify of the DIA-096 policy (branch `omo-slim-changes`, campaign
+c-20260809-residual-closure). The lane push of `omo-slim-changes` was scheduled FIRST at
+session start (per the session-8 wrap push-deferral decision).
+
+1. **Item 1 - lane feature-branch push: FAIL.** `git push -u origin omo-slim-changes` from
+   the lane was DENIED. Evidence:
+   `{"permission":"bash","pattern":"git push *","action":"deny"}` from the GLOBAL config
+   `~/.config/opencode/opencode.jsonc` line 11. Root cause: the global blanket deny shadows
+   the project-level allow-list in the merged ruleset - OpenCode merges global + project
+   permission configs (project same-key overrides global, but specific / later denies win
+   over the earlier allow), so the project `"git push *": "allow"` did not take effect
+   because the global deny matched with higher specificity.
+2. **Items 2-3 - force-push and main-push/bypass forms: PASS-as-observed.** All tested
+   forms (`git push --force`, `git push origin main`, refspec / --all / --mirror / plus-force
+   / delete-by-refspec variants) were denied. NOTE: at session-10 boot these were denied by
+   the blanket rule, not yet by the targeted deny patterns; targeted deny re-confirmation
+   happens at the next-boot restart-verify once the project-scoped override is live.
+3. **Item 4 - developer terminal push unaffected: BY-DESIGN.** Deny rules gate agent tool
+   calls only; the developer terminal is unaffected and developer manual confirmation is
+   still required for any push the lane cannot perform.
+4. **Item 5 - make test-config: PASS.** `make test-config` exit 0 (both before and after the
+   session-10 fix commits).
+
+Status: item 1 FAIL means the restart-verify is NOT fully passed; ticket stays OPEN
+(pending-validate). The push of `omo-slim-changes` (16 commits ahead of origin) waits for
+the next OpenCode restart so the new config is live.
+
+## Session-10 fix (project-scoped override)
+
+- **Developer decision (2026-08-11):** project-scoped override ONLY; the global config
+  `~/.config/opencode/opencode.jsonc` is NOT touched. The global blanket `git push *` deny
+  remains in place for other projects; this project overrides it locally.
+- **Commit c8a2c5b:** added `"git push *": "allow"` at line 29 of `.opencode/opencode.jsonc`
+  (after the `"*": "allow"` fallback, before all git denies). Safe branch push now resolves
+  through the project ruleset.
+- **ai-auditor cycle 1:** REQUEST-CHANGES - remote-first option-order variants
+  (`git push origin --all` / `git push origin --mirror`) were not explicitly denied and would
+  have become allowed under the project override (main-push bypass regression).
+- **Commit 82d03d38:** added 6 deny patterns at `.opencode/opencode.jsonc` lines 82-87
+  (`git push * --all *`, `git push * --all`, `git push origin --all`, `git push * --mirror *`,
+  `git push * --mirror`, `git push origin --mirror`) with comment block lines 78-81; updated
+  `.opencode/skills/git-permissions/SKILL.md` (new "## Project-Scoped Override (DIA-096)"
+  section; "## Main-Branch Rule" now states --all/--mirror are denied in BOTH argument
+  orders).
+- **ai-auditor cycle 2:** APPROVE - both cycle-1 findings verified-closed, no new
+  observations.
+- **Validation:** `make test-config` exit 0 (both times); husky pre-commit hook PASSED (no
+  --no-verify); global config UNCHANGED (verified); no push performed.
+- **Restart-verify re-scheduled:** next OpenCode boot - lane push of `omo-slim-changes`
+  succeeds; force-push / main-push / bypass forms (including remote-first option-order
+  variants) denied; developer terminal push unaffected; `make test-config` exit 0. Ticket
+  stays OPEN pending-validate - do NOT flip to CLOSED until the next-boot restart-verify
+  passes (DIA-096 restart-verify is still pending because session-10 item 1 FAILed).
