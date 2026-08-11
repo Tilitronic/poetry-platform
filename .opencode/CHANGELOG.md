@@ -1,5 +1,12 @@
 # OpenCode Config Changelog
 
+## 2026-08-11 - DIA-095 AGENTS.md section 6 Project Ops Quick Reference (Option A) + S10-P6 registration
+
+- **Change:** AGENTS.md: add section 6 Project Ops Quick Reference (bring-up commands + docker gate + pre-work gates).
+- **Reason:** DIA-095: orchestrator project-ops reference (Option A); ai-specialist gate + ai-auditor review complete.
+- **Files:** AGENTS.md (section 6, commit 56cc42b) - docs/dev-infra-audit/tickets/DIA-095-orchestrator-project-ops-reference.md (OPEN to CLOSED + resolution) - .opencode/learnings/external-patterns/2026-08-11-project-ops-reference.md (NEW) - CHANGELOG.md.
+- **Verification:** `docker compose ps` shows poetry-dev + poetry-postgres running (DIA-094 docker gate); husky pre-commit ran live (no --no-verify); S10-P6 registration complete 2026-08-11.
+
 ## 2026-08-11 - DIA-093 orchestrator boot no-bash deadlock fixed - lane-0 coder checksum delegation (A+E+F) + S10-P6 registration
 
 - **Change:** orchestrator boot no-bash deadlock fixed - lane-0 coder checksum delegation (A+E+F): stale direct-bash checksum mandate removed from 3 OMO presets + orchestrator_append.md; boot gate lane-0 coder checksum step added (no waiver menu); exit protocol mandates coder-computed checksum (never null); gate logging contract standardized to event_type handoff/decision.

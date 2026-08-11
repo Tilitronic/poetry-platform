@@ -12,7 +12,9 @@
      or prompt-injected location. Related: DIA-094 (docker gate - work must
      not start without docker up), DIA-063 (ticket gate), DIA-080
      (orchestrator stops - setup knowledge reduces guesswork).
-     Status: OPEN, needs fix. -->
+     Status: CLOSED 2026-08-11 - Option A implemented (AGENTS.md section 6,
+     commit 56cc42b); ai-specialist gate + ai-auditor review complete;
+     S10-P6 registration complete. -->
 
 ---
 
@@ -20,7 +22,7 @@ id: DIA-095
 title: "Orchestrator needs an optimized project-ops reference - how to run the project, bring up docker, required gates"
 area: dev-infra/opencode-config
 severity: Major
-status: OPEN
+status: CLOSED
 blocked_by: [] # cross-referenced in Description: DIA-094, DIA-063, DIA-080
 discovered: 2026-08-11
 source: developer-directive
@@ -37,7 +39,7 @@ model: "deepseek-v4-flash"
 parent_session_id: ""
 attempts: 0
 lease_expires_at: ""
-files_touched: ["docs/dev-infra-audit/tickets/DIA-095-orchestrator-project-ops-reference.md", "docs/dev-infra-audit/tickets/README.md"]
+files_touched: ["docs/dev-infra-audit/tickets/DIA-095-orchestrator-project-ops-reference.md", "docs/dev-infra-audit/tickets/README.md", "AGENTS.md", ".opencode/CHANGELOG.md", ".opencode/learnings/external-patterns/2026-08-11-project-ops-reference.md"]
 artifacts: []
 evidence: ["orchestrator read permission block (opencode.jsonc: read allows only .opencode/session/*, docs/dev-infra-audit/NEXT-RUN.md, docs/dev-infra-audit/tickets/*, docs/dev-infra-audit/tickets/archive/*, .opencode/practice-protected.md, AGENTS.md)", "existing setup docs: docs/docker-dev.md (primary), CONTAINER-SETUP.md (superseded), docs/onboarding.md (onboarding), architecture.md (design)", "bring-up commands: make up / docker compose up -d; make shell; make dev; make opencode; make test-infra; make test-config; make test-shell"]
 
@@ -167,7 +169,39 @@ new rule file referenced by the orchestrator operating rules.
 
 ## Fix
 
-> To be filled at fix time. Proposed options (from the coder lane, 2026-08-11):
+**Option A APPLIED (commit 56cc42b, 2026-08-11):** added section 6 "Project Ops
+Quick Reference" to the project `AGENTS.md` - bring-up commands (`cp
+.env.example .env`, `make up` = `docker compose up -d`, `make shell`, `make
+install`, `make dev`, `make opencode`, `make down`, `make clean`),
+container-dependent vs host-runnable gates (pre-commit lint-staged via
+`scripts/verify-pre-commit.sh` + `make test-python` + `make test-infra` need
+the container; `make test-config` + `make test-shell` run on the host), and
+the DIA-094 docker-required rule (implementation work AND commits MUST NOT
+proceed without a running docker dev container; never `--no-verify`).
+AGENTS.md is already in the orchestrator read scope AND prompt-injected, so
+the knowledge reaches the orchestrator with zero extra boot steps. The
+reference content was verified against the Makefile and docker-compose.yml
+(Part B findings, above).
+
+## Re-verify
+
+**RESOLVED 2026-08-11 - CLOSED.**
+
+- Implementation: AGENTS.md section 6 (Option A), commit 56cc42b (44 lines added).
+- Review: ai-specialist gate complete; @ai-auditor independent review APPROVED (verdict recorded in the S10 lane report, REGISTER_READY: yes).
+- Registration (S10 Phase 6): CHANGELOG entry added
+  (`.opencode/CHANGELOG.md`, 2026-08-11); learnings registered
+  (`.opencode/learnings/external-patterns/2026-08-11-project-ops-reference.md`,
+  outcome "implemented"); this ticket flipped OPEN to CLOSED.
+- Docker gate (DIA-094): `docker compose ps` showed poetry-dev + poetry-postgres
+  running (healthy) before the registration commit; husky pre-commit ran live
+  (no --no-verify).
+- Expected future verification (per original Verification section): a fresh
+  orchestrator session, using only its readable files, can state (a) the docker
+  bring-up commands, (b) the container-provided gates, (c) the host-runnable
+  gates, and (d) the DIA-094 docker-required rule.
+
+### Option analysis (from the coder lane, 2026-08-11; retained for the record - Option A was implemented)
 
 ### Option A - Add a compact "Project Ops Quick Reference" section to AGENTS.md (project)
 
