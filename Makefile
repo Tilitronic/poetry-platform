@@ -22,7 +22,7 @@
 #   make audit-python  pip-audit both Python packages (requires uv + committed uv.lock)
 #   make context7-docs  fetch library docs from Context7 (requires CONTEXT7_API_KEY; dry-run without it)
 
-.PHONY: build up shell opencode dev stack install db-psql logs down clean check-pin-sync check-tools check-host-jq check-host-lsp gen-jsconfig test-shell test-opencode-docker test-python test-infra test-config test-interview test-skills audit-python context7-docs jsonl-stats session-log-render jsonl-cross-check
+.PHONY: build up shell opencode dev stack install db-psql logs down clean check-pin-sync check-tools check-host-jq check-host-lsp gen-jsconfig test-shell test-opencode-docker test-python test-infra test-config test-interview test-skills eval-lite audit-python context7-docs jsonl-stats session-log-render jsonl-cross-check
 
 stack:
 	bash scripts/dev-stack.sh
@@ -111,6 +111,17 @@ check-host-jq:
 test-shell: check-pin-sync check-host-jq check-host-lsp test-opencode-docker
 	bash scripts/__tests__/bats-wrapper.sh
 
+# Eval-lite harness (scripts/eval-lite.sh, change dia-086 task 8.1; design.md
+# Decision 7). Runs the 20-task curated sweep from
+# docs/dev-infra/eval-lite-tasks.md. Host-runnable (DIA-094 exemption, same
+# category as test-config/test-shell) and container-aware: tasks whose 6th
+# field is `yes` are skipped with a WARN when the dev container is down.
+# Deliberately NOT wired into verify-pre-commit.sh (locked decision #4) and
+# NOT wired into CI. Exit codes: 0 all non-skipped pass, 1 any fail,
+# 2 manifest missing, 3 no tasks defined.
+eval-lite:
+	bash scripts/eval-lite.sh
+
 # Regenerate jsconfig.json from the current workspace layout (pnpm-workspace.yaml
 # + packages/*). Output is gitignored; run on every devcontainer create via
 # postCreateCommand and before test-infra so tests validate a fresh file.
@@ -165,6 +176,8 @@ test-skills:
 test-config: test-interview test-skills
 	bash .opencode/scripts/validate-opencode-config.sh
 	bash scripts/validate-agent-names.sh
+	bash scripts/validate-output-contracts.sh
+	bash scripts/validate-reviewer-sections.sh
 	bash scripts/validate-handoff.sh
 	bash scripts/test-ticket-gate.sh
 	bash scripts/audit-agent-tool-coverage.sh .opencode/opencode.jsonc

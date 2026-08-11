@@ -37,6 +37,7 @@ for script in \
   "$ROOT/scripts/author-studio-probe-guard.sh" \
   "$ROOT/scripts/validate-handoff.sh" \
   "$ROOT/scripts/validate-agent-names.sh" \
+  "$ROOT/scripts/eval-lite.sh" \
   "$ROOT/.opencode/scripts/validate-skills.sh" \
   "$ROOT/.opencode/scripts/jsonl-cross-check.sh" \
   "$ROOT/scripts/__tests__/test-helper.bash"; do
