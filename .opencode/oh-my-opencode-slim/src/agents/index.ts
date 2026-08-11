@@ -642,6 +642,7 @@ export function getAgentConfigs(
       sdkConfig.mode = 'subagent';
     } else if (name === 'boss') {
       sdkConfig.mode = 'primary';
+      sdkConfig.hidden = true;
     } else {
       sdkConfig.mode = 'subagent';
     }
