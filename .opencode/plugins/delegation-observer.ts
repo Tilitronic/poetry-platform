@@ -311,6 +311,16 @@ const delegationObserver: Plugin = async (ctx) => {
   // repeated orchestrator idles without new delegations stay silent.
   const delegationsSinceHandoff = new Map<string, number>()
 
+  // DIA-080 (Option A): in-memory per-session counters powering the
+  // context_usage estimate, keyed by the session that triggers the activity.
+  // The estimate must scope to the CURRENT orchestrator session - reading all
+  // registry/messages rows since project start summed every session and
+  // always returned ~100%. Non-persistent by design: a plugin restart resets
+  // the counters, and the estimate is a proxy signal anyway (not
+  // token-accurate).
+  const sessionDelegationCount = new Map<string, number>()
+  const sessionMessageCount = new Map<string, number>()
+
   // Child session id (task_id) -> agent name captured at dispatch. Enriches
   // completion/failure messages rows with the actual delegated agent.
   const childSessionAgent = new Map<string, string>()
@@ -542,6 +552,17 @@ const delegationObserver: Plugin = async (ctx) => {
         `[delegation-observer] messages.jsonl write failed (row_id=${nextRowId}): ${errorMessage(err)}`
       )
     }
+    // DIA-080: per-session message counter for the context_usage estimate.
+    // appendMessageRow has no sessionID parameter - every row is an
+    // orchestrator-level log row, so parentSessionId (the captured
+    // orchestrator session) is the writer key. Rows written before the first
+    // task() dispatch (parentSessionId still unset) fall under "unknown",
+    // which is the same key context_usage reads when it is called that early.
+    const writerSession = parentSessionId ?? "unknown"
+    sessionMessageCount.set(
+      writerSession,
+      (sessionMessageCount.get(writerSession) ?? 0) + 1
+    )
   }
 
   /** Last registry row that carries this session_id (used by the S2 guard). */
@@ -1062,6 +1083,13 @@ const delegationObserver: Plugin = async (ctx) => {
         input.sessionID,
         (delegationsSinceHandoff.get(input.sessionID) ?? 0) + 1
       )
+      // DIA-080: per-session delegation counter for the context_usage
+      // estimate. input.sessionID is the session that calls task() - the
+      // orchestrator session (parentSessionId is captured from it above).
+      sessionDelegationCount.set(
+        input.sessionID,
+        (sessionDelegationCount.get(input.sessionID) ?? 0) + 1
+      )
       appendMessageRow({
         "gen_ai.operation.name": "invoke_agent",
         "gen_ai.agent.name": agentName,
@@ -1473,36 +1501,51 @@ const delegationObserver: Plugin = async (ctx) => {
         async execute(args) {
           const scope = args.scope ?? "session"
 
-          // Signal 1 — registry delegation count. Delegation/session-spawn
-          // events only (task_success, task_no_id, session_spawn); terminal
-          // and gate rows are outcomes, not dispatches, and would double
-          // count. Fail-soft: unreadable registry yields an empty list.
-          const DELEGATION_EVENTS = new Set([
-            "task_success",
-            "task_no_id",
-            "session_spawn",
-          ])
-          let registryRows: RegistryRow[] = []
-          try {
-            registryRows = readRegistryRows()
-          } catch {
-            registryRows = []
-          }
-          const delegationRows = registryRows.filter((r) =>
-            DELEGATION_EVENTS.has(r.event ?? "")
-          )
+          // DIA-080 (Option A): the session scope estimates from in-memory
+          // per-session counters instead of reading every registry/messages
+          // row since project start (which summed all sessions and always
+          // read ~100%). The counters are keyed by the orchestrator session -
+          // parentSessionId, captured at the first task() dispatch - because
+          // context_usage is called by that same orchestrator. The council
+          // scope keeps the file-derived path: agent attribution lives only in
+          // the logs / childSessionAgent, so it cannot come from counters.
+          const callingSession = parentSessionId ?? "unknown"
 
-          // Council scope needs agent attribution, but registry rows carry no
-          // agent field (the plugin never writes one). Attribute via the
-          // dispatch capture (childSessionAgent: task_id -> agent) enriched
-          // with the messages log's gen_ai.agent.id -> gen_ai.agent.name
-          // mapping so pre-boot dispatches (ids not in the in-memory map) are
-          // still attributed. Last row wins (append-only log; completion rows
-          // repeat the same agent, so the overwrite is idempotent in practice).
-          const isCouncilAgent = (agent: string | undefined): boolean =>
-            agent === "council" || agent === "councillor"
-          const attribution = new Map<string, string>()
+          let delegationCount: number
+          let messageCount = 0
+          let sessionCount: number
+
           if (scope === "council") {
+            // Signal 1 — registry delegation count. Delegation/session-spawn
+            // events only (task_success, task_no_id, session_spawn); terminal
+            // and gate rows are outcomes, not dispatches, and would double
+            // count. Fail-soft: unreadable registry yields an empty list.
+            const DELEGATION_EVENTS = new Set([
+              "task_success",
+              "task_no_id",
+              "session_spawn",
+            ])
+            let registryRows: RegistryRow[] = []
+            try {
+              registryRows = readRegistryRows()
+            } catch {
+              registryRows = []
+            }
+            const delegationRows = registryRows.filter((r) =>
+              DELEGATION_EVENTS.has(r.event ?? "")
+            )
+
+            // Council scope needs agent attribution, but registry rows carry
+            // no agent field (the plugin never writes one). Attribute via the
+            // dispatch capture (childSessionAgent: task_id -> agent) enriched
+            // with the messages log's gen_ai.agent.id -> gen_ai.agent.name
+            // mapping so pre-boot dispatches (ids not in the in-memory map)
+            // are still attributed. Last row wins (append-only log;
+            // completion rows repeat the same agent, so the overwrite is
+            // idempotent in practice).
+            const isCouncilAgent = (agent: string | undefined): boolean =>
+              agent === "council" || agent === "councillor"
+            const attribution = new Map<string, string>()
             for (const [id, agent] of childSessionAgent) {
               attribution.set(id, agent)
             }
@@ -1535,35 +1578,13 @@ const delegationObserver: Plugin = async (ctx) => {
               // Fail-soft: unreadable messages log leaves the attribution map
               // with only the in-memory childSessionAgent entries.
             }
-          }
-          const isCouncilRow = (r: RegistryRow): boolean =>
-            isCouncilAgent(attribution.get(r.session_id ?? r.task_id ?? ""))
+            const isCouncilRow = (r: RegistryRow): boolean =>
+              isCouncilAgent(attribution.get(r.session_id ?? r.task_id ?? ""))
 
-          const delegationCount =
-            scope === "council"
-              ? delegationRows.filter(isCouncilRow).length
-              : delegationRows.length
+            delegationCount = delegationRows.filter(isCouncilRow).length
 
-          // Signal 2 — messages row count (session scope only). Fail-soft:
-          // unreadable log yields 0, mirroring the plugin's fail-soft policy.
-          let messageCount = 0
-          if (scope === "session") {
-            try {
-              if (existsSync(messagesPath)) {
-                messageCount = readFileSync(messagesPath, "utf-8")
-                  .split("\n")
-                  .filter((line) => line.trim() !== "").length
-              }
-            } catch {
-              messageCount = 0
-            }
-          }
-
-          // Signal 3 — session count. Session scope: the plugin's tracked
-          // session metadata (root + children). Council scope: distinct
-          // council-attributed delegation ids (the council child sessions).
-          let sessionCount = 0
-          if (scope === "council") {
+            // Signal 3 (council) - distinct council-attributed delegation ids
+            // (the council child sessions).
             const councilIds = new Set<string>()
             for (const r of delegationRows) {
               if (isCouncilRow(r)) {
@@ -1573,7 +1594,19 @@ const delegationObserver: Plugin = async (ctx) => {
             }
             sessionCount = councilIds.size
           } else {
-            sessionCount = sessionMeta.size
+            // Session scope - in-memory per-session counters (DIA-080).
+            delegationCount = sessionDelegationCount.get(callingSession) ?? 0
+            messageCount = sessionMessageCount.get(callingSession) ?? 0
+
+            // Signal 3 - session count scoped to the calling session: the
+            // orchestrator's own session plus its direct children
+            // (sessionMeta entries whose parentID is the calling session).
+            let scopedSessions = 0
+            for (const meta of sessionMeta.values()) {
+              if (meta.parentID === callingSession) scopedSessions++
+            }
+            if (sessionMeta.has(callingSession)) scopedSessions++
+            sessionCount = scopedSessions
           }
 
           // Conservative estimation formula (approved design): per-delegation
@@ -1602,7 +1635,7 @@ const delegationObserver: Plugin = async (ctx) => {
             threshold_50pct: usageFraction >= 0.5,
             confidence: "low — proxy estimation, not token-accurate",
             fallback_note:
-              "If this seems inaccurate, use registry.jsonl row count × 3000 as a rough guide",
+              "If this seems inaccurate, the estimate covers only in-session activity of the current orchestrator session",
           }
           if (scope === "session") {
             result.message_count = messageCount
