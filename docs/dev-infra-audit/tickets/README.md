@@ -5,6 +5,14 @@ carries the full detail (description, verification, fix, re-verify evidence).
 
 > Archive policy (2026-08-03): completed tickets (VERIFIED or CLOSED for ≥1 cycle with no reopen) move to `tickets/archive/` instead of deletion. Git history preserves all prior states. See [archive/README.md](archive/README.md) for triggers.
 
+> ID collision note (2026-08-12, merge of diverged branches): DIA-114 and
+> DIA-116 were independently allocated on both branches to DIFFERENT tickets
+> (origin branch: MiMo-V2.5-Pro evaluation, Rung-3 live benchmark; local
+> branch: agent-instruction-files audit, task-parallelization analysis). Both
+> rows are kept for each ID below pending a developer renumber decision.
+> Cross-references exist in CHANGELOG.md, learnings/, memory shelf, and ticket
+> files on both sides, so renumbering touches all of them.
+
 ## Index
 
 | ID      | Title                                                                                                                                        | Area            | Severity | Status   | Ticket file                                                                                                    |
@@ -74,12 +82,21 @@ carries the full detail (description, verification, fix, re-verify evidence).
 | DIA-112 | section-10 ticket gate fires despite OPEN + indexed + referenced ticket (correlation bug)                                                    | opencode-config | Major    | CLOSED   | [DIA-112-ticket-gate-correlation-bug.md](DIA-112-ticket-gate-correlation-bug.md)                               |
 | DIA-113 | audit workflow-adherence discipline + agentic autonomy configuration vs newest best practices                                                | opencode-config | Major    | OPEN     | [DIA-113-workflow-adherence-autonomy-audit.md](DIA-113-workflow-adherence-autonomy-audit.md)                   |
 | DIA-114 | evaluate MiMo-V2.5-Pro agentic coding capability (DIA-087 R5 follow-up)                                                                      | opencode-config | Medium   | CLOSED   | [DIA-114-mimo-v25-pro-evaluation.md](DIA-114-mimo-v25-pro-evaluation.md)                                       |
+| DIA-114 | Audit agent instruction/prompt files (.ts and .md) for inaccuracies, duplications, vague wording                                             | opencode-config | Medium   | OPEN     | [DIA-114-agent-instruction-files-audit.md](DIA-114-agent-instruction-files-audit.md)                       |
 | DIA-115 | mandatory evidence (citations/experiments) for agent decision-variant presentations — cross-agent policy, research-first                     | opencode-config | Medium   | OPEN     | [DIA-115-evidence-based-decision-variants.md](DIA-115-evidence-based-decision-variants.md)                     |
+| DIA-115 | Audit pre-commit and pre-push hook test coverage (turbo-driven) for edge-case gaps                                                           | git-hooks       | Medium   | OPEN     | [DIA-115-hook-test-coverage-audit.md](DIA-115-hook-test-coverage-audit.md)                                 |
+| DIA-116 | live in-repo Rung-3 benchmark: kimi-k3 vs deepseek-v4-pro vs mimo-v2.5-pro (DIA-111/DIA-114 follow-up)                                         | opencode-config | Medium   | CLOSED   | [DIA-116-rung3-live-benchmark.md](DIA-116-rung3-live-benchmark.md)                                         |
+| DIA-116 | Analyze task parallelization in agent prompts - maximize concurrent execution without file-write conflicts                                   | opencode-config | Medium   | OPEN     | [DIA-116-task-parallelization-analysis.md](DIA-116-task-parallelization-analysis.md)                       |
 | DIA-117 | git worktree remove --force missing from DIA-096 permission deny list - config hardening (DIA-100 FALSIFICATION-1)                           | opencode-config | Major    | CLOSED   | [DIA-117-worktree-force-remove-config-hardening.md](DIA-117-worktree-force-remove-config-hardening.md)         |
+| DIA-117 | Fix agent-instruction audit findings: HANDOFF.md refs, missing AGENTS.md section 10, boss_append.md duplicate                                | opencode-config | Major    | VERIFIED | [DIA-117-fix-agent-instruction-findings.md](DIA-117-fix-agent-instruction-findings.md)                     |
 | DIA-118 | scripts/worktrees.sh missing executable bit - direct invocation fails exit 126                                                               | dev-infra       | Low      | CLOSED   | [DIA-118-worktrees-sh-missing-executable-bit.md](DIA-118-worktrees-sh-missing-executable-bit.md)               |
+| DIA-118 | Wire host-runnable gates into hooks and fix turbo.json test.inputs cache masking                                                             | git-hooks       | Major    | OPEN     | [DIA-118-wire-host-gates-into-hooks.md](DIA-118-wire-host-gates-into-hooks.md)                             |
 | DIA-119 | make test-shell exit 2 - verify-pre-push bats pnpm sandbox failure (test 187 ERR_PNPM_NO_IMPORTER_MANIFEST_FOUND)                            | dev-infra       | Low      | CLOSED   | [DIA-119-test-shell-pnpm-sandbox-failure.md](DIA-119-test-shell-pnpm-sandbox-failure.md)                       |
+| DIA-119 | Enable safe task parallelization: BATCH-DISPATCH rule, memory-shelf centralization, ID preallocation, serialization points                   | opencode-config | Major    | VERIFIED | [DIA-119-batch-dispatch-config-changes.md](DIA-119-batch-dispatch-config-changes.md)                       |
 | DIA-120 | delegation-observer handoff-writer clobbers valid handoff on in-flight log_decision - false checksum mismatch escalation                     | opencode-config | Medium   | CLOSED   | [DIA-120-plugin-handoff-writer-clobber-bug.md](DIA-120-plugin-handoff-writer-clobber-bug.md)                   |
+| DIA-120 | Make delegation-observer A1 warning batch-aware (only warn on unsafe parallel task batches)                                                  | opencode-config | Medium   | VERIFIED | [DIA-120-batch-aware-a1-plugin.md](DIA-120-batch-aware-a1-plugin.md)                                       |
 | DIA-121 | bats-wrapper.sh claims v1.11.0 but vendored bats is v1.14.0 - version drift                                                                  | dev-infra       | Low      | CLOSED   | [DIA-121-bats-version-drift-wrapper-vendor.md](DIA-121-bats-version-drift-wrapper-vendor.md)                   |
+| DIA-121 | Give opencode-docker container host docker/podman socket access so pre-commit hooks work from inside OpenCode                                | docker          | Major    | OPEN     | [DIA-121-opencode-docker-host-socket-access.md](DIA-121-opencode-docker-host-socket-access.md)             |
 | DIA-122 | needs-input ticker + notifications: surface which opencode session awaits developer input                                                    | opencode-config | Medium   | CLOSED   | [DIA-122-needs-input-ticker.md](DIA-122-needs-input-ticker.md)                                                 |
 | DIA-123 | deterministic opencode restart detection for the orchestrator                                                                                | opencode-config | Medium   | OPEN     | [DIA-123-deterministic-restart-detection.md](DIA-123-deterministic-restart-detection.md)                       |
 | DIA-124 | orchestrator must write and verify a terminal handoff BEFORE presenting session-end / new-session prompt                                     | opencode-config | Major    | OPEN     | [DIA-124-handoff-before-session-end.md](DIA-124-handoff-before-session-end.md)                                 |
@@ -97,15 +114,12 @@ carries the full detail (description, verification, fix, re-verify evidence).
 | -------- | ----- |
 | Blocker  | 7     |
 | Critical | 2     |
-| Major    | 26    |
-| Medium   | 36    |
 | Minor    | 0     |
 | Low      | 10    |
 | Info     | 0     |
 
 | Status      | Count |
 | ----------- | ----- |
-| OPEN        | 28    |
 | DONE        | 3     |
 | VALIDATE    | 0     |
 | E2E         | 0     |
@@ -113,8 +127,8 @@ carries the full detail (description, verification, fix, re-verify evidence).
 | MONITOR     | 1     |
 | FIXED       | 0     |
 | IMPLEMENTED | 0     |
-| VERIFIED    | 15    |
-| CLOSED      | 33    |
+| VERIFIED    | 18    |
+| CLOSED      | 34    |
 | BLOCKED     | 0     |
 
 ## How to add a ticket
