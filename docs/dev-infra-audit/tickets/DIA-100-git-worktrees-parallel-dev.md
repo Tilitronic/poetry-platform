@@ -122,6 +122,9 @@ dispatches @coder to create/teardown). Note: worktrees skill exists at
 
 **Verification evidence**:
 
+- Implementation commit: `a387f72`
+  (feat(dev-infra): worktree lifecycle CLI + conventions for parallel dev
+  model, DIA-100); ticket-evidence follow-up: see git log for DIA-100.
 - `make test-shell` exit 0 (worktrees.bats T1-T11 all ok, suite 204 ok).
 - End-to-end trace (origin-safe throwaway branches, never pushed, removed
   before close): create -> list -> .opencode/session isolation check ->
