@@ -385,6 +385,76 @@ Notes:
   3. Do not confuse the three distinct section-10 gate concerns: reference
      FORMAT (ID+slug quoting, learnings 2026-08-12), ticket RECENCY (L103),
      and dispatch CORRELATION / own-ticket (this entry).
-  - Cross-reference: DIA-117, DIA-100, lessons.md L103, failures.md
-    2026-08-10 stale-gate recency block, learnings/external-patterns/
-    2026-08-12-ticket-reference-format.md.
+   - Cross-reference: DIA-117, DIA-100, lessons.md L103, failures.md
+     2026-08-10 stale-gate recency block, learnings/external-patterns/
+     2026-08-12-ticket-reference-format.md.
+
+## S18 (session 18, 2026-08-12) - DIA-118 / DIA-119 / boot-gate
+
+- core.filemode=false chmod trap (DIA-118):
+  - Symptom: a plain `chmod +x scripts/worktrees.sh` was silently dropped at
+    commit time even though the working tree showed the executable bit set.
+  - Root cause: this repo sets `core.filemode=false` in .git/config (repo-local),
+    so git does not record permission changes on tracked files. A plain chmod
+    is invisible to git and never lands in the commit.
+  - Fix: stage the mode change explicitly with `git update-index --chmod=+x
+    scripts/worktrees.sh` and verify via `git ls-files -s` (100755) or by
+    extracting from `git archive` (which respects the index mode) rather than
+    trusting the working-tree ls. The DIA-100 OpenSpec spec already required the
+    file be "executable"; the initial implementation missed it and review caught
+    it. Generalizable rule for any repo with core.filemode=false: NEVER rely on
+    chmod +x alone to make a tracked file executable; use git update-index
+    --chmod=+x. The repo-local config value (not committed) is the irrecoverable
+    part; the fix command is a transferable pattern.
+
+- temp-HOME hermeticity breach pattern (DIA-119):
+  - Symptom: an intermittent test-shell failure (verify-pre-push.bats test ~187,
+    exit 2, ERR_PNPM_NO_IMPORTER_MANIFEST_FOUND) that did not reproduce reliably.
+  - Root cause: the test set `HOME=$BATS_TEST_TMPDIR/home` to keep the login
+    shell clean and force the fake pnpm. But a real login shell sources the real
+    ~/.profile which prepends $VOLTA_HOME/bin to PATH, so the REAL pnpm/npx
+    resolved and shadowed the fake in the empty sandbox, failing because the
+    empty sandbox had no importer manifest.
+  - Lesson (two parts):
+    1. Intermittent test failures can be ENVIRONMENT-DEPENDENT HERMETICITY
+       BREACHES, not store/cache races. To prove the leak path, force HOME and
+       show which binary actually resolves. A fake-dir PATH that gets appended to
+       by a login profile defeats the fixture.
+    2. Test sandboxes that fake external tools must seed importer manifests +
+       tool stubs so the outcome does not depend on which tool resolves. This is
+       the durable test-architecture decision recorded in adr.md "Hermetic
+       sandbox seeding".
+
+- npx resolves binaries from node_modules/.bin, NOT package.json scripts
+  (DIA-119 F2 lesson):
+  - A package.json `scripts` entry is DEAD CODE for `npx`. When real npx runs it
+    resolves the command from node_modules/.bin. Therefore a sandbox that fakes
+    an npx-invoked tool must place the stub at node_modules/.bin/<cmd>, not add a
+    package.json scripts entry. The initial implementation wrote a scripts entry
+    expecting npx to honor it; it does not.
+
+- .bin stub $0-reconstruction for identical logging (DIA-119 F2):
+  - When real npx invokes a node_modules/.bin stub, it passes only the args AFTER
+    the binary name, so `$*` alone loses the command name. To make the real-npx
+    path log identically to the fake npx, reconstruct the full command from `$0`:
+    `printf 'npx %s\n' "$(basename "$0") $*"`. This $0-reconstruction deviation
+    was empirically required (real npx vs fake npx invoke the stub differently)
+    and is now the established pattern for sandbox stubs that must produce
+    byte-identical logs either way.
+
+- log_decision handoff-event trigger caveat (DIA-120 boot-gate incident):
+  - The delegation-observer plugin's handoff-writer fires on ANY log_decision
+    with event_type='handoff' AND a non-empty prognosis string - INCLUDING
+    non-terminal status events (resolution_status='in-flight'). This clobbers
+    the valid handoff file with a fallback wrapper, destroying the real
+    prognosis and causing a false checksum mismatch escalation.
+  - Operational rule for agents: use event_type='decision' for progress/status
+    events; RESERVE event_type='handoff' for genuine terminal handoffs. A prose
+    (non-JSON-stringified) prognosis with event_type='handoff' also triggers the
+    write - so even non-terminal events carrying any prognosis string are
+    dangerous.
+  - Secondary boot-gate lesson: comparison logic must RE-READ the file's
+    checksum field at comparison time; do not compare against a checksum value
+    memorized from an earlier read (stale-comparison false positive).
+  - Cross-reference: failures.md S18 boot-gate false-positive escalation;
+    DIA-120 (fix deferred to section-10 chain).

@@ -133,3 +133,34 @@ Failed-loop lessons & preventive actions
   - Preventive action / mitigation in-hand: keep code-executor lanes narrowly scoped (single responsibility), front-load the full state into the prompt, forbid recon/resume-heavy flows that re-run large verification loops, and prefer multiple small lanes over one combined lane. Reference: lesson L20260810-003 and ticket DIA-078 evidence.
 
   - **Post-mortem correction (2026-08-11):** The root cause of the snip-wrapper loop was the opencode-snip plugin mechanically rewriting all bash commands to `snip <cmd>` via its tool.execute.before hook (res011 conspect), not model behavior alone. Prompt guardrails were structurally ineffective (DIA-078 L94: 3 consecutive lanes violated them). The defense-in-depth deny rules (2026-08-10) locked bash lanes completely when combined with the plugin. Fix: plugin removal (DIA-092) + deny rules retained as dormant guardrail. The snip binary is a display-trimming TUI helper with fork/exec + SyntaxError risks - zero legitimate agent use.
+
+- Failure mode (2026-08-12): S18 boot-gate false-positive checksum escalation (DIA-061 -> DIA-120)
+  - Symptom: at the S18 batch-approval boot gate a handoff checksum "mismatch"
+    was reported that required a restore lane, even though the S17 handoff was
+    valid. The escalation was a FALSE POSITIVE.
+  - Root cause (two compounding faults):
+    1. STALE-COMPARISON: the boot-gate comparison memorized the handoff file's
+       checksum field from an earlier read and compared against that stale value
+       at comparison time, rather than re-reading the file's checksum field at
+       comparison time. Any legitimately-updated handoff file therefore looked
+       like a mismatch.
+    2. PLUGIN TRIGGER BUG: the delegation-observer plugin's handoff-writer fires
+       on ANY log_decision with event_type='handoff' AND a non-empty prognosis
+       string, including non-terminal status events (resolution_status
+       'in-flight'). During the boot gate the orchestrator's boot-gate detection
+       log (event_type='handoff', resolution_status 'in-flight', content_ref
+       'handoff-detected', prose prognosis) triggered the plugin to OVERWRITE the
+       valid S17 handoff file with a fallback wrapper, destroying the real
+       prognosis.
+  - Fix direction: (a) boot-gate comparisons must RE-READ the checksum field at
+    comparison time, never compare against a memorized value; (b) agents must use
+    event_type='decision' for progress/status events and reserve
+    event_type='handoff' for genuine terminal handoffs (a prose prognosis with a
+    handoff event is enough to trigger the write). The plugin trigger bug itself
+    is tracked in DIA-120 (fix deferred to the section-10 chain).
+  - Why irrecoverable: the false escalation chain (stale comparison + plugin
+    trigger interaction) is runtime/session behaviour, not reconstructible from
+    git diffs or the DIA-120 ticket alone (which documents the plugin bug but not
+    the stale-comparison contributor or the agent-side event-type rule).
+  - Cross-reference: lessons.md S18 "log_decision handoff-event trigger caveat";
+    DIA-120.

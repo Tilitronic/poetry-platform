@@ -66,3 +66,30 @@ Note: These are navigational facts to help future humans find the infra/test art
   `.worktrees/` at the repo root (git-ignored; also mirrored in
   `tools/opencode-docker/`). This is a navigational pointer only; the mechanics
   themselves are recoverable from those tracked files.
+
+- Executable-bit management (DIA-118, 2026-08-12): the repo sets
+  `core.filemode=false` in `.git/config` (repo-local, not committed), so plain
+  `chmod +x` on a tracked file is silently dropped at commit time. Any new
+  executable script (e.g. scripts/worktrees.sh, which must stay 100755) must be
+  staged with `git update-index --chmod=+x <file>` and verified via
+  `git ls-files -s <file>`. This config value is not recoverable from the repo
+  tree, so future authors must know it is set. Cross-reference: lessons.md S18
+  core.filemode=false chmod trap.
+
+- Bats hermetic-sandbox seeding pattern (DIA-119, 2026-08-12): bats cases in
+  `scripts/__tests__/verify-pre-push.bats` and `verify-pre-commit.bats` that fake
+  pnpm/npx seed a sandbox `package.json` importer manifest (with the four
+  `verify:*` scripts for pre-push) and a `node_modules/.bin/<cmd>` executable
+  stub (for pre-commit's lint-staged). Real npx resolves from node_modules/.bin,
+  not package.json scripts, so the stub location is the fix. These two files are
+  the canonical reference implementation for the resolution-independent sandbox
+  pattern. Recoverable from code; listed as a navigational pointer only.
+
+- Bats vendored-version drift (DIA-121, OPEN 2026-08-12): `scripts/__tests__/
+  bats-wrapper.sh` line ~65 pins the cloned bats-core tag to v1.11.0 (comment
+  "Pinned to v1.11.0, verified as a real released tag on 2026-08-01"), but the
+  git-ignored vendor dir `scripts/__tests__/vendor/bats-core` currently contains
+  v1.14.0 (package.json version field) and is NEVER re-validated against the
+  pin. Because the vendor dir is git-ignored, its actual version is invisible to
+  a fresh clone and must be re-inspected on each host; test-number off-by-ones
+  can be the only visible symptom of drift. Tracked by DIA-121.

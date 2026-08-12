@@ -368,3 +368,61 @@ and the ticket-gate interaction that motivated it.
 
 - Created: 2026-08-12
 - Related: DIA-100, DIA-096, docs/dev-infra-audit/worktree-conventions.md, scripts/worktrees.sh, scripts/__tests__/worktrees.bats
+
+## ADR: Hermetic sandbox seeding for faked external tools (DIA-119)
+
+### Status
+
+Accepted - 2026-08-12
+
+### Context
+
+A bats sandbox that fakes an external tool (pnpm / npx) by placing a fake binary
+earlier in PATH and isolating HOME (temp-HOME) is only hermetic if the outcome
+does not depend on WHICH tool resolves. The DIA-119 investigation proved the
+contrary: a real login shell sourced the real ~/.profile which prepended
+$VOLTA_HOME/bin, so the REAL pnpm/npx shadowed the fake in an empty sandbox and
+failed with ERR_PNPM_NO_IMPORTER_MANIFEST_FOUND. A fake-dir PATH that can be
+appended to by a login profile defeats the fixture. The concrete sandbox
+content (the seeded package.json and node_modules/.bin stubs) is recoverable
+from `scripts/__tests__/verify-pre-push.bats` and `verify-pre-commit.bats`; this
+ADR records the durable test-architecture DECISION and the tool-resolution facts
+that the code alone does not explain.
+
+### Decision
+
+Test sandboxes that fake external tools MUST be made resolution-independent by
+seeding the artifacts the real tool needs, so the outcome is identical whether
+the fake or the real tool resolves:
+
+1. Seed an importer manifest (`package.json`) so a real package manager sees a
+   valid project and does not error on an empty sandbox.
+2. For npx-invoked tools, place the stub at `node_modules/.bin/<cmd>` and mark it
+   executable. package.json `scripts` entries are DEAD CODE for `npx`: real npx
+   resolves commands from `node_modules/.bin`, not from scripts.
+3. Stubs must log identically regardless of which tool invokes them. When real
+   npx invokes a .bin stub it passes only the args AFTER the binary name, so
+   rebuild the full command from `$0` (`basename "$0"`), never from `$*` alone.
+
+### Rationale (irrecoverable context)
+
+- The temp-HOME guard alone is insufficient because a login shell can re-introduce
+  the host tool via the real profile's PATH mutation; hermeticity must be achieved
+  by making the outcome resolution-independent, not by fighting PATH.
+- These are empirically-verified tool-resolution facts (npx -> node_modules/.bin;
+  real-npx vs fake-npx argument passing to stubs) that are not stated anywhere in
+  the committed bats files. A future sandbox author reading only the test code
+  would not know WHY the manifest and .bin stub are required, or that the
+  $0-reconstruction is mandatory for byte-identical logs.
+
+### Consequences
+
+- New sandboxes faking npm/pnpm/npx-family tools follow the seed-manifest +
+  .bin-stub + $0-reconstruction pattern.
+- The temp-HOME guard is retained but no longer relied on as the sole hermeticity
+  defense.
+
+### Metadata
+
+- Created: 2026-08-12
+- Related: DIA-119, DIA-118, scripts/__tests__/verify-pre-push.bats, scripts/__tests__/verify-pre-commit.bats, lessons.md S18 "temp-HOME hermeticity breach pattern"
