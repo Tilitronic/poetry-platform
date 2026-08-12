@@ -34,14 +34,9 @@ model: ""
 parent_session_id: ""
 attempts: 1
 lease_expires_at: ""
-files_touched:
-
-- "docs/dev-infra-audit/tickets/DIA-121-bats-version-drift-wrapper-vendor.md"
-- "scripts/**tests**/bats-wrapper.sh"
-- "scripts/**tests**/check-bats-vendor-drift.sh"
-- "scripts/**tests**/check-bats-vendor-drift.bats"
-  artifacts: []
-  evidence: []
+files_touched: ["docs/dev-infra-audit/tickets/DIA-121-bats-version-drift-wrapper-vendor.md", "scripts/__tests__/bats-wrapper.sh", "scripts/__tests__/check-bats-vendor-drift.sh", "scripts/__tests__/check-bats-vendor-drift.bats"]
+artifacts: []
+evidence: []
 
 ---
 
