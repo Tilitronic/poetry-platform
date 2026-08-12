@@ -17,7 +17,7 @@ id: DIA-121
 title: "bats-wrapper.sh claims v1.11.0 but vendored bats is v1.14.0 - version drift"
 area: dev-infra
 severity: Low
-status: FIXED
+status: CLOSED
 blocked_by: [] # no blockers
 discovered: 2026-08-12
 source: session-observation (DIA-119 investigation lane, 2026-08-12)
@@ -224,3 +224,19 @@ YAML frontmatter validator: `python3 -c "import yaml; yaml.safe_load(...)"` on
 the `---`-delimited block - parses OK; `files_touched` 4 entries (all
 `scripts/__tests__/` paths), `artifacts: []` / `evidence: []` are top-level
 keys.
+
+**Re-verify (re-review cycle 1/2, 2026-08-12): CLOSED.** All 5 developer-accepted
+findings verified-closed with evidence:
+
+- S1 (frontmatter `files_touched` prettier stability) - verified-closed via commit
+  `66139dd` (`fix(dev-infra): DIA-121 S1 frontmatter - prettier-stable inline
+files_touched (S2 untouched)`); YAML frontmatter re-validated, byte-identical
+  after prettier.
+- S3 (execution evidence appended) - verified-closed via commit `3d7ebd8`
+  (full `make test-shell` run transcript recorded in this ticket).
+- FAL-1 / FAL-2 / FAL-3 (3 drift-check tests added, suite 7 -> 10) -
+  verified-closed via commit `3d7ebd8`; suite now 10/10 (tests 24-33).
+- Re-review evidence: `make test-shell` exit 0 - plan `1..219`, 219 ok / 0 not
+  ok (host-side, vendored bats `scripts/__tests__/vendor/bats-core/bin/bats`).
+- Status transitioned FIXED -> CLOSED (re-review cycle 1/2 passed; no residual
+  findings).

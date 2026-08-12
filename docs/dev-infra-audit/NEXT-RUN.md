@@ -244,7 +244,8 @@ in-directory sessions rely on their own messages.jsonl + registry.jsonl + native
 current-handoff.json. 0. **DETECTION** — at session start, check for `.opencode/session/current-handoff.json` via
 direct `read()` (deterministic path, no glob). If it exists AND contains a `prognosis`
 field with populated subsections, the batch-approval protocol is MANDATORY: log a
-handoff event via `log_decision` (event_type: 'handoff',
+detection observation via `log_decision` (event_type: 'decision',
+resolution_status: 'acknowledged', content_ref: 'handoff-detected',
 task_ref: 'batch-approval-gate') before proceeding. If no handoff file exists or it
 has no prognosis section, skip to normal boot (§1).
 
@@ -253,8 +254,13 @@ has no prognosis section, skip to normal boot (§1).
    not by the orchestrator (no bash tool by design). At this step only NOTE the stored
    `checksum` field state (present 64-hex / null / missing). A missing or invalid checksum
    does NOT block presentation - it is flagged in the prognosis presentation and resolved
-   by the lane-0 delegation (step 7). A MISMATCH after lane-0 computation is treated as
-   tampered/corrupted: escalate to developer immediately.
+   by the lane-0 delegation (step 7). At COMPARISON TIME (after lane-0 returns the computed
+   value) RE-READ the handoff file's `checksum` field fresh - do NOT compare against the
+   value memorized from the boot read (DIA-120 secondary finding 1: the file may have been
+   rewritten in between, turning a clobber into a false mismatch). A MISMATCH after lane-0
+   computation is treated as tampered/corrupted: escalate to developer immediately,
+   reporting BOTH `stored=` (the re-read value) and `computed=` (the lane-0 value) in the
+   escalation.
 2. Read the handoff file and parse the `prognosis` section.
 3. Present each subsection as a batch: session_summary → fixes_applied → open_tickets →
    verification_request → resume_instructions.

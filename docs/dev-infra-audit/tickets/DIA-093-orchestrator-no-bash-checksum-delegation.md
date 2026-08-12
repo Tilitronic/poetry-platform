@@ -116,6 +116,18 @@ analyzer root-cause analysis, session 6):
   free presets in .opencode/oh-my-opencode-slim.jsonc) - stale checksum-pipeline
   text replaced with delegated DIA-061 wording.
 
+**Clarification (2026-08-12, DIA-120 fix):** the handoff file
+(`.opencode/session/current-handoff.json`) MUST be written solely via
+`log_decision(event_type: 'handoff', ..., prognosis: JSON.stringify(prognosisObject))`
+— the delegation-observer plugin's atomic write computes and stores the `checksum`
+field automatically. Manual write/edit tools MUST NOT be used for handoff files
+(no `checksum: null` placeholders, no post-write checksum-field edits — the DIA-093
+"write the lane-returned checksum into the field" instruction is superseded and
+conflicts with plugin-written handoffs, DIA-120 secondary finding 2). Lane-0 checksum
+delegation is VERIFICATION-ONLY: the coder lane recomputes the DIA-061 canonical SHA256
+and compares it against the stored value (re-read at comparison time, DIA-120 secondary
+finding 1) — the lane never writes the file.
+
 ## Implementation status
 
 - Filed 2026-08-11 (session 6, first bash lane post-restart).
