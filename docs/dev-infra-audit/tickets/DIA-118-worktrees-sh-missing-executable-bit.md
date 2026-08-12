@@ -98,7 +98,7 @@ list` exits 0 and lists the real worktree. No more exit 126.
   this run).
 - **Docker gate (DIA-094):** `poetry-dev` container Up 17 hours (healthy);
   pre-commit hook passed (container running).
-- **Commit:** filled after commit (see below).
+- **Commit:** b26eaac (fix commit, mode change recorded in index).
 
 ## Re-verify
 
