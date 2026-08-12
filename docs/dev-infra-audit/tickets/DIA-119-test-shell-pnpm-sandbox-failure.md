@@ -13,13 +13,13 @@ id: DIA-119
 title: "make test-shell exit 2 - verify-pre-push bats pnpm sandbox failure (test 187 ERR_PNPM_NO_IMPORTER_MANIFEST_FOUND)"
 area: dev-infra
 severity: Low
-status: FIXED
+status: CLOSED
 blocked_by: [] # no blockers
 discovered: 2026-08-12
 source: session-observation (pre-existing, confirmed on pristine HEAD, 2026-08-12)
 date: 2026-08-12
 created: 2026-08-12
-updated: 2026-08-12
+updated: 2026-08-12 (closed, re-review cycle 1/2)
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -139,13 +139,22 @@ pre-commit hook passed (delegated autofix, exit 0).
 ## Re-verify
 
 > Two-axis review findings F2/S1/S2 (all developer-accepted) resolved
-> 2026-08-12 in commit `cdeb708` (fix(dev-infra): DIA-119 review findings F2
-> S1 S2). F2: the seeded node_modules/.bin/lint-staged stub now logs via "$\*"
-> (command name rebuilt from $0, since real npx strips it) so hook-arg drift is
-> detected; leak-scenario spot check (HOME=/home/qualt, temp-HOME guard line
-> removed) still passes for both the pre-commit and pre-push suites. S1: the
-> dead scripts.lint-staged entry was removed from the seeded package.json
-> (minimal importer skeleton kept). S2: the 3-stage escape chain in the seeded
-> verify-pre-push package.json is now documented. Status stays FIXED.
+> 2026-08-12 - review-findings fixes: `cdeb708` (fix(dev-infra): DIA-119
+> review findings F2 S1 S2), `e63eee1` (docs(dev-infra): DIA-119 re-verify
+> note for review findings F2 S1 S2). F2: the seeded node_modules/.bin/
+> lint-staged stub now logs via "$\*" (command name rebuilt from $0, since
+> real npx strips it) so hook-arg drift is detected; leak-scenario spot
+> check (HOME=/home/qualt, temp-HOME guard line removed) still passes for
+> both the pre-commit and pre-push suites. S1: the dead scripts.lint-staged
+> entry was removed from the seeded package.json (minimal importer skeleton
+> kept). S2: the 3-stage escape chain in the seeded verify-pre-push
+> package.json is now documented. Status: FIXED (re-review cycle 1/2
+> complete - CLOSED, see below).
 > Re-verify evidence: make test-shell exit 0, 209/209; isolated
 > verify-pre-commit 7/7, verify-pre-push 7/7, worktrees 16/16.
+>
+> Re-review cycle 1/2 (2026-08-12): F2 verified-closed (adaptive
+> $0-reconstruction stub, justified deviation from literal $\* form -
+> empirically required for the leak-scenario check), S1 verified-closed
+> (dead scripts entry removed), S2 verified-closed (escape-chain comment
+> added). DIA-119 CLOSED.
