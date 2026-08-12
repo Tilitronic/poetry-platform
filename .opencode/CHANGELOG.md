@@ -1,5 +1,13 @@
 # OpenCode Config Changelog
 
+## 2026-08-12 - DIA-117 config hardening - deny git worktree remove --force/-f for agent tool calls (DIA-100 FALSIFICATION-1) + registration
+
+- **Change:** deny git worktree remove --force/-f for agent tool calls in permission.bash (8 patterns, DIA-117); documented in git-permissions skill
+- **Reason:** DIA-100 FALSIFICATION-1 defense-in-depth: WORKTREES_FORCE=1 script guard is convention-only; direct lane invocation of git worktree remove --force bypassed it. Gates agent tool calls only; developer terminal + script subprocess unaffected. Commit 8fde3c0.
+- **Files:** .opencode/opencode.jsonc (8 deny patterns + comment, lines 55-68, commit 8fde3c0) - .opencode/skills/git-permissions/SKILL.md (worktree-force sub-bullet, commit 8fde3c0) - docs/dev-infra-audit/tickets/DIA-117-worktree-force-remove-config-hardening.md (OPEN to FIXED + Fix/Re-verify filled) - docs/dev-infra-audit/tickets/DIA-096-git-push-permission-policy.md (resolution annotation) - scripts/worktrees.sh (comment-only refresh - ai-auditor suggestion) - CHANGELOG.md.
+- **Review:** ai-auditor PASS-WITH-NOTES 2026-08-12
+- **Verification:** make test-config exit 0, pre-commit PASS
+
 ## 2026-08-12 - DIA ticket reference format rule codified (ID + human-readable slug) + registration
 
 - **Change:** codified DIA ticket reference format rule (ID + human-readable slug) in NEXT-RUN.md 7.3 step 3a and AGENTS.md 2.3 step 2 (commit 0f0af95, DIA-110 follow-through, DIA-074)

@@ -240,9 +240,12 @@ cmd_remove() {
   fi
 
   if [ "$force" = "1" ]; then
-    # Lanes cannot force: the env guard is the barrier because git worktree
-    # remove --force is NOT itself in the DIA-096 deny list (only git clean
-    # -f* / git branch -D are). Agents must never set WORKTREES_FORCE=1.
+    # Lanes cannot force: direct `git worktree remove --force/-f` is denied as
+    # an agent tool call (DIA-117 config deny in .opencode/opencode.jsonc).
+    # The WORKTREES_FORCE=1 env guard remains the primary barrier for the
+    # scripted path - the script runs the force-remove as an internal
+    # subprocess, which OpenCode does not gate (developer terminal unaffected).
+    # Agents must never set WORKTREES_FORCE=1.
     if [ "${WORKTREES_FORCE:-0}" != "1" ]; then
       fail "--force requires WORKTREES_FORCE=1 (developer-only; lanes must never set it — DIA-096)"
     fi

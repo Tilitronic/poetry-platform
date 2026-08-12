@@ -242,6 +242,7 @@ test-config` must exit 0.
 - **Registration (S10 Phase 7):** CHANGELOG entry added (`.opencode/CHANGELOG.md`, 2026-08-11); learnings registered (`.opencode/learnings/external-patterns/2026-08-11-git-permission-pattern-matching.md`, outcome "implemented + approve-with-nits, restart-verify pending"); this ticket resolution block added.
 - **Restart-verify:** PENDING (S10 Phase 5) - on next OpenCode boot: lane push of a feature branch succeeds; force-push / main-push / bypass forms denied; developer terminal push unaffected; `make test-config` exit 0. Status remains OPEN (pending-validate restart-verify); do NOT flip to CLOSED until the restart-verify is confirmed.
 - **Frontmatter:** status stays `OPEN` (pending-validate restart-verify) - unchanged from discovery; `updated` already 2026-08-11.
+- **DIA-117 annotation (2026-08-12):** DIA-117 extended the deny list with git worktree remove --force/-f patterns (2026-08-12) - see DIA-117 for details. DIA-096 stays CLOSED; annotation only.
 
 ## Session-9 restart-verify checklist (session-8 wrap, 2026-08-11)
 
