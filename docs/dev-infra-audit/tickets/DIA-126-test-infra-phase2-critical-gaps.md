@@ -127,7 +127,7 @@ Applied 2026-08-12, landed in commit 6239767 (branch omo-slim-changes):
 4. `apps/author-studio/AGENTS.md`: updated stale "no tests / excluded from
    turbo test" notes to reflect the vitest suite.
 
-Verification evidence (all exit 0): `pnpm test` (turbo) — 5/5 tasks
+Verification evidence (all exit 0): `pnpm test` (turbo) — 4/4 tasks
 successful; `pnpm --filter author-studio test` — 1 file, 2 tests passed;
 `pnpm --filter data-contracts test` — 1 file, 1 test passed; lint +
 typecheck for both packages; `make test-config` chain (9 scripts) all
