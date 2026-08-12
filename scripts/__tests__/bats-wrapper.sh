@@ -63,6 +63,7 @@ for script in \
   "$ROOT/scripts/check-host-lsp.sh" \
   "$ROOT/scripts/install-host-lsp.sh" \
   "$ROOT/scripts/session-log" \
+  "$ROOT/scripts/ticker-render.sh" \
   "$ROOT/scripts/check-opencode-docker.sh" \
   "$ROOT/scripts/author-studio-probe-guard.sh" \
   "$ROOT/scripts/validate-handoff.sh" \

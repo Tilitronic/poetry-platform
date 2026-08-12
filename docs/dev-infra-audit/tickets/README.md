@@ -80,6 +80,7 @@ carries the full detail (description, verification, fix, re-verify evidence).
 | DIA-119 | make test-shell exit 2 - verify-pre-push bats pnpm sandbox failure (test 187 ERR_PNPM_NO_IMPORTER_MANIFEST_FOUND)                            | dev-infra       | Low      | CLOSED   | [DIA-119-test-shell-pnpm-sandbox-failure.md](DIA-119-test-shell-pnpm-sandbox-failure.md)                   |
 | DIA-120 | delegation-observer handoff-writer clobbers valid handoff on in-flight log_decision - false checksum mismatch escalation                     | opencode-config | Medium   | FIXED    | [DIA-120-plugin-handoff-writer-clobber-bug.md](DIA-120-plugin-handoff-writer-clobber-bug.md)               |
 | DIA-121 | bats-wrapper.sh claims v1.11.0 but vendored bats is v1.14.0 - version drift                                                                  | dev-infra       | Low      | CLOSED   | [DIA-121-bats-version-drift-wrapper-vendor.md](DIA-121-bats-version-drift-wrapper-vendor.md)               |
+| DIA-122 | needs-input ticker + notifications: surface which opencode session awaits developer input                                                    | opencode-config | Medium   | OPEN     | [DIA-122-needs-input-ticker.md](DIA-122-needs-input-ticker.md)                                             |
 
 ## Status summary
 

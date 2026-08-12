@@ -508,3 +508,31 @@ Notes:
   - Why irrecoverable: the fix commits (e.g. 4820423) show the corrected final
     state but not the generalizable process rule that sibling instruction files
     must be reconciled in the same change.
+
+- Runtime-versus-types gap for plugin event hooks (2026-08-13, DIA-122):
+  - Symptom: the installed `@opencode-ai/plugin@1.18.10` (v1) TypeScript Event
+    union does NOT declare the `question.asked` / `permission.asked` events (nor
+    their `*.v2.*` variants), but the runtime EMITS them via the generic `event`
+    catch-all hook regardless. A typechecked observer plugin therefore cannot
+    reference these events through the typed union.
+  - Lesson: observer modules that hook the `event` catch-all must cast the event
+    to a custom union (`.properties` shape) and handle BOTH event-name generations
+    (`question.asked` AND `question.v2.asked`, same for `permission`). This mirrors
+    the delegation-observer's existing cast for session lifecycle events and is the
+    generalizable pattern for any future plugin hooking question/permission events.
+  - Why irrecoverable: the runtime emission of events absent from the TS types is a
+    versioned toolchain fact (verified against the installed packages) not stated in
+    any single committed file; the cast is only understood in context of the runtime
+    behavior. Cross-reference: external-patterns 2026-08-12-wsl2-notifications-daemon-required.md
+    (verified facts section records the same runtime/types lag).
+
+- WSL2 desktop notifications require a daemon (2026-08-13, DIA-122):
+  - Cross-reference: the FULL lesson body is persisted in
+    `.opencode/learnings/external-patterns/2026-08-12-wsl2-notifications-daemon-required.md`.
+    This entry records ONLY the durable pointer so future work does not duplicate it.
+  - Brief pointer: freedesktop Notifications REQUIRES a notification daemon on the
+    session bus; WSLg does not provide org.freedesktop.Notifications by default, so
+    `dbus-send` fails with ServiceUnknown. Zero-install alternatives on WSL2:
+    in-TUI toast (`tui.showToast`) and `powershell.exe` WinRT toast via WSL interop
+    (spawn with stdio fully discarded for TUI-safety, res007). Prefer these until a
+    daemon is installed.

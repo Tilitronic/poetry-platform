@@ -212,6 +212,18 @@ shelf:
       to Level 4 (API-based).'
     path: .opencode/memory/adr.md
     created: 2026-07-20
+  - name: Needs-input ticker as a SIBLING observer module (DIA-122)
+    description: 'Decision to build the multi-session needs-input ticker + notifications
+      as a new sibling observer plugin (.opencode/plugins/needs-input-observer.ts) rather
+      than extending delegation-observer.ts (~1715 lines) or adopting a community notification
+      package (none maintain a persistent multi-session ticker). Extends the silent-JSONL
+      + derived-view pattern (ticker.json + ticker-render.sh -> ticker.md). Records the
+      multi-session state machine (ENTER/CLEAR events, separate silent error bucket,
+      ENTER-only debounced notifications) and the corrected notification channel
+      (in-TUI toast + powershell.exe WinRT; freedesktop dbus requires a daemon absent
+      on WSL2 - full lesson in external-patterns 2026-08-12).'
+    path: .opencode/memory/adr.md
+    created: 2026-08-13
   specs:
   - name: context7-docs-pipeline
     description: 'OpenSpec change: fetches Context7 library documentation for monorepo
