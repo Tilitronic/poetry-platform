@@ -25,15 +25,15 @@
 # frontmatter / no extracted body to inspect).
 #
 # Exit codes: 0 all HARD pass (SOFT warnings may print), 1 HARD failure,
-# 2 infrastructure failure (python3 missing / skills root missing / global
-# skills root missing / sha256sum missing).
+# 2 infrastructure failure (python3 missing / skills root missing /
+# sha256sum missing while the global skills tree is present).
 #
 # SKILLS_ROOT env override points the walk elsewhere (defaults to the repo's
 # .opencode/skills) — bats meta-tests use it to validate temp fixture trees.
 #
 # Cross-location duplicate detection (DIA-052): after the per-skill loop, the
 # project tree (SKILLS_ROOT) is compared against the global skills tree
-# (GLOBAL_SKILLS_ROOT, default $HOME/.config/opencode/skills) in two tiers:
+# (GLOBAL_SKILLS_ROOT, default ${XDG_CONFIG_HOME:-$HOME/.config}/opencode/skills) in two tiers:
 #   HARD (exit 1)  — byte-exact duplicate (same sha256 in both trees).
 #   SOFT (warn)    — near-duplicate (same dirname, different content).
 # Matching policy is a human contract, documented not enforced: CASE-SENSITIVE
@@ -379,19 +379,27 @@ done
 # fail the build (design.md Q2 ruling).
 #
 # Empty project OR global tree -> dup checks are skipped (falls through to
-# the summary). Missing global dir -> exit 2 INFRA (the check cannot run).
-# Missing sha256sum command -> exit 2 INFRA.
+# the summary). Missing global dir -> warn + skipped tier (optional tree;
+# contract change 2026-08-12, DIA-071). Missing sha256sum command while the
+# global tree is present -> exit 2 INFRA.
 # ---------------------------------------------------------------------------
-GLOBAL_SKILLS_ROOT="${GLOBAL_SKILLS_ROOT:-$HOME/.config/opencode/skills}"
+GLOBAL_SKILLS_ROOT="${GLOBAL_SKILLS_ROOT:-${XDG_CONFIG_HOME:-$HOME/.config}/opencode/skills}"
 
-if ! command -v sha256sum >/dev/null 2>&1; then
-  echo "error: sha256sum is required for duplicate detection." >&2
-  exit 2
-fi
-
+# The global skills tree is OPTIONAL (contract change 2026-08-12, DIA-071):
+# environments without global skills (the poetry-dev image ships none) skip
+# the duplicate-detection tier with a WARN - absence of the global tree cannot
+# invalidate the project frontmatter checks (DIA-037 core purpose). Only when
+# the dir EXISTS does the tier run, and only then is sha256sum required. The
+# tier's own has_skill_dirs guard below already tolerates a missing root, so
+# this branch only decides warn-vs-run.
 if [ ! -d "$GLOBAL_SKILLS_ROOT" ]; then
-  echo "error: global skills directory not found: $GLOBAL_SKILLS_ROOT" >&2
-  exit 2
+  echo "warn: global skills directory not found: $GLOBAL_SKILLS_ROOT - DIA-052 duplicate-detection tier skipped (global skills tree is optional; project frontmatter checks unaffected)" >&2
+  warnings=$((warnings + 1))
+else
+  if ! command -v sha256sum >/dev/null 2>&1; then
+    echo "error: sha256sum is required for duplicate detection." >&2
+    exit 2
+  fi
 fi
 
 # has_skill_dirs <root>: returns 0 iff <root> holds at least one
