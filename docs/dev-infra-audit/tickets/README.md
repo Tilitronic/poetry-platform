@@ -101,6 +101,7 @@ carries the full detail (description, verification, fix, re-verify evidence).
 | DIA-121 | bats-wrapper.sh claims v1.11.0 but vendored bats is v1.14.0 - version drift                                                                  | dev-infra       | Low      | CLOSED   | [DIA-121-bats-version-drift-wrapper-vendor.md](DIA-121-bats-version-drift-wrapper-vendor.md)                   |
 | DIA-121 | Give opencode-docker container host docker/podman socket access so pre-commit hooks work from inside OpenCode                                | docker          | Major    | VERIFIED | [DIA-121-opencode-docker-host-socket-access.md](DIA-121-opencode-docker-host-socket-access.md)             |
 | DIA-122 | needs-input ticker + notifications: surface which opencode session awaits developer input                                                    | opencode-config | Medium   | CLOSED   | [DIA-122-needs-input-ticker.md](DIA-122-needs-input-ticker.md)                                                 |
+| DIA-122 | verify-pre-push recursion fork-bomb: root-cause fix (DIA-118 regression)                                                                     | git-hooks       | Critical | OPEN     | [DIA-122-verify-pre-push-recursion-guard.md](DIA-122-verify-pre-push-recursion-guard.md)                   |
 | DIA-123 | deterministic opencode restart detection for the orchestrator                                                                                | opencode-config | Medium   | OPEN     | [DIA-123-deterministic-restart-detection.md](DIA-123-deterministic-restart-detection.md)                       |
 | DIA-124 | orchestrator must write and verify a terminal handoff BEFORE presenting session-end / new-session prompt                                     | opencode-config | Major    | OPEN     | [DIA-124-handoff-before-session-end.md](DIA-124-handoff-before-session-end.md)                                 |
 | DIA-125 | automate ticket creation & management - evaluate ready-made local solutions (MCP/self-hosted) vs manual ledger                               | opencode-config | Medium   | OPEN     | [DIA-125-automate-ticket-management-research.md](DIA-125-automate-ticket-management-research.md)               |
@@ -111,12 +112,13 @@ carries the full detail (description, verification, fix, re-verify evidence).
 | DIA-130 | Duplicated OMO inline-override warnings still visible in opencode TUI 'Loading plugins...' area (residual after DIA-128)                     | opencode-config | Major    | OPEN     | [DIA-130-duplicated-inline-override-warning-ui.md](DIA-130-duplicated-inline-override-warning-ui.md)           |
 | DIA-131 | post-restart TUI re-verify of user-level inline-override fix (DIA-130 review finding F3)                                                     | opencode-config | Major    | OPEN     | [DIA-131-post-restart-tui-reverify.md](DIA-131-post-restart-tui-reverify.md)                                   |
 
+
 ## Status summary
 
 | Severity | Count |
 | -------- | ----- |
 | Blocker  | 7     |
-| Critical | 2     |
+| Critical | 3     |
 | Major    | 31    |
 | Medium   | 41    |
 | Minor    | 0     |
@@ -125,7 +127,7 @@ carries the full detail (description, verification, fix, re-verify evidence).
 
 | Status      | Count |
 | ----------- | ----- |
-| OPEN        | 31    |
+| OPEN        | 32    |
 | DONE        | 3     |
 | VALIDATE    | 0     |
 | E2E         | 0     |
