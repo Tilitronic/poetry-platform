@@ -115,6 +115,11 @@ setup() {
 }
 
 @test "verify-pre-push: runs steps directly when already inside the dev container" {
+  # ana015: the script's recursion guard (VERIFY_PRE_PUSH_RUNNING) blocks
+  # nested invocations. This test exercises the direct-run path, so unset the
+  # flag to allow the gates to run.
+  unset VERIFY_PRE_PUSH_RUNNING
+
   local bindir="$BATS_TEST_TMPDIR/bin"
   mkdir -p "$bindir"
   cat > "$bindir/hostname" <<'FAKEHOSTNAME'

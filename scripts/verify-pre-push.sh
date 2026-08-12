@@ -12,6 +12,17 @@
 # which makes the hook block the push.
 set -euo pipefail
 
+# Recursion guard (ana015): if this script is already running in the process
+# tree (e.g., verify-pre-push.sh -> make test-shell -> bats -> nested
+# verify-pre-push.sh), skip the gates to prevent unbounded recursion. The flag
+# propagates through process spawns (bash -> make -> bats -> test -> nested
+# script). Test-side: verify-pre-push.bats test #6 explicitly unsets this flag
+# to exercise the direct-run path.
+if [ -n "${VERIFY_PRE_PUSH_RUNNING:-}" ]; then
+  echo "!! verify-pre-push.sh: already running (recursion guard; skipping)"
+  exit 0
+fi
+
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # Overridable so bats unit tests can point it at an isolated temp tree instead
 # of the real container mount.
@@ -85,6 +96,7 @@ fi
 # /workspace mount, and the pre-push contract (warn+pass when the container
 # is down, DIA-094) is preserved. Hosts without make never reach these lines
 # because they cannot have started the stack (make is the documented entrypoint).
+export VERIFY_PRE_PUSH_RUNNING=1
 run_workspace "make test-shell"
 run_workspace "make test-config"
 run_workspace "pnpm verify:format"
