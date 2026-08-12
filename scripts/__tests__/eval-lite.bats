@@ -31,24 +31,6 @@ bats_require_minimum_version 1.5.0
 
 HARNESS="$REPO_ROOT/scripts/eval-lite.sh"
 
-# mock_docker_down: plants a fake `docker` on PATH whose `compose ps` probe
-# FAILS (exit 1, no output). Per design.md Decision 7 any probe failure means
-# "dev container unavailable", so the harness skips container-bound tasks.
-# Mirrors test-helper.bash's mock_docker pattern, scoped to the harness's
-# single probe.
-mock_docker_down() {
-  local bindir="$BATS_TEST_TMPDIR/fakebin"
-  mkdir -p "$bindir"
-  cat > "$bindir/docker" <<'FAKEDOCKER'
-#!/usr/bin/env bash
-# Fake docker for eval-lite tests: `compose ps` fails => container unavailable.
-exit 1
-FAKEDOCKER
-  chmod +x "$bindir/docker"
-  PATH="$bindir:$PATH"
-  export PATH
-}
-
 # write_fixture <file> <printf-format...>: writes manifest lines to <file>.
 # Formats carry literal \t escapes (printf %b turns them into real tabs) so the
 # fixture files have the TSV shape the harness expects.

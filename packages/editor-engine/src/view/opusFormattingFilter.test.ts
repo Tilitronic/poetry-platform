@@ -523,78 +523,32 @@ describe('opusFormattingFilter — paste / multi-char insert', () => {
 describe('opusFormattingFilter — double punctuation', () => {
   // ── Live typing: single punctuation is allowed ──────────────────────
 
-  it('allows single comma', () => {
+  it.each([
+    ['comma', ','],
+    ['colon', ':'],
+    ['semicolon', ';'],
+    ['hyphen', '-'],
+    ['English apostrophe', "'"],
+    ['Ukrainian apostrophe', '’'],
+  ])('allows single %s', (_label, punct) => {
     const state = createState('a');
-    const tr = insertAt(state, 1, ',');
-    expect(doc(tr.state)).toBe('a,');
-  });
-
-  it('allows single colon', () => {
-    const state = createState('a');
-    const tr = insertAt(state, 1, ':');
-    expect(doc(tr.state)).toBe('a:');
-  });
-
-  it('allows single semicolon', () => {
-    const state = createState('a');
-    const tr = insertAt(state, 1, ';');
-    expect(doc(tr.state)).toBe('a;');
-  });
-
-  it('allows single hyphen', () => {
-    const state = createState('a');
-    const tr = insertAt(state, 1, '-');
-    expect(doc(tr.state)).toBe('a-');
-  });
-
-  it('allows single English apostrophe', () => {
-    const state = createState('a');
-    const tr = insertAt(state, 1, "'");
-    expect(doc(tr.state)).toBe("a'");
-  });
-
-  it('allows single Ukrainian apostrophe', () => {
-    const state = createState('a');
-    const tr = insertAt(state, 1, '’');
-    expect(doc(tr.state)).toBe('a’');
+    const tr = insertAt(state, 1, punct);
+    expect(doc(tr.state)).toBe(`a${punct}`);
   });
 
   // ── Live typing: double punctuation is blocked ──────────────────────
 
-  it('blocks double comma', () => {
-    const state = createState('a,');
-    const tr = insertAt(state, 2, ',');
-    expect(doc(tr.state)).toBe('a,');
-  });
-
-  it('blocks double colon', () => {
-    const state = createState('a:');
-    const tr = insertAt(state, 2, ':');
-    expect(doc(tr.state)).toBe('a:');
-  });
-
-  it('blocks double semicolon', () => {
-    const state = createState('a;');
-    const tr = insertAt(state, 2, ';');
-    expect(doc(tr.state)).toBe('a;');
-  });
-
-  it('blocks double hyphen', () => {
-    const state = createState('a-');
-    const tr = insertAt(state, 2, '-');
-    expect(doc(tr.state)).toBe('a-');
-  });
-
-  it('blocks double English apostrophe', () => {
-    const state = createState("a'");
-    const tr = insertAt(state, 2, "'");
-    expect(doc(tr.state)).toBe("a'");
-  });
-
-  it('blocks double Ukrainian apostrophe', () => {
-    const state = createState('a’');
-    const tr = insertAt(state, 2, '’');
-    expect(doc(tr.state)).toBe('a’');
+  it.each([
+    ['comma', ','],
+    ['colon', ':'],
+    ['semicolon', ';'],
+    ['hyphen', '-'],
+    ['English apostrophe', "'"],
+    ['Ukrainian apostrophe', '’'],
+  ])('blocks double %s', (_label, punct) => {
+    const state = createState(`a${punct}`);
+    const tr = insertAt(state, 2, punct);
+    expect(doc(tr.state)).toBe(`a${punct}`);
   });
 
   // ── Live typing: triple punctuation is blocked (key repeat) ─────────

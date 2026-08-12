@@ -76,21 +76,6 @@ EOF
   echo "$bindir"
 }
 
-# mock_docker_down: plants a fake `docker` on PATH whose every compose probe
-# FAILS (container DOWN path — the host PATH fallback must run). Echoes the
-# shim dir (pass to run_probe).
-mock_docker_down() {
-  local bindir="$BATS_TEST_TMPDIR/fakebin"
-  mkdir -p "$bindir"
-  cat > "$bindir/docker" <<'FAKEDOCKER'
-#!/usr/bin/env bash
-# Fake docker for check-host-lsp tests: container DOWN -> every probe fails.
-exit 1
-FAKEDOCKER
-  chmod +x "$bindir/docker"
-  echo "$bindir"
-}
-
 # run_probe <tree> <fakes_dir> [docker_dir]: runs check-host-lsp.sh with a
 # hermetic PATH (fakes dir + optional fake docker dir + /usr/bin:/bin only) so
 # no real LSP binary or real docker can ever be shelled.

@@ -31,6 +31,24 @@
     "typecheck": {},
     "format": {
       "cache": false
+    },
+    // Per-package test-task overrides (DIA-125): the base `test` task keeps
+    // dependsOn:["build"] for any package whose tests consume build output.
+    // The four packages below were verified (2026-08-12) to run their full
+    // vitest suite standalone with no build artifacts — their tests import
+    // sources/deps only (no dist/). Keep a package's entry here ONLY after
+    // proving its tests pass with `pnpm --filter <pkg> exec vitest run`.
+    "@poetry/editor-engine#test": {
+      "dependsOn": []
+    },
+    "@poetry/data-contracts#test": {
+      "dependsOn": []
+    },
+    "@poetry/phonetics-core#test": {
+      "dependsOn": []
+    },
+    "author-studio#test": {
+      "dependsOn": []
     }
   }
 }

@@ -25,24 +25,13 @@ setup() {
   # Maintainer note: a future test that wants to verify the recursion guard
   # must re-export VERIFY_PRE_PUSH_RUNNING=1 inside its own body AFTER setup()
   # runs (setup() unsets it above).
-  # Hermetic host-context (DIA-071, 2026-08-12): these tests exercise the
-  # HOST + container-running delegation path, but when the suite runs INSIDE
-  # poetry-dev (the pre-push gate runs make test-shell in the container) the
-  # real hostname IS poetry-dev, so is_in_dev_container flips to the
-  # direct-execution path and recursively runs the real gate chain (unbounded
-  # hang — masked pre-fix only because the LSP gate failed fast). A fake
-  # hostname keeps every non-direct test in the delegation path; the dedicated
-  # "runs steps directly" test shadows it with its own poetry-dev fake.
-  local hostbindir="$BATS_TEST_TMPDIR/hostbin"
-  mkdir -p "$hostbindir"
-  printf '#!/usr/bin/env bash\necho "host-machine"\n' > "$hostbindir/hostname"
-  chmod +x "$hostbindir/hostname"
-  export PATH="$hostbindir:$PATH"
-  # Point the /home/qualt guard (POETRY_COMMANDS_DIR seam — mirror of the
-  # POETRY_WORKSPACE override) at an isolated empty dir so every test is
-  # hermetic regardless of the real repo's .opencode/commands state.
-  export POETRY_COMMANDS_DIR="$BATS_TEST_TMPDIR/commands"
-  mkdir -p "$POETRY_COMMANDS_DIR"
+  # Hermetic host-context (DIA-071, 2026-08-12): fake hostname keeps every
+  # non-direct test in the HOST + container-running delegation path even when
+  # the suite runs inside poetry-dev; isolated POETRY_COMMANDS_DIR keeps the
+  # /home/qualt guard hermetic. See setup_hermetic_host_context in
+  # test-helper.bash. The dedicated "runs steps directly" test shadows the
+  # fake hostname with its own poetry-dev fake.
+  setup_hermetic_host_context
 }
 
 @test "verify-pre-push: recursion guard fires when VERIFY_PRE_PUSH_RUNNING is set" {
