@@ -313,6 +313,53 @@ Adopt the following pattern when a vendored plugin clobbers tracked files on loa
 - Created: 2026-08-08
 - Related: DIA-069, .opencode/learnings/external-patterns/2026-08-08-dia069-telemetry-plugin.md, scripts/restore-telemetry-commands.sh, Makefile targets: make restore-telemetry-commands, make test-telemetry-guard
 
+## ADR: Gate scripts that invoke the full test suite must carry a re-entrancy guard
+
+### Status
+
+Accepted — 2026-08-12
+
+### Context
+
+A recursion fork-bomb regression (DIA-118) occurred when `make test-shell` was
+wired into `scripts/verify-pre-push.sh` (commit 49d587a). Invoked inside the
+dev container, the script takes the direct branch (hostname==poetry-dev) and
+re-enters the full suite: verify-pre-push.sh -> make test-shell -> bats ->
+verify-pre-push.bats -> same script -> infinite loop (~18s cycle, 6+ levels
+deep, dozens of /tmp/bats-run-* dirs). The test-side hermetic hostname/PATH
+shim (commit bb18099, DIA-071) covers only the bats suite and does not protect
+manual or husky invocations.
+
+### Decision
+
+Any gate script that can invoke the full test suite MUST guard against nested
+invocation with an env-flag that propagates through process spawns (the
+`VERIFY_PRE_PUSH_RUNNING` pattern): set the flag before running the suite and
+short-circuit early if the flag is already present. Do not rely on test-side
+PATH/hostname shims as the primary defense — they are necessary-but-not-sufficient.
+
+### Rationale
+
+- The recursion vector lives in the gate script itself, so the guard belongs
+  there (root-cause fix, one location) rather than patching every caller or
+  relying on test-environment shims that only apply inside the bats harness.
+- An env-flag survives process spawns naturally (child processes inherit the
+  environment), so it is the minimal mechanism that closes the loop at the source.
+- A one-line test-side `unset` preserves the direct-run test case so the guard
+  itself remains covered.
+
+### Consequences
+
+- New gates that wrap the full suite must include an env-flag re-entrancy
+  guard from the start.
+- Test-side hermetic shims remain valuable as defense-in-depth but are no
+  longer treated as sufficient protection for gate-script recursion.
+
+### Metadata
+
+- Created: 2026-08-12
+- Related: DIA-118, DIA-122, knowledge/ana015-recursion-fork-bomb/ana015-recursion-fork-bomb-report.md
+
 ## ADR: Git worktrees parallel-dev model (DIA-100) - decision record + ticket-lifecycle convention
 
 ### Status

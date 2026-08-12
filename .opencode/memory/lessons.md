@@ -700,3 +700,22 @@ External-knowledge grounding fact caught by @ai-specialist against live DeepSeek
 2. CONSEQUENCE: temperature/top_p/presence_penalty/frequency_penalty are INERT (no effect) while thinking mode is on. Therefore temperature values on ALL DeepSeek V4 Flash lanes (coder 0.1, researcher 0.7, memory-manager 0.1, code-navigator, resource-manager, conspecter) are cosmetic - they never took effect. Changing them is a no-op unless thinking is explicitly disabled first.
 3. DeepSeek reasoning_effort vocabulary: only low/high/xhigh/max (NO "medium"). Config values like variant: medium on DeepSeek lanes may be silently ignored/mapped - needs runtime-log verification.
 4. METHOD RULE (reinforces DIA-108): runtime model-resolution logs (~/.local/share/opencode/log/oh-my-opencode-slim.*.log) are authoritative for what a config knob actually does. Verify via logs BEFORE applying any model/temp/reasoning preset change; config-file reading + provider docs alone is insufficient.
+
+## L20260812-003 - gate-script re-entrancy guard (DIA-118 fork-bomb, 2026-08-12)
+
+- **Lesson:** when a gate script can invoke the full test suite, guard against
+  nested invocation with an env-flag that propagates through process spawns
+  (the `VERIFY_PRE_PUSH_RUNNING` pattern) rather than relying only on test-side
+  PATH/hostname shims. Wiring `make test-shell` into scripts/verify-pre-push.sh
+  (commit 49d587a) produced a recursion fork-bomb inside poetry-dev
+  (verify-pre-push.sh -> make test-shell -> bats -> same script -> infinite;
+  ~18s cycle, 6+ levels deep). The test-side hermetic hostname shim (bb18099,
+  DIA-071) is necessary-but-not-sufficient: it covers only the bats suite and
+  leaves manual/husky invocations vulnerable.
+- **Why irrecoverable:** the loop is a runtime interaction (hostname branch +
+  process re-entry), not visible in any single diff; the shim's coverage gap is
+  a design property, not a code fact.
+- **Operational guidance:** set the env-flag before running the suite and
+  short-circuit early if already present; keep a one-line test-side `unset` so
+  the direct-run test case still exercises the real path. Cross-reference:
+  adr.md gate-script re-entrancy-guard ADR, knowledge/ana015-recursion-fork-bomb/.

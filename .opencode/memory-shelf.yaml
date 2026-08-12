@@ -273,6 +273,21 @@ shelf:
       \ the two largest coverage holes."
     path: "knowledge/ana014-hook-test-coverage/ana014-hook-test-coverage-report.md"
     created: 2026-08-12
+  - name: "Ponytail Test Suite Audit (ana01)"
+    description: "Ponytail audit of the full test suite across 30 test files: 37 findings
+      total - 3 errors, 6 repetition, 9 gaps, 4 extra code, 4 dangerous spots, 6 smells,
+      5 ponytail recommendations."
+    path: knowledge/ana01-tests-ponytail-audit/ana01-tests-ponytail-audit-report.md
+    created: 2026-08-12
+  - id: ana015
+    name: verify-pre-push recursion fork-bomb root-cause analysis (DIA-118 regression)
+    title: verify-pre-push recursion fork-bomb root-cause analysis - DIA-118 regression
+    description: "Root-cause analysis of the recursion fork-bomb regression in scripts/verify-pre-push.sh. Introduced by commit 49d587a (DIA-118) wiring `make test-shell` into the pre-push script; root cause is absence of a re-entrancy guard in the script itself (hostname==poetry-dev branch re-enters the suite). Test-side hostname shim (commit bb18099, DIA-071) is necessary-but-not-sufficient defense (covers bats only, not manual/husky invocations). ~18s cycle, 6+ levels deep, dozens of /tmp/bats-run-* dirs, live chains 1.5h. Recommends minimal env-flag propagation guard (VERIFY_PRE_PUSH_RUNNING) with a one-line test-side unset to preserve the direct-run test. 5 lines added, zero tests broken."
+    path: "knowledge/ana015-recursion-fork-bomb/ana015-recursion-fork-bomb-report.md"
+    created: 2026-08-12
+    date: 2026-08-12
+    task_ref: DIA-122
+    status: completed
   adrs:
   - name: Memory Storage Strategy
     description: 'Evaluation of Claude-Mem, Honcho, and current hand-written memory
