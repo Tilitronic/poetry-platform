@@ -192,4 +192,6 @@ Status stays OPEN pending developer close decision.
 
 CLOSED 2026-08-12 by developer decision (session S16). Restart-verify PASS; escalation ladder implemented (commit b0b3c76), validated (make test-config exit 0, lockstep 24/0/0), independently audited (ai-auditor APPROVE 8/8), and re-verified live (coder-escalated self-report opencode-go/kimi-k3; analyzer-escalated self-report opencode-go/gpt-5.6-luna). Follow-up tracking: DIA-116 (live in-repo Rung-3 benchmark) remains OPEN.
 
+## DIA-116 follow-up resolved (2026-08-12): live in-repo benchmark CANCELLED by developer directive (no self-benchmarking); evidence gap closed via res017 authoritative sources (Vals AI kimi-k3 93.4% independent). Verdict: keep kimi-k3 default, fallback deepseek-v4-pro > mimo-v2.5-pro. No config change.
+
 ---

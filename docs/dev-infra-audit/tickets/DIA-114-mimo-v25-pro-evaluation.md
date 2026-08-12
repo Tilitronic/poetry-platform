@@ -119,6 +119,8 @@ RE-VERIFY EVIDENCE (2026-08-12):
 - Parallel ana013 triage group (same batch): knowledge/ana013-dia097-105-triage/
   (ana013-dia097-105-triage-report.md)
 
+## Rung-3 verdict update (2026-08-12): provisional MiMo pick SUPERSEDED by res017 - independent evidence (NIST CAISI for deepseek-v4-pro 74%; NO independent reproduction for mimo-v2.5-pro) reverses the fallback preference to deepseek-v4-pro > mimo-v2.5-pro. kimi-k3 confirmed default (Vals AI 93.4% independent). See DIA-116 Fix section.
+
 ---
 
 ## References

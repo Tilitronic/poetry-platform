@@ -15,7 +15,7 @@ id: DIA-116
 title: "live in-repo Rung-3 benchmark: kimi-k3 vs deepseek-v4-pro vs mimo-v2.5-pro (DIA-111/DIA-114 follow-up)"
 area: opencode-config
 severity: Medium
-status: OPEN
+status: CLOSED
 blocked_by: []
 discovered: 2026-08-12
 source: owner-authorized (session 15 decision 'benchmark first')
@@ -88,9 +88,55 @@ also depends on capability evidence for the models it recommends.
       section-10 chain.
 - [ ] DIA-111 and DIA-114 updated with the benchmark verdict cross-reference.
 
-## Fix
+## Fix: Independent benchmark evidence for Rung-3 candidates (DIA-116)
 
-> To be filled at fix time.
+APPROACH CHANGE (developer directive 2026-08-12): the planned live in-repo
+benchmark was CANCELLED - self-benchmarking the dispatch models was rejected
+in favor of authoritative third-party sources. Evidence gap closed via
+knowledge/res017-rung3-benchmark-evidence/ (res017 conspect, 2026-08-12;
+21 archived sources, 1 failure: llm-stats.com blocked by anti-bot wall -
+impact none, TB 2.1 covered by benchmarklist/AA archives; DIA-072 excluded
+claims listed in conspect Section 7). The res016/r015/r014 conspects and
+ana014 protocol draft are superseded as the decision basis by res017.
+
+Per-candidate independent evidence:
+
+- kimi-k3 SWE-bench Verified 93.40% - Vals AI mini-swe-agent bash-only
+  harness, leaderboard updated 2026-08-08, strongest open-weight model
+  (ahead of Opus 4.8 88.60% and Grok 4.5 86.60%). This is the independent
+  reproduction DIA-114 flagged as missing; it now exists and is archived.
+  AA Intelligence Index 57.11-60 (independent). Terminal-Bench 2.1:
+  88.3% vendor (Kimi Code harness, flagged vendor) / 85.0% AA-run
+  (Terminus 2, II v4.1.1 component) / 80.9% Vals harness.
+- deepseek-v4-pro SWE-bench Verified 74% - NIST CAISI (U.S. government),
+  Inspect ReAct, 2026-05-01, IRT Elo 800; vendor 80.6% flagged
+  "Unverified" on evals.report. AA Intelligence Index 45 (independent).
+- mimo-v2.5-pro NO independent coding-benchmark reproduction exists -
+  78.9% headline is vendor-only (Xiaomi model card / mimo.xiaomi.com,
+  confirmed by evals.report, llmreference, The Decoder). Only independent
+  datum: AA Intelligence Index 43 (composite).
+
+VERDICT (res017):
+
+- KEEP kimi-k3 as coder-escalated default - only candidate with an
+  independent reproduction of its headline coding benchmark; leads every
+  comparable archived benchmark (SWE-V +19.4 vs CAISI 74, AA II +15/+17,
+  Vals TB 2.1 +8.8/+23.6). Binding constraint unchanged: 490 req/mo at
+  $3/$15 on Go (sparing escalation tier).
+- Rung-3 fallback: PREFER deepseek-v4-pro over mimo-v2.5-pro (REVERSES the
+  DIA-114 provisional MiMo pick): deepseek has the CAISI independent
+  evaluation; mimo has none; AA II 45 vs 43; Vals TB 2.1 72.1% vs 57.3%;
+  cost identical ($0.435/$0.87, ~16-17K req/mo both).
+- Cap note: kimi-k3 ~13x pricier per token (~$2.31/M AA blended vs
+  $0.18/M co-candidates).
+- No config change required: coder-escalated already = kimi-k3 (b0b3c76);
+  fallback remains developer-gated per orchestrator rules.
+
+Evidence: knowledge/res017-rung3-benchmark-evidence/
+res017-rung3-benchmark-evidence-conspect.md (registered in
+.opencode/memory-shelf.yaml lines 79-82).
+
+Cross-references: DIA-111 and DIA-114 updated with this verdict (2026-08-12).
 
 ## Re-verify
 
