@@ -17,7 +17,7 @@ id: DIA-121
 title: "bats-wrapper.sh claims v1.11.0 but vendored bats is v1.14.0 - version drift"
 area: dev-infra
 severity: Low
-status: OPEN
+status: FIXED
 blocked_by: [] # no blockers
 discovered: 2026-08-12
 source: session-observation (DIA-119 investigation lane, 2026-08-12)
@@ -32,11 +32,16 @@ lane_id: ""
 agent: "coder"
 model: ""
 parent_session_id: ""
-attempts: 0
+attempts: 1
 lease_expires_at: ""
-files_touched: ["docs/dev-infra-audit/tickets/DIA-121-bats-version-drift-wrapper-vendor.md"]
-artifacts: []
-evidence: []
+files_touched:
+
+- "docs/dev-infra-audit/tickets/DIA-121-bats-version-drift-wrapper-vendor.md"
+- "scripts/**tests**/bats-wrapper.sh"
+- "scripts/**tests**/check-bats-vendor-drift.sh"
+- "scripts/**tests**/check-bats-vendor-drift.bats"
+  artifacts: []
+  evidence: []
 
 ---
 
@@ -104,8 +109,56 @@ describe --tags` (no tag resolves on the shallow clone - HEAD commit
 
 ## Fix
 
-> To be filled at fix time.
+Fixed 2026-08-12 via commit `548a93a` (fix(dev-infra): DIA-121 re-pin bats
+wrapper to v1.14.0 + add vendor drift check).
+
+Developer decision: accept v1.14.0 as the new baseline (the suite passes with
+it) and add drift re-validation. Combination of candidate fix 1 + 2.
+
+1. `scripts/__tests__/bats-wrapper.sh`:
+   - Added `BATS_VENDOR_VERSION="1.14.0"` as the single source of truth for
+     the pinned version (package.json format, no leading "v").
+   - Re-pinned the vendor clone: `git clone --depth 1 --branch
+"v${BATS_VENDOR_VERSION}" ...` (was hardcoded `--branch v1.11.0`).
+   - Added a drift re-validation block at wrapper start: when the vendor dir
+     exists, `bash scripts/__tests__/check-bats-vendor-drift.sh
+"$BATS_VENDOR_VERSION" "$VENDOR_DIR" || true` runs. On mismatch the
+     check prints a stderr warning and exits 1; the wrapper deliberately
+     does NOT propagate the exit (warn-and-continue, documented in a
+     comment: a drift is a hygiene issue, not a blocker - re-cloning would
+     be destructive/network-dependent and hard-failing would lock
+     developers out of `make test-shell`).
+   - Added the new script to the `bash -n` syntax-check loop.
+2. `scripts/__tests__/check-bats-vendor-drift.sh` (new): compares the
+   vendored `package.json` `version` field against the pin constant. Uses
+   package.json (not `git describe`) because the shallow `--depth 1
+--branch` clone has no tags, so `git describe` fails. Exit 0 on match or
+   absent vendor dir; exit 1 + stderr warning on mismatch or unverifiable
+   checkout; exit 2 on usage error.
+3. `scripts/__tests__/check-bats-vendor-drift.bats` (new): 7 hermetic unit
+   tests (match passes / positive control: v1.11.0 pin vs v1.14.0 vendor
+   detected / vendor upgrade past pin detected / absent dir silent / missing
+   package.json warned / usage error / wrapper wiring guard).
+
+The git-ignored vendor dir was NOT re-cloned or modified (already v1.14.0);
+no changes outside `scripts/__tests__/` and this ticket file.
 
 ## Re-verify
 
-> To be filled at re-verify time.
+Re-verified 2026-08-12 (commit `548a93a`):
+
+- `make test-shell` exits 0: 216 tests, 0 failures (exit code 0).
+- Individual suites not regressed: worktrees.bats 16/16,
+  verify-pre-push.bats 7/7, verify-pre-commit.bats 7/7.
+- New drift-check suite passes: 7/7 (tests 24-30 in the full run).
+- Drift reproduction (consistent state after fix):
+  - wrapper pin `BATS_VENDOR_VERSION="1.14.0"` (bats-wrapper.sh line 28)
+    vs vendored `"version": "1.14.0"` (vendor/bats-core/package.json) ->
+    consistent.
+  - `bash scripts/__tests__/check-bats-vendor-drift.sh 1.14.0
+scripts/__tests__/vendor/bats-core` exits 0, silent.
+  - Positive control: `... 1.11.0 ...` exits 1 and warns "vendored bats
+    version mismatch: ... is at v1.14.0 but bats-wrapper.sh pins v1.11.0".
+  - Wrapper start on the consistent state produces no drift warnings on
+    stderr and exits 0.
+- Vendor dir left untouched (still the git-ignored v1.14.0 checkout).
