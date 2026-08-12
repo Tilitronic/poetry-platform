@@ -175,6 +175,49 @@ RUN uv pip install --system --break-system-packages playwright crawl4ai && \
     python3 -m playwright install chromium && \
     rm -rf /root/.cache/uv
 
+# Docker CLI client + compose plugin — client ONLY, no docker-ce daemon, no
+# docker group: the client talks to the host container socket over the
+# /var/run/docker.sock bind mount added by bin/opencode-docker (pre-commit
+# hook's `docker compose ...` delegation, DIA-121). Version-pinned per the
+# F3/TODO convention. Static-bundle install replaces the apt-repo install
+# (DIA-121 follow-up): apt-get update to download.docker.com fails TLS cert
+# verification in the host network while curl to the same domain succeeds,
+# so the docker-ce-cli debs are unreachable; the static bundles and GitHub
+# release assets are not. Official static bundles preferred over Debian's
+# docker.io: Debian trixie ships 26.1.5 and bundles the daemon; static
+# bundles are client-only by extraction (only docker/docker, no
+# dockerd/containerd/runc/ctr — keeps the image lean).
+# SHA256 pinning: the static bundle dir ships NO sha256sum file (verified
+# 2026-08-12: .../stable/x86_64/sha256sum 404s and the index lists only
+# tgz files), so the tgz pin below is the hash of the HTTPS download,
+# hardcoded per the project pin convention (same shape as the opencode
+# installer pin above). Compose IS verified against the release's own
+# checksums.txt. ~113MB installed (docker CLI 41MB static + compose 72MB
+# Go static) vs ~90MB for the apt pair — slightly larger, the price of
+# bypassing the broken apt TLS path.
+# ponytail: touch pre-creates the bind target — podman cannot create a
+# mountpoint on a --read-only rootfs at start; the placeholder file is
+# replaced by the socket bind mount at run time. chown'd to the runtime
+# user (USER_UID/USER_GID, same as the USER switch below) so the
+# placeholder is owned by whoever runs the docker client if the mount is
+# absent (reviewer finding [Minor], DIA-121).
+ARG DOCKER_CLI_VERSION=29.7.2
+ARG DOCKER_COMPOSE_VERSION=v2.39.1
+RUN curl -fsSL "https://download.docker.com/linux/static/stable/x86_64/docker-${DOCKER_CLI_VERSION}.tgz" -o /tmp/docker.tgz && \
+    echo "803d433f226db4776e1768fd319fc6c6e4935a456acf84fcc0080818b854bc8f  /tmp/docker.tgz" | sha256sum -c - && \
+    tar -xzf /tmp/docker.tgz -C /usr/local/bin --strip-components=1 docker/docker && \
+    chmod 0755 /usr/local/bin/docker && \
+    rm -f /tmp/docker.tgz && \
+    curl -fsSL "https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-linux-x86_64" -o /tmp/docker-compose && \
+    curl -fsSL "https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/checksums.txt" -o /tmp/compose-checksums.txt && \
+    grep "docker-compose-linux-x86_64$" /tmp/compose-checksums.txt | sed "s|docker-compose-linux-x86_64$|/tmp/docker-compose|" | sha256sum -c - && \
+    mkdir -p /usr/local/lib/docker/cli-plugins && \
+    install -m 0755 /tmp/docker-compose /usr/local/lib/docker/cli-plugins/docker-compose && \
+    rm -f /tmp/docker-compose /tmp/compose-checksums.txt && \
+    docker --version && docker compose version && \
+    touch /var/run/docker.sock && \
+    chown ${USER_UID}:${USER_GID} /var/run/docker.sock
+
 USER ${USER_UID}:${USER_GID}
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \

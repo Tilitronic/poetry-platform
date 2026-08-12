@@ -123,12 +123,48 @@ if [ -d "$HOME/ponytail" ]; then
     PONYTAIL_MOUNT=(-v "$HOME/ponytail:/app/ponytail:ro,Z")
 fi
 
+# ponytail: mount host container socket read-only so `docker compose` works
+# inside the container (pre-commit hook delegation, DIA-121). Rootless podman
+# socket = the host user's own containers only, NOT host root. Mount target
+# pre-exists in the image (Dockerfile touch) because podman cannot create a
+# mountpoint on a --read-only rootfs. No socket -> warn but still launch
+# (opencode itself works without docker; only commit hooks need it).
+# SELinux enforcing hosts: ':z' alone is insufficient - podman relabels the
+# socket to container_file_t:s0 (fixes stat) but container_t still lacks
+# connectto on a container_file_t SOCKET, so docker API calls fail with
+# permission denied; manual chcon to container_runtime_t is policy-denied.
+# The real fix is --security-opt label=disable on the podman run line below
+# (runs the container without SELinux confinement; acceptable trade-off:
+# non-root uid 1000, read-only rootfs, --cap-drop ALL, no added privileges).
+SOCKET_MOUNT=()
+for sock in \
+    "${XDG_RUNTIME_DIR:-}/podman/podman.sock" \
+    "/run/user/$(id -u)/podman/podman.sock" \
+    "/var/run/docker.sock"
+do
+    if [ -S "$sock" ]; then
+        SOCKET_MOUNT=(-v "$sock:/var/run/docker.sock:ro")
+        EXTRA_ENV+=("-e" "DOCKER_HOST=unix:///var/run/docker.sock")
+        break
+    fi
+done
+if [ ${#SOCKET_MOUNT[@]} -eq 0 ]; then
+    echo "Warning: container socket not found - pre-commit hooks delegating to dev container will not work; start podman/docker and relaunch" >&2
+fi
+
+# The workspace mount must stay SHARED label (':z'), never private (':Z'): the
+# poetry-dev container mounts the same dir with ':z', and a ':Z' relabel from
+# this container would stamp private MCS categories onto the workspace files,
+# which poetry-dev cannot dominate, locking it out (DIA-121). label=disable
+# (above) means this container needs no relabel at all, so ':z' only affects
+# cross-container access.
 podman run --rm $DOCKER_FLAGS \
     --userns=keep-id \
     --read-only \
     --tmpfs /tmp:exec,size=512m \
     --cap-drop=ALL \
     --security-opt=no-new-privileges \
+    --security-opt=label=disable \
     --shm-size=1g \
     --memory="${MEMORY_LIMIT}" \
     --cpus="${CPU_LIMIT}" \
@@ -140,5 +176,6 @@ podman run --rm $DOCKER_FLAGS \
     -v "$ocd_dir/secrets:/run/secrets:ro,Z" \
     "${GITCONFIG_MOUNT[@]}" \
     "${PONYTAIL_MOUNT[@]}" \
-    -v "$WORKSPACE:/workspace:rw,Z" \
+    "${SOCKET_MOUNT[@]}" \
+    -v "$WORKSPACE:/workspace:rw,z" \
     opencode-docker:latest /workspace "$@"
