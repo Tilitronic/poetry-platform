@@ -85,11 +85,21 @@ Note: These are navigational facts to help future humans find the infra/test art
   the canonical reference implementation for the resolution-independent sandbox
   pattern. Recoverable from code; listed as a navigational pointer only.
 
-- Bats vendored-version drift (DIA-121, OPEN 2026-08-12): `scripts/__tests__/
-  bats-wrapper.sh` line ~65 pins the cloned bats-core tag to v1.11.0 (comment
-  "Pinned to v1.11.0, verified as a real released tag on 2026-08-01"), but the
-  git-ignored vendor dir `scripts/__tests__/vendor/bats-core` currently contains
-  v1.14.0 (package.json version field) and is NEVER re-validated against the
-  pin. Because the vendor dir is git-ignored, its actual version is invisible to
-  a fresh clone and must be re-inspected on each host; test-number off-by-ones
-  can be the only visible symptom of drift. Tracked by DIA-121.
+- Bats vendored-version drift (DIA-121, CLOSED 2026-08-12): resolved by
+  re-pinning. `scripts/__tests__/bats-wrapper.sh` now holds
+  `BATS_VENDOR_VERSION="1.14.0"` as the SINGLE source of truth for the pinned
+  bats-core version (package.json format, no leading "v"); the clone uses
+  `--branch "v${BATS_VENDOR_VERSION}"`. The git-ignored vendor dir
+  `scripts/__tests__/vendor/bats-core` had drifted to v1.14.0 while the old pin
+  claimed v1.11.0; the wrapper now runs
+  `scripts/__tests__/check-bats-vendor-drift.sh "$BATS_VENDOR_VERSION" "$VENDOR_DIR"`
+  on every run to close the gap. The drift check extracts the TOP-LEVEL
+  package.json version with an awk brace-depth state machine (string-aware;
+  deliberately not a naive first-match sed because a nested object can carry its
+  own "version" key). On mismatch the check warns to stderr and exits 1, but the
+  wrapper does NOT propagate the exit (warn-and-continue: not re-clone, not
+  hard-fail) to avoid destructive/network-dependent behavior and developer
+  lockout. Bats coverage: `scripts/__tests__/check-bats-vendor-drift.bats`
+  (10 tests). Navigational pointer only; the design rationale is documented
+  in-code and in the DIA-121 ticket. See lessons.md S19 for the prettier
+  frontmatter workaround that bit this ticket's fix twice.

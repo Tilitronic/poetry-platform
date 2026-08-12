@@ -458,3 +458,53 @@ Notes:
     memorized from an earlier read (stale-comparison false positive).
   - Cross-reference: failures.md S18 boot-gate false-positive escalation;
     DIA-120 (fix deferred to section-10 chain).
+  - RESOLUTION NOTE (2026-08-12, S19): the plugin trigger bug was fixed in
+    e15a876 by narrowing the handoff-writer to a terminal-status set
+    (TERMINAL_HANDOFF_STATUSES = done/escalated/pending-owner) plus a
+    console.warn skip path for non-terminal statuses. The operational rule for
+    agents (reserve event_type='handoff' for terminal handoffs; use
+    'decision' for progress) is now enforced BOTH mechanically (plugin filter)
+    and instructionally (orchestrator_append.md / NEXT-RUN.md). A restart-verify
+    was still PENDING at end of S19 (must restart OpenCode to load the plugin
+    fix, then reproduce: in-flight handoff log must NOT touch
+    current-handoff.json; terminal handoff still writes atomically with the
+    canonical checksum).
+
+- Prettier rewrites block-style YAML frontmatter inside ticket .md files
+  (DIA-121 S1, 2026-08-12):
+  - Symptom: the pre-commit prettier 3.8.3 hook reformats mid-file YAML
+    frontmatter blocks in ticket documents (docs/dev-infra-audit/tickets/*.md).
+    A block-style list like
+    `files_touched:\n- ".../bats-wrapper.sh"` was rewritten, and the
+    `__tests__` path token was mangled to `**tests**` (markdown emphasis), so
+    the committed frontmatter no longer matched the real file paths. This bit
+    the DIA-121 S1 fix twice: commit 3d7ebd8 was reverted and 66139dd redone.
+  - Workaround (prettier-stable): use inline flow-style
+    `files_touched: ["a", "b", "c"]` on a single line, which prettier leaves
+    alone, instead of block-style YAML lists.
+  - Lesson: when a .md file carries an embedded YAML frontmatter block, prefer
+    single-line flow-style for any array fields so the prettier pre-commit hook
+    does not rewrite them (block-style lists are reformatted and multi-word
+    path tokens like `__tests__` can be mangled to emphasis).
+  - Why irrecoverable: the churn is visible in git, but the root cause (prettier
+    reformatting embedded frontmatter lists + the `__tests__` -> `**tests**`
+    mangling) and the durable workaround (flow-style) are not stated in any
+    committed file.
+
+- Instruction-surface coherence when changing a cross-cutting ownership model
+  (DIA-120 C1/M1/m1, 2026-08-12):
+  - ai-auditor caught that a fix can be correct in one instruction file yet
+    leave a contradiction in a sibling instruction file. Concretely, the plugin
+    ownership fix (FIX E: plugin-only-write of current-handoff.json) was correct
+    in the plugin/agent doc, but a boot-gate step in another instruction file
+    still said "write the checksum into the field" (residual manual-write
+    wording), contradicting the plugin-only-write model.
+  - Lesson: when you change a cross-cutting ownership model (who owns a file,
+    who writes a field, single-writer contracts), grep the FULL instruction
+    surface (agents/*.md, NEXT-RUN.md, orchestrator_append.md, any
+    step-by-step runbooks) for residual wording that still describes the OLD
+    ownership. A sibling-file contradiction silently breaks the invariant even
+    when the primary fix is correct.
+  - Why irrecoverable: the fix commits (e.g. 4820423) show the corrected final
+    state but not the generalizable process rule that sibling instruction files
+    must be reconciled in the same change.
