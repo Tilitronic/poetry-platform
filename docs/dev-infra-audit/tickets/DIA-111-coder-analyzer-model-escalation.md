@@ -83,6 +83,64 @@ Requirements:
 
 > To be filled at fix time.
 
+### Probe (2026-08-12)
+
+Empirical probe: does OpenCode task() (subagent dispatch) support a
+per-dispatch model override? Decision input for Option B (orchestrator-prompt
+routing) vs Option C (separate escalated agents).
+
+- opencode version: 1.18.16 (host, /home/qualt/.opencode/bin/opencode);
+  dev container has 1.18.4. Probe ran on host 1.18.16.
+- task() input schema (from binary source, opencode 1.18.16): fields are
+  description, prompt, subagent_type, task_id (optional), command
+  (optional), background (optional). NO "model" parameter exists on the
+  task tool. Source: `R = b.model ?? {modelID: U.info.modelID,
+providerID: U.info.providerID}` -- child model resolved from the
+  AGENT DEFINITION (`b.model`) or falls back to the invoking parent's
+  model when the agent defines no model. Prompt text cannot change the
+  child's model (resolved before the child prompt executes).
+- Config mechanisms found: `"model"` key exists under agent definitions
+  in both .opencode/opencode.jsonc (openspec-plan, ai-specialist ->
+  opencode-go/qwen3.7-plus) and .opencode/oh-my-opencode-slim.jsonc
+  (coder -> opencode-go/deepseek-v4-flash, analyzer/designer etc.).
+  This is the ONLY model-override mechanism: agent-definition level,
+  not per-dispatch.
+- Docs (opencode.ai/docs/agents/): "Use the model config to override
+  the model for this agent." Subagents without a model use the model of
+  the primary agent that invoked them. No per-dispatch task model
+  documented.
+- Registry evidence: .opencode/session/registry.jsonl (2555+ rows) has
+  ZERO "model" fields; delegation-observer.ts explicitly does not write
+  gen_ai.request.model ("plugin hooks do not expose the model id").
+  Dispatched lane rows record session_id/parent/status only.
+- EMPIRICAL (2026-08-12, host 1.18.16):
+  Test 1 (top-level override works): `opencode run --model
+opencode-go/deepseek-v4-pro` -> session self-reported
+  "opencode-go/deepseek-v4-pro". CLI -m/--model overrides the
+  TOP-LEVEL session model only.
+  Test 2 (per-dispatch override fails): parent session on
+  opencode-go/deepseek-v4-pro dispatched task(subagent_type: coder).
+  Task input carried ONLY description/subagent_type/prompt (no model
+  param possible). Child session self-reported
+  "opencode-go/deepseek-v4-flash" -- coder's CONFIG model from
+  oh-my-opencode-slim.jsonc. The parent's model was NOT inherited and
+  no override was possible.
+- VERDICT: NO -- per-dispatch model override via task() is NOT
+  supported in opencode 1.18.16. Child model is fixed by the agent
+  definition's `model` key, or inherited from the parent only when the
+  agent defines no model.
+- IMPLICATION for DIA-111: Option B (orchestrator-prompt routing to a
+  different model) is NOT feasible -- the task() tool has no model
+  param and prompt directives cannot change the child's model. Option C
+  (separate escalated agents, e.g., coder-escalated / analyzer-escalated
+  defined in config with stronger models) is REQUIRED. The orchestrator
+  escalates by dispatching task(subagent_type: "<escalated-agent>").
+- Recommendation: design the ladder around Option C -- define escalated
+  variants as dedicated agents with the target model + appropriate
+  permission/variant; orchestrator picks the escalated agent on trigger
+  conditions. Config changes route through the section-10 chain.
+  Status stays OPEN.
+
 ## Re-verify
 
 > To be filled at re-verify time.
