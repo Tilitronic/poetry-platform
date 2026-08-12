@@ -56,6 +56,9 @@ coverage/
 .temp/
 .cache/
 
+# === Git worktrees (DIA-100) ===
+.worktrees/
+
 # === Test infra: vendored bats-core (cloned on demand by make test-shell) ===
 scripts/__tests__/vendor/
 
