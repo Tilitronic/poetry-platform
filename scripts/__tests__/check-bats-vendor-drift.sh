@@ -48,9 +48,32 @@ if [ ! -f "$PACKAGE_JSON" ]; then
   exit 1
 fi
 
-# Extract the first top-level "version": "<semver>" line. True for every
-# bats-core release (the file is small; version appears near the top).
-VENDORED_VERSION="$(sed -n 's/.*"version"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' "$PACKAGE_JSON" | head -n 1)"
+# Extract the TOP-LEVEL "version" field only. The naive "first version match"
+# (a plain sed) breaks when a nested object carries its own "version" key
+# before the root one (e.g. a "scripts" block with a version task) - it would
+# read the nested value as the bats version (DIA-121 FAL-1). This awk state
+# machine tracks brace depth and only accepts a "version" key at depth 1 (a
+# direct child of the root object). Brace counting is string-aware (quoted
+# braces are ignored), so string values containing "{" / "}" cannot corrupt
+# the depth signal. Dependency-light: awk is POSIX, no jq/node required.
+VENDORED_VERSION="$(awk '
+  BEGIN { depth = 0 }
+  {
+    if (depth == 1 && $0 ~ /^[[:space:]]*"version"[[:space:]]*:[[:space:]]*"/) {
+      line = $0
+      sub(/^[[:space:]]*"version"[[:space:]]*:[[:space:]]*/, "", line)
+      if (match(line, /^"[^"]*"/)) {
+        print substr(line, RSTART + 1, RLENGTH - 2)
+        exit
+      }
+    }
+    t = $0
+    gsub(/"([^"\\]|\\.)*"/, "", t)
+    opens = gsub(/\{/, "&", t)
+    closes = gsub(/\}/, "&", t)
+    depth += opens - closes
+  }
+' "$PACKAGE_JSON" | head -n 1)"
 
 if [ -z "$VENDORED_VERSION" ]; then
   echo "warning: cannot read a \"version\" field from $PACKAGE_JSON - cannot verify against pin v$PIN" >&2

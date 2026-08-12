@@ -162,3 +162,70 @@ scripts/__tests__/vendor/bats-core` exits 0, silent.
   - Wrapper start on the consistent state produces no drift warnings on
     stderr and exits 0.
 - Vendor dir left untouched (still the git-ignored v1.14.0 checkout).
+
+Re-verified 2026-08-12, review-findings round (S3 - execution evidence appended;
+FAL-1/FAL-2/FAL-3 added 3 tests, suite 7 -> 10):
+
+`make test-shell` exit 0 (full run, host-side; vendored bats
+`scripts/__tests__/vendor/bats-core/bin/bats`), plan `1..219`, 219 ok / 0 not ok:
+
+```
+$ make test-shell
+bash scripts/check-pin-sync.sh
+summary: 4 ok, 0 fail
+bash scripts/check-host-jq.sh
+summary: 1 ok, 0 fail
+bash scripts/check-host-lsp.sh
+summary: 3 ok, 0 fail, 0 skip
+bash scripts/check-opencode-docker.sh
+ok: required subproject files present
+ok: shell artifacts pass bash -n
+ok: bootstrap.py parses (AST)
+ok: config/opencode.json is valid JSON
+ok: subproject Makefile declares build/run/shell/clean
+ok: tools/opencode-docker static integrity passed
+bash scripts/__tests__/bats-wrapper.sh
+ok: shell syntax (bash -n) passed for all scripts under test
+ok: node --check passed for scripts/context7-docs.mjs
+ok: using vendored bats: .../vendor/bats-core/bin/bats
+1..219
+ok 24 drift check passes when vendored version matches the pin
+ok 25 drift check detects the original v1.11.0 pin against a v1.14.0 vendor tree (DIA-121 positive control)
+ok 26 drift check detects a vendor upgrade past the current pin
+ok 27 drift check reads the TOP-LEVEL version even when a nested object has a version field first (FAL-1)
+ok 28 drift check is silent when the vendor dir does not exist
+ok 29 drift check warns when the vendor dir lacks package.json
+ok 30 drift check rejects missing arguments with a usage error
+ok 31 wrapper wiring: bats-wrapper.sh invokes the drift check with the pin constant
+ok 32 wrapper wiring end-to-end: drifted vendor emits the drift warning (FAL-2 positive control)
+ok 33 wrapper wiring end-to-end: consistent vendor emits no drift warning (FAL-2 negative control)
+...
+ok 186 verify-pre-commit: delegates lint-staged to the dev container when on the host
+ok 187 verify-pre-commit: passes --allow-empty so empty commits are not blocked
+ok 188 verify-pre-commit: blocks the commit when the dev container is down
+ok 189 verify-pre-commit: runs lint-staged directly when already inside the dev container
+ok 190 verify-pre-commit: delegates a workspace path with spaces as one cd argument
+ok 191 verify-pre-commit: blocks the hook when a .opencode/commands file contains literal /home/qualt
+ok 192 verify-pre-commit: passes when no .opencode/commands file contains literal /home/qualt
+ok 193 verify-pre-push: skips with a warning when the dev container is not running
+ok 194 verify-pre-push: delegates every verification step to the dev container
+ok 195 verify-pre-push: aborts (exit 1) when a delegated step fails
+ok 196 verify-pre-push: runs steps directly when already inside the dev container
+ok 197 verify-pre-push: delegates a workspace path with spaces as one cd argument
+ok 198 verify-pre-push: blocks the push when a .opencode/commands file contains literal /home/qualt
+ok 199 verify-pre-push: passes when no .opencode/commands file contains literal /home/qualt
+ok 204 worktrees: T1 create -> exit 0 + worktree dir + branch + isolated .opencode/session
+...
+ok 219 worktrees: T16 list forwards args to git worktree list (--porcelain works)
+$ echo $?
+0
+```
+
+Suite tallies in the 219-run: drift-check suite 10/10 (tests 24-33, +3 from the
+review round), verify-pre-commit.bats 7/7 (186-192), verify-pre-push.bats 7/7
+(193-199), worktrees.bats 16/16 (204-219).
+
+YAML frontmatter validator: `python3 -c "import yaml; yaml.safe_load(...)"` on
+the `---`-delimited block - parses OK; `files_touched` 4 entries (all
+`scripts/__tests__/` paths), `artifacts: []` / `evidence: []` are top-level
+keys.
