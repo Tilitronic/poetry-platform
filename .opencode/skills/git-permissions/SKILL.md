@@ -70,6 +70,11 @@ Branch deletion / history rewrite / destructive local ops:
 - `git checkout -- .`
 - `git restore .`, `git restore --staged .`
 - `git branch -D *`
+- Worktree force-remove: `git worktree remove --force` / `git worktree remove -f`
+  (any option position) - denied (DIA-117, discards uncommitted work;
+  defense-in-depth alongside the WORKTREES_FORCE=1 env guard in
+  scripts/worktrees.sh). Non-force `git worktree remove <path>` remains allowed
+  (refuses dirty worktrees; standard cleanup path).
 - `git filter-branch *`, `git filter-repo *`
 - `git tag -d *`
 - `git remote add/remove/set-url/prune/rename`

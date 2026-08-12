@@ -52,6 +52,20 @@
       "git filter-repo *": "deny",
       "git tag -d *": "deny",
 
+      // DIA-117: worktree force-remove is semantically equivalent to git clean -f*
+      // / git branch -D (discards uncommitted work). Defense-in-depth alongside
+      // the script-side WORKTREES_FORCE=1 env barrier (scripts/worktrees.sh:246).
+      // The deny gates agent tool calls only - the developer's terminal and the
+      // script's internal subprocess are unaffected.
+      "git worktree remove --force *": "deny",
+      "git worktree remove --force": "deny",
+      "git worktree remove -f *": "deny",
+      "git worktree remove -f": "deny",
+      "git worktree remove * --force *": "deny",
+      "git worktree remove * --force": "deny",
+      "git worktree remove * -f *": "deny",
+      "git worktree remove * -f": "deny",
+
       "git push --force-with-lease *": "deny",
       "git push --force-with-lease": "deny",
       "git push --force *": "deny",
