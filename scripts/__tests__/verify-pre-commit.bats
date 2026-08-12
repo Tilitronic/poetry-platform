@@ -80,6 +80,25 @@ FAKENPX
   # A temp HOME keeps the login shell clean so the fake npx is exercised.
   export HOME="$BATS_TEST_TMPDIR/home"
   mkdir -p "$POETRY_WORKSPACE" "$HOME"
+  # DIA-119 (symmetric fix): the temp-HOME guard is the single defense against
+  # a host login profile (~/.profile prepends $VOLTA_HOME/bin) shadowing the
+  # fake npx with the real one, which then runs real lint-staged and errors in
+  # this empty sandbox (npx ENOENT / lint-staged fetch, or "not a git
+  # directory"). Seed an importer manifest + a local lint-staged stub (logging
+  # to NPX_LOG exactly like the fake) so real npx resolves the stub from
+  # node_modules/.bin and the outcome no longer depends on which npx resolves.
+  cat > "$POETRY_WORKSPACE/package.json" <<EOF
+{"name":"verify-pre-commit-sandbox","private":true,"scripts":{
+  "lint-staged":"printf '%s\\n' 'npx lint-staged --allow-empty' >> \"\$NPX_LOG\""
+}}
+EOF
+  mkdir -p "$POETRY_WORKSPACE/node_modules/.bin"
+  cat > "$POETRY_WORKSPACE/node_modules/.bin/lint-staged" <<'FAKELS'
+#!/usr/bin/env bash
+printf 'npx lint-staged --allow-empty\n' >> "${NPX_LOG:?NPX_LOG not set}"
+exit 0
+FAKELS
+  chmod +x "$POETRY_WORKSPACE/node_modules/.bin/lint-staged"
 
   run bash "$SCRIPTS_DIR/verify-pre-commit.sh"
 

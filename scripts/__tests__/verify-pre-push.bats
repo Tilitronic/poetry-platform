@@ -76,6 +76,20 @@ FAKEPNPM
   # HOME keeps the login shell clean so the fake pnpm is exercised.
   export HOME="$BATS_TEST_TMPDIR/home"
   mkdir -p "$POETRY_WORKSPACE" "$HOME"
+  # DIA-119: the temp-HOME guard is the single defense against a host login
+  # profile (~/.profile prepends $VOLTA_HOME/bin) shadowing the fake pnpm with
+  # the real one, which then errors ERR_PNPM_NO_IMPORTER_MANIFEST_FOUND in this
+  # empty sandbox. Seed an importer manifest + the four verify scripts (logging
+  # to PNPM_LOG exactly like the fake) so the outcome no longer depends on
+  # which pnpm resolves.
+  cat > "$POETRY_WORKSPACE/package.json" <<EOF
+{"name":"verify-pre-push-sandbox","private":true,"scripts":{
+  "verify:format":"printf '%s\\n' 'pnpm verify:format' >> \"\$PNPM_LOG\"",
+  "verify:js":"printf '%s\\n' 'pnpm verify:js' >> \"\$PNPM_LOG\"",
+  "verify:js-tests":"printf '%s\\n' 'pnpm verify:js-tests' >> \"\$PNPM_LOG\"",
+  "verify:python":"printf '%s\\n' 'pnpm verify:python' >> \"\$PNPM_LOG\""
+}}
+EOF
 
   run bash "$SCRIPTS_DIR/verify-pre-push.sh"
 
