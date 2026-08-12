@@ -111,10 +111,6 @@ model_benchmark_reference:
         score: 77.7%
         pool: Go
         note: "Best daily driver on Go"
-      - model: "Gemini 3 Flash"
-        score: 78.0%
-        pool: Copilot
-        note: "Cheapest premium model"
       - model: "DeepSeek V4 Pro"
         score: 80.6%
         pool: Go
@@ -127,6 +123,22 @@ model_benchmark_reference:
         score: ~59.8%
         pool: Copilot
         note: "Cheapest GPT on Pro"
+      # Go models added 2026-08-12 (DIA-108 / res013). Trackers differ: BenchLM
+      # is a 63-model aggregation, Vals a 79-model bash-only mini-swe-agent, so
+      # scores are not directly cross-comparable. Only models with an archived
+      # overall SWE-bench score appear here; the rest are in strong_sides.
+      - model: "Kimi K3"
+        score: 93.4%
+        pool: Go
+        note: "Vals strongest open-weight; best Go model (490 req/mo cap)"
+      - model: "Grok 4.5"
+        score: 86.6%
+        pool: Go
+        note: "Vals bash-only harness (600 req/mo cap)"
+      - model: "MiniMax M3"
+        score: 80.5%
+        pool: Go
+        note: "BenchLM aggregation, open weight"
     gpqa_diamond:
       - model: "Gemini 3.1 Pro"
         score: 94.3%
@@ -145,9 +157,6 @@ model_benchmark_reference:
       - model: "DeepSeek V4 Flash"
         score: 88.1%
         pool: Go
-      - model: "Gemini 3 Flash"
-        score: 90.4%
-        pool: Copilot
 
   strong_sides:
     # NOTE: Prices listed inline below are contextual weakness notes, captured
@@ -178,14 +187,38 @@ model_benchmark_reference:
       - "79.6% SWE, 89.9% GPQA — strong all-round Anthropic model"
       - "Best instruction following in class"
       - "Weak: expensive ($3/$15), ~18 cr/100K"
-    gemini_3_flash:
-      - "78% SWE, 90.4% GPQA — best value on Copilot"
-      - "Cheapest premium model ($0.50/$3, ~3.5 cr/100K)"
-      - "1M context"
     gpt_5_mini:
       - "Cheapest GPT on Copilot Pro ($0.25/$2, ~3 cr/100K)"
       - "Good for fast, simple tasks"
       - "Weak: only ~60% SWE"
+    # New Go models added 2026-08-12 (DIA-108 / res013). Inline prices are a
+    # reference-only snapshot at last review — always fetch current pricing live.
+    kimi_k3:
+      - "93.4% SWE-bench (Vals) — strongest open-weight; best Go model for high-difficulty"
+      - "Go $3.00/$15.00 per 1M; tight cap 490 req/mo (110/5h, 250/wk) — special ammo"
+    grok_45:
+      - "86.6% SWE-bench (Vals)"
+      - "Go $2.00/$6.00 per 1M (identical on Copilot default tier); 600 req/mo cap — special ammo"
+      - "Uses ZDR on Go (no stateful Responses API)"
+    gpt_56_luna:
+      - "Cheap lightweight: $0.20/$1.20 per 1M on Go and Copilot identical"
+      - "10,250 req/mo — high volume"
+      - "No overall SWE in archive; Vals difficulty split 96/92/86/67%"
+    minimax_m3:
+      - "80.5% SWE-bench (BenchLM, open weight)"
+      - "Go $0.30/$1.20 per 1M; 16,000 req/mo"
+    qwen38_max:
+      - "Go $2.00/$6.00 per 1M; 810 req/mo — tight cap, premium (not a default)"
+      - "No archived SWE score (res013)"
+    hy3:
+      - "Go $0.14/$0.58 per 1M; 21,500 req/mo"
+      - "No archived SWE score (res013)"
+    mimo_v25_pro:
+      - "Go $0.435/$0.87 per 1M — identical to DeepSeek V4 Pro; 16,300 req/mo"
+      - "Benchmark gap (DIA-087 R5) — no archived SWE score"
+    glm_52:
+      - "Go $1.40/$4.40 per 1M; 4,300 req/mo"
+      - "Vals list, no overall %; difficulty split 88/82/67/67%"
 
 # Model selection rules of thumb (pricing always fetched fresh from web)
 model_selection_guidelines:
@@ -193,14 +226,14 @@ model_selection_guidelines:
     orchestrator: "DS V4 Flash (Go) — fast routing, 1M ctx, cheap"
     architector: "Gemini 3.1 Pro (Copilot) — highest GPQA for architecture depth"
     coder: "DS V4 Flash (Go) — speed + value for implementation"
-    reviewer: "GPT-5.3-Codex (Copilot) — model diversity, 85% SWE"
+    reviewer: "Qwen3.7 Plus (Go) — review diversity vs coder (DeepSeek), 77.7% SWE"
     openspec_plan: "Qwen3.7 Plus (Go) — volume for spec writing"
-    designer: "Gemini 3 Flash (Copilot) or Kimi K2.6 (Go) — fast, multimodal"
+    designer: "Kimi K2.7 Code (Go) or Claude Sonnet 4.5 (Copilot) — fast, multimodal"
     code_navigator: "DS V4 Flash (Go) — fast code search, cheap"
     researcher: "DS V4 Flash (Go) — volume research"
     conspecter: "DS V4 Flash (Go) — volume synthesis"
     analyzer: "Qwen3.7 Plus (Go) — 90.3% GPQA for analysis"
-    observer: "Kimi K2.7 Code — multimodal; Copilot fallback: GPT-5 mini (0.33x)"
+    observer: "Kimi K2.7 Code (Go) — multimodal primary; Copilot fallback: GPT-5 mini; tail: big-pickle"
     ai-specialist: "Qwen3.7 Plus (Go) — research agent"
     resource-manager: "DS V4 Flash (Go) — fast curation of sources.yaml, Tier-1 caching, cheap"
 
@@ -211,6 +244,7 @@ model_selection_guidelines:
     - "Never recommend a model the user doesn't have access to"
     - "For review diversity: reviewer must be different model family than coder"
     - "Qwen3.7 Max is special ammo — not a default for any agent (6x cost for 2% gain)"
+    - "Kimi K3 (490 req/mo), Grok 4.5 (600 req/mo), Qwen3.8 Max (810 req/mo) are special-ammo premium Go models with tight caps — reserve for high-difficulty, not defaults"
 
 community_source_evaluation:
   awesome_opencode:
