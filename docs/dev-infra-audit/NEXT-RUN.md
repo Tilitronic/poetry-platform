@@ -258,6 +258,13 @@ has no prognosis section, skip to normal boot (§1).
 2. Read the handoff file and parse the `prognosis` section.
 3. Present each subsection as a batch: session_summary → fixes_applied → open_tickets →
    verification_request → resume_instructions.
+   3a. TICKET-REFERENCE FORMAT: when presenting open_tickets or any subsection that
+   references DIA tickets, ALWAYS quote the ticket ID + human-readable slug from
+   the filename (e.g., "DIA-100 'git worktrees for parallel dev sessions'", not
+   "DIA-100" alone). The slug is derivable from the ticket filename
+   (DIA-NNN-<descriptor>.md) or the README index. This applies to all
+   user-facing references: batch approvals, handoff prognoses, session summaries,
+   and log_decision content_ref fields.
 4. Developer approves per item (approve / defer / reject).
 5. Rejected items become new open_tickets; deferred items carry forward.
 6. During open_tickets review, run the **C5 check**: if a `[BLOCKING]` ticket from the

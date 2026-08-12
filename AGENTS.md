@@ -28,6 +28,7 @@ Architecture → Specification → Implementation:
 1. **Pre-flight**: Check `.sdd/` and `openspec/` for governing constraints before touching code
 2. **Dispatch** `@coder` — implements against `tasks.md`, within architectural constraints
    - Optionally run `to-tickets` first to publish the tasks as DIA tickets in `docs/dev-infra-audit/tickets/`
+   - **Ticket reference format:** when referencing DIA tickets in any user-facing output (session summaries, handoff prognoses, batch approvals), ALWAYS quote ID + human-readable slug from the filename (e.g., "DIA-100 'git worktrees for parallel dev sessions'"), not bare ID alone. Derive the slug from DIA-NNN-<descriptor>.md filenames or the README index.
 3. **Post-flight**: Run dev build, lint, tests before handing off. Coder MUST include verification evidence (exit codes + summary lines) — see §2.3.1
 4. **Review**: Dispatch `@reviewer` (two-axis: Standards + Spec fidelity)
 5. **Fix → Re-review loop** (§2.3.1): after developer disposition and coder fixes, re-dispatch `@reviewer` for targeted re-verification (max 2 cycles)

@@ -104,6 +104,8 @@ slugged filenames (DIA-110)".
   pre-push hooks passed).
 - Orchestrator reference discipline (direction b) now in effect: quote
   ID + slug in user-facing references going forward.
+- Reference discipline codified in NEXT-RUN.md section 7.3 step 3a and
+  AGENTS.md section 2.3 step 2 (2026-08-12).
 
 ## Re-verify
 
