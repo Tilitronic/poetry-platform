@@ -9,7 +9,7 @@ id: DIA-118
 title: "Wire host-runnable gates into hooks and fix turbo.json test.inputs cache masking"
 area: git-hooks
 severity: Major
-status: OPEN
+status: VERIFIED
 blocked_by: []
 discovered: 2026-08-12
 source: fix-lane
@@ -83,4 +83,16 @@ FIX 2 (turbo test inputs) - applied 2026-08-12:
 
 ## Re-verify
 
-> To be filled at re-verify time.
+Re-verified 2026-08-12: reviewer ACCEPT (two-axis review). Polish applied
+3/3: DELEGATION_LOG rename, fail-fast order assertion, dead turbo globs
+removed. All gates:
+
+- verify-pre-push.bats 9/9 pass, exit 0.
+- All 10 test-config validators exit 0.
+- Commit 9ac204f landed.
+
+Honest caveat: in-container 'make test-shell' exits 2 due to a pre-existing
+check-host-lsp rust-analyzer version drift (1.83.0 vs 1.97.1) in the dev
+image - tracked as follow-up, not a regression of this change.
+
+Status: OPEN -> VERIFIED.

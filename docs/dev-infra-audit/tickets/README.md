@@ -15,8 +15,11 @@ carries the full detail (description, verification, fix, re-verify evidence).
 
 ## Index
 
+
 | ID      | Title                                                                                                                                        | Area            | Severity | Status   | Ticket file                                                                                                    |
 | ------- | -------------------------------------------------------------------------------------------------------------------------------------------- | --------------- | -------- | -------- | -------------------------------------------------------------------------------------------------------------- |
+| -------- | ----- |
+| ----------- | ----- |
 | DIA-045 | OpenCode config drift backlog (ai-specialist review 2026-08-04, findings F6–F21)                                                             | opencode-config | Medium   | CLOSED   | [DIA-045-opencode-config-drift-backlog.md](DIA-045-opencode-config-drift-backlog.md)                           |
 | DIA-050 | .mise.toml ↔ Dockerfile.dev pin-sync gap (DIA-045 F15)                                                                                       | dev-infra       | Low      | CLOSED   | [DIA-050-mise-dockerfile-pin-sync-gap.md](DIA-050-mise-dockerfile-pin-sync-gap.md)                             |
 | DIA-051 | Raw JSONL telemetry leak into human chat UI (messages.jsonl sidecar)                                                                         | opencode-config | Medium   | CLOSED   | [DIA-051-jsonl-telemetry-leak-chat-ui.md](DIA-051-jsonl-telemetry-leak-chat-ui.md)                             |
@@ -38,7 +41,7 @@ carries the full detail (description, verification, fix, re-verify evidence).
 | DIA-068 | delegation-observer persistence trigger never fires — state-check regex format mismatch                                                      | opencode-config | Major    | VERIFIED | [DIA-068-delegation-observer-persistence-trigger.md](DIA-068-delegation-observer-persistence-trigger.md)       |
 | DIA-069 | opencode-telemetry registerCommands() rewrites command docs with literal $HOME paths                                                         | opencode-config | Major    | OPEN     | [DIA-069-telemetry-command-docs-home-paths.md](DIA-069-telemetry-command-docs-home-paths.md)                   |
 | DIA-070 | Telemetry plugin P2/P4 re-entrancy guard gaps (DIA-056(b) residuals)                                                                         | opencode-config | Medium   | CLOSED   | [DIA-070-telemetry-reentrancy-guard-gaps.md](DIA-070-telemetry-reentrancy-guard-gaps.md)                       |
-| DIA-071 | make test-infra/test-shell exit 2 — host check-host-lsp gate fails                                                                           | dev-infra       | Low      | OPEN     | [DIA-071-make-test-gates-exit-2.md](DIA-071-make-test-gates-exit-2.md)                                         |
+| DIA-071 | make test-infra/test-shell exit 2 — host check-host-lsp gate fails                                                                           | dev-infra       | Major    | OPEN     | [DIA-071-make-test-gates-exit-2.md](DIA-071-make-test-gates-exit-2.md)                                         |
 | DIA-072 | researcher returns unarchived facts: 4/16 sources failed to persist during conspect Phase A                                                  | docs            | Medium   | CLOSED   | [DIA-072-researcher-unarchived-facts.md](DIA-072-researcher-unarchived-facts.md)                               |
 | DIA-073 | Investigate handoff coordination for parallel OpenCode sessions via session IDs                                                              | docs            | Medium   | CLOSED   | [DIA-073-handoff-coordination-session-ids.md](DIA-073-handoff-coordination-session-ids.md)                     |
 | DIA-074 | Ticket filenames lack human-readable descriptors — orchestrator ticket references are opaque to the developer                                | docs            | Medium   | CLOSED   | [DIA-074-ticket-filenames-descriptors.md](DIA-074-ticket-filenames-descriptors.md)                             |
@@ -90,13 +93,13 @@ carries the full detail (description, verification, fix, re-verify evidence).
 | DIA-117 | git worktree remove --force missing from DIA-096 permission deny list - config hardening (DIA-100 FALSIFICATION-1)                           | opencode-config | Major    | CLOSED   | [DIA-117-worktree-force-remove-config-hardening.md](DIA-117-worktree-force-remove-config-hardening.md)         |
 | DIA-117 | Fix agent-instruction audit findings: HANDOFF.md refs, missing AGENTS.md section 10, boss_append.md duplicate                                | opencode-config | Major    | VERIFIED | [DIA-117-fix-agent-instruction-findings.md](DIA-117-fix-agent-instruction-findings.md)                     |
 | DIA-118 | scripts/worktrees.sh missing executable bit - direct invocation fails exit 126                                                               | dev-infra       | Low      | CLOSED   | [DIA-118-worktrees-sh-missing-executable-bit.md](DIA-118-worktrees-sh-missing-executable-bit.md)               |
-| DIA-118 | Wire host-runnable gates into hooks and fix turbo.json test.inputs cache masking                                                             | git-hooks       | Major    | OPEN     | [DIA-118-wire-host-gates-into-hooks.md](DIA-118-wire-host-gates-into-hooks.md)                             |
+| DIA-118 | Wire host-runnable gates into hooks and fix turbo.json test.inputs cache masking                                                             | git-hooks       | Major    | VERIFIED | [DIA-118-wire-host-gates-into-hooks.md](DIA-118-wire-host-gates-into-hooks.md)                             |
 | DIA-119 | make test-shell exit 2 - verify-pre-push bats pnpm sandbox failure (test 187 ERR_PNPM_NO_IMPORTER_MANIFEST_FOUND)                            | dev-infra       | Low      | CLOSED   | [DIA-119-test-shell-pnpm-sandbox-failure.md](DIA-119-test-shell-pnpm-sandbox-failure.md)                       |
 | DIA-119 | Enable safe task parallelization: BATCH-DISPATCH rule, memory-shelf centralization, ID preallocation, serialization points                   | opencode-config | Major    | VERIFIED | [DIA-119-batch-dispatch-config-changes.md](DIA-119-batch-dispatch-config-changes.md)                       |
 | DIA-120 | delegation-observer handoff-writer clobbers valid handoff on in-flight log_decision - false checksum mismatch escalation                     | opencode-config | Medium   | CLOSED   | [DIA-120-plugin-handoff-writer-clobber-bug.md](DIA-120-plugin-handoff-writer-clobber-bug.md)                   |
 | DIA-120 | Make delegation-observer A1 warning batch-aware (only warn on unsafe parallel task batches)                                                  | opencode-config | Medium   | VERIFIED | [DIA-120-batch-aware-a1-plugin.md](DIA-120-batch-aware-a1-plugin.md)                                       |
 | DIA-121 | bats-wrapper.sh claims v1.11.0 but vendored bats is v1.14.0 - version drift                                                                  | dev-infra       | Low      | CLOSED   | [DIA-121-bats-version-drift-wrapper-vendor.md](DIA-121-bats-version-drift-wrapper-vendor.md)                   |
-| DIA-121 | Give opencode-docker container host docker/podman socket access so pre-commit hooks work from inside OpenCode                                | docker          | Major    | OPEN     | [DIA-121-opencode-docker-host-socket-access.md](DIA-121-opencode-docker-host-socket-access.md)             |
+| DIA-121 | Give opencode-docker container host docker/podman socket access so pre-commit hooks work from inside OpenCode                                | docker          | Major    | VERIFIED | [DIA-121-opencode-docker-host-socket-access.md](DIA-121-opencode-docker-host-socket-access.md)             |
 | DIA-122 | needs-input ticker + notifications: surface which opencode session awaits developer input                                                    | opencode-config | Medium   | CLOSED   | [DIA-122-needs-input-ticker.md](DIA-122-needs-input-ticker.md)                                                 |
 | DIA-123 | deterministic opencode restart detection for the orchestrator                                                                                | opencode-config | Medium   | OPEN     | [DIA-123-deterministic-restart-detection.md](DIA-123-deterministic-restart-detection.md)                       |
 | DIA-124 | orchestrator must write and verify a terminal handoff BEFORE presenting session-end / new-session prompt                                     | opencode-config | Major    | OPEN     | [DIA-124-handoff-before-session-end.md](DIA-124-handoff-before-session-end.md)                                 |
@@ -114,12 +117,15 @@ carries the full detail (description, verification, fix, re-verify evidence).
 | -------- | ----- |
 | Blocker  | 7     |
 | Critical | 2     |
+| Major    | 31    |
+| Medium   | 41    |
 | Minor    | 0     |
-| Low      | 10    |
+| Low      | 9     |
 | Info     | 0     |
 
 | Status      | Count |
 | ----------- | ----- |
+| OPEN        | 31    |
 | DONE        | 3     |
 | VALIDATE    | 0     |
 | E2E         | 0     |
@@ -127,10 +133,9 @@ carries the full detail (description, verification, fix, re-verify evidence).
 | MONITOR     | 1     |
 | FIXED       | 0     |
 | IMPLEMENTED | 0     |
-| VERIFIED    | 18    |
+| VERIFIED    | 20    |
 | CLOSED      | 34    |
 | BLOCKED     | 0     |
-
 ## How to add a ticket
 
 1. Copy `_TEMPLATE.md` → `DIA-<NNN>-<human-slug>.md` (YAML frontmatter format);

@@ -99,3 +99,9 @@ Registered per AGENTS.md section 2.5 workflow step 7 (Register) + step 5 (Valida
   learnings entry .opencode/learnings/external-patterns/2026-08-12-dia120-batch-aware-a1.md
   created with outcome field; ticket status OPEN -> VERIFIED (README index + counts updated).
 - **Status: VERIFIED.**
+- **Restart smoke (completed 2026-08-12):** plugin live in the relaunched
+  session - a1_violation NOT triggered by a single read-only dispatch;
+  isSafeTaskBatch A/B/C classification verified present. Commit 7b08e90
+  landed. This completes the restart-smoke item that the bullet above
+  recorded as satisfied-in-part; the pending-full-daemon-restart note is
+  now superseded.

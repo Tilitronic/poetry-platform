@@ -10,7 +10,7 @@ id: DIA-121
 title: "Give opencode-docker container host docker/podman socket access so pre-commit hooks work from inside OpenCode"
 area: docker
 severity: Major
-status: OPEN
+status: VERIFIED
 blocked_by: []
 discovered: 2026-08-12
 source: fix-lane
@@ -56,8 +56,55 @@ After rebuild + relaunch, inside the container:
 
 ## Fix
 
-> To be filled at fix time.
+3-part fix applied 2026-08-12, landed in commit 4d34211:
+
+1. Dockerfile - docker CLI 29.7.2 + compose v2.39.1 installed via static
+   curl download, SHA256-pinned (docker tgz 803d433f..., compose verified
+   against the release checksums.txt), client-only (no dockerd/containerd/
+   runc extracted).
+2. bin/opencode-docker - socket detection loop (XDG_RUNTIME_DIR/podman/
+   podman.sock -> /run/user/$(id -u)/podman/podman.sock ->
+   /var/run/docker.sock), mounts the first found socket read-only as
+   /var/run/docker.sock, sets DOCKER_HOST=unix:///var/run/docker.sock via
+   EXTRA_ENV.
+3. README docs added + 'name: poetry-platform' added to docker-compose.yml
+   (fixes compose project-name mismatch when the repo is mounted at
+   /workspace).
+
+SELinux saga (recorded concisely): the socket was blocked by SELinux
+type-enforcement - container_t cannot connectto a user_tmp_t socket; the
+:z relabel to container_file_t still denies connectto; chcon to
+container_runtime_t is policy-denied. Applied fix:
+--security-opt=label=disable in the wrapper + workspace mount changed
+:Z -> :z (the :Z relabel was privatizing /workspace MCS labels, locking
+out poetry-dev). Host one-time restore: sudo chcon -Rv
+"system_u:object_r:container_file_t:s0"
+/home/mimic/Documents/Coddding/poetry-platform.
 
 ## Re-verify
 
-> To be filled at re-verify time.
+Re-verified 2026-08-12 after rebuild + relaunch (commit 4d34211 landed the
+fix). All checks run inside the rebuilt opencode-docker container unless
+noted:
+
+- docker compose -f /workspace/docker-compose.yml ps --services --status
+  running -> outputs 'dev' and 'postgres', exit 0.
+- docker ps (inside container) -> lists all host containers, exit 0.
+- bash scripts/verify-pre-commit.sh -> exit 0, prints '== poetry-platform
+  pre-commit: delegating to dev container ==' and 'autofix passed'.
+- Poetry-dev read /workspace: 'READ_OK' after the host chcon restore (see
+  Fix, SELinux saga).
+- Config validators: all 10 test-config validators exit 0 (run directly;
+  make is absent in the opencode container).
+
+Honest caveat: 'make test-config && make test-shell' INSIDE poetry-dev
+exits 2 due to TWO pre-existing environment gaps, not DIA-121 regressions:
+(a) check-host-lsp - rust-analyzer 1.83.0 on PATH, expected 1.97.1
+(dev-image LSP drift); (b) test-skills - global skills directory not found
+at /home/dev/.config/opencode/skills (poetry-dev HOME=/home/dev lacks the
+global skills dir the validator expects). Tracked as a follow-up; the
+pre-commit commit gate itself passes (it delegates lint-staged only, not
+these gates). The pre-push gate wiring (test-shell/test-config) is
+DIA-118's scope and its bats suite passed 9/9.
+
+Status: OPEN -> VERIFIED.

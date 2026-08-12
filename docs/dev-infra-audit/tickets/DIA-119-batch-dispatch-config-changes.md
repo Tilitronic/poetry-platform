@@ -131,3 +131,11 @@ Registered per AGENTS.md section 2.5 workflow step 7 (Register) + step 5 (Valida
   learnings entry .opencode/learnings/external-patterns/2026-08-12-dia119-batch-dispatch.md
   created with outcome field; ticket status OPEN -> VERIFIED (README index + counts updated).
 - **Status: VERIFIED.**
+- **Restart smoke (completed 2026-08-12):** full daemon restart performed
+  via bin/opencode-docker relaunch; functional smoke dispatch (researcher
+  lane) completed under the new config with no anomalies; BATCH-DISPATCH
+  text verified in all 3 preset prompts; memory-shelf.yaml write allow only
+  on memory-manager (opencode.jsonc); A6 Serialization Points present in
+  orchestrator_append.md. Commit 0697a08 landed. This completes the
+  restart-smoke item that the bullet above recorded as satisfied-in-part;
+  the pending-full-daemon-restart note is now superseded.
