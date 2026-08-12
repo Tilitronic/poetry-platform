@@ -16,7 +16,7 @@ id: DIA-117
 title: "git worktree remove --force missing from DIA-096 permission deny list - config hardening (DIA-100 FALSIFICATION-1)"
 area: opencode-config
 severity: Major
-status: FIXED
+status: CLOSED
 blocked_by: [] # DIA-100 is FIXED, not blocking; child of DIA-100 (see Description)
 discovered: 2026-08-12
 source: reviewer-report
@@ -135,27 +135,21 @@ needs the worktree-force entry added to the destructive list);
   243-245) still claimed `git worktree remove --force` is NOT in the DIA-096
   deny list - stale since this config change. Fixed in this lane as a
   comment-only refresh (functionality unchanged).
-- **Status:** FIXED. CLOSED status awaits restart-verify (next OpenCode
-  restart): confirm lane direct `git worktree remove --force <path>` and
-  `<path> --force` denied, option-order variants denied, non-force
-  `git worktree remove <path>` allowed, and the developer `WORKTREES_FORCE=1`
-  scripted path succeeds.
+- **Status:** CLOSED (2026-08-12, restart-verify PASS, smoke-test lane - see
+  Re-verify below).
 - **Validation:** `make test-config` exit 0; husky pre-commit PASS (no
   --no-verify); ASCII-only (DIA-079).
 
 ## Re-verify
 
-> PENDING (S10 Phase 5) - restart-verify at the next OpenCode boot. Expected
-> results:
+> RESTART-VERIFY PASSED (2026-08-12, smoke-test lane, all checks PASS):
 >
-> 1. Lane `git worktree remove --force <path>` and `git worktree remove <path>
---force` denied by the permission layer (config-level defense-in-depth,
->    not just the script guard).
-> 2. Option-order variants (`--force` / `-f` in any position) denied.
-> 3. Non-force `git worktree remove <path>` still allowed.
-> 4. Developer scripted force-remove succeeds: `WORKTREES_FORCE=1
-scripts/worktrees.sh remove --force <path>` exits 0 (script subprocess not
->    gated).
-> 5. `make test-config` exits 0; no regression in existing DIA-096 deny rules.
+> 1. Lane `git worktree remove --force <path>` DENIED by the permission layer
+>    (tool call rejected, deny patterns listed).
+> 2. Option-order `git worktree remove <path> --force` DENIED (same).
+> 3. Non-force `git worktree remove <path>` ALLOWED (executed, exit 0).
+> 4. Developer `WORKTREES_FORCE=1 bash scripts/worktrees.sh remove --force
+<path>` SUCCEEDS (exit 0).
+> 5. All 8 deny patterns live after OpenCode restart.
 >
-> On full PASS, flip status FIXED -> CLOSED (Phase 6 registration complete).
+> Status flipped FIXED -> CLOSED (2026-08-12).
