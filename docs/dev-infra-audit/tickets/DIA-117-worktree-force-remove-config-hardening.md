@@ -43,28 +43,28 @@ evidence: []
 
 **Reviewer finding F1 (DIA-100 two-axis review, FALSIFICATION-1, quoted):**
 the `WORKTREES_FORCE=1` env-var barrier in `scripts/worktrees.sh` `cmd_remove`
-is convention-only — a lane invoking `git worktree remove --force` directly
+is convention-only - a lane invoking `git worktree remove --force` directly
 bypasses the guard because the DIA-096 OpenCode permission deny list covers
 `git clean -f*` and `git branch -D *` but NOT `git worktree remove --force`.
 
 **Why it matters:** DIA-100's force-remove path (used to evict a dirty
-worktree) maps semantically to DIA-096-denied destructive operations — forced
+worktree) maps semantically to DIA-096-denied destructive operations - forced
 removal discards uncommitted work inside the worktree the same way `git clean
 -f*` / `git branch -D` do. The script-side barrier only gates agents that go
 through the script; the OpenCode permission layer is the only enforcement
 surface that gates ALL agent bash calls. Today a lane can run
 `git worktree remove --force <path>` directly and discard another lane's
-uncommitted changes — a real parallel-dev isolation risk, not an active
+uncommitted changes - a real parallel-dev isolation risk, not an active
 exploit (lanes are expected to follow the script, so severity is Major config
 hardening, defense-in-depth, not Blocker).
 
-**Developer decision (2026-08-12):** HARDEN via config — add
+**Developer decision (2026-08-12):** HARDEN via config - add
 `git worktree remove --force` (and force variants) to the DIA-096 deny list
 (defense-in-depth), keep the script-side guard in `scripts/worktrees.sh`
 as-is. No script change.
 
 **KEY RISK to resolve during section-10 Phase 1 (ai-specialist gate):** the
-config deny must NOT block `worktrees.sh`'s OWN legit force-remove path — the
+config deny must NOT block `worktrees.sh`'s OWN legit force-remove path - the
 script itself runs `git worktree remove --force "$path"` inside `cmd_remove`
 when `WORKTREES_FORCE=1` (scripts/worktrees.sh line 250). The section-10
 research lane must determine the correct scoping before implementation:
@@ -81,14 +81,14 @@ allow-list, agent-tool-call-only enforcement) is the reference pattern.
 - `git worktree remove -f *`
 - Option-order variants (`git worktree remove <path> --force`), mirroring the
   DIA-096 option-order lesson
-- Keep `git worktree remove <path>` (non-force) allowed — it refuses dirty
+- Keep `git worktree remove <path>` (non-force) allowed - it refuses dirty
   worktrees and is the script's normal path
 
 **Reference files:** `scripts/worktrees.sh` lines 242-254 (force-remove
 branch; comment at lines 243-245 explicitly notes the DIA-096 deny-list gap);
 `.opencode/opencode.jsonc` DIA-096 deny section (git clean -f* / git branch
 -D * present, `git worktree remove --force` absent);
-`.opencode/skills/git-permissions/SKILL.md` (safe vs destructive split —
+`.opencode/skills/git-permissions/SKILL.md` (safe vs destructive split -
 needs the worktree-force entry added to the destructive list);
 `docs/dev-infra-audit/worktree-conventions.md` (DIA-096 mapping section).
 
