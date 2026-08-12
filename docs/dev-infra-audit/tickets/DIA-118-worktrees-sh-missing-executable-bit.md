@@ -14,13 +14,13 @@ id: DIA-118
 title: "scripts/worktrees.sh missing executable bit - direct invocation fails exit 126"
 area: dev-infra
 severity: Low
-status: OPEN
+status: FIXED
 blocked_by: [] # no blockers
 discovered: 2026-08-12
 source: session-observation (S17, restart-verify smoke-test lane, 2026-08-12)
 date: 2026-08-12
 created: 2026-08-12
-updated: 2026-08-12
+updated: 2026-08-12 (fixed)
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -75,7 +75,30 @@ scripts/worktrees.sh list` or `--help`).
 
 ## Fix
 
-> To be filled at fix time.
+Fixed 2026-08-12 (implementation lane).
+
+- **Mode before:** `-rw-r--r--` (100644) - no executable bit, direct invocation
+  failed with exit 126 (Permission denied). Confirmed.
+- **Mode after:** `-rwxr-xr-x` (100755) - `chmod +x scripts/worktrees.sh`.
+- **Index recording:** repo-local `core.filemode=false` means git ignores
+  filesystem mode changes; recorded the executable bit in the index explicitly
+  with `git update-index --chmod=+x scripts/worktrees.sh` so the fix survives
+  checkout/clone (plain `git add` would have silently dropped it).
+- **Direct invocation after fix:** `scripts/worktrees.sh --help` runs (exit 2,
+  usage - same as the established `bash`-prefix path); `scripts/worktrees.sh
+list` exits 0 and lists the real worktree. No more exit 126.
+- **No doc/test depended on the non-executable state:** worktrees.bats invokes
+  via `bash` (still valid); no `test ! -x` or mode assertion on worktrees.sh
+  exists. Docs (`worktree-conventions.md`, `.opencode/skills/`) all show the
+  bash-prefix invocation, which remains valid, so no doc edits were needed.
+  OpenSpec DIA-100 artifacts already spec the file as "executable", so this fix
+  fulfills the spec.
+- **worktrees.bats:** 16/16 (T1-T16) pass. Full `make test-shell`: 209/209
+  pass, overall exit 0 (the DIA-119 pnpm sandbox failure did not manifest in
+  this run).
+- **Docker gate (DIA-094):** `poetry-dev` container Up 17 hours (healthy);
+  pre-commit hook passed (container running).
+- **Commit:** filled after commit (see below).
 
 ## Re-verify
 
