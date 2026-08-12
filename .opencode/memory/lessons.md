@@ -354,3 +354,37 @@ Notes:
   annotated CANCELLED/superseded (ana014) rather than deleted, and the
   superseding conspect cited (knowledge/res017-rung3-benchmark-evidence/).
   This keeps the decision auditable without self-grading dispatch models.
+
+## L20260812-003 - section-10 dispatch ticket correlation (session 16, 2026-08-12)
+
+- **Symptom (two linked gate failures during the DIA-117 config-hardening
+  flow):**
+  1. The first section-10 (opencode config) register dispatch FAILED the
+     section-10 ticket gate because its prompt did NOT carry an explicit
+     correlating DIA ticket reference; re-dispatching with an explicit
+     "TICKET: DIA-NNN ..." header in the prompt passed the gate.
+  2. The completed DIA-100 ticket (status FIXED) was NOT accepted by the gate
+     as correlation for the follow-up config work (DIA-117); a child OPEN
+     ticket (DIA-117) had to be created to carry the config change through the
+     section-10 chain.
+- **Why irrecoverable:** NEXT-RUN.md and AGENTS.md document ticket REFERENCE
+  FORMAT (quote ID + slug) and the recency cliff (L103 / 2026-08-10 failures),
+  but neither documents that (a) the section-10 gate requires the DISPATCH
+  PROMPT itself to carry an explicit correlating DIA ticket reference, nor
+  (b) new section-10 config work needs its OWN OPEN ticket (a completed/FIXED
+  parent will not correlate). These are gate-behaviour observations not
+  recoverable from git diffs, NEXT-RUN, or the learnings file (which covers
+  ID+slug quoting only).
+- **Operational lesson:**
+  1. ALWAYS lead a section-10 / opencode-config dispatch prompt with a
+     "TICKET: DIA-NNN 'slug'" header naming an OPEN correlating ticket.
+  2. New section-10 config work requires its OWN OPEN ticket. A FIXED/completed
+     ticket is not a valid correlation for follow-up config changes; file a
+     child ticket (e.g. DIA-100 FALSIFICATION -> DIA-117) before starting the
+     config change.
+  3. Do not confuse the three distinct section-10 gate concerns: reference
+     FORMAT (ID+slug quoting, learnings 2026-08-12), ticket RECENCY (L103),
+     and dispatch CORRELATION / own-ticket (this entry).
+  - Cross-reference: DIA-117, DIA-100, lessons.md L103, failures.md
+    2026-08-10 stale-gate recency block, learnings/external-patterns/
+    2026-08-12-ticket-reference-format.md.
