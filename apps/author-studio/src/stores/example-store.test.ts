@@ -1,3 +1,6 @@
+// TODO(ponytail): template-store boilerplate coverage only - useCounterStore
+// is scaffold, not domain logic. Do not mistake this for real business
+// coverage; replace once real stores (with Orchestrator-backed state) exist.
 import { beforeEach, describe, expect, it } from 'vitest';
 import { createPinia, setActivePinia } from 'pinia';
 import { useCounterStore } from './example-store';

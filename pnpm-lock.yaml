@@ -140,6 +140,9 @@ importers:
 
   packages/data-contracts:
     devDependencies:
+      ajv:
+        specifier: ^6.15.0
+        version: 6.15.0
       vitest:
         specifier: ^4.1.9
         version: 4.1.9(@types/node@26.2.0)(vite@8.0.16(@types/node@26.2.0)(esbuild@0.27.7)(sass-embedded@1.100.0)(sass@1.100.0)(terser@5.48.0)(yaml@2.9.0))

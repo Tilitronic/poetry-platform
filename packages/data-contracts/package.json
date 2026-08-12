@@ -11,6 +11,7 @@
     "test": "vitest run"
   },
   "devDependencies": {
+    "ajv": "^6.15.0",
     "vitest": "^4.1.9"
   }
 }
