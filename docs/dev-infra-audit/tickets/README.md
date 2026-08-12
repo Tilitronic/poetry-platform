@@ -110,22 +110,26 @@ carries the full detail (description, verification, fix, re-verify evidence).
 | DIA-129 | crawl4ai crwl fallback fails: Playwright pins chromium revision 1228, host cache has 1234 only                                               | dev-infra       | Medium   | OPEN     | [DIA-129-crawl4ai-playwright-chromium-revision-skew.md](DIA-129-crawl4ai-playwright-chromium-revision-skew.md) |
 | DIA-130 | Duplicated OMO inline-override warnings still visible in opencode TUI 'Loading plugins...' area (residual after DIA-128)                     | opencode-config | Major    | OPEN     | [DIA-130-duplicated-inline-override-warning-ui.md](DIA-130-duplicated-inline-override-warning-ui.md)           |
 | DIA-131 | post-restart TUI re-verify of user-level inline-override fix (DIA-130 review finding F3)                                                     | opencode-config | Major    | OPEN     | [DIA-131-post-restart-tui-reverify.md](DIA-131-post-restart-tui-reverify.md)                                   |
+| DIA-124 | test infra Phase 0: safety wins (author-studio fails loudly, flaky-pin tests removed, config gate hardened)                                  | tests-infra     | Major    | OPEN     | [DIA-124-test-infra-phase0-safety-wins.md](DIA-124-test-infra-phase0-safety-wins.md)                       |
+| DIA-125 | test infra Phase 1: de-duplication (bats helpers, it.each, bash -n auto-discovery, per-package dependsOn)                                    | tests-infra     | Medium   | OPEN     | [DIA-125-test-infra-phase1-dedup.md](DIA-125-test-infra-phase1-dedup.md)                                   |
+| DIA-126 | test infra Phase 2: critical gaps (vitest in author-studio, real data-contracts test)                                                        | tests-infra     | Critical | OPEN     | [DIA-126-test-infra-phase2-critical-gaps.md](DIA-126-test-infra-phase2-critical-gaps.md)                   |
+| DIA-127 | test infra Phase 3: Orchestrator contract test (acceptWorkerResult, zero mocks)                                                              | tests-infra     | Medium   | OPEN     | [DIA-127-test-infra-phase3-orchestrator-contract.md](DIA-127-test-infra-phase3-orchestrator-contract.md)   |
 
 ## Status summary
 
 | Severity | Count |
 | -------- | ----- |
 | Blocker  | 7     |
-| Critical | 4     |
-| Major    | 31    |
-| Medium   | 41    |
+| Critical | 5     |
+| Major    | 32    |
+| Medium   | 43    |
 | Minor    | 0     |
 | Low      | 9     |
 | Info     | 0     |
 
 | Status      | Count |
 | ----------- | ----- |
-| OPEN        | 26    |
+| OPEN        | 30    |
 | DONE        | 3     |
 | VALIDATE    | 0     |
 | E2E         | 0     |
