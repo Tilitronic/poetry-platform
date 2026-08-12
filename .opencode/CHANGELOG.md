@@ -1,5 +1,13 @@
 # OpenCode Config Changelog
 
+## 2026-08-12 - DIA ticket reference format rule codified (ID + human-readable slug) + registration
+
+- **Change:** codified DIA ticket reference format rule (ID + human-readable slug) in NEXT-RUN.md 7.3 step 3a and AGENTS.md 2.3 step 2 (commit 0f0af95, DIA-110 follow-through, DIA-074)
+- **Reason:** developer directive: humans must always understand which ticket is referenced
+- **Files:** docs/dev-infra-audit/NEXT-RUN.md (7.3 step 3a) - AGENTS.md (2.3 step 2) - .opencode/learnings/external-patterns/2026-08-12-ticket-reference-format.md (outcome pending to applied) - CHANGELOG.md
+- **Review:** ai-auditor PASS-WITH-NOTES (independent review of commit 0f0af95)
+- **Verification:** make test-config exit code recorded in lane report; husky pre-commit ran live (no --no-verify); ASCII-only (DIA-079)
+
 ## 2026-08-11 - DIA-087 agent model variant audit - R1/R2/R3/R4/R6 model allocation + pricing corrected (S10-P6 registration + ticket CLOSED)
 
 - **Change:** DIA-087 audit recommendations applied. R1: 4 gpt-5-mini primaries (conspecter/resource-manager/memory-manager/code-navigator) -> deepseek-v4-flash in the cebula preset. R2: architector -> gemini-3.1-pro-preview (fallback big-pickle retained). R3: opencode-go preset coder + 5 agents (resource-manager/conspecter/memory-manager/code-navigator/researcher) -> deepseek-v4-flash. R4: stale V4 Pro pricing $1.74/$3.48 -> $0.435/$0.87 in ai-assist-sources.yaml (web-verified 2026-08-08, official DeepSeek pricing). R6: inline resource-manager model override removed from opencode.jsonc:350 (single source of truth - the preset already declares it). R5 queued (MiMo evaluation - not enough evidence at audit time). Post-implementation ai-auditor findings 8+9 fix: code_navigator role mapping corrected to "DS V4 Flash (Go)" in model_selection_guidelines; header pricing-storage contradiction clarified (authoritative pricing NEVER stored; inline prices are reference-only snapshots); strong_sides snapshot note added.
