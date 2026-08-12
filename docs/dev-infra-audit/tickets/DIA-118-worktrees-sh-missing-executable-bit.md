@@ -14,13 +14,13 @@ id: DIA-118
 title: "scripts/worktrees.sh missing executable bit - direct invocation fails exit 126"
 area: dev-infra
 severity: Low
-status: FIXED
+status: CLOSED
 blocked_by: [] # no blockers
 discovered: 2026-08-12
 source: session-observation (S17, restart-verify smoke-test lane, 2026-08-12)
 date: 2026-08-12
 created: 2026-08-12
-updated: 2026-08-12 (fixed)
+updated: 2026-08-12 (closed, re-review cycle 1/2)
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -102,4 +102,6 @@ list` exits 0 and lists the real worktree. No more exit 126.
 
 ## Re-verify
 
-> To be filled at re-verify time.
+> Re-review cycle 1/2 (2026-08-12): S1 verified-closed (Verification section
+> line 72 corrected to exit 2 usage in commit 146b234); S2/F1/F2/F3 closed by
+> developer disposition. DIA-118 CLOSED.
