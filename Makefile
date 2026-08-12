@@ -16,7 +16,7 @@
 #   make test-opencode-docker  static integrity gate for tools/opencode-docker (wired into test-shell)
 #   make check-tools  host-runnable tool integrity check (mise vs node/pnpm pins)
 #   make test-infra   test-shell + full Docker compose smoke test (heavy)
-#   make test-config  validate OpenCode JSONC config syntax + interview + skills gate
+#   make test-config  validate OpenCode JSONC config syntax + interview + skills gate + docker-compose.yml
 #   make test-interview  run scripts/test-interview-enforcement.sh (5 checks)
 #   make test-skills  validate .opencode/skills/*/SKILL.md frontmatter (DIA-037)
 #   make audit-python  pip-audit both Python packages (requires uv + committed uv.lock)
@@ -169,11 +169,14 @@ test-skills:
 # OpenCode JSONC config syntax validation + interview-enforcement regression
 # checks + skill frontmatter gate + agent-name cross-reference + HANDOFF
 # prognosis-schema gate (change dev-infra-config-validators, T4) + tool-coverage
-# audit (change dia-066-tool-coverage-audit, T6). Invariant: test-config passes
+# audit (change dia-066-tool-coverage-audit, T6) + docker-compose.yml syntax
+# (DIA-124: `docker compose config --quiet` so compose drift fails the config
+# gate without the heavy test-infra). Invariant: test-config passes
 # iff no HARD write-capable gaps remain — WARN-only gaps (the ~440 unlisted
 # default-allow non-write-capable tools) do NOT break the gate (Decision 6
 # scoping; see scripts/audit-agent-tool-coverage.sh).
 test-config: test-interview test-skills
+	docker compose config --quiet
 	bash .opencode/scripts/validate-opencode-config.sh
 	bash scripts/validate-agent-names.sh
 	bash scripts/validate-output-contracts.sh

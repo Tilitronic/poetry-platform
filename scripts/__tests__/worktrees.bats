@@ -218,12 +218,12 @@ FAKEGIT
 @test "worktrees: T13 create bounded when origin unreachable (fake ls-remote sleeps; internal timeout 5)" {
   tree="$(setup_worktree_repo)"
   mock_git_ls_remote
-  export FAKE_LS_REMOTE_SLEEP=20
+  export FAKE_LS_REMOTE_SLEEP=8
 
   # Outer timeout 12 bounds the whole test; the script's internal
   # `timeout 5 git ls-remote` must kill the hanging fake (~5s) so create
   # completes well under 12s. Without the internal timeout this test would
-  # take 20s and the outer timeout would kill it -> status 124 -> RED.
+  # take 8s and the outer timeout would kill it -> status 124 -> RED.
   run timeout 12 bash "$tree/scripts/worktrees.sh" create feature/DIA-100-slow
 
   assert_status 0

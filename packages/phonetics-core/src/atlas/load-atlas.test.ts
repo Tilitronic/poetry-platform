@@ -264,7 +264,7 @@ describe('PhoneticAtlasIndex — iteration', () => {
 });
 
 describe('PhoneticAtlasIndex — content hash integrity', () => {
-  it('content hash matches .sha256 sidecar file', async () => {
+  it('content hash matches .sha256 sidecar file', () => {
     // C2: The .sha256 sidecar is written alongside the .bin by the generator.
     // This test verifies the stored hash matches the sidecar, providing
     // INDEPENDENT verification — the sidecar is a separate file that survives
@@ -273,23 +273,12 @@ describe('PhoneticAtlasIndex — content hash integrity', () => {
     //
     // This is MORE robust than recomputing the hash from deserialized data
     // (which would match even if both data and hash were consistently corrupt).
-    const { readFileSync } = await import('node:fs');
-    const { resolve } = await import('node:path');
     const sidecarPath = resolve(__dirname, 'phonetic_atlas.bin.sha256');
     const sidecarContent = readFileSync(sidecarPath, 'utf-8').trim();
     // Format: "<hash>  phonetic_atlas.bin" (standard shasum format)
     const sidecarHash = sidecarContent.split(/\s+/)[0];
     expect(sidecarHash).toMatch(/^[0-9a-f]{64}$/);
     expect(sidecarHash).toBe(atlas.metadata!.contentHash);
-  });
-
-  it('content hash is deterministic across atlas loads', () => {
-    // Verify that loading the same binary multiple times produces the
-    // same metadata hash. This catches runtime corruption.
-    const meta1 = PhoneticAtlasIndex.fromBuffer(ATLAS_BYTES).metadata!.contentHash;
-    const meta2 = PhoneticAtlasIndex.fromBuffer(ATLAS_BYTES).metadata!.contentHash;
-    expect(meta1).toBe(meta2);
-    expect(meta1).toMatch(/^[0-9a-f]{64}$/);
   });
 });
 

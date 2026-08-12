@@ -10,7 +10,7 @@
     "lint": "eslint .",
     "format": "prettier --write \"**/*.{js,ts,vue,css,scss,html,md,json}\"",
     "typecheck": "vue-tsc --noEmit",
-    "test": "echo \"No test specified\" && exit 0",
+    "test": "echo \"author-studio has no test suite yet (DIA-124): excluded from the turbo test task; fails loudly by design\" && exit 1",
     "dev": "quasar dev",
     "build": "quasar build",
     "postinstall": "quasar prepare"
