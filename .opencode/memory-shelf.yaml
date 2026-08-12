@@ -356,6 +356,20 @@ shelf:
     path: openspec/changes/archive/2026-08-11-dia-086-m1-m5-agent-contracts-eval-lite/
     created: 2026-08-11
     status: implemented
+  - name: dia-100-worktree-lifecycle
+    description: 'OpenSpec change (retrospective spec): worktree lifecycle CLI for the
+      worktrees-only parallel dev model (DIA-100, DIA-073 option d adopted 2026-08-09).
+      scripts/worktrees.sh (create/remove/list, bash-3 compatible, 273L), 16-case bats
+      suite (T1-T16, real isolated git repo fixture + FAKE-mock ls-remote),
+      worktree-conventions.md (branch naming per DIA-074, squash-merge workflow with
+      worked example, conflict escalation criteria, DIA-096 safe/destructive mapping,
+      .opencode/session isolation, orchestrator dispatch templates). skip_specs: true
+      (dev-infra, no system spec deltas). References DIA-100/073/074/096. Architecture
+      gap flagged: .sdd/dev-infra/architecture.md needed (drafted content provided in
+      spec report for manual creation).'
+    path: openspec/changes/dia-100-worktree-lifecycle/
+    created: 2026-08-12
+    status: implemented
   architectures: []
   rag_bases: []
   
