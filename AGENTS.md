@@ -150,29 +150,31 @@ Full setup docs: `docs/docker-dev.md`.
 
 Canonical display→internal mapping for every agent the project declares (active or disabled). This table is S1 of the 4-source agent-name lockstep contract (`scripts/validate-agent-names.sh`): the "Internal name" column must stay in equality with the `.opencode/opencode.jsonc` `agent` block keys, the `.opencode/oh-my-opencode-slim.jsonc` `agents`/preset/`disabled_agents` keys, and the `.opencode/agents/*.md` filename stems.
 
-| Display name        | Internal name      | Lane                                                                      |
-| ------------------- | ------------------ | ------------------------------------------------------------------------- |
-| `@orchestrator`     | `orchestrator`     | Orchestrator (OMO primary)                                                |
-| `@architector`      | `architector`      | Architecture & strategy                                                   |
-| `@analyzer`         | `analyzer`         | Analysis reports & visualization                                          |
-| `@reviewer`         | `reviewer`         | Code review & QA                                                          |
-| `@coder`            | `coder`            | Bounded implementation                                                    |
-| `@code-navigator`   | `code-navigator`   | Fast codebase recon                                                       |
-| `@researcher`       | `researcher`       | External research                                                         |
-| `@conspecter`       | `conspecter`       | Research conspect authoring                                               |
-| `@openspec-plan`    | `openspec-plan`    | Spec authoring (Socratic, practice-protected)                             |
-| `@ai-specialist`    | `ai-specialist`    | OpenCode system research & config (read-only)                             |
-| `@ai-auditor`       | `ai-auditor`       | Read-only config/skill surface auditor (documentation-only; never writes) |
-| `@resource-manager` | `resource-manager` | Knowledge-source curation (ai-assist-sources.yaml, Tier-1 caching)        |
-| `@designer`         | `designer`         | UI/UX design                                                              |
-| `@observer`         | `observer`         | Visual/media analysis                                                     |
-| `@memory-manager`   | `memory-manager`   | Knowledge persistence                                                     |
-| `@council`          | `council`          | Multi-model consensus                                                     |
-| `@explore`          | `explore`          | Built-in OpenCode explorer (disabled)                                     |
-| `@general`          | `general`          | Built-in OpenCode general agent (disabled)                                |
-| `@oracle`           | `oracle`           | OMO native alias (disabled)                                               |
-| `@fixer`            | `fixer`            | OMO native alias (disabled)                                               |
-| `@explorer`         | `explorer`         | OMO native alias (disabled)                                               |
-| `@librarian`        | `librarian`        | OMO native alias (disabled)                                               |
+| Display name          | Internal name        | Lane                                                                                              |
+| --------------------- | -------------------- | ------------------------------------------------------------------------------------------------- |
+| `@orchestrator`       | `orchestrator`       | Orchestrator (OMO primary)                                                                        |
+| `@architector`        | `architector`        | Architecture & strategy                                                                           |
+| `@analyzer`           | `analyzer`           | Analysis reports & visualization                                                                  |
+| `@analyzer-escalated` | `analyzer-escalated` | Escalated analysis for 'cannot comprehend domain' cases (GPT-5.6 Luna, orchestrator-only, hidden) |
+| `@reviewer`           | `reviewer`           | Code review & QA                                                                                  |
+| `@coder`              | `coder`              | Bounded implementation                                                                            |
+| `@coder-escalated`    | `coder-escalated`    | Escalated implementation for complex problem-fix tasks (Kimi K3, orchestrator-only, hidden)       |
+| `@code-navigator`     | `code-navigator`     | Fast codebase recon                                                                               |
+| `@researcher`         | `researcher`         | External research                                                                                 |
+| `@conspecter`         | `conspecter`         | Research conspect authoring                                                                       |
+| `@openspec-plan`      | `openspec-plan`      | Spec authoring (Socratic, practice-protected)                                                     |
+| `@ai-specialist`      | `ai-specialist`      | OpenCode system research & config (read-only)                                                     |
+| `@ai-auditor`         | `ai-auditor`         | Read-only config/skill surface auditor (documentation-only; never writes)                         |
+| `@resource-manager`   | `resource-manager`   | Knowledge-source curation (ai-assist-sources.yaml, Tier-1 caching)                                |
+| `@designer`           | `designer`           | UI/UX design                                                                                      |
+| `@observer`           | `observer`           | Visual/media analysis                                                                             |
+| `@memory-manager`     | `memory-manager`     | Knowledge persistence                                                                             |
+| `@council`            | `council`            | Multi-model consensus                                                                             |
+| `@explore`            | `explore`            | Built-in OpenCode explorer (disabled)                                                             |
+| `@general`            | `general`            | Built-in OpenCode general agent (disabled)                                                        |
+| `@oracle`             | `oracle`             | OMO native alias (disabled)                                                                       |
+| `@fixer`              | `fixer`              | OMO native alias (disabled)                                                                       |
+| `@explorer`           | `explorer`           | OMO native alias (disabled)                                                                       |
+| `@librarian`          | `librarian`          | OMO native alias (disabled)                                                                       |
 
 > **Contract note:** this table is Source-1 of the agent-name cross-reference contract enforced by `scripts/validate-agent-names.sh` — S2: `.opencode/opencode.jsonc` `agent` block keys; S3: `.opencode/oh-my-opencode-slim.jsonc` `agents`/preset/`disabled_agents`/`council` keys; S4: `.opencode/agents/*.md` filename stems. Every internal name in this table must resolve in at least one of S2/S3/S4 — or be exempt (`explore`, `general`, `oracle`, `fixer`, `explorer`, `librarian`, whose S4 absence is correct) — and every name declared in S2/S3 must appear in this table. Containment, not set-equality: a config-defined agent need not have a `.opencode/agents/*.md` file. Drift fails `make test-config`. Disabled entries are intentionally listed: disabled agents are still validated (Q2 ruling) so re-enabling one never breaks dispatch by name drift. `explore`/`general` are OpenCode built-ins disabled in `.opencode/opencode.jsonc`; `oracle`/`fixer`/`explorer`/`librarian` are OMO native aliases renamed in the C4 pass and disabled via `disabled_agents`.

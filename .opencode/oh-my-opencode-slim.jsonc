@@ -310,6 +310,40 @@
           "websearch"
         ]
       },
+      // Escalated lanes (DIA-111/DIA-108, 2026-08-12). Orchestrator-only dispatch,
+      // hidden agents, one-shot no-retry. Skill arrays CLONED in full from the
+      // base coder / base analyzer entries; same temperature/variant as bases.
+      "coder-escalated": {
+        "model": "opencode-go/kimi-k3",
+        "variant": "medium",
+        "temperature": 0.1,
+        "skills": [
+          "simplify",
+          "playwright-browser",
+          "debugging-workflow",
+          "tdd-craftsman",
+          "git-diff",
+          "to-tickets",
+          "resolving-merge-conflicts",
+          "openspec-apply-change"
+        ],
+        "mcps": []
+      },
+      "analyzer-escalated": {
+        "model": "opencode-go/gpt-5.6-luna",
+        "variant": "high",
+        "skills": [
+          "teaching",
+          "book-rag",
+          "openspec-explore",
+          "mermaid-diagramming",
+          "console-charting",
+          "debugging-workflow"
+        ],
+        "mcps": [
+          "websearch"
+        ]
+      },
       "observer": {
         "model": [
           "opencode-go/kimi-k2.7-code",
@@ -564,6 +598,12 @@
   },
   "agents": {
     "coder": {},
+    "coder-escalated": {
+      "orchestratorPrompt": "@coder-escalated\n- Lane: Escalated implementation for complex problem-fix tasks (Kimi K3, orchestrator-only, hidden)\n- Role: Stronger-model implementation lane dispatched ONLY by the orchestrator when the base @coder cannot resolve the task.\n- **Trigger conditions (BOTH required to be checked):** (1) 2 consecutive failed re-review loops on the same findings (AGENTS.md section 2.3.1 cycle cap) OR (2) reviewer reported Critical severity findings. Do NOT dispatch for routine work — that is @coder's lane.\n- **ONE-SHOT no-retry rule (MANDATORY):** kimi-k3 has a 490 requests/month cap. A single dispatch per escalation. NEVER retry coder-escalated on the same task. If the task fails or the cap is exhausted, the orchestrator asks the developer via wait_for_user BEFORE falling back to deepseek-v4-pro/mimo-v2.5-pro.\n- **Quota protection:** coder-escalated has task: deny — it never delegates further.\n- **Routing back:** after coder-escalated produces output, route back to the base @coder/@reviewer for the normal flow (re-review loop)."
+    },
+    "analyzer-escalated": {
+      "orchestratorPrompt": "@analyzer-escalated\n- Lane: Escalated analysis for 'cannot comprehend domain' cases (GPT-5.6 Luna, orchestrator-only, hidden)\n- Role: Stronger-model analysis lane dispatched ONLY by the orchestrator when the base @analyzer cannot comprehend the domain.\n- **Trigger conditions:** base analyzer reports 'cannot comprehend domain' OR aborts on complexity (abort-on-complexity). Do NOT dispatch for routine analysis — that is @analyzer's lane.\n- **One-shot dispatch:** single dispatch per escalation; GPT-5.6 Luna usage is budgeted. On failure, ask the developer via wait_for_user before any further escalation.\n- **Quota protection:** analyzer-escalated keeps task deny (base analyzer already denies task).\n- **Routing back:** after analyzer-escalated produces output, route back to the base @analyzer/@reviewer for the normal flow."
+    },
     "architector": {
       "orchestratorPrompt": "@architector\n- Lane: Architecture and technical strategy\n- Role: Authors .sdd/<module>/architecture.md documents. Each document is a long-lived design record. Architecture is RARE — new documents only when a module is created or a cross-cutting decision changes.\n\n## WORKFLOW — Orchestrator routes, architect advises\n1. **Design audit** — read `.sdd/` (and `.tss/` if present) for existing design constraints before starting. Flag any gaps where a design decision exists but isn't documented.\n2. **Interview** — assess scope, identify research gaps, trade-off questions, and which design documents need updating.\n3. **Research gaps found?** — architect recommends @conspecter; orchestrator dispatches it, feeds results back to architect.\n4. **Trade-offs found?** — architect recommends @analyzer; orchestrator dispatches it, feeds results back to architect.\n5. **Synthesize** — dispatch @architector again with research + analysis results. The architect produces structured architecture content in conversation — Mermaid diagrams, ADRs, comparison tables.\n   **Note:** The architect does NOT delegate to other agents. It identifies needs and recommends; the orchestrator routes.\n   - Cross-reference every architectural decision against .sdd/ and .tss/ — each ADR must trace to a specific design rule or flag a gap\n   - Include Mermaid diagrams for system context, component relationships, data flow, deployment (via `mermaid-diagramming` skill)\n   - Include decision records (ADRs) for key trade-offs using this format:\n     ```\n     ## ADR: <Title>\n     - **Status:** Proposed | Accepted | Deprecated | Superseded\n     - **Context:** What problem are we solving? What constraints exist?\n     - **Decision:** What did we choose and why?\n     - **Consequences:** What becomes easier? Harder? What are the risks?\n     - **Alternatives Considered:** What else was evaluated? Why rejected?\n     ```\n   - Include tables comparing alternatives with pros/cons.\n   - Reference any conspects or analyses used.\n   - **Output location:** All architecture documents go to `.sdd/<module>/architecture.md` — never the project root.\n   - **Cross-reference:** Before writing, read existing `.sdd/` documents in the same or related modules. Link to them where relevant.\n6. **Persist** — dispatch @coder to transcribe the architect's output into `architecture-<module-name>.md`. The executor copies verbatim — no reinterpretation or content modification.\n7. **Register** in .opencode/memory-shelf.yaml under shelf.architectures.\n\n## VISUALIZATION TOOLS\n- **Mermaid** (via `mermaid-diagramming` skill) for C4 context/container, sequence diagrams, flowcharts, entity relationships\n- **Tables** for comparison matrices\n- **ASCII trees** for directory/file structure\n- **Decision matrices** for trade-off analysis\n\n## OUTPUT\n- File: `architecture-<module-name>.md` in the module or project root\n- Memory Shelf: registered under shelf.architectures\n- Main architecture.md describes whole project; per-module files are generated separately (monorepo pattern)."
     },

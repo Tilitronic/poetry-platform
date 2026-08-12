@@ -164,8 +164,10 @@
         "task": {
           "*": "deny",
           "coder": "allow",
+          "coder-escalated": "allow",
           "architector": "allow",
           "analyzer": "allow",
+          "analyzer-escalated": "allow",
           "reviewer": "allow",
           "designer": "allow",
           "code-navigator": "allow",
@@ -221,6 +223,30 @@
         "task": "deny"
       }
     },
+    // analyzer-escalated — escalated analysis lane (DIA-111/DIA-108, 2026-08-12).
+    // Dispatched ONLY by the orchestrator when the base analyzer reports
+    // 'cannot comprehend domain' / abort-on-complexity. GPT-5.6 Luna expert
+    // analysis. hidden: true keeps it out of @autocomplete; task() dispatch
+    // still works (S2 orchestrator allow-list includes it). Permissions are an
+    // exact clone of the base analyzer (edit scoped to knowledge/* + shelf,
+    // bash allow, task deny). After producing output, routes back to the base
+    // analyzer/reviewer for normal flow.
+    "analyzer-escalated": {
+      "description": "Escalated analysis lane (GPT-5.6 Luna) for 'cannot comprehend domain' cases. Orchestrator-only, hidden from @autocomplete, one-shot no-retry.",
+      "mode": "subagent",
+      "model": "opencode-go/gpt-5.6-luna",
+      "color": "#14B8A6",
+      "hidden": true,
+      "permission": {
+        "edit": {
+          "*": "deny",
+          "knowledge/*": "allow",
+          ".opencode/memory-shelf.yaml": "allow"
+        },
+        "bash": "allow",
+        "task": "deny"
+      }
+    },
     "reviewer": {
       "color": "#F59E0B",
       "permission": {
@@ -247,6 +273,31 @@
           "snip": "deny",
           "snip *": "deny"
         }
+      }
+    },
+    // coder-escalated — escalated implementation lane (DIA-111/DIA-108, 2026-08-12).
+    // Dispatched ONLY by the orchestrator on trigger: 2 consecutive failed
+    // re-review loops OR reviewer Critical severity findings. Kimi K3 model
+    // (opencode-go/kimi-k3). ONE-SHOT no-retry rule — Kimi K3 has a 490 req/mo
+    // cap; on cap exhaustion the orchestrator asks the developer via
+    // wait_for_user BEFORE falling back to deepseek-v4-pro/mimo-v2.5-pro.
+    // hidden: true keeps it out of @autocomplete; task() dispatch still works
+    // (S2 orchestrator allow-list includes it). Permissions are an exact clone
+    // of the base coder PLUS task: "deny" for quota protection (escalated lane
+    // must never delegate further).
+    "coder-escalated": {
+      "description": "Escalated implementation lane (Kimi K3) for complex problem-fix tasks. Orchestrator-only, hidden from @autocomplete, one-shot no-retry.",
+      "mode": "subagent",
+      "model": "opencode-go/kimi-k3",
+      "color": "#3B82F6",
+      "hidden": true,
+      "permission": {
+        "doom_loop": "deny",
+        "bash": {
+          "snip": "deny",
+          "snip *": "deny"
+        },
+        "task": "deny"
       }
     },
     "code-navigator": {
