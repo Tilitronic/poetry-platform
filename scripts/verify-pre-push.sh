@@ -16,8 +16,9 @@ set -euo pipefail
 # tree (e.g., verify-pre-push.sh -> make test-shell -> bats -> nested
 # verify-pre-push.sh), skip the gates to prevent unbounded recursion. The flag
 # propagates through process spawns (bash -> make -> bats -> test -> nested
-# script). Test-side: verify-pre-push.bats test #6 explicitly unsets this flag
-# to exercise the direct-run path.
+# script). Test-side: verify-pre-push.bats setup() unsets this flag so every
+# test exercises the public entry behavior with a clean environment (hook
+# context inherits the flag).
 if [ -n "${VERIFY_PRE_PUSH_RUNNING:-}" ]; then
   echo "!! verify-pre-push.sh: already running (recursion guard; skipping)"
   exit 0

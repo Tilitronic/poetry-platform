@@ -15,6 +15,16 @@ load test-helper
 
 setup() {
   mock_docker
+  # DIA-123: the husky pre-push hook exports VERIFY_PRE_PUSH_RUNNING=1 before
+  # running make test-shell, so every bats test would inherit the flag and hit
+  # the script's recursion guard (warning + exit 0), breaking the direct
+  # invocation tests. Unset it so every test exercises the public entry
+  # behavior with a clean environment; the inherited flag is an artifact of the
+  # hook environment, not the test subject.
+  unset VERIFY_PRE_PUSH_RUNNING
+  # Maintainer note: a future test that wants to verify the recursion guard
+  # must re-export VERIFY_PRE_PUSH_RUNNING=1 inside its own body AFTER setup()
+  # runs (setup() unsets it above).
   # Hermetic host-context (DIA-071, 2026-08-12): these tests exercise the
   # HOST + container-running delegation path, but when the suite runs INSIDE
   # poetry-dev (the pre-push gate runs make test-shell in the container) the
@@ -33,6 +43,19 @@ setup() {
   # hermetic regardless of the real repo's .opencode/commands state.
   export POETRY_COMMANDS_DIR="$BATS_TEST_TMPDIR/commands"
   mkdir -p "$POETRY_COMMANDS_DIR"
+}
+
+@test "verify-pre-push: recursion guard fires when VERIFY_PRE_PUSH_RUNNING is set" {
+  # setup() unsets the flag, so re-export it here to exercise the guard path
+  # (the hook context exports it before running make test-shell).
+  export VERIFY_PRE_PUSH_RUNNING=1
+
+  run bash "$SCRIPTS_DIR/verify-pre-push.sh"
+
+  assert_status 0
+  assert_output_contains "already running (recursion guard; skipping)"
+  # gates must never run when the guard fires (no docker invocation at all)
+  [ ! -s "$FAKE_DOCKER_LOG" ]
 }
 
 @test "verify-pre-push: skips with a warning when the dev container is not running" {
@@ -115,11 +138,6 @@ setup() {
 }
 
 @test "verify-pre-push: runs steps directly when already inside the dev container" {
-  # ana015: the script's recursion guard (VERIFY_PRE_PUSH_RUNNING) blocks
-  # nested invocations. This test exercises the direct-run path, so unset the
-  # flag to allow the gates to run.
-  unset VERIFY_PRE_PUSH_RUNNING
-
   local bindir="$BATS_TEST_TMPDIR/bin"
   mkdir -p "$bindir"
   cat > "$bindir/hostname" <<'FAKEHOSTNAME'
