@@ -11,7 +11,7 @@
     "stack": "bash scripts/dev-stack.sh",
     "format": "prettier --write \"**/*.{js,ts,vue,css,scss,html,md,json}\"",
     "format:check": "prettier --check \"**/*.{js,ts,vue,css,scss,html,md,json}\"",
-    "test": "turbo test --filter=!author-studio",
+    "test": "turbo test",
     "verify:format": "pnpm format:check",
     "verify:js": "pnpm lint && pnpm typecheck",
     "verify:js-tests": "pnpm test",
