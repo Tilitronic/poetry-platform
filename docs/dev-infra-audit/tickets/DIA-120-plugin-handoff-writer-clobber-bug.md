@@ -175,12 +175,27 @@ here). Approved design Option 1: terminal-status filter.
 - **DIA-093 clarification (docs commit, this change set):** handoff file written
   solely via `log_decision`; manual write/edit tools forbidden for handoff
   files; lane-0 checksum delegation is verification-only.
+- **Ownership-unification round (audit findings C1/M1/m1, 2026-08-12):** remaining
+  manual-write wording removed — orchestrator_append.md step 7 (boot-gate lane-0)
+  and NEXT-RUN.md 7.3 step 7 are now VERIFICATION ONLY (compute + compare
+  `stored=`/`computed=` at re-read time, never write the file); NEXT-RUN.md 7.2
+  (outgoing protocol) is single-path — plugin writes via log_decision and
+  computes/stores the checksum atomically; NEXT-RUN.md 2 (WRITE RESTRICTION,
+  SELF-RERUN, CRISIS-DETECTION, HANDOFF-REFRESH) and 7.4/7.5 reworded to
+  plugin-only-write. DIA-120 Re-verify section gained step 0 (restart OpenCode
+  so the updated plugin loads before reproduction).
 
 ## Re-verify
 
 Restart-verify PENDING (deferred to the next session per section-10 Phase 5
 instruction). Reproduction steps for the next session:
 
+0. **RESTART OpenCode FIRST** so the updated plugin (commit e15a876) loads — all
+   reproduction steps below MUST run in a session that has loaded the new plugin
+   code. Verify the load before testing: a non-terminal handoff log emits
+   "[delegation-observer] handoff-writer skipped: non-terminal resolution_status"
+   instead of overwriting the file; running the steps in a pre-restart session
+   exercises the OLD plugin and produces false failures/passes.
 1. Reproduce the old defect (pre-fix baseline): dispatch `log_decision` with
    `event_type 'handoff'`, `resolution_status 'in-flight'`, non-empty
    `prognosis`; pre-fix this overwrote `.opencode/session/current-handoff.json`

@@ -101,9 +101,9 @@ The orchestrator does NOT run verification itself. Verification is performed by 
 1. **Reviewing verification results** returned by other agents.
 2. **Communicating** outcomes to the user.
 3. **Restarting the cycle** — re-dispatching a specialist for rework or a bugfix when results fail.
-4. **Pre-Handoff Verification Gate (MANDATORY)** — before writing the handoff file
-   (.opencode/session/current-handoff.json) with exit_state "clean", the orchestrator MUST
-   confirm ALL of:
+4. **Pre-Handoff Verification Gate (MANDATORY)** — before terminating the cycle with
+   exit_state "clean" (the handoff file write is the plugin's job via `log_decision`), the
+   orchestrator MUST confirm ALL of:
    (a) `make test-*` relevant suite exit 0 — evidence from @coder;
    (b) lint clean exit 0 — evidence from @coder;
    (c) typecheck clean exit 0 — evidence from @coder;
@@ -206,8 +206,8 @@ gate, no exceptions):
    orchestrator (no bash tool by design). At this point only note the stored `checksum`
    field state:
    - missing/invalid checksum (null, empty, or not 64-hex) is NOT a resume blocker: it is
-     flagged in the prognosis presentation and resolved by the lane-0 delegation after
-     approval (step 7);
+     flagged in the prognosis presentation and verified by the lane-0 delegation after
+     approval (step 7; the lane computes for VERIFICATION ONLY — it never writes the file);
    - on MISMATCH after lane-0 computation (stored 64-hex value differs from the computed
      value): REFUSE substantive work and escalate immediately - tampered handoff (DIA-061).
      **RE-READ the handoff file's `checksum` field at comparison time** (do NOT compare
@@ -233,15 +233,21 @@ gate, no exceptions):
 6. **Begin work ONLY after** all items are approved. Rejected items become open_tickets
    and await instruction. If no handoff file exists (or it has no Prognosis section),
    skip to normal boot — no gate is needed.
-7. **LANE-0 CHECKSUM DELEGATION (automatic; no waiver menu).** Immediately after batch
-   approval and BEFORE any verification_request item, dispatch @coder on a single-task
-   brief to compute the DIA-061 canonical checksum:
+7. **LANE-0 CHECKSUM DELEGATION (automatic; no waiver menu; VERIFICATION ONLY — DIA-093,
+   DIA-120).** Immediately after batch approval and BEFORE any verification_request item,
+   dispatch @coder on a single-task brief to compute the DIA-061 canonical checksum:
    `jq -c '.prognosis | to_entries | sort_by(.key) | from_entries' .opencode/session/current-handoff.json | tr -d '\n' | sha256sum`
-   On return: (a) write the computed checksum into the handoff file's `checksum` field;
-   (b) if a stored checksum existed, compare - mismatch means tampered handoff: refuse
-   further work, escalate to developer immediately; (c) if checksum was null/missing, the
-   computed value now validates the handoff - proceed. Developer waiver exists ONLY for
-   crash exits where coder dispatch itself fails.
+   The lane computes the canonical value for VERIFICATION ONLY — it MUST NOT write or edit
+   the handoff file (the file is written SOLELY by the delegation-observer plugin via
+   `log_decision(handoff, ..., JSON.stringify(prognosis))`; the plugin computes and stores
+   the `checksum` field atomically, DIA-120). At comparison time RE-READ the handoff file's
+   `checksum` field fresh — never compare against a value memorized from the boot read
+   (DIA-120 secondary finding 1). Compare `stored=` (re-read) vs `computed=`:
+   (a) mismatch means tampered handoff: refuse further work, escalate to developer
+   immediately; (b) if checksum was null/missing, the computed value verifies the prognosis
+   as-is — the file is NOT edited; the next terminal `log_decision(handoff)` populates the
+   `checksum` field automatically — proceed; (c) match: proceed. Developer waiver exists
+   ONLY for crash exits where coder dispatch itself fails.
 
 HARD RULE: no delegation, no tool calls, no file reads beyond the handoff file itself until
 the batch approval is complete. The gate exists so the developer explicitly re-approves

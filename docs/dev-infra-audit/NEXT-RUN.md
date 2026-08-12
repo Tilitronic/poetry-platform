@@ -46,9 +46,12 @@ with a read-only task) to report the current contents of:
   their final messages. The path-scoped permission block enforces this
   (`read` allows only `.opencode/session/*`, `docs/dev-infra-audit/NEXT-RUN.md`,
   `AGENTS.md`, `.opencode/practice-protected.md`).
-- **WRITE RESTRICTION**: you write ONLY to `.opencode/session/current-handoff.json`. Never edit
-  code, config, or docs directly. messages.md / messages.jsonl are plugin-managed —
-  never append to them (see SESSION LOGGING below).
+- **WRITE RESTRICTION**: you write NO files directly — `.opencode/session/current-handoff.json`
+  is written SOLELY by the delegation-observer plugin via `log_decision` (event_type:
+  'handoff', terminal resolution_status, prognosis: JSON.stringify(prognosisObject));
+  manual write/edit of the handoff file is forbidden (DIA-120). Never edit code, config,
+  or docs directly. messages.md / messages.jsonl are plugin-managed — never append to them
+  (see SESSION LOGGING below).
 - **SESSION LOGGING**: automatic via delegation-observer plugin; use `log_decision` tool for semantic events; do NOT manually edit messages.md or messages.jsonl
 - **SELF-RERUN**: OpenCode native compaction (`compaction.auto: true`, opencode.jsonc)
   handles RAW context pressure within a session — no human action needed for compaction
@@ -58,10 +61,12 @@ with a read-only task) to report the current contents of:
   has compacted campaign-critical context (the handoff file, prognosis, cycle state) so the
   orchestrator cannot reliably continue; (c) **PRIMARY THRESHOLD** — context usage
   > = 30% of the model context window (300K tokens for 1M-window models); (d) **HARD
-  > SAFETY-NET** — context usage >= 50% (unconditional force). On ANY trigger: write
-  > `.opencode/session/current-handoff.json` (previous session id, last message #, reason, campaign
-  > state incl. active tickets + next lane + gates passed, resume instructions), log the
-  > handoff via `log_decision` (event_type: 'handoff', resolution_status: 'done'), then
+  > SAFETY-NET** — context usage >= 50% (unconditional force). On ANY trigger: build the
+  > handoff prognosis and log it via `log_decision` (event_type: 'handoff',
+  > resolution_status: 'done', prognosis: JSON.stringify(prognosisObject)) — the plugin
+  > writes `.opencode/session/current-handoff.json` atomically; the prognosis carries
+  > previous session id, last message #, reason, campaign
+  > state incl. active tickets + next lane + gates passed, resume instructions. Then
   > end your turn telling the user a fresh session should be started —
   > the next instance reads the handoff file + messages.md and resumes. Detection: call
   > `context_usage` (delegation-observer plugin tool); it returns estimated usage as a
@@ -81,8 +86,15 @@ with a read-only task) to report the current contents of:
   file written, no test status change, no git diff). C4: hard context overflow/truncation —
   fires; ≥50% context rerun (soft) — flagged only, does NOT fire. C5: a `[BLOCKING]` prognosis
   ticket unresolved for 1 full cycle (fires at the start of cycle N+2). **On crisis:** STOP all
-  work, write a crisis handoff file (.opencode/session/current-handoff.json) with all 5 subsections, abbreviated in content (design.md §1 Option A): session_summary includes crisis_triggers; fixes_applied may be empty; open_tickets populated; verification_request/resume_instructions describe crisis-handling only, log the crisis via
-  `log_decision` (event_type: 'crisis', resolution_status: 'escalated'), end the turn telling the user a FRESH session must be started — crisis
+  work, produce the crisis handoff by logging it via `log_decision` (event_type: 'handoff',
+  resolution_status: 'escalated', prognosis: JSON.stringify(crisisPrognosis)) — the plugin
+  atomically writes .opencode/session/current-handoff.json (all 5 subsections, abbreviated
+  in content per design.md §1 Option A: session_summary includes crisis_triggers;
+  fixes_applied may be empty; open_tickets populated; verification_request/resume_instructions
+  describe crisis-handling only) and computes/stores the checksum. Separately log the
+  semantic crisis event via `log_decision` (event_type: 'crisis', resolution_status:
+  'escalated') — a log row only, it does NOT write the handoff file (DIA-120). Then end the
+  turn telling the user a FRESH session must be started — crisis
   takes precedence over SELF-RERUN (no self-rerun from the same context).
 - **COUNCIL-BUDGET-GUARD**: the orchestrator MUST monitor cumulative council-dispatch credit
   spend against a 1500-credit session budget. **Warn** at 75% (1125 credits): emit a visible
@@ -110,9 +122,12 @@ with a read-only task) to report the current contents of:
 - **HANDOFF-REFRESH (G2)**: the handoff file must be **REWRITTEN** (not appended) at each
   campaign milestone: (a) after any implementation lane completes; (b) after any review
   disposition is finalized; (c) after any commit lane lands; (d) at campaign completion.
-  Each rewrite captures the current state snapshot — supersede, do not accumulate stale
-  sections. Detection: after a plugin-logged delegation row whose result contains
-  DONE/COMPLETE/PASS for an implementation/review/commit lane, rewrite the handoff file within
+  A rewrite = logging a FRESH terminal handoff via `log_decision` (event_type: 'handoff',
+  terminal resolution_status, prognosis: JSON.stringify(prognosisObject)) — the plugin
+  atomically replaces the file; never edit the file in place (DIA-120). Each rewrite
+  captures the current state snapshot — supersede, do not accumulate stale sections.
+  Detection: after a plugin-logged delegation row whose result contains
+  DONE/COMPLETE/PASS for an implementation/review/commit lane, log the fresh handoff within
   the same delegation cycle.
 - **DELEGATION MAP**: research→@researcher, analysis→@analyzer, inventory→@code-navigator,
   implementation→@coder (after @openspec-plan spec; tdd-craftsman), review→@reviewer,
@@ -208,27 +223,35 @@ This section is the orchestrator-operating summary of the protocol.
 
 At cycle termination (clean / crisis / exhausted / manual-halt), the outgoing session MUST:
 
-0. **CHECKSUM DELEGATION (DIA-093, FIX E):** before writing the handoff file, dispatch a
-   coder lane to compute the SHA256 checksum of the prognosis per the DIA-061 canonical
-   serialization; write the returned 64-hex value into the `checksum` field. NEVER write
-   `checksum: null` unless the exit is a crisis/crash where coder dispatch is impossible -
-   in that case `resume_instructions` MUST explicitly flag `lane-0 checksum delegation
-required`.
-1. Write the handoff file (.opencode/session/current-handoff.json) containing the "Prognosis
+0. **PRE-HANDOFF VERIFICATION GATE (exit semantics):** before terminating, confirm the
+   exit-gate evidence is in hand — verification results from @coder/@reviewer (relevant
+   `make test-*` suite exit 0, lint clean, typecheck clean, `openspec validate` if
+   applicable), review disposition complete (all findings accepted/rejected by developer),
+   `git status` shows no unrelated changes. Gate failure ⇒ exit_state "manual-halt" (never
+   "clean") with the unconfirmed gates listed as open_tickets. Lane-0 checksum verification
+   (if a coder lane is dispatched) is POST-HOC VERIFICATION ONLY — it computes and compares,
+   it never writes the handoff file.
+1. **Log the terminal handoff via `log_decision`** (event_type: 'handoff',
+   resolution_status: 'done' | 'escalated' | 'pending-owner', prognosis:
+   JSON.stringify(prognosisObject)). The prognosis object MUST contain the "Prognosis
    for next cycle" section with the five folded subsections (session_summary /
    fixes_applied / open_tickets / verification_request / resume_instructions) per the
-   schema in design.md §3 and the template `openspec/templates/HANDOFF.md`. Include the
-   SHA256 `checksum` of the prognosis section for integrity verification.
-2. Record the cycle budget in the handoff file (cycle current/max, clean-re-audit,
+   schema in design.md §3 and the template `openspec/templates/HANDOFF.md`. The
+   delegation-observer plugin atomically writes `.opencode/session/current-handoff.json`
+   and computes/stores the SHA256 `checksum` field itself — NO manual file write, NO
+   pre-write checksum computation, NO post-write checksum-field edits (DIA-120, DIA-093).
+2. Record the cycle budget INSIDE the prognosis object (cycle current/max, clean-re-audit,
    budget-exhausted) + the campaign trigger manifest — NOT in this file (design.md §7).
-3. Log a final handoff event via `log_decision` (event_type: 'handoff',
-   resolution_status: 'done', prognosis: JSON.stringify(prognosisObject)) and end
-   the turn telling the user a fresh session should be started (or, on crisis,
+   The plugin persists it with the handoff write.
+3. End the turn telling the user a fresh session should be started (or, on crisis,
    that a fresh session is REQUIRED — crisis precedence over SELF-RERUN,
    design.md §1). **CRITICAL**: the `prognosis` parameter MUST be
    `JSON.stringify()`'d — the plugin parses it via `JSON.parse()` to write the
    handoff file. Plain text/objects will cause a silent parse failure and the
-   handoff file will not be written.
+   handoff file will not be written. If the exit is a crisis/crash where
+   `log_decision` cannot run, `resume_instructions` MUST explicitly flag
+   `lane-0 checksum delegation required` (no handoff file is produced; lane-0
+   at next boot recomputes and reports).
 
 ### 7.3 Incoming (successor) session — boot
 
@@ -275,15 +298,21 @@ has no prognosis section, skip to normal boot (§1).
 5. Rejected items become new open_tickets; deferred items carry forward.
 6. During open_tickets review, run the **C5 check**: if a `[BLOCKING]` ticket from the
    predecessor was supposed to be resolved but wasn't, C5 fires (design.md §1).
-7. **LANE-0 CHECKSUM DELEGATION (automatic; no waiver menu).** Immediately after batch
-   approval and BEFORE any verification_request item, dispatch @coder on a single-task
-   brief to compute the DIA-061 canonical checksum:
+7. **LANE-0 CHECKSUM DELEGATION (automatic; no waiver menu; VERIFICATION ONLY — DIA-093,
+   DIA-120).** Immediately after batch approval and BEFORE any verification_request item,
+   dispatch @coder on a single-task brief to compute the DIA-061 canonical checksum:
    `jq -c '.prognosis | to_entries | sort_by(.key) | from_entries' .opencode/session/current-handoff.json | tr -d '\n' | sha256sum`
-   On return: (a) write the computed checksum into the handoff file's `checksum` field;
-   (b) if a stored checksum existed, compare - mismatch means tampered handoff: refuse
-   further work, escalate to developer immediately; (c) if checksum was null/missing, the
-   computed value now validates the handoff - proceed. Developer waiver exists ONLY for
-   crash exits where coder dispatch itself fails.
+   The lane computes the canonical value for VERIFICATION ONLY — it MUST NOT write or edit
+   the handoff file (the file is written SOLELY by the delegation-observer plugin via
+   `log_decision(handoff, ..., JSON.stringify(prognosis))`; the plugin computes and stores
+   the `checksum` field atomically, DIA-120). At comparison time RE-READ the handoff file's
+   `checksum` field fresh — never compare against a value memorized from the boot read
+   (DIA-120 secondary finding 1). Compare `stored=` (re-read) vs `computed=`:
+   (a) mismatch means tampered handoff: refuse further work, escalate to developer
+   immediately; (b) if checksum was null/missing, the computed value verifies the prognosis
+   as-is — the file is NOT edited; the next terminal `log_decision(handoff)` populates the
+   `checksum` field automatically — proceed; (c) match: proceed. Developer waiver exists
+   ONLY for crash exits where coder dispatch itself fails.
 8. **VERIFICATION** — after the developer approves ALL items, log a decision event via
    `log_decision` (event_type: 'decision', resolution_status: 'acknowledged',
    content_ref: 'batch-approval-complete'); ONLY THEN begin work. Rejected items become
@@ -291,10 +320,14 @@ has no prognosis section, skip to normal boot (§1).
 
 ### 7.4 Crisis handling
 
-On any C1–C5 trigger (design.md §1): halt the cycle, produce a crisis handoff file
-(.opencode/session/current-handoff.json) (all 5 subsections, abbreviated in content — session_summary includes crisis_triggers; fixes_applied may be empty; open_tickets populated; verification_request/resume_instructions describe crisis-handling only), notify the developer with trigger
-identity and evidence, and let the developer decide: extend the cycle, start a fresh
-cycle (counts against budget), or close the change.
+On any C1–C5 trigger (design.md §1): halt the cycle, produce the crisis handoff by logging
+it via `log_decision` (event_type: 'handoff', resolution_status: 'escalated', prognosis:
+JSON.stringify(crisisPrognosis)) — the plugin atomically writes
+.opencode/session/current-handoff.json (all 5 subsections, abbreviated in content —
+session_summary includes crisis_triggers; fixes_applied may be empty; open_tickets
+populated; verification_request/resume_instructions describe crisis-handling only) — then
+notify the developer with trigger identity and evidence, and let the developer decide:
+extend the cycle, start a fresh cycle (counts against budget), or close the change.
 
 ### 7.5 Clean termination
 
@@ -302,13 +335,17 @@ A `clean` exit requires fresh-session independent verification (design.md §9, A
 the session that produced the work cannot certify its own completion. The fresh session
 reads the handoff file (.opencode/session/current-handoff.json), executes each
 verification_request independently, and confirms or downgrades exit_state. Procedure:
-the fresh session APPENDS a `## Verification Result` section to the handoff file with,
-per verification_id, a status (verified-pass | verified-fail | verified-partial),
-evidence, the verifier session ID, and a timestamp.
-All verified-pass → confirm 'clean'; any verified-fail → downgrade exit_state to
-'crisis' (and append failure details); mixed pass+partial → 'manual-halt'. The producer
-session NEVER writes the Verification Result — it is the verifier's contract only; no
-self-certification; untrusted markers block SELF-RERUN.
+the verifier records its outcome by logging a FRESH terminal handoff via `log_decision`
+(event_type: 'handoff', prognosis: JSON.stringify(prognosisObject)) — the plugin
+atomically writes the file (no manual append/edit of the handoff file, DIA-120). The
+verifier's prognosis carries the verification results per verification_id (status
+verified-pass | verified-fail | verified-partial, evidence, the verifier session ID, and
+a timestamp) plus the confirmed exit_state.
+All verified-pass → confirm 'clean' (resolution_status 'done'); any verified-fail →
+downgrade exit_state to 'crisis' (resolution_status 'escalated', failure details in the
+prognosis); mixed pass+partial → 'manual-halt' (resolution_status 'pending-owner'). The
+producer session NEVER writes the Verification Result — it is the verifier's contract
+only; no self-certification; untrusted markers block SELF-RERUN.
 
 ### 7.6 Cycles budget
 
