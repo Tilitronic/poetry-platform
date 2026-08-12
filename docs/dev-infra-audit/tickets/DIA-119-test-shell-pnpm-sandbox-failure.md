@@ -138,4 +138,14 @@ pre-commit hook passed (delegated autofix, exit 0).
 
 ## Re-verify
 
-> To be filled at re-verify time.
+> Two-axis review findings F2/S1/S2 (all developer-accepted) resolved
+> 2026-08-12 in commit `cdeb708` (fix(dev-infra): DIA-119 review findings F2
+> S1 S2). F2: the seeded node_modules/.bin/lint-staged stub now logs via "$\*"
+> (command name rebuilt from $0, since real npx strips it) so hook-arg drift is
+> detected; leak-scenario spot check (HOME=/home/qualt, temp-HOME guard line
+> removed) still passes for both the pre-commit and pre-push suites. S1: the
+> dead scripts.lint-staged entry was removed from the seeded package.json
+> (minimal importer skeleton kept). S2: the 3-stage escape chain in the seeded
+> verify-pre-push package.json is now documented. Status stays FIXED.
+> Re-verify evidence: make test-shell exit 0, 209/209; isolated
+> verify-pre-commit 7/7, verify-pre-push 7/7, worktrees 16/16.
