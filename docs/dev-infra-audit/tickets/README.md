@@ -73,7 +73,7 @@ carries the full detail (description, verification, fix, re-verify evidence).
 | DIA-111 | model escalation routing for coder and analyzer agents (research-first)                                                                      | opencode-config | Medium   | OPEN     | [DIA-111-coder-analyzer-model-escalation.md](DIA-111-coder-analyzer-model-escalation.md)                   |
 | DIA-112 | section-10 ticket gate fires despite OPEN + indexed + referenced ticket (correlation bug)                                                    | opencode-config | Major    | CLOSED   | [DIA-112-ticket-gate-correlation-bug.md](DIA-112-ticket-gate-correlation-bug.md)                           |
 | DIA-113 | audit workflow-adherence discipline + agentic autonomy configuration vs newest best practices                                                | opencode-config | Major    | OPEN     | [DIA-113-workflow-adherence-autonomy-audit.md](DIA-113-workflow-adherence-autonomy-audit.md)               |
-| DIA-114 | evaluate MiMo-V2.5-Pro agentic coding capability (DIA-087 R5 follow-up)                                                                      | opencode-config | Medium   | OPEN     | [DIA-114-mimo-v25-pro-evaluation.md](DIA-114-mimo-v25-pro-evaluation.md)                                   |
+| DIA-114 | evaluate MiMo-V2.5-Pro agentic coding capability (DIA-087 R5 follow-up)                                                                      | opencode-config | Medium   | CLOSED   | [DIA-114-mimo-v25-pro-evaluation.md](DIA-114-mimo-v25-pro-evaluation.md)                                   |
 
 ## Status summary
 
@@ -89,7 +89,7 @@ carries the full detail (description, verification, fix, re-verify evidence).
 
 | Status      | Count |
 | ----------- | ----- |
-| OPEN        | 23    |
+| OPEN        | 22    |
 | DONE        | 3     |
 | VALIDATE    | 0     |
 | E2E         | 0     |
@@ -98,7 +98,7 @@ carries the full detail (description, verification, fix, re-verify evidence).
 | FIXED       | 0     |
 | IMPLEMENTED | 0     |
 | VERIFIED    | 15    |
-| CLOSED      | 22    |
+| CLOSED      | 23    |
 | BLOCKED     | 0     |
 
 ## How to add a ticket

@@ -12,7 +12,7 @@ id: DIA-114
 title: "evaluate MiMo-V2.5-Pro agentic coding capability (DIA-087 R5 follow-up)"
 area: opencode-config
 severity: Medium
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 discovered: 2026-08-12
 source: owner-authorized (session 14 autonomous batch)
@@ -29,9 +29,9 @@ model: ""
 parent_session_id: ""
 attempts: 0
 lease_expires_at: ""
-files_touched: ["docs/dev-infra-audit/tickets/DIA-114-mimo-v25-pro-evaluation.md"]
-artifacts: []
-evidence: []
+files_touched: ["docs/dev-infra-audit/tickets/DIA-114-mimo-v25-pro-evaluation.md", "knowledge/res015-mimo-v25-pro-evaluation/res015-mimo-v25-pro-evaluation-conspect.md", "knowledge/res015-mimo-v25-pro-evaluation/phase_a_report.txt", "knowledge/ana013-dia097-105-triage/ana013-dia097-105-triage-report.md", ".opencode/memory-shelf.yaml"]
+artifacts: ["knowledge/res015-mimo-v25-pro-evaluation/ (conspect + phase_a_report; 32/32 sources archived, sources/ gitignored)", "knowledge/ana013-dia097-105-triage/ (triage report)"]
+evidence: ["res015 conspect: knowledge/res015-mimo-v25-pro-evaluation/ (32/32 sources archived; shelf entry .opencode/memory-shelf.yaml lines 71-74)", "researcher lane ses_00b0ca6e2ffeqUeK54NxtnYk9x", "conspecter lane ses_00b0a3522ffeTq1jqbKymg30LN"]
 
 ---
 
@@ -64,30 +64,60 @@ on capability evidence for the models it recommends.
 
 Evidence checklist (research lane, source-cited):
 
-- [ ] Benchmark evidence from official Xiaomi / HuggingFace / Vals / BenchLM
+- [x] Benchmark evidence from official Xiaomi / HuggingFace / Vals / BenchLM
       sources: SWE-bench (SWE-bench Verified and/or Full), HumanEval /
       LiveCodeBench, and any agentic-coding leaderboards (e.g. Aider
       polyglot, Terminal-Bench, OSWorld) for MiMo-V2.5-Pro. Record raw
       numbers, date, and source URLs.
-- [ ] Agentic-coding usage evidence: documented tool-calling / agent-loop
+- [x] Agentic-coding usage evidence: documented tool-calling / agent-loop
       usage of MiMo-V2.5-Pro (function calling, tool use in coding agents,
       long-context behavior). Record source URLs.
-- [ ] OpenCode / Go community usage evidence: any reports of MiMo-V2.5-Pro
+- [x] OpenCode / Go community usage evidence: any reports of MiMo-V2.5-Pro
       used through OpenCode or the Go provider (issues, discussions,
       community benchmarks). Record source URLs.
-- [ ] Comparison vs DeepSeek V4 Pro at identical pricing: both models sit at
+- [x] Comparison vs DeepSeek V4 Pro at identical pricing: both models sit at
       $0.435/$0.87 on Go; compare capability scores side by side to support
       the DIA-111 Rung 3 decision.
-- [ ] Decision recorded: recommend mimo-v2.5-pro or deepseek-v4-pro for
+- [x] Decision recorded: recommend mimo-v2.5-pro or deepseek-v4-pro for
       Rung 3 of the coder escalation ladder, with the evidence cited.
 
 ## Fix
 
-> To be filled at fix time.
+RUNG-3 VERDICT (2026-08-12): recommend **mimo-v2.5-pro** as the default for
+coder-ladder Rung 3 (resolves the DIA-111 Rung 3 co-candidate choice).
+
+MiMo-V2.5-Pro edges over deepseek-v4-pro (leaderboard/vendor-reported):
+
+- Terminal-Bench 2.0: 68.4 vs 65.4
+- SWE-bench Pro: 57.2 vs 55.4
+- GDPVal-AA Elo: 1581 vs ~1554
+- ~40-60% fewer tokens per trajectory (cost/efficiency advantage at the
+  identical $0.435/$0.87 per-M tokens Go pricing)
+- Explicit first-party OpenCode / Go provider support
+
+deepseek-v4-pro retains the reasoning edge:
+
+- GPQA-Diamond: 90.1 vs 86.6
+- SWE-bench Verified: 80.6 vs 78.9
+
+CAVEAT: BOTH headline SWE scores are vendor-reported, not independently
+reproduced. A live in-repo benchmark is recommended before finalizing
+Rung 3, per the DIA-114 verification checklist. See res015 conspect for the
+full side-by-side and source URLs.
 
 ## Re-verify
 
-> To be filled at re-verify time.
+RE-VERIFY EVIDENCE (2026-08-12):
+
+- res015 conspect: knowledge/res015-mimo-v25-pro-evaluation/
+  (res015-mimo-v25-pro-evaluation-conspect.md + phase_a_report.txt;
+  32/32 sources archived; sources/ subdir gitignored per .gitignore:45)
+- shelf.conspects entry "MiMo-V2.5-Pro Agentic Coding Evaluation (DIA-114)":
+  .opencode/memory-shelf.yaml lines 71-74
+- researcher lane: ses_00b0ca6e2ffeqUeK54NxtnYk9x
+- conspecter lane: ses_00b0a3522ffeTq1jqbKymg30LN
+- Parallel ana013 triage group (same batch): knowledge/ana013-dia097-105-triage/
+  (ana013-dia097-105-triage-report.md)
 
 ---
 
