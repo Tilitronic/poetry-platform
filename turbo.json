@@ -20,7 +20,7 @@
     },
     "test": {
       "dependsOn": ["build"],
-      "inputs": ["src/**/*.test.ts", "src/**/*.spec.ts", "src/**/*.test.py"],
+      "inputs": ["src/**"],
       "outputs": []
     },
     "dev": {

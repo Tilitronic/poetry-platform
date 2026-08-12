@@ -75,6 +75,18 @@ else
   echo "== poetry-platform pre-push: delegating to dev container =="
 fi
 
+# Host-runnable gates FIRST (DIA-118, ana014 C2/C3): the bats suite
+# (make test-shell, 100+ tests) and the OpenCode config validators
+# (make test-config: agent-name drift, JSONC, skill frontmatter) are the only
+# automated safety net for shell dev-infra and the opencode config surface.
+# They run BEFORE the slow turbo chain so a shell/config regression fails
+# fast. Delegated via run_workspace like every other step (the audit's own
+# example): the container ships make, bats is vendored on the shared
+# /workspace mount, and the pre-push contract (warn+pass when the container
+# is down, DIA-094) is preserved. Hosts without make never reach these lines
+# because they cannot have started the stack (make is the documented entrypoint).
+run_workspace "make test-shell"
+run_workspace "make test-config"
 run_workspace "pnpm verify:format"
 run_workspace "pnpm verify:js"
 run_workspace "pnpm verify:js-tests"

@@ -6,6 +6,10 @@
 #   1. host + container running -> delegates each step via `docker compose exec`
 #   2. host + container down    -> warns and exits 0 (never blocks a push)
 #   3. inside the container     -> runs pnpm directly (fake hostname + fake pnpm)
+#
+# The verification chain is: make test-shell -> make test-config -> the four
+# pnpm verify steps (DIA-118: the two host-runnable gates run BEFORE the turbo
+# chain so a shell/config regression fails fast).
 
 load test-helper
 
@@ -38,9 +42,23 @@ setup() {
   assert_status 0
   assert_output_contains "delegating to dev container"
   assert_output_contains "verification passed"
-  for step in "verify:format" "verify:js" "verify:js-tests" "verify:python"; do
+  # DIA-118: the two host-runnable gates (make test-shell / make test-config)
+  # run first, then the four pnpm verify steps. All six must be delegated.
+  for step in "make test-shell" "make test-config" "verify:format" "verify:js" "verify:js-tests" "verify:python"; do
     assert_file_contains "$FAKE_DOCKER_LOG" "$step"
   done
+  # DIA-118 fail-fast ORDER: the two make gates must run BEFORE the pnpm
+  # verify chain. The log's first line is the container_running `compose ps`
+  # probe, so assert the relative index order of the delegated steps instead
+  # of fixed line numbers.
+  shell_line="$(grep -n "make test-shell" "$FAKE_DOCKER_LOG" | head -1 | cut -d: -f1)"
+  config_line="$(grep -n "make test-config" "$FAKE_DOCKER_LOG" | head -1 | cut -d: -f1)"
+  format_line="$(grep -n "verify:format" "$FAKE_DOCKER_LOG" | head -1 | cut -d: -f1)"
+  [ -n "$shell_line" ] && [ -n "$config_line" ] && [ -n "$format_line" ] \
+    && [ "$shell_line" -lt "$config_line" ] && [ "$config_line" -lt "$format_line" ] || {
+    echo "order assertion: expected shell($shell_line) < config($config_line) < format($format_line) in $FAKE_DOCKER_LOG" >&2
+    return 1
+  }
 }
 
 @test "verify-pre-push: aborts (exit 1) when a delegated step fails" {
@@ -54,6 +72,35 @@ setup() {
   assert_output_contains "verify:js"
 }
 
+@test "verify-pre-push: aborts (exit 1) when make test-shell fails, before the turbo chain" {
+  export FAKE_DOCKER_SERVICES="dev"
+  export FAKE_DOCKER_FAIL_STEP="test-shell"
+
+  run bash "$SCRIPTS_DIR/verify-pre-push.sh"
+
+  assert_status 1
+  # the failing gate is named in the output
+  assert_output_contains "make test-shell"
+  # fail-fast: the turbo chain must never be reached after the bats suite fails
+  run grep -c "verify:format" "$FAKE_DOCKER_LOG"
+  [ "$output" = "0" ]
+}
+
+@test "verify-pre-push: aborts (exit 1) when make test-config fails, before the turbo chain" {
+  export FAKE_DOCKER_SERVICES="dev"
+  export FAKE_DOCKER_FAIL_STEP="test-config"
+
+  run bash "$SCRIPTS_DIR/verify-pre-push.sh"
+
+  assert_status 1
+  assert_output_contains "make test-config"
+  # the first gate (test-shell) ran before the failing second gate
+  assert_file_contains "$FAKE_DOCKER_LOG" "make test-shell"
+  # fail-fast: the turbo chain must never be reached after the config gate fails
+  run grep -c "verify:format" "$FAKE_DOCKER_LOG"
+  [ "$output" = "0" ]
+}
+
 @test "verify-pre-push: runs steps directly when already inside the dev container" {
   local bindir="$BATS_TEST_TMPDIR/bin"
   mkdir -p "$bindir"
@@ -63,12 +110,19 @@ echo "poetry-dev"
 FAKEHOSTNAME
   cat > "$bindir/pnpm" <<'FAKEPNPM'
 #!/usr/bin/env bash
-printf 'pnpm %s\n' "$*" >> "${PNPM_LOG:?PNPM_LOG not set}"
+printf 'pnpm %s\n' "$*" >> "${DELEGATION_LOG:?DELEGATION_LOG not set}"
 exit 0
 FAKEPNPM
-  chmod +x "$bindir/hostname" "$bindir/pnpm"
+  cat > "$bindir/make" <<'FAKEMAKE'
+#!/usr/bin/env bash
+printf 'make %s\n' "$*" >> "${DELEGATION_LOG:?DELEGATION_LOG not set}"
+exit 0
+FAKEMAKE
+  chmod +x "$bindir/hostname" "$bindir/pnpm" "$bindir/make"
   export PATH="$bindir:$PATH"
-  export PNPM_LOG="$BATS_TEST_TMPDIR/pnpm.log"
+  # Both fakes append to the SAME log (half the entries are make invocations,
+  # not pnpm), so the name is DELEGATION_LOG, not PNPM_LOG (S1).
+  export DELEGATION_LOG="$BATS_TEST_TMPDIR/delegation.log"
   export POETRY_WORKSPACE="$BATS_TEST_TMPDIR/ws"
   # run_workspace uses `bash -lc`, a login shell that sources ~/.profile, which
   # prepends $VOLTA_HOME/bin and would shadow our fake pnpm with the real one
@@ -91,14 +145,20 @@ FAKEPNPM
   "verify:python":"printf '%s\\n' 'pnpm verify:python' >> \"\$PNPM_LOG\""
 }}
 EOF
+  # DIA-118: Debian-style hosts reset PATH unconditionally in /etc/profile for
+  # login shells, which would drop the fake bindir above; a temp ~/.bash_profile
+  # that re-prepends it keeps the fakes (pnpm AND make) hermetic.
+  printf 'export PATH="%s:$PATH"\n' "$bindir" > "$HOME/.bash_profile"
 
   run bash "$SCRIPTS_DIR/verify-pre-push.sh"
 
   assert_status 0
   assert_output_contains "running inside dev container"
   assert_output_contains "verification passed"
-  for step in "verify:format" "verify:js" "verify:js-tests" "verify:python"; do
-    assert_file_contains "$PNPM_LOG" "$step"
+  # DIA-118: the two host-runnable gates run directly (no docker) inside the
+  # container too, ahead of the four pnpm verify steps.
+  for step in "make test-shell" "make test-config" "verify:format" "verify:js" "verify:js-tests" "verify:python"; do
+    assert_file_contains "$DELEGATION_LOG" "$step"
   done
   # docker must never be invoked from inside the container
   [ ! -s "$FAKE_DOCKER_LOG" ]
