@@ -74,6 +74,12 @@ carries the full detail (description, verification, fix, re-verify evidence).
 | DIA-112 | section-10 ticket gate fires despite OPEN + indexed + referenced ticket (correlation bug)                                                    | opencode-config | Major    | CLOSED   | [DIA-112-ticket-gate-correlation-bug.md](DIA-112-ticket-gate-correlation-bug.md)                           |
 | DIA-113 | audit workflow-adherence discipline + agentic autonomy configuration vs newest best practices                                                | opencode-config | Major    | OPEN     | [DIA-113-workflow-adherence-autonomy-audit.md](DIA-113-workflow-adherence-autonomy-audit.md)               |
 | DIA-114 | evaluate MiMo-V2.5-Pro agentic coding capability (DIA-087 R5 follow-up)                                                                      | opencode-config | Medium   | CLOSED   | [DIA-114-mimo-v25-pro-evaluation.md](DIA-114-mimo-v25-pro-evaluation.md)                                   |
+| DIA-115 | mandatory evidence (citations/experiments) for agent decision-variant presentations — cross-agent policy, research-first                     | opencode-config | Medium   | OPEN     | [DIA-115-evidence-based-decision-variants.md](DIA-115-evidence-based-decision-variants.md)                 |
+| DIA-117 | git worktree remove --force missing from DIA-096 permission deny list - config hardening (DIA-100 FALSIFICATION-1)                           | opencode-config | Major    | CLOSED   | [DIA-117-worktree-force-remove-config-hardening.md](DIA-117-worktree-force-remove-config-hardening.md)     |
+| DIA-118 | scripts/worktrees.sh missing executable bit - direct invocation fails exit 126                                                               | dev-infra       | Low      | CLOSED   | [DIA-118-worktrees-sh-missing-executable-bit.md](DIA-118-worktrees-sh-missing-executable-bit.md)           |
+| DIA-119 | make test-shell exit 2 - verify-pre-push bats pnpm sandbox failure (test 187 ERR_PNPM_NO_IMPORTER_MANIFEST_FOUND)                            | dev-infra       | Low      | CLOSED   | [DIA-119-test-shell-pnpm-sandbox-failure.md](DIA-119-test-shell-pnpm-sandbox-failure.md)                   |
+| DIA-120 | delegation-observer handoff-writer clobbers valid handoff on in-flight log_decision - false checksum mismatch escalation                     | opencode-config | Medium   | FIXED    | [DIA-120-plugin-handoff-writer-clobber-bug.md](DIA-120-plugin-handoff-writer-clobber-bug.md)               |
+| DIA-121 | bats-wrapper.sh claims v1.11.0 but vendored bats is v1.14.0 - version drift                                                                  | dev-infra       | Low      | CLOSED   | [DIA-121-bats-version-drift-wrapper-vendor.md](DIA-121-bats-version-drift-wrapper-vendor.md)               |
 
 ## Status summary
 
@@ -81,24 +87,24 @@ carries the full detail (description, verification, fix, re-verify evidence).
 | -------- | ----- |
 | Blocker  | 7     |
 | Critical | 2     |
-| Major    | 21    |
-| Medium   | 28    |
+| Major    | 22    |
+| Medium   | 30    |
 | Minor    | 0     |
-| Low      | 7     |
+| Low      | 10    |
 | Info     | 0     |
 
 | Status      | Count |
 | ----------- | ----- |
-| OPEN        | 22    |
+| OPEN        | 23    |
 | DONE        | 3     |
 | VALIDATE    | 0     |
 | E2E         | 0     |
 | DEFERRED    | 1     |
 | MONITOR     | 1     |
-| FIXED       | 0     |
+| FIXED       | 1     |
 | IMPLEMENTED | 0     |
 | VERIFIED    | 15    |
-| CLOSED      | 23    |
+| CLOSED      | 27    |
 | BLOCKED     | 0     |
 
 ## How to add a ticket
