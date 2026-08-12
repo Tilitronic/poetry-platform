@@ -1468,14 +1468,25 @@ const delegationObserver: Plugin = async (ctx) => {
               };
             }
           }
+          // Terminal handoff statuses: only these may trigger the handoff
+          // writer. Non-terminal events (e.g. 'in-flight') are progress
+          // observations, not cycle ends - writing them would clobber a valid
+          // handoff file with a statusMap-default fallback wrapper (DIA-120).
+          const TERMINAL_HANDOFF_STATUSES = new Set([
+            "done",
+            "escalated",
+            "pending-owner",
+          ])
           // When event_type is "handoff" and prognosis is provided, write the
           // atomic handoff JSON to .opencode/session/current-handoff.json so the
           // successor session can detect it via a deterministic read() — no
-          // glob needed (eliminates the fast-glob dot:false footgun).
+          // glob needed (eliminates the fast-glob dot:false footgun). Only
+          // terminal resolution_status events write (DIA-120).
           if (
             args.event_type === "handoff" &&
             typeof args.prognosis === "string" &&
-            args.prognosis
+            args.prognosis &&
+            TERMINAL_HANDOFF_STATUSES.has(args.resolution_status)
           ) {
             try {
               const prognosis = parsePrognosis(args.prognosis) as Record<
@@ -1506,6 +1517,16 @@ const delegationObserver: Plugin = async (ctx) => {
               // file is recoverable (orchestrator can retry), but a lost log
               // row means the event is invisible.
             }
+          } else if (
+            args.event_type === "handoff" &&
+            typeof args.prognosis === "string" &&
+            args.prognosis
+          ) {
+            // Non-terminal handoff event (e.g. 'in-flight' detection log):
+            // observation only, must NOT touch the handoff file (DIA-120).
+            console.warn(
+              `[delegation-observer] handoff-writer skipped: non-terminal resolution_status '${args.resolution_status}'`
+            )
           }
           appendMessageRow(
             {
