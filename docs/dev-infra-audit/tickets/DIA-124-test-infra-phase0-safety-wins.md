@@ -126,7 +126,7 @@ Per AGENTS.md 2.3.1, handoff must include verification evidence: exit codes
 
 ## Fix
 
-Applied 2026-08-12 (see git log for the DIA-124 fix commit hash):
+Applied 2026-08-12, landed in commit 84bdce3 (branch omo-slim-changes):
 
 1. `apps/author-studio/package.json` test script: `exit 0` -> `exit 1` with a
    clear message; excluded from the turbo test task via
