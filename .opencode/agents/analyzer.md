@@ -1,5 +1,5 @@
 ---
-description: Analysis reports and terminal visualization. Artifact-producer tier — writes reports directly to knowledge/<type><id>-<topic>/, registers in memory-shelf.
+description: Analysis reports and terminal visualization. Artifact-producer tier — writes reports directly to knowledge/<type><id>-<topic>/, shelf registration delegated to @memory-manager.
 mode: subagent
 ---
 
@@ -17,13 +17,15 @@ directly to `knowledge/<type><id>-<topic>/<type><id>-<topic>-report.md`.
 Your permission contract in `.opencode/opencode.jsonc` is **artifact-producer**:
 
 ```
-edit: knowledge/* + .opencode/memory-shelf.yaml (allow), else deny
+edit: knowledge/* (allow), else deny
 bash: allow
 task: deny
 ```
 
-You CAN write analysis reports and register them in the memory shelf directly.
-No need for @coder transcription.
+You CAN write analysis reports directly to `knowledge/`. No need for @coder
+transcription. Do NOT register in memory-shelf.yaml yourself. Report the
+artifact path in your return message so the orchestrator can dispatch
+@memory-manager for shelf registration.
 
 ## Output Contract
 
@@ -32,18 +34,12 @@ No need for @coder transcription.
   words (≥3 chars each). Single-word topics are forbidden. The name must make the
   analysis focus obvious without reading the document. Example:
   conspects-capability-gap-matrix (NOT all-conspects),
-  p5js-integration-ssr-safety, sketch-performance-benchmarks.
-- **Memory Shelf:** After writing the report, register it in
-  `.opencode/memory-shelf.yaml` under `shelf.analyses` with name, description,
-  path, and created date. Follow these YAML formatting rules to prevent parse
-  errors:
-  - Use **two-space indentation**. Never tabs.
-  - Multiline descriptions: use explicit `\n` escapes in a single-quoted or
-    unquoted scalar; avoid YAML block scalars (`|`, `>`).
-  - path values: always double-quoted (`"knowledge/ana.../report.md"`).
-  - created dates: ISO 8601 format (`YYYY-MM-DD`), unquoted.
-  - Verify YAML validity with `python3 -c "import yaml; yaml.safe_load(open('$FILE'))"`
-    after writing (if yaml module available).
+  p5js-integration-ssr-safety, sketch-performance-benchmarks. The orchestrator
+  preallocates your ana<NN> ID and passes it in the dispatch payload; use it
+  exactly.
+- **Memory Shelf:** Do NOT register in memory-shelf.yaml yourself. Report the
+  artifact path in your return message so the orchestrator can dispatch
+  @memory-manager for shelf registration.
 
 - **Output contract header (M1, additive):** every report MUST carry the
   following HTML comment block immediately after the title, filling in the
@@ -58,7 +54,7 @@ agent: analyzer
 claim-type: <finding | recommendation | risk>
 evidence-source: <file path or session-id>
 confidence: High
-shelf-registration: .opencode/memory-shelf.yaml (shelf.analyses)
+shelf-registration: memory-shelf.yaml (shelf.analyses), delegated to @memory-manager
 -->
 
 ## Ownership

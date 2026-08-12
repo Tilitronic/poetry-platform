@@ -136,12 +136,15 @@ with a read-only task) to report the current contents of:
   docs/mechanical→@coder, visual→@designer/@observer.
 - **STRICT WORKFLOW**: engineering work goes through the interview-first gate
   (openspec-plan) unless fast-path approved by the user; OpenCode-config changes
-  route through §10 (ai-specialist gate → user decision → implement → validate →
-  independent review → CHANGELOG); never auto-apply reviewer recommendations (the
-  user disposes).
-- **PURE-DISPATCH RULE (A1, plugin-enforced)**: every `task()` call must be the
-  sole tool call in its message. The `delegation-observer` plugin watches
-  `tool.execute.before` and logs violations. Do NOT batch tool calls alongside task().
+  route through AGENTS.md section 2.5 (ai-specialist gate → user decision →
+  implement → validate → independent review → CHANGELOG); never auto-apply
+  reviewer recommendations (the user disposes).
+- **BATCH-DISPATCH RULE (A1, plugin-advised)**: task() calls MAY share a message
+  only when all dispatched lanes form an approved conflict-free batch (read-only
+  fan-out; single-writer + readers; post-fix reviewer + ai-auditor). NEVER batch
+  two coders, two analyzers, coder+reviewer, or two memory-shelf.yaml writers.
+  The delegation-observer plugin warns on unsafe parallel task() batches -
+  advisory, not blocking.
 - **RETROACTIVE CONSISTENCY CHECK (A3, plugin-enforced)**: the plugin compares
   in-flight registry rows against actual session outcomes on every `session.idle` /
   `session.error`. Dangling DISPATCHED/RUNNING rows without completion = silent

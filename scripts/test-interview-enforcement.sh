@@ -6,7 +6,8 @@
 #      skill and the /opsx-* commands.
 #   3. The openspec-propose skill leads with interview-first language.
 #   4. /tdd-cycle routes through @openspec-plan, not the skill directly.
-#   5. The boss fast-path opt-in gate exists in boss_append.md.
+#   5. The boss fast-path opt-in gate exists in orchestrator_append.md (the live
+#      prompt file; boss_append.md was deleted as a dead duplicate - DIA-117).
 # Run from the repo root: bash scripts/test-interview-enforcement.sh
 set -euo pipefail
 
@@ -18,7 +19,7 @@ SKILL="$ROOT/.opencode/skills/openspec-propose/SKILL.md"
 CMD_PROPOSE="$ROOT/.opencode/commands/opsx-propose.md"
 CMD_NEW="$ROOT/.opencode/commands/opsx-new.md"
 CMD_CONTINUE="$ROOT/.opencode/commands/opsx-continue.md"
-BOSS_APPEND="$ROOT/.opencode/oh-my-opencode-slim/boss_append.md"
+BOSS_APPEND="$ROOT/.opencode/oh-my-opencode-slim/orchestrator_append.md"
 
 FAILURES=0
 
@@ -150,17 +151,17 @@ fi
 # ---------------------------------------------------------------------------
 check5_ok=1
 if ! grep -Fq "fast-path approved" "$BOSS_APPEND"; then
-    echo "  'fast-path approved' missing from boss_append.md" >&2
+    echo "  'fast-path approved' missing from orchestrator_append.md" >&2
     check5_ok=0
 fi
 if ! grep -Fq "NEVER auto-classifies" "$BOSS_APPEND"; then
-    echo "  'NEVER auto-classifies' missing from boss_append.md" >&2
+    echo "  'NEVER auto-classifies' missing from orchestrator_append.md" >&2
     check5_ok=0
 fi
 if [ "$check5_ok" -eq 1 ]; then
-    pass "Check 5: boss_append.md contains fast-path opt-in gate ('fast-path approved' + 'NEVER auto-classifies')"
+    pass "Check 5: orchestrator_append.md contains fast-path opt-in gate ('fast-path approved' + 'NEVER auto-classifies')"
 else
-    fail "Check 5: boss_append.md contains fast-path opt-in gate ('fast-path approved' + 'NEVER auto-classifies')"
+    fail "Check 5: orchestrator_append.md contains fast-path opt-in gate ('fast-path approved' + 'NEVER auto-classifies')"
 fi
 
 # ---------------------------------------------------------------------------
