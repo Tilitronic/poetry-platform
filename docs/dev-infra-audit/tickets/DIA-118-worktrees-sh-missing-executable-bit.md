@@ -69,8 +69,8 @@ scripts/worktrees.sh list` or `--help`).
 - Confirm no test or doc depends on the non-executable state (grep
   `worktrees.bats` and docs for mode/executable assertions).
 - After fix:
-  1. `scripts/worktrees.sh` direct invocation runs (exit 0 for a no-op/help
-     command).
+  1. `scripts/worktrees.sh` direct invocation runs (exit 2 (usage) for help
+     commands, exit 0 for a no-op list).
   2. `make test-shell` worktrees.bats still 16/16.
 
 ## Fix
