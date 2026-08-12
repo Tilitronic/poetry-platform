@@ -329,3 +329,28 @@ Notes:
   any explicitly-documented states); when a dispatch or re-review is silently
   blocked, verify the referenced ticket is OPEN and not a non-canonical value.
   Cross-reference: adr.md "Git worktrees parallel-dev model" entry.
+
+## L20260812-002 - authoritative-sources over self-benchmarking (session 16, 2026-08-12)
+
+- **Developer decision preference (DIA-116):** do NOT self-benchmark the
+  dispatch/candidate models inside this repo. When a model-selection evidence
+  gap arises (here: coder-escalated Rung-3 candidates kimi-k3 /
+  deepseek-v4-pro / mimo-v2.5-pro, whose headline SWE scores were
+  vendor-reported and not independently reproduced), prefer evidence from
+  authoritative third-party sources over an in-repo live benchmark. The
+  developer's stated rationale: "I prefer to rely on benchmarks done by
+  authoritative sources" over self-benchmarking (which would be the agent
+  grading its own dispatch pool).
+- **Why irrecoverable:** the DIA-116 ticket records the *fact* of the approach
+  change and the resulting verdict (KEEP kimi-k3; Rung-3 fallback PREFER
+  deepseek-v4-pro over mimo-v2.5-pro), but not the generalizable *preference
+  rule* that should steer future model-selection evidence gaps toward the same
+  path.
+- **Operational lesson (repeatable pattern):** when a model-selection evidence
+  gap is identified, the canonical resolution path is authoritative
+  third-party research via the research pipeline (researcher + conspecter
+  lanes -> conspect registered in the memory shelf), NOT an in-repo benchmark
+  of the candidates. The pre-existing in-repo benchmark artifact should be
+  annotated CANCELLED/superseded (ana014) rather than deleted, and the
+  superseding conspect cited (knowledge/res017-rung3-benchmark-evidence/).
+  This keeps the decision auditable without self-grading dispatch models.
