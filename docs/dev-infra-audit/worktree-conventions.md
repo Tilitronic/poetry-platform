@@ -82,6 +82,13 @@ bash scripts/worktrees.sh remove feature/DIA-100-worktree-lifecycle
 
 Exit codes: 0 success, 1 runtime error, 2 usage error.
 
+Host prerequisites: the script is bash-3 compatible (runs on stock macOS
+bash 3.2), but `create` bounds its best-effort remote check with GNU
+coreutils `timeout` — install coreutils (e.g. `brew install coreutils`) on
+macOS so `timeout` exists, or an unreachable origin can block `create` for
+minutes. The bats suite itself requires bash 4+ (test-helper.bash's assert
+helpers use `[[ ]]`).
+
 ## Merge workflow (squash-merge) — worked example
 
 Strategy: **squash-merge to main after review**. Rationale:

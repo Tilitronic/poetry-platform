@@ -11,7 +11,7 @@ id: DIA-100
 title: "git worktrees for parallel dev sessions: isolation, branch management, merge/conflict handling, cleanup, OpenCode interaction"
 area: dev-infra
 severity: Medium
-status: OPEN
+status: FIXED
 blocked_by: ["DIA-096"]
 discovered: 2026-08-11
 source: inventory
@@ -109,8 +109,8 @@ dispatches @coder to create/teardown). Note: worktrees skill exists at
   `remove` keeps the branch (rollback window), refuses dirty worktrees
   unless `--force`, and `--force` requires `WORKTREES_FORCE=1`
   (developer-only; lanes never set it — DIA-096 mapping documented).
-- `scripts/__tests__/worktrees.bats` — 11 bats cases (real isolated git repo
-  fixture under `$BATS_TEST_TMPDIR`; FAKE-mock invariant preserved).
+- `scripts/__tests__/worktrees.bats` — 16 bats cases (T1-T16; real isolated
+  git repo fixture under `$BATS_TEST_TMPDIR`; FAKE-mock invariant preserved).
 - `scripts/__tests__/bats-wrapper.sh` — added `worktrees.sh` to the bash -n
   syntax list.
 - `.gitignore` — added `.worktrees/` (DIA-100 section).
@@ -125,7 +125,7 @@ dispatches @coder to create/teardown). Note: worktrees skill exists at
 - Implementation commit: `a387f72`
   (feat(dev-infra): worktree lifecycle CLI + conventions for parallel dev
   model, DIA-100); ticket-evidence follow-up: see git log for DIA-100.
-- `make test-shell` exit 0 (worktrees.bats T1-T11 all ok, suite 204 ok).
+- `make test-shell` exit 0 (worktrees.bats T1-T16 all ok, suite 204 ok).
 - End-to-end trace (origin-safe throwaway branches, never pushed, removed
   before close): create -> list -> .opencode/session isolation check ->
   remove; both throwaway branches deleted with the safe `git branch -d`

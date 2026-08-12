@@ -88,7 +88,7 @@ validate_branch() {
   printf '%s' "$stem" | grep -Eq '^[A-Za-z0-9][A-Za-z0-9._-]*$' || \
     fail "branch '$branch': the part after 'feature/' may contain only [A-Za-z0-9._-] and no extra slashes"
   if ! printf '%s' "$stem" | grep -Eq '^DIA-[0-9]+-[a-z0-9]+([-_][a-z0-9]+)*$'; then
-    echo "warn: branch '$branch' does not match 'feature/DIA-<NNN>-<short-name>' (DIA-074); ticket-less branches should be rare and deliberate"
+    echo "warn: branch '$branch' stem does not match 'DIA-<NNN>-<lowercase-kebab-case>' (DIA-074); ticket-less branches should be rare and deliberate, uppercase/mixed-case stems should be rare"
   fi
 }
 
@@ -192,8 +192,11 @@ cmd_create() {
   # construction. We materialize the dir (OpenCode creates it lazily) and
   # assert it is a real directory, not a symlink back into the main checkout.
   mkdir -p "$path/.opencode/session"
-  if [ -L "$path/.opencode/session" ]; then
-    fail "worktree created but .opencode/session is a symlink; isolation broken"
+  # Defense-in-depth (DIA-100 review finding): check BOTH the leaf and the
+  # parent dir. mkdir -p follows a symlinked .opencode, so testing only the
+  # leaf would miss a redirect of the whole dir. bash-3 compatible ([ -L ]).
+  if [ -L "$path/.opencode" ] || [ -L "$path/.opencode/session" ]; then
+    fail "worktree created but .opencode (or .opencode/session) is a symlink; isolation broken"
   fi
   if git -C "$path" check-ignore -q .opencode/session/; then
     echo "ok: .opencode/session/ is git-ignored in the worktree (isolated per worktree)"
