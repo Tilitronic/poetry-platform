@@ -10,7 +10,7 @@ id: DIA-123
 title: "pre-push blocked: make test-shell fails inside hook (unshare 127 + guard-flag interaction suspicion)"
 area: git-hooks
 severity: Critical
-status: OPEN
+status: VERIFIED
 blocked_by: []
 discovered: 2026-08-12
 source: test-lane
@@ -76,4 +76,13 @@ DIA-071 (pre-existing env-gate push blocker).
 
 ## Re-verify
 
-> To be filled at re-verify time.
+- Fix commit: d6c6a64 (unset VERIFY_PRE_PUSH_RUNNING in verify-pre-push.bats
+  setup() + new guard test asserting the guard fires).
+- Hook-exact verification: VERIFY_PRE_PUSH_RUNNING=1 make test-shell ->
+  212/212, exit 0.
+- Standalone verification: make test-shell -> 212/212, exit 0.
+- Pre-commit hook: PASS.
+- Re-review: all findings verified-closed (commit d6c6a64).
+- Secondary finding: the unshare 127 warning in the original push failure was a
+  transient race (storm-kill `rm -rf /tmp/bats-run-*` deleted an active suite's
+  ns.sh between creation and exec), NOT a code/image gap.

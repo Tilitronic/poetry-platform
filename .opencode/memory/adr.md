@@ -354,6 +354,13 @@ PATH/hostname shims as the primary defense — they are necessary-but-not-suffic
   guard from the start.
 - Test-side hermetic shims remain valuable as defense-in-depth but are no
   longer treated as sufficient protection for gate-script recursion.
+- Test-side corollary (DIA-123): when a gate script exports the guard flag
+  before running the full suite, the hook context propagates the flag into
+  every test, so test setup() must `unset` the inherited flag to exercise the
+  script's public entry behavior; a test that must verify the guarded path
+  re-exports the flag inside the test body after setup. Verify hook-triggered
+  suites with the hook-exact command (`VERIFY_PRE_PUSH_RUNNING=1 make
+  test-shell`), not only standalone.
 
 ### Metadata
 

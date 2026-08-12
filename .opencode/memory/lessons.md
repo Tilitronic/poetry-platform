@@ -719,3 +719,30 @@ External-knowledge grounding fact caught by @ai-specialist against live DeepSeek
   short-circuit early if already present; keep a one-line test-side `unset` so
   the direct-run test case still exercises the real path. Cross-reference:
   adr.md gate-script re-entrancy-guard ADR, knowledge/ana015-recursion-fork-bomb/.
+
+## L20260812-004 - hook-triggered suites must be verified hook-exact (DIA-123, 2026-08-12)
+
+- **Lesson:** when a gate script exports an env flag before running the full
+  test suite, verifying the suite STANDALONE is insufficient - the hook context
+  propagates the flag into every test. DIA-122's fix (commit 0760ef3) exported
+  VERIFY_PRE_PUSH_RUNNING=1 in scripts/verify-pre-push.sh before `make
+  test-shell`; under the husky pre-push hook, ALL bats tests inherited the flag,
+  so verify-pre-push.bats tests 183-187/189-191 (which invoke
+  verify-pre-push.sh directly) hit the top-of-script guard (warning + exit 0),
+  failing 8 tests. DIA-122's standalone verification (`make test-shell`, no
+  inherited flag) passed 211/211 and could not catch hook-context behavior.
+- **Why irrecoverable:** the hook context is an environment property (env flag
+  inherited by child processes at hook time), not reproducible from a plain
+  standalone suite run; the guard flag's interaction with test invocations is a
+  runtime interaction not visible in any single diff.
+- **Operational guidance:**
+  1. Verify with the HOOK-EXACT command (`VERIFY_PRE_PUSH_RUNNING=1 make
+     test-shell`), not just `make test-shell`, whenever a gate script exports an
+     env flag before running the suite.
+  2. Test `setup()` should `unset` such inherited flags so each test exercises
+     the script's public entry behavior (flag-free direct invocation).
+  3. If a test must verify the guarded path, re-export the flag INSIDE the test
+     body after setup (DIA-123 added exactly this: a test that re-exports the
+     flag and asserts warning + exit 0 + no docker invocation).
+  Cross-reference: adr.md gate-script re-entrancy-guard ADR, DIA-123 ticket,
+  commit d6c6a64.

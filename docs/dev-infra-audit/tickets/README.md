@@ -18,16 +18,14 @@ carries the full detail (description, verification, fix, re-verify evidence).
 
 | ID      | Title                                                                                                                                        | Area            | Severity | Status   | Ticket file                                                                                                    |
 | ------- | -------------------------------------------------------------------------------------------------------------------------------------------- | --------------- | -------- | -------- | -------------------------------------------------------------------------------------------------------------- |
-| -------- | ----- |
-| ----------- | ----- |
 | DIA-045 | OpenCode config drift backlog (ai-specialist review 2026-08-04, findings F6–F21)                                                             | opencode-config | Medium   | CLOSED   | [DIA-045-opencode-config-drift-backlog.md](DIA-045-opencode-config-drift-backlog.md)                           |
 | DIA-050 | .mise.toml ↔ Dockerfile.dev pin-sync gap (DIA-045 F15)                                                                                       | dev-infra       | Low      | CLOSED   | [DIA-050-mise-dockerfile-pin-sync-gap.md](DIA-050-mise-dockerfile-pin-sync-gap.md)                             |
 | DIA-051 | Raw JSONL telemetry leak into human chat UI (messages.jsonl sidecar)                                                                         | opencode-config | Medium   | CLOSED   | [DIA-051-jsonl-telemetry-leak-chat-ui.md](DIA-051-jsonl-telemetry-leak-chat-ui.md)                             |
 | DIA-052 | Skill dup cleanup + two-tier dup detection in validate-skills.sh (5 dirs)                                                                    | scripts         | Major    | DONE     | [DIA-052-skill-dup-cleanup.md](DIA-052-skill-dup-cleanup.md)                                                   |
 | DIA-053 | @ai-auditor 4-source registration + @ai-specialist docs-only narrowing                                                                       | opencode-config | Medium   | DONE     | [DIA-053-ai-auditor-4-source-registration.md](DIA-053-ai-auditor-4-source-registration.md)                     |
 | DIA-054 | NEXT-RUN.md §2 council budget guard (COUNCIL-BUDGET-GUARD)                                                                                   | docs            | Medium   | DONE     | [DIA-054-council-budget-guard.md](DIA-054-council-budget-guard.md)                                             |
-| DIA-055 | Write-capable token_export exposed to all subagents (permission default-allow)                                                               | opencode-config | Medium   | VERIFIED | [DIA-055-token-export-subagent-exposure.md](DIA-055-token-export-subagent-exposure.md)                         |
-| DIA-056 | @ai-auditor subagent token-tool stacking loop (session error, cancelled)                                                                     | opencode-config | Medium   | VERIFIED | [DIA-056-ai-auditor-token-tool-loop.md](DIA-056-ai-auditor-token-tool-loop.md)                                 |
+| DIA-055 | Write-capable token_export exposed to all subagents (permission default-allow)                                                               | opencode-config | Medium   | CLOSED   | [DIA-055-token-export-subagent-exposure.md](DIA-055-token-export-subagent-exposure.md)                         |
+| DIA-056 | @ai-auditor subagent token-tool stacking loop (session error, cancelled)                                                                     | opencode-config | Medium   | CLOSED   | [DIA-056-ai-auditor-token-tool-loop.md](DIA-056-ai-auditor-token-tool-loop.md)                                 |
 | DIA-057 | Knowledge-workflow violation — conspect not created on research request (2026-08-06)                                                         | docs            | Low      | VERIFIED | [DIA-057-knowledge-workflow-conspect-violation.md](DIA-057-knowledge-workflow-conspect-violation.md)           |
 | DIA-058 | Research persistence gap — PERSISTENCE_RECOMMENDED flag auto-ignored by orchestrator                                                         | docs            | Medium   | VERIFIED | [DIA-058-research-persistence-gap.md](DIA-058-research-persistence-gap.md)                                     |
 | DIA-059 | §10 gate plugin not activated — silent failure on .opencode edits                                                                            | opencode-config | Blocker  | VERIFIED | [DIA-059-gate-plugin-not-activated.md](DIA-059-gate-plugin-not-activated.md)                                   |
@@ -39,9 +37,9 @@ carries the full detail (description, verification, fix, re-verify evidence).
 | DIA-066 | Tool-coverage audit script — surface unlisted default-allow tools                                                                            | scripts         | Low      | VERIFIED | [DIA-066-tool-coverage-audit-script.md](DIA-066-tool-coverage-audit-script.md)                                 |
 | DIA-067 | Docker dev-tool access gap — agents cannot invoke trafilatura (blocks res003 persistence)                                                    | docker          | Blocker  | VERIFIED | [DIA-067-docker-dev-tool-access-gap.md](DIA-067-docker-dev-tool-access-gap.md)                                 |
 | DIA-068 | delegation-observer persistence trigger never fires — state-check regex format mismatch                                                      | opencode-config | Major    | VERIFIED | [DIA-068-delegation-observer-persistence-trigger.md](DIA-068-delegation-observer-persistence-trigger.md)       |
-| DIA-069 | opencode-telemetry registerCommands() rewrites command docs with literal $HOME paths                                                         | opencode-config | Major    | OPEN     | [DIA-069-telemetry-command-docs-home-paths.md](DIA-069-telemetry-command-docs-home-paths.md)                   |
+| DIA-069 | opencode-telemetry registerCommands() rewrites command docs with literal $HOME paths                                                         | opencode-config | Major    | CLOSED   | [DIA-069-telemetry-command-docs-home-paths.md](DIA-069-telemetry-command-docs-home-paths.md)                   |
 | DIA-070 | Telemetry plugin P2/P4 re-entrancy guard gaps (DIA-056(b) residuals)                                                                         | opencode-config | Medium   | CLOSED   | [DIA-070-telemetry-reentrancy-guard-gaps.md](DIA-070-telemetry-reentrancy-guard-gaps.md)                       |
-| DIA-071 | make test-infra/test-shell exit 2 — host check-host-lsp gate fails                                                                           | dev-infra       | Major    | OPEN     | [DIA-071-make-test-gates-exit-2.md](DIA-071-make-test-gates-exit-2.md)                                         |
+| DIA-071 | make test-infra/test-shell exit 2 — host check-host-lsp gate fails                                                                           | dev-infra       | Major    | VERIFIED | [DIA-071-make-test-gates-exit-2.md](DIA-071-make-test-gates-exit-2.md)                                         |
 | DIA-072 | researcher returns unarchived facts: 4/16 sources failed to persist during conspect Phase A                                                  | docs            | Medium   | CLOSED   | [DIA-072-researcher-unarchived-facts.md](DIA-072-researcher-unarchived-facts.md)                               |
 | DIA-073 | Investigate handoff coordination for parallel OpenCode sessions via session IDs                                                              | docs            | Medium   | CLOSED   | [DIA-073-handoff-coordination-session-ids.md](DIA-073-handoff-coordination-session-ids.md)                     |
 | DIA-074 | Ticket filenames lack human-readable descriptors — orchestrator ticket references are opaque to the developer                                | docs            | Medium   | CLOSED   | [DIA-074-ticket-filenames-descriptors.md](DIA-074-ticket-filenames-descriptors.md)                             |
@@ -71,17 +69,17 @@ carries the full detail (description, verification, fix, re-verify evidence).
 | DIA-098 | Spontaneous subagent/session stops: stalled-agent detection, auto-resume, complete-vs-interrupted classification                             | opencode-config | Major    | OPEN     | [DIA-098-spontaneous-session-stops.md](DIA-098-spontaneous-session-stops.md)                                   |
 | DIA-099 | Truncated/partial subagent responses: detect-preserve-resume-validate mechanism                                                              | opencode-config | Major    | OPEN     | [DIA-099-truncated-subagent-responses.md](DIA-099-truncated-subagent-responses.md)                             |
 | DIA-100 | Git worktrees for parallel dev sessions: isolation, branch mgmt, merge/conflict, cleanup, OpenCode interaction                               | dev-infra       | Medium   | OPEN     | [DIA-100-git-worktrees-parallel-dev.md](DIA-100-git-worktrees-parallel-dev.md)                                 |
-| DIA-101 | Parallel subagent execution optimization: parallelization rules, dependency detection, resource/shared-file conflicts                        | opencode-config | Medium   | OPEN     | [DIA-101-parallel-subagent-execution.md](DIA-101-parallel-subagent-execution.md)                               |
+| DIA-101 | Parallel subagent execution optimization: parallelization rules, dependency detection, resource/shared-file conflicts                        | opencode-config | Medium   | CLOSED   | [DIA-101-parallel-subagent-execution.md](DIA-101-parallel-subagent-execution.md)                               |
 | DIA-102 | Specification-document workflow: lifecycle, naming, commit policy, obsolete handling, spec-impl linkage, agent discovery                     | docs            | Medium   | OPEN     | [DIA-102-specification-workflow.md](DIA-102-specification-workflow.md)                                         |
 | DIA-103 | Interview batch completeness enforcement: verify workflow captures ALL questions, not just the first                                         | opencode-config | Medium   | OPEN     | [DIA-103-interview-batch-completeness.md](DIA-103-interview-batch-completeness.md)                             |
 | DIA-104 | Mandatory developer grilling/design review gate: trigger conditions, stages, exit criteria, blocking conditions                              | docs            | Medium   | OPEN     | [DIA-104-mandatory-developer-grilling-gate.md](DIA-104-mandatory-developer-grilling-gate.md)                   |
 | DIA-105 | Edit-time formatter hooks - run formatters automatically after edits (Claude Code hooks pattern)                                             | opencode-config | Medium   | OPEN     | [DIA-105-edit-time-formatter-hooks.md](DIA-105-edit-time-formatter-hooks.md)                                   |
 | DIA-106 | Container-first rust-analyzer for LSP gate (pin 1.83.0->1.97.1, container-aware check-host-lsp)                                              | dev-infra       | Medium   | CLOSED   | [DIA-106-rust-analyzer-container-setup.md](DIA-106-rust-analyzer-container-setup.md)                           |
 | DIA-107 | rust-analyzer container setup review-cycle re-verify (section 2.3.1 cycle 1/2 of close-out commit 1dc8f76)                                   | dev-infra       | Low      | CLOSED   | [DIA-107-rust-analyzer-review-cycle-reverify.md](DIA-107-rust-analyzer-review-cycle-reverify.md)               |
-| DIA-108 | audit optimal model assignment across OpenCode agents (usage-driven)                                                                         | opencode-config | Medium   | OPEN     | [DIA-108-optimal-model-assignment-audit.md](DIA-108-optimal-model-assignment-audit.md)                         |
+| DIA-108 | audit optimal model assignment across OpenCode agents (usage-driven)                                                                         | opencode-config | Medium   | CLOSED   | [DIA-108-optimal-model-assignment-audit.md](DIA-108-optimal-model-assignment-audit.md)                         |
 | DIA-109 | restart-verify DIA-087/084 config changes (section-10 Phase 5)                                                                               | opencode-config | Low      | CLOSED   | [DIA-109-restart-verify-dia087-084-config.md](DIA-109-restart-verify-dia087-084-config.md)                     |
 | DIA-110 | add human-readable descriptors to ALL DIA ticket filenames (critical)                                                                        | docs            | Critical | CLOSED   | [DIA-110-unreadable-ticket-filenames.md](DIA-110-unreadable-ticket-filenames.md)                               |
-| DIA-111 | model escalation routing for coder and analyzer agents (research-first)                                                                      | opencode-config | Medium   | OPEN     | [DIA-111-coder-analyzer-model-escalation.md](DIA-111-coder-analyzer-model-escalation.md)                       |
+| DIA-111 | model escalation routing for coder and analyzer agents (research-first)                                                                      | opencode-config | Medium   | CLOSED   | [DIA-111-coder-analyzer-model-escalation.md](DIA-111-coder-analyzer-model-escalation.md)                       |
 | DIA-112 | section-10 ticket gate fires despite OPEN + indexed + referenced ticket (correlation bug)                                                    | opencode-config | Major    | CLOSED   | [DIA-112-ticket-gate-correlation-bug.md](DIA-112-ticket-gate-correlation-bug.md)                               |
 | DIA-113 | audit workflow-adherence discipline + agentic autonomy configuration vs newest best practices                                                | opencode-config | Major    | OPEN     | [DIA-113-workflow-adherence-autonomy-audit.md](DIA-113-workflow-adherence-autonomy-audit.md)                   |
 | DIA-114 | evaluate MiMo-V2.5-Pro agentic coding capability (DIA-087 R5 follow-up)                                                                      | opencode-config | Medium   | CLOSED   | [DIA-114-mimo-v25-pro-evaluation.md](DIA-114-mimo-v25-pro-evaluation.md)                                       |
@@ -101,7 +99,8 @@ carries the full detail (description, verification, fix, re-verify evidence).
 | DIA-121 | bats-wrapper.sh claims v1.11.0 but vendored bats is v1.14.0 - version drift                                                                  | dev-infra       | Low      | CLOSED   | [DIA-121-bats-version-drift-wrapper-vendor.md](DIA-121-bats-version-drift-wrapper-vendor.md)                   |
 | DIA-121 | Give opencode-docker container host docker/podman socket access so pre-commit hooks work from inside OpenCode                                | docker          | Major    | VERIFIED | [DIA-121-opencode-docker-host-socket-access.md](DIA-121-opencode-docker-host-socket-access.md)             |
 | DIA-122 | needs-input ticker + notifications: surface which opencode session awaits developer input                                                    | opencode-config | Medium   | CLOSED   | [DIA-122-needs-input-ticker.md](DIA-122-needs-input-ticker.md)                                                 |
-| DIA-122 | verify-pre-push recursion fork-bomb: root-cause fix (DIA-118 regression)                                                                     | git-hooks       | Critical | OPEN     | [DIA-122-verify-pre-push-recursion-guard.md](DIA-122-verify-pre-push-recursion-guard.md)                   |
+| DIA-122 | verify-pre-push recursion fork-bomb: root-cause fix (DIA-118 regression)                                                                     | git-hooks       | Critical | VERIFIED | [DIA-122-verify-pre-push-recursion-guard.md](DIA-122-verify-pre-push-recursion-guard.md)                   |
+| DIA-123 | pre-push blocked: make test-shell fails inside hook (unshare 127 + guard-flag interaction suspicion)                                         | git-hooks       | Critical | VERIFIED | [DIA-123-pre-push-suite-failure.md](DIA-123-pre-push-suite-failure.md)                                     |
 | DIA-123 | deterministic opencode restart detection for the orchestrator                                                                                | opencode-config | Medium   | OPEN     | [DIA-123-deterministic-restart-detection.md](DIA-123-deterministic-restart-detection.md)                       |
 | DIA-124 | orchestrator must write and verify a terminal handoff BEFORE presenting session-end / new-session prompt                                     | opencode-config | Major    | OPEN     | [DIA-124-handoff-before-session-end.md](DIA-124-handoff-before-session-end.md)                                 |
 | DIA-125 | automate ticket creation & management - evaluate ready-made local solutions (MCP/self-hosted) vs manual ledger                               | opencode-config | Medium   | OPEN     | [DIA-125-automate-ticket-management-research.md](DIA-125-automate-ticket-management-research.md)               |
@@ -112,13 +111,12 @@ carries the full detail (description, verification, fix, re-verify evidence).
 | DIA-130 | Duplicated OMO inline-override warnings still visible in opencode TUI 'Loading plugins...' area (residual after DIA-128)                     | opencode-config | Major    | OPEN     | [DIA-130-duplicated-inline-override-warning-ui.md](DIA-130-duplicated-inline-override-warning-ui.md)           |
 | DIA-131 | post-restart TUI re-verify of user-level inline-override fix (DIA-130 review finding F3)                                                     | opencode-config | Major    | OPEN     | [DIA-131-post-restart-tui-reverify.md](DIA-131-post-restart-tui-reverify.md)                                   |
 
-
 ## Status summary
 
 | Severity | Count |
 | -------- | ----- |
 | Blocker  | 7     |
-| Critical | 3     |
+| Critical | 4     |
 | Major    | 31    |
 | Medium   | 41    |
 | Minor    | 0     |
@@ -127,7 +125,7 @@ carries the full detail (description, verification, fix, re-verify evidence).
 
 | Status      | Count |
 | ----------- | ----- |
-| OPEN        | 32    |
+| OPEN        | 26    |
 | DONE        | 3     |
 | VALIDATE    | 0     |
 | E2E         | 0     |
@@ -135,8 +133,8 @@ carries the full detail (description, verification, fix, re-verify evidence).
 | MONITOR     | 1     |
 | FIXED       | 0     |
 | IMPLEMENTED | 0     |
-| VERIFIED    | 20    |
-| CLOSED      | 34    |
+| VERIFIED    | 21    |
+| CLOSED      | 40    |
 | BLOCKED     | 0     |
 ## How to add a ticket
 

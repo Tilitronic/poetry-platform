@@ -2,8 +2,9 @@
 
 <!-- Fix ticket (fix-lane): root-cause fix for a recursion fork-bomb in
      scripts/verify-pre-push.sh introduced by commit 49d587a (DIA-118).
-     Filed 2026-08-12, docs-lane. Fix applied but uncommitted (working
-     tree); reviewer dispatch in progress. -->
+     Filed 2026-08-12, docs-lane. Fix committed 2026-08-12 (commits
+     431b602/000f7e6/0760ef3/b3d86ad); two-axis review complete (rev-1:
+     0 findings on both axes). Status VERIFIED. -->
 
 ---
 
@@ -11,7 +12,7 @@ id: DIA-122
 title: "verify-pre-push recursion fork-bomb: root-cause fix (DIA-118 regression)"
 area: git-hooks
 severity: Critical
-status: OPEN
+status: VERIFIED
 blocked_by: []
 discovered: 2026-08-12
 source: fix-lane
@@ -96,7 +97,7 @@ knowledge/ana015-recursion-fork-bomb/ana015-recursion-fork-bomb-report.md.
 
 ## Re-verify
 
-Re-verified 2026-08-12 (fix-time verification; formal review pending):
+Re-verified 2026-08-12 (fix-time verification; two-axis review complete):
 
 - Single-file verify-pre-push.bats: 9/9 pass, exit 0.
 - Full `make test-shell`: 211/211 ok, exit 0.
@@ -107,5 +108,9 @@ Re-verified 2026-08-12 (fix-time verification; formal review pending):
   host; verified dead (0 survivors, 0 bats-run dirs, load decaying
   0.74/1.88/2.47, 7 threads).
 
-Status: OPEN (fix applied, review pending, uncommitted). Next steps:
-reviewer dispatch (in progress), memory-manager persistence, then commit.
+Review (two-axis, rev-1): 0 findings on Standards axis, 0 findings on
+Spec-fidelity axis. All verification passed (above). Fixes committed
+2026-08-12: 431b602 (ana015 root-cause analysis), 000f7e6 (ticket),
+0760ef3 (guard fix), b3d86ad (memory/lesson persistence).
+
+Status: VERIFIED.

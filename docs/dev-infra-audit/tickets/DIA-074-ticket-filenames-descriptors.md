@@ -11,7 +11,10 @@
      tickets are). PROPOSAL ticket: records the gap and fix directions (a)–(d);
      NO code/config change by this ticket — adoption is a separate decision.
      Status: CLOSED 2026-08-13 as SUPERSEDED (ledger reconciliation, night
-     run; see Re-verify). -->
+     run; see Re-verify).
+     SUPERSEDED 2026-08-12: closed as superseded by DIA-110 (CLOSED) -
+     human-readable descriptor naming is implemented for all DIA ticket
+     filenames; this proposal's fix directions are adopted. Status CLOSED. -->
 
 ---
 
@@ -20,6 +23,7 @@ title: "Ticket filenames lack human-readable descriptors — orchestrator ticket
 area: docs
 severity: Medium
 status: CLOSED
+superseded_by: DIA-110
 blocked_by: []
 discovered: 2026-08-09
 source: owner-reported
