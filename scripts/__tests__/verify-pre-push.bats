@@ -82,6 +82,7 @@ FAKEPNPM
   # empty sandbox. Seed an importer manifest + the four verify scripts (logging
   # to PNPM_LOG exactly like the fake) so the outcome no longer depends on
   # which pnpm resolves.
+  # NOTE: \\n in the unquoted heredoc becomes \n in the file, JSON-decode turns it into a literal newline, printf emits it (3-stage chain - do NOT quote the heredoc or normalize \\n).
   cat > "$POETRY_WORKSPACE/package.json" <<EOF
 {"name":"verify-pre-push-sandbox","private":true,"scripts":{
   "verify:format":"printf '%s\\n' 'pnpm verify:format' >> \"\$PNPM_LOG\"",

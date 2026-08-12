@@ -88,14 +88,15 @@ FAKENPX
   # to NPX_LOG exactly like the fake) so real npx resolves the stub from
   # node_modules/.bin and the outcome no longer depends on which npx resolves.
   cat > "$POETRY_WORKSPACE/package.json" <<EOF
-{"name":"verify-pre-commit-sandbox","private":true,"scripts":{
-  "lint-staged":"printf '%s\\n' 'npx lint-staged --allow-empty' >> \"\$NPX_LOG\""
-}}
+{"name":"verify-pre-commit-sandbox","private":true}
 EOF
   mkdir -p "$POETRY_WORKSPACE/node_modules/.bin"
   cat > "$POETRY_WORKSPACE/node_modules/.bin/lint-staged" <<'FAKELS'
 #!/usr/bin/env bash
-printf 'npx lint-staged --allow-empty\n' >> "${NPX_LOG:?NPX_LOG not set}"
+# F2: adaptive stub - log via "$*" (real npx invokes us with only the args
+# after the binary name, so rebuild the full command from $0; the fake npx
+# receives the whole command and logs the same line). Arg drift is detected.
+printf 'npx %s\n' "$(basename "$0") $*" >> "${NPX_LOG:?NPX_LOG not set}"
 exit 0
 FAKELS
   chmod +x "$POETRY_WORKSPACE/node_modules/.bin/lint-staged"
