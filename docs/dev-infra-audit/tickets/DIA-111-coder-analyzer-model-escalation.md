@@ -141,8 +141,53 @@ opencode-go/deepseek-v4-pro` -> session self-reported
   conditions. Config changes route through the section-10 chain.
   Status stays OPEN.
 
+### Design Requirements (2026-08-12, developer disposition)
+
+Developer disposition on the Session 15 escalation-agent design
+(coder-escalated -> opencode-go/kimi-k3, analyzer-escalated ->
+opencode-go/gpt-5.6-luna). Verbatim requirement:
+
+> why you chooses KIMI model, not gpt luna for exmample or qwen pro? I dont see strong arguments. It is actually a request for ticket: decisions and propositions must be evident based, argumanted with sources links or experiments done
+
+Design-revision consequence: the Session 15 escalation-agent design
+(coder-escalated model assignment, and by extension analyzer-escalated)
+was NOT approved as-is; the model choices must be re-justified with cited
+benchmarks/experiments before implementation.
+
+Open evidence question: coder-escalated candidate models to compare with
+sources = opencode-go/kimi-k3 (93.4% SWE-bench Verified per Go docs),
+opencode-go/gpt-5.6-luna, opencode-go/qwen3.7-pro (and/or qwen3.7-plus),
+opencode-go/deepseek-v4-pro. The comparison must reuse
+knowledge/res013-opencode-model-pricing-audit/,
+knowledge/res014-model-escalation-routing/,
+knowledge/res015-mimo-v25-pro-evaluation/ conspects where possible (do not
+duplicate) plus fresh web-sourced benchmarks.
+
+Status: stays OPEN.
+
 ## Re-verify
 
-> To be filled at re-verify time.
+RESTART-VERIFY PASS (2026-08-12) - escalation-agent config commit b0b3c76.
+
+Config checks 5/5 PASS:
+
+1. hidden:true present in .opencode/opencode.jsonc (coder-escalated line 293,
+   analyzer-escalated line 239).
+2. task:deny set on both escalated agents (coder-escalated and
+   analyzer-escalated).
+3. Model mappings consistent across S1-S4 lockstep contract: coder-escalated
+   -> opencode-go/kimi-k3, analyzer-escalated -> opencode-go/gpt-5.6-luna.
+4. Orchestrator permission.task allow-list present (.opencode/opencode.jsonc
+   lines 167/170).
+5. make test-config exit 0 with agent-name lockstep 24/0/0.
+
+Live dispatch self-reports (task() runtime): coder-escalated reported
+opencode-go/kimi-k3; analyzer-escalated reported opencode-go/gpt-5.6-luna.
+Both hidden, both task:deny.
+
+Session evidence: lane-0 checksum MATCH
+(d25c724adcac211fa9c3d36fb840f7116b2d40c18555a7d9dd52ee34de3b45ff).
+
+Status stays OPEN pending developer close decision.
 
 ---

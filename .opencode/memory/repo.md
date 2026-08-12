@@ -55,3 +55,14 @@ Note: These are navigational facts to help future humans find the infra/test art
 - Ticket ledger drift: DIA-063 README/Index mismatch (2026-08-08):
   - Observation: the ticket file `docs/dev-infra-audit/tickets/DIA-063.md` exists but is not listed in the tickets README index/count. This ledger-index drift was noticed during the campaign and indicates a bookkeeping mismatch between ticket files and the canonical index.
   - Recommendation: reconcile the tickets README index with the tickets directory; prefer a scripted index regeneration in `scripts/` to avoid manual drift. Record this repo fact because ticket inventory and README sync state is not always reconstructible from git alone when working-tree edits are in-flight.
+
+- Git worktrees parallel-dev (DIA-100, 2026-08-12): the worktree lifecycle CLI
+  lives at `scripts/worktrees.sh` (`create` / `remove` / `list`); bats coverage
+  is `scripts/__tests__/worktrees.bats` (T1-T16). The authoritative design
+  conventions (branch naming, path mapping, squash-merge strategy, DIA-096
+  safe/destructive mapping, cleanup, conflict escalation, session isolation,
+  orchestrator dispatch templates) are in
+  `docs/dev-infra-audit/worktree-conventions.md`. Worktrees materialize under
+  `.worktrees/` at the repo root (git-ignored; also mirrored in
+  `tools/opencode-docker/`). This is a navigational pointer only; the mechanics
+  themselves are recoverable from those tracked files.

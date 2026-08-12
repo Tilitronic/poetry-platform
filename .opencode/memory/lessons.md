@@ -214,7 +214,9 @@ These lessons capture irrecoverable, human-context knowledge discovered during t
     2. When a change requires host-side execution or committing artifacts, include an explicit handoff step in the orchestration plan that dispatches a writer/coder lane with bash/commit rights to perform those actions.
     3. Add a preflight probe in the change checklist that verifies the intended lane's callable-tool registry contains `bash` and `write_file` (or the required equivalents) and, if not, automatically plan the handoff lane.
 
-  - Suggested ticket: add a lightweight check to the openspec preflight template so authors explicitly declare the lane that will perform repository writes and verify it has the required callable tools before merge.
+   - Suggested ticket: add a lightweight check to the openspec preflight template so authors explicitly declare the lane that will perform repository writes and verify it has the required callable tools before merge.
+
+   - Addendum (2026-08-12, session 14): the resource-manager lane also runs with subagent_depth=1 in the OMO runtime, which BLOCKS nested dispatch (resource-manager cannot itself spawn a coder/@researcher/@conspecter lane). This runtime depth limit is session/environment state, not present in committed config (no explicit subagent_depth value in opencode.jsonc / oh-my-opencode-slim.jsonc). Operational consequence: curation edits (e.g. ai-assist-sources.yaml refresh, DIA-108) must be handed to a SEPARATE coder lane for validation (make test-config / YAML parse) + commit + push; the resource-manager lane can author the scoped edit but cannot orchestrate the validation/commit sub-lane itself.
  
 ## dev-infra-jq-probe (2026-08-06)
 
@@ -290,3 +292,40 @@ Notes:
 
 ## c-20260809-residual-closure - post-mortem correction (2026-08-11)
 - L20260810-002 correction: The DIA-078 defense-in-depth deny rules (global L95-96, project L180-181) were added 2026-08-10 but caused a mechanical lock when combined with the opencode-snip plugin (which rewrites ALL bash commands to `snip <cmd>` via tool.execute.before). The root-cause fix is plugin removal: opencode-snip@1.6.1 removed from the global plugin array (DIA-092, res011 conspect). The deny rules are KEPT as a dormant zero-cost hallucination guardrail (council 5/5). Anti-priming lesson: orchestrator prompts must never name the forbidden token ("do not use `snip jq`" primed the prefix - DIA-078 L99). Truncation-defaults note: relying on native OpenCode tool_output defaults (max_lines=2000, max_bytes=50KB) + compaction.prune:true (project .opencode/opencode.jsonc L20); revisit explicit tool_output config only if token overflow is observed. Cross-reference: DIA-075, DIA-078, DIA-092, res011.
+
+## L20260812-001 — clean-exit status correction (session 14, 2026-08-12)
+
+- **Symptom:** at the end of a clean session (all 6 pre-handoff gates confirmed clean), the delegation-observer `log_decision` plugin had written the handoff status as `manual-halt` despite the clean-exit gate evidence. The orchestrator corrected it via a coder-lane single-field `jq` edit on the status field and re-verified.
+- **Why irrecoverable:** the plugin miswrite is runtime/plugin behaviour, not present in any commit or ticket. The correction technique and its safety property are not reconstructible from git diffs.
+- **Operational lesson:**
+  1. The handoff checksum covers ONLY the `.prognosis` field (canonical pipeline: `jq -c '.prognosis | to_entries | sort_by(.key) | from_entries' | tr -d '\n' | sha256sum`). A single-field edit to a DIFFERENT field (e.g. `status`) does NOT invalidate the checksum. This is why a status-only correction via coder-lane `jq` is safe without recomputing the checksum.
+  2. Do NOT trust a plugin-written status field over the aggregate pre-handoff gate evidence. When they conflict, correct the status field surgically (single-field `jq` edit) rather than regenerating the whole handoff, then re-verify the gate evidence still stands.
+  3. Route the correction through a coder lane (the orchestrator has no bash tool by design) with an explicit "single-field edit, leave `.prognosis` untouched" instruction.
+
+## DIA-100 git worktrees parallel-dev (session 15, 2026-08-12)
+
+- Timeout-bounded best-effort remote check: any "best-effort, skip when
+  unreachable" remote call MUST carry an explicit timeout (`timeout 5 git
+  ls-remote ...`). The claim "skipped silently" is false if the call blocks
+  for minutes when the remote is unreachable. The concrete fix is in
+  scripts/worktrees.sh (commit 44865c3), but the generalizable rule (apply a
+  timeout to every best-effort network probe, not just ls-remote) is the
+  irrecoverable lesson; the code alone does not tell a future author to apply
+  it to the next remote probe they add.
+
+- Test-design pattern for bounding untestable waits: prove a bounded-wait
+  invariant with outer + inner timeouts (T13: fake ls-remote sleeps 20s; the
+  outer `timeout 12` bounds the test while the script's internal `timeout 5`
+  must kill the hanging fake; without the internal timeout the outer timeout
+  kills the test with status 124 -> RED). This outer/inner timeout pairing is
+  a reusable technique for asserting an internal bound on a wait that is
+  otherwise untestable without actually waiting it out. The test exists in
+  code, but the technique's rationale (and why it is the canonical way to
+  prove a bounded-wait invariant) is the irrecoverable lesson.
+
+- Gateway pitfall (this session): an intermediate ticket status (FIXED) that
+  the section-10 ticket gate does not recognize silently blocks re-review
+  dispatch. Keep ticket status values to the canonical set (OPEN/CLOSED and
+  any explicitly-documented states); when a dispatch or re-review is silently
+  blocked, verify the referenced ticket is OPEN and not a non-canonical value.
+  Cross-reference: adr.md "Git worktrees parallel-dev model" entry.

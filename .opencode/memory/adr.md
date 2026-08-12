@@ -312,3 +312,59 @@ Adopt the following pattern when a vendored plugin clobbers tracked files on loa
 
 - Created: 2026-08-08
 - Related: DIA-069, .opencode/learnings/external-patterns/2026-08-08-dia069-telemetry-plugin.md, scripts/restore-telemetry-commands.sh, Makefile targets: make restore-telemetry-commands, make test-telemetry-guard
+
+## ADR: Git worktrees parallel-dev model (DIA-100) - decision record + ticket-lifecycle convention
+
+### Status
+
+Accepted - 2026-08-12
+
+### Context
+
+We adopted the worktrees-only parallel dev model (DIA-073 option d, developer
+decision 2026-08-09). The mechanical design decisions are fully recoverable
+from the repository: branch naming, worktree location, path mapping, the
+squash-merge strategy plus its rationale, the DIA-096 safe/destructive
+mapping, cleanup policy, conflict escalation criteria, session isolation
+mechanism, and the orchestrator dispatch pattern are all recorded in
+`docs/dev-infra-audit/worktree-conventions.md` and implemented in
+`scripts/worktrees.sh` with coverage in `scripts/__tests__/worktrees.bats`
+(T1-T16). This ADR records ONLY what is not recoverable from those files: the
+governance convention for ticket status during a worktree feature lifecycle,
+and the ticket-gate interaction that motivated it.
+
+### Decision
+
+1. Ticket lifecycle convention: a feature ticket's status stays OPEN through
+   implementation. The ticket Fix section carries the implementation evidence
+   (commit hashes, verification exit codes, verification matrix). The status is
+   flipped to CLOSED only after final verification (review complete and
+   findings disposed). Never invent intermediate status values (e.g. FIXED);
+   keep to the canonical set OPEN/CLOSED and any explicitly-documented states.
+2. When a ticket had been (non-canonically) set to FIXED, revert it to OPEN
+   once the fix is implemented and the ticket awaits review/re-verification.
+
+### Rationale (irrecoverable context)
+
+- The section-10 ticket gate resolves DIA-id references only against OPEN
+   tickets. A non-canonical FIXED status is not recognized by the gate and
+   silently blocks re-review dispatch (the gateway pitfall) even though the
+   work is legitimately in-progress. This is runtime gate behavior; its
+   interaction with ticket status values is not recoverable from the
+   conventions doc or from git diffs alone.
+- OPEN through implementation (Fix = evidence) keeps the gate permissive for
+   the implementation and review lanes while still recording progress; CLOSED
+   is a terminal, human-verified state.
+
+### Consequences
+
+- When a DIA ticket reports a blocked re-review dispatch or a non-canonical
+   status complaint, check the ticket status is OPEN (not FIXED or any
+   invented value) and revert to OPEN before re-dispatching.
+- Keep status values to the canonical set; document any new state explicitly
+   before using it.
+
+### Metadata
+
+- Created: 2026-08-12
+- Related: DIA-100, DIA-096, docs/dev-infra-audit/worktree-conventions.md, scripts/worktrees.sh, scripts/__tests__/worktrees.bats

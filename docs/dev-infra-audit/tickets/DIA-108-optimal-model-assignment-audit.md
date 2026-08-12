@@ -94,4 +94,14 @@ Status note: research + persistence complete; remaining work = ai-assist-sources
 
 ## Re-verify
 
-> To be filled at re-verify time.
+Restart-verify PASS (2026-08-12) - Kimi K3 / GPT-5.6 Luna escalation
+adoption (commit b0b3c76). Config checks 5/5 PASS: hidden:true in
+.opencode/opencode.jsonc (coder-escalated line 293, analyzer-escalated line
+239); task:deny on both escalated agents; model mappings S1-S4 consistent
+(coder-escalated -> opencode-go/kimi-k3, analyzer-escalated ->
+opencode-go/gpt-5.6-luna); orchestrator permission.task allow-list present
+(lines 167/170); make test-config exit 0 with agent-name lockstep 24/0/0.
+Live dispatch self-reports confirmed kimi-k3 (coder-escalated) and
+gpt-5.6-luna (analyzer-escalated); both hidden, both task:deny.
+
+Status stays OPEN.

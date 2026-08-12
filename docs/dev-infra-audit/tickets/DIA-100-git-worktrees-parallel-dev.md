@@ -11,7 +11,7 @@ id: DIA-100
 title: "git worktrees for parallel dev sessions: isolation, branch management, merge/conflict handling, cleanup, OpenCode interaction"
 area: dev-infra
 severity: Medium
-status: FIXED
+status: OPEN
 blocked_by: ["DIA-096"]
 discovered: 2026-08-11
 source: inventory
