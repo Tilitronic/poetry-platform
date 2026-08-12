@@ -12,7 +12,7 @@ id: DIA-111
 title: "model escalation routing for coder and analyzer agents (research-first)"
 area: opencode-config
 severity: Medium
-status: OPEN
+status: CLOSED
 blocked_by: []
 discovered: 2026-08-12
 source: owner-reported
@@ -189,5 +189,7 @@ Session evidence: lane-0 checksum MATCH
 (d25c724adcac211fa9c3d36fb840f7116b2d40c18555a7d9dd52ee34de3b45ff).
 
 Status stays OPEN pending developer close decision.
+
+CLOSED 2026-08-12 by developer decision (session S16). Restart-verify PASS; escalation ladder implemented (commit b0b3c76), validated (make test-config exit 0, lockstep 24/0/0), independently audited (ai-auditor APPROVE 8/8), and re-verified live (coder-escalated self-report opencode-go/kimi-k3; analyzer-escalated self-report opencode-go/gpt-5.6-luna). Follow-up tracking: DIA-116 (live in-repo Rung-3 benchmark) remains OPEN.
 
 ---

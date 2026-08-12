@@ -10,7 +10,7 @@ id: DIA-108
 title: "audit optimal model assignment across OpenCode agents (usage-driven)"
 area: opencode-config
 severity: Medium
-status: OPEN
+status: CLOSED
 blocked_by: []
 discovered: 2026-08-12
 source: fix-lane
@@ -105,3 +105,5 @@ Live dispatch self-reports confirmed kimi-k3 (coder-escalated) and
 gpt-5.6-luna (analyzer-escalated); both hidden, both task:deny.
 
 Status stays OPEN.
+
+CLOSED 2026-08-12 by developer decision (session S16). Research + persistence complete; Kimi K3 / GPT-5.6 Luna escalation adoption validated and re-verified live (commit b0b3c76, restart-verify PASS, ai-auditor APPROVE). Remaining follow-ups tracked separately: DIA-116 (Rung-3 benchmark), ai-assist-sources.yaml refresh (resource-manager lane).
