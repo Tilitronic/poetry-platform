@@ -100,8 +100,10 @@ Worked example (ticket `DIA-100`):
 ```bash
 # 1. Orchestrator dispatches @coder to create the lane (see dispatch pattern)
 bash scripts/worktrees.sh create feature/DIA-100-worktree-lifecycle
-#    -> worktree at .worktrees/DIA-100-worktree-lifecycle on
+#    -> worktree at .worktrees/feature-DIA-100-worktree-lifecycle on
 #       branch feature/DIA-100-worktree-lifecycle
+#       (path_from_branch converts slashes to dashes and does NOT strip the
+#       feature/ prefix, so the path keeps it: feature-DIA-100-...)
 
 # 2. Lane works inside the worktree; commits locally; pushes the feature branch
 #    (safe per DIA-096):

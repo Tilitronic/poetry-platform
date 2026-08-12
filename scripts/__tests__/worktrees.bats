@@ -21,6 +21,12 @@
 #   T9  remove unknown target -> exit 1
 #   T10 no command -> usage error (exit 2)
 #   T11 remove refuses the main checkout path -> exit 1
+#   T12 create refuses branch that exists on origin (fake git ls-remote)
+#   T13 create bounded when origin unreachable (fake ls-remote sleeps; the
+#       script's internal `timeout 5` caps the wait)
+#   T14 remove by worktree PATH -> exit 0 + message shows path AND branch
+#   T15 create --help -> usage (exit 2), not a branch-name error
+#   T16 list forwards args to git worktree list (--porcelain works)
 
 load test-helper
 
@@ -45,6 +51,34 @@ setup_worktree_repo() {
   git -C "$tree" add .gitignore
   git -C "$tree" commit -q -m init
   echo "$tree"
+}
+
+# mock_git_ls_remote: plants a fake `git` on PATH that intercepts ONLY
+# `ls-remote` calls and delegates everything else to the real git binary
+# (captured before the PATH prepend). Used to exercise the best-effort remote
+# check in `create` without a network:
+#   FAKE_LS_REMOTE_OUTPUT   canned ls-remote stdout (default: empty)
+#   FAKE_LS_REMOTE_SLEEP    seconds the fake sleeps before answering
+#                           (simulates an unreachable origin that hangs)
+mock_git_ls_remote() {
+  local real_git bindir
+  real_git="$(command -v git)"
+  bindir="$BATS_TEST_TMPDIR/bin"
+  mkdir -p "$bindir"
+  cat > "$bindir/git" <<FAKEGIT
+#!/usr/bin/env bash
+if [ "\${1:-}" = "ls-remote" ]; then
+  if [ -n "\${FAKE_LS_REMOTE_SLEEP:-}" ]; then
+    sleep "\$FAKE_LS_REMOTE_SLEEP"
+  fi
+  printf '%s\n' "\${FAKE_LS_REMOTE_OUTPUT:-}"
+  exit "\${FAKE_LS_REMOTE_EXIT:-0}"
+fi
+exec "$real_git" "\$@"
+FAKEGIT
+  chmod +x "$bindir/git"
+  PATH="$bindir:$PATH"
+  export PATH
 }
 
 @test "worktrees: T1 create -> exit 0 + worktree dir + branch + isolated .opencode/session" {
@@ -166,4 +200,65 @@ setup_worktree_repo() {
 
   assert_status 1
   assert_output_contains "refusing to remove the main checkout"
+}
+
+@test "worktrees: T12 create refuses branch that exists on origin (fake ls-remote listing)" {
+  tree="$(setup_worktree_repo)"
+  mock_git_ls_remote
+  FAKE_LS_REMOTE_OUTPUT="$(printf '0a1b2c3d4e5f\trefs/heads/feature/DIA-100-existing')"
+  export FAKE_LS_REMOTE_OUTPUT
+
+  run bash "$tree/scripts/worktrees.sh" create feature/DIA-100-existing
+
+  assert_status 1
+  assert_output_contains "already exists on origin"
+  assert_file_not_exists "$tree/.worktrees/feature-DIA-100-existing"
+}
+
+@test "worktrees: T13 create bounded when origin unreachable (fake ls-remote sleeps; internal timeout 5)" {
+  tree="$(setup_worktree_repo)"
+  mock_git_ls_remote
+  export FAKE_LS_REMOTE_SLEEP=20
+
+  # Outer timeout 12 bounds the whole test; the script's internal
+  # `timeout 5 git ls-remote` must kill the hanging fake (~5s) so create
+  # completes well under 12s. Without the internal timeout this test would
+  # take 20s and the outer timeout would kill it -> status 124 -> RED.
+  run timeout 12 bash "$tree/scripts/worktrees.sh" create feature/DIA-100-slow
+
+  assert_status 0
+  assert_file_exists "$tree/.worktrees/feature-DIA-100-slow"
+}
+
+@test "worktrees: T14 remove by worktree path -> exit 0 + message shows path AND branch" {
+  tree="$(setup_worktree_repo)"
+  bash "$tree/scripts/worktrees.sh" create feature/DIA-100-test >/dev/null
+
+  run bash "$tree/scripts/worktrees.sh" remove "$tree/.worktrees/feature-DIA-100-test"
+
+  assert_status 0
+  assert_file_not_exists "$tree/.worktrees/feature-DIA-100-test"
+  # the message must report the resolved branch (with slash), not echo the path
+  assert_output_contains ".worktrees/feature-DIA-100-test"
+  assert_output_contains "branch 'feature/DIA-100-test' kept for the rollback window"
+}
+
+@test "worktrees: T15 create --help -> usage (exit 2), not a branch-name error" {
+  tree="$(setup_worktree_repo)"
+
+  run bash "$tree/scripts/worktrees.sh" create --help
+
+  assert_status 2
+  assert_output_contains "usage: worktrees.sh"
+  assert_output_not_contains "must start with 'feature/'"
+}
+
+@test "worktrees: T16 list forwards args to git worktree list (--porcelain works)" {
+  tree="$(setup_worktree_repo)"
+  bash "$tree/scripts/worktrees.sh" create feature/DIA-100-test >/dev/null
+
+  run bash "$tree/scripts/worktrees.sh" list --porcelain
+
+  assert_status 0
+  assert_output_contains "branch refs/heads/feature/DIA-100-test"
 }

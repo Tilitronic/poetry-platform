@@ -33,14 +33,17 @@
 #
 # Exit codes: 0 success; 1 runtime error (fail-loud on stderr); 2 usage error.
 # Bash-3 compatible: no [[ ]], no associative arrays, no ${!var} (same
-# contract as scripts/session-log).
+# contract as scripts/session-log). The script itself stays bash-3; the bats
+# SUITE requires bash 4+ because test-helper.bash's assert helpers use [[ ]]
+# (assert_output_contains / assert_output_not_contains).
+# External deps: GNU coreutils `timeout` (bounds the best-effort remote check
+# so an unreachable origin cannot block `create` — DIA-100 review finding).
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 WORKTREES_DIR="${WORKTREES_DIR:-$ROOT/.worktrees}"
 DEFAULT_BASE="${DEFAULT_BASE:-main}"
-FORCE=0
 
 fail() {
   echo "error: $*" >&2
@@ -126,10 +129,38 @@ resolve_worktree_path() {
   fail "no worktree found for '$target' (checked existing paths and branches)"
 }
 
+# worktree_branch_at <path>: echo the branch name (without the refs/heads/
+# prefix) of the worktree at <path>, from `git worktree list --porcelain`.
+# Used by cmd_remove so the success message reports the REAL branch even when
+# the user removed by worktree PATH (the path's basename is the branch with
+# slashes converted to dashes and cannot be reversed losslessly).
+worktree_branch_at() {
+  local path="$1" line wtpath="" branch=""
+  while IFS= read -r line; do
+    if [ -z "$line" ]; then
+      wtpath=""
+      branch=""
+      continue
+    fi
+    case "$line" in
+      worktree\ *) wtpath="${line#worktree }" ;;
+      branch\ *) branch="${line#branch refs/heads/}" ;;
+    esac
+    if [ -n "$wtpath" ] && [ -n "$branch" ] && [ "$wtpath" = "$path" ]; then
+      printf '%s' "$branch"
+      return 0
+    fi
+  done < <(git worktree list --porcelain)
+  fail "no branch found for worktree at '$path' (detached HEAD?)"
+}
+
 cmd_create() {
   if [ $# -lt 1 ]; then
     usage
   fi
+  case "$1" in
+    -h | --help) usage ;;
+  esac
   local branch="$1" base="${2:-$DEFAULT_BASE}" path
   validate_branch "$branch"
   path="$WORKTREES_DIR/$(path_from_branch "$branch")"
@@ -141,7 +172,9 @@ cmd_create() {
   fi
   # Best-effort remote check (read-only; DIA-096 safe). Skipped silently when
   # origin is unreachable (offline): a local-only create stays possible.
-  if git ls-remote --heads origin 2>/dev/null | grep -qF -- "refs/heads/$branch"; then
+  # `timeout 5` bounds the wait so a dead/unreachable origin cannot block
+  # create for minutes (GNU coreutils; stderr already silenced below).
+  if timeout 5 git ls-remote --heads origin 2>/dev/null | grep -qF -- "refs/heads/$branch"; then
     fail "branch '$branch' already exists on origin; pick a new branch"
   fi
   if [ -e "$path" ]; then
@@ -171,10 +204,10 @@ cmd_create() {
 }
 
 cmd_remove() {
-  local target=""
+  local target="" force=0
   while [ $# -gt 0 ]; do
     case "$1" in
-      --force) FORCE=1 ;;
+      --force) force=1 ;;
       -h | --help) usage ;;
       -*) fail "unknown option '$1' (see --help)" ;;
       *)
@@ -190,19 +223,20 @@ cmd_remove() {
     usage
   fi
 
-  local path main_path dirty
+  local path main_path dirty branch
   path="$(resolve_worktree_path "$target")"
   main_path="$(git rev-parse --show-toplevel)"
   if [ "$path" = "$main_path" ]; then
     fail "refusing to remove the main checkout ('$path')"
   fi
+  branch="$(worktree_branch_at "$path")"
 
   dirty="$(git -C "$path" status --porcelain)"
-  if [ "$FORCE" != "1" ] && [ -n "$dirty" ]; then
+  if [ "$force" != "1" ] && [ -n "$dirty" ]; then
     fail "worktree '$path' has uncommitted changes; commit or stash them first, or use --force (developer-only: WORKTREES_FORCE=1 — maps to DIA-096 denied destructive ops)"
   fi
 
-  if [ "$FORCE" = "1" ]; then
+  if [ "$force" = "1" ]; then
     # Lanes cannot force: the env guard is the barrier because git worktree
     # remove --force is NOT itself in the DIA-096 deny list (only git clean
     # -f* / git branch -D are). Agents must never set WORKTREES_FORCE=1.
@@ -214,11 +248,11 @@ cmd_remove() {
   else
     git worktree remove "$path"
   fi
-  echo "ok: worktree removed — branch '$target' kept for the rollback window; after the window the developer deletes it (git branch -d/-D is denied for lanes, DIA-096)"
+  echo "ok: worktree at '$path' removed; branch '$branch' kept for the rollback window; after the window the developer deletes it (git branch -d/-D is denied for lanes, DIA-096)"
 }
 
 cmd_list() {
-  git worktree list
+  git worktree list "$@"
 }
 
 main() {

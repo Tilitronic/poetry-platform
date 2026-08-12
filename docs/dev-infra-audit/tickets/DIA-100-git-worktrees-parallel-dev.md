@@ -71,7 +71,7 @@ dispatches @coder to create/teardown). Note: worktrees skill exists at
 - [ ] (c) Reviewer runs in worktree context.
 - [ ] (d) Squash-merge to main succeeds.
 - [ ] (e) Worktree auto-cleaned after merge.
-- [ ] (f) Each worktree has separate .opencode/session/ (verified).
+- [x] (f) Each worktree has separate .opencode/session/ (verified).
 
 ## Fix
 
@@ -130,6 +130,13 @@ dispatches @coder to create/teardown). Note: worktrees skill exists at
   before close): create -> list -> .opencode/session isolation check ->
   remove; both throwaway branches deleted with the safe `git branch -d`
   (never pushed).
+- Verification item (b) not exercised: throwaway branches were never
+  pushed; first-worktree adoption will validate the safe-push path.
+- Verification items (a)-(e) deferred to workflow-adoption time: they
+  require an active worktree lane in the adopted parallel-dev workflow
+  (orchestrator-dispatched creation, safe-push from a worktree,
+  reviewer-in-worktree, squash-merge, post-merge cleanup). Item (f) is
+  verified by the throwaway-worktree trace above and by bats T1.
 - Note: worktrees created from `main` currently print the
   "not git-ignored in the worktree" warning because the `.opencode/session/`
   and `.worktrees/` gitignore entries are committed on omo-slim-changes but
