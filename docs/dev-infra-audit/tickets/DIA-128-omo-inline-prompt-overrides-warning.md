@@ -18,7 +18,26 @@
      (local vendored plugin FILE-wins vs npm 2.2.13 INLINE-wins split,
      dist/index.js:19282). Restart-verify PENDING next opencode launch:
      zero inline-override warnings for coder/analyzer + relocated prompts
-     active. Status stays OPEN until restart-verify completes. -->
+     active. Status stays OPEN until restart-verify completes.
+
+     UPDATE 2026-08-13 (RESTART-VERIFY PASS + CLOSED): post-restart opencode
+     process PID 3530961 started Thu Aug 13 15:30:52 (session
+     ses_004adb8c8ffe5eEyKiKuVzdHcr observed 15:31:41 local), both AFTER the
+     last config commit 144a332 at 15:02:25 (delta 28-29 min). ZERO
+     "inline prompt overrides prompt file" occurrences in the running
+     process plugin log
+     (~/.local/share/opencode/log/oh-my-opencode-slim.20260813T133056.log)
+     or full opencode.log. Prompt files active on loader search path #2:
+     .opencode/oh-my-opencode-slim/coder.md (2039 bytes, 30 lines) and
+     analyzer_append.md (2530 bytes, 44 lines), both with the DIA-128
+     regression note header. No inline prompt keys remain in
+     oh-my-opencode-slim.jsonc for preset coder blocks (cebula line 56,
+     opencode-go line 250, free line 471) or agents.analyzer; agents.coder
+     is empty object; the 4 inline keys deleted by 15f68a4 are gone.
+     Installed runtime OMO 2.2.13 dist (line 19282) implements
+     inlinePrompt ?? filePrompt ?? fallback with warning gated on both
+     defined - with inline prompts deleted the branch cannot fire. Ticket
+     flipped CLOSED 2026-08-13. -->
 
 ---
 
@@ -26,7 +45,7 @@ id: DIA-128
 title: "OMO plugin repeatedly warns 'inline prompt overrides prompt file' for coder and analyzer agents"
 area: opencode-config
 severity: Medium
-status: OPEN
+status: CLOSED
 blocked_by: [] # no blockers
 discovered: 2026-08-13
 source: session-observation (developer screenshot + observer analysis, 2026-08-13)
@@ -41,7 +60,7 @@ fix_commit: 15f68a4
 fix_branch: omo-slim-changes
 review_verdict: ai-auditor APPROVE with 1 Suggestion (dual-runtime precedence ambiguity, ACCEPTED -> regression note)
 validation: make test-config exit 0
-restart_verify: PENDING (next opencode launch)
+restart_verify: PASS (2026-08-13, post-restart PID 3530961 - see Re-verify section)
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -180,10 +199,48 @@ oh-my-opencode-slim`) where FILE wins, while the global runtime wires NPM
 
 ## Re-verify
 
-> To be filled at re-verify time.
+RESTART-VERIFY PASS (2026-08-13, post-restart). Ticket flipped CLOSED.
 
-PENDING (2026-08-13): next opencode launch - confirm ZERO
-"[oh-my-opencode] Agent '<name>': inline prompt overrides prompt file"
-warnings for coder and analyzer, and the relocated prompts active (coder.md
-full replacement + analyzer_append.md appended). Status stays OPEN until
-this passes.
+### Evidence
+
+1. **Post-restart timing (both timestamps AFTER last config commit):**
+   - Last config commit: 144a332 at 15:02:25.
+   - Running opencode process PID 3530961 started Thu Aug 13 15:30:52
+     local (delta 28 min).
+   - Session ses_004adb8c8ffe5eEyKiKuVzdHcr observed
+     2026-08-13T13:31:41Z = 15:31:41 local in the running plugin log
+     (~/.local/share/opencode/log/oh-my-opencode-slim.20260813T133056.log,
+     first entry [2026-08-13T13:30:56.xxxZ], delta 29 min vs commit).
+   - Both process and session start AFTER 144a332, so the running process
+     loaded the post-fix state.
+2. **ZERO warnings in the running process log:**
+   - `grep -c "inline prompt overrides prompt file"
+~/.local/share/opencode/log/oh-my-opencode-slim.20260813T133056.log`
+     -> 0 occurrences. No inline-override warning in the full opencode.log
+     for the running process either.
+3. **Prompt files active (loader search path #2, project root dir):**
+   - .opencode/oh-my-opencode-slim/coder.md: 2039 bytes, 30 lines.
+   - .opencode/oh-my-opencode-slim/analyzer_append.md: 2530 bytes, 44
+     lines.
+   - Both non-empty with the DIA-128 dual-runtime regression note header.
+4. **No inline prompt keys remain in oh-my-opencode-slim.jsonc:**
+   - Preset coder blocks: cebula line 56, opencode-go line 250, free line
+     471 - no `prompt` key.
+   - agents.analyzer: orchestratorPrompt only, no `prompt` key.
+   - agents.coder: empty object {}.
+   - The 4 inline keys deleted by 15f68a4 are gone (grep "inline prompt"
+     over the whole jsonc: 0 hits).
+5. **Runtime semantics match (branch cannot fire):**
+   - Installed runtime OMO 2.2.13 dist (line 19282) implements
+     `inlinePrompt ?? filePrompt ?? fallback` with the warning gated on
+     BOTH inline and file being defined (line 19280). With inline prompts
+     deleted, the warning branch is unreachable.
+
+### Resolution
+
+Status CLOSED 2026-08-13. Root cause removed (inline prompts relocated to
+prompt files), runtime semantics confirm the warning cannot fire, and the
+post-restart process shows zero occurrences. Residual risk: a future OMO
+upgrade or config edit re-adding inline prompts would re-trigger the
+warning; the regression note header in both prompt files guards against
+this (per the accepted ai-auditor suggestion).
