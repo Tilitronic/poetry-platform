@@ -597,3 +597,25 @@ Notes:
   - Cross-reference: extends the earlier symptom-level lesson "Openspec CLI
     permission-shadowing gotcha"; complementary to the deny-semantics
     registry-absence lesson. DIA-126, DIA-081, DIA-036.
+
+- Byte-level ASCII audit (DIA-079) should run BEFORE the commit, not after
+  (DIA-127 registration, 2026-08-13):
+  - Symptom: a post-commit byte-level ASCII audit of the DIA-127 Phase-6
+    registration (44ea318) surfaced a pre-existing em-dash on a modified line,
+    forcing a separate polish commit (7b33682) purely to keep the changed file
+    ASCII-clean.
+  - Root cause: the ASCII audit was treated as a post-commit gate for already
+    landed work instead of a pre-commit check on the working tree, so an
+    untouched non-ASCII byte inherited into a touched line was only caught after
+    the first commit.
+  - Lesson: for any lane that edits tracked files (especially docs/config), run
+    `LC_ALL=C grep -P '[^\x00-\x7F]'` on the diff surface BEFORE committing so
+    the ASCII fix folds into the primary commit instead of a follow-up polish
+    commit. A pre-existing non-ASCII byte on a modified line is still a DIA-079
+    violation that must be corrected, but catching it pre-commit avoids the
+    two-commit shape.
+  - Why irrecoverable: the ordering (audit-before-commit vs audit-after-commit)
+    is a process choice, not visible in the git diff; the em-dash itself was
+    pre-existing and the polish commit alone does not reveal the workflow defect.
+  - Cross-reference: DIA-079 (ASCII-only protocol), DIA-127 registration commits
+    44ea318 / 7b33682.
