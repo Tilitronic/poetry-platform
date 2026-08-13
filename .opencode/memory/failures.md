@@ -164,3 +164,17 @@ Failed-loop lessons & preventive actions
     the stale-comparison contributor or the agent-side event-type rule).
   - Cross-reference: lessons.md S18 "log_decision handoff-event trigger caveat";
     DIA-120.
+
+- Failure mode (2026-08-13): aborted commit-lane dispatch left partial
+  ticket-status edits (idempotent re-dispatch gap)
+  - Symptom: a commit-lane dispatch was aborted mid-flight ("Tool execution
+    aborted") AFTER it had already applied its A1/A2/A3 ticket-status edits. The
+    re-dispatch discovered the edits already present and verified instead of
+    re-applying.
+  - Lesson: a re-dispatched lane MUST first verify whether a previous (possibly
+    aborted) lane partially applied its changes before re-applying. The
+    idempotent re-dispatch pattern is: (1) check the current state of the target
+    artifacts, (2) apply only the missing delta, (3) verify idempotently.
+    Blindly re-applying after an abort can double-apply or clobber earlier work.
+  - Why irrecoverable: the abort occurred mid-flight and the resulting partial
+    state is runtime/session behavior, not reconstructible from git diffs.

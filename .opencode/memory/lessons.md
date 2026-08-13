@@ -536,3 +536,40 @@ Notes:
     in-TUI toast (`tui.showToast`) and `powershell.exe` WinRT toast via WSL interop
     (spawn with stdio fully discarded for TUI-safety, res007). Prefer these until a
     daemon is installed.
+
+- Recurring ledger-drift class (2026-08-13, DIA-122 + DIA-092):
+  - Symptom: twice in one week a DIA ticket's WORK was fully complete
+    (implementation + validation + registration) but the ticket frontmatter
+    status and the README index row/counts were never flipped from OPEN to a
+    completed status at completion time. The ledger only reflects a ticket's
+    real state when the status flip happens AT completion time, not later; a
+    deferred flip is easily forgotten and leaves a persistent ledger/index
+    mismatch until someone reconciles it.
+  - Preventive action: any lane that completes a ticket's final phase MUST flip
+    the ticket frontmatter status + the README index row + the rollup status
+    counts in the SAME commit as the completion work (atomic status flip at
+    completion time). Do not defer the status flip to a separate later step.
+  - Why irrecoverable: the individual drifts are visible in git, but the
+    recurring behavioral PATTERN (and the atomic-at-completion-time rule) is a
+    workflow lesson, not reconstructible from any single diff.
+  - Cross-reference: repo.md "Ticket ledger drift: DIA-063" entry; DIA-122, DIA-092.
+
+- Autonomous-night research-persistence gate behavior (2026-08-13, decision
+  traceability):
+  - Context: when the developer grants an autonomous overnight mandate ("do as
+    much work as possible, leave user-input decisions for morning"), the
+    research-persistence gate's Phase-2 practice-protected "present to
+    developer" step cannot be performed live (the developer is not present
+    overnight). This run the orchestrator auto-proceeded with persistence
+    (PERSISTENCE_RECOMMENDED: true, 15+ sources) and flagged the persistence for
+    morning developer review.
+  - Decision to trace: under an autonomous overnight mandate, auto-proceeding
+    with research persistence and flagging it for morning review is an ACCEPTED
+    pattern, PROVIDED the persistence is reversible/auditable (conspects and
+    memory-shelf entries are tracked in git) and the auto-proceed decision is
+    recorded for the developer to accept/reject at the next session. If the
+    developer's standing preference is that persistence NEVER auto-proceeds even
+    under a mandate, amend this rule.
+  - Why irrecoverable: the choice to auto-proceed vs block is a session decision;
+    the developer's acceptance or amendment of this pattern is a standing
+    preference decision that must remain traceable.

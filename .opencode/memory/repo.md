@@ -119,3 +119,28 @@ Note: These are navigational facts to help future humans find the infra/test art
     a glob/ripgrep that respects .gitignore will not find them - check the
     `.opencode/session/` dir directly (same visibility caveat as registry.jsonl,
     see the 2026-08-10 delegation-observer sidecar entry).
+
+- Knowledge-base additions (2026-08-13, DIA-125 + DIA-123):
+  - `knowledge/res018-ticket-management-automation/` holds the DIA-125
+    decision-support conspect (22 archived sources). Its durable recommendation:
+    a HYBRID - keep the git-backed markdown ledger
+    (`docs/dev-infra-audit/tickets/`) and add a THIN local CLI/MCP writer, with
+    Tier 1/2/3 implementation options. Brief pointer: consult res018 before
+    re-researching ticket-automation options.
+  - `.opencode/learnings/external-patterns/2026-08-13-deterministic-restart-detection.md`
+    is the DIA-123 section-10 Phase-1 gate research on deterministic restart
+    detection.
+  - The conspects are tracked in git; this entry records only the one-line
+    recommendation pointer so a future session does not re-research the same
+    decision space.
+
+- Research-lane tool-gap recurrence (2026-08-13, DIA-067 class):
+  - The conspecter lane this night-run had NO shell/exec primitive and used its
+    webfetch tool instead of the mandated trafilatura/curl/crawl4ai CLI chain
+    (Phase A), yet still satisfied archive-before-claim (22/22 archived, claims
+    traced). This is a recurrence of the DIA-067-class tool-gap (res003 paused on
+    missing trafilatura CLI).
+  - Observation for orchestrator: this recurrence may warrant a NEW ticket when
+    DIA-067 is resolved/closed (recorded here; no ticket created this run). The
+    webfetch-substitution path is a viable fallback but should not become the
+    permanent research-archive mechanism.
