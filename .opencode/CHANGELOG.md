@@ -1,5 +1,13 @@
 # OpenCode Config Changelog
 
+## 2026-08-13 - DIA-128 inline prompt relocation fix (15f68a4) + phase-6 registration (dual-runtime regression note)
+
+- **Change:** DIA-128 fix IMPLEMENTED (commit 15f68a4): removed the inline `prompt` keys for coder (3 preset blocks) and analyzer (1 root agents block) from `.opencode/oh-my-opencode-slim.jsonc`; content relocated to project-level prompt files `.opencode/oh-my-opencode-slim/coder.md` (new, full replacement prompt) and `.opencode/oh-my-opencode-slim/analyzer_append.md` (new, append file with OWNERSHIP TRACKING + COUNCIL DELEGATION sections). This registration lane: ASCII dual-runtime regression note added at the top of both prompt files, DIA-128 ticket updated (fix IMPLEMENTED, restart-verify PENDING, status stays OPEN), CHANGELOG entry + learnings + index pointer.
+- **Reason:** DIA-128 (Medium, opencode-config): OMO 2.2.13 warns "inline prompt overrides prompt file" whenever an agent has both an inline prompt and a resolvable prompt file (dist/index.js:19280); inline wins via `inlinePrompt ?? filePrompt ?? fallback` (dist/index.js:19282), so the prompt files were being ignored. ai-auditor flagged the dual-runtime prompt-precedence ambiguity (project runtime = local vendored plugin at .opencode/opencode.jsonc line 541, FILE wins; global runtime = NPM oh-my-opencode-slim@2.2.13, INLINE wins); inline keys removed so BOTH runtimes now resolve to the project prompt files consistently.
+- **Files:** .opencode/oh-my-opencode-slim/coder.md (regression note) - .opencode/oh-my-opencode-slim/analyzer_append.md (regression note) - docs/dev-infra-audit/tickets/DIA-128-omo-inline-prompt-overrides-warning.md (status update, stays OPEN) - .opencode/learnings/external-patterns/2026-08-13-dia128-inline-prompt-relocation.md (NEW) - .opencode/learnings/index.md (pointer row) - CHANGELOG.md.
+- **Review:** ai-auditor APPROVE with 1 Suggestion (dual-runtime precedence ambiguity); developer disposition: ACCEPTED, applied as the regression note on both prompt files.
+- **Verification:** make test-config exit 0; fix commit 15f68a4 + this registration commit; restart-verify PENDING next opencode launch (zero inline-override warnings + relocated prompts active).
+
 ## 2026-08-13 - DIA-127 oh-my-opencode-slim 2.2.8 -> 2.2.13 pin update (S10-P6 registration)
 
 - **Change:** oh-my-opencode-slim pin updated 2.2.8 -> 2.2.13: global plugin pin `~/.config/opencode/opencode.jsonc` line 148 (outside repo, done by lane cod-7) + project comment sync `.opencode/opencode.jsonc` line 135 (comment bump 2.2.8 -> 2.2.13). Upgrade evaluation research concluded UPDATE NOW.

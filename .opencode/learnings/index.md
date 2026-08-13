@@ -33,6 +33,8 @@ Last updated: 2026-08-13
 
 - [2026-08-13](external-patterns/2026-08-13-omo-slim-version-gate-upgrade.md): OMO slim version-gate upgrade 2.2.8 -> 2.2.13 (DIA-127) - ai-specialist gate research (12 cited sources) concluded UPDATE NOW; global pin line 148 + project comment sync; OMO 2.2.13 schema confirms presets/agents/disabled_agents/council/websearch surfaces intact; compatibility floor opencode >= 1.18.13 met (1.18.18); make test-config exit 0; restart-verify PASS (2.2.13 loaded, ai-specialist websearch in all 3 presets, conspecter bash); ai-auditor APPROVE-WITH-CHANGES (ses_00561027affeWdPCmgU2VBjg7O); DIA-127 ticket stays OPEN until Step B res019 conspect persistence completes.
 
+- [2026-08-13](external-patterns/2026-08-13-dia128-inline-prompt-relocation.md): DIA-128 inline-prompt relocation - OMO 2.2.13 dual-runtime precedence split (npm dist/index.js:19282 `inlinePrompt ?? filePrompt ?? fallback` = INLINE wins; project LOCAL vendored plugin at .opencode/opencode.jsonc line 541 = FILE wins); warning fires when both inline + file present (dist/index.js:19280); prompt-file search order (project preset > project root > user preset > user root); fix pattern = relocate inline content to project-level prompt files BEFORE deleting inline keys; fix commit 15f68a4 (coder.md + analyzer_append.md), make test-config exit 0, ai-auditor APPROVE with 1 Suggestion (accepted), restart-verify PENDING.
+
 See `external-patterns/` for findings from external research (Anthropic blog,
 OpenCode docs, oh-my-opencode-slim best practices).
 

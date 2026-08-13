@@ -4,7 +4,21 @@
      captured a screenshot of the OpenCode TUI and asked to "log the bug on the
      screenshot to fix". An observer agent analyzed the screenshot (evidence
      path below). This is a ticket-ledger documentation ticket ONLY - no
-     config, code, agent, or skill changes were made. -->
+     config, code, agent, or skill changes were made.
+
+     UPDATE 2026-08-13 (FIX IMPLEMENTED, commit 15f68a4, branch
+     omo-slim-changes): the dual inline `prompt` keys (coder x3 preset
+     blocks, analyzer x1 root agents block) were removed from
+     .opencode/oh-my-opencode-slim.jsonc and their content relocated to
+     project-level prompt files .opencode/oh-my-opencode-slim/coder.md
+     (new, full replacement) and analyzer_append.md (new, append file).
+     make test-config exit 0 after the fix. ai-auditor APPROVE with 1
+     Suggestion (dual-runtime prompt-precedence ambiguity) - ACCEPTED and
+     applied as an ASCII regression note at the top of both prompt files
+     (local vendored plugin FILE-wins vs npm 2.2.13 INLINE-wins split,
+     dist/index.js:19282). Restart-verify PENDING next opencode launch:
+     zero inline-override warnings for coder/analyzer + relocated prompts
+     active. Status stays OPEN until restart-verify completes. -->
 
 ---
 
@@ -19,6 +33,15 @@ source: session-observation (developer screenshot + observer analysis, 2026-08-1
 date: 2026-08-13
 created: 2026-08-13
 updated: 2026-08-13
+
+# --- Fix record (2026-08-13, commit 15f68a4) ---
+
+fix_status: IMPLEMENTED
+fix_commit: 15f68a4
+fix_branch: omo-slim-changes
+review_verdict: ai-auditor APPROVE with 1 Suggestion (dual-runtime precedence ambiguity, ACCEPTED -> regression note)
+validation: make test-config exit 0
+restart_verify: PENDING (next opencode launch)
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -129,8 +152,38 @@ How to confirm the defect exists (before fix):
 
 ## Fix
 
-> To be filled at fix time.
+IMPLEMENTED 2026-08-13 (commit 15f68a4, branch omo-slim-changes).
+
+- Root cause: the coder and analyzer agents had BOTH an inline `prompt`
+  string in `.opencode/oh-my-opencode-slim.jsonc` AND a resolvable prompt
+  file. OMO 2.2.13 emits the warning whenever both are present
+  (dist/index.js:19280) because inline wins - `inlinePrompt ?? filePrompt
+?? fallback` (dist/index.js:19282) - so the prompt file was being ignored.
+- Fix: removed the inline `prompt` keys for coder (3 preset blocks) and
+  analyzer (1 root agents block) from `.opencode/oh-my-opencode-slim.jsonc`
+  and relocated the content to project-level prompt files (search-order
+  step 2, project root directory):
+  - `.opencode/oh-my-opencode-slim/coder.md` (new) - full replacement
+    prompt (was the inline coder prompt, 13 lines).
+  - `.opencode/oh-my-opencode-slim/analyzer_append.md` (new) - append file
+    holding the OWNERSHIP TRACKING + COUNCIL DELEGATION sections (were part
+    of the inline analyzer prompt).
+- ai-auditor Suggestion (accepted): dual-runtime prompt-precedence
+  ambiguity - the project runtime wires the LOCAL vendored plugin
+  (`.opencode/opencode.jsonc` line 541, `file:///workspace/.opencode/
+oh-my-opencode-slim`) where FILE wins, while the global runtime wires NPM
+  `oh-my-opencode-slim@2.2.13` where INLINE wins. An ASCII regression note
+  documenting this split was added at the top of both prompt files so
+  future OMO upgrades re-verify inline-vs-file semantics before re-adding
+  inline prompts.
+- Verification: make test-config exit 0 (post-fix).
 
 ## Re-verify
 
 > To be filled at re-verify time.
+
+PENDING (2026-08-13): next opencode launch - confirm ZERO
+"[oh-my-opencode] Agent '<name>': inline prompt overrides prompt file"
+warnings for coder and analyzer, and the relocated prompts active (coder.md
+full replacement + analyzer_append.md appended). Status stays OPEN until
+this passes.
