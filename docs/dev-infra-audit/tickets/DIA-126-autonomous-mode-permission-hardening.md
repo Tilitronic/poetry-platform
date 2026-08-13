@@ -167,3 +167,35 @@ is required to confirm bash is exposed and the crwl/trafilatura chain works.
 ## Re-verify
 
 > To be filled at re-verify time.
+
+## Restart-verify evidence (2026-08-13, wildcard cycle) - RESULT PARTIAL
+
+Restart-verify re-run of the conspecter test archival (conspecter test session
+ses_0059b11dbffegxB19B4ywdBVs5, evidence path knowledge/test-dia126-archival/):
+
+**RESULT PARTIAL.**
+
+1. **Original visibility bug FIXED and PROVEN:** the conspecter session exposed
+   the bash tool present and executable, and `crwl *` ran WITH arguments. The
+   DIA-126 catch-all-first ordering fix works end-to-end. webfetch was never
+   invoked and is explicitly denied at `.opencode/opencode.jsonc`. The runtime
+   errors observed during the test run were Playwright-level, NOT
+   permission-level (see DIA-129).
+2. **Residual bug found:** bare allow patterns WITHOUT trailing wildcards
+   (`"curl": "allow"`, `"wget": "allow"`, `"trafilatura": "allow"`,
+   `"openspec": "allow"`) match ONLY the exact bare command. Every
+   arg-bearing invocation (`curl -s URL`, `trafilatura -u URL`,
+   `openspec propose ...`) falls through to the `"*": "deny"` catch-all and
+   trips the permission gate (permission-ask storm in autonomous windows).
+   FIXED via the approved section-10 wildcard change (this commit): trailing
+   `*` added to the arg-bearing allows for conspecter, resource-manager and
+   openspec-plan; ai-specialist bash map replaced with a flat `"bash": "deny"`
+   string (its lane is read-only web research via webfetch).
+3. **Separate infra gap:** crawl4ai crwl fallback fails at runtime because
+   Playwright pins chromium revision 1228 while the host cache has only 1234
+   (runtime error `BrowserType.launch: Executable doesn't exist at ...chromium_headless_shell-1228...`;
+   crwl browser start fails with "'NoneType' object has no attribute 'browser_type'"). Tracked as DIA-129.
+4. **FULL re-verify PENDING:** Phase A archival actually succeeding end-to-end
+   (source capture via curl/trafilatura with arguments, crwl fallback for
+   JS-heavy pages) is still PENDING next-session restart - config changes load
+   only on a new opencode launch.
