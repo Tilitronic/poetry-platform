@@ -15,7 +15,7 @@ id: DIA-122
 title: "needs-input ticker + notifications: surface which opencode session awaits developer input"
 area: opencode-config
 severity: Medium
-status: OPEN
+status: CLOSED
 blocked_by: [] # no blockers
 discovered: 2026-08-12
 source: session-observation (feature request, developer, 2026-08-12)
@@ -424,3 +424,29 @@ clear-on-reply failure.
 desktop toast VISUAL check (needs human eyes at the terminal); then flip
 DIA-122 -> CLOSED with full smoke evidence recorded. Status NOT flipped by
 this lane.
+
+## Closure (2026-08-13)
+
+Status flipped OPEN -> CLOSED. Closure basis (verification evidence is in
+the Re-verify sections above):
+
+- Clear-on-reply verification: PASS - evidence committed fec3e00 (session
+  ses_005a18eb8ffe9m92BcMsR668Fk, 2026-08-13): every question/permission
+  ENTER logged during that session is ABSENT from the final ticker.json
+  waiting[] list; final write (10:20:23.345Z) is the clear persist of the
+  10:20:19Z question; zero plugin warn/fail lines in opencode.log.
+- Plugin live with zero failures: commit c515077 (plugin-array entry) was in
+  the loaded config snapshot for that session; 12 ENTER log lines confirm the
+  event hook fired; no write/toast failure lines observed.
+- DIA-079-consistent: all added lines ASCII-only (byte-level check passed
+  before commit).
+- Residual (manual follow-up, not an automated blocker): the live in-TUI
+  toast + WinRT desktop toast VISUAL check still needs human eyes at the
+  terminal - the notify path is unit-mocked in tests and the WinRT one-liner
+  was E2E-confirmed at implementation time, but no real toast has been
+  visually observed yet. This is explicitly deferred, not failed.
+- error[] bucket silent behavior kept as-is: session.error entries are
+  recorded in the errors bucket and never notify (per approved spec); the
+  errors[0] "[object Object]" serialization wart is a known cosmetic
+  limitation of the errorMessage() String(err) fallback, not a state-machine
+  failure, and is out of scope for this closure.

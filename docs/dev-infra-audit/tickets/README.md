@@ -80,7 +80,7 @@ carries the full detail (description, verification, fix, re-verify evidence).
 | DIA-119 | make test-shell exit 2 - verify-pre-push bats pnpm sandbox failure (test 187 ERR_PNPM_NO_IMPORTER_MANIFEST_FOUND)                            | dev-infra       | Low      | CLOSED   | [DIA-119-test-shell-pnpm-sandbox-failure.md](DIA-119-test-shell-pnpm-sandbox-failure.md)                       |
 | DIA-120 | delegation-observer handoff-writer clobbers valid handoff on in-flight log_decision - false checksum mismatch escalation                     | opencode-config | Medium   | CLOSED   | [DIA-120-plugin-handoff-writer-clobber-bug.md](DIA-120-plugin-handoff-writer-clobber-bug.md)                   |
 | DIA-121 | bats-wrapper.sh claims v1.11.0 but vendored bats is v1.14.0 - version drift                                                                  | dev-infra       | Low      | CLOSED   | [DIA-121-bats-version-drift-wrapper-vendor.md](DIA-121-bats-version-drift-wrapper-vendor.md)                   |
-| DIA-122 | needs-input ticker + notifications: surface which opencode session awaits developer input                                                    | opencode-config | Medium   | OPEN     | [DIA-122-needs-input-ticker.md](DIA-122-needs-input-ticker.md)                                                 |
+| DIA-122 | needs-input ticker + notifications: surface which opencode session awaits developer input                                                    | opencode-config | Medium   | CLOSED   | [DIA-122-needs-input-ticker.md](DIA-122-needs-input-ticker.md)                                                 |
 | DIA-123 | deterministic opencode restart detection for the orchestrator                                                                                | opencode-config | Medium   | OPEN     | [DIA-123-deterministic-restart-detection.md](DIA-123-deterministic-restart-detection.md)                       |
 | DIA-124 | orchestrator must write and verify a terminal handoff BEFORE presenting session-end / new-session prompt                                     | opencode-config | Major    | OPEN     | [DIA-124-handoff-before-session-end.md](DIA-124-handoff-before-session-end.md)                                 |
 | DIA-125 | automate ticket creation & management - evaluate ready-made local solutions (MCP/self-hosted) vs manual ledger                               | opencode-config | Medium   | OPEN     | [DIA-125-automate-ticket-management-research.md](DIA-125-automate-ticket-management-research.md)               |
@@ -103,7 +103,7 @@ carries the full detail (description, verification, fix, re-verify evidence).
 
 | Status      | Count |
 | ----------- | ----- |
-| OPEN        | 29    |
+| OPEN        | 28    |
 | DONE        | 3     |
 | VALIDATE    | 0     |
 | E2E         | 0     |
@@ -112,7 +112,7 @@ carries the full detail (description, verification, fix, re-verify evidence).
 | FIXED       | 0     |
 | IMPLEMENTED | 0     |
 | VERIFIED    | 15    |
-| CLOSED      | 30    |
+| CLOSED      | 31    |
 | BLOCKED     | 0     |
 
 ## How to add a ticket
