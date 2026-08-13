@@ -38,7 +38,7 @@ model: ""
 parent_session_id: ""
 attempts: 2 # 1 one-shot escalation (silent failure) + 1 base coder implementation
 lease_expires_at: ""
-files_touched: [docs/dev-infra-audit/tickets/DIA-130-duplicated-inline-override-warning-ui.md, docs/dev-infra-audit/tickets/README.md]
+files_touched: [docs/dev-infra-audit/tickets/DIA-130-duplicated-inline-override-warning-ui.md, docs/dev-infra-audit/tickets/README.md, /home/qualt/.config/opencode/oh-my-opencode-slim.jsonc, /home/qualt/.config/opencode/oh-my-opencode-slim/coder.md, /home/qualt/.config/opencode/oh-my-opencode-slim/analyzer.md]
 artifacts: []
 evidence: [".opencode/images/ses_004adb8c8ffe5eEyKiKuVzdHcr/clipboard-16e86e93.png"]
 
@@ -232,7 +232,61 @@ How to prove the fix:
 
 ## Fix
 
-> To be filled at fix time.
+IMPLEMENTED 2026-08-13 (user-level config edits; repo commit 8cae0cd records
+the escalation + fallback decision, this Fix section documents the fix
+content and independent byte-exact verification).
+
+- Root cause: DIA-128 fixed the inline-plus-file conflict at the PROJECT
+  level only. The USER-LEVEL config
+  `~/.config/opencode/oh-my-opencode-slim.jsonc` still carried 3 inline
+  `"prompt"` keys beside the user-level prompt files (`coder.md`,
+  `analyzer.md`), and the global npm `oh-my-opencode-slim@2.2.13` runtime
+  resolves that user-level config with INLINE precedence
+  (`inlinePrompt ?? filePrompt ?? fallback`, dist/index.js:19282), warning
+  whenever both are defined (dist/index.js:19280) - so the TUI warnings
+  kept firing after DIA-128 closed.
+- Fix (DIA-128 precedent applied at the USER level): deleted the 3 inline
+  `"prompt"` keys and relocated their content VERBATIM into the user-level
+  prompt files, keeping the files as the single source of truth:
+  - `coder` preset opencode-go (jsonc line 77): relocated to
+    `~/.config/opencode/oh-my-opencode-slim/coder.md`
+    ("## DIA-130 relocated inline prompt (coder)" section).
+  - `coder` preset cebula (jsonc line 197): IDENTICAL content (dedupe
+    verified, see F2) - one relocated copy in `coder.md` covers both
+    presets.
+  - `analyzer` root agents block (jsonc line 411): relocated to
+    `~/.config/opencode/oh-my-opencode-slim/analyzer.md`
+    ("## DIA-130 relocated inline prompt (analyzer)" section).
+  - Both prompt files gained a DIA-130 dual-runtime regression-note comment
+    header (same pattern DIA-128 added at project level) so a future OMO
+    upgrade re-verifies inline-vs-file semantics before re-adding inline
+    prompts.
+- Verification evidence (all PASS):
+  - `make test-config` exit 0 (project config gates, 2026-08-13).
+  - User-level jsonc parses as valid JSONC after the deletion (7 top keys:
+    `$schema,preset,compactSidebar,disabled_agents,presets,agents,council`),
+    closes with `}`.
+  - F1 byte-exact (independent, this lane): coder relocated content = 378
+    bytes, sha256 `99e8be8b4729f62e`, byte-identical to the pre-fix inline
+    value at both jsonc line 77 and line 197. Analyzer relocated content =
+    2766 bytes; the pre-fix file reconstructed from the current file by
+    re-inserting the 3 relocated prompt keys is exactly 28199 bytes - an
+    EXACT match to the cod-6 independently measured pre-fix size (28199,
+    escalation record), proving no content was lost.
+  - F2 dedupe: the two coder preset inline prompts (line 77 opencode-go vs
+    line 197 cebula) are byte-identical (both 378 bytes, sha256
+    `99e8be8b4729f62e`), so one relocated copy in `coder.md` is complete.
+  - File sizes before -> after: coder.md 2356 -> 4085 bytes; analyzer.md
+    8593 -> 12631 bytes; jsonc 28199 -> 24550 bytes.
+- Nuance (why relocated analyzer content differs from the
+  `.bak-telemetry-removal` backup value): the backup (29625 bytes) predates
+  the 2026-08-09 telemetry removal - it still contains the analyzer prompt's
+  "## TELEMETRY PATTERN-DETECTION STEP" section (1131 bytes) and telemetry
+  sentences in the ai-specialist prompt / analyzer orchestratorPrompt that
+  the telemetry removal dropped at 09:48:51 that day. The TRUE pre-fix state
+  (28199 bytes, cod-6) did NOT contain that section; the reconstruction
+  proves the relocated content reproduces the true pre-fix state exactly, so
+  the DIA-130 relocation is lossless.
 
 ## Re-verify
 
