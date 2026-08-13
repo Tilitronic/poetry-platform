@@ -354,7 +354,7 @@
     },
     // conspecter — two-phase source archiving and conspect creation.
     // Artifact-producer tier (practice-protected.md §6): writes source captures +
-    // MLA-cited conspects under knowledge/; bash limited to curl/wget/trafilatura
+    // MLA-cited conspects under knowledge/; bash limited to curl/wget/trafilatura/crwl
     // for Phase A source capture. Never modifies source files.
     "conspecter": {
       "mode": "subagent",
@@ -365,12 +365,16 @@
           "knowledge/*": "allow",
           ".opencode/memory-shelf.yaml": "allow"
         },
+        // DIA-126: crwl = Phase-A tier (d) crawl4ai CLI fallback. Binary name is
+        // crwl (uv tool crawl4ai on host PATH); host-side bash per DIA-067.
         "bash": {
           "curl": "allow",
           "wget": "allow",
           "trafilatura": "allow",
+          "crwl *": "allow",
           "*": "deny"
         },
+        "webfetch": "deny",
         "task": "deny"
       }
     },

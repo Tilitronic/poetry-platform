@@ -5,7 +5,29 @@
      autonomous overnight session failed from the autonomy side: several times
      agents asked for folder-read permissions and work stopped for hours until a
      human answered. This is an opencode-config feature request. Planning
-     ticket - no implementation performed yet. -->
+     ticket - no implementation performed yet.
+
+     UPDATE 2026-08-13 (DIA-126 IMPLEMENTATION, direction (c) tool-gap
+     closure): developer approved Option B (keep documented model, fix the
+     gaps). CRWL REACHABILITY: conspecter bash executes on the HOST per
+     DIA-067 (no bridge from host-side OpenCode into container binaries).
+     Host probe: `which crwl` -> /home/qualt/.local/bin/crwl (uv tool
+     crawl4ai v0.9.2); binary responds to invocation (`crwl crawl --help`
+     exit 0).      Conclusion: the `crwl *` allow-list entry added to the
+     conspecter permission block is sufficient; NO container change needed
+     (dev-entrypoint.sh / Dockerfile.dev skipped).
+
+     SECTION-10 COMPLETION (2026-08-13): Phase 1 gate research DONE
+     (.opencode/learnings/external-patterns/2026-08-13-dia126-research-workflow-tool-gaps.md),
+     Phase 2 developer decision Option B (keep documented model, fix gaps),
+     Phase 3 design per research, Phase 4 implement DONE (crwl * allow,
+     webfetch deny, websearch MCP removed from all 3 presets, conspecter
+     tool manifest, stale doc fix), Phase 5 validate make test-config +
+     make test-shell exit 0 (restart-verify pending next opencode launch),
+     Phase 6 ai-auditor APPROVE-WITH-NOTES (concern resolved: cross-preset
+     harmonization), Phase 7 register + commit. Status stays OPEN:
+     directions (a) permission profile, (b) stall detection + auto-resume,
+     (d) audit hook remain for the full autonomous-mode feature. -->
 
 ---
 

@@ -1,5 +1,13 @@
 # OpenCode Config Changelog
 
+## 2026-08-13 - DIA-126 Option B (direction c) conspecter tool-gap closure: crwl allow, webfetch deny, websearch MCP removal, tool manifest + registration
+
+- **Change:** DIA-126 direction (c) Option B implemented: conspecter bash allow-list +`crwl *` (crawl4ai CLI fallback; binary name crwl, host uv tool crawl4ai v0.9.2 at /home/qualt/.local/bin/crwl), +webfetch deny (explicit - OpenCode default-allow for unlisted tools), websearch MCP removed from conspecter in ALL 3 OMO presets (cebula/opencode-go/free), `.opencode/agents/conspecter.md` ## Your Tools manifest + verify-before-claiming instruction + stale-doc fix (native block exists since commit f85bdd7 2026-08-11).
+- **Reason:** DIA-126 (Major, OPEN): night-run conspecter tool-gaps - res018 archived via webfetch while the model claimed "no shell" although config granted bash (tool-awareness failure); crawl4ai tier documented in the research model but not permitted in the conspecter block. Developer approved Option B (keep documented researcher->conspecter model, fix the gaps) after section-10 gate research (learnings file below).
+- **Files:** .opencode/opencode.jsonc (crwl * allow + webfetch deny + comments) - .opencode/oh-my-opencode-slim.jsonc (websearch MCP removed from conspecter in 3 presets) - .opencode/agents/conspecter.md (tool manifest + stale doc fix) - docs/dev-infra-audit/tickets/DIA-126-autonomous-mode-permission-hardening.md (Option B UPDATE block + section-10 completion note) - .opencode/learnings/external-patterns/2026-08-13-dia126-research-workflow-tool-gaps.md (NEW) - CHANGELOG.md.
+- **Review:** ai-auditor APPROVE-WITH-NOTES (actionable concern resolved: cross-preset harmonization - websearch MCP removed from all 3 presets).
+- **Verification:** make test-config exit 0; make test-shell exit 0; docker gate poetry-dev + poetry-postgres healthy; husky pre-commit ran live (no --no-verify); ASCII-only (DIA-079). Restart-verify PENDING next opencode launch (section-10 Phase 5).
+
 ## 2026-08-13 - DIA-120 restart-verify complete (section-10 Phase 6 registration)
 
 - **Change:** DIA-120 restart-verify: in-flight handoff log no longer clobbers current-handoff.json (terminal-status filter live, commit e15a876); lane-0 boot-gate re-read confirmed
