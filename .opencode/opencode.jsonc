@@ -132,7 +132,7 @@
       "disable": true
     },
     // Agent modes/colors + permissions (merged from the old opencode.json)
-    // The orchestrator is the plugin's real delegating agent (oh-my-opencode-slim@2.2.8
+    // The orchestrator is the plugin's real delegating agent (oh-my-opencode-slim@2.2.13
     // registers it as `orchestrator`). It must NEVER perform engineering work itself:
     // bash/apply_patch/ast_grep_replace/webfetch/envsitter are denied so delegation
     // is mechanically enforced. DIA-036 + DIA-060: read is path-scoped to the session dir
@@ -368,11 +368,11 @@
         // DIA-126: crwl = Phase-A tier (d) crawl4ai CLI fallback. Binary name is
         // crwl (uv tool crawl4ai on host PATH); host-side bash per DIA-067.
         "bash": {
+          "*": "deny",
           "curl": "allow",
           "wget": "allow",
           "trafilatura": "allow",
-          "crwl *": "allow",
-          "*": "deny"
+          "crwl *": "allow"
         },
         "webfetch": "deny",
         "task": "deny"
@@ -393,8 +393,8 @@
           "openspec/*": "allow"
         },
         "bash": {
-          "openspec": "allow",
-          "*": "deny"
+          "*": "deny",
+          "openspec": "allow"
         },
         "task": "deny"
       }
@@ -423,10 +423,10 @@
           ".opencode/oh-my-opencode-slim/knowledge/*": "allow"
         },
         "bash": {
+          "*": "deny",
           "curl": "allow",
           "wget": "allow",
-          "trafilatura": "allow",
-          "*": "deny"
+          "trafilatura": "allow"
         },
         "task": "allow"
       }
@@ -440,9 +440,9 @@
       "permission": {
         "edit": "deny",
         "bash": {
+          "*": "deny",
           "curl": "allow",
-          "wget": "allow",
-          "*": "deny"
+          "wget": "allow"
         },
         "task": "deny"
       }

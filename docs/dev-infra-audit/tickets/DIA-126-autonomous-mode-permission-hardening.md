@@ -132,6 +132,30 @@ Modernization Workflow (gate research -> developer review -> design ->
 implement -> validate -> independent review -> register). DIA-063 section-10
 ticket gate satisfied by this ticket.
 
+### Evidence (2026-08-13) - restart-verify step 3 FAILED, catch-all-first fix applied
+
+restart-verify step 3 FAILED 2026-08-13: the conspecter session exposed NO
+bash tool (tool manifest had no bash despite the config grant). Evidence:
+`knowledge/test-dia126-archival/.source-urls.txt` shows all 3 sources marked
+NOT ARCHIVED because the conspecter had no bash tool - this is the FAIL
+evidence (source-capture test output, untracked throwaway dir).
+
+Root cause: a trailing `"*": "deny"` catch-all at the END of the bash
+permission map hides the entire bash tool via the OpenCode findLast
+tool-visibility gate (same mechanism as DIA-081). Even allow-listed commands
+(curl, wget, trafilatura, crwl) never appear in the agent's function schema
+because the catch-all is matched last and denies the whole tool.
+
+Fix applied (DIA-036 pattern, catch-all-first): `"*": "deny"` moved to FIRST
+position in the bash permission map for FOUR agents - conspecter,
+openspec-plan, resource-manager, ai-specialist - so allow-list entries are
+matched first and the bash tool is visible in the function schema. Applied to
+`.opencode/opencode.jsonc` on branch omo-slim-changes.
+
+Validation: `make test-config` exit 0 after the fix (config validation gate).
+restart-verify PENDING: a post-restart re-run of the conspecter test archival
+is required to confirm bash is exposed and the crwl/trafilatura chain works.
+
 ## Verification
 
 > To be filled at fix time.

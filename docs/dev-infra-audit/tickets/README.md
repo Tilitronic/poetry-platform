@@ -85,6 +85,7 @@ carries the full detail (description, verification, fix, re-verify evidence).
 | DIA-124 | orchestrator must write and verify a terminal handoff BEFORE presenting session-end / new-session prompt                                     | opencode-config | Major    | OPEN     | [DIA-124-handoff-before-session-end.md](DIA-124-handoff-before-session-end.md)                             |
 | DIA-125 | automate ticket creation & management - evaluate ready-made local solutions (MCP/self-hosted) vs manual ledger                               | opencode-config | Medium   | OPEN     | [DIA-125-automate-ticket-management-research.md](DIA-125-automate-ticket-management-research.md)           |
 | DIA-126 | autonomous overnight mode: permission allow-list + no-stall guarantees (agents ask for folder-read permissions and stall for hours)          | opencode-config | Major    | OPEN     | [DIA-126-autonomous-mode-permission-hardening.md](DIA-126-autonomous-mode-permission-hardening.md)         |
+| DIA-127 | OMO slim 2.2.13 update evaluation - research what is new, decide safety/worth for the project                                                | opencode-config | Medium   | OPEN     | [DIA-127-omo-slim-2-2-13-update-evaluation.md](DIA-127-omo-slim-2-2-13-update-evaluation.md)               |
 
 ## Status summary
 
@@ -93,14 +94,14 @@ carries the full detail (description, verification, fix, re-verify evidence).
 | Blocker  | 7     |
 | Critical | 2     |
 | Major    | 24    |
-| Medium   | 33    |
+| Medium   | 34    |
 | Minor    | 0     |
 | Low      | 10    |
 | Info     | 0     |
 
 | Status      | Count |
 | ----------- | ----- |
-| OPEN        | 26    |
+| OPEN        | 27    |
 | DONE        | 3     |
 | VALIDATE    | 0     |
 | E2E         | 0     |
