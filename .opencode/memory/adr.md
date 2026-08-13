@@ -507,3 +507,55 @@ plugin or add a sibling.
 
 - Created: 2026-08-13
 - Related: DIA-122, .opencode/plugins/needs-input-observer.ts, scripts/ticker-render.sh, scripts/__tests__/ticker-render.bats, .opencode/learnings/external-patterns/2026-08-12-wsl2-notifications-daemon-required.md
+
+## ADR: Dual-runtime OMO precedence divergence - verify config semantics against the INSTALLED runtime (DIA-128)
+
+### Status
+
+Accepted - 2026-08-13
+
+### Context
+
+The project wires the oh-my-opencode-slim plugin from a LOCAL VENDORED source
+(`.opencode/opencode.jsonc` line ~541 as `file:///workspace/.opencode/oh-my-opencode-slim`)
+while the running OpenCode resolves the INSTALLED npm build (OMO 2.2.13). These two
+runtimes carry OPPOSITE prompt-precedence semantics: the installed 2.2.13
+`dist/index.js:19282` uses `inlinePrompt ?? filePrompt ?? fallback` (INLINE wins over
+the prompt file), whereas the local vendored source uses `filePrompt ?? base`
+(FILE wins). A config change validated under one runtime is therefore NOT
+behavior-equivalent under the other.
+
+### Decision
+
+1. Treat "local vendored source" and "installed npm runtime" as two potentially
+   divergent truth sources. When designing ANY OMO config fix (prompt precedence,
+   agent behavior, permission wiring), verify semantics against the INSTALLED
+   package version actually loaded at runtime, NOT the local source tree.
+2. Project-level prompt files resolve at loader step 2 for BOTH runtimes (project
+   preset > project root > user preset > user root), making them the idiomatic,
+   runtime-agnostic way to override global prompts. Prefer relocating inline
+   content to `<agent>.md` / `<agent>_append.md` over relying on inline `prompt`
+   keys whose precedence differs between runtimes.
+3. Re-verify inline-vs-file precedence on EVERY OMO upgrade (regression note
+   added to coder.md + analyzer_append.md, 2026-08-13).
+
+### Rationale (irrecoverable context)
+
+- The dual-runtime split is a project-specific invariant: the vendored plugin
+  source is a fork divergence from the published npm build, so behavior must be
+  re-verified after every upgrade. A fix designed against the local source would
+  have silently dropped the project coder checklist under the installed runtime.
+- Full finding detail (exact line, warning condition, fix sequence) is captured in
+  the DIA-128 learnings file - do NOT duplicate its body here.
+
+### Consequences
+
+- OMO config changes are validated by `make test-config` AND a runtime restart
+  check to confirm precedence semantics match the installed package.
+- Future config work must re-check inline-vs-file precedence after an OMO version
+  bump rather than assuming the vendored source reflects the installed behavior.
+
+### Metadata
+
+- Created: 2026-08-13
+- Related: DIA-128, commit 15f68a4 + 144a332, .opencode/oh-my-opencode-slim/coder.md, .opencode/oh-my-opencode-slim/analyzer_append.md, .opencode/learnings/external-patterns/2026-08-13-dia128-inline-prompt-relocation.md

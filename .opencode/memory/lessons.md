@@ -619,3 +619,30 @@ Notes:
     pre-existing and the polish commit alone does not reveal the workflow defect.
   - Cross-reference: DIA-079 (ASCII-only protocol), DIA-127 registration commits
     44ea318 / 7b33682.
+
+- Verify OMO/config semantics against the INSTALLED package version, not the local
+  source tree (DIA-128, 2026-08-13):
+  - Symptom: OMO 2.2.13 started warning "inline prompt overrides prompt file" for
+    coder and analyzer agents. The inline content conflicted with resolvable
+    prompt files.
+  - Root cause: the project's LOCAL VENDORED plugin source (wired via
+    `file:///workspace/.opencode/oh-my-opencode-slim`) has FILE-wins precedence
+    (`filePrompt ?? base`), while the INSTALLED npm 2.2.13 runtime has INLINE-wins
+    precedence (`inlinePrompt ?? filePrompt ?? fallback`). These two truth sources
+    diverged; a fix designed against the local source would have silently dropped
+    the project coder checklist under the installed runtime.
+  - Fix pattern: relocate inline content verbatim to project-level prompt files
+    (`<agent>.md` for full, `<agent>_append.md` for append) BEFORE deleting the
+    inline `prompt` keys; project-level files resolve at loader step 2 for BOTH
+    runtimes, so the relocation is runtime-agnostic.
+  - Generalizable rule: when designing a fix for any vendored/local-sourced plugin
+    or tool, verify the effective semantics against the INSTALLED package version
+    actually loaded at runtime (check `node_modules/.../dist/index.js` / the live
+    runtime), NOT the local source tree. The vendored fork can diverge from the
+    published build, and a config fix validated against the wrong source silently
+    breaks under the other runtime. Re-verify precedence on every version bump.
+  - Why irrecoverable: the local-vendored vs installed-npm semantic split is a
+    project/runtime invariant not stated in any single committed file; the fix
+    commits show the final state but not the cross-runtime divergence that made the
+    local source a misleading reference. Cross-reference: adr.md "Dual-runtime OMO
+    precedence divergence"; external-patterns 2026-08-13-dia128-inline-prompt-relocation.md.
