@@ -99,6 +99,28 @@ shelf:
       DIA-072 (no archived sources).'
     path: knowledge/res018-ticket-management-automation/res018-ticket-management-automation-conspect.md
     created: 2026-08-13
+  - name: OMO Slim 2.2.13 Version-Gate Research (DIA-127)
+    description: 'Conspect persisting the DIA-127 version-gate research for the oh-my-opencode-slim
+      2.2.8 -> 2.2.13 plugin upgrade (10 archived sources + 2 documented NOT-ARCHIVED npmjs
+      SPA pages, DIA-072 exclusions). Release timeline: v2.2.11 is the substantive release
+      in the window (20 merged items; opencode2 dual-compat PR #979 - one package runs on
+      OpenCode v1 and v2 via {id, server, setup} default export + src/v2/ adapter, build:v2
+      dist/server.js via ./server subpath, 1697 tests, known v2 limitations: no per-prompt
+      model override / no session model-setter, v2 TUI default agent build not orchestrator,
+      no programmatic MCP registration); v2.2.9 removed the plugin websearch MCP (PR #936,
+      Exa/Tavily; built-in websearch via OPENCODE_ENABLE_EXA / OPENCODE_ENABLE_PARALLEL;
+      websearch permission key retained); v2.2.12 (10 Aug 21:58) and v2.2.13 (11 Aug 20:08)
+      are tag-only releases (no release notes, npm publish at tag time); compare v2.2.8...v2.2.13
+      shows 23 contributors (261 commits / 220 files NOT in archive - page render failure,
+      excluded per DIA-072); npm registry dist-tags.latest = 2.2.13 published 2026-08-11
+      (~2 days before the DIA-127 research date 2026-08-13); package.json v2.2.13 exact-pins
+      @opencode-ai/plugin 1.18.13 and @opencode-ai/sdk 1.18.13. Breaking-change signals
+      for the project config (3 presets opencode-go/cebula/free, DIA-126 conspecter hardening,
+      agent-name lockstep, dual runtime vendored + npm) audited in section 7. DIA-126 re-verify
+      PASS: all 12 curl/trafilatura archival commands ran without a single permission ask;
+      crwl chromium failure (DIA-129) expected and documented; webfetch never needed.'
+    path: knowledge/res019-omo-slim-version-gate/res019-omo-slim-version-gate-conspect.md
+    created: 2026-08-13
 
   analyses:
   - name: Agent Alignment Audit
