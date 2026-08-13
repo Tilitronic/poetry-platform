@@ -321,3 +321,106 @@ Lane: docs/mechanical evidence (code-executor). Commit c515077 is in restart-ver
   `| ses_007e403fdffeQ4ZzfBpwumRLHP | Continuing prior task | orchestrator | idle | delegations complete, awaiting developer direction | 2026-08-12T23:00:09.039Z |`
 - Toast paths: ENTER-notify code present in `.opencode/plugins/needs-input-observer.ts` - `ctx.client.tui.showToast` (line 384) and `spawn("powershell.exe", ...)` WinRT desktop toast (line 341), plus the desktop-vs-TUI dual-channel comment (lines 31-32). The notify path was unit-mocked in the 25/25 state-machine harness checks and the WinRT desktop toast was E2E-confirmed on this host at implementation time (see Fix/Verification evidence 7-8). NO real toast fired in this lane; live visual toast confirmation is a morning item (needs human eyes at the terminal).
 - PENDING (morning, needs developer): (a) clear-on-reply confirmation (reply in the waiting session should remove the entry from ticker.json), (b) live question/permission trigger with visual in-TUI + WinRT toast check, (c) then flip DIA-122 -> CLOSED with the full smoke evidence recorded.
+
+### 2026-08-13 session ses_005a18eb8ffe9m92BcMsR668Fk: clear-on-reply verification
+
+Lane: docs/mechanical evidence (code-executor). Read-only verification + ticket
+evidence append only; no config/code changes, no service start/stop. Session
+ses_005a18eb8ffe9m92BcMsR668Fk launched 2026-08-13 11:05:03 local (09:05:03Z),
+AFTER plugin-array commit c515077 (00:38:23 +0200) - the loaded config
+snapshot includes needs-input-observer.ts. All timestamps UTC unless noted
+(local = +0200).
+
+**1. PLUGIN LIVE: PASS**
+
+- Config: c515077 diff shows `"file:///workspace/.opencode/plugins/
+needs-input-observer.ts"` appended to the plugin array after
+  delegation-observer.ts; committed 00:38:23 +0200, ~10.5h before this
+  session launched -> the plugin entry is in the LOADED config snapshot.
+- Runtime (opencode.log, run=4fb651ad = this server process): 12 plugin
+  ENTER log lines `[needs-input-observer] needs-input: <reason> session=...`
+  between 09:03:58Z and 10:20:19Z. These app.log lines are emitted only from
+  notify() inside enter() - only reachable when the plugin is loaded and its
+  event hook is firing. Sample (first + last for this session):
+  `09:05:42.222Z [needs-input-observer] needs-input: question session=ses_005a18eb8ffe9m92BcMsR668Fk title=Continue`
+  `10:20:19.930Z [needs-input-observer] needs-input: question session=ses_005a18eb8ffe9m92BcMsR668Fk title=Continue`
+- Persistence: .opencode/session/ticker.json mtime 2026-08-13 12:20:23.345562
+  local = updated_at 10:20:23.345Z - an atomic plugin write DURING this
+  session (the plugin is the file's only writer). Last write is the clear
+  persist of the 10:20:19Z question (see item 3a).
+- Zero plugin warn/fail lines: all 36 `[needs-input-observer]` lines in
+  opencode.log are ENTER logs; no `ticker.json write failed`, no
+  powershell.exe/tui.showToast failure lines.
+
+**2. CURRENT STATE** (ticker.json at 10:20:23.345Z):
+
+| bucket     | session_id                     | title                                           | reason                                                    | since                    |
+| ---------- | ------------------------------ | ----------------------------------------------- | --------------------------------------------------------- | ------------------------ |
+| waiting[0] | ses_007e403fdffeQ4ZzfBpwumRLHP | Continuing prior task                           | idle (delegations complete, awaiting developer direction) | 2026-08-12T23:00:09.039Z |
+| waiting[1] | ses_005cacefbffeasdNS69fflnytf | Resuming previous session                       | idle (delegations complete, awaiting developer direction) | 2026-08-13T09:04:10.789Z |
+| errors[0]  | ses_006da8148ffeBkPaPF1gcfuGJ5 | Reconcile + commit night work (@coder subagent) | error "[object Object]"                                   | 2026-08-13T07:29:59.964Z |
+
+- No current waiting entry for ses_005a18eb8ffe9m92BcMsR668Fk (reason idle):
+  ABSENT. Explainable - the orchestrator is blocked awaiting this coder
+  task() result, so no session.idle has fired since the last clear; earlier
+  today each delegation round was followed by developer chat.messages /
+  questions that cleared any idle entry. Expected to appear when the
+  orchestrator next idles after delegations.
+- errors[0] "[object Object]" is the errorMessage() String(err) fallback
+  (error value without a message string) - a serialization wart, not a
+  state-machine failure. Boot-seeded from the night run; not part of this
+  verification's scope.
+
+**3. CLEAR-ON-REPLY: PASS** (with honest limitation)
+
+(a) No stale question/permission entries exist for this session or today's
+subagents - every ENTER below is ABSENT from the final waiting[]:
+
+- ses_005a18eb8ffe9m92BcMsR668Fk, FOUR question ENTERs today:
+  09:05:42.222Z (batch-approval gate, ~39s after launch), 09:35:49.317Z,
+  09:48:09.373Z, 10:20:19.930Z (DIA-127 disposition - ai-auditor session
+  ses_00561027affeWdPCmgU2VBjg7O completed 10:20:05.980Z immediately
+  prior, per registry seq 3090). Zero remain in ticker.json waiting[] ->
+  each was cleared by question.replied / subsequent chat.message.
+- Subagent permission ENTERs: ses_0059b11dbffegxB19B4ywdBVs5 (09:18/09:20/
+  09:23Z), ses_0058960eaffe9NLUJ8fPvcr6Bs (09:31:53Z), ses_0057733efffe0kPFOx
+  Gu2MxBn3 (09:52:07Z), ses_00561027affeWdPCmgU2VBjg7O (10:16:49Z). Zero
+  remain in waiting[] -> all cleared.
+- Bonus pre-session datapoint: ses_005cacefbffeasdNS69fflnytf question ENTER
+  09:03:58Z was cleared before its idle ENTER 09:04:10.789Z (else enter()
+  dedup would have suppressed the idle entry - it IS present as idle).
+- Final-write correlation: ticker.json updated_at 10:20:23.345Z is the clear
+  persist of the 10:20:19Z question (enter() persisted ~10:20:19.9Z; the
+  reply clear rewrote the file at 10:20:23.345Z - matches mtime).
+- LIMITATION: reply timestamps are not directly logged (app.log fires on
+  ENTER only); clear is proven by final-ticker absence + the 10:20:23.345Z
+  write. The brief's "answered ~12:5x local" recollection vs observed
+  12:20:19 local question / 12:20:23 local clear write - log evidence is
+  authoritative.
+
+(b) Night entry ses_007e403fdffeQ4ZzfBpwumRLHP: NOT gone - still waiting[0],
+since 2026-08-12T23:00:09.039Z. Honest limitation: no clear event
+(chat.message / session.status non-idle / reply / session.deleted) has fired
+for that session since it went idle at 23:00:09Z, so nothing SHOULD have
+cleared it; the entry persists by design (boot re-seed + no clear event).
+I cannot prove from these artifacts whether that session is still alive -
+only that no clear/deleted event reached the plugin. This is NOT a
+clear-on-reply failure.
+
+**4. git state**
+
+- c515077 "feat(opencode): DIA-122 needs-input ticker + notifications
+  plugin" (2026-08-13 00:38:23 +0200) commits: plugin array entry
+  (.opencode/opencode.jsonc), .opencode/plugins/needs-input-observer.ts
+  (641 lines), scripts/ticker-render.sh, scripts/**tests**/ticker-render.bats,
+  scripts/**tests**/bats-wrapper.sh list edit, CHANGELOG, learnings, memory.
+  All committed BEFORE 11:05 today -> in the loaded config snapshot.
+- Worktree: plugin/scripts files tracked, zero diff vs HEAD.
+  ticker.json/ticker.md gitignored (.gitignore:82 `.opencode/session/`) -
+  runtime artifacts, correct.
+- Unrelated untracked only: knowledge/test-dia126-archival/ (untouched).
+
+**5. PENDING (unchanged, needs developer):** live in-TUI toast + WinRT
+desktop toast VISUAL check (needs human eyes at the terminal); then flip
+DIA-122 -> CLOSED with full smoke evidence recorded. Status NOT flipped by
+this lane.
