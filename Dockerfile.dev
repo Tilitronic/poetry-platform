@@ -63,6 +63,38 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
     dbus \
     && rm -rf /var/lib/apt/lists/*
 
+# === Docker CLI + compose plugin (client only; no daemon) ===
+# The pre-push hook (scripts/verify-pre-push.sh) delegates `make test-config`
+# into this container via `docker compose exec -T dev`, and the Makefile
+# test-config target runs `docker compose config --quiet` — client-side
+# compose-file validation that needs the docker binary but NO docker socket or
+# daemon (docker-compose.yml mounts no socket for the dev service, and none is
+# needed for `compose config`). Without the CLI the delegated gate fails:
+# "make: docker: No such file or directory" (DIA-131).
+# Apt-repo install from download.docker.com, Debian suite "trixie" (matches the
+# debian:13-slim base; the suite ships docker-ce-cli + docker-compose-plugin,
+# verified via the repo Packages listing 2026-08-13). Versions pinned to the
+# exact pool versions (docker-ce-cli=5:29.7.2-1~debian.13~trixie,
+# docker-compose-plugin=5.4.0-1~debian.13~trixie) — floating apt versions
+# contradict the image's pinned-version posture (line 17); --no-install-
+# recommends matches the base-packages RUN and drops only recommendations
+# (buildx/containerd/runc are not needed — client-only, no daemon).
+# TLS-failure caveat (DIA-121, tools/opencode-docker): apt-get update against
+# download.docker.com failed TLS cert verification in the host network there,
+# while curl to the same domain succeeded; the `|| echo` below names such a
+# failure in the build log, and the DIA-131 ticket Fix section documents the
+# static-bundle fallback (same shape as tools/opencode-docker/Dockerfile).
+RUN install -m 0755 -d /etc/apt/keyrings && \
+    curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc && \
+    chmod a+r /etc/apt/keyrings/docker.asc && \
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian trixie stable" > /etc/apt/sources.list.d/docker.list && \
+    (apt-get update && apt-get install --no-install-recommends -y \
+        docker-ce-cli=5:29.7.2-1~debian.13~trixie \
+        docker-compose-plugin=5.4.0-1~debian.13~trixie) || \
+        { echo "DIA-131: apt install of docker CLI failed (TLS vs download.docker.com?) - see DIA-131 ticket Fix for static-bundle fallback" >&2; exit 1; } && \
+    rm -rf /var/lib/apt/lists/* && \
+    docker --version && docker compose version
+
 # === tini — PID 1 init for zombie reaping ===
 # Docker's default PID 1 does not reap orphaned children; playwright/crawl4ai
 # spawn short-lived processes that would accumulate as zombies. tini-static is

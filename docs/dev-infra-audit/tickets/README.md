@@ -15,9 +15,6 @@ carries the full detail (description, verification, fix, re-verify evidence).
 
 ## Index
 
-
-| ID      | Title                                                                                                                                        | Area            | Severity | Status   | Ticket file                                                                                                    |
-| ------- | -------------------------------------------------------------------------------------------------------------------------------------------- | --------------- | -------- | -------- | -------------------------------------------------------------------------------------------------------------- |
 | DIA-045 | OpenCode config drift backlog (ai-specialist review 2026-08-04, findings F6–F21)                                                             | opencode-config | Medium   | CLOSED   | [DIA-045-opencode-config-drift-backlog.md](DIA-045-opencode-config-drift-backlog.md)                           |
 | DIA-050 | .mise.toml ↔ Dockerfile.dev pin-sync gap (DIA-045 F15)                                                                                       | dev-infra       | Low      | CLOSED   | [DIA-050-mise-dockerfile-pin-sync-gap.md](DIA-050-mise-dockerfile-pin-sync-gap.md)                             |
 | DIA-051 | Raw JSONL telemetry leak into human chat UI (messages.jsonl sidecar)                                                                         | opencode-config | Medium   | CLOSED   | [DIA-051-jsonl-telemetry-leak-chat-ui.md](DIA-051-jsonl-telemetry-leak-chat-ui.md)                             |
@@ -114,6 +111,7 @@ carries the full detail (description, verification, fix, re-verify evidence).
 | DIA-125 | test infra Phase 1: de-duplication (bats helpers, it.each, bash -n auto-discovery, per-package dependsOn)                                    | tests-infra     | Medium   | OPEN     | [DIA-125-test-infra-phase1-dedup.md](DIA-125-test-infra-phase1-dedup.md)                                   |
 | DIA-126 | test infra Phase 2: critical gaps (vitest in author-studio, real data-contracts test)                                                        | tests-infra     | Critical | OPEN     | [DIA-126-test-infra-phase2-critical-gaps.md](DIA-126-test-infra-phase2-critical-gaps.md)                   |
 | DIA-127 | test infra Phase 3: Orchestrator contract test (acceptWorkerResult, zero mocks)                                                              | tests-infra     | Medium   | OPEN     | [DIA-127-test-infra-phase3-orchestrator-contract.md](DIA-127-test-infra-phase3-orchestrator-contract.md)   |
+| DIA-131 | Install docker CLI + compose plugin in poetry-dev (pre-push test-config gate)                                                                | docker          | Major    | IMPLEMENTED | [DIA-131-install-docker-cli-poetry-dev-image.md](DIA-131-install-docker-cli-poetry-dev-image.md)               |
 
 ## Status summary
 
@@ -121,7 +119,7 @@ carries the full detail (description, verification, fix, re-verify evidence).
 | -------- | ----- |
 | Blocker  | 7     |
 | Critical | 5     |
-| Major    | 32    |
+| Major    | 33    |
 | Medium   | 43    |
 | Minor    | 0     |
 | Low      | 9     |
@@ -136,7 +134,7 @@ carries the full detail (description, verification, fix, re-verify evidence).
 | DEFERRED    | 1     |
 | MONITOR     | 1     |
 | FIXED       | 0     |
-| IMPLEMENTED | 0     |
+| IMPLEMENTED | 1     |
 | VERIFIED    | 21    |
 | CLOSED      | 40    |
 | BLOCKED     | 0     |
