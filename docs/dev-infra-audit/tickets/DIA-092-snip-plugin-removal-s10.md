@@ -4,8 +4,9 @@
      unblock the s10 ticket gate (DIA-063): a conspecter dispatch was blocked
      because no correlating ticket exists for the s10 opencode-snip-removal work.
      Root cause confirmed by cod-2 audit + ai--1 s10 gate + res-1 web research.
-     Status: OPEN, in-progress (Phase 1-4 COMPLETE; Phase 5 verify COMPLETE -
-     validation PASSED 2026-08-11; Phase 6 register COMPLETE). Docs-lane update
+     Status: CLOSED 2026-08-13 (ledger reconciliation, night run; all six
+     section-10 phases COMPLETE - Phase 5 verify COMPLETE, validation PASSED
+     2026-08-11; Phase 6 register COMPLETE). Docs-lane update
      2026-08-11: ticket rewritten
      to the IMPLEMENTED Modified Option A (council 5/5 amended the original
      ai--1 plan; see Implementation status for the empty-return incident). -->
@@ -16,13 +17,13 @@ id: DIA-092
 title: "§10 snip-plugin-removal (opencode-snip mechanical lock fix)"
 area: opencode-config
 severity: Major
-status: OPEN
+status: CLOSED
 blocked_by: [] # parent symptom tickets cross-referenced in Description: DIA-075, DIA-078
 discovered: 2026-08-11
 source: fix-lane
 date: 2026-08-11
 created: 2026-08-11
-updated: 2026-08-11
+updated: 2026-08-13
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -217,7 +218,10 @@ edits and the implementation lane's reports use ASCII-only text.
 
 ## Re-verify
 
-> To be filled at re-verify time.
+2026-08-13: status aligned OPEN -> CLOSED (ledger reconciliation, night run).
+All six section-10 phases complete; Phase 5 post-restart verification checklist
+9/9 PASS 2026-08-11; Phase 6 registration complete; plugin opencode-snip@1.6.1
+removed, deny rules dormant per council 5/5. README index row was stale OPEN.
 
 ## Evidence — res-1 sources
 

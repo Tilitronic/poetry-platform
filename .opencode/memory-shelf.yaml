@@ -80,6 +80,25 @@ shelf:
     description: 'Conspect closing the DIA-116 evidence gap with authoritative third-party benchmark evidence for the three Rung-3 coder-escalation candidates (21 fresh archived sources + 1 documented failure; cross-refs res013/014/015/016, ana014). Key independent reproductions: kimi-k3 SWE-bench Verified 93.40% (Vals AI mini-swe-agent bash-only harness, leaderboard updated 2026-08-08 - the DIA-114-flagged missing reproduction, strongest open-weight model); deepseek-v4-pro SWE-bench Verified 74% (NIST CAISI, U.S. government, Inspect ReAct, 2026-05-01, IRT Elo 800, "lags frontier ~8 months", vendor 80.6% flagged Unverified on evals.report); mimo-v2.5-pro has NO independent coding-benchmark reproduction (78.9% headline vendor-only, Xiaomi card/mimo.xiaomi.com; only independent datum is AA Intelligence Index composite 43). AA Intelligence Index: kimi-k3 57.11-60 vs deepseek-v4-pro 45 vs mimo 43. Terminal-Bench 2.1: kimi-k3 88.3 vendor (Kimi Code) / 85.0 AA (Terminus 2, II v4.1.1 component) / 80.9 Vals-harness; deepseek-v4-pro 72.1 (Vals leaderboard, preview row); mimo 57.3 (Vals). VERDICT: keep kimi-k3 coder-escalated default (only candidate with independent headline-benchmark reproduction; 490 req/mo cap at $3/$15 binding); Rung-3 fallback prefer deepseek-v4-pro over mimo-v2.5-pro (REVERSES DIA-114 provisional MiMo pick - deepseek has CAISI independent evidence, mimo has none, both $0.435/$0.87); cap note kimi-k3 ~13x pricier per token (~$2.31/M AA blended vs $0.18/M co-candidates). Correction C1: DIA-114 evidence gap RESOLVED (kimi-k3), PARTIAL (deepseek), OPEN (mimo); evidence basis is authoritative sources (no self-benchmarking per developer directive 2026-08-12; ana014 in-repo protocol cancelled). 1 unarchived source (llm-stats.com, anti-bot wall; TB 2.1 covered by benchmarklist/AA archives).'
     path: knowledge/res017-rung3-benchmark-evidence/res017-rung3-benchmark-evidence-conspect.md
     created: 2026-08-12
+  - name: Ticket Management Automation (DIA-125)
+    description: 'Conspect for DIA-125 (OPEN research ticket): evaluate ready-made local
+      solutions (MCP/self-hosted) vs manual ledger for ticket creation and management
+      (22 archived sources). Candidate table across 16 candidates (github-mcp-server,
+      Linear MCP, plane-mcp-server, Plane, Vikunja, Focalboard, OpenProject, Redmine,
+      Taiga, Leantime, git-bug, steviee/git-issues, timonburkard/git-issue, dspinellis/git-issue,
+      OpenSpec tasks.md, opencode-ework). MCP maturity assessment: write-capable servers
+      exist for github/linear/plane/vikunja; local-first ones are linear-local-mcp
+      (read-only, macOS), linear-cache-mcp (Linear-bound), and self-hosted vikunja/plane
+      stdio servers; NO file/git-backed MCP exists - the gap a thin local writer fills.
+      Hybrid recommendation: keep git-backed markdown ledger; Tier 1 codify manual writer
+      (DIA-NNN+slug, frontmatter v2, README index, archive/); Tier 2 steviee/git-issues
+      experiment (structural twin: .issues/ markdown + YAML frontmatter, JSON agent
+      commands, worktree rules); Tier 3 Plane/Vikunja self-host at scale. Rejections:
+      Focalboard unmaintained, OpenProject heavy/no MCP, cloud-only GitHub/Linear violate
+      local-first (ana006). Taiga, dspinellis/git-issue, opencode-ework excluded per
+      DIA-072 (no archived sources).'
+    path: knowledge/res018-ticket-management-automation/res018-ticket-management-automation-conspect.md
+    created: 2026-08-13
 
   analyses:
   - name: Agent Alignment Audit

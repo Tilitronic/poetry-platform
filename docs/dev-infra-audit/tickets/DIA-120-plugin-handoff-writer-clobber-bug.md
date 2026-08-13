@@ -12,7 +12,7 @@
      prognosis and causing a false-positive checksum mismatch escalation that
      required a restore lane. FIXED 2026-08-12 via section-10 chain
      (Option 1 terminal-status filter, commit e15a876 + docs commit) -
-     see Fix section. Restart-verify pending next session. -->
+     see Fix section. Restart-verify COMPLETE 2026-08-13 (see Re-verify). -->
 
 ---
 
@@ -20,13 +20,13 @@ id: DIA-120
 title: "delegation-observer handoff-writer clobbers valid handoff on in-flight log_decision - false checksum mismatch escalation"
 area: opencode-config
 severity: Medium
-status: FIXED
+status: CLOSED
 blocked_by: [] # no blockers
 discovered: 2026-08-12
 source: session-observation (S18 boot gate, 2026-08-12)
 date: 2026-08-12
 created: 2026-08-12
-updated: 2026-08-12
+updated: 2026-08-13
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -39,7 +39,7 @@ attempts: 1
 lease_expires_at: ""
 files_touched: [".opencode/plugins/delegation-observer.ts", ".opencode/oh-my-opencode-slim/orchestrator_append.md", "docs/dev-infra-audit/NEXT-RUN.md", "docs/dev-infra-audit/tickets/DIA-093-orchestrator-no-bash-checksum-delegation.md", "docs/dev-infra-audit/tickets/DIA-120-plugin-handoff-writer-clobber-bug.md", "docs/dev-infra-audit/tickets/DIA-121-bats-version-drift-wrapper-vendor.md"]
 artifacts: ["fix commit e15a876 (.opencode/plugins/delegation-observer.ts)", "docs commit (this change set: orchestrator_append.md + NEXT-RUN.md 7.3 + DIA-093 + DIA-120 + DIA-121; see git log)"]
-evidence: ["stored checksum 20c66c0b... (canonical of ORIGINAL S17 handoff)", "computed checksum 0b9f0ddc... (canonical of plugin-written fallback wrapper)", "plugin overwrote current-handoff.json at 12:50:45Z", "S17 exit flow manual checksum 4b1dd181... vs plugin-computed 20c66c0b... (DIA-093 redundancy)", "fix: tsc --noEmit exit 0 on delegation-observer.ts", "fix: eslint --fix exit 0, no auto-fix deltas", "fix: make test-config exit 0 (docs commit)"]
+evidence: ["stored checksum 20c66c0b... (canonical of ORIGINAL S17 handoff)", "computed checksum 0b9f0ddc... (canonical of plugin-written fallback wrapper)", "plugin overwrote current-handoff.json at 12:50:45Z", "S17 exit flow manual checksum 4b1dd181... vs plugin-computed 20c66c0b... (DIA-093 redundancy)", "fix: tsc --noEmit exit 0 on delegation-observer.ts", "fix: eslint --fix exit 0, no auto-fix deltas", "fix: make test-config exit 0 (docs commit)", "restart-verify 2026-08-13: ticker.json boot re-seed 2026-08-12T22:41:40Z, plugins reloaded incl. e15a876", "restart-verify 2026-08-13: in-flight handoff log (orchestrator ~01:0x) left current-handoff.json byte-identical (36 lines, checksum 3575761a... unchanged, writer skipped)", "restart-verify 2026-08-13: validate-handoff.sh exit 0 (1 passed, 0 failed, 0 warnings)", "restart-verify 2026-08-13: lane-0 boot-gate re-read stored= AND computed= 3575761a... -> MATCH"]
 
 ---
 
@@ -187,8 +187,7 @@ here). Approved design Option 1: terminal-status filter.
 
 ## Re-verify
 
-Restart-verify PENDING (deferred to the next session per section-10 Phase 5
-instruction). Reproduction steps for the next session:
+### Reproduction steps (historical record)
 
 0. **RESTART OpenCode FIRST** so the updated plugin (commit e15a876) loads — all
    reproduction steps below MUST run in a session that has loaded the new plugin
@@ -209,3 +208,36 @@ instruction). Reproduction steps for the next session:
 3. Boot-gate integrity: dispatch the lane-0 checksum verification; confirm the
    comparison RE-READS the file's `checksum` field at comparison time and that
    a mismatch escalation reports both `stored=` and `computed=`.
+
+### 2026-08-13: RESTART-VERIFY COMPLETE
+
+All steps PASS. DIA-120 closed.
+
+- **Step 0 (restart):** ticker.json boot re-seed 2026-08-12T22:41:40Z (file
+  CREATED timestamp, dir mtime proof); plugins reloaded including fix commit
+  e15a876 (terminal-status filter `TERMINAL_HANDOFF_STATUSES` =
+  {done, escalated, pending-owner}).
+- **Step 1 + 2a (in-flight non-write reproduction):** orchestrator dispatched
+  `log_decision(event_type='handoff', resolution_status='in-flight', non-empty
+prognosis)` at 2026-08-13 ~01:0x. Pre-fix this clobbered
+  `.opencode/session/current-handoff.json` with a manual-halt fallback wrapper.
+  POST-FIX RESULT: the file survived BYTE-IDENTICAL (36 lines, checksum
+  3575761ad8de6106954fe911f2d9d09877baf143359c99a576da99f855211a33 unchanged,
+  timestamp 2026-08-12T22:54:27.568Z, status manual-halt, session_id
+  ses_007e403fdffeQ4ZzfBpwumRLHP). The writer skipped as designed.
+- **Step 2b (terminal write path / validate-handoff.sh):** ran
+  `bash scripts/validate-handoff.sh .opencode/session/current-handoff.json`
+  against the live JSON handoff -> EXIT CODE 0; output:
+  "info: JSON handoff detected - skipping markdown schema check" (stderr),
+  "ok: checksum verified", "1 passed, 0 failed, 0 warnings". Manual checksum
+  cross-check: stored=3575761ad8de6106954fe911f2d9d09877baf143359c99a576da99f855211a33,
+  computed=3575761ad8de6106954fe911f2d9d09877baf143359c99a576da99f855211a33
+  (canonical jq serialization of prognosis) -> MATCH.
+- **Step 3 (boot-gate re-read):** lane-0 checksum verification re-read the
+  stored checksum FRESH at comparison time; reported stored=
+  3575761ad8de6106954fe911f2d9d09877baf143359c99a576da99f855211a33 AND
+  computed=3575761ad8de6106954fe911f2d9d09877baf143359c99a576da99f855211a33
+  -> MATCH, untampered.
+- **Result:** in-flight handoff logs no longer clobber the valid handoff file;
+  the terminal write path still validates (exit 0); the boot gate re-reads at
+  comparison time. Restart-verify PASS.

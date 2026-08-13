@@ -33,7 +33,7 @@ carries the full detail (description, verification, fix, re-verify evidence).
 | DIA-071 | make test-infra/test-shell exit 2 — host check-host-lsp gate fails                                                                           | dev-infra       | Low      | OPEN     | [DIA-071-make-test-gates-exit-2.md](DIA-071-make-test-gates-exit-2.md)                                     |
 | DIA-072 | researcher returns unarchived facts: 4/16 sources failed to persist during conspect Phase A                                                  | docs            | Medium   | CLOSED   | [DIA-072-researcher-unarchived-facts.md](DIA-072-researcher-unarchived-facts.md)                           |
 | DIA-073 | Investigate handoff coordination for parallel OpenCode sessions via session IDs                                                              | docs            | Medium   | CLOSED   | [DIA-073-handoff-coordination-session-ids.md](DIA-073-handoff-coordination-session-ids.md)                 |
-| DIA-074 | Ticket filenames lack human-readable descriptors — orchestrator ticket references are opaque to the developer                                | docs            | Medium   | OPEN     | [DIA-074-ticket-filenames-descriptors.md](DIA-074-ticket-filenames-descriptors.md)                         |
+| DIA-074 | Ticket filenames lack human-readable descriptors — orchestrator ticket references are opaque to the developer                                | docs            | Medium   | CLOSED   | [DIA-074-ticket-filenames-descriptors.md](DIA-074-ticket-filenames-descriptors.md)                         |
 | DIA-075 | DIA-061 boot-gate checksum-mismatch via snip jq wrapper + recurring coder snip-jq loop                                                       | docs            | Major    | OPEN     | [DIA-075-checksum-mismatch-snip-jq-loop.md](DIA-075-checksum-mismatch-snip-jq-loop.md)                     |
 | DIA-076 | Implement DIA-063 ticket-gate fix + DIA-075 snip guardrails                                                                                  | opencode-config | Major    | VERIFIED | [DIA-076-dia063-fix-implementation.md](archive/DIA-076-dia063-fix-implementation.md)                       |
 | DIA-077 | OMO background job board shows stale objective for coder-lane sessions (description-reuse)                                                   | opencode-config | Low      | DEFERRED | [DIA-077-job-board-stale-objective.md](DIA-077-job-board-stale-objective.md)                               |
@@ -51,7 +51,7 @@ carries the full detail (description, verification, fix, re-verify evidence).
 | DIA-089 | add the book_rag skill and connect it to OpenWebUI (hybrid RAG over local engineering textbooks)                                             | skills          | Medium   | OPEN     | [DIA-089-book-rag-skill-openwebui.md](DIA-089-book-rag-skill-openwebui.md)                                 |
 | DIA-090 | recover mermaid-diagramming and console-charting skills (source: opencode backup folder)                                                     | skills          | Medium   | VERIFIED | [DIA-090-recover-mermaid-console-charting-skills.md](DIA-090-recover-mermaid-console-charting-skills.md)   |
 | DIA-091 | orchestrator repeatedly reports "I have no bash" across sessions — document and enforce the bash-delegation pattern                          | opencode-config | Major    | CLOSED   | [DIA-091-orchestrator-no-bash-recurring.md](DIA-091-orchestrator-no-bash-recurring.md)                     |
-| DIA-092 | §10 snip-plugin-removal — remove opencode-snip@1.6.1 mechanical lock (root cause of DIA-075/DIA-078; blocks ALL bash lanes)                  | opencode-config | Major    | OPEN     | [DIA-092-snip-plugin-removal-s10.md](DIA-092-snip-plugin-removal-s10.md)                                   |
+| DIA-092 | §10 snip-plugin-removal — remove opencode-snip@1.6.1 mechanical lock (root cause of DIA-075/DIA-078; blocks ALL bash lanes)                  | opencode-config | Major    | CLOSED   | [DIA-092-snip-plugin-removal-s10.md](DIA-092-snip-plugin-removal-s10.md)                                   |
 | DIA-093 | Orchestrator boot: "I have no bash tool" - DIA-061 checksum not delegated to coder lane                                                      | opencode-config | Major    | OPEN     | [DIA-093-orchestrator-no-bash-checksum-delegation.md](DIA-093-orchestrator-no-bash-checksum-delegation.md) |
 | DIA-094 | Husky pre-commit hook cannot run in WSL - docker unavailable, quality gate bypassed via --no-verify                                          | dev-infra       | Major    | CLOSED   | [DIA-094-husky-precommit-wsl-docker-unavailable.md](DIA-094-husky-precommit-wsl-docker-unavailable.md)     |
 | DIA-095 | Orchestrator needs an optimized project-ops reference - how to run the project, bring up docker, required gates                              | dev-infra       | Major    | CLOSED   | [DIA-095-orchestrator-project-ops-reference.md](DIA-095-orchestrator-project-ops-reference.md)             |
@@ -78,9 +78,12 @@ carries the full detail (description, verification, fix, re-verify evidence).
 | DIA-117 | git worktree remove --force missing from DIA-096 permission deny list - config hardening (DIA-100 FALSIFICATION-1)                           | opencode-config | Major    | CLOSED   | [DIA-117-worktree-force-remove-config-hardening.md](DIA-117-worktree-force-remove-config-hardening.md)     |
 | DIA-118 | scripts/worktrees.sh missing executable bit - direct invocation fails exit 126                                                               | dev-infra       | Low      | CLOSED   | [DIA-118-worktrees-sh-missing-executable-bit.md](DIA-118-worktrees-sh-missing-executable-bit.md)           |
 | DIA-119 | make test-shell exit 2 - verify-pre-push bats pnpm sandbox failure (test 187 ERR_PNPM_NO_IMPORTER_MANIFEST_FOUND)                            | dev-infra       | Low      | CLOSED   | [DIA-119-test-shell-pnpm-sandbox-failure.md](DIA-119-test-shell-pnpm-sandbox-failure.md)                   |
-| DIA-120 | delegation-observer handoff-writer clobbers valid handoff on in-flight log_decision - false checksum mismatch escalation                     | opencode-config | Medium   | FIXED    | [DIA-120-plugin-handoff-writer-clobber-bug.md](DIA-120-plugin-handoff-writer-clobber-bug.md)               |
+| DIA-120 | delegation-observer handoff-writer clobbers valid handoff on in-flight log_decision - false checksum mismatch escalation                     | opencode-config | Medium   | CLOSED   | [DIA-120-plugin-handoff-writer-clobber-bug.md](DIA-120-plugin-handoff-writer-clobber-bug.md)               |
 | DIA-121 | bats-wrapper.sh claims v1.11.0 but vendored bats is v1.14.0 - version drift                                                                  | dev-infra       | Low      | CLOSED   | [DIA-121-bats-version-drift-wrapper-vendor.md](DIA-121-bats-version-drift-wrapper-vendor.md)               |
 | DIA-122 | needs-input ticker + notifications: surface which opencode session awaits developer input                                                    | opencode-config | Medium   | OPEN     | [DIA-122-needs-input-ticker.md](DIA-122-needs-input-ticker.md)                                             |
+| DIA-123 | deterministic opencode restart detection for the orchestrator                                                                                | opencode-config | Medium   | OPEN     | [DIA-123-deterministic-restart-detection.md](DIA-123-deterministic-restart-detection.md)                   |
+| DIA-124 | orchestrator must write and verify a terminal handoff BEFORE presenting session-end / new-session prompt                                     | opencode-config | Major    | OPEN     | [DIA-124-handoff-before-session-end.md](DIA-124-handoff-before-session-end.md)                             |
+| DIA-125 | automate ticket creation & management - evaluate ready-made local solutions (MCP/self-hosted) vs manual ledger                               | opencode-config | Medium   | OPEN     | [DIA-125-automate-ticket-management-research.md](DIA-125-automate-ticket-management-research.md)           |
 
 ## Status summary
 
@@ -88,24 +91,24 @@ carries the full detail (description, verification, fix, re-verify evidence).
 | -------- | ----- |
 | Blocker  | 7     |
 | Critical | 2     |
-| Major    | 22    |
-| Medium   | 30    |
+| Major    | 23    |
+| Medium   | 33    |
 | Minor    | 0     |
 | Low      | 10    |
 | Info     | 0     |
 
 | Status      | Count |
 | ----------- | ----- |
-| OPEN        | 23    |
+| OPEN        | 25    |
 | DONE        | 3     |
 | VALIDATE    | 0     |
 | E2E         | 0     |
 | DEFERRED    | 1     |
 | MONITOR     | 1     |
-| FIXED       | 1     |
+| FIXED       | 0     |
 | IMPLEMENTED | 0     |
 | VERIFIED    | 15    |
-| CLOSED      | 27    |
+| CLOSED      | 30    |
 | BLOCKED     | 0     |
 
 ## How to add a ticket

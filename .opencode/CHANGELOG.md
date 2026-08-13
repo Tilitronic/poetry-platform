@@ -1,5 +1,13 @@
 # OpenCode Config Changelog
 
+## 2026-08-13 - DIA-120 restart-verify complete (section-10 Phase 6 registration)
+
+- **Change:** DIA-120 restart-verify: in-flight handoff log no longer clobbers current-handoff.json (terminal-status filter live, commit e15a876); lane-0 boot-gate re-read confirmed
+- **Reason:** DIA-120 re-verify PASS -> CLOSED
+- **Files:** docs/dev-infra-audit/tickets/DIA-120-plugin-handoff-writer-clobber-bug.md (FIXED to CLOSED + Re-verify record + evidence) - docs/dev-infra-audit/tickets/README.md (index FIXED to CLOSED + FIXED 1->0 / CLOSED 27->28 counts) - CHANGELOG.md.
+- **Review:** section-10 Phase 5/6 close-out (restart-verify evidence recorded; no new gate findings)
+- **Verification:** validate-handoff.sh exit 0 (1 passed, 0 failed, 0 warnings); stored= AND computed= 3575761ad8de6106954fe911f2d9d09877baf143359c99a576da99f855211a33 -> MATCH; handoff file untouched (plugin-owned); ASCII-only (DIA-079).
+
 ## 2026-08-12 - DIA-122 needs-input ticker + notifications: needs-input-observer plugin (in-TUI + WinRT toasts) + ticker-render.sh + bats tests (S10 gate -> developer Phase-2 disposition -> coder -> ai-auditor APPROVE-WITH-NITS) + registration
 
 - **Change:** new server plugin `.opencode/plugins/needs-input-observer.ts` (needs-input ticker state machine: ENTER on question.asked / permission.asked / orchestrator idle-after-delegations / wait_for_user; CLEAR on replies / chat.message / non-idle status; separate silent error bucket; atomic ticker.json persistence + compaction snapshot; notifications on ENTER only ~2s debounce via in-TUI toast (`tui.showToast`) + powershell.exe WinRT desktop toast, stdio discarded) + derived-view renderer `scripts/ticker-render.sh` + 5 hermetic bats tests + `.opencode/opencode.jsonc` plugin array registration (after delegation-observer.ts) + bats-wrapper.sh bash -n list entry.

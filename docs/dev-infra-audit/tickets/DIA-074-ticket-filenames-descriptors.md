@@ -9,7 +9,9 @@
      verbatim complaint: "ти згадуєш тікети і я вже ніфіга не розумію що це
      за тікети" (you mention tickets and I no longer understand what those
      tickets are). PROPOSAL ticket: records the gap and fix directions (a)–(d);
-     NO code/config change by this ticket — adoption is a separate decision. -->
+     NO code/config change by this ticket — adoption is a separate decision.
+     Status: CLOSED 2026-08-13 as SUPERSEDED (ledger reconciliation, night
+     run; see Re-verify). -->
 
 ---
 
@@ -17,13 +19,13 @@ id: DIA-074
 title: "Ticket filenames lack human-readable descriptors — orchestrator ticket references are opaque to the developer"
 area: docs
 severity: Medium
-status: OPEN
+status: CLOSED
 blocked_by: []
 discovered: 2026-08-09
 source: owner-reported
 date: 2026-08-09
 created: 2026-08-09
-updated: 2026-08-09
+updated: 2026-08-13
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -112,4 +114,7 @@ enforced by a validation script (`scripts/`) without §10.
 
 ## Re-verify
 
-> To be filled at re-verify time.
+2026-08-13: CLOSED as SUPERSEDED. Fix direction (a) descriptive filenames
+implemented by DIA-110 (all ledger ticket files now DIA-NNN-<slug>.md - verify
+no bare DIA-NNN.md rows in README index); direction (b) reference discipline
+enforced via AGENTS.md ticket-reference-format (ID + human-readable slug).

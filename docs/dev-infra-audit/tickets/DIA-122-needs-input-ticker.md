@@ -311,3 +311,13 @@ to take effect.
 2026-08-13: status aligned IMPLEMENTED -> OPEN (ledger README row was OPEN; commit + restart-verify pending, then CLOSED).
 
 Restart-verify (section-10 Phase 5): pending next opencode launch - functional smoke = trigger a question, verify ticker.json/ticker.md entry + in-TUI toast + WinRT toast, clear on reply.
+
+### 2026-08-13 night: functional-smoke evidence (autonomous, partial)
+
+Lane: docs/mechanical evidence (code-executor). Commit c515077 is in restart-verify / functional-smoke phase. Recorded autonomously; no commit made (worktree left uncommitted per brief).
+
+- Trigger (c) orchestrator idle-after-delegations: CONFIRMED. `.opencode/session/ticker.json` contains waiting[0] for session ses_007e403fdffeQ4ZzfBpwumRLHP with all 6 fields (session_id, title "Continuing prior task", agent "orchestrator", reason "idle", detail "delegations complete, awaiting developer direction", since 2026-08-12T23:00:09.039Z); `version: 1`, `updated_at: 2026-08-12T23:00:09.039Z`, `errors: []`. The plugin's orchestrator-idle-after-delegations ENTER path produced a correctly shaped waiting entry.
+- Derived view: `scripts/ticker-render.sh` run twice -> exit 0 both runs; second run output identical except the `_Generated:` timestamp (expected run marker), i.e. content idempotent. `.opencode/session/ticker.md` renders the waiting session oldest-first (single entry, so order trivially satisfied), pipe chars escaped, no `## Errors` section (errors empty). Actual table row:
+  `| ses_007e403fdffeQ4ZzfBpwumRLHP | Continuing prior task | orchestrator | idle | delegations complete, awaiting developer direction | 2026-08-12T23:00:09.039Z |`
+- Toast paths: ENTER-notify code present in `.opencode/plugins/needs-input-observer.ts` - `ctx.client.tui.showToast` (line 384) and `spawn("powershell.exe", ...)` WinRT desktop toast (line 341), plus the desktop-vs-TUI dual-channel comment (lines 31-32). The notify path was unit-mocked in the 25/25 state-machine harness checks and the WinRT desktop toast was E2E-confirmed on this host at implementation time (see Fix/Verification evidence 7-8). NO real toast fired in this lane; live visual toast confirmation is a morning item (needs human eyes at the terminal).
+- PENDING (morning, needs developer): (a) clear-on-reply confirmation (reply in the waiting session should remove the entry from ticker.json), (b) live question/permission trigger with visual in-TUI + WinRT toast check, (c) then flip DIA-122 -> CLOSED with the full smoke evidence recorded.
