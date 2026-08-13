@@ -369,9 +369,9 @@
         // crwl (uv tool crawl4ai on host PATH); host-side bash per DIA-067.
         "bash": {
           "*": "deny",
-          "curl": "allow",
-          "wget": "allow",
-          "trafilatura": "allow",
+          "curl *": "allow",
+          "wget *": "allow",
+          "trafilatura *": "allow",
           "crwl *": "allow"
         },
         "webfetch": "deny",
@@ -394,7 +394,7 @@
         },
         "bash": {
           "*": "deny",
-          "openspec": "allow"
+          "openspec *": "allow"
         },
         "task": "deny"
       }
@@ -424,9 +424,9 @@
         },
         "bash": {
           "*": "deny",
-          "curl": "allow",
-          "wget": "allow",
-          "trafilatura": "allow"
+          "curl *": "allow",
+          "wget *": "allow",
+          "trafilatura *": "allow"
         },
         "task": "allow"
       }
@@ -439,11 +439,7 @@
       "color": "info",
       "permission": {
         "edit": "deny",
-        "bash": {
-          "*": "deny",
-          "curl": "allow",
-          "wget": "allow"
-        },
+        "bash": "deny",
         "task": "deny"
       }
     },
