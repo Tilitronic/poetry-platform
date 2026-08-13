@@ -56,9 +56,10 @@ ai-auditor review pending (section-10 independent review step).
 
 - [x] Changelog/diff for 2.2.13 vs the current pinned version collected, with source URLs cited (DONE 2026-08-13 - 12 cited sources by ai-specialist lane)
 - [x] Impact analysis: what changes in agents, skills, presets, models, permissions, MCPs, plugins (DONE 2026-08-13)
-- [ ] Compatibility check against current .opencode/oh-my-opencode-slim.jsonc customizations (3 presets, conspecter permission changes from 753e374, agent-name lockstep S1-S4 contract via validate-agent-names.sh, make test-config exit 0) (PARTIAL 2026-08-13 - pre-flight PASS opencode 1.18.18 >= 1.18.13 and make test-config exit 0; restart-verify PENDING)
+- [x] Compatibility check against current .opencode/oh-my-opencode-slim.jsonc customizations (3 presets, conspecter permission changes from 753e374, agent-name lockstep S1-S4 contract via validate-agent-names.sh, make test-config exit 0) (DONE 2026-08-13 - pre-flight PASS opencode 1.18.18 >= 1.18.13, make test-config exit 0, restart-verify PASS - see Restart-verify evidence section)
 - [x] Recommendation documented with rationale: update now / defer / skip (DONE 2026-08-13 - developer decision: UPDATE NOW)
-- [ ] If update recommended: section 10 chain executed (ai-specialist gate -> developer decision -> design -> implement -> make test-config exit 0 -> restart-verify -> ai-auditor review) (IN PROGRESS 2026-08-13 - gate/decision/implement done; restart-verify PENDING; ai-auditor review PENDING)
+- [x] If update recommended: section 10 chain executed (ai-specialist gate -> developer decision -> design -> implement -> make test-config exit 0 -> restart-verify -> ai-auditor review) (DONE 2026-08-13 - gate/decision/implement done; restart-verify PASS (evidence section); ai-auditor review APPROVE-WITH-CHANGES ses_00561027affeWdPCmgU2VBjg7O; Phase-6 registration committed; ticket stays OPEN until Step B res019 conspect persistence)
+- Note (ai-auditor finding 4, accepted NOTE): no explicit runtime version fingerprint is logged at plugin load - version attribution is inferred (see Honest limitation in Restart-verify evidence). Future upgrades: log an explicit loaded-version line. No action now.
 
 ## Fix
 

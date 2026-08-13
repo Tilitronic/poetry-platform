@@ -31,6 +31,8 @@ Last updated: 2026-08-13
 
 - [2026-08-13](external-patterns/2026-08-13-bash-permission-wildcard-anti-pattern.md): OpenCode bash allow-pattern anti-pattern - bare tool names without trailing wildcard match only the exact bare command; every arg-bearing invocation (`curl -s URL`) falls through to the catch-all deny -> permission-ask storm (DIA-126). Two DISTINCT failure modes: (a) tool-invisibility - catch-all `"*": "deny"` placed LAST hides bash from the function schema (fixed by catch-all-first reorder 2faae73); (b) command-level deny - tool REMAINS VISIBLE but arg-bearing calls denied (fixed by wildcard change 942fcda). Accepted residual: `curl *` / `wget *` least-privilege by binary prefix but operationally broad (developer disposition 2026-08-13). Full re-verify pending next-session restart.
 
+- [2026-08-13](external-patterns/2026-08-13-omo-slim-version-gate-upgrade.md): OMO slim version-gate upgrade 2.2.8 -> 2.2.13 (DIA-127) - ai-specialist gate research (12 cited sources) concluded UPDATE NOW; global pin line 148 + project comment sync; OMO 2.2.13 schema confirms presets/agents/disabled_agents/council/websearch surfaces intact; compatibility floor opencode >= 1.18.13 met (1.18.18); make test-config exit 0; restart-verify PASS (2.2.13 loaded, ai-specialist websearch in all 3 presets, conspecter bash); ai-auditor APPROVE-WITH-CHANGES (ses_00561027affeWdPCmgU2VBjg7O); DIA-127 ticket stays OPEN until Step B res019 conspect persistence completes.
+
 See `external-patterns/` for findings from external research (Anthropic blog,
 OpenCode docs, oh-my-opencode-slim best practices).
 

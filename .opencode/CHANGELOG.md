@@ -1,5 +1,13 @@
 # OpenCode Config Changelog
 
+## 2026-08-13 - DIA-127 oh-my-opencode-slim 2.2.8 -> 2.2.13 pin update (S10-P6 registration)
+
+- **Change:** oh-my-opencode-slim pin updated 2.2.8 -> 2.2.13: global plugin pin `~/.config/opencode/opencode.jsonc` line 148 (outside repo, done by lane cod-7) + project comment sync `.opencode/opencode.jsonc` line 135 (comment bump 2.2.8 -> 2.2.13). Upgrade evaluation research concluded UPDATE NOW.
+- **Reason:** DIA-127 upgrade evaluation - ai-specialist gate research reviewed 12 cited sources (changelog/diff, release notes, breaking-change scan) for OMO 2.2.13; OMO 2.2.13 schema confirms presets/agents/disabled_agents/council/websearch surfaces intact; compatibility floor opencode >= 1.18.13 met (installed 1.18.18, pre-flight PASS); conspecter permission hardening (753e374) no-regression confirmed.
+- **Files:** ~/.config/opencode/opencode.jsonc (global pin line 148, outside repo) - .opencode/opencode.jsonc (comment sync line 135) - docs/dev-infra-audit/tickets/DIA-127-omo-slim-2-2-13-update-evaluation.md (restart-verify evidence + checklist marks + finding-4 note) - .opencode/learnings/external-patterns/2026-08-13-omo-slim-version-gate-upgrade.md (NEW) - .opencode/learnings/index.md (pointer row) - .opencode/oh-my-opencode-slim/REFERENCE-ONLY.md (runtime version fix 2.2.8 -> 2.2.13) - CHANGELOG.md.
+- **Review:** ai-auditor APPROVE-WITH-CHANGES (session ses_00561027affeWdPCmgU2VBjg7O); developer disposition: ACCEPT findings 1 (changelog), 2 (learnings registration), 3 (REFERENCE-ONLY fix); DEFER finding 5 to Step B (ticket status stays OPEN until res019 conspect persistence completes); NOTE finding 4 (explicit runtime version fingerprint - no action now).
+- **Verification:** make test-config exit 0; restart-verify PASS (OMO 2.2.13 loaded - inferred from pinned install dir + skill-sync staging into 2.2.13 paths + auto-update-checker latest; ai-specialist websearch in all 3 presets; conspecter bash proven); agent-name lockstep intact (validate-agent-names.sh 24/24).
+
 ## 2026-08-13 - DIA-126 wildcard hardening: trailing * for arg-bearing bash allows + ai-specialist bash flat-deny (S10-P6 registration)
 
 - **Change:** DIA-126 wildcard hardening - trailing `*` added to arg-bearing bash allows (`curl *`, `wget *`, `trafilatura *` for conspecter/resource-manager; `openspec *` for openspec-plan); ai-specialist bash flattened to deny (commit 942fcda). Catch-all `"*": "deny"` stays FIRST, allows last (DIA-126 ordering preserved).
