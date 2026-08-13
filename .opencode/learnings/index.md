@@ -1,6 +1,6 @@
 # Learnings Index
 
-Last updated: 2026-08-09
+Last updated: 2026-08-13
 
 > Historical entries pre-2026-08-02 use 'boss' — canonical name is now 'orchestrator'.
 
@@ -28,6 +28,8 @@ Last updated: 2026-08-09
 - [2026-08-08](external-patterns/2026-08-08-plugin-reentrancy-guards.md): DIA-070 §10 gate — plugin re-entrancy guard taxonomy: opencode-telemetry@0.1.19 P4-only (`seenMessageIds` Set), opencode-token-monitor@0.5.0 P1-only (`inFlightSessions` Set), both lack P2/P3; `EventMessageUpdated` carries no re-entry marker → fixes must be plugin-local state; verdict defense-in-depth (not an active bug); DIA-070 fix pattern (P4 `UNIQUE(message_id)` partial index migration v6, P2a/P2b guard Sets, DIA-069 ADR a8f2be0 interim-guard→vendored-patch→upstream-PR) IMPLEMENTED 3ac8c0f (3 vendored patches + `.bak-dia070` backups); Phase 5 runtime proof PASSED (schema v6, unique index live, 0 duplicates, `make test-config` exit 0); Phase 6 disposition — Patch-3 ordering fixed (seen add after inFlight gate, `.bak-dia070-fix`), shadow-copy risk documented (stale unpatched copies in `~/.config/opencode/node_modules` + `@latest`/unscoped cache aliases); subagent-output never-loaded anomaly de-scoped (stale CHANGELOG claim → separate cleanup ticket).
 
 - [2026-08-09](external-patterns/2026-08-09-tui-plugin-stdout-corruption.md): TUI corruption — auto-discovered plugins writing to process.stdout paint over the TUI render surface (no alt-screen buffer + disableStdoutInterception); plugin logging must use `ctx.client.app.log()` instead of `console.*`; offending global plugin `subagent-reporter.ts` disabled via rename to `.disabled` (res007).
+
+- [2026-08-13](external-patterns/2026-08-13-bash-permission-wildcard-anti-pattern.md): OpenCode bash allow-pattern anti-pattern - bare tool names without trailing wildcard match only the exact bare command; every arg-bearing invocation (`curl -s URL`) falls through to the catch-all deny -> permission-ask storm (DIA-126). Two DISTINCT failure modes: (a) tool-invisibility - catch-all `"*": "deny"` placed LAST hides bash from the function schema (fixed by catch-all-first reorder 2faae73); (b) command-level deny - tool REMAINS VISIBLE but arg-bearing calls denied (fixed by wildcard change 942fcda). Accepted residual: `curl *` / `wget *` least-privilege by binary prefix but operationally broad (developer disposition 2026-08-13). Full re-verify pending next-session restart.
 
 See `external-patterns/` for findings from external research (Anthropic blog,
 OpenCode docs, oh-my-opencode-slim best practices).

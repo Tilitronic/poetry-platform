@@ -10,8 +10,11 @@
 
 - **OpenCode glob-matches the FULL command string:** permission patterns are matched against the entire command as the agent would run it (e.g. `curl -s https://example.com`), not against a bare tool-name token.
 - **Last matching rule wins:** when multiple patterns in the merged ruleset match, the last matching rule decides the action (same semantics as the DIA-081 visibleTools findLast gate and the DIA-096 specific-pattern / last-match merge rule).
-- **A bare tool-name pattern matches ONLY the exact bare command:** `"curl": "allow"` matches the literal command `curl` (no arguments) and nothing else. Every arg-bearing invocation (`curl -s URL`, `trafilatura -u URL`, `openspec propose ...`) falls through to the `"*": "deny"` catch-all, which both denies execution AND hides the bash tool from the agent's function schema (permission-ask storm in autonomous windows - exactly the DIA-126 stall class).
+- **A bare tool-name pattern matches ONLY the exact bare command:** `"curl": "allow"` matches the literal command `curl` (no arguments) and nothing else. This produces TWO DISTINCT failure modes, not one:
+  - **(a) tool-invisibility:** a catch-all `"*": "deny"` placed LAST hides the entire bash tool from the agent's function schema (OpenCode findLast tool-visibility gate) - the DIA-126 ordering bug, fixed by the catch-all-first reorder in 2faae73.
+  - **(b) command-level deny:** a bare pattern without trailing wildcard (e.g. `"curl"`) matches only the exact bare command, so every arg-bearing invocation (`curl -s URL`, `trafilatura -u URL`, `openspec propose ...`) is denied by the catch-all while the tool REMAINS VISIBLE - this produced the permission-ask storm in autonomous windows (exactly the DIA-126 stall class), fixed by the wildcard change in 942fcda.
 - **The fix is a trailing wildcard:** `"curl *": "allow"` matches any invocation that starts with `curl` followed by at least one argument. The bare `curl` command itself is rare in practice; the `*` form is the correct allow granularity for arg-bearing CLI tools.
+- **Accepted residual (finding 7, developer disposition 2026-08-13):** `curl *` / `wget *` are least-privilege by binary prefix but operationally broad - any command beginning with those binaries is allowed. Accepted as-is per developer disposition 2026-08-13; dangerous shell-composition forms (e.g. `curl | sh`) could be denied explicitly with more specific patterns if ever observed.
 
 ## Affected agents (fixed 2026-08-13)
 

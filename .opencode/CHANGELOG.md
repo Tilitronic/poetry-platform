@@ -1,5 +1,13 @@
 # OpenCode Config Changelog
 
+## 2026-08-13 - DIA-126 wildcard hardening: trailing * for arg-bearing bash allows + ai-specialist bash flat-deny (S10-P6 registration)
+
+- **Change:** DIA-126 wildcard hardening - trailing `*` added to arg-bearing bash allows (`curl *`, `wget *`, `trafilatura *` for conspecter/resource-manager; `openspec *` for openspec-plan); ai-specialist bash flattened to deny (commit 942fcda). Catch-all `"*": "deny"` stays FIRST, allows last (DIA-126 ordering preserved).
+- **Reason:** bare tool patterns matched only the bare command (OpenCode glob semantics: `"curl": "allow"` matches the literal command `curl`, nothing else), causing permission-ask storms on real arg-bearing invocations (`curl -s URL` falls through to the catch-all deny) - conspecter test evidence (session ses_0059b11dbffegxB19B4ywdBVs5).
+- **Files:** .opencode/opencode.jsonc (942fcda) - .opencode/learnings/external-patterns/2026-08-13-bash-permission-wildcard-anti-pattern.md (80eea34 + fidelity fix this entry) - docs/dev-infra-audit/tickets/DIA-126-autonomous-mode-permission-hardening.md (80eea34 verification evidence + audit closure this entry) - docs/dev-infra-audit/tickets/DIA-129-crawl4ai-playwright-chromium-revision-skew.md (80eea34) - docs/dev-infra-audit/tickets/README.md (80eea34) - .opencode/learnings/index.md (pointer this entry) - CHANGELOG.md.
+- **Review:** ai-auditor advisory APPROVE-WITH-CHANGES (session ses_0057ddbfeffekueRv3KZpV04iM); developer accepted findings 4, 5, 6, 9; finding 7 (wildcard breadth) accepted as-is residual risk.
+- **Verification:** make test-config exit 0; ai-auditor review approved-with-changes; full re-verify pending next-session restart.
+
 ## 2026-08-13 - DIA-126 Option B (direction c) conspecter tool-gap closure: crwl allow, webfetch deny, websearch MCP removal, tool manifest + registration
 
 - **Change:** DIA-126 direction (c) Option B implemented: conspecter bash allow-list +`crwl *` (crawl4ai CLI fallback; binary name crwl, host uv tool crawl4ai v0.9.2 at /home/qualt/.local/bin/crwl), +webfetch deny (explicit - OpenCode default-allow for unlisted tools), websearch MCP removed from conspecter in ALL 3 OMO presets (cebula/opencode-go/free), `.opencode/agents/conspecter.md` ## Your Tools manifest + verify-before-claiming instruction + stale-doc fix (native block exists since commit f85bdd7 2026-08-11).

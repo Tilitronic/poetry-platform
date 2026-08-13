@@ -199,3 +199,27 @@ ses_0059b11dbffegxB19B4ywdBVs5, evidence path knowledge/test-dia126-archival/):
    (source capture via curl/trafilatura with arguments, crwl fallback for
    JS-heavy pages) is still PENDING next-session restart - config changes load
    only on a new opencode launch.
+
+### Audit closure (ai-auditor advisory, session ses_0057ddbfeffekueRv3KZpV04iM)
+
+ai-auditor advisory verdict: APPROVE-WITH-CHANGES (session
+ses_0057ddbfeffekueRv3KZpV04iM). Developer disposition 2026-08-13: findings
+4 (CHANGELOG registration), 5 (learnings index pointer), 6 (fidelity fix -
+tool-invisibility vs command-level deny are two distinct failure modes), 9
+(audit-closure evidence) ACCEPTED and applied; finding 7 (wildcard breadth)
+ACCEPTED AS-IS residual risk.
+
+Commit file lists (wildcard cycle, `git show --name-only`):
+
+```
+$ git show --name-only 942fcda
+fix(opencode-config): DIA-126 wildcard fix - trailing * for arg-bearing bash allows (conspecter, resource-manager, openspec-plan); ai-specialist bash flat-deny
+.opencode/opencode.jsonc
+
+$ git show --name-only 80eea34
+docs(tickets): DIA-129 crawl4ai Playwright revision skew + DIA-126 verification evidence + bash wildcard learnings
+.opencode/learnings/external-patterns/2026-08-13-bash-permission-wildcard-anti-pattern.md
+docs/dev-infra-audit/tickets/DIA-126-autonomous-mode-permission-hardening.md
+docs/dev-infra-audit/tickets/DIA-129-crawl4ai-playwright-chromium-revision-skew.md
+docs/dev-infra-audit/tickets/README.md
+```
