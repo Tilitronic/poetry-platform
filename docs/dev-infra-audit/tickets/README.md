@@ -88,6 +88,7 @@ carries the full detail (description, verification, fix, re-verify evidence).
 | DIA-127 | OMO slim 2.2.13 update evaluation - research what is new, decide safety/worth for the project                                                | opencode-config | Medium   | CLOSED   | [DIA-127-omo-slim-2-2-13-update-evaluation.md](DIA-127-omo-slim-2-2-13-update-evaluation.md)                   |
 | DIA-128 | OMO plugin repeatedly warns "inline prompt overrides prompt file" for coder and analyzer agents                                              | opencode-config | Medium   | CLOSED   | [DIA-128-omo-inline-prompt-overrides-warning.md](DIA-128-omo-inline-prompt-overrides-warning.md)               |
 | DIA-129 | crawl4ai crwl fallback fails: Playwright pins chromium revision 1228, host cache has 1234 only                                               | dev-infra       | Medium   | OPEN     | [DIA-129-crawl4ai-playwright-chromium-revision-skew.md](DIA-129-crawl4ai-playwright-chromium-revision-skew.md) |
+| DIA-130 | Duplicated OMO inline-override warnings still visible in opencode TUI 'Loading plugins...' area (residual after DIA-128)                     | opencode-config | Major    | OPEN     | [DIA-130-duplicated-inline-override-warning-ui.md](DIA-130-duplicated-inline-override-warning-ui.md)           |
 
 ## Status summary
 
@@ -95,7 +96,7 @@ carries the full detail (description, verification, fix, re-verify evidence).
 | -------- | ----- |
 | Blocker  | 7     |
 | Critical | 2     |
-| Major    | 24    |
+| Major    | 25    |
 | Medium   | 36    |
 | Minor    | 0     |
 | Low      | 10    |
@@ -103,7 +104,7 @@ carries the full detail (description, verification, fix, re-verify evidence).
 
 | Status      | Count |
 | ----------- | ----- |
-| OPEN        | 26    |
+| OPEN        | 27    |
 | DONE        | 3     |
 | VALIDATE    | 0     |
 | E2E         | 0     |
