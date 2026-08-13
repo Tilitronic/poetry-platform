@@ -32,11 +32,11 @@ updated: 2026-08-13
 # --- Session Attribution (v2 schema, optional) ---
 
 session_id: "ses_004adb8c8ffe5eEyKiKuVzdHcr" # session where the screenshot was captured (matches DIA-128 re-verify running-session reference)
-lane_id: "" # authored by the coder lane
+lane_id: "coder-escalated -> base-coder" # one-shot escalated lane silently failed; base coder lane implemented the fix (see Escalation record)
 agent: "coder"
 model: ""
 parent_session_id: ""
-attempts: 0
+attempts: 2 # 1 one-shot escalation (silent failure) + 1 base coder implementation
 lease_expires_at: ""
 files_touched: [docs/dev-infra-audit/tickets/DIA-130-duplicated-inline-override-warning-ui.md, docs/dev-infra-audit/tickets/README.md]
 artifacts: []
@@ -140,6 +140,32 @@ Why it matters:
 - Status relationship: DIA-128 CLOSED does not resolve DIA-130; DIA-130 tracks
   the residual/duplicated symptom until a fix removes the warning from the TUI
   (visual re-verify) and the duplication cause is understood.
+
+## Escalation record (2026-08-13)
+
+1. **Escalated lane dispatched ONE-SHOT and silently failed.**
+   - Lane: `coder-escalated` (kimi-k3), session `ses_004a15d0fffetpy1ShtsYHP78G`.
+   - Dispatched at 13:45:11Z on 2026-08-13 with the full DIA-130 fix brief.
+   - Read the 5 relevant config files (user jsonc, user coder.md, user
+     analyzer.md, project jsonc, project prompt files) but wrote NOTHING.
+   - Returned an EMPTY result (silent failure) at 13:54:44Z - no edits, no
+     report, no error payload.
+2. **State-inspection lane verified the window is clean.**
+   - Lane: `cod-6`, session `ses_00497cabdffeSH8NnucCp2dqLB`.
+   - Zero files modified during the escalation window (13:45:11Z-13:54:44Z).
+   - User-level config `~/.config/opencode/oh-my-opencode-slim.jsonc` in exact
+     pre-fix state: 3 inline `"prompt"` keys at lines 77/197/411, file valid
+     (28199 bytes, closes with `}`).
+   - User-level prompt files intact: `coder.md` (2356 bytes / 56 lines),
+     `analyzer.md` (8593 bytes / 267 lines).
+   - No backup files created; repo HEAD unchanged at `b6c400d`.
+3. **ONE-SHOT no-retry rule observed** (kimi-k3 has a 490/month cap; a retry
+   was not warranted). Developer approved the fallback to the base `@coder`
+   lane on 2026-08-13 ("Ticket the failure + fix").
+4. **This lane (base coder) implements the fix** - the DIA-128 precedent
+   pattern applied at the USER level: relocate the 3 inline prompt contents
+   verbatim into the user-level prompt files, delete the 3 inline `"prompt"`
+   keys, add DIA-130 regression note comments.
 
 ## Open questions (root cause TBD by investigation)
 
