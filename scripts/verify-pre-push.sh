@@ -49,7 +49,16 @@ run_workspace() {
   if is_in_dev_container; then
     (cd "$WORKSPACE" && bash -lc "$cmd")
   else
-    docker compose -f "$ROOT/docker-compose.yml" exec -T dev bash -lc "cd \"${WORKSPACE}\" && ${cmd}"
+    # < /dev/null: the pre-push hook is invoked by git with the pushed ref spec
+    # on stdin; forwarding that into the container would leak it into any
+    # delegated command that reads stdin (e.g. the dev-entrypoint no-command
+    # bats test executes `bash dev-entrypoint.sh`, which then tries to run the
+    # ref spec line as a command -> "No such file or directory" -> exit 127 ->
+    # spurious test failure under the hook). Closing stdin keeps every
+    # delegated gate hermetic; the in-container branch above needs no redirect
+    # (stdin is a terminal there).
+    # DESIGN: run_workspace never forwards stdin; pipe data via files or args.
+    docker compose -f "$ROOT/docker-compose.yml" exec -T dev bash -lc "cd \"${WORKSPACE}\" && ${cmd}" < /dev/null
   fi
 }
 
