@@ -86,6 +86,7 @@ carries the full detail (description, verification, fix, re-verify evidence).
 | DIA-125 | automate ticket creation & management - evaluate ready-made local solutions (MCP/self-hosted) vs manual ledger                               | opencode-config | Medium   | OPEN     | [DIA-125-automate-ticket-management-research.md](DIA-125-automate-ticket-management-research.md)           |
 | DIA-126 | autonomous overnight mode: permission allow-list + no-stall guarantees (agents ask for folder-read permissions and stall for hours)          | opencode-config | Major    | OPEN     | [DIA-126-autonomous-mode-permission-hardening.md](DIA-126-autonomous-mode-permission-hardening.md)         |
 | DIA-127 | OMO slim 2.2.13 update evaluation - research what is new, decide safety/worth for the project                                                | opencode-config | Medium   | OPEN     | [DIA-127-omo-slim-2-2-13-update-evaluation.md](DIA-127-omo-slim-2-2-13-update-evaluation.md)               |
+| DIA-128 | OMO plugin repeatedly warns "inline prompt overrides prompt file" for coder and analyzer agents                                              | opencode-config | Medium   | OPEN     | [DIA-128-omo-inline-prompt-overrides-warning.md](DIA-128-omo-inline-prompt-overrides-warning.md)           |
 
 ## Status summary
 
@@ -94,14 +95,14 @@ carries the full detail (description, verification, fix, re-verify evidence).
 | Blocker  | 7     |
 | Critical | 2     |
 | Major    | 24    |
-| Medium   | 34    |
+| Medium   | 35    |
 | Minor    | 0     |
 | Low      | 10    |
 | Info     | 0     |
 
 | Status      | Count |
 | ----------- | ----- |
-| OPEN        | 27    |
+| OPEN        | 28    |
 | DONE        | 3     |
 | VALIDATE    | 0     |
 | E2E         | 0     |
