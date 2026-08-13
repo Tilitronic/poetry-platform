@@ -646,3 +646,48 @@ Notes:
     commits show the final state but not the cross-runtime divergence that made the
     local source a misleading reference. Cross-reference: adr.md "Dual-runtime OMO
     precedence divergence"; external-patterns 2026-08-13-dia128-inline-prompt-relocation.md.
+
+- Escalated-lane (kimi-k3 ONE-SHOT) silent failure: run a state-inspection lane
+  before ANY re-dispatch after an empty escalation result (DIA-130, 2026-08-13):
+  - Symptom: @coder-escalated (kimi-k3) was dispatched ONE-SHOT on DIA-130 at
+    13:45:11Z, ran ~9.5 minutes reading 5 config files, and returned an EMPTY
+    result at 13:54:44Z having written nothing (silent failure, no artifacts).
+  - Detection path that caught it: (1) empty task result -> (2) registry
+    inspection surfaced `silent_failure_alert` + `session_complete` with no
+    artifacts -> (3) dedicated state-inspection lane (cod-6) verified ZERO
+    partial edits and a clean pre-fix state BEFORE any re-dispatch. The ONE-SHOT
+    rule + A4 artifact gate + A3 retroactive consistency check together caught it.
+  - Operational rule: after ANY empty escalation result, ALWAYS run a dedicated
+    state-inspection lane to confirm no partial writes exist before re-dispatching
+    any lane. A silent failure and a partial write are indistinguishable from the
+    result message alone; re-dispatching blind can double-apply or clobber a
+    partial write. Distinct from the earlier empty-return pattern (L20260810-001)
+    in that the escalated Rung-3 lane (kimi-k3) is the one that returned empty, so
+    the state-inspection-before-re-dispatch guard applies to the escalation lane
+    just as it does to base coder.
+  - Why irrecoverable: the escalation lane's empty result and the state-inspection
+    recovery ordering are runtime/session behavior not present in any commit;
+    git diffs show the eventual fix but not the silent-failure detection path.
+  - Cross-reference: DIA-130, DIA-131, L20260810-001 (empty-return escalation),
+    res016/res017 coder-escalated model evidence.
+
+- Backup-file-is-not-pre-fix-state: verify backup freshness before byte-exact
+  verification (DIA-130, 2026-08-13):
+  - Symptom: during DIA-130 byte-exact verification the `.bak-telemetry-removal`
+    backup (29625 bytes) was NOT the exact pre-fix state of the edit surface. It
+    still contained telemetry-era content (analyzer "TELEMETRY PATTERN-DETECTION
+    STEP" section ~1131 bytes, telemetry sentences) that the live config had
+    already dropped earlier the same day. Verification against the raw backup
+    would have produced a FALSE FAIL on the byte-exact check.
+  - Operational rule: before using any `.bak-*` file as ground truth for
+    byte-exact verification, verify the backup's freshness against an
+    independently measured pre-fix state (from the state-inspection lane or
+    escalation record). Robust method = byte-exact RECONSTRUCTION: take the
+    current file and the relocated values, reconstruct the theoretical pre-fix
+    state, and compare its size against the independently measured pre-fix size
+    (cod-6 measured 28199 bytes via the escalation record). A stale/partial
+    backup silently undermines the verification and produces a false FAIL.
+  - Why irrecoverable: a backup's freshness relative to the edit surface is
+    runtime/temporal state not stated in any commit; the reconstruction method is
+    a verification decision not recoverable from git diffs alone.
+  - Cross-reference: DIA-130, DIA-131 (post-restart TUI re-verify).

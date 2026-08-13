@@ -199,3 +199,23 @@ Failed-loop lessons & preventive actions
   - Why irrecoverable: the config-vs-runtime divergence is runtime behavior not
     reconstructible from git diffs or the ticket alone.
   - Cross-reference: lessons.md catch-all-ordering trap; DIA-126, DIA-081.
+
+- Failure mode (2026-08-13): escalated-lane (kimi-k3 ONE-SHOT) silent failure
+  (DIA-130)
+  - Symptom: @coder-escalated (kimi-k3) dispatched ONE-SHOT on DIA-130 at
+    13:45:11Z ran ~9.5 minutes reading 5 config files and returned an EMPTY
+    result at 13:54:44Z without writing anything (silent failure, no artifacts).
+  - Root cause: the escalation lane completed with no deliverable; an empty
+    result message alone is indistinguishable from a partial-write state, so a
+    blind re-dispatch risks double-applying or clobbering a partial edit.
+  - Preventive action: after ANY empty escalation result, run a dedicated
+    state-inspection lane to confirm ZERO partial writes before re-dispatching
+    any lane. The ONE-SHOT rule + A4 artifact gate + A3 retroactive consistency
+    check caught this correctly. See lessons.md "Escalated-lane (kimi-k3
+    ONE-SHOT) silent failure" and L20260810-001.
+  - Why irrecoverable: the escalation lane's empty result and the
+    state-inspection-before-re-dispatch recovery ordering are runtime/session
+    behavior not reconstructible from git diffs; the fix commit (8cae0cd) shows
+    the eventual outcome, not the silent-failure detection path.
+  - Cross-reference: DIA-130, DIA-131; lessons.md escalated-lane silent-failure
+    and backup-freshness lessons.
