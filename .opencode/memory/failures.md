@@ -178,3 +178,24 @@ Failed-loop lessons & preventive actions
     Blindly re-applying after an abort can double-apply or clobber earlier work.
   - Why irrecoverable: the abort occurred mid-flight and the resulting partial
     state is runtime/session behavior, not reconstructible from git diffs.
+
+- Failure mode (2026-08-13): config permission hardening appears correct in file
+  but runtime tool surface differs (DIA-126 root-cause chain)
+  - Symptom: the DIA-126 autonomous overnight run stalled for hours because
+    agents had no bash tool; the hardening commit 753e374 looked correct on read
+    but never took effect, so the tool-coverage audit reported "0 hard gaps".
+  - Root cause: a trailing `"*": "deny"` catch-all survived the hardening in the
+    bash permission maps; OpenCode's findLast tool-visibility gate landed on the
+    deny and hid the whole bash tool from the agent's function schema. The
+    runtime tool surface differed from what reading the config implied.
+  - Lesson: config changes to tool permission maps are ONLY verifiable by
+    checking the actual runtime tool manifest (the agent's callable tool
+    registry), not by reading the config file. The restart-verify manifest (a
+    conspecter session with no bash) was the proof that caught it.
+  - Preventive action: after any permission-map edit, verify the target agent's
+    runtime tool manifest shows the intended tools present; and keep catch-all
+    denies FIRST per DIA-036/DIA-081/DIA-126. Config-driven coverage audits that
+    key on tool-name presence cannot catch a misordered catch-all.
+  - Why irrecoverable: the config-vs-runtime divergence is runtime behavior not
+    reconstructible from git diffs or the ticket alone.
+  - Cross-reference: lessons.md catch-all-ordering trap; DIA-126, DIA-081.

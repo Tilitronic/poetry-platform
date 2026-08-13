@@ -573,3 +573,27 @@ Notes:
   - Why irrecoverable: the choice to auto-proceed vs block is a session decision;
     the developer's acceptance or amendment of this pattern is a standing
     preference decision that must remain traceable.
+
+- Tool-visibility catch-all-ordering trap (DIA-126 root cause, 2026-08-13):
+  - Symptom: agents openspec-plan, resource-manager, ai-specialist, and
+    conspecter had NO bash tool exposed at runtime during the autonomous night
+    run despite config allow grants; agents stalled for hours on permission asks.
+  - Root cause: OpenCode's tool-visibility gate uses findLast over the flattened
+    permission rules for a tool map. A trailing `"*": "deny"` catch-all placed
+    AFTER specific allow rules makes findLast land on deny, hiding the ENTIRE
+    tool from the agent's function schema (identical mechanism to DIA-081 for
+    the task tool). The DIA-126 hardening commit 753e374 (crwl allow, webfetch
+    deny) kept the pre-existing trailing catch-all, so the hardening never took
+    effect; a restart-verify manifest (conspecter session with no bash) was the
+    proof.
+  - Fix (commit 2faae73): move `"*": "deny"` to FIRST position in the bash maps
+    of all four affected agents. findLast then lands on the specific allows for
+    matching commands (tool visible) while the catch-all still denies everything
+    else. Catch-all-FIRST is the correct pattern (DIA-036, DIA-081).
+  - Generalizable rule: in ANY tool permission map the `"*": "deny"` catch-all
+    MUST come first; a trailing catch-all silently removes the whole tool from
+    the agent's function schema and is undetectable by reading the config file
+    (must verify the runtime tool manifest instead).
+  - Cross-reference: extends the earlier symptom-level lesson "Openspec CLI
+    permission-shadowing gotcha"; complementary to the deny-semantics
+    registry-absence lesson. DIA-126, DIA-081, DIA-036.
