@@ -223,3 +223,36 @@ docs/dev-infra-audit/tickets/DIA-126-autonomous-mode-permission-hardening.md
 docs/dev-infra-audit/tickets/DIA-129-crawl4ai-playwright-chromium-revision-skew.md
 docs/dev-infra-audit/tickets/README.md
 ```
+
+## Full re-verify (2026-08-13, post-restart process) - RESULT PASS
+
+Full end-to-end re-verify of the wildcard bash permission hardening on a
+POST-RESTART opencode process (config changes load only on a new launch).
+
+**RESULT PASS.**
+
+1. **Process evidence (post-restart launch):** the verifying opencode process
+   PID 3465272 started 2026-08-13T12:18:07Z, AFTER the wildcard commit 942fcda
+   (09:43:04Z) - the fix was loaded at launch time, not merely committed. The
+   permission log of the run shows the bash pattern "jq -c '.prognosis...'"
+   logged as action.pattern=\* action.action=allow - the wildcard allow-list is
+   live and matching arg-bearing commands.
+2. **Conspecter archival test (res019 Phase A):** conspecter lane
+   ses_004c114f9ffew0vS5KFLWBopUZ (con-1) ran the res019 Phase A archival
+   (12 URLs). **VERDICT PASS:** all 12 curl/trafilatura archival commands ran
+   WITH arguments and WITHOUT any permission ask; 10 sources archived via
+   trafilatura/curl; webfetch never needed and never invoked; `crwl *`
+   executed without an ask but the crawls fail with the DIA-129 chromium
+   revision 1228 launch error (expected, NOT a permission failure).
+3. **Silent denials observed (proof of deny-by-default hardening):** `mkdir`,
+   `ls`, `which`, `crwl --version | head`, and `curl ... | wc -w` were
+   silently denied (pipes to non-whitelisted `head`/`wc` fall through to the
+   `"*": "deny"` catch-all). The effective allow-list is exactly `curl *` /
+   `wget *` / `trafilatura *` / `crwl *` WITH args - nothing else.
+4. **Direction (c) TOOL-GAP CLOSURE: COMPLETE.** Bash tool visible +
+   executable in the conspecter manifest; arg-bearing commands run without an
+   ask storm. The DIA-067-class tool gap is closed end-to-end.
+
+Remaining directions (status stays OPEN - directions a/b/d remain):
+(a) autonomous permission profile (developer-selected, pending),
+(b) stall auto-resume per DIA-098, (d) permission-ask audit hook.

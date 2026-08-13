@@ -1,12 +1,18 @@
 # DIA-127 - OMO slim 2.2.13 update evaluation (research + safety decision)
 
+<!-- UPDATE 2026-08-13 (Step B done + CLOSED): res019-omo-slim-version-gate
+     conspect persisted (10 archived sources, 2 documented NOT-ARCHIVED npmjs
+     SPA pages per DIA-072), memory-shelf registration added, DIA-126 re-verify
+     PASS achieved concurrently. Ticket flipped to CLOSED - the version-gate
+     evaluation is complete (update decision: 2.2.13, implemented + verified). -->
+
 ---
 
 id: DIA-127
 title: "OMO slim 2.2.13 update evaluation - research what is new, decide safety/worth for the project"
 area: opencode-config
 severity: Medium
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 discovered:
 source: inventory
@@ -170,3 +176,26 @@ DIA-126 full re-verify).
 - ASCII-only (DIA-079): this section is ASCII-only.
 - Scope: only docs/dev-infra-audit/tickets/DIA-127-...md modified; README
   ticket index untouched (evidence append, counts unchanged).
+
+## Step B completion (2026-08-13) - res019 conspect persistence
+
+Step B (research conspect persistence) DONE - closes the pending item that
+kept this ticket OPEN after the phase-6 registration (the ai-auditor
+approve-with-changes commit referenced "ticket stays OPEN until Step B res019
+conspect persistence").
+
+- **Conspect created:** knowledge/res019-omo-slim-version-gate/
+  res019-omo-slim-version-gate-conspect.md (20,491 bytes, ~2700 words,
+  10 MLA-cited archived sources).
+- **Source provisioning:** 12 source URLs provisioned (10 external cited by
+  the ai-specialist lane + 2 supplementary fetched); 10 archived
+  (trafilatura/curl), 2 NOT ARCHIVED (npmjs SPA pages, 42B shell; DIA-072
+  exclusions documented in conspect section 8).
+- **Memory shelf registration:** .opencode/memory-shelf.yaml shelf.conspects
+  entry res019 added (matches res018 format).
+- **DIA-126 re-verify PASS achieved concurrently:** the res019 Phase A
+  archival doubled as the DIA-126 full re-verify on the post-restart opencode
+  process (see the DIA-126 ticket "Full re-verify (2026-08-13, post-restart
+  process) - RESULT PASS" section).
+- **Finding 5 reconciliation:** this Step B completes the pending item;
+  ticket flipped to CLOSED 2026-08-13.
