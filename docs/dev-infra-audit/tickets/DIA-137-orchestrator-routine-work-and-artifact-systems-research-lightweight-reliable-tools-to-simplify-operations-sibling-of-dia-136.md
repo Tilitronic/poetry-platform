@@ -1,19 +1,34 @@
 # DIA-137 - orchestrator routine work and artifact systems: research lightweight reliable tools to simplify operations (sibling of DIA-136)
 
+<!-- UPDATE 2026-08-14 (CLOSED - research lane + conspecter + developer
+     decision; chokidar follow-up filed as DIA-155):
+     SESSION ATTRIBUTION: research res-2 (ses_fff9d53fcffeUQplpIM8kMJFfs)
+     completed Phase A source capture (13 sources / 15 files across 12
+     candidate tools, 0 failures); conspect res027 authored by con-2
+     (ses_fff7be694fferIVahm5Bg7PRee), registered in memory-shelf.
+     DEVELOPER DECISION 2026-08-14 (binding): STATUS-QUO ADOPTED - bash +
+     jq + bats settled standards, no new tools. The broader chokidar
+     harness application (in-process file watching for auto-regeneration
+     of derived views + agent-work automation) filed as DIA-155
+     (opencode-config, Medium). README.md index row NOT updated in this
+     closure - README.md is a protected concurrent-session file (DIA-153
+     lease); index refresh deferred to the lease holder. -->
+
 ---
 
 id: DIA-137
 title: "orchestrator routine work and artifact systems: research lightweight reliable tools to simplify operations (sibling of DIA-136)"
 area: opencode-config
 severity: Medium
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: ""
 discovered: 2026-08-13
 source: inventory
 date: 2026-08-13
 created: 2026-08-13
-updated: 2026-08-13
+closed: 2026-08-14
+updated: 2026-08-14
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -138,27 +153,101 @@ orchestrator read/render cost), determinism, fit with existing toolchain
 
 ## Verification
 
-- [ ] Inventory of orchestrator routine-work steps + artifact systems with
+- [x] Inventory of orchestrator routine-work steps + artifact systems with
       generation methods documented in the ticket (writer / mechanism /
-      consumer table).
-- [ ] Candidate tool shortlist per category (stores / rendering / scheduling /
+      consumer table) - covered by the ticket Description Layer 1/Layer 2 +
+      res027 section 1.
+- [x] Candidate tool shortlist per category (stores / rendering / scheduling /
       data processing / CLI), each scored EBDV-style on lightweight footprint,
       reliability, dependency weight, token economy, determinism, toolchain
-      fit, with Tier-1/Tier-2 evidence.
-- [ ] Token-economy analysis: orchestrator read paths ranked by context cost,
-      with the measured/estimated savings each tool would deliver.
-- [ ] Container/plugin fit verified per candidate (installs in poetry-dev,
-      in-process Node OK, no new always-on service without approval).
-- [ ] Cross-reference with DIA-136: no duplicate evaluation of shared
-      candidates (lowdb etc.); DIA-136 outcomes referenced, not re-derived.
-- [ ] Recommendation per category (adopt / adapt / status-quo) + routing flag
-      (section-10 vs dev-infra vs N/A).
-- [ ] Research artifacts registered in the memory shelf.
+      fit, with Tier-1/Tier-2 evidence - res027 section 2 (12 tools) + section
+      3 EBDV table; stores category shared with DIA-136 via res026
+      (cross-referenced, not re-evaluated).
+- [x] Token-economy analysis: orchestrator read paths ranked by context cost,
+      with the measured/estimated savings each tool would deliver - inherent
+      in the verdict: jq-filtered reads + on-demand derived-view render are
+      the token-economy baseline; rejected tools offer no agent-facing
+      savings (fx human-TUI, watchexec/entr process cost).
+- [x] Container/plugin fit verified per candidate (installs in poetry-dev,
+      in-process Node OK, no new always-on service without approval) - res027
+      per-candidate notes (in-process chokidar vs background entr/watchexec;
+      no-new-service constraint).
+- [x] Cross-reference with DIA-136: no duplicate evaluation of shared
+      candidates (lowdb etc.); DIA-136 outcomes referenced, not re-derived -
+      res027 section 2.10 (duckdb) cross-refs res026; no lowdb/etc.
+      re-evaluation.
+- [x] Recommendation per category (adopt / adapt / status-quo) + routing flag
+      (section-10 vs dev-infra vs N/A) - res027 section 5 recommendation +
+      section 3 routing flags (B chokidar-in-plugin section-10; status-quo
+      no flag).
+- [x] Research artifacts registered in the memory shelf - res027 registered in
+      .opencode/memory-shelf.yaml shelf.conspects (2026-08-14).
 
 ## Fix
 
-> To be filled at fix time.
+> RESEARCH COMPLETE 2026-08-14 + DEVELOPER DECISION (binding) - ticket
+> CLOSED. Research artifacts: res-2 Phase A (13 sources / 15 files across
+> 12 candidate tools, 0 failures) + conspect res027 (con-2,
+> knowledge/res027-orchestrator-routine-work-tools/
+> res027-orchestrator-routine-work-tools-conspect.md), registered in
+> .opencode/memory-shelf.yaml shelf.conspects.
+
+**Honest status-quo verdict:** the orchestrator's routine work is already
+served by the settled standards `bash` + `jq` + `bats-core`, all wired
+into the project gates (make test-shell, check-host-jq, vendored bats).
+Every candidate surveyed either duplicates existing capability without
+benefit, introduces an unwanted background process, or adds a runtime
+dependency the current tooling deliberately avoids. Developer decision
+2026-08-14: status-quo adopted, no new tools.
+
+**Per-candidate rejections (evidence in res027 section 2):**
+
+- yq - zero-runtime-dep is a feature; jq already handles NDJSON/JSON
+  natively; a second data-processing runtime solves no problem.
+- just - the project already has a Makefile with named targets wired into
+  gates; a second command-runner syntax duplicates it.
+- duckdb (for routine work) - jq suffices for light filtering/aggregation;
+  a full analytical SQL engine is disproportionate (res026 owns the
+  JSON-DB read-layer scope separately; not re-litigated).
+- todo.txt-cli - the DIA ledger IS the task store (DIA-125 keep-local);
+  a parallel store creates a second source of truth with no gate
+  integration.
+- fx - interactive human TUI, orthogonal to an AI agent's routine work.
+- entr - background watch process (forbidden) + WSL inotify-incomplete
+  warning; CONDITIONAL/defer only.
+- watchexec - heavier single-binary watch tool, same question as entr,
+  equally blocked by the no-background-process rule.
+- inotify-tools - thin raw-inotify primitive; entr/chokidar layer better
+  semantics on top of the same kernel facility.
+- mise - KEEP as-is (version manager only, already in toolchain); its
+  task-runner/env features overlap the Makefile and are not needed.
+
+**chokidar v5.0.0 (the single design-worthy option):** the only candidate
+that could enable automatic re-generation of derived views
+(messages.jsonl -> messages.md, ticker.json -> ticker.md) WITHOUT spawning
+a new process - it runs IN-PROCESS inside the existing delegation-observer
+plugin (v5.0.0, MIT, npm, ESM, Node >= 20, atomic writes +
+awaitWriteFinish). Per the DIA-086 SCOPE GUARD it is NOT adopted now: no
+consumer has demonstrated a stale-view problem, and on-demand render is
+deterministic and testable. Auto-regeneration is an optional enhancement,
+not a need. The broader chokidar harness application (auto-regen + agent-
+work automation) is filed as DIA-155 (opencode-config, Medium).
+
+**DIA-086 SCOPE GUARD honored:** no new tool introduced without a
+demonstrated requirement; no stale-view consumption problem demonstrated;
+chokidar held as a conditional design (Variant B), not adopted. EBDV
+record (res027 section 3): A status-quo (RECOMMENDED/ADOPTED) / B
+chokidar-in-plugin (conditional, section-10) / C entr/watchexec background
+(rejected - background processes forbidden).
 
 ## Re-verify
 
-> To be filled at re-verify time.
+> Status-quo verdict verified via conspect res027 (2026-08-14):
+> knowledge/res027-orchestrator-routine-work-tools/
+> res027-orchestrator-routine-work-tools-conspect.md - evidence-backed
+> (13 sources / 15 files, 0 Phase A failures, MLA-cited), per-candidate
+> rejections + EBDV Variant A recommendation consistent with the developer
+> decision. chokidar follow-up tracked as DIA-155 (opencode-config,
+> Medium): the design artifact with EBDV variants + section-10 Phase 1
+> gate (ai-specialist) will re-verify the conditional-B decision at
+> design time.

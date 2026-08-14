@@ -1,19 +1,37 @@
 # DIA-136 - orchestrator session records: research JSON-DB + API layer (lowdb/json-server/nedb/tinydb) for visibility, reliability, determinism, token economy
 
+<!-- UPDATE 2026-08-14 (CLOSED - research lane + conspecter + developer
+     decision; implementation filed as DIA-156):
+     SESSION ATTRIBUTION: research res-1 (ses_fff9d7005ffe1S8g6WRMRmmfYA)
+     completed Phase A source capture (24 archived, 1 documented
+     partial-failure duckdb-stable redirect); conspect res026 authored by
+     con-1 (ses_fff7f6a91ffeyJfoQVNNlpHDjS), registered in memory-shelf.
+     DEVELOPER DECISION 2026-08-14 (binding): V2 ADOPTED - node:sqlite
+     :memory: read-only query layer over the existing JSONL session
+     records. Rationale confirmed by developer: token economy on reads
+     (query returns only needed rows instead of full-file reads). JSONL
+     stays the canonical committed source of truth; the sqlite DB exists
+     ONLY in memory during a query (nothing new committed to git).
+     Implementation tracked as DIA-156 (dev-infra, Low). README.md index
+     row NOT updated in this closure - README.md is a protected
+     concurrent-session file (DIA-153 lease); index refresh deferred to
+     the lease holder. -->
+
 ---
 
 id: DIA-136
 title: "orchestrator session records: research JSON-DB + API layer (lowdb/json-server/nedb/tinydb) for visibility, reliability, determinism, token economy"
 area: opencode-config
 severity: Medium
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: ""
 discovered: 2026-08-13
 source: inventory
 date: 2026-08-13
 created: 2026-08-13
-updated: 2026-08-13
+closed: 2026-08-14
+updated: 2026-08-14
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -139,28 +157,97 @@ lease/claim mechanics (session_id + lease_expires_at) in the JSON schema.
 
 ## Verification
 
-- [ ] Current-state inventory of all session records + ticket ledger (writer /
-      mechanism / consumer table) documented in the ticket.
-- [ ] EBDV matrix: >=2 candidates + baseline scored on visibility, reliability,
-      determinism, token economy, with Tier-1/Tier-2 evidence per score.
+- [x] Current-state inventory of all session records + ticket ledger (writer /
+      mechanism / consumer table) documented in the ticket - covered by res026
+      section 1 + the DIA-125 analog (section 6).
+- [x] EBDV matrix: >=2 candidates + baseline scored on visibility, reliability,
+      determinism, token economy, with Tier-1/Tier-2 evidence per score -
+      res026 section 4 (V1 status-quo / V2 read-only query layer / V3 binary
+      source of truth) + section 3 decision table.
 - [ ] Measured token delta for a representative read: full-file (e.g. recall
-      one session_id from registry.jsonl) vs filtered/API equivalent.
+      one session_id from registry.jsonl) vs filtered/API equivalent - the
+      conspect establishes the token-economy GAIN qualitatively (V2 pros:
+      precise filtered reads vs full-file greps); a measured delta belongs to
+      the DIA-156 implementation demo (query returns only needed rows).
 - [ ] Concurrency assessment: cross-session interleaving risk of appendFileSync
-      vs each candidate's locking/serialization.
-- [ ] Maintenance/fit audit of the 4 named libs (nedb unmaintained, tinydb
-      Python-only, json-server process cost, lowdb embedded/no-HTTP).
-- [ ] D9: ticket-ledger migration analysis - JSON store schema (incl.
+      vs each candidate's locking/serialization - inherent in the decision: V2
+      is read-only (no write-path change), so the existing appendFileSync
+      concurrency surface is untouched; V3 would have introduced lock state
+      (rejected).
+- [x] Maintenance/fit audit of the 4 named libs (nedb unmaintained, tinydb
+      Python-only, json-server process cost, lowdb embedded/no-HTTP) - res026
+      section 2 (2.1 lowdb, 2.2 json-server, 2.3-2.5 nedb family, 2.6 tinydb).
+- [x] D9: ticket-ledger migration analysis - JSON store schema (incl.
       lease/claim fields), .md-on-request render design, frontmatter-consumer
       migration list (scripts/tickets, delegation-observer gate, COORDINATION.md),
-      git-syncability preserved.
-- [ ] Recommendation + section-10 routing flag per option (config change vs
-      tooling-only vs status-quo).
-- [ ] Research artifacts registered in the memory shelf.
+      git-syncability preserved - resolved via the DIA-125/res018/res021
+      precedent: plain-text ledger stays canonical; query layer read-only on
+      top (res026 section 6).
+- [x] Recommendation + section-10 routing flag per option (config change vs
+      tooling-only vs status-quo) - res026 section 4 per-variant flags; V2
+      tooling-only (no section-10), DIA-156 dev-infra routed.
+- [x] Research artifacts registered in the memory shelf - res026 registered in
+      .opencode/memory-shelf.yaml shelf.conspects (2026-08-14).
 
 ## Fix
 
-> To be filled at fix time.
+> RESEARCH COMPLETE 2026-08-14 + DEVELOPER DECISION (binding) - ticket
+> CLOSED. Research artifacts: res-1 Phase A (24 sources archived,
+> 1 documented partial-failure) + conspect res026 (con-1,
+> knowledge/res026-orchestrator-session-records-json-db/
+> res026-orchestrator-session-records-json-db-conspect.md), registered in
+> .opencode/memory-shelf.yaml shelf.conspects.
+
+**Research conclusion (honest verdict):** the DIA-136 premise - "adopt a
+JSON-DB + API layer for session records" - holds ONLY for reads. The
+canonical committed write path is JSONL NDJSON (delegation-observer
+registry + messages logs), which is already git-friendly, deterministic,
+and jq/grep-queryable; the real gap is read-side query ergonomics.
+
+**EBDV record (per res026 section 4, DIA-115):**
+
+- **V1 status-quo jq** - zero change; acceptable fallback, loses the
+  visibility upside. Not selected.
+- **V2 read-only query layer over JSONL (ADOPTED by developer 2026-08-14)** -
+  keep the JSONL write path unchanged; add a read-only query layer.
+  Preferred engine `node:sqlite` in-memory import (Node built-in, zero
+  deps, `new DatabaseSync(':memory:')`, read-only import from committed
+  JSONL - nothing written to disk). Second engine DuckDB `read_json` over
+  NDJSON (reads in place, valid alternative; costs a binary runtime dep).
+- **V3 embedded binary DB as source of truth (REJECTED)** - a binary DB is
+  not committable/diffable, directly violating the developer's binding
+  committability constraint (sqlite binary files NOT acceptable as source
+  of truth; in-memory query-only acceptable).
+
+**Named candidate rejections (evidence in res026 section 2):** lowdb 7.0.1
+whole-file rewrite O(N) + no cluster + no HTTP; json-server 1.0.0-beta.15
+full HTTP server process + beta status; nedb 1.8.0 unmaintained (author
+warning); nedb2 2018.12.30 abandoned; tinydb 4.9.0 Python-only (language
+mismatch with the TS plugin); @seald-io/nedb 4.1.2 active fork but
+file/append-only with full in-memory copy - none improve on JSONL for the
+read-query goal; better-sqlite3 13.0.3 native binary dep duplicated by the
+Node built-in.
+
+**D9 ticket-ledger analog:** mirrors the DIA-125/res018/res021 pattern -
+markdown/git-backed plain-text ledger stays canonical; external/store
+options evaluated only as read/query enhancements on top, never as a
+replacement source of truth.
+
+**Developer committability constraint honored:** sqlite binary NOT
+acceptable as source of truth; in-memory query-only acceptable; simplest
+committable path preferred. Implementation is a script (scripts/ or a make
+target), NOT a plugin change, NOT a new process - filed as DIA-156.
+Section-10 flag for the research decision: no (tooling-only; DIA-156 is
+dev-infra routed).
 
 ## Re-verify
 
-> To be filled at re-verify time.
+> V2 decision verified via conspect res026 (2026-08-14):
+> knowledge/res026-orchestrator-session-records-json-db/
+> res026-orchestrator-session-records-json-db-conspect.md - evidence-backed
+> (24 archived sources, MLA-cited), EBDV matrix V1/V2/V3 with
+> recommendation V2 (node:sqlite preferred engine) consistent with the
+> binding developer constraint (section 5 of the conspect). Implementation
+> tracked as DIA-156 (dev-infra, Low): the script + bats test + demo query
+> gate (make test-shell / test-config) will re-verify the V2 decision
+> mechanically at implementation time.
