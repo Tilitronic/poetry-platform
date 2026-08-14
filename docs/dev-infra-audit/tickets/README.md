@@ -128,37 +128,34 @@
 | DIA-178 | Memory shelf hygiene audit: duplicate/stale/irrelevant lessons, conspects, analyses | docs | Medium | DONE | [DIA-178-memory-shelf-hygiene-audit.md](DIA-178-memory-shelf-hygiene-audit.md) |
 | DIA-179 | Full test-suite audit: execution order, fast-to-fail, duplicates, stale tests, verification honesty, DRY helpers | tests-infra | Medium | DONE | [DIA-179-full-test-suite-audit.md](DIA-179-full-test-suite-audit.md) |
 
-
-
 ## Status summary
 
 | Severity | Count |
 | -------- | ----- |
-| Blocker   | 7      |
-| Critical  | 8      |
-| Major     | 44     |
-| Medium    | 57     |
-| Minor     | 0      |
-| Low       | 11     |
-| Info      | 0      |
+| Blocker  | 7     |
+| Critical | 8     |
+| Major    | 44    |
+| Medium   | 57    |
+| Minor    | 0     |
+| Low      | 11    |
+| Info     | 0     |
 
 | Status      | Count |
 | ----------- | ----- |
-| OPEN      | 17     |
-| DONE      | 9      |
-| VALIDATE  | 0      |
-| E2E       | 0      |
-| DEFERRED  | 1      |
-| MONITOR   | 1      |
-| FIXED     | 1      |
-| IMPLEMENTED | 2      |
-| VERIFIED  | 29     |
-| CLOSED    | 67     |
-| BLOCKED   | 0      |
-| DISPATCHED | 0      |
-| RUNNING   | 0      |
-| COMPLETE  | 0      |
-
+| OPEN        | 17    |
+| DONE        | 9     |
+| VALIDATE    | 0     |
+| E2E         | 0     |
+| DEFERRED    | 1     |
+| MONITOR     | 1     |
+| FIXED       | 1     |
+| IMPLEMENTED | 2     |
+| VERIFIED    | 29    |
+| CLOSED      | 67    |
+| BLOCKED     | 0     |
+| DISPATCHED  | 0     |
+| RUNNING     | 0     |
+| COMPLETE    | 0     |
 
 ## How to add a ticket
 
