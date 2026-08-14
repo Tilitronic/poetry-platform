@@ -8,6 +8,18 @@ OpenCode Docker — containerized environment for running OpenCode CLI.
 
 **`make run`** (development only) — uses local `./homebase`, `./workspace`, `./secrets`. For working on this repo itself.
 
+## SSH agent forwarding (git push from the container)
+
+`bin/opencode-docker` forwards the host's SSH agent socket into the container, read-only, at `/tmp/ssh-agent.sock`, and sets `SSH_AUTH_SOCK=/tmp/ssh-agent.sock` so `git push` to SSH remotes works from inside the container.
+
+**Keys never leave the host.** Only the agent socket is mounted — no `~/.ssh` mount, no key files are copied into the container. The container makes sign-requests to the host agent through the forwarded socket; the keys themselves stay on the host. Do NOT "helpfully" add a `~/.ssh` mount or copy key material into the container — that would defeat the security model.
+
+`GIT_SSH_COMMAND="-o StrictHostKeyChecking=accept-new"` is set via EXTRA_ENV, so new host keys are accepted on first connection (TOFU for the container's read-only `/app` known_hosts, which cannot be written).
+
+For `git push` to work the host SSH agent must be running, unlocked, and have the key loaded (`ssh-add -L` shows it). If no agent socket is found at launch, the wrapper prints a warning to stderr and continues — opencode works, but `git push` then fails with `Permission denied (publickey)`.
+
+Note: `poetry-dev` does NOT need SSH agent forwarding (its delegated gates are make/pnpm only).
+
 ## Debian 13 slim runtime
 
 Final image is `debian:13-slim` with **Playwright (chromium)** and **crawl4ai**:

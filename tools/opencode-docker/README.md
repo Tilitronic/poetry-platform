@@ -103,6 +103,32 @@ Security: the socket is mounted `:ro` with no added capabilities or privileges, 
 
 A rebuild is required for the socket mount to take effect (the docker client is baked into the image): `make build` in `tools/opencode-docker/`, then relaunch via `bin/opencode-docker`. The current session ends on relaunch; resume via the handoff file `.opencode/session/current-handoff.json`.
 
+## Git push from the container (SSH agent forwarding)
+
+The wrapper forwards the host's SSH agent socket into the container, read-only, at `/tmp/ssh-agent.sock` and sets `SSH_AUTH_SOCK=/tmp/ssh-agent.sock`, so `git push` to SSH remotes works from inside the container.
+
+**How it works:** only the agent socket is forwarded — no key material ever enters the container. There is no `~/.ssh` mount and no key file is copied in; the container makes sign-requests to the host agent over the socket and the host signs with the keys, which stay on the host. Do not "fix" this by mounting `~/.ssh` or copying keys into the container: that would put your private keys at risk inside the container and is explicitly unsupported.
+
+**No-agent warning:** if no SSH agent socket is found at launch (`$SSH_AUTH_SOCK` unset and no keyring fallback), the wrapper prints a warning to stderr and continues — opencode works fine, but `git push` fails with `Permission denied (publickey)`. This is expected and safe; it just means no agent was available to forward.
+
+**Host prerequisites:** the host SSH agent must be running, unlocked, and have the key loaded. Verify with:
+
+```bash
+ssh-add -L
+```
+
+If the key is missing, unlock the agent / add the key on the host, then relaunch the container. Also note `GIT_SSH_COMMAND="-o StrictHostKeyChecking=accept-new"` is set inside the container (the read-only `/app` cannot write `known_hosts`), so the first connection to a new host auto-accepts its key (TOFU).
+
+**Known caveat (hardware keys):** gnome-keyring may mishandle YubiKey `ed25519-sk` keys, and a push can fail with `agent refused operation`. If you use a hardware key and hit this, start a dedicated agent for the session on the host and relaunch:
+
+```bash
+eval "$(ssh-agent)"
+ssh-add
+bin/opencode-docker
+```
+
+Note: `poetry-dev` does NOT need SSH agent forwarding (its delegated gates are make/pnpm only).
+
 ## Secrets Management
 
 This project uses file-based secrets instead of environment variables for improved security. Secrets stored in files are not visible in `docker inspect`, process listings, error messages, or logs.
