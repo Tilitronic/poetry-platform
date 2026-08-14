@@ -30,6 +30,7 @@
  *   2. CONFIG DRIFT (post-DIA-132)                   - GREEN now
  *   3. STRUCTURAL CHECKS (.sdd ADR invariants, DD5)  - GREEN now
  *   4. NEW DIA-134 TARGETS (S3/S4/Makefile wiring)   - RED until S3/S4 land
+ *   5. DIA-139 SLICE B (F-2 turbo default flip)      - GREEN since 6cf2db9
  */
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
@@ -98,6 +99,7 @@ const orchAppend = readRoot('.opencode/oh-my-opencode-slim/orchestrator_append.m
 const coderAppend = readRoot('.opencode/oh-my-opencode-slim/coder_append.md');
 const agentsMd = readRoot('AGENTS.md');
 const makefile = readRoot('Makefile');
+const turbo = parseJsonc('turbo.json');
 
 // A1 NEVER clause: presets carry it as one JSON string line; the A1 section
 // wraps it across md lines. Whitespace normalization before compare is
@@ -402,5 +404,40 @@ describe('S3 NEW DIA-134 TARGETS (RED now)', () => {
   });
   it('AGENTS.md S4: "before merge dispatch"', () => {
     assert.match(agentsMd, /before merge dispatch/);
+  });
+});
+
+// ============================================================================
+// S5 DIA-139 SLICE B (F-2) - turbo base `test` default flip - GREEN since
+// 6cf2db9. Moved here in the slice B fix loop (cycle 1): review finding said
+// the F-2 assertions must live in THIS persistent suite (wired into make
+// test-config per ADR 10), not a standalone file. Reuses parseJsonc above.
+// ============================================================================
+describe('S5 DIA-139 SLICE B (F-2): turbo base test task default', () => {
+  // The four packages DIA-125 verified to run standalone (no build artifacts);
+  // their overrides became dead once the base default flipped to dependsOn: [].
+  const LEGACY_OVERRIDES = [
+    '@poetry/editor-engine#test',
+    '@poetry/data-contracts#test',
+    '@poetry/phonetics-core#test',
+    'author-studio#test',
+  ];
+
+  it('base test task must not depend on build (dependsOn: [] or key absent)', () => {
+    const deps = turbo.tasks.test.dependsOn;
+    assert.ok(
+      deps === undefined || (Array.isArray(deps) && deps.length === 0),
+      `expected dependsOn: [] or no dependsOn key, got ${JSON.stringify(deps)}`,
+    );
+  });
+
+  it('per-package #test override block for the four verified packages is removed', () => {
+    for (const key of LEGACY_OVERRIDES) {
+      assert.equal(
+        key in turbo.tasks,
+        false,
+        `${key} override must be removed (new base default covers it)`,
+      );
+    }
   });
 });
