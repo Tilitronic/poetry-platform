@@ -27,6 +27,9 @@
 #   T14 remove by worktree PATH -> exit 0 + message shows path AND branch
 #   T15 create --help -> usage (exit 2), not a branch-name error
 #   T16 list forwards args to git worktree list (--porcelain works)
+#   T17 create materializes .husky/_ in the worktree (husky shim, DIA-134)
+#   T18 create fails loudly when the main tree has no .husky/_ (DD1)
+#   T19 create's .husky/_ copy is a real directory, not a symlink (DD1)
 
 load test-helper
 
@@ -50,6 +53,11 @@ setup_worktree_repo() {
   # on it).
   git -C "$tree" add .gitignore
   git -C "$tree" commit -q -m init
+  # DIA-134 S1 (DD1): a husky-installed main tree HAS .husky/_ -- that is the
+  # create step's copy source. Seed it so every create-success test (T1-T16)
+  # runs against a realistic main tree; T18 removes it explicitly to exercise
+  # the fail-loud absent-source path.
+  seed_husky_shim "$tree"
   echo "$tree"
 }
 
@@ -79,6 +87,25 @@ FAKEGIT
   chmod +x "$bindir/git"
   PATH="$bindir:$PATH"
   export PATH
+}
+
+# seed_husky_shim <tree>: pre-populate .husky/_ in the fixture repo so `create`
+# has a copy source (mirrors a main tree after `husky install`). The dir is
+# git-ignored (appended to the fixture .gitignore) so `git worktree add` does
+# NOT deliver it to the new worktree -- the worktree gets .husky/_ ONLY if
+# worktrees.sh copies it (the S1 shim under test, DIA-134). The marker file's
+# content is the independent source of truth for the copy-fidelity assertions.
+seed_husky_shim() {
+  local tree="$1"
+  printf '\n.husky/_/\n' >> "$tree/.gitignore"
+  git -C "$tree" add .gitignore
+  git -C "$tree" commit -q -m "ignore husky shim dir"
+  mkdir -p "$tree/.husky/_"
+  cat > "$tree/.husky/_/husky.sh" <<'SHIM'
+#!/usr/bin/env sh
+# DIA-134 fixture marker: proves a verbatim copy, not a git checkout.
+echo "shim-marker-DIA-134"
+SHIM
 }
 
 @test "worktrees: T1 create -> exit 0 + worktree dir + branch + isolated .opencode/session" {
@@ -261,4 +288,48 @@ FAKEGIT
 
   assert_status 0
   assert_output_contains "branch refs/heads/feature/DIA-100-test"
+}
+
+@test "worktrees: T17 create materializes .husky/_ in the worktree" {
+  tree="$(setup_worktree_repo)"
+
+  run bash "$tree/scripts/worktrees.sh" create feature/DIA-134-test
+
+  assert_status 0
+  # .husky/_ exists in the new worktree as a REAL directory. git worktree add
+  # cannot deliver it (git-ignored in the fixture, mirroring the real repo),
+  # so only the S1 copy step can satisfy this (DD1: copy, not install).
+  run test -d "$tree/.worktrees/feature-DIA-134-test/.husky/_"
+  assert_status 0
+  # content matches the main tree's .husky/_ (verbatim copy of the shim)
+  assert_file_contains "$tree/.worktrees/feature-DIA-134-test/.husky/_/husky.sh" "shim-marker-DIA-134"
+}
+
+@test "worktrees: T18 create fails loudly when the main tree has no .husky/_" {
+  tree="$(setup_worktree_repo)"
+  # setup_worktree_repo now seeds .husky/_ (a husky-installed main tree is the
+  # realistic default); strip it so this test owns the absent-source case.
+  rm -rf "$tree/.husky"
+
+  run bash "$tree/scripts/worktrees.sh" create feature/DIA-134-test
+
+  # DD1 fail-loud contract: no silent bypass when the copy source is absent.
+  assert_status 1
+  assert_output_contains "husky is not installed in the main tree; run \`husky install\` before creating worktrees"
+}
+
+@test "worktrees: T19 create's .husky/_ copy is a real directory, not a symlink" {
+  tree="$(setup_worktree_repo)"
+
+  run bash "$tree/scripts/worktrees.sh" create feature/DIA-134-test
+
+  assert_status 0
+  # AC: test -L must return false -- DD1 rejects a symlink into the main tree
+  # (it would break the worktree-isolation invariant).
+  run test -L "$tree/.worktrees/feature-DIA-134-test/.husky/_"
+  assert_status 1
+  # and the target must be a real directory: a missing .husky/_ would make
+  # test -L trivially false, so the -d assertion is the existence guard.
+  run test -d "$tree/.worktrees/feature-DIA-134-test/.husky/_"
+  assert_status 0
 }

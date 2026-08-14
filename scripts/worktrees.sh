@@ -14,8 +14,9 @@
 #                            on a new branch <branch> (default base: main).
 #                            Validates the branch name against the DIA-074
 #                            convention (feature/<ticket>-<short-name>),
-#                            refuses already-existing branches, and verifies
-#                            .opencode/session/ isolation in the new worktree.
+#                            refuses already-existing branches, verifies
+#                            .opencode/session/ isolation in the new worktree,
+#                            and materializes the .husky/_ shim (DIA-134 S1).
 #   remove <branch|path>     remove a worktree. The branch is KEPT for the
 #                            rollback window (cleanup after the window is a
 #                            developer action — git branch -d/-D is denied
@@ -183,6 +184,31 @@ cmd_create() {
 
   echo "-> creating worktree for '$branch' at '$path' (base: $base)"
   git worktree add -b "$branch" "$path" "$base"
+
+  # DIA-134 S1 (DD1): husky shim materialization. `git worktree add` does NOT
+  # deliver .husky/_ (the husky v9 scaffolding dir is git-ignored; only the
+  # tracked .husky/pre-commit + .husky/pre-push hooks come over), so a fresh
+  # worktree would silently bypass the pre-commit hook (DIA-094). Copy the
+  # already-materialized shim from the main tree: plain filesystem copy, NOT
+  # `husky install` (side effects: mutates core.hooksPath, needs husky on
+  # PATH) and NOT a symlink (would break the worktree-isolation invariant).
+  # Fail loudly when the main tree has no shim to copy -- no silent bypass.
+  if [ ! -d "$ROOT/.husky/_" ]; then
+    fail 'husky is not installed in the main tree; run `husky install` before creating worktrees'
+  fi
+  # mkdir -p first: `cp -R src/_ dst/` FLATTENS the copy when dst/ does not
+  # exist (it creates dst/ with src's contents directly), so the .husky/ dir
+  # must exist before the copy or husky.sh would land at .husky/husky.sh
+  # instead of .husky/_/husky.sh.
+  mkdir -p "$path/.husky"
+  cp -R "$ROOT/.husky/_" "$path/.husky/"
+  # Post-copy assertion (DD1 / AC 1.1): .husky/_ must be a REAL directory in
+  # the worktree -- a symlink would break isolation, a missing dir means the
+  # copy failed. `test -d` alone would pass a symlink to a real dir, so the
+  # -L check closes that gap.
+  if [ -L "$path/.husky/_" ] || [ ! -d "$path/.husky/_" ]; then
+    fail "worktree created but .husky/_ is not a real directory; husky shim broken"
+  fi
 
   # DIA-100 verification item (f): each worktree must have its own
   # .opencode/session/ dir (zero handoff coordination). Mechanism: git
