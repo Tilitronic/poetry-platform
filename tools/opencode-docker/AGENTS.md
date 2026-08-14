@@ -14,7 +14,7 @@ OpenCode Docker — containerized environment for running OpenCode CLI.
 
 **Keys never leave the host.** Only the agent socket is mounted — no `~/.ssh` mount, no key files are copied into the container. The container makes sign-requests to the host agent through the forwarded socket; the keys themselves stay on the host. Do NOT "helpfully" add a `~/.ssh` mount or copy key material into the container — that would defeat the security model.
 
-`GIT_SSH_COMMAND="-o StrictHostKeyChecking=accept-new"` is set unconditionally via EXTRA_ENV (harmless when no agent is present; design Q3), so new host keys are accepted on first connection (TOFU for the container's read-only `/app` known_hosts, which cannot be written).
+`GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=accept-new -o UserKnownHostsFile=/tmp/known_hosts -o IdentityAgent=/tmp/ssh-agent.sock"` is set unconditionally via EXTRA_ENV (harmless when no agent is present; design Q3). UserKnownHostsFile points at the writable `/tmp` tmpfs so the read-only `/app` cannot emit a `known_hosts` write warning and new host keys are accepted on first connection with TOFU state persisting for the container's lifetime (DIA-153).
 
 For `git push` to work the host SSH agent must be running, unlocked, and have the key loaded (`ssh-add -L` shows it). If no agent socket is found at launch, the wrapper prints a warning to stderr and continues — opencode works, but `git push` then fails with `Permission denied (publickey)`.
 

@@ -33,6 +33,7 @@
 #   3. appends to EXTRA_ENV:  -e SSH_AUTH_SOCK=/tmp/ssh-agent.sock
 #   4. appends to EXTRA_ENV unconditionally (decision Q3):
 #      -e GIT_SSH_COMMAND=ssh -o StrictHostKeyChecking=accept-new
+#         -o UserKnownHostsFile=/tmp/known_hosts
 #         -o IdentityAgent=/tmp/ssh-agent.sock
 #   5. when no socket is found: prints a stderr warning mentioning "git push"
 #      and "SSH agent", and CONTINUES (exit 0, warn-and-continue).
@@ -287,16 +288,18 @@ teardown() {
   assert_output_contains "SSH agent"
 }
 
-@test "ssh-agent-forward: 08 GIT_SSH_COMMAND set unconditionally (accept-new + IdentityAgent pin)" {
+@test "ssh-agent-forward: 08 GIT_SSH_COMMAND set unconditionally (accept-new + UserKnownHostsFile + IdentityAgent pin)" {
   # decision Q3: set regardless of agent presence - run WITHOUT any socket.
   # The value MUST start with the ssh command word (git spawns GIT_SSH_COMMAND
   # verbatim through /bin/sh; a bare "-o ..." fails with "Illegal option -o",
-  # DIA-153) and pins IdentityAgent to the container-side socket so ssh finds
-  # the forwarded agent even if SSH_AUTH_SOCK is lost in a child env.
+  # DIA-153), point UserKnownHostsFile at the writable /tmp tmpfs so the
+  # read-only rootfs cannot produce a known_hosts write warning (DIA-153
+  # follow-up), and pin IdentityAgent to the container-side socket so ssh
+  # finds the forwarded agent even if SSH_AUTH_SOCK is lost in a child env.
   run bash "$WRAPPER"
 
   assert_status 0
-  assert_run_contains "-e GIT_SSH_COMMAND=ssh -o StrictHostKeyChecking=accept-new -o IdentityAgent=/tmp/ssh-agent.sock"
+  assert_run_contains "-e GIT_SSH_COMMAND=ssh -o StrictHostKeyChecking=accept-new -o UserKnownHostsFile=/tmp/known_hosts -o IdentityAgent=/tmp/ssh-agent.sock"
 }
 
 @test "ssh-agent-forward: 09 detection order deterministic - first found wins" {
