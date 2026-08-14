@@ -152,6 +152,36 @@ if [ ${#SOCKET_MOUNT[@]} -eq 0 ]; then
     echo "Warning: container socket not found - pre-commit hooks delegating to dev container will not work; start podman/docker and relaunch" >&2
 fi
 
+# Forward the host SSH agent socket read-only so `git push` to SSH remotes
+# works from inside the container (DIA-133). SECURITY: only the agent SOCKET
+# is mounted - keys never leave the host (no ~/.ssh bind, no key files, no
+# .git-credentials). Target is /tmp/ssh-agent.sock because the rootfs is
+# --read-only (podman cannot create a mountpoint at /) while /tmp is a
+# writable tmpfs (--tmpfs /tmp:exec,size=512m). Probe order (decision D3):
+# $SSH_AUTH_SOCK first, then the GNOME keyring paths; first found wins.
+# No socket -> warn-and-continue: opencode works without git auth. The
+# container can only request sign-ops through the socket; it can never modify
+# the host socket state (:ro). GIT_SSH_COMMAND is set unconditionally (Q3):
+# the read-only /app cannot host known_hosts, and accept-new = TOFU (rejects
+# changed keys, trusts first-seen ones) - same trust model as the already
+# accepted DIA-121 docker-socket forwarding.
+SSH_MOUNT=()
+for sock in \
+    "${SSH_AUTH_SOCK:-}" \
+    "${XDG_RUNTIME_DIR:-}/keyring/ssh" \
+    "${XDG_RUNTIME_DIR:-}/gcr/ssh"
+do
+    if [ -S "$sock" ]; then
+        SSH_MOUNT=(-v "$sock:/tmp/ssh-agent.sock:ro")
+        EXTRA_ENV+=("-e" "SSH_AUTH_SOCK=/tmp/ssh-agent.sock")
+        break
+    fi
+done
+if [ ${#SSH_MOUNT[@]} -eq 0 ]; then
+    echo "Warning: SSH agent socket not found - git push to SSH remotes will not work from the container; start the host SSH agent (GNOME keyring/ssh-agent) and relaunch" >&2
+fi
+EXTRA_ENV+=("-e" "GIT_SSH_COMMAND=-o StrictHostKeyChecking=accept-new")
+
 # The workspace mount must stay SHARED label (':z'), never private (':Z'): the
 # poetry-dev container mounts the same dir with ':z', and a ':Z' relabel from
 # this container would stamp private MCS categories onto the workspace files,
@@ -177,5 +207,6 @@ podman run --rm $DOCKER_FLAGS \
     "${GITCONFIG_MOUNT[@]}" \
     "${PONYTAIL_MOUNT[@]}" \
     "${SOCKET_MOUNT[@]}" \
+    "${SSH_MOUNT[@]}" \
     -v "$WORKSPACE:/workspace:rw,z" \
     opencode-docker:latest /workspace "$@"
