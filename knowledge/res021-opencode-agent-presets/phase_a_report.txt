@@ -1,7 +1,7 @@
 Phase A archival run (res014): 2026-08-12
 Method: webfetch content extraction (trafilatura-equivalent markdown; no shell tool exposed in conspecter lane this session, so trafilatura CLI/curl/crawl4ai not directly invokable; webfetch performed the fetch-and-extract and content was persisted to sources/). Truncated webfetch outputs were recovered from saved tool-output files and key sections transcribed (arxiv-2606-19348, deepseek-for-coding tail, opencode-go-models-julien tail, copilot-supported-models body, copilot-cli-byok body, copilot-cli-acp body).
 
-URL list: knowledge/res014-opencode-agent-presets/sources/.source-urls.txt
+URL list: knowledge/res021-opencode-agent-presets/sources/.source-urls.txt
 
 1. https://huggingface.co/deepseek-ai/DeepSeek-V4-Flash-0731 -> sources/deepseek-v4-flash-0731.md ARCHIVED (200 OK, full content)
 2. https://arxiv.org/html/2606.19348 -> sources/arxiv-2606-19348.md ARCHIVED (200 OK; HTML body 144KB, key sections transcribed)

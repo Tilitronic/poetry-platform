@@ -83,19 +83,28 @@ This document defines the architectural boundaries and operational mechanics of 
 - **Consequences:** Deterministic, filesystem-only shim materialization with no `core.hooksPath` side effects; keeps each worktree isolated from the main tree's husky runtime; fails loudly when the main tree lacks `.husky/_` (no silent bypass of DIA-094).
 - **Alternatives Considered:** `husky install` - rejected (mutates `.git/config`, cross-worktree side effects, husky binary required on PATH); symlink - rejected (breaks the worktree-isolation invariant and breaks on worktree moves).
 
+### ADR 10: Batch-D behavioral suite persistence (committed, wired into test-config)
+
+- **Status:** Accepted
+- **Context:** DIA-134 S2 (design.md DD2) made `scripts/__tests__/batch-d-infra.test.mjs` gitignored by design ("session-local reconstruction" of the DIA-132 throwaway suite; absence fails `make test-config` loudly). Review of the 2-day commit window (DIA-136) found the fresh-clone gate break: a fresh clone lacks the file entirely, so `make test-config` hard-fails before any work can be validated - the gitignore rationale did not hold because the suite asserts committed files only (plugin classification outcomes, config grep checks, .sdd ADR structure), none of it session-local.
+- **Decision:** The suite is UN-GITIGNORED and committed (DIA-136 F2), remaining wired into `make test-config` as the single entry point for batch-D infra invariants. Regeneration is by the maintainers when the plugin/config invariants it asserts evolve (documented in the file header + Makefile comment).
+- **Consequences:** Fresh clones can run the full config gate without re-materialization; the suite ships with the repo and its drift is caught by the assertions themselves. Supersedes design.md DD2's "gitignored, recreate per session" decision.
+- **Alternatives Considered:** Keep gitignored + add a Makefile existence check (rejected: silently skips the suite on fresh clone, weakening the gate); keep the suite in /tmp (rejected - the DIA-132 problem this suite was created to fix).
+
 ## Traceability Table
 
-| ADR | Topic                  | Origin Ticket    | Implementation Evidence                        |
-| --- | ---------------------- | ---------------- | ---------------------------------------------- |
-| 1   | Worktrees-Only Model   | DIA-073, DIA-100 | `scripts/worktrees.sh`                         |
-| 2   | Branch Naming          | DIA-074, DIA-100 | `validate_branch` in `scripts/worktrees.sh`    |
-| 3   | Squash-Merge Strategy  | DIA-100          | `docs/dev-infra-audit/worktree-conventions.md` |
-| 4   | Session Isolation      | DIA-100          | `cmd_create` isolation check in `worktrees.sh` |
-| 5   | DIA-096 Boundary       | DIA-096, DIA-100 | `cmd_remove` force guard in `worktrees.sh`     |
-| 6   | Conflict Escalation    | DIA-100          | `worktree-conventions.md`                      |
-| 7   | Worktree Location      | DIA-100          | `WORKTREES_DIR` default in `worktrees.sh`      |
-| 8   | Bash-3 / Remote Bounds | DIA-100          | `timeout 5 git ls-remote` in `worktrees.sh`    |
-| 9   | Worktree Husky Shim    | DIA-134          | `cmd_create` husky shim copy in `worktrees.sh` |
+| ADR | Topic                     | Origin Ticket        | Implementation Evidence                                                   |
+| --- | ------------------------- | -------------------- | ------------------------------------------------------------------------- |
+| 1   | Worktrees-Only Model      | DIA-073, DIA-100     | `scripts/worktrees.sh`                                                    |
+| 2   | Branch Naming             | DIA-074, DIA-100     | `validate_branch` in `scripts/worktrees.sh`                               |
+| 3   | Squash-Merge Strategy     | DIA-100              | `docs/dev-infra-audit/worktree-conventions.md`                            |
+| 4   | Session Isolation         | DIA-100              | `cmd_create` isolation check in `worktrees.sh`                            |
+| 5   | DIA-096 Boundary          | DIA-096, DIA-100     | `cmd_remove` force guard in `worktrees.sh`                                |
+| 6   | Conflict Escalation       | DIA-100              | `worktree-conventions.md`                                                 |
+| 7   | Worktree Location         | DIA-100              | `WORKTREES_DIR` default in `worktrees.sh`                                 |
+| 8   | Bash-3 / Remote Bounds    | DIA-100              | `timeout 5 git ls-remote` in `worktrees.sh`                               |
+| 9   | Worktree Husky Shim       | DIA-134              | `cmd_create` husky shim copy in `worktrees.sh`                            |
+| 10  | Batch-D Suite Persistence | DIA-134 DD2, DIA-136 | `scripts/__tests__/batch-d-infra.test.mjs` (tracked) + `make test-config` |
 
 ## Module Boundaries
 

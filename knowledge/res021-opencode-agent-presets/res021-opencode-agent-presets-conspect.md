@@ -1,7 +1,7 @@
 Res014: OpenCode Agent Presets (Models / Temperature / Reasoning Effort) for the OpenCode Go + Copilot Workflow
 
 Date: 2026-08-12
-Scope: synthesis of 19 archived sources in knowledge/res014-opencode-agent-presets/sources/ plus the res013 local archive referenced as supplementary. Sections: (1) DeepSeek V4 Flash specs/modes/effort mapping, (2) GPT 5.6 Luna specs/role split/benchmarks, (3) OpenCode Go promo (2x usage tags, request budgets), (4) GitHub Copilot billing/BYOK/ACP and Copilot-only models, (5) temperature best practices per role, (6) reasoning-effort best practices, (7) recommended preset delta table (RECOMMENDATION NOT APPLIED), (8) gap vs res013. All numeric claims cite the archived local files.
+Scope: synthesis of 19 archived sources in knowledge/res021-opencode-agent-presets/sources/ plus the res013 local archive referenced as supplementary. Sections: (1) DeepSeek V4 Flash specs/modes/effort mapping, (2) GPT 5.6 Luna specs/role split/benchmarks, (3) OpenCode Go promo (2x usage tags, request budgets), (4) GitHub Copilot billing/BYOK/ACP and Copilot-only models, (5) temperature best practices per role, (6) reasoning-effort best practices, (7) recommended preset delta table (RECOMMENDATION NOT APPLIED), (8) gap vs res013. All numeric claims cite the archived local files.
 
 <!-- CONSPECTER-OUTPUT-CONTRACT
 schema-version: 1.0
@@ -196,7 +196,7 @@ Confidence: High for the current-state transcription (read directly from the con
 
 res013 (opencode-model-pricing-audit, 2026-08-12) covers pricing and usage limits only: OpenCode Go subscription economics, per-1M pricing tables, Copilot credit economics, and SWE-bench Verified scores. It does NOT cover: (a) model temperature guidance, (b) reasoning-effort semantics and per-model effort mapping, (c) model role-split recommendations for agent presets, or (d) preset configuration deltas. res014 fills that gap: it adds the DeepSeek V4 Flash and GPT 5.6 Luna capability/mode detail behind the models res013 priced, the temperature and reasoning-effort guidance per agent role, the 2x-usage promo tracking, and the (declined) preset delta recommendation. res014 relies on res013's local archive for Copilot credit mechanics (1 credit = $0.01, Pro 1,500 credits/mo) and inherits the res013 DIA-108 availability-validation rule.
 
-MLA citations (archived local files, knowledge/res014-opencode-agent-presets/sources/):
+MLA citations (archived local files, knowledge/res021-opencode-agent-presets/sources/):
 - DeepSeek-AI. "DeepSeek-V4-Flash-0731." Hugging Face model card, 2026. deepseek-v4-flash-0731.md.
 - DeepSeek-AI. "DeepSeek-V4: Towards Highly Efficient Million-Token Context Intelligence." arXiv:2606.19348v1 [cs.CL], 26 Apr. 2026. arxiv-2606-19348.md.
 - DeepSeek. "Thinking Mode." DeepSeek API Docs, 2026. deepseek-thinking-mode.md.
@@ -225,4 +225,4 @@ Unarchived sources:
 None. All 19 requested sources were archived successfully in Phase A (see phase_a_report.txt). No source is marked [source not archived - excluded per DIA-072 policy]. Two claims from the task brief were corrected against the archives rather than excluded: (a) Grok 4.5 IS on the Go roster (Section 4 correction note), and (b) the OpenAI "role split" recommendation is presented as synthesised guidance with grounding citations, not as a verbatim archived quote.
 
 ---
-Document prepared by conspecter lane on 2026-08-12; amended 2026-08-12 (ai-specialist audit correction: DeepSeek thinking mode is default-on at effort high, so temperature is inert on all DeepSeek V4 Flash lanes; see CORRECTION note). All citations point to locally archived artifacts under knowledge/res014-opencode-agent-presets/sources/ (plus two res013 files referenced as supplementary).
+Document prepared by conspecter lane on 2026-08-12; amended 2026-08-12 (ai-specialist audit correction: DeepSeek thinking mode is default-on at effort high, so temperature is inert on all DeepSeek V4 Flash lanes; see CORRECTION note). All citations point to locally archived artifacts under knowledge/res021-opencode-agent-presets/sources/ (plus two res013 files referenced as supplementary).

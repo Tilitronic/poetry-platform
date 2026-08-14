@@ -741,7 +741,7 @@ knowledge/<type><id>-<topic> ID before dispatch (2026-08-13, DIA-132)
 
 ## DeepSeek V4 thinking-mode / temperature inertness (2026-08-12, res014 correction by @ai-specialist)
 
-External-knowledge grounding fact caught by @ai-specialist against live DeepSeek API docs; NOT recoverable from git/diff/tests. Supersedes/extends the factual claims in knowledge/res014-opencode-agent-presets/ and the earlier model-window/telemetry-pricing entries in this file.
+External-knowledge grounding fact caught by @ai-specialist against live DeepSeek API docs; NOT recoverable from git/diff/tests. Supersedes/extends the factual claims in knowledge/res021-opencode-agent-presets/ and the earlier model-window/telemetry-pricing entries in this file.
 
 1. DeepSeek V4 thinking mode is ENABLED BY DEFAULT at effort "high". "variant: medium/low" in OpenCode config is an effort level, NOT a thinking-mode toggle. To actually disable thinking you must set thinking.type: disabled (or reasoning effort none in Anthropic format). No lane in this repo's config does that.
 2. CONSEQUENCE: temperature/top_p/presence_penalty/frequency_penalty are INERT (no effect) while thinking mode is on. Therefore temperature values on ALL DeepSeek V4 Flash lanes (coder 0.1, researcher 0.7, memory-manager 0.1, code-navigator, resource-manager, conspecter) are cosmetic - they never took effect. Changing them is a no-op unless thinking is explicitly disabled first.
@@ -836,3 +836,63 @@ External-knowledge grounding fact caught by @ai-specialist against live DeepSeek
   original design text lives in the orchestrator session, not in the repo.
   Consider persisting architector designs (e.g., to the DIA ticket) so reviewers
   can verify verbatim sources.
+
+## DIA-134 batch D infra hardening (one-shot run, 2026-08-14)
+
+- **LESSON-1-UPDATE: worktree husky-shim gap now FIXED.** DIA-132 LESSON-1 is closed
+  by DIA-134 S1: worktrees.sh create now copies `.husky/_` from the main tree (fail-loud
+  when absent), so NEW worktrees get pre-commit enforcement. Worktrees created BEFORE
+  the fix still lack the shim - recreate them or copy `.husky/_` manually.
+- **LESSON: gitignored persistent suite pattern (DD2).** The behavioral suite
+  (scripts/__tests__/batch-d-infra.test.mjs) is NOT carried by git/squash-merge because
+  it is gitignored. After a fresh clone or a main-tree reset it must be re-materialized
+  by copying it from the slice worktree (documented in the Makefile comment + DIA-134
+  ticket Fix section). Absence fails `make test-config` loudly - by design, so a lost
+  suite cannot pass silently.
+  - NOTE 2026-08-14 (DIA-136 F2): SUPERSEDED. The DD2 gitignore rationale did not
+    hold - the suite asserts committed files only (no session-local content), so a
+    fresh clone hard-failed `make test-config`. The suite is now TRACKED (un-gitignored,
+    committed with DIA-136); regenerate it when the plugin/config invariants evolve.
+- **LESSON: one-shot batch D run (2026-08-14).** 4 parallel coders (RED) -> the SAME
+  4 sessions reused for GREEN -> the same sessions for the fix loop. Session reuse
+  across phases avoided context reshuffling. Merge-gate evidence (docker compose ps)
+  was recorded BEFORE merge dispatch per item 6 (R3).
+  - NOTE 2026-08-14: the "same sessions reused for GREEN" practice above is now
+    SUPERSEDED by the DIA-135 strict instance-separation policy for RED/GREEN (test
+    author never implements the slice it tested; role set by dispatch payload) - see
+    the DIA-135 coder prompt hygiene section below. The reuse wording above reflects
+    OLD practice.
+- **LESSON: ADR ownership gap.** The spec ownership table missed
+  .sdd/dev-infra/architecture.md (the DD1 ADR had no owner); caught by the S2 reviewer
+  as a Major missing-structural-checks finding and resolved by extending S2 ownership.
+  Lesson: every spec must assign a file owner for EVERY artifact it mandates (including
+  ADR recordings), not just code slices.
+
+## DIA-135 coder prompt hygiene (2026-08-14)
+
+Merged 9922f9a (feat) + 6e62af1 (close-out), ticket DONE. Direct opencode-config
+change (ticket-ledger, NO OpenSpec change). Policies codified here are not fully
+recoverable from the small config diff alone - they are operating rules for future
+orchestrator dispatches.
+
+- **POLICY CHANGE: strict instance separation for RED/GREEN (Q1).** RED test-writing
+  and GREEN implementation for the same slice MUST be dispatched to DIFFERENT coder
+  instances; the test-author NEVER implements the slice it tested. The role (test
+  author vs implementer) is set by the DISPATCH PAYLOAD, not inferred. This SUPERSEDES
+  the DIA-134 practice note "same sessions reused for GREEN" (see the supersession
+  note in the DIA-134 section above). Future runs MUST follow the new separation.
+- **Same-session fixes rule (Q2).** Fix loops MUST resume the code-writing coder
+  session by its task_id/session_id (exact-instance resume per the exact-instance
+  lesson above) - NEVER a fresh instance. Same-session reuse is now reserved for the
+  FIX loop only (implementer context is needed there); it is NOT used to skip
+  RED/GREEN instance separation.
+- **Scratch dir pattern (Q3).** Coders create scratch/temp artifacts under .scratch/
+  (workspace-internal, gitignored via .gitignore addition in 9922f9a) - NEVER /tmp.
+  Reason: /tmp is an external dir in opencode.jsonc so writes there trigger a
+  permission prompt; /tmp is NOT pre-approved. .scratch/ avoids the prompt and keeps
+  temp artifacts inside the workspace.
+- **Husky-shim live proof.** Fresh worktrees created from the DIA-134 S1 fix carry
+  .husky/_ as a real dir; the pre-commit hook RAN on DIA-135 worktree commits
+  (00aae0e, b00101f). DIA-094 pre-commit enforcement now holds for worktrees created
+  after the S1 merge. This is the first live confirmation that the DIA-134 S1 shim
+  fix works end-to-end (not just the bats test).

@@ -132,6 +132,15 @@ fails `make test-config` loudly. The file is gitignored but must be
 created locally before running test-config. Documented in the test
 file's header comment.
 
+> **Amendment (DIA-136 F2, 2026-08-14):** DD2's gitignore decision is
+> SUPERSEDED. The suite was un-gitignored and committed: its assertions
+> target committed files only (no session-local content), so a fresh
+> clone failed `make test-config` by design once the file was absent —
+> a Major review finding. The suite is now tracked, wired into
+> `make test-config`, and regenerated when the plugin/config invariants
+> it asserts evolve. Recorded as ADR 10 in
+> `.sdd/dev-infra/architecture.md`.
+
 ### DD3: DIA-063 ticket gate stays intact (decision)
 
 **Decision:** S4 codifies that every dispatch AND resume prompt MUST
