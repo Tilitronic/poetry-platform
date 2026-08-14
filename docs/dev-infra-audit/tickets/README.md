@@ -114,7 +114,7 @@
 | DIA-136 | Deep review: 2-day commit window (DIA-124..135) consistency vs pre-existing docs/config/docker | dev-infra | Major | DONE | [DIA-136-deep-review-2day-window-consistency.md](DIA-136-deep-review-2day-window-consistency.md) |
 | DIA-137 | Worktree branch cleanup subcommand with merge verification (DIA-100 cleanup policy gap) | dev-infra | Low | OPEN | [DIA-137-worktree-branch-cleanup.md](DIA-137-worktree-branch-cleanup.md) |
 | DIA-138 | Memory shelf hygiene audit: duplicate/stale/irrelevant lessons, conspects, analyses | docs | Medium | DONE | [DIA-138-memory-shelf-hygiene-audit.md](DIA-138-memory-shelf-hygiene-audit.md) |
-| DIA-139 | Full test-suite audit: execution order, fast-to-fail, duplicates, stale tests, verification honesty, DRY helpers (started 2026-08-14, was scheduled 2027) | tests-infra | Medium | OPEN | [DIA-139-full-test-suite-audit.md](DIA-139-full-test-suite-audit.md) |
+| DIA-139 | Full test-suite audit: execution order, fast-to-fail, duplicates, stale tests, verification honesty, DRY helpers (implemented F1-F7, merged 2026-08-14) | tests-infra | Medium | DONE | [DIA-139-full-test-suite-audit.md](DIA-139-full-test-suite-audit.md) |
 
 
 ## Status summary
@@ -131,8 +131,8 @@
 
 | Status      | Count |
 | ----------- | ----- |
-| OPEN      | 14     |
-| DONE      | 7      |
+| OPEN      | 13     |
+| DONE      | 8      |
 | VALIDATE  | 0      |
 | E2E       | 0      |
 | DEFERRED  | 1      |

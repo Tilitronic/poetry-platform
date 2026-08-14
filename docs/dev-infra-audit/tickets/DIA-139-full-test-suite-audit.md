@@ -6,7 +6,7 @@ id: DIA-139
 title: "Full test-suite audit: execution order, fast-to-fail, duplicates, stale tests, verification honesty, DRY helpers"
 area: tests-infra
 severity: Medium
-status: OPEN
+status: DONE
 blocked_by: [] # DIA-NNN refs, or empty
 discovered: 2026-08-14
 source: baseline

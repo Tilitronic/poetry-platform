@@ -234,3 +234,26 @@ Failed-loop lessons & preventive actions
   - Secondary finding: the unshare 127 warning in the original push failure was a transient race (storm-kill `rm -rf /tmp/bats-run-*` deleted an active suite's ns.sh between creation and exec), NOT a code/image gap.
   - Cross-reference: adr.md gate-script re-entrancy-guard ADR, DIA-147 ticket. Not reconstructible from commit diffs alone (the inheritance is a runtime hook-context property).
 
+- Failure pattern (DIA-137, 2026-08-14): GREEN coder session LOST mid-dispatch on user opencode crash
+  - Symptom: the GREEN implementation coder session was terminated mid-dispatch
+    when the user's opencode crashed; on resume the on-disk state of the slice was
+    unknown (partial-write ambiguity).
+  - Root cause: a mid-dispatch crash leaves the writer's on-disk state
+    indeterminate; a naive re-dispatch of a fresh writer lane over the same files
+    risks double-applying or clobbering work that may already be fully written
+    (uncommitted).
+  - Recovery (correct): ran a read-only code-navigator recon FIRST to determine
+    whether the interrupted task had actually written the implementation - it had,
+    fully, uncommitted - then a VERIFICATION lane (not a re-implementation)
+    confirming the on-disk code against the spec before dispatching review.
+  - Preventive action: after ANY crashed/terminated writer dispatch (not just an
+    empty result), recon first to establish what was actually written before
+    re-dispatching any lane; never blindly re-run a writer lane on the same files.
+    This generalizes the escalated-lane empty-result rule (state-inspection
+    before re-dispatch) to the crash-trigger case.
+  - Why irrecoverable: the interrupted-session recovery ordering is runtime/session
+    behavior; the final commits (178b580, f9ab26c) show the outcome, not the
+    recon-before-re-dispatch decision path.
+  - Cross-reference: failures.md escalated-lane (kimi-k3 ONE-SHOT) silent failure
+    (same state-inspection-before-re-dispatch rule); lessons.md DIA-137 section.
+

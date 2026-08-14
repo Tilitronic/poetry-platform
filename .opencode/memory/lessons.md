@@ -839,3 +839,95 @@ orchestrator dispatches.
   (00aae0e, b00101f). DIA-094 pre-commit enforcement now holds for worktrees created
   after the S1 merge. This is the first live confirmation that the DIA-134 S1 shim
   fix works end-to-end (not just the bats test).
+
+## DIA-136 deep-review of 2-day window (2026-08-14)
+
+- **Phantom cross-reference verification (L1).** Multiple agents (code-navigator,
+  architector, reviewer) independently flagged live workflow files citing
+  "AGENTS.md section 10" while only sections 1-9 exist (the section was renumbered
+  to 2.5 earlier). A dead section anchor propagates verbatim into presets/prompts
+  and survives until independent review catches it. Reusable rule: when a workflow
+  doc cites another section, verify the target section exists (and that the cite
+  survives any renumbering); a stale anchor in a prescriptive file is a silent
+  documentation-contract break, not a typo. Why irrecoverable: the specific refs are
+  in git (91816ee F1), but the "verify cited-section existence" habit for workflow
+  docs is a behavioral rule, not a diff fact.
+
+- **memory-shelf ID uniqueness at append time (L3).** Duplicate knowledge IDs were
+  appended without checking the ID allocator, forcing a renumber pass (res014 ->
+  res021, ana013 -> ana016, ana014 -> ana017; 285376a F4). Reusable rule: when
+  registering a new conspect/analysis in the memory shelf, SCAN existing IDs before
+  assigning, and never let an agent self-allocate an ID that may collide. Enforce
+  uniqueness at append time; renumbering after the fact is expensive and touches
+  cross-references (dir, file, shelf path, docs). Why irrecoverable: the renumber
+  commits are in git, but the "scan-then-allocate" enforcement habit for shelf
+  registration is the behavioral rule.
+
+- **Deferred: consolidate triplicated orchestrator prompt across 3 presets (L5,
+  accepted residual).** F12 was deliberately skipped because preset-inheritance
+  runtime semantics are unverified; consolidating the byte-identical prompt could
+  change runtime behavior for unknown presets. ponytail: deferred, not dead - add
+  when preset-inheritance semantics are verified (e.g. against the installed OMO
+  dist per the dual-runtime lesson) or when a 4th preset forces the issue. Why
+  recorded: the skip reason is an accepted-risk decision, not visible in the diff.
+
+## DIA-137 worktree branch cleanup - post-squash-merge teardown is an OPERATIONAL step (2026-08-14)
+
+The trigger was a developer complaint that leftover worktree branches never
+disappear after squash-merges. The eventual fix (scripts/worktrees.sh `cleanup`,
+commits 178b580 + f9ab26c) is in git, but the root-cause chain is an operational
+lesson, not a diff fact:
+- worktree-conventions.md Cleanup policy always kept the branch after teardown
+  (rollback window); only the worktree DIR was removed.
+- The post-merge "Teardown" dispatch step was NEVER actually executed after the
+  DIA-132/DIA-134 parallel-coder batches - even worktrees were not removed, so
+  branches accumulated silently.
+- A squash-merge does NOT mark the branch as merged (it is not an ancestor of
+  main), so `git branch -d` refuses and only `git branch -D` works - which is
+  lane-denied by DIA-096. Hence the two-pass merge check (is-ancestor fast-reject
+  + tree-subset squash parity).
+
+Actionable rule: the fix is a script PLUS an operational policy change. The
+orchestrator MUST dispatch a teardown lane running `worktrees.sh cleanup`
+immediately after a successful merge (default window 0). The script, not the
+permission config, is the DIA-096 policy boundary (lanes still cannot run
+`git branch -D`). The code/spec show the mechanism; they do not record that the
+  prior teardown step had been silently skipped, which is the behavior that must
+  not regress. Cross-reference: adr.md git-worktrees ADR, failures.md DIA-137
+  crashed-dispatch entry, spec openspec/changes/worktree-branch-cleanup/.
+
+## DIA-139 full test-suite audit - batch D at 5 slices (2026-08-14)
+
+The six F1-F7 fixes merged via 5 serialized squash-merges (SHAs in git, not
+recorded here). Irrecoverable process lessons:
+
+- **LESSON: batch D at 5 parallel slices + strict instance separation (DIA-135)
+  WORKED end-to-end.** This run scaled the batch D model from DIA-134's 4 coders
+  to 5 RED test-author instances + 5 GREEN implementer instances, with same-session
+  fix loops and same-session re-reviews throughout, and recorded ZERO cross-slice
+  file-ownership violations. The process outcome (that the DIA-135 separation and
+  the WORKTREE disjoint-file-set model hold up at 5 concurrent lanes) is a human
+  process observation not recoverable from the merged diffs. This validates the
+  model for future batch-D runs up to at least 5 slices.
+- **LESSON: shared tracked test seam across slices MUST be declared + merge order
+  planned.** Slices B and C BOTH extended scripts/__tests__/batch-d-infra.test.mjs
+  in their own worktrees (both added assertions against their slice's infra
+  change), producing a predictable squash-merge conflict on the SAME tracked test
+  file. It was resolved manually keeping both describe blocks, but the pre-merge
+  plan did not anticipate it. Rule: when a spec's slice-ownership table does NOT
+  name a shared tracked test file (because each slice appends to it), the slice
+  seams are NOT actually disjoint and the spec MUST either assign that file to one
+  slice or declare the anticipated conflict + a merge ORDER (merge B before C) up
+  front. Cross-reference: adr.md DIA-139 test-seam-declaration ADR.
+- **LESSON: shell files invoked by lint-staged MUST be committed executable
+  (100755).** Slice D's bats-wrapper.sh was committed as 100644 but lint-staged's
+  `*.sh` entry execs it, so the first pre-commit after merge hit EACCES until the
+  file was re-committed 100755 in the merge commit. Same class of bug as DIA-118
+  (worktrees.sh). Rule: any .sh a hook/lint-staged step EXECUTES (not just sources)
+  must be tracked 100755; a 100644 tracked-but-invoked script fails at runtime, not
+  at git add. The mode-change line is in git; the lint-staged-executes-it rule is
+  the behavioral insight.
+- The --quick mode measured 4.97-5.2s (accepted <5s) against an aspirational
+  sub-3s; the floor is validate-skills.bats' 23 python3-spawning tests. The
+  measurement and the quick-tier suite selection lever are documented in the
+  merge report + spec (recoverable), so NOT stored here as a durable lesson.

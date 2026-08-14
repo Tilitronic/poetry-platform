@@ -721,3 +721,58 @@ operate on text files that git merges cleanly.
 - Created: 2026-08-13
 - Related: DIA-125, knowledge/res018-ticket-management-automation/,
   docs/dev-infra-audit/tickets/COORDINATION.md
+
+## ADR: Batch-D shared tracked test seams must be declared in the spec slice-ownership table (DIA-139)
+
+### Status
+
+Accepted - 2026-08-14
+
+### Context
+
+The DIA-139 test-suite-audit-fixes OpenSpec change defined 5 disjoint slices
+(A/B/C/D/F) with per-slice file-ownership lists under the batch D parallel-worktree
+model (DIA-132 pattern D + DIA-135 strict instance separation). The ownership table
+assigned each slice a disjoint FILE set, but two slices (B and C) BOTH extended the
+same tracked test file `scripts/__tests__/batch-d-infra.test.mjs` in their own
+worktrees, each appending assertions against its own infra change. The squash-merges
+for B and C therefore collided on that single tracked file and had to be resolved
+manually, keeping both describe blocks. The collision was recoverable (it is in the
+merge history) but the PROCESS gap was not: the spec's "disjoint file sets" guarantee
+silently excluded the shared test seam.
+
+### Decision
+
+1. A batch-D slice-ownership table is NOT disjoint merely because each slice names a
+   distinct set of source files. Any tracked file a slice will MODIFY (including a
+   test file it appends to) must be listed in that slice's owned-files set.
+2. When two or more slices must extend the SAME tracked test seam (or any shared
+   file), the spec MUST either (a) assign that seam to a single owning slice whose
+   tests assert all sibling slices' behavior, or (b) declare the anticipated
+   squash-merge conflict up front AND plan the serialized merge ORDER (e.g. merge B
+   before C) so the conflict is expected and deterministic rather than discovered at
+   merge time.
+
+### Rationale (irrecoverable context)
+
+- The batch D model's correctness rests on "disjoint file sets, zero cross-slice
+  collisions" (DIA-132 LESSON-4). That guarantee held only for SOURCE files; the
+  test seam was an unplanned shared write. The divergence between the ownership
+  table's stated disjointness and the actual shared test file is not recoverable
+  from the merged diffs (which show only the resolved, both-blocks result).
+- Appending to a shared test file is a common, low-cost pattern for slice authors;
+  without this rule it recurs on the next multi-slice infra change.
+
+### Consequences
+
+- Future batch-D spec authoring must audit the OWNED-FILES list (not just the source
+  deltas) for shared tracked test files and apply either single-owner or declared-
+  conflict-plus-merge-order before dispatching parallel coders.
+- Merge-order planning becomes an explicit field in the spec's parallel-implementation
+  model when any shared seam is present.
+
+### Metadata
+
+- Created: 2026-08-14
+- Related: DIA-139, openspec/changes/test-suite-audit-fixes/, lessons.md DIA-139 section
+
