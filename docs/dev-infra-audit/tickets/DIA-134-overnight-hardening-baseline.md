@@ -1,5 +1,18 @@
 # DIA-134 - overnight destructive-command baseline + overnight.sh payload shape validation (DIA-126a ai-auditor suggestions S1/S2)
 
+<!-- UPDATE 2026-08-14 (CLOSED - S1+S2 implemented by cod-9, verified by
+     ai-auditor, developer disposition ACCEPT + close; live restart-verify
+     DEFERRED to next session per the DIA-123 second-boot pattern):
+     CLOSURE SUMMARY: Baseline A (data+git) was developer-approved via EBDV
+     (2026-08-14). S1+S2 implemented by cod-9 in commit 393f3e7: baseline v1
+     comment block in opencode-overnight.jsonc lines 5-32 + permission.bash
+     11 deny rules + OVERNIGHT_DENY_BASELINE array in overnight.sh + 3 new
+     bats tests (overnight.bats 8 -> 11). ai-auditor verdict
+     CONFORMANT-WITH-NOTES (ai--4, 9 findings all PASS, no fix-first).
+     Developer disposition 2026-08-14: ACCEPT + close. Ticket status
+     OPEN -> CLOSED, README index row + rollup counts, CHANGELOG entry added
+     by the closure lane. -->
+
 <!-- UPDATE 2026-08-14 (IMPLEMENTED - S1+S2; restart-verify PENDING; status
      stays OPEN - closure is a separate lane: ai-auditor Phase 6 review +
      developer disposition):
@@ -59,7 +72,7 @@ id: DIA-134
 title: "overnight destructive-command baseline + overnight.sh payload shape validation (DIA-126a ai-auditor suggestions S1/S2)"
 area: opencode-config
 severity: Low
-status: OPEN
+status: CLOSED
 blocked_by: [] # no blockers; follows DIA-126 (OPEN)
 discovered: 2026-08-13
 source: ai-auditor-review
@@ -230,4 +243,23 @@ payload assertion was updated to the 11-rule map.
 
 ## Re-verify
 
-> To be filled at re-verify time.
+**LIVE RESTART-VERIFY DEFERRED (2026-08-14, developer disposition: ACCEPT +
+close; the launcher's OPENCODE_PERMISSION is only observable on a fresh
+opencode launch, so this requires a subsequent session - DIA-123
+config-touch second-boot pattern).**
+
+Deferred verification_request item for the NEXT opencode launch:
+
+(a) Launch opencode via `scripts/overnight.sh --auto` (or the launcher's
+`OPENCODE_PERMISSION` export path) and confirm ALL 11 baseline v1 rules
+resolve to DENY at runtime - `opencode debug config` (the merged permission
+view) shows the `permission.bash` rules as deny with deny-first ordering,
+no rule softened to ask/allow.
+
+(b) Confirm the fail-closed paths remain live: a drifted payload (a `{}`
+permission block or a softened `"ask"` rule) exits 1 with the rule-specific
+error ('payload missing deny rule "<rule>"' / 'payload deny rule "<rule>" is
+"<value>" (not "deny")') and never launches opencode.
+
+(c) Confirm the interactive profile `.opencode/opencode.jsonc` is unaffected
+(overnight-only hardening - interactive rules keep ask).
