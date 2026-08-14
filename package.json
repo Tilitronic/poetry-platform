@@ -24,6 +24,7 @@
     "@quasar/app-vite": "^2.5.1",
     "@vue/eslint-config-prettier": "^10.2.0",
     "@vue/eslint-config-typescript": "^14.7.0",
+    "esbuild": "^0.28.1",
     "eslint": "^9.39.4",
     "eslint-plugin-vue": "^10.8.0",
     "globals": "^17.4.0",
