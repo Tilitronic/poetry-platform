@@ -463,48 +463,76 @@ function extractPatchPaths(patchText: string): string[] {
   return paths
 }
 
-// DIA-144: approved conflict-free parallel task() batch patterns (mirror of
-// the BATCH-DISPATCH rule in oh-my-opencode-slim.jsonc). READ_ONLY_LANES
-// never write project files; WRITER_LANES write memory-shelf.yaml / knowledge
-// artifacts — at most ONE writer may appear in a batch (rule B).
+// DIA-144/DIA-132: approved conflict-free parallel task() batch patterns
+// (mirror of the BATCH-DISPATCH rule in oh-my-opencode-slim.jsonc).
+// READ_ONLY_LANES never write project files (architector added in DIA-132
+// F5 - it is read-only by config, edit/bash/task deny); WRITER_LANES write
+// memory-shelf.yaml / knowledge artifacts - at most ONE writer may appear in
+// a batch (rule B). Parallel coders (batch D, DIA-132) are NOT listed here:
+// they are gated separately by distinct WORKTREE assertions (predicate D).
 const READ_ONLY_LANES = new Set([
   "researcher",
   "ai-specialist",
   "ai-auditor",
   "code-navigator",
   "observer",
+  "architector",
 ])
 const WRITER_LANES = new Set(["analyzer", "conspecter", "memory-manager"])
 
 /**
- * DIA-144: classify a parallel task() batch (the subagent_types of the task()
- * calls in one assistant turn) as SAFE or UNSAFE. Approved batches:
- *   (A) read-only fan-out — every agent in READ_ONLY_LANES;
- *   (B) single-writer + readers — at most one WRITER_LANES agent present and
+ * DIA-144/DIA-132: classify a parallel task() batch (the task() calls in one
+ * assistant turn, each carrying its agent and optional WORKTREE assertion) as
+ * SAFE or UNSAFE. Approved batches:
+ *   (A) read-only fan-out - every task.agent in READ_ONLY_LANES (incl.
+ *       architector after DIA-132 F5);
+ *   (B) single-writer + readers - at most one WRITER_LANES agent present and
  *       all other agents read-only;
- *   (C) post-fix review — exactly the pair reviewer + ai-auditor.
- * Everything else (two coders, writer pairs, coder+reviewer, unknown lanes)
- * is UNSAFE — when in doubt, warn.
+ *   (C) post-fix review - exactly the pair reviewer + ai-auditor;
+ *   (D) parallel coders (DIA-132 batch D) - more than one coder, every
+ *       non-coder lane read-only, and each coder carrying a DISTINCT non-empty
+ *       worktree assertion (Set size == coder count). Missing or duplicate
+ *       worktrees fail loud.
+ * Everything else (writer pairs, coder+reviewer, unknown lanes) is UNSAFE -
+ * when in doubt, warn.
  */
-function isSafeTaskBatch(agents: string[]): boolean {
-  if (agents.length === 0) return false
+function isSafeTaskBatch(
+  tasks: Array<{ agent: string; worktree?: string }>
+): boolean {
+  if (tasks.length === 0) return false
   // (A) read-only fan-out.
-  if (agents.every((a) => READ_ONLY_LANES.has(a))) return true
+  if (tasks.every((t) => READ_ONLY_LANES.has(t.agent))) return true
   // (B) single-writer + read-only readers.
-  const writers = agents.filter((a) => WRITER_LANES.has(a))
+  const writers = tasks.filter((t) => WRITER_LANES.has(t.agent))
   if (
     writers.length <= 1 &&
-    agents.every((a) => READ_ONLY_LANES.has(a) || WRITER_LANES.has(a))
+    tasks.every((t) => READ_ONLY_LANES.has(t.agent) || WRITER_LANES.has(t.agent))
   ) {
     return true
   }
   // (C) post-fix review pair.
   if (
-    agents.length === 2 &&
-    agents.includes("reviewer") &&
-    agents.includes("ai-auditor")
+    tasks.length === 2 &&
+    tasks.some((t) => t.agent === "reviewer") &&
+    tasks.some((t) => t.agent === "ai-auditor")
   ) {
     return true
+  }
+  // (D) parallel coders with distinct worktree assertions (DIA-132 batch D).
+  const coders = tasks.filter((t) => t.agent === "coder")
+  if (coders.length > 1) {
+    const nonCoders = tasks.filter((t) => t.agent !== "coder")
+    const worktreeSet = new Set(coders.map((t) => t.worktree))
+    if (
+      nonCoders.every((t) => READ_ONLY_LANES.has(t.agent)) &&
+      coders.every(
+        (t) => typeof t.worktree === "string" && t.worktree.length > 0
+      ) &&
+      worktreeSet.size === coders.length
+    ) {
+      return true
+    }
+    return false
   }
   return false
 }
@@ -732,10 +760,13 @@ const delegationObserver: Plugin = async (ctx) => {
   // `before` hooks before any `after` hook, so task()+other tools in one
   // message is still detected. Each entry also carries the task()
   // subagent_type (DIA-144) so the A1 batch check can classify the parallel
-  // task() lanes against the approved BATCH-DISPATCH patterns.
+  // task() lanes against the approved BATCH-DISPATCH patterns, plus the
+  // worktree assertion extracted from the task payload (DIA-132 batch D -
+  // /WORKTREE:\s*(\S+)/i against description+prompt; only task() calls carry
+  // a meaningful value).
   const turnToolCalls = new Map<
     string,
-    Array<{ tool: string; subagent_type?: string }>
+    Array<{ tool: string; subagent_type?: string; worktree?: string }>
   >()
 
   // sessionID -> lifecycle metadata captured at session.created. Used to
@@ -1497,20 +1528,44 @@ const delegationObserver: Plugin = async (ctx) => {
         input.tool === "task"
           ? ((output as unknown as { args?: unknown }).args ?? {})
           : {}
+      const taskArgRecord = taskArgs as Record<string, unknown>
       const taskSubagent =
-        typeof (taskArgs as Record<string, unknown>).subagent_type === "string"
-          ? ((taskArgs as Record<string, unknown>).subagent_type as string)
+        typeof taskArgRecord.subagent_type === "string"
+          ? taskArgRecord.subagent_type
           : undefined
-      calls.push({ tool: input.tool, subagent_type: taskSubagent })
+      // DIA-132 batch D: extract the WORKTREE assertion from the task payload
+      // (description + prompt). Exactly ONE marker is the contract; zero or
+      // multiple markers yield undefined (malformed -> batch D fails loud for
+      // that coder, design D2). Only task() calls carry a meaningful value.
+      let worktree: string | undefined
+      if (input.tool === "task") {
+        const description =
+          typeof taskArgRecord.description === "string"
+            ? taskArgRecord.description
+            : ""
+        const prompt =
+          typeof taskArgRecord.prompt === "string" ? taskArgRecord.prompt : ""
+        const markers = [
+          ...`${description}\n${prompt}`.matchAll(/WORKTREE:\s*(\S+)/gi),
+        ]
+        worktree = markers.length === 1 ? markers[0][1] : undefined
+      }
+      calls.push({ tool: input.tool, subagent_type: taskSubagent, worktree })
       turnToolCalls.set(input.sessionID, calls)
-      if (input.tool === "task" && calls.length > 1) {
-        // DIA-144: warn only when the parallel task() batch is UNSAFE.
-        // Approved conflict-free batches (BATCH-DISPATCH rule A/B/C) pass
+      // DIA-132 F4 singleton exemption: the A1 check fires only when the turn
+      // holds MORE than one task() call. A single task() alongside semantic
+      // tools (log_decision, etc.) is a lone delegation, not a parallel batch -
+      // classifying it produced false positives (F4).
+      const taskCalls = calls.filter((c) => c.tool === "task")
+      if (input.tool === "task" && taskCalls.length > 1) {
+        // DIA-144/DIA-132: warn only when the parallel task() batch is UNSAFE.
+        // Approved conflict-free batches (BATCH-DISPATCH rule A/B/C/D) pass
         // silently; unrecognized/unknown lanes keep the default warn.
-        const taskAgents = calls
-          .filter((c) => c.tool === "task")
-          .map((c) => c.subagent_type ?? "")
-        if (!isSafeTaskBatch(taskAgents)) {
+        const taskPayloads = taskCalls.map((c) => ({
+          agent: c.subagent_type ?? "",
+          worktree: c.worktree,
+        }))
+        if (!isSafeTaskBatch(taskPayloads)) {
           ctx.client.app.log({
             body: {
               service: "delegation-observer",
