@@ -1,5 +1,7 @@
 # DIA-123 - deterministic opencode restart detection for the orchestrator
 
+<!-- UPDATE 2026-08-14 (CLOSED - LIVE RESTART-VERIFY PASS + ai-auditor CONFORMANT-WITH-NOTES): closure lane verified the session_boot event + boot.json marker live in this fresh opencode launch. Latest registry row seq 3531 (boot_id f89ad5ae-fc37-4d44-92ed-c1c3d47d6ab3, process_started_at 2026-08-14T08:15:08.799Z, timestamp 2026-08-14T08:15:08.814Z) with config_load_signal opencode_jsonc 07:53:33.066Z / omo_jsonc 07:11:52.445Z; boot.json boot_id/process_started_at/seq/config_load_signal all MATCH the registry row. Determinism PASS: process_started_at >= both recorded config mtimes (21m35s / 1h03m16s after) and current on-disk mtimes equal the recorded signals (no post-boot config write). First-launch evidence captured (Fix steps 1-3); the config-touch + restart second-boot proof (steps 4-5) deferred to the NEXT session's verification_request item - the touch+restart must occur in a later launch to prove a second boot. ai-auditor Phase 6 verdict CONFORMANT-WITH-NOTES (no blocking defects; the single Major note - missing live restart-verify evidence - now satisfied). Developer disposition 2026-08-14: ACCEPT + close with live verify. Status OPEN -> CLOSED. Validation: make test-config exit 0, make test-shell exit 0, scripts/tickets rollup --check exit 0. Commit deferred to end-of-session. -->
+
 <!-- UPDATE 2026-08-13 (IMPLEMENTED - VERIFIED, CLOSURE PENDING NEXT SESSION): implemented by cod-35 (ses_0010adea2ffe6G1Zq92g0jYAIq): (1) `session_boot` registry.jsonl event emitted at plugin body top-level (process load, before any session activity) via appendRow (seq + timestamp + writer conventions preserved) with boot_id (randomUUID), process_started_at (captured BEFORE file I/O), config_load_signal (opencode.jsonc + oh-my-opencode-slim.jsonc mtimes at load), optional opencode_version (env best-effort); (2) dedicated boot marker .opencode/session/boot.json (atomic write tmp->fsync->rename->dir fsync, fail-soft) with version/event/boot_id/seq/process_started_at/timestamp/config_load_signal/writer - NOT a ticker.json field (ticker.json owned by needs-input-observer.ts, out of scope; documented deviation); (3) seq seed changed from lines.filter(Boolean).length to Math.max(maxSeq, lineCount) - strictly monotonic after external row removal (45 out-of-order transitions confirmed in live registry, new seed 3447); (4) determinism: process_started_at is authoritative boot time, verifier compares >= recorded config mtime. Validation: npx tsc exit 0, make test-config exit 0, make test-shell exit 0 (280), prettier --check clean, seq dry-run monotonic. LIVE RESTART-VERIFY PENDING next opencode launch (DIA-123 pattern): launch opencode, grep '"event":"session_boot"' registry.jsonl + cat boot.json, touch config + restart -> new boot row shows newer mtime. Closure (ai-auditor review + ticket status) pending next session per developer instruction (session ended after this ticket's implementation).
 
      Planning ticket filed 2026-08-13 from the DIA-122 restart-verify evidence
@@ -19,13 +21,13 @@ id: DIA-123
 title: "deterministic opencode restart detection for the orchestrator"
 area: opencode-config
 severity: Medium
-status: OPEN
+status: CLOSED
 blocked_by: [] # no blockers
 discovered: 2026-08-13
 source: evidence-lane (DIA-122 restart-verify)
 date: 2026-08-13
 created: 2026-08-13
-updated: 2026-08-13
+updated: 2026-08-14
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -177,4 +179,16 @@ session.**
 
 ## Re-verify
 
-> To be filled at re-verify time.
+**LIVE RESTART-VERIFY 2026-08-14 (closure lane, first-launch evidence; PASS):**
+
+- **Latest `session_boot` registry row (seq 3531):**
+  - `boot_id`: `f89ad5ae-fc37-4d44-92ed-c1c3d47d6ab3`
+  - `process_started_at`: `2026-08-14T08:15:08.799Z`
+  - `timestamp`: `2026-08-14T08:15:08.814Z`
+  - `config_load_signal`: opencode_jsonc_mtime `2026-08-14T07:53:33.066Z`, omo_jsonc_mtime `2026-08-14T07:11:52.445Z`
+- **`boot.json` (dedicated marker):** `boot_id` `f89ad5ae-fc37-4d44-92ed-c1c3d47d6ab3` MATCHES the registry row; `process_started_at` `2026-08-14T08:15:08.799Z` MATCHES; `seq` 3531 MATCHES; `config_load_signal` identical; `writer` "plugin".
+- **Determinism comparison (PASS):** `process_started_at` 2026-08-14T08:15:08.799Z >= recorded `opencode.jsonc` mtime 2026-08-14T07:53:33.066Z (boot 21m35s after the config write) AND >= recorded `oh-my-opencode-slim.jsonc` mtime 2026-08-14T07:11:52.445Z (boot 1h03m16s after). Current on-disk mtimes match the recorded `config_load_signal` exactly (opencode.jsonc 2026-08-14T09:53:33.066+0200 == 07:53:33.066Z; omo 2026-08-14T09:11:52.445+0200 == 07:11:52.445Z) - no config written after boot, the loaded process SAW the current config.
+- **Launch proximity:** `process_started_at` 2026-08-14T08:15:08.799Z is a 2026-08-14 launch, minutes before the closure lane ran (verify time 2026-08-14T08:30Z) - this session IS the fresh opencode launch the Fix section required.
+- **First-launch half of the procedure (ticket Fix steps 1-3) COMPLETE.** The config-touch + restart half (ticket steps 4-5: touch a config file, restart opencode, expect a NEW boot row/marker with the NEWER config mtime) is DEFERRED to the NEXT session's verification_request item per the session handoff - the touch+restart must happen in a LATER launch to prove a SECOND boot. Recorded here as a pending verification_request item, not performed in this closure.
+- **ai-auditor Phase 6 review:** CONFORMANT-WITH-NOTES (no blocking defects; the single Major note was the missing live restart-verify evidence, now satisfied by this block).
+- **Developer disposition 2026-08-14:** ACCEPT + close with live verify. Status flipped OPEN -> CLOSED.
