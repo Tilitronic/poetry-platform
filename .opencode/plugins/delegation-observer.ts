@@ -1650,7 +1650,7 @@ const delegationObserver: Plugin = async (ctx) => {
             if (!gateTokenValid()) {
               const gateError = new Error(
                 "§10 GATE: Editing .opencode/ files requires @ai-specialist gate review.\n" +
-                  "The §10 workflow (AGENTS.md §10, AGENTS.md §2.5) requires:\n" +
+                  "The AI Devtools Modernization Workflow (AGENTS.md section 2.5) requires:\n" +
                   "  1. @ai-specialist gate research → findings\n" +
                   "  2. User reviews & approves\n" +
                   "  3. THEN implementation can proceed\n" +

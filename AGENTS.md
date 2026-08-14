@@ -25,7 +25,7 @@ Architecture → Specification → Implementation:
 
 ### 2.3 Implementation (per feature)
 
-- **Ticket-ID token (DIA-134):** every dispatch AND every resume prompt MUST carry the literal ticket ID (e.g. "DIA-134"); the DIA-063 gate blocks prompts without it.
+- **Ticket-ID token (DIA-134):** every dispatch AND every resume prompt MUST carry the literal ticket ID (e.g. "DIA-134") as best practice across all lanes; the DIA-063 gate enforces it for config-work lanes (any @ai-specialist dispatch and any dispatch whose text signals .opencode/ config work) and blocks prompts without it.
 - **Architector design persistence (DIA-134):** after each @architector design dispatch, persist the design text into the DIA ticket (or a `.sdd` draft) before implementation starts, so reviewers can diff verbatim claims.
 - **Instance separation (DIA-135):** RED test-writing and GREEN implementation for the same slice MUST be dispatched to DIFFERENT coder instances; the test-author never implements the slice it tested.
 
@@ -75,7 +75,7 @@ After the developer disposes review findings (accept/reject per practice-protect
 ### 2.5 OpenCode Configuration Changes
 
 - **Scope**: `.opencode/*` (opencode.jsonc, oh-my-opencode-slim.jsonc, `agents/*.md`, `skills/*/SKILL.md`, `commands/`, dcp.jsonc), AGENTS.md edits, practice-protected.md.
-- **Workflow**: routed through the AI Devtools Modernization Workflow (global AGENTS.md §10):
+- **Workflow**: routed through the AI Devtools Modernization Workflow (AGENTS.md section 2.5):
   1. **Gate** — dispatch `@ai-specialist` (read-only research); the orchestrator registers its findings in `.opencode/learnings/external-patterns/`.
   2. **User reviews & decides** (practice-protected — orchestrator does not silently apply).
   3. **Design** — if non-trivial, `@architector`; every decision traces to a best-practice rule.

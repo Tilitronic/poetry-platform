@@ -180,6 +180,8 @@ done
 if [ ${#SSH_MOUNT[@]} -eq 0 ]; then
     echo "Warning: SSH agent socket not found - git push to SSH remotes will not work from the container; start the host SSH agent (GNOME keyring/ssh-agent) and relaunch" >&2
 fi
+# GIT_SSH_COMMAND is unconditional: /app is --read-only, so known_hosts cannot
+# be written; TOFU accept-new is the container's only option.
 EXTRA_ENV+=("-e" "GIT_SSH_COMMAND=-o StrictHostKeyChecking=accept-new")
 
 # The workspace mount must stay SHARED label (':z'), never private (':Z'): the

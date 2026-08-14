@@ -193,7 +193,11 @@ test-config: test-interview test-skills
 	bash scripts/test-ticket-gate.sh
 	bash scripts/audit-agent-tool-coverage.sh .opencode/opencode.jsonc
 	bash scripts/audit-agent-tool-coverage.sh tools/opencode-docker/config/opencode.json
-	# DIA-134 item 2: persistent behavioral suite (replaces DIA-132 throwaway /tmp tests; file gitignored per design.md DD2).
+	# DIA-134 item 2: persistent behavioral suite (replaces DIA-132 throwaway
+	# /tmp tests). Tracked since DIA-136 F2 - design.md DD2's gitignore rationale
+	# (session-local reconstruction) did not hold: the suite asserts committed
+	# files only, so a fresh clone must be able to run it. Regenerate the suite
+	# when the plugin/config invariants it asserts evolve.
 	node scripts/__tests__/batch-d-infra.test.mjs
 
 # Python dependency vulnerability audit via pip-audit (DIA-028). Exports the

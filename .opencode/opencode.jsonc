@@ -484,14 +484,14 @@
         "task": "deny"
       }
     },
-    // ai-auditor — independent read-only reviewer for §10 config changes
+    // ai-auditor — independent read-only reviewer for section 2.5 config changes
     // (DIA-053). Pure-analyst tier: findings routed via orchestrator for
     // persistence. Orchestrator brief SUPERSEDES design.md §2: bash FULLY
     // denied (no curl/wget — the auditor has no network need). envsitter keys
     // enumerate the envsitter-guard plugin's actual tool names (the brief's
     // envsitter_read/envsitter_edit map to these individual names).
     "ai-auditor": {
-      "description": "Independent read-only reviewer for §10 config changes. Pure-analyst tier — findings routed via orchestrator for persistence.",
+      "description": "Independent read-only reviewer for section 2.5 config changes. Pure-analyst tier — findings routed via orchestrator for persistence.",
       "mode": "subagent",
       "color": "#10B981",
       "permission": {
