@@ -243,14 +243,30 @@ teardown() {
   # positive control: the agent socket IS forwarded (the ONLY SSH-related
   # mount allowed); without it this test would pass vacuously.
   assert_run_contains "-v $SSH_AUTH_SOCK:/tmp/ssh-agent.sock:ro"
-  # negative security assertion: no ~/.ssh bind, no id_* / *.pub key file,
-  # no .git-credentials may appear as a mount SOURCE. GITCONFIG_MOUNT is
-  # absent here because the hermetic HOME has no .gitconfig.
+  # STRUCTURAL security assertion (DIA-133 review fix): a static key-name
+  # blacklist (id_rsa, *.pub, .git-credentials, ...) is evadable - a mount
+  # source like `hidden-keys/` or `*-secret-key` slips through. Instead
+  # assert SET-EQUALITY of mount SOURCES: the wrapper's pre-existing mounts
+  # (opencode-docker home dirs, config, secrets, workspace, plus the
+  # environment-dependent .gitconfig / ponytail / container-socket mounts
+  # when present) plus EXACTLY ONE addition - the SSH agent socket. Any
+  # source outside that set is key material leaking in.
+  local ocd="$HOME/.opencode-docker"
+  # the container-socket mount source is environment-dependent (one of the
+  # three probe paths in the wrapper wins); derive it from the run line
+  # instead of guessing which one this host has
+  local docker_src
+  docker_src="$(run_line | grep -o -- '-v [^ ]*:/var/run/docker.sock' | sed 's/^-v //; s/:.*//' || true)"
   local src
   for src in $(run_mount_sources); do
     case "$src" in
-      */.ssh*|*/id_rsa*|*/id_ed25519*|*/id_ecdsa*|*/id_dsa*|*.pub|*.git-credentials*)
-        echo "SECURITY: forbidden mount source found: $src" >&2
+      "$SSH_AUTH_SOCK" | \
+      "$ocd/.local/share" | "$ocd/.local/state" | "$ocd/config" | \
+      "$ocd/.cache" | "$ocd/secrets" | "$ocd/.gitconfig" | \
+      "$HOME/ponytail" | "$OPENCODE_WORKSPACE" | "$docker_src")
+        ;;
+      *)
+        echo "SECURITY: mount source outside the pre-existing set + SSH socket: $src" >&2
         echo "--- run line ---" >&2
         run_line >&2
         return 1
