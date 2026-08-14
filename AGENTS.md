@@ -25,7 +25,7 @@ Architecture → Specification → Implementation:
 
 ### 2.3 Implementation (per feature)
 
-- **Ticket-ID token (DIA-134):** every dispatch AND every resume prompt MUST carry the literal ticket ID (e.g. "DIA-134") as best practice across all lanes; the DIA-063 gate enforces it for config-work lanes (any @ai-specialist dispatch and any dispatch whose text signals .opencode/ config work) and blocks prompts without it.
+- **Ticket-ID token (DIA-134):** every dispatch AND every resume prompt MUST carry the literal ticket ID (e.g. "DIA-134") as best practice across all lanes; the DIA-063 gate enforces it for config-work lanes (any @ai-specialist dispatch and any dispatch whose text signals .opencode/ config work) with correlation logic: an explicit DIA-id that resolves to no OPEN ticket hard-blocks, while a no-id dispatch passes via a session-owned or keyword-correlated open ticket or warns-and-allows (weak correlation).
 - **Architector design persistence (DIA-134):** after each @architector design dispatch, persist the design text into the DIA ticket (or a `.sdd` draft) before implementation starts, so reviewers can diff verbatim claims.
 - **Instance separation (DIA-135):** RED test-writing and GREEN implementation for the same slice MUST be dispatched to DIFFERENT coder instances; the test-author never implements the slice it tested.
 

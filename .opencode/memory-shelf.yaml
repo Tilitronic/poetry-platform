@@ -736,6 +736,19 @@ shelf:
     path: openspec/changes/batch-d-infra-hardening/
     created: 2026-08-14
     status: implemented
+  - name: ssh-agent-forward-opencode-docker
+    description: 'OpenSpec change (DIA-133, scope dev-infra): forward the host SSH
+      agent socket into the opencode-docker container read-only at /tmp/ssh-agent.sock
+      so git push to SSH remotes works from inside the container. Detection loop probes
+      SSH_AUTH_SOCK, then ${XDG_RUNTIME_DIR:-}/keyring/ssh and /gcr/ssh, mounts the
+      first found socket read-only; warn-and-continue when none found. Optional
+      GIT_SSH_COMMAND accept-new for read-only known_hosts. Keys never leave the host:
+      no ~/.ssh mount, no key copy, only the agent socket is forwarded (security
+      profile mirrors the accepted DIA-121 docker.sock mount). TDD slices planned
+      (RED tests first), implementation pending.'
+    path: openspec/changes/ssh-agent-forward-opencode-docker/
+    created: 2026-08-13
+    status: proposed
   architectures:
   - name: dia-redispatch-cycle
     description: "Design-authority seed for the dev-infra campaign protocol (CRISIS-DETECTION, PROGNOSIS-DISCIPLINE, cycle-budget management): 5 ADRs (ADR-001 prognosis in HANDOFF.md only, ADR-002 C1-C5 OR-combined triggers, ADR-003 fresh-session independence, ADR-004 max-cycles=3 budget default, ADR-005 soft exhaustion) that the redispatch rule texts must not contradict. Seeded 2026-08-03 from interview Q5."

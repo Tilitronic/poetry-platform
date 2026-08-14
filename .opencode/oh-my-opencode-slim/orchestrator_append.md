@@ -334,8 +334,11 @@ A1-A6 above are untouched.
 ### R1 - Ticket-ID Token in Dispatch/Resume Prompts (DIA-063 gate)
 
 every dispatch AND every resume prompt MUST contain the literal ticket ID
-(e.g. "DIA-134"). The DIA-063 gate blocks any resume prompt that lacks the
-token; a prompt with the token passes.
+(e.g. "DIA-134"). The DIA-063 gate enforces it for config-work lanes
+(ai-specialist or config-work-hint) with correlation logic: an explicit
+DIA-id that resolves to no OPEN ticket hard-blocks; a prompt with no DIA-id
+passes via a session-owned or keyword-correlated open ticket or
+warns-and-allows (weak correlation).
 
 ### R2 - Architector Design Persistence
 
