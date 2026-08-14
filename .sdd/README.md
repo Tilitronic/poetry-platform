@@ -46,10 +46,11 @@ produces further module architecture documents, they are indexed here using the
 > `openspec/changes/` naming instead of the `NN-<topic>/` convention, and that is
 > acceptable. Numbered names remain the default for system-architecture modules.
 
-| Document                               | Summary                                                                                                           |
-| -------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| `01-system-overview/architecture.md`   | System boundaries, guiding principles, data-flow overview (planned — not yet authored)                            |
-| `02-schema-decision/architecture.md`   | Why three schema technologies (FlatBuffers, Protobuf, native TS); decision framework for new boundaries (planned) |
-| `03-open-questions/architecture.md`    | Tracked blind spots and their resolution status (planned)                                                         |
-| `dia-redispatch-cycle/architecture.md` | 5-ADR seed for the cycle-management protocol (dev-infra campaign)                                                 |
-| `dev-infra/architecture.md`            | Parallel dev model (worktrees), branch conventions, and safe/destructive operations (DIA-100)                     |
+| Document                               | Summary                                                                                                                        |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `01-system-overview/architecture.md`   | System boundaries, guiding principles, data-flow overview (planned — not yet authored)                                         |
+| `02-schema-decision/architecture.md`   | Why three schema technologies (FlatBuffers, Protobuf, native TS); decision framework for new boundaries (planned)              |
+| `03-open-questions/architecture.md`    | Tracked blind spots and their resolution status (planned)                                                                      |
+| `dia-redispatch-cycle/architecture.md` | 5-ADR seed for the cycle-management protocol (dev-infra campaign)                                                              |
+| `dev-infra/architecture.md`            | Parallel dev model (worktrees), branch conventions, and safe/destructive operations (DIA-100)                                  |
+| `opencode-config/architecture.md`      | Two ADRs for opencode-config batch patterns: parallel coders (Batch D, worktree-gated) and singleton-batch exemption (DIA-132) |
