@@ -85,7 +85,7 @@
 | DIA-132 | coder-escalated (kimi-k3) ONE-SHOT silent failure on DIA-130 (empty result, zero writes) + hardening question | opencode-config | Medium | CLOSED | [DIA-132-coder-escalated-silent-failure.md](DIA-132-coder-escalated-silent-failure.md) |
 | DIA-133 | data-driven dispatch routing: orchestrator selects lane by model benchmarks + pricing + quota | opencode-config | Medium | CLOSED | [DIA-133-dispatch-routing-benchmark-pricing.md](DIA-133-dispatch-routing-benchmark-pricing.md) |
 | DIA-134 | overnight destructive-command baseline + overnight.sh payload shape validation (DIA-126a ai-auditor suggestions S1/S2) | opencode-config | Low | CLOSED | [DIA-134-overnight-hardening-baseline.md](DIA-134-overnight-hardening-baseline.md) |
-| DIA-135 | research-pipeline optimization: order corruption + double source fetch + binary persistence decision | opencode-config | Major | OPEN | [DIA-135-research-pipeline-optimization-order-corruption-double-source-fetch-binary-persistence-decision.md](DIA-135-research-pipeline-optimization-order-corruption-double-source-fetch-binary-persistence-decision.md) |
+| DIA-135 | research-pipeline optimization: order corruption + double source fetch + binary persistence decision | opencode-config | Major | CLOSED | [DIA-135-research-pipeline-optimization-order-corruption-double-source-fetch-binary-persistence-decision.md](DIA-135-research-pipeline-optimization-order-corruption-double-source-fetch-binary-persistence-decision.md) |
 | DIA-136 | orchestrator session records: research JSON-DB + API layer (lowdb/json-server/nedb/tinydb) for visibility, reliability, determinism, token economy | opencode-config | Medium | OPEN | [DIA-136-orchestrator-session-records-research-json-db-api-layer-lowdb-json-server-nedb-tinydb-for-visibility-reliability-determinism-token-economy.md](DIA-136-orchestrator-session-records-research-json-db-api-layer-lowdb-json-server-nedb-tinydb-for-visibility-reliability-determinism-token-economy.md) |
 | DIA-137 | orchestrator routine work and artifact systems: research lightweight reliable tools to simplify operations (sibling of DIA-136) | opencode-config | Medium | OPEN | [DIA-137-orchestrator-routine-work-and-artifact-systems-research-lightweight-reliable-tools-to-simplify-operations-sibling-of-dia-136.md](DIA-137-orchestrator-routine-work-and-artifact-systems-research-lightweight-reliable-tools-to-simplify-operations-sibling-of-dia-136.md) |
 | DIA-138 | Audit agent instruction/prompt files (.ts and .md) for inaccuracies, duplications, vague wording | opencode-config | Medium | CLOSED | [DIA-138-agent-instruction-files-audit.md](DIA-138-agent-instruction-files-audit.md) |
@@ -118,7 +118,7 @@
 
 | Status      | Count |
 | ----------- | ----- |
-| OPEN        | 10    |
+| OPEN        | 9     |
 | DONE        | 3     |
 | VALIDATE    | 0     |
 | E2E         | 0     |
@@ -127,7 +127,7 @@
 | FIXED       | 1     |
 | IMPLEMENTED | 0     |
 | VERIFIED    | 21    |
-| CLOSED      | 66    |
+| CLOSED      | 67    |
 | BLOCKED     | 0     |
 | DISPATCHED  | 0     |
 | RUNNING     | 0     |

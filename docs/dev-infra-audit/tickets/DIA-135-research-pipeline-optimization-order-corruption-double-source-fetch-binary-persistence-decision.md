@@ -1,5 +1,23 @@
 # DIA-135 - research-pipeline optimization: order corruption + double source fetch + binary persistence decision
 
+<!-- UPDATE 2026-08-14 (CLOSED - implemented by cod-11, verified by
+     ai-auditor, developer disposition fix-then-close; live restart-verify
+     DEFERRED to next session per the DIA-123 second-boot pattern):
+     CLOSURE SUMMARY: all 8 ana018 conclusions + arc-1 design (incl.
+     free-preset flash alignment) were developer-approved via section-10 and
+     implemented by cod-11 in commits b6ddc8e + 710992d: 5-phase skill
+     reorder (D1), researcher-owns-Phase-A (D5/D6), conspecter
+     pure-synthesis (D7), analysis gate (D4), model config per C1/C3,
+     ESTIMATE labels per C8. ai-auditor verdict CONFORMANT-WITH-NOTES
+     (ai--5) with ONE Minor finding (#7: stale agent markdown docs -
+     .opencode/agents/researcher.md still read-only, conspecter.md still
+     Phase A download); developer disposition 2026-08-14: FIX DOCS THEN
+     CLOSE. Doc sync applied in this closure commit: researcher.md +
+     conspecter.md rewritten to match the implemented runtime behavior
+     (researcher owns 3-tier fetch + D6 ratings manifest; conspecter pure
+     synthesis, bash flat deny). Ticket status OPEN -> CLOSED, README index
+     row + rollup counts, CHANGELOG entry added by the closure lane. -->
+
 <!-- UPDATE 2026-08-13 (DEVELOPER REFINEMENTS ROUND 2 - FOUR ADDITIONAL
      REQUIREMENTS): the developer extended DIA-135 with four refinements
      that reshape the reordered pipeline. D5 RESEARCHER-DOWNLOADS-INTO-SOURCES:
@@ -70,7 +88,7 @@ id: DIA-135
 title: "research-pipeline optimization: order corruption + double source fetch + binary persistence decision"
 area: opencode-config
 severity: Major
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: ""
 discovered: 2026-08-13
@@ -321,4 +339,34 @@ NEXT STEP (section-10): developer approves/rejects conclusions 1-8 -> @architect
 
 ## Re-verify
 
-> To be filled at re-verify time.
+**LIVE RESTART-VERIFY DEFERRED (2026-08-14, developer disposition:
+FIX-THEN-CLOSE; the new researcher/conspecter permission sets + prompts +
+analysis-gate plugin are only observable on a fresh opencode launch, so this
+requires a subsequent session - DIA-123 config-touch second-boot pattern.
+This closure session ran the PRE-change config.)**
+
+Deferred verification_request item for the NEXT opencode launch:
+
+(a) A fresh opencode launch loads the new researcher/conspecter permission
+sets (`.opencode/opencode.jsonc`: researcher bash allow-list
+curl/wget/trafilatura/crwl + edit knowledge/\* deny-first; conspecter bash
+flat deny), the Phase A / pure-synthesis prompt blocks
+(`.opencode/oh-my-opencode-slim.jsonc` researcher PHASE A at L187/L411/L592,
+conspecter L608), and the ANALYSIS GATE plugin detector
+(`.opencode/plugins/delegation-observer.ts` analysis-pending.json) - confirm
+via `opencode debug config` / plugin load output.
+
+(b) Live research-pipeline run: dispatch @researcher with a pre-allocated
+res ID; confirm it archives sources into
+`knowledge/<resid>-<topic>/sources/` via the 3-tier chain and writes the D6
+relevance/reliability manifest (.source-urls.txt). Then dispatch @conspecter;
+confirm it synthesizes from sources/ ONLY (no network fetch - bash deny
+holds) and registers in memory-shelf.
+
+(c) Analysis gate: after conspecter completes, confirm
+`.opencode/session/analysis-pending.json` is dropped and analysis dispatch
+is blocked until the orchestrator verifies the conspect artifacts and edits
+the JSON to `{ "status": "verified" }` (or `"skipped"`).
+
+(d) Drift gate: `make test-config` still reports 0 gaps on the loaded
+prompts (8 markers x 3 presets).
