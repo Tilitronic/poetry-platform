@@ -411,8 +411,7 @@
       "permission": {
         "edit": {
           "*": "deny",
-          "knowledge/*": "allow",
-          ".opencode/memory-shelf.yaml": "allow"
+          "knowledge/*": "allow"
         },
         "bash": "deny",
         "webfetch": "deny",
