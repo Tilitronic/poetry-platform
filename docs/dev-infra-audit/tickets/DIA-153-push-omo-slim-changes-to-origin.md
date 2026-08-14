@@ -69,6 +69,19 @@ in the opencode-docker image only.
    is NOT main, no force, no bypass, and the pre-push hook must pass inside the
    container.
 
+### Scope item 2 status (openssh-client)
+
+COMMITTED in-session (commit under DIA-153): tools/opencode-docker/Dockerfile now
+installs openssh-client in the builder-tools apt block and adds ssh to the
+collect-runtime-deps.sh argument list, so the ssh client binary + shared libs are
+baked into the runtime rootfs and survive the --read-only mount. Static-grep
+bats test added (opencode-docker.bats: "image provides the ssh client",
+Q7 convention, no image rebuild needed to test). The origin remote is ALREADY
+SSH on the host (developer switched it: git@github.com:Tilitronic/poetry-platform.git).
+The opencode-docker IMAGE itself still needs a REBUILD by the developer before
+agent SSH pushes work end-to-end; the rebuild cannot happen in-session (it would
+kill the running opencode session).
+
 ### Phase 1 (2026-08-14): DIA-ID collision renumber (docs-lane, remote lineage canonical)
 
 The remote lineage (origin/omo-slim-changes, 2fa1672) is canonical. Local tickets

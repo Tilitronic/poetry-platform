@@ -130,3 +130,22 @@ setup_isolated() {
     fi
   done
 }
+
+@test "opencode-docker Dockerfile: image provides the ssh client (agent-forwarded git push, DIA-133/DIA-153)" {
+  # Static-grep assertion (Q7 convention — no docker build): coder lanes push
+  # to SSH remotes through the forwarded agent socket, which requires the ssh
+  # client BINARY to be baked into the image. Two independent greps:
+  # (1) openssh-client in the builder-tools apt install block, and
+  # (2) ssh on the collect-runtime-deps.sh argument list (so the binary + its
+  #     shared libs land in /opt/runtime-rootfs and survive the --read-only
+  #     rootfs).
+  local df="$REPO_ROOT/tools/opencode-docker/Dockerfile"
+  if ! grep -qE '^\s*openssh-client\s*\\?$' "$df"; then
+    echo "Dockerfile: openssh-client missing from the apt install block" >&2
+    return 1
+  fi
+  if ! grep -qE 'curl wget snip uv mise dbus-send openspec ssh$' "$df"; then
+    echo "Dockerfile: ssh not on the collect-runtime-deps.sh argument list" >&2
+    return 1
+  fi
+}

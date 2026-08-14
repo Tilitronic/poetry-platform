@@ -17,6 +17,7 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
     curl \
     wget \
     git \
+    openssh-client \
     python3 \
     python3-pip \
     python3-venv \
@@ -104,7 +105,7 @@ RUN mkdir -p /opt/runtime-rootfs && \
       opencode node npm npx pnpm bun python3 pip3 Xvfb xclip wl-copy wl-paste git \
       mkdir find grep rg jq cat head tail sed awk tr \
       ls cp mv rm chmod wc sort cut env uname date dirname basename \
-      curl wget snip uv mise dbus-send openspec
+      curl wget snip uv mise dbus-send openspec ssh
 
 RUN cd /opt/runtime-rootfs && \
     for dir in bin sbin lib lib64; do \
