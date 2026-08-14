@@ -104,6 +104,9 @@
 | DIA-151 | test infra Phase 3: Orchestrator contract test (acceptWorkerResult, zero mocks) | tests-infra | Medium | CLOSED | [DIA-151-test-infra-phase3-orchestrator-contract.md](DIA-151-test-infra-phase3-orchestrator-contract.md) |
 | DIA-152 | Install docker CLI + compose plugin in poetry-dev image (pre-push test-config gate) | docker | Major | VERIFIED | [DIA-152-install-docker-cli-poetry-dev-image.md](DIA-152-install-docker-cli-poetry-dev-image.md) |
 | DIA-153 | Push omo-slim-changes to origin: lineage reconciliation (rebase) + SSH transport setup (openssh-client in opencode-docker, origin remote to SSH) | dev-infra | Major | DONE | [DIA-153-push-omo-slim-changes-to-origin.md](DIA-153-push-omo-slim-changes-to-origin.md) |
+| DIA-154 | gigaplan.md frontmatter flat bash deny - latent permission clobber hazard (DIA-078 class) | opencode-config | Low | CLOSED | [DIA-154-gigaplan-frontmatter-clobber-hazard.md](DIA-154-gigaplan-frontmatter-clobber-hazard.md) |
+| DIA-155 | chokidar in-process file-watching harness: deterministic auto-regeneration of derived views + agent-work automation | opencode-config | Medium | OPEN | [DIA-155-chokidar-in-process-file-watching-harness.md](DIA-155-chokidar-in-process-file-watching-harness.md) |
+| DIA-156 | implement V2 read-only query layer (node:sqlite :memory:) over orchestrator session records (DIA-136 follow-up) | dev-infra | Low | OPEN | [DIA-156-sqlite-read-layer-session-records.md](DIA-156-sqlite-read-layer-session-records.md) |
 | DIA-157 | Audit agent instruction/prompt files (.ts and .md) for inaccuracies, duplications, vague wording | opencode-config | Medium | OPEN | [DIA-157-agent-instruction-files-audit.md](DIA-157-agent-instruction-files-audit.md) |
 | DIA-158 | Audit pre-commit and pre-push hook test coverage (turbo-driven) for edge-case gaps | git-hooks | Medium | OPEN | [DIA-158-hook-test-coverage-audit.md](DIA-158-hook-test-coverage-audit.md) |
 | DIA-159 | Analyze task parallelization in agent prompts - maximize concurrent execution without file-write conflicts | opencode-config | Medium | OPEN | [DIA-159-task-parallelization-analysis.md](DIA-159-task-parallelization-analysis.md) |
@@ -127,6 +130,9 @@
 | DIA-177 | worktree branch cleanup subcommand with merge verification | dev-infra | Low | OPEN | [DIA-177-worktree-branch-cleanup.md](DIA-177-worktree-branch-cleanup.md) |
 | DIA-178 | Memory shelf hygiene audit: duplicate/stale/irrelevant lessons, conspects, analyses | docs | Medium | DONE | [DIA-178-memory-shelf-hygiene-audit.md](DIA-178-memory-shelf-hygiene-audit.md) |
 | DIA-179 | Full test-suite audit: execution order, fast-to-fail, duplicates, stale tests, verification honesty, DRY helpers | tests-infra | Medium | DONE | [DIA-179-full-test-suite-audit.md](DIA-179-full-test-suite-audit.md) |
+| DIA-180 | artifact format substrate review: YAML vs Markdown per artifact type (changelog, tickets, learnings, knowledge, session) | docs | Medium | OPEN | [DIA-180-artifact-format-substrate-review-yaml-vs-markdown-per-artifact-type-changelog-tickets-learnings-knowledge-session.md](DIA-180-artifact-format-substrate-review-yaml-vs-markdown-per-artifact-type-changelog-tickets-learnings-knowledge-session.md) |
+| DIA-181 | data-reducer skill + scripts/data-reduce.sh: RLM pattern - reduce large data before reading into context (DeepSeek TUI RLM adoption) | opencode-config | Medium | OPEN | [DIA-181-data-reducer-skill-rlm.md](DIA-181-data-reducer-skill-rlm.md) |
+| DIA-182 | native telemetry analytics wrapper - scripts/session-analytics.sh over opencode stats/db (per-agent cost/tokens, tool/model usage) | opencode-config | Medium | OPEN | [DIA-182-native-telemetry-analytics-wrapper.md](DIA-182-native-telemetry-analytics-wrapper.md) |
 
 ## Status summary
 
@@ -135,14 +141,14 @@
 | Blocker  | 7     |
 | Critical | 8     |
 | Major    | 44    |
-| Medium   | 56    |
+| Medium   | 60    |
 | Minor    | 0     |
-| Low      | 12    |
+| Low      | 14    |
 | Info     | 0     |
 
 | Status      | Count |
 | ----------- | ----- |
-| OPEN        | 10    |
+| OPEN        | 14    |
 | DONE        | 11    |
 | VALIDATE    | 0     |
 | E2E         | 0     |
@@ -151,7 +157,7 @@
 | FIXED       | 1     |
 | IMPLEMENTED | 2     |
 | VERIFIED    | 28    |
-| CLOSED      | 73    |
+| CLOSED      | 75    |
 | BLOCKED     | 0     |
 | DISPATCHED  | 0     |
 | RUNNING     | 0     |
