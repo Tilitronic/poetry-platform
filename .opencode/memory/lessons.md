@@ -692,53 +692,6 @@ Notes:
     a verification decision not recoverable from git diffs alone.
   - Cross-reference: DIA-130, DIA-131 (post-restart TUI re-verify).
 
-## L20260813-001 - research-ID assumption failure: always verify the next free
-knowledge/<type><id>-<topic> ID before dispatch (2026-08-13, DIA-132)
-
-- Symptom: the research-pipeline skill and the dispatch guidance claimed the
-  next free research ID was "res003", but the actual next free ID was res020 -
-  res001..res019 were already registered in knowledge/ AND the memory shelf.
-  The conspecter correctly caught the collision and used res020 (the
-  memory-shelf.yaml res020 description records "ID corrected from res003 to
-  res020 (res001..res019 already registered)").
-- Why irrecoverable: the assumption of a sequential "next ID" is a process
-  guess, not stated anywhere authoritative. The concrete correction appears
-  only as a note inside the shelf entry; the generalizable RULE (verify before
-  dispatch) is the part not reconstructible from git or the shelf.
-- Operational rule: BEFORE any knowledge-dispatch (researcher/conspecter
-  lane), ALWAYS compute the next free <type><id>-<topic> ID by BOTH (1)
-  listing the knowledge/ directory for existing <type><id> prefixes AND (2)
-  reading memory-shelf.yaml for registered IDs. Never trust an assumed
-  sequential ID - IDs are NOT monotonic/contiguous: two distinct res003 entries
-  exist for different topics (res003-telemetry-reentrancy-guards and
-  res003-tui-corruption-stdout) while later gaps exist, so "next = prev+1" is
-  an unsafe assumption.
-- Cross-reference: memory-shelf.yaml res020 description; DIA-132;
-  knowledge/ res001..res020 listing.
-
-## L20260813-002 - OpenCode config load-order & OPENCODE_PERMISSION precedence (DIA-126a, 2026-08-13)
-
-- OpenCode config files are DEEP-MERGED in load order (global config ->
-  OPENCODE_CONFIG env file -> project files -> .opencode/ directory files),
-  with the LAST file winning conflicting keys. Therefore a plain
-  OPENCODE_CONFIG permission-block override does NOT win: the project
-  .opencode/opencode.jsonc clobbers any permission rule the OPENCODE_CONFIG
-  override declares.
-- The OPENCODE_PERMISSION env var is deep-merged into the final permission
-  object AFTER all config files resolve, so it WINS over every config-layer
-  permission block. This is the highest-precedence permission overlay and the
-  only reliable way to override a project config permission without editing
-  the tracked file (used by scripts/overnight.sh).
-- Why irrecoverable: the load-order + OPENCODE_PERMISSION-wins semantics is an
-  empirically-verified OpenCode behavior, not stated in any single config file
-  (only in the overnight.sh comment header). A future config-work agent
-  reasoning from opencode.jsonc alone would wrongly assume an OPENCODE_CONFIG
-  override wins. Prefer OPENCODE_PERMISSION for runtime/override permission
-  overlays and edit the tracked config for durable changes.
-- Cross-reference: scripts/overnight.sh lines 20-25/132 (authoritative
-  comment); DIA-126; complements the findLast catch-all-ordering lesson
-  (adr.md DIA-036/DIA-081/DIA-126).
-
 ## DeepSeek V4 thinking-mode / temperature inertness (2026-08-12, res014 correction by @ai-specialist)
 
 External-knowledge grounding fact caught by @ai-specialist against live DeepSeek API docs; NOT recoverable from git/diff/tests. Supersedes/extends the factual claims in knowledge/res021-opencode-agent-presets/ and the earlier model-window/telemetry-pricing entries in this file.
@@ -748,7 +701,7 @@ External-knowledge grounding fact caught by @ai-specialist against live DeepSeek
 3. DeepSeek reasoning_effort vocabulary: only low/high/xhigh/max (NO "medium"). Config values like variant: medium on DeepSeek lanes may be silently ignored/mapped - needs runtime-log verification.
 4. METHOD RULE (reinforces DIA-108): runtime model-resolution logs (~/.local/share/opencode/log/oh-my-opencode-slim.*.log) are authoritative for what a config knob actually does. Verify via logs BEFORE applying any model/temp/reasoning preset change; config-file reading + provider docs alone is insufficient.
 
-## L20260812-003 - gate-script re-entrancy guard (DIA-142 fork-bomb, 2026-08-12)
+## L20260812-005 - gate-script re-entrancy guard (DIA-118 fork-bomb, 2026-08-12)
 
 - **Lesson:** when a gate script can invoke the full test suite, guard against
   nested invocation with an env-flag that propagates through process spawns
@@ -767,26 +720,16 @@ External-knowledge grounding fact caught by @ai-specialist against live DeepSeek
   the direct-run test case still exercises the real path. Cross-reference:
   adr.md gate-script re-entrancy-guard ADR, knowledge/ana015-recursion-fork-bomb/.
 
-## L20260814-001 - upgrade verification must check the LOADED instance + ALL plugin declaration sources (DIA-127 reopen, 2026-08-14)
-
-- Symptom: DIA-127 (OMO slim 2.2.8 -> 2.2.13 update) was CLOSED 2026-08-13 with an inference-based restart-verify PASS, yet on 2026-08-14 the developer reported the OMO right panel STILL showed v2.2.8.
-- Root cause: `~/.config/opencode/tui.json` (GLOBAL, outside repo) held a BARE plugin entry `"oh-my-opencode-slim"` (no @version). Bare entries (no @version) resolve to the stale npm @latest cache install (2.2.8, installed 2026-07-26, never refreshed). The OMO TUI panel renders `meta.version ?? readPackageVersion()` of the LOADED instance (npm 2.2.13 dist/tui.js line 1906), so it displayed 2.2.8. The plugin loaded 3x total (tui.json 2.2.8 v1-style entry + opencode.jsonc 2.2.13 v2 entries x2). Fix: removed bare tui.json entry (backup tui.json.bak-20260814), removed dead `file:///workspace/...` plugin entries from project + docker configs, purged stale cache dirs (oh-my-opencode-slim@2.2.8 / @latest / bare), synced inventory.md, corrected REFERENCE-ONLY.md. Commits b93b61d + 8541f98 (branch omo-slim-changes). ai-auditor APPROVE (re-review cycle 1).
-- Operational lesson (the key one): upgrade verification MUST check (a) the ACTUALLY-LOADED plugin instance version, and (b) ALL plugin declaration sources - the global tui.json legacy `plugin` key, opencode.jsonc pins, AND docker configs - not only the opencode.jsonc pin + skill-sync staging. The panel version is direct runtime evidence of what actually loaded. Do not close an upgrade ticket on inference from the pinned install dir alone; verify the loaded instance (panel/fingerprint) and every declaration source.
-- Bare-entry resolution trap: a plugin entry without `@version` resolves to the stale npm @latest cache install and silently shadows the pinned version. ALWAYS pin plugin versions explicitly in every declaration source.
-- CRITICAL structural fact: the directory `.opencode/oh-my-opencode-slim/` is NOT dead. It is the LIVE OMO prompt-override directory: npm plugin PROMPTS_DIR_NAME="oh-my-opencode-slim" (dist/index.js line 18885), loadAgentPrompt (line 19154) reads `<agent>.md` and `<agent>_append.md` from it (orchestrator_append.md, reviewer.md, coder.md, coder_append.md, analyzer_append.md, knowledge/*). The fork SOURCE (src/) is unbuilt reference material, but the prompt files ARE loaded at runtime by the npm plugin. REFERENCE-ONLY.md's claim "NOT loaded at runtime" applies ONLY to the source (src/), never to the prompt .md files. Do not delete/archive this directory thinking it is dead.
-- Why irrecoverable: the bare tui.json entry, the stale cache state, and the panel-version evidence are environment/runtime state outside the repo; the loaded-instance-verification rule and the live-prompt-dir fact are not reconstructible from the repo alone.
-- Cross-reference: DIA-127, DIA-128 (dual-runtime precedence), external-patterns 2026-08-13-omo-slim-version-gate-upgrade.md.
-
-## L20260812-004 - hook-triggered suites must be verified hook-exact (DIA-147, 2026-08-12)
+## L20260812-004 - hook-triggered suites must be verified hook-exact (DIA-123, 2026-08-12)
 
 - **Lesson:** when a gate script exports an env flag before running the full
   test suite, verifying the suite STANDALONE is insufficient - the hook context
-  propagates the flag into every test. DIA-146's fix (commit 0760ef3) exported
+  propagates the flag into every test. DIA-122's fix (commit 0760ef3) exported
   VERIFY_PRE_PUSH_RUNNING=1 in scripts/verify-pre-push.sh before `make
   test-shell`; under the husky pre-push hook, ALL bats tests inherited the flag,
   so verify-pre-push.bats tests 183-187/189-191 (which invoke
   verify-pre-push.sh directly) hit the top-of-script guard (warning + exit 0),
-  failing 8 tests. DIA-146's standalone verification (`make test-shell`, no
+  failing 8 tests. DIA-122's standalone verification (`make test-shell`, no
   inherited flag) passed 211/211 and could not catch hook-context behavior.
 - **Why irrecoverable:** the hook context is an environment property (env flag
   inherited by child processes at hook time), not reproducible from a plain
@@ -799,9 +742,9 @@ External-knowledge grounding fact caught by @ai-specialist against live DeepSeek
   2. Test `setup()` should `unset` such inherited flags so each test exercises
      the script's public entry behavior (flag-free direct invocation).
   3. If a test must verify the guarded path, re-export the flag INSIDE the test
-     body after setup (DIA-147 added exactly this: a test that re-exports the
+     body after setup (DIA-123 added exactly this: a test that re-exports the
      flag and asserts warning + exit 0 + no docker invocation).
-  Cross-reference: adr.md gate-script re-entrancy-guard ADR, DIA-147 ticket,
+  Cross-reference: adr.md gate-script re-entrancy-guard ADR, DIA-123 ticket,
   commit d6c6a64.
 
 ## DIA-132 parallel coders batch D (first batch D run, 2026-08-13)

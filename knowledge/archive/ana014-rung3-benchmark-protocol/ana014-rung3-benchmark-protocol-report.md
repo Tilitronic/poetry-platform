@@ -1052,6 +1052,6 @@ files, and represent "complex/advanced problem-fix" work.
 
 ---
 
-**Artifact path:** `knowledge/ana014-rung3-benchmark-protocol/ana014-rung3-benchmark-protocol-report.md`
+**Artifact path:** `knowledge/archive/ana014-rung3-benchmark-protocol/ana014-rung3-benchmark-protocol-report.md`
 
 **Created:** 2026-08-12

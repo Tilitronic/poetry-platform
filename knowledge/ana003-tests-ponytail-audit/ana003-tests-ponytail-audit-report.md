@@ -12,7 +12,7 @@ method: ponytail-audit + ponytail ladder (does-it-exist / already-in-codebase / 
 schema-version: 1.0
 agent: analyzer
 claim-type: finding
-evidence-source: session ana01-tests-ponytail-audit (read-only audit of /workspace test surface)
+evidence-source: session ana003-tests-ponytail-audit (read-only audit of /workspace test surface)
 confidence: High
 shelf-registration: memory-shelf.yaml (shelf.analyses), delegated to @memory-manager
 -->
@@ -361,5 +361,5 @@ Not everything is a finding. Credit where credit is due:
 
 ---
 
-**Artifact path:** `knowledge/ana01-tests-ponytail-audit/ana01-tests-ponytail-audit-report.md`
+**Artifact path:** `knowledge/ana003-tests-ponytail-audit/ana003-tests-ponytail-audit-report.md`
 **Shelf registration:** delegated to @memory-manager (shelf.analyses).
