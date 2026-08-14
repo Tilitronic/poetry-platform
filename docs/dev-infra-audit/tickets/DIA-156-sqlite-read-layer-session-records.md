@@ -16,7 +16,7 @@ id: DIA-156
 title: "implement V2 read-only query layer (node:sqlite :memory:) over orchestrator session records (DIA-136 follow-up)"
 area: dev-infra
 severity: Low
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: ""
 discovered: 2026-08-14
@@ -24,6 +24,7 @@ source: fix-lane
 date: 2026-08-15
 created: 2026-08-14
 updated: 2026-08-15
+closed: 2026-08-15
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -229,4 +230,51 @@ note: imported registry=16525 messages=15778 malformed-skipped=0
 
 ## Re-verify
 
-> To be filled at re-verify time.
+RE-VERIFIED 2026-08-15 (closure lane): reviewer rev-1 two-axis review
+(Standards + Spec fidelity) returned APPROVED for merge. Developer
+disposition (binding): "Accept all, close + push" - no code changes
+requested.
+
+- Reviewer verdict: APPROVED. 3 Minor Standards findings, all
+  positive/neutral (no corrective action required); 3 Suggestion
+  falsifications accepted without change per developer disposition.
+- readOnly:true deviation assessed JUSTIFIED, NOT a violation: the
+  ticket/conspec cites `new DatabaseSync(':memory:')` + `readOnly: true`,
+  but SQLite's read-only mode rejects even in-memory DDL/DML, which the
+  JSONL->table import requires. The binding intent (never write a session
+  record, never commit a binary) is preserved by `:memory:` (ephemeral,
+  no file backing) + read-only opens of the JSONL inputs; read-only
+  semantics enforced at the file level, not the sqlite level.
+- Verification evidence recap: make test-shell exit 0 (343 tests incl. 18
+  new session-query tests, 0 failures); make test-config container exit 0
+  (49/49); host make test-config exit 2 pre-existing DIA-134 ENOENT
+  /workspace (out of scope, documented, not caused by this change); demo
+  against real records returned only requested rows (3 rows from 32,303
+  line files); node:sqlite built-in confirmed on Node v24.18.0.
+- No re-review cycle needed: closure proceeds directly from APPROVED
+  verdict (cycle 1/2 used, no findings required disposition).
+
+> Pre-closure state: "To be filled at re-verify time." (implementation
+> lane filled Fix + verification evidence 2026-08-15; closure lane filled
+> this section with the rev-1 verdict).
+
+<!-- UPDATE 2026-08-15 (CLOSED - closure lane):
+     CLOSED 2026-08-15. Full chain complete:
+     (1) cod-8 implementation lane - scripts/session-query.mjs (node:sqlite
+     :memory: read-only query layer over .opencode/session/registry.jsonl +
+     messages.jsonl), scripts/__tests__/session-query.bats (18 hermetic
+     tests), Makefile session-query target; committed 7ec9fca
+     (7ec9fca87264884e3af2861fbcca8776c9dd8a37, local only at Fix time);
+     ticket Fix section + frontmatter filled, status OPEN.
+     (2) rev-1 review - two-axis (Standards + Spec fidelity) APPROVED for
+     merge; 3 Minor Standards findings all positive/neutral; readOnly:true
+     deviation assessed JUSTIFIED not a violation; 3 Suggestion
+     falsifications accepted without change.
+     (3) Developer disposition 2026-08-15 (binding): "Accept all, close +
+     push" - no code changes requested.
+     (4) This closure lane filled Re-verify with the rev-1 verdict, set
+     status OPEN -> CLOSED + closed 2026-08-15, committed the closure, and
+     fast-forward pushed 36b9083 -> <closure> (both DIA-156 commits).
+     DIA-156 carries NO gate_state markers (predates the DIA-104 gate_state
+     schema; grandfather no-backfill rule - legacy tickets warn, not fail,
+     in validate-grilling-gate). -->
