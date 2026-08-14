@@ -75,6 +75,14 @@ This document defines the architectural boundaries and operational mechanics of 
 - **Decision:** `worktrees.sh` uses strictly bash-3 compatible syntax. Remote branch collision checks during creation use a 5-second `timeout git ls-remote`.
 - **Consequences:** Aligns with `session-log` constraints. Ensures an unreachable origin server does not block a local lane creation for minutes.
 
+### ADR 9: Worktree husky shim materialization (copy, not install)
+
+- **Status:** Accepted
+- **Context:** DIA-134 S1: fresh git worktrees lack `.husky/_`, so the husky pre-commit hook (and with it the DIA-094 docker-container gate) is silently not enforced on worktree commits.
+- **Decision:** `scripts/worktrees.sh create` COPIES `.husky/_` from the main tree into each new worktree at create time (filesystem-only operation; NOT `husky install`, NOT a symlink).
+- **Consequences:** Deterministic, filesystem-only shim materialization with no `core.hooksPath` side effects; keeps each worktree isolated from the main tree's husky runtime; fails loudly when the main tree lacks `.husky/_` (no silent bypass of DIA-094).
+- **Alternatives Considered:** `husky install` - rejected (mutates `.git/config`, cross-worktree side effects, husky binary required on PATH); symlink - rejected (breaks the worktree-isolation invariant and breaks on worktree moves).
+
 ## Traceability Table
 
 | ADR | Topic                  | Origin Ticket    | Implementation Evidence                        |
@@ -87,6 +95,7 @@ This document defines the architectural boundaries and operational mechanics of 
 | 6   | Conflict Escalation    | DIA-100          | `worktree-conventions.md`                      |
 | 7   | Worktree Location      | DIA-100          | `WORKTREES_DIR` default in `worktrees.sh`      |
 | 8   | Bash-3 / Remote Bounds | DIA-100          | `timeout 5 git ls-remote` in `worktrees.sh`    |
+| 9   | Worktree Husky Shim    | DIA-134          | `cmd_create` husky shim copy in `worktrees.sh` |
 
 ## Module Boundaries
 

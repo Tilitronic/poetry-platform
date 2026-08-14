@@ -83,3 +83,8 @@ secrets/*
 
 # === OpenCode clipboard/screenshot artifacts (transient) ===
 .opencode/images/
+
+# === DIA-134 S2: persistent behavioral suite (design.md DD2) ===
+# Gitignored by design - session-local reconstruction of DIA-132 throwaway
+# assertions; recreate or regenerate when invariants evolve.
+scripts/__tests__/batch-d-infra.test.mjs
