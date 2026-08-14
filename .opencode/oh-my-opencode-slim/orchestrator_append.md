@@ -169,11 +169,15 @@ After all subagents return results:
 ### A1 - Batch-Dispatch Rule (Plugin-Advised)
 Every `task()` call MAY share a message ONLY when all dispatched lanes are in the
 same conflict-free batch. Approved batches: (A) read-only fan-out -
-researcher/ai-specialist/ai-auditor/code-navigator/observer in any combination;
+researcher/ai-specialist/ai-auditor/code-navigator/observer/architector in any
+combination;
 (B) single-writer + readers - one of [analyzer, conspecter, memory-manager] plus
 any read-only lanes; (C) post-fix review - reviewer + ai-auditor on a committed
-fixed point. NEVER batch: two coders, two analyzers, coder+reviewer (reviewer
-needs a fixed point), or any pair that both write memory-shelf.yaml. When in
+fixed point; (D) parallel coders - multiple @coder lanes ONLY IF each uses a
+separate git worktree and the dispatch payload asserts WORKTREE: <path> per
+coder, with disjoint file sets (plus any read-only lanes). NEVER batch: two
+analyzers, coder+reviewer (reviewer needs fixed point), or any pair that
+both write memory-shelf.yaml. When in
 doubt, serialize. The `delegation-observer` plugin warns on unsafe parallel
 `task()` batches via `tool.execute.before` - violations are logged as warnings
 in registry.jsonl (advisory, not blocking). This eliminates the
@@ -280,6 +284,7 @@ These orderings are invariant regardless of batch parallelism:
 3. [all lanes] -> memory-manager: memory-manager is the LAST lane before user response (Mandatory Final Step).
 4. openspec-plan -> coder: coder implements validated specs; no overlap.
 5. batch-approval boot gate -> any work: handoff must be approved first.
+6. parallel coders -> reviewer: per-worktree reviews MUST operate on committed fixed points inside that worktree; squash-merges to the main branch MUST be serialized (one at a time).
 
 ## Truncated/Empty Subagent Result Protocol (DIA-099, Variant A2)
 
