@@ -131,28 +131,16 @@ FAKELS
   assert_file_contains "$FAKE_DOCKER_LOG" "cd \"$POETRY_WORKSPACE\" &&"
 }
 
-@test "verify-pre-commit: blocks the hook when a .opencode/commands file contains literal /home/qualt" {
-  export FAKE_DOCKER_SERVICES="dev"
-  local commands_dir="$BATS_TEST_TMPDIR/commands-dirty"
-  mkdir -p "$commands_dir"
-  printf 'bun run "/home/qualt/.cache/opencode/telemetry/report.ts"\n' > "$commands_dir/telemetry-report.md"
-  export POETRY_COMMANDS_DIR="$commands_dir"
-
-  run bash "$SCRIPTS_DIR/verify-pre-commit.sh"
-
-  assert_status 1
-  assert_output_contains "ERROR: literal '/home/qualt'"
-  assert_output_contains "telemetry-report.md"
-  # the guard fires BEFORE container detection/delegation — docker must never
-  # be reached while a dirty .opencode/commands file exists
-  [ ! -s "$FAKE_DOCKER_LOG" ]
-}
-
-@test "verify-pre-commit: passes when no .opencode/commands file contains literal /home/qualt" {
-  export FAKE_DOCKER_SERVICES="dev"
-
-  run bash "$SCRIPTS_DIR/verify-pre-commit.sh"
-
+@test "verify-pre-commit: sources the shared home-qualt guard and calls it, with no inline definition" {
+  # F-6 (DIA-139): the /home/qualt grep behavior is canonical in
+  # guards-home-qualt.bats; the hook only needs to source the helper and
+  # call the function. Assert the wiring statically (batch-D grep pattern).
+  # The source line must exist, the call site must remain, and the inline
+  # function definition must be gone.
+  run grep -F 'scripts/guards/home-qualt.sh' "$SCRIPTS_DIR/verify-pre-commit.sh"
   assert_status 0
-  assert_output_contains "autofix passed"
+  run grep -xF 'guard_no_home_qualt' "$SCRIPTS_DIR/verify-pre-commit.sh"
+  assert_status 0
+  run grep -F 'guard_no_home_qualt()' "$SCRIPTS_DIR/verify-pre-commit.sh"
+  assert_status 1
 }

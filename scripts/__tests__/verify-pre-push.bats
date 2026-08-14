@@ -7,9 +7,10 @@
 #   2. host + container down    -> warns and exits 0 (never blocks a push)
 #   3. inside the container     -> runs pnpm directly (fake hostname + fake pnpm)
 #
-# The verification chain is: make test-shell -> make test-config -> the four
-# pnpm verify steps (DIA-118: the two host-runnable gates run BEFORE the turbo
-# chain so a shell/config regression fails fast).
+# The verification chain is: the four pnpm verify steps + make test-config in
+# fast-to-fail order, with the slow bats suite (make test-shell) LAST (F-1,
+# DIA-139: a format/typecheck failure surfaces in ~1.2 s instead of ~25 s;
+# DIA-118 originally put the make gates first, F-1 reordered them last).
 
 load test-helper
 
@@ -59,7 +60,7 @@ setup() {
   [ "$output" = "0" ]
 }
 
-@test "verify-pre-push: delegates every verification step to the dev container" {
+@test "verify-pre-push: delegates every verification step in fast-to-fail order, make test-shell last" {
   export FAKE_DOCKER_SERVICES="dev"
 
   run bash "$SCRIPTS_DIR/verify-pre-push.sh"
@@ -67,23 +68,31 @@ setup() {
   assert_status 0
   assert_output_contains "delegating to dev container"
   assert_output_contains "verification passed"
-  # DIA-118: the two host-runnable gates (make test-shell / make test-config)
-  # run first, then the four pnpm verify steps. All six must be delegated.
-  for step in "make test-shell" "make test-config" "verify:format" "verify:js" "verify:js-tests" "verify:python"; do
-    assert_file_contains "$FAKE_DOCKER_LOG" "$step"
+  # F-1 (DIA-139): all six steps are still delegated -- the fast pnpm gates
+  # and the config validator first, the slow bats suite (make test-shell)
+  # LAST so a format/typecheck failure surfaces in ~1.2 s instead of ~25 s.
+  # F-1 ORDER: each step must appear EXACTLY once, in ladder order. The log's
+  # first line is the container_running `compose ps` probe, so assert on the
+  # per-step match count and the relative index order of the single matches.
+  # End-anchored matching: the delegated command is the last arg of the
+  # `bash -lc` invocation, so `verify:js$` matches only the js line, never the
+  # js-tests line (which ends in `verify:js-tests`). A duplicate step or a
+  # swapped pair now fails the count/order check instead of being masked by
+  # first-occurrence grep (FALSIFICATION-3, DIA-139).
+  local prev=0 step count line
+  for step in "verify:format" "verify:js" "verify:js-tests" "make test-config" "verify:python" "make test-shell"; do
+    count="$(grep -cE -- "${step}\$" "$FAKE_DOCKER_LOG")"
+    [ "$count" -eq 1 ] || {
+      echo "count assertion: expected exactly 1 occurrence of '$step', got $count in $FAKE_DOCKER_LOG" >&2
+      return 1
+    }
+    line="$(grep -nE -- "${step}\$" "$FAKE_DOCKER_LOG" | cut -d: -f1)"
+    [ "$line" -gt "$prev" ] || {
+      echo "order assertion: expected '$step' at a line > $prev in $FAKE_DOCKER_LOG" >&2
+      return 1
+    }
+    prev="$line"
   done
-  # DIA-118 fail-fast ORDER: the two make gates must run BEFORE the pnpm
-  # verify chain. The log's first line is the container_running `compose ps`
-  # probe, so assert the relative index order of the delegated steps instead
-  # of fixed line numbers.
-  shell_line="$(grep -n "make test-shell" "$FAKE_DOCKER_LOG" | head -1 | cut -d: -f1)"
-  config_line="$(grep -n "make test-config" "$FAKE_DOCKER_LOG" | head -1 | cut -d: -f1)"
-  format_line="$(grep -n "verify:format" "$FAKE_DOCKER_LOG" | head -1 | cut -d: -f1)"
-  [ -n "$shell_line" ] && [ -n "$config_line" ] && [ -n "$format_line" ] \
-    && [ "$shell_line" -lt "$config_line" ] && [ "$config_line" -lt "$format_line" ] || {
-    echo "order assertion: expected shell($shell_line) < config($config_line) < format($format_line) in $FAKE_DOCKER_LOG" >&2
-    return 1
-  }
 }
 
 @test "verify-pre-push: aborts (exit 1) when a delegated step fails" {
@@ -97,7 +106,7 @@ setup() {
   assert_output_contains "verify:js"
 }
 
-@test "verify-pre-push: aborts (exit 1) when make test-shell fails, before the turbo chain" {
+@test "verify-pre-push: aborts (exit 1) when make test-shell fails, after all faster gates ran" {
   export FAKE_DOCKER_SERVICES="dev"
   export FAKE_DOCKER_FAIL_STEP="test-shell"
 
@@ -106,12 +115,15 @@ setup() {
   assert_status 1
   # the failing gate is named in the output
   assert_output_contains "make test-shell"
-  # fail-fast: the turbo chain must never be reached after the bats suite fails
-  run grep -c "verify:format" "$FAKE_DOCKER_LOG"
-  [ "$output" = "0" ]
+  # F-1 (DIA-139): test-shell is the LAST gate, so the four fast pnpm gates
+  # and the config validator must have run before it fails (they precede it
+  # in the ladder).
+  for step in "verify:format" "verify:js" "verify:js-tests" "make test-config" "verify:python"; do
+    assert_file_contains "$FAKE_DOCKER_LOG" "$step"
+  done
 }
 
-@test "verify-pre-push: aborts (exit 1) when make test-config fails, before the turbo chain" {
+@test "verify-pre-push: aborts (exit 1) when make test-config fails, after the fast pnpm gates ran" {
   export FAKE_DOCKER_SERVICES="dev"
   export FAKE_DOCKER_FAIL_STEP="test-config"
 
@@ -119,10 +131,14 @@ setup() {
 
   assert_status 1
   assert_output_contains "make test-config"
-  # the first gate (test-shell) ran before the failing second gate
-  assert_file_contains "$FAKE_DOCKER_LOG" "make test-shell"
-  # fail-fast: the turbo chain must never be reached after the config gate fails
-  run grep -c "verify:format" "$FAKE_DOCKER_LOG"
+  # F-1 (DIA-139): config sits between the fast pnpm gates and the slow bats
+  # suite, so format/js/js-tests ran BEFORE the failure ...
+  assert_file_contains "$FAKE_DOCKER_LOG" "verify:format"
+  assert_file_contains "$FAKE_DOCKER_LOG" "verify:js"
+  assert_file_contains "$FAKE_DOCKER_LOG" "verify:js-tests"
+  # ... and the slow gate (make test-shell) must NOT have run yet -- it is
+  # LAST in the ladder, so the fail-fast abort never reaches it.
+  run grep -c "make test-shell" "$FAKE_DOCKER_LOG"
   [ "$output" = "0" ]
 }
 
@@ -180,9 +196,9 @@ EOF
   assert_status 0
   assert_output_contains "running inside dev container"
   assert_output_contains "verification passed"
-  # DIA-118: the two host-runnable gates run directly (no docker) inside the
-  # container too, ahead of the four pnpm verify steps.
-  for step in "make test-shell" "make test-config" "verify:format" "verify:js" "verify:js-tests" "verify:python"; do
+  # All six ladder steps run directly (no docker) inside the container too;
+  # their F-1 fast-to-fail order is asserted in the delegation-path test.
+  for step in "verify:format" "verify:js" "verify:js-tests" "make test-config" "verify:python" "make test-shell"; do
     assert_file_contains "$DELEGATION_LOG" "$step"
   done
   # docker must never be invoked from inside the container
@@ -202,7 +218,21 @@ EOF
   assert_file_contains "$FAKE_DOCKER_LOG" "cd \"$POETRY_WORKSPACE\" &&"
 }
 
-@test "verify-pre-push: blocks the push when a .opencode/commands file contains literal /home/qualt" {
+@test "verify-pre-push: sources the shared home-qualt guard and calls it, with no inline definition" {
+  # F-6 (DIA-139): the /home/qualt grep behavior is canonical in
+  # guards-home-qualt.bats; the hook only needs to source the helper and
+  # call the function. Assert the wiring statically (batch-D grep pattern).
+  # The source line must exist, the call site must remain, and the inline
+  # function definition must be gone.
+  run grep -F 'scripts/guards/home-qualt.sh' "$SCRIPTS_DIR/verify-pre-push.sh"
+  assert_status 0
+  run grep -xF 'guard_no_home_qualt' "$SCRIPTS_DIR/verify-pre-push.sh"
+  assert_status 0
+  run grep -F 'guard_no_home_qualt()' "$SCRIPTS_DIR/verify-pre-push.sh"
+  assert_status 1
+}
+
+@test "verify-pre-push: aborts (exit 1) when the sourced guard finds a literal /home/qualt" {
   export FAKE_DOCKER_SERVICES="dev"
   local commands_dir="$BATS_TEST_TMPDIR/commands-dirty"
   mkdir -p "$commands_dir"
@@ -214,16 +244,8 @@ EOF
   assert_status 1
   assert_output_contains "ERROR: literal '/home/qualt'"
   assert_output_contains "telemetry-report.md"
-  # the guard fires BEFORE container detection/delegation — docker must never
-  # be reached while a dirty .opencode/commands file exists
+  # end-to-end wiring check (P-3, DIA-139): the sourced helper must fire
+  # BEFORE container detection/delegation -- docker must never be reached
+  # while a dirty .opencode/commands file exists
   [ ! -s "$FAKE_DOCKER_LOG" ]
-}
-
-@test "verify-pre-push: passes when no .opencode/commands file contains literal /home/qualt" {
-  export FAKE_DOCKER_SERVICES="dev"
-
-  run bash "$SCRIPTS_DIR/verify-pre-push.sh"
-
-  assert_status 0
-  assert_output_contains "verification passed"
 }

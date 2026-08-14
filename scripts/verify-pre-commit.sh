@@ -41,25 +41,12 @@ run_workspace() {
   fi
 }
 
-# guard_no_home_qualt: blocks a recurring-writer regression — an unidentified
-# local writer periodically rewrites .opencode/commands/*.md from the portable
-# ${HOME:?HOME must be set} back to the literal /home/qualt path (PR #2
-# comments #2/#3 fixed the original; the writer is unknown, so make the
-# regression impossible to commit instead of chasing it). Runs on the host
-# BEFORE container detection/delegation so the husky hooks reject dirty files
-# even when the dev container is down.
-guard_no_home_qualt() {
-  local hits file
-  # grep -l lists the offending files (full paths); no match exits 1 — the
-  # clean case, so nothing is printed and the guard passes.
-  hits="$(grep -lF '/home/qualt' "$COMMANDS_DIR"/*.md 2>/dev/null || true)"
-  if [ -n "$hits" ]; then
-    while IFS= read -r file; do
-      echo "ERROR: literal '/home/qualt' found in ${file#$ROOT/} — use \${HOME:?HOME must be set} (portability; PR #2 comments #2/#3 fix)" >&2
-    done <<< "$hits"
-    exit 1
-  fi
-}
+# /home/qualt regression guard (F-6, DIA-139): the body lives in
+# scripts/guards/home-qualt.sh so both hooks share one canonical definition
+# (canonical grep tests: scripts/__tests__/guards-home-qualt.bats). Sourced on
+# the host BEFORE container detection/delegation so the husky hooks reject
+# dirty files even when the dev container is down.
+source "$(git rev-parse --show-toplevel)/scripts/guards/home-qualt.sh"
 
 # Fire the guard before any container logic: husky invokes this hook on the
 # host, so the regression is blocked at commit time on the host.

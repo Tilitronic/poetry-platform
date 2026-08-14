@@ -62,25 +62,12 @@ run_workspace() {
   fi
 }
 
-# guard_no_home_qualt: blocks a recurring-writer regression — an unidentified
-# local writer periodically rewrites .opencode/commands/*.md from the portable
-# ${HOME:?HOME must be set} back to the literal /home/qualt path (PR #2
-# comments #2/#3 fixed the original; the writer is unknown, so make the
-# regression impossible to commit instead of chasing it). Runs on the host
-# BEFORE container detection/delegation so the husky hooks reject dirty files
-# even when the dev container is down.
-guard_no_home_qualt() {
-  local hits file
-  # grep -l lists the offending files (full paths); no match exits 1 — the
-  # clean case, so nothing is printed and the guard passes.
-  hits="$(grep -lF '/home/qualt' "$COMMANDS_DIR"/*.md 2>/dev/null || true)"
-  if [ -n "$hits" ]; then
-    while IFS= read -r file; do
-      echo "ERROR: literal '/home/qualt' found in ${file#$ROOT/} — use \${HOME:?HOME must be set} (portability; PR #2 comments #2/#3 fix)" >&2
-    done <<< "$hits"
-    exit 1
-  fi
-}
+# /home/qualt regression guard (F-6, DIA-139): the body lives in
+# scripts/guards/home-qualt.sh so both hooks share one canonical definition
+# (canonical grep tests: scripts/__tests__/guards-home-qualt.bats). Sourced on
+# the host BEFORE container detection/delegation so the husky hooks reject
+# dirty files even when the dev container is down.
+source "$(git rev-parse --show-toplevel)/scripts/guards/home-qualt.sh"
 
 # Fire the guard before any container logic: husky invokes this hook on the
 # host, so the regression is blocked at push time on the host.
@@ -96,22 +83,23 @@ else
   echo "== poetry-platform pre-push: delegating to dev container =="
 fi
 
-# Host-runnable gates FIRST (DIA-118, ana014 C2/C3): the bats suite
-# (make test-shell, 100+ tests) and the OpenCode config validators
-# (make test-config: agent-name drift, JSONC, skill frontmatter) are the only
-# automated safety net for shell dev-infra and the opencode config surface.
-# They run BEFORE the slow turbo chain so a shell/config regression fails
-# fast. Delegated via run_workspace like every other step (the audit's own
-# example): the container ships make, bats is vendored on the shared
-# /workspace mount, and the pre-push contract (warn+pass when the container
-# is down, DIA-094) is preserved. Hosts without make never reach these lines
-# because they cannot have started the stack (make is the documented entrypoint).
+# Fast-to-fail step ladder (F-1, DIA-139): six steps in the order format, js,
+# js-tests, test-config, python, test-shell LAST. The four fast pnpm gates and
+# the OpenCode config validator (make test-config: agent-name drift, JSONC,
+# skill frontmatter) surface a regression in ~1.2 s instead of ~25 s; the slow
+# bats suite (make test-shell, 100+ tests) is the final step so a
+# format/typecheck failure aborts before it ever runs. Delegated via
+# run_workspace like every other step: the container ships make, bats is
+# vendored on the shared /workspace mount, and the pre-push contract
+# (warn+pass when the container is down, DIA-094) is preserved. Hosts without
+# make never reach these lines because they cannot have started the stack
+# (make is the documented entrypoint).
 export VERIFY_PRE_PUSH_RUNNING=1
-run_workspace "make test-shell"
-run_workspace "make test-config"
 run_workspace "pnpm verify:format"
 run_workspace "pnpm verify:js"
 run_workspace "pnpm verify:js-tests"
+run_workspace "make test-config"
 run_workspace "pnpm verify:python"
+run_workspace "make test-shell"
 
 echo "== poetry-platform pre-push: verification passed =="
