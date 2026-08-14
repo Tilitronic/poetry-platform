@@ -6,7 +6,7 @@ id: DIA-134
 title: "Batch D infra hardening: worktree hooks, test persistence, branch-ownership payloads, dispatch tokens (DIA-132 retrospective)"
 area: dev-infra
 severity: Major
-status: OPEN
+status: DONE
 blocked_by: [] # DIA-NNN refs, or empty
 discovered: 2026-08-14
 source: DIA-132 retrospective (2026-08-14)
@@ -147,7 +147,72 @@ For the 6 scope items: see each item's own verification under Description.
 
 ## Fix
 
-> To be filled at fix time.
+Applied 2026-08-14 via OpenSpec change 'batch-d-infra-hardening' (implemented
+on 4 worktree feature branches: shim/tests/prompts/process, base c9aaa33;
+reviewed + ai-auditor APPROVE + combined review MERGE-READY; merged 2026-08-14
+via 4 serialized squash-merges 05c75fe..510e60b on omo-slim-changes). All 6
+items implemented across slices S1-S4:
+
+1. **Worktree husky-shim gap (S1, feature/dia134-shim 644c3a1):**
+   `scripts/worktrees.sh create` now materializes the `.husky/_` shim in each
+   new worktree (copied from the main tree, real directory not symlink);
+   pre-commit + `scripts/verify-pre-commit.sh` now fire on worktree commits.
+   Bats T17-T19 cover it (materialize / fail-loud when main tree lacks
+   .husky/\_ / directory-not-symlink).
+2. **Test persistence (S2, feature/dia134-tests f810db5 + 7a96fab):** the
+   plugin/config behavioral suite lives as a persistent, gitignored file
+   `scripts/__tests__/batch-d-infra.test.mjs` (43 tests, plain node ESM, zero
+   npm deps) and is wired into `make test-config` via Makefile, so
+   RED/GREEN/merge-verify always re-run the SAME file. Suite file GITIGNORED
+   per design.md DD2 (not carried by git; see deferrals). .gitignore rule
+   added; .sdd/dev-infra/architecture.md ADR 9 (persistent behavioral suite
+   gitignored by design) + DD1 ADR.
+3. **Branch-ownership in batch D payloads (S3, feature/dia134-prompts
+   2a8ea4f + 9339b54):** `coder_append.md` worktree-confinement directive
+   extended with the explicit branch model — "worktree base = <shared sha>";
+   "sibling branches own other slices' files"; "edit ONLY your assigned
+   files"; "disjoint file sets"; payloads "name the owned files" per slice
+   (5 required phrases, asserted by suite S3 AC 3.1).
+4. **Ticket-ID token in dispatch/resume prompts (S4, feature/dia134-process
+   b732713 + fb7c0c4):** orchestrator_append.md R1 + AGENTS.md section 2.3
+   codify that EVERY dispatch AND resume prompt MUST carry the literal ticket
+   ID; DIA-063 gate blocks prompts without it.
+5. **Architector design persistence (S4):** orchestrator_append.md R2 +
+   AGENTS.md section 2.3: after each @architector design dispatch, persist the
+   design text into the DIA ticket (or a .sdd draft) before implementation, so
+   reviewers can diff verbatim claims.
+6. **Merge-gate container evidence (S4):** orchestrator_append.md R3 +
+   AGENTS.md section 2.3 tail: the merge phase may start only with recorded
+   `docker compose ps` output showing the dev service Up, committed into the
+   merge report; session log must record container state before merge
+   dispatch. This ticket's own close-out satisfied it (poetry-dev Up,
+   evidence in the S5 merge session).
+
+Process: TDD RED-GREEN per worktree; two-axis reviews closed; ai-auditor
+independent audit APPROVE; combined review MERGE-READY; merged via 4
+serialized squash-merges (05c75fe S1, aec1bd3 S2, 6a35466 S3, 510e60b S4);
+husky pre-commit hook PASSED on every merge commit (no --no-verify, DIA-094
+docker gate respected — poetry-dev Up at merge time).
+
+Post-merge verification (2026-08-14, exit codes all 0):
+
+- `TEST_ROOT=/workspace node scripts/__tests__/batch-d-infra.test.mjs`:
+  43/43 PASS, exit 0.
+- bats over scripts/**tests**: 240 ok incl. T17-T19, exit 0.
+- `bash .opencode/scripts/validate-opencode-config.sh`: exit 0.
+- `bash scripts/validate-agent-names.sh`: 24 passed, 0 failed, exit 0.
+- Lockstep greps green: 'two coders' 0 in oh-my-opencode-slim.jsonc +
+  orchestrator_append.md; architector in batch A in all 3 presets + A1;
+  batch D clause present (3 presets); R1/R2/R3 phrases in
+  orchestrator_append.md + AGENTS.md; 5 branch-ownership phrases in
+  coder_append.md.
+
+Accepted deferrals:
+
+- Suite file `scripts/__tests__/batch-d-infra.test.mjs` is gitignored per
+  design.md DD2; on fresh clones / worktrees it must be copied from the S2
+  worktree (`.worktrees/feature-dia134-tests/scripts/__tests__/`) when
+  re-materializing — `make test-config` will fail on main until copied.
 
 ## Re-verify
 
