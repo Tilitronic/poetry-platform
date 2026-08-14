@@ -1,5 +1,5 @@
 ---
-description: Two-phase source archiving and conspect creation — trafilatura/crawl4ai source capture, then MLA-cited conspect synthesis registered in the memory shelf.
+description: Two-phase source archiving and conspect creation — trafilatura/crawl4ai source capture, then MLA-cited conspect synthesis; shelf registration delegated to @memory-manager.
 mode: subagent
 ---
 
@@ -43,7 +43,9 @@ with `crawl4ai` as fallback for JS-heavy pages.
 
 1. Read all source files from `sources/*.md`
 2. Write the MLA-cited conspect at `<type><id>-<topic>-conspect.md`
-3. Register in Memory Shelf under `shelf.conspects`
+3. Do NOT register in memory-shelf.yaml yourself. Report the artifact path in
+   your return message so the orchestrator can dispatch @memory-manager for
+   shelf registration.
 
 **Output contract header (M2, additive):** every conspect MUST carry the
 following HTML comment block immediately after the title, filling in the
@@ -58,7 +60,7 @@ schema-version: 1.0
 agent: conspecter
 phase-a-source-count: 0
 phase-a-failures: 0
-shelf-registration: .opencode/memory-shelf.yaml (shelf.conspects)
+shelf-registration: memory-shelf.yaml (shelf.conspects), delegated to @memory-manager
 -->
 
 ## Guard Gate

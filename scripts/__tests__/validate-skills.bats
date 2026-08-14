@@ -483,13 +483,19 @@ Use when running the validation suite.
   assert_output_not_contains "near-duplicate skill"
 }
 
-@test "validate-skills: missing global skills dir exits 2 (INFRA)" {
+@test "validate-skills: missing global skills dir warns and skips dup tier (exit 0)" {
+  # Contract change 2026-08-12 (DIA-071): the global skills tree is OPTIONAL -
+  # environments without one (poetry-dev image) get a warn + skipped
+  # duplicate-detection tier, not an INFRA exit. Frontmatter validation (the
+  # DIA-037 core purpose) is unaffected by the missing tree.
   valid_skill "good-skill"
 
   SKILLS_ROOT="$FIXTURES" GLOBAL_SKILLS_ROOT="$FIXTURES/does-not-exist" run bash "$SKILLS_SCRIPT"
 
-  assert_status 2
-  assert_output_contains "global skills directory not found"
+  assert_status 0
+  assert_output_contains "warn: global skills directory not found"
+  assert_output_contains "duplicate-detection tier skipped"
+  assert_output_not_contains "FAIL:"
 }
 
 @test "validate-skills: multiple byte-exact duplicates are all reported (collect-all)" {

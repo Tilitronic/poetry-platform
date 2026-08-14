@@ -80,6 +80,10 @@ shelf:
     description: 'Conspect closing the DIA-116 evidence gap with authoritative third-party benchmark evidence for the three Rung-3 coder-escalation candidates (21 fresh archived sources + 1 documented failure; cross-refs res013/014/015/016, ana014). Key independent reproductions: kimi-k3 SWE-bench Verified 93.40% (Vals AI mini-swe-agent bash-only harness, leaderboard updated 2026-08-08 - the DIA-114-flagged missing reproduction, strongest open-weight model); deepseek-v4-pro SWE-bench Verified 74% (NIST CAISI, U.S. government, Inspect ReAct, 2026-05-01, IRT Elo 800, "lags frontier ~8 months", vendor 80.6% flagged Unverified on evals.report); mimo-v2.5-pro has NO independent coding-benchmark reproduction (78.9% headline vendor-only, Xiaomi card/mimo.xiaomi.com; only independent datum is AA Intelligence Index composite 43). AA Intelligence Index: kimi-k3 57.11-60 vs deepseek-v4-pro 45 vs mimo 43. Terminal-Bench 2.1: kimi-k3 88.3 vendor (Kimi Code) / 85.0 AA (Terminus 2, II v4.1.1 component) / 80.9 Vals-harness; deepseek-v4-pro 72.1 (Vals leaderboard, preview row); mimo 57.3 (Vals). VERDICT: keep kimi-k3 coder-escalated default (only candidate with independent headline-benchmark reproduction; 490 req/mo cap at $3/$15 binding); Rung-3 fallback prefer deepseek-v4-pro over mimo-v2.5-pro (REVERSES DIA-114 provisional MiMo pick - deepseek has CAISI independent evidence, mimo has none, both $0.435/$0.87); cap note kimi-k3 ~13x pricier per token (~$2.31/M AA blended vs $0.18/M co-candidates). Correction C1: DIA-114 evidence gap RESOLVED (kimi-k3), PARTIAL (deepseek), OPEN (mimo); evidence basis is authoritative sources (no self-benchmarking per developer directive 2026-08-12; ana014 in-repo protocol cancelled). 1 unarchived source (llm-stats.com, anti-bot wall; TB 2.1 covered by benchmarklist/AA archives).'
     path: knowledge/res017-rung3-benchmark-evidence/res017-rung3-benchmark-evidence-conspect.md
     created: 2026-08-12
+  - name: OpenCode Agent Presets (models/temperature/reasoning effort) for Go + Copilot workflow
+    description: 'Conspect synthesizing optimal agent presets for the OpenCode Go + Copilot workflow from 19 archived sources: DeepSeek V4 Flash specs (284B/13B MoE, 1M ctx, 384K out, Non-think/High/Max modes, reasoning_effort low/high/xhigh/max -> low/high/high/max on Flash, temp inert in thinking mode, temp=0.0 for deterministic coding, agentic scores Terminal Bench 2.1 82.7 / DeepSWE 54.4 / Toolathlon 70.3); GPT 5.6 Luna (nano tier, 1M ctx, 128K out, reasoning.effort none..max, Coding Agent Index 74.6, $0.2/$1.2); Go 2x-usage promo tags (Flash $0.07/$0.14, Luna $0.10/$0.60 per tracker), request budgets (Flash 31,650/5h and 158,150/mo at $60 tier; Luna 2,050/5h and 10,250/mo at $15 tier), $12/5h $30/wk $60/mo caps, config id opencode-go/<model-id>; Copilot credit billing (1 credit = $0.01, Pro 1,500/mo), Copilot-only models (GPT-5.3-Codex, Sol/Terra, Claude Sonnet 4.x, Gemini 3.1 Pro; Grok 4.5 IS on Go - brief corrected), CLI BYOK + ACP; per-role temperature bands (code 0.0-0.3, review 0.0-0.2, architecture 0.2-0.4, spec 0.1-0.3, research 0.5-0.7); reasoning effort (medium beats high on code, high for architecture/debug/security); recommended preset delta (coder += Luna secondary, designer += Luna fallback, reviewer reasoningEffort=medium, temps unchanged) - RECOMMENDATION NOT APPLIED (developer declined 2026-08-12). Fills the temperature/reasoning gap vs res013 (pricing only).'
+    path: knowledge/res014-opencode-agent-presets/res014-opencode-agent-presets-conspect.md
+    created: 2026-08-12
   - name: Ticket Management Automation (DIA-125)
     description: 'Conspect for DIA-125 (OPEN research ticket): evaluate ready-made local
       solutions (MCP/self-hosted) vs manual ledger for ticket creation and management
@@ -399,6 +403,45 @@ shelf:
       ai-specialist gate (2026-08-13).'
     path: "knowledge/ana018-research-lane-optimization/ana018-research-lane-optimization-report.md"
     created: 2026-08-13
+  - name: "Agent Instruction Files Audit (DIA-114)"
+    description: "Cross-reference audit of 50 instruction-bearing files (AGENTS.md, .opencode/agents/*.md, .opencode/skills/*/SKILL.md, practice-protected.md, opencode.jsonc, oh-my-opencode-slim.jsonc, OMO *.md appendices, 11 TS agent factories, NEXT-RUN.md, HANDOFF.md template). 2 Critical findings: (F1) orchestrator preset prompt references non-existent HANDOFF.md in all 3 presets -- runtime file is .opencode/session/current-handoff.json; (F2) phantom AGENTS.md §10 referenced from orchestrator_append.md + NEXT-RUN.md + all 3 preset prompts but missing from actual AGENTS.md. 4 High: (F3) dead boss_append.md (80% duplicate of orchestrator_append.md); (F4) reviewer.ts factory prompt != reviewer.md two-axis intent; (F5) researcher.ts factory prompt lacks PERSISTENCE_RECOMMENDED flag the orchestrator depends on; (F6) byte-identical orchestrator/coder/researcher prompts duplicated across 3 presets (drift-guaranteed). 6 Medium: (F7) AGENTS.md §9 table readability for 6 disabled aliases; (F8) memory-manager.md emoji violates DIA-079; (F9) analyzer has 3 overlapping prompt sources; (F10) stale .tss/ placeholder in AGENTS.md; (F11) boss.ts AGENT_DESCRIPTIONS missing 14 agents undocumented; (F12) NEXT-RUN.md HANDOFF.md vs current-handoff.json name ambiguity; (F13) orchestrator_append.md ~80% overlaps AGENTS.md §2. 6 Low. Cross-reference matrix of 18 agents across 5 source categories. Remediation ~14h."
+    path: "knowledge/ana013-agent-instruction-audit/ana013-agent-instruction-audit-report.md"
+    created: 2026-08-12
+  - name: "Hook Test Coverage Audit (DIA-115)"
+    description: "Audit of pre-commit/pre-push hook test coverage. 3 CRITICAL findings:\
+      \ (C1) turbo.json `test` task `inputs` field masks source-code regressions (cached\
+      \ test result returned when only src/** changes, no test files touched — active\
+      \ misconfiguration); (C2) `make test-shell` (100+ bats tests for all shell dev-infra\
+      \ artifacts including the hook scripts themselves) is NOT wired into any hook; (C3)\
+      \ `make test-config` (8 OpenCode config validators) is NOT wired into any hook. 6 HIGH:\
+      \ (H1) no timeout on turbo invocations, hook can hang indefinitely; (H2) no test for\
+      \ pnpm verify:js multi-step failure chain; (H3) turbo lint/typecheck empty config means\
+      \ workspaces without lint scripts silently skip; (H4) docker-daemon-down path not in bats\
+      \ matrix; (H5) verify-python.bats missing 4 branches (pytest fail, 2nd package fail, uv\
+      \ missing, ruff-format --check fail); (H6) no test for lint-staged config validity. 7 MEDIUM,\
+      \ 5 LOW. Gate map: pre-commit runs lint-staged (eslint --fix + prettier + ruff + bash -n),\
+      \ pre-push runs pnpm verify:format + verify:js (turbo lint+typecheck) + verify:js-tests\
+      \ (turbo test) + verify:python (ruff+pytest x2). Bats coverage: 24 tests across 4 hook-related\
+      \ bats files (verify-pre-commit 7, verify-pre-push 7, verify-python 4, lint-python-files 6).\
+      \ Top-3 fixes ranked by impact/effort: C1 (5 min), C2 (2h), C3 (2h) = ~4h total to close\
+      \ the two largest coverage holes."
+    path: "knowledge/ana014-hook-test-coverage/ana014-hook-test-coverage-report.md"
+    created: 2026-08-12
+  - name: "Ponytail Test Suite Audit (ana01)"
+    description: "Ponytail audit of the full test suite across 30 test files: 37 findings
+      total - 3 errors, 6 repetition, 9 gaps, 4 extra code, 4 dangerous spots, 6 smells,
+      5 ponytail recommendations."
+    path: knowledge/ana01-tests-ponytail-audit/ana01-tests-ponytail-audit-report.md
+    created: 2026-08-12
+  - id: ana015
+    name: verify-pre-push recursion fork-bomb root-cause analysis (DIA-118 regression)
+    title: verify-pre-push recursion fork-bomb root-cause analysis - DIA-118 regression
+    description: "Root-cause analysis of the recursion fork-bomb regression in scripts/verify-pre-push.sh. Introduced by commit 49d587a (DIA-118) wiring `make test-shell` into the pre-push script; root cause is absence of a re-entrancy guard in the script itself (hostname==poetry-dev branch re-enters the suite). Test-side hostname shim (commit bb18099, DIA-071) is necessary-but-not-sufficient defense (covers bats only, not manual/husky invocations). ~18s cycle, 6+ levels deep, dozens of /tmp/bats-run-* dirs, live chains 1.5h. Recommends minimal env-flag propagation guard (VERIFY_PRE_PUSH_RUNNING) with a one-line test-side unset to preserve the direct-run test. 5 lines added, zero tests broken."
+    path: "knowledge/ana015-recursion-fork-bomb/ana015-recursion-fork-bomb-report.md"
+    created: 2026-08-12
+    date: 2026-08-12
+    task_ref: DIA-122
+    status: completed
   adrs:
   - name: Memory Storage Strategy
     description: 'Evaluation of Claude-Mem, Honcho, and current hand-written memory

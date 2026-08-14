@@ -87,6 +87,11 @@ for future sessions.
   mode of the same checksum mechanism).
 - **DIA-063** — batch-approval boot gate / ticket-creation gate (gate forbids
   delegation before approval, deadlocking this step).
+- **DIA-092** - snip@1.6.1 plugin removal (root cause of the DIA-075/DIA-078
+  bash-lane mechanical lock; its removal unblocked all bash lanes. This
+  ticket tracks the standing checksum-delegation rules, which are
+  independent scope and remain OPEN. Cross-reference only: 092 is the
+  root-cause fix for the snip lock class, not for the delegation rules).
 
 ## Verification
 

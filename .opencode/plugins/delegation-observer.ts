@@ -15,7 +15,8 @@
  * edited directly.
  *
  * Hook surface (real @opencode-ai/plugin@1.18.10 shapes):
- *  - "tool.execute.before"  (input, output) — A1 pure-dispatch enforcement
+ *  - "tool.execute.before"  (input, output) - A1 batch-dispatch check (warns
+ *    on unsafe parallel task() batches per DIA-120/BATCH-DISPATCH A/B/C)
  *  - "tool.execute.after"   (input, output) — A2 task_id capture (parsed from
  *    output.output, a text string; input.result does not exist) + DIA-105
  *    edit-time formatter hook (PostToolUse pattern): after an agent edits a
@@ -32,7 +33,8 @@
  *  - "experimental.session.compacting" (input, output) — inject active
  *    registry snapshot so delegations survive context compaction
  *
- * Design rules enforced: A1 pure-dispatch, A2 task_id capture, A3 retroactive
+ * Design rules enforced: A1 batch-dispatch check (warns on unsafe parallel
+ * task() batches; advisory not blocking), A2 task_id capture, A3 retroactive
  * consistency, A4 append-only registry discipline, A5 final-message gate,
  * C3 forward-only status transitions (S2 guard), DIA-105 edit-time format
  * (non-fatal, ignore-set-scoped, deterministic local prettier).
@@ -377,6 +379,52 @@ function extractPatchPaths(patchText: string): string[] {
   return paths
 }
 
+// DIA-120: approved conflict-free parallel task() batch patterns (mirror of
+// the BATCH-DISPATCH rule in oh-my-opencode-slim.jsonc). READ_ONLY_LANES
+// never write project files; WRITER_LANES write memory-shelf.yaml / knowledge
+// artifacts — at most ONE writer may appear in a batch (rule B).
+const READ_ONLY_LANES = new Set([
+  "researcher",
+  "ai-specialist",
+  "ai-auditor",
+  "code-navigator",
+  "observer",
+])
+const WRITER_LANES = new Set(["analyzer", "conspecter", "memory-manager"])
+
+/**
+ * DIA-120: classify a parallel task() batch (the subagent_types of the task()
+ * calls in one assistant turn) as SAFE or UNSAFE. Approved batches:
+ *   (A) read-only fan-out — every agent in READ_ONLY_LANES;
+ *   (B) single-writer + readers — at most one WRITER_LANES agent present and
+ *       all other agents read-only;
+ *   (C) post-fix review — exactly the pair reviewer + ai-auditor.
+ * Everything else (two coders, writer pairs, coder+reviewer, unknown lanes)
+ * is UNSAFE — when in doubt, warn.
+ */
+function isSafeTaskBatch(agents: string[]): boolean {
+  if (agents.length === 0) return false
+  // (A) read-only fan-out.
+  if (agents.every((a) => READ_ONLY_LANES.has(a))) return true
+  // (B) single-writer + read-only readers.
+  const writers = agents.filter((a) => WRITER_LANES.has(a))
+  if (
+    writers.length <= 1 &&
+    agents.every((a) => READ_ONLY_LANES.has(a) || WRITER_LANES.has(a))
+  ) {
+    return true
+  }
+  // (C) post-fix review pair.
+  if (
+    agents.length === 2 &&
+    agents.includes("reviewer") &&
+    agents.includes("ai-auditor")
+  ) {
+    return true
+  }
+  return false
+}
+
 const delegationObserver: Plugin = async (ctx) => {
   // DIA-123: capture the process-start timestamp FIRST — before any file I/O —
   // so the boot event carries the plugin-load (≈ process start) time, not the
@@ -598,11 +646,17 @@ const delegationObserver: Plugin = async (ctx) => {
     }
   }
 
-  // sessionID -> tools executed in the current assistant turn (A1 heuristic).
-  // There is no message_id in the hook input, so we group by session and reset
-  // on tool.execute.after. Parallel tool calls fire all `before` hooks before
-  // any `after` hook, so task()+other tools in one message is still detected.
-  const turnToolCalls = new Map<string, string[]>()
+  // sessionID -> tool calls executed in the current assistant turn (A1
+  // heuristic). There is no message_id in the hook input, so we group by
+  // session and reset on tool.execute.after. Parallel tool calls fire all
+  // `before` hooks before any `after` hook, so task()+other tools in one
+  // message is still detected. Each entry also carries the task()
+  // subagent_type (DIA-120) so the A1 batch check can classify the parallel
+  // task() lanes against the approved BATCH-DISPATCH patterns.
+  const turnToolCalls = new Map<
+    string,
+    Array<{ tool: string; subagent_type?: string }>
+  >()
 
   // sessionID -> lifecycle metadata captured at session.created. Used to
   // distinguish the orchestrator's own session (root, no parentID) from child
@@ -1101,28 +1155,49 @@ const delegationObserver: Plugin = async (ctx) => {
   }
 
   const hooks: Hooks = {
-    // A1: enforce pure-dispatch — task() must be the SOLE tool call in its
-    // message. Grouped per session (message_id does not exist in the input);
-    // the per-session list is reset on tool.execute.after.
+    // A1: warn on task() calls sharing a message when the parallel task()
+    // batch is not an approved conflict-free pattern (DIA-120; BATCH-DISPATCH
+    // rule A/B/C). Grouped per session (message_id does not exist in the
+    // input); the per-session list is reset on tool.execute.after.
     "tool.execute.before": async (input, output) => {
       const calls = turnToolCalls.get(input.sessionID) ?? []
-      calls.push(input.tool)
+      // Capture subagent_type alongside the tool name — same runtime args
+      // contract as the ticket-gate block below (task args live in
+      // output.args, read through unknown) — so the DIA-120 batch check can
+      // classify the parallel task() lanes. Non-task tools carry no agent.
+      const taskArgs =
+        input.tool === "task"
+          ? ((output as unknown as { args?: unknown }).args ?? {})
+          : {}
+      const taskSubagent =
+        typeof (taskArgs as Record<string, unknown>).subagent_type === "string"
+          ? ((taskArgs as Record<string, unknown>).subagent_type as string)
+          : undefined
+      calls.push({ tool: input.tool, subagent_type: taskSubagent })
       turnToolCalls.set(input.sessionID, calls)
       if (input.tool === "task" && calls.length > 1) {
-        ctx.client.app.log({
-          body: {
-            service: "delegation-observer",
-            level: "warn",
-            message: `[delegation-observer] A1 VIOLATION: task() called alongside ${calls.length - 1} other tool(s) in session ${input.sessionID}`,
-          },
-        })
-        appendRow({
-          event: "a1_violation",
-          session_id: input.sessionID,
-          call_id: input.callID,
-          tools: [...calls],
-          writer: "plugin",
-        })
+        // DIA-120: warn only when the parallel task() batch is UNSAFE.
+        // Approved conflict-free batches (BATCH-DISPATCH rule A/B/C) pass
+        // silently; unrecognized/unknown lanes keep the default warn.
+        const taskAgents = calls
+          .filter((c) => c.tool === "task")
+          .map((c) => c.subagent_type ?? "")
+        if (!isSafeTaskBatch(taskAgents)) {
+          ctx.client.app.log({
+            body: {
+              service: "delegation-observer",
+              level: "warn",
+              message: `[delegation-observer] A1 VIOLATION: task() called alongside ${calls.length - 1} other tool(s) in session ${input.sessionID}`,
+            },
+          })
+          appendRow({
+            event: "a1_violation",
+            session_id: input.sessionID,
+            call_id: input.callID,
+            tools: calls.map((c) => c.tool),
+            writer: "plugin",
+          })
+        }
       }
 
       // §10 gate: mechanically block edits to .opencode/ and AGENTS.md until

@@ -47,37 +47,33 @@ fi
 # --- Syntax-check every plain shell artifact we test -------------------------
 # (.bats files use bats' @test preprocessor syntax and are NOT valid bash —
 # bats itself reports syntax errors in them.)
-for script in \
-  "$ROOT/scripts/dev-stack.sh" \
-  "$ROOT/dev-entrypoint.sh" \
-  "$ROOT/scripts/dev-secrets-profile.sh" \
-  "$ROOT/scripts/test-docker-smoke.sh" \
-  "$ROOT/scripts/gen-jsconfig.sh" \
-  "$ROOT/scripts/verify-pre-push.sh" \
-  "$ROOT/scripts/verify-pre-commit.sh" \
-  "$ROOT/scripts/verify-python.sh" \
-  "$ROOT/scripts/lint-python-files.sh" \
-  "$ROOT/scripts/check-pin-sync.sh" \
-  "$ROOT/scripts/check-tools.sh" \
-  "$ROOT/scripts/check-host-jq.sh" \
-  "$ROOT/scripts/check-host-lsp.sh" \
-  "$ROOT/scripts/install-host-lsp.sh" \
-  "$ROOT/scripts/session-log" \
-  "$ROOT/scripts/ticker-render.sh" \
-  "$ROOT/scripts/check-opencode-docker.sh" \
-  "$ROOT/scripts/author-studio-probe-guard.sh" \
-  "$ROOT/scripts/validate-handoff.sh" \
-  "$ROOT/scripts/validate-agent-names.sh" \
-  "$ROOT/scripts/eval-lite.sh" \
-  "$ROOT/scripts/worktrees.sh" \
-  "$ROOT/scripts/overnight.sh" \
-  "$ROOT/scripts/tickets" \
-  "$ROOT/.opencode/scripts/validate-skills.sh" \
-  "$ROOT/.opencode/scripts/jsonl-cross-check.sh" \
-  "$ROOT/scripts/__tests__/test-helper.bash" \
-  "$ROOT/scripts/__tests__/check-bats-vendor-drift.sh"; do
+#
+# Auto-discovered (DIA-125): every *.sh under scripts/ and .opencode/scripts/,
+# plus dev-entrypoint.sh (repo root) and the three extension-less artifacts
+# scripts/session-log, scripts/__tests__/test-helper.bash, and scripts/tickets
+# (the DIA ledger CLI). New shell scripts get syntax-checked for free — no
+# hand-maintained list.
+#
+# Exclusion escape hatch: append path substrings to BASH_N_EXCLUDE for files
+# that must NOT be syntax-checked (deliberately non-bash, generated, or
+# third-party). Each entry is matched as a substring of the discovered path.
+BASH_N_EXCLUDE=(
+  # none currently
+)
+
+while IFS= read -r -d '' script; do
+  for excl in "${BASH_N_EXCLUDE[@]}"; do
+    case "$script" in
+      *"$excl"*) continue 2 ;;
+    esac
+  done
+
   bash -n "$script"
-done
+done < <(
+  find "$ROOT/scripts" "$ROOT/.opencode/scripts" \
+    -type f \( -name '*.sh' -o -name 'test-helper.bash' -o -name 'session-log' -o -name 'tickets' \) -print0
+  find "$ROOT" -maxdepth 1 -name '*.sh' -print0
+)
 echo "ok: shell syntax (bash -n) passed for all scripts under test"
 
 # --- Syntax-check the Node dev-infra script (node --check, not bash -n) -------

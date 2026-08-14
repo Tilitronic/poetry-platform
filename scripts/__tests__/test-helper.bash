@@ -129,6 +129,48 @@ FAKEDOCKER
   export PATH
 }
 
+# mock_docker_down: plants a fake `docker` on PATH whose every probe FAILS
+# (exit 1, no output) — the "dev container DOWN" path, so host fallbacks run.
+# Per design.md Decision 7 any probe failure means "dev container
+# unavailable". Prepends the shim dir to PATH and echoes it; callers that
+# build an explicit hermetic PATH (env PATH=...) can use the echoed dir and
+# ignore the prepend. Consolidated from check-host-lsp.bats + eval-lite.bats
+# (DIA-125).
+mock_docker_down() {
+  local bindir="$BATS_TEST_TMPDIR/fakebin"
+  mkdir -p "$bindir"
+  cat > "$bindir/docker" <<'FAKEDOCKER'
+#!/usr/bin/env bash
+# Fake docker: container DOWN -> every probe fails.
+exit 1
+FAKEDOCKER
+  chmod +x "$bindir/docker"
+  PATH="$bindir:$PATH"
+  export PATH
+  echo "$bindir"
+}
+
+# setup_hermetic_host_context: fake hostname on PATH + isolated
+# POETRY_COMMANDS_DIR, so tests exercise the HOST + container-running
+# delegation path regardless of where the suite runs (DIA-071, 2026-08-12).
+# When the suite runs INSIDE poetry-dev the real hostname IS poetry-dev, so
+# is_in_dev_container would flip to the direct-execution path and recurse
+# into the real gate chain (unbounded hang). A fake hostname keeps every
+# non-direct test in the delegation path; the dedicated "runs steps
+# directly" tests shadow it with their own poetry-dev fake. The isolated
+# POETRY_COMMANDS_DIR (mirror of the POETRY_WORKSPACE override) keeps the
+# /home/qualt guard hermetic regardless of the real repo's
+# .opencode/commands state.
+setup_hermetic_host_context() {
+  local hostbindir="$BATS_TEST_TMPDIR/hostbin"
+  mkdir -p "$hostbindir"
+  printf '#!/usr/bin/env bash\necho "host-machine"\n' > "$hostbindir/hostname"
+  chmod +x "$hostbindir/hostname"
+  export PATH="$hostbindir:$PATH"
+  export POETRY_COMMANDS_DIR="$BATS_TEST_TMPDIR/commands"
+  mkdir -p "$POETRY_COMMANDS_DIR"
+}
+
 # setup_dev_stack_tree: copies scripts/dev-stack.sh + .env.example into an
 # isolated temp tree so the script never touches the real repo .env.
 # Echoes the tree root.

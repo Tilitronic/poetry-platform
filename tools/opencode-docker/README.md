@@ -95,6 +95,14 @@ This container implements defense-in-depth with multiple security layers:
 - **Resource limits:** Memory (4GB), CPU (4 cores), and shared memory (1GB) constraints prevent resource exhaustion
 - **File-based secrets:** Secrets loaded from files (not environment variables) to avoid exposure in process listings or logs
 
+## Host Container Socket Access
+
+The wrapper mounts the host's container-management socket read-only into the container at `/var/run/docker.sock` (when found) and sets `DOCKER_HOST` accordingly, so `docker compose` commands - e.g. the poetry-platform pre-commit hook delegating to its dev container - work from inside OpenCode sessions. Candidates are checked in order: `$XDG_RUNTIME_DIR/podman/podman.sock`, `/run/user/<uid>/podman/podman.sock`, `/var/run/docker.sock`. If none is found, the wrapper warns on stderr but still launches (opencode works without docker; only commit hooks need it).
+
+Security: the socket is mounted `:ro` with no added capabilities or privileges, and the container runs with `--security-opt label=disable`. On SELinux enforcing hosts, container SELinux confinement is disabled because the `:z` relabel alone is insufficient: podman relabels the socket to `container_file_t:s0` (fixes stat) but `container_t` still lacks connectto permission on a `container_file_t` SOCKET, so docker API calls fail with permission denied, and manual `chcon` to `container_runtime_t` is policy-denied. label=disable makes the socket fully functional at the cost of SELinux confinement for this dev container - an accepted trade-off mitigated by non-root UID 1000, read-only rootfs, and `--cap-drop ALL`. The socket grants the container the host user's container-management rights only - with rootless podman that is the user's own containers, NOT host root (a rootful Docker socket would be host-root-equivalent; this wrapper only auto-mounts the user-level socket).
+
+A rebuild is required for the socket mount to take effect (the docker client is baked into the image): `make build` in `tools/opencode-docker/`, then relaunch via `bin/opencode-docker`. The current session ends on relaunch; resume via the handoff file `.opencode/session/current-handoff.json`.
+
 ## Secrets Management
 
 This project uses file-based secrets instead of environment variables for improved security. Secrets stored in files are not visible in `docker inspect`, process listings, error messages, or logs.
@@ -193,11 +201,12 @@ podman run --rm -it \
   -v ~/.opencode-docker/config:/app/.config/opencode:rw,Z \
   -v ~/.opencode-docker/.cache:/app/.cache:rw,Z \
   -v ~/.opencode-docker/secrets:/run/secrets:ro,Z \
-  -v $(pwd):/workspace:rw,Z \
+  -v $(pwd):/workspace:rw,z \
   opencode-docker:latest /workspace
 ```
 
-> **Note:** `:Z` relabels workspace files for SELinux container access. The label persists after exit. Use `restorecon -R $(pwd)` to restore original labels if needed.
+> **Note:** the workspace is mounted `:z` (shared label) so other containers that mount the same directory with `:z` - e.g. the poetry-platform dev container - can still read it. Do NOT use `:Z` for the workspace mount: it relabels workspace files with private MCS categories that lock out those containers (SELinux MCS dominance). The container itself needs no relabel (it runs with `--security-opt label=disable`). If workspace files were already privatized by an older `:Z` run, restore the shared label on the host with:
+> `sudo chcon -Rv "system_u:object_r:container_file_t:s0" /path/to/workspace`
 
 ### Building Manually
 

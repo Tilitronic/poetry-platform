@@ -5,6 +5,9 @@
      parallelize safely, how dependencies are detected, and how
      resource/shared-file conflicts are avoided. Blocked by DIA-097
      (orchestrator role/delegation) and DIA-100 (worktrees isolation). -->
+<!-- SUPERSEDED 2026-08-12: closed as superseded by DIA-119 + DIA-120
+     (VERIFIED) - batch-dispatch rule + batch-aware A1 warning implement
+     this ticket's parallelization requirements. Status CLOSED. -->
 
 ---
 
@@ -12,7 +15,8 @@ id: DIA-101
 title: "parallel subagent execution optimization: parallelization rules, dependency detection, resource/shared-file conflicts"
 area: opencode-config
 severity: Medium
-status: OPEN
+status: CLOSED
+superseded_by: DIA-119, DIA-120
 blocked_by: ["DIA-097", "DIA-100"]
 discovered: 2026-08-11
 source: inventory

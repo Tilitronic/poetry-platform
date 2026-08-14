@@ -247,7 +247,7 @@
     },
     // analyzer — artifact-producer tier (DIA-057/F3 fix).
     // Writes analysis reports to knowledge/<type><id>-<topic>/
-    // and registers them in memory-shelf.yaml. Bash allowed for
+    // shelf registration delegated to @memory-manager (DIA-119). Bash allowed for
     // Mermaid CLI + analysis tooling; edit scoped to output dirs only.
     "analyzer": {
       "mode": "subagent",
@@ -255,8 +255,7 @@
       "permission": {
         "edit": {
           "*": "deny",
-          "knowledge/*": "allow",
-          ".opencode/memory-shelf.yaml": "allow"
+          "knowledge/*": "allow"
         },
         "bash": "allow",
         "task": "deny"
@@ -393,8 +392,7 @@
       "permission": {
         "edit": {
           "*": "deny",
-          "knowledge/*": "allow",
-          ".opencode/memory-shelf.yaml": "allow"
+          "knowledge/*": "allow"
         },
         // DIA-126: crwl = Phase-A tier (d) crawl4ai CLI fallback. Binary name is
         // crwl (uv tool crawl4ai on host PATH); host-side bash per DIA-067.

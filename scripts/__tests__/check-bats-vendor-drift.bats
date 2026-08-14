@@ -14,9 +14,10 @@
 
 load test-helper
 
-# FAL-2 wiring tests use `run -127` (declared non-zero exit for the
-# intentionally-incomplete synthetic wrapper tree); flags on `run` need 1.5.0+.
-bats_require_minimum_version 1.5.0
+# FAL-2 wiring tests use plain `run` (no exit-code assertion): the synthetic
+# wrapper tree passes `bash -n` but `node --check scripts/context7-docs.mjs`
+# exits 1 (MODULE_NOT_FOUND); the tests assert on the drift-warning text, not
+# the exit code.
 
 # Baseline pin is read from bats-wrapper.sh (the single source of truth for
 # BATS_VENDOR_VERSION) instead of being hardcoded, so a future intentional
@@ -190,13 +191,16 @@ make_wrapper_tree() {
   # actually reaches stderr.
   #
   # The synthetic tree only carries the two wrapper deps the drift block needs;
-  # the later bash -n loop fails on the missing real scripts, so the wrapper
-  # exits 127. That is expected - the assertion is on the drift warning text,
-  # not the overall exit code (which is why run -127 is declared).
+  # the find-based bash -n loop (DIA-125) only finds those two copied scripts
+  # (both valid bash, passes), then `node --check` fails on the intentionally
+  # missing scripts/context7-docs.mjs (MODULE_NOT_FOUND), so the wrapper exits
+  # 1. That is expected - the assertion is on the drift warning text, not the
+  # overall exit code (which is why plain `run` is declared, no expected-code
+  # constraint).
   local wrapper
   wrapper="$(make_wrapper_tree "1.11.0")"
 
-  run -127 bash "$wrapper"
+  run bash "$wrapper"
 
   assert_output_contains "vendored bats version mismatch"
   assert_output_contains "is at v1.11.0"
@@ -206,11 +210,12 @@ make_wrapper_tree() {
 @test "wrapper wiring end-to-end: consistent vendor emits no drift warning (FAL-2 negative control)" {
   # Counterpart of the positive control: on a consistent vendor state the
   # wrapper's drift block must stay silent (no warning text at all). Same
-  # synthetic-tree caveat as above -> expected exit 127 from the bash -n loop.
+  # synthetic-tree caveat as above -> expected non-zero exit from node --check
+  # on the missing context7-docs.mjs, asserted with plain `run`.
   local wrapper
   wrapper="$(make_wrapper_tree "$BASELINE_PIN")"
 
-  run -127 bash "$wrapper"
+  run bash "$wrapper"
 
   assert_output_not_contains "version mismatch"
   assert_output_not_contains "warning"

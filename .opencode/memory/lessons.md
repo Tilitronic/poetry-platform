@@ -291,7 +291,7 @@ Notes:
   - Recovery pattern (persisted): when resuming a step-budget-limited lane, pass the full remaining-state list in the dispatch prompt and instruct the agent to skip recon and start at the remaining edits. Front-load state into the resume prompt to avoid re-running recon/verification steps. This precise resume prompt pattern is not reconstructible from git commits and is therefore recorded here.
 
 ## c-20260809-residual-closure - post-mortem correction (2026-08-11)
-- L20260810-002 correction: The DIA-078 defense-in-depth deny rules (global L95-96, project L180-181) were added 2026-08-10 but caused a mechanical lock when combined with the opencode-snip plugin (which rewrites ALL bash commands to `snip <cmd>` via tool.execute.before). The root-cause fix is plugin removal: opencode-snip@1.6.1 removed from the global plugin array (DIA-092, res011 conspect). The deny rules are KEPT as a dormant zero-cost hallucination guardrail (council 5/5). Anti-priming lesson: orchestrator prompts must never name the forbidden token ("do not use `snip jq`" primed the prefix - DIA-078 L99). Truncation-defaults note: relying on native OpenCode tool_output defaults (max_lines=2000, max_bytes=50KB) + compaction.prune:true (project .opencode/opencode.jsonc L20); revisit explicit tool_output config only if token overflow is observed. Cross-reference: DIA-075, DIA-078, DIA-092, res011.
+- L20260810-002 correction: The DIA-078 defense-in-depth deny rules (global L95-96, project L180-181) were added 2026-08-10 but caused a mechanical lock when combined with the opencode-snip plugin (which rewrites ALL bash commands to `snip <cmd>` via tool.execute.before). The root-cause fix is plugin removal: opencode-snip@1.6.1 removed from the global plugin array (DIA-092, res011 conspect). The deny rules are KEPT as a dormant zero-cost hallucination guardrail (council 5/5). Anti-priming lesson: orchestrator prompts must never name the forbidden token ("do not use `snip jq`" primed the prefix - DIA-078 L99). Truncation-defaults note: relying on native OpenCode tool_output defaults (max_lines=2000, max_bytes=50KB) + compaction.prune:true (project .opencode/opencode.jsonc L20); revisit explicit tool_output config only if token overflow is observed.   Cross-reference: DIA-075, DIA-078, DIA-092, res011.
 
 ## L20260812-001 — clean-exit status correction (session 14, 2026-08-12)
 
@@ -644,7 +644,7 @@ Notes:
   - Why irrecoverable: the local-vendored vs installed-npm semantic split is a
     project/runtime invariant not stated in any single committed file; the fix
     commits show the final state but not the cross-runtime divergence that made the
-    local source a misleading reference. Cross-reference: adr.md "Dual-runtime OMO
+    local source a misleading reference.     Cross-reference: adr.md "Dual-runtime OMO
     precedence divergence"; external-patterns 2026-08-13-dia128-inline-prompt-relocation.md.
 
 - Escalated-lane (kimi-k3 ONE-SHOT) silent failure: run a state-inspection lane
@@ -738,3 +738,58 @@ knowledge/<type><id>-<topic> ID before dispatch (2026-08-13, DIA-132)
 - Cross-reference: scripts/overnight.sh lines 20-25/132 (authoritative
   comment); DIA-126; complements the findLast catch-all-ordering lesson
   (adr.md DIA-036/DIA-081/DIA-126).
+
+## DeepSeek V4 thinking-mode / temperature inertness (2026-08-12, res014 correction by @ai-specialist)
+
+External-knowledge grounding fact caught by @ai-specialist against live DeepSeek API docs; NOT recoverable from git/diff/tests. Supersedes/extends the factual claims in knowledge/res014-opencode-agent-presets/ and the earlier model-window/telemetry-pricing entries in this file.
+
+1. DeepSeek V4 thinking mode is ENABLED BY DEFAULT at effort "high". "variant: medium/low" in OpenCode config is an effort level, NOT a thinking-mode toggle. To actually disable thinking you must set thinking.type: disabled (or reasoning effort none in Anthropic format). No lane in this repo's config does that.
+2. CONSEQUENCE: temperature/top_p/presence_penalty/frequency_penalty are INERT (no effect) while thinking mode is on. Therefore temperature values on ALL DeepSeek V4 Flash lanes (coder 0.1, researcher 0.7, memory-manager 0.1, code-navigator, resource-manager, conspecter) are cosmetic - they never took effect. Changing them is a no-op unless thinking is explicitly disabled first.
+3. DeepSeek reasoning_effort vocabulary: only low/high/xhigh/max (NO "medium"). Config values like variant: medium on DeepSeek lanes may be silently ignored/mapped - needs runtime-log verification.
+4. METHOD RULE (reinforces DIA-108): runtime model-resolution logs (~/.local/share/opencode/log/oh-my-opencode-slim.*.log) are authoritative for what a config knob actually does. Verify via logs BEFORE applying any model/temp/reasoning preset change; config-file reading + provider docs alone is insufficient.
+
+## L20260812-003 - gate-script re-entrancy guard (DIA-118 fork-bomb, 2026-08-12)
+
+- **Lesson:** when a gate script can invoke the full test suite, guard against
+  nested invocation with an env-flag that propagates through process spawns
+  (the `VERIFY_PRE_PUSH_RUNNING` pattern) rather than relying only on test-side
+  PATH/hostname shims. Wiring `make test-shell` into scripts/verify-pre-push.sh
+  (commit 49d587a) produced a recursion fork-bomb inside poetry-dev
+  (verify-pre-push.sh -> make test-shell -> bats -> same script -> infinite;
+  ~18s cycle, 6+ levels deep). The test-side hermetic hostname shim (bb18099,
+  DIA-071) is necessary-but-not-sufficient: it covers only the bats suite and
+  leaves manual/husky invocations vulnerable.
+- **Why irrecoverable:** the loop is a runtime interaction (hostname branch +
+  process re-entry), not visible in any single diff; the shim's coverage gap is
+  a design property, not a code fact.
+- **Operational guidance:** set the env-flag before running the suite and
+  short-circuit early if already present; keep a one-line test-side `unset` so
+  the direct-run test case still exercises the real path. Cross-reference:
+  adr.md gate-script re-entrancy-guard ADR, knowledge/ana015-recursion-fork-bomb/.
+
+## L20260812-004 - hook-triggered suites must be verified hook-exact (DIA-123, 2026-08-12)
+
+- **Lesson:** when a gate script exports an env flag before running the full
+  test suite, verifying the suite STANDALONE is insufficient - the hook context
+  propagates the flag into every test. DIA-122's fix (commit 0760ef3) exported
+  VERIFY_PRE_PUSH_RUNNING=1 in scripts/verify-pre-push.sh before `make
+  test-shell`; under the husky pre-push hook, ALL bats tests inherited the flag,
+  so verify-pre-push.bats tests 183-187/189-191 (which invoke
+  verify-pre-push.sh directly) hit the top-of-script guard (warning + exit 0),
+  failing 8 tests. DIA-122's standalone verification (`make test-shell`, no
+  inherited flag) passed 211/211 and could not catch hook-context behavior.
+- **Why irrecoverable:** the hook context is an environment property (env flag
+  inherited by child processes at hook time), not reproducible from a plain
+  standalone suite run; the guard flag's interaction with test invocations is a
+  runtime interaction not visible in any single diff.
+- **Operational guidance:**
+  1. Verify with the HOOK-EXACT command (`VERIFY_PRE_PUSH_RUNNING=1 make
+     test-shell`), not just `make test-shell`, whenever a gate script exports an
+     env flag before running the suite.
+  2. Test `setup()` should `unset` such inherited flags so each test exercises
+     the script's public entry behavior (flag-free direct invocation).
+  3. If a test must verify the guarded path, re-export the flag INSIDE the test
+     body after setup (DIA-123 added exactly this: a test that re-exports the
+     flag and asserts warning + exit 0 + no docker invocation).
+  Cross-reference: adr.md gate-script re-entrancy-guard ADR, DIA-123 ticket,
+  commit d6c6a64.

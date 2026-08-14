@@ -17,7 +17,7 @@ pnpm --filter author-studio build        # quasar build → dist/spa/**
 pnpm --filter author-studio lint         # eslint . (flat config, extends repo base)
 pnpm --filter author-studio typecheck    # vue-tsc --noEmit (strict)
 pnpm --filter author-studio format       # prettier --write
-pnpm --filter author-studio test         # ⚠ not yet implemented (exit 0)
+pnpm --filter author-studio test         # vitest run (unit tests, DIA-126)
 ```
 
 From the repo root: `turbo run dev --filter=author-studio` (persistent, no cache).
@@ -146,7 +146,8 @@ gap before implementing.
 
 ## Known Gaps
 
-- **No tests** — `test` script is `exit 0`. The onboarding doc (`docs/onboarding.md`) flags this.
+- **Thin test suite** — vitest unit tests exist for the Pinia stores
+  (`src/stores/*.test.ts`); no component tests yet (DIA-126).
 - **Worker files are stubs** — `bootstrap.ts`, `w1-stress.ts`, `w2-phonetics.ts` contain
   only `export {};`. Worker integration is not yet wired up.
 - **IndexedDB schema versioning** — no migration path defined yet for `LineAtomData`

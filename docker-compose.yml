@@ -17,6 +17,14 @@
 #   docker compose down          # stop
 #   docker compose down -v       # stop + wipe postgres data
 
+# Explicit project name (DIA-121): compose otherwise derives the project from
+# the compose file's directory. On the host the repo dir is 'poetry-platform',
+# but inside the dev container it is mounted at /workspace, so the derived
+# project becomes 'workspace' and `docker compose ps` (used by the husky
+# pre-commit/pre-push hooks) can no longer see the running containers. Pinning
+# the name makes the file location-independent.
+name: poetry-platform
+
 services:
   dev:
     user: '0:0'

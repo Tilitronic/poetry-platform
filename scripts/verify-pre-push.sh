@@ -12,6 +12,18 @@
 # which makes the hook block the push.
 set -euo pipefail
 
+# Recursion guard (ana015): if this script is already running in the process
+# tree (e.g., verify-pre-push.sh -> make test-shell -> bats -> nested
+# verify-pre-push.sh), skip the gates to prevent unbounded recursion. The flag
+# propagates through process spawns (bash -> make -> bats -> test -> nested
+# script). Test-side: verify-pre-push.bats setup() unsets this flag so every
+# test exercises the public entry behavior with a clean environment (hook
+# context inherits the flag).
+if [ -n "${VERIFY_PRE_PUSH_RUNNING:-}" ]; then
+  echo "!! verify-pre-push.sh: already running (recursion guard; skipping)"
+  exit 0
+fi
+
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # Overridable so bats unit tests can point it at an isolated temp tree instead
 # of the real container mount.
@@ -37,7 +49,16 @@ run_workspace() {
   if is_in_dev_container; then
     (cd "$WORKSPACE" && bash -lc "$cmd")
   else
-    docker compose -f "$ROOT/docker-compose.yml" exec -T dev bash -lc "cd \"${WORKSPACE}\" && ${cmd}"
+    # < /dev/null: the pre-push hook is invoked by git with the pushed ref spec
+    # on stdin; forwarding that into the container would leak it into any
+    # delegated command that reads stdin (e.g. the dev-entrypoint no-command
+    # bats test executes `bash dev-entrypoint.sh`, which then tries to run the
+    # ref spec line as a command -> "No such file or directory" -> exit 127 ->
+    # spurious test failure under the hook). Closing stdin keeps every
+    # delegated gate hermetic; the in-container branch above needs no redirect
+    # (stdin is a terminal there).
+    # DESIGN: run_workspace never forwards stdin; pipe data via files or args.
+    docker compose -f "$ROOT/docker-compose.yml" exec -T dev bash -lc "cd \"${WORKSPACE}\" && ${cmd}" < /dev/null
   fi
 }
 
@@ -75,6 +96,19 @@ else
   echo "== poetry-platform pre-push: delegating to dev container =="
 fi
 
+# Host-runnable gates FIRST (DIA-118, ana014 C2/C3): the bats suite
+# (make test-shell, 100+ tests) and the OpenCode config validators
+# (make test-config: agent-name drift, JSONC, skill frontmatter) are the only
+# automated safety net for shell dev-infra and the opencode config surface.
+# They run BEFORE the slow turbo chain so a shell/config regression fails
+# fast. Delegated via run_workspace like every other step (the audit's own
+# example): the container ships make, bats is vendored on the shared
+# /workspace mount, and the pre-push contract (warn+pass when the container
+# is down, DIA-094) is preserved. Hosts without make never reach these lines
+# because they cannot have started the stack (make is the documented entrypoint).
+export VERIFY_PRE_PUSH_RUNNING=1
+run_workspace "make test-shell"
+run_workspace "make test-config"
 run_workspace "pnpm verify:format"
 run_workspace "pnpm verify:js"
 run_workspace "pnpm verify:js-tests"

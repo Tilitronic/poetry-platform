@@ -16,11 +16,13 @@ load test-helper
 
 setup() {
   mock_docker
-  # Point the /home/qualt guard (POETRY_COMMANDS_DIR seam — mirror of the
-  # POETRY_WORKSPACE override) at an isolated empty dir so every test is
-  # hermetic regardless of the real repo's .opencode/commands state.
-  export POETRY_COMMANDS_DIR="$BATS_TEST_TMPDIR/commands"
-  mkdir -p "$POETRY_COMMANDS_DIR"
+  # Hermetic host-context (DIA-071, 2026-08-12): fake hostname keeps every
+  # non-direct test in the HOST + container-running delegation path even when
+  # the suite runs inside poetry-dev; isolated POETRY_COMMANDS_DIR keeps the
+  # /home/qualt guard hermetic. See setup_hermetic_host_context in
+  # test-helper.bash. The dedicated "runs lint-staged directly" test shadows
+  # the fake hostname with its own poetry-dev fake.
+  setup_hermetic_host_context
 }
 
 @test "verify-pre-commit: delegates lint-staged to the dev container when on the host" {
@@ -100,6 +102,11 @@ printf 'npx %s\n' "$(basename "$0") $*" >> "${NPX_LOG:?NPX_LOG not set}"
 exit 0
 FAKELS
   chmod +x "$POETRY_WORKSPACE/node_modules/.bin/lint-staged"
+  # DIA-071: Debian-style hosts reset PATH unconditionally in /etc/profile for
+  # login shells, which would drop the fake bindir above; a temp ~/.bash_profile
+  # that re-prepends it keeps the fake npx hermetic (mirror of the
+  # verify-pre-push "runs steps directly" test).
+  printf 'export PATH="%s:$PATH"\n' "$bindir" > "$HOME/.bash_profile"
 
   run bash "$SCRIPTS_DIR/verify-pre-commit.sh"
 

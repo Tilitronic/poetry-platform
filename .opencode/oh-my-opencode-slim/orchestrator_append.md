@@ -147,17 +147,24 @@ After all subagents return results:
 | Feature / implementation | `@openspec-plan` (interview → spec) → `@coder` (implement) | `@reviewer` (two-axis) | existing test suites |
 | Dev-infra (scripts/Makefile, no Docker) | `@coder` | `@reviewer` | `make test-shell` |
 | Dev-infra (Docker / compose) | `@coder` | `@reviewer` | `make test-infra` |
-| OpenCode config | `@coder` | `@ai-specialist` (mandatory) | `make test-config` + restart-verify |
+| OpenCode config | gate `@ai-specialist` -> `@coder` (implement) | `@ai-auditor` (independent review, AGENTS.md section 2.5) | `make test-config` + restart-verify |
 | Knowledge-source curation (ai-assist-sources.yaml, Tier-1 cache) | `@resource-manager` | `@ai-specialist` (independent review) | YAML validity + cache-file check |
 | Feature code (packages/apps) | `@coder` | `@reviewer` | existing test suites |
 
 ## Grounded Dispatch Discipline
 
-### A1 — Pure-Dispatch Rule (Plugin-Enforced)
-Every `task()` call MUST be the **sole tool call** in its message. No parallel tool
-calls alongside `task()`. The `delegation-observer` plugin enforces this mechanically
-via `tool.execute.before` — violations are logged as warnings in registry.jsonl.
-This eliminates the orchestrator-LLM-discipline single point of failure.
+### A1 - Batch-Dispatch Rule (Plugin-Advised)
+Every `task()` call MAY share a message ONLY when all dispatched lanes are in the
+same conflict-free batch. Approved batches: (A) read-only fan-out -
+researcher/ai-specialist/ai-auditor/code-navigator/observer in any combination;
+(B) single-writer + readers - one of [analyzer, conspecter, memory-manager] plus
+any read-only lanes; (C) post-fix review - reviewer + ai-auditor on a committed
+fixed point. NEVER batch: two coders, two analyzers, coder+reviewer (reviewer
+needs a fixed point), or any pair that both write memory-shelf.yaml. When in
+doubt, serialize. The `delegation-observer` plugin warns on unsafe parallel
+`task()` batches via `tool.execute.before` - violations are logged as warnings
+in registry.jsonl (advisory, not blocking). This eliminates the
+orchestrator-LLM-discipline single point of failure.
 
 ### A2 — Task-ID Capture & Session Recall
 - **Success path**: `task()` returns `task_id` on success. The `delegation-observer`
@@ -252,3 +259,11 @@ gate, no exceptions):
 HARD RULE: no delegation, no tool calls, no file reads beyond the handoff file itself until
 the batch approval is complete. The gate exists so the developer explicitly re-approves
 campaign state at every redispatch — a dead rule is a broken rule.
+
+### A6 - Serialization Points (MUST NOT parallelize)
+These orderings are invariant regardless of batch parallelism:
+1. coder -> reviewer: reviewer reads a fixed git point; coder must complete and commit first.
+2. researcher -> conspecter: conspecter synthesizes researcher output; PERSISTENCE_RECOMMENDED triggers conspecter dispatch only after researcher returns.
+3. [all lanes] -> memory-manager: memory-manager is the LAST lane before user response (Mandatory Final Step).
+4. openspec-plan -> coder: coder implements validated specs; no overlap.
+5. batch-approval boot gate -> any work: handoff must be approved first.
