@@ -82,6 +82,24 @@ The opencode-docker IMAGE itself still needs a REBUILD by the developer before
 agent SSH pushes work end-to-end; the rebuild cannot happen in-session (it would
 kill the running opencode session).
 
+### GIT_SSH_COMMAND fix (2026-08-14)
+
+DIAGNOSIS (three lanes): (1) the running container predates the 7342f7a
+rebuild, so /usr/bin/ssh is absent; (2) the wrapper's GIT_SSH_COMMAND value
+lacked the leading "ssh" command word - git spawns GIT_SSH_COMMAND verbatim
+through /bin/sh, so "-o StrictHostKeyChecking=accept-new" failed with
+"/bin/sh: 0: Illegal option -o". FIX COMMITTED in-session: the wrapper now
+sets "GIT_SSH_COMMAND=ssh -o StrictHostKeyChecking=accept-new -o
+IdentityAgent=/tmp/ssh-agent.sock" (leading ssh command word + IdentityAgent
+pinned to the container-side socket so the agent survives a lost SSH_AUTH_SOCK
+in a child env). bats test 08 updated to assert the corrected value.
+
+REQUIRED ACTIONS (developer): (a) GIT_SSH_COMMAND fix + openssh-client
+Dockerfile change are committed - no further code work; (b) REBUILD the
+opencode-docker PODMAN image (tools/opencode-docker Makefile, NOT "make up" /
+poetry-dev) to bake in openssh-client, then relaunch the container for agent
+SSH pushes to work.
+
 ### Phase 1 (2026-08-14): DIA-ID collision renumber (docs-lane, remote lineage canonical)
 
 The remote lineage (origin/omo-slim-changes, 2fa1672) is canonical. Local tickets

@@ -181,8 +181,12 @@ if [ ${#SSH_MOUNT[@]} -eq 0 ]; then
     echo "Warning: SSH agent socket not found - git push to SSH remotes will not work from the container; start the host SSH agent (GNOME keyring/ssh-agent) and relaunch" >&2
 fi
 # GIT_SSH_COMMAND is unconditional: /app is --read-only, so known_hosts cannot
-# be written; TOFU accept-new is the container's only option.
-EXTRA_ENV+=("-e" "GIT_SSH_COMMAND=-o StrictHostKeyChecking=accept-new")
+# be written; TOFU accept-new is the container's only option. The value MUST
+# start with the ssh command word (git spawns GIT_SSH_COMMAND verbatim through
+# /bin/sh - a bare "-o ..." breaks with "Illegal option -o"). IdentityAgent is
+# pinned to the container-side socket path so ssh finds the forwarded agent
+# even if SSH_AUTH_SOCK is lost in a child env (belt-and-braces, DIA-153).
+EXTRA_ENV+=("-e" "GIT_SSH_COMMAND=ssh -o StrictHostKeyChecking=accept-new -o IdentityAgent=/tmp/ssh-agent.sock")
 
 # The workspace mount must stay SHARED label (':z'), never private (':Z'): the
 # poetry-dev container mounts the same dir with ':z', and a ':Z' relabel from
