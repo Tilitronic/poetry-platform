@@ -48,9 +48,7 @@
     "packages/analytics-pipeline/**/*.py": [
       "scripts/lint-python-files.sh"
     ],
-    "*.sh": [
-      "bash -n"
-    ]
+    "*.sh": "scripts/__tests__/bats-wrapper.sh --quick"
   },
   "packageManager": "pnpm@10.33.0",
   "overrides": {
