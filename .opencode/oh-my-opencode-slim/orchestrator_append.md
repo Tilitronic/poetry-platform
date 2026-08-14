@@ -267,3 +267,42 @@ These orderings are invariant regardless of batch parallelism:
 3. [all lanes] -> memory-manager: memory-manager is the LAST lane before user response (Mandatory Final Step).
 4. openspec-plan -> coder: coder implements validated specs; no overlap.
 5. batch-approval boot gate -> any work: handoff must be approved first.
+
+## Truncated/Empty Subagent Result Protocol (DIA-099, Variant A2)
+
+When a subagent lane returns an empty, truncated, or suspiciously short result,
+apply detect -> preserve -> resume -> validate. Do NOT silently accept the
+result and do NOT loop on re-dispatches.
+
+1. **DETECT** - after any `task()` returns, flag the result as suspect when:
+   - the result text is empty (length 0), or
+   - the result text is shorter than 50 chars, or
+   - the result shows truncation patterns: a mid-sentence stop, "I was unable
+     to complete", or a lone intro sentence with no body.
+   Detection signals (DIA-099, learnings file 2026-08-14-truncated-subagent-responses):
+   D1 session_complete + no task_success + no file edits + duration < 2x
+   median (~80% SILENT_FAILURE candidate); D2 session_failed with MAXIMUM
+   STEPS/steps (~95% CRASH/STEP_CAP); D5 stall_detected with no terminal
+   (~90% STALLED, DIA-098). D3/D4 are inferential supplements. Registry
+   signatures alone CANNOT discriminate a silent failure from a reporting
+   artifact (cod-8 vs cod-4 have identical signatures) - ground-truth
+   verification is mandatory, never skip it.
+
+2. **PRESERVE** - write `.opencode/session/partial-results/<task_id>.json`
+   (plain-text, committable) with the P1 schema: {task_id, session_id, agent,
+   timestamp, status: partial|empty|suspect_short, result_text, result_length,
+   duration_seconds, detection_signal, original_task_ref, scope_hash}. The
+   file survives session boundaries so a later resume lane has the partial
+   state. The orchestrator is the writer (the plugin cannot see the
+   subagent's final result text directly, DIA-099 gap G2).
+
+3. **RESUME** - dispatch a resume lane and load the `resume-truncated-lane`
+   skill. Provide the FULL original task spec (unabbreviated) + the partial
+   output + the detection signal. The resume lane MUST verify-first
+   READ-ONLY (git log --oneline -5, target file existence/content, ticket
+   status) and report WORK_LANDED with evidence if the work already landed -
+   it MUST NOT re-apply already-landed work.
+
+4. **VALIDATE** - the resumed lane returns a NON-EMPTY structured result
+   (RESULT / FILES_TOUCHED / VERIFICATION_EVIDENCE). If it returns empty
+   again, escalate per the 3-failures rule - do NOT loop.
