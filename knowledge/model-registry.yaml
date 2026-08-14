@@ -5,7 +5,7 @@ models:
     role: "coder-default"
     price_in_1m: 0.14
     price_out_1m: 0.28
-    req_per_month: 158150
+    req_per_month: 158150  # ESTIMATE (per res024 sec 3.3)
     swe_bench_verified: 73.7
     source_ref: "res013"
     lane: "coder"
@@ -17,7 +17,7 @@ models:
     role: "arch/analyzer"
     price_in_1m: 0.40
     price_out_1m: 1.60
-    req_per_month: 21600
+    req_per_month: 21600  # ESTIMATE (per res024 sec 3.3)
     swe_bench_verified: 77.7
     source_ref: "res016"
     lane: "analyzer"
@@ -29,7 +29,7 @@ models:
     role: "coder-escalated"
     price_in_1m: 3.00
     price_out_1m: 15.00
-    req_per_month: 490
+    req_per_month: 490  # ESTIMATE (per res024 sec 3.3)
     swe_bench_verified: 93.40
     source_ref: "res016"
     lane: "coder-escalated"
@@ -41,7 +41,7 @@ models:
     role: "analyzer-escalated"
     price_in_1m: 0.20
     price_out_1m: 1.20
-    req_per_month: 10250
+    req_per_month: 10250  # ESTIMATE (per res024 sec 3.3)
     swe_bench_verified: null
     source_ref: "res016"
     lane: "analyzer-escalated"
@@ -53,7 +53,7 @@ models:
     role: "fallback"
     price_in_1m: 0.435
     price_out_1m: 0.87
-    req_per_month: 17150
+    req_per_month: 17150  # ESTIMATE (per res024 sec 3.3)
     swe_bench_verified: 74.0
     source_ref: "res017"
     lane: "coder-escalated"
@@ -65,7 +65,7 @@ models:
     role: "fallback-2"
     price_in_1m: 0.435
     price_out_1m: 0.87
-    req_per_month: 16300
+    req_per_month: 16300  # ESTIMATE (per res024 sec 3.3)
     swe_bench_verified: null
     source_ref: "res017"
     lane: "coder-escalated"
@@ -77,7 +77,7 @@ models:
     role: "reviewer"
     price_in_1m: 1.75
     price_out_1m: 14.00
-    req_per_month: null
+    req_per_month: null  # ESTIMATE (per res024 sec 3.3)
     swe_bench_verified: 85.0
     source_ref: "res013"
     lane: "reviewer"

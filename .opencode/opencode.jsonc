@@ -351,12 +351,27 @@
         "edit": "deny"
       }
     },
+    // researcher — external research + Phase A source capture (DIA-135 D5/D6).
+    // Owns the 3-tier fetch chain (registry JSON API -> trafilatura -> crwl
+    // LAST-RESORT only) into knowledge/<resid>-<topic>/sources/ plus the
+    // per-source relevance/reliability manifest (.source-urls.txt). Bash
+    // allow-list (deny-first per DIA-126 findLast pattern, matching conspecter's
+    // former map); edit scoped to knowledge/*. Task denied (read-only lane).
     "researcher": {
       "mode": "subagent",
       "color": "#84CC16",
       "permission": {
-        "edit": "deny",
-        "bash": "deny",
+        "edit": {
+          "*": "deny",
+          "knowledge/*": "allow"
+        },
+        "bash": {
+          "*": "deny",
+          "curl *": "allow",
+          "wget *": "allow",
+          "trafilatura *": "allow",
+          "crwl *": "allow"
+        },
         "task": "deny"
       }
     },
@@ -382,27 +397,22 @@
         }
       }
     },
-    // conspecter — two-phase source archiving and conspect creation.
-    // Artifact-producer tier (practice-protected.md §6): writes source captures +
-    // MLA-cited conspects under knowledge/; bash limited to curl/wget/trafilatura/crwl
-    // for Phase A source capture. Never modifies source files.
+    // conspecter — pure-synthesis conspect authoring (DIA-135 D7).
+    // Artifact-producer tier (practice-protected.md §6): reads ONLY the sources
+    // @researcher archived under knowledge/ (D5), writes the MLA-cited conspect,
+    // registers it in memory-shelf. All network fetch tooling revoked: bash flat
+    // deny (no curl/wget/trafilatura/crwl), webfetch deny. Never modifies source
+    // files beyond the conspect + shelf entry.
     "conspecter": {
       "mode": "subagent",
       "color": "#8B5CF6",
       "permission": {
         "edit": {
           "*": "deny",
-          "knowledge/*": "allow"
+          "knowledge/*": "allow",
+          ".opencode/memory-shelf.yaml": "allow"
         },
-        // DIA-126: crwl = Phase-A tier (d) crawl4ai CLI fallback. Binary name is
-        // crwl (uv tool crawl4ai on host PATH); host-side bash per DIA-067.
-        "bash": {
-          "*": "deny",
-          "curl *": "allow",
-          "wget *": "allow",
-          "trafilatura *": "allow",
-          "crwl *": "allow"
-        },
+        "bash": "deny",
         "webfetch": "deny",
         "task": "deny"
       }

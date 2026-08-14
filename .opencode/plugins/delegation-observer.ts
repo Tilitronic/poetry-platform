@@ -1987,6 +1987,61 @@ const delegationObserver: Plugin = async (ctx) => {
           )
         }
       }
+
+      // ANALYSIS GATE detector (DIA-135 D4): mirror of the persistence-pending
+      // mechanism above. When a COMPLETED conspecter task result indicates the
+      // conspect artifact was produced (the conspecter's return message reports
+      // the artifact path per its orchestrator prompt), write
+      // .opencode/session/analysis-pending.json so the orchestrator's ANALYSIS
+      // GATE (orchestrator prompt, all 3 presets) blocks analysis dispatch
+      // until the conspect artifacts are verified. The orchestrator edits the
+      // JSON to { "status": "verified" } (or "skipped" on developer skip) to
+      // clear the gate. Conspecter lane only - avoids false positives from
+      // other agents quoting the word in prompts or meta-comments; the lane
+      // check uses input.args.subagent_type (falling back to the resolved
+      // child session agent), and the completion regex is applied to the
+      // <task_result> payload segment only. Same write path (mkdirSync +
+      // writeFileSync into .opencode/session/), same TUI-safe app.log, same
+      // failure policy as the persistence gate: never crash the plugin,
+      // console.warn and continue. Pure additive.
+      const isConspecterLane =
+        agentName === "conspecter" ||
+        childSessionAgent.get(taskId ?? "") === "conspecter"
+      if (
+        isConspecterLane &&
+        /state\b\s*[:=]\s*["']?completed["']?/i.test(text) &&
+        /conspect/i.test(flagText)
+      ) {
+        try {
+          mkdirSync(join(ctx.directory, ".opencode/session"), {
+            recursive: true,
+          })
+          writeFileSync(
+            join(ctx.directory, ".opencode/session/analysis-pending.json"),
+            JSON.stringify(
+              {
+                session_id: taskId ?? "",
+                agent: childSessionAgent.get(taskId ?? "") ?? "conspecter",
+                detected_at: new Date().toISOString(),
+                status: "pending_verification",
+              },
+              null,
+              2
+            )
+          )
+          ctx.client.app.log({
+            body: {
+              service: "delegation-observer",
+              level: "info",
+              message: `[delegation-observer] analysis gate pending: ${taskId}`,
+            },
+          })
+        } catch (err) {
+          console.warn(
+            `[delegation-observer] analysis-pending.json write failed: ${errorMessage(err)}`
+          )
+        }
+      }
     },
 
     // C1: session lifecycle events arrive via the generic `event` catch-all —
