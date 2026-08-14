@@ -211,7 +211,7 @@ NEXT STEP (section-10): developer approves/rejects conclusions 1-8 -> @architect
 ## Fix
 
 > IMPLEMENTED 2026-08-14 (section-10 coder lane, branch omo-slim-changes).
-> Committed as <commit-hash-placeholder> - see commit message. All 8 ana018
+> Committed as b6ddc8e - see commit message. All 8 ana018
 > conclusions applied exactly; arc-1 design implemented file-by-file below.
 > Status stays OPEN: closure is a separate lane (ai-auditor Phase 6
 > independent review + developer disposition). Restart-verify pending:
