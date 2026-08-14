@@ -103,35 +103,42 @@
 | DIA-150 | test infra Phase 2: critical gaps (vitest in author-studio, real data-contracts test) | tests-infra | Critical | CLOSED | [DIA-150-test-infra-phase2-critical-gaps.md](DIA-150-test-infra-phase2-critical-gaps.md) |
 | DIA-151 | test infra Phase 3: Orchestrator contract test (acceptWorkerResult, zero mocks) | tests-infra | Medium | CLOSED | [DIA-151-test-infra-phase3-orchestrator-contract.md](DIA-151-test-infra-phase3-orchestrator-contract.md) |
 | DIA-152 | Install docker CLI + compose plugin in poetry-dev image (pre-push test-config gate) | docker | Major | VERIFIED | [DIA-152-install-docker-cli-poetry-dev-image.md](DIA-152-install-docker-cli-poetry-dev-image.md) |
+| DIA-124 | test infra Phase 0: safety wins (author-studio fails loudly, flaky-pin tests removed, config gate hardened) | tests-infra | Major | OPEN | [DIA-124-test-infra-phase0-safety-wins.md](DIA-124-test-infra-phase0-safety-wins.md) |
+| DIA-125 | test infra Phase 1: de-duplication (bats helpers, it.each, bash -n auto-discovery, per-package dependsOn) | tests-infra | Medium | OPEN | [DIA-125-test-infra-phase1-dedup.md](DIA-125-test-infra-phase1-dedup.md) |
+| DIA-126 | test infra Phase 2: critical gaps (vitest in author-studio, real data-contracts test) | tests-infra | Critical | OPEN | [DIA-126-test-infra-phase2-critical-gaps.md](DIA-126-test-infra-phase2-critical-gaps.md) |
+| DIA-127 | test infra Phase 3: Orchestrator contract test (acceptWorkerResult, zero mocks) | tests-infra | Medium | OPEN | [DIA-127-test-infra-phase3-orchestrator-contract.md](DIA-127-test-infra-phase3-orchestrator-contract.md) |
+| DIA-131 | Install docker CLI + compose plugin in poetry-dev (pre-push test-config gate) | docker | Major | IMPLEMENTED | [DIA-131-install-docker-cli-poetry-dev-image.md](DIA-131-install-docker-cli-poetry-dev-image.md) |
+| DIA-132 | Parallel coders (batch D) + read-only batch expansion - DIA-116 follow-up review and design | opencode-config | Medium | IMPLEMENTED | [DIA-132-parallel-coders-batch-d-expansion.md](DIA-132-parallel-coders-batch-d-expansion.md) |
+
 
 ## Status summary
 
 | Severity | Count |
 | -------- | ----- |
-| Blocker  | 7     |
-| Critical | 5     |
-| Major    | 34    |
-| Medium   | 47    |
-| Minor    | 0     |
-| Low      | 10    |
-| Info     | 0     |
+| Blocker   | 7      |
+| Critical  | 6      |
+| Major     | 36     |
+| Medium    | 50     |
+| Minor     | 0      |
+| Low       | 10     |
+| Info      | 0      |
 
 | Status      | Count |
 | ----------- | ----- |
-| OPEN        | 9     |
-| DONE        | 3     |
-| VALIDATE    | 0     |
-| E2E         | 0     |
-| DEFERRED    | 1     |
-| MONITOR     | 1     |
-| FIXED       | 1     |
-| IMPLEMENTED | 0     |
-| VERIFIED    | 21    |
-| CLOSED      | 67    |
-| BLOCKED     | 0     |
-| DISPATCHED  | 0     |
-| RUNNING     | 0     |
-| COMPLETE    | 0     |
+| OPEN      | 12     |
+| DONE      | 3      |
+| VALIDATE  | 0      |
+| E2E       | 0      |
+| DEFERRED  | 1      |
+| MONITOR   | 1      |
+| FIXED     | 1      |
+| IMPLEMENTED | 2      |
+| VERIFIED  | 22     |
+| CLOSED    | 67     |
+| BLOCKED   | 0      |
+| DISPATCHED | 0      |
+| RUNNING   | 0      |
+| COMPLETE  | 0      |
 
 ## How to add a ticket
 

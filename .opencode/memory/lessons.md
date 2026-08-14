@@ -803,3 +803,36 @@ External-knowledge grounding fact caught by @ai-specialist against live DeepSeek
      flag and asserts warning + exit 0 + no docker invocation).
   Cross-reference: adr.md gate-script re-entrancy-guard ADR, DIA-147 ticket,
   commit d6c6a64.
+
+## DIA-132 parallel coders batch D (first batch D run, 2026-08-13)
+
+- **LESSON-1: git worktree husky-shim gap.** Freshly created git worktrees have
+  NO `.husky/_` directory (core.hooksPath=.husky/_ points to untracked runtime
+  state that only the main tree has). Consequently the husky pre-commit hook
+  SILENTLY NEVER runs on worktree commits, so the DIA-094 docker gate is NOT
+  enforced there. Do NOT rely on worktree pre-commit. Mitigations: manually run
+  `bash scripts/verify-pre-commit.sh` after worktree commits, or re-init husky
+  inside each worktree. First surfaced during the DIA-132 first batch D run.
+- **LESSON-2: batch D branch-model misread (duplicate-edit risk).** The coder in
+  the feature/dia132-append worktree (base a310465, pre-T4.1) ALSO edited the 3
+  preset NEVER clauses in oh-my-opencode-slim.jsonc - a duplicate of the
+  authoritative change living in the sibling feature/dia132-prompts branch. This
+  required a revert commit (af6e019). Root cause: the dispatch payload did not
+  state the branch model explicitly, so the coder read branch-local state as
+  global. Fix: batch D payloads MUST state "worktree base = shared <sha>;
+  sibling branches own other slices' changes; edit ONLY your assigned files".
+- **LESSON-3: DIA-063 ticket-gate token is mandatory in dispatch AND resume
+  prompts.** Resume/re-dispatch prompts that omit the literal ticket ID get
+  BLOCKED by the ticket-gate scan. ALWAYS include the ticket ID (e.g. "DIA-132")
+  in dispatch AND resume prompts.
+- **LESSON-4: batch D parallel execution validated (first real use, 2026-08-13).**
+  2 coders + 2 reviewers + ai-auditor ran in parallel on separate worktrees with
+  WORKTREE: assertions, zero file conflicts, reviews on committed fixed points
+  per worktree. Worktree isolation + disjoint file sets + serialized merges
+  worked as designed. (Merge step itself pending container up.)
+- **LESSON-5: persist architector designs for reviewer verifiability.** The
+  FALSIFICATION-1 finding in the docs review was a FALSE POSITIVE - the reviewer
+  could not verify a "verbatim" ADR transcription because the architector's
+  original design text lives in the orchestrator session, not in the repo.
+  Consider persisting architector designs (e.g., to the DIA ticket) so reviewers
+  can verify verbatim sources.

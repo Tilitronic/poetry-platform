@@ -693,6 +693,26 @@ shelf:
     path: openspec/changes/dia-071-host-lsp-tolerance/
     created: 2026-08-08
     status: proposed
+  - name: batch-d-parallel-coders
+    description: 'OpenSpec change (DIA-132, "Parallel Coders (Batch D Expansion)", scope
+      opencode-config): extends the DIA-119/DIA-120 batch-dispatch rule (patterns A/B/C)
+      with Batch Pattern D (parallel @coder lanes allowed ONLY IF every non-coder lane
+      is read-only AND each coder asserts a distinct WORKTREE: <path>, validated by the
+      delegation-observer plugin via regex + Set-size check). Adds 5 quick-fixes (F1-F5):
+      F1 remove memory-shelf.yaml from analyzer-escalated write block (DIA-119 sole-writer
+      invariant), F2 add bash:deny to code-navigator + observer (strict read-only), F3
+      conspecter edit allow list = knowledge/* only, F4 singleton-batch semantics (<=1
+      task() call is safe), F5 add architector to READ_ONLY_LANES + batch A on all 5
+      lockstep surfaces. Authors new .sdd/opencode-config/architecture.md (2 ADRs, see
+      shelf.architectures). skip_specs: true (pure opencode-config/dev-infra, no Poetry
+      Platform behavior change). Implementation on 5 worktree branches off base a310465
+      (docs/plugin/prompts/append/drift), TDD RED-GREEN, two-axis reviews clean, ai-auditor
+      APPROVE (F1-F7 closed). MERGE PENDING: container down (docker daemon unreachable),
+      main-tree husky pre-commit HARD-FAILED on first squash-merge attempt (DIA-094 gate,
+      no bypass), post-merge verification + T5.3 restart smoke deferred until make up.'
+    path: openspec/changes/batch-d-parallel-coders/
+    created: 2026-08-13
+    status: implemented
   architectures:
   - name: dia-redispatch-cycle
     description: "Design-authority seed for the dev-infra campaign protocol (CRISIS-DETECTION, PROGNOSIS-DISCIPLINE, cycle-budget management): 5 ADRs (ADR-001 prognosis in HANDOFF.md only, ADR-002 C1-C5 OR-combined triggers, ADR-003 fresh-session independence, ADR-004 max-cycles=3 budget default, ADR-005 soft exhaustion) that the redispatch rule texts must not contradict. Seeded 2026-08-03 from interview Q5."
@@ -702,5 +722,11 @@ shelf:
     description: "Retrospective architecture for the dev-infra module parallel dev model (implemented via DIA-100): 8 ADRs governing worktree-only parallel OpenCode lanes (worktrees-only model, DIA-074 branch naming, squash-merge integration, physical session isolation, DIA-096 safe/destructive enforcement, conflict escalation bounds, .worktrees/ location, bash-3 compat + bounded ls-remote). Decision sources: DIA-073/DIA-096, commits a387f72/44865c3/8cd270d."
     path: .sdd/dev-infra/architecture.md
     created: 2026-08-12
+  - name: opencode-config (DIA-132)
+    description: 'Module architecture for the opencode-config boundary (OpenCode configuration, agents, plugins, presets). First module doc in .sdd/opencode-config/. Two Accepted ADRs transcribed verbatim from the approved architector design (2026-08-13, DIA-132). ADR 1 "Batch Pattern D (Parallel Coders)": enable parallel @coder dispatches gated by a strict WORKTREE: <path> payload assertion; the delegation-observer plugin dynamically validates distinct worktree paths per parallel coder; orchestrator manages worktree lifecycles and serializes final squash-merges (parallelizing without worktrees rejected - git index lock/file contention risk). ADR 2 "Singleton-Batch Semantic Exemption": classify a batch safe immediately if it contains exactly one task() call, eliminating false-positive A1 warnings for single delegations that also fire semantic tools (e.g. log_decision); forcing log_decision into a separate orchestrator turn rejected (context/token waste).'
+    path: .sdd/opencode-config/architecture.md
+    created: 2026-08-13
+    status: Accepted
+
   rag_bases: []
   
