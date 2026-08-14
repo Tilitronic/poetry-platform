@@ -219,18 +219,18 @@ Failed-loop lessons & preventive actions
     the eventual outcome, not the silent-failure detection path.
   - Cross-reference: DIA-130, DIA-131; lessons.md escalated-lane silent-failure
     and backup-freshness lessons.
-- Failure mode (DIA-118 regression, 2026-08-12): recursion fork-bomb in verify-pre-push.sh
+- Failure mode (DIA-142 regression, 2026-08-12): recursion fork-bomb in verify-pre-push.sh
   - Symptom: wiring `make test-shell` into scripts/verify-pre-push.sh (commit 49d587a) created a recursion fork-bomb inside poetry-dev. verify-pre-push.sh -> make test-shell -> bats -> runs verify-pre-push.bats which invokes the same script -> infinite loop. ~18s cycle, 6+ levels deep, dozens of /tmp/bats-run-* dirs, live chains lasting 1.5h. Confirmed via /proc inspection.
   - Root cause: the script invoked inside the dev container takes the direct branch (hostname==poetry-dev) and re-enters the full test suite; no re-entrancy guard existed in the script.
   - Test-side hermetic shim (commit bb18099, DIA-071) is necessary-but-not-sufficient: it covers the bats suite only and leaves manual/husky invocations vulnerable.
   - Preventive action: any gate script that invokes the full test suite MUST carry a re-entrancy guard (env-flag propagation, e.g. VERIFY_PRE_PUSH_RUNNING) so a nested invocation short-circuits instead of re-running the suite. Test-side PATH/hostname shims are defense-in-depth only, not the primary guard.
-  - Reference: knowledge/ana015-recursion-fork-bomb/ (root-cause analysis), ticket DIA-118/DIA-122. This pattern is not reconstructible from commit diffs alone (the loop is a runtime interaction).
+  - Reference: knowledge/ana015-recursion-fork-bomb/ (root-cause analysis), ticket DIA-142/DIA-146. This pattern is not reconstructible from commit diffs alone (the loop is a runtime interaction).
 
-- Failure pattern (DIA-123, 2026-08-12): standalone-only verification missed hook-context guard-flag inheritance
-  - Symptom: after the DIA-122 recursion-guard fix (commit 0760ef3) exported VERIFY_PRE_PUSH_RUNNING=1 in scripts/verify-pre-push.sh, the husky pre-push hook triggered the suite with the flag inherited by ALL bats tests; verify-pre-push.bats tests 183-187/189-191 invoke verify-pre-push.sh directly and hit the top-of-script guard (warning + exit 0), failing 8 tests. The standalone suite passed 211/211.
-  - Root cause: DIA-122's verification ran the suite standalone (`make test-shell`, no inherited flag), which cannot reproduce hook-context env-flag propagation. No test-side `unset` existed in verify-pre-push.bats setup() to neutralize the inherited flag.
+- Failure pattern (DIA-147, 2026-08-12): standalone-only verification missed hook-context guard-flag inheritance
+  - Symptom: after the DIA-146 recursion-guard fix (commit 0760ef3) exported VERIFY_PRE_PUSH_RUNNING=1 in scripts/verify-pre-push.sh, the husky pre-push hook triggered the suite with the flag inherited by ALL bats tests; verify-pre-push.bats tests 183-187/189-191 invoke verify-pre-push.sh directly and hit the top-of-script guard (warning + exit 0), failing 8 tests. The standalone suite passed 211/211.
+  - Root cause: DIA-146's verification ran the suite standalone (`make test-shell`, no inherited flag), which cannot reproduce hook-context env-flag propagation. No test-side `unset` existed in verify-pre-push.bats setup() to neutralize the inherited flag.
   - Preventive action: (1) verify hook-triggered suites with the hook-exact command (`VERIFY_PRE_PUSH_RUNNING=1 make test-shell`), not just standalone; (2) test setup() should unset inherited gate flags so tests exercise the script's public entry behavior; (3) if a test must verify the guarded path, re-export the flag inside the test body after setup.
   - Fix (commit d6c6a64): `unset VERIFY_PRE_PUSH_RUNNING` in verify-pre-push.bats setup() + a new guard test that re-exports the flag and asserts warning + exit 0 + no docker invocation. Verified hook-exact 212/212 + standalone 212/212.
   - Secondary finding: the unshare 127 warning in the original push failure was a transient race (storm-kill `rm -rf /tmp/bats-run-*` deleted an active suite's ns.sh between creation and exec), NOT a code/image gap.
-  - Cross-reference: adr.md gate-script re-entrancy-guard ADR, DIA-123 ticket. Not reconstructible from commit diffs alone (the inheritance is a runtime hook-context property).
+  - Cross-reference: adr.md gate-script re-entrancy-guard ADR, DIA-147 ticket. Not reconstructible from commit diffs alone (the inheritance is a runtime hook-context property).
 

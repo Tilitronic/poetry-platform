@@ -1,12 +1,12 @@
-# DIA-121 — Give opencode-docker container host docker/podman socket access so pre-commit hooks work from inside OpenCode
+# DIA-145 — Give opencode-docker container host docker/podman socket access so pre-commit hooks work from inside OpenCode
 
-<!-- Fix ticket (fix-lane): restores the DIA-094 pre-commit gate for sessions
+<!-- Fix ticket (fix-lane): restores the DIA-94 pre-commit gate for sessions
      running inside the opencode-docker container. Filed 2026-08-12,
      cod-lane. -->
 
 ---
 
-id: DIA-121
+id: DIA-145
 title: "Give opencode-docker container host docker/podman socket access so pre-commit hooks work from inside OpenCode"
 area: docker
 severity: Major
@@ -35,7 +35,7 @@ evidence: []
 
 ## Description
 
-The opencode-docker container (tools/opencode-docker/, launched via bin/opencode-docker) cannot run the poetry-platform pre-commit hook (scripts/verify-pre-commit.sh) because it has no docker CLI and no host container socket mounted. The hook's container_running() calls 'docker compose -f docker-compose.yml ps --services --status running' and delegates lint-staged via 'docker compose exec -T dev ...'. Inside the container neither works, so every commit from an opencode-docker session is blocked by DIA-094. Root cause: the wrapper (bin/opencode-docker) mounts only homebase/config/secrets/workspace volumes; the Dockerfile installs no docker client.
+The opencode-docker container (tools/opencode-docker/, launched via bin/opencode-docker) cannot run the poetry-platform pre-commit hook (scripts/verify-pre-commit.sh) because it has no docker CLI and no host container socket mounted. The hook's container_running() calls 'docker compose -f docker-compose.yml ps --services --status running' and delegates lint-staged via 'docker compose exec -T dev ...'. Inside the container neither works, so every commit from an opencode-docker session is blocked by DIA-94. Root cause: the wrapper (bin/opencode-docker) mounts only homebase/config/secrets/workspace volumes; the Dockerfile installs no docker client.
 
 Fix scope:
 
@@ -98,13 +98,15 @@ noted:
   make is absent in the opencode container).
 
 Honest caveat: 'make test-config && make test-shell' INSIDE poetry-dev
-exits 2 due to TWO pre-existing environment gaps, not DIA-121 regressions:
+exits 2 due to TWO pre-existing environment gaps, not DIA-145 regressions:
 (a) check-host-lsp - rust-analyzer 1.83.0 on PATH, expected 1.97.1
 (dev-image LSP drift); (b) test-skills - global skills directory not found
 at /home/dev/.config/opencode/skills (poetry-dev HOME=/home/dev lacks the
 global skills dir the validator expects). Tracked as a follow-up; the
 pre-commit commit gate itself passes (it delegates lint-staged only, not
 these gates). The pre-push gate wiring (test-shell/test-config) is
-DIA-118's scope and its bats suite passed 9/9.
+DIA-142's scope and its bats suite passed 9/9.
 
 Status: OPEN -> VERIFIED.
+
+<!-- UPDATE 2026-08-14 (RENUMBER, NO STATUS CHANGE): ticket renumbered DIA-121 -> DIA-145 (duplicate-ID collision resolution; local campaign ticket DIA-121-bats-version-drift-wrapper-vendor keeps its ID). Fix commit 2aba11e ('feat(docker): add docker CLI + compose to opencode-docker, pin compose project name (DIA-121)') exists in git log; merge 4b3dbf7 confirmed. Status stays VERIFIED (unchanged). -->

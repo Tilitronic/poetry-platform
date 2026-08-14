@@ -1,12 +1,12 @@
-# DIA-120 — Make delegation-observer A1 warning batch-aware (only warn on unsafe parallel task batches)
+# DIA-144 — Make delegation-observer A1 warning batch-aware (only warn on unsafe parallel task batches)
 
-<!-- Fix ticket (fix-lane): implements proposal 5 from the DIA-116
+<!-- Fix ticket (fix-lane): implements proposal 5 from the DIA-140
      parallelization analysis (ai--3 session report). Filed 2026-08-12,
      cod-lane. AGENTS.md section 2.5 route (opencode-config change). -->
 
 ---
 
-id: DIA-120
+id: DIA-144
 title: "Make delegation-observer A1 warning batch-aware (only warn on unsafe parallel task batches)"
 area: opencode-config
 severity: Medium
@@ -35,7 +35,7 @@ evidence: []
 
 ## Description
 
-Implements proposal 5 from the DIA-116 parallelization analysis. Current .opencode/plugins/delegation-observer.ts (~line 733, tool.execute.before hook) logs a warning + a1_violation registry row whenever 2+ task() calls appear in one assistant message. After DIA-119 allows legitimate parallel batches, this would flag every legal batch.
+Implements proposal 5 from the DIA-140 parallelization analysis. Current .opencode/plugins/delegation-observer.ts (~line 733, tool.execute.before hook) logs a warning + a1_violation registry row whenever 2+ task() calls appear in one assistant message. After DIA-143 allows legitimate parallel batches, this would flag every legal batch.
 
 Change: only warn when the parallel task() batch does not match an approved conflict-free batch pattern (read-only fan-out, single-writer+readers, post-fix review); keep the existing warning + a1_violation row for unsafe batches (two coders, two memory-shelf writers, coder+reviewer on moving point). Default behavior preserved for unrecognized patterns (warn).
 
@@ -60,7 +60,7 @@ Implemented 2026-08-12 (coder lane, working tree uncommitted) in
 - **turnToolCalls stores {tool, subagent_type}** per call so the batch classifier
   reads agent types, not raw tool names; the a1_violation "tools" field is
   preserved as a string array.
-- **Header comments** updated to batch-aware description (matches the DIA-119
+- **Header comments** updated to batch-aware description (matches the DIA-143
   BATCH-DISPATCH A/B/C rule in the preset prompts).
 
 ### Verification evidence (all gates exit 0)
@@ -95,7 +95,7 @@ Registered per AGENTS.md section 2.5 workflow step 7 (Register) + step 5 (Valida
   working-tree plugin). A full daemon restart is NOT yet performed; the plugin
   change is staged in the working tree and loads on the next natural OpenCode
   restart. Restart-smoke satisfied-in-part, recorded honestly - no fabricated restart.
-- **Registration (step 7):** CHANGELOG entry added (2026-08-12, DIA-120);
+- **Registration (step 7):** CHANGELOG entry added (2026-08-12, DIA-144);
   learnings entry .opencode/learnings/external-patterns/2026-08-12-dia120-batch-aware-a1.md
   created with outcome field; ticket status OPEN -> VERIFIED (README index + counts updated).
 - **Status: VERIFIED.**
@@ -105,3 +105,5 @@ Registered per AGENTS.md section 2.5 workflow step 7 (Register) + step 5 (Valida
   landed. This completes the restart-smoke item that the bullet above
   recorded as satisfied-in-part; the pending-full-daemon-restart note is
   now superseded.
+
+<!-- UPDATE 2026-08-14 (RENUMBER, NO STATUS CHANGE): ticket renumbered DIA-120 -> DIA-144 (duplicate-ID collision resolution; local campaign ticket DIA-120-plugin-handoff-writer-clobber-bug keeps its ID). Fix commit 8a68e5d ('feat(plugin): batch-aware A1 warning only on unsafe parallel task batches (DIA-120)') exists in git log; merge 4b3dbf7 confirmed. Status stays VERIFIED (unchanged). -->

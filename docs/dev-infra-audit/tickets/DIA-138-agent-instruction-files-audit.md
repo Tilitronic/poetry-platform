@@ -1,15 +1,15 @@
-# DIA-114 — audit agent instruction/prompt files for inaccuracies, duplications, vague wording
+# DIA-138 — audit agent instruction/prompt files for inaccuracies, duplications, vague wording
 
 <!-- Analysis ticket (baseline): systematic audit of the agent instruction surface.
      Filed 2026-08-12, cod-lane. -->
 
 ---
 
-id: DIA-114
+id: DIA-138
 title: "Audit agent instruction/prompt files (.ts and .md) for inaccuracies, duplications, vague wording"
 area: opencode-config
 severity: Medium
-status: OPEN
+status: CLOSED
 blocked_by: []
 discovered: 2026-08-12
 source: baseline
@@ -26,7 +26,7 @@ model: ""
 parent_session_id: "ses_00b5f2f4affeavJUt86vac4dn6"
 attempts: 0
 lease_expires_at: ""
-files_touched: ["docs/dev-infra-audit/tickets/DIA-114-agent-instruction-files-audit.md"]
+files_touched: ["docs/dev-infra-audit/tickets/DIA-138-agent-instruction-files-audit.md"]
 artifacts: []
 evidence: []
 
@@ -47,3 +47,5 @@ Dispatch @analyzer to produce knowledge/ana<id>-agent-instruction-audit report w
 ## Re-verify
 
 > To be filled at re-verify time.
+
+<!-- UPDATE 2026-08-14 (RENUMBER + CLOSE): ticket renumbered DIA-114 -> DIA-138 (duplicate-ID collision resolution, developer decision; local campaign ticket DIA-114-mimo-v25-pro-evaluation keeps its ID). Work demonstrably landed: the ana013 agent-instruction audit report was committed (b3cbde7, knowledge/ana013-agent-instruction-audit/) and its developer-approved findings were implemented by the fix ticket DIA-141 (was DIA-117; config commit 0cd4346, 'feat(config): batch-dispatch parallelization + agent-instruction fixes (DIA-117/119)'). Merge 4b3dbf7 confirmed the teammate branch integration. Status OPEN -> CLOSED per renumber/close convention. -->

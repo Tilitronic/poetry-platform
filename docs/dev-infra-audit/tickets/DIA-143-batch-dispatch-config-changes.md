@@ -1,12 +1,12 @@
-# DIA-119 — Enable safe task parallelization: BATCH-DISPATCH rule, memory-shelf centralization, ID preallocation, serialization points
+# DIA-143 — Enable safe task parallelization: BATCH-DISPATCH rule, memory-shelf centralization, ID preallocation, serialization points
 
-<!-- Fix ticket (fix-lane): implements proposals 1-4 from the DIA-116
+<!-- Fix ticket (fix-lane): implements proposals 1-4 from the DIA-140
      parallelization analysis (ai--3 session report). Filed 2026-08-12,
      cod-lane. AGENTS.md section 2.5 route (opencode-config change). -->
 
 ---
 
-id: DIA-119
+id: DIA-143
 title: "Enable safe task parallelization: BATCH-DISPATCH rule, memory-shelf centralization, ID preallocation, serialization points"
 area: opencode-config
 severity: Major
@@ -35,7 +35,7 @@ evidence: []
 
 ## Description
 
-Implements proposals 1-4 from the DIA-116 parallelization analysis (reference docs/dev/dev-infra-audit/tickets/DIA-116-task-parallelization-analysis.md and the ai--3 report):
+Implements proposals 1-4 from the DIA-140 parallelization analysis (reference docs/dev/dev-infra-audit/tickets/DIA-140-task-parallelization-analysis.md and the ai--3 report):
 
 1. Replace PURE-DISPATCH rule in all 3 preset orchestrator prompts (oh-my-opencode-slim.jsonc lines ~26/210/401) with BATCH-DISPATCH: allow parallel task() calls only within approved conflict-free batches (A: read-only fan-out researcher/ai-specialist/ai-auditor/code-navigator/observer; B: one knowledge-writer [analyzer|conspecter|memory-manager] + read-only lanes; C: post-fix reviewer+ai-auditor on committed fixed point). NEVER batch two coders, two analyzers, coder+reviewer, or two memory-shelf.yaml writers.
 2. Centralize memory-shelf.yaml writes: remove ".opencode/memory-shelf.yaml" allow from analyzer and conspecter edit permissions in .opencode/opencode.jsonc; update analyzer/conspecter prompts to report artifact paths in return message instead of self-registering; memory-manager becomes sole shelf writer (dispatched last, Mandatory Final Step).
@@ -54,7 +54,7 @@ Implements proposals 1-4 from the DIA-116 parallelization analysis (reference do
 ## Fix
 
 Implemented 2026-08-12 (coder lane, working tree uncommitted). All four
-proposals applied per the DIA-116 analysis, plus follow-up fixes for the
+proposals applied per the DIA-140 analysis, plus follow-up fixes for the
 ai-auditor D-1..D-5 findings:
 
 - **CHANGE 1 - PURE-DISPATCH -> BATCH-DISPATCH (3 preset orchestrator prompts).**
@@ -127,7 +127,7 @@ Registered per AGENTS.md section 2.5 workflow step 7 (Register) + step 5 (Valida
   working tree and will load on the next natural OpenCode restart. Restart-smoke is
   therefore satisfied-in-part: config-live evidence recorded, full-daemon-restart
   evidence pending next natural restart. Not fabricating a restart.
-- **Registration (step 7):** CHANGELOG entry added (2026-08-12, DIA-119);
+- **Registration (step 7):** CHANGELOG entry added (2026-08-12, DIA-143);
   learnings entry .opencode/learnings/external-patterns/2026-08-12-dia119-batch-dispatch.md
   created with outcome field; ticket status OPEN -> VERIFIED (README index + counts updated).
 - **Status: VERIFIED.**
@@ -139,3 +139,5 @@ Registered per AGENTS.md section 2.5 workflow step 7 (Register) + step 5 (Valida
   orchestrator_append.md. Commit 0697a08 landed. This completes the
   restart-smoke item that the bullet above recorded as satisfied-in-part;
   the pending-full-daemon-restart note is now superseded.
+
+<!-- UPDATE 2026-08-14 (RENUMBER, NO STATUS CHANGE): ticket renumbered DIA-119 -> DIA-143 (duplicate-ID collision resolution; local campaign ticket DIA-119-test-shell-pnpm-sandbox-failure keeps its ID). Fix commit 0cd4346 ('feat(config): batch-dispatch parallelization + agent-instruction fixes (DIA-117/119)') exists in git log; merge 4b3dbf7 confirmed. Status stays VERIFIED (unchanged). -->

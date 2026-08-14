@@ -1,11 +1,11 @@
-# DIA-118 — Wire host-runnable gates into hooks and fix turbo.json test.inputs cache masking
+# DIA-142 — Wire host-runnable gates into hooks and fix turbo.json test.inputs cache masking
 
 <!-- Fix ticket (fix-lane): implements developer-approved findings from
-     ana014-hook-test-coverage (DIA-115). Filed 2026-08-12, cod-lane. -->
+     ana014-hook-test-coverage (DIA-139). Filed 2026-08-12, cod-lane. -->
 
 ---
 
-id: DIA-118
+id: DIA-142
 title: "Wire host-runnable gates into hooks and fix turbo.json test.inputs cache masking"
 area: git-hooks
 severity: Major
@@ -56,7 +56,7 @@ FIX 1 (pre-push host gates) - applied 2026-08-12:
   mechanism) because the dev container ships make and bats is vendored on the
   shared /workspace mount; hosts without make never reach these lines since
   the Makefile is the documented stack entrypoint (make up). The container-
-  down contract (warn + pass, DIA-094) is unchanged.
+  down contract (warn + pass, DIA-94) is unchanged.
 - scripts/**tests**/verify-pre-push.bats: extended the delegation test to
   assert all six steps; added two failure tests (test-shell failure exits 1
   before turbo; test-config failure exits 1 before turbo); extended the
@@ -96,3 +96,5 @@ check-host-lsp rust-analyzer version drift (1.83.0 vs 1.97.1) in the dev
 image - tracked as follow-up, not a regression of this change.
 
 Status: OPEN -> VERIFIED.
+
+<!-- UPDATE 2026-08-14 (RENUMBER, NO STATUS CHANGE): ticket renumbered DIA-118 -> DIA-142 (duplicate-ID collision resolution; local campaign ticket DIA-118-worktrees-sh-missing-executable-bit keeps its ID). Fix commits landed: 2baf8f9 (hook wiring + turbo inputs), 3cf6043 (recursion lesson persistence); merge 4b3dbf7 confirmed. Status stays VERIFIED (unchanged). -->

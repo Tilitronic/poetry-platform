@@ -1,11 +1,11 @@
-# DIA-117 - Fix agent-instruction audit findings: HANDOFF.md refs, missing AGENTS.md section 10, boss_append.md duplicate
+# DIA-141 - Fix agent-instruction audit findings: HANDOFF.md refs, missing AGENTS.md section 10, boss_append.md duplicate
 
 <!-- Fix ticket (fix-lane): implements developer-approved findings from
-     ana013-agent-instruction-audit (DIA-114). Filed 2026-08-12, cod-lane. -->
+     ana013-agent-instruction-audit (DIA-138). Filed 2026-08-12, cod-lane. -->
 
 ---
 
-id: DIA-117
+id: DIA-141
 title: "Fix agent-instruction audit findings: HANDOFF.md refs, missing AGENTS.md section 10, boss_append.md duplicate"
 area: opencode-config
 severity: Major
@@ -97,7 +97,9 @@ Registered per AGENTS.md section 2.5 workflow step 7 (Register) + step 5 (Valida
   is staged in the working tree and will load on the next natural OpenCode restart.
   Restart-smoke is therefore satisfied-in-part: config-live evidence recorded,
   full-daemon-restart evidence pending next natural restart. Not fabricating a restart.
-- **Registration (step 7):** CHANGELOG entry added (2026-08-12, DIA-117);
+- **Registration (step 7):** CHANGELOG entry added (2026-08-12, DIA-141);
   learnings entry .opencode/learnings/external-patterns/2026-08-12-dia117-agent-instruction-fixes.md
   created with outcome field; ticket status OPEN -> VERIFIED (README index + counts updated).
 - **Status: VERIFIED.**
+
+<!-- UPDATE 2026-08-14 (RENUMBER, NO STATUS CHANGE): ticket renumbered DIA-117 -> DIA-141 (duplicate-ID collision resolution; local campaign ticket DIA-117-worktree-force-remove-config-hardening keeps its ID). Fix commit 0cd4346 ('feat(config): batch-dispatch parallelization + agent-instruction fixes (DIA-117/119)') exists in git log; merge 4b3dbf7 confirmed. Status stays VERIFIED (unchanged). -->

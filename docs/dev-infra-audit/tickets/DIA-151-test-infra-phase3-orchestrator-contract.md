@@ -1,17 +1,17 @@
-# DIA-127 - test infra Phase 3: Orchestrator contract test (acceptWorkerResult, zero mocks)
+# DIA-151 - test infra Phase 3: Orchestrator contract test (acceptWorkerResult, zero mocks)
 
 <!-- Ticket 4 of 4 from the approved test-refactoring plan (reviewed with
      mandatory corrections incorporated). Phase 3 - Orchestrator Contract
-     Test. Blocked by DIA-126. -->
+     Test. Blocked by DIA-150. -->
 
 ---
 
-id: DIA-127
+id: DIA-151
 title: "test infra Phase 3: Orchestrator contract test (acceptWorkerResult, zero mocks)"
 area: tests-infra
 severity: Medium
-status: DONE
-blocked_by: [DIA-126] # Phase 2 critical gaps first
+status: CLOSED
+blocked_by: [DIA-150] # Phase 2 critical gaps first
 discovered:
 source: baseline
 date: 2026-08-12
@@ -123,3 +123,5 @@ all sub-gates exit 0 (E1-E11).
 ## Re-verify
 
 > To be filled at re-verify time.
+
+<!-- UPDATE 2026-08-14 (RENUMBER + CLOSE): ticket renumbered DIA-127 -> DIA-151 (duplicate-ID collision resolution, developer decision; local campaign ticket DIA-127-omo-slim-2-2-13-update-evaluation keeps its ID). Work demonstrably landed: fix commit 77cc6d7 ('test-infra(DIA-127): orchestrator contract test - acceptWorkerResult revision ordering and priority, zero mocks') exists in git log. Merge 4b3dbf7 confirmed. Status DONE -> CLOSED per renumber/close convention. -->

@@ -1,4 +1,4 @@
-# DIA-125 - test infra Phase 1: de-duplication (bats helpers, it.each, bash -n auto-discovery, per-package dependsOn)
+# DIA-149 - test infra Phase 1: de-duplication (bats helpers, it.each, bash -n auto-discovery, per-package dependsOn)
 
 <!-- Ticket 2 of 4 from the approved test-refactoring plan (reviewed with
      mandatory corrections incorporated). Phase 1 - De-duplication. Blocks
@@ -6,11 +6,11 @@
 
 ---
 
-id: DIA-125
+id: DIA-149
 title: "test infra Phase 1: de-duplication (bats helpers, it.each, bash -n auto-discovery, per-package dependsOn)"
 area: tests-infra
 severity: Medium
-status: OPEN
+status: CLOSED
 blocked_by: []
 discovered:
 source: baseline
@@ -161,10 +161,12 @@ Deviations from ticket (flagged, not silent):
 - `make test-config` full recipe not run as one target: `make` is
   unavailable on the host and the recipe mixes host-only steps (docker
   compose) with container steps; the 11 steps were run individually with
-  the compose step on the host (exit 0), consistent with the DIA-124 note
+  the compose step on the host (exit 0), consistent with the DIA-148 note
   on the make/docker CLI split. Container run confirmed the docker compose
   step is the only host-dependent one.
 
 ## Re-verify
 
 > To be filled at re-verify time.
+
+<!-- UPDATE 2026-08-14 (RENUMBER + CLOSE): ticket renumbered DIA-125 -> DIA-149 (duplicate-ID collision resolution, developer decision; local campaign ticket DIA-125-automate-ticket-management-research keeps its ID). Work demonstrably landed: fix commit 2843342 ('test-infra(DIA-125): de-dup bats helpers, it.each punct tests, bash -n auto-discovery, per-package test dependsOn') exists in git log. Merge 4b3dbf7 confirmed the teammate branch integration. Status OPEN -> CLOSED per renumber/close convention. -->

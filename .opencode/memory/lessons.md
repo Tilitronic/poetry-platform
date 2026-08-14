@@ -748,7 +748,7 @@ External-knowledge grounding fact caught by @ai-specialist against live DeepSeek
 3. DeepSeek reasoning_effort vocabulary: only low/high/xhigh/max (NO "medium"). Config values like variant: medium on DeepSeek lanes may be silently ignored/mapped - needs runtime-log verification.
 4. METHOD RULE (reinforces DIA-108): runtime model-resolution logs (~/.local/share/opencode/log/oh-my-opencode-slim.*.log) are authoritative for what a config knob actually does. Verify via logs BEFORE applying any model/temp/reasoning preset change; config-file reading + provider docs alone is insufficient.
 
-## L20260812-003 - gate-script re-entrancy guard (DIA-118 fork-bomb, 2026-08-12)
+## L20260812-003 - gate-script re-entrancy guard (DIA-142 fork-bomb, 2026-08-12)
 
 - **Lesson:** when a gate script can invoke the full test suite, guard against
   nested invocation with an env-flag that propagates through process spawns
@@ -777,16 +777,16 @@ External-knowledge grounding fact caught by @ai-specialist against live DeepSeek
 - Why irrecoverable: the bare tui.json entry, the stale cache state, and the panel-version evidence are environment/runtime state outside the repo; the loaded-instance-verification rule and the live-prompt-dir fact are not reconstructible from the repo alone.
 - Cross-reference: DIA-127, DIA-128 (dual-runtime precedence), external-patterns 2026-08-13-omo-slim-version-gate-upgrade.md.
 
-## L20260812-004 - hook-triggered suites must be verified hook-exact (DIA-123, 2026-08-12)
+## L20260812-004 - hook-triggered suites must be verified hook-exact (DIA-147, 2026-08-12)
 
 - **Lesson:** when a gate script exports an env flag before running the full
   test suite, verifying the suite STANDALONE is insufficient - the hook context
-  propagates the flag into every test. DIA-122's fix (commit 0760ef3) exported
+  propagates the flag into every test. DIA-146's fix (commit 0760ef3) exported
   VERIFY_PRE_PUSH_RUNNING=1 in scripts/verify-pre-push.sh before `make
   test-shell`; under the husky pre-push hook, ALL bats tests inherited the flag,
   so verify-pre-push.bats tests 183-187/189-191 (which invoke
   verify-pre-push.sh directly) hit the top-of-script guard (warning + exit 0),
-  failing 8 tests. DIA-122's standalone verification (`make test-shell`, no
+  failing 8 tests. DIA-146's standalone verification (`make test-shell`, no
   inherited flag) passed 211/211 and could not catch hook-context behavior.
 - **Why irrecoverable:** the hook context is an environment property (env flag
   inherited by child processes at hook time), not reproducible from a plain
@@ -799,7 +799,7 @@ External-knowledge grounding fact caught by @ai-specialist against live DeepSeek
   2. Test `setup()` should `unset` such inherited flags so each test exercises
      the script's public entry behavior (flag-free direct invocation).
   3. If a test must verify the guarded path, re-export the flag INSIDE the test
-     body after setup (DIA-123 added exactly this: a test that re-exports the
+     body after setup (DIA-147 added exactly this: a test that re-exports the
      flag and asserts warning + exit 0 + no docker invocation).
-  Cross-reference: adr.md gate-script re-entrancy-guard ADR, DIA-123 ticket,
+  Cross-reference: adr.md gate-script re-entrancy-guard ADR, DIA-147 ticket,
   commit d6c6a64.

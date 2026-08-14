@@ -1,17 +1,17 @@
-# DIA-124 - test infra Phase 0: safety wins (author-studio fails loudly, flaky-pin tests removed, config gate hardened)
+# DIA-148 - test infra Phase 0: safety wins (author-studio fails loudly, flaky-pin tests removed, config gate hardened)
 
 <!-- Ticket 1 of 4 from the approved test-refactoring plan (reviewed with
      mandatory corrections incorporated). Phase 0 - Safety Wins. Blocks
-     DIA-126 (Phase 2). -->
+     DIA-150 (Phase 2). -->
 
 ---
 
-id: DIA-124
+id: DIA-148
 title: "test infra Phase 0: safety wins (author-studio fails loudly, flaky-pin tests removed, config gate hardened)"
 area: tests-infra
 severity: Major
-status: OPEN
-blocked_by: [] # blocks DIA-126
+status: CLOSED
+blocked_by: [] # blocks DIA-150
 discovered:
 source: baseline
 date: 2026-08-12
@@ -151,7 +151,7 @@ Verification evidence (exit codes + summary lines):
 - `docker compose config --quiet` (host): exit 0.
 - `docker compose -f broken.yml config --quiet`: exit 1 (negative check).
 - author-studio direct test (`pnpm --filter author-studio test`): exit 1,
-  message "author-studio has no test suite yet (DIA-124): excluded from the
+  message "author-studio has no test suite yet (DIA-148): excluded from the
   turbo test task; fails loudly by design".
 - Root `pnpm test` (turbo test --filter=!author-studio): exit 0.
   "Tasks: 2 successful, 2 total"; phonetics-core 24 tests passed
@@ -180,9 +180,11 @@ Deviations from ticket (flagged, not silent):
   consistency with the changed script).
 - `docs/dev-infra-audit/tickets/README.md` and
   `scripts/__tests__/verify-pre-push.bats` show as modified but are
-  pre-existing working-tree changes from plan authoring (DIA-123..127) and
+  pre-existing working-tree changes from plan authoring (DIA-147..127) and
   were NOT part of this commit.
 
 ## Re-verify
 
 > To be filled at re-verify time.
+
+<!-- UPDATE 2026-08-14 (RENUMBER + CLOSE): ticket renumbered DIA-124 -> DIA-148 (duplicate-ID collision resolution, developer decision; local campaign ticket DIA-124-handoff-before-session-end keeps its ID). Work demonstrably landed: fix commit 99df4d2 ('test-infra(DIA-124): phase 0 safety wins - loud author-studio test, drop docstring-pin tests, harden config gate') exists in git log. Merge 4b3dbf7 confirmed the teammate branch integration. Status OPEN -> CLOSED per renumber/close convention. -->

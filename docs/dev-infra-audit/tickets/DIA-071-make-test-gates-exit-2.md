@@ -122,12 +122,12 @@ exit 0, make test-infra exit 0 (see top UPDATE).
 
 ---
 
-## Update 2026-08-12 (DIA-121 verification)
+## Update 2026-08-12 (DIA-145 verification)
 
-Re-checked the current state of this ticket during DIA-121 verification by
+Re-checked the current state of this ticket during DIA-145 verification by
 running `make test-config && make test-shell` INSIDE poetry-dev. The original
 host-PATH gap is still live, plus a second gate gap was found. Both now block
-EVERY pre-push because DIA-118 wired `make test-shell` into the pre-push hook
+EVERY pre-push because DIA-142 wired `make test-shell` into the pre-push hook
 (commit 9ac204f). Severity raised Low -> Major (push-blocker).
 
 ### Current gap (1): check-host-lsp rust-analyzer version mismatch

@@ -1,17 +1,17 @@
-# DIA-126 - test infra Phase 2: critical gaps (vitest in author-studio, real data-contracts test)
+# DIA-150 - test infra Phase 2: critical gaps (vitest in author-studio, real data-contracts test)
 
 <!-- Ticket 3 of 4 from the approved test-refactoring plan (reviewed with
      mandatory corrections incorporated). Phase 2 - Critical Gaps. Blocked by
-     DIA-124; blocks DIA-127. -->
+     DIA-148; blocks DIA-151. -->
 
 ---
 
-id: DIA-126
+id: DIA-150
 title: "test infra Phase 2: critical gaps (vitest in author-studio, real data-contracts test)"
 area: tests-infra
 severity: Critical
-status: OPEN
-blocked_by: [DIA-124] # Phase 0 safety wins first
+status: CLOSED
+blocked_by: [DIA-148] # Phase 0 safety wins first
 discovered:
 source: baseline
 date: 2026-08-12
@@ -37,7 +37,7 @@ evidence: []
 
 Phase 2 of the approved test-refactoring plan: two packages currently have no
 real test coverage at all — `apps/author-studio` (test script is the fake
-`echo "No test specified" && exit 0`; becomes loud per DIA-124) and
+`echo "No test specified" && exit 0`; becomes loud per DIA-148) and
 `packages/data-contracts` (no `test` script in package.json at all). Give
 both real, behavioral coverage so CI validates what architecture.md
 declares.
@@ -113,7 +113,7 @@ Applied 2026-08-12, landed in commit 6239767 (branch omo-slim-changes):
    `src/stores/example-store.test.ts` asserting `useCounterStore` behavior
    (initial state 0, `doubleCount` getter doubles, `increment` action bumps
    counter) via `createPinia`/`setActivePinia` — no DOM. Replaced the
-   DIA-124 loud-fail stub `test` script with `vitest run`.
+   DIA-148 loud-fail stub `test` script with `vitest run`.
 2. `packages/data-contracts`: vitest `^4.1.9` devDependency + new
    `vitest.config.ts` + `test` script (package previously had none, so turbo
    silently skipped it). Test `src/index.test.ts` asserts the `contract`
@@ -121,7 +121,7 @@ Applied 2026-08-12, landed in commit 6239767 (branch omo-slim-changes):
 "object"`, and expected `properties` keys. No protobuf-es — that API does
    not exist in this package.
 3. Root `package.json`: removed `--filter=!author-studio` from the `test`
-   script (DIA-124 exclusion) so both packages run in the turbo `test` task;
+   script (DIA-148 exclusion) so both packages run in the turbo `test` task;
    turbo now executes 4 test tasks (author-studio, data-contracts,
    editor-engine, phonetics-core) instead of 2.
 4. `apps/author-studio/AGENTS.md`: updated stale "no tests / excluded from
@@ -136,3 +136,5 @@ passed; prettier clean on new files.
 ## Re-verify
 
 > To be filled at re-verify time.
+
+<!-- UPDATE 2026-08-14 (RENUMBER + CLOSE): ticket renumbered DIA-126 -> DIA-150 (duplicate-ID collision resolution, developer decision; local campaign ticket DIA-126-autonomous-mode-permission-hardening keeps its ID). Work demonstrably landed: fix commits b9aeb7d ('test(DIA-126): enforce data-contracts schema with ajv + exact property keys') and b43fed9 ('test-infra(DIA-126): real vitest suites for author-studio and data-contracts') exist in git log. Merge 4b3dbf7 confirmed. Status OPEN -> CLOSED per renumber/close convention. -->

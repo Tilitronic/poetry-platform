@@ -247,7 +247,7 @@
     },
     // analyzer — artifact-producer tier (DIA-057/F3 fix).
     // Writes analysis reports to knowledge/<type><id>-<topic>/
-    // shelf registration delegated to @memory-manager (DIA-119). Bash allowed for
+    // shelf registration delegated to @memory-manager (DIA-143). Bash allowed for
     // Mermaid CLI + analysis tooling; edit scoped to output dirs only.
     "analyzer": {
       "mode": "subagent",

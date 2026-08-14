@@ -321,7 +321,7 @@ Accepted — 2026-08-12
 
 ### Context
 
-A recursion fork-bomb regression (DIA-118) occurred when `make test-shell` was
+A recursion fork-bomb regression (DIA-142) occurred when `make test-shell` was
 wired into `scripts/verify-pre-push.sh` (commit 49d587a). Invoked inside the
 dev container, the script takes the direct branch (hostname==poetry-dev) and
 re-enters the full suite: verify-pre-push.sh -> make test-shell -> bats ->
@@ -354,7 +354,7 @@ PATH/hostname shims as the primary defense — they are necessary-but-not-suffic
   guard from the start.
 - Test-side hermetic shims remain valuable as defense-in-depth but are no
   longer treated as sufficient protection for gate-script recursion.
-- Test-side corollary (DIA-123): when a gate script exports the guard flag
+- Test-side corollary (DIA-147): when a gate script exports the guard flag
   before running the full suite, the hook context propagates the flag into
   every test, so test setup() must `unset` the inherited flag to exercise the
   script's public entry behavior; a test that must verify the guarded path
@@ -365,7 +365,7 @@ PATH/hostname shims as the primary defense — they are necessary-but-not-suffic
 ### Metadata
 
 - Created: 2026-08-12
-- Related: DIA-118, DIA-122, knowledge/ana015-recursion-fork-bomb/ana015-recursion-fork-bomb-report.md
+- Related: DIA-142, DIA-146, knowledge/ana015-recursion-fork-bomb/ana015-recursion-fork-bomb-report.md
 
 ## ADR: Git worktrees parallel-dev model (DIA-100) - decision record + ticket-lifecycle convention
 

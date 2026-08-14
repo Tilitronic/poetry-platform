@@ -403,11 +403,11 @@ shelf:
       ai-specialist gate (2026-08-13).'
     path: "knowledge/ana018-research-lane-optimization/ana018-research-lane-optimization-report.md"
     created: 2026-08-13
-  - name: "Agent Instruction Files Audit (DIA-114)"
+  - name: "Agent Instruction Files Audit (DIA-138)"
     description: "Cross-reference audit of 50 instruction-bearing files (AGENTS.md, .opencode/agents/*.md, .opencode/skills/*/SKILL.md, practice-protected.md, opencode.jsonc, oh-my-opencode-slim.jsonc, OMO *.md appendices, 11 TS agent factories, NEXT-RUN.md, HANDOFF.md template). 2 Critical findings: (F1) orchestrator preset prompt references non-existent HANDOFF.md in all 3 presets -- runtime file is .opencode/session/current-handoff.json; (F2) phantom AGENTS.md §10 referenced from orchestrator_append.md + NEXT-RUN.md + all 3 preset prompts but missing from actual AGENTS.md. 4 High: (F3) dead boss_append.md (80% duplicate of orchestrator_append.md); (F4) reviewer.ts factory prompt != reviewer.md two-axis intent; (F5) researcher.ts factory prompt lacks PERSISTENCE_RECOMMENDED flag the orchestrator depends on; (F6) byte-identical orchestrator/coder/researcher prompts duplicated across 3 presets (drift-guaranteed). 6 Medium: (F7) AGENTS.md §9 table readability for 6 disabled aliases; (F8) memory-manager.md emoji violates DIA-079; (F9) analyzer has 3 overlapping prompt sources; (F10) stale .tss/ placeholder in AGENTS.md; (F11) boss.ts AGENT_DESCRIPTIONS missing 14 agents undocumented; (F12) NEXT-RUN.md HANDOFF.md vs current-handoff.json name ambiguity; (F13) orchestrator_append.md ~80% overlaps AGENTS.md §2. 6 Low. Cross-reference matrix of 18 agents across 5 source categories. Remediation ~14h."
     path: "knowledge/ana013-agent-instruction-audit/ana013-agent-instruction-audit-report.md"
     created: 2026-08-12
-  - name: "Hook Test Coverage Audit (DIA-115)"
+  - name: "Hook Test Coverage Audit (DIA-139)"
     description: "Audit of pre-commit/pre-push hook test coverage. 3 CRITICAL findings:\
       \ (C1) turbo.json `test` task `inputs` field masks source-code regressions (cached\
       \ test result returned when only src/** changes, no test files touched — active\
@@ -434,13 +434,13 @@ shelf:
     path: knowledge/ana01-tests-ponytail-audit/ana01-tests-ponytail-audit-report.md
     created: 2026-08-12
   - id: ana015
-    name: verify-pre-push recursion fork-bomb root-cause analysis (DIA-118 regression)
-    title: verify-pre-push recursion fork-bomb root-cause analysis - DIA-118 regression
-    description: "Root-cause analysis of the recursion fork-bomb regression in scripts/verify-pre-push.sh. Introduced by commit 49d587a (DIA-118) wiring `make test-shell` into the pre-push script; root cause is absence of a re-entrancy guard in the script itself (hostname==poetry-dev branch re-enters the suite). Test-side hostname shim (commit bb18099, DIA-071) is necessary-but-not-sufficient defense (covers bats only, not manual/husky invocations). ~18s cycle, 6+ levels deep, dozens of /tmp/bats-run-* dirs, live chains 1.5h. Recommends minimal env-flag propagation guard (VERIFY_PRE_PUSH_RUNNING) with a one-line test-side unset to preserve the direct-run test. 5 lines added, zero tests broken."
+    name: verify-pre-push recursion fork-bomb root-cause analysis (DIA-142 regression)
+    title: verify-pre-push recursion fork-bomb root-cause analysis - DIA-142 regression
+    description: "Root-cause analysis of the recursion fork-bomb regression in scripts/verify-pre-push.sh. Introduced by commit 49d587a (DIA-142) wiring `make test-shell` into the pre-push script; root cause is absence of a re-entrancy guard in the script itself (hostname==poetry-dev branch re-enters the suite). Test-side hostname shim (commit bb18099, DIA-071) is necessary-but-not-sufficient defense (covers bats only, not manual/husky invocations). ~18s cycle, 6+ levels deep, dozens of /tmp/bats-run-* dirs, live chains 1.5h. Recommends minimal env-flag propagation guard (VERIFY_PRE_PUSH_RUNNING) with a one-line test-side unset to preserve the direct-run test. 5 lines added, zero tests broken."
     path: "knowledge/ana015-recursion-fork-bomb/ana015-recursion-fork-bomb-report.md"
     created: 2026-08-12
     date: 2026-08-12
-    task_ref: DIA-122
+    task_ref: DIA-146
     status: completed
   adrs:
   - name: Memory Storage Strategy

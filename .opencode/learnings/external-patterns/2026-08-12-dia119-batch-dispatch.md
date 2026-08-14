@@ -1,14 +1,14 @@
-# DIA-119 batch-dispatch config changes - BATCH-DISPATCH rule, memory-shelf centralization, ID preallocation, serialization points (2026-08-12)
+# DIA-143 batch-dispatch config changes - BATCH-DISPATCH rule, memory-shelf centralization, ID preallocation, serialization points (2026-08-12)
 
 - **Date:** 2026-08-12
-- **Source:** DIA-119 fix ticket (from the DIA-116 task-parallelization analysis, ai--3 session report); coder-lane implementation + this AGENTS.md section 2.5 close-out registration lane (docs lane).
+- **Source:** DIA-143 fix ticket (from the DIA-140 task-parallelization analysis, ai--3 session report); coder-lane implementation + this AGENTS.md section 2.5 close-out registration lane (docs lane).
 - **Status:** VERIFIED - all four proposals applied and gate-verified; ai-auditor independent review REQUEST-CHANGES (findings D-1..D-5) -> follow-up fixes applied -> re-verified PASS, all gates green.
-- **Outcome:** parallelization enabled per the DIA-116 design: PURE-DISPATCH replaced by BATCH-DISPATCH in all 3 preset orchestrator prompts (approved conflict-free batches A/B/C; NEVER two coders / two analyzers / coder+reviewer / two memory-shelf.yaml writers); memory-shelf.yaml writes centralized to @memory-manager as sole shelf writer (analyzer/conspecter shelf-edit permission removed, prompts now Do-Not-Register + report artifact path); ID preallocation moved to the orchestrator (scan knowledge/ for highest <type><nnn>, pass explicit ana<NN>/res<NN> in the dispatch payload, "Never let the agent self-allocate."); A6 Serialization Points documented (coder->reviewer, researcher->conspecter, [all]->memory-manager, openspec-plan->coder, boot gate->any work). Follow-up fixes closed the ai-auditor D-1..D-5 findings (stale Pure-Dispatch refs in A1/NEXT-RUN/routing, analyzer/conspecter self-registration instructions, delegation-observer header comments).
+- **Outcome:** parallelization enabled per the DIA-140 design: PURE-DISPATCH replaced by BATCH-DISPATCH in all 3 preset orchestrator prompts (approved conflict-free batches A/B/C; NEVER two coders / two analyzers / coder+reviewer / two memory-shelf.yaml writers); memory-shelf.yaml writes centralized to @memory-manager as sole shelf writer (analyzer/conspecter shelf-edit permission removed, prompts now Do-Not-Register + report artifact path); ID preallocation moved to the orchestrator (scan knowledge/ for highest <type><nnn>, pass explicit ana<NN>/res<NN> in the dispatch payload, "Never let the agent self-allocate."); A6 Serialization Points documented (coder->reviewer, researcher->conspecter, [all]->memory-manager, openspec-plan->coder, boot gate->any work). Follow-up fixes closed the ai-auditor D-1..D-5 findings (stale Pure-Dispatch refs in A1/NEXT-RUN/routing, analyzer/conspecter self-registration instructions, delegation-observer header comments).
 
 ## Ticket
 
-- **DIA-119** (Major, VERIFIED) - "Enable safe task parallelization: BATCH-DISPATCH rule, memory-shelf centralization, ID preallocation, serialization points".
-- **Related:** DIA-116 (task-parallelization analysis, parent), DIA-120 (batch-aware A1 plugin, sibling proposal 5).
+- **DIA-143** (Major, VERIFIED) - "Enable safe task parallelization: BATCH-DISPATCH rule, memory-shelf centralization, ID preallocation, serialization points".
+- **Related:** DIA-140 (task-parallelization analysis, parent), DIA-144 (batch-aware A1 plugin, sibling proposal 5).
 
 ## Fixes (implemented 2026-08-12, working tree)
 
@@ -41,4 +41,4 @@ Approved-batch sets are a single source of truth shared between prompts and plug
 
 ## Tags
 
-DIA-119, DIA-116, DIA-120, batch-dispatch, parallelization, task-parallelization, PURE-DISPATCH, memory-shelf, memory-manager, ID-ALLOCATION, serialization-points, orchestrator_append, oh-my-opencode-slim, delegation-observer, a1_violation, single-source-of-truth, test-config, ai-auditor, config-fix-workflow
+DIA-143, DIA-140, DIA-144, batch-dispatch, parallelization, task-parallelization, PURE-DISPATCH, memory-shelf, memory-manager, ID-ALLOCATION, serialization-points, orchestrator_append, oh-my-opencode-slim, delegation-observer, a1_violation, single-source-of-truth, test-config, ai-auditor, config-fix-workflow
