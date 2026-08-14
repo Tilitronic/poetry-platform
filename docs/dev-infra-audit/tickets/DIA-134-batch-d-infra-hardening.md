@@ -62,6 +62,9 @@ gitignored suite under `scripts/__tests__/` (node `.test.mjs`, no new deps),
 or wire them into `make test-config`, so RED/GREEN/merge-verify always re-run
 the SAME files.
 
+> SUPERSEDED by DIA-136 F2 (2026-08-14): the suite file was un-gitignored and
+> is now git-tracked - the gitignored-by-design plan no longer applies.
+
 **Verification:** run the suite from a fresh session after a tmp wipe and
 confirm identical assertions/expected counts.
 
@@ -153,6 +156,9 @@ reviewed + ai-auditor APPROVE + combined review MERGE-READY; merged 2026-08-14
 via 4 serialized squash-merges 05c75fe..510e60b on omo-slim-changes). All 6
 items implemented across slices S1-S4:
 
+> Note (2026-08-14): item 2's gitignored-suite claim is SUPERSEDED by DIA-136
+> F2 - the suite file is now un-gitignored and tracked.
+
 1. **Worktree husky-shim gap (S1, feature/dia134-shim 644c3a1):**
    `scripts/worktrees.sh create` now materializes the `.husky/_` shim in each
    new worktree (copied from the main tree, real directory not symlink);
@@ -164,7 +170,9 @@ items implemented across slices S1-S4:
    `scripts/__tests__/batch-d-infra.test.mjs` (43 tests, plain node ESM, zero
    npm deps) and is wired into `make test-config` via Makefile, so
    RED/GREEN/merge-verify always re-run the SAME file. Suite file GITIGNORED
-   per design.md DD2 (not carried by git; see deferrals). .gitignore rule
+   per design.md DD2 (not carried by git; see deferrals). SUPERSEDED by
+   DIA-136 F2 (2026-08-14): file un-gitignored and now tracked (ADR 10
+   supersedes ADR 9). .gitignore rule
    added; .sdd/dev-infra/architecture.md ADR 9 (persistent behavioral suite
    gitignored by design) + DD1 ADR.
 3. **Branch-ownership in batch D payloads (S3, feature/dia134-prompts
@@ -213,6 +221,8 @@ Accepted deferrals:
   design.md DD2; on fresh clones / worktrees it must be copied from the S2
   worktree (`.worktrees/feature-dia134-tests/scripts/__tests__/`) when
   re-materializing — `make test-config` will fail on main until copied.
+  SUPERSEDED by DIA-136 F2 (2026-08-14): file un-gitignored and now tracked -
+  fresh clones get it via git; this deferral no longer applies.
 
 ## Re-verify
 
