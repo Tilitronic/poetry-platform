@@ -2,9 +2,40 @@
   "$schema": "https://opencode.ai/config.json",
 
   // ---------------------------------------------------------------------------
+  // OVERNIGHT DESTRUCTIVE COMMAND BASELINE v1 (DIA-134 Baseline A,
+  // developer-approved 2026-08-14)
+  //
+  // Authoritative, versioned list of the deny rules an unattended overnight
+  // run MUST carry. This list is the contract that scripts/overnight.sh
+  // validates the extracted permission payload against (DIA-134 S2): every
+  // rule below must resolve to "deny" in permission.bash or the launcher
+  // refuses to start. Future edits to the permission block below are baseline
+  // edits - diff them against this list; adding, removing, or softening a rule
+  // is a baseline VERSION BUMP (v2 via the DIA-134 flow), never a silent edit.
+  //
+  // Baseline A = 5 inherited interactive-profile rules (rm, rm -rf, rmdir,
+  // chmod, chown - flipped ask -> deny for the overnight run only) + 6
+  // data+git candidates (docker volume rm, docker system prune, docker system
+  // prune -af, git reset --hard, git clean -fd, git push --force). All 11:
+  //
+  //   1.  rm *
+  //   2.  rm -rf *
+  //   3.  rmdir *
+  //   4.  chmod *
+  //   5.  chown *
+  //   6.  docker volume rm *
+  //   7.  docker system prune *
+  //   8.  docker system prune -af*
+  //   9.  git reset --hard *
+  //   10. git clean -fd*
+  //   11. git push --force*
+  // ---------------------------------------------------------------------------
+
+  // ---------------------------------------------------------------------------
   // Overnight autonomous-run permission profile - DIA-126 direction (a)
   // autonomous permission profile, Option A full (developer-approved
-  // 2026-08-13). Lane: SECTION-10 PHASE 4 IMPLEMENTATION.
+  // 2026-08-13); deny set extended to the DIA-134 baseline v1 (data+git)
+  // 2026-08-14. Lane: SECTION-10 PHASE 4 IMPLEMENTATION.
   //
   // PURPOSE
   //   An unattended overnight run launches with `opencode --auto`, which
@@ -12,10 +43,12 @@
   //   profile (.opencode/opencode.jsonc) keeps the destructive bash rules
   //   (rm, rm -rf, rmdir, chmod, chown) at ASK so a human confirms them;
   //   under --auto that human gate disappears and the commands would run
-  //   without any confirmation. This profile re-hardens exactly those five
-  //   rules to DENY for overnight runs ONLY. DENY stays enforced under
-  //   --auto (Permission.ask short-circuits on deny before any auto-approval;
-  //   OpenCode docs: "Explicit deny rules are still enforced").
+  //   without any confirmation. This profile re-hardens those five rules and
+  //   the DIA-134 baseline v1 additions (docker volume rm, docker system
+  //   prune, docker system prune -af, git reset --hard, git clean -fd,
+  //   git push --force) to DENY for overnight runs ONLY. DENY stays enforced
+  //   under --auto (Permission.ask short-circuits on deny before any
+  //   auto-approval; OpenCode docs: "Explicit deny rules are still enforced").
   //
   //   The interactive session is NOT affected: this file is loaded only by
   //   scripts/overnight.sh. The interactive profile keeps the ask prompt.
@@ -29,29 +62,50 @@
   //   conflicting keys, so the project .opencode/opencode.jsonc would
   //   clobber any permission rule this file declares. OPENCODE_PERMISSION is
   //   deep-merged into the final permission object AFTER all config files
-  //   and therefore wins (verified with `opencode debug config`: all five
-  //   rules resolve to deny while the other 77 bash rules stay unchanged).
+  //   and therefore wins (verified with `opencode debug config`: the
+  //   baseline rules resolve to deny while the other bash rules stay
+  //   unchanged).
+  //
+  // PAYLOAD SHAPE VALIDATION (DIA-134 S2, 2026-08-14)
+  //   scripts/overnight.sh now validates the extracted payload against the
+  //   baseline v1 list above BEFORE exporting OPENCODE_PERMISSION: a payload
+  //   that is missing a rule or carries a softened ("ask") rule exits 1 with
+  //   a rule-specific error and NEVER launches opencode. This closes the
+  //   ai-auditor S2 gap where a drifted payload ({} or rules reverted to
+  //   ask) would silently un-harden the run.
   //
   // SCOPE
-  //   Exactly the five ask-level destructive rules from the global
-  //   permission.bash map. The merge is per-key, so everything else - the
-  //   full interactive permission block, agent definitions, plugins - stays
-  //   byte-identical to the interactive profile.
+  //   Exactly the 11 baseline rules from the global permission.bash map. The
+  //   merge is per-key, so everything else - the full interactive permission
+  //   block, agent definitions, plugins - stays byte-identical to the
+  //   interactive profile. git reset --hard / git clean -fd / git push
+  //   --force are already DENY in the interactive profile; re-asserting them
+  //   here keeps the overnight payload self-contained (the baseline is
+  //   verified against THIS file, not against the interactive profile's
+  //   state).
   // ---------------------------------------------------------------------------
 
   "permission": {
     "bash": {
-      // DIA-126(a) overnight hardening (developer-approved 2026-08-13):
-      // destructive commands flip ask -> deny for the overnight run only.
-      // Order within the map is irrelevant for evaluation (OpenCode uses the
-      // last matching rule; these are the only bash rules whose pattern
-      // matches each command family) and the global "*": "allow" catch-all
-      // stays first, so the bash tool remains visible in the function schema.
-      "rm -rf *": "deny",
+      // DIA-134 baseline v1 (11 rules, deny). Order within the map is
+      // irrelevant for evaluation (OpenCode uses the last matching rule;
+      // these are the only bash rules whose pattern matches each command
+      // family) and the global "*": "allow" catch-all stays first in the
+      // merged profile, so the bash tool remains visible in the function
+      // schema. Order here mirrors the baseline v1 list above so the block
+      // diffs 1:1 against the comment and against scripts/overnight.sh's
+      // OVERNIGHT_DENY_BASELINE array.
       "rm *": "deny",
+      "rm -rf *": "deny",
       "rmdir *": "deny",
       "chmod *": "deny",
-      "chown *": "deny"
+      "chown *": "deny",
+      "docker volume rm *": "deny",
+      "docker system prune *": "deny",
+      "docker system prune -af*": "deny",
+      "git reset --hard *": "deny",
+      "git clean -fd*": "deny",
+      "git push --force*": "deny"
     }
   }
 }
