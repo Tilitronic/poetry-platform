@@ -21,8 +21,9 @@
 #   make test-skills  validate .opencode/skills/*/SKILL.md frontmatter (DIA-037)
 #   make audit-python  pip-audit both Python packages (requires uv + committed uv.lock)
 #   make context7-docs  fetch library docs from Context7 (requires CONTEXT7_API_KEY; dry-run without it)
+#   make session-query  read-only SQL query over session records (node:sqlite :memory:; ARGS pass-through)
 
-.PHONY: build up shell opencode dev stack install db-psql logs down clean check-pin-sync check-tools check-host-jq check-host-lsp gen-jsconfig test-shell test-opencode-docker test-python test-infra test-config test-interview test-skills eval-lite audit-python context7-docs jsonl-stats session-log-render jsonl-cross-check
+.PHONY: build up shell opencode dev stack install db-psql logs down clean check-pin-sync check-tools check-host-jq check-host-lsp gen-jsconfig test-shell test-opencode-docker test-python test-infra test-config test-interview test-skills eval-lite audit-python context7-docs jsonl-stats session-log-render jsonl-cross-check session-query
 
 stack:
 	bash scripts/dev-stack.sh
@@ -246,3 +247,17 @@ session-log-render:
 # and session-log-render precedent.
 jsonl-cross-check:
 	@bash .opencode/scripts/jsonl-cross-check.sh
+
+# Read-only SQL query layer over the orchestrator session records (DIA-156:
+# scripts/session-query.mjs, node:sqlite :memory:, zero deps). Loads
+# registry.jsonl + messages.jsonl into an in-memory sqlite DB and prints only
+# the filtered/aggregated rows requested — the token-economy win over full-file
+# greps. JSONL stays the canonical committed source of truth; no binary DB file
+# is ever created. On-demand CLI, deliberately NOT wired into test-shell/
+# test-infra/test-config (consistent with the jsonl-stats precedent); the bats
+# suite for it lives at scripts/__tests__/session-query.bats and IS
+# auto-discovered by test-shell. Usage:
+#   make session-query ARGS="--session ses_xxx"
+#   make session-query ARGS="--count-by status --table registry"
+session-query:
+	@node scripts/session-query.mjs $(ARGS)

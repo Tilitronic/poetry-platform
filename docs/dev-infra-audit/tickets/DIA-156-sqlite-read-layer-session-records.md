@@ -21,9 +21,9 @@ blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: ""
 discovered: 2026-08-14
 source: fix-lane
-date: 2026-08-14
+date: 2026-08-15
 created: 2026-08-14
-updated: 2026-08-14
+updated: 2026-08-15
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -32,11 +32,11 @@ lane_id: "cod"
 agent: "coder"
 model: ""
 parent_session_id: ""
-attempts: 0
+attempts: 1
 lease_expires_at: "" # ISO-8601; set on DISPATCHED, cleared on COMPLETE
-files_touched: ["docs/dev-infra-audit/tickets/DIA-156-sqlite-read-layer-session-records.md"]
+files_touched: ["docs/dev-infra-audit/tickets/DIA-156-sqlite-read-layer-session-records.md", "scripts/session-query.mjs", "scripts/__tests__/session-query.bats", "Makefile"]
 artifacts: []
-evidence: ["knowledge/res026-orchestrator-session-records-json-db/res026-orchestrator-session-records-json-db-conspect.md"]
+evidence: ["knowledge/res026-orchestrator-session-records-json-db/res026-orchestrator-session-records-json-db-conspect.md", "make test-shell exit 0 (343 tests, 18 new session-query)", "make test-config host exit 2 (pre-existing DIA-134 ENOENT /workspace)", "make test-config container exit 0 (49/49)", "node v24.18.0 node:sqlite ok"]
 
 ---
 
@@ -104,7 +104,128 @@ candidate).
 
 ## Fix
 
-> To be filled at fix time.
+Implemented 2026-08-15 (implementation lane, branch omo-slim-changes).
+
+### What was built
+
+`scripts/session-query.mjs` — a read-only query helper (plain Node ESM,
+zero deps) that loads `.opencode/session/registry.jsonl` +
+`messages.jsonl` into an in-memory `node:sqlite` database
+(`new DatabaseSync(':memory:')`) and runs ONE filtered/aggregated query,
+printing only the requested rows as JSONL to stdout. Nothing is ever
+written back to the JSONL (fs.readFileSync only); no binary DB file is
+created (`:memory:` is ephemeral). The delegation-observer plugin and its
+write path are untouched.
+
+Files:
+
+- `scripts/session-query.mjs` — the helper (new)
+- `scripts/__tests__/session-query.bats` — 18 hermetic bats tests (new)
+- `Makefile` — `session-query` target (ARGS pass-through) + .PHONY/header
+  (changed)
+
+### CLI surface
+
+```
+node scripts/session-query.mjs [options]
+  --registry <path>   registry.jsonl path (default: .opencode/session/registry.jsonl)
+  --messages <path>   messages.jsonl path (default: .opencode/session/messages.jsonl)
+  --session <id>      recall: every registry row with session_id=<id> plus
+                      every messages row with gen_ai.agent.id=<id>
+  --count-by <field>  aggregate: { "<field>": value, "count": N } per
+                      distinct non-NULL value of <field> in --table
+  --table <t>         table for --count-by: registry | messages (required)
+  --where <k=v>       equality filter, repeatable (json_extract(data,'$.k')=v)
+  --limit <n>         max rows printed (default 100; 0 = unlimited)
+  --json              print a single JSON array instead of JSONL
+  --help              show help and exit
+```
+
+One query mode is required: `--session <id>` OR `--count-by <field>` (not
+both). Exit codes: 0 ok (empty result ok), 2 usage error or missing file.
+
+### Key design notes (WHY)
+
+- **messages recall key:** messages.jsonl has NO `session_id` field; rows
+  are correlated to sessions via the semconv key `gen_ai.agent.id`
+  (verified overlap ~1181/2217 on live records). `--session` matches
+  registry.session_id + messages.gen_ai.agent.id.
+- **Dotted-key JSON path quoting:** SQLite JSON1 treats unquoted dots as
+  nesting separators — `json_extract(data, '$.gen_ai.agent.id')` silently
+  resolves to NULL. Dotted field names are quoted (`$."gen_ai.agent.id"`);
+  field names are whitelisted `[A-Za-z0-9_.-]` so values can never inject
+  SQL (verified on Node v24.18.0).
+- **readOnly:true deviation (documented):** the ticket/conspec text cites
+  `new DatabaseSync(':memory:')` + `readOnly: true`, but SQLite's
+  read-only mode rejects even in-memory DDL/DML, which the JSONL->table
+  import requires (verified: "attempt to write a readonly database").
+  The binding intent — never write a session record, never commit a
+  binary — is preserved by `:memory:` (no file backing, dies with the
+  process) plus read-only opens of the JSONL inputs. Read-only semantics
+  are enforced at the file level, not the sqlite level.
+- **Malformed-line policy:** warn-and-skip (stderr warning, counted,
+  query proceeds) — mirrors jsonl-cross-check.sh precedent. Missing file
+  = exit 2 INFRA error. Blank lines ignored.
+- **Scope guard (DIA-086):** no ORM, no migration framework, no CLI
+  framework — ~30 lines of hand-rolled arg parsing. Supplements
+  session-log / jsonl-stats.sh; replaces neither.
+
+### Test results
+
+- `make test-shell` (host): **exit 0** — 343 tests (325 baseline + 18
+  new session-query tests). New tests: recall-single-session (only that
+  session's rows), recall-unknown (0 rows, exit 0), count-by-status,
+  count-by-event_type, count-by+--where, --session+--where, empty files
+  (exit 0, no crash), empty-registry+messages-only recall, malformed-line
+  warn-and-skip (aggregate + recall), missing-file exit 2, count-by
+  without --table exit 2, session+count-by mutual exclusion exit 2, bare
+  --where no-query-mode exit 2, unknown flag exit 2, --help exit 0,
+  node --check, Makefile seam guard.
+- `make test-config` (host): **exit 2** — pre-existing DIA-134
+  batch-d-infra.test.mjs container-path bug (ENOENT /workspace/
+  .opencode/opencode.jsonc). NOT fixed (out of scope; documented).
+- `make test-config` (container, `docker compose exec dev make
+test-config`): **exit 0** — 49/49 pass.
+- node:sqlite built-in: `node -e "const {DatabaseSync}=require('node:sqlite'); console.log('ok')"` — exit 0 on Node v24.18.0 (host and container).
+
+### Demo (real records, read-only)
+
+Full files: 16,525 registry + 15,778 messages = 32,303 lines.
+
+```
+$ node scripts/session-query.mjs --session ses_0337b99dcffeYa4fEbErfqpTac
+{"seq":1,...,"event":"session_spawn","session_id":"ses_0337b99dcffeYa4fEbErfqpTac",...,"status":"RUNNING",...}
+{"seq":2,...,"event":"session_complete","session_id":"ses_0337b99dcffeYa4fEbErfqpTac",...,"status":"COMPLETE",...}
+{"timestamp":"2026-08-04T23:15:00Z","gen_ai.agent.id":"ses_0337b99dcffeYa4fEbErfqpTac","event_type":"delegation",...}
+(3 rows returned, not 32,303 — the token-economy win)
+```
+
+```
+$ node scripts/session-query.mjs --count-by status --table registry
+{"status":"COMPLETE","count":1130}
+{"status":"RUNNING","count":1128}
+{"status":"DISPATCHED","count":1125}
+{"status":"FORMATTED","count":126}
+{"status":"FAILED","count":58}
+{"status":"SILENT_FAILURE","count":40}
+```
+
+```
+$ make session-query ARGS="--count-by status --table registry --limit 8"
+note: imported registry=16525 messages=15778 malformed-skipped=0
+{"status":"COMPLETE","count":1130}
+... (exit 0)
+```
+
+### Verification checklist (ticket)
+
+1. Script + bats wired into make test-shell (bats-wrapper auto-discovers
+   scripts/**tests**/\*.bats): PASS — 18 tests, exit 0.
+2. Zero new runtime deps: PASS — node:sqlite built-in, no package.json
+   change.
+3. Demo query returns filtered rows only: PASS (3 rows from 32,303).
+4. make test-config: host exit 2 (pre-existing DIA-134, not caused by
+   this change), container exit 0.
 
 ## Re-verify
 
