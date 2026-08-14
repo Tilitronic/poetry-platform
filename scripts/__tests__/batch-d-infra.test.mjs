@@ -30,7 +30,8 @@
  *   2. CONFIG DRIFT (post-DIA-132)                   - GREEN now
  *   3. STRUCTURAL CHECKS (.sdd ADR invariants, DD5)  - GREEN now
  *   4. NEW DIA-134 TARGETS (S3/S4/Makefile wiring)   - RED until S3/S4 land
- *   5. DIA-139 SLICE B (F-2 turbo default flip)      - GREEN since 6cf2db9
+ *   5. DIA-139 SLICE C (F-3 single rebuild)          - GREEN since 795750b
+ *   6. DIA-139 SLICE B (F-2 turbo default flip)      - GREEN since 6cf2db9
  */
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
@@ -117,6 +118,18 @@ const presetNeverClauses = presetPrompts.map((p) => (p.match(NEVER_CLAUSE) || [n
 function testConfigRecipe() {
   const lines = makefile.split('\n');
   const idx = lines.findIndex((l) => /^test-config:/.test(l));
+  if (idx === -1) return '';
+  let end = idx + 1;
+  while (end < lines.length && !/^[a-zA-Z0-9_.-]+:/.test(lines[end])) end += 1;
+  return lines.slice(idx, end).join('\n');
+}
+
+// Makefile test-infra recipe block: same scoping as testConfigRecipe, so a
+// reference to `docker compose up -d --build` in a comment above the target
+// (or in the smoke script, which lives in a different file) cannot false-pass.
+function testInfraRecipe() {
+  const lines = makefile.split('\n');
+  const idx = lines.findIndex((l) => /^test-infra:/.test(l));
   if (idx === -1) return '';
   let end = idx + 1;
   while (end < lines.length && !/^[a-zA-Z0-9_.-]+:/.test(lines[end])) end += 1;
@@ -404,6 +417,65 @@ describe('S3 NEW DIA-134 TARGETS (RED now)', () => {
   });
   it('AGENTS.md S4: "before merge dispatch"', () => {
     assert.match(agentsMd, /before merge dispatch/);
+  });
+});
+
+// ============================================================================
+// S4 DIA-139 SLICE C (F-3) - RED until the single-rebuild fix lands
+// ============================================================================
+describe('S4 DIA-139 SLICE C (F-3): single docker stack rebuild in make test-infra (RED now)', () => {
+  const smokeScript = readRoot('scripts/test-docker-smoke.sh');
+
+  // F-3 (tasks.md 3.2): the test-infra recipe must NOT run its own
+  // `docker compose up -d --build` - the smoke test is the sole bring-up.
+  // Comment lines are filtered out first so a `# docker compose up ...` note
+  // above the target (documenting the fix) cannot false-positive the match.
+  it('Makefile: test-infra recipe contains no docker compose up -d --build (smoke test is the sole bring-up)', () => {
+    const recipeLines = testInfraRecipe()
+      .split('\n')
+      .filter((l) => !l.trim().startsWith('#'))
+      .join('\n');
+    assert.doesNotMatch(
+      recipeLines,
+      /docker compose up -d --build/,
+      'test-infra must not rebuild the stack a second time (F-3)',
+    );
+  });
+
+  // F-3 (tasks.md 3.2): the recipe must opt the smoke test into leave-up
+  // mode so test-python runs against the stack the smoke test brought up.
+  it('Makefile: test-infra recipe invokes the smoke test with SMOKE_LEAVE_UP=1', () => {
+    assert.match(
+      testInfraRecipe(),
+      /SMOKE_LEAVE_UP=1/,
+      'test-infra must set SMOKE_LEAVE_UP=1 when calling test-docker-smoke.sh (F-3)',
+    );
+  });
+
+  // F-3 (tasks.md 3.1): the smoke script must support the SMOKE_LEAVE_UP
+  // env var (leave the stack running on success). Absent today - RED.
+  it('test-docker-smoke.sh: supports SMOKE_LEAVE_UP=1 to leave the stack up on success', () => {
+    assert.match(
+      smokeScript,
+      /SMOKE_LEAVE_UP/,
+      'test-docker-smoke.sh must read SMOKE_LEAVE_UP (F-3)',
+    );
+  });
+
+  // F-3 (tasks.md 3.1): the env var is checked at the teardown step, not at
+  // bring-up - the smoke test's validation logic is unchanged. The teardown
+  // is the cleanup trap; the guard must live there. Line-anchored match so a
+  // comment mentioning "cleanup()" earlier in the script cannot shift the
+  // scanned region off the real function.
+  it('test-docker-smoke.sh: SMOKE_LEAVE_UP guard lives in the teardown (cleanup trap) step', () => {
+    const cleanupMatch = smokeScript.match(/^cleanup\(\)/m);
+    assert.ok(cleanupMatch, 'test-docker-smoke.sh must define a cleanup() teardown function');
+    const teardownRegion = smokeScript.slice(cleanupMatch.index, cleanupMatch.index + 500);
+    assert.match(
+      teardownRegion,
+      /SMOKE_LEAVE_UP/,
+      'SMOKE_LEAVE_UP must be checked in the teardown step',
+    );
   });
 });
 

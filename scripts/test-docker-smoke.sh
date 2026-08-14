@@ -24,6 +24,9 @@
 # The stack is torn down on exit (trap). Note this STOPS any stack you had
 # running — run it when you do not need the dev environment up.
 #
+# SMOKE_LEAVE_UP=1: leave the stack running on success (for callers
+# that will use the stack immediately after, e.g. make test-infra).
+#
 # Design choices (review cleanup 2026-08-01 + dev-infra-stack-hardening):
 #   - Secret FILES are probed only when the host file is non-empty: compose
 #     requires the file to exist at `up` time (absent => compose fails), but an
@@ -55,6 +58,16 @@ if ! docker info >/dev/null 2>&1; then
 fi
 
 cleanup() {
+  # F-3 (DIA-139): the SMOKE_LEAVE_UP guard lives here, in the teardown step,
+  # NOT at bring-up, so the smoke test's validation logic is unchanged. On
+  # success with SMOKE_LEAVE_UP=1 we keep the stack up (make test-infra reuses
+  # it for test-python instead of rebuilding a second time); on failure we
+  # still tear down so a broken stack does not linger.
+  local rc=$?
+  if [ "${SMOKE_LEAVE_UP:-}" = "1" ] && [ "$rc" -eq 0 ]; then
+    echo "-> SMOKE_LEAVE_UP=1: leaving the stack running (caller will use it)"
+    return 0
+  fi
   echo "-> tearing down the stack..."
   docker compose down >/dev/null 2>&1 || true
 }

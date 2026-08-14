@@ -132,12 +132,11 @@ gen-jsconfig:
 # build+start the stack, run the heavy Docker smoke test, then the api-server
 # pytest suite (which requires the stack to be UP — this is the M1 ordering
 # fix; test-python used to run as a prerequisite on a cold start and failed).
-# The smoke test is self-contained (builds/probes/tears down); the extra
-# up --build after it is a cheap layer-cached restart so test-python has a
-# stack, then we tear down. Requires a running Docker daemon.
+# Single rebuild: smoke test leaves the stack up for test-python (SMOKE_LEAVE_UP=1,
+# F-3, DIA-139) -- it is the sole bring-up; there is no second up --build.
+# Requires a running Docker daemon.
 test-infra: gen-jsconfig test-shell
-	bash scripts/test-docker-smoke.sh
-	docker compose up -d --build
+	SMOKE_LEAVE_UP=1 bash scripts/test-docker-smoke.sh
 	$(MAKE) test-python
 	docker compose down
 
