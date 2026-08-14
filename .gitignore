@@ -88,3 +88,6 @@ secrets/*
 # Gitignored by design - session-local reconstruction of DIA-132 throwaway
 # assertions; recreate or regenerate when invariants evolve.
 scripts/__tests__/batch-d-infra.test.mjs
+
+# DIA-135 scratch dir (coders never need /tmp)
+.scratch/

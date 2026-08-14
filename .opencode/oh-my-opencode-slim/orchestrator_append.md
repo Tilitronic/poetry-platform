@@ -349,3 +349,11 @@ The merge phase may start only with recorded `docker compose ps` output
 showing the dev service Up, committed into the merge report. The session log
 must record container state before merge dispatch; no merge attempt happens
 without the evidence line.
+
+### R4 - Instance separation (DIA-135)
+
+RED test-writing and GREEN implementation for the same slice MUST be dispatched to DIFFERENT coder instances; the test-author never implements the slice it tested. Session reuse applies to fix loops and same-artifact continuation, NOT across the test/code boundary. same-artifact continuation = further edits to the SAME file set within the same task_id.
+
+### R5 - Same-session fixes (DIA-135)
+
+fix-loop dispatches MUST resume the SAME coder session that wrote the code (resume by task_id/session_id per A2, never re-invoke task() for recall), so fixes carry the implementer's context.
