@@ -44,3 +44,8 @@ select = ["E", "F", "I"]
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
+# F-7 (DIA-139): pythonpath replaces tests/conftest.py's sys.path bootstrap
+# (deleted). src/ is a PEP 420 namespace package rooted at this dir; pytest
+# adds "." (relative to rootdir = this dir) to sys.path at session start, so
+# `import src.db.uow` etc. resolve without the conftest.
+pythonpath = ["."]

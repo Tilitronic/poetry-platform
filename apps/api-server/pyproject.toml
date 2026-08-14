@@ -47,3 +47,8 @@ select = ["E", "F", "I"]
 # Kept: first async test will land in app.core.auth
 asyncio_mode = "auto"
 testpaths = ["tests"]
+# F-7 (DIA-139): pythonpath replaces tests/conftest.py's sys.path bootstrap
+# (deleted). app/ is a PEP 420 namespace package rooted at this dir; pytest
+# adds "." (relative to rootdir = this dir) to sys.path at session start, so
+# `import app.core.auth` resolves without the conftest.
+pythonpath = ["."]
