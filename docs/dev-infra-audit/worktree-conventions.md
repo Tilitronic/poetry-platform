@@ -64,13 +64,14 @@ convention.
 
 ## Lifecycle CLI
 
-One script, three subcommands (`scripts/worktrees.sh`; `make test-shell`
+One script, four subcommands (`scripts/worktrees.sh`; `make test-shell`
 covers it via `scripts/__tests__/worktrees.bats`):
 
 ```bash
 bash scripts/worktrees.sh create feature/DIA-100-worktree-lifecycle [base]
 bash scripts/worktrees.sh list
 bash scripts/worktrees.sh remove feature/DIA-100-worktree-lifecycle
+bash scripts/worktrees.sh cleanup [--days N] [--dry-run]
 ```
 
 - `create` validates the branch name, refuses existing branches (local +
@@ -78,6 +79,12 @@ bash scripts/worktrees.sh remove feature/DIA-100-worktree-lifecycle
   `.opencode/session/` isolation, and prints the worktree path.
 - `remove` refuses dirty/unmerged worktrees unless `--force`. The branch is
   ALWAYS kept (rollback window).
+- `cleanup` (DIA-137) deletes merged `feature/*` branches after the rollback
+  window. Merge-verified against main (is-ancestor fast path, tree-subset
+  squash parity); a dirty linked worktree is ALWAYS skipped (no `--force` on
+  cleanup); the default window is 0 days (immediate post-merge teardown).
+  Flags/env: `--days N` > `WORKTREES_CLEANUP_DAYS` env > default 0;
+  `--dry-run` lists would-be-deleted candidates with zero side effects.
 - `list` shows active worktrees via `git worktree list`.
 
 Exit codes: 0 success, 1 runtime error, 2 usage error.
@@ -124,19 +131,33 @@ git merge --squash feature/DIA-100-worktree-lifecycle
 git commit -m "feat(infra): <summary> (DIA-100)"
 git push origin main
 
-# 5. Orchestrator dispatches @coder to teardown (branch kept for rollback):
+# 5. Orchestrator dispatches @coder to teardown: `remove` THEN `cleanup`
+#    (DIA-137). `remove` drops the worktree dir (branch kept for rollback);
+#    `cleanup` verifies the branch content is on main and deletes the branch
+#    (plus any leftover worktree dir on disk). Lanes never run either form
+#    of `git branch -d` directly — the script is the policy boundary:
 bash scripts/worktrees.sh remove feature/DIA-100-worktree-lifecycle
+bash scripts/worktrees.sh cleanup
 
-# 6. After the rollback window the developer deletes the branch. Squash-merge
-#    does NOT mark the branch as merged, so the plain delete fails; the
-#    developer uses -D. Lanes never run either form (DIA-096):
+# 6. Merge verification is the cleanup gate, not age: `cleanup` checks
+#    is-ancestor OR tree-subset against main (squash parity — a squash-merge
+#    does NOT mark the branch as merged, and step 6 of the old flow's plain
+#    `git branch -d` would fail: not an ancestor). Under the default 0-day
+#    window the branch is deleted immediately after the squash; `--days N`
+#    opts into a conservative grace window:
 git branch -d feature/DIA-100-worktree-lifecycle   # fails: not an ancestor
-git branch -D feature/DIA-100-worktree-lifecycle   # developer-only
+bash scripts/worktrees.sh cleanup --days 30        # conservative window
 ```
 
-Rollback window: the branch stays after teardown so the developer can recover
-from a bad squash with `git checkout feature/... && git cherry-pick` or a new
-merge. Deletion after the window is a developer action.
+Rollback window: under the default 0-day cleanup window the branch is
+deleted immediately after a verified squash-merge (DIA-137) — the merge
+verification (is-ancestor or tree-subset against main) plus the
+dirty-worktree skip are the safety gates, not age. Opt-in conservative runs
+(`--days N` / `WORKTREES_CLEANUP_DAYS=N`) keep the branch for a grace
+period so the developer can still recover from a bad squash with
+`git checkout feature/... && git cherry-pick` or a new merge. Deletion
+remains a script-governed action — lanes never run `git branch -d`/-D
+directly (DIA-096).
 
 ## Conflict escalation criteria
 
@@ -171,14 +192,19 @@ a summary of the conflict hunks and both sides' intent via the normal handoff.
 ## Cleanup policy
 
 - Worktree removal happens after the squash-merge (step 5 above) via
-  `scripts/worktrees.sh remove`.
-- The branch is kept for the rollback window; deletion after the window is
-  developer-only (`git branch -d`/`-D` is denied for lanes, DIA-096).
+  `scripts/worktrees.sh remove`, then `scripts/worktrees.sh cleanup` (DIA-137)
+  verifies the branch content is on main and deletes the branch — the
+  default 0-day window deletes immediately after a successful merge.
+- The branch is kept only while the configured window is open (opt-in via
+  `--days N` / `WORKTREES_CLEANUP_DAYS=N`); deletion is script-governed,
+  never lane-run directly (`git branch -d`/`-D` is denied for lanes, DIA-096).
 - A dirty worktree is never removed without `--force`, and `--force` is
   developer-only: it requires `WORKTREES_FORCE=1`, which lanes must never
-  set. The env guard exists because `git worktree remove --force` is not
-  itself in the DIA-096 deny list — only `git clean -f*` and `git branch -D`
-  are. The script is the policy boundary.
+  set. `cleanup` has NO `--force`: a candidate with a dirty linked worktree
+  is always skipped (`would-skip (worktree dirty)`), so a scan can never
+  lose work. The env guard exists because `git worktree remove --force` is
+  not itself in the DIA-096 deny list — only `git clean -f*` and
+  `git branch -D` are. The script is the policy boundary.
 
 ## DIA-096 safe/destructive mapping
 

@@ -36,25 +36,29 @@ DIA-132, DIA-134). After a squash-merge to main, the teardown step
 (`scripts/worktrees.sh remove`) removes the worktree directory but KEEPS the
 branch for the rollback window (DIA-100 cleanup policy, documented in
 `docs/dev-infra-audit/worktree-conventions.md` "Cleanup policy"). The
-rollback window is unbounded in practice: nothing ever deletes those branches
-after the window expires, because branch deletion is developer-only
-(`git branch -d`/`-D` denied for lanes, DIA-096) and there is no scripted
-path. As of 2026-08-14 the repo holds 10 leftover feature branches
-(`feature/diaXXX-*`) and 13 worktrees (12 `feature/dia132-*`,
-`feature/dia133-*`, `feature/dia134-*`, `feature/dia135-*` plus a nested
-selfcheck worktree) whose merged content is already on main.
+rollback window has been unbounded in practice: nothing ever deletes those
+branches after the merge, because the Teardown step 5 stops at `remove` and
+never runs `cleanup`, and branch deletion is denied for lanes at the config
+layer (`git branch -d`/`-D`, DIA-096). As of 2026-08-14 the repo holds 10
+leftover feature branches (`feature/diaXXX-*`) and 13 worktrees (12
+`feature/dia132-*`, `feature/dia133-*`, `feature/dia134-*`,
+`feature/dia135-*` plus a nested selfcheck worktree) whose merged content is
+already on main.
 
-**Proposed cleanup policy:** a branch is kept for a configurable rollback
-window of N days (default 7). After the window, `scripts/worktrees.sh
-cleanup` deletes the feature branch only when its content is FULLY merged
-into main, verified by `git diff main <branch>` being empty (plus the branch
-being merged by `git merge-base --is-ancestor`). Invocation is developer-only
-(after the rollback window, per the DIA-100 cleanup policy), mirroring the
-existing `remove --force` env-guard pattern (`WORKTREES_FORCE=1`): the script
-is the policy boundary. Lanes still never delete branches directly - the
-DIA-096 deny of `git branch -D *` stays unchanged; the script's own internal
-deletion is governed by the script itself, same invariant as `remove`
-(see `docs/dev-infra-audit/worktree-conventions.md` DIA-096 safe/destructive
+**Proposed cleanup policy:** a branch is deleted immediately after a
+successful merge, verified by `git diff main <branch>` being empty (plus
+the branch being merged by `git merge-base --is-ancestor`). The age window
+is configurable for opt-in conservative runs (`--days N` flag >
+`WORKTREES_CLEANUP_DAYS` env var > default 0); the default is 0 because
+the merge-content check plus the dirty-worktree protection are the real
+safety gates -- age adds only delay. Invocation is via the existing
+orchestrator-dispatched Teardown lane (worktree-conventions.md step 5,
+post-merge) AND may also be run manually by the developer, mirroring the
+`remove` pattern: the script is the policy boundary. Lanes still never
+delete branches directly -- the DIA-096 deny of `git branch -D *` stays
+unchanged; the script's own internal deletion is governed by the script
+itself, same invariant as `remove` (see
+`docs/dev-infra-audit/worktree-conventions.md` DIA-096 safe/destructive
 mapping note: the permission config gates the OUTER command, so the script
 enforces its own boundaries).
 
@@ -69,9 +73,11 @@ permission config.
 
 Single dev-infra change: a `cleanup` subcommand in `scripts/worktrees.sh`
 with merge-verification (empty `git diff main <branch>`), a configurable
-rollback-window age check (default 7 days), developer-only invocation, and
-bats tests. Does NOT touch the DIA-096 permission deny list (`git branch -D`
-stays denied for lanes); the script remains the policy boundary.
+rollback-window age check (default 0 days, immediate post-merge cleanup),
+invocation via the orchestrator-dispatched Teardown lane (+ manual escape
+hatch), and bats tests. Does NOT touch the DIA-096 permission deny list
+(`git branch -D` stays denied for lanes); the script remains the policy
+boundary.
 
 ## Verification
 
@@ -84,16 +90,20 @@ Prove the fix:
 1. Bats tests for the `cleanup` subcommand in
    `scripts/__tests__/worktrees.bats` (real git repo fixture):
    - **merged-only deletion:** a branch fully merged into main (empty
-     `git diff main <branch>`) and older than the window is deleted;
-   - **window enforcement:** a fully-merged branch younger than the N-day
-     window (or the age check via a fake/mocked date or `--days 0`
-     boundary) is preserved;
+     `git diff main <branch>`) is deleted under the default 0-day window;
+   - **window enforcement:** with an explicit `--days N` (N > 0), a
+     fully-merged branch younger than the N-day window is preserved;
    - **unmerged branch preserved:** a branch with content NOT in main
      (non-empty diff) is never deleted regardless of age;
    - **dirty worktree refusal:** `cleanup` refuses (non-zero exit, no
      deletion) when a worktree for a candidate branch has uncommitted
      changes, without needing `--force` semantics that lanes could reach.
 2. `make test-shell` exit 0 (full bats suite incl. the new cases).
+3. Teardown dispatch end-to-end: the orchestrator runs the existing
+   Teardown pattern (worktree-conventions.md step 5) post-merge and
+   invokes `bash scripts/worktrees.sh cleanup` after `remove`; the
+   merged branch is gone post-run, the DIA-096 deny list is byte-
+   identical to its pre-change state.
 
 ## Fix
 

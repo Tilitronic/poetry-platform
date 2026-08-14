@@ -30,6 +30,15 @@
 #   T17 create materializes .husky/_ in the worktree (husky shim, DIA-134)
 #   T18 create fails loudly when the main tree has no .husky/_ (DD1)
 #   T19 create's .husky/_ copy is a real directory, not a symlink (DD1)
+#   T20 cleanup merged+old + clean linked worktree -> branch deleted, worktree dir removed
+#   T21 cleanup unmerged preserved (old reported, young silent); worktrees survive
+#   T22 cleanup merged+young preserved (below explicit window) with report
+#   T23 cleanup merged+old dirty worktree -> skip + warn + scan continues + exit 0
+#   T24 cleanup --dry-run lists would-be-deleted candidates, zero side effects
+#   T25 cleanup exit codes: all-OK/skipped -> 0; candidate error / outside repo -> non-zero
+#   T26 cleanup window precedence: --days flag > WORKTREES_CLEANUP_DAYS > default 0
+#   T27 cleanup deletes branch AND leftover worktree dir on disk
+#   T28 cleanup main-tree guard: checked-out candidate skipped, main/master never touched
 
 load test-helper
 
@@ -106,6 +115,78 @@ seed_husky_shim() {
 # DIA-134 fixture marker: proves a verbatim copy, not a git checkout.
 echo "shim-marker-DIA-134"
 SHIM
+}
+
+# ---------------------------------------------------------------------------
+# DIA-137 cleanup-suite helpers. Same invariant as T1-T19: REAL git against a
+# fresh isolated fixture repo under $BATS_TEST_TMPDIR -- no git mocks, because
+# the failure modes under test (squash parity, dirty worktrees, broken refs)
+# live in real git behavior.
+# ---------------------------------------------------------------------------
+
+# commit_with_age <checkout> <file> <content> <days_ago>: write <file> and
+# commit it in <checkout> (a repo checkout or a linked worktree) with BOTH
+# author and committer dates set <days_ago> days in the past. The DIA-137 age
+# check reads the branch-tip commit date (design D3); setting both dates keeps
+# the tests agnostic to whether the implementation reads author (%at) or
+# committer (%ct).
+commit_with_age() {
+  local checkout="$1" file="$2" content="$3" days_ago="$4" when
+  when="$(date -d "$days_ago days ago" +%Y-%m-%dT%H:%M:%S)"
+  printf '%s\n' "$content" > "$checkout/$file"
+  git -C "$checkout" add "$file"
+  GIT_AUTHOR_DATE="$when" GIT_COMMITTER_DATE="$when" git -C "$checkout" commit -q -m "add $file"
+}
+
+# squash_merge_into_main <tree> <branch>: emulate the project's squash-merge
+# workflow -- the branch's changes land on main WITHOUT a merge commit, so the
+# branch is NOT an ancestor of main (`is-ancestor` fails) but `git diff main
+# <branch>` is empty. This is exactly the squash-parity gap the two-pass merge
+# check exists for (design D2). Leaves <tree> checked out on main.
+squash_merge_into_main() {
+  local tree="$1" branch="$2"
+  git -C "$tree" checkout -q main
+  git -C "$tree" merge -q --squash "$branch"
+  git -C "$tree" commit -q -m "squash merge $branch"
+}
+
+# wt_path <branch>: worktree path stem for a branch (slashes as dashes),
+# mirroring path_from_branch in worktrees.sh.
+wt_path() {
+  printf '%s' "$1" | tr '/' '-'
+}
+
+# make_merged_old_worktree <tree> <branch> <days_ago>: full realistic path --
+# script `create` (linked worktree), one dated commit on the branch, then a
+# squash-merge onto main. Leaves a CLEAN linked worktree on <branch> and the
+# main checkout on main. (matrix row: merged + old + worktree-clean)
+make_merged_old_worktree() {
+  local tree="$1" branch="$2" days_ago="$3"
+  local wt="$tree/.worktrees/$(wt_path "$branch")"
+  bash "$tree/scripts/worktrees.sh" create "$branch" >/dev/null
+  commit_with_age "$wt" "$(wt_path "$branch").txt" "content-$branch" "$days_ago"
+  squash_merge_into_main "$tree" "$branch"
+}
+
+# make_merged_old_branch <tree> <branch> <days_ago>: branch with NO worktree,
+# one dated commit, squash-merged onto main. (matrix row: merged + old + no
+# worktree)
+make_merged_old_branch() {
+  local tree="$1" branch="$2" days_ago="$3"
+  git -C "$tree" checkout -q -b "$branch"
+  commit_with_age "$tree" "$(wt_path "$branch").txt" "content-$branch" "$days_ago"
+  squash_merge_into_main "$tree" "$branch"
+}
+
+# make_unmerged_worktree <tree> <branch> <days_ago>: script-created worktree,
+# one dated commit, NO merge onto main. (matrix row: unmerged, with a linked
+# worktree)
+make_unmerged_worktree() {
+  local tree="$1" branch="$2" days_ago="$3"
+  local wt="$tree/.worktrees/$(wt_path "$branch")"
+  bash "$tree/scripts/worktrees.sh" create "$branch" >/dev/null
+  commit_with_age "$wt" "$(wt_path "$branch").txt" "content-$branch" "$days_ago"
+  git -C "$tree" checkout -q main
 }
 
 @test "worktrees: T1 create -> exit 0 + worktree dir + branch + isolated .opencode/session" {
@@ -332,4 +413,234 @@ SHIM
   # test -L trivially false, so the -d assertion is the existence guard.
   run test -d "$tree/.worktrees/feature-DIA-134-test/.husky/_"
   assert_status 0
+}
+
+@test "worktrees: T20 cleanup merged+old with clean linked worktree -> branch deleted AND worktree dir removed" {
+  tree="$(setup_worktree_repo)"
+  make_merged_old_worktree "$tree" feature/DIA-137-merged 10
+
+  # Post-merge teardown path (D7/R2): the orchestrator dispatches this as
+  # the Teardown lane after a successful merge (remove THEN cleanup); the
+  # same CLI surface is developer-runnable. Under the default 0-day window
+  # (D6/R1) a 10-day-old merged branch is immediately eligible.
+  run bash "$tree/scripts/worktrees.sh" cleanup
+
+  # merged + old + worktree-clean: remove the worktree first, THEN delete the
+  # branch (matrix row 5). Post-run BOTH the branch and the worktree dir are gone.
+  assert_status 0
+  run git -C "$tree" branch --list feature/DIA-137-merged
+  assert_output_not_contains "feature/DIA-137-merged"
+  assert_file_not_exists "$tree/.worktrees/feature-DIA-137-merged"
+}
+
+@test "worktrees: T21 cleanup unmerged preserved: old reported, young silent; worktrees survive (explicit --days 30 window)" {
+  tree="$(setup_worktree_repo)"
+  # unmerged + old (40d > 30d window) -> skip with report
+  make_unmerged_worktree "$tree" feature/DIA-137-old 40
+  # active-lane branch: unmerged AND younger than the window -> silent skip.
+  # Reachable only with an explicit window: under the default 0 days every
+  # positive-age branch is "old" (D6/R1), so no branch is ever "young".
+  git -C "$tree" checkout -q -b feature/DIA-137-young
+  commit_with_age "$tree" young-unmerged.txt "young" 3
+  git -C "$tree" checkout -q main
+
+  run bash "$tree/scripts/worktrees.sh" cleanup --days 30
+
+  assert_status 0
+  # unmerged + old: preserved with a report that names the candidate
+  assert_output_contains "feature/DIA-137-old"
+  # unmerged + young: preserved with NO report (silent skip, active lane)
+  assert_output_not_contains "feature/DIA-137-young"
+  run git -C "$tree" branch --list feature/DIA-137-old
+  assert_output_contains "feature/DIA-137-old"
+  run git -C "$tree" branch --list feature/DIA-137-young
+  assert_output_contains "feature/DIA-137-young"
+  assert_file_exists "$tree/.worktrees/feature-DIA-137-old"
+}
+
+@test "worktrees: T22 cleanup merged+young preserved (below explicit --days 30 window) with report" {
+  tree="$(setup_worktree_repo)"
+  # squash-merged but the branch tip is only 3 days old -- inside the
+  # explicit 30-day window. Under the default 0-day window (D6/R1) a merged
+  # branch is never "young", so this preservation case needs --days 30.
+  git -C "$tree" checkout -q -b feature/DIA-137-young
+  commit_with_age "$tree" young-merged.txt "young" 3
+  squash_merge_into_main "$tree" feature/DIA-137-young
+
+  run bash "$tree/scripts/worktrees.sh" cleanup --days 30
+
+  assert_status 0
+  # age below window -> preserved, skip reason reported (names the candidate)
+  assert_output_contains "feature/DIA-137-young"
+  run git -C "$tree" branch --list feature/DIA-137-young
+  assert_output_contains "feature/DIA-137-young"
+}
+
+@test "worktrees: T23 cleanup merged+old dirty worktree -> skip + warn + scan continues + exit 0" {
+  tree="$(setup_worktree_repo)"
+  make_merged_old_worktree "$tree" feature/DIA-137-dirty 10
+  # second clean candidate proves the scan continues past the dirty skip
+  make_merged_old_branch "$tree" feature/DIA-137-clean 10
+  # uncommitted work inside the linked worktree (untracked file -> dirty)
+  printf 'uncommitted\n' > "$tree/.worktrees/feature-DIA-137-dirty/wip.txt"
+
+  run bash "$tree/scripts/worktrees.sh" cleanup
+
+  # dirty worktree is ALWAYS a skip (no --force on cleanup, D5); never loses work
+  assert_status 0
+  assert_output_contains "would-skip (worktree dirty)"
+  run git -C "$tree" branch --list feature/DIA-137-dirty
+  assert_output_contains "feature/DIA-137-dirty"
+  assert_file_exists "$tree/.worktrees/feature-DIA-137-dirty/wip.txt"
+  # scan continued: the clean candidate was still deleted
+  run git -C "$tree" branch --list feature/DIA-137-clean
+  assert_output_not_contains "feature/DIA-137-clean"
+}
+
+@test "worktrees: T24 cleanup --dry-run lists would-be-deleted candidates, zero side effects" {
+  tree="$(setup_worktree_repo)"
+  make_merged_old_worktree "$tree" feature/DIA-137-wt 10
+  make_merged_old_branch "$tree" feature/DIA-137-nwt 10
+
+  run bash "$tree/scripts/worktrees.sh" cleanup --dry-run
+
+  # both merged+old candidates are listed; actions carry the 'would' prefix
+  assert_status 0
+  assert_output_contains "feature/DIA-137-wt"
+  assert_output_contains "feature/DIA-137-nwt"
+  assert_output_contains "would"
+  # zero side effects: branches AND the linked worktree dir all survive
+  run git -C "$tree" branch --list feature/DIA-137-wt
+  assert_output_contains "feature/DIA-137-wt"
+  run git -C "$tree" branch --list feature/DIA-137-nwt
+  assert_output_contains "feature/DIA-137-nwt"
+  assert_file_exists "$tree/.worktrees/feature-DIA-137-wt"
+}
+
+@test "worktrees: T25 cleanup exit codes: all-OK/skipped -> 0; candidate error / outside repo -> non-zero" {
+  # (a) mix of one delete + two intentional skips (dirty, unmerged) -> exit 0
+  tree="$(setup_worktree_repo)"
+  make_merged_old_branch "$tree" feature/DIA-137-del 10
+  make_merged_old_worktree "$tree" feature/DIA-137-dirty 10
+  printf 'wip\n' > "$tree/.worktrees/feature-DIA-137-dirty/wip.txt"
+  make_unmerged_worktree "$tree" feature/DIA-137-unmerged 10
+
+  run bash "$tree/scripts/worktrees.sh" cleanup
+
+  assert_status 0
+  run git -C "$tree" branch --list feature/DIA-137-del
+  assert_output_not_contains "feature/DIA-137-del"
+  run git -C "$tree" branch --list feature/DIA-137-dirty
+  assert_output_contains "feature/DIA-137-dirty"
+  run git -C "$tree" branch --list feature/DIA-137-unmerged
+  assert_output_contains "feature/DIA-137-unmerged"
+
+  # (b) outside a git repo -> non-zero (hard-abort precondition; NOT a
+  # CLI-dispatch error -- the cleanup subcommand must exist and fail on the
+  # repo precondition, not on command dispatch)
+  norepo="$BATS_TEST_TMPDIR/norepo"
+  mkdir -p "$norepo/scripts"
+  cp "$SCRIPTS_DIR/worktrees.sh" "$norepo/scripts/worktrees.sh"
+  run bash "$norepo/scripts/worktrees.sh" cleanup
+  [ "$status" -ne 0 ] || { echo "expected non-zero exit outside a git repo, got 0" >&2; return 1; }
+  assert_output_not_contains "unknown command"
+
+  # (c) per-candidate git failure (broken ref -> bad object) -> stderr warning
+  # + SKIP + scan continues + non-zero exit (candidate error, per the exit
+  # contract: non-zero if ANY candidate error). Loose ref write: update-ref
+  # refuses nonexistent objects, so write the ref file directly.
+  mkdir -p "$tree/.git/refs/heads/feature"
+  printf 'deadbeefdeadbeefdeadbeefdeadbeefdeadbeef\n' > "$tree/.git/refs/heads/feature/DIA-137-broken"
+  make_merged_old_branch "$tree" feature/DIA-137-good 10
+
+  run bash "$tree/scripts/worktrees.sh" cleanup
+
+  [ "$status" -ne 0 ] || { echo "expected non-zero exit after a candidate git failure" >&2; return 1; }
+  # the failed candidate is reported (the warning names it)...
+  assert_output_contains "feature/DIA-137-broken"
+  # ...and the scan continued: the good candidate was still deleted
+  run git -C "$tree" branch --list feature/DIA-137-good
+  assert_output_not_contains "feature/DIA-137-good"
+}
+
+@test "worktrees: T26 cleanup window precedence: --days flag > WORKTREES_CLEANUP_DAYS > default 0" {
+  tree="$(setup_worktree_repo)"
+  # 40d tip distinguishes a 30-day window (40 > 30 -> eligible) from env 99
+  # (40 < 99 -> preserved); 3d tip is young under any 30/99 window but is
+  # eligible under the default 0. Same repo serves all three via --dry-run.
+  make_merged_old_branch "$tree" feature/DIA-137-old 40
+  make_merged_old_branch "$tree" feature/DIA-137-recent 3
+
+  # (c) neither env nor flag -> default 0 days (D6/R1): every merged branch
+  # is a would-delete candidate, including the 3-day-old.
+  run bash "$tree/scripts/worktrees.sh" cleanup --dry-run
+  assert_status 0
+  assert_output_contains "feature/DIA-137-old"
+  assert_output_contains "feature/DIA-137-recent"
+
+  # (b) env only -> env wins over default: WORKTREES_CLEANUP_DAYS=30 widens
+  # the window so the 3-day-old is preserved (default 0 would delete it).
+  run env WORKTREES_CLEANUP_DAYS=30 bash "$tree/scripts/worktrees.sh" cleanup --dry-run
+  assert_status 0
+  assert_output_contains "feature/DIA-137-old"
+  assert_output_not_contains "feature/DIA-137-recent"
+
+  # (a) flag beats env: --days 30 wins over WORKTREES_CLEANUP_DAYS=99. The
+  # 40-day-old IS listed -> the effective window is 30, not 99 (under env-99
+  # alone 40 < 99 would preserve it); the 3-day-old is preserved (< 30).
+  run env WORKTREES_CLEANUP_DAYS=99 bash "$tree/scripts/worktrees.sh" cleanup --dry-run --days 30
+  assert_status 0
+  assert_output_contains "feature/DIA-137-old"
+  assert_output_not_contains "feature/DIA-137-recent"
+}
+
+@test "worktrees: T27 cleanup deletes branch AND leftover worktree dir on disk" {
+  tree="$(setup_worktree_repo)"
+  # full lifecycle: create -> merge -> remove (branch kept, worktree dir gone),
+  # then the dir reappears as stale leftover state. The merged+old+no-worktree
+  # act path must delete the branch AND clear the leftover dir (matrix row 6:
+  # "and the linked worktree dir if still present on disk").
+  make_merged_old_worktree "$tree" feature/DIA-137-stale 10
+  bash "$tree/scripts/worktrees.sh" remove feature/DIA-137-stale >/dev/null
+  mkdir -p "$tree/.worktrees/feature-DIA-137-stale"
+  touch "$tree/.worktrees/feature-DIA-137-stale/leftover.txt"
+
+  run bash "$tree/scripts/worktrees.sh" cleanup
+
+  assert_status 0
+  run git -C "$tree" branch --list feature/DIA-137-stale
+  assert_output_not_contains "feature/DIA-137-stale"
+  assert_file_not_exists "$tree/.worktrees/feature-DIA-137-stale"
+}
+
+@test "worktrees: T28 cleanup main-tree guard: checked-out candidate skipped with warn, main/master never touched" {
+  tree="$(setup_worktree_repo)"
+  # merged+old candidate that is ALSO the currently-checked-out branch
+  git -C "$tree" checkout -q -b feature/DIA-137-guard
+  commit_with_age "$tree" guard.txt "guard" 10
+  squash_merge_into_main "$tree" feature/DIA-137-guard
+  git -C "$tree" checkout -q feature/DIA-137-guard
+  # a second real candidate (branched from MAIN, not from the guard branch)
+  # proves the scan continues past the checked-out skip
+  git -C "$tree" checkout -q -b feature/DIA-137-other main
+  commit_with_age "$tree" other.txt "other" 10
+  squash_merge_into_main "$tree" feature/DIA-137-other
+  git -C "$tree" checkout -q feature/DIA-137-guard
+  git -C "$tree" branch master main
+
+  run bash "$tree/scripts/worktrees.sh" cleanup
+
+  assert_status 0
+  # the checked-out candidate is skipped with a stderr warning naming it
+  assert_output_contains "feature/DIA-137-guard"
+  run git -C "$tree" branch --list feature/DIA-137-guard
+  assert_output_contains "feature/DIA-137-guard"
+  # scan continued: the other candidate was deleted
+  run git -C "$tree" branch --list feature/DIA-137-other
+  assert_output_not_contains "feature/DIA-137-other"
+  # main/master are never candidates and never touched
+  run git -C "$tree" branch --list main
+  assert_output_contains "main"
+  run git -C "$tree" branch --list master
+  assert_output_contains "master"
 }

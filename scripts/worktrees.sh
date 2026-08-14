@@ -22,6 +22,14 @@
 #                            developer action — git branch -d/-D is denied
 #                            for lanes, DIA-096). Refuses dirty/uncommitted
 #                            worktrees unless --force.
+#   cleanup [--days N] [--dry-run]
+#                            delete merged feature/* branches whose rollback
+#                            window elapsed (DIA-137). Merge-verified against
+#                            main (is-ancestor fast path, diff-empty for
+#                            squash parity); dirty linked worktrees are
+#                            ALWAYS skipped; the default window is 0 days
+#                            (immediate post-merge teardown). Local state
+#                            only — no fetch, no remote reads.
 #   list                     show active worktrees (path + HEAD + branch).
 #
 # Options:
@@ -30,6 +38,12 @@
 #                            it) because forced removal maps to DIA-096 denied
 #                            destructive ops (git clean -f* / branch -D); see
 #                            docs/dev-infra-audit/worktree-conventions.md.
+#   cleanup: --days N        age window in days. Precedence (DIA-137 D6):
+#                            --days flag > WORKTREES_CLEANUP_DAYS env var >
+#                            default 0. Non-integer --days is a usage error.
+#   cleanup: --dry-run       list would-be-deleted candidates only; zero
+#                            side effects (no branch deletion, no worktree
+#                            removal).
 #   -h, --help               show this help.
 #
 # Exit codes: 0 success; 1 runtime error (fail-loud on stderr); 2 usage error.
@@ -51,6 +65,10 @@ fail() {
   exit 1
 }
 
+warn() {
+  echo "warn: $*" >&2
+}
+
 usage() {
   cat >&2 <<'EOF'
 usage: worktrees.sh <command> [options]
@@ -60,11 +78,17 @@ commands:
                            on new branch <branch> (base defaults to main)
   remove <branch|path>     remove a worktree; keeps the branch for the
                            rollback window
+  cleanup [--days N] [--dry-run]
+                           delete merged feature/* branches whose rollback
+                           window elapsed (default 0 days: immediate)
   list                     show active worktrees (path + HEAD + branch)
 
 options:
   remove --force           force-remove a dirty worktree (developer-only;
                            requires WORKTREES_FORCE=1 — lanes never set it)
+  cleanup --days N         age window in days; flag beats
+                           WORKTREES_CLEANUP_DAYS env, which beats default 0
+  cleanup --dry-run        list would-be-deleted candidates; no side effects
   -h, --help               show this help
 
 branch convention (DIA-074): feature/<ticket>-<short-name>
@@ -153,6 +177,58 @@ worktree_branch_at() {
     fi
   done < <(git worktree list --porcelain)
   fail "no branch found for worktree at '$path' (detached HEAD?)"
+}
+
+# worktree_path_for_branch <branch>: echo the linked-worktree path of
+# <branch>, or nothing when the branch has no linked worktree (DIA-137).
+# Returns 0 in both cases (empty output = no worktree); returns 1 ONLY when
+# `git worktree list` itself fails — the caller treats that as a candidate
+# error (D4 fail-safe), never as "no worktree", so a failed lookup can never
+# lead to a branch delete.
+worktree_path_for_branch() {
+  local branch="$1" porcelain line wtpath="" wtbranch=""
+  porcelain="$(git worktree list --porcelain 2>/dev/null)" || return 1
+  while IFS= read -r line; do
+    if [ -z "$line" ]; then
+      wtpath=""
+      wtbranch=""
+      continue
+    fi
+    case "$line" in
+      worktree\ *) wtpath="${line#worktree }" ;;
+      branch\ *) wtbranch="${line#branch refs/heads/}" ;;
+    esac
+    if [ -n "$wtpath" ] && [ -n "$wtbranch" ] && [ "$wtbranch" = "$branch" ]; then
+      printf '%s' "$wtpath"
+      return 0
+    fi
+  done <<EOF
+$porcelain
+EOF
+  return 0
+}
+
+# branch_tree_in_main <branch>: squash-parity check (D2 slow path). Returns
+# 0 when every file tracked on <branch> exists in main with identical
+# content -- the branch's own changes are contained in main. Returns 1 when
+# any branch file is missing from main or differs (genuinely unmerged);
+# returns 128 when a git op fails (caller: fail-safe skip, never a delete).
+# WHY NOT a plain `git diff main <branch>` emptiness check: that only passes
+# when the two TREES are identical, so a branch merged EARLIER in the same
+# scan misclassifies as unmerged once later merges add files to main (the
+# DIA-137 bats fixtures squash several branches into one main). The subset
+# check is the exact squash semantics: "nothing on the branch is absent from
+# main", independent of later main-only content.
+branch_tree_in_main() {
+  local branch="$1" paths rc=0
+  paths="$(git ls-tree -r --name-only "$branch" 2>/dev/null)" || return 128
+  if [ -z "$paths" ]; then
+    # empty branch tree: nothing on the branch is missing from main
+    return 0
+  fi
+  git diff --quiet refs/heads/main "$branch" -- $paths 2>/dev/null || rc=$?
+  # rc: 0 = subset (merged), 1 = differs (unmerged), 128 = git error
+  return "$rc"
 }
 
 cmd_create() {
@@ -287,6 +363,218 @@ cmd_list() {
   git worktree list "$@"
 }
 
+# ---------------------------------------------------------------------------
+# cleanup (DIA-137): post-merge teardown that deletes merged feature/*
+# branches. Two-pass classify-then-act scan, local git state only.
+#
+# Globals (set by cmd_cleanup before the candidate loop):
+#   CLEANUP_WINDOW  age window in days (0 = delete immediately)
+#   CLEANUP_NOW     epoch at run start (age check baseline)
+#   DRY_RUN         1 = list would-be-deleted candidates only, no side effects
+#   CURRENT_HEAD    currently-checked-out branch of the main tree ("" if
+#                   detached) — never a candidate
+# ---------------------------------------------------------------------------
+
+# cleanup_candidate <branch>: classify one feature/* branch against main and
+# act per the action matrix (openspec spec: "Per-candidate action matrix"):
+#   1. unmerged + young          -> silent skip (active lane)
+#   2. merged + young            -> skip with report
+#   3. unmerged + old            -> skip with report
+#   4. merged + old + dirty wt   -> skip with report (never loses work, D5)
+#   5. merged + old + clean wt   -> remove worktree THEN delete branch
+#   6. merged + old + no wt      -> delete branch (+ leftover dir on disk)
+# Returns 0 for handled-and-intentional-skips; 1 when a git operation on this
+# candidate FAILED (D4 fail-safe: cmd_cleanup records it, scan continues).
+# Every per-candidate git call is guarded (`|| rc=$?` / `if !`) so a broken
+# ref or lock error skips ONE candidate instead of aborting the run under
+# `set -euo pipefail`.
+cleanup_candidate() {
+  local branch="$1" rc=0 tip="" wtpath="" wtdir="" dirty=""
+  local merged=0 old=0
+
+  # Main-tree guard: the branch the main checkout is on can never be deleted
+  # (git refuses); warn on stderr and let the scan continue (T28). Checked
+  # BEFORE classification so no git op runs on the protected branch.
+  if [ -n "$CURRENT_HEAD" ] && [ "$branch" = "$CURRENT_HEAD" ]; then
+    warn "skipping checked-out branch '$branch' (the main tree is on it)"
+    return 0
+  fi
+
+  # Pass 1 -- merge check (D2). Fast path: is-ancestor against main. Slow
+  # path (only when not an ancestor): squash-parity via branch_tree_in_main
+  # (tree-subset), which catches squash-merged branches whose commits are
+  # NOT ancestors of main. Exit 1 from either check is the legit "not
+  # merged" answer; 128 (or anything else) is a real git failure -> fail-safe
+  # skip. refs/heads/main is explicit so an origin/main remote cannot shadow
+  # the local branch.
+  git merge-base --is-ancestor "$branch" refs/heads/main >/dev/null 2>&1 || rc=$?
+  if [ "$rc" -eq 0 ]; then
+    merged=1
+  elif [ "$rc" -eq 1 ]; then
+    if branch_tree_in_main "$branch"; then
+      merged=1
+    elif [ "$?" -eq 128 ]; then
+      warn "skipping '$branch' (merge check failed: 'git diff main $branch' errored)"
+      return 1
+    fi
+  else
+    warn "skipping '$branch' (merge check failed: 'git merge-base --is-ancestor $branch main' errored)"
+    return 1
+  fi
+
+  # Pass 2 -- age check (D3): branch-tip commit date vs the window. A tip
+  # older than now - N*86400 is "old"; the default window 0 makes every
+  # past-dated tip eligible (immediate post-merge teardown, D6).
+  rc=0
+  tip="$(git log -1 --format=%ct "$branch" 2>/dev/null)" || rc=$?
+  if [ "$rc" -ne 0 ] || [ -z "$tip" ]; then
+    warn "skipping '$branch' (cannot read branch tip date)"
+    return 1
+  fi
+  if [ "$tip" -le "$(( CLEANUP_NOW - CLEANUP_WINDOW * 86400 ))" ]; then
+    old=1
+  fi
+
+  # Matrix rows 1-3: non-deletable candidates. Dry-run reports NOTHING for
+  # these (only would-delete candidates are listed -- the window-precedence
+  # tests assert preserved branches are absent from dry-run output).
+  if [ "$merged" -ne 1 ] && [ "$old" -ne 1 ]; then
+    return 0 # unmerged + young: silent (active lane)
+  fi
+  if [ "$merged" -eq 1 ] && [ "$old" -ne 1 ]; then
+    [ "$DRY_RUN" = "1" ] || echo "skipped: $branch (merged but below the $CLEANUP_WINDOW-day window)"
+    return 0
+  fi
+  if [ "$merged" -ne 1 ]; then
+    [ "$DRY_RUN" = "1" ] || echo "skipped: $branch (unmerged; content not on main)"
+    return 0
+  fi
+
+  # Matrix rows 4-6: merged + old. Locate the linked worktree (if any).
+  wtpath="$(worktree_path_for_branch "$branch")" || {
+    warn "skipping '$branch' (cannot read worktree list)"
+    return 1
+  }
+
+  if [ -n "$wtpath" ]; then
+    rc=0
+    dirty="$(git -C "$wtpath" status --porcelain 2>/dev/null)" || rc=$?
+    if [ "$rc" -ne 0 ]; then
+      warn "skipping '$branch' (cannot check worktree status at '$wtpath')"
+      return 1
+    fi
+    if [ -n "$dirty" ]; then
+      # Row 4: cleanup has no --force (D5); a dirty worktree is ALWAYS a
+      # skip. Report on stdout (names branch + path); never deletes.
+      [ "$DRY_RUN" = "1" ] || echo "would-skip (worktree dirty): $branch ($wtpath)"
+      return 0
+    fi
+    # Row 5: clean linked worktree -> remove it FIRST (git refuses to delete
+    # a checked-out branch), then delete the branch below.
+    if [ "$DRY_RUN" = "1" ]; then
+      echo "would-remove: worktree '$wtpath' (branch '$branch')"
+    else
+      if ! git worktree remove "$wtpath" >/dev/null 2>&1; then
+        warn "skipping '$branch' (failed to remove worktree at '$wtpath')"
+        return 1
+      fi
+      echo "removed: worktree '$wtpath' (branch '$branch')"
+    fi
+  else
+    # Row 6: no linked worktree. A leftover (unregistered) worktree dir may
+    # still exist on disk from an earlier `remove`; clear it too (T27).
+    wtdir="$WORKTREES_DIR/$(path_from_branch "$branch")"
+    if [ -d "$wtdir" ]; then
+      if [ "$DRY_RUN" = "1" ]; then
+        echo "would-remove: leftover worktree dir '$wtdir'"
+      else
+        if ! rm -rf "$wtdir"; then
+          warn "skipping '$branch' (failed to remove leftover worktree dir '$wtdir')"
+          return 1
+        fi
+        echo "removed: leftover worktree dir '$wtdir'"
+      fi
+    fi
+  fi
+
+  # Branch deletion. -D (not -d) is deliberate: the two-pass merge check
+  # above already verified the branch content is on main, and -d's own merge
+  # check would refuse squash-merged branches (not an ancestor of HEAD or an
+  # upstream). Internal deletion is self-governed -- the script is the policy
+  # boundary (DIA-096 gates the OUTER command, worktree-conventions.md).
+  if [ "$DRY_RUN" = "1" ]; then
+    echo "would-delete: branch '$branch' (merged into main)"
+    return 0
+  fi
+  if ! git branch -D "$branch" >/dev/null 2>&1; then
+    warn "skipping '$branch' (branch deletion failed)"
+    return 1
+  fi
+  echo "deleted: branch '$branch'"
+  return 0
+}
+
+cmd_cleanup() {
+  local days="" dry_run=0
+  # Flag parsing mirrors cmd_remove: --days N and --dry-run in ANY order,
+  # positional args rejected, -h/--help -> usage (exit 2).
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --dry-run) dry_run=1 ;;
+      --days)
+        shift
+        if [ $# -lt 1 ]; then
+          usage
+        fi
+        days="$1"
+        ;;
+      -h | --help) usage ;;
+      -*) fail "unknown option '$1' (see --help)" ;;
+      *) fail "too many arguments (see --help)" ;;
+    esac
+    shift
+  done
+
+  # Window precedence (D6): --days flag > WORKTREES_CLEANUP_DAYS env >
+  # default 0. A non-integer window is a usage error (exit 2).
+  CLEANUP_WINDOW="${days:-${WORKTREES_CLEANUP_DAYS:-0}}"
+  case "$CLEANUP_WINDOW" in
+    '' | *[!0-9]*) usage ;;
+  esac
+  DRY_RUN="$dry_run"
+
+  # Hard-abort preconditions (exit-code contract): not a git repo or no main
+  # branch -> non-zero. These are the ONLY whole-run aborts; per-candidate
+  # failures skip and continue (D4).
+  if ! git rev-parse --git-dir >/dev/null 2>&1; then
+    fail "not a git repository (cleanup requires a repo with a 'main' branch)"
+  fi
+  if ! git rev-parse --verify --quiet refs/heads/main >/dev/null 2>&1; then
+    fail "no 'main' branch found; cleanup deletes merged feature/* branches against main"
+  fi
+
+  CLEANUP_NOW="$(date +%s)"
+  CURRENT_HEAD=""
+  if git symbolic-ref -q HEAD >/dev/null 2>&1; then
+    CURRENT_HEAD="$(git symbolic-ref --short HEAD 2>/dev/null || true)"
+  fi
+
+  local branch had_error=0
+  # Candidates are local feature/* branches only: the refs/heads/feature/
+  # prefix excludes main/master by construction, and enumeration is pure
+  # local state (no fetch, no remote reads).
+  while IFS= read -r branch; do
+    [ -n "$branch" ] || continue
+    if ! cleanup_candidate "$branch"; then
+      had_error=1
+    fi
+  done < <(git for-each-ref --format='%(refname:short)' refs/heads/feature/)
+
+  # Exit-code contract: 0 when every candidate was handled or intentionally
+  # skipped; non-zero when any candidate hit a git error (broken ref, lock).
+  exit "$had_error"
+}
+
 main() {
   local cmd="${1:-}"
   if [ $# -lt 1 ]; then
@@ -296,6 +584,7 @@ main() {
   case "$cmd" in
     create) cmd_create "$@" ;;
     remove) cmd_remove "$@" ;;
+    cleanup) cmd_cleanup "$@" ;;
     list) cmd_list "$@" ;;
     -h | --help | help) usage ;;
     *) fail "unknown command '$cmd' (see --help)" ;;
