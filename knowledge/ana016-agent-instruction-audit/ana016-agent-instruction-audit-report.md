@@ -1,4 +1,4 @@
-# Agent Instruction Files Audit (DIA-138)
+# Agent Instruction Files Audit (DIA-157)
 
 <!-- ANALYZER-OUTPUT-CONTRACT
 schema-version: 1.0

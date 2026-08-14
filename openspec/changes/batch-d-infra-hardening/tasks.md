@@ -2,8 +2,8 @@
 
 > **Proposal:** `openspec/changes/batch-d-infra-hardening/proposal.md`
 > **Design:** `openspec/changes/batch-d-infra-hardening/design.md`
-> **Ticket:** `docs/dev-infra-audit/tickets/DIA-134-batch-d-infra-hardening.md`
-> **Predecessor change:** `openspec/changes/batch-d-parallel-coders/` (DIA-132)
+> **Ticket:** `docs/dev-infra-audit/tickets/DIA-174-batch-d-infra-hardening.md`
+> **Predecessor change:** `openspec/changes/batch-d-parallel-coders/` (DIA-172)
 > **Implementation commits:** none yet (spec phase).
 > **Routing:** AGENTS.md section 2.4 (dev-infra, items 1-2) + section 2.5
 > (opencode config, items 3-6). `@coder` implements; `make test-config` +
@@ -17,7 +17,7 @@
 > **DIA-094 Docker gate:** implementation work AND commits MUST NOT proceed
 > without a running docker dev container.
 > **DIA-063 Ticket gate:** no implementation work starts without the
-> DIA-134 ticket.
+> DIA-174 ticket.
 
 ## Dependency graph
 
@@ -34,7 +34,7 @@ S4 (orchestrator_append +      |
     AGENTS.md 3 rules)         -- independent
                                |
                                v
-S5 (close-out: lockstep greps, full test suite, DIA-134 close-out)
+S5 (close-out: lockstep greps, full test suite, DIA-174 close-out)
     depends on S1 + S2 + S3 + S4
 ```
 
@@ -64,7 +64,7 @@ files). S5 runs last after all four slices are complete.
   - **Owner:** S1 (disjoint; no other slice may edit `scripts/worktrees.sh`).
   - **Vertical slice:** in `scripts/worktrees.sh`, in the `cmd_create` function, after the existing `git worktree add` step (around line 185) and before the `.opencode/session/` materialization step (line 194), add a post-create step that copies `.husky/_` from the main tree (ROOT) into the new worktree (path). Use `cp -R` (not symlink, per DD1 in design.md). If the source path (ROOT/.husky/_) does not exist, fail loudly with a clear error message: "husky is not installed in the main tree; run `husky install` before creating worktrees". After the copy, assert that `$path/.husky/_` is a real directory (not a symlink, not missing); fail loudly if the assertion does not hold.
   - **Acceptance criteria:**
-    - `scripts/worktrees.sh create feature/DIA-134-test` succeeds AND creates `$path/.husky/_` as a real directory.
+    - `scripts/worktrees.sh create feature/DIA-174-test` succeeds AND creates `$path/.husky/_` as a real directory.
     - If the main tree does not have `.husky/_`, the create step fails loudly with the documented error message.
     - The copy is a plain filesystem copy (not a symlink); `test -L $path/.husky/_` returns false.
     - The create step remains bash-3 compatible (no [[]], no associative arrays).
@@ -83,13 +83,13 @@ files). S5 runs last after all four slices are complete.
 
 ## 2. S2: Persistent behavioral test suite + Makefile wiring (item 2)
 
-- [ ] **2.1 Create `scripts/__tests__/batch-d-infra.test.mjs` with the DIA-132-era assertions.**
+- [ ] **2.1 Create `scripts/__tests__/batch-d-infra.test.mjs` with the DIA-172-era assertions.**
   - **Blockers:** none (can run in parallel with S1, S3, S4)
   - **Owner:** S2 (disjoint; no other slice may edit this file or the Makefile).
   - **Vertical slice:** create a new node-native `.test.mjs` file at `scripts/__tests__/batch-d-infra.test.mjs`. No new dependencies (use node's built-in `node:test` and `node:assert`). The suite asserts the following classes of invariants:
     - **grep checks on committed text:** presence of required phrases in `.opencode/oh-my-opencode-slim/coder_append.md` (S3's branch-ownership model), `.opencode/oh-my-opencode-slim/orchestrator_append.md` (S4's three rules), and `AGENTS.md` (S4's codification). Phrase list defined in design.md DD5 and enumerated in S3/S4 acceptance criteria below.
     - **structural checks:** `.sdd/dev-infra/architecture.md` contains the new DD1 ADR (ADR "Worktree husky shim materialization"); `.sdd/opencode-config/architecture.md` ADR 1 + ADR 2 are intact (grep for their headers).
-    - **behavioral reconstruction:** the DIA-132 throwaway assertions (plugin classification outcomes for representative batch shapes) reconstructed as node-native test cases (e.g., `isSafeTaskBatch` with synthetic payload arrays asserting SAFE/UNSAFE/silent outcomes; reference the 9 cases listed in `openspec/changes/batch-d-parallel-coders/tasks.md` section 5.1).
+    - **behavioral reconstruction:** the DIA-172 throwaway assertions (plugin classification outcomes for representative batch shapes) reconstructed as node-native test cases (e.g., `isSafeTaskBatch` with synthetic payload arrays asserting SAFE/UNSAFE/silent outcomes; reference the 9 cases listed in `openspec/changes/batch-d-parallel-coders/tasks.md` section 5.1).
   - **Acceptance criteria:**
     - `node scripts/__tests__/batch-d-infra.test.mjs` runs on the host (no container needed) and exits 0 with all assertions passing.
     - The file uses only node built-ins (no `require()` of third-party modules).
@@ -100,7 +100,7 @@ files). S5 runs last after all four slices are complete.
 - [ ] **2.2 Wire the S2 suite into `make test-config` + add `.gitignore` entry.**
   - **Blockers:** 2.1
   - **Owner:** S2 (disjoint; no other slice may edit `Makefile` or `.gitignore`).
-  - **Vertical slice:** in `Makefile`, extend the `test-config` target (currently at line 178) to include a step that runs `node scripts/__tests__/batch-d-infra.test.mjs`. In the root `.gitignore`, add an entry that excludes `scripts/__tests__/batch-d-infra.test.mjs` (per design.md DD2). Add a comment in the Makefile step that documents the suite's role (DIA-134 item 2: persistent behavioral tests replacing the DIA-132 throwaway `/tmp` suite).
+  - **Vertical slice:** in `Makefile`, extend the `test-config` target (currently at line 178) to include a step that runs `node scripts/__tests__/batch-d-infra.test.mjs`. In the root `.gitignore`, add an entry that excludes `scripts/__tests__/batch-d-infra.test.mjs` (per design.md DD2). Add a comment in the Makefile step that documents the suite's role (DIA-174 item 2: persistent behavioral tests replacing the DIA-172 throwaway `/tmp` suite).
   - **Acceptance criteria:**
     - `make test-config` runs the S2 suite as part of its pipeline.
     - If the suite is absent (not yet created), `make test-config` fails loudly (not silently passes).
@@ -131,7 +131,7 @@ files). S5 runs last after all four slices are complete.
   - **Blockers:** none (can run in parallel with S1, S2, S3)
   - **Owner:** S4 (disjoint; no other slice may edit `orchestrator_append.md`).
   - **Vertical slice:** in `.opencode/oh-my-opencode-slim/orchestrator_append.md`, add three new rules in an appropriate location (near the existing Grounded Dispatch Discipline section, around A1-A6). Each rule is a short paragraph with clear trigger conditions:
-    - **Rule R1 (Ticket-ID token in dispatch/resume prompts):** every `task()` dispatch AND every resume prompt MUST contain the literal ticket ID (e.g., "DIA-134"). Resumes without the ticket ID are BLOCKED by the DIA-063 gate; the rule ensures the token is always present so the gate passes naturally. Required phrases in the rule text: "every dispatch", "every resume prompt", "literal ticket ID", "DIA-063 gate".
+    - **Rule R1 (Ticket-ID token in dispatch/resume prompts):** every `task()` dispatch AND every resume prompt MUST contain the literal ticket ID (e.g., "DIA-174"). Resumes without the ticket ID are BLOCKED by the DIA-063 gate; the rule ensures the token is always present so the gate passes naturally. Required phrases in the rule text: "every dispatch", "every resume prompt", "literal ticket ID", "DIA-063 gate".
     - **Rule R2 (Architector design persistence):** after each `@architector` design dispatch, the orchestrator MUST persist the design text into the DIA ticket (or a `.sdd` draft) BEFORE implementation dispatch. Required phrases: "persist the design text", "DIA ticket", "before implementation".
     - **Rule R3 (Merge-gate container evidence):** the merge phase may only start with recorded `docker compose ps` evidence showing the dev service running; the session log MUST record container state before merge dispatch. Required phrases: "docker compose ps", "dev service", "before merge dispatch", "session log".
   - **Acceptance criteria:**
@@ -181,16 +181,16 @@ files). S5 runs last after all four slices are complete.
     - No regressions in existing test-config or test-shell checks.
   - **Verification:** exit codes + summary lines captured.
 
-- [ ] **5.3 DIA-134 ticket close-out + CHANGELOG/learnings registration.**
+- [ ] **5.3 DIA-174 ticket close-out + CHANGELOG/learnings registration.**
   - **Blockers:** 5.2
   - **Owner:** orchestrator (delegates to `@memory-manager` for learnings registration).
   - **Vertical slice:**
-    - Update `docs/dev-infra-audit/tickets/DIA-134-batch-d-infra-hardening.md`: change status from OPEN to DONE; fill in the Fix section with the change summary; fill in the Re-verify section with the test-suite evidence; update files_touched with the files actually modified.
-    - Update `docs/dev-infra-audit/tickets/README.md`: change DIA-134 row (status OPEN -> DONE); update summary counts (Major unchanged, OPEN -1, DONE +1).
-    - Update CHANGELOG (if the repo has one) with an entry for DIA-134.
-    - Dispatch `@memory-manager` with the DIA-134 change summary + learnings (per AGENTS.md Mandatory Final Step) to register the change in `.opencode/memory-shelf.yaml`. The openspec-plan agent does NOT write `.opencode/memory-shelf.yaml` (memory-manager is sole shelf writer).
+    - Update `docs/dev-infra-audit/tickets/DIA-174-batch-d-infra-hardening.md`: change status from OPEN to DONE; fill in the Fix section with the change summary; fill in the Re-verify section with the test-suite evidence; update files_touched with the files actually modified.
+    - Update `docs/dev-infra-audit/tickets/README.md`: change DIA-174 row (status OPEN -> DONE); update summary counts (Major unchanged, OPEN -1, DONE +1).
+    - Update CHANGELOG (if the repo has one) with an entry for DIA-174.
+    - Dispatch `@memory-manager` with the DIA-174 change summary + learnings (per AGENTS.md Mandatory Final Step) to register the change in `.opencode/memory-shelf.yaml`. The openspec-plan agent does NOT write `.opencode/memory-shelf.yaml` (memory-manager is sole shelf writer).
   - **Acceptance criteria:**
-    - DIA-134 ticket status = DONE; Fix + Re-verify sections populated.
+    - DIA-174 ticket status = DONE; Fix + Re-verify sections populated.
     - README row updated; summary counts consistent.
     - CHANGELOG entry present.
     - `@memory-manager` dispatched with the change summary.
@@ -209,15 +209,15 @@ files). S5 runs last after all four slices are complete.
 - **Git-tracking the S2 suite** (DD2 rejects this in favor of gitignored).
 - **Relaxing DIA-063 for resume prompts** (DD3 rejects this in favor of
   keeping the gate and ensuring the token is present).
-- **Plugin behavioral test additions beyond the DIA-132 throwaway
+- **Plugin behavioral test additions beyond the DIA-172 throwaway
   reconstruction.** S2 preserves the existing assertions; it does not add
   new plugin test cases.
 - **`.sdd/opencode-config/architecture.md` ADR changes.** ADR 1 / ADR 2
-  remain as merged by DIA-132.
-- **T5.3 restart smoke** (carried over from DIA-132; not adopted by this
+  remain as merged by DIA-172.
+- **T5.3 restart smoke** (carried over from DIA-172; not adopted by this
   change -- it is an integration-level check that the developer runs
   manually post-merge, not a unit test).
-- **DIA-133 items** (out of scope entirely).
+- **DIA-173 items** (out of scope entirely).
 
 ## Verification gate summary
 
@@ -232,13 +232,13 @@ files). S5 runs last after all four slices are complete.
 | `AGENTS.md` 3 rules codified                          | S4.2 | required phrases grep pass for each rule; lockstep with orchestrator_append.md                            |
 | Lockstep greps (S5.1)                                 | S5.1 | all directive-text grep checks pass                                                                       |
 | Full test-suite run (S5.2)                            | S5.2 | `make test-shell` + `make test-config` + validate-opencode-config.sh + validate-agent-names.sh all exit 0 |
-| DIA-134 ticket close-out + CHANGELOG + learnings      | S5.3 | ticket status = DONE; README counts consistent; CHANGELOG entry present; memory-manager dispatched        |
+| DIA-174 ticket close-out + CHANGELOG + learnings      | S5.3 | ticket status = DONE; README counts consistent; CHANGELOG entry present; memory-manager dispatched        |
 
 ## Implementation notes for `@coder`
 
 - **ASCII-only protocol (DIA-079):** all changes to JSONC/markdown/TypeScript/shell must use ASCII-only text (no em-dashes, no smart quotes, no non-ASCII punctuation) to prevent serialization failures.
 - **DIA-094 Docker gate:** implementation work AND commits MUST NOT proceed without a running docker dev container.
-- **DIA-063 Ticket gate:** no implementation work starts without the DIA-134 ticket.
+- **DIA-063 Ticket gate:** no implementation work starts without the DIA-174 ticket.
 - **Disjoint-ownership contract:** every file in the change has exactly one owning slice. No other slice may edit it. See the ownership table in design.md.
 - **Practice-protected zone:** the OpenSpec artifacts themselves (this file) are practice-protected -- the developer writes the substance, @openspec-plan guides. Implementation of the artifacts (what this tasks.md describes) is not practice-protected; @coder implements freely within the acceptance criteria.
 - **Batch D discipline:** every coder dispatched under this change works in its OWN worktree. S1, S2, S3, S4 are 4 independent slices that can be dispatched in parallel under batch D (each coder has a distinct worktree per `.sdd/opencode-config` ADR 1). S5 is orchestrator-driven (no coder).

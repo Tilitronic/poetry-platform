@@ -7,7 +7,7 @@
 # $COMMANDS_DIR/*.md for the literal path and fails the hook when it is found.
 #
 # Sourced (not executed) by the husky hooks scripts/verify-pre-commit.sh and
-# scripts/verify-pre-push.sh (F-6, DIA-139). Caller contract: $ROOT (used to
+# scripts/verify-pre-push.sh (F-6, DIA-179). Caller contract: $ROOT (used to
 # strip the repo prefix from error output) and $COMMANDS_DIR (the directory to
 # scan) must be set by the caller first; the hooks set both, with $COMMANDS_DIR
 # defaulting to $ROOT/.opencode/commands. The hooks fire the guard on the HOST

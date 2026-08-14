@@ -1,14 +1,14 @@
-# DIA-117 agent-instruction fixes - HANDOFF.md refs, AGENTS.md section-10 repoint, boss_append.md duplicate removal (2026-08-12)
+# DIA-160 agent-instruction fixes - HANDOFF.md refs, AGENTS.md section-10 repoint, boss_append.md duplicate removal (2026-08-12)
 
 - **Date:** 2026-08-12
-- **Source:** DIA-117 fix ticket (from ana016-agent-instruction-audit, DIA-114, audit 2026-08-12); coder-lane implementation + this AGENTS.md section 2.5 close-out registration lane (docs lane).
+- **Source:** DIA-160 fix ticket (from ana016-agent-instruction-audit, DIA-157, audit 2026-08-12); coder-lane implementation + this AGENTS.md section 2.5 close-out registration lane (docs lane).
 - **Status:** VERIFIED - all three fixes applied and gate-verified; ai-auditor independent review APPROVE-WITH-NOTES (implementation PASS; only process evidence pending at review time, closed by this registration).
 - **Outcome:** config-fix workflow completed per AGENTS.md section 2.5 - fixes implemented, validated (make test-config sub-commands all exit 0), ai-auditor APPROVE-WITH-NOTES, then registered (CHANGELOG entry + this learnings entry + ticket OPEN -> VERIFIED). Restart-smoke: the fixed config was live throughout the implementation session (all dispatches incl. the ai-auditor review ran under it); full daemon restart pending next natural OpenCode restart, recorded honestly rather than fabricated.
 
 ## Ticket
 
-- **DIA-117** (Major, VERIFIED) - "Fix agent-instruction audit findings: HANDOFF.md refs, missing AGENTS.md section 10, boss_append.md duplicate".
-- **Related:** DIA-114 (agent-instruction-files audit, parent), ana016 (audit knowledge base).
+- **DIA-160** (Major, VERIFIED) - "Fix agent-instruction audit findings: HANDOFF.md refs, missing AGENTS.md section 10, boss_append.md duplicate".
+- **Related:** DIA-157 (agent-instruction-files audit, parent), ana016 (audit knowledge base).
 
 ## Fixes (implemented 2026-08-12, working tree)
 
@@ -39,4 +39,4 @@ Runtime-file references in prompts must point at the actual runtime artifact, no
 
 ## Tags
 
-DIA-117, DIA-114, ana016, agent-instruction-audit, HANDOFF.md, current-handoff.json, section-2.5, single-source-of-truth, dead-duplicate, boss_append, orchestrator_append, test-config, ai-auditor, config-fix-workflow
+DIA-160, DIA-157, ana016, agent-instruction-audit, HANDOFF.md, current-handoff.json, section-2.5, single-source-of-truth, dead-duplicate, boss_append, orchestrator_append, test-config, ai-auditor, config-fix-workflow

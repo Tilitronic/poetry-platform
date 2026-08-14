@@ -1,8 +1,10 @@
-# DIA-139 — Full test-suite audit: execution order, fast-to-fail, duplicates, stale tests, verification honesty, DRY helpers
+# DIA-179 — Full test-suite audit: execution order, fast-to-fail, duplicates, stale tests, verification honesty, DRY helpers
+
+<!-- RENUMBERED 2026-08-14 (phase 1, remote lineage canonical, DIA-153): local DIA-139 collided with origin/omo-slim-changes ticket DIA-139-hook-test-coverage-audit.md (different ticket). Renumbered to DIA-179. -->
 
 ---
 
-id: DIA-139
+id: DIA-179
 title: "Full test-suite audit: execution order, fast-to-fail, duplicates, stale tests, verification honesty, DRY helpers"
 area: tests-infra
 severity: Medium
@@ -34,7 +36,7 @@ evidence: [] # list of evidence URIs (messages.md#row, registry.jsonl#seq)
 Requested by the developer as a scheduled follow-up (explicitly "next year" —
 planned for 2027): a full, cross-cutting audit of EVERY test the project
 currently has for the dev setup, not just one area. Prior test work was
-piecemeal (DIA-115 hook coverage, DIA-124..127 test-infra phases); this is the
+piecemeal (DIA-158 hook coverage, DIA-167..170 test-infra phases); this is the
 holistic pass over the whole test surface.
 
 Audit questions, verbatim from the request:
@@ -66,7 +68,7 @@ Audit questions, verbatim from the request:
   pytest suites, vitest/jest in author-studio, pre-commit/pre-push hooks
   (`.husky/`), CI config if present.
 - Map the actual execution order: `make test-config` → `make test-shell` →
-  `make test-python` → `make test-infra` (and hook wiring per DIA-118), plus
+  `make test-python` → `make test-infra` (and hook wiring per DIA-161), plus
   turbo pipeline `dependsOn`.
 - For each test: does it assert real behavior? grep for empty assertions,
   tautological checks, mocked-only paths, skipped tests, `TODO` tests.
@@ -96,7 +98,7 @@ Key findings (full list in report):
 - F-4 [Medium] bats monolith (240 tests in one pass) has no quick tier for shell iteration; add --quick mode
 - F-6 [Low] /home/qualt regression guard byte-identical in both hook scripts and tested in both bats files - extract helper, dedup
 - F-7 [Low] conftest.py (PEP 420 bootstrap) duplicated across api-server + analytics-pipeline
-- F-9/F-10 [Clean] no tautological tests, no empty asserts, no always-pass mocks (DIA-124/125 cleanup verified)
+- F-9/F-10 [Clean] no tautological tests, no empty asserts, no always-pass mocks (DIA-167/168 cleanup verified)
 - F-11/F-12 [Clean] example-store.test.ts and Python import smokes are honest scaffolds
 - O-1 [Recommendation] no CI pipeline exists - pre-push is the only automated gate; consider GitHub Actions
 - O-2 [Backlog] 4 packages have no tests at all (publishing-platform, stress-lang-core, visualizer-2d/3d)
@@ -110,7 +112,7 @@ Developer disposition pending: which findings become fix tickets.
 
 ### Merge phase (2026-08-14, coder lane)
 
-Merge gate evidence (DIA-134 item 6, `docker compose ps` before merges):
+Merge gate evidence (DIA-174 item 6, `docker compose ps` before merges):
 
 - poetry-dev: Up 3 hours, image poetry-platform-dev:latest, ports 3000/8000/9000
 - poetry-postgres: Up 3 hours
@@ -118,7 +120,7 @@ Merge gate evidence (DIA-134 item 6, `docker compose ps` before merges):
 Target branch: `omo-slim-changes`; contains spec commit 7e06002
 (`git merge-base --is-ancestor 7e06002 HEAD` confirmed).
 
-Merge order (strictly serial per DIA-132/134; B before C because both extend
+Merge order (strictly serial per DIA-172/174; B before C because both extend
 `scripts/__tests__/batch-d-infra.test.mjs`). Squash-merges, no push:
 
 1. slice B (F-2) -> `8e5e565` (squash of 1e9980e + 6cf2db9 + 8c55af8)
@@ -184,7 +186,7 @@ Evidence gaps:
 
 Process notes:
 
-- unrelated in-flight edits to DIA-137 worktree-cleanup files (worktrees.sh,
+- unrelated in-flight edits to DIA-177 worktree-cleanup files (worktrees.sh,
   worktrees.bats, openspec/worktree-branch-cleanup/\*) were present in the main
   tree during the merges (concurrent lane); left untouched and uncommitted by
   this lane, later committed by that lane as f9ab26c.

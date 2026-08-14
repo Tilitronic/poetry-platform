@@ -209,7 +209,7 @@ change it becomes `remove` THEN `cleanup`. No new dispatch contract, no
 cron, no automatic scheduling.
 
 **Rationale:** the Teardown step has been documented since DIA-100 but
-never actually executed after the DIA-132/DIA-134 batches — the
+never actually executed after the DIA-172/DIA-174 batches — the
 operational gap the developer named in the Phase 3 review. Closing it
 here (rather than introducing a separate "after-merge cleanup" lane)
 keeps the worktree lifecycle in one dispatch pattern and reuses the
@@ -296,7 +296,7 @@ All 9 acceptance scenarios live at these four seams, in the existing
 2. No migration of existing state — cleanup is additive. The default
    window of 0 means an immediate first run will clean up every
    already-merged `feature/*` branch (which is the desired outcome:
-   closes the DIA-132/DIA-134 post-merge drift).
+   closes the DIA-172/DIA-174 post-merge drift).
 3. Rollback: revert the commit; the pre-cleanup state is restored
    exactly (no schema, no persisted state).
 4. Teardown dispatch update: the orchestrator Teardown dispatch pattern
@@ -311,4 +311,4 @@ worktree-conventions.md` Cleanup policy section is updated to
 ## Open Questions
 
 None. All decisions that would affect scope, approach, or task
-breakdown were resolved in the interview (DIA-137 Phase 3).
+breakdown were resolved in the interview (DIA-177 Phase 3).

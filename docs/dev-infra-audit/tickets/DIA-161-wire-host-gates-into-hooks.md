@@ -1,11 +1,13 @@
-# DIA-118 — Wire host-runnable gates into hooks and fix turbo.json test.inputs cache masking
+# DIA-161 — Wire host-runnable gates into hooks and fix turbo.json test.inputs cache masking
+
+<!-- RENUMBERED 2026-08-14 (phase 1, remote lineage canonical, DIA-153): local DIA-118 collided with origin/omo-slim-changes ticket DIA-142-wire-host-gates-into-hooks.md (different ticket). Renumbered to DIA-161. This ticket duplicates remote DIA-142-wire-host-gates-into-hooks.md (same work, renumbered on the remote lineage via bab080c); SUPERSEDED by the remote ticket. -->
 
 <!-- Fix ticket (fix-lane): implements developer-approved findings from
-     ana017-hook-test-coverage (DIA-115). Filed 2026-08-12, cod-lane. -->
+     ana017-hook-test-coverage (DIA-158). Filed 2026-08-12, cod-lane. -->
 
 ---
 
-id: DIA-118
+id: DIA-161
 title: "Wire host-runnable gates into hooks and fix turbo.json test.inputs cache masking"
 area: git-hooks
 severity: Major

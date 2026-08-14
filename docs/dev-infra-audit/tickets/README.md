@@ -103,18 +103,31 @@
 | DIA-150 | test infra Phase 2: critical gaps (vitest in author-studio, real data-contracts test) | tests-infra | Critical | CLOSED | [DIA-150-test-infra-phase2-critical-gaps.md](DIA-150-test-infra-phase2-critical-gaps.md) |
 | DIA-151 | test infra Phase 3: Orchestrator contract test (acceptWorkerResult, zero mocks) | tests-infra | Medium | CLOSED | [DIA-151-test-infra-phase3-orchestrator-contract.md](DIA-151-test-infra-phase3-orchestrator-contract.md) |
 | DIA-152 | Install docker CLI + compose plugin in poetry-dev image (pre-push test-config gate) | docker | Major | VERIFIED | [DIA-152-install-docker-cli-poetry-dev-image.md](DIA-152-install-docker-cli-poetry-dev-image.md) |
-| DIA-124 | test infra Phase 0: safety wins (author-studio fails loudly, flaky-pin tests removed, config gate hardened) | tests-infra | Major | OPEN | [DIA-124-test-infra-phase0-safety-wins.md](DIA-124-test-infra-phase0-safety-wins.md) |
-| DIA-125 | test infra Phase 1: de-duplication (bats helpers, it.each, bash -n auto-discovery, per-package dependsOn) | tests-infra | Medium | OPEN | [DIA-125-test-infra-phase1-dedup.md](DIA-125-test-infra-phase1-dedup.md) |
-| DIA-126 | test infra Phase 2: critical gaps (vitest in author-studio, real data-contracts test) | tests-infra | Critical | OPEN | [DIA-126-test-infra-phase2-critical-gaps.md](DIA-126-test-infra-phase2-critical-gaps.md) |
-| DIA-127 | test infra Phase 3: Orchestrator contract test (acceptWorkerResult, zero mocks) | tests-infra | Medium | OPEN | [DIA-127-test-infra-phase3-orchestrator-contract.md](DIA-127-test-infra-phase3-orchestrator-contract.md) |
-| DIA-131 | Install docker CLI + compose plugin in poetry-dev (pre-push test-config gate) | docker | Major | IMPLEMENTED | [DIA-131-install-docker-cli-poetry-dev-image.md](DIA-131-install-docker-cli-poetry-dev-image.md) |
-| DIA-132 | Parallel coders (batch D) + read-only batch expansion - DIA-116 follow-up review and design | opencode-config | Medium | IMPLEMENTED | [DIA-132-parallel-coders-batch-d-expansion.md](DIA-132-parallel-coders-batch-d-expansion.md) |
-| DIA-134 | Batch D infra hardening: worktree hooks, test persistence, branch-ownership payloads, dispatch tokens (DIA-132 retrospective) | dev-infra | Major | DONE | [DIA-134-batch-d-infra-hardening.md](DIA-134-batch-d-infra-hardening.md) |
-| DIA-135 | Coder prompt hygiene: instance separation, same-session fixes, scratch-dir permissions (DIA-134 follow-up) | opencode-config | Medium | DONE | [DIA-135-coder-prompt-hygiene-scratch-dir.md](DIA-135-coder-prompt-hygiene-scratch-dir.md) |
-| DIA-136 | Deep review: 2-day commit window (DIA-124..135) consistency vs pre-existing docs/config/docker | dev-infra | Major | DONE | [DIA-136-deep-review-2day-window-consistency.md](DIA-136-deep-review-2day-window-consistency.md) |
-| DIA-137 | Worktree branch cleanup subcommand with merge verification (DIA-100 cleanup policy gap) | dev-infra | Low | OPEN | [DIA-137-worktree-branch-cleanup.md](DIA-137-worktree-branch-cleanup.md) |
-| DIA-138 | Memory shelf hygiene audit: duplicate/stale/irrelevant lessons, conspects, analyses | docs | Medium | DONE | [DIA-138-memory-shelf-hygiene-audit.md](DIA-138-memory-shelf-hygiene-audit.md) |
-| DIA-139 | Full test-suite audit: execution order, fast-to-fail, duplicates, stale tests, verification honesty, DRY helpers (implemented F1-F7, merged 2026-08-14) | tests-infra | Medium | DONE | [DIA-139-full-test-suite-audit.md](DIA-139-full-test-suite-audit.md) |
+| DIA-153 | Push omo-slim-changes to origin: lineage reconciliation (rebase) + SSH transport setup (openssh-client in opencode-docker, origin remote to SSH) | dev-infra | Major | OPEN | [DIA-153-push-omo-slim-changes-to-origin.md](DIA-153-push-omo-slim-changes-to-origin.md) |
+| DIA-157 | Audit agent instruction/prompt files (.ts and .md) for inaccuracies, duplications, vague wording | opencode-config | Medium | OPEN | [DIA-157-agent-instruction-files-audit.md](DIA-157-agent-instruction-files-audit.md) |
+| DIA-158 | Audit pre-commit and pre-push hook test coverage (turbo-driven) for edge-case gaps | git-hooks | Medium | OPEN | [DIA-158-hook-test-coverage-audit.md](DIA-158-hook-test-coverage-audit.md) |
+| DIA-159 | Analyze task parallelization in agent prompts - maximize concurrent execution without file-write conflicts | opencode-config | Medium | OPEN | [DIA-159-task-parallelization-analysis.md](DIA-159-task-parallelization-analysis.md) |
+| DIA-160 | Fix agent-instruction audit findings: HANDOFF.md refs, missing AGENTS.md section 10, boss_append.md duplicate | opencode-config | Major | VERIFIED | [DIA-160-fix-agent-instruction-findings.md](DIA-160-fix-agent-instruction-findings.md) |
+| DIA-161 | Wire host-runnable gates into hooks and fix turbo.json test.inputs cache masking | git-hooks | Major | VERIFIED | [DIA-161-wire-host-gates-into-hooks.md](DIA-161-wire-host-gates-into-hooks.md) |
+| DIA-162 | Enable safe task parallelization: BATCH-DISPATCH rule, memory-shelf centralization, ID preallocation, serialization points | opencode-config | Major | VERIFIED | [DIA-162-batch-dispatch-config-changes.md](DIA-162-batch-dispatch-config-changes.md) |
+| DIA-163 | Make delegation-observer A1 warning batch-aware (only warn on unsafe parallel task batches) | opencode-config | Medium | VERIFIED | [DIA-163-batch-aware-a1-plugin.md](DIA-163-batch-aware-a1-plugin.md) |
+| DIA-164 | Give opencode-docker container host docker/podman socket access so pre-commit hooks work from inside OpenCode | docker | Major | VERIFIED | [DIA-164-opencode-docker-host-socket-access.md](DIA-164-opencode-docker-host-socket-access.md) |
+| DIA-165 | verify-pre-push recursion fork-bomb: root-cause fix (DIA-161 regression) | git-hooks | Critical | VERIFIED | [DIA-165-verify-pre-push-recursion-guard.md](DIA-165-verify-pre-push-recursion-guard.md) |
+| DIA-166 | pre-push blocked: make test-shell fails inside hook (unshare 127 + guard-flag interaction suspicion) | git-hooks | Critical | VERIFIED | [DIA-166-pre-push-suite-failure.md](DIA-166-pre-push-suite-failure.md) |
+| DIA-167 | test infra Phase 0: safety wins (author-studio fails loudly, flaky-pin tests removed, config gate hardened) | tests-infra | Major | OPEN | [DIA-167-test-infra-phase0-safety-wins.md](DIA-167-test-infra-phase0-safety-wins.md) |
+| DIA-168 | test infra Phase 1: de-duplication (bats helpers, it.each, bash -n auto-discovery, per-package dependsOn) | tests-infra | Medium | OPEN | [DIA-168-test-infra-phase1-dedup.md](DIA-168-test-infra-phase1-dedup.md) |
+| DIA-169 | test infra Phase 2: critical gaps (vitest in author-studio, real data-contracts test) | tests-infra | Critical | OPEN | [DIA-169-test-infra-phase2-critical-gaps.md](DIA-169-test-infra-phase2-critical-gaps.md) |
+| DIA-170 | test infra Phase 3: Orchestrator contract test (acceptWorkerResult, zero mocks) | tests-infra | Medium | DONE | [DIA-170-test-infra-phase3-orchestrator-contract.md](DIA-170-test-infra-phase3-orchestrator-contract.md) |
+| DIA-171 | Install docker CLI + compose plugin in poetry-dev image (pre-push test-config gate) | docker | Major | IMPLEMENTED | [DIA-171-install-docker-cli-poetry-dev-image.md](DIA-171-install-docker-cli-poetry-dev-image.md) |
+| DIA-172 | Parallel coders (batch D) + read-only batch expansion - DIA-159 follow-up review and design | opencode-config | Medium | IMPLEMENTED | [DIA-172-parallel-coders-batch-d-expansion.md](DIA-172-parallel-coders-batch-d-expansion.md) |
+| DIA-173 | Forward host SSH agent socket into opencode-docker so git push works from the container (SSH agent forwarding) | docker | Major | OPEN | [DIA-173-ssh-agent-forward-opencode-docker.md](DIA-173-ssh-agent-forward-opencode-docker.md) |
+| DIA-174 | Batch D infra hardening: worktree hooks, test persistence, branch-ownership payloads, dispatch tokens (DIA-172 retrospective) | dev-infra | Major | DONE | [DIA-174-batch-d-infra-hardening.md](DIA-174-batch-d-infra-hardening.md) |
+| DIA-175 | Coder prompt hygiene: instance separation, same-session fixes, scratch-dir permissions (DIA-174 follow-up) | opencode-config | Medium | DONE | [DIA-175-coder-prompt-hygiene-scratch-dir.md](DIA-175-coder-prompt-hygiene-scratch-dir.md) |
+| DIA-176 | Deep review: 2-day commit window (DIA-167..176) consistency vs pre-existing docs/config/docker | dev-infra | Major | DONE | [DIA-176-deep-review-2day-window-consistency.md](DIA-176-deep-review-2day-window-consistency.md) |
+| DIA-177 | worktree branch cleanup subcommand with merge verification | dev-infra | Low | OPEN | [DIA-177-worktree-branch-cleanup.md](DIA-177-worktree-branch-cleanup.md) |
+| DIA-178 | Memory shelf hygiene audit: duplicate/stale/irrelevant lessons, conspects, analyses | docs | Medium | DONE | [DIA-178-memory-shelf-hygiene-audit.md](DIA-178-memory-shelf-hygiene-audit.md) |
+| DIA-179 | Full test-suite audit: execution order, fast-to-fail, duplicates, stale tests, verification honesty, DRY helpers | tests-infra | Medium | DONE | [DIA-179-full-test-suite-audit.md](DIA-179-full-test-suite-audit.md) |
+
 
 
 ## Status summary
@@ -122,30 +135,29 @@
 | Severity | Count |
 | -------- | ----- |
 | Blocker   | 7      |
-| Critical  | 6      |
-| Major     | 38     |
-| Medium    | 53     |
+| Critical  | 8      |
+| Major     | 44     |
+| Medium    | 57     |
 | Minor     | 0      |
 | Low       | 11     |
 | Info      | 0      |
 
 | Status      | Count |
 | ----------- | ----- |
-| OPEN      | 13     |
-| DONE      | 8      |
+| OPEN      | 17     |
+| DONE      | 9      |
 | VALIDATE  | 0      |
 | E2E       | 0      |
 | DEFERRED  | 1      |
 | MONITOR   | 1      |
 | FIXED     | 1      |
 | IMPLEMENTED | 2      |
-| VERIFIED  | 22     |
+| VERIFIED  | 29     |
 | CLOSED    | 67     |
 | BLOCKED   | 0      |
 | DISPATCHED | 0      |
 | RUNNING   | 0      |
 | COMPLETE  | 0      |
-
 
 
 ## How to add a ticket

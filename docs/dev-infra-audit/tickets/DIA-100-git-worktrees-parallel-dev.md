@@ -143,7 +143,7 @@ dispatches @coder to create/teardown). Note: worktrees skill exists at
   not yet on main; they land on main when omo-slim-changes is merged. The
   isolation mechanism itself holds regardless.
 - Deferred: tickets/README.md DIA-100 row + counts update (the file carries
-  uncommitted DIA-115 edits from another lane; not committed per
+  uncommitted DIA-158 edits from another lane; not committed per
   no-other-lane-files rule).
 
 ## Re-verify

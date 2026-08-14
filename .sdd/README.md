@@ -53,4 +53,4 @@ produces further module architecture documents, they are indexed here using the
 | `03-open-questions/architecture.md`    | Tracked blind spots and their resolution status (planned)                                                                      |
 | `dia-redispatch-cycle/architecture.md` | 5-ADR seed for the cycle-management protocol (dev-infra campaign)                                                              |
 | `dev-infra/architecture.md`            | Parallel dev model (worktrees), branch conventions, and safe/destructive operations (DIA-100)                                  |
-| `opencode-config/architecture.md`      | Two ADRs for opencode-config batch patterns: parallel coders (Batch D, worktree-gated) and singleton-batch exemption (DIA-132) |
+| `opencode-config/architecture.md`      | Two ADRs for opencode-config batch patterns: parallel coders (Batch D, worktree-gated) and singleton-batch exemption (DIA-172) |

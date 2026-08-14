@@ -1,8 +1,10 @@
-# DIA-138 — Memory shelf hygiene audit: duplicate/stale/irrelevant lessons, conspects, analyses
+# DIA-178 — Memory shelf hygiene audit: duplicate/stale/irrelevant lessons, conspects, analyses
+
+<!-- RENUMBERED 2026-08-14 (phase 1, remote lineage canonical, DIA-153): local DIA-138 collided with origin/omo-slim-changes ticket DIA-138-agent-instruction-files-audit.md (different ticket). Renumbered to DIA-178. -->
 
 ---
 
-id: DIA-138
+id: DIA-178
 title: "Memory shelf hygiene audit: duplicate/stale/irrelevant lessons, conspects, analyses"
 area: docs
 severity: Medium
@@ -38,7 +40,7 @@ memory files (.opencode/memory/_.md) and the knowledge/ directory contents.
 The user asked for a hygiene audit: are there duplicate, irrelevant, or stale
 lessons/memories/conspects/analyses worth deleting, merging, or archiving?
 
-Known recent context (DIA-136): duplicate shelf IDs res014/ana013/ana014 were
+Known recent context (DIA-176): duplicate shelf IDs res014/ana013/ana014 were
 already renumbered to res021/ana016/ana017, and res020 path was fixed. This
 audit should go deeper: content-level duplication, superseded lessons,
 irrelevant entries, merge candidates, and integrity issues (paths, orphaned

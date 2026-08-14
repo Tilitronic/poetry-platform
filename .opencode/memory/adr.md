@@ -321,7 +321,7 @@ Accepted — 2026-08-12
 
 ### Context
 
-A recursion fork-bomb regression (DIA-142) occurred when `make test-shell` was
+A recursion fork-bomb regression (DIA-161) occurred when `make test-shell` was
 wired into `scripts/verify-pre-push.sh` (commit 49d587a). Invoked inside the
 dev container, the script takes the direct branch (hostname==poetry-dev) and
 re-enters the full suite: verify-pre-push.sh -> make test-shell -> bats ->
@@ -354,7 +354,7 @@ PATH/hostname shims as the primary defense — they are necessary-but-not-suffic
   guard from the start.
 - Test-side hermetic shims remain valuable as defense-in-depth but are no
   longer treated as sufficient protection for gate-script recursion.
-- Test-side corollary (DIA-147): when a gate script exports the guard flag
+- Test-side corollary (DIA-166): when a gate script exports the guard flag
   before running the full suite, the hook context propagates the flag into
   every test, so test setup() must `unset` the inherited flag to exercise the
   script's public entry behavior; a test that must verify the guarded path
@@ -365,7 +365,7 @@ PATH/hostname shims as the primary defense — they are necessary-but-not-suffic
 ### Metadata
 
 - Created: 2026-08-12
-- Related: DIA-142, DIA-146, knowledge/ana015-recursion-fork-bomb/ana015-recursion-fork-bomb-report.md
+- Related: DIA-161, DIA-165, knowledge/ana015-recursion-fork-bomb/ana015-recursion-fork-bomb-report.md
 
 ## ADR: Git worktrees parallel-dev model (DIA-100) - decision record + ticket-lifecycle convention
 
@@ -423,7 +423,7 @@ and the ticket-gate interaction that motivated it.
 - Created: 2026-08-12
 - Related: DIA-100, DIA-096, docs/dev-infra-audit/worktree-conventions.md, scripts/worktrees.sh, scripts/__tests__/worktrees.bats
 
-## ADR: Hermetic sandbox seeding for faked external tools (DIA-119)
+## ADR: Hermetic sandbox seeding for faked external tools (DIA-162)
 
 ### Status
 
@@ -433,7 +433,7 @@ Accepted - 2026-08-12
 
 A bats sandbox that fakes an external tool (pnpm / npx) by placing a fake binary
 earlier in PATH and isolating HOME (temp-HOME) is only hermetic if the outcome
-does not depend on WHICH tool resolves. The DIA-119 investigation proved the
+does not depend on WHICH tool resolves. The DIA-162 investigation proved the
 contrary: a real login shell sourced the real ~/.profile which prepended
 $VOLTA_HOME/bin, so the REAL pnpm/npx shadowed the fake in an empty sandbox and
 failed with ERR_PNPM_NO_IMPORTER_MANIFEST_FOUND. A fake-dir PATH that can be
@@ -479,8 +479,55 @@ the fake or the real tool resolves:
 ### Metadata
 
 - Created: 2026-08-12
-- Related: DIA-119, DIA-118, scripts/__tests__/verify-pre-push.bats, scripts/__tests__/verify-pre-commit.bats, lessons.md S18 "temp-HOME hermeticity breach pattern"
+- Related: DIA-162, DIA-161, scripts/__tests__/verify-pre-push.bats, scripts/__tests__/verify-pre-commit.bats, lessons.md S18 "temp-HOME hermeticity breach pattern"
 
+## ADR: git-sync of a binary DB is not viable - keep the text ledger (DIA-125 res-2)
+
+### Status
+
+Accepted - 2026-08-13
+
+### Context
+
+During DIA-125 research (Idea B) we evaluated whether a local Forgejo issue
+tracker could be kept in sync across parallel sessions by pushing its database
+to git. The investigation determined Forgejo's DB is SQLite BINARY
+(DB_TYPE=sqlite3, PATH=data/forgejo.db), not text: git cannot merge two
+divergent binary DB files (unresolvable binary conflict / lost updates / WAL
+sidecar -wal/-shm corruption). The git-fetch-before-take claim protocol is
+valid ONLY on text - which is exactly the existing .md ledger. git-bug
+confirms text/object-based CRDT trackers (Lamport clocks) are the git-native
+pattern.
+
+### Decision
+
+Reject git-syncing a binary DB (Forgejo or any SQLite/Postgres store) as a
+sync mechanism. Keep the ticket ledger as git-backed TEXT markdown
+(docs/dev-infra-audit/tickets/). Any claim/coordination protocol
+(fetch-before-take, lease_expires_at + session_id single-writer token) must
+operate on text files that git merges cleanly.
+
+### Rationale
+
+- Binary DB files are opaque to git merge; divergence is unresolvable and
+  risks corruption (WAL sidecars add more opaque files). Text .md files merge
+  cleanly and are ASCII-safe (DIA-079).
+- A binary-DB git-sync collapses back onto needing a shared git remote anyway,
+  so the text-ledger approach dominates on both the merge and remote axes.
+
+### Consequences
+
+- Future architecture decisions about DB sync must NOT route binary stores
+  through git. Keep the durable record in text files.
+- Full verdict, evidence, and source research are in the DIA-125 ticket
+  (res-2 UPDATE) and knowledge/res018-ticket-management-automation/; this ADR
+  records only the durable architectural rule to prevent re-research.
+
+### Metadata
+
+- Created: 2026-08-13
+- Related: DIA-125, knowledge/res018-ticket-management-automation/,
+  docs/dev-infra-audit/tickets/COORDINATION.md
 ## ADR: Needs-input ticker as a SIBLING observer module (DIA-122)
 
 ### Status
@@ -562,58 +609,6 @@ plugin or add a sibling.
 - Created: 2026-08-13
 - Related: DIA-122, .opencode/plugins/needs-input-observer.ts, scripts/ticker-render.sh, scripts/__tests__/ticker-render.bats, .opencode/learnings/external-patterns/2026-08-12-wsl2-notifications-daemon-required.md
 
-## ADR: Dual-runtime OMO precedence divergence - verify config semantics against the INSTALLED runtime (DIA-128)
-
-### Status
-
-Accepted - 2026-08-13
-
-### Context
-
-The project wires the oh-my-opencode-slim plugin from a LOCAL VENDORED source
-(`.opencode/opencode.jsonc` line ~541 as `file:///workspace/.opencode/oh-my-opencode-slim`)
-while the running OpenCode resolves the INSTALLED npm build (OMO 2.2.13). These two
-runtimes carry OPPOSITE prompt-precedence semantics: the installed 2.2.13
-`dist/index.js:19282` uses `inlinePrompt ?? filePrompt ?? fallback` (INLINE wins over
-the prompt file), whereas the local vendored source uses `filePrompt ?? base`
-(FILE wins). A config change validated under one runtime is therefore NOT
-behavior-equivalent under the other.
-
-### Decision
-
-1. Treat "local vendored source" and "installed npm runtime" as two potentially
-   divergent truth sources. When designing ANY OMO config fix (prompt precedence,
-   agent behavior, permission wiring), verify semantics against the INSTALLED
-   package version actually loaded at runtime, NOT the local source tree.
-2. Project-level prompt files resolve at loader step 2 for BOTH runtimes (project
-   preset > project root > user preset > user root), making them the idiomatic,
-   runtime-agnostic way to override global prompts. Prefer relocating inline
-   content to `<agent>.md` / `<agent>_append.md` over relying on inline `prompt`
-   keys whose precedence differs between runtimes.
-3. Re-verify inline-vs-file precedence on EVERY OMO upgrade (regression note
-   added to coder.md + analyzer_append.md, 2026-08-13).
-
-### Rationale (irrecoverable context)
-
-- The dual-runtime split is a project-specific invariant: the vendored plugin
-  source is a fork divergence from the published npm build, so behavior must be
-  re-verified after every upgrade. A fix designed against the local source would
-  have silently dropped the project coder checklist under the installed runtime.
-- Full finding detail (exact line, warning condition, fix sequence) is captured in
-  the DIA-128 learnings file - do NOT duplicate its body here.
-
-### Consequences
-
-- OMO config changes are validated by `make test-config` AND a runtime restart
-  check to confirm precedence semantics match the installed package.
-- Future config work must re-check inline-vs-file precedence after an OMO version
-  bump rather than assuming the vendored source reflects the installed behavior.
-
-### Metadata
-
-- Created: 2026-08-13
-- Related: DIA-128, commit 15f68a4 + 144a332, .opencode/oh-my-opencode-slim/coder.md, .opencode/oh-my-opencode-slim/analyzer_append.md, .opencode/learnings/external-patterns/2026-08-13-dia128-inline-prompt-relocation.md
-
 ## ADR: Escalated-lane steps-cap execution limit (DIA-132)
 
 ### Status
@@ -674,7 +669,7 @@ Tiered mitigation DECISION, its scope, and its trade-offs.
 - Related: DIA-132, DIA-130, knowledge/res020-opencode-agent-config-watchdog/,
   .opencode/opencode.jsonc L265/L321, CHANGELOG (DIA-132 Tier 1)
 
-## ADR: git-sync of a binary DB is not viable - keep the text ledger (DIA-125 res-2)
+## ADR: Dual-runtime OMO precedence divergence - verify config semantics against the INSTALLED runtime (DIA-128)
 
 ### Status
 
@@ -682,47 +677,51 @@ Accepted - 2026-08-13
 
 ### Context
 
-During DIA-125 research (Idea B) we evaluated whether a local Forgejo issue
-tracker could be kept in sync across parallel sessions by pushing its database
-to git. The investigation determined Forgejo's DB is SQLite BINARY
-(DB_TYPE=sqlite3, PATH=data/forgejo.db), not text: git cannot merge two
-divergent binary DB files (unresolvable binary conflict / lost updates / WAL
-sidecar -wal/-shm corruption). The git-fetch-before-take claim protocol is
-valid ONLY on text - which is exactly the existing .md ledger. git-bug
-confirms text/object-based CRDT trackers (Lamport clocks) are the git-native
-pattern.
+The project wires the oh-my-opencode-slim plugin from a LOCAL VENDORED source
+(`.opencode/opencode.jsonc` line ~541 as `file:///workspace/.opencode/oh-my-opencode-slim`)
+while the running OpenCode resolves the INSTALLED npm build (OMO 2.2.13). These two
+runtimes carry OPPOSITE prompt-precedence semantics: the installed 2.2.13
+`dist/index.js:19282` uses `inlinePrompt ?? filePrompt ?? fallback` (INLINE wins over
+the prompt file), whereas the local vendored source uses `filePrompt ?? base`
+(FILE wins). A config change validated under one runtime is therefore NOT
+behavior-equivalent under the other.
 
 ### Decision
 
-Reject git-syncing a binary DB (Forgejo or any SQLite/Postgres store) as a
-sync mechanism. Keep the ticket ledger as git-backed TEXT markdown
-(docs/dev-infra-audit/tickets/). Any claim/coordination protocol
-(fetch-before-take, lease_expires_at + session_id single-writer token) must
-operate on text files that git merges cleanly.
+1. Treat "local vendored source" and "installed npm runtime" as two potentially
+   divergent truth sources. When designing ANY OMO config fix (prompt precedence,
+   agent behavior, permission wiring), verify semantics against the INSTALLED
+   package version actually loaded at runtime, NOT the local source tree.
+2. Project-level prompt files resolve at loader step 2 for BOTH runtimes (project
+   preset > project root > user preset > user root), making them the idiomatic,
+   runtime-agnostic way to override global prompts. Prefer relocating inline
+   content to `<agent>.md` / `<agent>_append.md` over relying on inline `prompt`
+   keys whose precedence differs between runtimes.
+3. Re-verify inline-vs-file precedence on EVERY OMO upgrade (regression note
+   added to coder.md + analyzer_append.md, 2026-08-13).
 
-### Rationale
+### Rationale (irrecoverable context)
 
-- Binary DB files are opaque to git merge; divergence is unresolvable and
-  risks corruption (WAL sidecars add more opaque files). Text .md files merge
-  cleanly and are ASCII-safe (DIA-079).
-- A binary-DB git-sync collapses back onto needing a shared git remote anyway,
-  so the text-ledger approach dominates on both the merge and remote axes.
+- The dual-runtime split is a project-specific invariant: the vendored plugin
+  source is a fork divergence from the published npm build, so behavior must be
+  re-verified after every upgrade. A fix designed against the local source would
+  have silently dropped the project coder checklist under the installed runtime.
+- Full finding detail (exact line, warning condition, fix sequence) is captured in
+  the DIA-128 learnings file - do NOT duplicate its body here.
 
 ### Consequences
 
-- Future architecture decisions about DB sync must NOT route binary stores
-  through git. Keep the durable record in text files.
-- Full verdict, evidence, and source research are in the DIA-125 ticket
-  (res-2 UPDATE) and knowledge/res018-ticket-management-automation/; this ADR
-  records only the durable architectural rule to prevent re-research.
+- OMO config changes are validated by `make test-config` AND a runtime restart
+  check to confirm precedence semantics match the installed package.
+- Future config work must re-check inline-vs-file precedence after an OMO version
+  bump rather than assuming the vendored source reflects the installed behavior.
 
 ### Metadata
 
 - Created: 2026-08-13
-- Related: DIA-125, knowledge/res018-ticket-management-automation/,
-  docs/dev-infra-audit/tickets/COORDINATION.md
+- Related: DIA-128, commit 15f68a4 + 144a332, .opencode/oh-my-opencode-slim/coder.md, .opencode/oh-my-opencode-slim/analyzer_append.md, .opencode/learnings/external-patterns/2026-08-13-dia128-inline-prompt-relocation.md
 
-## ADR: Batch-D shared tracked test seams must be declared in the spec slice-ownership table (DIA-139)
+## ADR: Batch-D shared tracked test seams must be declared in the spec slice-ownership table (DIA-179)
 
 ### Status
 
@@ -730,9 +729,9 @@ Accepted - 2026-08-14
 
 ### Context
 
-The DIA-139 test-suite-audit-fixes OpenSpec change defined 5 disjoint slices
+The DIA-179 test-suite-audit-fixes OpenSpec change defined 5 disjoint slices
 (A/B/C/D/F) with per-slice file-ownership lists under the batch D parallel-worktree
-model (DIA-132 pattern D + DIA-135 strict instance separation). The ownership table
+model (DIA-172 pattern D + DIA-175 strict instance separation). The ownership table
 assigned each slice a disjoint FILE set, but two slices (B and C) BOTH extended the
 same tracked test file `scripts/__tests__/batch-d-infra.test.mjs` in their own
 worktrees, each appending assertions against its own infra change. The squash-merges
@@ -756,7 +755,7 @@ silently excluded the shared test seam.
 ### Rationale (irrecoverable context)
 
 - The batch D model's correctness rests on "disjoint file sets, zero cross-slice
-  collisions" (DIA-132 LESSON-4). That guarantee held only for SOURCE files; the
+  collisions" (DIA-172 LESSON-4). That guarantee held only for SOURCE files; the
   test seam was an unplanned shared write. The divergence between the ownership
   table's stated disjointness and the actual shared test file is not recoverable
   from the merged diffs (which show only the resolved, both-blocks result).
@@ -774,5 +773,4 @@ silently excluded the shared test seam.
 ### Metadata
 
 - Created: 2026-08-14
-- Related: DIA-139, openspec/changes/test-suite-audit-fixes/, lessons.md DIA-139 section
-
+- Related: DIA-179, openspec/changes/test-suite-audit-fixes/, lessons.md DIA-179 section

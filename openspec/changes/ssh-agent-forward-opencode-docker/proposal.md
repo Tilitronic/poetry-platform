@@ -1,6 +1,6 @@
 ## Why
 
-The developer works inside `tools/opencode-docker` and needs to `git push` from the container to SSH remotes (private GitHub repos, the repo's SSH remotes). Today the container has no SSH agent access, so any push requiring SSH auth fails. The wrapper already runs with `--userns=keep-id` and `--security-opt label=disable` (DIA-121), which satisfy the two blockers for socket forwarding on Fedora + SELinux (unix-socket permissions via keep-id, SELinux connectto denial via label=disable). Research confirmed the recipe: forward the host's SSH agent socket into the container read-only, with keys never leaving the host.
+The developer works inside `tools/opencode-docker` and needs to `git push` from the container to SSH remotes (private GitHub repos, the repo's SSH remotes). Today the container has no SSH agent access, so any push requiring SSH auth fails. The wrapper already runs with `--userns=keep-id` and `--security-opt label=disable` (DIA-164), which satisfy the two blockers for socket forwarding on Fedora + SELinux (unix-socket permissions via keep-id, SELinux connectto denial via label=disable). Research confirmed the recipe: forward the host's SSH agent socket into the container read-only, with keys never leaving the host.
 
 ## What Changes
 
@@ -30,7 +30,7 @@ The developer works inside `tools/opencode-docker` and needs to `git push` from 
 
 ### New Capabilities
 
-- `ssh-agent-forward`: Forward the host's SSH agent socket into the opencode-docker container read-only so `git push` to SSH remotes works from inside the container. Keys never leave the host; only the agent socket is mounted (read-only) at `/tmp/ssh-agent.sock`. Detection loop mirrors the existing `SOCKET_MOUNT` block structure. Warn-and-continue when no agent socket is found. Security profile identical to the already-accepted DIA-121 docker-socket forwarding (a host socket forwarded into the container; the container already holds host container-management rights via the DIA-121 docker.sock mount).
+- `ssh-agent-forward`: Forward the host's SSH agent socket into the opencode-docker container read-only so `git push` to SSH remotes works from inside the container. Keys never leave the host; only the agent socket is mounted (read-only) at `/tmp/ssh-agent.sock`. Detection loop mirrors the existing `SOCKET_MOUNT` block structure. Warn-and-continue when no agent socket is found. Security profile identical to the already-accepted DIA-164 docker-socket forwarding (a host socket forwarded into the container; the container already holds host container-management rights via the DIA-164 docker.sock mount).
 
 ### Modified Capabilities
 
@@ -40,7 +40,7 @@ The developer works inside `tools/opencode-docker` and needs to `git push` from 
 
 - **Code:** `tools/opencode-docker/bin/opencode-docker` wrapper script (~181 lines → ~200 lines with SSH_MOUNT block).
 - **Docs:** `tools/opencode-docker/AGENTS.md` (option header for SSH agent forwarding), `tools/opencode-docker/README.md` (note about no-agent warning and host agent requirement).
-- **Dependencies:** None (uses existing podman/docker socket forwarding pattern from DIA-121).
+- **Dependencies:** None (uses existing podman/docker socket forwarding pattern from DIA-164).
 - **Systems:** Only `opencode-docker` (the `podman run` wrapper). Does NOT touch `poetry-dev` (docker-compose dev service; its delegated gates are make/pnpm only, need no git auth). Does NOT touch `docker-compose.yml` or `dev-entrypoint.sh`.
 
 ## Testing Decisions

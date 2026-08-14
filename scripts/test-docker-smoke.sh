@@ -58,7 +58,7 @@ if ! docker info >/dev/null 2>&1; then
 fi
 
 cleanup() {
-  # F-3 (DIA-139): the SMOKE_LEAVE_UP guard lives here, in the teardown step,
+  # F-3 (DIA-179): the SMOKE_LEAVE_UP guard lives here, in the teardown step,
   # NOT at bring-up, so the smoke test's validation logic is unchanged. On
   # success with SMOKE_LEAVE_UP=1 we keep the stack up (make test-infra reuses
   # it for test-python instead of rebuilding a second time); on failure we

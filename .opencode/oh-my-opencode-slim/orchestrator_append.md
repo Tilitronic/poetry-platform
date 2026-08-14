@@ -325,16 +325,16 @@ result and do NOT loop on re-dispatches.
    (RESULT / FILES_TOUCHED / VERIFICATION_EVIDENCE). If it returns empty
    again, escalate per the 3-failures rule - do NOT loop.
 
-## Batch-D Hardening Rules (DIA-134)
+## Batch-D Hardening Rules (DIA-174)
 
-Rules from the DIA-132 retrospective (DIA-134) that harden batch D dispatch,
+Rules from the DIA-172 retrospective (DIA-174) that harden batch D dispatch,
 architector design persistence, and the merge gate. ADD-only codification;
 A1-A6 above are untouched.
 
 ### R1 - Ticket-ID Token in Dispatch/Resume Prompts (DIA-063 gate)
 
 every dispatch AND every resume prompt MUST contain the literal ticket ID
-(e.g. "DIA-134"). The DIA-063 gate enforces it for config-work lanes
+(e.g. "DIA-174"). The DIA-063 gate enforces it for config-work lanes
 (ai-specialist or config-work-hint) with correlation logic: an explicit
 DIA-id that resolves to no OPEN ticket hard-blocks; a prompt with no DIA-id
 passes via a session-owned or keyword-correlated open ticket or
@@ -353,10 +353,10 @@ showing the dev service Up, committed into the merge report. The session log
 must record container state before merge dispatch; no merge attempt happens
 without the evidence line.
 
-### R4 - Instance separation (DIA-135)
+### R4 - Instance separation (DIA-175)
 
 RED test-writing and GREEN implementation for the same slice MUST be dispatched to DIFFERENT coder instances; the test-author never implements the slice it tested. Session reuse applies to fix loops and same-artifact continuation, NOT across the test/code boundary. same-artifact continuation = further edits to the SAME file set within the same task_id.
 
-### R5 - Same-session fixes (DIA-135)
+### R5 - Same-session fixes (DIA-175)
 
 fix-loop dispatches MUST resume the SAME coder session that wrote the code (resume by task_id/session_id per A2, never re-invoke task() for recall), so fixes carry the implementer's context.

@@ -53,7 +53,7 @@ dev-stack.sh (host bootstrap: .env from example → docker-info gate → compose
 - .dockerignore: .git, node_modules, dist, .turbo, .venv, .env*, secrets/, docs/knowledge/*.md.
 - tools/opencode-docker/: Dockerfile (3-stage, read-only rootfs, --cap-drop at runtime, openspec 1.6.0 -- DIFFERS from Dockerfile.dev 1.7.0), Makefile (podman, --read-only --tmpfs /tmp:exec --cap-drop=ALL --no-new-privileges --shm-size=1g --memory=4g --cpus=4), config/opencode.json (envsitter-guard@0.0.4, telemetry@0.1.19, dcp, context7+gh_grep MCP), bin/opencode-docker wrapper (flock instance lock), bootstrap.py (larger ALLOWED_SECRETS incl. google/aws), TODO.md (F1-F16, F7/F8/F9/F10/F11 open), AGENTS.md.
 - .devcontainer/devcontainer.json: dockerComposeFile ../docker-compose.yml, service dev, workspaceFolder /workspace, shutdownAction stopCompose, 7 extensions, postCreate pnpm install && gen-jsconfig.sh, forwardPorts 9000/8000/3000, remoteUser dev.
-- Docs: docs/docker-dev.md (CONTAINER-SETUP.md removed 2026-08-14 as superseded, DIA-136).
+- Docs: docs/docker-dev.md (CONTAINER-SETUP.md removed 2026-08-14 as superseded, DIA-176).
 
 ## 8. OpenCode Configuration
 

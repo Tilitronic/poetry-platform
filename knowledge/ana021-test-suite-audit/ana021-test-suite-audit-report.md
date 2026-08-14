@@ -1,4 +1,4 @@
-# ana021 -- Full test-suite audit (DIA-139)
+# ana021 -- Full test-suite audit (DIA-179)
 
 <!-- ANALYZER-OUTPUT-CONTRACT
 schema-version: 1.0
@@ -9,11 +9,11 @@ confidence: High
 shelf-registration: memory-shelf.yaml (shelf.analyses), delegated to @memory-manager
 -->
 
-Auditor: @analyzer (DIA-139)
+Auditor: @analyzer (DIA-179)
 Date: 2026-08-14
 Scope: every test artifact on the main working tree (excludes the 13 stale
 worktrees under .worktrees/, which are not part of any gate). Prior test work
-(DIA-115, DIA-124, DIA-125, DIA-126, DIA-127) was read and built upon -- no
+(DIA-158, DIA-167, DIA-168, DIA-169, DIA-170) was read and built upon -- no
 finding here contradicts those tickets; several re-surface as "still open" or
 "partial" where prior fixes introduced new asymmetries.
 
@@ -107,7 +107,7 @@ Makefile dependency order (make test-infra, Makefile lines 138-142):
 ### F-2  turbo `test` has `dependsOn: ["build"]` for unknown packages [severity: Medium]
 
 - File: turbo.json:21-25
-- Problem: the BASE `test` task inherits `dependsOn: ["build"]`. DIA-125 added
+- Problem: the BASE `test` task inherits `dependsOn: ["build"]`. DIA-168 added
   per-package overrides for the four packages that do not need build output
   (editor-engine, data-contracts, phonetics-core, author-studio). Any NEW
   package with a `test` script will silently inherit `dependsOn: ["build"]`
@@ -194,7 +194,7 @@ Makefile dependency order (make test-infra, Makefile lines 138-142):
 ### F-8  mock_docker_down callers still use their own boilerplate around it [severity: Informational]
 
 - Files: scripts/__tests__/eval-lite.bats:6 uses, check-host-lsp.bats:3 uses
-- Problem: DIA-125 consolidated `mock_docker_down` itself, but the callers
+- Problem: DIA-168 consolidated `mock_docker_down` itself, but the callers
   still build their own PATH isolation around it. Not a true dup (the
   surrounding context differs), but the pattern repeats enough to be a DRY
   candidate for Phase 2.
@@ -221,7 +221,7 @@ Makefile dependency order (make test-infra, Makefile lines 138-142):
     apps/api-server/tests/test_auth.py:21-24 (1 test, 24 lines)
     packages/analytics-pipeline/tests/test_smoke.py:23-27 (1 test, 27 lines)
 - Problem: each test asserts only that the module imports cleanly via the
-  namespace-package path. No behavioral contract. DIA-124 removed the
+  namespace-package path. No behavioral contract. DIA-167 removed the
   docstring-pin tests (flake-on-doc-edit) but kept the import tests.
 - Why it matters: the docstrings of both test files explicitly document the
   intent: "pins the import path so a regression fails loudly". They are
@@ -241,7 +241,7 @@ Makefile dependency order (make test-infra, Makefile lines 138-142):
   assert_status / assert_output_contains / assert_file_contains helpers from
   test-helper.bash; batch-d-infra asserts committed-file contents; pytest
   tests assert import identity.
-- Conclusion: the prior DIA-124 / DIA-125 cleanup did its job. No tests need
+- Conclusion: the prior DIA-167 / DIA-168 cleanup did its job. No tests need
   deletion on tautology grounds.
 
 ---
@@ -255,7 +255,7 @@ Checks performed:
   - `assert()` with no arguments: 0 hits
   - `expect(true).toBe(true)` or similar tautologies: 0 hits
   - Tests with only mocked paths (no real call-through): the Orchestrator
-    test (DIA-127) is explicitly zero-mock; the load-atlas test reads the
+    test (DIA-170) is explicitly zero-mock; the load-atlas test reads the
     real atlas file; opusFormattingFilter creates real CM6 state; no
     always-pass mocks observed.
   - Tests that never run in any gate: every .test.ts / .bats is reachable
@@ -314,7 +314,7 @@ alone cuts the TTF for a format/typecheck failure from ~32 s to ~1.2 s.
 
 ## 8. DRY-HELPER / OPTIMIZATION findings
 
-### F-15  bats already has a strong shared helper (DIA-125 delivered) [severity: N/A]
+### F-15  bats already has a strong shared helper (DIA-168 delivered) [severity: N/A]
 
 - File: scripts/__tests__/test-helper.bash (448 lines)
 - Already provides: assert_status, assert_output_contains,
@@ -370,7 +370,7 @@ alone cuts the TTF for a format/typecheck failure from ~32 s to ~1.2 s.
 
 - apps/publishing-platform, packages/stress-lang-core, packages/visualizer-2d,
   packages/visualizer-3d: no `test` script in package.json, no test files.
-- These are out of scope for DIA-139 (this audit reports on what exists, not
+- These are out of scope for DIA-179 (this audit reports on what exists, not
   on what should exist). Noted here for the backlog.
 
 ### O-3  .worktrees/ holds 386 MB of stale test copies
@@ -440,11 +440,11 @@ alone cuts the TTF for a format/typecheck failure from ~32 s to ~1.2 s.
 
 | Prior ticket | Status | Relation to this audit |
 |--------------|--------|------------------------|
-| DIA-115 (hook test coverage) | OPEN | Its edge-case recommendations were largely delivered by DIA-124/125/126. This audit finds one remaining asymmetry (F-6, the /home/qualt dup). |
-| DIA-124 (Phase 0 safety wins) | OPEN (applied) | Docstring-pin tests removed; author-studio now fails loudly and is wired back in via DIA-126. Import-only Python smokes kept deliberately (F-10). |
-| DIA-125 (Phase 1 dedup) | OPEN (applied) | bats helpers consolidated, it.each applied, bash -n auto-discovered. Remaining DRY surface (F-7 conftest.py, F-16 vitest configs) is small. |
-| DIA-126 (Phase 2 critical gaps) | OPEN (applied) | author-studio + data-contracts now have real tests. publishing-platform / stress-lang-core / visualizer-2d / visualizer-3d remain uncovered (O-2). |
-| DIA-127 (Phase 3 orchestrator contract) | DONE | Orchestrator.test.ts is the strongest test in the suite (zero mocks, real behavior). No findings against it. |
+| DIA-158 (hook test coverage) | OPEN | Its edge-case recommendations were largely delivered by DIA-167/168/169. This audit finds one remaining asymmetry (F-6, the /home/qualt dup). |
+| DIA-167 (Phase 0 safety wins) | OPEN (applied) | Docstring-pin tests removed; author-studio now fails loudly and is wired back in via DIA-169. Import-only Python smokes kept deliberately (F-10). |
+| DIA-168 (Phase 1 dedup) | OPEN (applied) | bats helpers consolidated, it.each applied, bash -n auto-discovered. Remaining DRY surface (F-7 conftest.py, F-16 vitest configs) is small. |
+| DIA-169 (Phase 2 critical gaps) | OPEN (applied) | author-studio + data-contracts now have real tests. publishing-platform / stress-lang-core / visualizer-2d / visualizer-3d remain uncovered (O-2). |
+| DIA-170 (Phase 3 orchestrator contract) | DONE | Orchestrator.test.ts is the strongest test in the suite (zero mocks, real behavior). No findings against it. |
 
 ---
 

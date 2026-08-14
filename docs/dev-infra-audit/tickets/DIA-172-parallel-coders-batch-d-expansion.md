@@ -1,9 +1,11 @@
-# DIA-132 - Parallel coders (batch D) + read-only batch expansion - DIA-116 follow-up review and design
+# DIA-172 - Parallel coders (batch D) + read-only batch expansion - DIA-159 follow-up review and design
+
+<!-- RENUMBERED 2026-08-14 (phase 1, remote lineage canonical, DIA-153): local DIA-132 collided with origin/omo-slim-changes ticket DIA-132-coder-escalated-silent-failure.md (different ticket). Renumbered to DIA-172. -->
 
 ---
 
-id: DIA-132
-title: "Parallel coders (batch D) + read-only batch expansion - DIA-116 follow-up review and design"
+id: DIA-172
+title: "Parallel coders (batch D) + read-only batch expansion - DIA-159 follow-up review and design"
 area: opencode-config
 severity: Medium
 status: IMPLEMENTED
@@ -23,7 +25,7 @@ model: "" # unknown
 parent_session_id: "ses_00327cd6effet7lPBAkPxJ0M3U"
 attempts: 0
 lease_expires_at: ""
-files_touched: [docs/dev-infra-audit/tickets/DIA-132-parallel-coders-batch-d-expansion.md, docs/dev-infra-audit/tickets/README.md]
+files_touched: [docs/dev-infra-audit/tickets/DIA-172-parallel-coders-batch-d-expansion.md, docs/dev-infra-audit/tickets/README.md]
 artifacts: []
 evidence: []
 
@@ -31,7 +33,7 @@ evidence: []
 
 ## Description
 
-Follow-up to DIA-116 / DIA-119 / DIA-120 (BATCH-DISPATCH rule + batch-aware A1 plugin, implemented 2026-08-12, commits 0697a08 + 7b08e90). Developer returned to the parallel-batch topic on 2026-08-13: wants a review with @ai-specialist and @ai-auditor, and a design for (1) running MULTIPLE coders in parallel and (2) expanding the read-only batch A.
+Follow-up to DIA-159 / DIA-162 / DIA-163 (BATCH-DISPATCH rule + batch-aware A1 plugin, implemented 2026-08-12, commits 0697a08 + 7b08e90). Developer returned to the parallel-batch topic on 2026-08-13: wants a review with @ai-specialist and @ai-auditor, and a design for (1) running MULTIPLE coders in parallel and (2) expanding the read-only batch A.
 
 Pre-work findings (2026-08-13, ai-specialist research session, PERSISTENCE_RECOMMENDED: true):
 
@@ -41,15 +43,15 @@ Pre-work findings (2026-08-13, ai-specialist research session, PERSISTENCE_RECOM
 - reviewer is read-only by config (edit/bash/task deny) but correctly excluded from batch A: reviewer needs a committed fixed point (batch C).
 - Parallel coders are feasible ONLY with: separate git worktrees per coder, separate tickets, disjoint file ownership, per-worktree review on committed fixed points, serialized squash-merges. NEVER two coders on the same worktree or same ticket (universal community consensus; sources: GitHub Blog, Tim Schipper, Fletch, Fazm, mq-dir, Upsun).
 - OpenCode executes multiple task() calls in one message in parallel (Promise.all; OpenCode PRs #14196/#29819/#29848, issue #14195 fixed).
-- DIA-116 analysis report (ai--3 session) was never persisted - proposals 1-5 live only in the DIA-119/DIA-120 ticket files and learnings entries. Persistence gap to close.
+- DIA-159 analysis report (ai--3 session) was never persisted - proposals 1-5 live only in the DIA-162/DIA-163 ticket files and learnings entries. Persistence gap to close.
 
 ## Scope
 
-1. @ai-auditor independent review (Phase 6) of the implemented BATCH-DISPATCH change (DIA-119/DIA-120) - blocked by this ticket's creation, pending.
+1. @ai-auditor independent review (Phase 6) of the implemented BATCH-DISPATCH change (DIA-162/DIA-163) - blocked by this ticket's creation, pending.
 2. Design decision + implementation: add architector to READ_ONLY_LANES in .opencode/plugins/delegation-observer.ts and to batch A in the 3 preset prompts of .opencode/oh-my-opencode-slim.jsonc (~2 lines).
 3. Design + implementation of batch pattern D (parallel coders): plugin classification (two coders allowed ONLY when dispatch payload asserts separate worktrees), BATCH-DISPATCH rule text extension in the 3 presets, coder worktree-aware instructions, serialization rules (per-worktree fixed points for reviewer, serialized squash-merges, one memory-manager pass after merges).
 4. Optional: explicit bash deny for code-navigator and observer in opencode.jsonc.
-5. Close the DIA-116 persistence gap (archive the analysis proposals or mark the ticket superseded by DIA-119/120 + this ticket).
+5. Close the DIA-159 persistence gap (archive the analysis proposals or mark the ticket superseded by DIA-162/163 + this ticket).
 
 ## Verification
 

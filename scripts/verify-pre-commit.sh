@@ -41,7 +41,7 @@ run_workspace() {
   fi
 }
 
-# /home/qualt regression guard (F-6, DIA-139): the body lives in
+# /home/qualt regression guard (F-6, DIA-179): the body lives in
 # scripts/guards/home-qualt.sh so both hooks share one canonical definition
 # (canonical grep tests: scripts/__tests__/guards-home-qualt.bats). Sourced on
 # the host BEFORE container detection/delegation so the husky hooks reject

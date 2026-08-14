@@ -70,7 +70,7 @@ teardown dispatch runs only `scripts/worktrees.sh remove` (worktree dir
 gone, branch kept for rollback). With `cleanup` added, the teardown
 dispatch becomes `remove` THEN `cleanup` — closing the lifecycle loop
 that has been leaving ~10 merged `feature/*` branches behind per batch
-(DIA-132/DIA-134 post-merge drift). The orchestrator dispatches this as
+(DIA-172/DIA-174 post-merge drift). The orchestrator dispatches this as
 part of the existing Teardown pattern — no new dispatch contract, no
 cron, no automatic scheduling; the dispatch runs after a successful
 merge as a deliberate post-merge teardown step.

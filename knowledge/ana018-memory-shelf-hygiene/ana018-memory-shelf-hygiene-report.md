@@ -9,7 +9,7 @@ confidence: High
 shelf-registration: memory-shelf.yaml (shelf.analyses), delegated to @memory-manager
 -->
 
-**Ticket:** DIA-138
+**Ticket:** DIA-178
 **Author:** @analyzer (ana018)
 **Date:** 2026-08-14
 **Scope:** Full hygiene audit of `.opencode/memory-shelf.yaml`, `.opencode/memory/*.md`, `knowledge/*`, and `openspec/changes/*` unregistered entries. Report only — no files modified.
@@ -152,8 +152,8 @@ Bucketed by topical focus. For each bucket with 2+ members, verdict: **DUP** (me
 
 | ID | Focus |
 |---|---|
-| ana015 | DIA-118 recursion fork-bomb root-cause analysis (verify-pre-push.sh) |
-| ana017 | DIA-115 hook test coverage audit (pre-commit/pre-push, turbo, bats) |
+| ana015 | DIA-161 recursion fork-bomb root-cause analysis (verify-pre-push.sh) |
+| ana017 | DIA-158 hook test coverage audit (pre-commit/pre-push, turbo, bats) |
 
 **Verdict: DISTINCT.** ana015 is a narrow root-cause of one bug; ana017 is a broad coverage audit. Keep.
 
@@ -162,7 +162,7 @@ Bucketed by topical focus. For each bucket with 2+ members, verdict: **DUP** (me
 | ID | Focus |
 |---|---|
 | ana001 | DIA-067 trafilatura container strategy analysis |
-| res020 | ssh-add -c confirmation on Fedora 44 + KDE (DIA-133 context) |
+| res020 | ssh-add -c confirmation on Fedora 44 + KDE (DIA-173 context) |
 
 **Verdict: DISTINCT.** ana001 is dev-container Python tooling; res020 is host SSH agent UX. Keep.
 
@@ -211,7 +211,7 @@ Bucketed by topical focus. For each bucket with 2+ members, verdict: **DUP** (me
 
 | # | Action | Entry | Rationale | Confidence |
 |---|---|---|---|---|
-| 9 | **HARD FIX** | `L20260812-003` at L358 AND L704 | Two different lessons share the same ID. L358 is "section-10 dispatch ticket correlation"; L704 is "gate-script re-entrancy guard (DIA-118 fork-bomb)". Retitle one (likely L704 to `L20260812-005` since 004 is taken by the hook-exact lesson at L723). | High |
+| 9 | **HARD FIX** | `L20260812-003` at L358 AND L704 | Two different lessons share the same ID. L358 is "section-10 dispatch ticket correlation"; L704 is "gate-script re-entrancy guard (DIA-161 fork-bomb)". Retitle one (likely L704 to `L20260812-005` since 004 is taken by the hook-exact lesson at L723). | High |
 | 10 | **REVIEW** | Lessons vs ADR overlap at lessons.md L316-369 (gate-script re-entrancy) | The lesson at L704 duplicates the content of `adr.md` "ADR: Gate scripts that invoke the full test suite must carry a re-entrancy guard" (adr.md L316). Lesson and ADR coexist — check if the lesson adds irrecoverable context beyond the ADR, else collapse. | Med |
 | 11 | **REVIEW** | Lessons "DeepSeek V4 thinking-mode / temperature inertness" at L695 | No lesson ID, no session/date header in standard format. Appears to be a correction appended mid-bucket rather than a proper lesson. Reformat or fold into res021 / adr.md. | Med |
 | 12 | **KEEP** | All other lessons (14 of 16 sections) | Distinct, irrecoverable operational context per the lessons.md preamble contract. | High |
@@ -309,9 +309,9 @@ These entries look odd but are load-bearing — referenced by skills/scripts/age
 | res013 -> res014 -> res015 -> res016 -> res017 -> res021 (model cluster) | Explicitly cross-referenced chain (each entry's description names the others). Non-duplicating by design. |
 | ana002 / ana016 | Both are the canonical agent-audit baseline; referenced by AGENTS.md §9 agent-naming contract. |
 | ana010 | DIA-084 comprehensive artifacts audit; ana018 (this report) builds directly on it. |
-| ana015 | DIA-118 fork-bomb root cause; referenced by lessons.md L704 and adr.md L316 (gate-script ADR). |
-| ana017 | DIA-115 hook test coverage; findings fed into batch-d-infra-hardening spec. |
-| res020 | DIA-133 ssh-agent-forward context; referenced by `openspec/changes/ssh-agent-forward-opencode-docker/`. |
+| ana015 | DIA-161 fork-bomb root cause; referenced by lessons.md L704 and adr.md L316 (gate-script ADR). |
+| ana017 | DIA-158 hook test coverage; findings fed into batch-d-infra-hardening spec. |
+| res020 | DIA-173 ssh-agent-forward context; referenced by `openspec/changes/ssh-agent-forward-opencode-docker/`. |
 | res001 | OpenSpec/SDD reconciliation; foundational design doc. |
 | All `openspec/changes/archive/*` specs in shelf | Already archived; do not re-archive. |
 

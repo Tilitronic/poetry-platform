@@ -1,8 +1,10 @@
-# DIA-137 - Worktree branch cleanup subcommand with merge verification
+# DIA-177 - Worktree branch cleanup subcommand with merge verification
+
+<!-- RENUMBERED 2026-08-14 (phase 1, remote lineage canonical, DIA-153): local DIA-137 collided with origin/omo-slim-changes ticket DIA-137-orchestrator-routine-work-and-artifact-systems-research-lightweight-reliable-tools-to-simplify-operations-sibling-of-dia-136.md (different ticket). Renumbered to DIA-177. -->
 
 ---
 
-id: DIA-137
+id: DIA-177
 title: "worktree branch cleanup subcommand with merge verification"
 area: dev-infra
 severity: Low
@@ -23,7 +25,7 @@ model: "opencode-go/deepseek-v4-flash"
 parent_session_id: ""
 attempts: 0
 lease_expires_at: ""
-files_touched: [docs/dev-infra-audit/tickets/DIA-137-worktree-branch-cleanup.md, docs/dev-infra-audit/tickets/README.md]
+files_touched: [docs/dev-infra-audit/tickets/DIA-177-worktree-branch-cleanup.md, docs/dev-infra-audit/tickets/README.md]
 artifacts: []
 evidence: []
 
@@ -32,7 +34,7 @@ evidence: []
 ## Description
 
 **Problem:** we run parallel @coder lanes in separate git worktrees (DIA-100,
-DIA-132, DIA-134). After a squash-merge to main, the teardown step
+DIA-172, DIA-174). After a squash-merge to main, the teardown step
 (`scripts/worktrees.sh remove`) removes the worktree directory but KEEPS the
 branch for the rollback window (DIA-100 cleanup policy, documented in
 `docs/dev-infra-audit/worktree-conventions.md` "Cleanup policy"). The

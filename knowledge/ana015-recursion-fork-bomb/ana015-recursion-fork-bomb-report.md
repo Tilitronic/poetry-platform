@@ -13,9 +13,9 @@ shelf-registration: memory-shelf.yaml (shelf.analyses), delegated to @memory-man
 
 A live recursion fork-bomb in `scripts/verify-pre-push.sh` was confirmed via
 `/proc` inspection inside `poetry-dev`. The regression was introduced by commit
-`49d587a` (DIA-142) which wired `make test-shell` into the pre-push script. The
+`49d587a` (DIA-161) which wired `make test-shell` into the pre-push script. The
 root cause is the **absence of a re-entrancy guard in the script itself**; the
-test-side hostname shim (commit `bb18099`, DIA-71) is a band-aid that prevents
+test-side hostname shim (commit `bb18099`, DIA-071) is a band-aid that prevents
 the storm only within the bats suite but leaves manual/husky invocations
 vulnerable. This report recommends a **minimal env-flag propagation guard**
 (`VERIFY_PRE_PUSH_RUNNING`) with a one-line test-side `unset` to preserve the
@@ -41,15 +41,15 @@ runs `make test-shell` in-place via `run_workspace` (line 38: `cd $WORKSPACE &&
 bash -lc "$cmd"`). The child process inherits the same environment and hostname,
 so the nested invocation also sees hostname=poetry-dev and repeats the chain.
 
-**Why did DIA-142's addition (`make test-shell`) recurse?**
--> DIA-142 wired `make test-shell` into the pre-push gate (commit `49d587a`,
+**Why did DIA-161's addition (`make test-shell`) recurse?**
+-> DIA-161 wired `make test-shell` into the pre-push gate (commit `49d587a`,
 2026-08-12) to make shell dev-infra regressions fail fast. The commit added the
 line but did not add a guard to prevent `make test-shell` from re-invoking the
-same script. The pre-push contract (warn+pass when container down, DIA-94) was
+same script. The pre-push contract (warn+pass when container down, DIA-094) was
 preserved, but the recursion vector was not considered.
 
 **Why was the recursion not caught in testing?**
--> The bats suite's `setup()` (commit `bb18099`, DIA-71) fakes hostname to
+-> The bats suite's `setup()` (commit `bb18099`, DIA-071) fakes hostname to
 "host-machine" so tests exercise the host+container-running delegation path
 (line 28: `echo "host-machine"`). This shim prevented the storm in the bats
 suite **only**. The direct-run test (line 117-163) overrides the shim with
@@ -69,7 +69,7 @@ script must be robust regardless of invocation context.
 ### Cause Chain (Linear)
 
 ```
-commit 49d587a (DIA-142): add `make test-shell` to verify-pre-push.sh
+commit 49d587a (DIA-161): add `make test-shell` to verify-pre-push.sh
   -> verify-pre-push.sh runs in container (hostname=poetry-dev)
     -> line 88: run_workspace "make test-shell"
       -> make test-shell -> bats-wrapper.sh -> bats -> verify-pre-push.bats
@@ -77,7 +77,7 @@ commit 49d587a (DIA-142): add `make test-shell` to verify-pre-push.sh
           -> hostname=poetry-dev -> line 88 again -> infinite recursion
 ```
 
-**Regression commit:** `49d587a` (DIA-142, "feat(hooks): wire test-shell/test-config
+**Regression commit:** `49d587a` (DIA-161, "feat(hooks): wire test-shell/test-config
 into pre-push..."). Only commit with "make test-shell" in the script. Ticket
 status: OPEN (reviewed, polish applied per handoff).
 
@@ -225,7 +225,7 @@ unrelated processes.
 ```
 
 ```diff
- # Host-runnable gates FIRST (DIA-142, ana014 C2/C3): the bats suite
+ # Host-runnable gates FIRST (DIA-161, ana014 C2/C3): the bats suite
  # (make test-shell, 100+ tests) and the OpenCode config validators
  # (make test-config: agent-name drift, JSONC, skill frontmatter) are the only
  # automated safety net for shell dev-infra and the opencode config surface.
@@ -233,7 +233,7 @@ unrelated processes.
  # fast. Delegated via run_workspace like every other step (the audit's own
  # example): the container ships make, bats is vendored on the shared
  # /workspace mount, and the pre-push contract (warn+pass when the container
- # is down, DIA-94) is preserved. Hosts without make never reach these lines
+ # is down, DIA-094) is preserved. Hosts without make never reach these lines
  # because they cannot have started the stack (make is the documented entrypoint).
 +export VERIFY_PRE_PUSH_RUNNING=1
  run_workspace "make test-shell"
@@ -283,7 +283,7 @@ other test.
 
 ### Current State
 
-- **Test-side shim (commit bb18099, DIA-71):** `setup()` fakes hostname to
+- **Test-side shim (commit bb18099, DIA-071):** `setup()` fakes hostname to
   "host-machine" so tests exercise the host+container-running delegation path.
   Test #6 overrides with hostname=poetry-dev and uses fake make/pnpm.
 - **Script-side guard (proposed, ana015):** `VERIFY_PRE_PUSH_RUNNING` env flag
@@ -402,8 +402,8 @@ pre-commit hook is unaffected.
       skipping)" and exit 0 on the nested invocation)
 5. [ ] Run `git push` to verify the pre-push hook works end-to-end
 6. [ ] Update CHANGELOG.md with ana015 reference
-7. [ ] Update DIA-142 ticket status to CLOSED (or create a follow-up ticket if
-      DIA-142 is already closed)
+7. [ ] Update DIA-161 ticket status to CLOSED (or create a follow-up ticket if
+      DIA-161 is already closed)
 
 ---
 
@@ -423,9 +423,9 @@ pre-commit hook is unaffected.
 ## 10. Conclusion
 
 The recursion fork-bomb in `scripts/verify-pre-push.sh` is a regression
-introduced by commit `49d587a` (DIA-142). The root cause is the absence of a
+introduced by commit `49d587a` (DIA-161). The root cause is the absence of a
 re-entrancy guard in the script itself. The test-side hostname shim (commit
-`bb18099`, DIA-71) prevents the storm within the bats suite but leaves
+`bb18099`, DIA-071) prevents the storm within the bats suite but leaves
 manual/husky invocations vulnerable.
 
 **Recommendation:** Add a minimal env-flag propagation guard

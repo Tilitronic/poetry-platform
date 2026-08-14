@@ -1,11 +1,13 @@
-# DIA-117 - Fix agent-instruction audit findings: HANDOFF.md refs, missing AGENTS.md section 10, boss_append.md duplicate
+# DIA-160 - Fix agent-instruction audit findings: HANDOFF.md refs, missing AGENTS.md section 10, boss_append.md duplicate
+
+<!-- RENUMBERED 2026-08-14 (phase 1, remote lineage canonical, DIA-153): local DIA-117 collided with origin/omo-slim-changes ticket DIA-141-fix-agent-instruction-findings.md (different ticket). Renumbered to DIA-160. This ticket duplicates remote DIA-141-fix-agent-instruction-findings.md (same work, renumbered on the remote lineage via bab080c); SUPERSEDED by the remote ticket. -->
 
 <!-- Fix ticket (fix-lane): implements developer-approved findings from
-     ana016-agent-instruction-audit (DIA-114). Filed 2026-08-12, cod-lane. -->
+     ana016-agent-instruction-audit (DIA-157). Filed 2026-08-12, cod-lane. -->
 
 ---
 
-id: DIA-117
+id: DIA-160
 title: "Fix agent-instruction audit findings: HANDOFF.md refs, missing AGENTS.md section 10, boss_append.md duplicate"
 area: opencode-config
 severity: Major
@@ -97,7 +99,7 @@ Registered per AGENTS.md section 2.5 workflow step 7 (Register) + step 5 (Valida
   is staged in the working tree and will load on the next natural OpenCode restart.
   Restart-smoke is therefore satisfied-in-part: config-live evidence recorded,
   full-daemon-restart evidence pending next natural restart. Not fabricating a restart.
-- **Registration (step 7):** CHANGELOG entry added (2026-08-12, DIA-117);
+- **Registration (step 7):** CHANGELOG entry added (2026-08-12, DIA-160);
   learnings entry .opencode/learnings/external-patterns/2026-08-12-dia117-agent-instruction-fixes.md
   created with outcome field; ticket status OPEN -> VERIFIED (README index + counts updated).
 - **Status: VERIFIED.**

@@ -701,7 +701,7 @@ External-knowledge grounding fact caught by @ai-specialist against live DeepSeek
 3. DeepSeek reasoning_effort vocabulary: only low/high/xhigh/max (NO "medium"). Config values like variant: medium on DeepSeek lanes may be silently ignored/mapped - needs runtime-log verification.
 4. METHOD RULE (reinforces DIA-108): runtime model-resolution logs (~/.local/share/opencode/log/oh-my-opencode-slim.*.log) are authoritative for what a config knob actually does. Verify via logs BEFORE applying any model/temp/reasoning preset change; config-file reading + provider docs alone is insufficient.
 
-## L20260812-005 - gate-script re-entrancy guard (DIA-118 fork-bomb, 2026-08-12)
+## L20260812-005 - gate-script re-entrancy guard (DIA-161 fork-bomb, 2026-08-12)
 
 - **Lesson:** when a gate script can invoke the full test suite, guard against
   nested invocation with an env-flag that propagates through process spawns
@@ -720,16 +720,16 @@ External-knowledge grounding fact caught by @ai-specialist against live DeepSeek
   the direct-run test case still exercises the real path. Cross-reference:
   adr.md gate-script re-entrancy-guard ADR, knowledge/ana015-recursion-fork-bomb/.
 
-## L20260812-004 - hook-triggered suites must be verified hook-exact (DIA-123, 2026-08-12)
+## L20260812-004 - hook-triggered suites must be verified hook-exact (DIA-166, 2026-08-12)
 
 - **Lesson:** when a gate script exports an env flag before running the full
   test suite, verifying the suite STANDALONE is insufficient - the hook context
-  propagates the flag into every test. DIA-122's fix (commit 0760ef3) exported
+  propagates the flag into every test. DIA-165's fix (commit 0760ef3) exported
   VERIFY_PRE_PUSH_RUNNING=1 in scripts/verify-pre-push.sh before `make
   test-shell`; under the husky pre-push hook, ALL bats tests inherited the flag,
   so verify-pre-push.bats tests 183-187/189-191 (which invoke
   verify-pre-push.sh directly) hit the top-of-script guard (warning + exit 0),
-  failing 8 tests. DIA-122's standalone verification (`make test-shell`, no
+  failing 8 tests. DIA-165's standalone verification (`make test-shell`, no
   inherited flag) passed 211/211 and could not catch hook-context behavior.
 - **Why irrecoverable:** the hook context is an environment property (env flag
   inherited by child processes at hook time), not reproducible from a plain
@@ -742,12 +742,12 @@ External-knowledge grounding fact caught by @ai-specialist against live DeepSeek
   2. Test `setup()` should `unset` such inherited flags so each test exercises
      the script's public entry behavior (flag-free direct invocation).
   3. If a test must verify the guarded path, re-export the flag INSIDE the test
-     body after setup (DIA-123 added exactly this: a test that re-exports the
+     body after setup (DIA-166 added exactly this: a test that re-exports the
      flag and asserts warning + exit 0 + no docker invocation).
-  Cross-reference: adr.md gate-script re-entrancy-guard ADR, DIA-123 ticket,
+  Cross-reference: adr.md gate-script re-entrancy-guard ADR, DIA-166 ticket,
   commit d6c6a64.
 
-## DIA-132 parallel coders batch D (first batch D run, 2026-08-13)
+## DIA-172 parallel coders batch D (first batch D run, 2026-08-13)
 
 - **LESSON-1: git worktree husky-shim gap.** Freshly created git worktrees have
   NO `.husky/_` directory (core.hooksPath=.husky/_ points to untracked runtime
@@ -755,7 +755,7 @@ External-knowledge grounding fact caught by @ai-specialist against live DeepSeek
   SILENTLY NEVER runs on worktree commits, so the DIA-094 docker gate is NOT
   enforced there. Do NOT rely on worktree pre-commit. Mitigations: manually run
   `bash scripts/verify-pre-commit.sh` after worktree commits, or re-init husky
-  inside each worktree. First surfaced during the DIA-132 first batch D run.
+  inside each worktree. First surfaced during the DIA-172 first batch D run.
 - **LESSON-2: batch D branch-model misread (duplicate-edit risk).** The coder in
   the feature/dia132-append worktree (base a310465, pre-T4.1) ALSO edited the 3
   preset NEVER clauses in oh-my-opencode-slim.jsonc - a duplicate of the
@@ -766,7 +766,7 @@ External-knowledge grounding fact caught by @ai-specialist against live DeepSeek
   sibling branches own other slices' changes; edit ONLY your assigned files".
 - **LESSON-3: DIA-063 ticket-gate token is mandatory in dispatch AND resume
   prompts.** Resume/re-dispatch prompts that omit the literal ticket ID get
-  BLOCKED by the ticket-gate scan. ALWAYS include the ticket ID (e.g. "DIA-132")
+  BLOCKED by the ticket-gate scan. ALWAYS include the ticket ID (e.g. "DIA-172")
   in dispatch AND resume prompts.
 - **LESSON-4: batch D parallel execution validated (first real use, 2026-08-13).**
   2 coders + 2 reviewers + ai-auditor ran in parallel on separate worktrees with
@@ -780,30 +780,30 @@ External-knowledge grounding fact caught by @ai-specialist against live DeepSeek
   Consider persisting architector designs (e.g., to the DIA ticket) so reviewers
   can verify verbatim sources.
 
-## DIA-134 batch D infra hardening (one-shot run, 2026-08-14)
+## DIA-174 batch D infra hardening (one-shot run, 2026-08-14)
 
-- **LESSON-1-UPDATE: worktree husky-shim gap now FIXED.** DIA-132 LESSON-1 is closed
-  by DIA-134 S1: worktrees.sh create now copies `.husky/_` from the main tree (fail-loud
+- **LESSON-1-UPDATE: worktree husky-shim gap now FIXED.** DIA-172 LESSON-1 is closed
+  by DIA-174 S1: worktrees.sh create now copies `.husky/_` from the main tree (fail-loud
   when absent), so NEW worktrees get pre-commit enforcement. Worktrees created BEFORE
   the fix still lack the shim - recreate them or copy `.husky/_` manually.
 - **LESSON: gitignored persistent suite pattern (DD2).** The behavioral suite
   (scripts/__tests__/batch-d-infra.test.mjs) is NOT carried by git/squash-merge because
   it is gitignored. After a fresh clone or a main-tree reset it must be re-materialized
-  by copying it from the slice worktree (documented in the Makefile comment + DIA-134
+  by copying it from the slice worktree (documented in the Makefile comment + DIA-174
   ticket Fix section). Absence fails `make test-config` loudly - by design, so a lost
   suite cannot pass silently.
-  - NOTE 2026-08-14 (DIA-136 F2): SUPERSEDED. The DD2 gitignore rationale did not
+  - NOTE 2026-08-14 (DIA-176 F2): SUPERSEDED. The DD2 gitignore rationale did not
     hold - the suite asserts committed files only (no session-local content), so a
     fresh clone hard-failed `make test-config`. The suite is now TRACKED (un-gitignored,
-    committed with DIA-136); regenerate it when the plugin/config invariants evolve.
+    committed with DIA-176); regenerate it when the plugin/config invariants evolve.
 - **LESSON: one-shot batch D run (2026-08-14).** 4 parallel coders (RED) -> the SAME
   4 sessions reused for GREEN -> the same sessions for the fix loop. Session reuse
   across phases avoided context reshuffling. Merge-gate evidence (docker compose ps)
   was recorded BEFORE merge dispatch per item 6 (R3).
   - NOTE 2026-08-14: the "same sessions reused for GREEN" practice above is now
-    SUPERSEDED by the DIA-135 strict instance-separation policy for RED/GREEN (test
+    SUPERSEDED by the DIA-175 strict instance-separation policy for RED/GREEN (test
     author never implements the slice it tested; role set by dispatch payload) - see
-    the DIA-135 coder prompt hygiene section below. The reuse wording above reflects
+    the DIA-175 coder prompt hygiene section below. The reuse wording above reflects
     OLD practice.
 - **LESSON: ADR ownership gap.** The spec ownership table missed
   .sdd/dev-infra/architecture.md (the DD1 ADR had no owner); caught by the S2 reviewer
@@ -811,7 +811,7 @@ External-knowledge grounding fact caught by @ai-specialist against live DeepSeek
   Lesson: every spec must assign a file owner for EVERY artifact it mandates (including
   ADR recordings), not just code slices.
 
-## DIA-135 coder prompt hygiene (2026-08-14)
+## DIA-175 coder prompt hygiene (2026-08-14)
 
 Merged 9922f9a (feat) + 6e62af1 (close-out), ticket DONE. Direct opencode-config
 change (ticket-ledger, NO OpenSpec change). Policies codified here are not fully
@@ -822,8 +822,8 @@ orchestrator dispatches.
   and GREEN implementation for the same slice MUST be dispatched to DIFFERENT coder
   instances; the test-author NEVER implements the slice it tested. The role (test
   author vs implementer) is set by the DISPATCH PAYLOAD, not inferred. This SUPERSEDES
-  the DIA-134 practice note "same sessions reused for GREEN" (see the supersession
-  note in the DIA-134 section above). Future runs MUST follow the new separation.
+  the DIA-174 practice note "same sessions reused for GREEN" (see the supersession
+  note in the DIA-174 section above). Future runs MUST follow the new separation.
 - **Same-session fixes rule (Q2).** Fix loops MUST resume the code-writing coder
   session by its task_id/session_id (exact-instance resume per the exact-instance
   lesson above) - NEVER a fresh instance. Same-session reuse is now reserved for the
@@ -834,13 +834,13 @@ orchestrator dispatches.
   Reason: /tmp is an external dir in opencode.jsonc so writes there trigger a
   permission prompt; /tmp is NOT pre-approved. .scratch/ avoids the prompt and keeps
   temp artifacts inside the workspace.
-- **Husky-shim live proof.** Fresh worktrees created from the DIA-134 S1 fix carry
-  .husky/_ as a real dir; the pre-commit hook RAN on DIA-135 worktree commits
+- **Husky-shim live proof.** Fresh worktrees created from the DIA-174 S1 fix carry
+  .husky/_ as a real dir; the pre-commit hook RAN on DIA-175 worktree commits
   (00aae0e, b00101f). DIA-094 pre-commit enforcement now holds for worktrees created
-  after the S1 merge. This is the first live confirmation that the DIA-134 S1 shim
+  after the S1 merge. This is the first live confirmation that the DIA-174 S1 shim
   fix works end-to-end (not just the bats test).
 
-## DIA-136 deep-review of 2-day window (2026-08-14)
+## DIA-176 deep-review of 2-day window (2026-08-14)
 
 - **Phantom cross-reference verification (L1).** Multiple agents (code-navigator,
   architector, reviewer) independently flagged live workflow files citing
@@ -871,7 +871,7 @@ orchestrator dispatches.
   dist per the dual-runtime lesson) or when a 4th preset forces the issue. Why
   recorded: the skip reason is an accepted-risk decision, not visible in the diff.
 
-## DIA-137 worktree branch cleanup - post-squash-merge teardown is an OPERATIONAL step (2026-08-14)
+## DIA-177 worktree branch cleanup - post-squash-merge teardown is an OPERATIONAL step (2026-08-14)
 
 The trigger was a developer complaint that leftover worktree branches never
 disappear after squash-merges. The eventual fix (scripts/worktrees.sh `cleanup`,
@@ -880,7 +880,7 @@ lesson, not a diff fact:
 - worktree-conventions.md Cleanup policy always kept the branch after teardown
   (rollback window); only the worktree DIR was removed.
 - The post-merge "Teardown" dispatch step was NEVER actually executed after the
-  DIA-132/DIA-134 parallel-coder batches - even worktrees were not removed, so
+  DIA-172/DIA-174 parallel-coder batches - even worktrees were not removed, so
   branches accumulated silently.
 - A squash-merge does NOT mark the branch as merged (it is not an ancestor of
   main), so `git branch -d` refuses and only `git branch -D` works - which is
@@ -893,19 +893,19 @@ immediately after a successful merge (default window 0). The script, not the
 permission config, is the DIA-096 policy boundary (lanes still cannot run
 `git branch -D`). The code/spec show the mechanism; they do not record that the
   prior teardown step had been silently skipped, which is the behavior that must
-  not regress. Cross-reference: adr.md git-worktrees ADR, failures.md DIA-137
+  not regress. Cross-reference: adr.md git-worktrees ADR, failures.md DIA-177
   crashed-dispatch entry, spec openspec/changes/worktree-branch-cleanup/.
 
-## DIA-139 full test-suite audit - batch D at 5 slices (2026-08-14)
+## DIA-179 full test-suite audit - batch D at 5 slices (2026-08-14)
 
 The six F1-F7 fixes merged via 5 serialized squash-merges (SHAs in git, not
 recorded here). Irrecoverable process lessons:
 
-- **LESSON: batch D at 5 parallel slices + strict instance separation (DIA-135)
-  WORKED end-to-end.** This run scaled the batch D model from DIA-134's 4 coders
+- **LESSON: batch D at 5 parallel slices + strict instance separation (DIA-175)
+  WORKED end-to-end.** This run scaled the batch D model from DIA-174's 4 coders
   to 5 RED test-author instances + 5 GREEN implementer instances, with same-session
   fix loops and same-session re-reviews throughout, and recorded ZERO cross-slice
-  file-ownership violations. The process outcome (that the DIA-135 separation and
+  file-ownership violations. The process outcome (that the DIA-175 separation and
   the WORKTREE disjoint-file-set model hold up at 5 concurrent lanes) is a human
   process observation not recoverable from the merged diffs. This validates the
   model for future batch-D runs up to at least 5 slices.
@@ -918,11 +918,11 @@ recorded here). Irrecoverable process lessons:
   name a shared tracked test file (because each slice appends to it), the slice
   seams are NOT actually disjoint and the spec MUST either assign that file to one
   slice or declare the anticipated conflict + a merge ORDER (merge B before C) up
-  front. Cross-reference: adr.md DIA-139 test-seam-declaration ADR.
+  front. Cross-reference: adr.md DIA-179 test-seam-declaration ADR.
 - **LESSON: shell files invoked by lint-staged MUST be committed executable
   (100755).** Slice D's bats-wrapper.sh was committed as 100644 but lint-staged's
   `*.sh` entry execs it, so the first pre-commit after merge hit EACCES until the
-  file was re-committed 100755 in the merge commit. Same class of bug as DIA-118
+  file was re-committed 100755 in the merge commit. Same class of bug as DIA-161
   (worktrees.sh). Rule: any .sh a hook/lint-staged step EXECUTES (not just sources)
   must be tracked 100755; a 100644 tracked-but-invoked script fails at runtime, not
   at git add. The mode-change line is in git; the lint-staged-executes-it rule is

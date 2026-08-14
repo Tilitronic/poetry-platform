@@ -3,10 +3,10 @@
 > **Status:** drafted
 > **Scope:** dev-infra (scripts, Makefile, turbo.json, lint-staged, hook
 > scripts, Python conftest.py). Six independent findings from the ana021
-> full test-suite audit (DIA-139), plus two clean findings noted as
+> full test-suite audit (DIA-179), plus two clean findings noted as
 > out-of-scope context.
-> **Ticket:** `docs/dev-infra-audit/tickets/DIA-139-full-test-suite-audit.md`
-> **Source of substance:** `knowledge/ana021-test-suite-audit/ana021-test-suite-audit-report.md` (DIA-139 audit report, 451 lines).
+> **Ticket:** `docs/dev-infra-audit/tickets/DIA-179-full-test-suite-audit.md`
+> **Source of substance:** `knowledge/ana021-test-suite-audit/ana021-test-suite-audit-report.md` (DIA-179 audit report, 451 lines).
 > **Governing SDD:** `.sdd/dev-infra/architecture.md` (parallel dev model,
 > branch conventions, worktree husky-shim ADR 9, batch-D suite ADR 10).
 > **Routing:** AGENTS.md section 2.4 (dev-infra). `@coder` implements;
@@ -22,7 +22,7 @@
 
 ## Why
 
-The ana021 audit (DIA-139, 2026-08-14) measured the test surface (409
+The ana021 audit (DIA-179, 2026-08-14) measured the test surface (409
 tests, 8 runners) and found six actionable inefficiencies that slow every
 developer cycle: the pre-push gate runs its slowest step first (24.6 s
 before the first format failure surfaces, instead of 1.2 s), turbo's
@@ -96,7 +96,7 @@ become tasks in this change:
   leave as-is until a real store lands.
 - **F-10 [Info] Python import-only smoke tests** -- honest seam-markers,
   leave in place until real JWT/analytics logic lands.
-- **F-11 [Clean] No tautological tests** -- DIA-124/125 cleanup
+- **F-11 [Clean] No tautological tests** -- DIA-167/168 cleanup
   verified.
 - **F-12 [Clean] No fake verification** -- grep checks across all test
   files: zero empty asserts, zero always-pass mocks.
@@ -156,7 +156,7 @@ after the change, plus targeted assertions on the new behavior:
 - **F-1 ordering:** a bats test that sources verify-pre-push.sh's step
   list and asserts test-shell is last. Alternatively, a grep-based
   assertion in batch-d-infra.test.mjs on the ordering in the committed
-  file (per the existing batch-D pattern from DIA-134 S2).
+  file (per the existing batch-D pattern from DIA-174 S2).
 - **F-2 turbo default:** a node-native assertion in
   batch-d-infra.test.mjs that parses turbo.json and verifies the base
   `test` task has `dependsOn: []`.
@@ -182,14 +182,14 @@ package test bootstrap.
 
 **Prior art in the codebase:**
 
-- `scripts/__tests__/test-helper.bash` (448 lines, DIA-125 consolidated
+- `scripts/__tests__/test-helper.bash` (448 lines, DIA-168 consolidated
   helper) -- F-6's new `scripts/guards/home-qualt.sh` follows the same
   small-helper pattern.
-- `scripts/__tests__/batch-d-infra.test.mjs` (DIA-134 S2) -- grep-based
+- `scripts/__tests__/batch-d-infra.test.mjs` (DIA-174 S2) -- grep-based
   committed-file assertions for dev-infra invariants. F-1/F-2/F-3 can
   add cases here using the existing pattern.
 - `apps/api-server/tests/test_auth.py` +
-  `packages/analytics-pipeline/tests/test_smoke.py` (DIA-124 import
+  `packages/analytics-pipeline/tests/test_smoke.py` (DIA-167 import
   smokes) -- F-7 verification piggy-backs on these.
 
 ## Rollback Plan

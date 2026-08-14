@@ -7,7 +7,7 @@
 #   3. The openspec-propose skill leads with interview-first language.
 #   4. /tdd-cycle routes through @openspec-plan, not the skill directly.
 #   5. The boss fast-path opt-in gate exists in orchestrator_append.md (the live
-#      prompt file; boss_append.md was deleted as a dead duplicate - DIA-117).
+#      prompt file; boss_append.md was deleted as a dead duplicate - DIA-160).
 # Run from the repo root: bash scripts/test-interview-enforcement.sh
 set -euo pipefail
 

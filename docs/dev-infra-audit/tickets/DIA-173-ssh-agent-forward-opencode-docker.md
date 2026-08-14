@@ -1,4 +1,6 @@
-# DIA-133 - Forward host SSH agent socket into opencode-docker so git push works from the container (SSH agent forwarding)
+# DIA-173 - Forward host SSH agent socket into opencode-docker so git push works from the container (SSH agent forwarding)
+
+<!-- RENUMBERED 2026-08-14 (phase 1, remote lineage canonical, DIA-153): local DIA-133 collided with origin/omo-slim-changes ticket DIA-133-dispatch-routing-benchmark-pricing.md (different ticket). Renumbered to DIA-173. -->
 
 <!-- Docs-lane ticket (no implementation in this dispatch). Research recipe
      (2026-08-13, two researcher lanes, 20+ sources) produced the exact fix
@@ -6,7 +8,7 @@
 
 ---
 
-id: DIA-133
+id: DIA-173
 title: "Forward host SSH agent socket into opencode-docker so git push works from the container (SSH agent forwarding)"
 area: docker
 severity: Major
@@ -27,7 +29,7 @@ model: ""
 parent_session_id: ""
 attempts: 0
 lease_expires_at: ""
-files_touched: [docs/dev-infra-audit/tickets/DIA-133-ssh-agent-forward-opencode-docker.md, docs/dev-infra-audit/tickets/README.md]
+files_touched: [docs/dev-infra-audit/tickets/DIA-173-ssh-agent-forward-opencode-docker.md, docs/dev-infra-audit/tickets/README.md]
 artifacts: []
 evidence: []
 
@@ -40,7 +42,7 @@ the container. Today the container has no SSH agent access, so any push that
 needs SSH auth (private GitHub repos, the repo's SSH remotes) fails.
 
 The wrapper (`tools/opencode-docker/bin/opencode-docker`) already runs with
-`--userns=keep-id` and `--security-opt label=disable` (DIA-121), which satisfy
+`--userns=keep-id` and `--security-opt label=disable` (DIA-164), which satisfy
 the two blockers for socket forwarding on Fedora + SELinux:
 
 1. unix-socket permissions (host uid 1000 -> container uid 1000 via keep-id);
@@ -59,9 +61,9 @@ Research (2026-08-13, two researcher lanes, 20+ sources) confirmed the recipe:
 Only opencode-docker needs this: poetry-dev's delegated gates (make
 test-shell/test-config via `docker compose exec`) need no git auth.
 
-Security profile is identical to the already-accepted DIA-121 docker-socket
+Security profile is identical to the already-accepted DIA-164 docker-socket
 risk (a host socket forwarded into the container; the container already holds
-host container-management rights via the DIA-121 docker.sock mount).
+host container-management rights via the DIA-164 docker.sock mount).
 
 ## Verification
 

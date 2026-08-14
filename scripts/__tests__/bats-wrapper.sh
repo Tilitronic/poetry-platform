@@ -13,7 +13,7 @@
 # Also runs `bash -n` over every shell artifact so syntax errors surface before
 # the test suite (cheap, and bats errors are less readable than bash -n's).
 #
-# --quick mode (DIA-139 F-4): a fast tier for shell-edit iteration - the bats
+# --quick mode (DIA-179 F-4): a fast tier for shell-edit iteration - the bats
 # monolith (240 tests in one pass, ~25 s floor) has no quick subset, so every
 # `.sh` edit paid the full cost. `bats-wrapper.sh --quick` runs two tiers and
 # exits 0 only if BOTH pass:
@@ -33,7 +33,7 @@
 #   a suite file - e.g. a typo'd suite name), it prints a one-line stderr
 #   notice naming the curated suites, so the fallback is visible instead of
 #   silently running a different set than the caller asked for (review
-#   FALSIFICATION-1/3, DIA-139 fix loop 1). Default mode (no --quick) is
+#   FALSIFICATION-1/3, DIA-179 fix loop 1). Default mode (no --quick) is
 #   unchanged: it runs the full suite.
 set -euo pipefail
 
@@ -50,7 +50,7 @@ VENDOR_DIR="$TESTS_DIR/vendor/bats-core"
 # constant on every run so future drift is detected.
 BATS_VENDOR_VERSION="1.14.0"
 
-# --- Parse the --quick flag (DIA-139 F-4) ------------------------------------
+# --- Parse the --quick flag (DIA-179 F-4) ------------------------------------
 # Parsed before anything runs so the syntax tier and suite tier below can
 # branch on it. Remaining positional args (after the flag) are suite
 # basenames per design.md DD4; see the --quick suite tier for how they are
@@ -82,7 +82,7 @@ fi
 # (.bats files use bats' @test preprocessor syntax and are NOT valid bash —
 # bats itself reports syntax errors in them.)
 #
-# Auto-discovered (DIA-125): every *.sh under scripts/ and .opencode/scripts/,
+# Auto-discovered (DIA-168): every *.sh under scripts/ and .opencode/scripts/,
 # plus dev-entrypoint.sh (repo root) and the three extension-less artifacts
 # scripts/session-log, scripts/__tests__/test-helper.bash, and scripts/tickets
 # (the DIA ledger CLI). New shell scripts get syntax-checked for free — no
@@ -158,7 +158,7 @@ if [ "$QUICK" = "1" ]; then
     # appends the staged *.sh paths to the command line; a typo'd suite name
     # lands here too). Fall through to the curated default so a staged shell
     # edit still gets the fast tier. The stderr notice names the curated
-    # suites so the fallback is not silent (review FALSIFICATION-1/3, DIA-139
+    # suites so the fallback is not silent (review FALSIFICATION-1/3, DIA-179
     # fix loop 1).
     echo "note: --quick: no suite args resolved; using curated default (check-host-jq, check-host-lsp, validate-skills)" >&2
     quick_files=(

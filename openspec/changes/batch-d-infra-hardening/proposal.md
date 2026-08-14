@@ -1,13 +1,13 @@
 # Proposal: batch-d-infra-hardening
 
 > **Status:** drafted
-> **Scope:** dev-infra (6 independent retrospective hardening items from DIA-132)
-> **Ticket:** `docs/dev-infra-audit/tickets/DIA-134-batch-d-infra-hardening.md`
-> **Predecessor change:** `openspec/changes/batch-d-parallel-coders/` (DIA-132 implementation)
+> **Scope:** dev-infra (6 independent retrospective hardening items from DIA-172)
+> **Ticket:** `docs/dev-infra-audit/tickets/DIA-174-batch-d-infra-hardening.md`
+> **Predecessor change:** `openspec/changes/batch-d-parallel-coders/` (DIA-172 implementation)
 > **Governing SDDs:**
 >
 > - `.sdd/dev-infra/architecture.md` (worktree lifecycle, parallel-dev model)
-> - `.sdd/opencode-config/architecture.md` (batch D ADRs -- now merged by DIA-132)
+> - `.sdd/opencode-config/architecture.md` (batch D ADRs -- now merged by DIA-172)
 >   **Routing:** AGENTS.md section 2.4 (dev-infra) for items 1-2 (scripts/, Makefile);
 >   section 2.5 (opencode config) for items 3-6 (coder/orchestrator/AGENTS.md
 >   directive text). `@coder` implements; `make test-config` + `make test-shell`
@@ -19,7 +19,7 @@
 
 ## Why
 
-DIA-132 (parallel coders, batch D) shipped 2026-08-14 and exposed 6 friction
+DIA-172 (parallel coders, batch D) shipped 2026-08-14 and exposed 6 friction
 points during its own execution: silent hook bypass in worktrees (DIA-094 not
 enforced on worktree commits), throwaway tests that vanished across sessions
 (same-test contract broken), a coder that edited sibling-branch-owned files
@@ -28,7 +28,7 @@ gate (missing literal ticket-ID token), an architector design that lived only
 in the orchestrator session (false-positive FALSIFICATION-1 review cycle), and
 a merge phase attempted against a DOWN container. These are independent,
 self-contained hardening items. Fixing them in one change (parallelizable
-across 4 slices) closes the DIA-132 retrospective loop without waiting for
+across 4 slices) closes the DIA-172 retrospective loop without waiting for
 6 separate tickets.
 
 ## What Changes
@@ -42,7 +42,7 @@ is never copied into fresh worktrees, and DIA-094 is silently bypassed.
 
 ### Item 2: Persistent behavioral test suite for plugin/config tests (slice S2)
 
-Replace the DIA-132 `/tmp/opencode/batch-d-tests/` throwaway suite with a
+Replace the DIA-172 `/tmp/opencode/batch-d-tests/` throwaway suite with a
 persistent, gitignored suite at `scripts/__tests__/batch-d-infra.test.mjs`
 (node native, no new deps). Wire it into `make test-config` so RED/GREEN/
 merge-verify always re-run the SAME files.
@@ -51,20 +51,20 @@ merge-verify always re-run the SAME files.
 
 Extend the `coder_append.md` worktree-confinement bullet with an explicit
 branch model: "worktree base = <shared sha>; sibling branches own other
-slices' files; edit ONLY your assigned files." Prevents the DIA-132 revert
+slices' files; edit ONLY your assigned files." Prevents the DIA-172 revert
 (af6e019) from recurring.
 
 ### Item 4: Ticket-ID token in dispatch/resume prompts (slice S4)
 
 Codify in AGENTS.md section 2.3 (and in `orchestrator_append.md`) that every
 dispatch AND resume prompt MUST contain the literal ticket ID. Resolves the
-DIA-063 ticket-gate friction that blocked two DIA-132 agent resumes.
+DIA-063 ticket-gate friction that blocked two DIA-172 agent resumes.
 
 ### Item 5: Architector design persistence (slice S4)
 
 Orchestrator persists the architector design text into the DIA ticket (or a
 `.sdd` draft) BEFORE implementation dispatch, so reviewers can verify
-"verbatim" ADR transcription claims. Eliminates the DIA-132 FALSIFICATION-1
+"verbatim" ADR transcription claims. Eliminates the DIA-172 FALSIFICATION-1
 false positive.
 
 ### Item 6: Merge-gate container evidence (slice S4)
@@ -72,7 +72,7 @@ false positive.
 Merge phase may only start with recorded `docker compose ps` evidence showing
 the dev service running (commit the gate output into the merge report); the
 session log MUST record container state before merge dispatch. Eliminates the
-DIA-132 double-attempt-against-down-container failure mode.
+DIA-172 double-attempt-against-down-container failure mode.
 
 ## Capabilities
 
@@ -103,7 +103,7 @@ None. No spec-level behavior changes.
 | ------------------------------------------------------------ | -------------------------------------------------------------------------------- |
 | `scripts/worktrees.sh`                                       | S1: `create` materializes `.husky/_` shim in the new worktree                    |
 | `scripts/__tests__/worktrees.bats`                           | S1: add T17+ cases covering worktree-hook-shim behavior                          |
-| `scripts/__tests__/batch-d-infra.test.mjs` (NEW, gitignored) | S2: persistent behavioral test suite for DIA-132-era plugin/config assertions    |
+| `scripts/__tests__/batch-d-infra.test.mjs` (NEW, gitignored) | S2: persistent behavioral test suite for DIA-172-era plugin/config assertions    |
 | `Makefile`                                                   | S2: `test-config` target runs the new .test.mjs suite                            |
 | `.gitignore` (optional)                                      | S2: ignore `scripts/__tests__/batch-d-infra.test.mjs` if needed (decision below) |
 | `.opencode/oh-my-opencode-slim/coder_append.md`              | S3: extend worktree-confinement bullet with branch-ownership model               |
@@ -117,9 +117,9 @@ None. No spec-level behavior changes.
   fires on worktree commits.
 - **`make test-config` host gate:** picks up the new .test.mjs suite. No
   container required (host-runnable). Same RED/GREEN/merge-verify contract
-  that DIA-132 intended but could not persist across sessions.
+  that DIA-172 intended but could not persist across sessions.
 - **Coder dispatch payloads:** every batch D dispatch now names the owned
-  files explicitly (no more sibling-branch collisions like DIA-132 af6e019).
+  files explicitly (no more sibling-branch collisions like DIA-172 af6e019).
 - **Orchestrator dispatch/resume contract:** every prompt carries the ticket
   ID; architector design text is persisted into the DIA ticket before
   implementation; merge dispatch requires recorded container evidence.
@@ -130,7 +130,7 @@ None. No spec-level behavior changes.
   files touched.
 - **`architecture.md` (root):** no system architecture changes.
 - **`.sdd/opencode-config/architecture.md`:** ADR 1 / ADR 2 (batch D) remain
-  as merged by DIA-132; this change does not alter them. (A new ADR for S1's
+  as merged by DIA-172; this change does not alter them. (A new ADR for S1's
   shim approach is ADR-worthy; see design.md decision DD1.)
 - **Docker/CI pipeline:** no container or CI changes.
 - **`scripts/verify-pre-commit.sh`:** unchanged -- it is the consumer, not
@@ -183,7 +183,7 @@ logic. A good test is one that:
 | Module                                                  | What is tested                                                                | Test type                                                  |
 | ------------------------------------------------------- | ----------------------------------------------------------------------------- | ---------------------------------------------------------- |
 | `scripts/worktrees.sh` (husky shim)                     | `create` materializes `.husky/_`; a commit in the worktree runs the hook      | `scripts/__tests__/worktrees.bats` T17+ cases (host, bats) |
-| `scripts/__tests__/batch-d-infra.test.mjs` (S2's suite) | Persistent behavioral assertions for DIA-132-era plugin/config invariants     | node native `.test.mjs`, wired into `make test-config`     |
+| `scripts/__tests__/batch-d-infra.test.mjs` (S2's suite) | Persistent behavioral assertions for DIA-172-era plugin/config invariants     | node native `.test.mjs`, wired into `make test-config`     |
 | `.opencode/oh-my-opencode-slim/coder_append.md` (S3)    | worktree-confinement bullet carries branch-ownership wording                  | grep-based AC check (via S2's suite or separate grep)      |
 | `.opencode/oh-my-opencode-slim/orchestrator_append.md`  | S4 rules present: ticket-ID token, architector design persistence, merge-gate | grep-based AC check (via S2's suite or separate grep)      |
 | `AGENTS.md` (S4 codification)                           | same 3 rules codified in section 2.3 / 2.3.1                                  | grep-based AC check                                        |
@@ -196,7 +196,7 @@ logic. A good test is one that:
 - Lockstep grep across S3/S4 directive texts: all required phrases present
   in the right files.
 - End-to-end: create a fresh worktree via `scripts/worktrees.sh create
-feature/DIA-134-test`, make a trivial commit, confirm pre-commit runs
+feature/DIA-174-test`, make a trivial commit, confirm pre-commit runs
   (visible output, hard-fails when container is down per DIA-094).
 
 ### Prior art in the codebase
@@ -204,7 +204,7 @@ feature/DIA-134-test`, make a trivial commit, confirm pre-commit runs
 - **`scripts/__tests__/worktrees.bats`** T1-T16 (DIA-100): established the
   fixture-repo pattern (fresh `git init` inside `$BATS_TEST_TMPDIR`, copy
   the script in). T17+ follows the same pattern, adds husky-shim assertions.
-- **Throwaway DIA-132 tests under `/tmp/opencode/batch-d-tests/`:** the
+- **Throwaway DIA-172 tests under `/tmp/opencode/batch-d-tests/`:** the
   prior-art behavioral assertions the S2 suite preserves (plugin
   classification outcomes, config invariants). S2 converts them to a
   persistent, gitignored file.
@@ -225,7 +225,7 @@ the main tree, the create step fails and tells the operator to run
 should be gitignored. **Mitigation:** `.gitignore` entry added explicitly;
 the file is named so the gitignore pattern matches it. The test file is
 gitignored because its assertions are session-local reconstructions of the
-DIA-132 throwaway tests; once the plugin/config invariants they assert are
+DIA-172 throwaway tests; once the plugin/config invariants they assert are
 encoded as grep-based checks in other validators, the suite can be
 un-gitignored. (Decision DT2 in design.md.)
 
@@ -243,7 +243,7 @@ the presence of the key phrases, so drift fails `make test-config`.
   change's unit tests. The directive text is asserted by grep; the
   orchestrator's runtime compliance with the new rules is a workflow
   concern.
-- **Plugin behavioral assertions beyond what DIA-132's throwaway suite
+- **Plugin behavioral assertions beyond what DIA-172's throwaway suite
   already covered.** S2 preserves the existing assertions; it does not add
   new plugin test cases.
 
@@ -264,7 +264,7 @@ the presence of the key phrases, so drift fails `make test-config`.
 
 2. **Q: Should the S2 behavioral test file be git-tracked or gitignored?**
    Recommended answer: gitIGNORED (under `scripts/__tests__/`). Rationale:
-   the file is a session-local reconstruction of DIA-132's throwaway tests;
+   the file is a session-local reconstruction of DIA-172's throwaway tests;
    once the invariants it asserts are encoded as grep-based checks in other
    validators (S3/S4), the suite's per-session content may vary. Gitignoring
    it prevents accidental commit of stale assertions. If the developer wants
@@ -279,5 +279,5 @@ the presence of the key phrases, so drift fails `make test-config`.
    carry the ticket ID (the gate stays intact, resumes just always have the
    token). Rationale: relaxing the gate risks losing the ticket-traceability
    invariant that DIA-063 established; ensuring the token is present is the
-   minimal fix that addresses the DIA-132 friction without weakening the
+   minimal fix that addresses the DIA-172 friction without weakening the
    gate. (Decision DT3 in design.md.)

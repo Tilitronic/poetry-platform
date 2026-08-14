@@ -144,7 +144,7 @@ bin/opencode-docker
 3. `systemctl --user daemon-reload && systemctl --user restart ssh-agent` - WARNING: the restart clears all loaded keys, so write the Drop-in FIRST.
 4. `ssh-add -c ~/.ssh/id_ed25519` - loads the key with the confirmation constraint. Verify with `ssh-add -L` (`ssh-add -l` does not show the confirm state).
 
-Notes: `SSH_ASKPASS`/`SSH_ASKPASS_REQUIRE` are read from the agent's OWN environment (the Drop-in), not from any shell config or file. The confirmation constraint lives on the key record inside the host agent, so it works through the DIA-133 forwarded socket with no container-side change. Recommended combo: `ssh-add -c -t 8h` (confirmation + 8h expiry). YubiKey: hardware touch OR `-c`, not both.
+Notes: `SSH_ASKPASS`/`SSH_ASKPASS_REQUIRE` are read from the agent's OWN environment (the Drop-in), not from any shell config or file. The confirmation constraint lives on the key record inside the host agent, so it works through the DIA-173 forwarded socket with no container-side change. Recommended combo: `ssh-add -c -t 8h` (confirmation + 8h expiry). YubiKey: hardware touch OR `-c`, not both.
 
 Note: `poetry-dev` does NOT need SSH agent forwarding (its delegated gates are make/pnpm only).
 

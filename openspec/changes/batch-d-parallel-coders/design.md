@@ -1,8 +1,8 @@
 # Design: batch-d-parallel-coders
 
 > **Proposal:** `openspec/changes/batch-d-parallel-coders/proposal.md`
-> **Ticket:** `docs/dev-infra-audit/tickets/DIA-132-parallel-coders-batch-d-expansion.md`
-> **Predecessor tickets:** DIA-116 (analysis), DIA-119/DIA-120 (BATCH-DISPATCH + plugin A1, commits 0697a08 + 7b08e90)
+> **Ticket:** `docs/dev-infra-audit/tickets/DIA-172-parallel-coders-batch-d-expansion.md`
+> **Predecessor tickets:** DIA-159 (analysis), DIA-162/DIA-163 (BATCH-DISPATCH + plugin A1, commits 0697a08 + 7b08e90)
 > **Architector design:** approved 2026-08-13 (verbatim in ticket file).
 > **Developer operational requirements (authoritative):** one worktree per coder; one worktree per task; per-worktree reviewer on committed fixed points; orchestrator owns worktree naming + serialized squash-merges; plan presented to developer before implementation starts.
 > **Scope:** opencode-config only -- no system architecture decisions, no application-code changes, no section 10 architectural escalation required.
@@ -13,10 +13,10 @@
 
 ## Context
 
-See proposal.md for motivation. The DIA-119/DIA-120 implementation locked three conflict-free batch patterns (A read-only, B single-writer, C reviewer pair) and established a 5-surface lockstep invariant (plugin READ_ONLY_LANES + 3 preset BATCH-DISPATCH rule texts + orchestrator_append A1 section must agree). This change extends the invariant along two axes:
+See proposal.md for motivation. The DIA-162/DIA-163 implementation locked three conflict-free batch patterns (A read-only, B single-writer, C reviewer pair) and established a 5-surface lockstep invariant (plugin READ_ONLY_LANES + 3 preset BATCH-DISPATCH rule texts + orchestrator_append A1 section must agree). This change extends the invariant along two axes:
 
 1. **Batch D (parallel coders):** a new pattern gated by a `WORKTREE: <path>` assertion in the dispatch payload, validated by the plugin as distinct paths (Set size == coder count).
-2. **Quick-fixes (F1-F5):** five concrete drift closures surfaced by the DIA-132 pre-work review.
+2. **Quick-fixes (F1-F5):** five concrete drift closures surfaced by the DIA-172 pre-work review.
 
 The plugin's current signature (`isSafeTaskBatch(agents: string[]): boolean`) is not sufficient -- batch D needs to see the worktree assertion per coder. The signature change is internal (one caller at line 807) and backward-compatible at the call site (call site constructs the array; we extend it in place).
 
@@ -25,7 +25,7 @@ The plugin's current signature (`isSafeTaskBatch(agents: string[]): boolean`) is
 **Goals:**
 
 - Enable the orchestrator to dispatch multiple `@coder` lanes in a single turn, gated by explicit worktree assertions, without triggering A1 false warnings.
-- Close five concrete invariant drifts (F1-F5) surfaced by the DIA-132 review.
+- Close five concrete invariant drifts (F1-F5) surfaced by the DIA-172 review.
 - Preserve the 5-surface lockstep invariant: any future change to batch A/B/C/D wording must touch all surfaces (plugin + 3 presets + orchestrator_append A1).
 - Encode the developer's operational contract (one worktree per coder, per-worktree reviewer, serialized squash-merges, orchestrator-managed naming) as explicit text in orchestrator_append.md A6 item 6 and coder inline instructions.
 - Author the `.sdd/opencode-config/architecture.md` ADRs that govern future batch-pattern changes.
@@ -89,7 +89,7 @@ The plugin's current signature (`isSafeTaskBatch(agents: string[]): boolean`) is
 
 **Decision:** add `"architector"` to the `READ_ONLY_LANES` Set (line 271-277). Mirror in the 3 preset BATCH-DISPATCH rule texts (lines 26/207/429 of oh-my-opencode-slim.jsonc) and the A1 section of orchestrator_append.md (~156-167).
 
-**Rationale:** the architector is already read-only by config (edit/bash/task deny per opencode.jsonc lines 215-222, confirmed by DIA-132 pre-work). Adding it to READ_ONLY_LANES makes the plugin classification match the config reality. Mirror in the 5 lockstep surfaces preserves the DIA-119 invariant.
+**Rationale:** the architector is already read-only by config (edit/bash/task deny per opencode.jsonc lines 215-222, confirmed by DIA-172 pre-work). Adding it to READ_ONLY_LANES makes the plugin classification match the config reality. Mirror in the 5 lockstep surfaces preserves the DIA-162 invariant.
 
 **Alternatives considered:** none -- this is a direct correction of an omission.
 
@@ -100,7 +100,7 @@ The plugin's current signature (`isSafeTaskBatch(agents: string[]): boolean`) is
 - `.opencode/opencode.jsonc`: remove `".opencode/memory-shelf.yaml": "allow"` from the analyzer-escalated edit block (~line 257); fix adjacent comment (~244-245) to reflect the corrected invariant.
 - `.opencode/agents/analyzer-escalated.md` (~lines 41-42): replace the self-registration instruction with "do NOT write .opencode/memory-shelf.yaml; report artifact paths (memory-manager registers)".
 
-**Rationale:** DIA-119 established memory-manager as the sole writer of memory-shelf.yaml. The analyzer-escalated edit block still grants it write access, creating a direct contradiction. The agent markdown instructs self-registration, creating a behavioral contradiction. Both must be closed.
+**Rationale:** DIA-162 established memory-manager as the sole writer of memory-shelf.yaml. The analyzer-escalated edit block still grants it write access, creating a direct contradiction. The agent markdown instructs self-registration, creating a behavioral contradiction. Both must be closed.
 
 ### D7: F2 -- strict read-only for code-navigator and observer
 
@@ -112,7 +112,7 @@ The plugin's current signature (`isSafeTaskBatch(agents: string[]): boolean`) is
 
 **Decision:** `.opencode/agents/conspecter.md` line 18 and ~lines 82-83: edit allow list = `knowledge/*` only. Remove any mention of memory-shelf.yaml. The conspecter writes to `knowledge/*`; shelf registration is delegated to memory-manager.
 
-**Rationale:** the conspecter's documented edit allow list still mentions memory-shelf.yaml, contradicting DIA-119. The drift is small and localized; closing it aligns the agent markdown with the sole-writer invariant.
+**Rationale:** the conspecter's documented edit allow list still mentions memory-shelf.yaml, contradicting DIA-162. The drift is small and localized; closing it aligns the agent markdown with the sole-writer invariant.
 
 ### D9: Prompt text (3 presets) -- extend BATCH-DISPATCH RULE
 
@@ -120,7 +120,7 @@ The plugin's current signature (`isSafeTaskBatch(agents: string[]): boolean`) is
 
 > "BATCH-DISPATCH RULE: task() calls MAY share a message ONLY when all dispatched lanes are in the same conflict-free batch. Approved batches: (A) read-only fan-out: researcher/ai-specialist/ai-auditor/code-navigator/observer/architector in any combination; (B) single-writer + readers: one of [analyzer, conspecter, memory-manager] plus any read-only lanes; (C) post-fix review: reviewer + ai-auditor on a committed fixed point; (D) parallel coders: multiple @coder lanes ONLY IF each uses a separate git worktree and the dispatch payload asserts WORKTREE: <path> per coder, with disjoint file sets (plus any read-only lanes). NEVER batch: two analyzers, coder+reviewer (reviewer needs fixed point), or any pair that both write memory-shelf.yaml. When in doubt, serialize."
 
-**Rationale:** the 3 presets must agree verbatim (DIA-119 lockstep invariant). The text preserves existing A/B/C wording (no regression in lockstep grep patterns) and adds D as an additional approved pattern. The "When in doubt, serialize" tail is a safety valve.
+**Rationale:** the 3 presets must agree verbatim (DIA-162 lockstep invariant). The text preserves existing A/B/C wording (no regression in lockstep grep patterns) and adds D as an additional approved pattern. The "When in doubt, serialize" tail is a safety valve.
 
 **Alternatives considered:**
 
@@ -149,7 +149,7 @@ Plus the standard verification-evidence duty (already documented in AGENTS.md se
 
 **Decision:** create a new `.sdd/opencode-config/architecture.md` file with two ADRs transcribed verbatim from the architector design:
 
-- **ADR 1 "Batch Pattern D (Parallel Coders)":** Status Accepted; Context: parallel implementation throughput without git conflicts (DIA-132); Decision: parallel @coder dispatches gated by strict `WORKTREE: <path>` payload assertion; Consequences: orchestrator manages worktree lifecycles + serialized squash-merges; Alternatives: parallelizing without worktrees (rejected: git index locks + file contention).
+- **ADR 1 "Batch Pattern D (Parallel Coders)":** Status Accepted; Context: parallel implementation throughput without git conflicts (DIA-172); Decision: parallel @coder dispatches gated by strict `WORKTREE: <path>` payload assertion; Consequences: orchestrator manages worktree lifecycles + serialized squash-merges; Alternatives: parallelizing without worktrees (rejected: git index locks + file contention).
 - **ADR 2 "Singleton-Batch Semantic Exemption":** Status Accepted; Context: single task() + semantic tools (log_decision) incorrectly flagged; Decision: classification safe if exactly one task() call; Consequences: no false-positive A1 warnings; Alternatives: separate turn for log_decision (rejected: context waste).
 
 **Rationale:** the project's design authority layer (`architecture.md` + `.sdd/`) should capture these decisions as long-lived ADRs, not just as change-specific artifacts. The opencode-config module did not have an `.sdd/` document; this change creates it with the two ADRs that govern future batch-pattern changes.
@@ -245,7 +245,7 @@ The following operational contract is encoded in orchestrator_append.md A6 item 
 ### New seams vs. existing seams
 
 - **Plugin classification** -- **existing seam extended**. The `isSafeTaskBatch` function already exists; this change extends its signature and adds predicate D. The test surface is extended in place.
-- **Lockstep 5-surface grep** -- **existing seam extended**. The DIA-119 lockstep invariant is extended to include batch D wording + architector.
+- **Lockstep 5-surface grep** -- **existing seam extended**. The DIA-162 lockstep invariant is extended to include batch D wording + architector.
 - **Config schema + agent markdown invariants** -- **existing seams**, newly-validated invariants (F1/F2/F3).
 - **`.sdd/opencode-config/architecture.md`** -- **new seam** (new file). Justified: the opencode-config module lacked an SDD document; this change authors it with the two ADRs that govern future batch-pattern changes.
 
@@ -253,7 +253,7 @@ The following operational contract is encoded in orchestrator_append.md A6 item 
 
 - **[Risk: regex fragility]** The `WORKTREE: <path>` regex may not tolerate whitespace or quoting variations in the task payload. -> **Mitigation:** the regex `/WORKTREE:\s*(\S+)/i` is permissive on whitespace between `WORKTREE:` and the path; the path is captured as a single non-whitespace token. The orchestrator contract specifies the exact marker format; drift is a contract violation, not a regex bug.
 - **[Risk: call-site signature change breaks other callers]** The `isSafeTaskBatch` signature change could break other callers. -> **Mitigation:** grep-verified single caller at line 807. No other callers exist. The change is localized.
-- **[Risk: lockstep drift between 5 surfaces]** Future edits to the batch rule text could update some surfaces but not others. -> **Mitigation:** the existing DIA-119 lockstep grep pattern is preserved and extended (not replaced). The new grep pattern matches "parallel coders" or "WORKTREE: <path>" across all 5 surfaces.
+- **[Risk: lockstep drift between 5 surfaces]** Future edits to the batch rule text could update some surfaces but not others. -> **Mitigation:** the existing DIA-162 lockstep grep pattern is preserved and extended (not replaced). The new grep pattern matches "parallel coders" or "WORKTREE: <path>" across all 5 surfaces.
 - **[Risk: batch D false positives from malformed worktree assertions]** If the orchestrator forgets the `WORKTREE:` marker, batch D fails and A1 warns. -> **Mitigation:** fail-loud is the correct behavior. The orchestrator must prove the invariant via the marker; silent fallback would mask bugs.
 - **[Risk: serialized squash-merge becomes a throughput bottleneck]** If many parallel coders finish concurrently, serialized merges serialize the integration. -> **Mitigation:** accepted trade-off. Parallel merges risk conflict cascades that are worse than sequential merge latency. The developer's operational contract explicitly mandates serialization.
 - **[Trade-off: skip the `.sdd/` document]** The ADRs could live only in the change artifacts (proposal+design) instead of being promoted to `.sdd/`. -> **Resolution:** rejected. ADRs that govern future batch-pattern changes must outlive this change. `.sdd/opencode-config/architecture.md` is the long-lived home.

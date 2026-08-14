@@ -40,7 +40,7 @@ This change stays within the existing dev-infra module boundary. It replicates t
 - **`~/.config/opencode/skills/worktrees/SKILL.md`** -- the skill defines the orchestration protocol; this change implements the project-specific mechanics. The skill is referenced, not duplicated.
 - **`opencode.jsonc` / `oh-my-opencode-slim.jsonc` / `.opencode/agents/*.md` / `.opencode/skills/*/SKILL.md`** -- not touched. Section 10 routing is N/A.
 - **`.sdd/`** -- no new document authored (gap flagged in proposal, drafted content provided in spec report for manual creation).
-- **`docs/dev-infra-audit/tickets/README.md`** -- deferred (carries uncommitted DIA-115 edits from another lane).
+- **`docs/dev-infra-audit/tickets/README.md`** -- deferred (carries uncommitted DIA-158 edits from another lane).
 - **`DIA-100` ticket** -- already updated (status OPEN -> FIXED, Fix section populated, verification evidence added) by commits `a387f72`, `44865c3`, `8cd270d`. Not modified by this spec.
 
 ## Data flow

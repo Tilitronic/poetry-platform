@@ -2,7 +2,7 @@
 
 > **Proposal:** `openspec/changes/test-suite-audit-fixes/proposal.md`
 > **Design:** `openspec/changes/test-suite-audit-fixes/design.md`
-> **Ticket:** `docs/dev-infra-audit/tickets/DIA-139-full-test-suite-audit.md`
+> **Ticket:** `docs/dev-infra-audit/tickets/DIA-179-full-test-suite-audit.md`
 > **Source of substance:** `knowledge/ana021-test-suite-audit/ana021-test-suite-audit-report.md`
 > **Implementation commits:** none yet (spec phase).
 > **Routing:** AGENTS.md section 2.4 (dev-infra). `@coder` implements;
@@ -15,7 +15,7 @@ test-python` validate; `@reviewer` reviews dev-infra slices.
 > **DIA-094 Docker gate:** implementation work AND commits MUST NOT
 > proceed without a running docker dev container.
 > **DIA-063 Ticket gate:** no implementation work starts without the
-> DIA-139 ticket.
+> DIA-179 ticket.
 > **Disjoint-ownership contract:** every file in the change has exactly
 > one owning slice. See Ownership table in design.md.
 
@@ -149,7 +149,7 @@ verify:python`, (6) `make test-shell` LAST. Update the header
     grep-based assertion in `scripts/__tests__/batch-d-infra.test.mjs`
     that parses `turbo.json` and asserts the base `test` task has
     `dependsOn: []` (or no `dependsOn` key), matching the existing
-    batch-D pattern from DIA-134 S2.
+    batch-D pattern from DIA-174 S2.
   - **Acceptance criteria:**
     - The base `test` task in `turbo.json` has `dependsOn: []` (or no
       `dependsOn` key).
@@ -206,7 +206,7 @@ verify:python`, (6) `make test-shell` LAST. Update the header
 bash scripts/test-docker-smoke.sh` -> `test-python` -> `docker
 compose down`. Add a comment above the recipe documenting the
     single-rebuild optimization: `# Single rebuild: smoke test leaves
-    # the stack up for test-python (F-3, DIA-139).`
+    # the stack up for test-python (F-3, DIA-179).`
   - **Acceptance criteria:**
     - `make test-infra` runs `docker compose up -d --build` exactly
       once (inside the smoke test), not twice.

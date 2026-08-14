@@ -16,7 +16,7 @@
 #                            convention (feature/<ticket>-<short-name>),
 #                            refuses already-existing branches, verifies
 #                            .opencode/session/ isolation in the new worktree,
-#                            and materializes the .husky/_ shim (DIA-134 S1).
+#                            and materializes the .husky/_ shim (DIA-174 S1).
 #   remove <branch|path>     remove a worktree. The branch is KEPT for the
 #                            rollback window (cleanup after the window is a
 #                            developer action — git branch -d/-D is denied
@@ -24,7 +24,7 @@
 #                            worktrees unless --force.
 #   cleanup [--days N] [--dry-run]
 #                            delete merged feature/* branches whose rollback
-#                            window elapsed (DIA-137). Merge-verified against
+#                            window elapsed (DIA-177). Merge-verified against
 #                            main (is-ancestor fast path, tree-subset check
 #                            for squash parity); dirty linked worktrees are
 #                            ALWAYS skipped; the default window is 0 days
@@ -38,7 +38,7 @@
 #                            it) because forced removal maps to DIA-096 denied
 #                            destructive ops (git clean -f* / branch -D); see
 #                            docs/dev-infra-audit/worktree-conventions.md.
-#   cleanup: --days N        age window in days. Precedence (DIA-137 D6):
+#   cleanup: --days N        age window in days. Precedence (DIA-177 D6):
 #                            --days flag > WORKTREES_CLEANUP_DAYS env var >
 #                            default 0. Non-integer --days is a usage error.
 #   cleanup: --dry-run       list would-be-deleted candidates only; zero
@@ -180,7 +180,7 @@ worktree_branch_at() {
 }
 
 # worktree_path_for_branch <branch>: echo the linked-worktree path of
-# <branch>, or nothing when the branch has no linked worktree (DIA-137).
+# <branch>, or nothing when the branch has no linked worktree (DIA-177).
 # Returns 0 in both cases (empty output = no worktree); returns 1 ONLY when
 # `git worktree list` itself fails — the caller treats that as a candidate
 # error (D4 fail-safe), never as "no worktree", so a failed lookup can never
@@ -262,7 +262,7 @@ cmd_create() {
   echo "-> creating worktree for '$branch' at '$path' (base: $base)"
   git worktree add -b "$branch" "$path" "$base"
 
-  # DIA-134 S1 (DD1): husky shim materialization. `git worktree add` does NOT
+  # DIA-174 S1 (DD1): husky shim materialization. `git worktree add` does NOT
   # deliver .husky/_ (the husky v9 scaffolding dir is git-ignored; only the
   # tracked .husky/pre-commit + .husky/pre-push hooks come over), so a fresh
   # worktree would silently bypass the pre-commit hook (DIA-094). Copy the
@@ -365,7 +365,7 @@ cmd_list() {
 }
 
 # ---------------------------------------------------------------------------
-# cleanup (DIA-137): post-merge teardown that deletes merged feature/*
+# cleanup (DIA-177): post-merge teardown that deletes merged feature/*
 # branches. Two-pass classify-then-act scan, local git state only.
 #
 # Globals (set by cmd_cleanup before the candidate loop):

@@ -1,14 +1,14 @@
-# DIA-132 batch D parallel coders - worktree-gated parallel @coder dispatch, F1-F7 closures, merge pending (2026-08-13)
+# DIA-172 batch D parallel coders - worktree-gated parallel @coder dispatch, F1-F7 closures, merge pending (2026-08-13)
 
 - **Date:** 2026-08-13
-- **Source:** DIA-132 ticket (Medium, opencode-config, developer-request follow-up to DIA-116/DIA-119/DIA-120); OpenSpec change 'batch-d-parallel-coders' (proposal/design/tasks.md) implemented on 5 feature branches (prompts/plugin/drift/docs/append); this AGENTS.md section 2.5 close-out registration lane (docs lane).
+- **Source:** DIA-172 ticket (Medium, opencode-config, developer-request follow-up to DIA-159/DIA-162/DIA-163); OpenSpec change 'batch-d-parallel-coders' (proposal/design/tasks.md) implemented on 5 feature branches (prompts/plugin/drift/docs/append); this AGENTS.md section 2.5 close-out registration lane (docs lane).
 - **Status:** IMPLEMENTED + REVIEWED + AUDIT-APPROVED (F1-F7 closed); MERGE PENDING - serialized squash-merges deferred (DIA-094: docker container down, no --no-verify).
 - **Outcome:** BATCH-DISPATCH rule extended with batch D (parallel coders on separate git worktrees gated by WORKTREE: payload assertions); architector added to batch A (5 lockstep surfaces); F1-F5 config-drift fixes (analyzer-escalated sole-writer closure, code-navigator/observer bash deny, conspecter doc alignment, F4 singleton-batch A1 exemption); .sdd/opencode-config/architecture.md with 2 Accepted ADRs; coder worktree-confinement directive; A6 item 6 (per-worktree fixed-point reviews + serialized squash-merges). Implemented on 5 feature branches, each in its own worktree; merge pending.
 
 ## Ticket
 
-- **DIA-132** (Medium, opencode-config, OPEN) - "Parallel coders (batch D) + read-only batch expansion - DIA-116 follow-up review and design".
-- **Related:** DIA-116 (task-parallelization analysis, parent), DIA-119 (BATCH-DISPATCH rule), DIA-120 (batch-aware A1 plugin), DIA-100 (git worktrees), DIA-094 (docker gate).
+- **DIA-172** (Medium, opencode-config, OPEN) - "Parallel coders (batch D) + read-only batch expansion - DIA-159 follow-up review and design".
+- **Related:** DIA-159 (task-parallelization analysis, parent), DIA-162 (BATCH-DISPATCH rule), DIA-163 (batch-aware A1 plugin), DIA-100 (git worktrees), DIA-094 (docker gate).
 
 ## Design: batch D (implemented 2026-08-13, 5 feature branches)
 
@@ -22,7 +22,7 @@
 
 ## Config drift closures (F1-F5)
 
-- **F1 (analyzer-escalated sole-writer closure):** opencode.jsonc analyzer-escalated edit block = knowledge/* only (".opencode/memory-shelf.yaml": "allow" removed per the DIA-119 sole-writer invariant) + adjacent comment fixed; analyzer-escalated.md self-registration instruction replaced with Do-Not-Register (report artifact paths in the return message; @memory-manager registers).
+- **F1 (analyzer-escalated sole-writer closure):** opencode.jsonc analyzer-escalated edit block = knowledge/* only (".opencode/memory-shelf.yaml": "allow" removed per the DIA-162 sole-writer invariant) + adjacent comment fixed; analyzer-escalated.md self-registration instruction replaced with Do-Not-Register (report artifact paths in the return message; @memory-manager registers).
 - **F2 (strict read-only):** bash:deny added to code-navigator + observer permission blocks (opencode.jsonc) - they were classified read-only but write-capable via the inherited global bash allow.
 - **F3 (conspecter doc drift):** conspecter.md edit allow list = knowledge/* only (shelf registration delegated to @memory-manager), matching the actual opencode.jsonc block.
 - **F4 (singleton-batch semantics):** A1 fires only when the turn holds MORE than one task() call - a single task() alongside semantic tools (log_decision) is a lone delegation, not a parallel batch (eliminates false positives).
@@ -37,7 +37,7 @@
 
 ## Outcome
 
-- Implemented + reviewed + audit-approved (F1-F7 closed) per AGENTS.md section 2.5: 5 feature branches (feature/dia132-prompts, -plugin, -drift, -docs, -append), each in its own worktree, MERGE PENDING. Ticket DIA-132 stays OPEN until the serialized squash-merges + post-merge test-config complete (recorded honestly - no fabricated merge or restart evidence).
+- Implemented + reviewed + audit-approved (F1-F7 closed) per AGENTS.md section 2.5: 5 feature branches (feature/dia132-prompts, -plugin, -drift, -docs, -append), each in its own worktree, MERGE PENDING. Ticket DIA-172 stays OPEN until the serialized squash-merges + post-merge test-config complete (recorded honestly - no fabricated merge or restart evidence).
 - The batch D machinery was exercised by this change itself: 5 coders ran in parallel, one per worktree, with per-worktree reviews and the serialized merge step pending.
 
 ## Reusable lesson
@@ -48,4 +48,4 @@
 
 ## Tags
 
-DIA-132, DIA-116, DIA-119, DIA-120, DIA-100, DIA-094, batch-d, parallel-coders, worktree, WORKTREE-assertion, delegation-observer, isSafeTaskBatch, READ_ONLY_LANES, architector, F1-F7, sole-writer, bash-deny, singleton-batch, openspec, .sdd, ADR, serialized-squash-merge, per-worktree-review, husky-shim, ticket-token, config-fix-workflow
+DIA-172, DIA-159, DIA-162, DIA-163, DIA-100, DIA-094, batch-d, parallel-coders, worktree, WORKTREE-assertion, delegation-observer, isSafeTaskBatch, READ_ONLY_LANES, architector, F1-F7, sole-writer, bash-deny, singleton-batch, openspec, .sdd, ADR, serialized-squash-merge, per-worktree-review, husky-shim, ticket-token, config-fix-workflow

@@ -50,7 +50,7 @@ The script wraps real `git worktree` commands with safety guards:
 
 ### Out of scope (by ruling, Q1)
 
-- **`docs/dev-infra-audit/tickets/README.md` row + rollup** -- the file carries uncommitted DIA-115 edits from another lane; not committed per no-other-lane-files rule.
+- **`docs/dev-infra-audit/tickets/README.md` row + rollup** -- the file carries uncommitted DIA-158 edits from another lane; not committed per no-other-lane-files rule.
 - **Verification items (a)-(e)** -- require active worktree lane adoption (orchestrator-dispatched creation, safe-push from worktree, reviewer-in-worktree, squash-merge, post-merge cleanup). Item (f) (session isolation) is verified by the throwaway-worktree trace and bats T1.
 - **DIA-085 / ana011 parallel-session protocol** -- claim/heartbeat/resume protocol for 2+ parallel orchestrator sessions. Designed but not yet implemented; orthogonal to the lifecycle CLI.
 - **`.slim/worktrees.json` state file** -- the global skill prescribes it; the project has not adopted it. Orthogonal to the CLI.

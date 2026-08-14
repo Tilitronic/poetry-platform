@@ -1,7 +1,7 @@
 # Design: test-suite-audit-fixes
 
 > **Proposal:** `openspec/changes/test-suite-audit-fixes/proposal.md`
-> **Ticket:** `docs/dev-infra-audit/tickets/DIA-139-full-test-suite-audit.md`
+> **Ticket:** `docs/dev-infra-audit/tickets/DIA-179-full-test-suite-audit.md`
 > **Source of substance:** `knowledge/ana021-test-suite-audit/ana021-test-suite-audit-report.md`
 > **Scope:** dev-infra. Six fix findings (F-1, F-2, F-3, F-4, F-6, F-7)
 > from the ana021 audit, grouped into 5 disjoint slices (A, B, C, D, F;
@@ -70,7 +70,7 @@ conflict risk; merging eliminates the collision.
 **Rationale:** the alternative (two slices with line-range ownership)
 relies on git's ability to merge non-overlapping regions of the same
 file, which is not guaranteed and has failed in prior batch-D changes
-(revert commit af6e019, DIA-132). Merging is the safer choice and the
+(revert commit af6e019, DIA-172). Merging is the safer choice and the
 combined slice is still one-context-window sized (estimated 45-60 min).
 
 **Alternatives considered:** keep F-1 and F-6 in separate slices with
@@ -202,11 +202,11 @@ existing; no new seams introduced):
   for --quick mode; F-6 replaces the inline guard tests with a single
   test that sources the shared helper.
 - **scripts/**tests**/batch-d-infra.test.mjs** -- the node-native
-  grep-based committed-file assertion seam (DIA-134 S2 pattern). F-1,
+  grep-based committed-file assertion seam (DIA-174 S2 pattern). F-1,
   F-2, F-3 can add cases here for ordering / turbo default / rebuild
   count invariants.
 - **apps/api-server/tests/test_auth.py + packages/analytics-pipeline/tests/test_smoke.py** --
-  the Python import-smoke seam (DIA-124). F-7 verification piggy-backs
+  the Python import-smoke seam (DIA-167). F-7 verification piggy-backs
   on these: if `make test-python` passes after conftest.py deletion,
   the pythonpath config works.
 

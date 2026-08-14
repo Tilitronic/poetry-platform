@@ -1,15 +1,17 @@
-# DIA-135 - Coder prompt hygiene: instance separation, same-session fixes, scratch-dir permissions (DIA-134 follow-up)
+# DIA-175 - Coder prompt hygiene: instance separation, same-session fixes, scratch-dir permissions (DIA-174 follow-up)
+
+<!-- RENUMBERED 2026-08-14 (phase 1, remote lineage canonical, DIA-153): local DIA-135 collided with origin/omo-slim-changes ticket DIA-135-research-pipeline-optimization-order-corruption-double-source-fetch-binary-persistence-decision.md (different ticket). Renumbered to DIA-175. -->
 
 ---
 
-id: DIA-135
-title: "Coder prompt hygiene: instance separation, same-session fixes, scratch-dir permissions (DIA-134 follow-up)"
+id: DIA-175
+title: "Coder prompt hygiene: instance separation, same-session fixes, scratch-dir permissions (DIA-174 follow-up)"
 area: opencode-config
 severity: Medium
 status: DONE
 blocked_by: [] # DIA-NNN refs, or empty
 discovered: 2026-08-14
-source: Developer questions after DIA-134 one-shot run (2026-08-14)
+source: Developer questions after DIA-174 one-shot run (2026-08-14)
 date: 2026-08-14
 created: 2026-08-14
 updated: 2026-08-14
@@ -23,7 +25,7 @@ model: "opencode-go/deepseek-v4-flash"
 parent_session_id: "ses_00327cd6effet7lPBAkPxJ0M3U"
 attempts: 0
 lease_expires_at: ""
-files_touched: [docs/dev-infra-audit/tickets/DIA-135-coder-prompt-hygiene-scratch-dir.md, docs/dev-infra-audit/tickets/README.md]
+files_touched: [docs/dev-infra-audit/tickets/DIA-175-coder-prompt-hygiene-scratch-dir.md, docs/dev-infra-audit/tickets/README.md]
 artifacts: []
 evidence: []
 
@@ -31,7 +33,7 @@ evidence: []
 
 ## Description
 
-Developer questions surfaced after the DIA-134 one-shot run (2026-08-14)
+Developer questions surfaced after the DIA-174 one-shot run (2026-08-14)
 about how the coder lane is prompted: whether tests and implementation must
 run in separate coder instances, whether fix-loop dispatches must resume the
 originating session, and why coders repeatedly hit /tmp permission prompts.
@@ -70,7 +72,7 @@ not spawn a fresh instance".
 
 ### 3. Scratch-dir permissions (the trigger)
 
-**Problem:** during DIA-134, coders repeatedly received permission requests
+**Problem:** during DIA-174, coders repeatedly received permission requests
 when creating temp files under /tmp. opencode.jsonc coder permissions re
 /tmp are not configured to allow it, so every temp write prompts.
 
@@ -90,7 +92,7 @@ any permission prompt (functional smoke); .gitignore covers it.
 
 ## Scope
 
-Three coder-prompt-hygiene items from the DIA-134 retrospective questions
+Three coder-prompt-hygiene items from the DIA-174 retrospective questions
 (see Description sections 1-3): instance-separation policy, same-session
 fix-loop resume rule, and scratch-dir permissions (/tmp prompt elimination).
 Dominant area recorded as opencode-config.
@@ -105,7 +107,7 @@ Self-check evidence for this ticket's own creation:
   artifacts/evidence).
 - All 5 body sections present: Description / Scope / Verification / Fix /
   Re-verify.
-- README index row added after the DIA-134 row.
+- README index row added after the DIA-174 row.
 - README summary counts updated: OPEN 30->31, Medium 44->45; all other
   counts unchanged.
 
@@ -115,16 +117,16 @@ For the 3 scope items: see each item's own verification under Description.
 
 Implemented 2026-08-14 on branch feature/dia135-rules (base c7c8d59, commits
 00aae0e + b00101f), squash-merged into omo-slim-changes as 9922f9a
-('feat(config): DIA-135 coder prompt hygiene - instance separation,
+('feat(config): DIA-175 coder prompt hygiene - instance separation,
 same-session fixes, scratch dir'). Diff vs base = 5 files, 18 insertions,
 3 deletions.
 
 ### 1. Instance separation for TESTS vs CODE - DONE
 
-Strict separation policy codified (policy CHANGE: supersedes the DIA-134
+Strict separation policy codified (policy CHANGE: supersedes the DIA-174
 same-session GREEN reuse practice):
 
-- AGENTS.md section 2.3 (new bullet): "Instance separation (DIA-135): RED
+- AGENTS.md section 2.3 (new bullet): "Instance separation (DIA-175): RED
   test-writing and GREEN implementation for the same slice MUST be dispatched
   to DIFFERENT coder instances; the test-author never implements the slice it
   tested."
@@ -140,7 +142,7 @@ same-session GREEN reuse practice):
 
 ### 2. Same-session fixes - DONE
 
-- AGENTS.md section 2.3.1 (new bullet): "Same-session fixes (DIA-135):
+- AGENTS.md section 2.3.1 (new bullet): "Same-session fixes (DIA-175):
   fix-loop dispatches MUST resume the SAME coder session that wrote the code
   (resume by task_id/session_id per A2), never a fresh instance - fixes need
   the implementer's context."
@@ -151,7 +153,7 @@ same-session GREEN reuse practice):
 ### 3. Scratch-dir permissions - DONE
 
 - .gitignore: `.scratch/` added (workspace-internal, gitignored).
-- coder_append.md new bullet: "Scratch artifacts (DIA-135): create
+- coder_append.md new bullet: "Scratch artifacts (DIA-175): create
   scratch/temp artifacts under .scratch/ (gitignored, workspace-internal),
   never under /tmp (external-dir writes prompt for permission)." Chosen fix
   variant (b) - workspace-internal scratch dir as primary; no /tmp/opencode

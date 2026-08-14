@@ -1,8 +1,8 @@
 # Design: batch-d-infra-hardening
 
 > **Proposal:** `openspec/changes/batch-d-infra-hardening/proposal.md`
-> **Ticket:** `docs/dev-infra-audit/tickets/DIA-134-batch-d-infra-hardening.md`
-> **Predecessor change:** `openspec/changes/batch-d-parallel-coders/` (DIA-132)
+> **Ticket:** `docs/dev-infra-audit/tickets/DIA-174-batch-d-infra-hardening.md`
+> **Predecessor change:** `openspec/changes/batch-d-parallel-coders/` (DIA-172)
 > **Scope:** dev-infra + opencode-config. Six independent hardening items
 > grouped into 4 disjoint slices (S1-S4), parallelizable across 4 coders
 > under batch D (each coder in its OWN git worktree per
@@ -20,7 +20,7 @@
 
 ## Context
 
-DIA-132 shipped and exposed 6 friction points. Each is self-contained;
+DIA-172 shipped and exposed 6 friction points. Each is self-contained;
 none requires an architectural escalation (the existing `.sdd/` documents
 cover the relevant module boundaries). The design below is file-by-file
 and slice-by-slice. For motivation, see proposal.md.
@@ -29,14 +29,14 @@ The 4 slices map to 4 disjoint file sets (see Ownership table at the end
 of this document). Each slice is independently demoable, independently
 revertable, and independently testable. S4 owns BOTH AGENTS.md and
 orchestrator_append.md -- no other slice touches either file, eliminating
-the DIA-132 af6e019-class collision.
+the DIA-172 af6e019-class collision.
 
 ## Goals / Non-Goals
 
 **Goals:**
 
 - Close the worktree husky-shim gap so DIA-094 fires on worktree commits.
-- Replace DIA-132's throwaway `/tmp/...` behavioral tests with a
+- Replace DIA-172's throwaway `/tmp/...` behavioral tests with a
   persistent, gitignored suite under `scripts/__tests__/`, wired into
   `make test-config`.
 - Codify the branch-ownership model in `coder_append.md` so future batch
@@ -53,7 +53,7 @@ the DIA-132 af6e019-class collision.
 - Do NOT change `scripts/verify-pre-commit.sh` (it is the consumer of the
   husky shim, not the producer).
 - Do NOT alter `.sdd/opencode-config/architecture.md` ADR 1 / ADR 2 (those
-  are already merged by DIA-132 and remain governing).
+  are already merged by DIA-172 and remain governing).
 - Do NOT implement orchestrator-side runtime enforcement of S4's rules
   (the directive text is the contract; enforcement is by adoption, not by
   plugin code in this change).
@@ -104,7 +104,7 @@ new ADR (ADR N "Worktree husky shim materialization (copy, not install)").
 is gitignored. A `.gitignore` entry (appended to the existing root
 `.gitignore` or placed at `scripts/__tests__/.gitignore`) excludes it.
 
-**Rationale:** the suite is a session-local reconstruction of DIA-132's
+**Rationale:** the suite is a session-local reconstruction of DIA-172's
 throwaway tests. The invariants it asserts (plugin classification
 outcomes, config grep checks) may evolve as other validators (S3/S4
 grep checks) are added. Gitignoring it prevents accidental commit of
@@ -117,9 +117,9 @@ un-gitignored and promoted to tracked status.
   are reconstructed per session; early versions will drift and the
   git history will accumulate churn.
 - **Keep the suite in `/tmp/`:** rejected because that is the very
-  problem DIA-132 exposed (throwaway tests vanish between sessions).
+  problem DIA-172 exposed (throwaway tests vanish between sessions).
 - **Use a different runtime (bats, pytest):** rejected because the
-  existing assertions are JavaScript (node) and the DIA-132
+  existing assertions are JavaScript (node) and the DIA-172
   throwaway suite was node. Re-using the runtime avoids a rewrite;
   no new deps needed.
 
@@ -132,7 +132,7 @@ fails `make test-config` loudly. The file is gitignored but must be
 created locally before running test-config. Documented in the test
 file's header comment.
 
-> **Amendment (DIA-136 F2, 2026-08-14):** DD2's gitignore decision is
+> **Amendment (DIA-176 F2, 2026-08-14):** DD2's gitignore decision is
 > SUPERSEDED. The suite was un-gitignored and committed: its assertions
 > target committed files only (no session-local content), so a fresh
 > clone failed `make test-config` by design once the file was absent —
@@ -150,7 +150,7 @@ carry the token, so the gate passes naturally.
 
 **Rationale:** relaxing the gate risks losing the ticket-traceability
 invariant that DIA-063 established. Ensuring the token is present is
-the minimal fix that addresses the DIA-132 friction (two resumes
+the minimal fix that addresses the DIA-172 friction (two resumes
 blocked) without weakening the gate.
 
 **Alternatives considered:**
@@ -175,7 +175,7 @@ explicitly marked "keep in sync with AGENTS.md §2.2/§2.3". Both must
 carry the rules for the lockstep invariant to hold.
 
 **Ownership:** S4 owns BOTH files; no other slice touches either file.
-This eliminates the DIA-132 af6e019-class collision (a slice editing
+This eliminates the DIA-172 af6e019-class collision (a slice editing
 a sibling-owned file).
 
 ### DD5: Test suite assertions (S2 -- scope lock)
@@ -190,7 +190,7 @@ of invariants (node native, no new deps):
 - **Structural checks:** `.sdd/dev-infra/architecture.md` contains
   the new DD1 ADR; `.sdd/opencode-config/architecture.md` ADR 1/2
   are intact.
-- **Behavioral reconstruction:** the DIA-132 throwaway assertions
+- **Behavioral reconstruction:** the DIA-172 throwaway assertions
   (plugin classification outcomes for representative batch shapes)
   are reconstructed as node-native test cases.
 
@@ -224,7 +224,7 @@ path is absent (no silent bypass -- see DD1).
 **Mitigation:** the assertions are narrow (grep checks on committed text
 
 - structural checks on committed files + behavioral reconstruction of
-  known DIA-132 assertions). Drift is caught by the assertions themselves
+  known DIA-172 assertions). Drift is caught by the assertions themselves
   when they fail.
 
 **Risk:** S4's AGENTS.md edits could conflict with other in-flight
@@ -269,7 +269,7 @@ uncertainty (DD1, DD2, DD3 above).
 | S2    | `scripts/__tests__/batch-d-infra.test.mjs` (NEW, gitignored); `Makefile` (test-config wiring); `.gitignore` (entry for S2 suite)                                                                 |
 | S3    | `.opencode/oh-my-opencode-slim/coder_append.md` (worktree-confinement bullet extension)                                                                                                          |
 | S4    | `.opencode/oh-my-opencode-slim/orchestrator_append.md` (three new rules); `AGENTS.md` (section 2.3 / 2.3.1 codification)                                                                         |
-| S5    | close-out: lockstep greps + full test-suite run + `validate-opencode-config.sh` + `validate-agent-names.sh` + DIA-134 README/CHANGELOG/learnings update (orchestrator-driven, not a coder slice) |
+| S5    | close-out: lockstep greps + full test-suite run + `validate-opencode-config.sh` + `validate-agent-names.sh` + DIA-174 README/CHANGELOG/learnings update (orchestrator-driven, not a coder slice) |
 
 **No overlaps.** S1 owns worktrees.sh + worktrees.bats; S2 owns the new
 .test.mjs + Makefile + .gitignore entry; S3 owns coder_append.md; S4

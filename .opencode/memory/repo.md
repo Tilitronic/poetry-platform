@@ -56,7 +56,7 @@ Note: These are navigational facts to help future humans find the infra/test art
   - Observation: the ticket file `docs/dev-infra-audit/tickets/DIA-063.md` exists but is not listed in the tickets README index/count. This ledger-index drift was noticed during the campaign and indicates a bookkeeping mismatch between ticket files and the canonical index.
   - Recommendation: reconcile the tickets README index with the tickets directory; prefer a scripted index regeneration in `scripts/` to avoid manual drift. Record this repo fact because ticket inventory and README sync state is not always reconstructible from git alone when working-tree edits are in-flight.
 
-- Gate-script layout (2026-08-12): the pre-push hook gate lives at `scripts/verify-pre-push.sh` and runs the full dev-infra gate suite (`make test-shell` + `make test-config` + pnpm gates). Its bats coverage is `scripts/__tests__/verify-pre-push.bats` (9 tests). Because the script invokes the full suite, it must carry a re-entrancy env-flag guard (VERIFY_PRE_PUSH_RUNNING) to prevent recursion when run inside the dev container — see the DIA-142 fork-bomb ADR in adr.md. Navigational pointer only; mechanics recoverable from the files.
+- Gate-script layout (2026-08-12): the pre-push hook gate lives at `scripts/verify-pre-push.sh` and runs the full dev-infra gate suite (`make test-shell` + `make test-config` + pnpm gates). Its bats coverage is `scripts/__tests__/verify-pre-push.bats` (9 tests). Because the script invokes the full suite, it must carry a re-entrancy env-flag guard (VERIFY_PRE_PUSH_RUNNING) to prevent recursion when run inside the dev container — see the DIA-161 fork-bomb ADR in adr.md. Navigational pointer only; mechanics recoverable from the files.
 
 - Git worktrees parallel-dev (DIA-100, 2026-08-12): the worktree lifecycle CLI
   lives at `scripts/worktrees.sh` (`create` / `remove` / `list`); bats coverage
@@ -78,7 +78,7 @@ Note: These are navigational facts to help future humans find the infra/test art
   tree, so future authors must know it is set. Cross-reference: lessons.md S18
   core.filemode=false chmod trap.
 
-- Bats hermetic-sandbox seeding pattern (DIA-119, 2026-08-12): bats cases in
+- Bats hermetic-sandbox seeding pattern (DIA-162, 2026-08-12): bats cases in
   `scripts/__tests__/verify-pre-push.bats` and `verify-pre-commit.bats` that fake
   pnpm/npx seed a sandbox `package.json` importer manifest (with the four
   `verify:*` scripts for pre-push) and a `node_modules/.bin/<cmd>` executable
@@ -146,13 +146,3 @@ Note: These are navigational facts to help future humans find the infra/test art
     DIA-067 is resolved/closed (recorded here; no ticket created this run). The
     webfetch-substitution path is a viable fallback but should not become the
     permanent research-archive mechanism.
-
-- Ticket-management CLI & coordination protocol (DIA-125, CLOSED 2026-08-13):
-  `scripts/tickets` provides `new` / `rollup [--check]` / `frontier` / `help`
-  for the DIA ledger under docs/dev-infra-audit/tickets/. The multi-device
-  claim/coordination convention (shared git remote, session_id +
-  lease_expires_at single-writer token, fetch-before-take) is documented in
-  docs/dev-infra-audit/tickets/COORDINATION.md. Bats coverage:
-  scripts/__tests__/tickets.bats (19 tests). Navigational pointer only; the
-  CLI behavior and protocol are recoverable from those tracked files and the
-  DIA-125 ticket.

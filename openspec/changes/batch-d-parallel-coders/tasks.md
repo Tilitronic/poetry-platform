@@ -2,8 +2,8 @@
 
 > **Proposal:** `openspec/changes/batch-d-parallel-coders/proposal.md`
 > **Design:** `openspec/changes/batch-d-parallel-coders/design.md`
-> **Ticket:** `docs/dev-infra-audit/tickets/DIA-132-parallel-coders-batch-d-expansion.md`
-> **Predecessor tickets:** DIA-119/DIA-120 (BATCH-DISPATCH + plugin A1, commits 0697a08 + 7b08e90)
+> **Ticket:** `docs/dev-infra-audit/tickets/DIA-172-parallel-coders-batch-d-expansion.md`
+> **Predecessor tickets:** DIA-162/DIA-163 (BATCH-DISPATCH + plugin A1, commits 0697a08 + 7b08e90)
 > **Implementation commits:** none yet (spec phase).
 > **Routing:** AGENTS.md section 2.5 (OpenCode Configuration Changes). `@coder` implements; `make test-config` validates; `@ai-auditor` independent review.
 > **Developer approval gate:** implementation MUST NOT start until the developer reviews and approves this plan (per the developer's operational requirement #6 for this change).
@@ -43,7 +43,7 @@ T2 (drift closures: F1/F2/F3) -> T4 (lockstep surface: preset texts + orchestrat
   - **Vertical slice:** create the new `.sdd/opencode-config/architecture.md` file with the two ADRs transcribed verbatim from the architector design (ADR 1 "Batch Pattern D (Parallel Coders)" + ADR 2 "Singleton-Batch Semantic Exemption", both Status Accepted). Update `.sdd/README.md` index table to include a row pointing to the new file with a one-line summary.
   - **Acceptance criteria:**
     - `.sdd/opencode-config/architecture.md` exists and contains two ADRs with Status Accepted.
-    - ADR 1 Context references DIA-132 and the parallel-throughput motivation.
+    - ADR 1 Context references DIA-172 and the parallel-throughput motivation.
     - ADR 2 Context references the singleton-batch false-positive motivation.
     - `.sdd/README.md` index table has a row `opencode-config/architecture.md` with a summary.
   - **Verification:** `cat .sdd/opencode-config/architecture.md` readable; grep for "ADR 1" and "ADR 2" both match; `grep -c "opencode-config" .sdd/README.md` returns >= 1.
@@ -55,7 +55,7 @@ T2 (drift closures: F1/F2/F3) -> T4 (lockstep surface: preset texts + orchestrat
   - **Vertical slice:** in `.opencode/opencode.jsonc`, remove `".opencode/memory-shelf.yaml": "allow"` from the analyzer-escalated edit block (~line 257) and fix the adjacent comment (~lines 244-245) to reflect the corrected invariant. In `.opencode/agents/analyzer-escalated.md` (~lines 41-42), replace the self-registration instruction with "do NOT write .opencode/memory-shelf.yaml; report artifact paths (memory-manager registers)".
   - **Acceptance criteria:**
     - analyzer-escalated edit block in `opencode.jsonc` does NOT contain `memory-shelf.yaml`.
-    - Adjacent comment reflects the DIA-119 sole-writer invariant.
+    - Adjacent comment reflects the DIA-162 sole-writer invariant.
     - analyzer-escalated agent markdown does NOT instruct self-registration; instead instructs reporting artifact paths to memory-manager.
   - **Verification:** `grep -c "memory-shelf.yaml" .opencode/agents/analyzer-escalated.md` returns 0 OR only appears in the negative-instruction sentence ("do NOT write ..."); analyzer-escalated edit block in opencode.jsonc does not list memory-shelf.yaml.
 
@@ -83,7 +83,7 @@ T2 (drift closures: F1/F2/F3) -> T4 (lockstep surface: preset texts + orchestrat
   - **Vertical slice:** in `.opencode/plugins/delegation-observer.ts` (~line 277), add `"architector"` to the `READ_ONLY_LANES` Set.
   - **Acceptance criteria:**
     - `READ_ONLY_LANES` Set contains `"architector"`.
-    - Comment above the Set (line 268-270) is updated to mention the DIA-132 addition.
+    - Comment above the Set (line 268-270) is updated to mention the DIA-172 addition.
   - **Verification:** `grep -A 6 "READ_ONLY_LANES = new Set" .opencode/plugins/delegation-observer.ts` shows `"architector"` in the Set.
 
 - [ ] **3.2 Extend `isSafeTaskBatch` signature + extract worktree assertion (D1 + D2).**
@@ -198,7 +198,7 @@ T2 (drift closures: F1/F2/F3) -> T4 (lockstep surface: preset texts + orchestrat
 
 - **ASCII-only protocol (DIA-079):** all changes to JSONC/markdown/TypeScript must use ASCII-only text (no em-dashes, no smart quotes, no non-ASCII punctuation) to prevent serialization failures.
 - **DIA-094 Docker gate:** implementation work AND commits MUST NOT proceed without a running docker dev container.
-- **DIA-063 Ticket gate:** no implementation work starts without the DIA-132 ticket (already in place).
+- **DIA-063 Ticket gate:** no implementation work starts without the DIA-172 ticket (already in place).
 - **Practice-protected zone:** the OpenSpec artifacts themselves (this file) are practice-protected -- the developer writes the substance, @openspec-plan guides. Implementation of the artifacts (what this tasks.md describes) is not practice-protected; @coder implements freely within the acceptance criteria.
 - **Developer approval gate:** per the developer's operational requirement #6 for this change, @orchestrator MUST present the final plan (these tasks) to the developer for explicit approval BEFORE dispatching @coder to implement.
 - **Worktree discipline:** every coder dispatched under this change works in its OWN worktree. Since this change's slices are sequential and tightly coupled, the recommendation is a SINGLE coder worktree for the whole change (not parallel coders across slices). If the developer chooses to parallelize slices, each coder must have a distinct worktree per the developer's operational requirements.

@@ -267,7 +267,7 @@ shelf:
     path: knowledge/res027-orchestrator-routine-work-tools/res027-orchestrator-routine-work-tools-conspect.md
     created: 2026-08-14
   - name: res020-ssh-add-confirmation
-    description: 'OpenSSH ssh-add -c confirmation-per-use on Fedora 44 + KDE Plasma + systemd user ssh-agent (socket-activated, /run/user/1000/ssh-agent.socket) with the agent socket forwarded into opencode-docker (DIA-133). Key facts: -c = per-operation host-side confirm via ssh-askpass (each git push = one host GUI prompt); SSH_ASKPASS + SSH_ASKPASS_REQUIRE=force must be in the AGENT OWN systemd Drop-in (~/.config/systemd/user/ssh-agent.service.d/override.conf) - the agent reads them from its own env at prompt time, no file fallback; KDE Wayland gotcha: ksshaskpass needs QT_QPA_PLATFORM=wayland + WAYLAND_DISPLAY=wayland-0 (else qt.qpa.xcb could not connect to display :0); ksshaskpass is a SEPARATE package (6.7.4-1.fc44) not default on KDE; ssh-add -l does NOT show confirm-on (no simple CLI check); agent restart clears keys + confirm flags (Drop-in first, then ssh-add -c); no container-side change needed for DIA-133 (confirm state is host-agent); recommended combo ssh-add -c -t 8h; YubiKey: hardware touch OR -c, not both.'
+    description: 'OpenSSH ssh-add -c confirmation-per-use on Fedora 44 + KDE Plasma + systemd user ssh-agent (socket-activated, /run/user/1000/ssh-agent.socket) with the agent socket forwarded into opencode-docker (DIA-173). Key facts: -c = per-operation host-side confirm via ssh-askpass (each git push = one host GUI prompt); SSH_ASKPASS + SSH_ASKPASS_REQUIRE=force must be in the AGENT OWN systemd Drop-in (~/.config/systemd/user/ssh-agent.service.d/override.conf) - the agent reads them from its own env at prompt time, no file fallback; KDE Wayland gotcha: ksshaskpass needs QT_QPA_PLATFORM=wayland + WAYLAND_DISPLAY=wayland-0 (else qt.qpa.xcb could not connect to display :0); ksshaskpass is a SEPARATE package (6.7.4-1.fc44) not default on KDE; ssh-add -l does NOT show confirm-on (no simple CLI check); agent restart clears keys + confirm flags (Drop-in first, then ssh-add -c); no container-side change needed for DIA-173 (confirm state is host-agent); recommended combo ssh-add -c -t 8h; YubiKey: hardware touch OR -c, not both.'
     path: knowledge/res020-ssh-add-confirmation/res020-ssh-add-confirmation-conspect.md
     created: 2026-08-13
     status: registered
@@ -433,12 +433,36 @@ shelf:
     path: "knowledge/ana018-research-lane-optimization/ana018-research-lane-optimization-report.md"
     created: 2026-08-13
     status: archived
-  - name: "Agent Instruction Files Audit (DIA-114)"
-
+  - name: "Agent Instruction Files Audit (DIA-138)"
+    description: "Cross-reference audit of 50 instruction-bearing files (AGENTS.md, .opencode/agents/*.md, .opencode/skills/*/SKILL.md, practice-protected.md, opencode.jsonc, oh-my-opencode-slim.jsonc, OMO *.md appendices, 11 TS agent factories, NEXT-RUN.md, HANDOFF.md template). 2 Critical findings: (F1) orchestrator preset prompt references non-existent HANDOFF.md in all 3 presets -- runtime file is .opencode/session/current-handoff.json; (F2) phantom AGENTS.md §10 referenced from orchestrator_append.md + NEXT-RUN.md + all 3 preset prompts but missing from actual AGENTS.md. 4 High: (F3) dead boss_append.md (80% duplicate of orchestrator_append.md); (F4) reviewer.ts factory prompt != reviewer.md two-axis intent; (F5) researcher.ts factory prompt lacks PERSISTENCE_RECOMMENDED flag the orchestrator depends on; (F6) byte-identical orchestrator/coder/researcher prompts duplicated across 3 presets (drift-guaranteed). 6 Medium: (F7) AGENTS.md §9 table readability for 6 disabled aliases; (F8) memory-manager.md emoji violates DIA-079; (F9) analyzer has 3 overlapping prompt sources; (F10) stale .tss/ placeholder in AGENTS.md; (F11) boss.ts AGENT_DESCRIPTIONS missing 14 agents undocumented; (F12) NEXT-RUN.md HANDOFF.md vs current-handoff.json name ambiguity; (F13) orchestrator_append.md ~80% overlaps AGENTS.md §2. 6 Low. Cross-reference matrix of 18 agents across 5 source categories. Remediation ~14h."
+    path: "knowledge/ana013-agent-instruction-audit/ana013-agent-instruction-audit-report.md"
+    created: 2026-08-12
+  - name: "Hook Test Coverage Audit (DIA-139)"
+    description: "Audit of pre-commit/pre-push hook test coverage. 3 CRITICAL findings:\
+      \ (C1) turbo.json `test` task `inputs` field masks source-code regressions (cached\
+      \ test result returned when only src/** changes, no test files touched — active\
+      \ misconfiguration); (C2) `make test-shell` (100+ bats tests for all shell dev-infra\
+      \ artifacts including the hook scripts themselves) is NOT wired into any hook; (C3)\
+      \ `make test-config` (8 OpenCode config validators) is NOT wired into any hook. 6 HIGH:\
+      \ (H1) no timeout on turbo invocations, hook can hang indefinitely; (H2) no test for\
+      \ pnpm verify:js multi-step failure chain; (H3) turbo lint/typecheck empty config means\
+      \ workspaces without lint scripts silently skip; (H4) docker-daemon-down path not in bats\
+      \ matrix; (H5) verify-python.bats missing 4 branches (pytest fail, 2nd package fail, uv\
+      \ missing, ruff-format --check fail); (H6) no test for lint-staged config validity. 7 MEDIUM,\
+      \ 5 LOW. Gate map: pre-commit runs lint-staged (eslint --fix + prettier + ruff + bash -n),\
+      \ pre-push runs pnpm verify:format + verify:js (turbo lint+typecheck) + verify:js-tests\
+      \ (turbo test) + verify:python (ruff+pytest x2). Bats coverage: 24 tests across 4 hook-related\
+      \ bats files (verify-pre-commit 7, verify-pre-push 7, verify-python 4, lint-python-files 6).\
+      \ Top-3 fixes ranked by impact/effort: C1 (5 min), C2 (2h), C3 (2h) = ~4h total to close\
+      \ the two largest coverage holes."
+    path: "knowledge/ana014-hook-test-coverage/ana014-hook-test-coverage-report.md"
+    created: 2026-08-12
+  - name: "Agent Instruction Files Audit (DIA-157)"
     description: "Cross-reference audit of 50 instruction-bearing files (AGENTS.md, .opencode/agents/*.md, .opencode/skills/*/SKILL.md, practice-protected.md, opencode.jsonc, oh-my-opencode-slim.jsonc, OMO *.md appendices, 11 TS agent factories, NEXT-RUN.md, HANDOFF.md template). 2 Critical findings: (F1) orchestrator preset prompt references non-existent HANDOFF.md in all 3 presets -- runtime file is .opencode/session/current-handoff.json; (F2) phantom AGENTS.md §10 referenced from orchestrator_append.md + NEXT-RUN.md + all 3 preset prompts but missing from actual AGENTS.md. 4 High: (F3) dead boss_append.md (80% duplicate of orchestrator_append.md); (F4) reviewer.ts factory prompt != reviewer.md two-axis intent; (F5) researcher.ts factory prompt lacks PERSISTENCE_RECOMMENDED flag the orchestrator depends on; (F6) byte-identical orchestrator/coder/researcher prompts duplicated across 3 presets (drift-guaranteed). 6 Medium: (F7) AGENTS.md §9 table readability for 6 disabled aliases; (F8) memory-manager.md emoji violates DIA-079; (F9) analyzer has 3 overlapping prompt sources; (F10) stale .tss/ placeholder in AGENTS.md; (F11) boss.ts AGENT_DESCRIPTIONS missing 14 agents undocumented; (F12) NEXT-RUN.md HANDOFF.md vs current-handoff.json name ambiguity; (F13) orchestrator_append.md ~80% overlaps AGENTS.md §2. 6 Low. Cross-reference matrix of 18 agents across 5 source categories. Remediation ~14h."
     path: "knowledge/ana016-agent-instruction-audit/ana016-agent-instruction-audit-report.md"
     created: 2026-08-12
-  - name: "Hook Test Coverage Audit (DIA-139)"
+  - name: "Hook Test Coverage Audit (DIA-158)"
+
     description: "Audit of pre-commit/pre-push hook test coverage. 3 CRITICAL findings:\
       \ (C1) turbo.json `test` task `inputs` field masks source-code regressions (cached\
       \ test result returned when only src/** changes, no test files touched — active\
@@ -465,27 +489,27 @@ shelf:
     path: knowledge/ana003-tests-ponytail-audit/ana003-tests-ponytail-audit-report.md
     created: 2026-08-12
   - id: ana015
-    name: verify-pre-push recursion fork-bomb root-cause analysis (DIA-142 regression)
-    title: verify-pre-push recursion fork-bomb root-cause analysis - DIA-142 regression
-    description: "Root-cause analysis of the recursion fork-bomb regression in scripts/verify-pre-push.sh. Introduced by commit 49d587a (DIA-142) wiring `make test-shell` into the pre-push script; root cause is absence of a re-entrancy guard in the script itself (hostname==poetry-dev branch re-enters the suite). Test-side hostname shim (commit bb18099, DIA-071) is necessary-but-not-sufficient defense (covers bats only, not manual/husky invocations). ~18s cycle, 6+ levels deep, dozens of /tmp/bats-run-* dirs, live chains 1.5h. Recommends minimal env-flag propagation guard (VERIFY_PRE_PUSH_RUNNING) with a one-line test-side unset to preserve the direct-run test. 5 lines added, zero tests broken."
+    name: verify-pre-push recursion fork-bomb root-cause analysis (DIA-161 regression)
+    title: verify-pre-push recursion fork-bomb root-cause analysis - DIA-161 regression
+    description: "Root-cause analysis of the recursion fork-bomb regression in scripts/verify-pre-push.sh. Introduced by commit 49d587a (DIA-161) wiring `make test-shell` into the pre-push script; root cause is absence of a re-entrancy guard in the script itself (hostname==poetry-dev branch re-enters the suite). Test-side hostname shim (commit bb18099, DIA-071) is necessary-but-not-sufficient defense (covers bats only, not manual/husky invocations). ~18s cycle, 6+ levels deep, dozens of /tmp/bats-run-* dirs, live chains 1.5h. Recommends minimal env-flag propagation guard (VERIFY_PRE_PUSH_RUNNING) with a one-line test-side unset to preserve the direct-run test. 5 lines added, zero tests broken."
     path: "knowledge/ana015-recursion-fork-bomb/ana015-recursion-fork-bomb-report.md"
     created: 2026-08-12
     date: 2026-08-12
-    task_ref: DIA-146
+    task_ref: DIA-165
     status: completed
-  - name: Memory Shelf Hygiene Audit (DIA-138)
+  - name: Memory Shelf Hygiene Audit (DIA-178)
     description: "Hygiene audit of the memory shelf and .opencode/memory/lessons.md. 54
       entries audited; duplicate lesson ID L20260812-003 found and renumbered to -005; naming violations present
       (ana01, ana-post-*); ana014-rung3-benchmark-protocol flagged as ARCHIVE candidate;
       no DUP/MERGE candidates; 10 openspec dirs unregistered in shelf.specs."
     path: knowledge/ana018-memory-shelf-hygiene/ana018-memory-shelf-hygiene-report.md
     created: 2026-08-14
-    task_ref: DIA-138
-  - name: Full Test-Suite Audit (DIA-139)
-    description: "Full audit of every test artifact on the main working tree (excludes the 13 stale worktrees under .worktrees/, not part of any gate). Inventory: 409 tests total (240 bats in scripts/__tests__ wired to make test-shell at 24.6s, 43 node:test batch-d-infra in make test-config at 0.3s, 2+2+96+24 vitest across apps/author-studio + packages/data-contracts/editor-engine/phonetics-core wired to turbo test, 1+1 pytest in apps/api-server + packages/analytics-pipeline). Covers execution order, fast-to-fail, duplicates, stale tests, verification honesty, and DRY test helpers. Built on prior work (DIA-115/124/125/126/127) with no contradicting findings; several re-surface as still-open or partial where prior fixes introduced new asymmetries."
+    task_ref: DIA-178
+  - name: Full Test-Suite Audit (DIA-179)
+    description: "Full audit of every test artifact on the main working tree (excludes the 13 stale worktrees under .worktrees/, not part of any gate). Inventory: 409 tests total (240 bats in scripts/__tests__ wired to make test-shell at 24.6s, 43 node:test batch-d-infra in make test-config at 0.3s, 2+2+96+24 vitest across apps/author-studio + packages/data-contracts/editor-engine/phonetics-core wired to turbo test, 1+1 pytest in apps/api-server + packages/analytics-pipeline). Covers execution order, fast-to-fail, duplicates, stale tests, verification honesty, and DRY test helpers. Built on prior work (DIA-158/167/168/169/170) with no contradicting findings; several re-surface as still-open or partial where prior fixes introduced new asymmetries."
     path: knowledge/ana021-test-suite-audit/ana021-test-suite-audit-report.md
     created: 2026-08-14
-    task_ref: DIA-139
+    task_ref: DIA-179
   adrs:
   - name: Memory Storage Strategy
     description: 'Evaluation of Claude-Mem, Honcho, and current hand-written memory
@@ -715,12 +739,12 @@ shelf:
     created: 2026-08-08
     status: proposed
   - name: batch-d-parallel-coders
-    description: 'OpenSpec change (DIA-132, "Parallel Coders (Batch D Expansion)", scope
-      opencode-config): extends the DIA-119/DIA-120 batch-dispatch rule (patterns A/B/C)
+    description: 'OpenSpec change (DIA-172, "Parallel Coders (Batch D Expansion)", scope
+      opencode-config): extends the DIA-162/DIA-163 batch-dispatch rule (patterns A/B/C)
       with Batch Pattern D (parallel @coder lanes allowed ONLY IF every non-coder lane
       is read-only AND each coder asserts a distinct WORKTREE: <path>, validated by the
       delegation-observer plugin via regex + Set-size check). Adds 5 quick-fixes (F1-F5):
-      F1 remove memory-shelf.yaml from analyzer-escalated write block (DIA-119 sole-writer
+      F1 remove memory-shelf.yaml from analyzer-escalated write block (DIA-162 sole-writer
       invariant), F2 add bash:deny to code-navigator + observer (strict read-only), F3
       conspecter edit allow list = knowledge/* only, F4 singleton-batch semantics (<=1
       task() call is safe), F5 add architector to READ_ONLY_LANES + batch A on all 5
@@ -734,12 +758,12 @@ shelf:
     created: 2026-08-13
     status: implemented
   - name: batch-d-infra-hardening
-    description: 'OpenSpec change (DIA-134, scope opencode-config/dev-infra): batch D
+    description: 'OpenSpec change (DIA-174, scope opencode-config/dev-infra): batch D
       infra hardening, 6 items across 4 slices S1-S4. S1 worktrees.sh create now copies
-      .husky/_ shim from the main tree (fail-loud when absent), fixing the DIA-132
+      .husky/_ shim from the main tree (fail-loud when absent), fixing the DIA-172
       LESSON-1 worktree husky gap so new worktrees get pre-commit enforcement. S2 adds
       a persistent behavioral suite scripts/__tests__/batch-d-infra.test.mjs (tracked
-      since DIA-136 F2 - the DD2 gitignore rationale is superseded) + Makefile wiring
+      since DIA-176 F2 - the DD2 gitignore rationale is superseded) + Makefile wiring
       (absence fails make test-config loudly) + dev-infra ADR 9/10.
       S3 branch-ownership directive in coder_append.md. S4 hardening rules: ticket-ID
       token rule, architector design persistence rule, merge-gate container evidence
@@ -763,20 +787,20 @@ shelf:
     created: 2026-08-02
     status: implemented
   - name: ssh-agent-forward-opencode-docker
-    description: 'OpenSpec change (DIA-133, scope dev-infra): forward the host SSH
+    description: 'OpenSpec change (DIA-173, scope dev-infra): forward the host SSH
       agent socket into the opencode-docker container read-only at /tmp/ssh-agent.sock
       so git push to SSH remotes works from inside the container. Detection loop probes
       SSH_AUTH_SOCK, then ${XDG_RUNTIME_DIR:-}/keyring/ssh and /gcr/ssh, mounts the
       first found socket read-only; warn-and-continue when none found. Optional
       GIT_SSH_COMMAND accept-new for read-only known_hosts. Keys never leave the host:
       no ~/.ssh mount, no key copy, only the agent socket is forwarded (security
-      profile mirrors the accepted DIA-121 docker.sock mount). TDD slices planned
+      profile mirrors the accepted DIA-164 docker.sock mount). TDD slices planned
       (RED tests first), implementation pending.'
     path: openspec/changes/ssh-agent-forward-opencode-docker/
     created: 2026-08-13
     status: proposed
   - name: test-suite-audit-fixes
-    description: "OpenSpec change (DIA-139, scope dev-infra): six actionable\
+    description: "OpenSpec change (DIA-179, scope dev-infra): six actionable\
       \ findings from the ana021 full test-suite audit, implemented in 5 disjoint\
       \ slices A/B/C/D/F (no E) under the batch D parallel-worktree model. F-1\
       \ reorder scripts/verify-pre-push.sh (fast-to-fail first, slowest test-shell\
@@ -788,7 +812,7 @@ shelf:
       \ byte-identical /home/qualt guard into scripts/guards/home-qualt.sh (F-1+F-6\
       \ share Slice A); F-7 consolidate the duplicated PEP 420 conftest.py bootstrap\
       \ via pyproject pythonpath (Slice F). One coder per slice in its own worktree,\
-      \ TDD RED-GREEN with instance separation (DIA-135), same-session fix loops,\
+      \ TDD RED-GREEN with instance separation (DIA-175), same-session fix loops,\
       \ same-session re-reviews. MERGE COMPLETED 2026-08-14: 5 squash-merges\
       \ (8e5e565, 5820d4e, b4f8ed9, 8a1e152, 354a681) + merge-report 0b02f0f on\
       \ omo-slim-changes; all reviews verified-closed, all gates exit 0. Slices B/C\
@@ -796,7 +820,7 @@ shelf:
       \ conflict resolved keeping both describe blocks)."
     path: openspec/changes/test-suite-audit-fixes/
     created: 2026-08-14
-    task_ref: DIA-139
+    task_ref: DIA-179
     status: implemented
   architectures:
   - name: dia-redispatch-cycle
@@ -807,8 +831,8 @@ shelf:
     description: "Retrospective architecture for the dev-infra module parallel dev model (implemented via DIA-100): 8 ADRs governing worktree-only parallel OpenCode lanes (worktrees-only model, DIA-074 branch naming, squash-merge integration, physical session isolation, DIA-096 safe/destructive enforcement, conflict escalation bounds, .worktrees/ location, bash-3 compat + bounded ls-remote). Decision sources: DIA-073/DIA-096, commits a387f72/44865c3/8cd270d."
     path: .sdd/dev-infra/architecture.md
     created: 2026-08-12
-  - name: opencode-config (DIA-132)
-    description: 'Module architecture for the opencode-config boundary (OpenCode configuration, agents, plugins, presets). First module doc in .sdd/opencode-config/. Two Accepted ADRs transcribed verbatim from the approved architector design (2026-08-13, DIA-132). ADR 1 "Batch Pattern D (Parallel Coders)": enable parallel @coder dispatches gated by a strict WORKTREE: <path> payload assertion; the delegation-observer plugin dynamically validates distinct worktree paths per parallel coder; orchestrator manages worktree lifecycles and serializes final squash-merges (parallelizing without worktrees rejected - git index lock/file contention risk). ADR 2 "Singleton-Batch Semantic Exemption": classify a batch safe immediately if it contains exactly one task() call, eliminating false-positive A1 warnings for single delegations that also fire semantic tools (e.g. log_decision); forcing log_decision into a separate orchestrator turn rejected (context/token waste). ADR 3 "Strict Instance Separation (RED test-author vs GREEN implementer)" + ADR 4 "Same-Session Fix Loops" added 2026-08-14 (DIA-136 F6) recording the DIA-135 policies: RED test-writing and GREEN implementation MUST use DIFFERENT coder instances (test-author never implements; role set by dispatch payload); fix-loop dispatches MUST resume the SAME coder session that wrote the code (resume by task_id/session_id), never a fresh instance.'
+  - name: opencode-config (DIA-172)
+    description: 'Module architecture for the opencode-config boundary (OpenCode configuration, agents, plugins, presets). First module doc in .sdd/opencode-config/. Two Accepted ADRs transcribed verbatim from the approved architector design (2026-08-13, DIA-172). ADR 1 "Batch Pattern D (Parallel Coders)": enable parallel @coder dispatches gated by a strict WORKTREE: <path> payload assertion; the delegation-observer plugin dynamically validates distinct worktree paths per parallel coder; orchestrator manages worktree lifecycles and serializes final squash-merges (parallelizing without worktrees rejected - git index lock/file contention risk). ADR 2 "Singleton-Batch Semantic Exemption": classify a batch safe immediately if it contains exactly one task() call, eliminating false-positive A1 warnings for single delegations that also fire semantic tools (e.g. log_decision); forcing log_decision into a separate orchestrator turn rejected (context/token waste). ADR 3 "Strict Instance Separation (RED test-author vs GREEN implementer)" + ADR 4 "Same-Session Fix Loops" added 2026-08-14 (DIA-176 F6) recording the DIA-175 policies: RED test-writing and GREEN implementation MUST use DIFFERENT coder instances (test-author never implements; role set by dispatch payload); fix-loop dispatches MUST resume the SAME coder session that wrote the code (resume by task_id/session_id), never a fresh instance.'
     path: .sdd/opencode-config/architecture.md
     created: 2026-08-13
     status: Accepted

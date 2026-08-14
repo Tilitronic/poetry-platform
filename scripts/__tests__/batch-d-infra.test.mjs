@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 /**
- * DIA-134 slice S2: persistent behavioral test suite for batch-D infra
+ * DIA-174 slice S2: persistent behavioral test suite for batch-D infra
  * hardening.
  *
- * Consolidates the DIA-132-era plugin/config assertions (which previously
- * lived in throwaway /tmp suites) plus the new DIA-134 targets (S3/S4
+ * Consolidates the DIA-172-era plugin/config assertions (which previously
+ * lived in throwaway /tmp suites) plus the new DIA-174 targets (S3/S4
  * directive text, Makefile wiring).
  *
- * TRACKED since DIA-136 F2 (previously gitignored per design.md DD2; the
+ * TRACKED since DIA-176 F2 (previously gitignored per design.md DD2; the
  * session-local-reconstruction rationale did not hold - the suite asserts
  * committed files only, so a fresh clone must be able to run it). Recreate
  * or regenerate the suite when the plugin/config invariants evolve.
@@ -16,7 +16,7 @@
  *
  * Plain node ESM, zero npm deps. The only external bit is esbuild, invoked
  * as a subprocess to bundle the REAL delegation-observer plugin (which has
- * zero named exports) plus an export footer, mirroring the DIA-132
+ * zero named exports) plus an export footer, mirroring the DIA-172
  * throwaway approach. NODE_PATH points at the OMO node_modules so the
  * @opencode-ai/plugin import resolves from any TEST_ROOT (worktrees have no
  * node_modules).
@@ -26,10 +26,10 @@
  *   it, so the same suite runs against the main tree or a worktree.
  *
  * Sections:
- *   1. PLUGIN CLASSIFICATION (batch D, post-DIA-132) - GREEN now
- *   2. CONFIG DRIFT (post-DIA-132)                   - GREEN now
+ *   1. PLUGIN CLASSIFICATION (batch D, post-DIA-172) - GREEN now
+ *   2. CONFIG DRIFT (post-DIA-172)                   - GREEN now
  *   3. STRUCTURAL CHECKS (.sdd ADR invariants, DD5)  - GREEN now
- *   4. NEW DIA-134 TARGETS (S3/S4/Makefile wiring)   - RED until S3/S4 land
+ *   4. NEW DIA-174 TARGETS (S3/S4/Makefile wiring)   - RED until S3/S4 land
  *   5. DIA-139 SLICE C (F-3 single rebuild)          - GREEN since 795750b
  *   6. DIA-139 SLICE B (F-2 turbo default flip)      - GREEN since 6cf2db9
  */
@@ -137,11 +137,11 @@ function testInfraRecipe() {
 }
 
 // ============================================================================
-// S1 PLUGIN CLASSIFICATION (batch D, post-DIA-132) - GREEN now
+// S1 PLUGIN CLASSIFICATION (batch D, post-DIA-172) - GREEN now
 // ============================================================================
-describe('S1 PLUGIN CLASSIFICATION (batch D, post-DIA-132)', async () => {
+describe('S1 PLUGIN CLASSIFICATION (batch D, post-DIA-172)', async () => {
   // Bundle the REAL plugin (zero named exports by design) with esbuild and an
-  // export footer, exactly like the DIA-132 throwaway suite did.
+  // export footer, exactly like the DIA-172 throwaway suite did.
   const tmpDir = mkdtempSync(join(tmpdir(), 'dia134-suite-'));
   process.on('exit', () => rmSync(tmpDir, { recursive: true, force: true }));
   const bundlePath = join(tmpDir, 'delegation-observer.bundle.mjs');
@@ -163,11 +163,11 @@ describe('S1 PLUGIN CLASSIFICATION (batch D, post-DIA-132)', async () => {
   appendFileSync(bundlePath, '\nexport { isSafeTaskBatch, READ_ONLY_LANES, WRITER_LANES }\n');
   const { isSafeTaskBatch, READ_ONLY_LANES } = await import(pathToFileURL(bundlePath).href);
 
-  it('READ_ONLY_LANES includes architector (DIA-132 F5)', () => {
+  it('READ_ONLY_LANES includes architector (DIA-172 F5)', () => {
     assert.ok(READ_ONLY_LANES.has('architector'), 'architector must be read-only by config');
   });
 
-  // DIA-132 tasks.md 5.1 cases (a)-(i), reconstructed from the spec.
+  // DIA-172 tasks.md 5.1 cases (a)-(i), reconstructed from the spec.
   it('batch A: [architector, researcher] classified SAFE (read-only fan-out)', () => {
     assert.equal(isSafeTaskBatch([{ agent: 'architector' }, { agent: 'researcher' }]), true);
   });
@@ -234,7 +234,7 @@ describe('S1 PLUGIN CLASSIFICATION (batch D, post-DIA-132)', async () => {
       false,
     );
     // ...and the call site only runs A1 when the turn holds MORE than one
-    // task() call (DIA-132 F4 singleton exemption - silent otherwise).
+    // task() call (DIA-172 F4 singleton exemption - silent otherwise).
     // Structural pin on the REAL plugin source so dropping the guard fails.
     const src = readRoot('.opencode/plugins/delegation-observer.ts');
     assert.match(src, /taskCalls\.length > 1/, 'F4 singleton guard must gate the A1 check');
@@ -249,9 +249,9 @@ describe('S1 PLUGIN CLASSIFICATION (batch D, post-DIA-132)', async () => {
 });
 
 // ============================================================================
-// S2 CONFIG DRIFT (post-DIA-132) - GREEN now
+// S2 CONFIG DRIFT (post-DIA-172) - GREEN now
 // ============================================================================
-describe('S2 CONFIG DRIFT (post-DIA-132)', () => {
+describe('S2 CONFIG DRIFT (post-DIA-172)', () => {
   it('code-navigator has bash: deny', () => {
     assert.equal(opencodeConfig.agent['code-navigator'].permission.bash, 'deny');
   });
@@ -305,7 +305,7 @@ describe('S2 STRUCTURAL CHECKS (.sdd ADR invariants, DD5)', () => {
   // DD5 structural class. First assertion: the DD1 husky-shim ADR. DD1's 'ADR
   // placement' note (design.md line 97) left the ADR unowned in the spec
   // ownership table, so S2 owns appending it to the dev-infra sdd; this
-  // assertion stays RED until that ADR exists. Second: the DIA-132
+  // assertion stays RED until that ADR exists. Second: the DIA-172
   // opencode-config ADRs must stay intact (tasks.md 2.1 structural checks).
   it('.sdd/dev-infra/architecture.md contains the DD1 ADR (Worktree husky shim materialization)', () => {
     const sdd = readRoot('.sdd/dev-infra/architecture.md');
@@ -328,9 +328,9 @@ describe('S2 STRUCTURAL CHECKS (.sdd ADR invariants, DD5)', () => {
 });
 
 // ============================================================================
-// S3 NEW DIA-134 TARGETS - RED until S3/S4 land and the Makefile is wired
+// S3 NEW DIA-174 TARGETS - RED until S3/S4 land and the Makefile is wired
 // ============================================================================
-describe('S3 NEW DIA-134 TARGETS (RED now)', () => {
+describe('S3 NEW DIA-174 TARGETS (RED now)', () => {
   // (a) Makefile wiring (S2 GREEN phase adds the step; AC 2.2)
   it('Makefile: test-config target exists', () => {
     assert.match(makefile, /^test-config:/m, 'test-config target must exist');
@@ -486,7 +486,7 @@ describe('S4 DIA-139 SLICE C (F-3): single docker stack rebuild in make test-inf
 // test-config per ADR 10), not a standalone file. Reuses parseJsonc above.
 // ============================================================================
 describe('S5 DIA-139 SLICE B (F-2): turbo base test task default', () => {
-  // The four packages DIA-125 verified to run standalone (no build artifacts);
+  // The four packages DIA-168 verified to run standalone (no build artifacts);
   // their overrides became dead once the base default flipped to dependsOn: [].
   const LEGACY_OVERRIDES = [
     '@poetry/editor-engine#test',

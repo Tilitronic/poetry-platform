@@ -1,4 +1,4 @@
-# ssh-add -c Confirmation for the DIA-133 Forwarded-Agent Threat Model — Research Conspect (res020)
+# ssh-add -c Confirmation for the DIA-173 Forwarded-Agent Threat Model — Research Conspect (res020)
 
 <!-- CONSPECTER-OUTPUT-CONTRACT
 schema-version: 1.0
@@ -8,7 +8,7 @@ phase-a-failures: 0
 shelf-registration: memory-shelf.yaml (shelf.conspects), delegated to @memory-manager
 -->
 
-*Scope: DIA-133 "ssh agent forward opencode-docker" — the host runs an OpenSSH agent; the opencode dev container consumes it through a forwarded `SSH_AUTH_SOCK`. A compromised container can request key signatures at will while the session is alive. This conspect covers the `ssh-add -c` confirmation mechanism, its KDE/Fedora 44 host-side plumbing (systemd user agent + ksshaskpass), and the security evaluation for that threat model.*
+*Scope: DIA-173 "ssh agent forward opencode-docker" — the host runs an OpenSSH agent; the opencode dev container consumes it through a forwarded `SSH_AUTH_SOCK`. A compromised container can request key signatures at will while the session is alive. This conspect covers the `ssh-add -c` confirmation mechanism, its KDE/Fedora 44 host-side plumbing (systemd user agent + ksshaskpass), and the security evaluation for that threat model.*
 
 ---
 
@@ -20,7 +20,7 @@ Per-operation askpass invocation: each signature request received by the agent (
 
 `SSH_ASKPASS_PROMPT=confirm` (OpenSSH 8.2+): when the agent requests *confirmation* rather than a passphrase, it exposes this variable so askpass programs can render a confirm dialog instead of a password field. This is release-notes-documented behavior (OpenSSH 8.2, supplemental domain knowledge; the archived ssh-add(1) man page documents the confirm mechanism and the `DISPLAY`/`SSH_ASKPASS`/`SSH_ASKPASS_REQUIRE` environment but not the prompt-type variable itself) (man7, "ssh-add(1)").
 
-Host-side rendering — the key point for DIA-133: the agent lives on the host; the container only holds a *forwarded socket* to it. Sign requests arriving over the forwarded socket are indistinguishable from local requests, and the confirmation prompt is rendered by the askpass program on the host desktop. **No container-side change is required** for DIA-133: the `-c` constraint is a property of the key record stored inside the host agent and travels with it regardless of which socket path delivered the request.
+Host-side rendering — the key point for DIA-173: the agent lives on the host; the container only holds a *forwarded socket* to it. Sign requests arriving over the forwarded socket are indistinguishable from local requests, and the confirmation prompt is rendered by the askpass program on the host desktop. **No container-side change is required** for DIA-173: the `-c` constraint is a property of the key record stored inside the host agent and travels with it regardless of which socket path delivered the request.
 
 ## 2. Systemd user ssh-agent (Fedora/RHEL) and the Drop-in
 
@@ -121,7 +121,7 @@ Pick ONE of the following — do not double up, or keys load twice with conflict
 - **Agent restart** → all keys and their `-c`/`-t` constraints are cleared; the user must re-run `ssh-add -c` (order matters per §6). This also silently downgrades security after every reboot until the autostart (§7) re-adds keys with constraints.
 - **YubiKey `ed25519-sk`** → for FIDO/SK keys the *hardware touch* is already a per-operation physical approval inside the signature itself (the agent cannot fake it, and the remote sshd verifies the authenticator's assertion). Adding `-c` on top layers a second, redundant approval step — recommend the touch alone **or** `-c`, not both, to avoid double friction.
 
-## 9. Security assessment for the DIA-133 threat model
+## 9. Security assessment for the DIA-173 threat model
 
 Threat model: host agent socket forwarded into the opencode dev container; a compromised container can request signatures freely while the session lives.
 

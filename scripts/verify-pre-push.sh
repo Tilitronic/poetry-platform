@@ -62,7 +62,7 @@ run_workspace() {
   fi
 }
 
-# /home/qualt regression guard (F-6, DIA-139): the body lives in
+# /home/qualt regression guard (F-6, DIA-179): the body lives in
 # scripts/guards/home-qualt.sh so both hooks share one canonical definition
 # (canonical grep tests: scripts/__tests__/guards-home-qualt.bats). Sourced on
 # the host BEFORE container detection/delegation so the husky hooks reject
@@ -83,7 +83,7 @@ else
   echo "== poetry-platform pre-push: delegating to dev container =="
 fi
 
-# Fast-to-fail step ladder (F-1, DIA-139): six steps in the order format, js,
+# Fast-to-fail step ladder (F-1, DIA-179): six steps in the order format, js,
 # js-tests, test-config, python, test-shell LAST. The four fast pnpm gates and
 # the OpenCode config validator (make test-config: agent-name drift, JSONC,
 # skill frontmatter) surface a regression in ~1.2 s instead of ~25 s; the slow

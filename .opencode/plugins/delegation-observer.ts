@@ -463,12 +463,12 @@ function extractPatchPaths(patchText: string): string[] {
   return paths
 }
 
-// DIA-144/DIA-132: approved conflict-free parallel task() batch patterns
+// DIA-144/DIA-172: approved conflict-free parallel task() batch patterns
 // (mirror of the BATCH-DISPATCH rule in oh-my-opencode-slim.jsonc).
-// READ_ONLY_LANES never write project files (architector added in DIA-132
+// READ_ONLY_LANES never write project files (architector added in DIA-172
 // F5 - it is read-only by config, edit/bash/task deny); WRITER_LANES write
 // memory-shelf.yaml / knowledge artifacts - at most ONE writer may appear in
-// a batch (rule B). Parallel coders (batch D, DIA-132) are NOT listed here:
+// a batch (rule B). Parallel coders (batch D, DIA-172) are NOT listed here:
 // they are gated separately by distinct WORKTREE assertions (predicate D).
 const READ_ONLY_LANES = new Set([
   "researcher",
@@ -481,15 +481,15 @@ const READ_ONLY_LANES = new Set([
 const WRITER_LANES = new Set(["analyzer", "conspecter", "memory-manager"])
 
 /**
- * DIA-144/DIA-132: classify a parallel task() batch (the task() calls in one
+ * DIA-144/DIA-172: classify a parallel task() batch (the task() calls in one
  * assistant turn, each carrying its agent and optional WORKTREE assertion) as
  * SAFE or UNSAFE. Approved batches:
  *   (A) read-only fan-out - every task.agent in READ_ONLY_LANES (incl.
- *       architector after DIA-132 F5);
+ *       architector after DIA-172 F5);
  *   (B) single-writer + readers - at most one WRITER_LANES agent present and
  *       all other agents read-only;
  *   (C) post-fix review - exactly the pair reviewer + ai-auditor;
- *   (D) parallel coders (DIA-132 batch D) - more than one coder, every
+ *   (D) parallel coders (DIA-172 batch D) - more than one coder, every
  *       non-coder lane read-only, and each coder carrying a DISTINCT non-empty
  *       worktree assertion (Set size == coder count). Missing or duplicate
  *       worktrees fail loud.
@@ -518,7 +518,7 @@ function isSafeTaskBatch(
   ) {
     return true
   }
-  // (D) parallel coders with distinct worktree assertions (DIA-132 batch D).
+  // (D) parallel coders with distinct worktree assertions (DIA-172 batch D).
   const coders = tasks.filter((t) => t.agent === "coder")
   if (coders.length > 1) {
     const nonCoders = tasks.filter((t) => t.agent !== "coder")
@@ -761,7 +761,7 @@ const delegationObserver: Plugin = async (ctx) => {
   // message is still detected. Each entry also carries the task()
   // subagent_type (DIA-144) so the A1 batch check can classify the parallel
   // task() lanes against the approved BATCH-DISPATCH patterns, plus the
-  // worktree assertion extracted from the task payload (DIA-132 batch D -
+  // worktree assertion extracted from the task payload (DIA-172 batch D -
   // /WORKTREE:\s*(\S+)/i against description+prompt; only task() calls carry
   // a meaningful value).
   const turnToolCalls = new Map<
@@ -1533,7 +1533,7 @@ const delegationObserver: Plugin = async (ctx) => {
         typeof taskArgRecord.subagent_type === "string"
           ? taskArgRecord.subagent_type
           : undefined
-      // DIA-132 batch D: extract the WORKTREE assertion from the task payload
+      // DIA-172 batch D: extract the WORKTREE assertion from the task payload
       // (description + prompt). Exactly ONE marker is the contract; zero or
       // multiple markers yield undefined (malformed -> batch D fails loud for
       // that coder, design D2). Only task() calls carry a meaningful value.
@@ -1552,13 +1552,13 @@ const delegationObserver: Plugin = async (ctx) => {
       }
       calls.push({ tool: input.tool, subagent_type: taskSubagent, worktree })
       turnToolCalls.set(input.sessionID, calls)
-      // DIA-132 F4 singleton exemption: the A1 check fires only when the turn
+      // DIA-172 F4 singleton exemption: the A1 check fires only when the turn
       // holds MORE than one task() call. A single task() alongside semantic
       // tools (log_decision, etc.) is a lone delegation, not a parallel batch -
       // classifying it produced false positives (F4).
       const taskCalls = calls.filter((c) => c.tool === "task")
       if (input.tool === "task" && taskCalls.length > 1) {
-        // DIA-144/DIA-132: warn only when the parallel task() batch is UNSAFE.
+        // DIA-144/DIA-172: warn only when the parallel task() batch is UNSAFE.
         // Approved conflict-free batches (BATCH-DISPATCH rule A/B/C/D) pass
         // silently; unrecognized/unknown lanes keep the default warn.
         const taskPayloads = taskCalls.map((c) => ({

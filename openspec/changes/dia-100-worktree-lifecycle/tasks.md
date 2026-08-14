@@ -263,7 +263,7 @@ T3 -- worktree-conventions.md + DIA-100 ticket update
 
 ## Out of scope for these tasks
 
-- **`docs/dev-infra-audit/tickets/README.md` row + rollup** -- deferred (file carries uncommitted DIA-115 edits from another lane).
+- **`docs/dev-infra-audit/tickets/README.md` row + rollup** -- deferred (file carries uncommitted DIA-158 edits from another lane).
 - **Verification items (a)-(e)** -- require active worktree lane adoption (orthogonal to the lifecycle CLI).
 - **DIA-085/ana011 parallel-session protocol** -- not yet implemented (orthogonal to the lifecycle CLI).
 - **`.slim/worktrees.json` state file** -- not adopted by the project (orthogonal to the lifecycle CLI).

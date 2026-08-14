@@ -1,9 +1,11 @@
-# DIA-136 — Deep review: 2-day commit window (DIA-124..135) consistency vs pre-existing docs/config/docker
+# DIA-176 — Deep review: 2-day commit window (DIA-167..176) consistency vs pre-existing docs/config/docker
+
+<!-- RENUMBERED 2026-08-14 (phase 1, remote lineage canonical, DIA-153): local DIA-136 collided with origin/omo-slim-changes ticket DIA-136-orchestrator-session-records-research-json-db-api-layer-lowdb-json-server-nedb-tinydb-for-visibility-reliability-determinism-token-economy.md (different ticket). Renumbered to DIA-176. -->
 
 ---
 
-id: DIA-136
-title: "Deep review: 2-day commit window (DIA-124..135) consistency vs pre-existing docs/config/docker"
+id: DIA-176
+title: "Deep review: 2-day commit window (DIA-167..176) consistency vs pre-existing docs/config/docker"
 area: dev-infra
 severity: Major
 status: DONE
@@ -32,10 +34,10 @@ evidence: [] # list of evidence URIs (messages.md#row, registry.jsonl#seq)
 ## Description
 
 The last two days produced a large commit window (`8fde3c02..HEAD`, 143 files,
-+17477/-2037) spanning DIA-124..135: test-infra phases 0-3, docker CLI install
-(DIA-131), SSH-agent forwarding into opencode-docker (DIA-133), parallel-coder
-batch D expansion (DIA-132), batch D infra hardening (DIA-134), and coder
-prompt hygiene (DIA-135). Risk: these changes may contradict or orphan
++17477/-2037) spanning DIA-167..176: test-infra phases 0-3, docker CLI install
+(DIA-171), SSH-agent forwarding into opencode-docker (DIA-173), parallel-coder
+batch D expansion (DIA-172), batch D infra hardening (DIA-174), and coder
+prompt hygiene (DIA-175). Risk: these changes may contradict or orphan
 pre-existing content — stale `.md` references, agent-name contract drift
 (`scripts/validate-agent-names.sh`), `.sdd/` architecture ADRs, Docker/yaml
 config, `opencode.jsonc` / `oh-my-opencode-slim.jsonc` settings, or duplicated
@@ -43,7 +45,7 @@ inline overrides.
 
 Additionally there are UNCOMMITTED changes on top: `.opencode/memory-shelf.yaml`,
 `.opencode/memory/lessons.md`, `tools/opencode-docker/AGENTS.md`,
-`tools/opencode-docker/README.md`, new ticket `DIA-133-ssh-agent-forward-opencode-docker.md`,
+`tools/opencode-docker/README.md`, new ticket `DIA-173-ssh-agent-forward-opencode-docker.md`,
 `knowledge/res020-ssh-add-confirmation/`, and
 `openspec/changes/ssh-agent-forward-opencode-docker/` — these must be reconciled
 with the committed window before merge.
@@ -70,7 +72,7 @@ Applied 2026-08-14 in 5 commits (91816ee, 285376a, d2eaacb, a7a94fa, 5177aa3):
 
 - F1: Phantom "AGENTS.md section 10" refs normalized to section 2.5 (AGENTS.md:78, delegation-observer.ts:947, ai-auditor.md, opencode.jsonc:446/453).
 - F2: Un-gitignored + committed `scripts/__tests__/batch-d-infra.test.mjs` (DD2 rationale was false); fresh-clone gate now passes.
-- F3: Committed DIA-133 SSH-agent docs atomically (README.md, AGENTS.md, openspec change, ticket, res020 knowledge).
+- F3: Committed DIA-173 SSH-agent docs atomically (README.md, AGENTS.md, openspec change, ticket, res020 knowledge).
 - F4: Renumbered colliding knowledge IDs res014->res021, ana013->ana016, ana014->ana017 (dirs + shelf + refs); fixed res020 path to conspect .md; fixed dangling shelf.specs path to archive.
 - F5: ADR 10 (batch-D suite persistence) added to .sdd/dev-infra/architecture.md.
 - F6: ADR 3 (strict instance separation) + ADR 4 (same-session fix loops) added to .sdd/opencode-config/architecture.md.

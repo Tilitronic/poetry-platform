@@ -19,7 +19,7 @@
       "outputs": ["dist/**", ".quasar/**", "dist/spa/**"]
     },
     "test": {
-      // DIA-139 F-2: base `test` no longer depends on build, so new
+      // DIA-179 F-2: base `test` no longer depends on build, so new
       // packages get fast tests by default. Packages whose tests consume
       // build output must opt in with their own dependsOn: ["build"].
       "dependsOn": [],

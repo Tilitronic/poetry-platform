@@ -125,7 +125,7 @@ Cross-referenced (prior conspect archives, not re-downloaded):
 - Res014 conspect (coder escalation ladder Rung0-4, DIA-111): knowledge/res014-model-escalation-routing/res014-model-escalation-routing-conspect.md.
 - Res015 conspect (MiMo-V2.5-Pro vs DeepSeek-V4-Pro side-by-side; DIA-114 provisional MiMo Rung-3 pick; mimo 16,300 req/mo at $0.435/$0.87): knowledge/res015-mimo-v25-pro-evaluation/res015-mimo-v25-pro-evaluation-conspect.md.
 - Res016 conspect (coder-escalated model evidence; kimi-k3 Vals 93.40% cross-referenced; TB 2.1 88.3 vendor / 85 AA independent; cap-fallback verdict): knowledge/res016-coder-escalated-model-evidence/res016-coder-escalated-model-evidence-conspect.md.
-- Ana014 report (Rung-3 live benchmark protocol, DIA-116 companion; archived per DIA-138): knowledge/archive/ana014-rung3-benchmark-protocol/ana014-rung3-benchmark-protocol-report.md.
+- Ana014 report (Rung-3 live benchmark protocol, DIA-116 companion; archived per DIA-178): knowledge/archive/ana014-rung3-benchmark-protocol/ana014-rung3-benchmark-protocol-report.md.
 
 ---
 Document prepared by conspecter lane on 2026-08-12. All citations point to locally archived artifacts under knowledge/res017-rung3-benchmark-evidence/sources/ plus cross-references to res013/res014/res015/res016 and ana014.

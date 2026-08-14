@@ -43,7 +43,7 @@ No `.sdd/` documents govern `tools/opencode-docker/` (the module is small enough
 
 **Rationale:** The container's `/app` is read-only (line 163), so `~/.ssh/known_hosts` cannot be written. Without `GIT_SSH_COMMAND`, the first `git push` to a new host (e.g., `github.com`) would prompt for host key confirmation, which fails in a non-interactive container. `StrictHostKeyChecking=accept-new` auto-accepts new host keys on first connection (but rejects changed keys, preserving TOFU security). This is the standard pattern for CI/CD containers.
 
-**Security trade-off:** `accept-new` trusts the first-seen host key (TOFU). If an attacker MITMs the first connection, they can inject a malicious host key. Mitigation: the developer's host already has `github.com` in `~/.ssh/known_hosts`; the container only needs to accept the same key. The risk is identical to the already-accepted docker-socket forwarding (DIA-121): a host resource forwarded into the container; the container already holds host container-management rights.
+**Security trade-off:** `accept-new` trusts the first-seen host key (TOFU). If an attacker MITMs the first connection, they can inject a malicious host key. Mitigation: the developer's host already has `github.com` in `~/.ssh/known_hosts`; the container only needs to accept the same key. The risk is identical to the already-accepted docker-socket forwarding (DIA-164): a host resource forwarded into the container; the container already holds host container-management rights.
 
 **Alternatives considered:**
 
@@ -67,9 +67,9 @@ Mount the first found socket read-only. If none found, warn to stderr and contin
 
 **Rationale:** Security. The container should never write to the host's SSH agent socket. Read-only mount ensures the container can only make sign-requests, not modify the socket state. This is identical to the `SOCKET_MOUNT` pattern (line 146: `-v "$sock:/var/run/docker.sock:ro"`).
 
-### D5: Reuse `--userns=keep-id` + `--security-opt label=disable` (DIA-121 precedent)
+### D5: Reuse `--userns=keep-id` + `--security-opt label=disable` (DIA-164 precedent)
 
-**Rationale:** These two flags already solve the SELinux + unix-socket permission blockers. No additional flags needed. The security profile is identical to the already-accepted DIA-121 docker-socket forwarding (a host socket forwarded into the container; the container already holds host container-management rights).
+**Rationale:** These two flags already solve the SELinux + unix-socket permission blockers. No additional flags needed. The security profile is identical to the already-accepted DIA-164 docker-socket forwarding (a host socket forwarded into the container; the container already holds host container-management rights).
 
 ### D6: Test seam is `scripts/__tests__/ssh-agent-forward.bats` (new file)
 
@@ -112,11 +112,11 @@ Public boundary: The documentation will describe the SSH agent forwarding featur
 
 ## Risks / Trade-offs
 
-**R1: SELinux denial on SSH agent socket → Mitigation:** `--security-opt label=disable` (already present, DIA-121 precedent) disables SELinux confinement for the container, so no `connectto` denial. The security trade-off is acceptable (non-root uid 1000, read-only rootfs, `--cap-drop ALL`).
+**R1: SELinux denial on SSH agent socket → Mitigation:** `--security-opt label=disable` (already present, DIA-164 precedent) disables SELinux confinement for the container, so no `connectto` denial. The security trade-off is acceptable (non-root uid 1000, read-only rootfs, `--cap-drop ALL`).
 
 **R2: SSH agent socket path varies by desktop environment → Mitigation:** Detection loop probes the three most common paths (`$SSH_AUTH_SOCK`, `${XDG_RUNTIME_DIR}/keyring/ssh`, `${XDG_RUNTIME_DIR}/gcr/ssh`). If a user's SSH agent uses a non-standard path, they can set `SSH_AUTH_SOCK` manually. Warn-and-continue when no socket is found.
 
-**R3: `GIT_SSH_COMMAND=accept-new` trusts first-seen host key (TOFU) → Mitigation:** The developer's host already has `github.com` in `~/.ssh/known_hosts`; the container only needs to accept the same key. The risk is identical to the already-accepted DIA-121 docker-socket forwarding. If the developer wants stricter security, they can mount a pre-populated `known_hosts` file (out of scope for this change; see Non-Goal).
+**R3: `GIT_SSH_COMMAND=accept-new` trusts first-seen host key (TOFU) → Mitigation:** The developer's host already has `github.com` in `~/.ssh/known_hosts`; the container only needs to accept the same key. The risk is identical to the already-accepted DIA-164 docker-socket forwarding. If the developer wants stricter security, they can mount a pre-populated `known_hosts` file (out of scope for this change; see Non-Goal).
 
 **R4: Socket mount is read-only, but the container can still make sign-requests → Mitigation:** This is the intended behavior. The container can request the host's SSH agent to sign data (for `git push`), but cannot modify the socket state. This is identical to the docker-socket forwarding pattern (the container can make docker API calls, but the socket is read-only).
 

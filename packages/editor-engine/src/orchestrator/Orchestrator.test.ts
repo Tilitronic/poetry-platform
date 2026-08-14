@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { Orchestrator } from './Orchestrator';
 
 // ---------------------------------------------------------------------------
-// DIA-127: contract test for Orchestrator.acceptWorkerResult.
+// DIA-170: contract test for Orchestrator.acceptWorkerResult.
 //
 // Enforces the revision-ordering and priority contract from architecture.md
 // ("Orchestrator - single write point", ~lines 503-509):

@@ -79,7 +79,7 @@ bash scripts/worktrees.sh cleanup [--days N] [--dry-run]
   `.opencode/session/` isolation, and prints the worktree path.
 - `remove` refuses dirty/unmerged worktrees unless `--force`. The branch is
   ALWAYS kept (rollback window).
-- `cleanup` (DIA-137) deletes merged `feature/*` branches after the rollback
+- `cleanup` (DIA-177) deletes merged `feature/*` branches after the rollback
   window. Merge-verified against main (is-ancestor fast path, tree-subset
   squash parity); a dirty linked worktree is ALWAYS skipped (no `--force` on
   cleanup); the default window is 0 days (immediate post-merge teardown).
@@ -132,7 +132,7 @@ git commit -m "feat(infra): <summary> (DIA-100)"
 git push origin main
 
 # 5. Orchestrator dispatches @coder to teardown: `remove` THEN `cleanup`
-#    (DIA-137). `remove` drops the worktree dir (branch kept for rollback);
+#    (DIA-177). `remove` drops the worktree dir (branch kept for rollback);
 #    `cleanup` verifies the branch content is on main and deletes the branch
 #    (plus any leftover worktree dir on disk). Lanes never run either form
 #    of `git branch -d` directly — the script is the policy boundary:
@@ -150,7 +150,7 @@ bash scripts/worktrees.sh cleanup --days 30        # conservative window
 ```
 
 Rollback window: under the default 0-day cleanup window the branch is
-deleted immediately after a verified squash-merge (DIA-137) — the merge
+deleted immediately after a verified squash-merge (DIA-177) — the merge
 verification (is-ancestor or tree-subset against main) plus the
 dirty-worktree skip are the safety gates, not age. Opt-in conservative runs
 (`--days N` / `WORKTREES_CLEANUP_DAYS=N`) keep the branch for a grace
@@ -192,7 +192,7 @@ a summary of the conflict hunks and both sides' intent via the normal handoff.
 ## Cleanup policy
 
 - Worktree removal happens after the squash-merge (step 5 above) via
-  `scripts/worktrees.sh remove`, then `scripts/worktrees.sh cleanup` (DIA-137)
+  `scripts/worktrees.sh remove`, then `scripts/worktrees.sh cleanup` (DIA-177)
   verifies the branch content is on main and deletes the branch — the
   default 0-day window deletes immediately after a successful merge.
 - The branch is kept only while the configured window is open (opt-in via

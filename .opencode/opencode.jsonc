@@ -267,7 +267,7 @@
     // analysis. hidden: true keeps it out of @autocomplete; task() dispatch
     // still works (S2 orchestrator allow-list includes it). Permissions are an
     // exact clone of the base analyzer (edit scoped to knowledge/* only,
-    // shelf registration delegated to @memory-manager (DIA-119 sole-writer
+    // shelf registration delegated to @memory-manager (DIA-162 sole-writer
     // invariant), bash allow, task deny). After producing output, routes back
     // to the base analyzer/reviewer for normal flow.
     "analyzer-escalated": {

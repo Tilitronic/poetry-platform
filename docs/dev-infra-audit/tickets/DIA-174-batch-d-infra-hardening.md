@@ -1,15 +1,17 @@
-# DIA-134 - Batch D infra hardening: worktree hooks, test persistence, branch-ownership payloads, dispatch tokens (DIA-132 retrospective)
+# DIA-174 - Batch D infra hardening: worktree hooks, test persistence, branch-ownership payloads, dispatch tokens (DIA-172 retrospective)
+
+<!-- RENUMBERED 2026-08-14 (phase 1, remote lineage canonical, DIA-153): local DIA-134 collided with origin/omo-slim-changes ticket DIA-134-overnight-hardening-baseline.md (different ticket). Renumbered to DIA-174. -->
 
 ---
 
-id: DIA-134
-title: "Batch D infra hardening: worktree hooks, test persistence, branch-ownership payloads, dispatch tokens (DIA-132 retrospective)"
+id: DIA-174
+title: "Batch D infra hardening: worktree hooks, test persistence, branch-ownership payloads, dispatch tokens (DIA-172 retrospective)"
 area: dev-infra
 severity: Major
 status: DONE
 blocked_by: [] # DIA-NNN refs, or empty
 discovered: 2026-08-14
-source: DIA-132 retrospective (2026-08-14)
+source: DIA-172 retrospective (2026-08-14)
 date: 2026-08-14
 created: 2026-08-14
 updated: 2026-08-14
@@ -23,7 +25,7 @@ model: "opencode-go/deepseek-v4-flash"
 parent_session_id: "ses_00327cd6effet7lPBAkPxJ0M3U"
 attempts: 0
 lease_expires_at: ""
-files_touched: [docs/dev-infra-audit/tickets/DIA-134-batch-d-infra-hardening.md, docs/dev-infra-audit/tickets/README.md]
+files_touched: [docs/dev-infra-audit/tickets/DIA-174-batch-d-infra-hardening.md, docs/dev-infra-audit/tickets/README.md]
 artifacts: []
 evidence: []
 
@@ -31,7 +33,7 @@ evidence: []
 
 ## Description
 
-DIA-132 (parallel coders, batch D) shipped 2026-08-14, but the retrospective
+DIA-172 (parallel coders, batch D) shipped 2026-08-14, but the retrospective
 identified 6 infra-hardening items that caused friction during that run. Each
 item below is self-contained: problem / proposed change / verification.
 
@@ -52,7 +54,7 @@ and the hook hard-fails when the dev container is down.
 
 ### 2. Test persistence for plugin/config behavioral tests
 
-**Problem:** DIA-132 RED/GREEN/merge-verify relied on throwaway tests in
+**Problem:** DIA-172 RED/GREEN/merge-verify relied on throwaway tests in
 `/tmp/opencode/batch-d-tests/`, which the OS tmp-cleanup wiped between
 sessions. The merge-phase coder had to RECONSTRUCT equivalent tests; counts
 drifted (10/10 -> 15/15), breaking the same-test contract.
@@ -62,7 +64,7 @@ gitignored suite under `scripts/__tests__/` (node `.test.mjs`, no new deps),
 or wire them into `make test-config`, so RED/GREEN/merge-verify always re-run
 the SAME files.
 
-> SUPERSEDED by DIA-136 F2 (2026-08-14): the suite file was un-gitignored and
+> SUPERSEDED by DIA-176 F2 (2026-08-14): the suite file was un-gitignored and
 > is now git-tracked - the gitignored-by-design plan no longer applies.
 
 **Verification:** run the suite from a fresh session after a tmp wipe and
@@ -70,7 +72,7 @@ confirm identical assertions/expected counts.
 
 ### 3. Branch-ownership in batch D payloads
 
-**Problem:** during the DIA-132 fix loop, the append-worktree coder edited the
+**Problem:** during the DIA-172 fix loop, the append-worktree coder edited the
 3 preset texts in `oh-my-opencode-slim.jsonc` because it did not know those
 files belonged to a sibling branch (`feature/dia132-prompts`). Required a
 revert commit (af6e019) to avoid a merge conflict.
@@ -85,8 +87,8 @@ and a follow-up batch D run produces zero out-of-scope edits.
 
 ### 4. Ticket-ID token in dispatch/resume prompts (DIA-063 friction)
 
-**Problem:** two DIA-132 agent resumes were BLOCKED by the ticket-gate scan
-because the resume prompts lacked the literal "DIA-132" token. Wasted cycles.
+**Problem:** two DIA-172 agent resumes were BLOCKED by the ticket-gate scan
+because the resume prompts lacked the literal "DIA-172" token. Wasted cycles.
 
 **Proposed change:** codify in AGENTS.md section 2.3 (or the orchestrator
 operating rules) that every dispatch AND resume prompt must contain the ticket
@@ -97,7 +99,7 @@ intact); with the token it passes.
 
 ### 5. Architector design persistence
 
-**Problem:** the DIA-132 docs reviewer flagged FALSIFICATION-1 ("ADR not
+**Problem:** the DIA-172 docs reviewer flagged FALSIFICATION-1 ("ADR not
 verbatim") because the architector's original design text lives only in the
 orchestrator session, not in the repo. The reviewer could not verify the
 source; the finding was a false positive but cost a review cycle.
@@ -111,7 +113,7 @@ at review time.
 
 ### 6. Merge-gate container evidence
 
-**Problem:** the DIA-132 merge phase was attempted twice against a DOWN
+**Problem:** the DIA-172 merge phase was attempted twice against a DOWN
 container (`poetry-dev` exited 137 ~10h) despite a claim that commits were
 configured. Only a real `docker compose ps` (dev service Up) satisfies the
 gate.
@@ -126,7 +128,7 @@ happens without it.
 
 ## Scope
 
-Six independent infra-hardening items from the DIA-132 retrospective (see
+Six independent infra-hardening items from the DIA-172 retrospective (see
 Description sections 1-6): worktree husky shim, persistent behavioral test
 suite, branch-ownership payload contract, ticket-ID dispatch token, architector
 design persistence, merge-gate container evidence. Spans scripts + opencode
@@ -142,7 +144,7 @@ Self-check evidence for this ticket's own creation:
   artifacts/evidence).
 - All 5 body sections present: Description / Scope / Verification / Fix /
   Re-verify.
-- README index row added after the DIA-132 row.
+- README index row added after the DIA-172 row.
 - README summary counts updated: Major 33->34, OPEN 30->31; all other counts
   unchanged.
 
@@ -156,7 +158,7 @@ reviewed + ai-auditor APPROVE + combined review MERGE-READY; merged 2026-08-14
 via 4 serialized squash-merges 05c75fe..510e60b on omo-slim-changes). All 6
 items implemented across slices S1-S4:
 
-> Note (2026-08-14): item 2's gitignored-suite claim is SUPERSEDED by DIA-136
+> Note (2026-08-14): item 2's gitignored-suite claim is SUPERSEDED by DIA-176
 > F2 - the suite file is now un-gitignored and tracked.
 
 1. **Worktree husky-shim gap (S1, feature/dia134-shim 644c3a1):**
@@ -171,7 +173,7 @@ items implemented across slices S1-S4:
    npm deps) and is wired into `make test-config` via Makefile, so
    RED/GREEN/merge-verify always re-run the SAME file. Suite file GITIGNORED
    per design.md DD2 (not carried by git; see deferrals). SUPERSEDED by
-   DIA-136 F2 (2026-08-14): file un-gitignored and now tracked (ADR 10
+   DIA-176 F2 (2026-08-14): file un-gitignored and now tracked (ADR 10
    supersedes ADR 9). .gitignore rule
    added; .sdd/dev-infra/architecture.md ADR 9 (persistent behavioral suite
    gitignored by design) + DD1 ADR.
@@ -221,7 +223,7 @@ Accepted deferrals:
   design.md DD2; on fresh clones / worktrees it must be copied from the S2
   worktree (`.worktrees/feature-dia134-tests/scripts/__tests__/`) when
   re-materializing — `make test-config` will fail on main until copied.
-  SUPERSEDED by DIA-136 F2 (2026-08-14): file un-gitignored and now tracked -
+  SUPERSEDED by DIA-176 F2 (2026-08-14): file un-gitignored and now tracked -
   fresh clones get it via git; this deferral no longer applies.
 
 ## Re-verify
