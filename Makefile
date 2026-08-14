@@ -170,7 +170,10 @@ test-skills:
 # checks + skill frontmatter gate + agent-name cross-reference + HANDOFF
 # prognosis-schema gate (change dev-infra-config-validators, T4) +
 # decision-variants EBDV gate (DIA-115 item 1: scripts/validate-decision-variants.sh,
-# wired alongside the other validate-*.sh scripts) + tool-coverage audit
+# wired alongside the other validate-*.sh scripts) + grilling-gate marker
+# validator (DIA-104: scripts/validate-grilling-gate.sh, warn-not-fail on
+# legacy tickets - absent gate_state = grandfathered, hard-fail only on
+# invalid state or bypassed-without-override) + tool-coverage audit
 # (change dia-066-tool-coverage-audit, T6) + docker-compose.yml syntax
 # (DIA-124: `docker compose config --quiet` so compose drift fails the config
 # gate without the heavy test-infra). Invariant: test-config passes
@@ -184,6 +187,7 @@ test-config: test-interview test-skills
 	bash scripts/validate-output-contracts.sh
 	bash scripts/validate-reviewer-sections.sh
 	bash scripts/validate-decision-variants.sh
+	bash scripts/validate-grilling-gate.sh
 	bash scripts/check-orchestrator-prompt-drift.sh
 	bash scripts/validate-handoff.sh
 	bash scripts/test-ticket-gate.sh

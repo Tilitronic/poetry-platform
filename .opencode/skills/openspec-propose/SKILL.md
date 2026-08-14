@@ -34,6 +34,15 @@ Propose a new change — interview-first, then synthesize. I will NOT generate s
    Dispatch **@openspec-plan** for the structured Socratic interview BEFORE any artifact work. The interview protocol:
    - One question at a time, each with the model's recommended answer ("My recommendation: [answer]. Agree, or what should change?")
    - Look up facts in the codebase rather than asking the developer — explore and report findings
+   - Gate check (DIA-104, Phase 0a - before Depth Mode selection): check the 7
+     triggers (new-module | cross-boundary | schema-state | new-public-api |
+     cross-cutting | hard-to-reverse | new-ui-component). None match -> state
+     "no trigger - skip grill" and proceed. Any match -> check the waivers
+     (hotfix | incremental-to-grilled-module | spike-poc |
+     refactor-no-behavior-change); a waiver applies -> state it and skip the
+     grill; no waiver -> the grill is MANDATORY. Record the decision in the
+     ticket frontmatter (gate_state / gate_triggers / gate_waivers /
+     gate_override). Full gate definition: DIA-104 ticket.
    - Numerical-invariants battery when the feature involves phonetics / metrics / stress / scientific computation (IPA, stress, syllabification; meter, foot, caesura; intonation contours, tonal patterns; idempotence, conservation, monotonicity; numerical tolerance and reference implementation)
    - Depth mode selection: **Full** (default) / **Compressed** (≤5 questions) / **Skip** (requires explicit developer opt-in with a stated reason)
    - Research/analysis needs found during the interview → dispatch @researcher / @analyzer inline and feed results back

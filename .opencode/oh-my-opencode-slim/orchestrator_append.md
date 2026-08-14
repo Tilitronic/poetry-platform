@@ -84,6 +84,19 @@ The interview gate may be bypassed ONLY when ALL of the following are true:
 
 **HARD RULE**: The orchestrator NEVER auto-classifies work as trivial or fast-path eligible. Ambiguity → full interview. If the developer has not explicitly said "fast-path approved", the full interview chain applies.
 
+**DIA-104 grilling gate (cross-reference):** the mandatory-developer-grilling
+gate (DIA-104) formalizes the significant-change path this fast-path bypasses.
+Hybrid ownership: the ORCHESTRATOR owns the explicit fast-path opt-in above
+(developer says "fast-path approved" + reason); @openspec-plan owns the
+implicit classification - it checks the 7 triggers (new-module |
+cross-boundary | schema-state | new-public-api | cross-cutting |
+hard-to-reverse | new-ui-component), then waivers (hotfix |
+incremental-to-grilled-module | spike-poc | refactor-no-behavior-change), and
+runs the MANDATORY GRILL when both apply. The decision is recorded in the
+ticket frontmatter (gate_state / gate_triggers / gate_waivers /
+gate_override). Full definition: docs/dev-infra-audit/tickets/
+DIA-104-mandatory-developer-grilling-gate.md.
+
 **Examples of valid fast-path:**
 - "fast-path approved: bugfix — null check missing in phonetics-core line 42"
 - "fast-path approved: 1:1 pattern clone — add median() next to existing mean()"

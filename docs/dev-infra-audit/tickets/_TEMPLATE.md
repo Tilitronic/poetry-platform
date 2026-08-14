@@ -20,6 +20,15 @@ severity: <Blocker | Critical | Major | Medium | Minor | Info>
 status: <OPEN | VALIDATE | E2E | DEFERRED | MONITOR | FIXED | IMPLEMENTED | VERIFIED | CLOSED | BLOCKED | DISPATCHED | RUNNING | COMPLETE> # VALIDATE/E2E added 2026-08-04 (audit-phase statuses; ticket-vocabulary drift fix); DISPATCHED/RUNNING/COMPLETE added 2026-08-04 (v2 delegation lifecycle, set by delegation-observer plugin at delegation time)
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: "" # optional DIA-NNN parent epic ticket (DIA-125 keep-local extension; scripts/tickets emits this field always)
+
+# DIA-104 grilling-gate markers (ai--7 validated design): fill at creation time
+
+# with the defaults below (absent = legacy/skipped, grandfather precedent).
+
+gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
+gate_triggers: [] # new-module | cross-boundary | schema-state | new-public-api | cross-cutting | hard-to-reverse | new-ui-component
+gate_waivers: [] # hotfix | incremental-to-grilled-module | spike-poc | refactor-no-behavior-change
+gate_override: "" # free-text: developer signal + reason; empty = no override
 discovered:
 source: <inventory | baseline | test-lane | fix-lane>
 date: YYYY-MM-DD

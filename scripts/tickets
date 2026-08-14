@@ -53,6 +53,11 @@
 #     the README row keep the raw title.
 #   - parent_epic: "" is always emitted (empty when not provided) so the
 #     frontmatter schema is stable across new tickets (DIA-125 extension).
+#   - DIA-104 grilling-gate markers (gate_state / gate_triggers /
+#     gate_waivers / gate_override) are always emitted with defaults (empty
+#     state/arrays/override) so the frontmatter schema is stable across new
+#     tickets; absent = legacy/skipped, grandfather precedent (ai--7 design;
+#     validated by scripts/validate-grilling-gate.sh, warn-not-fail).
 #
 # Bash-3 compatible (worktrees.sh/session-log contract): no [[ ]], no
 # associative arrays, no mapfile/namerefs/compgen. The bats SUITE requires
@@ -809,6 +814,16 @@ cmd_new() {
       # see _TEMPLATE.md).
       printf 'parent_epic: ""\n'
     fi
+    # DIA-104 grilling-gate markers: always emitted with defaults (empty
+    # state/arrays/override) so the frontmatter schema is stable across new
+    # tickets (ai--7 validated design; same always-emitted pattern as
+    # parent_epic above - absent = legacy/skipped, grandfather precedent).
+    # gate_override is YAML-quoted (empty at creation; the title: quoting
+    # technique at the top of this block keeps a filled value valid YAML).
+    printf 'gate_state: "skipped" # grilled | waived | bypassed | partial | skipped\n'
+    printf 'gate_triggers: [] # new-module | cross-boundary | schema-state | new-public-api | cross-cutting | hard-to-reverse | new-ui-component\n'
+    printf 'gate_waivers: [] # hotfix | incremental-to-grilled-module | spike-poc | refactor-no-behavior-change\n'
+    printf 'gate_override: "" # free-text: developer signal + reason; empty = no override\n'
     printf 'discovered: %s\n' "$TODAY"
     printf 'source: %s\n' "$source"
     printf 'date: %s\n' "$TODAY"
