@@ -13,7 +13,7 @@ id: DIA-153
 title: "Push omo-slim-changes to origin: lineage reconciliation (rebase) + SSH transport setup (openssh-client in opencode-docker, origin remote to SSH)"
 area: dev-infra
 severity: Major
-status: OPEN
+status: DONE
 blocked_by: []
 discovered: 2026-08-14
 source: developer-directive ("ok, teper mozhna pushyty zminy na rimoout, sprobuy" (transliterated Ukrainian, 2026-08-14))
@@ -163,6 +163,17 @@ DIA-154-156.
   the host key inside the container.
 - Push: "git push origin omo-slim-changes" succeeds (from..to shas on origin);
   pre-push hook gate exit codes recorded.
+
+## Resolution
+
+Push succeeded: origin/omo-slim-changes advanced be95758..d5ce826. A clean rebase
+of 45 local commits onto the new remote tip be95758 (DIA-104 mandatory developer
+grilling gate, pushed from elsewhere) completed with 0 conflicts; the rebase
+made origin's tip the merge-base and replayed all 45 commits on top. All
+pre-push gates were green: test-config (batch-d-infra.test.mjs 49/49), python
+(verify-python 4/4), test-shell (325/325), and the DIA-104 grilling-gate
+validator (130/130, 130 legacy warnings by design). Remote sha equals local
+HEAD: d5ce82612a9065fd47924920f7f63557a8a6193c. No force, no bypass used.
 
 ## Fix
 

@@ -103,7 +103,7 @@
 | DIA-150 | test infra Phase 2: critical gaps (vitest in author-studio, real data-contracts test) | tests-infra | Critical | CLOSED | [DIA-150-test-infra-phase2-critical-gaps.md](DIA-150-test-infra-phase2-critical-gaps.md) |
 | DIA-151 | test infra Phase 3: Orchestrator contract test (acceptWorkerResult, zero mocks) | tests-infra | Medium | CLOSED | [DIA-151-test-infra-phase3-orchestrator-contract.md](DIA-151-test-infra-phase3-orchestrator-contract.md) |
 | DIA-152 | Install docker CLI + compose plugin in poetry-dev image (pre-push test-config gate) | docker | Major | VERIFIED | [DIA-152-install-docker-cli-poetry-dev-image.md](DIA-152-install-docker-cli-poetry-dev-image.md) |
-| DIA-153 | Push omo-slim-changes to origin: lineage reconciliation (rebase) + SSH transport setup (openssh-client in opencode-docker, origin remote to SSH) | dev-infra | Major | OPEN | [DIA-153-push-omo-slim-changes-to-origin.md](DIA-153-push-omo-slim-changes-to-origin.md) |
+| DIA-153 | Push omo-slim-changes to origin: lineage reconciliation (rebase) + SSH transport setup (openssh-client in opencode-docker, origin remote to SSH) | dev-infra | Major | DONE | [DIA-153-push-omo-slim-changes-to-origin.md](DIA-153-push-omo-slim-changes-to-origin.md) |
 | DIA-157 | Audit agent instruction/prompt files (.ts and .md) for inaccuracies, duplications, vague wording | opencode-config | Medium | OPEN | [DIA-157-agent-instruction-files-audit.md](DIA-157-agent-instruction-files-audit.md) |
 | DIA-158 | Audit pre-commit and pre-push hook test coverage (turbo-driven) for edge-case gaps | git-hooks | Medium | OPEN | [DIA-158-hook-test-coverage-audit.md](DIA-158-hook-test-coverage-audit.md) |
 | DIA-159 | Analyze task parallelization in agent prompts - maximize concurrent execution without file-write conflicts | opencode-config | Medium | OPEN | [DIA-159-task-parallelization-analysis.md](DIA-159-task-parallelization-analysis.md) |
@@ -135,23 +135,23 @@
 | Blocker  | 7     |
 | Critical | 8     |
 | Major    | 44    |
-| Medium   | 57    |
+| Medium   | 56    |
 | Minor    | 0     |
-| Low      | 11    |
+| Low      | 12    |
 | Info     | 0     |
 
 | Status      | Count |
 | ----------- | ----- |
-| OPEN        | 17    |
-| DONE        | 9     |
+| OPEN        | 11    |
+| DONE        | 10    |
 | VALIDATE    | 0     |
 | E2E         | 0     |
 | DEFERRED    | 1     |
 | MONITOR     | 1     |
 | FIXED       | 1     |
 | IMPLEMENTED | 2     |
-| VERIFIED    | 29    |
-| CLOSED      | 67    |
+| VERIFIED    | 28    |
+| CLOSED      | 73    |
 | BLOCKED     | 0     |
 | DISPATCHED  | 0     |
 | RUNNING     | 0     |
