@@ -12,6 +12,16 @@
 # this script). The probe is install-method-agnostic: it checks the binary on
 # PATH and its --version, not how it was installed (rustup or apt).
 #
+# TOLERANT GATE (DIA-071): the dev container (poetry-dev, Dockerfile.dev)
+# provides all three language servers, so a host WITHOUT them is an
+# unconfigured host, not a broken repo. A MISSING host tool therefore emits
+# `warn:` and does not fail the gate — `make test-shell` / `make test-infra`
+# exit 0 on fresh hosts. Version DRIFT (a tool present at a version differing
+# from the pin) still fails: that is the gate's drift-detection purpose, and
+# the container-first rust-analyzer host fallback keeps its designed drift
+# fail (DIA-106). Set CHECK_HOST_LSP_STRICT=1 to restore the old hard-fail on
+# missing tools (hosts that must have full LSP parity, e.g. CI).
+#
 # rust-analyzer is CONTAINER-FIRST (DIA-106): the primary probe execs
 # rust-analyzer THROUGH the dev container (`docker compose exec`), matching the
 # pre-commit/pre-push delegation pattern (DIA-094), and compares against the
@@ -40,10 +50,14 @@ for key in TYPESCRIPT_LANGUAGE_SERVER_VERSION PYRIGHT_VERSION RUST_ANALYZER_VERS
 done
 
 SKIP_RUST="${SKIP_RUST:-0}"
+# CHECK_HOST_LSP_STRICT=1 restores the pre-DIA-071 hard gate: a missing host
+# tool is a fail, not a warn (see header comment "TOLERANT GATE (DIA-071)").
+STRICT="${CHECK_HOST_LSP_STRICT:-0}"
 
 ok=0
 fail=0
 skip=0
+warn=0
 status=0
 
 # extract_version <raw_output>: prints the first dotted-number token from a
@@ -57,15 +71,25 @@ extract_version() {
   printf '%s\n' "${1:-}" | grep -oE '[0-9]+(\.[0-9]+)+' | head -n1 || true
 }
 
-# probe_tool <tool> <pinned>: emits ok:/fail: for one tool and aggregates.
+# probe_tool <tool> <pinned>: emits ok:/warn:/fail: for one tool and aggregates.
+# Default (tolerant, DIA-071): a missing host tool is a warn — the dev
+# container provides it (container-first rust-analyzer is the DIA-106 precedent)
+# and the host copy only serves host-mode editors. Version drift on a PRESENT
+# tool still fails (drift detection is the gate's purpose). CHECK_HOST_LSP_STRICT=1
+# downgrades missing to a fail, restoring the pre-DIA-071 hard gate.
 probe_tool() {
   local tool="$1"
   local pinned="$2"
 
   if ! command -v "${tool}" >/dev/null 2>&1; then
-    echo "fail: ${tool} — not found on PATH. Run scripts/install-host-lsp.sh (see docs/dev-infra/host-lsp-setup.md)" >&2
-    fail=$((fail + 1))
-    status=1
+    if [ "${STRICT}" = "1" ]; then
+      echo "fail: ${tool} — not found on PATH. Run scripts/install-host-lsp.sh (see docs/dev-infra/host-lsp-setup.md)" >&2
+      fail=$((fail + 1))
+      status=1
+    else
+      echo "warn: ${tool} — not found on host PATH. The dev container provides it; install on the host only for host-mode editors: scripts/install-host-lsp.sh (see docs/dev-infra/host-lsp-setup.md)" >&2
+      warn=$((warn + 1))
+    fi
     return
   fi
 
@@ -123,8 +147,8 @@ elif ! probe_rust_analyzer_container "${RUST_ANALYZER_VERSION}"; then
 fi
 
 if [ "${fail}" -gt 0 ]; then
-  echo "summary: ${ok} ok, ${fail} fail, ${skip} skip — see above"
+  echo "summary: ${ok} ok, ${fail} fail, ${warn} warn, ${skip} skip — see above"
 else
-  echo "summary: ${ok} ok, ${fail} fail, ${skip} skip"
+  echo "summary: ${ok} ok, ${fail} fail, ${warn} warn, ${skip} skip"
 fi
 exit "${status}"

@@ -11,9 +11,23 @@
      does not cover the emission path that reaches the TUI. This ticket tracks
      the residual/duplicated warning symptom and the root-cause investigation
      (all config sources: project and user opencode.jsonc, project and user OMO
-     configs, preset files, emission path in dist/index.js, duplication cause,
+     configs,      preset files, emission path in dist/index.js, duplication cause,
      screenshot staleness). This is a ticket-ledger documentation ticket ONLY -
-     no config, code, agent, or skill changes were made. -->
+     no config, code, agent, or skill changes were made.
+
+     UPDATE 2026-08-13 (RESTART-VERIFY PASS + CLOSED): DIA-131 post-restart
+     TUI re-verify PASSED. Lane evidence (cod-2 restart-verify lane, ~16:42
+     local): post-restart PID 3570407 started 16:40:23 local after the 16:11
+     config edit; ZERO inline-override warnings in post-restart plugin logs
+     oh-my-opencode-slim.20260813T144026/27/29.log; user-level config clean
+     (no inline prompt key in any coder/analyzer block across all 3 presets
+     + root agents); coder.md (4085B) + analyzer.md (12631B) present with
+     byte-exact relocated DIA-130 content. Item 5 (TUI screenshot) recorded
+     as PASS via developer attestation in session on 2026-08-13: the TUI
+     "Loading plugins..." area rendered ZERO inline-override warnings and no
+     duplication ("terminal ui loaded clean, nothing to show you. Look like
+     we fixed correctly."); screenshot moot because nothing anomalous was
+     shown. Ticket flipped CLOSED 2026-08-13. -->
 
 ---
 
@@ -21,7 +35,7 @@ id: DIA-130
 title: "Duplicated OMO inline-override warnings still visible in opencode TUI 'Loading plugins...' area (residual after DIA-128)"
 area: opencode-config
 severity: Major
-status: OPEN
+status: CLOSED
 blocked_by: [] # follow-up of DIA-128 (CLOSED 2026-08-13); no blockers
 discovered: 2026-08-13
 source: session-observation (developer live screenshot 2026-08-13, residual symptom of DIA-128)
@@ -290,4 +304,36 @@ content and independent byte-exact verification).
 
 ## Re-verify
 
-> To be filled at re-verify time.
+RESTART-VERIFY PASS (2026-08-13, via DIA-131). Ticket flipped CLOSED.
+
+### Evidence (DIA-131 post-restart re-verify, all items PASS)
+
+1. **Post-restart process loaded the fix:** PID 3570407 started 16:40:23
+   local, AFTER the user-level config edit at 16:11.
+2. **ZERO inline-override warnings in the TUI:** developer-attested in
+   session on 2026-08-13 - the "Loading plugins..." area rendered ZERO
+   inline-override warnings and no duplication ("terminal ui loaded clean,
+   nothing to show you. Look like we fixed correctly."); screenshot was moot
+   because nothing anomalous was shown (developer-attested, supersedes the
+   screenshot requirement).
+3. **ZERO warnings in post-restart plugin logs:** oh-my-opencode-slim.
+   20260813T144026/27/29.log - no inline-override occurrence (pre-fix: 4
+   lines, 2x coder + 2x analyzer).
+4. **User-level config clean:** no inline `"prompt"` key in any
+   coder/analyzer block (all 3 presets opencode-go/cebula/free + root
+   agents); only out-of-scope ai-specialist + 4 council keys remain.
+5. **Prompt files active with relocated content:** coder.md (4085 bytes)
+   and analyzer.md (12631 bytes) present with byte-exact relocated DIA-130
+   content (F1/F2).
+
+### Resolution
+
+Status CLOSED 2026-08-13. Root cause removed (3 inline prompt keys deleted,
+content relocated byte-exact to the user-level prompt files) and the
+user-visible symptom is GONE: the TUI "Loading plugins..." area shows zero
+inline-override warnings post-restart (developer-attested) with zero plugin
+log occurrences and a clean user-level config. This closes the DIA-128
+close-out gap - the visual re-verify that log-grep-only evidence could not
+provide. Residual risk: a future OMO upgrade or config edit re-adding inline
+prompts would re-trigger the warning; the dual-runtime regression note
+headers in both user-level prompt files guard against this.

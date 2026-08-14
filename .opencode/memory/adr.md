@@ -559,3 +559,111 @@ behavior-equivalent under the other.
 
 - Created: 2026-08-13
 - Related: DIA-128, commit 15f68a4 + 144a332, .opencode/oh-my-opencode-slim/coder.md, .opencode/oh-my-opencode-slim/analyzer_append.md, .opencode/learnings/external-patterns/2026-08-13-dia128-inline-prompt-relocation.md
+
+## ADR: Escalated-lane steps-cap execution limit (DIA-132)
+
+### Status
+
+Accepted - 2026-08-13
+
+### Context
+
+The DIA-132 escalation-hardening cycle followed the DIA-130 incident in which
+@coder-escalated (kimi-k3) ran ~9.5 minutes ONE-SHOT and returned an EMPTY
+result with zero writes (silent failure). The ai-specialist hardening research
+(knowledge/res020-opencode-agent-config-watchdog/) established that OpenCode
+AgentConfig has NO native per-agent wall-clock timeout; the ONLY native
+execution limit is the "steps" field, which caps agentic ITERATIONS (not
+elapsed time) before forcing a text-only response. That finding is recoverable
+from res020; what is NOT recoverable from that conspect is this repository's
+Tiered mitigation DECISION, its scope, and its trade-offs.
+
+### Decision
+
+1. Tier 1 (implemented now): add a "steps": 50 cap to BOTH escalated lanes -
+   analyzer-escalated (.opencode/opencode.jsonc L265) and coder-escalated
+   (L321). 50 is an ITERATION cap, NOT a wall-clock timeout.
+2. Tier 2 (plugin alerts on session events via delegation-observer) and Tier 3
+   (proactive timeout watchdog) are DOCUMENTED but DEFERRED. They are deferred
+   because a plugin CAN alert but CANNOT auto-cancel a subagent in the current
+   OpenCode runtime; a true mitigation needs an upstream OpenCode feature.
+3. DIA-132 stays OPEN pending a restart-verify (DIA-123 pattern) at the next
+   session boot, because config limit changes are only verifiable against the
+   runtime after a true process restart.
+
+### Rationale (irrecoverable context)
+
+- "steps" is the ONLY native execution limit AgentConfig exposes; there is no
+  native per-agent timeout field (verified against the live
+  opencode.ai/config.json AgentConfig schema in res020). A wall-clock timeout
+  therefore must be layered by the plugin/runtime, which is why Tiers 2/3 are
+  deferred rather than omitted from the plan.
+- The 50 value is a STARTING heuristic balancing silent-failure containment
+  against not truncating legitimate complex escalations. It is not derived from
+  any documented sizing rule and is expected to be tuned after observation.
+
+### Consequences
+
+- Monitor: legitimate complex escalations may hit the 50-step text-only cutoff.
+  On limit the agent receives a system prompt to summarize remaining work, so
+  partial progress is surfaced, not silently lost. This is the intended
+  fail-safe, not a fault.
+- Track: per-dispatch iteration usage vs the kimi-k3 ~490 req/mo cap, so steps
+  tuning stays inside the provider budget and escalation lanes are not
+  throttled by quota.
+- DIA-132 requires a restart-verify (runtime tool/limit manifest) at next boot
+  before the change is considered effective.
+
+### Metadata
+
+- Created: 2026-08-13
+- Related: DIA-132, DIA-130, knowledge/res020-opencode-agent-config-watchdog/,
+  .opencode/opencode.jsonc L265/L321, CHANGELOG (DIA-132 Tier 1)
+
+## ADR: git-sync of a binary DB is not viable - keep the text ledger (DIA-125 res-2)
+
+### Status
+
+Accepted - 2026-08-13
+
+### Context
+
+During DIA-125 research (Idea B) we evaluated whether a local Forgejo issue
+tracker could be kept in sync across parallel sessions by pushing its database
+to git. The investigation determined Forgejo's DB is SQLite BINARY
+(DB_TYPE=sqlite3, PATH=data/forgejo.db), not text: git cannot merge two
+divergent binary DB files (unresolvable binary conflict / lost updates / WAL
+sidecar -wal/-shm corruption). The git-fetch-before-take claim protocol is
+valid ONLY on text - which is exactly the existing .md ledger. git-bug
+confirms text/object-based CRDT trackers (Lamport clocks) are the git-native
+pattern.
+
+### Decision
+
+Reject git-syncing a binary DB (Forgejo or any SQLite/Postgres store) as a
+sync mechanism. Keep the ticket ledger as git-backed TEXT markdown
+(docs/dev-infra-audit/tickets/). Any claim/coordination protocol
+(fetch-before-take, lease_expires_at + session_id single-writer token) must
+operate on text files that git merges cleanly.
+
+### Rationale
+
+- Binary DB files are opaque to git merge; divergence is unresolvable and
+  risks corruption (WAL sidecars add more opaque files). Text .md files merge
+  cleanly and are ASCII-safe (DIA-079).
+- A binary-DB git-sync collapses back onto needing a shared git remote anyway,
+  so the text-ledger approach dominates on both the merge and remote axes.
+
+### Consequences
+
+- Future architecture decisions about DB sync must NOT route binary stores
+  through git. Keep the durable record in text files.
+- Full verdict, evidence, and source research are in the DIA-125 ticket
+  (res-2 UPDATE) and knowledge/res018-ticket-management-automation/; this ADR
+  records only the durable architectural rule to prevent re-research.
+
+### Metadata
+
+- Created: 2026-08-13
+- Related: DIA-125, knowledge/res018-ticket-management-automation/,
+  docs/dev-infra-audit/tickets/COORDINATION.md

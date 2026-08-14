@@ -1,6 +1,8 @@
 # DIA-093 — Orchestrator boot: "I have no bash tool" - DIA-061 checksum not delegated to coder lane
 
-<!-- Campaign c-20260809-residual-closure, session 6. Filed by the first bash
+<!-- UPDATE 2026-08-13 (RESTART-VERIFY PASS + TICKET CLOSED): lane-0 checksum delegation executed LIVE at session boot 2026-08-13: coder lane ses_0043d6ad7ffeScZBDVjt1sgLjh ran the DIA-061 canonical pipeline (jq -c '.prognosis | to_entries | sort_by(.key) | from_entries' | tr -d '\n' | sha256sum) on .opencode/session/current-handoff.json, computed 526433d988ca7a96ba4dbd78ed2c53e8df5554b74ffb2b7903667968f57b35c9, VERDICT CHECKSUM_MATCH (stored==computed; lane wrote nothing - verification-only per DIA-093/DIA-120). Confirms: orchestrator bash-denied (delegation-only) + lane-0 coder delegation per NEXT-RUN.md 7.3 step 7 + atomic plugin handoff write with computed checksum (DIA-120). Fix items A/E/F verified against live system. Ticket CLOSED per Re-verify convention; commit deferred to end-of-session.
+
+     Campaign c-20260809-residual-closure, session 6. Filed by the first bash
      lane (coder) post-restart, per the developer directive 2026-08-11: the
      orchestrator MUST delegate bash-requiring tasks to coder; resolve once and
      for all for future sessions. Related tickets: DIA-091 (no-bash recurring
@@ -16,13 +18,13 @@ id: DIA-093
 title: "Orchestrator boot: 'I have no bash tool' - DIA-061 checksum not delegated to coder lane"
 area: opencode-config
 severity: Major
-status: OPEN
+status: CLOSED
 blocked_by: [] # cross-referenced in Description: DIA-091, DIA-061, DIA-075, DIA-063
 discovered: 2026-08-11
 source: developer-directive
 date: 2026-08-11
 created: 2026-08-11
-updated: 2026-08-11
+updated: 2026-08-13
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -98,6 +100,8 @@ for future sessions.
 
 ## Fix
 
+FIX COMPLETE (verified 2026-08-13): Fix items A/E/F confirmed live - orchestrator bash-denied delegation-only, NEXT-RUN.md 7.3 step-7 lane-0 coder checksum delegation, plugin atomic handoff write with checksum (DIA-120). See top UPDATE.
+
 Implemented per developer directive 2026-08-11 as fixes A+E+F (design from
 analyzer root-cause analysis, session 6):
 
@@ -151,6 +155,8 @@ finding 1) — the lane never writes the file.
   `.opencode/learnings/external-patterns/2026-08-11-dia093-checksum-delegation-fix.md`.
 
 ## Re-verify
+
+RE-VERIFY PASS 2026-08-13: live lane-0 checksum delegation at session boot, CHECKSUM_MATCH, verification-only lane.
 
 - PENDING restart: on next boot confirm lane-0 checksum delegation runs
   automatically (no waiver menu), missing checksum does not block presentation,

@@ -78,6 +78,10 @@ After the developer disposes review findings (accept/reject per practice-protect
   7. **Register** — update CHANGELOG + learnings outcome field.
 - **Review matrix**: dev-infra → `@reviewer`; opencode config → `@ai-auditor`.
 
+### Evidence-Backed Decision Variants (EBDV, DIA-115)
+
+When presenting decision variants for POLICY-CLASS decisions (section-10 AI-devtools changes, AGENTS.md/prompt changes, agent-policy changes, model/tool selection with >=2 candidates), present >=2 genuine options, each carrying evidence (Tier-1 committed/conspec pointer or Tier-2 dated URL; Tier-3 must be labeled [INFERENCE] and never the sole basis), pros/cons, effort, and a section-10 routing flag. Always include an abort/status-quo variant. Give an explicit recommendation with a 'because' justification. Record the chosen variant in the ticket UPDATE block (or '## Alternatives considered' in specs). Mechanical validator: scripts/validate-decision-variants.sh (wired into make test-config).
+
 ## 3. Design Authority
 
 Before any code change, check these files for governing constraints (in order):
@@ -146,6 +150,26 @@ Full setup docs: `docs/docker-dev.md`.
 3. **ASCII-only protocol (DIA-079):** all lane dispatch payloads and
    reports use ASCII-only text (no em-dashes, no smart quotes, no
    non-ASCII punctuation) to prevent JSON serialization failures.
+
+### Session-end handoff (DIA-124)
+
+- **HARD RULE:** the handoff file (`.opencode/session/current-handoff.json`)
+  MUST be written via `log_decision(handoff)` BEFORE the final session
+  summary is presented to the developer - never after, never
+  only-if-time-permits. The final summary references the handoff. On plugin
+  failure, flag the missing handoff explicitly. (Operating protocol:
+  `docs/dev-infra-audit/NEXT-RUN.md` §7.2.)
+
+### Edit-time formatting (DIA-105)
+
+- The delegation-observer plugin runs prettier (local, --no-install) on
+  agent-edited files right after edit/write/apply_patch (edit-time scope is
+  PRETTIER-ONLY; eslint --fix stays commit-time per DIA-094 lint-staged).
+  Formatting is NON-FATAL: a formatter failure never blocks the edit - it
+  emits a format_warn registry row. Ignored paths: .opencode/session/,
+  knowledge/, docs/dev-infra-audit/tickets/, openspec/changes/archive/. Full
+  behavior + acceptance amendment:
+  docs/dev-infra-audit/tickets/DIA-105-edit-time-formatter-hooks.md.
 
 ## 9. Agent Naming Convention
 

@@ -16,6 +16,9 @@ FILES=(
   "$ROOT/.opencode/oh-my-opencode-slim.jsonc"
   "$ROOT/.opencode/dcp.jsonc"
   "$ROOT/.opencode/tui.json"
+  # DIA-126(a) overnight permission profile (2026-08-13): validated alongside
+  # the main configs so a syntax error in the hardened profile fails test-config.
+  "$ROOT/.opencode/opencode-overnight.jsonc"
 )
 
 if ! command -v node >/dev/null 2>&1; then

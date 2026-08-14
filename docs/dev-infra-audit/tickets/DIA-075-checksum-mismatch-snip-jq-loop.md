@@ -6,7 +6,28 @@
      checksum-mismatch (messages.jsonl row 1398, 18:47:43Z): the checksum verification
      lane had computed 0025ca8f… via `snip jq` instead of the canonical `bash -c` jq
      passthrough. The gate refused to resume; the developer chose investigation-first
-     (row 1399, 18:49:27Z). THIS LANE is that investigation: root cause + ticket. -->
+     (row 1399, 18:49:27Z). THIS LANE is that investigation: root cause + ticket.
+
+     UPDATE 2026-08-13 (INDEPENDENT VERIFICATION + CLOSED): the root cause was
+     structurally eliminated by DIA-092 (opencode-snip@1.6.1 plugin removal,
+     CLOSED 2026-08-13). The global plugin rewrote EVERY bash command to
+     `snip <cmd>` via a tool.execute.before hook - with the plugin removed
+     from the global plugin array (~/.config/opencode/opencode.jsonc "plugin":
+     dcp, envsitter-guard, openspec, oh-my-opencode-slim only - no
+     opencode-snip), the wrapper no longer intercepts any lane invocation, so
+     the jq-output truncation class cannot fire. DIA-092 Phase 5 post-restart
+     checklist 9/9 PASS (2026-08-11): make test-config exit 0, bash unlocked,
+     zero snip references in plugin arrays, no snip-prefixed emissions;
+     DIA-092 Phase 6 registration complete. Repo scan this lane: zero `snip`
+     wrapper/alias/function in scripts/, .opencode/scripts/, .opencode/plugins/
+     (grep exit 1 - no matches; only historical docs, CHANGELOG, learnings, and
+     the DORMANT deny rules retained per council 5/5). Current boot-gate
+     checksum flow uses the delegated coder lane per DIA-093 (lane-0 coder
+     delegation post-batch-approval, canonical `bash -c` jq passthrough,
+     plugin atomic-write handoff with computed checksum - no snip jq wrapper
+     anywhere). Stored checksum proven intact (canonical 060baeb4... MATCH in
+     the original investigation). Ticket flipped CLOSED 2026-08-13 per
+     Re-verify convention. -->
 
 ---
 
@@ -14,13 +35,13 @@ id: DIA-075
 title: "DIA-061 boot-gate checksum-mismatch via snip jq wrapper + recurring coder snip-jq loop"
 area: docs
 severity: Major
-status: OPEN
+status: CLOSED
 blocked_by: []
 discovered: 2026-08-09
 source: test-lane
 date: 2026-08-09
 created: 2026-08-09
-updated: 2026-08-09
+updated: 2026-08-13
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -185,35 +206,69 @@ passthrough (proven by cod-7 and by this investigation).
 
 ## Fix
 
-> To be filled at fix time.
+> IMPLEMENTED - root cause structurally eliminated by DIA-092 (CLOSED
+> 2026-08-13); independent closure verification 2026-08-13 (see UPDATE block
+>
+> - Re-verify).
 
-**Remediation recommendations (from this investigation):**
+**Implemented fix (DIA-092, Modified Option A, council 5/5):** remove the
+`opencode-snip@1.6.1` plugin from the global plugin array
+(`~/.config/opencode/opencode.jsonc` - its `tool.execute.before` hook rewrote
+every bash command to `snip <cmd>`, which is what put jq invocations through
+the truncating wrapper). With the plugin gone, NO lane invocation passes
+through `snip` - the jq truncation class (and the broader identical-command
+loop class, DIA-078) cannot fire. Retained as DORMANT zero-cost guardrails per
+council 5/5: the `{"snip": "deny", "snip *": "deny"}` permission rules
+(project `.opencode/opencode.jsonc` coder L180-181 / global L95-96) and
+`doom_loop: deny` - they never need to fire live but block any model that
+re-invents the prefix.
+
+**Original remediation recommendations (evaluated during fix design):**
 
 - **(a) snip wrapper:** fix or remove snip's jq output-truncation handling, or exclude
   jq (and any command whose output is hashed) from the filter set; document
   `bash -c "jq ..."` passthrough as the canonical invocation for checksum work.
   Because snip is a third-party binary with built-in filters, the safest immediate fix
-  is a prompt/guardrail (b) rather than patching the binary.
+  is a prompt/guardrail (b) rather than patching the binary. -> **Superseded by the
+  structural DIA-092 plugin removal (the wrapper is no longer in the command path).**
 - **(b) Coder prompt guardrail:** forbid `snip` for jq and any JSON query; forbid
   identical-command repetition (anti-loop rule: "if the output is byte-identical to the
   previous run and you have no new step, STOP and escalate"). Encode both in the coder
-  agent prompt and/or orchestrator dispatch brief.
+  agent prompt and/or orchestrator dispatch brief. -> **Implemented as interim defense
+  (DIA-076 Layer-2/Layer-3 + DIA-078 hardening), retained post-removal.**
 - **(c) DIA-061 canonical serialization:** already documented in the boot-gate rules
   (handoff `resume_instructions` step 1 references the canonical `bash -c` form and the
   "snip-wrapper jq quirk — bash -c passthrough" note). Extend the boot-gate rule to
   mechanically reject/flag any checksum-verification command that routes through `snip`.
+  -> **Superseded: the DIA-093 fix delegates checksum verification to a lane-0 coder
+  using the canonical `bash -c` passthrough (NEXT-RUN.md 7.3 step 7); the plugin
+  atomic-write handoff computes/stores the checksum itself (DIA-120 clarification).**
 
-**§10 routing note:** if remediation touches `.opencode/` config (coder prompt, gate
-rules) it MUST route through §10 (AI Devtools Modernization Workflow). The snip binary
-itself is outside the repo (tooling dependency) — flag its jq-filter behavior upstream.
+**S10 routing note:** the DIA-092 fix touches `.opencode/` config -> it was routed
+through S10 (ai-specialist gate -> council 5/5 -> coder -> ai-auditor Phase-6 review),
+Phase 5 validated 2026-08-11 (9/9 checklist), Phase 6 registered. The snip binary
+itself is outside the repo (tooling dependency); its upstream jq-filter behavior was
+flagged in DIA-092 (res-1 research, opencode-snip issue #7).
 
 ## Re-verify
 
-> To be filled at re-verify time.
+> COMPLETE - closed per re-verify convention 2026-08-13.
 
-1. Boot gate passes with zero developer intervention using the canonical `bash -c` jq
-   passthrough.
-2. No `snip jq` invocation in the checksum lane; no identical-command loop in 2+
-   consecutive cycles.
-3. Stored checksum continues to match canonical computation (`060baeb4…` for the
-   2026-08-09 handoff).
+1. **Boot gate passes with zero developer intervention using the canonical `bash -c` jq
+   passthrough.** -> **PASSED:** DIA-076 M3/M4 (2026-08-10) boot-gate checksum
+   verification dispatches ran WITHOUT gate block and WITHOUT intervention;
+   computed == stored via canonical passthrough (`6163028d...` M3, `0d70c13c...`
+   M4 session 2). DIA-092 Phase 5 (2026-08-11): bash unlocked, no snip
+   emissions; 9/9 checklist PASS.
+2. **No `snip jq` invocation in the checksum lane; no identical-command loop in 2+
+   consecutive cycles.** -> **PASSED:** DIA-092 Phase 5 monitoring (first 10+ bash
+   executions post-restart, zero snip-prefixed rewrites) + this lane's repo scan
+   (zero `snip` wrapper/alias/function in scripts/, .opencode/scripts/,
+   .opencode/plugins/). The opencode-snip plugin that mechanically rewrote
+   commands is removed - the `snip` prefix is now DORMANT-deny blocked.
+3. **Stored checksum continues to match canonical computation (`060baeb4...` for the
+   2026-08-09 handoff).** -> **PASSED:** original investigation proved the stored
+   checksum intact (canonical MATCH); the mismatch was purely the wrapper
+   artifact. Current flow: plugin atomic-write handoff computes/stores the
+   checksum itself (DIA-120); lane-0 coder re-verifies via `bash -c`
+   passthrough (DIA-093). -> **CLOSED.**

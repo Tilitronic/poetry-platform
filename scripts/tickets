@@ -1,0 +1,1064 @@
+#!/usr/bin/env bash
+# tickets - DIA ledger CLI: number allocator, template generator, README
+# rollup updater, blocker-graph/frontier view (DIA-125 keep-local automation).
+#
+# WHY: the manual DIA ticket workflow (count files by hand for the next
+# number, copy _TEMPLATE.md, insert a README index row, recompute the
+# severity/status counts by hand, reason about blockers in prose) cost ~55k
+# tokens of bookkeeping per creation. This script codifies the manual writer
+# against the exact contract the delegation-observer ticket gate already
+# parses (scanTickets reads docs/dev-infra-audit/tickets/*.md and derives the
+# ticket id from the FILENAME regex /^DIA-(\d+)/ - delegation-observer.ts
+# line 436), so automated creation stays gate-compatible by construction
+# (res021 conspect section 1).
+#
+# Subcommands:
+#   new <title> [options]   allocate the next free DIA number, write
+#                           DIA-<NNN>-<slug>.md from the _TEMPLATE.md
+#                           frontmatter conventions, insert the README index
+#                           row in DIA sort position and recompute the
+#                           severity/status rollup counts. Does NOT claim:
+#                           lease_expires_at stays "" (claim happens at
+#                           take-time per COORDINATION.md).
+#   rollup [--check]        recompute the README severity + status count
+#                           tables from the ACTUAL ticket frontmatter (the
+#                           ledger source of truth, not the row display
+#                           columns). --check reports the before/after delta
+#                           and exits 1 when counts are stale WITHOUT writing.
+#   frontier                print the blocker frontier (OPEN tickets with no
+#                           OPEN blockers) sorted by severity then DIA-NNN,
+#                           plus a blocker-graph summary of blocked tickets.
+#   help                    show usage (also -h / --help / no arguments).
+#
+# Options for new:
+#   --area <area>           frontmatter area (default: scripts)
+#   --severity <sev>        frontmatter severity, one of
+#                           Blocker Critical Major Medium Minor Low Info
+#                           (default: Medium)
+#   --blocked-by <list>     comma-separated DIA-NNN blockers
+#   --parent-epic <DIA-NNN> parent epic ticket id (res-2 recommendation)
+# Options for rollup:
+#   --check                 report-only drift gate; never writes, exits 1 on
+#                           stale counts.
+#
+# Conventions enforced (DIA-079/DIA-110):
+#   - ASCII-only input AND output: non-ASCII title/area/severity fail; any
+#     non-ASCII text read back from existing files is sanitized for display.
+#   - Slug = kebab-case descriptor from the title: lowercase, non-alphanumerics
+#     become hyphens, runs collapsed, leading/trailing hyphens trimmed.
+#   - Frontmatter matches _TEMPLATE.md field conventions (v2 session block).
+#   - Embedded double quotes in a title are converted to single quotes when
+#     the title is written into the YAML `title:` field, so the field stays
+#     valid YAML (the frontmatter field is always double-quoted). The H1 and
+#     the README row keep the raw title.
+#   - parent_epic: "" is always emitted (empty when not provided) so the
+#     frontmatter schema is stable across new tickets (DIA-125 extension).
+#
+# Bash-3 compatible (worktrees.sh/session-log contract): no [[ ]], no
+# associative arrays, no mapfile/namerefs/compgen. The bats SUITE requires
+# bash 4+ (test-helper.bash assert helpers use [[ ]], same contract as
+# worktrees.bats).
+#
+# Exit codes: 0 success; 1 runtime error (fail-loud on stderr); 2 usage error.
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# TICKETS_DIR env override keeps the script hermetically testable against
+# fixture trees without restructuring the repo; the default is the real
+# ledger path.
+TICKETS_DIR="${TICKETS_DIR:-$ROOT/docs/dev-infra-audit/tickets}"
+README="$TICKETS_DIR/README.md"
+TEMPLATE="$TICKETS_DIR/_TEMPLATE.md"
+TODAY="$(date +%F)"
+
+SEVERITIES="Blocker Critical Major Medium Minor Low Info"
+# Canonical statuses incl. the v2 delegation lifecycle statuses from
+# _TEMPLATE.md line 20 (DISPATCHED/RUNNING/COMPLETE are set by the
+# delegation-observer plugin, not by hand). Keeping them canonical means
+# rollup never appends extra_status rows for them.
+STATUSES="OPEN DONE VALIDATE E2E DEFERRED MONITOR FIXED IMPLEMENTED VERIFIED CLOSED BLOCKED DISPATCHED RUNNING COMPLETE"
+
+fail() {
+  echo "error: $*" >&2
+  exit 1
+}
+
+print_usage() {
+  cat <<'EOF'
+usage: tickets <command> [options]
+
+DIA ledger CLI (docs/dev-infra-audit/tickets) - number allocator, template
+generator, README rollup updater, blocker-graph/frontier view (DIA-125
+keep-local automation).
+
+commands:
+  new <title> [--area <area>] [--severity <sev>]
+              [--blocked-by <DIA-NNN,...>] [--parent-epic <DIA-NNN>]
+              [--source <src>]
+                    allocate the next free DIA number, write
+                    DIA-<NNN>-<slug>.md from the _TEMPLATE.md frontmatter
+                    conventions, insert the README index row in DIA sort
+                    position, and recompute the severity/status counts.
+                    Does not claim the ticket (lease stays empty).
+  rollup [--check]  recompute the README severity + status count tables from
+                    the actual ticket frontmatter. --check reports the
+                    before/after delta and exits 1 when counts are stale,
+                    without writing.
+  frontier          print the blocker frontier (OPEN tickets with no OPEN
+                    blockers) sorted by severity then DIA-NNN, plus a
+                    blocker-graph summary of blocked tickets.
+  help              show this usage (also -h / --help / no arguments).
+
+options:
+  new:  --area <area>            frontmatter area (default: scripts)
+        --severity <sev>         Blocker|Critical|Major|Medium|Minor|Low|Info
+                                 (default: Medium)
+        --blocked-by <list>      comma-separated DIA-NNN blockers
+        --parent-epic <DIA-NNN>  parent epic ticket id (optional)
+        --source <src>           inventory|baseline|test-lane|fix-lane
+                                 (default: inventory)
+  rollup: --check                report-only; exit 1 when counts are stale
+  -h, --help                     show this usage
+
+conventions: ASCII-only input and output (DIA-079); slug from the title
+(DIA-110 kebab-case); frontmatter per _TEMPLATE.md; claim at take-time via
+docs/dev-infra-audit/tickets/COORDINATION.md (session_id + lease_expires_at).
+Embedded double quotes in titles are converted to single quotes to preserve
+YAML structure.
+EOF
+}
+
+usage() {
+  print_usage >&2
+  exit 2
+}
+
+help_and_exit() {
+  print_usage
+  exit 0
+}
+
+# sanitize <text>: replace every non-ASCII byte with '?' so all output stays
+# ASCII-safe (DIA-079) even when existing ledger files carry non-ASCII text
+# (e.g. the en-dash in DIA-045's title).
+sanitize() {
+  printf '%s' "$1" | LC_ALL=C sed 's/[^ -~]/?/g'
+}
+
+# trim <text>: strip leading/trailing whitespace.
+trim() {
+  printf '%s' "$1" | sed 's/^[[:space:]]*//; s/[[:space:]]*$//'
+}
+
+# assert_ascii <label> <value>: hard-fail when value contains non-ASCII.
+assert_ascii() {
+  local label="$1" value="$2"
+  if printf '%s' "$value" | LC_ALL=C grep -q '[^ -~]'; then
+    fail "$label contains non-ASCII characters (DIA-079 ASCII-only protocol): '$value'"
+  fi
+}
+
+# fm_field <file> <field>: extract a single YAML frontmatter field value.
+# Strips the inline comment ONLY when the value is unquoted (blocked_by: []
+# # no blockers - DIA-134 pattern). When the value starts with a quote
+# ('"..."' or "'...'"), the text up to the CLOSING quote is returned verbatim
+# so a '#' INSIDE the string stays literal (title: "Fix #42 regression" ->
+# "Fix #42 regression", not "Fix). grep -m1 takes the FIRST match, so the
+# session-attribution comment lines cannot shadow the real fields.
+fm_field() {
+  local file="$1" field="$2" val
+  val="$(grep -m1 "^$field:" "$file" 2>/dev/null || true)"
+  [ -n "$val" ] || return 0
+  val="${val#*:}"
+  val="$(printf '%s' "$val" | sed 's/^[[:space:]]*//')"
+  case "$val" in
+    '"'*)
+      val="${val#'"'}"
+      val="${val%%'"'*}"
+      ;;
+    "'"*)
+      val="${val#"'"}"
+      val="${val%%"'"*}"
+      ;;
+    *)
+      val="${val%%#*}"
+      ;;
+  esac
+  val="$(printf '%s' "$val" | sed 's/[[:space:]]*$//')"
+  printf '%s' "$val"
+}
+
+# num_of_file <path>: echo the numeric id the GATE would derive from the
+# filename (delegation-observer.ts scanTickets regex /^DIA-(\d+)/, applied to
+# the basename). "DIA-134-foo.md" and legacy "DIA-134.md" both yield 134;
+# non-DIA or malformed names yield nothing. Empty when the file is not a
+# gate-readable ticket (README/_TEMPLATE/COORDINATION included).
+num_of_file() {
+  local f="$1" n
+  n="$(basename "$f")"
+  n="$(printf '%s' "$n" | grep -o '^DIA-[0-9]*' | sed 's/^DIA-//')"
+  case "$n" in
+    '' | *[!0-9]*) printf '' ;;
+    *) printf '%d' "$((10#$n))" ;;
+  esac
+}
+
+# next_dia: allocate the next free DIA number = max(file ids, README row ids)
+# + 1. The README fallback covers archived-but-listed tickets (DIA-076/081
+# live in archive/ but still have README rows with archive/ links) so their
+# numbers are never reused.
+next_dia() {
+  local max=0 n f line
+  for f in "$TICKETS_DIR"/DIA-*.md; do
+    [ -e "$f" ] || continue
+    n="$(num_of_file "$f")"
+    [ -n "$n" ] && [ "$n" -gt "$max" ] && max="$n"
+  done
+  if [ -f "$README" ]; then
+    while IFS= read -r line; do
+      case "$line" in
+        '| DIA-'*)
+          n="${line#*| DIA-}"
+          n="${n%% *}"
+          case "$n" in
+            '' | *[!0-9]*) continue ;;
+          esac
+          n=$((10#$n))
+          [ "$n" -gt "$max" ] && max="$n"
+          ;;
+      esac
+    done < "$README"
+  fi
+  printf '%03d' "$((max + 1))"
+}
+
+# slugify <title>: kebab-case slug per DIA-110. "Fix Auth Bug!" ->
+# "fix-auth-bug". ASCII guaranteed by the caller's assert_ascii.
+slugify() {
+  local s="$1"
+  s="$(printf '%s' "$s" | tr '[:upper:]' '[:lower:]')"
+  s="$(printf '%s' "$s" | LC_ALL=C sed 's/[^a-z0-9]/-/g')"
+  s="$(printf '%s' "$s" | sed 's/--*/-/g; s/^-//; s/-$//')"
+  printf '%s' "$s"
+}
+
+# severity_rank <sev>: 0..6 for Blocker..Info, 99 for unknown. Frontier sorts
+# by this ascending, so unknown severities sort last.
+severity_rank() {
+  local v="$1" i=0 name
+  for name in $SEVERITIES; do
+    if [ "$v" = "$name" ]; then
+      printf '%d' "$i"
+      return 0
+    fi
+    i=$((i + 1))
+  done
+  printf '99'
+}
+
+# read_sep_widths <sep_line> <ncols>: echo "w1 w2 ... wn" column widths from
+# a markdown table separator row (dash counts per cell).
+read_sep_widths() {
+  local line="$1" n="$2" i=1 out=""
+  local -a cells
+  IFS='|' read -r -a cells <<<"$line"
+  while [ "$i" -le "$n" ]; do
+    out="$out $(( ${#cells[$i]} - 2 ))"
+    i=$((i + 1))
+  done
+  printf '%s\n' "$out"
+}
+
+# build_index_row <id> <title> <area> <severity> <status> <link> <w1..w6>:
+# emit one README index-table row padded to the given column widths.
+build_index_row() {
+  local id="$1" title="$2" area="$3" severity="$4" status="$5" link="$6"
+  shift 6
+  printf '| %-*s | %-*s | %-*s | %-*s | %-*s | %-*s |' \
+    "$1" "$id" "$2" "$title" "$3" "$area" "$4" "$severity" "$5" "$status" "$6" "$link"
+}
+
+# --- rollup machinery --------------------------------------------------------
+# The severity/status count tables are derived from the FILE frontmatter of
+# every README-referenced ticket (status: / severity: lines), NOT from the
+# row's displayed columns: a row's columns may lag the file after a ticket
+# status change that did not touch the README (the closure-lane drift this
+# script exists to catch). Unknown statuses/severities are accumulated into
+# the extra_* arrays and appended to the tables so count fidelity is kept.
+
+sev_counts=()
+status_counts=()
+extra_sev=()
+extra_sev_counts=()
+extra_status=()
+extra_status_counts=()
+
+# bump_count <sev|status> <value>: increment the canonical counter for value,
+# or accumulate it into the extra_* arrays when it is not a canonical
+# status/severity (keeps count fidelity for statuses that have no README
+# row yet). Bash-3 compatible: array selection happens through the prefix
+# branches - no eval, no namerefs (both are bash 4+ features).
+bump_count() {
+  local prefix="$1" v="$2" names="" i=0 name
+  if [ "$prefix" = sev ]; then
+    names="$SEVERITIES"
+  else
+    names="$STATUSES"
+  fi
+  for name in $names; do
+    if [ "$v" = "$name" ]; then
+      if [ "$prefix" = sev ]; then
+        sev_counts[$i]=$((sev_counts[$i] + 1))
+      else
+        status_counts[$i]=$((status_counts[$i] + 1))
+      fi
+      return 0
+    fi
+    i=$((i + 1))
+  done
+  if [ "$prefix" = sev ]; then
+    for ((i = 0; i < ${#extra_sev[@]}; i++)); do
+      if [ "${extra_sev[$i]}" = "$v" ]; then
+        extra_sev_counts[$i]=$((extra_sev_counts[$i] + 1))
+        return 0
+      fi
+    done
+    extra_sev+=("$v")
+    extra_sev_counts+=(1)
+  else
+    for ((i = 0; i < ${#extra_status[@]}; i++)); do
+      if [ "${extra_status[$i]}" = "$v" ]; then
+        extra_status_counts[$i]=$((extra_status_counts[$i] + 1))
+        return 0
+      fi
+    done
+    extra_status+=("$v")
+    extra_status_counts+=(1)
+  fi
+}
+
+# reset_counts: zero the canonical counters and clear the extra_* arrays.
+# The canonical array sizes are derived from SEVERITIES/STATUSES so adding a
+# status/severity never requires touching the reset logic.
+reset_counts() {
+  local i=0 name
+  for name in $SEVERITIES; do
+    sev_counts[$i]=0
+    i=$((i + 1))
+  done
+  i=0
+  for name in $STATUSES; do
+    status_counts[$i]=0
+    i=$((i + 1))
+  done
+  extra_sev=()
+  extra_sev_counts=()
+  extra_status=()
+  extra_status_counts=()
+}
+
+# compute_ledger_counts: reset + refill the count arrays from the README index
+# rows' linked ticket files.
+compute_ledger_counts() {
+  local i line id link path fsev fstatus
+  local -a cells
+  reset_counts
+
+  [ -f "$README" ] || fail "README not found: $README (run from the repo root or set TICKETS_DIR)"
+  while IFS= read -r line; do
+    case "$line" in
+      '| DIA-'*) ;;
+      *) continue ;;
+    esac
+    IFS='|' read -r -a cells <<<"$line"
+    [ "${#cells[@]}" -ge 7 ] || continue
+    id="$(trim "${cells[1]}")"
+    link="$(trim "${cells[6]}")"
+    [ -n "$id" ] || continue
+    path="${link#*](}"
+    path="${path%)}"
+    path="$(trim "$path")"
+    [ -n "$path" ] || continue
+    if [ -f "$TICKETS_DIR/$path" ]; then
+      fsev="$(fm_field "$TICKETS_DIR/$path" severity)"
+      fstatus="$(fm_field "$TICKETS_DIR/$path" status)"
+    else
+      echo "warn: rollup: row $id links to missing file '$path'; falling back to row display values" >&2
+      fsev="$(trim "${cells[4]}")"
+      fstatus="$(trim "${cells[5]}")"
+    fi
+    [ -n "$fsev" ] && bump_count sev "$fsev"
+    [ -n "$fstatus" ] && bump_count status "$fstatus"
+  done < "$README"
+}
+
+# compute_ledger_counts_including <severity> <status>: compute_ledger_counts()
+# plus the two bumps for a ticket that is about to be added to the README.
+# The count tables must include the NEW ticket: compute_ledger_counts reads
+# the pre-insert README, so the new row's severity/status are bumped
+# explicitly here before rewrite_readme regenerates the tables. Making the
+# coupling explicit keeps the invariant (every README row is counted) in one
+# place instead of a bare bump call in cmd_new.
+compute_ledger_counts_including() {
+  local new_severity="$1" new_status="$2"
+  compute_ledger_counts
+  bump_count sev "$new_severity"
+  bump_count status "$new_status"
+}
+
+# emit_count_rows <sev|status> <w1> <w2>: canonical rows then any extras.
+emit_count_rows() {
+  local kind="$1" w1="$2" w2="$3" i=0 name
+  if [ "$kind" = sev ]; then
+    for name in $SEVERITIES; do
+      printf '| %-*s | %-*s |\n' "$w1" "$name" "$w2" "${sev_counts[$i]:-0}"
+      i=$((i + 1))
+    done
+    for ((i = 0; i < ${#extra_sev[@]}; i++)); do
+      printf '| %-*s | %-*s |\n' "$w1" "${extra_sev[$i]}" "$w2" "${extra_sev_counts[$i]}"
+    done
+  else
+    for name in $STATUSES; do
+      printf '| %-*s | %-*s |\n' "$w1" "$name" "$w2" "${status_counts[$i]:-0}"
+      i=$((i + 1))
+    done
+    for ((i = 0; i < ${#extra_status[@]}; i++)); do
+      printf '| %-*s | %-*s |\n' "$w1" "${extra_status[$i]}" "$w2" "${extra_status_counts[$i]}"
+    done
+  fi
+}
+
+# find_insert_position <newnum>: scan the README index rows and echo
+# "<pos> <last>" where pos is the index of the FIRST row whose DIA number
+# exceeds newnum (the insertion point for a new row) and last is the index
+# of the LAST DIA row (-1 when there are no rows). Both are 0-based indices
+# into the README line sequence. Reads $README.
+find_insert_position() {
+  local newnum="$1" line n i=0 pos=-1 last=-1
+  while IFS= read -r line; do
+    case "$line" in
+      '| DIA-'*)
+        n="${line#*| DIA-}"
+        n="${n%% *}"
+        last=$i
+        if [ "$pos" = -1 ] && [ "$n" -gt "$newnum" ] 2>/dev/null; then
+          pos=$i
+        fi
+        ;;
+    esac
+    i=$((i + 1))
+  done < "$README"
+  printf '%d %d\n' "$pos" "$last"
+}
+
+# find_count_table_range <header-glob>: locate a count table (header,
+# separator, then contiguous '| ' data rows until the next non-row line,
+# normally a blank line). Echoes "<hdr> <start> <end>" - hdr is the header
+# index (separator sits at hdr+1, used for column widths), start/end delimit
+# the data-row range. Echoes nothing when the header is absent. The header
+# glob tolerates the column padding the real README uses ("| Status      |
+# Count |" - a 10-wide Status cell). The pattern lives in a variable so the
+# pipe characters stay literal: an unquoted '|' in a case pattern is a shell
+# PIPE, not a pattern char.
+find_count_table_range() {
+  local hdr_pat="$1" line i=0 hdr=-1 start=-1 end=-1 phase=0
+  while IFS= read -r line; do
+    if [ "$phase" = 0 ]; then
+      case "$line" in
+        $hdr_pat)
+          hdr=$i
+          phase=1
+          ;;
+      esac
+    elif [ "$phase" = 1 ]; then
+      phase=2 # separator row
+    elif [ "$phase" = 2 ]; then
+      start=$i
+      end=$i
+      phase=3
+    else
+      case "$line" in
+        '| '*) end=$i ;;
+        *) break ;;
+      esac
+    fi
+    i=$((i + 1))
+  done < "$README"
+  if [ "$hdr" -ge 0 ]; then
+    printf '%d %d %d\n' "$hdr" "$start" "$end"
+  fi
+}
+
+# emit_readme <out> <insert_at> <newrow> <sev_range> <st_range>: write the
+# regenerated README to <out>. Behavior: emit newrow before the line at
+# insert_at (when newrow is non-empty and insert_at is a valid index; a
+# trailing append when insert_at is past EOF); replace the severity and
+# status count-table data ranges with freshly computed rows; copy everything
+# else verbatim. Reads $README. ONLY the count-table data rows (and the
+# optional index row) differ from the source, so a byte diff between source
+# and out detects count drift exactly.
+emit_readme() {
+  local out="$1" insert_at="$2" newrow="$3" sev_range="$4" st_range="$5"
+  local sev_hdr=-1 sev_start=-1 sev_end=-1 st_hdr=-1 st_start=-1 st_end=-1
+  local i=0 line total
+  local -a sw=(0 0)
+  if [ -n "$sev_range" ]; then read -r sev_hdr sev_start sev_end <<<"$sev_range"; fi
+  if [ -n "$st_range" ]; then read -r st_hdr st_start st_end <<<"$st_range"; fi
+  total="$(wc -l < "$README")"
+
+  while IFS= read -r line; do
+    if [ "$i" = "$insert_at" ] && [ -n "$newrow" ]; then
+      printf '%s\n' "$newrow"
+    fi
+    if [ "$sev_hdr" -ge 0 ] && [ "$i" -ge "$sev_start" ] && [ "$i" -le "$sev_end" ]; then
+      if [ "$i" = "$sev_start" ]; then
+        read -r -a sw <<<"$(read_sep_widths "$(sed -n "$((sev_hdr + 2))p" "$README")" 2)"
+        emit_count_rows sev "${sw[0]:-8}" "${sw[1]:-5}"
+      fi
+      i=$((i + 1))
+      continue
+    fi
+    if [ "$st_hdr" -ge 0 ] && [ "$i" -ge "$st_start" ] && [ "$i" -le "$st_end" ]; then
+      if [ "$i" = "$st_start" ]; then
+        read -r -a sw <<<"$(read_sep_widths "$(sed -n "$((st_hdr + 2))p" "$README")" 2)"
+        emit_count_rows status "${sw[0]:-10}" "${sw[1]:-5}"
+      fi
+      i=$((i + 1))
+      continue
+    fi
+    printf '%s\n' "$line"
+    i=$((i + 1))
+  done < "$README"
+  if [ "$insert_at" -ge "$total" ] && [ -n "$newrow" ]; then
+    printf '%s\n' "$newrow"
+  fi
+} > "$out"
+
+# rewrite_readme <out_file> [newrow]: regenerate the severity + status count
+# tables from compute_ledger_counts(), optionally inserting newrow into the
+# index table at its DIA sort position. Reads $README, writes <out_file>.
+rewrite_readme() {
+  local out="$1" newrow="${2:-}" num="" insert_at=-1 last_data=-1
+  local sev_range st_range
+
+  if [ -n "$newrow" ]; then
+    num="${newrow#*| DIA-}"
+    num="${num%% *}"
+    read -r insert_at last_data <<<"$(find_insert_position "$num")"
+    if [ "$insert_at" = -1 ]; then
+      if [ "$last_data" -ge 0 ]; then
+        insert_at=$((last_data + 1))
+      else
+        # empty index table: insert right after the first separator row
+        insert_at="$(grep -n '^| -' "$README" | head -1 | cut -d: -f1 || true)"
+        [ -z "$insert_at" ] && insert_at="$(wc -l < "$README")"
+      fi
+    fi
+  fi
+
+  sev_range="$(find_count_table_range '| Severity *| Count |')"
+  st_range="$(find_count_table_range '| Status *| Count |')"
+
+  emit_readme "$out" "$insert_at" "$newrow" "$sev_range" "$st_range"
+}
+
+# count_table_pairs <file> <header-glob>: echo "name count" lines from the
+# count table under the header (skips header + separator). The header is a
+# case GLOB because the real README pads the Status cell
+# ("| Status      | Count |").
+count_table_pairs() {
+  local file="$1" header="$2" line phase=0 name count
+  while IFS= read -r line; do
+    if [ "$phase" = 0 ]; then
+      case "$line" in
+        $header) phase=1 ;;
+      esac
+      continue
+    fi
+    if [ "$phase" = 1 ]; then
+      phase=2
+      continue
+    fi
+    case "$line" in
+      '| '*) IFS='|' read -r _ name count _ <<<"$line"
+        printf '%s %s\n' "$(trim "$name")" "$(trim "$count")"
+        ;;
+      *) break ;;
+    esac
+  done < "$file"
+}
+
+# pair_count <pairs> <name>: linear lookup in a "name count" string list.
+pair_count() {
+  local pairs="$1" name="$2" p pn pc
+  for p in $pairs; do
+    pn="${p%%=*}"
+    pc="${p#*=}"
+    if [ "$pn" = "$name" ]; then
+      printf '%s' "$pc"
+      return 0
+    fi
+  done
+  printf '0'
+}
+
+# pairs_to_kv <file> <header>: convert count_table_pairs output into
+# "name=count name=count" words (whitespace-safe because names/counts are
+# single tokens).
+pairs_to_kv() {
+  local file="$1" header="$2" name count
+  while read -r name count; do
+    printf '%s=%s ' "$name" "$count"
+  done < <(count_table_pairs "$file" "$header")
+}
+
+# rollup_sort_check: report whether README index rows are DIA ascending.
+rollup_sort_check() {
+  local prev=-1 line n bad=0
+  while IFS= read -r line; do
+    case "$line" in
+      '| DIA-'*)
+        n="${line#*| DIA-}"
+        n="${n%% *}"
+        case "$n" in
+          '' | *[!0-9]*) continue ;;
+        esac
+        n=$((10#$n))
+        if [ "$n" -lt "$prev" ]; then
+          echo "warn: rollup: README index rows out of order: DIA-$n appears after DIA-$prev" >&2
+          bad=1
+        fi
+        prev=$n
+        ;;
+    esac
+  done < "$README"
+  if [ "$bad" = 0 ]; then
+    echo "ok: README index rows are in DIA ascending order"
+  fi
+}
+
+# print_count_delta <label> <old_kv> <new_kv>: print "name old -> new" for
+# every name where the counts differ (label is Severity or Status). kv lists
+# are "name=count name=count" words; canonical names iterate in the canonical
+# order, extras (non-canonical statuses/severities) in first-seen order.
+print_count_delta() {
+  local label="$1" old_kv="$2" new_kv="$3" name oldc newc e names
+  echo "$label counts (before -> after):"
+  if [ "$label" = Severity ]; then
+    names="$SEVERITIES"
+  else
+    names="$STATUSES"
+  fi
+  for name in $names; do
+    oldc="$(pair_count "$old_kv" "$name")"
+    newc="$(pair_count "$new_kv" "$name")"
+    if [ "$oldc" != "$newc" ]; then
+      printf '  %-12s %s -> %s\n' "$name" "$oldc" "$newc"
+    fi
+  done
+  for e in $(printf '%s %s' "$old_kv" "$new_kv" | tr ' ' '\n' | sed 's/=.*//' | sort -u); do
+    case " $names " in
+      *" $e "*) continue ;;
+    esac
+    oldc="$(pair_count "$old_kv" "$e")"
+    newc="$(pair_count "$new_kv" "$e")"
+    if [ "$oldc" != "$newc" ]; then
+      printf '  %-12s %s -> %s\n' "$e" "$oldc" "$newc"
+    fi
+  done
+}
+
+# --- subcommands -------------------------------------------------------------
+
+cmd_new() {
+  local title="" area="scripts" severity="Medium" blocked_by="" parent_epic="" source="inventory"
+  local token num slug fname path link sep
+  local w1=7 w2=40 w3=15 w4=9 w5=8 w6=60
+  local -a toks
+
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --area)
+        [ $# -ge 2 ] || fail "--area needs a value"
+        area="$2"
+        shift 2
+        ;;
+      --severity)
+        [ $# -ge 2 ] || fail "--severity needs a value"
+        severity="$2"
+        shift 2
+        ;;
+      --blocked-by)
+        [ $# -ge 2 ] || fail "--blocked-by needs a value"
+        blocked_by="$2"
+        shift 2
+        ;;
+      --parent-epic)
+        [ $# -ge 2 ] || fail "--parent-epic needs a value"
+        parent_epic="$2"
+        shift 2
+        ;;
+      --source)
+        [ $# -ge 2 ] || fail "--source needs a value"
+        source="$2"
+        shift 2
+        ;;
+      -h | --help) help_and_exit ;;
+      -*) fail "unknown option '$1' (see --help)" ;;
+      *)
+        [ -z "$title" ] || fail "too many arguments: unexpected '$1' (title already given)"
+        title="$1"
+        shift
+        ;;
+    esac
+  done
+  [ -n "$title" ] || usage
+
+  # --- validation -----------------------------------------------------------
+  case "$title" in
+    *$'\n'* | *$'\t'*) fail "title must be a single line of text" ;;
+  esac
+  case "$title" in
+    *'|'*) fail "title contains a '|' which would corrupt the README table" ;;
+  esac
+  assert_ascii "title" "$title"
+  assert_ascii "area" "$area"
+  assert_ascii "severity" "$severity"
+  if [ "$(severity_rank "$severity")" = 99 ]; then
+    fail "invalid severity '$severity' (expected one of: $SEVERITIES)"
+  fi
+  case "$source" in
+    inventory | baseline | test-lane | fix-lane) ;;
+    *) fail "invalid source '$source' (expected one of: inventory baseline test-lane fix-lane)" ;;
+  esac
+  if [ -n "$blocked_by" ]; then
+    IFS=',' read -r -a toks <<<"$blocked_by"
+    for token in "${toks[@]}"; do
+      token="$(trim "$token")"
+      [ -n "$token" ] || continue
+      case "$token" in
+        DIA-[0-9]*) ;;
+        *) fail "invalid blocked-by entry '$token' (expected DIA-NNN)" ;;
+      esac
+      case "${token#DIA-}" in
+        *[!0-9]*) fail "invalid blocked-by entry '$token' (expected DIA-NNN)" ;;
+      esac
+    done
+  fi
+  if [ -n "$parent_epic" ]; then
+    case "$parent_epic" in
+      DIA-[0-9]*) ;;
+      *) fail "invalid parent-epic '$parent_epic' (expected DIA-NNN)" ;;
+    esac
+    case "${parent_epic#DIA-}" in
+      *[!0-9]*) fail "invalid parent-epic '$parent_epic' (expected DIA-NNN)" ;;
+    esac
+  fi
+
+  [ -d "$TICKETS_DIR" ] || fail "tickets directory not found: $TICKETS_DIR"
+  [ -f "$README" ] || fail "README not found: $README"
+  [ -f "$TEMPLATE" ] || echo "warn: _TEMPLATE.md not found at $TEMPLATE (frontmatter conventions assumed per DIA-125 spec)" >&2
+
+  # --- allocation + collision guards ----------------------------------------
+  num="$(next_dia)"
+  slug="$(slugify "$title")"
+  [ -n "$slug" ] || fail "title produces an empty slug (needs at least one letter or digit)"
+  fname="DIA-$num-$slug.md"
+  path="$TICKETS_DIR/$fname"
+  # Collision guard: refuse rather than overwrite. With max+1 allocation the
+  # target cannot normally pre-exist (any DIA-<num>-*.md file would have
+  # raised the max); this is race defense against concurrent creation from a
+  # parallel session that computed the same number before either write.
+  if [ -e "$path" ]; then
+    fail "collision: '$fname' already exists; aborting (no overwrite)"
+  fi
+  if grep -q "| DIA-$num |" "$README"; then
+    fail "collision: README already has a row for DIA-$num; aborting (no duplicate row)"
+  fi
+
+  # --- write the ticket file (printf %s, never unquoted heredoc: the title
+  # may contain $, backticks, &, / etc. and must not be re-expanded) --------
+  {
+    printf '# DIA-%s - %s\n' "$num" "$title"
+    printf '\n'
+    printf -- '---\n'
+    printf '\n'
+    printf 'id: DIA-%s\n' "$num"
+    printf 'title: "%s"\n' "$(printf '%s' "$title" | tr '"' "'")"
+    printf 'area: %s\n' "$area"
+    printf 'severity: %s\n' "$severity"
+    printf 'status: OPEN\n'
+    if [ -n "$blocked_by" ]; then
+      local cleaned="" t
+      IFS=',' read -r -a toks <<<"$blocked_by"
+      for t in "${toks[@]}"; do
+        t="$(trim "$t")"
+        [ -n "$t" ] || continue
+        [ -n "$cleaned" ] && cleaned="$cleaned, "
+        cleaned="$cleaned$t"
+      done
+      printf 'blocked_by: [%s] # DIA-NNN refs, or empty\n' "$cleaned"
+    else
+      printf 'blocked_by: [] # DIA-NNN refs, or empty\n'
+    fi
+    if [ -n "$parent_epic" ]; then
+      printf 'parent_epic: %s\n' "$parent_epic"
+    else
+      # parent_epic is always emitted (empty when not provided) so the
+      # frontmatter schema is stable across tickets (DIA-125 extension;
+      # see _TEMPLATE.md).
+      printf 'parent_epic: ""\n'
+    fi
+    printf 'discovered: %s\n' "$TODAY"
+    printf 'source: %s\n' "$source"
+    printf 'date: %s\n' "$TODAY"
+    printf 'created: %s\n' "$TODAY"
+    printf 'updated: %s\n' "$TODAY"
+    printf '\n'
+    printf '# --- Session Attribution (v2 schema, optional) ---\n'
+    printf '\n'
+    printf 'session_id: ""\n'
+    printf 'lane_id: ""\n'
+    printf 'agent: ""\n'
+    printf 'model: ""\n'
+    printf 'parent_session_id: ""\n'
+    printf 'attempts: 0\n'
+    printf 'lease_expires_at: "" # ISO-8601; set on DISPATCHED, cleared on COMPLETE\n'
+    printf 'files_touched: []\n'
+    printf 'artifacts: []\n'
+    printf 'evidence: []\n'
+    printf '\n'
+    printf -- '---\n'
+    printf '\n'
+    printf '## Description\n'
+    printf '\n'
+    printf '<To be filled at creation time: what is wrong / what to build, with exact\n'
+    printf 'files and line references where known.>\n'
+    printf '\n'
+    printf '## Verification\n'
+    printf '\n'
+    printf '<Acceptance criteria as checkboxes - how to prove the ticket is done.>\n'
+    printf '\n'
+    printf '## Fix\n'
+    printf '\n'
+    printf '> To be filled at fix time.\n'
+    printf '\n'
+    printf '## Re-verify\n'
+    printf '\n'
+    printf '> To be filled at re-verify time.\n'
+  } > "$path"
+
+  # --- README index row + rollup counts --------------------------------------
+  sep="$(grep -m1 '^| -' "$README" || true)"
+  if [ -n "$sep" ]; then
+    read -r w1 w2 w3 w4 w5 w6 <<<"$(read_sep_widths "$sep" 6)"
+  fi
+  link="[$fname]($fname)"
+  local tmp newrow
+  tmp="$(mktemp)"
+  newrow="$(build_index_row "DIA-$num" "$title" "$area" "$severity" OPEN "$link" \
+    "${w1:-7}" "${w2:-40}" "${w3:-15}" "${w4:-9}" "${w5:-8}" "${w6:-60}")"
+  compute_ledger_counts_including "$severity" "OPEN"
+  rewrite_readme "$tmp" "$newrow"
+  cp "$tmp" "$README"
+  rm -f "$tmp"
+
+  echo "created: docs/dev-infra-audit/tickets/$fname"
+  echo "id: DIA-$num"
+  echo "area: $area"
+  echo "severity: $severity"
+  echo "source: $source"
+  echo "status: OPEN - not claimed (claim at take-time: set session_id + lease_expires_at per COORDINATION.md)"
+  echo "next: fill in Description/Verification, then commit and push to the shared remote"
+}
+
+cmd_rollup() {
+  local check=0 tmp old_sev_kv new_sev_kv old_st_kv new_st_kv changed=0
+  # Header globs for the two count tables; see rewrite_readme for why they
+  # live in variables (unquoted '|' in a case pattern is a shell pipe).
+  local sev_hdr_pat='| Severity *| Count |' st_hdr_pat='| Status *| Count |'
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --check | --dry-run) check=1 ;;
+      -h | --help) help_and_exit ;;
+      -*) fail "unknown option '$1' (see --help)" ;;
+      *) fail "unknown argument '$1' (see --help)" ;;
+    esac
+    shift
+  done
+  [ -f "$README" ] || fail "README not found: $README"
+
+  old_sev_kv="$(pairs_to_kv "$README" "$sev_hdr_pat")"
+  old_st_kv="$(pairs_to_kv "$README" "$st_hdr_pat")"
+
+  compute_ledger_counts
+  tmp="$(mktemp)"
+  rewrite_readme "$tmp"
+
+  new_sev_kv="$(pairs_to_kv "$tmp" "$sev_hdr_pat")"
+  new_st_kv="$(pairs_to_kv "$tmp" "$st_hdr_pat")"
+
+  if ! diff -q "$README" "$tmp" >/dev/null 2>&1; then
+    changed=1
+  fi
+
+  if [ "$changed" = 1 ]; then
+    print_count_delta Severity "$old_sev_kv" "$new_sev_kv"
+    print_count_delta Status "$old_st_kv" "$new_st_kv"
+    if [ "$check" = 1 ]; then
+      echo "rollup --check: counts are STALE - README not written (run 'tickets rollup' to apply)"
+      rm -f "$tmp"
+      exit 1
+    fi
+    cp "$tmp" "$README"
+    echo "rollup: README updated (severity/status count tables recomputed)"
+  else
+    echo "rollup: counts already match - README unchanged"
+  fi
+  rm -f "$tmp"
+
+  rollup_sort_check
+}
+
+cmd_frontier() {
+  [ -d "$TICKETS_DIR" ] || fail "tickets directory not found: $TICKETS_DIR"
+  local f base n id title severity status blocked btok bstat bnum bfile
+  # =() initializers keep set -u happy when the frontier has no blocked (or
+  # no startable) tickets: "${arr[@]}" on a declared-but-never-assigned empty
+  # array is an "unbound variable" error under set -u.
+  local -a frontier_lines=() blocked_lines=() lease_lines=()
+  local now lease agent exp
+  local has_open_blocker blockers_display
+
+  now="$(date -u +%s)"
+
+  # Single classification pass: each OPEN ticket lands in the frontier, the
+  # blocked list, or neither (blocked-forever anomalies surface as MISSING
+  # blockers), and any live lease is accumulated into lease_lines for the
+  # note section - no second directory scan.
+  for f in "$TICKETS_DIR"/DIA-*.md; do
+    [ -e "$f" ] || continue
+    base="$(basename "$f")"
+    case "$base" in
+      README.md | _TEMPLATE.md | COORDINATION.md) continue ;;
+    esac
+    n="$(num_of_file "$f")"
+    [ -n "$n" ] || continue
+    status="$(fm_field "$f" status)"
+    [ "$status" = "OPEN" ] || continue
+    id="$(printf 'DIA-%03d' "$n")"
+    severity="$(fm_field "$f" severity)"
+    title="$(sanitize "$(fm_field "$f" title)")"
+    [ -n "$title" ] && title=" - $title"
+
+    # lease note: an OPEN ticket with a live lease is claimed by another
+    # session (COORDINATION.md claim convention), so it is not actually
+    # startable even though it appears in the frontier. Reported as a note,
+    # not filtered.
+    lease="$(fm_field "$f" lease_expires_at)"
+    if [ -n "$lease" ]; then
+      if exp="$(date -u -d "$lease" +%s 2>/dev/null)"; then
+        if [ "$exp" -gt "$now" ]; then
+          agent="$(fm_field "$f" agent)"
+          [ -n "$agent" ] || agent="unknown"
+          lease_lines+=("$id (agent: $(sanitize "$agent"), expires: $(sanitize "$lease"))")
+        fi
+      else
+        echo "warn: frontier: unparseable lease_expires_at '$lease' on $base" >&2
+      fi
+    fi
+
+    blocked="$(blockers_of "$f")"
+    has_open_blocker=0
+    blockers_display=""
+    if [ -n "$blocked" ]; then
+      local -a btok_arr
+      IFS=',' read -r -a btok_arr <<<"$blocked"
+      for btok in "${btok_arr[@]}"; do
+        btok="$(trim "$btok")"
+        [ -n "$btok" ] || continue
+        bnum="${btok#DIA-}"
+        bfile="$(find_ticket_file "$bnum")"
+        if [ -z "$bfile" ]; then
+          # A blocker whose file cannot be resolved is treated as BLOCKING:
+          # the frontier must only offer tickets whose dependencies are
+          # verifiably resolved. The anomaly is visible in the blocked list.
+          bstat="MISSING"
+        else
+          bstat="$(fm_field "$bfile" status)"
+        fi
+        [ -n "$blockers_display" ] && blockers_display="$blockers_display, "
+        blockers_display="$blockers_display$btok ($bstat)"
+        case "$bstat" in
+          OPEN | MISSING) has_open_blocker=1 ;;
+        esac
+      done
+    fi
+    if [ "$has_open_blocker" = 0 ]; then
+      frontier_lines+=("$(severity_rank "$severity")|$n|$id$title")
+    else
+      blocked_lines+=("$(severity_rank "$severity")|$n|$id$title (blocked by: $blockers_display)")
+    fi
+  done
+
+  printf 'frontier (%d ticket(s) you can start):\n' "${#frontier_lines[@]}"
+  if [ "${#frontier_lines[@]}" -gt 0 ]; then
+    printf '%s\n' "${frontier_lines[@]}" | sort -t'|' -k1,1n -k2,2n | sed 's/^[0-9]*|[0-9]*|/  /'
+  fi
+
+  printf '\nblocked (%d ticket(s) waiting on open blockers):\n' "${#blocked_lines[@]}"
+  if [ "${#blocked_lines[@]}" -gt 0 ]; then
+    printf '%s\n' "${blocked_lines[@]}" | sort -t'|' -k1,1n -k2,2n | sed 's/^[0-9]*|[0-9]*|/  /'
+  fi
+
+  if [ "${#lease_lines[@]}" -gt 0 ]; then
+    printf '\nnote: live leases (claimed by another session per COORDINATION.md):\n'
+    printf '  %s\n' "${lease_lines[@]}"
+  fi
+}
+
+# blockers_of <file>: echo the comma-separated DIA-NNN blocker list from the
+# blocked_by frontmatter. The inline comment is stripped FIRST (DIA-134's
+# "blocked_by: [] # no blockers; follows DIA-126 (OPEN)" must not be read as
+# a blocker), then all DIA-NNN tokens inside the bracket list are extracted.
+blockers_of() {
+  local file="$1" line val out=""
+  line="$(grep -m1 '^blocked_by:' "$file" 2>/dev/null || true)"
+  [ -n "$line" ] || return 0
+  val="${line#blocked_by:}"
+  val="${val%%#*}"
+  out="$(printf '%s' "$val" | grep -o 'DIA-[0-9]*' | tr '\n' ',' | sed 's/,$//')"
+  printf '%s' "$out"
+}
+
+# find_ticket_file <num>: locate the ticket file for a DIA number in the
+# active dir or archive (blocker status resolution must see archived tickets,
+# which are CLOSED/VERIFIED and therefore non-blocking).
+find_ticket_file() {
+  local num="$1" f
+  for f in "$TICKETS_DIR"/DIA-"$num"-*.md "$TICKETS_DIR"/DIA-"$num".md \
+    "$TICKETS_DIR"/archive/DIA-"$num"-*.md "$TICKETS_DIR"/archive/DIA-"$num".md; do
+    if [ -e "$f" ]; then
+      printf '%s\n' "$f"
+      return 0
+    fi
+  done
+  return 0
+}
+
+main() {
+  local cmd="${1:-}"
+  if [ $# -lt 1 ]; then
+    usage
+  fi
+  shift
+  case "$cmd" in
+    new) cmd_new "$@" ;;
+    rollup) cmd_rollup "$@" ;;
+    frontier) cmd_frontier "$@" ;;
+    help | -h | --help) help_and_exit ;;
+    *) fail "unknown command '$cmd' (see --help)" ;;
+  esac
+}
+
+main "$@"

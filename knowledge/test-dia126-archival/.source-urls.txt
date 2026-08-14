@@ -1,0 +1,20 @@
+# DIA-126 restart-verify Phase A archival test (2026-08-13, session ses_0059b11dbffegxB19B4ywdBVs5)
+# Agent: conspecter. Result: 0/3 sources archived.
+# IMPORTANT: this is NOT the previous "bash absent" failure. The bash tool is PRESENT and
+# executable (verified: bare curl, bare trafilatura, and crwl --help all executed).
+# The catch-all-first reorder (2faae73) is live: opencode.jsonc conspecter bash map has
+# "*" deny FIRST, then curl/wget/trafilatura/crwl * allows LAST.
+# Blocker 1 (config gap): OpenCode matches permission patterns against the FULL command
+# string (glob). Patterns "curl", "wget", "trafilatura" lack a trailing "*" wildcard, so
+# they match only the bare tool name. Real invocations with args are denied by the
+# catch-all -> tiers (a) curl, (b) trafilatura, (c) curl|trafilatura are gate-blocked.
+# Blocker 2 (env gap): tier (d) crwl passes the gate but crawl4ai's bundled playwright
+# pins chromium revision 1228 (missing); the host cache has revision 1234 only.
+# crawl4ai's only executable override (crawl4ai home chromium.path file) is outside the
+# conspecter write scope and the task file scope, so it was not exercised.
+# webfetch was never invoked (absent from manifest, denied in config).
+# Remediation: add "*" to the three allow patterns (config, via AI devtools workflow),
+# and run "playwright install chromium" for the crawl4ai venv playwright (host-side).
+https://docs.python.org/3/tutorial/introduction.html # NOT ARCHIVED (all methods exhausted)
+https://vitejs.dev/guide/ # NOT ARCHIVED (all methods exhausted)
+https://registry.npmjs.org/vite # NOT ARCHIVED (all methods exhausted)

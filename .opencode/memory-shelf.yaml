@@ -121,6 +121,124 @@ shelf:
       crwl chromium failure (DIA-129) expected and documented; webfetch never needed.'
     path: knowledge/res019-omo-slim-version-gate/res019-omo-slim-version-gate-conspect.md
     created: 2026-08-13
+  - name: OpenCode Agent Config Watchdog Research (DIA-132)
+    description: 'Conspect for DIA-132 (coder-escalated kimi-k3 ONE-SHOT silent failure on DIA-130): persist the ai-specialist hardening research on timeout/heartbeat/empty-result-detection mechanisms (3 archived sources, zero failures - live opencode.ai/config.json AgentConfig schema via raw curl, Agents + Plugins docs pages via trafilatura). AgentConfig surface: model, variant, temperature, top_p, prompt, tools (deprecated->permission), disable, description, mode (subagent/primary/all), hidden, options (provider pass-through), color, steps, maxSteps (deprecated->steps), permission (16 keys incl. doom_loop). "steps" = maximum agentic ITERATIONS before forcing text-only response (positive integer, NOT a wall-clock timeout; docs: on limit the agent receives a system prompt to summarize work + remaining tasks). Plugin API: session events (created/compacted/deleted/diff/error/idle/status/updated), tool.execute.before/after, experimental.session.compacting (fires before continuation-summary generation; output.prompt replaces the compaction prompt) - mapped to delegation-observer.ts usage (A1 pure-dispatch, A2 task_id capture, event-based lifecycle RUNNING/COMPLETE/FAILED + S1 A3 silent-failure scan, compaction snapshot injection). Absence findings: NO native per-agent timeout (only ProviderConfig options.timeout/headerTimeout/chunkTimeout and MCP server timeouts in the schema) and NO native empty-result handling (no AgentConfig field, no plugin event) in OpenCode v1.18.12 era - plugin-side session-event monitoring is the available native path for the ticket''s hardening candidates. ID corrected from res003 to res020 (res001..res019 already registered).'
+    path: knowledge/res020-opencode-agent-config-watchdog/res020-opencode-agent-config-watchdog-conspect.md
+    created: 2026-08-13
+  - name: Ticket Automation Landscape Evaluation (DIA-125 follow-on)
+    description: 'Conspect for DIA-125 follow-on (res-1): ticket-automation landscape
+      evaluation (13 archived sources, zero failures). Grounds the delegation-observer
+      ticket-gate mechanics in plugin source (scanTickets reads docs/dev-infra-audit/tickets/,
+      filename regex /^DIA-(\d+)/, dispatch regex /DIA-\d+/gi format-agnostic, strict
+      tri-state DIA-076 C1, ticket-creation + checksum exemptions, fail-soft on scan
+      errors) - any external tracker needs a file-mirror bridge or gate rework. Candidate
+      families: self-hosted web trackers (Plane Docker Compose/K8s, OpenProject CE
+      Rails, Redmine Rails, Gitea/Forgejo single-binary, Vikunja todo-semantics mismatch),
+      MCP servers (Plane MCP official MIT 100+ tools/20 categories stdio uvx; OpenProject
+      CE MCP jtauschl 14 stars 132 tools guarded writes context-frugal; mcp-redmine
+      232 stars; Vikunja community 100 stars; Forgejo MCP 46-result ecosystem; GitHub
+      MCP MIT but cloud/GHES-only local-first violation), local CLIs (git-bug GPLv3+
+      git-object offline-first no MCP; taskwarrior single binary todo semantics), keep-local
+      baseline (number allocator, template generator, README rollup updater, blocker-graph/frontier
+      renderer, bats-tested) + official Filesystem MCP server as optional agent-facing
+      layer. 3-constraint fit table (DIA-079 ASCII, gate compat, local-first WSL2/container).
+      Top-3 ranking: keep-local baseline (native fit) > git-bug (mirror bridge needed)
+      > OpenProject CE + jtauschl MCP (Tier-3 at scale). Preliminary keep-local recommendation
+      (developer decides). Star counts for goern/raohwork Forgejo MCP, Plane MCP 286,
+      GitHub MCP 32.2k, git-bug 10k, and the Gitea/Forgejo single-binary claim are
+      researcher-supplied, not confirmed in archive, excluded per DIA-072 (section
+      6). Cross-references res018 (DIA-125 first pass), ana006 (local-first decision),
+      res008 (DIA-072 archival).'
+    path: knowledge/res021-ticket-mgmt-automation/res021-ticket-mgmt-automation-conspect.md
+    created: 2026-08-13
+  - name: Evidence-Backed Decision Variants (DIA-115)
+    description: 'Conspect for DIA-115 (research-first, OPEN): EBDV presentation format
+      for policy-class decisions (10 archived sources, zero failures). Design: triggers
+      (section-10 policy changes, AGENTS.md/prompt changes, agent-policy, model/tool-selection
+      with >=2 candidates); per-variant field set (title, change-description, evidence-sources,
+      pros/cons, effort, section-10-flag, Y-statement summary); evidence tiers T1 (committed/archived-conspec),
+      T2 (web-fresh-cited URL+date), T3 ([INFERENCE] labeled, T3-alone insufficient);
+      minimum >=2 real variants + recommendation + always-available abort/status-quo;
+      chosen variant documented in ticket UPDATE block. Provenance: ADR/MADR/Y-statement
+      (Zimmermann: neglected alternatives, empirical evidence over pseudo-rationale),
+      InfoQ sustainable decisions, Claude Code show-evidence-not-assertion, Prisma
+      alternatives-at-end, ruvnet decision log, Meshtastic rejected-markers; Swift/Carbon
+      researcher-supplied not archived (DIA-072). Section-10 interaction: EBDV layers
+      ON TOP, section 10 remains the routing gate, EBDV is a presentation requirement
+      inside Phase 2 (Review & Decide) for policy-class only. Enforcement ranked
+      cheap->heavy per DIA-086: (1) validate-decision-variants.sh mechanical validator
+      in make test-config (mandatory), (2) OpenSpec template + Alternatives considered
+      (mandatory), (3) AGENTS.md prompt rule (optional soft), (4) practice-protected
+      + ai-auditor (deferred). Cross-refs res012-015 (evidence vocabulary) + ana015
+      G1/G2/G3 + ana004 (mechanical beats prompt).'
+    path: knowledge/res022-evidence-backed-decision-variants/res022-evidence-backed-decision-variants-conspect.md
+    created: 2026-08-13
+  - name: Dispatch Routing Registry Design (DIA-133)
+    description: 'Conspect for DIA-133 (data-driven dispatch routing, opencode-config,
+      OPEN): PARTIAL persistence per res-4 recommendation + developer KEEP decision
+      2026-08-13 (binary per DIA-135) - registry schema + routing design + NEW Tier-2
+      web-fresh quota-guard precedents NOT previously in the shelf (6 archived sources,
+      zero failures, all Tier-1 trafilatura direct 2026-08-13). Registry design
+      (Choice A1a): location knowledge/model-registry.yaml (evidence-co-located, ZERO
+      read-scope change - orchestrator read block already allows knowledge/* at
+      opencode.jsonc L172 read / L195 glob via DIA-126(a) expansion, verified 2026-08-13);
+      per-model fields model_id, role, price_in_1m, price_out_1m, req_per_month,
+      swe_bench_verified + source_ref, lane, fallback[], quota_notes, active. Model set:
+      deepseek-v4-flash coder default $0.14/$0.28 158K req/mo, qwen3.7-plus arch/analyzer,
+      kimi-k3 coder-escalated 490 req/mo binding cap SWE-V 93.40 Vals, gpt-5.6-luna
+      analyzer-escalated subagent-weak, deepseek-v4-pro Rung-3 fallback (res017 REVERSAL
+      of res015 MiMo pick - CAISI independent evidence), mimo-v2.5-pro fallback-2
+      benchmark-gap-OPEN vendor-only, gpt-5.3-codex reviewer Copilot-credits req_per_month
+      null. Routing: res014 Rung0-4 ladder codified (Rung0 coder/deepseek-v4-flash ->
+      Rung1 retry -> Rung2 qwen3.7-plus -> Rung3 coder-escalated/kimi-k3 quota-guarded
+      -> Rung4 reviewer/gpt-5.3-codex; analyzer qwen3.7-plus -> gpt-5.6-luna ->
+      route-back). Quota-guard (Choice C1): procedural clone of COUNCIL-BUDGET-GUARD,
+      count registry.jsonl event session_spawn per model filtered by YYYY-MM (registry.jsonl
+      over messages.jsonl - plugin sole-writer + dispatch_state; ana007 anti-pattern),
+      warn 80%, hard-stop count+1>cap -> fallback[] or wait_for_user, skip Copilot-credit
+      lanes, check SILENT_FAILURE before re-dispatch (DIA-132 lesson). Tier-2 precedents:
+      OhanaSec models+routingTable separation + benchScore-after-scored-run, Budibase
+      monthly counter (dry-run-then-commit, percentage triggers 1-100, USAGE_LIMIT_EXCEEDED,
+      getCurrentMonthString), Codex min_rate_limit_remaining_percent default 25,
+      Alibaba proactive throttle (rate-limit headers, backoff cap+jitter, threshold
+      wait-until-reset, idempotent reconcile), OmniRoute quota-aware strategies
+      headroom/reset-window/reset-aware (freeMonthlyQuota/costPerQuery field names
+      FLAGGED researcher-supplied-not-archived per DIA-072). Design-gate: Choices
+      A+B(+C) -> @architector; Choice D one-line literal allow entry if future
+      location change (DIA-126a wildcard lesson). Cross-refs res013/014/015/016/017,
+      ana014, res022 EBDV, res020 DIA-132, ana007, DIA-135.'
+    path: knowledge/res023-dispatch-routing-registry/res023-dispatch-routing-registry-conspect.md
+    created: 2026-08-13
+  - name: 'Research-Pipeline Optimization: Model/Variant + Fetch Tools (DIA-135)'
+    description: 'Conspect for DIA-135 (OPEN) D5/D8 research: model/variant optimization
+      for the researcher + conspecter lanes and AI-optimized source-fetch tooling
+      (21 archived sources, zero failures; one source required the crawl4ai/crwl
+      headless tier - platform.openai.com). Findings: (1) per-model pricing/context
+      table for deepseek-v4-flash ($0.14/$0.28 Go, 1M ctx, 158,150 est req/mo),
+      deepseek-v4-pro ($0.435/$0.87, 1M ctx), gpt-5-mini ($0.25/$2.00 OpenAI/GH
+      Copilot, 400K ctx, NOT on Go), qwen3.7-plus ($0.40/$1.60 <=256K, 1M ctx),
+      kimi-k3 ($3/$15 Go, 1M ctx, 490 est req/mo binding); DeepSeek concurrency
+      flash 2500 / pro 500; NO literal req/month quota published anywhere (Go caps
+      are dollar-valued $12/5h/$30/wk/$60/mo with ESTIMATED request counts; OpenAI
+      RPM/TPM + monthly $ tiers; Moonshot concepts only). (2) Lane-fit: flash keeps
+      both researcher (volume retrieval) and conspecter (long-context MLA synthesis)
+      defaults. (3) Fetch tools: trafilatura best static extractor (current official
+      benchmark F 0.920, 2026-08-04; historical precision 0.925) but fails JS/SPA;
+      crawl4ai/crwl only JS-capable tier (heavyweight, DIA-129 risk); curl+UA
+      transport-only (raw HTML still 0 bytes through trafilatura on platform.openai.com);
+      npm registry JSON API readme-as-JSON; recommended 3-tier chain by URL class
+      (npm JSON -> trafilatura -> curl+UA+trafilatura -> crwl). (4) ai-specialist
+      EBDV recommendation: researcher R2 (keep flash, temp 0.7->0.3, gain bash
+      curl/wget/trafilatura/crwl + edit knowledge/* - allow-list observed live in
+      this run) and conspecter C2 (keep flash, add variant low + temp 0.1, lose all
+      bash post-D7). Excluded per DIA-072: JS-rendered benchmark tables on OpenRouter
+      cards, Kimi platform price/limit tables. Cross-refs res008/013/014/016/017/019/022/023.'
+    path: knowledge/res024-model-variant-fetch-tools/res024-model-variant-fetch-tools-conspect.md
+    created: 2026-08-13
+  - name: OpenWebUI RAG Infrastructure Investigation (DIA-089 Phase A)
+    description: 'Conspect closing DIA-089 Phase A investigation (8 archived sources, all archived, zero failures - docs.openwebui.com captured via curl+trafilatura stdin pipeline since direct -u returned empty on the JS-heavy Docusaurus site; raw CHANGELOG.md captured via curl because trafilatura drops non-HTML). Documents the book-rag/OpenWebUI hybrid RAG infrastructure inventory with 3 config drifts: (1) STALE KB cache knowledge-bases.yaml cached_at 2026-07-13 with 12 UUIDs vs 1h TTL; (2) memory-shelf ai-self-improvement description says project skill copies deleted but CHANGELOG L103 shows GLOBAL copies deleted and project kept (global book-rag ABSENT, consistent with applied change, inconsistent with shelf text); (3) commands/rag.md present but NOT in opencode.jsonc command block (doc drift vs SKILL.md claim). Architecture: OPT-IN #rag/#tag -> SKILL.md redesign-route-execute -> query_rag.py (1328 lines; #tag re.search parse, difflib fuzzy UUID resolve, Tier1 GET /api/v1/knowledge/ + Tier2 webui.db SQLite discovery, auth OPENWEBUI_API_KEY or .key JWT mint or auto-setup, POST /api/v1/retrieval/query/collection {query, collection_names, k:6, hybrid:true}, === RETRIEVED KNOWLEDGE === format, [WARNING] top score < 0.30). Web-fresh v0.11.0 contract verified in archive: RAG_TEXT_SPLITTER=markdown_header REMOVED -> ENABLE_MARKDOWN_HEADER_TEXT_SPLITTER default on; ENABLE_RAG_HYBRID_SEARCH default False server-side (script sends hybrid=true); RAG_HYBRID_BM25_WEIGHT 0.5; CHUNK_SIZE 1000/OVERLAP 100/MIN_SIZE_TARGET 0; embedding-model change requires re-index; ENABLE_PERSISTENT_CONFIG=True DB-overrides-env; WEBUI_JWT_SECRET_KEY deprecated (DATA_DIR/WEBUI_SECRET_KEY blanket deprecation flagged researcher-supplied-not-fully-archived); Bearer sk-+JWT+x-api-key; file POST /api/v1/files/ process=true + poll /process/status before KB add (400 empty-content). OPENWEBUI_DATA_DIR is script-invented, NOT a server var (server uses DATA_DIR). Phase B/C verification plan B0-B4/C1-C5 ready to run once developer starts server + sets env vars. Blocked on developer: server not running, 3 env vars unset. .key secret value never read.'
+    path: knowledge/res025-openwebui-rag-infra/res025-openwebui-rag-infra-conspect.md
+    created: 2026-08-13
 
   analyses:
   - name: Agent Alignment Audit
@@ -245,6 +363,42 @@ shelf:
     description: 'Benchmark protocol comparing three Rung-3 candidates (kimi-k3, deepseek-v4-pro, mimo-v2.5-pro) on three real in-repo tasks: (1) implement debounce utility in phonetics-core, (2) implement ring-buffer data structure in phonetics-core, (3) add timeout support to eval-lite.sh. Each task has prepared test files with clear pass/fail criteria. Execution via dedicated temporary benchmark agent variants (bench-kimi-k3, bench-deepseek-v4-pro, bench-mimo-v25-pro) with git worktree isolation. Request budget: 120 requests estimated for kimi-k3 (75% headroom within 490 req/mo cap). Verdict criteria: pass rate primary, qualitative score and efficiency tiebreakers. Includes full test specifications (Appendices A/B/C) and execution checklist. - approach CANCELLED by developer directive 2026-08-12 (no self-benchmarking); superseded by res017 authoritative evidence'
     path: "knowledge/ana014-rung3-benchmark-protocol/ana014-rung3-benchmark-protocol-report.md"
     created: 2026-08-12
+  - name: "DIA-113 Workflow-Adherence + Autonomy Audit (Analyzer Slice)"
+    description: "Analyzer-slice completion of DIA-113 (ai--1 covered #4 autonomy-config mapping C7/C8; this slice covers #1 workflow enumeration, #2 developer-as-owner audit, #3 verification-loop quantification, #6 gap matrix + recommendations). 12 workflows enumerated with adherence rating (7 STRONG, 2 WEAK, 2 MODERATE, 1 MISSING). Top 3 gaps: G1 reviewer-disposition silent bypass (81% of reviewer dispatches do not route through pending-owner), G2 re-verify evidence rate 51% on 45 CLOSED tickets (22% have empty placeholder), G3 interview-first gate bypass rate ~30% on implementation tickets without skip-spec justification. Verification-loop quantification: 45 CLOSED tickets audited, 100% have Re-verify section (template-enforced), 51% have concrete evidence (exit codes/PASS/FAIL), 27% weak, 22% empty placeholder; 2-cycle cap respected (0 violations); 93% of tickets closed after re-review. 7 prioritized recommendations, each traced to a best-practice source, with section-10 routing flag for config changes (R1, R4 are section-10-routable). Developer-ownership audit: 89 pending-owner events across 2861-event session log; practice-protected zones PP1/PP5/PP6/PP7 STRONG/MODERATE; PP2 (TDD edge-cases) and PP3 (@architector flags) WEAK/NOT ENFORCED. Cross-references ai--1 C7/C8 findings (no config drift, --auto canonical escape hatch)."
+    path: "knowledge/ana015-workflow-adherence-audit/ana015-workflow-adherence-audit-report.md"
+    created: 2026-08-13
+  - name: "DIA-098 Session Stop-Point Correlation and Stall-Detection Design"
+    description: "Read-only session-evidence analysis (3324 registry rows, 2867 message rows, 1108 unique sessions, 2026-08-04..13). 8 stop-point classes enumerated (SP1-SP8): normal completion (996), crash/cancellation (17), false-positive failed from multi-idle (3), silent failure alert (30), gate-blocked (30), true orphan (2), recovered fail (12), auxiliary-only (69). 7 failure-class taxonomy (F1-F7): permission-ask stall, silent-empty result, tool-error loop, gate-blocked, crash/cancellation, orphaned/dangling, normal completion. Key findings: F1 error field is [object Object] for all 51 session_failed (uninformative, plugin bug); F2 48.8% of failed sessions are false positives from multi-idle anomaly; F3 permission stalls are invisible in registry (tracked only in ticker.json). Stall-detection signal design: primary signal (b) in-flight dangling row with periodic sweep every 60s, threshold 10min subagent / 20min orchestrator; fallback signal (c) permission-ask timeout 5min via needs-input-observer ENTER/CLEAR + POST /session/:id/permissions/:id auto-reject. Complete-vs-interrupted classifier pseudocode with validation (1003/1108 sessions classified, 90.5% coverage). Auto-resume design: NO automatic resume recommended (fail-fast + re-route instead), exception is permission-stall auto-reject. 6 prioritized recommendations (R1-R6), 5 of 6 require section-10 routing (plugin edits). Integration points: needs-input-observer (permission hooks), delegation-observer (registry writer + checkSilentFailures). Cross-references DIA-099, DIA-126(b), ana011, ana015, DIA-130, dia-redispatch-cycle."
+    path: "knowledge/ana016-stop-point-stall-analysis/ana016-stop-point-stall-analysis-report.md"
+    created: 2026-08-13
+  - name: "DIA-102 Specification Workflow Reference Synthesis"
+    description: 'Synthesis of existing analyses (ana004 spec-authoring philosophy, res001 openspec/sdd reconciliation, ana010 artifacts folder audit) into a single spec-workflow reference. Maps 20 artifact types across 3 storage layers (L0 CONTEXT.md, L1 .sdd/, L3 openspec/). Enumerates 15 active openspec changes (10 unregistered in shelf), 2 .sdd/ docs (0 in shelf.architectures), 2 archived changes, empty openspec/specs/. Lifecycle state machines for feature specs (interview->propose->implement->archive), ADR documents (proposed->accepted->deprecated), and tickets (OPEN->CLOSED). Gap matrix: 12 gaps identified (3 HIGH: 10 unregistered changes, empty specs/, missing .openspec.yaml status fields; 5 MEDIUM: no commit->spec linkage, shelf.architectures empty, CONTEXT.md near-empty, 4 status mismatches, no spec-discovery script; 4 LOW: no ADR deprecation enforcement, .tss/ missing, dangling shelf ref, empty dia-071 scaffold). 12 prioritized recommendations (R1-R12, ~27h total). Cross-references ana004/ana010/res001/DIA-102.'
+    path: "knowledge/ana017-spec-workflow-reference/ana017-spec-workflow-reference-report.md"
+    created: 2026-08-13
+  - name: "DIA-135 Research-Lane Optimization (Model/Variant + Fetch-Tool Design)"
+    description: 'EBDV synthesis of the DIA-135 research conspect (res024) and the
+      ai-specialist section-10 gate variants for the researcher + conspecter lanes.
+      Researcher R2 recommended (KEEP deepseek-v4-flash, temp 0.7->0.3, GAIN bash
+      allow-list curl/wget/trafilatura/crwl + edit knowledge/*). Conspecter C2
+      recommended (KEEP deepseek-v4-flash, add variant low + temp 0.1, LOSE all bash
+      post-D7). Rejected R3 (qwen3.7-plus swap, 2.9x cost, reasoning uplift wasted
+      on retrieval lane) and C3 (gpt-5-mini swap, burns Copilot credits shared with
+      coder-escalated/reviewer/ai-auditor). Conflict resolution: researcher lane-fit
+      finding suggesting deepseek-v4-pro/qwen3.7-plus for conspecter EXPLICITLY
+      REJECTED in favor of C2 -- synthesis is citation-formatting (not reasoning),
+      flash 1M ctx is sufficient, temp 0.1 matches sibling artifact-producer pattern,
+      no model-family conflict exists here. Fetch-tool design: 3-tier chain by URL
+      class (npm JSON API -> trafilatura -> crwl headless as last-resort). DIA-129
+      crwl-fragility risk flagged as hard constraint (never first attempt, cache per
+      URL-hash within session). Finding: no provider publishes literal req/mo quota
+      (Go caps are dollar-valued); all req/mo figures in model registry must be
+      labeled ESTIMATE. Cross-lane cost check: 5 model families across 7 lanes
+      (DeepSeek, Codex, Qwen, Kimi, Luna); Copilot credits preserved for escalation
+      lanes. 8 numbered conclusions suitable for verbatim quoting from the DIA-135
+      ticket. Cross-references res013/res016/res017/res019/res024, in-conversation
+      ai-specialist gate (2026-08-13).'
+    path: "knowledge/ana018-research-lane-optimization/ana018-research-lane-optimization-report.md"
+    created: 2026-08-13
   adrs:
   - name: Memory Storage Strategy
     description: 'Evaluation of Claude-Mem, Honcho, and current hand-written memory

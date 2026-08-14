@@ -691,3 +691,50 @@ Notes:
     runtime/temporal state not stated in any commit; the reconstruction method is
     a verification decision not recoverable from git diffs alone.
   - Cross-reference: DIA-130, DIA-131 (post-restart TUI re-verify).
+
+## L20260813-001 - research-ID assumption failure: always verify the next free
+knowledge/<type><id>-<topic> ID before dispatch (2026-08-13, DIA-132)
+
+- Symptom: the research-pipeline skill and the dispatch guidance claimed the
+  next free research ID was "res003", but the actual next free ID was res020 -
+  res001..res019 were already registered in knowledge/ AND the memory shelf.
+  The conspecter correctly caught the collision and used res020 (the
+  memory-shelf.yaml res020 description records "ID corrected from res003 to
+  res020 (res001..res019 already registered)").
+- Why irrecoverable: the assumption of a sequential "next ID" is a process
+  guess, not stated anywhere authoritative. The concrete correction appears
+  only as a note inside the shelf entry; the generalizable RULE (verify before
+  dispatch) is the part not reconstructible from git or the shelf.
+- Operational rule: BEFORE any knowledge-dispatch (researcher/conspecter
+  lane), ALWAYS compute the next free <type><id>-<topic> ID by BOTH (1)
+  listing the knowledge/ directory for existing <type><id> prefixes AND (2)
+  reading memory-shelf.yaml for registered IDs. Never trust an assumed
+  sequential ID - IDs are NOT monotonic/contiguous: two distinct res003 entries
+  exist for different topics (res003-telemetry-reentrancy-guards and
+  res003-tui-corruption-stdout) while later gaps exist, so "next = prev+1" is
+  an unsafe assumption.
+- Cross-reference: memory-shelf.yaml res020 description; DIA-132;
+  knowledge/ res001..res020 listing.
+
+## L20260813-002 - OpenCode config load-order & OPENCODE_PERMISSION precedence (DIA-126a, 2026-08-13)
+
+- OpenCode config files are DEEP-MERGED in load order (global config ->
+  OPENCODE_CONFIG env file -> project files -> .opencode/ directory files),
+  with the LAST file winning conflicting keys. Therefore a plain
+  OPENCODE_CONFIG permission-block override does NOT win: the project
+  .opencode/opencode.jsonc clobbers any permission rule the OPENCODE_CONFIG
+  override declares.
+- The OPENCODE_PERMISSION env var is deep-merged into the final permission
+  object AFTER all config files resolve, so it WINS over every config-layer
+  permission block. This is the highest-precedence permission overlay and the
+  only reliable way to override a project config permission without editing
+  the tracked file (used by scripts/overnight.sh).
+- Why irrecoverable: the load-order + OPENCODE_PERMISSION-wins semantics is an
+  empirically-verified OpenCode behavior, not stated in any single config file
+  (only in the overnight.sh comment header). A future config-work agent
+  reasoning from opencode.jsonc alone would wrongly assume an OPENCODE_CONFIG
+  override wins. Prefer OPENCODE_PERMISSION for runtime/override permission
+  overlays and edit the tracked config for durable changes.
+- Cross-reference: scripts/overnight.sh lines 20-25/132 (authoritative
+  comment); DIA-126; complements the findLast catch-all-ordering lesson
+  (adr.md DIA-036/DIA-081/DIA-126).

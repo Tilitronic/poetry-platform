@@ -144,3 +144,13 @@ Note: These are navigational facts to help future humans find the infra/test art
     DIA-067 is resolved/closed (recorded here; no ticket created this run). The
     webfetch-substitution path is a viable fallback but should not become the
     permanent research-archive mechanism.
+
+- Ticket-management CLI & coordination protocol (DIA-125, CLOSED 2026-08-13):
+  `scripts/tickets` provides `new` / `rollup [--check]` / `frontier` / `help`
+  for the DIA ledger under docs/dev-infra-audit/tickets/. The multi-device
+  claim/coordination convention (shared git remote, session_id +
+  lease_expires_at single-writer token, fetch-before-take) is documented in
+  docs/dev-infra-audit/tickets/COORDINATION.md. Bats coverage:
+  scripts/__tests__/tickets.bats (19 tests). Navigational pointer only; the
+  CLI behavior and protocol are recoverable from those tracked files and the
+  DIA-125 ticket.

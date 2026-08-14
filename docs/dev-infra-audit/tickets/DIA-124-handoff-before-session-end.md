@@ -1,6 +1,7 @@
 # DIA-124 - orchestrator must write and verify a terminal handoff BEFORE presenting session-end / new-session prompt
 
-<!-- Planning ticket filed 2026-08-13 from a session-observation (developer
+<!-- UPDATE 2026-08-13 (IMPLEMENTED + AUDITED + FINDINGS FIXED - TICKET CLOSED): implemented by cod-31 (ses_002c5e0faffe4LAJc25uTZXrIO): (1) NEXT-RUN.md section 7.2 HARD RULE (DIA-124) - handoff MUST be written via log_decision(handoff, JSON.stringify(prognosis)) BEFORE final summary presentation, 3-step sequence (write, confirm, present), plugin-failure fallback flags missing handoff + resume_instructions MUST include 'lane-0 checksum delegation required' (DIA-093 crisis path); (2) NEXT-RUN.md section 1 note 1.6 (missing handoff at boot = prior session failed the rule, record as finding, not blocker); (3) NEXT-RUN.md section 7.3 DETECTION self-check note; (4) AGENTS.md section 6 'Session-end handoff (DIA-124)' rule block; (5) delegation-observer.ts comment-only gate assessment (documented-not-built: session.idle cannot cheaply identify final-summary turn; per-turn handoff MESSAGES row would false-positive; staleness check noisy on first idle; reliable cheap signal is boot-time). ai-auditor (ai--6) CONFORMANT-WITH-NOTES; developer disposition FIX both findings - applied this lane: step 2 tightened to require fresh-file identity (current session_id + populated 64-hex checksum via delegated file read; 'plugin confirmation' alternative removed - log_decision return text is not a write confirmation because atomic-write failures are caught-and-warned while the tool still returns success). Validation: make test-config exit 0, make test-shell exit 0, tsc clean (comment-only plugin diff), drift gate 8 markers intact. Ticket CLOSED per Re-verify convention; commit deferred to end-of-session.
+     Planning ticket filed 2026-08-13 from a session-observation (developer
      catch, 2026-08-13). The orchestrator presented a session-end / "start a
      new session" flow BEFORE writing a terminal handoff for the current
      session (ses_007e403fdffeQ4ZzfBpwumRLHP). At that moment the on-disk
@@ -17,7 +18,7 @@ id: DIA-124
 title: "orchestrator must write and verify a terminal handoff BEFORE presenting session-end / new-session prompt"
 area: opencode-config
 severity: Major
-status: OPEN
+status: CLOSED
 blocked_by: [] # no blockers
 discovered: 2026-08-13
 source: session-observation (developer, 2026-08-13)
@@ -106,12 +107,19 @@ section-10 ticket gate satisfied by this ticket.
 
 ## Verification
 
-> To be filled at fix time. Planning ticket - no implementation performed yet.
+- [x] (a) NEXT-RUN.md section 7.2 HARD RULE (DIA-124): handoff written via log_decision(handoff, JSON.stringify(prognosis)) BEFORE final summary presentation; 3-step sequence (write, confirm, present); plugin-failure fallback flags missing handoff + 'lane-0 checksum delegation required'.
+- [x] (b) NEXT-RUN.md section 1 note 1.6: missing handoff at boot = prior session failed the rule, recorded as finding, not blocker.
+- [x] (c) NEXT-RUN.md section 7.3 DETECTION self-check note.
+- [x] (d) AGENTS.md section 6 'Session-end handoff (DIA-124)' rule block.
+- [x] (e) delegation-observer.ts comment-only gate assessment (documented-not-built; boot-time is the reliable cheap signal).
+- [x] (f) ai-auditor finding 1 (MEDIUM) fixed: step 2 requires FRESH-FILE IDENTITY - current-handoff.json's session_id equals current orchestrator session AND checksum populated (64-hex).
+- [x] (g) ai-auditor finding 2 (MINOR) fixed: 'plugin confirmation' alternative removed; delegated file read required (log_decision return text is not a write confirmation).
+- [x] (h) make test-config exit 0 (drift gate 8 markers x 3 presets); make test-shell exit 0; tsc clean (comment-only plugin diff).
 
 ## Fix
 
-> To be filled at fix time. Planning ticket - no implementation performed yet.
+FIX COMPLETE 2026-08-13 (cod-31 + findings lane): hard rule in NEXT-RUN.md 7.2 + AGENTS.md 6, plugin gate assessed documented-not-built, ai-auditor findings fixed (fresh-file identity step 2 + no plugin-confirmation alternative). See top UPDATE.
 
 ## Re-verify
 
-> To be filled at re-verify time.
+RE-VERIFY PASS 2026-08-13: make test-config exit 0, make test-shell exit 0, tsc clean. Procedural policy; restart-verify N/A for runtime (comment-only plugin change), policy smoke next real session-end.

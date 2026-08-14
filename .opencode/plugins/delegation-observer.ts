@@ -17,7 +17,15 @@
  * Hook surface (real @opencode-ai/plugin@1.18.10 shapes):
  *  - "tool.execute.before"  (input, output) — A1 pure-dispatch enforcement
  *  - "tool.execute.after"   (input, output) — A2 task_id capture (parsed from
- *    output.output, a text string; input.result does not exist)
+ *    output.output, a text string; input.result does not exist) + DIA-105
+ *    edit-time formatter hook (PostToolUse pattern): after an agent edits a
+ *    file via edit/write/apply_patch, run `npx --no-install prettier --write`
+ *    on the touched file(s) so formatting diffs do not accumulate until the
+ *    DIA-094 commit gate. NON-FATAL by construction: a missing/erroring
+ *    formatter writes a format_warn registry row and never blocks the edit.
+ *    Deliberately prettier-only (no eslint --fix) and repo-config-respecting
+ *    (prettier natively honors .prettierignore/.prettierrc). See the
+ *    FORMATTER_* constants and formatEditedFile() below.
  *  - "event"                (input) — C1 session lifecycle catch-all:
  *    session.created → RUNNING (child spawn), session.idle → COMPLETE + S6
  *    A5 gate + S1 A3 silent-failure scan, session.error → FAILED + A3 scan
@@ -26,9 +34,11 @@
  *
  * Design rules enforced: A1 pure-dispatch, A2 task_id capture, A3 retroactive
  * consistency, A4 append-only registry discipline, A5 final-message gate,
- * C3 forward-only status transitions (S2 guard).
+ * C3 forward-only status transitions (S2 guard), DIA-105 edit-time format
+ * (non-fatal, ignore-set-scoped, deterministic local prettier).
  */
 import { createHash, randomUUID } from "node:crypto"
+import { spawnSync } from "node:child_process"
 import {
   appendFileSync,
   closeSync,
@@ -43,7 +53,7 @@ import {
   unlinkSync,
   writeFileSync,
 } from "node:fs"
-import { dirname, isAbsolute, join, relative, resolve } from "node:path"
+import { dirname, extname, isAbsolute, join, relative, resolve } from "node:path"
 import { tool, type Hooks, type Plugin } from "@opencode-ai/plugin"
 
 /**
@@ -249,6 +259,12 @@ interface RegistryRow {
   role?: string
   alert_note?: string
   group_key?: string
+  // DIA-123 boot row fields (event: "session_boot"): boot_id links the row
+  // to .opencode/session/boot.json; process_started_at is the plugin-load
+  // (process start) time captured before any file I/O — the deterministic T1
+  // a verifier compares against config file mtimes (T0).
+  boot_id?: string
+  process_started_at?: string
   [key: string]: unknown
 }
 
@@ -262,7 +278,111 @@ const NON_TERMINAL_STATES = new Set(["invoked", "running"])
 // `cancelled` stays reserved for real cancel_task events.
 const TASK_NO_ID_GROUP_KEY = "__task_no_id__"
 
+// === DIA-105 edit-time formatter hook (PostToolUse pattern) ===
+//
+// The repo enforces formatting only at COMMIT time (husky pre-commit DIA-094
+// runs lint-staged: prettier --write + eslint --fix inside the dev container).
+// This hook adds EDIT-time enforcement: when an agent edits a file, run the
+// repo formatter immediately after the edit tool returns, so formatting diffs
+// stop accumulating until commit. The commit gate REMAINS (DIA-094): this hook
+// supplements, never replaces it.
+//
+// Design rules (DIA-105):
+//  - NON-FATAL: a missing formatter, spawn error, or prettier error NEVER
+//    breaks the agent's edit or the session. A format_warn registry row +
+//    console.warn is the worst case (never a throw from the hook).
+//  - Deterministic formatter: `npx --no-install prettier --write <file>`
+//    (--no-install forces the LOCAL prettier 3.8.3 from node_modules — never
+//    a network fetch, so behavior is identical to the DIA-094 lint-staged
+//    path). prettier honors .prettierrc.json (singleQuote, printWidth 100)
+//    and .prettierignore natively.
+//  - Ignore set: paths under FORMATTER_IGNORE_PREFIXES are skipped entirely.
+//    .opencode/session/, knowledge/, docs/dev-infra-audit/tickets/ and
+//    openspec/changes/archive/ are EXPLICITLY out of scope (session artifacts,
+//    research artifacts, hand-controlled ledger, archived specs). prettier's
+//    own .prettierignore (node_modules/, dist/, .opencode/, tools/, etc.) is
+//    additionally honored by prettier itself — belt and braces.
+//  - Extension allow-list: prettier-parseable extensions ONLY (.ts, .tsx, .js,
+//    .jsx, .mjs, .cjs, .vue, .css, .scss, .html, .md, .json, .jsonc, .yaml,
+//    .yml). .py/.sh are EXCLUDED on purpose: prettier cannot parse them
+//    ("No parser could be inferred"), and the repo formats those at commit
+//    time via scripts/lint-python-files.sh (ruff) and `bash -n` (lint-staged
+//    *.sh rule) — running prettier on them would guarantee a format_warn row
+//    on every python/shell edit.
+//  - Performance: files larger than FORMATTER_MAX_BYTES are skipped (binary /
+//    generated blobs are never worth reformatting).
+//  - Scope: only files the agent ACTUALLY touched (edit/write filePath,
+//    apply_patch paths extracted from the patch). No whole-tree passes.
+const FORMATTER_EXTENSIONS = new Set([
+  ".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs", ".vue",
+  ".css", ".scss", ".html", ".md", ".json", ".jsonc", ".yaml", ".yml",
+])
+const FORMATTER_IGNORE_PREFIXES = [
+  ".opencode/session/",
+  "knowledge/",
+  "docs/dev-infra-audit/tickets/",
+  "openspec/changes/archive/",
+]
+const FORMATTER_MAX_BYTES = 1024 * 1024 // 1 MiB — bigger = generated/binary
+const FORMATTER_TIMEOUT_MS = 30_000 // prettier on one file is <1s; 30s is generous
+
+/**
+ * True when `filePath` (absolute or relative) is under a no-format prefix.
+ * Resolves against `workspaceRoot` (caller passes ctx.directory — the plugin
+ * directory discipline prefers PluginInput.directory over process.cwd() so the
+ * check survives invocations started from other directories).
+ */
+function isFormatterIgnoredPath(
+  filePath: string,
+  workspaceRoot: string
+): boolean {
+  const absolute = isAbsolute(filePath)
+    ? filePath
+    : resolve(workspaceRoot, filePath)
+  const rel = relative(workspaceRoot, absolute)
+  return FORMATTER_IGNORE_PREFIXES.some(
+    (prefix) => rel === prefix.slice(0, -1) || rel.startsWith(prefix)
+  )
+}
+
+/**
+ * Extract EVERY touched path from an apply_patch payload (DIA-105 formatter
+ * hook). Mirrors the §10 gate marker scan (DIA-059 hardening — Index: /
+ * diff --git / +++ b/ / *** Add File: / *** Update File: / *** Delete File:
+ * / *** Move to: markers, including the omo rewritePatch forms) but returns
+ * ALL matched paths, not just the first protected one: the formatter must
+ * consider every file the patch touched. Deleted files are filtered
+ * downstream by the existsSync scope check in runEditTimeFormatter.
+ */
+function extractPatchPaths(patchText: string): string[] {
+  const paths: string[] = []
+  for (const line of patchText.split(/\r?\n/)) {
+    const indexMatch = /^Index:\s*(\S+)/i.exec(line)
+    const diffMatch = /^diff\s+--git\s+a\/\S+\s+b\/(\S+)/.exec(line)
+    const plusPlusMatch = /^\+\+\+\s+b\/(\S+)/.exec(line)
+    const addFileMatch = /^\*\*\*\s+Add File:\s*(.+)/.exec(line)
+    const updateFileMatch = /^\*\*\*\s+Update File:\s*(.+)/.exec(line)
+    const deleteFileMatch = /^\*\*\*\s+Delete File:\s*(.+)/.exec(line)
+    const moveToMatch = /^\*\*\*\s+Move to:\s*(.+)/.exec(line)
+    const matchedPath =
+      indexMatch?.[1] ??
+      diffMatch?.[1] ??
+      plusPlusMatch?.[1] ??
+      addFileMatch?.[1]?.trim() ??
+      updateFileMatch?.[1]?.trim() ??
+      deleteFileMatch?.[1]?.trim() ??
+      moveToMatch?.[1]?.trim()
+    if (matchedPath && !paths.includes(matchedPath)) paths.push(matchedPath)
+  }
+  return paths
+}
+
 const delegationObserver: Plugin = async (ctx) => {
+  // DIA-123: capture the process-start timestamp FIRST — before any file I/O —
+  // so the boot event carries the plugin-load (≈ process start) time, not the
+  // row-write time. The registry row's auto `timestamp` field is the write
+  // time; `process_started_at` is the deterministic process-start signal.
+  const processStartedAt = new Date().toISOString()
   // Resolve the registry from PluginInput.directory (preferred over
   // process.cwd() — survives invocations started from other directories).
   const registryPath = join(ctx.directory, ".opencode/session/registry.jsonl")
@@ -290,6 +410,16 @@ const delegationObserver: Plugin = async (ctx) => {
   const handoffDir = join(ctx.directory, ".opencode/session")
   const handoffPath = join(handoffDir, "current-handoff.json")
   const handoffTmpPath = join(handoffDir, ".current-handoff.json.tmp")
+
+  // DIA-123 boot marker paths — a dedicated boot marker file under
+  // .opencode/session/ (NOT ticker.json, which needs-input-observer owns).
+  // Written once per process start, atomically, carrying boot_id +
+  // process_started_at so a later verifier can prove "process started at T1
+  // AFTER config mtime T0" without relying on registry seq (known
+  // non-monotonic per DIA-123 findings) or ticker.json updated_at (indistin-
+  // guishable from a periodic rewrite).
+  const bootPath = join(handoffDir, "boot.json")
+  const bootTmpPath = join(handoffDir, ".boot.json.tmp")
 
   /** Paths (relative to workspace root) that require @ai-specialist gate review. */
   const protectedPaths = [".opencode/", "AGENTS.md"]
@@ -335,11 +465,21 @@ const delegationObserver: Plugin = async (ctx) => {
   const gatedSessions = new Set<string>()
   if (existsSync(registryPath)) {
     const lines = readFileSync(registryPath, "utf-8").trim().split("\n")
-    seq = lines.filter(Boolean).length
+    // DIA-123: seed from MAX(existing seq, line count), NOT line count alone.
+    // Line count regresses when rows are removed (external
+    // rewriting/reordering, e.g. the observed 2898 -> 2866 transition), which
+    // made seq-based reasoning unreliable. max(seq, count)+1 keeps the next
+    // row strictly greater than every row already in the file regardless of
+    // count, while legacy rows WITHOUT a seq field (maxSeq=0) still advance
+    // past the line count exactly as before.
+    let maxSeq = 0
+    let lineCount = 0
     for (const line of lines) {
       if (!line) continue
+      lineCount++
       try {
         const row = JSON.parse(line) as RegistryRow
+        if (typeof row.seq === "number" && row.seq > maxSeq) maxSeq = row.seq
         if (
           row.event === "a5_quality_gate" &&
           typeof row.session_id === "string"
@@ -350,6 +490,111 @@ const delegationObserver: Plugin = async (ctx) => {
         // Malformed lines are skipped during the boot scan too (same policy
         // as readRegistryRows).
       }
+    }
+    seq = Math.max(maxSeq, lineCount)
+  }
+
+  // ===== DIA-123: deterministic boot evidence (emitted at plugin load) =====
+  // The plugin body top-level runs once per process start — the ONLY point
+  // where a boot event can fire before any session activity. Two artifacts,
+  // one boot_id:
+  //   1. registry.jsonl `session_boot` row (appendRow — the SAME stream as
+  //      all activity evidence; satisfies the unify-event-writer concern).
+  //   2. .opencode/session/boot.json marker (a dedicated boot marker, NOT
+  //      ticker.json — that file is owned by needs-input-observer and its
+  //      updated_at is indistinguishable from a periodic rewrite, DIA-123
+  //      finding b2). The marker carries boot_id + process_started_at +
+  //      config mtimes so a later verifier proves "process started at T1
+  //      AFTER config mtime T0" without seq or ticker reasoning.
+  // Determinism: `process_started_at` is the plugin-load time captured before
+  // ANY file I/O; `timestamp` (auto-added by appendRow) is the row-write
+  // time — both recorded so the sub-millisecond difference is explicit. The
+  // marker does NOT rely on seq alone (registry seq is known non-monotonic
+  // per DIA-123 findings): boot_id + process_started_at are the authoritative
+  // identity; seq is an informational cross-reference to the registry row.
+  // Best-effort opencode version: the @opencode-ai/plugin input exposes no
+  // version getter, so we fall back to the OPENCODE_VERSION env var when the
+  // runtime sets it; the field is omitted when unavailable.
+  const opencodeVersion = process.env.OPENCODE_VERSION
+  const bootId = randomUUID()
+  const configSignal = captureConfigLoadSignal()
+  appendRow({
+    event: "session_boot",
+    boot_id: bootId,
+    process_started_at: processStartedAt,
+    ...(opencodeVersion ? { opencode_version: opencodeVersion } : {}),
+    config_load_signal: configSignal,
+    writer: "plugin",
+  })
+  const bootSeq = seq // appendRow incremented seq to this row's value
+  atomicWriteBootMarker({ bootId, bootSeq, configSignal })
+
+  // Capture the config files' mtimes AT LOAD as the "config load signal":
+  // this is the config state the process actually saw at boot. A verifier
+  // compares the recorded mtimes against the current files: if the current
+  // mtime is NEWER than the recorded one, the config was written AFTER boot
+  // and a restart is required. Combined with process_started_at, this proves
+  // "booted after config write T0" iff process_started_at >= recorded mtime.
+  function captureConfigLoadSignal(): Record<string, string | null> {
+    const mtime = (p: string): string | null => {
+      try {
+        return existsSync(p) ? new Date(statSync(p).mtimeMs).toISOString() : null
+      } catch {
+        return null // unreadable config — signal absent, never a crash
+      }
+    }
+    return {
+      opencode_jsonc_mtime: mtime(join(ctx.directory, ".opencode/opencode.jsonc")),
+      omo_jsonc_mtime: mtime(
+        join(ctx.directory, ".opencode/oh-my-opencode-slim.jsonc")
+      ),
+    }
+  }
+
+  /**
+   * Atomic write of the boot marker (.opencode/session/boot.json). Same
+   * pattern as atomicWriteHandoff: temp file -> fsync -> atomic rename ->
+   * fsync directory. Fail-soft by construction — a lost marker never crashes
+   * the plugin; the registry `session_boot` row remains the canonical boot
+   * evidence.
+   */
+  function atomicWriteBootMarker(marker: {
+    bootId: string
+    bootSeq: number
+    configSignal: Record<string, string | null>
+  }): void {
+    try {
+      mkdirSync(handoffDir, { recursive: true })
+      const content = {
+        version: 1,
+        event: "session_boot",
+        boot_id: marker.bootId,
+        seq: marker.bootSeq,
+        process_started_at: processStartedAt,
+        timestamp: new Date().toISOString(),
+        ...(opencodeVersion ? { opencode_version: opencodeVersion } : {}),
+        config_load_signal: marker.configSignal,
+        writer: "plugin",
+      }
+      const json = JSON.stringify(content, null, 2) + "\n"
+      writeFileSync(bootTmpPath, json)
+      const tmpFd = openSync(bootTmpPath, "r+")
+      fsyncSync(tmpFd)
+      closeSync(tmpFd)
+      renameSync(bootTmpPath, bootPath)
+      const dirFd = openSync(handoffDir, "r")
+      fsyncSync(dirFd)
+      closeSync(dirFd)
+    } catch (err) {
+      // Best-effort cleanup: unlink tmp if it still exists (rename failed).
+      try {
+        if (existsSync(bootTmpPath)) unlinkSync(bootTmpPath)
+      } catch {
+        // Secondary failure — nothing more we can do.
+      }
+      console.warn(
+        `[delegation-observer] boot.json write failed: ${errorMessage(err)}`
+      )
     }
   }
 
@@ -668,6 +913,139 @@ const delegationObserver: Plugin = async (ctx) => {
       if (rel === prefix || rel.startsWith(prefix)) return true
     }
     return false
+  }
+
+  /**
+   * DIA-105: run the repo formatter (prettier) on file(s) an agent just
+   * edited, immediately after the edit tool returns — the PostToolUse
+   * pattern. The commit-time gate (DIA-094 husky/lint-staged) REMAINS
+   * authoritative; this hook only stops formatting diffs from accumulating
+   * between edits.
+   *
+   * NON-FATAL by construction: the worst outcome is a format_warn registry
+   * row + console.warn. This function NEVER throws and NEVER modifies the
+   * edit result — a formatter failure cannot break the agent's edit or the
+   * session.
+   *
+   * Scope resolution (each step may short-circuit):
+   *   1. Touched paths: edit/write -> args.filePath; apply_patch -> every
+   *      path extracted from the patch markers (extractPatchPaths).
+   *   2. Ignore set (FORMATTER_IGNORE_PREFIXES): silent skip — session
+   *      artifacts, research artifacts, hand-controlled ticket ledger and
+   *      archived specs are explicitly out of the formatter's scope.
+   *   3. Extension allow-list: silent skip for non-prettier extensions
+   *      (.py/.sh are deliberately absent — prettier cannot parse them, so
+   *      attempting would ALWAYS warn; the repo formats python/shell at
+   *      commit via scripts/lint-python-files.sh / `bash -n`).
+   *   4. Perf guard: missing file or > FORMATTER_MAX_BYTES -> silent skip.
+   *   5. Spawn `npx --no-install prettier --write <abs>` with cwd = workspace
+   *      root (so .prettierrc/.prettierignore resolve like the DIA-094 gate).
+   *      --no-install forces the LOCAL prettier (never a network fetch) —
+   *      deterministic, identical formatter config to lint-staged.
+   *   6. exit 0 -> format_applied row; spawn error / non-zero exit / timeout
+   *      -> format_warn row (non-fatal).
+   *
+   * Row conventions mirror every other plugin row: appendRow adds seq +
+   * timestamp; the row carries event/status/session_id + writer provenance.
+   * file_path is stored relative to the workspace root for readability.
+   */
+  function runEditTimeFormatter(input: {
+    tool: string
+    sessionID: string
+    args?: unknown
+  }): void {
+    const args = (input.args ?? {}) as Record<string, unknown>
+
+    // Step 1 — resolve the paths the edit touched.
+    let touchedPaths: string[] = []
+    if (input.tool === "edit" || input.tool === "write") {
+      if (typeof args.filePath === "string" && args.filePath) {
+        touchedPaths = [args.filePath]
+      }
+    } else if (input.tool === "apply_patch") {
+      touchedPaths = extractPatchPaths(
+        typeof args.patchText === "string" ? args.patchText : ""
+      )
+    }
+    if (touchedPaths.length === 0) return
+
+    for (const rawPath of touchedPaths) {
+      const absPath = isAbsolute(rawPath)
+        ? rawPath
+        : resolve(ctx.directory, rawPath)
+      const relPath = relative(ctx.directory, absPath)
+
+      // Step 2 — ignore set (silent: expected scope exclusion, not a failure).
+      if (isFormatterIgnoredPath(absPath, ctx.directory)) continue
+
+      // Step 3 — extension allow-list (silent; prettier cannot parse the rest).
+      if (!FORMATTER_EXTENSIONS.has(extname(absPath).toLowerCase())) continue
+
+      // Step 4 — perf guard: missing file (e.g. patch-deleted) or too large.
+      try {
+        if (!existsSync(absPath)) continue
+        if (statSync(absPath).size > FORMATTER_MAX_BYTES) continue
+      } catch {
+        continue
+      }
+
+      // Step 5-6 — deterministic formatter invocation.
+      let result
+      try {
+        result = spawnSync(
+          "npx",
+          ["--no-install", "prettier", "--write", absPath],
+          {
+            cwd: ctx.directory,
+            encoding: "utf-8",
+            timeout: FORMATTER_TIMEOUT_MS,
+          }
+        )
+      } catch (err) {
+        appendRow({
+          event: "format_warn",
+          session_id: input.sessionID,
+          tool: input.tool,
+          file_path: relPath,
+          status: "WARN",
+          note: `prettier spawn failed: ${errorMessage(err)}`,
+          writer: "plugin",
+        })
+        console.warn(
+          `[DIA-105] formatter spawn failed for ${relPath}: ${errorMessage(err)}`
+        )
+        continue
+      }
+
+      if (result.error || result.status !== 0) {
+        const why = result.error
+          ? (errorMessage(result.error) ?? "spawn error")
+          : `prettier exit ${result.status}${
+              result.signal ? ` (${result.signal})` : ""
+            }`
+        appendRow({
+          event: "format_warn",
+          session_id: input.sessionID,
+          tool: input.tool,
+          file_path: relPath,
+          status: "WARN",
+          note: why,
+          writer: "plugin",
+        })
+        console.warn(`[DIA-105] formatter failed for ${relPath}: ${why}`)
+        continue
+      }
+
+      appendRow({
+        event: "format_applied",
+        session_id: input.sessionID,
+        tool: input.tool,
+        file_path: relPath,
+        status: "FORMATTED",
+        formatter: "prettier",
+        writer: "plugin",
+      })
+    }
   }
 
   /**
@@ -1029,6 +1407,29 @@ const delegationObserver: Plugin = async (ctx) => {
         return
       }
 
+      // DIA-105 edit-time formatter (PostToolUse pattern): after an agent
+      // edits/writes/patch-applies file(s), run the repo formatter on the
+      // touched files so formatting diffs do not accumulate until the
+      // DIA-094 commit gate. Non-fatal by construction — runEditTimeFormatter
+      // never throws; a formatter failure writes a format_warn row and the
+      // edit result is untouched.
+      if (
+        input.tool === "edit" ||
+        input.tool === "write" ||
+        input.tool === "apply_patch"
+      ) {
+        try {
+          runEditTimeFormatter(input)
+        } catch (err) {
+          // Absolute last resort — never let a formatter defect reach the
+          // tool result / session. warn + continue is the DIA-105 contract.
+          console.warn(
+            `[DIA-105] formatter hook error: ${errorMessage(err)}`
+          )
+        }
+        return
+      }
+
       if (input.tool !== "task") return
 
       // The session that calls task() is the orchestrator (runtime source for
@@ -1254,6 +1655,21 @@ const delegationObserver: Plugin = async (ctx) => {
                 writer: "plugin",
               })
             }
+            // DIA-124 (handoff-before-final-summary): a plugin-enforced
+            // missing_handoff warning gate was ASSESSED and deliberately NOT
+            // built here. Reasons: (1) session.idle fires after EVERY
+            // orchestrator turn, so "final summary" cannot be distinguished
+            // from a mid-cycle turn without content analysis (a heavy
+            // mechanism, out of scope); (2) the decision-#3 row below is an
+            // event_type:'handoff' MESSAGES row that does NOT write the
+            // handoff FILE, so any "no handoff event this session" scan of
+            // messages.jsonl false-positives on it; (3) the reliable cheap
+            // signal is BOOT-TIME - a missing/stale current-handoff.json at
+            // the next session start proves the prior session ended without
+            // a terminal handoff. That is the existing batch-approval gate
+            // behavior (NEXT-RUN.md 7.3), annotated as the DIA-124
+            // self-check. Enforcement lives in the NEXT-RUN.md 7.2 HARD RULE
+            // + the boot gate, not here.
             // Handoff row (decision #3, approved): write ONE event_type
             // "handoff" row (operation invoke_workflow) on the orchestrator's
             // own idle when the session has performed delegations since the

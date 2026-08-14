@@ -20,6 +20,14 @@
 
 Operational rule: after ANY empty escalation result, ALWAYS run a dedicated state-inspection lane to confirm no partial writes exist before re-dispatching any lane. A silent failure and a partial write are indistinguishable from the result message alone; re-dispatching blind can double-apply or clobber a partial write. The ONE-SHOT rule + A4 artifact gate + A3 retroactive consistency check caught this correctly. Distinct from the earlier empty-return pattern (L20260810-001): here the escalated Rung-3 lane (kimi-k3) is the one that returned empty, so the state-inspection-before-redispatch guard applies to the escalation lane just as it does to base coder.
 
+## CORRECTION (2026-08-13)
+
+- A dedicated registry read on 2026-08-13 showed NO `silent_failure_alert` row exists for escalation session ses_004a15d0fffetpy1ShtsYHP78G. Its rows are: session_spawn (seq 3170, 13:45:11Z) -> session_complete (seq 3171, 13:54:44Z, NO artifacts field) -> task_success (seq 3172).
+- The only `silent_failure_alert` in the window (seq 3161, 13:37:12Z) belonged to a DIFFERENT session (ses_004a93287ffewJwP4OCAMaca97).
+- Accurate detection path: orchestrator-observed empty task result + plain session_complete with no artifacts field, then cod-6 state-inspection verification. No dedicated silent_failure_alert row was generated for this session; the A3 checkSilentFailures() mechanism is reactive post-terminal, not a proactive alert, so it must not be relied on as the detection signal.
+- The Source metadata line above repeats the stale claim; this section is authoritative for the detection path.
+- The operational rule above is INTACT and unchanged: after ANY empty escalation result, ALWAYS run a dedicated state-inspection lane to confirm no partial writes exist before re-dispatching any lane.
+
 ## ONE-SHOT no-retry rule observed; developer approved base-coder fallback
 
 - kimi-k3 has a 490/month cap; a retry of the escalated lane was NOT warranted (one-shot, no retry).

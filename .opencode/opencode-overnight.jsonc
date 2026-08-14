@@ -1,0 +1,57 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+
+  // ---------------------------------------------------------------------------
+  // Overnight autonomous-run permission profile - DIA-126 direction (a)
+  // autonomous permission profile, Option A full (developer-approved
+  // 2026-08-13). Lane: SECTION-10 PHASE 4 IMPLEMENTATION.
+  //
+  // PURPOSE
+  //   An unattended overnight run launches with `opencode --auto`, which
+  //   auto-approves every ASK-level permission request. The interactive
+  //   profile (.opencode/opencode.jsonc) keeps the destructive bash rules
+  //   (rm, rm -rf, rmdir, chmod, chown) at ASK so a human confirms them;
+  //   under --auto that human gate disappears and the commands would run
+  //   without any confirmation. This profile re-hardens exactly those five
+  //   rules to DENY for overnight runs ONLY. DENY stays enforced under
+  //   --auto (Permission.ask short-circuits on deny before any auto-approval;
+  //   OpenCode docs: "Explicit deny rules are still enforced").
+  //
+  //   The interactive session is NOT affected: this file is loaded only by
+  //   scripts/overnight.sh. The interactive profile keeps the ask prompt.
+  //
+  // ENFORCEMENT MECHANISM (empirically verified 2026-08-13, STEP 2 of the
+  //   DIA-126(a) lane): scripts/overnight.sh extracts this `permission` block
+  //   and passes it to OpenCode via the OPENCODE_PERMISSION environment
+  //   variable. A plain OPENCODE_CONFIG override does NOT suffice: configs
+  //   are deep-merged in load order (global -> OPENCODE_CONFIG -> project
+  //   files -> .opencode/ directory files) with the LAST file winning
+  //   conflicting keys, so the project .opencode/opencode.jsonc would
+  //   clobber any permission rule this file declares. OPENCODE_PERMISSION is
+  //   deep-merged into the final permission object AFTER all config files
+  //   and therefore wins (verified with `opencode debug config`: all five
+  //   rules resolve to deny while the other 77 bash rules stay unchanged).
+  //
+  // SCOPE
+  //   Exactly the five ask-level destructive rules from the global
+  //   permission.bash map. The merge is per-key, so everything else - the
+  //   full interactive permission block, agent definitions, plugins - stays
+  //   byte-identical to the interactive profile.
+  // ---------------------------------------------------------------------------
+
+  "permission": {
+    "bash": {
+      // DIA-126(a) overnight hardening (developer-approved 2026-08-13):
+      // destructive commands flip ask -> deny for the overnight run only.
+      // Order within the map is irrelevant for evaluation (OpenCode uses the
+      // last matching rule; these are the only bash rules whose pattern
+      // matches each command family) and the global "*": "allow" catch-all
+      // stays first, so the bash tool remains visible in the function schema.
+      "rm -rf *": "deny",
+      "rm *": "deny",
+      "rmdir *": "deny",
+      "chmod *": "deny",
+      "chown *": "deny"
+    }
+  }
+}

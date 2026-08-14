@@ -162,7 +162,25 @@
           "docs/dev-infra-audit/tickets/*": "allow",
           "docs/dev-infra-audit/tickets/archive/*": "allow",
           ".opencode/practice-protected.md": "allow",
-          "AGENTS.md": "allow"
+          "AGENTS.md": "allow",
+          // DIA-126(a) overnight-read expansion (developer-approved 2026-08-13)
+          // Single-star patterns: the OpenCode Wildcard matcher turns * into
+          // .* with the s flag, so one star crosses path separators (nested
+          // reads included) - same convention as the existing knowledge/*
+          // and tickets/* entries. Verified against the Wildcard source and
+          // the installed binary (2026-08-13, STEP 0 of the DIA-126(a) lane).
+          "knowledge/*": "allow",
+          ".opencode/learnings/*": "allow",
+          ".opencode/plugins/*": "allow",
+          "scripts/*": "allow",
+          "docs/*": "allow",
+          ".sdd/*": "allow",
+          "openspec/*": "allow",
+          ".opencode/skills/*": "allow",
+          ".opencode/memory-shelf.yaml": "allow",
+          ".opencode/oh-my-opencode-slim.jsonc": "allow",
+          "architecture.md": "allow",
+          "CONTEXT.md": "allow"
         },
         "edit": {
           "*": "deny",
@@ -172,7 +190,14 @@
           "*": "deny",
           ".opencode/session/*": "allow",
           "docs/dev-infra-audit/tickets/*": "allow",
-          "docs/dev-infra-audit/tickets/archive/*": "allow"
+          "docs/dev-infra-audit/tickets/archive/*": "allow",
+          // DIA-126(a) overnight-read expansion (developer-approved 2026-08-13)
+          "knowledge/*": "allow",
+          ".opencode/learnings/*": "allow",
+          "docs/*": "allow",
+          ".sdd/*": "allow",
+          "openspec/*": "allow",
+          ".opencode/skills/*": "allow"
         },
         "grep": "deny",
         "task": {
@@ -259,7 +284,10 @@
         },
         "bash": "allow",
         "task": "deny"
-      }
+      },
+      // steps cap (DIA-132): max agentic iterations before forcing text-only response.
+      // Only native execution limit in AgentConfig (research res020). Start at 50.
+      "steps": 50
     },
     "reviewer": {
       "color": "#F59E0B",
@@ -312,7 +340,10 @@
           "snip *": "deny"
         },
         "task": "deny"
-      }
+      },
+      // steps cap (DIA-132): max agentic iterations before forcing text-only response.
+      // Only native execution limit in AgentConfig (research res020). Start at 50.
+      "steps": 50
     },
     "code-navigator": {
       "mode": "subagent",

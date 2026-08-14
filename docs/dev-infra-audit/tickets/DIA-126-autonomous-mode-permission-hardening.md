@@ -1,6 +1,34 @@
 # DIA-126 - autonomous overnight mode: permission allow-list + no-stall guarantees
 
-<!-- Planning ticket filed 2026-08-13 from the developer failure report reviewing
+<!-- UPDATE 2026-08-13 (DIRECTION (a) OPTION A FULL IMPLEMENTED + AUDITED):
+     autonomous permission profile, Option A full (developer-approved).
+     Implemented by cod-8 lane: (1) orchestrator read allow-list +12 entries
+     (knowledge/*, .opencode/learnings/*, .opencode/plugins/*, scripts/*,
+     docs/*, .sdd/*, openspec/*, .opencode/skills/*,
+     .opencode/memory-shelf.yaml, .opencode/oh-my-opencode-slim.jsonc,
+     architecture.md, CONTEXT.md) and glob +6 (knowledge/*,
+     .opencode/learnings/*, docs/*, .sdd/*, openspec/*, .opencode/skills/*),
+     deny-first ordering preserved; (2) .opencode/opencode-overnight.jsonc -
+     hardened overnight profile flipping rm/rm -rf/rmdir/chmod/chown to DENY
+     for overnight runs ONLY (interactive profile keeps ask); enforcement via
+     OPENCODE_PERMISSION (empirically verified: config deep-merge order means
+     project config clobbers OPENCODE_CONFIG permission blocks;
+     OPENCODE_PERMISSION deep-merges last and wins); (3) scripts/overnight.sh
+     - fail-closed launcher (refuses to launch without hardened payload;
+     --auto for TUI / run --auto for scripted); (4)
+     scripts/__tests__/overnight.bats 6 tests. Validation: make test-config 0,
+     make test-shell 0 (230 tests), bats 6/6, opencode debug config shows
+     allows live with "*": "deny" first. ai-auditor (ai--2)
+     CONFORMANT-WITH-NOTES; developer disposition ACCEPT in-scope
+     (registration + usage-text + fail-closed test gaps), DEFER suggestions
+     (extra overnight deny candidates, payload shape validation) to follow-up
+     ticket DIA-134. Wildcard verdict: single "*" crosses "/" in the OpenCode
+     permission matcher (wildcard.ts * -> .* with s flag), trailing-* folder
+     patterns cover nested reads; restart-verify pending next opencode launch
+     (DIA-123 pattern). Directions (b) stall auto-resume and (d) audit hook
+     remain OPEN.
+
+     Planning ticket filed 2026-08-13 from the developer failure report reviewing
      the autonomous night run (session ses_007cb6c40ffeCeCyQZYgkl3DRy). The
      autonomous overnight session failed from the autonomy side: several times
      agents asked for folder-read permissions and work stopped for hours until a
@@ -253,6 +281,6 @@ POST-RESTART opencode process (config changes load only on a new launch).
    executable in the conspecter manifest; arg-bearing commands run without an
    ask storm. The DIA-067-class tool gap is closed end-to-end.
 
-Remaining directions (status stays OPEN - directions a/b/d remain):
-(a) autonomous permission profile (developer-selected, pending),
+Remaining directions (status stays OPEN - direction (a) IMPLEMENTED
+2026-08-13, Option A full, see UPDATE block at top; (b)/(d) remain):
 (b) stall auto-resume per DIA-098, (d) permission-ask audit hook.

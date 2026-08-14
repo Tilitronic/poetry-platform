@@ -104,8 +104,8 @@ Expected output on a fully configured host:
 ```
 ok: typescript-language-server 5.3.0 (host, version matches scripts/lsp-versions.env)
 ok: pyright 1.1.411 (host, version matches scripts/lsp-versions.env)
-ok: rust-analyzer 1.97.1 (host, version matches scripts/lsp-versions.env)
-summary: 3 ok, 0 fail, 0 skip
+ok: rust-analyzer 1.97.1 (container poetry-dev, version matches scripts/lsp-versions.env)
+summary: 3 ok, 0 fail, 0 warn, 0 skip
 ```
 
 > **rust-analyzer is container-first (DIA-106):** `check-host-lsp` probes
@@ -116,8 +116,19 @@ poetry-dev, ...)`. The host PATH probe runs only as a fallback while the
 > 1.83.0, so the host fallback reports `fail:` against the 1.97.1 pin until
 > the host toolchain is bumped).
 
-Exit `0` = all good. Exit `1` = at least one failure; the script lists every
-failing tool before exiting.
+**Tolerant gate (DIA-071):** a MISSING host tool emits `warn:` and does NOT
+fail the gate — the dev container provides all three language servers, so an
+unconfigured host is expected and harmless (`make test-shell`/`make test-infra`
+exit 0). Version DRIFT on a present tool still fails (drift detection is the
+gate's purpose). Set `CHECK_HOST_LSP_STRICT=1` to restore the pre-DIA-071
+hard-fail on missing tools (hosts that must have full LSP parity, e.g. CI):
+
+```bash
+CHECK_HOST_LSP_STRICT=1 bash scripts/check-host-lsp.sh
+```
+
+Exit `0` = all good (warns are not failures). Exit `1` = at least one failure;
+the script lists every failing tool before exiting.
 
 ## Escape hatches
 
@@ -125,6 +136,9 @@ failing tool before exiting.
   `skip: rust-analyzer (SKIP_RUST=1)`; the probe reports `skip:` and does not
   fail). Use when Rust is not needed for your work, or when rustup is absent
   and you don't want the warning. TS/Python are NOT skippable.
+- **`CHECK_HOST_LSP_STRICT=1`** — restore the pre-DIA-071 hard gate: a missing
+  host tool becomes a `fail:` (exit 1) instead of a tolerant `warn:`. Use on
+  hosts that must have full LSP parity (CI, shared dev machines).
 - **`NPM_PREFIX=/path`** — use a non-standard npm global prefix:
   `NPM_PREFIX=/custom/prefix bash scripts/install-host-lsp.sh` (and add
   `/custom/prefix/bin` to PATH yourself). The scripts default to
@@ -143,27 +157,22 @@ client you used and the date/initials.
 
 ## Troubleshooting
 
-### `make test-shell` fails at `check-host-lsp` on an unconfigured host
+### `make test-shell` shows `warn:` lines at `check-host-lsp` on an unconfigured host
 
-**Expected on hosts that have not run the install yet** — this is the Gate B
-live-state consequence (Q7a), not a bug. `make test-shell` runs
-`check-host-lsp` as a prerequisite before any bats test, and on a fresh host
-the three LS binaries are absent:
+**Expected on hosts that have not run the install yet** — this is the DIA-071
+tolerant-gate behavior, not a bug. `make test-shell` runs `check-host-lsp` as a
+prerequisite before any bats test, and on a fresh host the three LS binaries
+are absent. Because the dev container provides all three language servers, the
+gate WARNS and exits 0 — the bats suite still runs:
 
 ```
-fail: typescript-language-server — not found on PATH. Run scripts/install-host-lsp.sh ...
+warn: typescript-language-server — not found on host PATH. The dev container provides it; install on the host only for host-mode editors: scripts/install-host-lsp.sh (see docs/dev-infra/host-lsp-setup.md)
+summary: 2 ok, 0 fail, 1 warn, 0 skip
 ```
 
-Fix: run `bash scripts/install-host-lsp.sh` once (Step 1), or, if you only do
-TS/Python LSP work and don't want rust-analyzer, export `SKIP_RUST=1` for the
-`make` invocation:
-
-```bash
-SKIP_RUST=1 make test-shell
-```
-
-The bats suite (Gate A) still runs either way — the probe only gates on host
-tool presence.
+To turn the warns into `ok:` lines, run `bash scripts/install-host-lsp.sh` once
+(Step 1). To turn missing tools back into hard failures (pre-DIA-071
+behavior), set `CHECK_HOST_LSP_STRICT=1`:
 
 ### `make test-shell` fails at `check-host-jq` on an unconfigured host
 

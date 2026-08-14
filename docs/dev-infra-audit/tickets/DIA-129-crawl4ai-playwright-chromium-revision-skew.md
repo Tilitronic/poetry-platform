@@ -1,6 +1,25 @@
 # DIA-129 - crawl4ai crwl fallback fails: Playwright pins chromium revision 1228, host cache has 1234 only
 
-<!-- Bug ticket filed 2026-08-13 from the DIA-126 restart-verify partial result.
+<!-- UPDATE 2026-08-13 (FIX + RE-VERIFY PASS - TICKET CLOSED): Remediation = ticket
+     OPTION 1 (install pinned revision via crawl4ai's own Playwright driver).
+     crawl4ai 0.9.2 (uv tool at ~/.local/share/uv/tools/crawl4ai) pins Playwright
+     1.61.0 -> chromium v1228 (Chrome for Testing 149.0.7827.55). Host cache
+     previously held only chromium-1234. Fix: ran `playwright install chromium`
+     through crawl4ai's OWN driver (compute_driver_executable + install chromium,
+     RC=0); chromium-1228 (177MiB) + chromium_headless_shell-1228 (114.2MiB) landed
+     in ~/.cache/ms-playwright/. Additive + reversible; ZERO repo changes; no
+     config/env override; no crawl4ai upgrade. RE-VERIFY PASS: `playwright install
+     --dry-run` (crawl4ai driver) now shows 1228 install locations PRESENT; three
+     real crawls (github.com/unclecode/crawl4ai README 75,139 bytes;
+     crawl4ai.com/mcp-server/; docs.crawl4ai.com/core/cli/ 14,824 bytes) all exit 0
+     with real content >100 bytes; `Executable doesn't exist` and `has no
+     attribute` error strings = 0 across outputs; the single browser_type hit is
+     README content (`browser_type="undetected"`), NOT the NoneType error. Full
+     DIA-126 re-verify can now re-run the conspecter JS-heavy archival path. Future
+     guard: skew recurs on Playwright minor-bump mismatch; cheap periodic guard =
+     `playwright install --dry-run` vs cache compare or crawl4ai-doctor.
+
+     Bug ticket filed 2026-08-13 from the DIA-126 restart-verify partial result.
      The conspecter test session proved the permission gate passes (bash tool
      present, `crwl *` runs with arguments) but the crawl4ai crwl fallback
      fails at runtime because Playwright's chromium revision pin does not match
@@ -15,7 +34,7 @@ id: DIA-129
 title: "crawl4ai crwl fallback fails: Playwright pins chromium revision 1228, host cache has 1234 only"
 area: dev-infra
 severity: Medium
-status: OPEN
+status: CLOSED
 blocked_by: [] # no blockers
 discovered: 2026-08-13
 source: test-lane (DIA-126 restart-verify conspecter test session, 2026-08-13)
@@ -102,8 +121,31 @@ by this ticket.
 
 ## Fix
 
-> To be filled at fix time.
+Remediation = ticket OPTION 1 (install the pinned revision via crawl4ai's own
+Playwright driver). Additive + reversible host-cache-only fix: ZERO repo
+changes, no config/env override, no crawl4ai upgrade.
+
+- crawl4ai 0.9.2 (uv tool at ~/.local/share/uv/tools/crawl4ai) pins Playwright
+  1.61.0 -> chromium v1228 (Chrome for Testing 149.0.7827.55). Host cache
+  previously held only chromium-1234 (the skew).
+- Ran `playwright install chromium` through crawl4ai's OWN driver
+  (compute_driver_executable + install chromium) - RC=0.
+- Landed in ~/.cache/ms-playwright/: chromium-1228 (177MiB) +
+  chromium_headless_shell-1228 (114.2MiB).
 
 ## Re-verify
 
-> To be filled at re-verify time.
+RE-VERIFY PASS (2026-08-13). Verdict: SKEW_CLOSED.
+
+- `playwright install --dry-run` (crawl4ai driver) now shows 1228 install
+  locations PRESENT (was: missing before the fix).
+- Three real crawls, all exit 0 with real content >100 bytes:
+  - github.com/unclecode/crawl4ai README - 75,139 bytes.
+  - crawl4ai.com/mcp-server/
+  - docs.crawl4ai.com/core/cli/ - 14,824 bytes.
+- Error-string sweep: `Executable doesn't exist` and `has no attribute` = 0
+  across all outputs; the single browser_type hit is README content
+  (`browser_type="undetected"`), NOT the NoneType launch error.
+- Full DIA-126 re-verify can now re-run the conspecter JS-heavy archival path.
+- Future guard: skew recurs on Playwright minor-bump mismatch; cheap periodic
+  guard = `playwright install --dry-run` vs cache compare or crawl4ai-doctor.

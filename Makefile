@@ -168,8 +168,10 @@ test-skills:
 
 # OpenCode JSONC config syntax validation + interview-enforcement regression
 # checks + skill frontmatter gate + agent-name cross-reference + HANDOFF
-# prognosis-schema gate (change dev-infra-config-validators, T4) + tool-coverage
-# audit (change dia-066-tool-coverage-audit, T6). Invariant: test-config passes
+# prognosis-schema gate (change dev-infra-config-validators, T4) +
+# decision-variants EBDV gate (DIA-115 item 1: scripts/validate-decision-variants.sh,
+# wired alongside the other validate-*.sh scripts) + tool-coverage audit
+# (change dia-066-tool-coverage-audit, T6). Invariant: test-config passes
 # iff no HARD write-capable gaps remain — WARN-only gaps (the ~440 unlisted
 # default-allow non-write-capable tools) do NOT break the gate (Decision 6
 # scoping; see scripts/audit-agent-tool-coverage.sh).
@@ -178,6 +180,8 @@ test-config: test-interview test-skills
 	bash scripts/validate-agent-names.sh
 	bash scripts/validate-output-contracts.sh
 	bash scripts/validate-reviewer-sections.sh
+	bash scripts/validate-decision-variants.sh
+	bash scripts/check-orchestrator-prompt-drift.sh
 	bash scripts/validate-handoff.sh
 	bash scripts/test-ticket-gate.sh
 	bash scripts/audit-agent-tool-coverage.sh .opencode/opencode.jsonc

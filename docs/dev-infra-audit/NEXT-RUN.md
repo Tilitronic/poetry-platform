@@ -25,6 +25,11 @@ Read these files **in this order** when a session starts:
    **batch approval** BEFORE reading messages.md or delegating any work. Checksum
    computation and integrity comparison happen in the lane-0 coder step after
    approval, not at presentation. See section 7.3 for protocol.
+   1.6. **DIA-124 NOTE** - the handoff file exists at boot (in the normal flow)
+   because the prior session honored the DIA-124 hard rule (7.2): it wrote the
+   handoff BEFORE presenting its final summary. A missing file means the prior
+   session failed the rule - record it as a finding; the batch-approval /
+   normal-boot flow is unaffected (7.3).
 2. `.opencode/session/messages.md` — the session history record. Read the **last ~20
    entries** to reconstruct what happened and what the next action is.
 3. **This file** (`docs/dev-infra-audit/NEXT-RUN.md`) — the operating manual.
@@ -153,6 +158,17 @@ with a read-only task) to report the current contents of:
   Background-subagent mode (`OPENCODE_EXPERIMENTAL_BACKGROUND_SUBAGENTS`) may
   alter blocking behavior — test both modes before relying on timing assumptions.
 
+### Dispatch Routing & Quota Guard
+
+Before ANY escalated dispatch to a quota-metered lane, the orchestrator MUST:
+
+1. Consult `knowledge/model-registry.yaml` to identify the model's `req_per_month` cap. If null (Copilot-credit lanes), SKIP the guard.
+2. Count the lane's consumption in `registry.jsonl` matching `event: 'session_spawn'` for that model within the current YYYY-MM window.
+3. Thresholds:
+   - If count >= 80% of cap: WARN (state the remaining headroom in the dispatch justification).
+   - If count+1 > cap: HARD-STOP. Do NOT dispatch. Use the defined `fallback[]` from the registry or `wait_for_user`.
+4. SILENT_FAILURE Check: Before re-dispatching a previously-failed lane, check `registry.jsonl` for a `dispatch_state` of SILENT_FAILURE. If present, treat exactly like a quota-stop (fallback or wait_for_user); do not blindly retry.
+
 ## 3. Audit Rerun Flow
 
 Run gates **in order** by DELEGATING verification-only lanes to @coder
@@ -253,6 +269,23 @@ At cycle termination (clean / crisis / exhausted / manual-halt), the outgoing se
    `lane-0 checksum delegation required` (no handoff file is produced; lane-0
    at next boot recomputes and reports).
 
+**HARD RULE (DIA-124) - handoff BEFORE final presentation.** BEFORE presenting the
+session's final summary to the developer (the message that ends a delegation cycle -
+cycle termination, SELF-RERUN, crisis, or campaign completion), the orchestrator MUST
+have written the handoff file via `log_decision` (event_type: 'handoff', terminal
+resolution_status, prognosis: JSON.stringify(prognosis)) - the plugin writes
+`.opencode/session/current-handoff.json` atomically with the DIA-061 checksum
+(DIA-120). Sequence: (1) write the handoff; (2) confirm current-handoff.json exists
+AND its `session_id` equals the current orchestrator session AND its `checksum` field
+is populated (64-hex) - via a delegated read of the file (do NOT treat the
+log_decision return text as write confirmation: atomic-write failures are
+caught-and-warned but the tool still returns success, DIA-124 ai-auditor finding 2);
+(3) only then present the final summary, referencing the handoff. If the handoff write
+fails (plugin unavailable/crash), present the summary WITH an explicit flag that the
+handoff is missing, and `resume_instructions` MUST include 'lane-0 checksum delegation
+required' (DIA-093 crisis path). Rationale: the developer's last interaction must
+never be the only record of session state.
+
 ### 7.3 Incoming (successor) session — boot
 
 The incoming session's FIRST action is to read the predecessor handoff file and present
@@ -271,6 +304,10 @@ detection observation via `log_decision` (event_type: 'decision',
 resolution_status: 'acknowledged', content_ref: 'handoff-detected',
 task_ref: 'batch-approval-gate') before proceeding. If no handoff file exists or it
 has no prognosis section, skip to normal boot (§1).
+DIA-124 SELF-CHECK: this gate also implicitly verifies the prior session honored
+DIA-124 - a missing handoff at boot means the prior session failed the rule
+(presented its final summary without writing the handoff). Treat that as a finding
+to record, NOT a blocker; the gate proceeds per the normal flow.
 
 1. **VERIFY INTEGRITY (delegated, DIA-093)** - the DIA-061 SHA256 of the `prognosis`
    object is computed by a coder lane as lane-0 immediately after batch approval (step 7),

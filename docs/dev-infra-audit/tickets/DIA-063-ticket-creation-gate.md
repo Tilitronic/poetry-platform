@@ -8,7 +8,26 @@
      DIA-063: failed to create ticket before starting work). Both are gate failures — the
      orchestrator skips mandatory workflow steps. The ticket-creation gate is: before any §10
      engineering work begins, a DIA ticket must exist in docs/dev-infra-audit/tickets/ tracking
-     the issue. -->
+     the issue.
+
+     UPDATE 2026-08-13 (INDEPENDENT VERIFICATION + CLOSED): the S10
+     ticket-creation gate is LIVE and ENFORCED. The fix was implemented by the
+     DIA-076 fix lane (Option B plugin enforcement, 2026-08-10) - DIA-076 is
+     VERIFIED and archived per the DIA-074 convention (archive/
+     DIA-076-dia063-fix-implementation.md); M3 post-restart smoke + M4
+     2-session durability both PASSED 2026-08-10. On-disk evidence re-confirmed
+     this lane: scanTickets() at .opencode/plugins/delegation-observer.ts L425
+     (throws on missing tickets dir); evaluateTicketCorrelation() L468 (Path 1
+     explicit-DIA-id STRICT tri-state L495-504, Path 2 session-owned L507, Path
+     3 recent-keyword L511-512); hard-block path L954-970 (ticket_gate_blocked
+     row L954-960 + throw "S10 TICKET GATE: No correlating DIA ticket found",
+     L961-970); weak-correlation warn-not-throw L933-948; boot-gate exemption
+     L901-907. Plugin wired: .opencode/opencode.jsonc "plugin" array L573
+     (file:///workspace/.opencode/plugins/delegation-observer.ts). Plugin file
+     is committed (git ls-files tracked; zero working-tree diff this lane).
+     Gate probes: scripts/test-ticket-gate.sh 6/6 exit 0; make test-config
+     exit 0 (DIA-076 evidence). Ticket flipped CLOSED 2026-08-13 per Re-verify
+     convention. -->
 
 ---
 
@@ -16,13 +35,13 @@ id: DIA-063
 title: "Orchestrator starts §10 work without creating a ticket first — ticket-creation gate not enforced"
 area: opencode-config
 severity: Blocker
-status: OPEN
+status: CLOSED
 blocked_by: ["DIA-060-restart"]
 discovered: 2026-08-07
 source: fix-lane
 date: 2026-08-07
 created: 2026-08-07
-updated: 2026-08-10
+updated: 2026-08-13
 tracked_by: ["DIA-076"]
 
 # --- Session Attribution (v2 schema, optional) ---
@@ -125,9 +144,39 @@ orchestrator cannot reliably discover tickets; both compound).
 
 ## Fix
 
-> To be filled at fix time.
+> IMPLEMENTED 2026-08-10 via the DIA-076 fix lane (Option B - plugin
+> enforcement in `.opencode/plugins/delegation-observer.ts`); DIA-076 VERIFIED
+> (M3 post-restart smoke + M4 2-session durability PASSED) and archived per
+> the DIA-074 convention. Independent closure verification 2026-08-13
+> confirmed the gate live on disk (see UPDATE block + Re-verify).
 
-**Candidate approaches (to be evaluated during fix design):**
+**Option B - plugin enforcement (IMPLEMENTED, DIA-076):**
+
+1. **A1 - Path-1 explicit-OPEN tri-state** (`evaluateTicketCorrelation` L495-504):
+   an explicit DIA-id reference resolves ONLY against OPEN tickets
+   (explicit-id precedence; no `isSessionOwned || isRecent` requirement) -
+   kills the 24h recency-boundary over-fire on long-lived valid tickets.
+2. **A2 - Boot-gate exemption** (L901-907): mechanical boot verification
+   dispatches (DIA-061 checksum/handoff-integrity pattern) are NOT S10 work -
+   breaks the boot circular deadlock (observed 3x).
+3. **A3 - `configWorkHint` narrowed** (L876-882): scope regex
+   `/opencode\.jsonc|AGENTS\.md|skill|plugin/i` - `.opencode/session/`
+   transient files no longer flagged as S10 work.
+4. **A4 - Path-3 warn-not-throw** (L933-948): weak correlation (no DIA-id
+   mentioned) emits `ticket_gate_weak_correlation` console.warn + allow;
+   explicit-ids-no-OPEN-match remains a HARD throw (L954-970,
+   `ticket_gate_blocked` + "S10 TICKET GATE: No correlating DIA ticket
+   found").
+5. **Probe:** `scripts/test-ticket-gate.sh` (NEW, 6/6 regression checks)
+   wired into `make test-config` (DIA-076 evidence: 18 passed / 0 failed).
+
+**S10 routing note:** the fix itself was routed through S10 (ai-specialist
+gate -> design -> coder -> ai-auditor Phase-6 review); AGENTS.md S2.5/S2.4
+Phase-6 review matrix corrected to @ai-auditor (DIA-076 m1). Full fix detail:
+see archived DIA-076-dia063-fix-implementation.md.
+
+**Historical (superseded by the implemented Option B above; kept for
+traceability) - candidate approaches evaluated at design time:**
 
 - **A — Prompt hardening:** add explicit language to the orchestrator system prompt
   that forces ticket creation before §10 Phase 1 research (e.g., "You MUST NOT dispatch
@@ -137,6 +186,7 @@ orchestrator cannot reliably discover tickets; both compound).
 - **B — Plugin enforcement:** a plugin hook that detects @ai-specialist dispatch
   in a §10 context and blocks when no corresponding ticket exists (checks
   `docs/dev-infra-audit/tickets/` for a matching ticket within the current session)
+  - **SELECTED + IMPLEMENTED (this ticket's fix).**
 
 - **C — Combined fix with DIA-061:** both are gate-enforcement failures — combine
   into a single "orchestrator gate discipline" fix that hardens both the pre-work
@@ -149,17 +199,30 @@ orchestrator cannot reliably discover tickets; both compound).
 **§10 routing note (MANDATORY):** this fix touches `.opencode/` config → it MUST route
 through §10 (AI Devtools Modernization Workflow): @ai-specialist gate → design → @coder →
 @ai-specialist independent review → restart + smoke. Once DIA-059 is resolved (§10 gate
-activated post-restart), this workflow will be mechanically enforced.
+activated post-restart), this workflow will be mechanically enforced. - **Followed: the
+fix was S10-routed; Phase-6 independent review corrected to @ai-auditor (DIA-076 m1).**
 
 **Blocked by DIA-060-restart:** the orchestrator cannot currently read ticket files
 directly (DIA-060). After restart (DIA-059 + DIA-060 fixes go live), the orchestrator
 will have both the §10 gate active and direct ticket visibility — at which point
-this ticket can be picked up with full tooling support.
+this ticket can be picked up with full tooling support. - **Cleared: DIA-059/DIA-060
+VERIFIED (2026-08-10); gate live since.**
 
 ## Re-verify
 
-> To be filled at re-verify time. Acceptance: orchestrator autonomously creates a DIA
-> ticket before dispatching @ai-specialist for §10 Phase 1 research in 2+ consecutive
-> sessions; ticket ID is referenced in the research dispatch; no developer intervention
-> needed to prompt ticket creation; `make test-config` exit 0; @ai-specialist Phase 6
-> review passes.
+> COMPLETE - closed per re-verify convention 2026-08-13.
+
+1. **Post-fix acceptance (DIA-076 M3 + M4, 2026-08-10):** orchestrator
+   autonomously routes S10-scoped dispatches against OPEN tickets with zero
+   gate intervention across **2+ consecutive sessions** (M4 2-session
+   durability - session ses_0157ee16cffegdBsSp9uGdasiy + close lane
+   2026-08-10); C1 tri-state + B2 boot-gate exemption proven live; ticket IDs
+   referenced in dispatches; no developer prompt needed to trigger the gate.
+   `make test-config` exit 0; `scripts/test-ticket-gate.sh` 6/6 exit 0;
+   ai-auditor Phase-6 review conforms.
+2. **Independent closure verification (2026-08-13, this lane):** gate code
+   re-confirmed live on disk - `scanTickets()` L425, tri-state correlation
+   L495-504, hard-block throw "S10 TICKET GATE: No correlating DIA ticket
+   found" L961-970, warn-not-throw L933-948; plugin registered in
+   `.opencode/opencode.jsonc` L573; `delegation-observer.ts` committed (no
+   working-tree diff). DIA-076 VERIFIED + archived. -> CLOSED.

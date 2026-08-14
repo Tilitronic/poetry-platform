@@ -5,9 +5,24 @@
      content into the user-level prompt files (coder.md, analyzer.md). The
      byte-exact relocation and dedupe are independently verified (F1/F2), but
      the VISUAL TUI check requires an OpenCode restart - the DIA-128 close-out
-     gap pattern (log-grep does not cover the TUI "Loading plugins..."
-     notification emission path). This ticket tracks the post-restart visual
-     re-verification. -->
+      gap pattern (log-grep does not cover the TUI "Loading plugins..."
+      notification emission path). This ticket tracks the post-restart visual
+      re-verification.
+
+     UPDATE 2026-08-13 (RESTART-VERIFY PASS + CLOSED): all 5 verification
+     items PASS. Lane evidence (cod-2 restart-verify lane, ~16:42 local):
+     (1) post-restart process PID 3570407 started 16:40:23 local, after the
+     config edit at 16:11; (2) ZERO inline-override warnings in post-restart
+     plugin logs oh-my-opencode-slim.20260813T144026/27/29.log; (3) user-level
+     config clean - no inline prompt key in any coder/analyzer block (all 3
+     presets opencode-go/cebula/free + root agents); (4) coder.md (4085B) +
+     analyzer.md (12631B) present with byte-exact relocated DIA-130 content.
+     Item 5 (TUI screenshot) recorded as PASS via developer attestation in
+     session on 2026-08-13: the TUI "Loading plugins..." area rendered ZERO
+     inline-override warnings and no duplication ("terminal ui loaded clean,
+     nothing to show you. Look like we fixed correctly."); a screenshot was
+     moot because nothing anomalous was shown. Ticket flipped CLOSED
+     2026-08-13. -->
 
 ---
 
@@ -15,7 +30,7 @@ id: DIA-131
 title: "post-restart TUI re-verify of user-level inline-override fix (DIA-130 review finding F3)"
 area: opencode-config
 severity: Major
-status: OPEN
+status: CLOSED
 blocked_by: [DIA-130] # created after DIA-130 fix; needs an OpenCode restart
 discovered: 2026-08-13
 source: review-finding
@@ -89,4 +104,42 @@ How to prove the fix (post-restart, visual):
 
 ## Re-verify
 
-> To be filled at re-verify time.
+RESTART-VERIFY PASS (2026-08-13). Ticket flipped CLOSED.
+
+### Evidence
+
+1. **Post-restart process (item 1):** PID 3570407 started 16:40:23 local,
+   AFTER the user-level config edit at 16:11 - the running process loaded the
+   fixed (post-edit) config.
+2. **ZERO inline-override warnings in post-restart plugin logs (item 2):**
+   `oh-my-opencode-slim.20260813T144026.log`,
+   `oh-my-opencode-slim.20260813T144027.log`,
+   `oh-my-opencode-slim.20260813T144029.log` - no "inline prompt overrides
+   prompt file" occurrence in any of them (the pre-fix count was 4 lines:
+   2x coder, 2x analyzer).
+3. **User-level config clean (item 3):**
+   `~/.config/opencode/oh-my-opencode-slim.jsonc` has no inline `"prompt"`
+   key in any coder/analyzer block - all 3 presets (opencode-go/cebula/free)
+   and the root agents block. Only ai-specialist + 4 council keys remain,
+   which are out of scope (DIA-130 fix scope).
+4. **Prompt files active with relocated content (item 4):**
+   `~/.config/opencode/oh-my-opencode-slim/coder.md` (4085 bytes) and
+   `analyzer.md` (12631 bytes) present, containing the byte-exact relocated
+   DIA-130 content (F1/F2 verified in DIA-130).
+5. **TUI clean - developer-attested (item 5):** developer verbally attested
+   in session on 2026-08-13 that the TUI "Loading plugins..." area rendered
+   ZERO inline-override warnings and no duplication - "terminal ui loaded
+   clean, nothing to show you. Look like we fixed correctly." A screenshot
+   was moot because nothing anomalous was shown. Recorded as the item-5 PASS
+   evidence (developer-attested, supersedes the screenshot requirement).
+
+### Resolution
+
+Status CLOSED 2026-08-13. All 5 items PASS (4 lane-evidence items + 1
+developer-attested TUI observation). The DIA-130 F3 visual re-verification
+gap is closed: post-restart process loads the fixed user-level config, zero
+inline-override warnings fire in the TUI, and the user-level prompt files
+carry the relocated prompts. Residual risk unchanged: a future OMO upgrade
+or config edit re-adding inline prompts would re-trigger the warning; the
+dual-runtime regression note headers in both user-level prompt files guard
+against this.

@@ -17,6 +17,11 @@
 # canned `rust-analyzer --version` (version-match / version-mismatch against
 # the 1.97.1 pin), DOWN fails every probe so the host PATH fallback runs
 # (host-matches-pin / host-drifts-from-pin scenarios).
+#
+# TOLERANT GATE (DIA-071): a MISSING host tool is a warn (exit 0) by default —
+# the dev container provides it — while a PRESENT tool at a drifted version
+# still fails (drift detection is the gate's purpose). CHECK_HOST_LSP_STRICT=1
+# restores the pre-DIA-071 hard-fail-on-missing behavior (covered below).
 
 load test-helper
 
@@ -91,18 +96,24 @@ FAKEDOCKER
   echo "$bindir"
 }
 
-# run_probe <tree> <fakes_dir> [docker_dir]: runs check-host-lsp.sh with a
-# hermetic PATH (fakes dir + optional fake docker dir + /usr/bin:/bin only) so
-# no real LSP binary or real docker can ever be shelled.
+# run_probe <tree> <fakes_dir> [docker_dir] [strict]: runs check-host-lsp.sh
+# with a hermetic PATH (fakes dir + optional fake docker dir + /usr/bin:/bin
+# only) so no real LSP binary or real docker can ever be shelled. Pass a
+# non-empty 4th arg to set CHECK_HOST_LSP_STRICT=1 (pre-DIA-071 hard gate).
 run_probe() {
   local tree="$1"
   local fakes="$2"
   local docker_dir="${3:-}"
+  local strict="${4:-}"
   local probe_path="${fakes}:/usr/bin:/bin"
   if [ -n "${docker_dir}" ]; then
     probe_path="${fakes}:${docker_dir}:/usr/bin:/bin"
   fi
-  run env PATH="${probe_path}" bash "$tree/scripts/check-host-lsp.sh"
+  if [ -n "${strict}" ]; then
+    run env PATH="${probe_path}" CHECK_HOST_LSP_STRICT=1 bash "$tree/scripts/check-host-lsp.sh"
+  else
+    run env PATH="${probe_path}" bash "$tree/scripts/check-host-lsp.sh"
+  fi
 }
 
 # setup_tree <with_env 0|1>: copies check-host-lsp.sh into an isolated tree
@@ -129,10 +140,10 @@ setup_tree() {
   assert_output_contains "ok: typescript-language-server 5.3.0 (host, version matches scripts/lsp-versions.env)"
   assert_output_contains "ok: pyright 1.1.411 (host, version matches scripts/lsp-versions.env)"
   assert_output_contains "ok: rust-analyzer 1.97.1 (container poetry-dev, version matches scripts/lsp-versions.env)"
-  assert_output_contains "summary: 3 ok, 0 fail, 0 skip"
+  assert_output_contains "summary: 3 ok, 0 fail, 0 warn, 0 skip"
 }
 
-@test "check-host-lsp: one tool missing on PATH -> exit 1 with fail line plus 2 ok lines" {
+@test "check-host-lsp: one tool missing on PATH (tolerant, DIA-071) -> exit 0 with warn line plus 2 ok lines" {
   fakes="$BATS_TEST_TMPDIR/fakes"
   install_fakes "$fakes"
   rm "$fakes/typescript-language-server"
@@ -141,11 +152,25 @@ setup_tree() {
 
   run_probe "$tree" "$fakes" "$docker_dir"
 
-  assert_status 1
-  assert_output_contains "fail: typescript-language-server — not found on PATH. Run scripts/install-host-lsp.sh (see docs/dev-infra/host-lsp-setup.md)"
+  assert_status 0
+  assert_output_contains "warn: typescript-language-server — not found on host PATH. The dev container provides it"
   assert_output_contains "ok: pyright 1.1.411 (host, version matches scripts/lsp-versions.env)"
   assert_output_contains "ok: rust-analyzer 1.97.1 (container poetry-dev, version matches scripts/lsp-versions.env)"
-  assert_output_contains "summary: 2 ok, 1 fail, 0 skip — see above"
+  assert_output_contains "summary: 2 ok, 0 fail, 1 warn, 0 skip"
+}
+
+@test "check-host-lsp: CHECK_HOST_LSP_STRICT=1 restores hard-fail when a tool is missing" {
+  fakes="$BATS_TEST_TMPDIR/fakes"
+  install_fakes "$fakes"
+  rm "$fakes/pyright"
+  tree="$(setup_tree)"
+  docker_dir="$(mock_docker_up 1.97.1)"
+
+  run_probe "$tree" "$fakes" "$docker_dir" strict
+
+  assert_status 1
+  assert_output_contains "fail: pyright — not found on PATH. Run scripts/install-host-lsp.sh"
+  assert_output_contains "summary: 2 ok, 1 fail, 0 warn, 0 skip — see above"
 }
 
 @test "check-host-lsp: version mismatch on one tool -> exit 1 with fail line naming the mismatch" {
@@ -159,7 +184,7 @@ setup_tree() {
 
   assert_status 1
   assert_output_contains "fail: pyright — 99.0.0 on PATH, expected 1.1.411. Run scripts/install-host-lsp.sh"
-  assert_output_contains "summary: 2 ok, 1 fail, 0 skip — see above"
+  assert_output_contains "summary: 2 ok, 1 fail, 0 warn, 0 skip — see above"
 }
 
 @test "check-host-lsp: SKIP_RUST=1 -> skip line for rust-analyzer, exit 0" {
@@ -173,10 +198,10 @@ setup_tree() {
 
   assert_status 0
   assert_output_contains "skip: rust-analyzer (SKIP_RUST=1 set; not required for TS/Python LSP work)"
-  assert_output_contains "summary: 2 ok, 0 fail, 1 skip"
+  assert_output_contains "summary: 2 ok, 0 fail, 0 warn, 1 skip"
 }
 
-@test "check-host-lsp: multiple tools fail -> all failures reported, exit 1, single summary" {
+@test "check-host-lsp: missing tool warns + drifting tool fails -> all reported, exit 1, single summary" {
   fakes="$BATS_TEST_TMPDIR/fakes"
   install_fakes "$fakes"
   rm "$fakes/typescript-language-server"
@@ -187,9 +212,9 @@ setup_tree() {
   run_probe "$tree" "$fakes" "$docker_dir"
 
   assert_status 1
-  assert_output_contains "fail: typescript-language-server — not found on PATH. Run scripts/install-host-lsp.sh (see docs/dev-infra/host-lsp-setup.md)"
+  assert_output_contains "warn: typescript-language-server — not found on host PATH. The dev container provides it"
   assert_output_contains "fail: rust-analyzer — 99.0.0 on PATH, expected 1.97.1. Run scripts/install-host-lsp.sh"
-  assert_output_contains "summary: 1 ok, 2 fail, 0 skip — see above"
+  assert_output_contains "summary: 1 ok, 1 fail, 1 warn, 0 skip — see above"
 }
 
 @test "check-host-lsp: container path version mismatch -> exit 1 with fail line naming the container version" {
@@ -202,7 +227,7 @@ setup_tree() {
 
   assert_status 1
   assert_output_contains "fail: rust-analyzer - 1.83.0 in dev container, expected 1.97.1 (scripts/lsp-versions.env). Rebuild: docker compose build dev && docker compose up -d dev"
-  assert_output_contains "summary: 2 ok, 1 fail, 0 skip — see above"
+  assert_output_contains "summary: 2 ok, 1 fail, 0 warn, 0 skip — see above"
 }
 
 @test "check-host-lsp: container down + host matches pin -> exit 0 with host ok line" {
@@ -215,7 +240,7 @@ setup_tree() {
 
   assert_status 0
   assert_output_contains "ok: rust-analyzer 1.97.1 (host, version matches scripts/lsp-versions.env)"
-  assert_output_contains "summary: 3 ok, 0 fail, 0 skip"
+  assert_output_contains "summary: 3 ok, 0 fail, 0 warn, 0 skip"
 }
 
 @test "check-host-lsp: container down + host version drifts from pin (designed) -> exit 1" {
@@ -229,7 +254,7 @@ setup_tree() {
 
   assert_status 1
   assert_output_contains "fail: rust-analyzer — 1.83.0 on PATH, expected 1.97.1. Run scripts/install-host-lsp.sh"
-  assert_output_contains "summary: 2 ok, 1 fail, 0 skip — see above"
+  assert_output_contains "summary: 2 ok, 1 fail, 0 warn, 0 skip — see above"
 }
 
 @test "check-host-lsp: lsp-versions.env missing -> exit 1 with remediation pointer" {

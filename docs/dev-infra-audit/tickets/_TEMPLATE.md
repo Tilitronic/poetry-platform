@@ -19,6 +19,7 @@ area: <docker | opencode-config | js-tooling | git-hooks | python-tooling | scri
 severity: <Blocker | Critical | Major | Medium | Minor | Info>
 status: <OPEN | VALIDATE | E2E | DEFERRED | MONITOR | FIXED | IMPLEMENTED | VERIFIED | CLOSED | BLOCKED | DISPATCHED | RUNNING | COMPLETE> # VALIDATE/E2E added 2026-08-04 (audit-phase statuses; ticket-vocabulary drift fix); DISPATCHED/RUNNING/COMPLETE added 2026-08-04 (v2 delegation lifecycle, set by delegation-observer plugin at delegation time)
 blocked_by: [] # DIA-NNN refs, or empty
+parent_epic: "" # optional DIA-NNN parent epic ticket (DIA-125 keep-local extension; scripts/tickets emits this field always)
 discovered:
 source: <inventory | baseline | test-lane | fix-lane>
 date: YYYY-MM-DD

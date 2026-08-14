@@ -1,0 +1,138 @@
+# DIA-133 dispatch routing registry (ADR-DIA-133, approved 2026-08-13). Evidence: res013/016/017 (source_ref per score). No self-benchmark figures (ana014). Registry owner: ai-specialist research -> coder edit (developer decision 2026-08-13).
+schema_version: "1.0"
+models:
+  - model_id: "deepseek-v4-flash"
+    role: "coder-default"
+    price_in_1m: 0.14
+    price_out_1m: 0.28
+    req_per_month: 158150
+    swe_bench_verified: 73.7
+    source_ref: "res013"
+    lane: "coder"
+    fallback: []
+    quota_notes: "Volume default, 158K req/mo headroom"
+    active: true
+
+  - model_id: "qwen3.7-plus"
+    role: "arch/analyzer"
+    price_in_1m: 0.40
+    price_out_1m: 1.60
+    req_per_month: 21600
+    swe_bench_verified: 77.7
+    source_ref: "res016"
+    lane: "analyzer"
+    fallback: []
+    quota_notes: "Strong reasoning, 21.6K req/mo"
+    active: true
+
+  - model_id: "kimi-k3"
+    role: "coder-escalated"
+    price_in_1m: 3.00
+    price_out_1m: 15.00
+    req_per_month: 490
+    swe_bench_verified: 93.40
+    source_ref: "res016"
+    lane: "coder-escalated"
+    fallback: ["deepseek-v4-pro", "mimo-v2.5-pro"]
+    quota_notes: "Binding cap 490 req/mo"
+    active: true
+
+  - model_id: "gpt-5.6-luna"
+    role: "analyzer-escalated"
+    price_in_1m: 0.20
+    price_out_1m: 1.20
+    req_per_month: 10250
+    swe_bench_verified: null
+    source_ref: "res016"
+    lane: "analyzer-escalated"
+    fallback: []
+    quota_notes: "Subagent-weak caveat"
+    active: true
+
+  - model_id: "deepseek-v4-pro"
+    role: "fallback"
+    price_in_1m: 0.435
+    price_out_1m: 0.87
+    req_per_month: 17150
+    swe_bench_verified: 74.0
+    source_ref: "res017"
+    lane: "coder-escalated"
+    fallback: []
+    quota_notes: "Independent CAISI evidence"
+    active: true
+
+  - model_id: "mimo-v2.5-pro"
+    role: "fallback-2"
+    price_in_1m: 0.435
+    price_out_1m: 0.87
+    req_per_month: 16300
+    swe_bench_verified: null
+    source_ref: "res017"
+    lane: "coder-escalated"
+    fallback: []
+    quota_notes: "Vendor-only benchmark; benchmark-gap OPEN"
+    active: true
+
+  - model_id: "gpt-5.3-codex"
+    role: "reviewer"
+    price_in_1m: 1.75
+    price_out_1m: 14.00
+    req_per_month: null
+    swe_bench_verified: 85.0
+    source_ref: "res013"
+    lane: "reviewer"
+    fallback: []
+    quota_notes: "Copilot credits - skip guard"
+    active: true
+
+routing_table:
+  - rung: "Rung0"
+    signal: "Start / routine work"
+    lane: "coder"
+    model: "deepseek-v4-flash"
+    quota_guarded: false
+  - rung: "Rung1"
+    signal: "Verify-fail #1 / Minor finding"
+    lane: "coder"
+    model: "deepseek-v4-flash"
+    quota_guarded: false
+  - rung: "Rung2"
+    signal: "Verify-fail #2"
+    lane: "coder"
+    model: "qwen3.7-plus"
+    quota_guarded: false
+  - rung: "Rung3"
+    signal: "2x failed re-review loops OR Critical severity"
+    lane: "coder-escalated"
+    model: "kimi-k3"
+    quota_guarded: true
+  - rung: "Rung3-fallback"
+    signal: "kimi-k3 quota exhausted or SILENT_FAILURE"
+    lane: "coder-escalated"
+    model: "deepseek-v4-pro"
+    quota_guarded: true
+  - rung: "Rung3-fallback-2"
+    signal: "deepseek-v4-pro quota exhausted or SILENT_FAILURE"
+    lane: "coder-escalated"
+    model: "mimo-v2.5-pro"
+    quota_guarded: true
+  - rung: "Rung4"
+    signal: "Re-review after fixes"
+    lane: "reviewer"
+    model: "gpt-5.3-codex"
+    quota_guarded: false
+  - rung: "Analyzer"
+    signal: "Default analysis"
+    lane: "analyzer"
+    model: "qwen3.7-plus"
+    quota_guarded: false
+  - rung: "Analyzer-escalated"
+    signal: "cannot comprehend domain OR abort-on-complexity"
+    lane: "analyzer-escalated"
+    model: "gpt-5.6-luna"
+    quota_guarded: true
+  - rung: "Analyzer-route-back"
+    signal: "After escalated pass"
+    lane: "analyzer"
+    model: "qwen3.7-plus"
+    quota_guarded: false

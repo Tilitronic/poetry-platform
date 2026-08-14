@@ -70,6 +70,8 @@ for script in \
   "$ROOT/scripts/validate-agent-names.sh" \
   "$ROOT/scripts/eval-lite.sh" \
   "$ROOT/scripts/worktrees.sh" \
+  "$ROOT/scripts/overnight.sh" \
+  "$ROOT/scripts/tickets" \
   "$ROOT/.opencode/scripts/validate-skills.sh" \
   "$ROOT/.opencode/scripts/jsonl-cross-check.sh" \
   "$ROOT/scripts/__tests__/test-helper.bash" \

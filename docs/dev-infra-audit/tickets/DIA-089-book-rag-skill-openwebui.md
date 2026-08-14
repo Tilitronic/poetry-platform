@@ -1,5 +1,7 @@
 # DIA-089 — add the book_rag skill and connect it to OpenWebUI (hybrid RAG over local engineering textbooks)
 
+<!-- UPDATE 2026-08-13 (PHASE A COMPLETE - res-5 + res025): Phase A investigation + architecture definition delivered by researcher lane res-5 (ses_0032ead09ffeb7cwbfzAHgmBQO); persisted as conspect res025 (knowledge/res025-openwebui-rag-infra/, 8/8 sources archived, 328 lines, shelf.conspects). INVENTORY: book-rag SKILL.md exists + registered in 10 agent skill arrays; backing scripts query_rag.py (1328 lines) + test_query_rag.py (500 lines, network-mocked) + query_web.py + commands/rag.md all EXIST and are sound; knowledge-bases.yaml STALE (cached_at 2026-07-13, 12 KB UUIDs); global skill copy ABSENT (memory-shelf deletion claim = config drift); OPENWEBUI_URL/OPENWEBUI_API_KEY/OPENWEBUI_DATA_DIR all UNSET; server NOT running; real WSL->Windows data dir exists (/mnt/c/Users/qualt/AppData/Roaming/open-webui/data/.key). STALE-CLAIM CONFIRMED: SKILL.md line 354 states OPENWEBUI_API_KEY is set - FALSE. ARCHITECTURE: OPT-IN #rag/#tag -> SKILL.md -> commands/rag.md -> query_rag.py (parse #tag, KB UUID via Tier1 GET /api/v1/knowledge/ or Tier2 webui.db, auth via API key or .key JWT, POST /api/v1/retrieval/query/collection {query, collection_names, k:6, hybrid:true}, BM25+vector+CrossEncoder, cited chunks + [WARNING] when top < 0.30). GAPS: developer-blocked (server start + 3 env vars) vs lane-owned (SKILL.md stale claims, KB cache refresh, memory-shelf drift reconcile, @rag doc drift). WEB-FRESH (v0.11.0, 2026-08-13): hybrid BM25+CrossEncoder via ENABLE_RAG_HYBRID_SEARCH; breaking change RAG_TEXT_SPLITTER=markdown_header REMOVED -> ENABLE_MARKDOWN_HEADER_TEXT_SPLITTER; embedding-model change requires re-index; OPENWEBUI_DATA_DIR is script-invented not a server var; Bearer sk- + JWT + x-api-key auth; file ingestion POST /api/v1/files/ process=true + wait completed before KB add. PHASE B/C VERIFICATION PLAN READY (exact curl calls + expected shapes in res025 section 5) - run once developer starts server + sets env. Developer KEEP decision 2026-08-13 (binary per DIA-135). Phases B/C remain BLOCKED on developer env setup. -->
+
 <!-- Filed by the docs lane (code-executor re-route) 2026-08-10. -->
 
 ---
@@ -43,12 +45,17 @@ OpenWebUI endpoint, and test retrieval.
 - [x] Confirm .opencode/skills/book-rag/SKILL.md exists and is registered. (PASS 2026-08-11)
 - [ ] Configure the OpenWebUI endpoint (hybrid RAG over local engineering textbooks). (BLOCKED on developer 2026-08-11)
 - [ ] Run a retrieval test against a local textbook and confirm relevant results. (BLOCKED on developer 2026-08-11)
+- [x] Phase A investigation complete (res-5 2026-08-13): inventory, architecture, gap analysis, Phase B/C verification plan - persisted res025
+- [ ] Phase B: OpenWebUI endpoint config verification - BLOCKED on developer (start server + set OPENWEBUI_URL/API_KEY/DATA_DIR)
+- [ ] Phase C: retrieval test - BLOCKED on developer (Phase B precondition)
 
 ## Fix
 
 §10-routed if registration touches .opencode/ config.
 
 > To be filled at fix time.
+
+Phase A COMPLETE 2026-08-13 (res-5/res025): inventory + architecture + gaps + Phase B/C verification plan delivered and persisted. Phases B/C blocked on developer env setup (server start + 3 env vars per res025 section 4). Lane-owned post-B/C items: fix SKILL.md stale API-key claim, refresh stale KB cache, reconcile memory-shelf/global-copy drift.
 
 ## Re-verify
 
