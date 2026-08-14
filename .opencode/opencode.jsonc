@@ -266,9 +266,10 @@
     // 'cannot comprehend domain' / abort-on-complexity. GPT-5.6 Luna expert
     // analysis. hidden: true keeps it out of @autocomplete; task() dispatch
     // still works (S2 orchestrator allow-list includes it). Permissions are an
-    // exact clone of the base analyzer (edit scoped to knowledge/* + shelf,
-    // bash allow, task deny). After producing output, routes back to the base
-    // analyzer/reviewer for normal flow.
+    // exact clone of the base analyzer (edit scoped to knowledge/* only,
+    // shelf registration delegated to @memory-manager (DIA-119 sole-writer
+    // invariant), bash allow, task deny). After producing output, routes back
+    // to the base analyzer/reviewer for normal flow.
     "analyzer-escalated": {
       "description": "Escalated analysis lane (GPT-5.6 Luna) for 'cannot comprehend domain' cases. Orchestrator-only, hidden from @autocomplete, one-shot no-retry.",
       "mode": "subagent",
@@ -278,8 +279,7 @@
       "permission": {
         "edit": {
           "*": "deny",
-          "knowledge/*": "allow",
-          ".opencode/memory-shelf.yaml": "allow"
+          "knowledge/*": "allow"
         },
         "bash": "allow",
         "task": "deny"
@@ -348,7 +348,8 @@
       "mode": "subagent",
       "color": "#06B6D4",
       "permission": {
-        "edit": "deny"
+        "edit": "deny",
+        "bash": "deny"
       }
     },
     // researcher — external research + Phase A source capture (DIA-135 D5/D6).
@@ -383,7 +384,8 @@
       "mode": "subagent",
       "color": "#A855F7",
       "permission": {
-        "edit": "deny"
+        "edit": "deny",
+        "bash": "deny"
       }
     },
     "memory-manager": {

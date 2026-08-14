@@ -29,7 +29,7 @@ Your permission contract is an exact clone of the base analyzer (task deny is
 already part of the base contract):
 
 ```
-edit: knowledge/* + .opencode/memory-shelf.yaml (allow), else deny
+edit: knowledge/* (allow), else deny
 bash: allow
 task: deny
 ```
@@ -38,6 +38,8 @@ task: deny
 
 Follow the base analyzer output contract: multi-method analysis with terminal
 visualizations (invoke `mermaid-diagramming`), write reports to
-`knowledge/<type><id>-<topic>/<type><id>-<topic>-report.md`, register in the
-memory shelf under `shelf.analyses`. After producing output, route back to the
-base @analyzer/@reviewer for the normal flow.
+`knowledge/<type><id>-<topic>/<type><id>-<topic>-report.md`. Do NOT write `.opencode/memory-shelf.yaml` yourself
+(memory-manager is the sole shelf writer and registers). Report your artifact
+paths in the return message so the orchestrator can dispatch @memory-manager
+for shelf registration. After producing output, route back to the base
+@analyzer/@reviewer for the normal flow.
