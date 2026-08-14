@@ -12,13 +12,13 @@ id: DIA-173
 title: "Forward host SSH agent socket into opencode-docker so git push works from the container (SSH agent forwarding)"
 area: docker
 severity: Major
-status: OPEN
+status: DONE
 blocked_by: []
 discovered: 2026-08-13
 source: research-lane
 date: 2026-08-13
 created: 2026-08-13
-updated: 2026-08-13
+updated: 2026-08-14
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -95,4 +95,12 @@ host container-management rights via the DIA-164 docker.sock mount).
 
 ## Re-verify
 
-> To be filled at re-verify time.
+> Implemented as part of the DIA-153 push work (same opencode-docker SSH transport path).
+
+## Resolution
+
+- openssh-client added to the opencode-docker image (Dockerfile, commit 7342f7a).
+- GIT_SSH_COMMAND pinned to `ssh -o StrictHostKeyChecking=accept-new -o UserKnownHostsFile=/tmp/known_hosts -o IdentityAgent=/tmp/ssh-agent.sock` (commits 445c819 + b934600).
+- Agent push verified end-to-end: push of omo-slim-changes (be95758..d5ce826) performed FROM the container.
+- Host agent key loaded via ssh-add; socket forward + SSH transport confirmed working.
+- Covered by ssh-agent-forward.bats (10/10) + opencode-docker.bats (8/8).
