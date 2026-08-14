@@ -10,13 +10,15 @@ OpenCode Docker — containerized environment for running OpenCode CLI.
 
 ## SSH agent forwarding (git push from the container)
 
-`bin/opencode-docker` forwards the host's SSH agent socket into the container, read-only, at `/tmp/ssh-agent.sock`, and sets `SSH_AUTH_SOCK=/tmp/ssh-agent.sock` so `git push` to SSH remotes works from inside the container.
+`bin/opencode-docker` forwards the host's SSH agent socket into the container, read-only, at `/tmp/ssh-agent.sock`, and sets `SSH_AUTH_SOCK=/tmp/ssh-agent.sock` so `git push` to SSH remotes works from inside the container. The socket is probed in order: `$SSH_AUTH_SOCK` first, then `${XDG_RUNTIME_DIR}/keyring/ssh`, then `${XDG_RUNTIME_DIR}/gcr/ssh`; the first found wins.
 
 **Keys never leave the host.** Only the agent socket is mounted — no `~/.ssh` mount, no key files are copied into the container. The container makes sign-requests to the host agent through the forwarded socket; the keys themselves stay on the host. Do NOT "helpfully" add a `~/.ssh` mount or copy key material into the container — that would defeat the security model.
 
-`GIT_SSH_COMMAND="-o StrictHostKeyChecking=accept-new"` is set via EXTRA_ENV, so new host keys are accepted on first connection (TOFU for the container's read-only `/app` known_hosts, which cannot be written).
+`GIT_SSH_COMMAND="-o StrictHostKeyChecking=accept-new"` is set unconditionally via EXTRA_ENV (harmless when no agent is present; design Q3), so new host keys are accepted on first connection (TOFU for the container's read-only `/app` known_hosts, which cannot be written).
 
 For `git push` to work the host SSH agent must be running, unlocked, and have the key loaded (`ssh-add -L` shows it). If no agent socket is found at launch, the wrapper prints a warning to stderr and continues — opencode works, but `git push` then fails with `Permission denied (publickey)`.
+
+Hardware-key caveat: gnome-keyring can mishandle YubiKey `ed25519-sk` keys (`agent refused operation`). The workaround is a dedicated `ssh-agent` on the host (`eval "$(ssh-agent)"`, `ssh-add`) before relaunching — it works because that agent's `$SSH_AUTH_SOCK` overrides the default one and wins the probe.
 
 Note: `poetry-dev` does NOT need SSH agent forwarding (its delegated gates are make/pnpm only).
 

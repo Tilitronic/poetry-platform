@@ -117,7 +117,7 @@ The wrapper forwards the host's SSH agent socket into the container, read-only, 
 ssh-add -L
 ```
 
-If the key is missing, unlock the agent / add the key on the host, then relaunch the container. Also note `GIT_SSH_COMMAND="-o StrictHostKeyChecking=accept-new"` is set inside the container (the read-only `/app` cannot write `known_hosts`), so the first connection to a new host auto-accepts its key (TOFU).
+If the key is missing, unlock the agent / add the key on the host, then relaunch the container. Also note `GIT_SSH_COMMAND="-o StrictHostKeyChecking=accept-new"` is set unconditionally inside the container via EXTRA_ENV (harmless when no agent is present; design Q3) — the read-only `/app` cannot write `known_hosts`, so the first connection to a new host auto-accepts its key (TOFU).
 
 **Known caveat (hardware keys):** gnome-keyring may mishandle YubiKey `ed25519-sk` keys, and a push can fail with `agent refused operation`. If you use a hardware key and hit this, start a dedicated agent for the session on the host and relaunch:
 
