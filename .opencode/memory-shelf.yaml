@@ -724,7 +724,7 @@ shelf:
       .husky/_ shim from the main tree (fail-loud when absent), fixing the DIA-132
       LESSON-1 worktree husky gap so new worktrees get pre-commit enforcement. S2 adds
       a persistent behavioral suite scripts/__tests__/batch-d-infra.test.mjs (tracked
-      since DIA-136 F2 - DD2''s gitignore rationale superseded) + Makefile wiring
+      since DIA-136 F2 - the DD2 gitignore rationale is superseded) + Makefile wiring
       (absence fails make test-config loudly) + dev-infra ADR 9/10.
       S3 branch-ownership directive in coder_append.md. S4 hardening rules: ticket-ID
       token rule, architector design persistence rule, merge-gate container evidence
