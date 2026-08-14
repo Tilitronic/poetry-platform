@@ -6,7 +6,7 @@ id: DIA-135
 title: "Coder prompt hygiene: instance separation, same-session fixes, scratch-dir permissions (DIA-134 follow-up)"
 area: opencode-config
 severity: Medium
-status: OPEN
+status: DONE
 blocked_by: [] # DIA-NNN refs, or empty
 discovered: 2026-08-14
 source: Developer questions after DIA-134 one-shot run (2026-08-14)
@@ -113,8 +113,68 @@ For the 3 scope items: see each item's own verification under Description.
 
 ## Fix
 
-> To be filled at fix time.
+Implemented 2026-08-14 on branch feature/dia135-rules (base c7c8d59, commits
+00aae0e + b00101f), squash-merged into omo-slim-changes as 9922f9a
+('feat(config): DIA-135 coder prompt hygiene - instance separation,
+same-session fixes, scratch dir'). Diff vs base = 5 files, 18 insertions,
+3 deletions.
+
+### 1. Instance separation for TESTS vs CODE - DONE
+
+Strict separation policy codified (policy CHANGE: supersedes the DIA-134
+same-session GREEN reuse practice):
+
+- AGENTS.md section 2.3 (new bullet): "Instance separation (DIA-135): RED
+  test-writing and GREEN implementation for the same slice MUST be dispatched
+  to DIFFERENT coder instances; the test-author never implements the slice it
+  tested."
+- .opencode/oh-my-opencode-slim/coder_append.md (new bullet): role set by the
+  orchestrator dispatch payload (test-author or implementer); if you authored
+  the tests for a slice, do NOT implement that slice; DIFFERENT coder
+  instances.
+- .opencode/oh-my-opencode-slim/orchestrator_append.md (new rule R4): RED
+  test-writing and GREEN implementation MUST use DIFFERENT coder instances.
+- .opencode/oh-my-opencode-slim.jsonc 3 presets (opencode-go / cebula / free)
+  INSTANCE-SEPARATION RULE added (byte-identical block, sha256
+  9b0b520d3c1e92f207660572b38ed53705a423fc7e48a9de52dddfabc8c26fbc each).
+
+### 2. Same-session fixes - DONE
+
+- AGENTS.md section 2.3.1 (new bullet): "Same-session fixes (DIA-135):
+  fix-loop dispatches MUST resume the SAME coder session that wrote the code
+  (resume by task_id/session_id per A2), never a fresh instance - fixes need
+  the implementer's context."
+- orchestrator_append.md new rule R5 (same rule, tied to A2 recall/resume
+  mechanics).
+- Same block in all 3 presets (byte-identical, see sha256 above).
+
+### 3. Scratch-dir permissions - DONE
+
+- .gitignore: `.scratch/` added (workspace-internal, gitignored).
+- coder_append.md new bullet: "Scratch artifacts (DIA-135): create
+  scratch/temp artifacts under .scratch/ (gitignored, workspace-internal),
+  never under /tmp (external-dir writes prompt for permission)." Chosen fix
+  variant (b) - workspace-internal scratch dir as primary; no /tmp/opencode
+  allow rule added (variant (a) not needed - coders no longer write /tmp).
+
+### Verification
+
+- Two-axis review closed: 0 Spec, 2 Minor (fixed + re-verified closed).
+- ai-auditor independent audit: APPROVE.
+- Post-merge verification (commit 9922f9a, all exit 0):
+  validate-opencode-config.sh OK; validate-agent-names.sh 24 passed;
+  greps green ('DIFFERENT coder instances' x1 AGENTS + x1 orchestrator_append
+  - x3 presets; 'SAME coder session' x1 AGENTS 2.3.1 + x1 orchestrator_append
+  - x3 presets; '.scratch/' x1 .gitignore + x1 coder_append; 'never under
+    /tmp' x1 coder_append); 3 preset rule blocks byte-identical (sha256 x3);
+    zero 'two coders' regression; batch D surfaces intact.
+- Husky pre-commit hook PASS on the merge commit (DIA-094 docker gate; no
+  --no-verify; poetry-dev Up, evidence recorded).
+- LOCAL-ONLY: no push, no remote operations (DIA-079 ASCII protocol).
 
 ## Re-verify
 
-> To be filled at re-verify time.
+Re-review loop: 2 Minor findings accepted by developer, fixed on
+feature/dia135-rules (b00101f), re-verified closed by reviewer (cycle 1/2);
+ai-auditor independent audit APPROVE. No residual findings. Ticket DONE at
+merge.

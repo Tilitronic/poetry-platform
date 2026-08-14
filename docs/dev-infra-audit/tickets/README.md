@@ -110,7 +110,7 @@
 | DIA-131 | Install docker CLI + compose plugin in poetry-dev (pre-push test-config gate) | docker | Major | IMPLEMENTED | [DIA-131-install-docker-cli-poetry-dev-image.md](DIA-131-install-docker-cli-poetry-dev-image.md) |
 | DIA-132 | Parallel coders (batch D) + read-only batch expansion - DIA-116 follow-up review and design | opencode-config | Medium | IMPLEMENTED | [DIA-132-parallel-coders-batch-d-expansion.md](DIA-132-parallel-coders-batch-d-expansion.md) |
 | DIA-134 | Batch D infra hardening: worktree hooks, test persistence, branch-ownership payloads, dispatch tokens (DIA-132 retrospective) | dev-infra | Major | DONE | [DIA-134-batch-d-infra-hardening.md](DIA-134-batch-d-infra-hardening.md) |
-| DIA-135 | Coder prompt hygiene: instance separation, same-session fixes, scratch-dir permissions (DIA-134 follow-up) | opencode-config | Medium | OPEN | [DIA-135-coder-prompt-hygiene-scratch-dir.md](DIA-135-coder-prompt-hygiene-scratch-dir.md) |
+| DIA-135 | Coder prompt hygiene: instance separation, same-session fixes, scratch-dir permissions (DIA-134 follow-up) | opencode-config | Medium | DONE | [DIA-135-coder-prompt-hygiene-scratch-dir.md](DIA-135-coder-prompt-hygiene-scratch-dir.md) |
 
 
 ## Status summary
@@ -127,8 +127,8 @@
 
 | Status      | Count |
 | ----------- | ----- |
-| OPEN      | 13     |
-| DONE      | 4      |
+| OPEN      | 12     |
+| DONE      | 5      |
 | VALIDATE  | 0      |
 | E2E       | 0      |
 | DEFERRED  | 1      |
