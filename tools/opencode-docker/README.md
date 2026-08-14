@@ -127,6 +127,25 @@ ssh-add
 bin/opencode-docker
 ```
 
+**Optional: confirmation-per-use (`ssh-add -c`):** every push from the container then requires a GUI confirmation on the host - each sign request pops a prompt, so a compromised container cannot push silently. Full recipe (Fedora 44 + KDE Plasma + systemd user agent):
+
+1. Install the askpass helper: `dnf install ksshaskpass` (separate package, not installed by default on KDE).
+2. Create `~/.config/systemd/user/ssh-agent.service.d/override.conf`:
+
+   ```
+   [Service]
+   Environment=SSH_ASKPASS=/usr/bin/ksshaskpass
+   Environment=SSH_ASKPASS_REQUIRE=force
+   Environment=QT_QPA_PLATFORM=wayland
+   Environment=WAYLAND_DISPLAY=wayland-0
+   ```
+
+   The two Wayland lines are required on KDE Wayland (without them ksshaskpass dies with `qt.qpa.xcb: could not connect to display :0`); on X11 use `DISPLAY=:0` instead and drop them.
+3. `systemctl --user daemon-reload && systemctl --user restart ssh-agent` - WARNING: the restart clears all loaded keys, so write the Drop-in FIRST.
+4. `ssh-add -c ~/.ssh/id_ed25519` - loads the key with the confirmation constraint. Verify with `ssh-add -L` (`ssh-add -l` does not show the confirm state).
+
+Notes: `SSH_ASKPASS`/`SSH_ASKPASS_REQUIRE` are read from the agent's OWN environment (the Drop-in), not from any shell config or file. The confirmation constraint lives on the key record inside the host agent, so it works through the DIA-133 forwarded socket with no container-side change. Recommended combo: `ssh-add -c -t 8h` (confirmation + 8h expiry). YubiKey: hardware touch OR `-c`, not both.
+
 Note: `poetry-dev` does NOT need SSH agent forwarding (its delegated gates are make/pnpm only).
 
 ## Secrets Management

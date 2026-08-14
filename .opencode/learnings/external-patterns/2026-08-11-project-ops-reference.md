@@ -16,7 +16,7 @@
 
 ## Finding
 
-- The orchestrator read scope excludes README and docker-dev setup docs. The opencode.jsonc orchestrator `read` block allows only `.opencode/session/*`, `docs/dev-infra-audit/NEXT-RUN.md`, `docs/dev-infra-audit/tickets/*` (+ archive), `.opencode/practice-protected.md`, and `AGENTS.md` - everything else is deny. There is no root README.md; the setup knowledge lives in `docs/docker-dev.md`, `CONTAINER-SETUP.md`, `docs/onboarding.md`, `Makefile`, `docker-compose.yml` - none orchestrator-readable. Project-ops commands (bring-up + required gates) must therefore live in AGENTS.md (or another orchestrator-readable location).
+- The orchestrator read scope excludes README and docker-dev setup docs. The opencode.jsonc orchestrator `read` block allows only `.opencode/session/*`, `docs/dev-infra-audit/NEXT-RUN.md`, `docs/dev-infra-audit/tickets/*` (+ archive), `.opencode/practice-protected.md`, and `AGENTS.md` - everything else is deny. There is no root README.md; the setup knowledge lives in `docs/docker-dev.md`, `docs/onboarding.md`, `Makefile`, `docker-compose.yml` - none orchestrator-readable. Project-ops commands (bring-up + required gates) must therefore live in AGENTS.md (or another orchestrator-readable location).
 
 ## Pattern
 

@@ -111,6 +111,8 @@
 | DIA-132 | Parallel coders (batch D) + read-only batch expansion - DIA-116 follow-up review and design | opencode-config | Medium | IMPLEMENTED | [DIA-132-parallel-coders-batch-d-expansion.md](DIA-132-parallel-coders-batch-d-expansion.md) |
 | DIA-134 | Batch D infra hardening: worktree hooks, test persistence, branch-ownership payloads, dispatch tokens (DIA-132 retrospective) | dev-infra | Major | DONE | [DIA-134-batch-d-infra-hardening.md](DIA-134-batch-d-infra-hardening.md) |
 | DIA-135 | Coder prompt hygiene: instance separation, same-session fixes, scratch-dir permissions (DIA-134 follow-up) | opencode-config | Medium | DONE | [DIA-135-coder-prompt-hygiene-scratch-dir.md](DIA-135-coder-prompt-hygiene-scratch-dir.md) |
+| DIA-136 | Deep review: 2-day commit window (DIA-124..135) consistency vs pre-existing docs/config/docker | dev-infra | Major | OPEN | [DIA-136-deep-review-2day-window-consistency.md](DIA-136-deep-review-2day-window-consistency.md) |
+| DIA-137 | Worktree branch cleanup subcommand with merge verification (DIA-100 cleanup policy gap) | dev-infra | Low | OPEN | [DIA-137-worktree-branch-cleanup.md](DIA-137-worktree-branch-cleanup.md) |
 
 
 ## Status summary
@@ -119,15 +121,15 @@
 | -------- | ----- |
 | Blocker   | 7      |
 | Critical  | 6      |
-| Major     | 37     |
+| Major     | 38     |
 | Medium    | 51     |
 | Minor     | 0      |
-| Low       | 10     |
+| Low       | 11     |
 | Info      | 0      |
 
 | Status      | Count |
 | ----------- | ----- |
-| OPEN      | 12     |
+| OPEN      | 14     |
 | DONE      | 5      |
 | VALIDATE  | 0      |
 | E2E       | 0      |

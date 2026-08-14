@@ -20,6 +20,8 @@ For `git push` to work the host SSH agent must be running, unlocked, and have th
 
 Hardware-key caveat: gnome-keyring can mishandle YubiKey `ed25519-sk` keys (`agent refused operation`). The workaround is a dedicated `ssh-agent` on the host (`eval "$(ssh-agent)"`, `ssh-add`) before relaunching — it works because that agent's `$SSH_AUTH_SOCK` overrides the default one and wins the probe.
 
+Optional: `ssh-add -c` (confirmation-per-use) makes the host agent prompt for a GUI confirmation on every sign request, so a compromised container cannot push silently. It works through the forwarded socket with no container-side change. Full recipe in README.md ("Optional: confirmation-per-use (ssh-add -c)").
+
 Note: `poetry-dev` does NOT need SSH agent forwarding (its delegated gates are make/pnpm only).
 
 ## Debian 13 slim runtime
