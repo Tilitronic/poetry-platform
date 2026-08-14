@@ -144,9 +144,9 @@ Chosen over a native OpenCode config hooks entry. Rationale:
    Including them would guarantee a format_warn row on every python/shell edit.
 5. Perf guard: missing file (patch-deleted) or > 1 MiB (FORMATTER_MAX_BYTES)
    skipped silently; spawn timeout 30s (FORMATTER_TIMEOUT_MS).
-6. apply_patch multi-file support: extractPatchPaths() mirrors the section-10
-   gate marker scan (Index: / diff --git / +++ b/ / **_ Add File / _** Update
-   File / **_ Delete File / _** Move to:) and returns ALL touched paths, so a
+6. apply\*patch multi-file support: extractPatchPaths() mirrors the section-10
+   gate marker scan (Index: / diff --git / +++ b/ / \*\*\* Add File / _** Update
+   File / **_ Delete File / \_\*\* Move to:) and returns ALL touched paths, so a
    multi-file patch formats every file it changed (no whole-tree passes).
 7. Row events (registry.jsonl, appendRow conventions):
    - `format_applied` — prettier exit 0 (status FORMATTED, formatter prettier)
