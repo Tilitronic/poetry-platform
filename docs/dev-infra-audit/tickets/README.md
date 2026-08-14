@@ -48,7 +48,7 @@
 | DIA-095 | Orchestrator needs an optimized project-ops reference - how to run the project, bring up docker, required gates | dev-infra/opencode-config | Major | CLOSED | [DIA-095-orchestrator-project-ops-reference.md](DIA-095-orchestrator-project-ops-reference.md) |
 | DIA-096 | Git push permission policy - allow push, restrict destructive commands and main | opencode-config | Major | CLOSED | [DIA-096-git-push-permission-policy.md](DIA-096-git-push-permission-policy.md) |
 | DIA-097 | orchestrator role consolidation: task/resource mgmt, delegation, heavy-thinking separation, bash-delegation, automation-of-repetition | opencode-config | Major | CLOSED | [DIA-097-orchestrator-role-delegation.md](DIA-097-orchestrator-role-delegation.md) |
-| DIA-098 | spontaneous subagent/session stops: stalled-agent detection, auto-resume, complete-vs-interrupted classification | opencode-config | Major | OPEN | [DIA-098-spontaneous-session-stops.md](DIA-098-spontaneous-session-stops.md) |
+| DIA-098 | spontaneous subagent/session stops: stalled-agent detection, auto-resume, complete-vs-interrupted classification | opencode-config | Major | CLOSED | [DIA-098-spontaneous-session-stops.md](DIA-098-spontaneous-session-stops.md) |
 | DIA-099 | truncated/partial subagent responses: detect-preserve-resume-validate mechanism | opencode-config | Major | OPEN | [DIA-099-truncated-subagent-responses.md](DIA-099-truncated-subagent-responses.md) |
 | DIA-100 | git worktrees for parallel dev sessions: isolation, branch management, merge/conflict handling, cleanup, OpenCode interaction | dev-infra | Medium | FIXED | [DIA-100-git-worktrees-parallel-dev.md](DIA-100-git-worktrees-parallel-dev.md) |
 | DIA-101 | parallel subagent execution optimization: parallelization rules, dependency detection, resource/shared-file conflicts | opencode-config | Medium | CLOSED | [DIA-101-parallel-subagent-execution.md](DIA-101-parallel-subagent-execution.md) |
@@ -118,7 +118,7 @@
 
 | Status      | Count |
 | ----------- | ----- |
-| OPEN        | 13    |
+| OPEN        | 12    |
 | DONE        | 3     |
 | VALIDATE    | 0     |
 | E2E         | 0     |
@@ -127,7 +127,7 @@
 | FIXED       | 1     |
 | IMPLEMENTED | 0     |
 | VERIFIED    | 21    |
-| CLOSED      | 63    |
+| CLOSED      | 64    |
 | BLOCKED     | 0     |
 | DISPATCHED  | 0     |
 | RUNNING     | 0     |

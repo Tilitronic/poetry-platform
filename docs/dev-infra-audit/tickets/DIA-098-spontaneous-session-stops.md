@@ -1,5 +1,23 @@
 # DIA-098 - Spontaneous subagent/session stops: stalled-agent detection, auto-resume, complete-vs-interrupted classification
 
+<!-- UPDATE 2026-08-14 (CLOSED - full chain complete; restart-verify
+     DEFERRED to next session per developer disposition, DIA-123 pattern):
+     ana016 stop-point analysis -> R1-R3 implemented (0f3f675: error
+     serialization fix + proactive 60s stall timer + permission watchdog)
+     -> ai-auditor NON-CONFORMANT (advisory-not-binding, 3 findings,
+     developer accepted all) -> re-fix fd9481d (collision-safe seq/row_id
+     - both plugins recompute MAX+1 over current file state; typed
+     serializer fallback - never undefined, never [object Object]; no-id
+     permission asks audited in registry) -> ai-auditor re-verify
+     CONFORMANT-WITH-NOTES (all 3 findings verified-closed, 0 regressions)
+     -> developer disposition 2026-08-14: ACCEPT + close with restart-verify
+     deferred to the NEXT session (this session runs the PRE-fix plugin
+     code; live verification requires a subsequent launch - see the
+     Re-verify section for the deferred plan). Status OPEN -> CLOSED.
+     Validation: make test-config exit 0 (drift gate 3 presets x 8 markers,
+     0 gaps), make test-shell exit 0 (283 bats), scripts/tickets rollup
+     --check exit 0, node --check both plugins exit 0. -->
+
 <!-- UPDATE 2026-08-14 (IMPLEMENTED - section-10 lane, branch
      omo-slim-changes, commit pending): R1 error serialization fix + R2
      proactive 60s stall timer in delegation-observer.ts + R3 permission
@@ -47,13 +65,13 @@ id: DIA-098
 title: "spontaneous subagent/session stops: stalled-agent detection, auto-resume, complete-vs-interrupted classification"
 area: opencode-config
 severity: Major
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 discovered:
 source: inventory
 date: 2026-08-11
 created: 2026-08-11
-updated: 2026-08-11
+updated: 2026-08-14
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -247,4 +265,47 @@ bats green); make test-shell 0 (283 bats); scripts/tickets rollup
 
 ## Re-verify
 
-> To be filled at re-verify time.
+\*\*LIVE RESTART-VERIFY DEFERRED (2026-08-14, developer disposition: ACCEPT
+
+- close with restart-verify deferred to next session — DIA-123 pattern).\*\*
+
+This session runs the PRE-fix plugin code: commits 0f3f675 + fd9481d land
+AFTER this launch, so the live plugin behavior cannot be observed here. The
+deferred verification_request items for the NEXT opencode launch:
+
+(a) **Live stall sweep** — launch opencode, let a subagent delegation sit in
+RUNNING/DISPATCHED for >10 min (or temporarily set
+STALL_SUBAGENT_MINUTES=1), then confirm: - the 60s `sweepStalledSessions` interval fires (registry.jsonl gains a
+`stall_detected` row with `stall_duration_seconds`, `last_status`,
+`detected_at`); - the matching messages.jsonl crisis row
+(`event_type:"crisis"`, `content_ref:"stall_detected_after_N_min"`,
+`resolution_status:"in-flight"`) appears; - a second sweep within the threshold window does NOT duplicate the
+stall_detected row (dedup); - `session.error` / `session.deleted` for a stalled session writes
+`stall_resolved` (resolved_by_error / resolved_by_deleted).
+
+(b) **Permission-timeout auto-reject** — trigger a permission.asked and
+withhold the human reply for 5 min (or set
+PERMISSION_STALL_TIMEOUT_MINUTES=1), then confirm: - the watchdog timer fires and rejects via the REAL SDK endpoint
+`postSessionIdPermissionsPermissionId`
+(POST /session/{id}/permissions/{permissionID},
+body `{response:"reject"}` — verified against the installed
+@opencode-ai/sdk types, no deviation from the ana016 section 6.3
+path beyond the camelCase permissionID param); - registry rows `permission_asked_logged` (on ask) and
+`permission_auto_rejected` (timeout_seconds, reason
+no_human_response_within_threshold) appear; - the ticker CLEAR transition fires and the messages.jsonl decision row
+(escalated, permission_auto_rejected_after_Nmin) is written.
+
+(c) **Log row integrity (collision check)** — after mixed-plugin activity
+(at least one needs-input-observer registry/messages write interleaved
+with delegation-observer writes), confirm NO duplicate `seq` in
+registry.jsonl and NO duplicate `row_id` in messages.jsonl. Both
+plugins now recompute MAX+1 over the CURRENT file state at write time;
+single-process synchronous appends (appendFileSync) make
+read-compute-append atomic, so MAX+1 is provably collision-free — the
+live check confirms no regression from the pre-fix cached-counter model.
+
+Evidence for this deferred plan: commits 0f3f675 (R1-R3) + fd9481d
+(ai-auditor findings 1-3 re-fix) + this closure commit, all on branch
+omo-slim-changes, pushed 2026-08-14. Pre-commit + pre-push hooks ran with
+all gates exit 0 (test-config drift 0 gaps, test-shell 283 bats, rollup
+--check, node --check).
