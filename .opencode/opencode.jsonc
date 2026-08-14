@@ -567,7 +567,6 @@
   "plugin": [
     "envsitter-guard@0.0.4",
     "@tarquinen/opencode-dcp@3.1.14",
-    "file:///workspace/.opencode/oh-my-opencode-slim",
     "file:///workspace/.opencode/plugins/delegation-observer.ts",
     "file:///workspace/.opencode/plugins/needs-input-observer.ts"
   ],
