@@ -25,6 +25,9 @@ Architecture → Specification → Implementation:
 
 ### 2.3 Implementation (per feature)
 
+- **Ticket-ID token (DIA-134):** every dispatch AND every resume prompt MUST carry the literal ticket ID (e.g. "DIA-134"); the DIA-063 gate blocks prompts without it.
+- **Architector design persistence (DIA-134):** after each @architector design dispatch, persist the design text into the DIA ticket (or a `.sdd` draft) before implementation starts, so reviewers can diff verbatim claims.
+
 1. **Pre-flight**: Check `.sdd/` and `openspec/` for governing constraints before touching code
 2. **Dispatch** `@coder` — implements against `tasks.md`, within architectural constraints
    - Optionally run `to-tickets` first to publish the tasks as DIA tickets in `docs/dev-infra-audit/tickets/`
@@ -53,6 +56,8 @@ After the developer disposes review findings (accept/reject per practice-protect
 6. **Cycle cap**: max 2 fix→re-review cycles. If findings persist after cycle 2 → escalate to developer with full findings-resolution history. Developer decides: accept residual risk, manual fix, or abort.
 
 `openspec-plan` is blocked from editing implementation code.
+
+- **Merge-gate container evidence (DIA-134):** the merge phase may start only with recorded `docker compose ps` output showing the dev service Up, committed into the merge report, and the session log must record container state before merge dispatch.
 
 ### 2.4 Dev-Infrastructure Changes (scripts/, Docker, Makefile, CI)
 

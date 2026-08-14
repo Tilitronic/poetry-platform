@@ -324,3 +324,28 @@ result and do NOT loop on re-dispatches.
 4. **VALIDATE** - the resumed lane returns a NON-EMPTY structured result
    (RESULT / FILES_TOUCHED / VERIFICATION_EVIDENCE). If it returns empty
    again, escalate per the 3-failures rule - do NOT loop.
+
+## Batch-D Hardening Rules (DIA-134)
+
+Rules from the DIA-132 retrospective (DIA-134) that harden batch D dispatch,
+architector design persistence, and the merge gate. ADD-only codification;
+A1-A6 above are untouched.
+
+### R1 - Ticket-ID Token in Dispatch/Resume Prompts (DIA-063 gate)
+
+every dispatch AND every resume prompt MUST contain the literal ticket ID
+(e.g. "DIA-134"). The DIA-063 gate blocks any resume prompt that lacks the
+token; a prompt with the token passes.
+
+### R2 - Architector Design Persistence
+
+After each @architector design dispatch, persist the design text into the DIA ticket
+(or a `.sdd` draft) before implementation starts, so reviewers can
+diff verbatim claims against a repo-visible source.
+
+### R3 - Merge-Gate Container Evidence
+
+The merge phase may start only with recorded `docker compose ps` output
+showing the dev service Up, committed into the merge report. The session log
+must record container state before merge dispatch; no merge attempt happens
+without the evidence line.
