@@ -76,7 +76,7 @@
 | DIA-123 | deterministic opencode restart detection for the orchestrator | opencode-config | Medium | CLOSED | [DIA-123-deterministic-restart-detection.md](DIA-123-deterministic-restart-detection.md) |
 | DIA-124 | orchestrator must write and verify a terminal handoff BEFORE presenting session-end / new-session prompt | opencode-config | Major | CLOSED | [DIA-124-handoff-before-session-end.md](DIA-124-handoff-before-session-end.md) |
 | DIA-125 | automate ticket creation & management - evaluate ready-made local solutions (MCP/self-hosted) vs manual ledger | opencode-config | Medium | CLOSED | [DIA-125-automate-ticket-management-research.md](DIA-125-automate-ticket-management-research.md) |
-| DIA-126 | autonomous overnight mode: permission allow-list + no-stall guarantees (agents ask for folder-read permissions and stall for hours) | opencode-config | Major | OPEN | [DIA-126-autonomous-mode-permission-hardening.md](DIA-126-autonomous-mode-permission-hardening.md) |
+| DIA-126 | autonomous overnight mode: permission allow-list + no-stall guarantees (agents ask for folder-read permissions and stall for hours) | opencode-config | Major | CLOSED | [DIA-126-autonomous-mode-permission-hardening.md](DIA-126-autonomous-mode-permission-hardening.md) |
 | DIA-127 | OMO slim 2.2.13 update evaluation - research what is new, decide safety/worth for the project | opencode-config | Medium | CLOSED | [DIA-127-omo-slim-2-2-13-update-evaluation.md](DIA-127-omo-slim-2-2-13-update-evaluation.md) |
 | DIA-128 | OMO plugin repeatedly warns 'inline prompt overrides prompt file' for coder and analyzer agents | opencode-config | Medium | CLOSED | [DIA-128-omo-inline-prompt-overrides-warning.md](DIA-128-omo-inline-prompt-overrides-warning.md) |
 | DIA-129 | crawl4ai crwl fallback fails: Playwright pins chromium revision 1228, host cache has 1234 only | dev-infra | Medium | CLOSED | [DIA-129-crawl4ai-playwright-chromium-revision-skew.md](DIA-129-crawl4ai-playwright-chromium-revision-skew.md) |
@@ -118,7 +118,7 @@
 
 | Status      | Count |
 | ----------- | ----- |
-| OPEN        | 12    |
+| OPEN        | 11    |
 | DONE        | 3     |
 | VALIDATE    | 0     |
 | E2E         | 0     |
@@ -127,7 +127,7 @@
 | FIXED       | 1     |
 | IMPLEMENTED | 0     |
 | VERIFIED    | 21    |
-| CLOSED      | 64    |
+| CLOSED      | 65    |
 | BLOCKED     | 0     |
 | DISPATCHED  | 0     |
 | RUNNING     | 0     |

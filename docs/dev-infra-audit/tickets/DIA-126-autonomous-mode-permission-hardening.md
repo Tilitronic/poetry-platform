@@ -1,5 +1,45 @@
 # DIA-126 - autonomous overnight mode: permission allow-list + no-stall guarantees
 
+<!-- UPDATE 2026-08-14 (CLOSED - directions (b)+(d) satisfied-by-DIA-098; FULL
+     TICKET CLOSED; live restart-verify DEFERRED to next session per developer
+     disposition, DIA-098/DIA-123 pattern):
+     THE MAPPING (recorded per the DIA-126 closure lane direction):
+     Direction (b) stall detection + auto-cancel/reroute: satisfied by DIA-098
+     R2 (proactive stall timer - 60s sweepStalledSessions sweep in
+     delegation-observer.ts over RUNNING/DISPATCHED registry rows, env
+     thresholds STALL_SUBAGENT_MINUTES=10 / STALL_ORCHESTRATOR_MINUTES=20 /
+     STALL_DEAD_MINUTES=60, stall_detected registry row + crisis log_decision,
+     dedup within the threshold window, 60-min dead escalation, stall_resolved
+     on session.error/session.deleted, FAIL-FAST no auto-resume per ana016
+     section 6.5 + developer approval avoiding the DIA-078 doom_loop) + DIA-098
+     R3 (permission watchdog - 5-min PERMISSION_STALL_TIMEOUT_MINUTES auto-
+     reject via the real SDK endpoint postSessionIdPermissionsPermissionId,
+     permission_auto_rejected registry row, orchestrator notified -> re-dispatch
+     or fail-fast). DESIGN DEVIATION (explicitly recorded): DIA-126 (b)
+     literally says "auto-resume"; the implemented form is FAIL-FAST
+     (auto-reject + notify orchestrator + human decides), per ana016 section
+     6.5 recommendation and the developer's DIA-098 scope approval. NO literal
+     auto-resume was implemented.
+     Direction (d) audit hook (log every permission-ask to registry.jsonl):
+     satisfied by DIA-098 R3 - a permission_asked_logged registry row written
+     for EVERY permission.asked / permission.v2.asked (incl. no-id asks after
+     the ai-auditor re-fix: permission_id omitted when absent + note
+     "permission_id absent - watchdog timer not armed"), plus
+     permission_auto_rejected on timeout. Stalls are now visible post-hoc in
+     registry.jsonl.
+     Cross-reference: DIA-098 CLOSED (closure commit 8bf46fe 2026-08-14,
+     implementation commits 0f3f675 + fd9481d, ai-auditor CONFORMANT-WITH-NOTES
+     ai--3, pushed 2026-08-14). Directions (a) permission profile and (c)
+     tool-gap closure were closed in prior cycles (2026-08-13 UPDATE blocks
+     below), so the FULL DIA-126 ticket is now CLOSED. LIVE restart-verify
+     DEFERRED: this session runs the PRE-fix plugin code (0f3f675 + fd9481d
+     land after this launch); verification_request items for the NEXT opencode
+     launch are recorded in the Re-verify section below (DIA-123 config-touch
+     second-boot pattern). Validation: make test-config exit 0 (drift gate
+     8 markers x 3 presets 0 gaps), make test-shell exit 0 (283 bats),
+     scripts/tickets rollup --check exit 0, node --check both plugins exit 0.
+     Status OPEN -> CLOSED. -->
+
 <!-- UPDATE 2026-08-13 (DIRECTION (a) OPTION A FULL IMPLEMENTED + AUDITED):
      autonomous permission profile, Option A full (developer-approved).
      Implemented by cod-8 lane: (1) orchestrator read allow-list +12 entries
@@ -63,13 +103,13 @@ id: DIA-126
 title: "autonomous overnight mode: permission allow-list + no-stall guarantees (agents ask for folder-read permissions and stall for hours)"
 area: opencode-config
 severity: Major
-status: OPEN
+status: CLOSED
 blocked_by: [] # no blockers
 discovered: 2026-08-13
 source: session-observation (developer failure report, 2026-08-13, night run review)
 date: 2026-08-13
 created: 2026-08-13
-updated: 2026-08-13
+updated: 2026-08-14
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -194,7 +234,42 @@ is required to confirm bash is exposed and the crwl/trafilatura chain works.
 
 ## Re-verify
 
-> To be filled at re-verify time.
+**LIVE RESTART-VERIFY DEFERRED (2026-08-14, developer disposition: ACCEPT +
+close directions (b)+(d) as satisfied-by-DIA-098; live plugin verification
+deferred to next session - DIA-123 config-touch second-boot pattern).**
+
+This session runs the PRE-fix plugin code: DIA-098 commits 0f3f675 + fd9481d
+land AFTER this launch, so the live plugin behavior cannot be observed here.
+The deferred verification_request items for the NEXT opencode launch (same
+plan as the DIA-098 Re-verify section):
+
+(a) **Live stall sweep** - launch opencode, let a subagent delegation sit in
+RUNNING/DISPATCHED for >10 min (or set STALL_SUBAGENT_MINUTES=1), then confirm
+the 60s `sweepStalledSessions` interval fires a `stall_detected` registry row
+(`stall_duration_seconds`, `last_status`, `detected_at`) + crisis log_decision
+(`content_ref: stall_detected_after_N_min`), dedup within the threshold
+window, and `stall_resolved` on session.error / session.deleted. This proves
+direction (b)'s fail-fast handling of permission-ask/folder-read stalls in
+autonomous windows.
+
+(b) **Permission-timeout auto-reject** - trigger a permission.asked and
+withhold the human reply for 5 min (or set PERMISSION_STALL_TIMEOUT_MINUTES=1),
+then confirm the watchdog rejects via the REAL SDK endpoint
+`postSessionIdPermissionsPermissionId` (POST /session/{id}/permissions/
+{permissionID}, body `{response:"reject"}`) and writes `permission_auto_rejected`
+(`timeout_seconds`, reason no_human_response_within_threshold). This proves
+direction (d)'s audit trail + direction (b)'s no-stall guarantee end-to-end.
+
+(c) **Log row integrity** - after mixed-plugin activity (at least one
+needs-input-observer registry/messages write interleaved with
+delegation-observer writes), confirm NO duplicate `seq` in registry.jsonl and
+NO duplicate `row_id` in messages.jsonl (both plugins recompute MAX+1 over the
+CURRENT file state at write time; single-process synchronous appends make
+read-compute-append atomic).
+
+Note: direction (a) permission profile and direction (c) tool-gap closure were
+restart-verified in prior cycles (2026-08-13 full re-verify PASS, wildcard
+cycle). The deferred items above cover only the DIA-098-satisfied (b)+(d).
 
 ## Restart-verify evidence (2026-08-13, wildcard cycle) - RESULT PARTIAL
 
@@ -284,3 +359,8 @@ POST-RESTART opencode process (config changes load only on a new launch).
 Remaining directions (status stays OPEN - direction (a) IMPLEMENTED
 2026-08-13, Option A full, see UPDATE block at top; (b)/(d) remain):
 (b) stall auto-resume per DIA-098, (d) permission-ask audit hook.
+
+SUPERSEDED 2026-08-14: directions (b) and (d) closed as satisfied-by-DIA-098
+(fail-fast stall handling + permission-ask audit hook; see the CLOSED UPDATE
+block at top + Re-verify section for the deferred live-check plan). The
+ticket is now FULLY CLOSED - all four directions (a)/(b)/(c)/(d) are closed.
