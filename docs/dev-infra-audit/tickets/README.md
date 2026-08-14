@@ -109,6 +109,7 @@
 | DIA-127 | test infra Phase 3: Orchestrator contract test (acceptWorkerResult, zero mocks) | tests-infra | Medium | OPEN | [DIA-127-test-infra-phase3-orchestrator-contract.md](DIA-127-test-infra-phase3-orchestrator-contract.md) |
 | DIA-131 | Install docker CLI + compose plugin in poetry-dev (pre-push test-config gate) | docker | Major | IMPLEMENTED | [DIA-131-install-docker-cli-poetry-dev-image.md](DIA-131-install-docker-cli-poetry-dev-image.md) |
 | DIA-132 | Parallel coders (batch D) + read-only batch expansion - DIA-116 follow-up review and design | opencode-config | Medium | IMPLEMENTED | [DIA-132-parallel-coders-batch-d-expansion.md](DIA-132-parallel-coders-batch-d-expansion.md) |
+| DIA-134 | Batch D infra hardening: worktree hooks, test persistence, branch-ownership payloads, dispatch tokens (DIA-132 retrospective) | dev-infra | Major | OPEN | [DIA-134-batch-d-infra-hardening.md](DIA-134-batch-d-infra-hardening.md) |
 
 
 ## Status summary
@@ -117,7 +118,7 @@
 | -------- | ----- |
 | Blocker   | 7      |
 | Critical  | 6      |
-| Major     | 36     |
+| Major     | 37     |
 | Medium    | 50     |
 | Minor     | 0      |
 | Low       | 10     |
@@ -125,7 +126,7 @@
 
 | Status      | Count |
 | ----------- | ----- |
-| OPEN      | 12     |
+| OPEN      | 13     |
 | DONE      | 3      |
 | VALIDATE  | 0      |
 | E2E       | 0      |
