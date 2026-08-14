@@ -12,20 +12,46 @@
      stale-view problem today, so this is an optional enhancement, not a
      need. -->
 
+<!-- UPDATE 2026-08-15 (CLOSED - closure lane):
+     CLOSED 2026-08-15. Documentation-only closure - the section-10 chain
+     terminated at 'developer decide' (no design/implementation phase ran,
+     so no @ai-auditor review was needed):
+     (1) ai--2 section-10 Phase 1 gate (2026-08-15): DIA-086 SCOPE GUARD
+     NOT MET - no consumer of the derived views (messages.md, ticker.md)
+     demonstrated a stale-view problem; on-demand render is deterministic
+     and testable; chokidar v5 (ESM-only, Node>=20.19) would add a runtime
+     dependency to a Bun-based plugin to solve a non-problem; for surface 1
+     the plugin's existing hooks could do synchronous render-in-hook with
+     ZERO new dependencies (strictly better than a watcher). Findings kept
+     and registered in .opencode/learnings/external-patterns/
+     2026-08-15-chokidar-bun-esm-render-in-hook.md (section-10 Phase 1
+     requirement).
+     (2) Developer EBDV decision 2026-08-15 (binding): Variant A status-quo
+     adopted - close DIA-155; the conditional-design knowledge (res027
+     sections 2.6 + 3) is preserved via the learnings entry, so no
+     information is lost by closing.
+     (3) Closure lane: Fix section filled (DIA-086 verdict + EBDV variant
+     table + chosen variant), status OPEN -> CLOSED, closed 2026-08-15,
+     updated 2026-08-15, attempts +1, files_touched + evidence updated.
+     No implementation landed -> nothing to diff -> @ai-auditor not
+     dispatched (section-10 chain terminates at developer decide for a
+     status-quo verdict). -->
+
 ---
 
 id: DIA-155
 title: "chokidar in-process file-watching harness: deterministic auto-regeneration of derived views + agent-work automation"
 area: opencode-config
 severity: Medium
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: ""
 discovered: 2026-08-14
 source: fix-lane
 date: 2026-08-14
 created: 2026-08-14
-updated: 2026-08-14
+updated: 2026-08-15
+closed: 2026-08-15
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -34,11 +60,11 @@ lane_id: "cod"
 agent: "coder"
 model: ""
 parent_session_id: ""
-attempts: 0
+attempts: 1
 lease_expires_at: "" # ISO-8601; set on DISPATCHED, cleared on COMPLETE
-files_touched: ["docs/dev-infra-audit/tickets/DIA-155-chokidar-in-process-file-watching-harness.md"]
+files_touched: ["docs/dev-infra-audit/tickets/DIA-155-chokidar-in-process-file-watching-harness.md", ".opencode/learnings/external-patterns/2026-08-15-chokidar-bun-esm-render-in-hook.md"]
 artifacts: []
-evidence: ["knowledge/res027-orchestrator-routine-work-tools/res027-orchestrator-routine-work-tools-conspect.md"]
+evidence: ["knowledge/res027-orchestrator-routine-work-tools/res027-orchestrator-routine-work-tools-conspect.md", ".opencode/learnings/external-patterns/2026-08-15-chokidar-bun-esm-render-in-hook.md"]
 
 ---
 
@@ -122,8 +148,64 @@ derived views becomes a real, demonstrated requirement).
 
 ## Fix
 
-> To be filled at fix time.
+> CLOSED 2026-08-15 (documentation-only closure). The section-10 chain ran
+> Phase 1 (ai--2 gate) and terminated at the developer decision - no
+> design or implementation phase executed, so there is nothing to diff and
+> no @ai-auditor review was required.
+
+**DIA-086 SCOPE GUARD VERDICT (2026-08-15): NOT MET - status-quo retained.**
+No consumer of the derived views (messages.md, ticker.md) demonstrated a
+stale-view problem:
+
+- Consumers are all on-demand: orchestrator boot read, human inspection,
+  handoff presentation - each reads a freshly rendered view.
+- The delegation-observer plugin NEVER regenerates .md views - verified
+  in .opencode/plugins/delegation-observer.ts: only silent appendFileSync
+  jsonl write paths exist (registry.jsonl, messages.jsonl), no .md write
+  path at all.
+- On-demand render (scripts/session-log render, scripts/ticker-render.sh)
+  is deterministic and gate-tested.
+- chokidar v5 (ESM-only, Node >= 20.19) would add a runtime dependency to
+  a Bun-based plugin to solve a problem that does not exist.
+
+**EBDV variant table (DIA-115; ai--2 findings 2026-08-15):**
+
+| Variant                                  | Evidence                                                                                                                    | Pros                                                               | Cons                                                                                                                | Effort | Section-10 flag       |
+| ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------- | ------ | --------------------- |
+| A - status-quo on-demand render (CHOSEN) | DIA-086: no stale-view consumer demonstrated; plugin writes no .md views; all consumers on-demand                           | zero deps, zero lifecycle, deterministic, gate-tested              | stale-window between write and render remains (never demonstrated to matter)                                        | None   | N/A (no change)       |
+| B - chokidar auto-regen of derived views | chokidar v5.0.0 release notes (ESM-only, Node>=20.19, readdirp v5); res027 sections 2.6 + 3 (only no-new-process candidate) | in-process, no background process, atomic-write + awaitWriteFinish | watcher lifecycle + tuning, new ESM dep via .opencode/package.json (own tree, not root pnpm) to solve a non-problem | Medium | full section-10 chain |
+| C - synchronous render-in-hook           | delegation-observer.ts hook handlers already write .jsonl (tool.execute.after -> appendFileSync, L855/L1006)                | same-tick determinism, ZERO new deps, unit-testable                | render cost per write tick; covers only plugin-written surfaces                                                     | Low    | full section-10 chain |
+| D - abort (drop harness entirely)        | DIA-137 already produced the verdict + res027                                                                               | closes without any upkeep                                          | discards conditional-design knowledge (res027 2.6/3) and ai--2 findings                                             | None   | N/A                   |
+
+**CHOSEN: Variant A - status-quo adopted.** Developer decision 2026-08-15
+(binding). Because: the DIA-086 scope guard is not met (no demonstrated
+requirement - no consumer proved a stale-view problem), so any change
+would fail the ticket's own gate. Variant C (render-in-hook) is recorded
+as the preferred future mechanism over Variant B (chokidar) if a real
+consumer ever emerges - the plugin's existing hooks are strictly better
+than a watcher for the plugin-written surfaces. Variant D loses the
+research value for no gain. The section-10 chain therefore terminated at
+'developer decide' - no implementation landed, nothing to diff, no
+@ai-auditor review needed.
+
+**Learnings registration (section-10 Phase 1 requirement):** ai--2 gate
+findings registered in `.opencode/learnings/external-patterns/
+2026-08-15-chokidar-bun-esm-render-in-hook.md` (Bun-runtime FACT,
+render-in-hook PATTERN, DIA-086 verdict, dated Tier-2 sources; cites
+DIA-155 + DIA-137 + res027).
+
+**Verification disposition:** item 1 (EBDV design artifact) = this Fix
+table; item 2 (section-10 Phase 1 gate registered) = the learnings entry;
+item 4 (DIA-086 gate) = verdict above (not met, hence closed). Item 3
+(implementation + validation) = N/A - no implementation landed.
 
 ## Re-verify
 
-> To be filled at re-verify time.
+> RE-VERIFIED 2026-08-15 (closure lane): status-quo verdict consistent
+> with the ai--2 gate findings - no stale-view consumer exists, the plugin
+> has no .md write path, on-demand render is deterministic and gate-tested
+> (evidence in .opencode/learnings/external-patterns/
+> 2026-08-15-chokidar-bun-esm-render-in-hook.md). No implementation
+> landed, so there is no code to re-verify. Revisit if a real stale-view
+> consumer ever emerges - per the learnings entry, prefer render-in-hook
+> over chokidar.
