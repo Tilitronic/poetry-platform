@@ -243,6 +243,29 @@ shelf:
     description: 'Conspect closing DIA-089 Phase A investigation (8 archived sources, all archived, zero failures - docs.openwebui.com captured via curl+trafilatura stdin pipeline since direct -u returned empty on the JS-heavy Docusaurus site; raw CHANGELOG.md captured via curl because trafilatura drops non-HTML). Documents the book-rag/OpenWebUI hybrid RAG infrastructure inventory with 3 config drifts: (1) STALE KB cache knowledge-bases.yaml cached_at 2026-07-13 with 12 UUIDs vs 1h TTL; (2) memory-shelf ai-self-improvement description says project skill copies deleted but CHANGELOG L103 shows GLOBAL copies deleted and project kept (global book-rag ABSENT, consistent with applied change, inconsistent with shelf text); (3) commands/rag.md present but NOT in opencode.jsonc command block (doc drift vs SKILL.md claim). Architecture: OPT-IN #rag/#tag -> SKILL.md redesign-route-execute -> query_rag.py (1328 lines; #tag re.search parse, difflib fuzzy UUID resolve, Tier1 GET /api/v1/knowledge/ + Tier2 webui.db SQLite discovery, auth OPENWEBUI_API_KEY or .key JWT mint or auto-setup, POST /api/v1/retrieval/query/collection {query, collection_names, k:6, hybrid:true}, === RETRIEVED KNOWLEDGE === format, [WARNING] top score < 0.30). Web-fresh v0.11.0 contract verified in archive: RAG_TEXT_SPLITTER=markdown_header REMOVED -> ENABLE_MARKDOWN_HEADER_TEXT_SPLITTER default on; ENABLE_RAG_HYBRID_SEARCH default False server-side (script sends hybrid=true); RAG_HYBRID_BM25_WEIGHT 0.5; CHUNK_SIZE 1000/OVERLAP 100/MIN_SIZE_TARGET 0; embedding-model change requires re-index; ENABLE_PERSISTENT_CONFIG=True DB-overrides-env; WEBUI_JWT_SECRET_KEY deprecated (DATA_DIR/WEBUI_SECRET_KEY blanket deprecation flagged researcher-supplied-not-fully-archived); Bearer sk-+JWT+x-api-key; file POST /api/v1/files/ process=true + poll /process/status before KB add (400 empty-content). OPENWEBUI_DATA_DIR is script-invented, NOT a server var (server uses DATA_DIR). Phase B/C verification plan B0-B4/C1-C5 ready to run once developer starts server + sets env vars. Blocked on developer: server not running, 3 env vars unset. .key secret value never read.'
     path: knowledge/res025-openwebui-rag-infra/res025-openwebui-rag-infra-conspect.md
     created: 2026-08-13
+  - name: JSON-DB + API Layer for Orchestrator Session Records (DIA-136)
+    description: 'Conspect for DIA-136 (Medium, OPEN, opencode-config): evaluate a JSON-DB + API layer (lowdb/json-server/nedb/@seald-io/nedb/nedb2/tinydb + alternatives) for orchestrator session records. 24 archived sources + 1 documented partial-failure (duckdb-stable redirect). Per-library findings: lowdb 7.0.1 whole-file rewrite O(N)+no cluster+no HTTP; json-server 1.0.0-beta.15 full HTTP server+beta; nedb 1.8.0 unmaintained; @seald-io/nedb 4.1.2 active fork but file/append-only+full-memory copy; nedb2 2018.12.30 abandoned; tinydb 4.9.0 Python-only (language mismatch); better-sqlite3 13.0.3 native binary dep; node:sqlite Node built-in zero-dep in-memory (preferred); DuckDB 1.5 current read_json over NDJSON (second). EBDV variants: V1 status-quo jq / V2 read-only query layer over JSONL (RECOMMENDED, node:sqlite preferred engine) / V3 embedded binary source of truth (REJECTED). Developer constraint 2026-08-14 binding: committable plain-text source of truth; sqlite binary NOT acceptable as source of truth; in-memory query-only acceptable; simplest committable path. JSONL stays canonical; V2 read-only layer only. D9 ticket-ledger analog (res018/res021).'
+    path: knowledge/res026-orchestrator-session-records-json-db/res026-orchestrator-session-records-json-db-conspect.md
+    created: 2026-08-14
+  - name: Orchestrator Routine-Work + Artifact-System Tools (DIA-137)
+    description: 'Conspect for DIA-137 (Medium, OPEN, opencode-config): evaluate lightweight
+      reliable tools to simplify orchestrator ROUTINE WORK and ARTIFACT SYSTEMS. 13 archived
+      sources (15 files across 12 candidate tools), zero failures. Honest verdict: status-quo
+      is correct - bash + jq + bats-core are the settled standards already wired into gates
+      (make test-shell, check-host-jq, vendored bats). Rejections: yq (zero-runtime-dep is
+      a feature, jq suffices for NDJSON), just (Makefile exists), duckdb-for-routine (jq
+      suffices; res026 owns the JSON-DB read-layer scope), todo.txt-cli (DIA ledger IS the
+      task store, DIA-125 settled keep-local), fx (human TUI, not an agent tool), watchexec
+      (heavier, same question as entr), inotify-tools (thin primitive), entr (CONDITIONAL/defer
+      - WSL inotify incomplete + background watch process). chokidar v5.0.0 flagged as the ONLY
+      design-worthy option (in-process, no new service) IF auto-regeneration of derived views
+      (messages.jsonl->messages.md, ticker.json->ticker.md) is ever wanted. EBDV: Variant A
+      status-quo (RECOMMENDED), B chokidar-in-plugin (conditional, section-10), C entr/watchexec
+      background (rejected - background processes forbidden). DIA-086 SCOPE GUARD applies: no
+      demonstrated stale-view consumption problem; on-demand render is deterministic and testable.
+      Cross-refs res026 (DIA-136 sibling, no re-litigation), res018/res021 (DIA-125 ticket ledger).'
+    path: knowledge/res027-orchestrator-routine-work-tools/res027-orchestrator-routine-work-tools-conspect.md
+    created: 2026-08-14
 
   analyses:
   - name: Agent Alignment Audit
