@@ -86,7 +86,12 @@ function parseTaskIdFromTaskOutput(output: string): string | undefined {
  * fallback produced the useless "[object Object]" in every session_failed
  * row (ana016 F2: 52/52 rows). Resolution order: string -> top-level
  * .message -> SDK data.message -> circular-safe JSON dump -> typed fallback
- * that can never be "[object Object]".
+ * that can never be "[object Object]". DIA-098 ai-auditor finding 2: the
+ * chain ALWAYS terminates in a string for any non-null error value —
+ * safeJsonStringify returning undefined (an undumpable object) falls
+ * through to the typed fallback, never to undefined (which would omit the
+ * error field). undefined/null input still returns undefined (no error
+ * present — the field is legitimately omitted).
  */
 function errorMessage(err: unknown): string | undefined {
   if (err === undefined || err === null) return undefined
@@ -111,7 +116,13 @@ function errorMessage(err: unknown): string | undefined {
     }
     // Last-resort structured dump: JSON with a replacer that collapses
     // nested Errors and marks circular refs — never String(obj).
-    return safeJsonStringify(err)
+    const dumped = safeJsonStringify(err)
+    if (dumped !== undefined) return dumped
+    // DIA-098 ai-auditor finding 2: stringify failed (undumpable object) —
+    // terminate in the typed fallback, never undefined, never
+    // "[object Object]".
+    const name = (err as { name?: unknown }).name
+    return `[unserializable ${typeof name === "string" && name ? name : "object"}]`
   }
   return `[unserializable ${typeof err}]`
 }
@@ -279,8 +290,9 @@ function lastMessagesMdRowNumber(mdPath: string): number {
 /**
  * Highest row_id present in an existing messages.jsonl (plugin-written rows).
  * Legacy orchestrator-written rows (lines 1-474 at migration time) LACK
- * row_id entirely, so this returns 0 for them — the authoritative seed then
- * falls back to the messages.md row numbering (see nextRowId seeding).
+ * row_id entirely, so this returns 0 for them — appendMessageRow's write-time
+ * recompute then falls back to the messages.md row numbering (see the
+ * row_id allocation comment at the top of the plugin body).
  * Malformed lines are skipped (same policy as the registry boot scan).
  */
 function maxRowIdInJsonl(jsonlPath: string): number {
@@ -544,16 +556,20 @@ const delegationObserver: Plugin = async (ctx) => {
   /** Paths (relative to workspace root) that require @ai-specialist gate review. */
   const protectedPaths = [".opencode/", "AGENTS.md"]
 
-  // row_id seed logic (READER rule — "continue from the last row # across
-  // sessions, never restart"): the authoritative monotonic series is the
-  // messages.md row numbering (last row = 601 at implementation time).
-  // Legacy messages.jsonl rows LACK row_id, so nextRowId = MAX(max row_id
-  // in messages.jsonl, last messages.md row #) + 1 — at migration that is
-  // 602. Once plugin rows carry row_id, messages.md itself is derived from
-  // messages.jsonl and the two sources converge; the MAX keeps the seed
-  // correct even if messages.md was regenerated with fewer rows.
-  let nextRowId =
-    Math.max(maxRowIdInJsonl(messagesPath), lastMessagesMdRowNumber(messagesMdPath)) + 1
+  // row_id allocation (READER rule — "continue from the last row # across
+  // sessions, never restart"): appendMessageRow recomputes
+  // row_id = MAX(max row_id in messages.jsonl, last messages.md row #) + 1
+  // at write time (DIA-098 ai-auditor finding 1 — no cached counter, so the
+  // id cannot collide with needs-input-observer's messages rows). The
+  // messages.md floor is the legacy migration safeguard: legacy jsonl rows
+  // LACK row_id, so the authoritative series was the messages.md row
+  // numbering (last row = 601 at implementation time); the MAX keeps the
+  // series correct even if messages.md was regenerated with fewer rows. Once
+  // plugin rows carry row_id, messages.md is derived from messages.jsonl and
+  // the two sources converge. The floor never affects uniqueness: every
+  // write lands in messages.jsonl synchronously before the next writer's
+  // read, so MAX+1 over the current file is always strictly greater than
+  // every existing row_id.
 
   // Orchestrator session -> number of task() delegations dispatched since the
   // last handoff row. Used for decision #3 (one handoff row per orchestrator
@@ -575,31 +591,18 @@ const delegationObserver: Plugin = async (ctx) => {
   // completion/failure messages rows with the actual delegated agent.
   const childSessionAgent = new Map<string, string>()
 
-  // Seed the sequence from existing rows so registry rows stay strictly
-  // monotonic across plugin re-inits and compactions.
-  let seq = 0
-  // sessionID -> sessions already given an a5_quality_gate row. Seeded once
-  // here (single boot scan) and appended on each gate write, so the per-idle
-  // gate check is O(1) instead of re-reading the whole registry on every
-  // orchestrator idle (RR-2).
+  // Seed the gated-session set from existing registry rows (RR-2: the
+  // per-idle gate check stays O(1) instead of re-reading the whole registry
+  // on every orchestrator idle). Registry seq is deliberately NOT seeded
+  // here — appendRow recomputes it from the CURRENT file state at write
+  // time (DIA-098 ai-auditor finding 1) so the counter cannot drift from
+  // rows written by other plugins.
   const gatedSessions = new Set<string>()
   if (existsSync(registryPath)) {
-    const lines = readFileSync(registryPath, "utf-8").trim().split("\n")
-    // DIA-123: seed from MAX(existing seq, line count), NOT line count alone.
-    // Line count regresses when rows are removed (external
-    // rewriting/reordering, e.g. the observed 2898 -> 2866 transition), which
-    // made seq-based reasoning unreliable. max(seq, count)+1 keeps the next
-    // row strictly greater than every row already in the file regardless of
-    // count, while legacy rows WITHOUT a seq field (maxSeq=0) still advance
-    // past the line count exactly as before.
-    let maxSeq = 0
-    let lineCount = 0
-    for (const line of lines) {
+    for (const line of readFileSync(registryPath, "utf-8").trim().split("\n")) {
       if (!line) continue
-      lineCount++
       try {
         const row = JSON.parse(line) as RegistryRow
-        if (typeof row.seq === "number" && row.seq > maxSeq) maxSeq = row.seq
         if (
           row.event === "a5_quality_gate" &&
           typeof row.session_id === "string"
@@ -611,7 +614,6 @@ const delegationObserver: Plugin = async (ctx) => {
         // as readRegistryRows).
       }
     }
-    seq = Math.max(maxSeq, lineCount)
   }
 
   // ===== DIA-123: deterministic boot evidence (emitted at plugin load) =====
@@ -638,6 +640,10 @@ const delegationObserver: Plugin = async (ctx) => {
   const opencodeVersion = process.env.OPENCODE_VERSION
   const bootId = randomUUID()
   const configSignal = captureConfigLoadSignal()
+  // Registry seq for the current write; set by appendRow from the CURRENT
+  // file state (MAX+1 — DIA-098 ai-auditor finding 1), never from a cached
+  // counter. bootSeq below captures the session_boot row's value.
+  let seq = 0
   appendRow({
     event: "session_boot",
     boot_id: bootId,
@@ -646,7 +652,9 @@ const delegationObserver: Plugin = async (ctx) => {
     config_load_signal: configSignal,
     writer: "plugin",
   })
-  const bootSeq = seq // appendRow incremented seq to this row's value
+  // seq is set by appendRow to the session_boot row's value (recomputed from
+  // the current file state at write time — DIA-098 ai-auditor finding 1).
+  const bootSeq = seq
   atomicWriteBootMarker({ bootId, bootSeq, configSignal })
 
   // Capture the config files' mtimes AT LOAD as the "config load signal":
@@ -762,8 +770,42 @@ const delegationObserver: Plugin = async (ctx) => {
       .filter((r): r is RegistryRow => r !== null)
   }
 
+  /**
+   * Highest registry id allocated so far: max over (existing seq values,
+   * non-empty line count). Mirrors the old boot-seed formula (DIA-123: the
+   * line-count floor survives external row removal/reordering; legacy rows
+   * WITHOUT a seq field still advance the counter past the line count).
+   * Returns 0 for an absent/empty registry. O(n) per call — acceptable at
+   * the observed volume (registry ~4K rows, writes per session are few);
+   * needs-input-observer already scans per write with the same cost.
+   */
+  function maxRegistrySeq(): number {
+    if (!existsSync(registryPath)) return 0
+    let maxSeq = 0
+    let lineCount = 0
+    for (const line of readFileSync(registryPath, "utf-8").split("\n")) {
+      if (!line) continue
+      lineCount++
+      try {
+        const row = JSON.parse(line) as RegistryRow
+        if (typeof row.seq === "number" && row.seq > maxSeq) maxSeq = row.seq
+      } catch {
+        // Malformed line — skip (same policy as readRegistryRows).
+      }
+    }
+    return Math.max(maxSeq, lineCount)
+  }
+
   function appendRow(row: Record<string, unknown>): void {
-    seq++
+    // DIA-098 ai-auditor finding 1 (Critical): seq is recomputed from the
+    // CURRENT file state (MAX over existing seq AND line count, +1) — never
+    // from a cached in-memory counter. Both registry writers (this plugin
+    // and needs-input-observer) share one server process and append
+    // synchronously (appendFileSync), so read-compute-append is atomic in
+    // the JS thread: no write can interleave between another writer's read
+    // and its append, and MAX+1 is therefore provably collision-free under
+    // mixed-plugin interleaving.
+    seq = maxRegistrySeq() + 1
     const entry: Record<string, unknown> = {
       seq,
       timestamp: new Date().toISOString(),
@@ -906,9 +948,19 @@ const delegationObserver: Plugin = async (ctx) => {
     row: Record<string, unknown>,
     sessionID?: string
   ): void {
-    nextRowId++
+    // DIA-098 ai-auditor finding 1: row_id is recomputed from the CURRENT
+    // file state at write time (MAX over messages.jsonl row_id and the
+    // legacy messages.md floor, +1) — never from a cached counter. Same
+    // collision-freedom argument as appendRow: synchronous appends in one
+    // process make read-compute-append atomic, so MAX+1 is unique across
+    // this plugin AND needs-input-observer's messages rows.
+    const rowId =
+      Math.max(
+        maxRowIdInJsonl(messagesPath),
+        lastMessagesMdRowNumber(messagesMdPath)
+      ) + 1
     const entry: Record<string, unknown> = {
-      row_id: nextRowId,
+      row_id: rowId,
       event_uuid: randomUUID(),
       timestamp: new Date().toISOString(),
       // Best-effort provider default — the project's orchestrator provider
@@ -923,7 +975,7 @@ const delegationObserver: Plugin = async (ctx) => {
       appendFileSync(messagesPath, JSON.stringify(entry) + "\n")
     } catch (err) {
       console.warn(
-        `[delegation-observer] messages.jsonl write failed (row_id=${nextRowId}): ${errorMessage(err)}`
+        `[delegation-observer] messages.jsonl write failed (row_id=${rowId}): ${errorMessage(err)}`
       )
     }
     // DIA-080: per-session message counter for the context_usage estimate.

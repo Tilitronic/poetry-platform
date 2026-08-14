@@ -136,7 +136,10 @@ interface PermissionAskRecord {
  * { name, data: { message } } shapes, so the old String(err) fallback
  * produced "[object Object]" in the ticker error bucket. Resolution order:
  * string -> top-level .message -> SDK data.message -> circular-safe JSON
- * dump -> typed fallback that can never be "[object Object]".
+ * dump -> typed fallback that can never be "[object Object]". DIA-098
+ * ai-auditor finding 2: the chain ALWAYS terminates in a string for any
+ * non-null error value (undumpable objects fall through to the typed
+ * fallback, never undefined); undefined/null input still returns undefined.
  */
 function errorMessage(err: unknown): string | undefined {
   if (err === undefined || err === null) return undefined
@@ -159,7 +162,12 @@ function errorMessage(err: unknown): string | undefined {
     ) {
       return (data as { message: string }).message
     }
-    return safeJsonStringify(err)
+    const dumped = safeJsonStringify(err)
+    if (dumped !== undefined) return dumped
+    // DIA-098 ai-auditor finding 2: stringify failed — terminate in the
+    // typed fallback, never undefined, never "[object Object]".
+    const name = (err as { name?: unknown }).name
+    return `[unserializable ${typeof name === "string" && name ? name : "object"}]`
   }
   return `[unserializable ${typeof err}]`
 }
@@ -270,16 +278,24 @@ const needsInputObserver: Plugin = async (ctx) => {
     return `${sessionID}:${permissionID}`
   }
 
-  // Registry + messages paths (DIA-098 R3): ana016 gap 1 flagged that the
-  // permission watchdog needs registry access. There is no shared utility —
-  // delegation-observer owns its appendRow and this plugin owns ticker.json —
-  // so the watchdog implements a minimal appendRow-equivalent using the SAME
-  // row conventions (seq/timestamp/event/writer for registry.jsonl;
+  // Registry + messages paths (DIA-098 R3; ai-auditor finding 1): ana016 gap
+  // 1 flagged that the permission watchdog needs registry access. There is
+  // no shared utility — delegation-observer owns its appendRow and this
+  // plugin owns ticker.json — so the watchdog implements a minimal
+  // appendRow-equivalent using the SAME row conventions
+  // (seq/timestamp/event/writer for registry.jsonl;
   // row_id/event_uuid/timestamp/gen_ai.provider.name/writer for
-  // messages.jsonl). Both plugins run in ONE server process and append
-  // synchronously (appendFileSync), so lines never interleave; seq/row_id
-  // are recomputed as MAX+1 at write time, which is race-safe against the
-  // delegation-observer's cached counters.
+  // messages.jsonl). ID allocation is UNIFIED across both plugins: EVERY
+  // writer recomputes its id as MAX+1 over the CURRENT file state at write
+  // time — no cached in-memory counters exist anywhere. Both plugins run in
+  // ONE server process and append synchronously (appendFileSync), so
+  // read-compute-append is atomic in the JS thread: no write can interleave
+  // between another writer's read and its append, and MAX+1 is therefore
+  // provably collision-free under mixed-plugin interleaving (delegation-
+  // observer's messages writer additionally floors on the legacy
+  // messages.md row numbering — a migration safeguard that only lifts its
+  // ids higher and never affects uniqueness, since every write lands in the
+  // file before the next read).
   const registryPath = join(ctx.directory, ".opencode/session/registry.jsonl")
   const messagesPath = join(ctx.directory, ".opencode/session/messages.jsonl")
 
@@ -891,22 +907,28 @@ const needsInputObserver: Plugin = async (ctx) => {
           await enter(sessionID, "permission", detail)
           // DIA-098 R3 watchdog: record + registry row + 5-min timer. The
           // permission id lives in properties.id for BOTH v1 (PermissionAsked)
-          // and v2 (PermissionV2Asked) events. When it is absent the timer is
-          // NOT armed — auto-rejecting an unidentifiable permission could
-          // reject the WRONG request — but the audit row is still written.
+          // and v2 (PermissionV2Asked) events. The audit row is ALWAYS
+          // written (ai-auditor finding 3): when the id is absent,
+          // permission_id is omitted per the registry's optional-field
+          // convention (conditional spread — see existing rows) and a note
+          // marks the ask as unidentifiable. The watchdog timer is only
+          // armed with a real id — auto-rejecting an unidentifiable
+          // permission could reject the WRONG request.
           const permissionID = p?.id
+          appendRegistryRow({
+            event: "permission_asked_logged",
+            session_id: sessionID,
+            ...(typeof permissionID === "string" && permissionID
+              ? { permission_id: permissionID }
+              : { note: "permission_id absent - watchdog timer not armed" }),
+            timestamp: new Date().toISOString(),
+          })
           if (typeof permissionID === "string" && permissionID) {
             startPermissionWatch(
               sessionID,
               permissionID,
-              Array.isArray(p.patterns) ? p.patterns : undefined
+              Array.isArray(p?.patterns) ? p?.patterns : undefined
             )
-            appendRegistryRow({
-              event: "permission_asked_logged",
-              session_id: sessionID,
-              permission_id: permissionID,
-              timestamp: new Date().toISOString(),
-            })
           }
           return
         }

@@ -128,7 +128,7 @@ needs-input-observer.ts (ticker error bucket).
 R2 - Proactive stall timer (delegation-observer.ts, sweepStalledSessions +
 sessionRoleFromRows + emitStall + logStallResolutionIfStalled):
 60s setInterval sweep (handle stored, cleared in the dispose hook). Per
-delegation key (session*id ?? task_id - same id space as
+delegation key (session_id ?? task_id - same id space as
 checkSilentFailures) whose latest dispatch_state row is still
 RUNNING/DISPATCHED: age > role threshold -> stall_detected registry row
 (stall_duration_seconds, last_status, detected_at) + log_decision crisis
@@ -136,8 +136,8 @@ row (resolution_status in-flight, content_ref
 stall_detected_after_N_min, next_action investigate and re-dispatch).
 Thresholds env-configurable: STALL_SUBAGENT_MINUTES=10,
 STALL_ORCHESTRATOR_MINUTES=20, STALL_DEAD_MINUTES=60. Identity heuristic:
-parentSessionId / sessionMeta role plus persistent row role / parent*
-session fields; unidentifiable sessions default to the 10-min subagent
+parentSessionId / sessionMeta role plus persistent row role / parent_session
+fields; unidentifiable sessions default to the 10-min subagent
 threshold (safe). Dedup: skip when a stall_detected row exists within
 the session's own threshold window. Dead escalation: a session still
 non-terminal past 60 min gets a second stall_detected row with
@@ -169,9 +169,9 @@ fail-fast). Registry writer: no shared utility exists (ana016 gap 1) -
 implemented a minimal appendRow-equivalent inside needs-input-observer
 using the SAME row conventions (seq/timestamp/event/writer for
 registry.jsonl; row_id/event_uuid/timestamp/gen_ai.provider.name/writer
-for messages.jsonl), MAX+1 recomputed at write time (race-safe against
-delegation-observer's cached counters; both plugins share one server
-process and append synchronously). Timers re-armed from ticker.json on
+for messages.jsonl); both plugins recompute MAX+1 over the CURRENT file
+state at write time (see the ai-auditor re-fix note below — no cached
+counters remain). Timers re-armed from ticker.json on
 boot with remaining time; dispose hook clears all timers. Fail-fast, no
 auto-resume (ana016 section 6.5). A permission event without a
 permission id is audited but NOT auto-rejected (rejecting an
@@ -190,6 +190,60 @@ Validation evidence (2026-08-14):
 Status: OPEN - closure is a separate lane (ai-auditor Phase 6 +
 disposition + live restart-verify). Restart-verify PENDING: the plugin
 changes require an OpenCode restart to take effect.
+
+RE-FIX 2026-08-14 (ai-auditor NON-CONFORMANT, advisory-not-binding;
+developer ACCEPTED all 3 findings; re-fix commit pending):
+
+F1 (Critical) - Cross-plugin counter model not collision-safe:
+delegation-observer.ts no longer keeps cached in-memory counters.
+appendRow recomputes seq = maxRegistrySeq() + 1 (MAX over existing seq
+values AND line count — the DIA-123 line-count floor is preserved) from
+the CURRENT file state at write time; appendMessageRow recomputes
+row_id = MAX(max row_id in messages.jsonl, last messages.md row #) + 1
+(the legacy messages.md floor is kept as the migration safeguard). The
+old `let seq` / `let nextRowId` seeds and their ++ increments were
+removed. needs-input-observer.ts already recomputed MAX+1 per write and
+is unchanged in behavior. UNIFIED MODEL: every writer on both plugins
+allocates its id from the current file state at write time — no cached
+counters exist anywhere. Both plugins share one server process and
+append synchronously (appendFileSync), so read-compute-append is atomic
+in the JS thread: no write can interleave between another writer's read
+and its append, and MAX+1 is provably collision-free under
+mixed-plugin interleaving (verified with a 500-write interleave
+simulation + 300-write mixed-legacy simulation: zero duplicate ids).
+The messages.md floor only lifts delegation-observer ids higher and
+never affects uniqueness (every write lands in the file before the next
+read). Race-safety comments in both plugins updated to describe this
+actual mechanism (the old needs-input-observer comment claiming safety
+against "cached counters" was wrong and was rewritten).
+
+F2 (Major) - R1 serializer fallback incomplete:
+errorMessage() in BOTH plugins now always terminates in a string for
+any non-null error value: error.message -> SDK data.message ->
+safeJsonStringify -> typed "[unserializable <kind>]" fallback (kind =
+err.name when present, else "object"). A safeJsonStringify failure
+(undumpable object, e.g. BigInt fields that make JSON.stringify throw)
+now falls through to the typed fallback instead of returning undefined
+and omitting the error field. undefined/null input still returns
+undefined (no error present — the field is legitimately omitted).
+Verified with a node check over 10 value classes (string, Error, SDK
+shapes, plain object, circular ref, number, boolean, throwing getter,
+BigInt): every non-null path returns a string.
+
+F3 (Minor) - No-id permission asks not written to registry:
+permission_asked_logged is now written even when the permission id is
+absent. permission_id is omitted per the registry's optional-field
+convention (conditional spread — existing rows omit absent fields, they
+do not null them) and a note "permission_id absent - watchdog timer not
+armed" marks the ask as unidentifiable. The watchdog timer is still
+only armed with a real id (auto-rejecting an unidentifiable permission
+could reject the wrong request). Verified row shapes for both cases.
+
+Re-validated 2026-08-14: npx tsc (plugins) 0; eslint (both plugins) 0;
+prettier --check 0; node --experimental-strip-types --check 0; make
+test-config 0 (drift gate 3 presets x 8 markers, 0 gaps; ticket-gate
+bats green); make test-shell 0 (283 bats); scripts/tickets rollup
+--check 0 (frontmatter counts unchanged).
 
 ## Re-verify
 
