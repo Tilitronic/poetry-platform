@@ -44,7 +44,9 @@
  *     including the PowerShell one-liner.
  */
 import { spawn } from "node:child_process"
+import { randomUUID } from "node:crypto"
 import {
+  appendFileSync,
   closeSync,
   existsSync,
   fsyncSync,
@@ -81,6 +83,9 @@ interface TickerDoc {
   updated_at: string
   waiting: WaitingEntry[]
   errors: TickerErrorEntry[]
+  // DIA-098 R3: pending permission asks (watchdog state). Additive field —
+  // the ticker schema stays version 1.
+  permissions: PermissionAskRecord[]
 }
 
 /**
@@ -101,23 +106,90 @@ interface TickerEvent {
     patterns?: string[]
     action?: string
     resources?: string[]
+    // DIA-098 R3: reply events reference the asked permission's id — v1
+    // permission.replied carries permissionID, v2 permission.v2.replied
+    // carries requestID (which equals the asked event's properties.id).
+    permissionID?: string
+    requestID?: string
     error?: unknown
     status?: unknown
   }
 }
 
-/** Best-effort extraction of a human-readable message from an error value. */
+/**
+ * DIA-098 R3: persisted record of a pending permission ask (ticker.json
+ * `permissions` list). The watchdog timer is in-memory; this record survives
+ * plugin restarts so a pending permission is re-armed on boot.
+ */
+interface PermissionAskRecord {
+  session_id: string
+  permission_id: string
+  timestamp: string
+  patterns?: string[]
+}
+
+/**
+ * Best-effort extraction of a human-readable message from an error value.
+ *
+ * DIA-098 R1: same root cause as the delegation-observer fix — the runtime
+ * error payloads (ProviderAuthError / UnknownError / ...) are
+ * { name, data: { message } } shapes, so the old String(err) fallback
+ * produced "[object Object]" in the ticker error bucket. Resolution order:
+ * string -> top-level .message -> SDK data.message -> circular-safe JSON
+ * dump -> typed fallback that can never be "[object Object]".
+ */
 function errorMessage(err: unknown): string | undefined {
   if (err === undefined || err === null) return undefined
   if (typeof err === "string") return err
-  if (
-    typeof err === "object" &&
-    "message" in err &&
-    typeof (err as { message?: unknown }).message === "string"
-  ) {
-    return (err as { message: string }).message
+  if (typeof err === "object") {
+    // JS Error / any object carrying a top-level string .message.
+    if (
+      "message" in err &&
+      typeof (err as { message?: unknown }).message === "string"
+    ) {
+      return (err as { message: string }).message
+    }
+    // SDK error shapes (ProviderAuthError & co): { name, data: { message } }.
+    const data = (err as { data?: unknown }).data
+    if (
+      typeof data === "object" &&
+      data !== null &&
+      "message" in data &&
+      typeof (data as { message?: unknown }).message === "string"
+    ) {
+      return (data as { message: string }).message
+    }
+    return safeJsonStringify(err)
   }
-  return String(err)
+  return `[unserializable ${typeof err}]`
+}
+
+/**
+ * Circular-safe JSON.stringify for error dumps (DIA-098 R1, mirrored from
+ * delegation-observer.ts). Nested Error instances collapse to
+ * {name, message, stack}; cycles/shared references degrade to the literal
+ * "[Circular]" marker instead of throwing.
+ */
+function safeJsonStringify(value: unknown): string | undefined {
+  const seen = new WeakSet<object>()
+  function replacer(_key: string, v: unknown): unknown {
+    if (typeof v === "object" && v !== null) {
+      if (seen.has(v)) return "[Circular]"
+      seen.add(v)
+      if (v instanceof Error) {
+        return { name: v.name, message: v.message, stack: v.stack }
+      }
+    }
+    if (typeof v === "function") {
+      return `[Function ${(v as { name?: string }).name ?? "anonymous"}]`
+    }
+    return v
+  }
+  try {
+    return JSON.stringify(value, replacer)
+  } catch {
+    return undefined
+  }
 }
 
 /**
@@ -172,6 +244,252 @@ const needsInputObserver: Plugin = async (ctx) => {
   const waiting = new Map<string, WaitingEntry>()
   const errors = new Map<string, TickerErrorEntry>()
 
+  // === DIA-098 R3: permission-ask watchdog state ===
+  // permissionAsks mirrors the persisted ticker.json `permissions` list;
+  // pendingPermissionTimers holds the in-memory setTimeout handles (NOT
+  // persisted — they are re-armed from permissionAsks on boot). Key =
+  // `${sessionID}:${permissionID}`. ana016 section 6.3 design: ask ->
+  // record + registry row + PERMISSION_STALL_TIMEOUT timer; reply -> clear
+  // timer + ticker CLEAR; expiry -> auto-reject via the SDK permissions
+  // endpoint + registry row + ticker CLEAR(reason) + messages decision row.
+  const permissionAsks = new Map<string, PermissionAskRecord>()
+  const pendingPermissionTimers = new Map<string, ReturnType<typeof setTimeout>>()
+
+  // DIA-098 R3: PERMISSION_STALL_TIMEOUT (ana016 section 6.3), env-
+  // configurable via PERMISSION_STALL_TIMEOUT_MINUTES, default 5 minutes.
+  function permissionTimeoutMs(): number {
+    const raw = process.env.PERMISSION_STALL_TIMEOUT_MINUTES
+    if (raw) {
+      const n = Number.parseInt(raw, 10)
+      if (Number.isFinite(n) && n > 0) return n * 60_000
+    }
+    return 5 * 60_000
+  }
+
+  function permissionKey(sessionID: string, permissionID: string): string {
+    return `${sessionID}:${permissionID}`
+  }
+
+  // Registry + messages paths (DIA-098 R3): ana016 gap 1 flagged that the
+  // permission watchdog needs registry access. There is no shared utility —
+  // delegation-observer owns its appendRow and this plugin owns ticker.json —
+  // so the watchdog implements a minimal appendRow-equivalent using the SAME
+  // row conventions (seq/timestamp/event/writer for registry.jsonl;
+  // row_id/event_uuid/timestamp/gen_ai.provider.name/writer for
+  // messages.jsonl). Both plugins run in ONE server process and append
+  // synchronously (appendFileSync), so lines never interleave; seq/row_id
+  // are recomputed as MAX+1 at write time, which is race-safe against the
+  // delegation-observer's cached counters.
+  const registryPath = join(ctx.directory, ".opencode/session/registry.jsonl")
+  const messagesPath = join(ctx.directory, ".opencode/session/messages.jsonl")
+
+  function maxJsonlNumber(
+    filePath: string,
+    field: string,
+    label: string
+  ): number {
+    try {
+      if (!existsSync(filePath)) return 0
+      let max = 0
+      for (const line of readFileSync(filePath, "utf-8").split("\n")) {
+        if (!line) continue
+        try {
+          const v = (JSON.parse(line) as Record<string, unknown>)[field]
+          if (typeof v === "number" && v > max) max = v
+        } catch {
+          // Malformed line — skip (same policy as delegation-observer's
+          // registry boot scan).
+        }
+      }
+      return max
+    } catch (err) {
+      console.warn(
+        `[needs-input-observer] ${label} scan failed: ${errorMessage(err)}`
+      )
+      return 0
+    }
+  }
+
+  /** Registry.jsonl appendRow-equivalent (DIA-098 R3) — same conventions as
+   *  delegation-observer's appendRow: seq, timestamp, event, writer. */
+  function appendRegistryRow(row: Record<string, unknown>): void {
+    try {
+      const entry: Record<string, unknown> = {
+        seq: maxJsonlNumber(registryPath, "seq", "registry seq") + 1,
+        timestamp: new Date().toISOString(),
+        ...row,
+        writer: "plugin",
+      }
+      appendFileSync(registryPath, JSON.stringify(entry) + "\n")
+    } catch (err) {
+      console.warn(
+        `[needs-input-observer] registry.jsonl write failed: ${errorMessage(err)}`
+      )
+    }
+  }
+
+  /** Messages.jsonl appendRow-equivalent (DIA-098 R3) — mirrors
+   *  delegation-observer's appendMessageRow envelope (row_id, event_uuid,
+   *  timestamp, gen_ai.provider.name, writer) for the log_decision row. */
+  function appendMessageRow(row: Record<string, unknown>): void {
+    try {
+      const entry: Record<string, unknown> = {
+        row_id: maxJsonlNumber(messagesPath, "row_id", "messages row_id") + 1,
+        event_uuid: randomUUID(),
+        timestamp: new Date().toISOString(),
+        "gen_ai.provider.name": "opencode-go",
+        writer: "plugin",
+        ...row,
+      }
+      appendFileSync(messagesPath, JSON.stringify(entry) + "\n")
+    } catch (err) {
+      console.warn(
+        `[needs-input-observer] messages.jsonl write failed: ${errorMessage(err)}`
+      )
+    }
+  }
+
+  /**
+   * DIA-098 R3: arm (or re-arm after a plugin restart) the watchdog timer for
+   * one pending permission. On expiry the timer calls autoRejectPermission.
+   */
+  function armPermissionTimer(
+    sessionID: string,
+    permissionID: string,
+    since: string
+  ): void {
+    const key = permissionKey(sessionID, permissionID)
+    if (pendingPermissionTimers.has(key)) return
+    const elapsedMs = Date.now() - Date.parse(since)
+    // Re-arm with the REMAINING time (a pending permission that survived a
+    // plugin restart still auto-rejects on schedule).
+    const remainingMs = Math.max(0, permissionTimeoutMs() - elapsedMs)
+    const timer = setTimeout(() => {
+      void autoRejectPermission(sessionID, permissionID)
+    }, remainingMs)
+    pendingPermissionTimers.set(key, timer)
+  }
+
+  /**
+   * DIA-098 R3: ENTER side — record the pending permission (persisted in
+   * ticker.json) and arm the 5-minute watchdog timer. Deduped: an already
+   * tracked (session, permission) pair is left untouched.
+   */
+  function startPermissionWatch(
+    sessionID: string,
+    permissionID: string,
+    patterns: string[] | undefined
+  ): void {
+    const key = permissionKey(sessionID, permissionID)
+    if (permissionAsks.has(key)) return
+    const record: PermissionAskRecord = {
+      session_id: sessionID,
+      permission_id: permissionID,
+      timestamp: new Date().toISOString(),
+      ...(patterns && patterns.length > 0 ? { patterns } : {}),
+    }
+    permissionAsks.set(key, record)
+    persist()
+    armPermissionTimer(sessionID, permissionID, record.timestamp)
+  }
+
+  /**
+   * DIA-098 R3: CLEAR side — stop the timer and drop the persisted record
+   * (the ticker "CLEAR transition"). No-op when the pair is untracked.
+   */
+  function clearPermissionWatch(sessionID: string, permissionID: string): void {
+    const key = permissionKey(sessionID, permissionID)
+    const timer = pendingPermissionTimers.get(key)
+    if (timer !== undefined) {
+      clearTimeout(timer)
+      pendingPermissionTimers.delete(key)
+    }
+    if (permissionAsks.delete(key)) persist()
+  }
+
+  /** DIA-098 R3: drop every pending permission for a session (session gone). */
+  function clearSessionPermissionWatches(sessionID: string): void {
+    for (const key of [...permissionAsks.keys()]) {
+      const record = permissionAsks.get(key)
+      if (record?.session_id === sessionID) {
+        clearPermissionWatch(sessionID, record.permission_id)
+      }
+    }
+  }
+
+  /**
+   * DIA-098 R3: timer expiry — no human reply within the threshold. Auto-
+   * reject via the SDK permission endpoint (ana016 section 6.3), then write
+   * the registry audit row, the ticker CLEAR, and the messages log_decision
+   * row. The design is FAIL-FAST not auto-resume (ana016 section 6.5): the
+   * rejection fails the agent gracefully; the orchestrator re-routes.
+   */
+  async function autoRejectPermission(
+    sessionID: string,
+    permissionID: string
+  ): Promise<void> {
+    const key = permissionKey(sessionID, permissionID)
+    const record = permissionAsks.get(key)
+    // Guard: a reply that raced the timer removes the record first — never
+    // reject an already-resolved permission.
+    if (!record) return
+    permissionAsks.delete(key)
+    pendingPermissionTimers.delete(key)
+
+    const timeoutMs = permissionTimeoutMs()
+    const timeoutSeconds = Math.round(timeoutMs / 1000)
+
+    // 1. Auto-reject via the REAL SDK endpoint. ana016 section 6.3 proposed
+    //    POST /session/{session_id}/permissions/{permission_id}; the
+    //    installed SDK exposes it as postSessionIdPermissionsPermissionId
+    //    (URL /session/{id}/permissions/{permissionID}, body {response}).
+    //    "reject" is one of the three documented response enum values.
+    try {
+      const res = await ctx.client.postSessionIdPermissionsPermissionId({
+        body: { response: "reject" },
+        path: { id: sessionID, permissionID },
+      })
+      if (res.error) {
+        console.warn(
+          `[needs-input-observer] permission auto-reject failed for ${sessionID}/${permissionID}: ${errorMessage(res.error)}`
+        )
+      }
+    } catch (err) {
+      console.warn(
+        `[needs-input-observer] permission auto-reject threw for ${sessionID}/${permissionID}: ${errorMessage(err)}`
+      )
+    }
+
+    // 2. Registry audit row (ana016 section 6.3 step 2).
+    appendRegistryRow({
+      event: "permission_auto_rejected",
+      session_id: sessionID,
+      permission_id: permissionID,
+      timeout_seconds: timeoutSeconds,
+      reason: "no_human_response_within_threshold",
+    })
+
+    // 3. Ticker CLEAR with reason: the persisted record is dropped (the
+    //    reason lives in the audit rows above — ticker entries carry no
+    //    clear-reason field) and the waiting entry is cleared.
+    persist()
+    clear(sessionID)
+
+    // 4. messages.jsonl log_decision row — the same semantic contract the
+    //    log_decision tool writes (event_type "decision"). content_ref
+    //    interpolates the ACTUAL timeout minutes (default 5).
+    appendMessageRow({
+      "gen_ai.operation.name": "invoke_workflow",
+      from: "orchestrator",
+      event_type: "decision",
+      task_ref: sessionID,
+      resolution_status: "escalated",
+      content_ref: `permission_auto_rejected_after_${Math.round(timeoutSeconds / 60)}min`,
+      next_action: "re-dispatch or fail-fast",
+      "gen_ai.agent.id": sessionID,
+    })
+  }
+
   // Notification debounce fences (wall-clock, monotonic enough for a ~2s
   // debounce; Date.now() matches delegation-observer conventions).
   let notifyDebounceUntil = 0
@@ -222,6 +540,9 @@ const needsInputObserver: Plugin = async (ctx) => {
         errors: [...errors.values()].sort((a, b) =>
           a.since.localeCompare(b.since)
         ),
+        permissions: [...permissionAsks.values()].sort((a, b) =>
+          a.timestamp.localeCompare(b.timestamp)
+        ),
       }
       atomicWriteTicker(doc)
     } catch (err) {
@@ -261,6 +582,40 @@ const needsInputObserver: Plugin = async (ctx) => {
             error: typeof e.error === "string" ? e.error : "",
           })
         }
+      }
+      // DIA-098 R3: restore pending permission asks and re-arm their
+      // watchdog timers with the REMAINING time. A permission that was
+      // already replied while the plugin was down eventually times out and
+      // the reject POST fails with a 404 — fail-soft, and the stale
+      // CLEAR keeps the ticker honest.
+      for (const e of Array.isArray(doc.permissions) ? doc.permissions : []) {
+        if (
+          !e ||
+          typeof e.session_id !== "string" ||
+          typeof e.permission_id !== "string"
+        ) {
+          continue
+        }
+        const record: PermissionAskRecord = {
+          session_id: e.session_id,
+          permission_id: e.permission_id,
+          timestamp:
+            typeof e.timestamp === "string"
+              ? e.timestamp
+              : new Date().toISOString(),
+          ...(Array.isArray(e.patterns) && e.patterns.length > 0
+            ? { patterns: e.patterns }
+            : {}),
+        }
+        permissionAsks.set(
+          permissionKey(record.session_id, record.permission_id),
+          record
+        )
+        armPermissionTimer(
+          record.session_id,
+          record.permission_id,
+          record.timestamp
+        )
       }
     } catch (err) {
       console.warn(
@@ -534,6 +889,25 @@ const needsInputObserver: Plugin = async (ctx) => {
                 ? `${p.action} ${p.resources.join(", ")}`
                 : (p?.permission ?? p?.action ?? "permission requested")
           await enter(sessionID, "permission", detail)
+          // DIA-098 R3 watchdog: record + registry row + 5-min timer. The
+          // permission id lives in properties.id for BOTH v1 (PermissionAsked)
+          // and v2 (PermissionV2Asked) events. When it is absent the timer is
+          // NOT armed — auto-rejecting an unidentifiable permission could
+          // reject the WRONG request — but the audit row is still written.
+          const permissionID = p?.id
+          if (typeof permissionID === "string" && permissionID) {
+            startPermissionWatch(
+              sessionID,
+              permissionID,
+              Array.isArray(p.patterns) ? p.patterns : undefined
+            )
+            appendRegistryRow({
+              event: "permission_asked_logged",
+              session_id: sessionID,
+              permission_id: permissionID,
+              timestamp: new Date().toISOString(),
+            })
+          }
           return
         }
 
@@ -568,6 +942,15 @@ const needsInputObserver: Plugin = async (ctx) => {
         case "permission.v2.replied": {
           const sessionID = event.properties?.sessionID
           if (!sessionID) return
+          // DIA-098 R3: the reply references the asked permission's id —
+          // v1 permission.replied carries permissionID, v2 permission.v2
+          // .replied carries requestID (== the asked event's properties.id).
+          // Clear the watchdog timer + ticker record for that pair.
+          const repliedPermissionID =
+            event.properties?.permissionID ?? event.properties?.requestID
+          if (typeof repliedPermissionID === "string" && repliedPermissionID) {
+            clearPermissionWatch(sessionID, repliedPermissionID)
+          }
           clear(sessionID)
           return
         }
@@ -601,6 +984,11 @@ const needsInputObserver: Plugin = async (ctx) => {
           if (!sessionID) return
           const hadWaiting = waiting.delete(sessionID)
           const hadError = errors.delete(sessionID)
+          // DIA-098 R3: a deleted session cannot answer its pending
+          // permissions — drop every watchdog record + timer for it (a stale
+          // timer would otherwise reject against a 404 session;
+          // clearPermissionWatch persists on each removal).
+          clearSessionPermissionWatches(sessionID)
           sessionMeta.delete(sessionID)
           delegationsSinceIdle.delete(sessionID)
           compactionSuppress.delete(sessionID)
@@ -632,6 +1020,15 @@ const needsInputObserver: Plugin = async (ctx) => {
           ? `\nErrors: ${errors.size} session(s) in the error bucket - see ticker.json`
           : "")
       output.context.push(snapshot)
+    },
+
+    // DIA-098 R3: hooks cleanup — stop every pending permission watchdog
+    // timer on plugin unload so no orphaned auto-reject fires afterwards.
+    dispose: async () => {
+      for (const timer of pendingPermissionTimers.values()) {
+        clearTimeout(timer)
+      }
+      pendingPermissionTimers.clear()
     },
   }
 

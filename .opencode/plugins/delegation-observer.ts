@@ -76,18 +76,73 @@ function parseTaskIdFromTaskOutput(output: string): string | undefined {
   return undefined
 }
 
-/** Best-effort extraction of a human-readable message from an error value. */
+/**
+ * Best-effort extraction of a human-readable message from an error value.
+ *
+ * DIA-098 R1: the runtime session.error payload is one of the SDK error
+ * shapes (ProviderAuthError / UnknownError / MessageOutputLengthError /
+ * MessageAbortedError / ApiError) typed as { name, data: { message } },
+ * NOT a JS Error with a top-level .message — so the previous String(err)
+ * fallback produced the useless "[object Object]" in every session_failed
+ * row (ana016 F2: 52/52 rows). Resolution order: string -> top-level
+ * .message -> SDK data.message -> circular-safe JSON dump -> typed fallback
+ * that can never be "[object Object]".
+ */
 function errorMessage(err: unknown): string | undefined {
   if (err === undefined || err === null) return undefined
   if (typeof err === "string") return err
-  if (
-    typeof err === "object" &&
-    "message" in err &&
-    typeof (err as { message?: unknown }).message === "string"
-  ) {
-    return (err as { message: string }).message
+  if (typeof err === "object") {
+    // JS Error / any object carrying a top-level string .message.
+    if (
+      "message" in err &&
+      typeof (err as { message?: unknown }).message === "string"
+    ) {
+      return (err as { message: string }).message
+    }
+    // SDK error shapes (ProviderAuthError & co): { name, data: { message } }.
+    const data = (err as { data?: unknown }).data
+    if (
+      typeof data === "object" &&
+      data !== null &&
+      "message" in data &&
+      typeof (data as { message?: unknown }).message === "string"
+    ) {
+      return (data as { message: string }).message
+    }
+    // Last-resort structured dump: JSON with a replacer that collapses
+    // nested Errors and marks circular refs — never String(obj).
+    return safeJsonStringify(err)
   }
-  return String(err)
+  return `[unserializable ${typeof err}]`
+}
+
+/**
+ * Circular-safe JSON.stringify for error dumps (DIA-098 R1). Nested Error
+ * instances collapse to {name, message, stack}; revisiting an
+ * already-serialized object (a cycle or a shared reference) degrades to the
+ * literal "[Circular]" marker instead of throwing. Returns undefined on
+ * failure so callers can fall back to a typed placeholder.
+ */
+function safeJsonStringify(value: unknown): string | undefined {
+  const seen = new WeakSet<object>()
+  function replacer(_key: string, v: unknown): unknown {
+    if (typeof v === "object" && v !== null) {
+      if (seen.has(v)) return "[Circular]"
+      seen.add(v)
+      if (v instanceof Error) {
+        return { name: v.name, message: v.message, stack: v.stack }
+      }
+    }
+    if (typeof v === "function") {
+      return `[Function ${(v as { name?: string }).name ?? "anonymous"}]`
+    }
+    return v
+  }
+  try {
+    return JSON.stringify(value, replacer)
+  } catch {
+    return undefined
+  }
 }
 
 /**
@@ -272,6 +327,23 @@ interface RegistryRow {
 
 const TERMINAL_STATES = new Set(["completed", "failed"])
 const NON_TERMINAL_STATES = new Set(["invoked", "running"])
+
+// === DIA-098 R2: proactive stall detection thresholds ===
+// Env-configurable stall thresholds (minutes) for the 60s sweep; values come
+// from the ana016 section 4.2 table + section 6.4 pseudocode. The ana011
+// claim-staleness protocol (15-min stale, 60-min dead) aligns with the
+// 60-min dead deadline. Fall back to the analysis defaults when the env var
+// is absent or unparseable (never let a bad env value disable detection).
+function stallThresholdMinutes(envName: string, fallback: number): number {
+  const raw = process.env[envName]
+  if (!raw) return fallback
+  const parsed = Number.parseInt(raw, 10)
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback
+}
+const STALL_SWEEP_INTERVAL_MS = 60_000
+const stallSubagentMinutes = stallThresholdMinutes("STALL_SUBAGENT_MINUTES", 10)
+const stallOrchestratorMinutes = stallThresholdMinutes("STALL_ORCHESTRATOR_MINUTES", 20)
+const stallDeadMinutes = stallThresholdMinutes("STALL_DEAD_MINUTES", 60)
 
 // Synthetic group-key prefix for task_no_id rows (the expected abort/cancel
 // path — task_id absent because PR #13958 is unmerged, so no session/task id
@@ -1154,6 +1226,210 @@ const delegationObserver: Plugin = async (ctx) => {
     }
   }
 
+  /**
+   * DIA-098 R2 identity heuristic: is a delegation key the orchestrator's own
+   * session or a subagent child? Mirrors the lifecycle handlers' role
+   * attribution (sessionMeta role + parentSessionId match) PLUS persistent
+   * row-level identity (role / parent_session fields) so sessions spawned in
+   * a previous process — where sessionMeta is empty — resolve the same way.
+   * Resolution order: parentSessionId match wins (resumed/child orchestrator
+   * scenario), then any row carrying role:"orchestrator", then any subagent
+   * signal (role:"subagent" or a parent_session on a spawn row).
+   * Unidentifiable keys resolve "unknown" — the sweep treats them with the
+   * subagent threshold (safe default: an earlier alert costs a re-check, a
+   * missed stall costs a session).
+   */
+  function sessionRoleFromRows(
+    key: string,
+    rows: RegistryRow[]
+  ): "subagent" | "orchestrator" | "unknown" {
+    if (key === parentSessionId) return "orchestrator"
+    const meta = sessionMeta.get(key)
+    if (meta?.role === "orchestrator") return "orchestrator"
+    let sawSubagent = false
+    for (const r of rows) {
+      if ((r.session_id ?? r.task_id) !== key) continue
+      if (r.role === "orchestrator") return "orchestrator"
+      if (r.role === "subagent") sawSubagent = true
+      if (r.parent_session && r.parent_session !== r.session_id) sawSubagent = true
+    }
+    return sawSubagent ? "subagent" : "unknown"
+  }
+
+  /**
+   * DIA-098 R2: emit one stall_detected registry row + one crisis messages
+   * row (ana016 section 6.4 a/b). The registry row stays schema-stable
+   * (event "stall_detected" + stall_duration_seconds / last_status /
+   * detected_at); the dead escalation adds escalation:"dead" + note. NO
+   * auto-resume (ana016 section 6.5 fail-fast): the crisis row is the
+   * orchestrator's prompt to investigate and re-dispatch.
+   */
+  function emitStall(
+    key: string,
+    row: RegistryRow,
+    ageSec: number,
+    thresholdMin: number,
+    escalation: "dead" | undefined
+  ): void {
+    appendRow({
+      event: "stall_detected",
+      session_id: row.session_id,
+      task_id: row.task_id,
+      stall_duration_seconds: ageSec,
+      last_status: row.status,
+      detected_at: new Date().toISOString(),
+      ...(escalation === "dead"
+        ? {
+            escalation: "dead",
+            note: "assumed dead - still non-terminal past STALL_DEAD_MINUTES (ana011 claim-staleness protocol)",
+          }
+        : {}),
+      writer: "plugin",
+    })
+    appendMessageRow(
+      {
+        "gen_ai.operation.name": "invoke_workflow",
+        from: "orchestrator",
+        event_type: "crisis",
+        task_ref: key,
+        resolution_status: "in-flight",
+        content_ref:
+          escalation === "dead"
+            ? "session_assumed_dead_after_60_min"
+            : `stall_detected_after_${thresholdMin}_min`,
+        next_action: "investigate and re-dispatch",
+      },
+      key
+    )
+  }
+
+  /**
+   * DIA-098 R2: proactive stall sweep (ana016 section 4.2 primary signal +
+   * section 6.4 pseudocode). Runs on a 60s interval (STALL_SWEEP_INTERVAL_MS)
+   * instead of the REACTIVE checkSilentFailures() boundary scan. For every
+   * delegation key (session_id ?? task_id — the same id space as
+   * checkSilentFailures) whose LATEST dispatch_state row is still
+   * non-terminal (status RUNNING / DISPATCHED), age is measured from that
+   * row's timestamp and stall_detected fires once the session's role
+   * threshold is crossed:
+   *   - subagent -> stallSubagentMinutes (10)
+   *   - orchestrator -> stallOrchestratorMinutes (20)
+   *   - unidentifiable -> the 10-min subagent threshold (safe default —
+   *     see sessionRoleFromRows)
+   * Sessions that already carry a silent_failure_alert row are SKIPPED —
+   * the reactive alert is the existing detection for that class (ana016 F1).
+   * Dedup (section 6.4 d): skip a session that already has a stall_detected
+   * row within its own threshold window. Escalation: a session still stuck
+   * past stallDeadMinutes (60) is assumed dead (ana011 claim-staleness
+   * protocol) and gets a second stall_detected row with escalation:"dead".
+   * Fail-fast by design (section 6.5): never auto-resumes.
+   */
+  function sweepStalledSessions(): void {
+    const rows = readRegistryRows()
+    // Latest dispatch_state-carrying row per delegation key. Rows without a
+    // dispatch_state (a1_violation, format_applied, gate rows) share the
+    // session_id namespace but are not delegations — excluded (RR-3 pattern,
+    // same as checkSilentFailures).
+    const latestByKey = new Map<string, RegistryRow>()
+    for (const r of rows) {
+      if (typeof r.dispatch_state !== "string") continue
+      const key = r.session_id ?? r.task_id
+      if (!key) continue
+      const prev = latestByKey.get(key)
+      if (!prev || (r.timestamp ?? "") >= (prev.timestamp ?? "")) {
+        latestByKey.set(key, r)
+      }
+    }
+    if (latestByKey.size === 0) return
+
+    // Dedup windows from existing stall_detected rows (section 6.4 d):
+    // per-key latest detection per tier (plain stall vs dead escalation).
+    const lastStallByKey = new Map<string, number>()
+    const lastDeadByKey = new Map<string, number>()
+    for (const r of rows) {
+      if (r.event !== "stall_detected") continue
+      const key = r.session_id ?? r.task_id
+      if (!key) continue
+      const ts = Date.parse(r.timestamp ?? "")
+      if (Number.isNaN(ts)) continue
+      const tier = r.escalation === "dead" ? lastDeadByKey : lastStallByKey
+      const prev = tier.get(key)
+      if (prev === undefined || ts > prev) tier.set(key, ts)
+    }
+
+    const now = Date.now()
+    for (const [key, row] of latestByKey) {
+      if (TERMINAL_STATES.has(row.dispatch_state ?? "")) continue
+      if (row.event === "silent_failure_alert") continue
+      if (!NON_TERMINAL_STATES.has(row.dispatch_state ?? "")) continue
+      const ts = Date.parse(row.timestamp ?? "")
+      if (Number.isNaN(ts)) continue
+      const ageSec = Math.max(0, Math.floor((now - ts) / 1000))
+      const role = sessionRoleFromRows(key, rows)
+      const thresholdMin =
+        role === "orchestrator" ? stallOrchestratorMinutes : stallSubagentMinutes
+
+      // Dead escalation: ANY session still non-terminal past the 60-min
+      // deadline is assumed dead regardless of role (ana011 protocol).
+      if (ageSec >= stallDeadMinutes * 60) {
+        const lastDead = lastDeadByKey.get(key)
+        if (lastDead !== undefined && now - lastDead < stallDeadMinutes * 60_000) {
+          continue
+        }
+        emitStall(key, row, ageSec, stallDeadMinutes, "dead")
+        continue
+      }
+      // Level-1 stall: role threshold crossed.
+      if (ageSec < thresholdMin * 60) continue
+      const lastStall = lastStallByKey.get(key)
+      if (lastStall !== undefined && now - lastStall < thresholdMin * 60_000) {
+        continue
+      }
+      emitStall(key, row, ageSec, thresholdMin, undefined)
+    }
+  }
+
+  /**
+   * DIA-098 R2: terminal-event resolution bookkeeping. The sweep derives its
+   * watch list from RUNNING/DISPATCHED rows, so a FAILED/COMPLETE row already
+   * drops the session automatically on the next tick — this function only
+   * records WHY a previously-stalled delegation ended (ana016 section 6.4:
+   * "if it was stalled, log resolution"). No-op when the session has no
+   * stall_detected rows yet.
+   */
+  function logStallResolutionIfStalled(
+    sessionID: string,
+    resolution: string
+  ): void {
+    const rows = readRegistryRows()
+    const stalled = rows.some(
+      (r) =>
+        r.event === "stall_detected" && (r.session_id ?? r.task_id) === sessionID
+    )
+    if (!stalled) return
+    appendRow({
+      event: "stall_resolved",
+      session_id: sessionID,
+      resolution,
+      resolved_at: new Date().toISOString(),
+      writer: "plugin",
+    })
+  }
+
+  // DIA-098 R2: proactive stall sweep — 60s interval. The handle is stored
+  // so the dispose hook (hooks cleanup) can clear it on plugin unload. A
+  // throwing tick is caught and warned, never crashes the plugin (same
+  // fail-soft policy as the registry writes).
+  const stallSweepInterval = setInterval(() => {
+    try {
+      sweepStalledSessions()
+    } catch (err) {
+      console.warn(
+        `[delegation-observer] stall sweep failed: ${errorMessage(err)}`
+      )
+    }
+  }, STALL_SWEEP_INTERVAL_MS)
+
   const hooks: Hooks = {
     // A1: warn on task() calls sharing a message when the parallel task()
     // batch is not an approved conflict-free pattern (DIA-144; BATCH-DISPATCH
@@ -1876,6 +2152,21 @@ const delegationObserver: Plugin = async (ctx) => {
               : sessionID
           )
           checkSilentFailures()
+          // DIA-098 R2: the session errored out — record how a previously
+          // stalled delegation ended (the next sweep drops it automatically).
+          logStallResolutionIfStalled(sessionID, "resolved_by_error")
+          return
+        }
+
+        case "session.deleted": {
+          // DIA-098 R2: a deleted session is gone — record how a previously
+          // stalled delegation ended. The event carries the session in
+          // properties.info (v1 SDK type), with sessionID as a runtime
+          // fallback — read both.
+          const sessionID =
+            event.properties?.sessionID ?? event.properties?.info?.id
+          if (!sessionID) return
+          logStallResolutionIfStalled(sessionID, "resolved_by_deleted")
           return
         }
 
@@ -2218,6 +2509,12 @@ const delegationObserver: Plugin = async (ctx) => {
           return JSON.stringify(result, null, 2)
         },
       }),
+    },
+
+    // DIA-098 R2: hooks cleanup — stop the periodic stall sweep when the
+    // plugin is unloaded so no orphaned interval keeps scanning the registry.
+    dispose: async () => {
+      clearInterval(stallSweepInterval)
     },
   }
 
