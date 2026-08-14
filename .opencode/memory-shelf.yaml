@@ -516,7 +516,7 @@ shelf:
       \ existing boundaries, no @architector dispatch)."
     path: openspec/changes/volta-to-mise/
     created: 2026-08-03
-    status: proposed
+    status: implemented
   - name: ai-self-improvement-auditor-and-cleanup
     description: "OpenSpec change (4-phase self-improvement campaign, \xA710 gate\
       \ ai--1 2026-08-05/06): skill shadowing cleanup \u2014 delete 5 byte-exact duplicate\
@@ -534,7 +534,7 @@ shelf:
       \ 1350 of 1500. Gate rulings folded in: D1 CLASH dropped (issue #197 monitored),\
       \ D5 dcp.jsonc is compaction-limits only (no skill alignment), D6 openspec-plan\
       \ skip-mode already implemented (OMO line 531 \u2014 no model swap)."
-    path: openspec/changes/ai-self-improvement-auditor-and-cleanup/
+    path: openspec/changes/archive/2026-08-06-ai-self-improvement-auditor-and-cleanup/
     created: 2026-08-06
     status: implemented
   - name: dev-infra-pin-sync
@@ -598,7 +598,7 @@ shelf:
       \ scripts/ surface)."
     path: openspec/changes/dia-066-tool-coverage-audit/
     created: 2026-08-08
-    status: proposed
+    status: implemented
   - name: M1-M5 Scientific-Workflow Mandates (DIA-086)
     description: 'Agent output contracts (M1/M2), reviewer Falsification axis (M3),
       hypothesis question (M4), eval-lite harness (M5) - implemented per DIA-086,
@@ -620,6 +620,64 @@ shelf:
     path: openspec/changes/dia-100-worktree-lifecycle/
     created: 2026-08-12
     status: implemented
-  architectures: []
+  - name: dev-infra-language-servers
+    description: "OpenSpec change: TypeScript/Python/Rust language servers for both container and host. Container scope (T1-T6): Dockerfile.dev LS installs (pinned ARGs), gen-jsconfig.sh jsconfig generator, pyrightconfig.json, .vscode config. Host scope (T7-T11): lsp-versions.env single source of pins, install-host-lsp.sh, check-host-lsp.sh aggregate probe (test-shell prereq), host-lsp-setup.md, 6-case check-host-lsp.bats. Closes the LSP gap for VSCode/opencode editors inside and outside the dev container."
+    path: openspec/changes/dev-infra-language-servers/
+    created: 2026-08-01
+    status: implemented
+  - name: dev-infra-stack-hardening
+    description: "OpenSpec change: T1-T7 dev-stack hardening per dev-infra-audit-plan findings (C1-C3 critical, M1-M9 significant). Playwright chromium fix (PLAYWRIGHT_BROWSERS_PATH reorder + install-deps), OpenSpec 1.6.0 -> 1.7.0 bump, make install, test-infra ordering fix, secrets 0600 + unmounted-whitelist cleanup, .gitignore secrets catch-all, tini/Xvfb/restart-policy hygiene, T7 exec-session secrets passthrough (H5). Verification: 24/24 bats, docker build success, openspec validate pass. .openspec.yaml status: implemented."
+    path: openspec/changes/dev-infra-stack-hardening/
+    created: 2026-08-02
+    status: implemented
+  - name: pre-commit-autofix
+    description: "OpenSpec change: shift linting/formatting left via pre-commit auto-fix + expanded tooling coverage. .husky/pre-commit -> scripts/verify-pre-commit.sh (lint-staged inside dev container, fail-by-default when container down per resolved Q1), lint-staged config in root package.json (eslint --fix + prettier --write for js/ts/vue/css/html/md/json/yaml, scoped ruff for apps/api-server python, bash -n for shell), ruff added to apps/api-server pyproject.toml + ruff lint/format checks in verify-python.sh, pre-push extension. Implemented as part of the 2026-08-02 dev-infrastructure PR (DIA-035/DIA-094 lineage)."
+    path: openspec/changes/pre-commit-autofix/
+    created: 2026-08-02
+    status: implemented
+  - name: test-skills-gate
+    description: "OpenSpec change: validate structural integrity of every .opencode/skills/*/SKILL.md before OpenCode loads it. .opencode/scripts/validate-skills.sh (HARD: YAML frontmatter parses, name/description non-empty, name == parent dirname; SOFT: activation phrase, license presence), make test-skills wired into test-config, scripts/__tests__/validate-skills.bats meta-tests. Implemented under DIA-037 (commit b9c5ec3, 2026-08-03); later extended by ai-self-improvement-auditor-and-cleanup with two-tier duplicate detection."
+    path: openspec/changes/test-skills-gate/
+    created: 2026-08-03
+    status: implemented
+  - name: dev-infra-copilot-fixes
+    description: "OpenSpec change: 8 Copilot review fixes on PR #2 in two commits along the AGENTS.md routing boundary. Commit A (dev-infra, section 2.4): dev-stack.sh misleading output, 4 TARGETARCH fail-fast branches in tools/opencode-docker/Dockerfile, zero-byte secret skip in dev-entrypoint.sh + dev-secrets-profile.sh, secrets/README.md sync note, arch fail-fast bats test. Commit B (AI-tooling, section 10): $HOME:? guards in telemetry commands, committed book-rag knowledge-bases.yaml cache deleted + gitignored, failures.md duplicate bullet collapsed. Implemented commit 719db4e (2026-08-05)."
+    path: openspec/changes/dev-infra-copilot-fixes/
+    created: 2026-08-04
+    status: implemented
+  - name: dev-infra-config-validators
+    description: "OpenSpec change: deterministic hermetic validators closing DIA-045 audit gaps 1-3. scripts/validate-agent-names.sh enforces the 4-source agent-name containment contract (AGENTS.md section 9 / opencode.jsonc / oh-my-opencode-slim.jsonc / .opencode/agents/*.md); scripts/validate-handoff.sh asserts the HANDOFF.md Prognosis schema (5 required subsections); both wired into make test-config + DIA-050 tracking note. Implemented commit 1c88fd0 (2026-08-05, DIA-045)."
+    path: openspec/changes/dev-infra-config-validators/
+    created: 2026-08-05
+    status: implemented
+  - name: dev-infra-copilot-fixes-2
+    description: "OpenSpec change (companion to dev-infra-copilot-fixes): Copilot comments #10/#11 + observation C. Escaped-quoting fix for unquoted $WORKSPACE in the bash -lc delegation of verify-pre-push.sh:36 + verify-pre-commit.sh:36 (space-in-path cd failure), companion bats updates + new space-path @test per script, 1-line book-rag SKILL.md:346 absolute-vs-relative contradiction correction (section 10 N/A per owner ruling Q1.2). Implemented commit 4d3b2cc (2026-08-05)."
+    path: openspec/changes/dev-infra-copilot-fixes-2/
+    created: 2026-08-05
+    status: implemented
+  - name: dev-infra-jq-probe
+    description: "OpenSpec change: gated presence-and-functional jq probe for host-side dev (closes make test-infra + gen-jsconfig.bats host failures). scripts/check-host-jq.sh (command -v + jq -n '1+1' functional smoke, exit 0/1, no version pin), 3-case FAKE-mock check-host-jq.bats, make check-host-jq target + test-shell prereq, jq section folded into docs/dev-infra/host-lsp-setup.md. Implemented commit 34944c1 (2026-08-06, with language-servers T7-T11)."
+    path: openspec/changes/dev-infra-jq-probe/
+    created: 2026-08-06
+    status: implemented
+  - name: dia-067-docker-trafilatura
+    description: "OpenSpec change: make trafilatura available inside the dev container for the conspecter Phase A source-capture pipeline (DIA-067, surfaced 2026-08-08 by 0-byte source files). Dockerfile.dev ARG TRAFILATURA_VERSION=2.2.0 + uv tool install (ana001 Option C) with Option A fallback, trafilatura --version smoke probe in test-docker-smoke.sh. Implemented commit 3c5f2d6 (2026-08-08, Option A fallback used)."
+    path: openspec/changes/dia-067-docker-trafilatura/
+    created: 2026-08-08
+    status: implemented
+  - name: dia-071-host-lsp-tolerance
+    description: "OpenSpec change: EMPTY SCAFFOLD (only .openspec.yaml, no proposal/design/tasks). Host LSP tolerance for opencode host-mode editors; flagged by ana017 G12 with cleanup deferred to R11. Registered for index completeness only."
+    path: openspec/changes/dia-071-host-lsp-tolerance/
+    created: 2026-08-08
+    status: proposed
+  architectures:
+  - name: dia-redispatch-cycle
+    description: "Design-authority seed for the dev-infra campaign protocol (CRISIS-DETECTION, PROGNOSIS-DISCIPLINE, cycle-budget management): 5 ADRs (ADR-001 prognosis in HANDOFF.md only, ADR-002 C1-C5 OR-combined triggers, ADR-003 fresh-session independence, ADR-004 max-cycles=3 budget default, ADR-005 soft exhaustion) that the redispatch rule texts must not contradict. Seeded 2026-08-03 from interview Q5."
+    path: .sdd/dia-redispatch-cycle/architecture.md
+    created: 2026-08-03
+  - name: dev-infra
+    description: "Retrospective architecture for the dev-infra module parallel dev model (implemented via DIA-100): 8 ADRs governing worktree-only parallel OpenCode lanes (worktrees-only model, DIA-074 branch naming, squash-merge integration, physical session isolation, DIA-096 safe/destructive enforcement, conflict escalation bounds, .worktrees/ location, bash-3 compat + bounded ls-remote). Decision sources: DIA-073/DIA-096, commits a387f72/44865c3/8cd270d."
+    path: .sdd/dev-infra/architecture.md
+    created: 2026-08-12
   rag_bases: []
   
