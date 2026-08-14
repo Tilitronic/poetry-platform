@@ -39,6 +39,8 @@
 #   T26 cleanup window precedence: --days flag > WORKTREES_CLEANUP_DAYS > default 0
 #   T27 cleanup deletes branch AND leftover worktree dir on disk
 #   T28 cleanup main-tree guard: checked-out candidate skipped, main/master never touched
+#   T29 cleanup --days leading-zero value (008) is a usage error (exit 2),
+#       never a bash arithmetic abort (F1 regression)
 
 load test-helper
 
@@ -643,4 +645,22 @@ make_unmerged_worktree() {
   assert_output_contains "main"
   run git -C "$tree" branch --list master
   assert_output_contains "master"
+}
+
+@test "worktrees: T29 cleanup --days '008' is a usage error, not an arithmetic abort (F1 regression)" {
+  tree="$(setup_worktree_repo)"
+  make_merged_old_branch "$tree" feature/DIA-137-old 10
+
+  # F1 regression: '008' passes the digit-only case pattern, but bash
+  # arithmetic reads a leading zero as octal and aborts the whole script
+  # under set -euo pipefail ("008: value too great for base") instead of the
+  # spec-mandated clean exit 2 + usage on stderr. Leading-zero windows are
+  # usage errors, like non-integers; '--days 0' stays valid (default).
+  run bash "$tree/scripts/worktrees.sh" cleanup --days 008
+
+  assert_status 2
+  assert_output_contains "usage: worktrees.sh"
+  # no arithmetic abort and no partial side effects: the branch survives
+  run git -C "$tree" branch --list feature/DIA-137-old
+  assert_output_contains "feature/DIA-137-old"
 }

@@ -25,8 +25,8 @@
 #   cleanup [--days N] [--dry-run]
 #                            delete merged feature/* branches whose rollback
 #                            window elapsed (DIA-137). Merge-verified against
-#                            main (is-ancestor fast path, diff-empty for
-#                            squash parity); dirty linked worktrees are
+#                            main (is-ancestor fast path, tree-subset check
+#                            for squash parity); dirty linked worktrees are
 #                            ALWAYS skipped; the default window is 0 days
 #                            (immediate post-merge teardown). Local state
 #                            only — no fetch, no remote reads.
@@ -214,11 +214,12 @@ EOF
 # any branch file is missing from main or differs (genuinely unmerged);
 # returns 128 when a git op fails (caller: fail-safe skip, never a delete).
 # WHY NOT a plain `git diff main <branch>` emptiness check: that only passes
-# when the two TREES are identical, so a branch merged EARLIER in the same
-# scan misclassifies as unmerged once later merges add files to main (the
-# DIA-137 bats fixtures squash several branches into one main). The subset
-# check is the exact squash semantics: "nothing on the branch is absent from
-# main", independent of later main-only content.
+# when the two TREES are identical, and in the realistic post-batch state
+# main already contains the squashed content of many previously merged
+# branches -- so a whole-tree diff would misclassify a genuinely
+# squash-merged branch as unmerged. The subset check is the exact squash
+# semantics: "nothing on the branch is absent from main", independent of
+# main-only content from other merges.
 branch_tree_in_main() {
   local branch="$1" paths rc=0
   paths="$(git ls-tree -r --name-only "$branch" 2>/dev/null)" || return 128
@@ -536,10 +537,14 @@ cmd_cleanup() {
   done
 
   # Window precedence (D6): --days flag > WORKTREES_CLEANUP_DAYS env >
-  # default 0. A non-integer window is a usage error (exit 2).
+  # default 0. A non-integer window is a usage error (exit 2); so is a
+  # leading-zero value like '008' -- bash arithmetic would read it as octal
+  # and abort the whole script under set -euo pipefail ("008: value too
+  # great for base") instead of the spec-mandated exit 2 + usage (F1
+  # regression: reject at parse time, never reach the $(( )) computation).
   CLEANUP_WINDOW="${days:-${WORKTREES_CLEANUP_DAYS:-0}}"
   case "$CLEANUP_WINDOW" in
-    '' | *[!0-9]*) usage ;;
+    '' | *[!0-9]* | 0[0-9]*) usage ;;
   esac
   DRY_RUN="$dry_run"
 

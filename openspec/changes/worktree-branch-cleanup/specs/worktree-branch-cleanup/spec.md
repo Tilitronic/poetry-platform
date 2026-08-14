@@ -32,22 +32,29 @@ fetch`, no remote reads).
 
 The subcommand SHALL classify each `feature/*` local branch via a
 two-pass scan. Pass 1 (merge check) SHALL use `git merge-base --is-ancestor
-<branch> main` as a fast reject AND THEN `git diff main <branch>` emptiness
-as the squash-merge parity check (because `is-ancestor` alone misses
-squash-merged branches). Pass 2 (age check) SHALL use the branch-tip
+<branch> main` as a fast reject AND THEN a tree-subset check as the
+squash-merge parity check (because `is-ancestor` alone misses squash-merged
+branches). The tree-subset check SHALL verify that every file tracked on
+the branch exists on `main` with identical content (`git ls-tree -r
+--name-only <branch>`, then `git diff --quiet refs/heads/main <branch> --
+<paths>`); it is NOT a whole-tree diff emptiness check, which would fail
+once `main` has accumulated content from other squash merges (the
+realistic post-batch state). Pass 2 (age check) SHALL use the branch-tip
 commit date and compare it to the configured age window.
 
-#### Scenario: squash-merged branch detected via diff emptiness
+#### Scenario: squash-merged branch detected via tree-subset check
 
 - **WHEN** a `feature/*` branch was squash-merged into `main` (so
-  `is-ancestor` returns false but `git diff main <branch>` is empty)
+  `is-ancestor` returns false but every file on the branch exists on
+  `main` with identical content — the tree-subset check passes)
 - **THEN** the branch is classified as merged (seam: classification
   predicate).
 
 #### Scenario: genuinely unmerged branch preserved
 
 - **WHEN** a `feature/*` branch has commits that are not ancestors of
-  `main` AND `git diff main <branch>` is non-empty
+  `main` AND at least one file on the branch is missing from `main` or
+  differs from its `main` content (the tree-subset check fails)
 - **THEN** the branch is classified as unmerged (seam: classification
   predicate).
 
@@ -121,9 +128,9 @@ following actions, in this order of precedence:
 - **WHEN** a `feature/*` branch is merged, older than the window, and has
   a linked worktree with uncommitted changes
 - **THEN** the branch is NOT deleted, the worktree is NOT removed, a
-  `would-skip (worktree dirty)` message is emitted on stderr, and the
-  scan continues to the next candidate (seam: stderr channel + CLI exit
-  code 0).
+  `would-skip (worktree dirty)` message is emitted on stdout, and the
+  scan continues to the next candidate (seam: stdout reporting channel +
+  CLI exit code 0).
 
 #### Scenario: unmerged + old preserved with report
 
@@ -168,13 +175,30 @@ candidate failed.
 - **THEN** the candidate is skipped and reported on stderr; no delete is
   attempted (seam: stderr channel).
 
+### Requirement: Reporting channel split
+
+Intentional skip reasons (`merged + young` reported, `unmerged + old`
+reported, `would-skip (worktree dirty)`) and dry-run listings (all
+`would-*` lines) SHALL be written to stdout (machine-readable). Fail-safe
+error warnings (per-candidate git operation failures, the checked-out
+branch skip) SHALL be written to stderr.
+
+#### Scenario: skip reasons on stdout, fail-safe warnings on stderr
+
+- **WHEN** a run produces both an intentional skip reason and a
+  per-candidate git-failure warning
+- **THEN** the skip reason appears on stdout and the failure warning
+  appears on stderr (seam: stdout/stderr reporting channel).
+
 ### Requirement: Exit-code contract
 
 The subcommand SHALL exit 0 when the overall run completed successfully
 — including runs where every candidate was intentionally skipped (dirty,
-unmerged, young, checked-out). The subcommand SHALL exit non-zero ONLY on
-hard-abort conditions: the working directory is not a git repository, or
-no `main` branch exists in the repo.
+unmerged, young, checked-out). The subcommand SHALL exit non-zero on
+hard-abort conditions (the working directory is not a git repository, or
+no `main` branch exists in the repo) OR when any per-candidate git
+operation fails (the candidate is skipped with a warning, and the
+run-level exit code signals the partial failure).
 
 #### Scenario: all-ok and all-intentionally-skipped runs exit 0
 
@@ -191,6 +215,13 @@ no `main` branch exists in the repo.
 
 - **WHEN** `cleanup` is invoked in a repo that has no `main` branch
 - **THEN** exit code is non-zero (seam: CLI exit code).
+
+#### Scenario: per-candidate git failure signals a non-zero exit
+
+- **WHEN** one candidate hits a git failure mid-scan and is skipped with
+  a stderr warning
+- **THEN** the run exits non-zero (the partial failure is signaled even
+  though the scan completed) (seam: CLI exit code).
 
 ### Requirement: Dry-run mode
 

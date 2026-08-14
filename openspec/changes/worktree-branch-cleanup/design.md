@@ -80,42 +80,57 @@ suite, one lifecycle").
   the test harness is bats, and bash-3 compatibility is a contract
   (`scripts/worktrees.sh` header documents this).
 
-### D2: Two-pass merge check (is-ancestor THEN diff-emptiness)
+### D2: Two-pass merge check (is-ancestor THEN tree-subset squash parity)
 
 **Decision:** classify a branch as merged only when BOTH conditions
 hold: (a) `git merge-base --is-ancestor <branch> main` returns true, OR
-(b) `git diff main <branch>` is empty. The fast path is `is-ancestor`
-(because `diff` on a large tree is expensive); the `diff` check runs
-only when `is-ancestor` is false, to catch squash-merged branches.
+(b) the tree-subset squash-parity check passes: every file tracked on
+the branch exists on `main` with identical content (`git ls-tree -r
+--name-only <branch>`, then `git diff --quiet refs/heads/main <branch> --
+<paths>`). The fast path is `is-ancestor` (because the tree-subset check
+on a large tree is expensive); the subset check runs only when
+`is-ancestor` is false, to catch squash-merged branches.
 
 **Rationale:** `is-ancestor` alone misses squash-merged branches
-(confirmed in interview). `diff` alone would be correct but slower. The
-short-circuit keeps the common case (cleanly merged fast-forward or
-normal merge commit) fast while closing the squash gap.
+(confirmed in interview). The tree-subset check is the exact squash
+semantics ("nothing in the branch is absent from main"). A whole-tree
+`git diff main <branch>` emptiness check would be correct only in a repo
+where `main` never grows beyond one branch's content; in the realistic
+post-batch state `main` already contains the squashed content of many
+previously merged branches, so a whole-tree diff would misclassify a
+genuinely squash-merged branch as unmerged. The short-circuit keeps the
+common case (cleanly merged fast-forward or normal merge commit) fast
+while closing the squash gap.
 
 **Alternatives considered:**
 
-- `diff` only — rejected: O(tree-size) for every candidate, when
-  `is-ancestor` rejects most unmerged branches in microseconds.
+- Whole-tree `git diff main <branch>` emptiness — rejected: requires the
+  two trees to be IDENTICAL, so it fails once `main` has accumulated
+  content from other squash merges (the realistic post-batch state).
 - Custom cherry detection (`git cherry main <branch>`) — rejected:
-  `cherry` has its own edge cases with rebases and reverts; `diff`
-  emptiness is the exact semantic the developer wants ("nothing in the
-  branch is absent from main").
+  `cherry` has its own edge cases with rebases and reverts; the
+  tree-subset check is the exact semantic the developer wants ("nothing
+  in the branch is absent from main").
 
 ### D3: Age check via branch-tip commit date
 
-**Decision:** use the branch-tip commit's author date (`git log -1
---format=%ct <branch>`) and compare to the configured window.
+**Decision:** use the branch-tip commit's committer date (`git log -1
+--format=%ct <branch>`) and compare it to the configured window.
 
 **Rationale:** the rollback window the policy refers to is the window
 since the branch's last activity, not the window since its creation.
-Author date matches the developer's mental model ("I haven't touched
-this branch in N days").
+Committer date reflects the actual tip rewrite. For our squash-merge
+workflow the tip is never rebased onto main, so committer and author
+dates track the same developer action; the implementation reads `%ct`
+(committer), and the bats fixtures set both dates identically, so the
+choice is not observable in the tests.
 
 **Alternatives considered:**
 
-- Committer date — rejected: rebases / cherry-picks would reset the
-  clock unexpectedly.
+- Author date (`%at`) — not used: in this workflow (no rebase onto main)
+  it tracks the same developer action as the committer date, so `%ct` —
+  the actual tip-rewrite timestamp — is the more precise signal and is
+  what the implementation already reads.
 - Branch creation date — rejected: not directly queryable without
   reflog, and reflog is local+ephemeral.
 
@@ -170,9 +185,9 @@ a usage error (exit 2). Mirrors `WORKTREES_FORCE`/`--force` pattern on
 
 **Rationale:** cleanup runs as post-merge teardown, so branches should
 be deleted immediately after a successful merge, not after a 7-day
-window. The merge-content check (`git diff main <branch>` empty) plus
-the dirty-worktree protection are the real safety gates; age adds only
-delay. The `--days` flag and the env var REMAIN for opt-in conservative
+window. The merge-content check (the tree-subset squash-parity check)
+plus the dirty-worktree protection are the real safety gates; age adds
+only delay. The `--days` flag and the env var REMAIN for opt-in conservative
 runs (e.g., `--days 30` for a 30-day grace window); only the default
 changes. Consistency with the rest of the CLI is preserved (interview
 confirmed the flag > env > default pattern).
@@ -252,7 +267,7 @@ All 9 acceptance scenarios live at these four seams, in the existing
 
 ## Risks / Trade-offs
 
-- **Risk: `git diff main <branch>` is expensive on large trees.**
+- **Risk: the tree-subset check is expensive on large trees.**
   Mitigation: run it only as the slow path when `is-ancestor` rejects;
   the common fast path stays O(1). If the slow path becomes a problem
   in very large repos, the mitigation is to cache the diff result per
@@ -263,8 +278,8 @@ All 9 acceptance scenarios live at these four seams, in the existing
   file mean a race surfaces as a candidate skip with a stderr warning,
   not as lost work. The developer reruns cleanup; the branch will be
   young on the next pass and silently preserved.
-- **Risk: squash-merge parity via diff-emptiness can be fooled by a
-  branch that reverts its own changes before merge.** Mitigation: same
+- **Risk: squash-merge parity via the tree-subset check can be fooled by
+  a branch that reverts its own changes before merge.** Mitigation: same
   semantics the developer already uses to decide "is this branch
   effectively merged" by eye — nothing is deleted that would surprise
   them. Documented in the `cleanup --help` output.

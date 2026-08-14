@@ -17,16 +17,20 @@ ones past the window while skipping everything else with a clear reason.
   `path_from_branch`, env-var convention, and the one-bats-suite test seam.
 - Two-pass classify-then-act scan over `feature/*` local branches:
   - merge check: `git merge-base --is-ancestor <branch> main` (fast reject)
-    THEN `git diff main <branch>` empty (catches squash-merged branches,
-    which `is-ancestor` alone misses).
+    THEN a tree-subset squash-parity check — every file on the branch
+    exists on main with identical content (git ls-tree + git diff
+    --quiet; NOT whole-tree diff emptiness, which fails once main has
+    accumulated content from other squash merges) — catching squash-merged
+    branches, which `is-ancestor` alone misses.
   - age check: branch-tip commit date older than N days (configurable).
   - worktree presence check (for the `merged+old+worktree-clean` case).
 - Default window 0 days (immediate post-merge cleanup); override precedence
   `--days N` flag > `WORKTREES_CLEANUP_DAYS` env var > default 0. The
   `--days` flag and the env var remain for opt-in conservative runs (e.g.,
   `--days 30` for a 30-day grace window); only the default changes from 7
-  to 0. The merge-content check (`git diff main <branch>` empty) plus the
-  dirty-worktree protection are the real safety gates; age adds only delay.
+  to 0. The merge-content check (the tree-subset squash-parity check)
+  plus the dirty-worktree protection are the real safety gates; age adds
+  only delay.
   Mirrors the `WORKTREES_FORCE`/`--force` pattern on `remove`.
 - Matrix of actions per candidate:
   - `merged + old + no worktree` -> delete branch (and linked worktree dir
