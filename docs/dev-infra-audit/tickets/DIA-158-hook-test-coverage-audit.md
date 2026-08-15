@@ -2,6 +2,8 @@
 
 <!-- RENUMBERED 2026-08-14 (phase 1, remote lineage canonical, DIA-153): local DIA-115 collided with origin/omo-slim-changes ticket DIA-139-hook-test-coverage-audit.md (different ticket). Renumbered to DIA-158. This ticket duplicates remote DIA-139-hook-test-coverage-audit.md (same work, renumbered on the remote lineage via bab080c); SUPERSEDED by the remote ticket. -->
 
+<!-- CLOSED 2026-08-15 as same-scope duplicate of DIA-139 (CLOSED). Superseded; do not implement. -->
+
 <!-- Analysis ticket (baseline): edge-case coverage audit of turbo-driven hook
      test gates. Filed 2026-08-12, cod-lane. -->
 
@@ -11,13 +13,13 @@ id: DIA-158
 title: "Audit pre-commit and pre-push hook test coverage (turbo-driven) for edge-case gaps"
 area: git-hooks
 severity: Medium
-status: OPEN
+status: CLOSED
 blocked_by: []
 discovered: 2026-08-12
 source: baseline
 date: 2026-08-12
 created: 2026-08-12
-updated: 2026-08-12
+updated: 2026-08-15
 
 # --- Session Attribution (v2 schema, optional) ---
 

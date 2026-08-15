@@ -2,6 +2,8 @@
 
 <!-- RENUMBERED 2026-08-14 (phase 1, remote lineage canonical, DIA-153): local DIA-116 collided with origin/omo-slim-changes ticket DIA-140-task-parallelization-analysis.md (different ticket). Renumbered to DIA-159. This ticket duplicates remote DIA-140-task-parallelization-analysis.md (same work, renumbered on the remote lineage via bab080c); SUPERSEDED by the remote ticket. -->
 
+<!-- CLOSED 2026-08-15 as same-scope duplicate of DIA-140 (CLOSED). Superseded; do not implement. -->
+
 <!-- Analysis ticket (baseline): prompt-level parallelization study. Filed
      2026-08-12, cod-lane. -->
 
@@ -11,13 +13,13 @@ id: DIA-159
 title: "Analyze task parallelization in agent prompts - maximize concurrent execution without file-write conflicts"
 area: opencode-config
 severity: Medium
-status: OPEN
+status: CLOSED
 blocked_by: []
 discovered: 2026-08-12
 source: baseline
 date: 2026-08-12
 created: 2026-08-12
-updated: 2026-08-12
+updated: 2026-08-15
 
 # --- Session Attribution (v2 schema, optional) ---
 

@@ -2,6 +2,8 @@
 
 <!-- RENUMBERED 2026-08-14 (phase 1, remote lineage canonical, DIA-153): local DIA-124 collided with origin/omo-slim-changes ticket DIA-148-test-infra-phase0-safety-wins.md (different ticket). Renumbered to DIA-167. This ticket duplicates remote DIA-148-test-infra-phase0-safety-wins.md (same work, renumbered on the remote lineage via bab080c); SUPERSEDED by the remote ticket. -->
 
+<!-- CLOSED 2026-08-15 as same-scope duplicate of DIA-148 (CLOSED). Superseded; do not implement. -->
+
 <!-- Ticket 1 of 4 from the approved test-refactoring plan (reviewed with
      mandatory corrections incorporated). Phase 0 - Safety Wins. Blocks
      DIA-169 (Phase 2). -->
@@ -12,13 +14,13 @@ id: DIA-167
 title: "test infra Phase 0: safety wins (author-studio fails loudly, flaky-pin tests removed, config gate hardened)"
 area: tests-infra
 severity: Major
-status: OPEN
+status: CLOSED
 blocked_by: [] # blocks DIA-169
 discovered:
 source: baseline
 date: 2026-08-12
 created: 2026-08-12
-updated: 2026-08-12
+updated: 2026-08-15
 
 # --- Session Attribution (v2 schema, optional) ---
 

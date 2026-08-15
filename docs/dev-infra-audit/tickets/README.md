@@ -77,7 +77,7 @@
 | DIA-124 | orchestrator must write and verify a terminal handoff BEFORE presenting session-end / new-session prompt | opencode-config | Major | CLOSED | [DIA-124-handoff-before-session-end.md](DIA-124-handoff-before-session-end.md) |
 | DIA-125 | automate ticket creation & management - evaluate ready-made local solutions (MCP/self-hosted) vs manual ledger | opencode-config | Medium | CLOSED | [DIA-125-automate-ticket-management-research.md](DIA-125-automate-ticket-management-research.md) |
 | DIA-126 | autonomous overnight mode: permission allow-list + no-stall guarantees (agents ask for folder-read permissions and stall for hours) | opencode-config | Major | CLOSED | [DIA-126-autonomous-mode-permission-hardening.md](DIA-126-autonomous-mode-permission-hardening.md) |
-| DIA-127 | OMO slim 2.2.13 update evaluation - research what is new, decide safety/worth for the project | opencode-config | Medium | OPEN | [DIA-127-omo-slim-2-2-13-update-evaluation.md](DIA-127-omo-slim-2-2-13-update-evaluation.md) |
+| DIA-127 | OMO slim 2.2.13 update evaluation - research what is new, decide safety/worth for the project | opencode-config | Medium | CLOSED | [DIA-127-omo-slim-2-2-13-update-evaluation.md](DIA-127-omo-slim-2-2-13-update-evaluation.md) |
 | DIA-128 | OMO plugin repeatedly warns 'inline prompt overrides prompt file' for coder and analyzer agents | opencode-config | Medium | CLOSED | [DIA-128-omo-inline-prompt-overrides-warning.md](DIA-128-omo-inline-prompt-overrides-warning.md) |
 | DIA-129 | crawl4ai crwl fallback fails: Playwright pins chromium revision 1228, host cache has 1234 only | dev-infra | Medium | CLOSED | [DIA-129-crawl4ai-playwright-chromium-revision-skew.md](DIA-129-crawl4ai-playwright-chromium-revision-skew.md) |
 | DIA-130 | Duplicated OMO inline-override warnings still visible in opencode TUI 'Loading plugins...' area (residual after DIA-128) | opencode-config | Major | CLOSED | [DIA-130-duplicated-inline-override-warning-ui.md](DIA-130-duplicated-inline-override-warning-ui.md) |
@@ -105,11 +105,11 @@
 | DIA-152 | Install docker CLI + compose plugin in poetry-dev image (pre-push test-config gate) | docker | Major | VERIFIED | [DIA-152-install-docker-cli-poetry-dev-image.md](DIA-152-install-docker-cli-poetry-dev-image.md) |
 | DIA-153 | Push omo-slim-changes to origin: lineage reconciliation (rebase) + SSH transport setup (openssh-client in opencode-docker, origin remote to SSH) | dev-infra | Major | DONE | [DIA-153-push-omo-slim-changes-to-origin.md](DIA-153-push-omo-slim-changes-to-origin.md) |
 | DIA-154 | gigaplan.md frontmatter flat bash deny - latent permission clobber hazard (DIA-078 class) | opencode-config | Low | CLOSED | [DIA-154-gigaplan-frontmatter-clobber-hazard.md](DIA-154-gigaplan-frontmatter-clobber-hazard.md) |
-| DIA-155 | chokidar in-process file-watching harness: deterministic auto-regeneration of derived views + agent-work automation | opencode-config | Medium | OPEN | [DIA-155-chokidar-in-process-file-watching-harness.md](DIA-155-chokidar-in-process-file-watching-harness.md) |
-| DIA-156 | implement V2 read-only query layer (node:sqlite :memory:) over orchestrator session records (DIA-136 follow-up) | dev-infra | Low | OPEN | [DIA-156-sqlite-read-layer-session-records.md](DIA-156-sqlite-read-layer-session-records.md) |
-| DIA-157 | Audit agent instruction/prompt files (.ts and .md) for inaccuracies, duplications, vague wording | opencode-config | Medium | OPEN | [DIA-157-agent-instruction-files-audit.md](DIA-157-agent-instruction-files-audit.md) |
-| DIA-158 | Audit pre-commit and pre-push hook test coverage (turbo-driven) for edge-case gaps | git-hooks | Medium | OPEN | [DIA-158-hook-test-coverage-audit.md](DIA-158-hook-test-coverage-audit.md) |
-| DIA-159 | Analyze task parallelization in agent prompts - maximize concurrent execution without file-write conflicts | opencode-config | Medium | OPEN | [DIA-159-task-parallelization-analysis.md](DIA-159-task-parallelization-analysis.md) |
+| DIA-155 | chokidar in-process file-watching harness: deterministic auto-regeneration of derived views + agent-work automation | opencode-config | Medium | CLOSED | [DIA-155-chokidar-in-process-file-watching-harness.md](DIA-155-chokidar-in-process-file-watching-harness.md) |
+| DIA-156 | implement V2 read-only query layer (node:sqlite :memory:) over orchestrator session records (DIA-136 follow-up) | dev-infra | Low | CLOSED | [DIA-156-sqlite-read-layer-session-records.md](DIA-156-sqlite-read-layer-session-records.md) |
+| DIA-157 | Audit agent instruction/prompt files (.ts and .md) for inaccuracies, duplications, vague wording | opencode-config | Medium | CLOSED | [DIA-157-agent-instruction-files-audit.md](DIA-157-agent-instruction-files-audit.md) |
+| DIA-158 | Audit pre-commit and pre-push hook test coverage (turbo-driven) for edge-case gaps | git-hooks | Medium | CLOSED | [DIA-158-hook-test-coverage-audit.md](DIA-158-hook-test-coverage-audit.md) |
+| DIA-159 | Analyze task parallelization in agent prompts - maximize concurrent execution without file-write conflicts | opencode-config | Medium | CLOSED | [DIA-159-task-parallelization-analysis.md](DIA-159-task-parallelization-analysis.md) |
 | DIA-160 | Fix agent-instruction audit findings: HANDOFF.md refs, missing AGENTS.md section 10, boss_append.md duplicate | opencode-config | Major | VERIFIED | [DIA-160-fix-agent-instruction-findings.md](DIA-160-fix-agent-instruction-findings.md) |
 | DIA-161 | Wire host-runnable gates into hooks and fix turbo.json test.inputs cache masking | git-hooks | Major | VERIFIED | [DIA-161-wire-host-gates-into-hooks.md](DIA-161-wire-host-gates-into-hooks.md) |
 | DIA-162 | Enable safe task parallelization: BATCH-DISPATCH rule, memory-shelf centralization, ID preallocation, serialization points | opencode-config | Major | VERIFIED | [DIA-162-batch-dispatch-config-changes.md](DIA-162-batch-dispatch-config-changes.md) |
@@ -117,9 +117,9 @@
 | DIA-164 | Give opencode-docker container host docker/podman socket access so pre-commit hooks work from inside OpenCode | docker | Major | VERIFIED | [DIA-164-opencode-docker-host-socket-access.md](DIA-164-opencode-docker-host-socket-access.md) |
 | DIA-165 | verify-pre-push recursion fork-bomb: root-cause fix (DIA-161 regression) | git-hooks | Critical | VERIFIED | [DIA-165-verify-pre-push-recursion-guard.md](DIA-165-verify-pre-push-recursion-guard.md) |
 | DIA-166 | pre-push blocked: make test-shell fails inside hook (unshare 127 + guard-flag interaction suspicion) | git-hooks | Critical | VERIFIED | [DIA-166-pre-push-suite-failure.md](DIA-166-pre-push-suite-failure.md) |
-| DIA-167 | test infra Phase 0: safety wins (author-studio fails loudly, flaky-pin tests removed, config gate hardened) | tests-infra | Major | OPEN | [DIA-167-test-infra-phase0-safety-wins.md](DIA-167-test-infra-phase0-safety-wins.md) |
-| DIA-168 | test infra Phase 1: de-duplication (bats helpers, it.each, bash -n auto-discovery, per-package dependsOn) | tests-infra | Medium | OPEN | [DIA-168-test-infra-phase1-dedup.md](DIA-168-test-infra-phase1-dedup.md) |
-| DIA-169 | test infra Phase 2: critical gaps (vitest in author-studio, real data-contracts test) | tests-infra | Critical | OPEN | [DIA-169-test-infra-phase2-critical-gaps.md](DIA-169-test-infra-phase2-critical-gaps.md) |
+| DIA-167 | test infra Phase 0: safety wins (author-studio fails loudly, flaky-pin tests removed, config gate hardened) | tests-infra | Major | CLOSED | [DIA-167-test-infra-phase0-safety-wins.md](DIA-167-test-infra-phase0-safety-wins.md) |
+| DIA-168 | test infra Phase 1: de-duplication (bats helpers, it.each, bash -n auto-discovery, per-package dependsOn) | tests-infra | Medium | CLOSED | [DIA-168-test-infra-phase1-dedup.md](DIA-168-test-infra-phase1-dedup.md) |
+| DIA-169 | test infra Phase 2: critical gaps (vitest in author-studio, real data-contracts test) | tests-infra | Critical | CLOSED | [DIA-169-test-infra-phase2-critical-gaps.md](DIA-169-test-infra-phase2-critical-gaps.md) |
 | DIA-170 | test infra Phase 3: Orchestrator contract test (acceptWorkerResult, zero mocks) | tests-infra | Medium | DONE | [DIA-170-test-infra-phase3-orchestrator-contract.md](DIA-170-test-infra-phase3-orchestrator-contract.md) |
 | DIA-171 | Install docker CLI + compose plugin in poetry-dev image (pre-push test-config gate) | docker | Major | IMPLEMENTED | [DIA-171-install-docker-cli-poetry-dev-image.md](DIA-171-install-docker-cli-poetry-dev-image.md) |
 | DIA-172 | Parallel coders (batch D) + read-only batch expansion - DIA-159 follow-up review and design | opencode-config | Medium | IMPLEMENTED | [DIA-172-parallel-coders-batch-d-expansion.md](DIA-172-parallel-coders-batch-d-expansion.md) |
@@ -153,7 +153,7 @@
 
 | Status      | Count |
 | ----------- | ----- |
-| OPEN        | 17    |
+| OPEN        | 11    |
 | DONE        | 11    |
 | VALIDATE    | 0     |
 | E2E         | 0     |
@@ -162,7 +162,7 @@
 | FIXED       | 1     |
 | IMPLEMENTED | 2     |
 | VERIFIED    | 28    |
-| CLOSED      | 83    |
+| CLOSED      | 89    |
 | BLOCKED     | 0     |
 | DISPATCHED  | 0     |
 | RUNNING     | 0     |

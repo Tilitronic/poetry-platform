@@ -2,6 +2,8 @@
 
 <!-- RENUMBERED 2026-08-14 (phase 1, remote lineage canonical, DIA-153): local DIA-125 collided with origin/omo-slim-changes ticket DIA-149-test-infra-phase1-dedup.md (different ticket). Renumbered to DIA-168. This ticket duplicates remote DIA-149-test-infra-phase1-dedup.md (same work, renumbered on the remote lineage via bab080c); SUPERSEDED by the remote ticket. -->
 
+<!-- CLOSED 2026-08-15 as same-scope duplicate of DIA-149 (CLOSED). Superseded; do not implement. -->
+
 <!-- Ticket 2 of 4 from the approved test-refactoring plan (reviewed with
      mandatory corrections incorporated). Phase 1 - De-duplication. Blocks
      nothing. -->
@@ -12,13 +14,13 @@ id: DIA-168
 title: "test infra Phase 1: de-duplication (bats helpers, it.each, bash -n auto-discovery, per-package dependsOn)"
 area: tests-infra
 severity: Medium
-status: OPEN
+status: CLOSED
 blocked_by: []
 discovered:
 source: baseline
 date: 2026-08-12
 created: 2026-08-12
-updated: 2026-08-12
+updated: 2026-08-15
 
 # --- Session Attribution (v2 schema, optional) ---
 

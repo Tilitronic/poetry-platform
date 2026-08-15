@@ -2,6 +2,8 @@
 
 <!-- RENUMBERED 2026-08-14 (phase 1, remote lineage canonical, DIA-153): local DIA-126 collided with origin/omo-slim-changes ticket DIA-150-test-infra-phase2-critical-gaps.md (different ticket). Renumbered to DIA-169. This ticket duplicates remote DIA-150-test-infra-phase2-critical-gaps.md (same work, renumbered on the remote lineage via bab080c); SUPERSEDED by the remote ticket. -->
 
+<!-- CLOSED 2026-08-15 as same-scope duplicate of DIA-150 (CLOSED). Superseded; do not implement. -->
+
 <!-- Ticket 3 of 4 from the approved test-refactoring plan (reviewed with
      mandatory corrections incorporated). Phase 2 - Critical Gaps. Blocked by
      DIA-167; blocks DIA-170. -->
@@ -12,13 +14,13 @@ id: DIA-169
 title: "test infra Phase 2: critical gaps (vitest in author-studio, real data-contracts test)"
 area: tests-infra
 severity: Critical
-status: OPEN
+status: CLOSED
 blocked_by: [DIA-167] # Phase 0 safety wins first
 discovered:
 source: baseline
 date: 2026-08-12
 created: 2026-08-12
-updated: 2026-08-12
+updated: 2026-08-15
 
 # --- Session Attribution (v2 schema, optional) ---
 

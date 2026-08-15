@@ -2,6 +2,8 @@
 
 <!-- RENUMBERED 2026-08-14 (phase 1, remote lineage canonical, DIA-153): local DIA-114 collided with origin/omo-slim-changes ticket DIA-138-agent-instruction-files-audit.md (different ticket). Renumbered to DIA-157. This ticket duplicates remote DIA-138-agent-instruction-files-audit.md (same work, renumbered on the remote lineage via bab080c); SUPERSEDED by the remote ticket. -->
 
+<!-- CLOSED 2026-08-15 as same-scope duplicate of DIA-138 (CLOSED). Superseded; do not implement. -->
+
 <!-- Analysis ticket (baseline): systematic audit of the agent instruction surface.
      Filed 2026-08-12, cod-lane. -->
 
@@ -11,13 +13,13 @@ id: DIA-157
 title: "Audit agent instruction/prompt files (.ts and .md) for inaccuracies, duplications, vague wording"
 area: opencode-config
 severity: Medium
-status: OPEN
+status: CLOSED
 blocked_by: []
 discovered: 2026-08-12
 source: baseline
 date: 2026-08-12
 created: 2026-08-12
-updated: 2026-08-12
+updated: 2026-08-15
 
 # --- Session Attribution (v2 schema, optional) ---
 
