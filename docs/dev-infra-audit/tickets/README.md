@@ -145,6 +145,7 @@
 | DIA-192 | delegation-observer prognosis parse fallback firing: lossy handoff + spurious high-severity TUI notification | opencode-config | Medium | VERIFIED | [DIA-192-delegation-observer-prognosis-parse-fallback.md](DIA-192-delegation-observer-prognosis-parse-fallback.md) |
 | DIA-193 | delegation-observer handoff-writer skip for non-terminal in-flight: benign guard surfaced as alarming high-severity notification | opencode-config | Low | VERIFIED | [DIA-193-delegation-observer-handoff-skip-inflight-notification.md](DIA-193-delegation-observer-handoff-skip-inflight-notification.md) |
 | DIA-194 | artifact format substrate analysis (DIA-180 Deliverable B): YAML vs Markdown EBDV matrix with token-economy evidence | docs | Medium | OPEN | [DIA-194-artifact-format-substrate-analysis.md](DIA-194-artifact-format-substrate-analysis.md) |
+| DIA-195 | harness RLM integration: unify test harnesses + RLM data-reduction + workflow guard + observability | opencode-config | Medium | OPEN | [DIA-195-harness-rlm-integration.md](DIA-195-harness-rlm-integration.md) |
 
 ## Status summary
 
@@ -153,14 +154,14 @@
 | Blocker  | 7     |
 | Critical | 8     |
 | Major    | 46    |
-| Medium   | 68    |
+| Medium   | 69    |
 | Minor    | 0     |
 | Low      | 16    |
 | Info     | 0     |
 
 | Status      | Count |
 | ----------- | ----- |
-| OPEN        | 9     |
+| OPEN        | 10    |
 | DONE        | 11    |
 | VALIDATE    | 0     |
 | E2E         | 0     |
