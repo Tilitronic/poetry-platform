@@ -576,6 +576,11 @@
   // Plugins — loaded by OpenCode for this project
   // ---------------------------------------------------------------------------
   "plugin": [
+    // DIA-188: project-level OMO declaration (self-sufficiency). Pinned to
+    // 2.2.14 to match the host global entry during the two-phase transition;
+    // after Phase 2 the global entry is removed and this becomes the single
+    // declaration source.
+    "oh-my-opencode-slim@2.2.14",
     "envsitter-guard@0.0.4",
     "@tarquinen/opencode-dcp@3.1.14",
     "file:///workspace/.opencode/plugins/delegation-observer.ts",
