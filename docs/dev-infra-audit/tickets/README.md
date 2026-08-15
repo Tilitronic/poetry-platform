@@ -146,6 +146,7 @@
 | DIA-193 | delegation-observer handoff-writer skip for non-terminal in-flight: benign guard surfaced as alarming high-severity notification | opencode-config | Low | VERIFIED | [DIA-193-delegation-observer-handoff-skip-inflight-notification.md](DIA-193-delegation-observer-handoff-skip-inflight-notification.md) |
 | DIA-194 | artifact format substrate analysis (DIA-180 Deliverable B): YAML vs Markdown EBDV matrix with token-economy evidence | docs | Medium | OPEN | [DIA-194-artifact-format-substrate-analysis.md](DIA-194-artifact-format-substrate-analysis.md) |
 | DIA-195 | harness RLM integration: unify test harnesses + RLM data-reduction + workflow guard + observability | opencode-config | Medium | OPEN | [DIA-195-harness-rlm-integration.md](DIA-195-harness-rlm-integration.md) |
+| DIA-196 | changelog YAML-ledger conversion: YAML source + derived MD view (ana024 Variant B) | opencode-config | Medium | OPEN | [DIA-196-changelog-yaml-ledger-conversion.md](DIA-196-changelog-yaml-ledger-conversion.md) |
 
 ## Status summary
 
@@ -154,14 +155,14 @@
 | Blocker  | 7     |
 | Critical | 8     |
 | Major    | 46    |
-| Medium   | 69    |
+| Medium   | 70    |
 | Minor    | 0     |
 | Low      | 16    |
 | Info     | 0     |
 
 | Status      | Count |
 | ----------- | ----- |
-| OPEN        | 10    |
+| OPEN        | 11    |
 | DONE        | 11    |
 | VALIDATE    | 0     |
 | E2E         | 0     |
