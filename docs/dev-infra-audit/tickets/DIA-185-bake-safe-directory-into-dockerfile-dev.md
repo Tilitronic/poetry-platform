@@ -12,7 +12,7 @@ id: DIA-185
 title: "bake safe.directory=/workspace into Dockerfile.dev (container gitconfig ephemeral repair)"
 area: docker
 severity: Low
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: ""
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
@@ -83,20 +83,47 @@ image.
 
 ## Fix
 
-<What changed — fill at fix time. Leave blank with this note until then.>
+Implemented 2026-08-15 (fix lane, worktree .slim/worktrees/dia-185, branch omos/dia-185).
 
-> To be filled at fix time.
+**Change:** `Dockerfile.dev` gains a system-level gitconfig entry right before
+the existing `USER` switch (which already carried the per-user `--global` line
+at old line 298):
 
-Suggested direction (owned by the next session): add the safe.directory line
-to the Dockerfile.dev system-gitconfig setup so the image carries it (e.g.
-system-level `git config --system --add safe.directory /workspace` or an
-/etc/gitconfig block, mirroring the Dockerfile.dev:298 pattern). The exact
-placement, image rebuild, and gate re-verification are queued for the next
-session.
+    RUN git config --system --add safe.directory /workspace && git config --system --get safe.directory /workspace
+
+The chained `--get` assertion makes the image build fail if the entry does not
+land. Writing to the SYSTEM gitconfig (/etc/gitconfig) means the setting
+survives HOME swaps (the bats temp-HOME tests) AND container recreation -
+durable, unlike the cod-7 runtime /etc/gitconfig workaround that was lost on
+every recreate. The pre-existing `--global` line is retained unchanged.
+
+**Files changed:** `Dockerfile.dev` (6 lines added) plus this ticket file
+(Fix/Re-verify sections filled + frontmatter updated per ledger convention).
 
 ## Re-verify
 
-<Result of re-running Verification after the fix — fill at re-verify time.
-Must include the actual gate output/exit code that proves VERIFIED.>
+Re-verified 2026-08-15 after the fix (fix lane, worktree .slim/worktrees/dia-185):
+`make test-shell` exit **0** in the worktree context (bats temp-HOME tests no
+longer hit dubious-ownership); the system-level entry verified present via
+`git config --system --get safe.directory /workspace` in-container.
 
-> To be filled at re-verify time.
+Re-review cycle 1/2: all prior findings verified-closed (chained assertion +
+comment reframing applied 2026-08-15).
+
+Status: VERIFIED.
+
+## Merge (CLOSED)
+
+Merged 2026-08-15 (merge lane, main checkout branch omo-slim-changes):
+
+- Squash-merge of omos/dia-185 (worktree .slim/worktrees/dia-185, HEAD e5d5146)
+  into the main checkout at 3364518; commit `4a6da0d`
+  "DIA-185: bake system-level git safe.directory=/workspace into Dockerfile.dev
+  (#DIA-185)".
+- Pre-commit hook passed (no --no-verify; delegated to dev container).
+- Post-merge gates on the HOST: `make test-shell` exit **0** (343/343 bats ok);
+  `docker compose build dev` exit **0** (RUN layer #25 with the chained --get
+  assertion built; image poetry-platform-dev:latest Built); `make test-config`
+  exit **0** (56/56).
+
+This merge closes the ticket. Worktree cleanup is tracked separately (DIA-177).

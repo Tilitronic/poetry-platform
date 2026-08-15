@@ -13,7 +13,7 @@ id: DIA-184
 title: "host make test-config exit 2: batch-d-infra.test.mjs TEST_ROOT defaults to container path /workspace"
 area: tests-infra
 severity: Medium
-status: VERIFIED
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: ""
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
@@ -130,3 +130,19 @@ Re-review cycle 1/2 (rev-3): all prior findings verified-closed; OBS-1 (stale
 "exported" wording in this Fix narrative, now module-scope) fixed 2026-08-15.
 
 Status: VERIFIED.
+
+## Merge (CLOSED)
+
+Merged 2026-08-15 (merge lane, main checkout branch omo-slim-changes):
+
+- Squash-merge of omos/dia-184 (worktree .slim/worktrees/dia-184, HEAD a4be3c8)
+  into the main checkout at 3364518; commit `1ebac02`
+  "DIA-184: host-aware TEST_ROOT/ESBUILD_BIN/OMO_NODE_MODULES defaults in
+  batch-d-infra test suite (#DIA-184)".
+- Pre-commit hook passed (no --no-verify; delegated to dev container, lint-staged
+  autofix ok).
+- Post-merge gate on the HOST: `make test-config` exit **0** (56 tests, 56 pass,
+  0 fail, incl. S6 DIA-184 section). Re-run after the DIA-185 merge (final main
+  state): exit **0** (56/56).
+
+This merge closes the ticket. Worktree cleanup is tracked separately (DIA-177).
