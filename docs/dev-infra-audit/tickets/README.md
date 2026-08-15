@@ -136,6 +136,7 @@
 | DIA-183 | Properly introduce ponytail skill and headroom context-compression (DCP stays active; routed via AGENTS.md 2.5) | opencode-config | Medium | OPEN | [DIA-183-ponytail-headroom-context-compression.md](DIA-183-ponytail-headroom-context-compression.md) |
 | DIA-184 | host make test-config exit 2: batch-d-infra.test.mjs TEST_ROOT defaults to container path /workspace | tests-infra | Medium | CLOSED | [DIA-184-host-make-test-config-enoent-batch-d-infra-test-root-container-path.md](DIA-184-host-make-test-config-enoent-batch-d-infra-test-root-container-path.md) |
 | DIA-185 | bake safe.directory=/workspace into Dockerfile.dev (container gitconfig ephemeral repair) | docker | Low | CLOSED | [DIA-185-bake-safe-directory-into-dockerfile-dev.md](DIA-185-bake-safe-directory-into-dockerfile-dev.md) |
+| DIA-186 | overnight AFK permission allow-list gaps: TUI permission prompts defeat autonomous mode | opencode-config | Medium | OPEN | [DIA-186-overnight-permission-prompt-gaps.md](DIA-186-overnight-permission-prompt-gaps.md) |
 
 ## Status summary
 
@@ -144,14 +145,14 @@
 | Blocker  | 7     |
 | Critical | 8     |
 | Major    | 44    |
-| Medium   | 62    |
+| Medium   | 63    |
 | Minor    | 0     |
 | Low      | 15    |
 | Info     | 0     |
 
 | Status      | Count |
 | ----------- | ----- |
-| OPEN        | 15    |
+| OPEN        | 14    |
 | DONE        | 11    |
 | VALIDATE    | 0     |
 | E2E         | 0     |
@@ -160,7 +161,7 @@
 | FIXED       | 1     |
 | IMPLEMENTED | 2     |
 | VERIFIED    | 28    |
-| CLOSED      | 77    |
+| CLOSED      | 79    |
 | BLOCKED     | 0     |
 | DISPATCHED  | 0     |
 | RUNNING     | 0     |
