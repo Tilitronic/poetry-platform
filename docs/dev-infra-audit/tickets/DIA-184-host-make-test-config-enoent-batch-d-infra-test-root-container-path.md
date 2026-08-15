@@ -145,4 +145,10 @@ Merged 2026-08-15 (merge lane, main checkout branch omo-slim-changes):
   0 fail, incl. S6 DIA-184 section). Re-run after the DIA-185 merge (final main
   state): exit **0** (56/56).
 
+R3 merge-gate container evidence (DIA-174), recorded before any merge:
+
+    docker compose ps
+    poetry-dev        Up 12 minutes (healthy)    0.0.0.0:3000->3000/tcp, 0.0.0.0:8000->8000/tcp, 0.0.0.0:9000->9000/tcp
+    poetry-postgres   Up 30 minutes (healthy)    5432/tcp
+
 This merge closes the ticket. Worktree cleanup is tracked separately (DIA-177).

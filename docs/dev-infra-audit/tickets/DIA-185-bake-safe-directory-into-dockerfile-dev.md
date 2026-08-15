@@ -126,4 +126,14 @@ Merged 2026-08-15 (merge lane, main checkout branch omo-slim-changes):
   assertion built; image poetry-platform-dev:latest Built); `make test-config`
   exit **0** (56/56).
 
+R3 merge-gate container evidence (DIA-174), recorded before any merge:
+
+    docker compose ps
+    poetry-dev        Up 12 minutes (healthy)    0.0.0.0:3000->3000/tcp, 0.0.0.0:8000->8000/tcp, 0.0.0.0:9000->9000/tcp
+    poetry-postgres   Up 30 minutes (healthy)    5432/tcp
+
+Post-rebuild in-container check on the running container (fresh image with the
+DIA-185 layer): `git config --system --get safe.directory /workspace` returns
+`/workspace` — the baked system-level entry is live.
+
 This merge closes the ticket. Worktree cleanup is tracked separately (DIA-177).
