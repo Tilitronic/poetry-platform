@@ -257,3 +257,40 @@ Failed-loop lessons & preventive actions
   - Cross-reference: failures.md escalated-lane (kimi-k3 ONE-SHOT) silent failure
     (same state-inspection-before-re-dispatch rule); lessons.md DIA-177 section.
 
+- Failure mode (2026-08-14): empty task result is AMBIGUOUS - verify ground truth
+  via a read-only lane before deciding (cod-8/cod-9, session
+  ses_fffe9d549ffeQnvwF0849RG19z)
+  - Symptom: a DIA-103 closure lane (cod-8, session
+    ses_fffb50ce7ffeLoOoEaMZ9pDiza) returned a COMPLETELY EMPTY task result - no
+    summary, no changes, no verification evidence. Given the prior silent-failure
+    history (DIA-130/DIA-098) this initially looked like a dropped writer.
+  - Recovery: the orchestrator did NOT assume success and did NOT re-dispatch a
+    fresh writer. It dispatched a READ-ONLY verification lane (cod-9) which
+    confirmed the closure had FULLY landed: commit 442b17e present, ticket
+    DIA-103-interview-batch-completeness CLOSED, CHANGELOG committed, push drift
+    0/0. The empty result was a reporting artifact, NOT missing work.
+  - Lesson: an empty subagent result is AMBIGUOUS - it can be either (a) a silent
+    failure where nothing was written (DIA-130, 2026-08-13 variant), or (b) a
+    reporting artifact where the work fully landed (cod-8, this session). The
+    correct move is ALWAYS the same: verify the actual state against the repo
+    and artifacts (commit present, ticket status, changelog, push drift) via a
+    READ-ONLY inspection lane BEFORE deciding whether to re-dispatch. Do not
+    re-dispatch the writer on an empty result (risk of double-apply/clobber a
+    partial write) and do not assume failure - absence of evidence is not
+    evidence of absence. This confirms the same pattern as DIA-132/DIA-098: the
+    verify-first ordering, applied to the two possible empty-result outcomes.
+  - Cross-reference: DIA-130 (silent-failure variant, 2026-08-13); DIA-098;
+    failures.md 2026-08-06 reviewer empty-result resume; 2026-08-10 cod-4
+    silent-empty result; commits 442b17e / 3322fdb / 43c0f7a.
+  - Why irrecoverable: the empty-result interpretation and the verify-before-
+    re-dispatch ordering are runtime/session behavior, not reconstructible from
+    the commits (442b17e shows the closure outcome, not the empty-result
+    detection and recovery path).
+
+- Failure mode (2026-08-15, DIA-186): overnight.bats payload assertion drift - expanded permission payload broke the gate at merge because the test asserted exact-string payload equality
+  - Symptom: the overnight permission payload (opencode-overnight.jsonc) was expanded with a developer-approved allow-list delta (DIA-186) beyond the DIA-134 baseline v1, but overnight.bats was not updated in the same change. The test's exact-string assertion against the full rule map no longer matched the expanded payload, so the gate broke at merge time.
+  - Root cause: the test asserted exact-string equality with the full payload (a coupling that breaks on ANY additive change). The payload grows by design (new baseline-compatible rules), so an equality assertion is fragile and fails for the wrong reason (any expansion, not just invariant violations).
+  - Fix (commit d18672b): switch overnight.bats to subset-presence contract arrays (baseline v1 keys + guard-denies + allow-list), asserting each invariant resolves to the intended "deny"/"allow" decision rather than exact-string equality with the full rule map. Additive changes no longer break the gate; removing or re-ordering an invariant rule does. The test is now the independent oracle.
+  - Lesson: when a config payload is additive-by-design (permission allow/deny maps, deny-list baselines, appended section-10 CHANGELOG entries), tests must assert SUBSET-PRESENCE/INVARIANT contracts, not exact-string equality with the whole payload. Exact-string coupling turns a legitimate additive change into a spurious gate failure and masks invariant regressions. Update the test IN THE SAME change that expands the payload.
+  - Why irrecoverable: the test diff (d18672b) shows the subset-presence arrays and the fix, but the process lesson - "exact-string coupling breaks on additive config growth; use invariant/subset-presence contracts and update the test atomically with the payload change" - is not stated in the commit.
+  - Cross-reference: DIA-186 (fix commit d18672b), DIA-134 (baseline v1), .opencode/opencode-overnight.jsonc, scripts/__tests__/overnight.bats, adr.md DIA-186 ADRs.

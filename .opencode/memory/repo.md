@@ -146,3 +146,13 @@ Note: These are navigational facts to help future humans find the infra/test art
     DIA-067 is resolved/closed (recorded here; no ticket created this run). The
     webfetch-substitution path is a viable fallback but should not become the
     permanent research-archive mechanism.
+
+- Repo-root branch lineage (2026-08-15, DIA-177 worktree campaign):
+  - The repo-root working branch is `omo-slim-changes`, NOT `main`. `main` points at
+    an OLDER lineage (head 75b0f81 "Refactor architecture and specification
+    processes") and is not the active development lineage. Feature/worktree branches
+    (e.g. `omos/dia-*`) fork from and squash-merge back into `omo-slim-changes`.
+  - Consequence: commits and worktree merges target `omo-slim-changes`. Pushing to /
+    diffing against `main` would compare against a stale, divergent lineage. This
+    pointer is recorded because a fresh clone's default checkout may suggest `main`,
+    which is not where the active work lives.

@@ -510,6 +510,29 @@ shelf:
     path: knowledge/ana021-test-suite-audit/ana021-test-suite-audit-report.md
     created: 2026-08-14
     task_ref: DIA-179
+  - name: Artifact Format Substrate Analysis (DIA-194 / DIA-180 Deliverable B)
+    description: "Analysis of YAML vs Markdown as the artifact-format substrate across
+      every agent-authored artifact in the poetry-platform dev-infra surface (DIA-194,
+      DIA-180 Deliverable B). Verdict: the repo already embodies a hybrid substrate
+      where format follows consumer and write pattern - machine-first structured stays
+      YAML (memory-shelf.yaml, ai-assist-sources.yaml, ticket frontmatter; JSON Schema
+      gate already enforces memory-shelf.yaml shape), machine-first append-only streams
+      (session/*.jsonl) are OUT OF SCOPE (belong to DIA-136), narrative/instructions/
+      human-rendered stays MD (openspec/, knowledge/, AGENTS.md, NEXT-RUN.md). FLAGSHIP
+      recommendation: convert .opencode/CHANGELOG.md (223,195 bytes, 730 lines, 87
+      sections) to a YAML ledger + derived MD view - quantified ~5x token-economy
+      reduction (~55.8K tokens READ today vs ~10.9K in YAML-ledger form) plus partial-read
+      capability. The CHANGELOG change is the ONLY concrete conversion recommendation;
+      everything else is stay-put with evidence. Method: MECE classification, inversion
+      analysis, cost-benefit/token-economy (4 chars/token heuristic LABELED as heuristic),
+      EBDV per DIA-115 (>=2 genuine variants per artifact class, abort/status-quo variant,
+      routing flag dev-infra vs section-10 vs N/A), precedent analysis (DIA-079/DIA-075/
+      DIA-191). Guardrail: read-only analysis, no conversions applied. Routing: CHANGELOG
+      conversion flagged section-10 (AGENTS.md section-10 routing applies); stays under
+      @architector/design before any follow-up ticket dispatch."
+    path: knowledge/ana022-artifact-format-substrate/ana022-artifact-format-substrate-report.md
+    created: 2026-08-15
+    task_ref: DIA-194
   adrs:
   - name: Memory Storage Strategy
     description: 'Evaluation of Claude-Mem, Honcho, and current hand-written memory

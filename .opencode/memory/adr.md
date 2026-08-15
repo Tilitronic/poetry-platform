@@ -774,3 +774,99 @@ silently excluded the shared test seam.
 
 - Created: 2026-08-14
 - Related: DIA-179, openspec/changes/test-suite-audit-fixes/, lessons.md DIA-179 section
+
+## ADR: Overnight profile permission overlay - explicit ALLOW entries + guard-denies placed AFTER broad allows (DIA-186)
+
+### Status
+
+Accepted - 2026-08-15
+
+### Context
+
+The overnight AFK campaign (DIA-177/180/181/182 parallel coder lanes) was defeated
+by TUI permission prompts that stalled unattended lanes. The overnight profile
+(`.opencode/opencode-overnight.jsonc`) needed an allow-list so autonomous runs never
+prompt, while preserving the destructive invariants of the DIA-134 baseline v1 (11
+deny rules). The subtlety: OpenCode permission rules are evaluated by pattern match
+with the LAST matching rule winning (NOT longest-pattern-wins). This was verified
+empirically via `opencode debug agent coder` and cross-referenced with the
+knowledge/res004 sources.
+
+### Decision
+
+1. The overnight permission payload is structured as: global `"*": "allow"` catch-all
+   first, then the DIA-134 baseline v1 deny rules, then the developer-approved
+   allow-list delta, then explicit GUARD-DENIES that re-assert the destructive
+   invariants AFTER the broad allows they constrain (e.g. the `"git push *"` allow is
+   re-constrained by guard-denies for `git push --force*`, `-f`, `--force-with-lease`,
+   and the various `git branch -d/-D/--delete` forms).
+2. Because LAST-MATCH-WINS (not longest-pattern), a broad allow placed after a
+   narrower deny would override it; guard-denies MUST therefore appear after the
+   allows they constrain to win the evaluation.
+3. The resulting payload carries 29 guard denies + 17 unique allows beyond the 11-rule
+   baseline (verified by counting the config: 40 deny rules = 11 baseline + 29 guard;
+   20 allow lines = `*` catch-all + 2 duplicate `.slim/worktrees/*` rows + 17 unique).
+
+### Rationale (irrecoverable context)
+
+- The LAST-MATCH-WINS ordering semantic is the load-bearing constraint for where to
+  place guard-denies. It is NOT recoverable from the config alone (which shows the
+  resolved ordering but not why the ordering was chosen), and it was verified
+  empirically because the docs wording is easy to misread as longest-pattern-wins.
+
+### Consequences
+
+- Any future edit to the overnight payload must respect the ordering invariant: broad
+  allows AFTER baseline denies, guard-denies AFTER the allows they constrain. A rule
+  added in the wrong position silently changes effective permission resolution.
+- The overnight.bats test uses subset-presence contract arrays (not exact-string), so
+  additive changes to the payload do not break the gate; the test is the independent
+  oracle for whether baseline/guard/allow invariants still resolve to the intended
+  decision.
+
+### Metadata
+
+- Created: 2026-08-15
+- Related: DIA-186, DIA-134, .opencode/opencode-overnight.jsonc,
+  scripts/__tests__/overnight.bats, knowledge/res004-tool-enumeration
+
+## ADR: Overnight profile guard-denies/allow-list composition is oracle-tested via subset-presence contract arrays (DIA-186)
+
+### Status
+
+Accepted - 2026-08-15
+
+### Context
+
+The overnight.bats test previously asserted exact-string payload equality, which
+broke when the payload was expanded (the DIA-186 test-drift failure: expanded payload
+without updating overnight.bats, gate broken at merge). The test needed to become
+robust against additive changes while still being a real oracle for the permission
+invariants.
+
+### Decision
+
+The overnight.bats test uses subset-presence contract arrays: it asserts that the
+baseline v1 keys, the guard-denies, and the allow-list each resolve to the intended
+"deny"/"allow" decision in the effective payload, rather than asserting exact-string
+equality with the full rule map. Additive changes (new baseline-compatible rules) do
+not break the gate; removing or re-ordering an invariant rule does.
+
+### Rationale (irrecoverable context)
+
+- The subset-presence contract design (test as independent oracle) is a deliberate
+  test-philosophy choice, not recoverable from the test diff alone (which shows the
+  arrays but not the invariant-vs-string-equality rationale).
+
+### Consequences
+
+- The test now tolerates additive payload growth, removing the coupling that caused
+  the DIA-186 gate break.
+- The test remains the independent oracle for the permission invariants; the ADR above
+  documents the ordering rule that the arrays assert.
+
+### Metadata
+
+- Created: 2026-08-15
+- Related: DIA-186, DIA-134, scripts/__tests__/overnight.bats,
+  .opencode/opencode-overnight.jsonc

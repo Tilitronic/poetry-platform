@@ -942,3 +942,297 @@ recorded here). Irrecoverable process lessons:
   sub-3s; the floor is validate-skills.bats' 23 python3-spawning tests. The
   measurement and the quick-tier suite selection lever are documented in the
   merge report + spec (recoverable), so NOT stored here as a durable lesson.
+
+## L20260815-001 - prettier 3.8.3 NON-IDEMPOTENCY class: indented code block inside a lazy-continuation list item (DIA-104/DIA-158, 2026-08-14)
+
+- Symptom: a push of be95758 (DIA-104 closure) was REJECTED by the pre-push
+  prettier format gate against the concurrent teammate file DIA-158's markdown.
+  The file combined long wrapped prose + a lazy-continuation line at column 0 +
+  an indented code block inside a list item. prettier 3.8.3 was provably
+  NON-IDEMPOTENT on this structure: each `prettier --write` pass added 2 spaces
+  to the code-block indent (proven over 15 passes: 24 -> 52sp, absolute-path
+  test), so `--check` failed after EVERY pass and the gate could NEVER pass via
+  `prettier --write` alone.
+- Resolution that worked: RESTRUCTURE the markdown so prettier converges, then
+  VERIFY idempotency on a throwaway copy (md5 96497559 stable across 4+ passes,
+  `--check` exit 0 each) before touching the real file. Moving the indented
+  SELECT block out of the lazy-continuation list item to a top-level fenced
+  block converged on the first pass. Content stayed verbatim.
+- Distinguish the two prettier failure classes: (1) NON-IDEMPOTENT structures
+  (indented code block in a lazy-continuation list item) where `--write` grows
+  indent unboundedly and the gate can never pass - these require restructure,
+  a waiver, or a prettierignore entry; (2) IDEMPOTENT one-shot normalization
+  (bullet/continuation/escape fixes) that converges after exactly one pass and
+  is safe to auto-format.
+- Operational rule before formatting ANY teammate-owned file: probe on a copy
+  first - run `prettier --write` twice on a throwaway copy and compare md5; if
+  the hash is NOT stable, do not run `--write` on the real file (you will make
+  it worse); escalate to the owner or a restructure/waiver decision instead.
+- Why irrecoverable: the git log shows the push was blocked and the commit
+  landed, but the prettier non-idempotency root cause, the two-class taxonomy,
+  and the prove-idempotency-on-a-copy procedure are only in the untracked
+  session log (messages.jsonl), not in any committed ticket or memory entry.
+
+## L20260815-002 - pre-push prettier gate scans the WHOLE worktree, so an UNTRACKED prettier-dirty teammate file can block ANY push (DIA-158/DIA-183, 2026-08-15)
+
+- Symptom: the pre-push prettier format gate (package.json `format:check` ->
+  `prettier --check "**/*.{js,ts,...}"`) runs over the entire working tree,
+  INCLUDING UNTRACKED files, not just files in the push. This session it blocked
+  three separate pushes (DIA-158, DIA-183 x2) because an UNTRACKED teammate
+  ticket file in the tree was prettier-dirty - none of the pushes touched that
+  file. The push is blocked even though the file is not part of the commit.
+- Distinguish from the committed-new-file case (see the earlier "pre-push format
+  gate rejection on NEW files" lesson): that lesson is about files you committed
+  unformatted; THIS is about files NOT in your push at all that still block it.
+- Resolution paths (pick one): (a) the file's OWNER fixes/restructures it; (b)
+  developer authorizes formatting the real file (only after proving idempotency
+  on a copy - see L20260815-001); (c) developer waives the format gate for that
+  specific file. `--no-verify` is forbidden in this repo. A concurrently-edited
+  untracked file will re-block the next push if it is still dirty.
+- Why irrecoverable: the gate glob and the `--no-verify` prohibition are in the
+  repo, but the untracked-file-blocks-any-push behavior and the three resolution
+  paths were observed repeatedly in-session and are only in the untracked
+  session log; no committed ticket records this gate nuance.
+
+## L20260815-003 - ticket-creation dispatch self-block via a CLOSED precedent DIA-id in the prompt (DIA-187, 2026-08-15)
+
+- Symptom: during the DIA-187 cycle the ticket-creation lane was dispatched to
+  create a NEW evaluation ticket, and the dispatch prompt referenced the prior
+  (CLOSED) evaluation ticket as a structural precedent. Because the prompt
+  carried that CLOSED ticket's DIA-id literal (e.g. via the precedent's ticket
+  file-path), the section-10 ticket gate (delegation-observer, DIA-063) resolved
+  the explicit DIA-id against OPEN tickets only, found NO match, and HARD-BLOCKED
+  the creation dispatch. This was a self-inflicted block: the creation lane could
+  not run to create the very ticket that would have satisfied the gate. Two
+  hard-blocked dispatches in a row surfaced it.
+- Root cause: `evaluateTicketCorrelation` Path-1 (tri-state, DIA-076 C1) treats an
+  explicit DIA-id in the dispatch as the STRONGEST signal and, when present,
+  resolves ONLY against OPEN tickets. An explicit id that resolves to a CLOSED
+  ticket (or no OPEN ticket) FAILS there with a hard throw - it never falls
+  through to Path-2/Path-3. A ticket-creation prompt that legitimately names a
+  CLOSED precedent (as a structural template) therefore trips the hard block even
+  though the dispatch's intent is to create live work. The `create a ticket` /
+  `new ticket` exemption only fires when the prompt LITERALLY matches those
+  phrases; a creation prompt phrased as "file a ticket like <closed id>" does not
+  match and falls into the correlation trap.
+- Fix that worked: reference ONLY the new (not-yet-existing) ticket's DIA-id in
+  the creation prompt - a not-yet-existing id resolves to no ticket and is
+  tolerated as "being created" by the creation flow (it does not hard-block the
+  same way a CLOSED id does when the creation intent is clear) - and describe the
+  precedent ticket by DESCRIPTOR (e.g. "the prior omo-slim upgrade-evaluation
+  ticket"), never by its DIA-id literal. This keeps the correlation signal on the
+  live target and removes the CLOSED-id trigger.
+- Operational rule: before dispatching ANY lane under the section-10 gate
+  (ai-specialist, config-work hints, ticket creation), scan the dispatch
+  description+prompt for DIA-id literals that resolve to CLOSED (or completed)
+  tickets and remove/replace them with descriptors. An explicit CLOSED id in a
+  §10 prompt is a hard-block trigger, not just a weak correlation. This is
+  distinct from the earlier "lead with an OPEN correlating ticket" rule
+  (L20260812-003) and the "ticket-gate token mandatory in dispatch" rule
+  (DIA-172 LESSON-3): those say include an OPEN id; this adds the trap that a
+  stray CLOSED id in the SAME prompt negates the whole dispatch.
+- Why irrecoverable: the gate's tri-state resolution logic is in the plugin source
+  (recoverable), but the operational self-block pattern - that a creation prompt
+  referencing a CLOSED precedent via its id literal blocks the creation dispatch,
+  and the descriptor-not-id fix - is session/behavioral knowledge not stated in
+  any committed file.
+- Cross-reference: DIA-187, DIA-063, DIA-076 C1 (tri-state), L20260812-003,
+  DIA-172 LESSON-3, .opencode/plugins/delegation-observer.ts
+  evaluateTicketCorrelation Path-1.
+
+## L20260815-004 - OMO version-bump registration must reconcile version-text drift in LIVE prompt-dir files (DIA-187 F5, 2026-08-15)
+
+- Symptom: after the 2.2.13 -> 2.2.14 pin was applied, the live prompt-dir files
+  .opencode/oh-my-opencode-slim/{coder.md, analyzer_append.md, REFERENCE-ONLY.md}
+  still name version 2.2.13 (as did historical memory/CHANGELOG records). ai-auditor
+  flagged this as a Minor finding (F5, version-text drift).
+- Lesson: extends L20260814-001 (upgrade verification must check the LOADED
+  instance + ALL plugin declaration sources). That lesson covers pins, caches, and
+  the loaded instance; it does NOT cover the version-text drift in the live prompt
+  files. During the registration step of an OMO version bump, ALSO reconcile the
+  version-string references in the live prompt-dir files
+  (.opencode/oh-my-opencode-slim/*.md) - they are loaded at runtime by the npm
+  plugin (prompts dir, PROMPTS_DIR_NAME="oh-my-opencode-slim") and carry a stale
+  version text that a version-gate audit will flag. Separate the LIVE files (must
+  reconcile) from HISTORICAL records (memory/, CHANGELOG.md - intentionally left
+  as history, do NOT rewrite). No runtime behavior change, but the drift fails a
+  version-text audit and invites confusion about which version is actually loaded.
+- Why irrecoverable: the fix commits show the pinned @2.2.14 values, but the
+  distinction between which live prompt files must be reconciled at registration
+  time (vs historical files that must not) is a workflow rule not visible in the
+  diff.
+- Cross-reference: DIA-187 (ai-auditor F5), L20260814-001,
+  .opencode/oh-my-opencode-slim/ (live prompt dir).
+
+## L20260815-005 - DIA-079 ASCII-only protocol is a SOURCE/payload rule, NOT a user-facing content rule (DIA-189, 2026-08-15)
+
+- Symptom: Ukrainian/Cyrillic text was INVISIBLE in WSL desktop notifications. Root
+  cause was NOT the transport channel - it was the desktop-toast sanitizer applying a
+  `[^\x20-\x7E]` strip (a printable-ASCII-only whitelist) that deleted every
+  non-ASCII glyph before display. The sanitizer was treating user-facing notification
+  text as if it were bound by the DIA-079 ASCII-only protocol, which is the wrong
+  scope for that rule.
+- Lesson / carve-out: DIA-079 ASCII-only applies to SOURCE files and dispatch
+  payloads (to avoid JSON serialization failures). It MUST NOT be applied to
+  user-facing notification/text content. Printable Unicode in user-facing strings is
+  correct and must be preserved. The correct sanitizer for toast/notification
+  payloads is a C0/C1 CONTROL-CHAR strip `[\x00-\x1F\x7F-\x9F]` (keeps control chars
+  out), NOT a printable-ASCII whitelist.
+- Why irrecoverable: the fix commit changes the sanitizer regex, but the rule
+  boundary - "ASCII protocol is source-scoped, user-facing text keeps Unicode" - is a
+  behavioral decision not stated in any committed config or policy doc.
+- Cross-reference: DIA-189 (Variant A3), .opencode/plugins/needs-input-observer.ts,
+  DIA-079.
+
+## L20260815-006 - WSL2 powershell.exe WinRT toasts are UTF-16 capable; the channel is not the Unicode culprit (DIA-189, 2026-08-15)
+
+- Observation: WSL2 desktop notifications delivered via powershell.exe WinRT toasts
+  carry UTF-16 and handle printable Unicode fine. In DIA-189 the invisible-Cyrillic
+  defect was blamed at first on the notification channel; verification showed the
+  channel was never the problem - the toast sanitizer's printable-ASCII whitelist
+  deleted the non-ASCII glyphs before they reached the channel.
+- Lesson: when Unicode glyphs disappear from a desktop notification on WSL2, debug
+  the SANITIZER/PREP step first (the layer that strips or transforms the payload)
+  before suspecting the powershell/WinRT channel. The channel is UTF-16 capable and
+  is a reliable Unicode carrier.
+- Why irrecoverable: this is a debugging-attribution insight; no committed file
+  records "channel is fine, sanitizer is the culprit".
+- Cross-reference: DIA-189 (Variant A3), L20260815-005, adr.md WSL2 notification
+  entries (DIA-122).
+
+## L20260815-007 - OpenCode SDK Session.update CAN set session titles programmatically (DIA-189, 2026-08-15)
+
+- Capability fact: the OpenCode SDK supports setting a session's title via
+  `Session.update` with a title body field. This enables a plugin-level
+  rename-on-create seam: on `session.created`, if the title is the default/empty
+  label, rewrite it to a unique title (baseTitle + short-id suffix) so every TUI
+  terminal/session entry is distinguishable. The DIA-189 plugin update guards against
+  double-rename (idempotent) and is fail-soft (never blocks session creation if the
+  rename errors).
+- Lesson: this SDK capability is the intended hook for future multi-session
+  navigation/work - do not assume session titles are fixed at creation or require a
+  UI-side workaround. The title body can be set from plugin code at the
+  session-created lifecycle point.
+- Why irrecoverable: the plugin commit shows the usage, but the reusable capability
+  fact (Session.update title body = rename-on-create seam for multi-session
+  navigation) is a design-shaping fact not documented elsewhere.
+- Cross-reference: DIA-189 (Variant A1), .opencode/plugins/needs-input-observer.ts,
+  ctx.client.session.update.
+
+## L20260815-008 - Pty vs Session fix-target mismatch: verify WHICH SDK object drives the visible UI surface (DIA-189, 2026-08-15)
+
+- Symptom: the DIA-189 Variant A fix renamed Session titles via session.update on
+  session.created, but after restart the developer confirmed the visible TUI
+  terminal strip (rows with terminal glyphs + '+' chevron) is driven by Pty.title,
+  NOT Session.title. The visible surface never changed - one restart exposed the
+  mismatch. Pty.title lives at types.gen.d.ts:562-570 ({ id, title, command, args,
+  cwd, status, pid }) and has its own update endpoint (pty.update) separate from
+  session.update.
+- Lesson: before writing a rename/title fix, first identify WHICH SDK object drives
+  the visible UI surface. Session.title and Pty.title are separate fields with
+  separate update endpoints; renaming the wrong one silently does nothing to the
+  surface a user sees. Verify against the installed SDK type definitions (which
+  struct is bound to the visible strip) before committing to a fix target.
+- Why irrecoverable: the merged fix and its diff show what was renamed, but the
+  diagnostic step - "Session.title is not the PTY strip; confirm the UI binding
+  first" - is a debugging-attribution insight not stated in any committed file.
+- Cross-reference: DIA-189 (Variant A fix, merge ef3d97d; follow-up Variant A1b, merge
+  97dd000), .opencode/plugins/needs-input-observer.ts, types.gen.d.ts Pty.title,
+  L20260815-007.
+
+## L20260815-009 - ctx.client.pty.* IS exposed to server plugins; verify research-lane SDK claims against installed types (DIA-189, 2026-08-15)
+
+- Correction to an earlier wrong claim: a research lane (ai--1) asserted 'no
+  pty.update exposed to plugins'. Recon against the installed SDK types (code-
+  navigator cod-7, read-only) proved this FALSE: ctx.client.pty.list/create/get/
+  update/remove/connect are all typed on the plugin client (sdk.gen.d.ts:38-63),
+  PtyUpdateData accepts title? (types.gen.d.ts:1614-1629), and pty.created/updated/
+  exited/deleted are in the v1 Event union (types.gen.d.ts:571-602) reaching the
+  plugin event hook.
+- Lesson: when a research/subagent claim states that an SDK capability does not
+  exist, verify it against the INSTALLED SDK types (node_modules types.gen.d.ts /
+  sdk.gen.d.ts) before accepting it or changing design direction. Research-lane SDK
+  capability claims can be wrong and can steer a fix toward the wrong surface.
+- Why irrecoverable: the pty surface exists in the installed SDK (recoverable), but
+  the process fact that a research claim was FALSE and the habit of verifying against
+  installed types is the behavioral lesson.
+- Cross-reference: DIA-189 (follow-up recon, cod-7), sdk.gen.d.ts, types.gen.d.ts,
+  L20260815-007 (SDK-seam lesson - adjacent, distinct).
+
+## L20260815-010 - Boot retro-pass pattern for plugin state on pre-existing items (DIA-189, 2026-08-15)
+
+- Pattern: session.created / pty.created hooks only fire for NEW items. After a
+  restart, pre-existing sessions/ptys are re-listed from persistence and never fire a
+  created event, so plugin features that only act on created hooks leave the pre-
+  existing panes un-renamed (the after-restart gap). The fix is a boot-time retro
+  pass: `void async` after seedFromDisk that lists existing items (pty.list() +
+  session.list()) and renames default-titled ones, fail-soft per surface, same guards
+  as the created-hook path, with an in-memory dedupe map (short TTL, no timers) to
+  absorb the created+updated double-fire.
+- Hermetic test note: the retro pass must settle within two setTimeout(0) macrotask
+  turns so Bun tests can await it deterministically.
+- Lesson: any plugin feature that must apply to PRE-EXISTING state (not just new
+  items) needs an explicit boot retro pass over the persisted set; relying on
+  created-hooks alone leaves a restart-window gap.
+- Why irrecoverable: the code and tests show the retro pass, but the pattern rule -
+  "created hooks cover new items only; add a boot retro pass for pre-existing state"
+  - is a design decision not stated in a spec.
+- Cross-reference: DIA-189 (follow-up A2b, merge 97dd000, chain
+  1f202bb/eba07c8/e283214/b43b8c8/d141599), .opencode/plugins/needs-input-observer.ts,
+  L20260815-007, L20260815-008.
+
+## L20260815-011 - context_usage tool proxy overestimates ~2x vs the TUI indicator; trust the TUI over the proxy (DIA-191, 2026-08-15)
+
+- Observation: the context_usage tool's proxy estimate read ~48% while the opencode
+  TUI indicator showed ~23% actual context usage for the same session. The proxy
+  overestimates by roughly 2x (registry.jsonl activity signals as an approximation,
+  explicitly NOT token-accurate per its own docstring).
+- Lesson: SELF-RERUN thresholds in NEXT-RUN.md that rest on the context_usage proxy
+  are unreliable. For rerun/handoff decisions trust the TUI indicator (native
+  token count) over the proxy; treat proxy values as a coarse upper-bound signal only.
+- Why irrecoverable: the 2x proxy-vs-TUI divergence is a runtime tool-behavior
+  observation, not stated in any committed file.
+- Cross-reference: DIA-191 (filed to fix the proxy estimator), context_usage tool.
+
+## L20260815-012 - Section-10 ticket gate hard-blocks when an explicit DIA id resolves to NO OPEN ticket; closing a parent before deferred deliverables dispatch requires a follow-up ticket (DIA-063, DIA-180/DIA-194, 2026-08-15)
+
+- Observation: the DIA-063 section-10 ticket gate hard-blocks a dispatch when an
+  explicit DIA id in the prompt resolves to no OPEN ticket. Closing the parent DIA-180
+  before its deferred deliverable (Deliverable B) was dispatched left the gate with no
+  open correlation, so a follow-up ticket (DIA-194) had to be opened to restore gate
+  correlation before the deferred work could be dispatched.
+- Lesson: when a parent ticket carries deferred deliverables, do not close the parent
+  until the deferred items are dispatched (or open a tracking/follow-up ticket
+  immediately on close) so the gate retains an OPEN ticket to correlate against.
+- Why irrecoverable: the gate-correlation recovery ordering is a process fact, not
+  reconstructible from the commits (which show DIA-180 CLOSED and DIA-194 created, not
+  why the follow-up was required).
+- Cross-reference: DIA-063, DIA-180, DIA-194, lessons.md L20260815-003 (closed-precedent
+  id self-block - adjacent, distinct).
+
+## L20260815-013 - README.md on the main lineage is a shared-file hotspot for concurrent lanes; surgical staged-hunk commits are required (2026-08-15)
+
+- Observation: README.md on the main lineage (docs/dev-infra-audit/tickets/README.md,
+  rolled up by scripts/tickets) is a shared-file hotspot when multiple lanes touch it
+  concurrently. A full-file commit in one lane can sweep sibling rows from another
+  lane's uncommitted edits.
+- Lesson: when committing a shared rollup/hotspot file, stage ONLY the intended hunks
+  via a filtered diff + `git apply --cached` (surgical staged-hunk commit) rather than
+  `git add <file>` (full file). This preserves sibling lanes' uncommitted rows.
+- Why irrecoverable: the hotspot risk and the staging discipline are operational facts;
+  the commits show the resolved states but not why surgical staging was required.
+- Cross-reference: lessons.md partial-staging lint-staged gotcha (lines 71-73) and
+  hunk-splitting technique (lines 108-109).
+
+## L20260815-014 - Pre-commit lint-staged runs in-container as root, flipping md ownership to root:root (dev-infra follow-up, 2026-08-15)
+
+- Observation: the pre-commit hook (husky lint-staged) runs inside the dev container
+  as root, so files it formats/restages get re-written owned by root:root on the host
+  mount. This recurring anomaly is repaired via `chown` back to the dev user.
+- Lesson: after a commit that touches .md/.jsonc files via the in-container hook,
+  check and restore file ownership (root:root -> dev user) to avoid subsequent
+  permission errors. Worth a dev-infra follow-up ticket to make the hook run as the
+  dev user or chown after restage.
+- Why irrecoverable: the in-container-as-root ownership flip is runtime filesystem
+  state, not reconstructible from the commits (which show content, not ownership).
+- Cross-reference: recurring anomaly; dev-infra follow-up recommended.
