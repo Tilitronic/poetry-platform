@@ -220,15 +220,26 @@ EOF
 # squash-merged branch as unmerged. The subset check is the exact squash
 # semantics: "nothing on the branch is absent from main", independent of
 # main-only content from other merges.
+# WHY NOT a single `git diff ... -- $paths`: the unquoted expansion
+# word-splits on filenames containing spaces, splitting one pathspec into
+# several -- git then matches nothing and --quiet exits 0, silently reporting
+# a genuinely UNMERGED branch as merged (a false "deletable" verdict that
+# could delete unmerged work; DIA-177 re-review finding 3). Iterating
+# per-path with a quoted argument keeps each pathspec whole; the loop
+# short-circuits on the first differing path or git error.
 branch_tree_in_main() {
-  local branch="$1" paths rc=0
+  local branch="$1" paths p rc=0
   paths="$(git ls-tree -r --name-only "$branch" 2>/dev/null)" || return 128
   if [ -z "$paths" ]; then
     # empty branch tree: nothing on the branch is missing from main
     return 0
   fi
-  git diff --quiet refs/heads/main "$branch" -- $paths 2>/dev/null || rc=$?
-  # rc: 0 = subset (merged), 1 = differs (unmerged), 128 = git error
+  while IFS= read -r p; do
+    [ -n "$p" ] || continue
+    git diff --quiet refs/heads/main "$branch" -- "$p" 2>/dev/null || { rc=$?; break; }
+  done <<< "$paths"
+  # rc: 0 subset | 1 differs | any-other non-zero git error (caller handles
+  # fail-safe)
   return "$rc"
 }
 
@@ -390,7 +401,7 @@ cmd_list() {
 # ref or lock error skips ONE candidate instead of aborting the run under
 # `set -euo pipefail`.
 cleanup_candidate() {
-  local branch="$1" rc=0 tip="" wtpath="" wtdir="" dirty=""
+  local branch="$1" rc=0 brc="" tip="" wtpath="" wtdir="" dirty=""
   local merged=0 old=0
 
   # Main-tree guard: the branch the main checkout is on can never be deleted
@@ -405,21 +416,34 @@ cleanup_candidate() {
   # path (only when not an ancestor): squash-parity via branch_tree_in_main
   # (tree-subset), which catches squash-merged branches whose commits are
   # NOT ancestors of main. Exit 1 from either check is the legit "not
-  # merged" answer; 128 (or anything else) is a real git failure -> fail-safe
-  # skip. refs/heads/main is explicit so an origin/main remote cannot shadow
-  # the local branch.
+  # merged" answer; ANY other non-zero exit is a real git failure -> stderr
+  # warning + fail-safe skip (spec.md "Fail-safe per candidate": every git
+  # operation failure SHALL be reported on stderr and that candidate SHALL
+  # be skipped; DIA-177 re-review finding 1). refs/heads/main is explicit
+  # so an origin/main remote cannot shadow the local branch.
   git merge-base --is-ancestor "$branch" refs/heads/main >/dev/null 2>&1 || rc=$?
   if [ "$rc" -eq 0 ]; then
     merged=1
   elif [ "$rc" -eq 1 ]; then
-    if branch_tree_in_main "$branch"; then
+    # Slow path. Capture the exit code in a NAMED variable immediately after
+    # the call -- the old `elif [ "$?" -eq 128 ]` relied on the implicit $?
+    # in elif-position (fragile) and, worse, silently classified every
+    # non-128 non-1 failure as "unmerged" instead of the spec-mandated
+    # fail-safe skip. Dispatch is now explicit: 0 -> merged; 1 -> genuinely
+    # unmerged (fall through to the age check below); 128 or any other
+    # non-zero -> warn on stderr + skip this candidate (never a delete).
+    branch_tree_in_main "$branch"
+    brc=$?
+    if [ "$brc" -eq 0 ]; then
       merged=1
-    elif [ "$?" -eq 128 ]; then
-      warn "skipping '$branch' (merge check failed: 'git diff main $branch' errored)"
+    elif [ "$brc" -eq 1 ]; then
+      : # genuinely unmerged: falls through to the age check / matrix below
+    else
+      warn "skipping '$branch' (merge check failed: 'git diff main $branch' exited $brc)"
       return 1
     fi
   else
-    warn "skipping '$branch' (merge check failed: 'git merge-base --is-ancestor $branch main' errored)"
+    warn "skipping '$branch' (merge check failed: 'git merge-base --is-ancestor $branch main' exited $rc)"
     return 1
   fi
 

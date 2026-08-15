@@ -41,6 +41,9 @@
 #   T28 cleanup main-tree guard: checked-out candidate skipped, main/master never touched
 #   T29 cleanup --days leading-zero value (008) is a usage error (exit 2),
 #       never a bash arithmetic abort (F1 regression)
+#   T30 cleanup per-candidate non-128 non-1 git failure (mocked `git diff`
+#       exits 2) -> stderr warning + fail-safe skip + branch preserved +
+#       run-level non-zero exit + scan continues (DIA-177 re-review F1)
 
 load test-helper
 
@@ -92,6 +95,42 @@ if [ "\${1:-}" = "ls-remote" ]; then
   fi
   printf '%s\n' "\${FAKE_LS_REMOTE_OUTPUT:-}"
   exit "\${FAKE_LS_REMOTE_EXIT:-0}"
+fi
+exec "$real_git" "\$@"
+FAKEGIT
+  chmod +x "$bindir/git"
+  PATH="$bindir:$PATH"
+  export PATH
+}
+
+# mock_git_diff_exit_on_branch <code> <branch>: plants a fake `git` on PATH
+# that intercepts `git diff` calls whose argument list contains <branch>
+# (exiting with <code>) and delegates everything else -- including diffs on
+# other branches -- to the real git binary. Matching on the BRANCH argument
+# (not a filename) is deliberate: a squash-merged branch's tree contains
+# every file main had at branch time, so a filename discriminator would also
+# hit sibling branches and the fail-safe would skip them too (T30 first
+# attempt). Used to exercise the cleanup fail-safe for a per-candidate git
+# FAILURE that is neither the legit "unmerged" answer (exit 1) nor the
+# documented git error code (exit 128) -- e.g. exit 2, a usage/parse error --
+# while letting other candidates' diffs succeed so the test can prove the
+# scan continues. The spec requires ANY git operation failure on one
+# candidate to warn on stderr, skip that candidate, and continue the scan
+# (spec.md "Fail-safe per candidate"; DIA-177 re-review finding 1).
+mock_git_diff_exit_on_branch() {
+  local code="$1" branch="$2" real_git bindir
+  real_git="$(command -v git)"
+  bindir="$BATS_TEST_TMPDIR/bin"
+  mkdir -p "$bindir"
+  cat > "$bindir/git" <<FAKEGIT
+#!/usr/bin/env bash
+if [ "\${1:-}" = "diff" ]; then
+  for arg in "\$@"; do
+    if [ "\$arg" = "$branch" ]; then
+      echo "mock: git diff on '$branch' forced to exit $code" >&2
+      exit $code
+    fi
+  done
 fi
 exec "$real_git" "\$@"
 FAKEGIT
@@ -663,4 +702,31 @@ make_unmerged_worktree() {
   # no arithmetic abort and no partial side effects: the branch survives
   run git -C "$tree" branch --list feature/DIA-137-old
   assert_output_contains "feature/DIA-137-old"
+}
+
+@test "worktrees: T30 cleanup non-128 non-1 git failure -> stderr warning + skip + run non-zero + scan continues" {
+  tree="$(setup_worktree_repo)"
+  # Two merged+old branches. Only feature/DIA-137-err's file hits a mocked
+  # `git diff` that exits 2 (usage/parse error -- neither the legit
+  # "unmerged" answer 1 nor the documented git-error code 128). The
+  # spec-mandated fail-safe (F1): warn on stderr, skip THAT candidate,
+  # continue the scan; run-level exit non-zero signals the partial failure
+  # (exit-code contract).
+  make_merged_old_branch "$tree" feature/DIA-137-err 10
+  make_merged_old_branch "$tree" feature/DIA-137-ok 10
+  mock_git_diff_exit_on_branch 2 "feature/DIA-137-err"
+
+  run bash "$tree/scripts/worktrees.sh" cleanup
+
+  # run-level non-zero: a per-candidate git failure was recorded
+  [ "$status" -ne 0 ] || { echo "expected non-zero exit after a non-128 git failure" >&2; return 1; }
+  # the failed candidate is warned about on stderr (spec: reported)...
+  assert_output_contains "feature/DIA-137-err"
+  assert_output_contains "merge check failed"
+  # ...and preserved (never a delete on a failed prerequisite check)
+  run git -C "$tree" branch --list feature/DIA-137-err
+  assert_output_contains "feature/DIA-137-err"
+  # the scan continued: the unaffected merged+old candidate was deleted
+  run git -C "$tree" branch --list feature/DIA-137-ok
+  assert_output_not_contains "feature/DIA-137-ok"
 }
