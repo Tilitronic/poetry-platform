@@ -22,8 +22,9 @@
 #   make audit-python  pip-audit both Python packages (requires uv + committed uv.lock)
 #   make context7-docs  fetch library docs from Context7 (requires CONTEXT7_API_KEY; dry-run without it)
 #   make session-query  read-only SQL query over session records (node:sqlite :memory:; ARGS pass-through)
+#   make session-analytics  canned analytics over native OpenCode telemetry (opencode stats/db; ARGS pass-through)
 
-.PHONY: build up shell opencode dev stack install db-psql logs down clean check-pin-sync check-tools check-host-jq check-host-lsp gen-jsconfig test-shell test-opencode-docker test-python test-infra test-config test-interview test-skills eval-lite audit-python context7-docs jsonl-stats session-log-render jsonl-cross-check session-query
+.PHONY: build up shell opencode dev stack install db-psql logs down clean check-pin-sync check-tools check-host-jq check-host-lsp gen-jsconfig test-shell test-opencode-docker test-python test-infra test-config test-interview test-skills eval-lite audit-python context7-docs jsonl-stats session-log-render jsonl-cross-check session-query session-analytics
 
 stack:
 	bash scripts/dev-stack.sh
@@ -266,3 +267,16 @@ jsonl-cross-check:
 #   make session-query ARGS="--count-by status --table registry"
 session-query:
 	@node scripts/session-query.mjs $(ARGS)
+
+# Canned analytics over OpenCode's NATIVE telemetry surface (DIA-182:
+# scripts/session-analytics.sh — per-agent cost/tokens over subagent
+# sessions, top-N model/tool usage, delegation-chain sanity via `opencode
+# stats` + `opencode db`). Read-only, idempotent, zero new runtime deps
+# (bash + opencode CLI). Deliberately NOT wired into test-shell/test-infra/
+# test-config (consistent with the jsonl-stats precedent); the bats suite
+# (scripts/__tests__/session-analytics.bats) IS auto-discovered by
+# test-shell. Usage:
+#   make session-analytics
+#   make session-analytics ARGS="--view models --top 5"
+session-analytics:
+	@bash scripts/session-analytics.sh $(ARGS)
