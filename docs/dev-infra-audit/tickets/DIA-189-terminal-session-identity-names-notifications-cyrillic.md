@@ -113,3 +113,31 @@ Implementation merged 2026-08-15 as ef3d97d (squash of omos/dia-189, 3 files +52
   plugin comment lines (needs-input-observer.ts), byte-identical in the
   DIA-189 baseline, NOT introduced by this ticket. Rewriting them belongs to
   a separate DIA-079 cleanup task, not this fix.
+
+## UPDATE (2026-08-15, NIT4 ticket-text applied)
+
+Residual terminal-label gap root cause (post-restart follow-up; P1/A1 chain):
+
+- Root cause: guard predicate mismatch vs runtime 1.18.18 defaults. The
+  rename guard tested the current label against an expected suffix pattern,
+  but 1.18.18 default labels are "New session - <ISO timestamp>" (sessions)
+  and "Terminal N" (PTY panes) - the guard predicate never matched, so
+  0/1742 sessions were ever suffixed.
+- Fix de6239ec (squash-merged onto omo-slim-changes 2026-08-15 as 9d96310):
+  rename-if-not-suffixed - the rename applies whenever the current label is
+  NOT already suffixed (alreadySuffixed-only gate). Default/empty labels get
+  the [short-id] suffix; already-suffixed labels are left untouched
+  (idempotent, no double-suffix, no rename churn on every event).
+- Verification evidence: harness 28/28 (needs-input-observer.dia189.test.mjs
+  suite), test-config 56/56, test-shell 390, tsc 0 errors, eslint 0,
+  prettier 0. Pre-commit lint-staged (eslint --fix + prettier) autofix passed
+  on the squash commit.
+- ai-auditor: APPROVE-WITH-NITS accepted 2026-08-15. NIT4 (ticket-text
+  alignment) applied by this UPDATE block; NIT5 (pre-existing non-ASCII
+  em-dash debt in plugin comment lines, F2 lineage) deferred to a separate
+  DIA-079 ASCII cleanup task.
+- Status: PENDING restart-verify - NOT flipped CLOSED. Restart OpenCode,
+  confirm distinct PTY labels 'opencode poetry-platform [xxxxxx]' for both
+  new and pre-existing terminal panes, and confirm a Ukrainian-language
+  notification renders Cyrillic in both channels (in-TUI toast + WinRT
+  desktop toast). Flip CLOSED only after developer confirms both channels.
