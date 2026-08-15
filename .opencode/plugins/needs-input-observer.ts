@@ -57,7 +57,7 @@ import {
   unlinkSync,
   writeFileSync,
 } from "node:fs"
-import { join } from "node:path"
+import { basename, join } from "node:path"
 import type { Hooks, Plugin } from "@opencode-ai/plugin"
 
 type WaitingReason = "question" | "permission" | "idle"
@@ -688,25 +688,33 @@ const needsInputObserver: Plugin = async (ctx) => {
   /**
    * Desktop notification via powershell.exe WinRT toast (WSL interop; the
    * WSLg dbus path was gated out because freedesktop Notifications requires a
-   * daemon absent on this host - DIA-122 gate research). One line, ASCII-only
-   * text, single quotes doubled for PowerShell, control chars stripped.
+   * daemon absent on this host - DIA-122 gate research). One line; printable
+   * Unicode preserved (DIA-189 A3 - Cyrillic notification text must survive),
+   * control chars stripped, single quotes doubled for PowerShell.
    * STDOUT/STDERR discarded (res007 TUI corruption rule).
    */
   function fireDesktopToast(title: string, body: string): void {
     const now = Date.now()
     if (now - lastDesktopToastAt < DESKTOP_TOAST_DEBOUNCE_MS) return
     lastDesktopToastAt = now
-    const ascii = (s: string): string =>
+    // DIA-189 A3: printable-Unicode-preserving sanitizer. The old
+    // [^\x20-\x7E] strip turned Cyrillic (and every non-ASCII script) into
+    // spaces, making Ukrainian notification text invisible in the toast.
+    // Only control chars (U+0000-U+001F, U+007F-U+009F) are stripped;
+    // CR/LF/TAB collapse first (unchanged), single quotes double for
+    // PowerShell (unchanged), and the 180-char truncation stays.
+    const sanitize = (s: string): string =>
       s
         .replace(/[\r\n\t]+/g, " ")
-        .replace(/[^\x20-\x7E]/g, " ")
+        // eslint-disable-next-line no-control-regex -- C0/C1 strip is the A3 intent
+        .replace(/[\x00-\x1F\x7F-\x9F]/g, " ")
         .replace(/'/g, "''")
         .slice(0, 180)
     const script =
       "[Windows.UI.Notifications.ToastNotificationManager, Windows.UI.Notifications, ContentType = WindowsRuntime] | Out-Null; " +
       "$t=[Windows.UI.Notifications.ToastNotificationManager]::GetTemplateContent([Windows.UI.Notifications.ToastTemplateType]::ToastText02); " +
-      `$t.GetElementsByTagName('text').Item(0).AppendChild($t.CreateTextNode('${ascii(title)}'))|Out-Null; ` +
-      `$t.GetElementsByTagName('text').Item(1).AppendChild($t.CreateTextNode('${ascii(body)}'))|Out-Null; ` +
+      `$t.GetElementsByTagName('text').Item(0).AppendChild($t.CreateTextNode('${sanitize(title)}'))|Out-Null; ` +
+      `$t.GetElementsByTagName('text').Item(1).AppendChild($t.CreateTextNode('${sanitize(body)}'))|Out-Null; ` +
       "[Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier('opencode').Show([Windows.UI.Notifications.ToastNotification]::new($t))"
     try {
       const child = spawn("powershell.exe", ["-NoProfile", "-Command", script], {
@@ -749,11 +757,25 @@ const needsInputObserver: Plugin = async (ctx) => {
     notifyDebounceUntil = now + NOTIFY_DEBOUNCE_MS
 
     const title = entry.title || (await resolveTitle(entry.session_id)) || "Agent needs input"
+    // DIA-189 A2: notification attribution. Pin the same " [<short-id>]"
+    // suffix that A1 wrote into the terminal label so a toast names the
+    // session that is asking. Flows into BOTH the tui.showToast title and
+    // the desktop toast title - do not special-case one channel. Guard:
+    // never double-append when the title already carries the suffix.
+    const shortId = entry.session_id.slice(-6)
+    const attributedTitle = title.endsWith(` [${shortId}]`)
+      ? title
+      : `${title} [${shortId}]`
     const message = `${entry.reason}: ${entry.detail}`.slice(0, 200)
 
     try {
       await ctx.client.tui.showToast({
-        body: { title, message, variant: "warning", duration: 6000 },
+        body: {
+          title: attributedTitle,
+          message,
+          variant: "warning",
+          duration: 6000,
+        },
       })
     } catch (err) {
       console.warn(
@@ -761,7 +783,7 @@ const needsInputObserver: Plugin = async (ctx) => {
       )
     }
 
-    fireDesktopToast(title, message)
+    fireDesktopToast(attributedTitle, message)
   }
 
   /**
@@ -855,6 +877,45 @@ const needsInputObserver: Plugin = async (ctx) => {
             title: typeof info.title === "string" ? info.title : undefined,
             agent: typeof info.agent === "string" ? info.agent : undefined,
           })
+
+          // DIA-189 A1: unique terminal session titles. With many sessions in
+          // parallel (DIA-085 worktree model) every one shows the identical
+          // default TUI label "opencode <cwd>", so a notification cannot say
+          // WHICH session needs input. When the created title is missing/
+          // empty or still the default label, rename it to "<label>
+          // [<short-id>]" via the SDK - the label matches what the TUI shows
+          // after rename and the suffix is exactly what notify() (A2) pins to
+          // attribute notifications to this session. Guards: never double-
+          // rename a title that already carries a " [xxxxxx]" short-id
+          // suffix; fail-soft (a cosmetic rename must never crash the plugin
+          // - warn on error and continue, mirroring the plugin's fail-soft
+          // pattern). The await is non-blocking; the hook is async-capable.
+          const createdTitle = typeof info.title === "string" ? info.title : ""
+          const isDefaultLabel =
+            createdTitle === "" || createdTitle.startsWith("opencode ")
+          const alreadySuffixed = / \[\w{6}\]$/.test(createdTitle)
+          if (isDefaultLabel && !alreadySuffixed) {
+            const baseTitle =
+              createdTitle !== ""
+                ? createdTitle
+                : `opencode ${basename(ctx.directory)}`
+            const derivedTitle = `${baseTitle} [${info.id.slice(-6)}]`
+            try {
+              const res = await ctx.client.session.update({
+                path: { id: info.id },
+                body: { title: derivedTitle },
+              })
+              if (res.error) {
+                console.warn(
+                  `[needs-input-observer] session.update rename returned an error for ${info.id}: ${errorMessage(res.error)}`
+                )
+              }
+            } catch (err) {
+              console.warn(
+                `[needs-input-observer] session.update rename failed for ${info.id}: ${errorMessage(err)}`
+              )
+            }
+          }
           return
         }
 
