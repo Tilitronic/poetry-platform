@@ -100,11 +100,13 @@
   //   EARLIER in the merged rule set (e.g. the baseline "git push --force*"
   //   deny precedes the new "git push *" allow). The guard denies re-assert
   //   the destructive invariants AFTER the allows they constrain so the deny
-  //   is the last match: git branch -d/-D (DIA-096/DIA-177: branch deletion
-  //   stays denied for lanes; -d is denied nowhere globally), git worktree
-  //   remove --force/-f (DIA-117: force-remove discards uncommitted work),
-  //   and the full force-push family (--force/-f/--force-with-lease in both
-  //   flag-first and remote-first positions, DIA-096). These mirror the
+  //   is the last match: git branch -d/-D/--delete (DIA-096/DIA-177: branch
+  //   deletion stays denied for lanes; -d and --delete are denied nowhere
+  //   globally), git worktree remove --force/-f (DIA-117: force-remove
+  //   discards uncommitted work), and the full force-push family
+  //   (--force/-f/--force-with-lease in both flag-first and remote-first
+  //   positions, including the --force-with-lease=<value> equals-syntax
+  //   forms, DIA-096; ai-auditor caveat fix 2026-08-15). These mirror the
   //   interactive profile's deny patterns 1:1 so the overnight payload stays
   //   self-contained.
   // ---------------------------------------------------------------------------
@@ -156,18 +158,24 @@
       // DIA-186 guard denies. MUST stay AFTER the allows they constrain
       // (last-match-wins evaluation). Destructive subcommand families the
       // allow-list above would otherwise broaden:
-      //   - git branch -d / -D: branch deletion stays denied for lanes
-      //     (DIA-096/DIA-177). The interactive profile denies only -D;
-      //     -d is denied nowhere, so both are re-asserted here.
+      //   - git branch -d / -D / --delete: branch deletion stays denied for
+      //     lanes (DIA-096/DIA-177). The interactive profile denies only -D;
+      //     -d and --delete are denied nowhere, so short AND long forms are
+      //     re-asserted here (ai-auditor caveat fix 2026-08-15: --delete).
       //   - git worktree remove --force / -f (all argument positions):
       //     force-remove is semantically git clean -f* / git branch -D
       //     (DIA-117) - stays denied.
       //   - force-push family in BOTH flag-first (git push --force ...) and
-      //     remote-first (git push origin --force) positions (DIA-096).
+      //     remote-first (git push origin --force) positions, AND the
+      //     --force-with-lease=<value> equals-syntax forms in both positions
+      //     (DIA-096; ai-auditor caveat fix 2026-08-15: space-separated guards
+      //     do not match the = form, which would slip through "git push *").
       "git branch -d *": "deny",
       "git branch -d": "deny",
       "git branch -D *": "deny",
       "git branch -D": "deny",
+      "git branch --delete *": "deny",
+      "git branch --delete": "deny",
       "git worktree remove --force *": "deny",
       "git worktree remove --force": "deny",
       "git worktree remove -f *": "deny",
@@ -182,12 +190,15 @@
       "git push -f": "deny",
       "git push --force-with-lease *": "deny",
       "git push --force-with-lease": "deny",
+      "git push --force-with-lease=*": "deny",
+      "git push --force-with-lease=* *": "deny",
       "git push * --force *": "deny",
       "git push * --force": "deny",
       "git push * -f *": "deny",
       "git push * -f": "deny",
       "git push * --force-with-lease *": "deny",
-      "git push * --force-with-lease": "deny"
+      "git push * --force-with-lease": "deny",
+      "git push * --force-with-lease=*": "deny"
     },
     // DIA-186: batch-D worktree coder lanes are confined to
     // .slim/worktrees/* - explicitly allow read/edit there so file writes in
