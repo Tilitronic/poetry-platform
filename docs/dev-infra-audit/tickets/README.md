@@ -138,6 +138,7 @@
 | DIA-185 | bake safe.directory=/workspace into Dockerfile.dev (container gitconfig ephemeral repair) | docker | Low | CLOSED | [DIA-185-bake-safe-directory-into-dockerfile-dev.md](DIA-185-bake-safe-directory-into-dockerfile-dev.md) |
 | DIA-186 | overnight AFK permission allow-list gaps: TUI permission prompts defeat autonomous mode | opencode-config | Medium | OPEN | [DIA-186-overnight-permission-prompt-gaps.md](DIA-186-overnight-permission-prompt-gaps.md) |
 | DIA-191 | context_usage tool overestimates vs TUI indicator (48% proxy vs 23% actual, ~2x) causing premature SELF-RERUN | opencode-config | Medium | OPEN | [DIA-191-context-usage-estimator-overestimates-tui.md](DIA-191-context-usage-estimator-overestimates-tui.md) |
+| DIA-194 | artifact format substrate analysis (DIA-180 Deliverable B): YAML vs Markdown EBDV matrix with token-economy evidence | docs | Medium | OPEN | [DIA-194-artifact-format-substrate-analysis.md](DIA-194-artifact-format-substrate-analysis.md) |
 
 ## Status summary
 
@@ -146,14 +147,14 @@
 | Blocker  | 7     |
 | Critical | 8     |
 | Major    | 46    |
-| Medium   | 67    |
+| Medium   | 68    |
 | Minor    | 0     |
 | Low      | 16    |
 | Info     | 0     |
 
 | Status      | Count |
 | ----------- | ----- |
-| OPEN        | 11    |
+| OPEN        | 12    |
 | DONE        | 11    |
 | VALIDATE    | 0     |
 | E2E         | 0     |
