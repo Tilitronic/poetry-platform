@@ -28,6 +28,99 @@ REPO_ROOT="$(cd "$(dirname "$BATS_TEST_FILENAME")/../.." && pwd)"
 # runner has no node at all.
 NODE_BIN="$(command -v node || true)"
 
+# ---------------------------------------------------------------------------
+# Overnight payload contract (DIA-186 drift fix, 2026-08-15).
+#
+# WHY subset-presence arrays instead of an exact-string payload assertion:
+# the original test 174 asserted the FULL OPENCODE_PERMISSION JSON as one
+# exact string against the 11-rule DIA-134 payload. When DIA-186 added the
+# allow entries, read/edit blocks, and guard denies, that exact string
+# drifted and broke `make test-shell` (single not-ok, proven at clean HEAD).
+# An exact-string assertion fails on ANY additive payload change, so every
+# future DIA-186-family addition would re-break the gate.
+#
+# Subset-presence keeps the gate meaningful the other way: every rule below
+# MUST resolve to the asserted action in the exported payload. Removing or
+# softening a baseline deny (the launcher contract), a guard deny (the
+# destructive-invariant protection the allows would otherwise broaden), or an
+# allow entry (the DIA-186 point) fails the test; ADDING rules does not.
+#
+# These arrays mirror .opencode/opencode-overnight.jsonc 1:1. When the
+# payload contract changes, update the arrays here AND the profile together
+# (a deliberate two-sided diff - the test is the independent oracle).
+OVERNIGHT_BASELINE_RULES=(
+  'rm *'
+  'rm -rf *'
+  'rmdir *'
+  'chmod *'
+  'chown *'
+  'docker volume rm *'
+  'docker system prune *'
+  'docker system prune -af*'
+  'git reset --hard *'
+  'git clean -fd*'
+  'git push --force*'
+)
+
+# DIA-186 guard denies: destructive subcommands the allow-list would
+# otherwise broaden (last-match-wins: each guard MUST stay AFTER its allow).
+# 24 original + 5 ai-auditor caveat-fix patterns (2026-08-15):
+# --force-with-lease=<value> equals forms + git branch --delete long form.
+OVERNIGHT_GUARD_RULES=(
+  'git branch -d *'
+  'git branch -d'
+  'git branch -D *'
+  'git branch -D'
+  'git branch --delete *'
+  'git branch --delete'
+  'git worktree remove --force *'
+  'git worktree remove --force'
+  'git worktree remove -f *'
+  'git worktree remove -f'
+  'git worktree remove * --force *'
+  'git worktree remove * --force'
+  'git worktree remove * -f *'
+  'git worktree remove * -f'
+  'git push --force *'
+  'git push --force'
+  'git push -f *'
+  'git push -f'
+  'git push --force-with-lease *'
+  'git push --force-with-lease'
+  'git push --force-with-lease=*'
+  'git push --force-with-lease=* *'
+  'git push * --force *'
+  'git push * --force'
+  'git push * -f *'
+  'git push * -f'
+  'git push * --force-with-lease *'
+  'git push * --force-with-lease'
+  'git push * --force-with-lease=*'
+)
+
+# DIA-186 allow entries (the developer-approved batch-D worktree ops). Each
+# must resolve to allow in the exported payload - a removed allow re-opens
+# the overnight permission-prompt defect the ticket fixed.
+OVERNIGHT_ALLOW_RULES=(
+  'docker compose *'
+  'docker ps *'
+  'make *'
+  'git worktree add *'
+  'git worktree remove *'
+  'git worktree list'
+  'git commit *'
+  'git push *'
+  'git add *'
+  'git status'
+  'git diff *'
+  'git log *'
+  'git branch *'
+  'pnpm *'
+  'npm *'
+  'node *'
+  'prettier *'
+)
+
 require_node() {
   if [ -z "$NODE_BIN" ]; then
     skip "node is required to extract the overnight permission block (same requirement as make test-config)"
@@ -88,7 +181,21 @@ setup_tree() {
   assert_status 0
   assert_output_contains "ARGS: --auto"
   assert_output_contains "OPENCODE_CONFIG=$tree/.opencode/opencode-overnight.jsonc"
-  assert_output_contains 'OPENCODE_PERMISSION={"bash":{"rm *":"deny","rm -rf *":"deny","rmdir *":"deny","chmod *":"deny","chown *":"deny","docker volume rm *":"deny","docker system prune *":"deny","docker system prune -af*":"deny","git reset --hard *":"deny","git clean -fd*":"deny","git push --force*":"deny"}}'
+  # OPENCODE_PERMISSION payload contract: SUBSET-PRESENCE, not exact-string
+  # (DIA-186 drift fix, 2026-08-15 - see the contract arrays above). Every
+  # baseline deny + guard deny must resolve to deny, every allow to allow,
+  # and the .slim/worktrees/* read/edit blocks must be present. Exact-string
+  # equality would break on any additive payload change; subset-presence
+  # still catches the real regressions (a deny removed/softened, an allow
+  # removed) while tolerating future DIA-186-family additions.
+  local rule
+  for rule in "${OVERNIGHT_BASELINE_RULES[@]}" "${OVERNIGHT_GUARD_RULES[@]}"; do
+    assert_output_contains "\"${rule}\":\"deny\""
+  done
+  for rule in "${OVERNIGHT_ALLOW_RULES[@]}"; do
+    assert_output_contains "\"${rule}\":\"allow\""
+  done
+  assert_output_contains '".slim/worktrees/*":"allow"'
   assert_output_contains "hardened: DIA-134 baseline v1 - 11 destructive rules -> DENY"
 }
 
@@ -181,7 +288,9 @@ JSONC
   # (5 inherited + 6 data+git). End-to-end through the launcher: the fake
   # prints OPENCODE_PERMISSION=<json>, and every baseline v1 rule key must
   # appear with value "deny" inside it (also proves the S2 happy path still
-  # exits 0 and launches).
+  # exits 0 and launches). Baseline rules live in the shared
+  # OVERNIGHT_BASELINE_RULES contract array (DIA-186 drift fix) - the same
+  # array test 174 asserts; keep them in sync with the profile.
   require_node
   fakes="$BATS_TEST_TMPDIR/fakes"
   install_fake_opencode "$fakes"
@@ -190,21 +299,8 @@ JSONC
   run env PATH="$fakes:/usr/bin:/bin" NODE_BIN="$NODE_BIN" bash "$tree/scripts/overnight.sh"
 
   assert_status 0
-  local baseline=(
-    'rm *'
-    'rm -rf *'
-    'rmdir *'
-    'chmod *'
-    'chown *'
-    'docker volume rm *'
-    'docker system prune *'
-    'docker system prune -af*'
-    'git reset --hard *'
-    'git clean -fd*'
-    'git push --force*'
-  )
   local rule
-  for rule in "${baseline[@]}"; do
+  for rule in "${OVERNIGHT_BASELINE_RULES[@]}"; do
     assert_output_contains "\"${rule}\":\"deny\""
   done
 }
