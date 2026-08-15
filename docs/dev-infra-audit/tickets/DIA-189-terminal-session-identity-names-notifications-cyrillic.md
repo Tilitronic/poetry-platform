@@ -91,11 +91,15 @@ DIA-063 ticket gate satisfied by this ticket.
 
 ## Fix
 
-(fill at fix time)
+Implementation merged 2026-08-15 as ef3d97d (squash of omos/dia-189, 3 files +522/-9) onto branch omo-slim-changes (main lineage; the main branch is stale / not checked out - documented deviation). Variant A (developer-approved, ai-specialist gate research): A1 unique session titles via session.update rename on session.created, A2 short-id suffix notification attribution in both channels, A3 Cyrillic-preserving desktop-toast sanitizer (C0/C1-only strip). Files: .opencode/plugins/needs-input-observer.ts (+79/-9), .opencode/plugins/**tests**/needs-input-observer.dia189.test.mjs (NEW +341, 14/14 green).
+
+2026-08-15 follow-up (verification failed - developer confirmed the visible terminal strip is the PTY strip, driven by Pty.title, not Session.title): A1b pty rename on pty.created/pty.updated via ctx.client.pty.update (same default/empty-label + [short-id] guards, fail-soft), A2b boot retro pass over ctx.client.pty.list() + ctx.client.session.list() renaming pre-existing default-titled panes/sessions (closes the after-restart gap); F2 bootRetroPass res.error inspection (non-throw error envelopes now warn, no silent empty fallback), F3 in-memory rename dedupe (5s TTL, no timers). Merged as squash of omos/dia-189b.
 
 ## Re-verify
 
-(fill at re-verify time)
+2026-08-15: implementation merged ef3d97d; all automated gates green (test-config 56/56, harness 14/14, tsc 0, eslint 0, ai-auditor APPROVE-WITH-NITS, F1-F4 accepted). PENDING developer restart-verify: restart OpenCode, confirm distinct terminal labels (opencode poetry-platform [xxxxxx]) in the session list, trigger a question/permission/idle to see a notification with the short-id suffix, and confirm a Ukrainian-language notification renders Cyrillic in both the in-TUI toast and the WinRT desktop toast. Then flip DIA-189 CLOSED.
+
+2026-08-15 dia189b follow-up merged (squash of omos/dia-189b, chain 1f202bb/eba07c8/e283214/b43b8c8); all automated gates green (harness 26/26, test-config 56/56, tsc 0, eslint 0, ai-auditor APPROVE-WITH-NITS on both reviews, F1-F6 accepted). PENDING developer restart-verify: restart OpenCode, confirm the PTY strip now shows distinct labels 'opencode poetry-platform [xxxxxx]' for BOTH new and pre-existing terminal panes (boot retro pass), and that a Ukrainian notification renders Cyrillic in both channels. Then flip DIA-189 CLOSED.
 
 ## Disposition (2026-08-15)
 

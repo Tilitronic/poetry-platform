@@ -812,7 +812,152 @@ const needsInputObserver: Plugin = async (ctx) => {
     await notify(entry)
   }
 
+  // DIA-189 F3: rename dedupe. Converging event streams (e.g. pty.created
+  // followed by pty.updated with the same still-unsuffixed title) can fire a
+  // redundant second rename - idempotent but noisy. Track recently-issued
+  // (surface, id, derivedTitle) triples per plugin instance (in-memory only,
+  // no persistent state) and skip an identical rename within a short TTL.
+  // Lazily pruned on access - no timers.
+  const recentRenames = new Map<string, number>()
+  const RENAME_DEDUPE_TTL_MS = 5000
+
+  /**
+   * DIA-189 F3: check-and-record for the rename dedupe. Returns true when an
+   * identical (surface, id, derivedTitle) rename was already issued within
+   * the TTL window (caller skips it); otherwise records the rename and
+   * returns false.
+   */
+  function isRecentRename(
+    surface: "session" | "pty",
+    id: string,
+    derivedTitle: string
+  ): boolean {
+    const now = Date.now()
+    // Lazy TTL prune: drop expired entries when we touch the map.
+    for (const [key, at] of recentRenames) {
+      if (now - at > RENAME_DEDUPE_TTL_MS) recentRenames.delete(key)
+    }
+    const key = `${surface}:${id}:${derivedTitle}`
+    if (recentRenames.has(key)) return true
+    recentRenames.set(key, now)
+    return false
+  }
+
+  /**
+   * DIA-189b: shared default-label rename rule for the two terminal-title
+   * surfaces (Session and Pty). A title that is missing/empty or still the
+   * default "opencode <cwd>" label is renamed to "<label> [<short-id>]" so
+   * the terminal strip shows a unique per-session label that notification
+   * attribution (A2) can pin. Guards: never double-rename a title that
+   * already carries a " [xxxxxx]" short-id suffix; fail-soft - a cosmetic
+   * rename must never crash the plugin (console.warn on error, stderr only,
+   * mirroring the plugin's fail-soft pattern). `update` is bound to its SDK
+   * client so `this` survives the detached call.
+   */
+  async function renameDefaultTitle(
+    id: string,
+    rawTitle: string | undefined,
+    surface: "session" | "pty"
+  ): Promise<void> {
+    const createdTitle = typeof rawTitle === "string" ? rawTitle : ""
+    const isDefaultLabel =
+      createdTitle === "" || createdTitle.startsWith("opencode ")
+    const alreadySuffixed = / \[\w{6}\]$/.test(createdTitle)
+    if (!isDefaultLabel || alreadySuffixed) return
+    const baseTitle =
+      createdTitle !== ""
+        ? createdTitle
+        : `opencode ${basename(ctx.directory)}`
+    const derivedTitle = `${baseTitle} [${id.slice(-6)}]`
+    // DIA-189 F3: skip an identical rename already issued within the TTL
+    // (dedupes pty.created + pty.updated converging on the same title).
+    if (isRecentRename(surface, id, derivedTitle)) return
+    const update =
+      surface === "session"
+        ? ctx.client.session.update.bind(ctx.client.session)
+        : ctx.client.pty.update.bind(ctx.client.pty)
+    try {
+      const res = await update({ path: { id }, body: { title: derivedTitle } })
+      if (res.error) {
+        console.warn(
+          `[needs-input-observer] ${surface}.update rename returned an error for ${id}: ${errorMessage(res.error)}`
+        )
+      }
+    } catch (err) {
+      console.warn(
+        `[needs-input-observer] ${surface}.update rename failed for ${id}: ${errorMessage(err)}`
+      )
+    }
+  }
+
+  /**
+   * DIA-189b A2b: boot retro pass. Sessions/ptys created BEFORE this plugin
+   * loaded never saw the session.created/pty.created rename, so at startup
+   * we iterate the existing pty.list() and session.list() and apply the same
+   * default-title -> "<label> [<short-id>]" rename. Fail-soft at every seam
+   * (a list failure warns and skips that surface; an item update failure
+   * warns and continues) - a cosmetic boot task must never crash the plugin
+   * or block instantiation. Fired as a void call after seedFromDisk(); the
+   * promise chain settles in microtasks (the awaited SDK calls resolve
+   * immediately), so no long timer is involved.
+   */
+  async function bootRetroPass(): Promise<void> {
+    try {
+      const res = await ctx.client.pty.list()
+      // DIA-189 F2: the SDK can resolve with a non-throw { error, data:
+      // undefined } envelope. Inspect res.error - silently treating it as an
+      // empty list hides the failure - so warn and skip this surface (the
+      // session surface below still runs). Harness mocks return the raw
+      // array directly, so Array.isArray is the shape discriminator.
+      if (!Array.isArray(res) && res.error) {
+        console.warn(
+          `[needs-input-observer] boot retro pass pty.list returned an error: ${errorMessage(res.error)}`
+        )
+      } else {
+        const ptys = (Array.isArray(res) ? res : (res?.data ?? [])) as Array<{
+          id?: string
+          title?: string
+        }>
+        for (const pty of ptys) {
+          if (!pty || typeof pty.id !== "string" || !pty.id) continue
+          await renameDefaultTitle(pty.id, pty.title, "pty")
+        }
+      }
+    } catch (err) {
+      console.warn(
+        `[needs-input-observer] boot retro pass pty.list failed: ${errorMessage(err)}`
+      )
+    }
+    try {
+      const res = await ctx.client.session.list()
+      // DIA-189 F2: symmetric { error } envelope inspection for sessions.
+      if (!Array.isArray(res) && res.error) {
+        console.warn(
+          `[needs-input-observer] boot retro pass session.list returned an error: ${errorMessage(res.error)}`
+        )
+      } else {
+        const sessions = (Array.isArray(res) ? res : (res?.data ?? [])) as Array<{
+          id?: string
+          title?: string
+        }>
+        for (const session of sessions) {
+          if (!session || typeof session.id !== "string" || !session.id) continue
+          await renameDefaultTitle(session.id, session.title, "session")
+        }
+      }
+    } catch (err) {
+      console.warn(
+        `[needs-input-observer] boot retro pass session.list failed: ${errorMessage(err)}`
+      )
+    }
+  }
+
   seedFromDisk()
+
+  // DIA-189b A2b: fire the boot retro pass without blocking instantiation.
+  // The factory returns the hooks synchronously; the pass completes in
+  // microtasks after the awaited list/update calls resolve.
+  void bootRetroPass()
 
   const hooks: Hooks = {
     // Belt-and-suspenders ENTER trigger: the wait_for_user tool path is
@@ -939,6 +1084,19 @@ const needsInputObserver: Plugin = async (ctx) => {
             entry.title = info.title
             persist()
           }
+          return
+        }
+
+        // DIA-189b A1b: the visible terminal strip is the PTY strip
+        // (Pty.title), not Session.title - a pty.created/pty.updated with a
+        // default/empty title gets the same unique-label rename so the
+        // terminal list shows distinguishable labels and notifications (A2)
+        // match the strip. Same guards and fail-soft as the session rename.
+        case "pty.created":
+        case "pty.updated": {
+          const info = event.properties?.info
+          if (!info?.id) return
+          await renameDefaultTitle(info.id, info.title, "pty")
           return
         }
 
