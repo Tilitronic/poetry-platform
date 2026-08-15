@@ -293,6 +293,12 @@ COPY --chmod=0755 dev-entrypoint.sh /usr/local/bin/dev-entrypoint.sh
 COPY --chmod=0644 scripts/dev-secrets-profile.sh /etc/profile.d/secrets.sh
 COPY --chmod=0644 scripts/dev-git-turbo-profile.sh /etc/profile.d/git-turbo.sh
 
+# System-level safe.directory (DIA-185): baked into /etc/gitconfig so the
+# setting survives HOME swaps AND container recreation. Supersedes the cod-7
+# runtime /etc/gitconfig workaround, which was lost on every recreate.
+# The --get assertion makes the build fail if the entry does not land.
+RUN git config --system --add safe.directory /workspace && git config --system --get safe.directory /workspace
+
 USER ${USER_UID}:${USER_GID}
 
 RUN git config --global --add safe.directory /workspace
