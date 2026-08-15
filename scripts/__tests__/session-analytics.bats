@@ -342,6 +342,16 @@ FAKEO
 
   assert_status 0
   assert_output_contains "== Per-agent cost/tokens"
+  # DIA-182 live-smoke environment-dependence: the per-agent view renders the
+  # tokens_input header only when the real DB holds >=1 subagent session
+  # (parent_id IS NOT NULL). On an empty-subagent data state the script
+  # explicitly prints "(no subagent sessions recorded)" (view_agents in
+  # session-analytics.sh) instead of a header row, so skip rather than fail
+  # on a data-state-dependent assertion. The data-present case below stays
+  # fully asserted.
+  if [[ "$output" == *"(no subagent sessions recorded)"* ]]; then
+    skip "live DB has no subagent sessions (environment-dependent data state)"
+  fi
   assert_output_contains "tokens_input"
 }
 
