@@ -399,12 +399,15 @@
         }
       }
     },
-    // conspecter — pure-synthesis conspect authoring (DIA-135 D7).
-    // Artifact-producer tier (practice-protected.md §6): reads ONLY the sources
-    // @researcher archived under knowledge/ (D5), writes the MLA-cited conspect,
-    // registers it in memory-shelf. All network fetch tooling revoked: bash flat
-    // deny (no curl/wget/trafilatura/crwl), webfetch deny. Never modifies source
-    // files beyond the conspect + shelf entry.
+    // conspecter - pure-synthesis conspect authoring (DIA-135 D7).
+    // Artifact-producer tier (practice-protected.md sec 6): reads ONLY the
+    // sources @researcher archived under knowledge/ (D5), writes the MLA-cited
+    // conspect, and reports the artifact path. Shelf registration is DELEGATED
+    // to @memory-manager - the SOLE memory-shelf writer (DIA-143 invariant);
+    // the conspecter never writes .opencode/memory-shelf.yaml (edit =
+    // knowledge/* only). All network fetch tooling revoked: bash flat deny (no
+    // curl/wget/trafilatura/crwl), webfetch deny. Never modifies source files
+    // beyond the conspect.
     "conspecter": {
       "mode": "subagent",
       "color": "#8B5CF6",

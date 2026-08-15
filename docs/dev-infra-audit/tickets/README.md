@@ -137,7 +137,13 @@
 | DIA-184 | host make test-config exit 2: batch-d-infra.test.mjs TEST_ROOT defaults to container path /workspace | tests-infra | Medium | CLOSED | [DIA-184-host-make-test-config-enoent-batch-d-infra-test-root-container-path.md](DIA-184-host-make-test-config-enoent-batch-d-infra-test-root-container-path.md) |
 | DIA-185 | bake safe.directory=/workspace into Dockerfile.dev (container gitconfig ephemeral repair) | docker | Low | CLOSED | [DIA-185-bake-safe-directory-into-dockerfile-dev.md](DIA-185-bake-safe-directory-into-dockerfile-dev.md) |
 | DIA-186 | overnight AFK permission allow-list gaps: TUI permission prompts defeat autonomous mode | opencode-config | Medium | OPEN | [DIA-186-overnight-permission-prompt-gaps.md](DIA-186-overnight-permission-prompt-gaps.md) |
+| DIA-187 | OMO slim 2.2.14 update evaluation - research what is new, decide safety/worth for the project | opencode-config | Medium | OPEN | [DIA-187-omo-slim-2-2-14-update-evaluation.md](DIA-187-omo-slim-2-2-14-update-evaluation.md) |
+| DIA-188 | OMO self-sufficiency: project-level plugin declaration + docker bake (openCode >= 1.18.13 in image) | opencode-config | Medium | OPEN | [DIA-188-omo-slim-project-self-sufficiency.md](DIA-188-omo-slim-project-self-sufficiency.md) |
+| DIA-189 | terminal session identity: unique names + notification attribution + Cyrillic visibility | opencode-config | Major | OPEN | [DIA-189-terminal-session-identity-names-notifications-cyrillic.md](DIA-189-terminal-session-identity-names-notifications-cyrillic.md) |
+| DIA-190 | Conspecter memory-shelf edit-permission defect - contract asserts shelf registration, permission denies it (doc drift) | opencode-config | Major | VERIFIED | [DIA-190-conspecter-shelf-edit-permission.md](DIA-190-conspecter-shelf-edit-permission.md) |
 | DIA-191 | context_usage tool overestimates vs TUI indicator (48% proxy vs 23% actual, ~2x) causing premature SELF-RERUN | opencode-config | Medium | OPEN | [DIA-191-context-usage-estimator-overestimates-tui.md](DIA-191-context-usage-estimator-overestimates-tui.md) |
+| DIA-192 | delegation-observer prognosis parse fallback firing: lossy handoff + spurious high-severity TUI notification | opencode-config | Medium | VERIFIED | [DIA-192-delegation-observer-prognosis-parse-fallback.md](DIA-192-delegation-observer-prognosis-parse-fallback.md) |
+| DIA-193 | delegation-observer handoff-writer skip for non-terminal in-flight: benign guard surfaced as alarming high-severity notification | opencode-config | Low | VERIFIED | [DIA-193-delegation-observer-handoff-skip-inflight-notification.md](DIA-193-delegation-observer-handoff-skip-inflight-notification.md) |
 | DIA-194 | artifact format substrate analysis (DIA-180 Deliverable B): YAML vs Markdown EBDV matrix with token-economy evidence | docs | Medium | OPEN | [DIA-194-artifact-format-substrate-analysis.md](DIA-194-artifact-format-substrate-analysis.md) |
 
 ## Status summary
@@ -154,7 +160,7 @@
 
 | Status      | Count |
 | ----------- | ----- |
-| OPEN        | 12    |
+| OPEN        | 9     |
 | DONE        | 11    |
 | VALIDATE    | 0     |
 | E2E         | 0     |
@@ -162,7 +168,7 @@
 | MONITOR     | 1     |
 | FIXED       | 1     |
 | IMPLEMENTED | 2     |
-| VERIFIED    | 28    |
+| VERIFIED    | 31    |
 | CLOSED      | 89    |
 | BLOCKED     | 0     |
 | DISPATCHED  | 0     |

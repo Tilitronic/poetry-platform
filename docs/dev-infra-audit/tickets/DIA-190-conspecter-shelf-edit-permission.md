@@ -18,7 +18,7 @@ id: DIA-190
 title: "Conspecter memory-shelf edit-permission defect - contract asserts shelf registration, permission denies it (doc drift)"
 area: opencode-config
 severity: Major
-status: OPEN
+status: VERIFIED
 blocked_by: [] # no blockers
 parent_epic: ""
 
@@ -154,8 +154,48 @@ Checklist:
 
 ## Fix
 
-> To be filled at fix time.
+Implemented 2026-08-15 (coder lane; AGENTS.md 2.5 chain: ai-specialist gate
+research -> developer-approved Option B -> ai-auditor APPROVE-WITH-NITS,
+findings F6/F7 applied). Option B = doc alignment; the config
+(.opencode/opencode.jsonc conspecter permission = edit knowledge/\* only) is
+CORRECT and UNCHANGED - no permission expansion.
+
+- .opencode/agents/conspecter.md - frontmatter description L2; edit allow-list
+  block L17-19 (knowledge/\* only + "Shelf registration is DELEGATED to
+  @memory-manager" note); Conspect Synthesis step 4 L44 (report artifact path
+  instead of self-registering); output-contract header shelf-registration L59
+  ("memory-shelf.yaml (shelf.conspects), delegated to @memory-manager" - keeps
+  the M2 validator's required reference tokens); Permissions section L76-80
+  (drops the memory-shelf.yaml allow claim).
+- .opencode/oh-my-opencode-slim.jsonc L608 - conspecter orchestratorPrompt
+  step 4: report the conspect artifact path; @memory-manager registers it in
+  memory-shelf.yaml under shelf.conspects.
+- .opencode/skills/research-pipeline/SKILL.md L53 + L87 - conspecter reports
+  artifact path; @memory-manager registers in memory-shelf.
+- .opencode/opencode.jsonc L402-407 (ai-auditor F6) - stale comment aligned to
+  the delegation model: conspecter reports the artifact path; @memory-manager
+  is the SOLE memory-shelf writer (DIA-143 invariant); comment-only change,
+  edit permission stays knowledge/\* only. Rewritten lines are ASCII-only
+  (DIA-079).
+
+Validation: make test-config exit 0 (56/56, incl. validate-output-contracts M2
+with the delegation-annotated token); make test-shell exit 0 (390); npx
+prettier --check exit 0 on the edited non-TS files; typecheck exit 0.
+
+Verification checklist (ticket section above): (a) satisfied via delegation
+(Option B) - conspecter reports path, @memory-manager registers; (b) doc-config
+drift resolved; (c) make test-config exit 0; (d) sole-writer intent preserved
+(config untouched).
 
 ## Re-verify
 
-> To be filled at re-verify time.
+PENDING-restart-verify (after next OpenCode restart; ai-auditor review):
+
+- [ ] (a) dispatch @conspecter on a test conspect (knowledge/res<id>-<topic>/);
+      confirm it writes the conspect and REPORTS the artifact path, and does
+      NOT attempt a memory-shelf write (no blocked-registration row in
+      registry.jsonl; no .opencode/memory-shelf.yaml edit attempt)
+- [ ] (b) dispatch @memory-manager to register the reported artifact under
+      shelf.conspects; confirm the entry lands (DIA-143 sole-writer flow)
+- [ ] (c) confirm the conspecter permission block still reads edit =
+      knowledge/\* only (no memory-shelf.yaml allow)

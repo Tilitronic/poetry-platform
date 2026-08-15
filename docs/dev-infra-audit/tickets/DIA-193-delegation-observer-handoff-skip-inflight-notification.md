@@ -13,7 +13,7 @@ id: DIA-193
 title: "delegation-observer handoff-writer skip for non-terminal in-flight: benign guard surfaced as alarming high-severity notification"
 area: opencode-config
 severity: Low
-status: OPEN
+status: VERIFIED
 blocked_by: [] # no blockers
 parent_epic: ""
 
@@ -93,8 +93,27 @@ Invoke `log_decision(handoff, in-flight, prognosis)` and confirm:
 
 ## Fix
 
-> To be filled at fix time.
+Implemented 2026-08-15 (coder lane; combined with DIA-192 in one working-tree
+diff; ai-auditor APPROVE-WITH-NITS, findings F6/F7 applied).
+
+- .opencode/plugins/delegation-observer.ts skip-if-inflight branch
+  (~L2642-2652): the DIA-120 non-terminal resolution_status guard's
+  console.warn is now ctx.client.app.log (service delegation-observer, level
+  info), same message text - a benign guard no longer surfaces as a
+  high-severity TUI notification. Guard behavior UNCHANGED: non-terminal
+  statuses still write NO slot and NO pointer (DIA-120 invariant).
+- Tests: parallel-handoff.test.mjs S1 DIA-120 filter test now asserts the
+  info-level app-log "handoff-writer skipped" message AND the absence of any
+  slot/pointer write.
+
+Validation: bun parallel-handoff harness 9/9 (incl. the modified S1 test);
+make test-config exit 0 (56/56); make test-shell exit 0 (390); npx prettier
+--check exit 0.
 
 ## Re-verify
 
-> To be filled at re-verify time.
+PENDING-restart-verify (after next OpenCode restart; ai-auditor review):
+
+- [ ] invoke log_decision(handoff, in-flight, prognosis) and confirm: the
+      handoff file is NOT touched (no slot, no pointer); the skip is visible
+      in app.log at info level; NO high-severity TUI notification appears

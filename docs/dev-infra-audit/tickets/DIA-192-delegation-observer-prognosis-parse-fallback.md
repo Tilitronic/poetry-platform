@@ -13,7 +13,7 @@ id: DIA-192
 title: "delegation-observer prognosis parse fallback firing: lossy handoff + spurious high-severity TUI notification"
 area: opencode-config
 severity: Medium
-status: OPEN
+status: VERIFIED
 blocked_by: [] # no blockers
 parent_epic: ""
 
@@ -107,8 +107,45 @@ Reproduce and confirm the fallback path:
 
 ## Fix
 
-> To be filled at fix time.
+Implemented 2026-08-15 (coder lane; combined with DIA-193 in one working-tree
+diff; ai-auditor APPROVE-WITH-NITS, findings F6/F7 applied).
+
+- .opencode/plugins/delegation-observer.ts parsePrognosis (~L2520-2562):
+  double-decode retry - JSON.parse(raw); when the result is a STRING (caller
+  double-encoded), JSON.parse(inner) recovers the structured object; the inner
+  catch preserves pre-DIA-192 behavior for bare plain-string prognoses; the
+  plain-text fallback wrapper shape is unchanged. WHY comment documents that a
+  catch-only retry would be unreachable (JSON.parse is deterministic).
+- Parse-failure reporting: console.warn -> ctx.client.app.log (service
+  delegation-observer, level info), firing ONLY when both parses genuinely
+  fail - a recovered error no longer surfaces as a high-severity TUI
+  notification.
+- Gate-driven extension: the log_decision execute-path zero-console.warn grep
+  gate also converted the pre-existing "handoff atomic write failed" catch
+  (~L2618-2630) to error-level ctx.client.app.log (severity preserved).
+- Tests: .opencode/plugins/**tests**/parallel-handoff.test.mjs - harness
+  captures ctx.client.app.log; the slot-collision test asserts the
+  error-level app-log channel.
+
+Validation: node --experimental-strip-types --check delegation-observer.ts
+exit 0; bun parallel-handoff harness 9/9 (63 expect calls) in the dev
+container; DIA-192 real probe (container, real plugin execute path):
+double-encoded prognosis recovered as a structured object (open_tickets
+["DIA-192"], session_summary note recovered) and logs captured [] (info log
+correctly silent on success); make test-config exit 0 (56/56); make test-shell
+exit 0 (390); npx prettier --check exit 0.
 
 ## Re-verify
 
-> To be filled at re-verify time.
+PENDING-restart-verify (after next OpenCode restart; ai-auditor review):
+
+Smoke A (double-encoded prognosis):
+
+- [ ] invoke log_decision(handoff, done, prognosis=<double-encoded JSON
+            string>); confirm the handoff slot carries the RECOVERED structured
+      prognosis (open_tickets etc.), the slot checksum is valid, and NO
+      high-severity TUI notification appears
+      Smoke B (single-encoded prognosis):
+- [ ] invoke log_decision(handoff, done, prognosis=<single-encoded JSON>);
+      confirm it parses cleanly with no fallback wrapper and no info-level
+      parse-failed log

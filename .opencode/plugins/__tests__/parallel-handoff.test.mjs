@@ -100,12 +100,17 @@ function freshCtx() {
   // harness should simulate the runtime layout anyway.
   const sessionDir = join(directory, ".opencode", "session")
   mkdirSync(sessionDir, { recursive: true })
+  // DIA-192/193: the log_decision execute path reports benign/recovered
+  // conditions via the TUI-safe SDK app log (ctx.client.app.log) instead of
+  // raw console.warn (which surfaced as high-severity TUI notifications).
+  // Capture those calls so assertions can check the NEW channel; the OLD
+  // console.warn capture in runLogDecision still covers the
+  // atomicWriteHandoff helper's archive/failure warns (unchanged console.warn).
+  const logs = []
   return {
     directory,
-    // Minimal client surface: only app.log is ever called by the paths these
-    // tests drive (A1 warn / persistence / analysis detectors - all avoided
-    // here, but the stub keeps any stray branch fail-soft).
-    client: { app: { log: async () => {} } },
+    logs,
+    client: { app: { log: async (entry) => logs.push(entry) } },
   }
 }
 
@@ -126,7 +131,7 @@ async function makeHarness() {
   // Plugin init is hermetic: it writes the registry.jsonl session_boot row
   // and boot.json marker under <workspace>/.opencode/session/.
   const hooks = await createDelegationObserver(ctx)
-  return { hooks, ctx, paths: sessionPaths(ctx.directory) }
+  return { hooks, ctx, logs: ctx.logs, paths: sessionPaths(ctx.directory) }
 }
 
 /**
@@ -366,9 +371,9 @@ test("S1 directory creation: first write creates handoffs/ and handoffs/archive/
 })
 
 test("S1 DIA-120 filter: non-terminal 'in-flight' first write creates NO slot and NO pointer", async () => {
-  const { hooks, paths } = await makeHarness()
+  const { hooks, paths, logs } = await makeHarness()
 
-  const { warnings } = await runLogDecision(hooks, {
+  await runLogDecision(hooks, {
     event_type: "handoff",
     task_ref: "DIA-085-inflight",
     resolution_status: "in-flight",
@@ -379,9 +384,15 @@ test("S1 DIA-120 filter: non-terminal 'in-flight' first write creates NO slot an
   // The writer is never reached: no handoffs/ dir, no slot, no pointer.
   expect(existsSync(paths.handoffsDir)).toBe(false)
   expect(existsSync(paths.pointerPath)).toBe(false)
-  // The skip is observable (design.md section 2: terminal-status filter).
+  // The skip is observable on the TUI-safe app-log channel at info level
+  // (DIA-193: demoted from console.warn, which surfaced as a high-severity
+  // notification; the guard behavior itself is unchanged - no slot/pointer).
   expect(
-    warnings.some((w) => w.includes("handoff-writer skipped"))
+    logs.some(
+      (l) =>
+        l?.body?.level === "info" &&
+        l?.body?.message?.includes("handoff-writer skipped")
+    )
   ).toBe(true)
   // The event is still logged as an observation (audit row survives).
   const rows = readFileSync(paths.messagesPath, "utf-8")
@@ -392,7 +403,7 @@ test("S1 DIA-120 filter: non-terminal 'in-flight' first write creates NO slot an
 })
 
 test("S1 DIA-120 filter: non-terminal event does NOT touch an existing slot or pointer", async () => {
-  const { hooks, paths } = await makeHarness()
+  const { hooks, paths, logs } = await makeHarness()
 
   await writeTerminalHandoff(hooks, "ses_A", prognosisA())
   const slotBefore = readFileSync(paths.slotPath("ses_A"), "utf-8")
@@ -400,7 +411,7 @@ test("S1 DIA-120 filter: non-terminal event does NOT touch an existing slot or p
   const archiveBefore = readdirSync(paths.archiveDir)
 
   // Non-terminal handoff for the same session with a DIFFERENT prognosis.
-  const { warnings } = await runLogDecision(hooks, {
+  await runLogDecision(hooks, {
     event_type: "handoff",
     task_ref: "DIA-085-inflight",
     resolution_status: "in-flight",
@@ -412,13 +423,19 @@ test("S1 DIA-120 filter: non-terminal event does NOT touch an existing slot or p
   expect(readFileSync(paths.slotPath("ses_A"), "utf-8")).toBe(slotBefore)
   expect(readFileSync(paths.pointerPath, "utf-8")).toBe(pointerBefore)
   expect(readdirSync(paths.archiveDir)).toEqual(archiveBefore)
+  // The skip is observable on the TUI-safe app-log channel at info level
+  // (DIA-193; same demotion rationale as the first-write filter test).
   expect(
-    warnings.some((w) => w.includes("handoff-writer skipped"))
+    logs.some(
+      (l) =>
+        l?.body?.level === "info" &&
+        l?.body?.message?.includes("handoff-writer skipped")
+    )
   ).toBe(true)
 })
 
 test("S1 reserved-path guard: session id 'active' cannot clobber active.json", async () => {
-  const { hooks, paths } = await makeHarness()
+  const { hooks, paths, logs } = await makeHarness()
 
   // Establish a REAL pointer first so the guard's protection is observable:
   // an attempted write for lane 'active' must leave it intact.
@@ -426,7 +443,7 @@ test("S1 reserved-path guard: session id 'active' cannot clobber active.json", a
   const pointerBefore = readFileSync(paths.pointerPath, "utf-8")
   const slotABefore = readFileSync(paths.slotPath("ses_A"), "utf-8")
 
-  const { warnings } = await runLogDecision(hooks, {
+  await runLogDecision(hooks, {
     event_type: "handoff",
     task_ref: "DIA-085-guard",
     resolution_status: "done",
@@ -445,9 +462,18 @@ test("S1 reserved-path guard: session id 'active' cannot clobber active.json", a
     f.endsWith(".json")
   )
   expect(slotFiles.sort()).toEqual(["active.json", "ses_A.json"])
-  // The collision is surfaced as a warn; the call still RESOLVES (the audit
-  // row below is the non-negotiable trail - design.md section 4).
-  expect(warnings.some((w) => w.includes("slot path collision"))).toBe(true)
+  // The collision is surfaced on the TUI-safe app-log channel at error level
+  // (DIA-192 pattern: the atomic-write catch logs via app.log instead of raw
+  // console.warn; severity preserved - this is a genuine failure, not a
+  // benign skip). The call still RESOLVES (the audit row below is the
+  // non-negotiable trail - design.md section 4).
+  expect(
+    logs.some(
+      (l) =>
+        l?.body?.level === "error" &&
+        l?.body?.message?.includes("slot path collision")
+    )
+  ).toBe(true)
   const rows = readFileSync(paths.messagesPath, "utf-8")
     .trim()
     .split("\n")

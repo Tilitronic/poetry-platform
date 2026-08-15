@@ -2520,9 +2520,37 @@ const delegationObserver: Plugin = async (ctx) => {
           function parsePrognosis(raw: string | undefined): Record<string, unknown> {
             if (!raw) return {};
             try {
-              return JSON.parse(raw);
+              const parsed = JSON.parse(raw) as unknown
+              // DIA-192: the caller may double-encode (a JSON string inside a
+              // JSON string). The outer parse then SUCCEEDS but yields a
+              // STRING - decode one more level to recover the structured
+              // object. A catch-only retry would be unreachable here:
+              // JSON.parse is deterministic, so an input that throws once
+              // throws again on the same raw.
+              if (typeof parsed === "string") {
+                try {
+                  return JSON.parse(parsed) as Record<string, unknown>
+                } catch {
+                  // Inner value is a plain string (e.g. a bare note), not
+                  // double-encoded JSON - preserve pre-DIA-192 behavior.
+                  return parsed as unknown as Record<string, unknown>
+                }
+              }
+              return parsed as Record<string, unknown>
             } catch {
-              console.warn("[delegation-observer] prognosis parse failed — falling back to plain-text wrapper");
+              // Truly malformed JSON: this is a recovered error, so report it
+              // on the TUI-safe info-level app-log channel (no raw console
+              // output into the TUI stream, DIA-192) and fall back to the
+              // plain-text wrapper. The info log fires ONLY when parsing
+              // genuinely failed (outer + any inner decode).
+              ctx.client.app.log({
+                body: {
+                  service: "delegation-observer",
+                  level: "info",
+                  message:
+                    "[delegation-observer] prognosis parse failed -- falling back to plain-text wrapper",
+                },
+              })
               return {
                 session_summary: { note: raw },
                 fixes_applied: [],
@@ -2590,9 +2618,16 @@ const delegationObserver: Plugin = async (ctx) => {
                 handoffSessionId
               )
             } catch (err) {
-              console.warn(
-                `[delegation-observer] handoff atomic write failed: ${errorMessage(err)}`
-              )
+              // TUI-safe error-level app log (DIA-192 pattern): a genuine
+              // atomic-write failure keeps error severity but no longer
+              // emits raw warn-level output into the TUI stream.
+              ctx.client.app.log({
+                body: {
+                  service: "delegation-observer",
+                  level: "error",
+                  message: `[delegation-observer] handoff atomic write failed: ${errorMessage(err)}`,
+                },
+              })
               // Fall through: still log the message row below. A lost handoff
               // file is recoverable (orchestrator can retry), but a lost log
               // row means the event is invisible.
@@ -2604,9 +2639,15 @@ const delegationObserver: Plugin = async (ctx) => {
           ) {
             // Non-terminal handoff event (e.g. 'in-flight' detection log):
             // observation only, must NOT touch the handoff file (DIA-120).
-            console.warn(
-              `[delegation-observer] handoff-writer skipped: non-terminal resolution_status '${args.resolution_status}'`
-            )
+            // DIA-193: benign skip surfaced as info-level app log instead of
+            // a high-severity TUI notification (guard behavior unchanged).
+            ctx.client.app.log({
+              body: {
+                service: "delegation-observer",
+                level: "info",
+                message: `[delegation-observer] handoff-writer skipped: non-terminal resolution_status '${args.resolution_status}'`,
+              },
+            })
           }
           appendMessageRow(
             {

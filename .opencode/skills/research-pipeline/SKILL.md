@@ -50,7 +50,7 @@ If the developer chose KEEP, dispatch `@conspecter` with:
 1. **The pre-allocated ID + topic** — `knowledge/res<id>-<topic>/` (already created by the researcher's Phase A capture)
 2. **Naming** — the `<id>` was pre-allocated in Phase 1; the conspecter must NOT re-derive it
 
-The conspecter is a PURE SYNTHESIS lane: it reads ONLY the archived sources under `sources/` (NO network fetch — curl/trafilatura/crwl/playwright are revoked), synthesizes the MLA-cited conspect, and registers it in memory-shelf. It must cite ONLY sources that pass the researcher's evaluation; excluded sources are listed under Unarchived/Excluded with reason.
+The conspecter is a PURE SYNTHESIS lane: it reads ONLY the archived sources under `sources/` (NO network fetch — curl/trafilatura/crwl/playwright are revoked), synthesizes the MLA-cited conspect, and reports artifact path; @memory-manager registers in memory-shelf. It must cite ONLY sources that pass the researcher's evaluation; excluded sources are listed under Unarchived/Excluded with reason.
 
 Wait for conspecter to complete. Verify:
 - `knowledge/res<id>-<topic>/sources/` has .md files
@@ -84,5 +84,5 @@ The developer can explicitly skip analysis by setting `status: "skipped"`.
 - Phase 1: Orchestrator (ID pre-allocation)
 - Phase 2: `@researcher` (owns research + Phase A source capture; writes knowledge/<resid>-<topic>/sources/)
 - Phase 3: Orchestrator + developer (practice-protected binary decision)
-- Phase 4: `@conspecter` (pure synthesis; writes conspect; registers memory-shelf)
+- Phase 4: `@conspecter` (pure synthesis; writes conspect; reports artifact path; @memory-manager registers in memory-shelf)
 - Phase 5: Orchestrator verification (delegated read lane if needed) + developer skip option
