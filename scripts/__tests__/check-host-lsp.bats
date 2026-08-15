@@ -8,8 +8,8 @@
 # every `--version` probe is driven by a FAKE binary planted on PATH. INVARIANT:
 # bats NEVER shells a real LSP binary — each test runs with an explicit
 # PATH containing only the fakes dir + /usr/bin:/bin, so real
-# typescript-language-server / pyright / rust-analyzer are unreachable by
-# construction.
+# typescript-language-server / yaml-language-server / pyright / rust-analyzer
+# are unreachable by construction.
 #
 # rust-analyzer is CONTAINER-FIRST (DIA-106): the probe execs it THROUGH the
 # dev container via `docker compose exec`. The container path is mocked with a
@@ -27,9 +27,11 @@ load test-helper
 
 REPO_ROOT="$(cd "$(dirname "$BATS_TEST_FILENAME")/../.." && pwd)"
 
-# install_fakes <dir>: plants fake typescript-language-server / pyright /
-# rust-analyzer in <dir>. Behavior is driven by env (set per test):
+# install_fakes <dir>: plants fake typescript-language-server /
+# yaml-language-server / pyright / rust-analyzer in <dir>. Behavior is driven
+# by env (set per test):
 #   FAKE_TSLS_MISMATCH=1     typescript-language-server reports 99.0.0
+#   FAKE_YAML_LS_MISMATCH=1  yaml-language-server reports 99.0.0
 #   FAKE_PYRIGHT_MISMATCH=1  pyright reports pyright 99.0.0
 #   FAKE_RA_MISMATCH=1       rust-analyzer reports rust-analyzer 99.0.0 (...)
 #   FAKE_RA_OLD=1            rust-analyzer reports rust-analyzer 1.83.0 (...)
@@ -42,6 +44,11 @@ install_fakes() {
 [ "${FAKE_TSLS_MISMATCH:-}" = "1" ] && { printf '%s\n' "99.0.0"; exit 0; }
 printf '%s\n' "5.3.0"
 FAKETSLS
+  cat > "$dir/yaml-language-server" <<'FAKEYAML'
+#!/usr/bin/env bash
+[ "${FAKE_YAML_LS_MISMATCH:-}" = "1" ] && { printf '%s\n' "99.0.0"; exit 0; }
+printf '%s\n' "1.24.0"
+FAKEYAML
   cat > "$dir/pyright" <<'FAKEPYRIGHT'
 #!/usr/bin/env bash
 [ "${FAKE_PYRIGHT_MISMATCH:-}" = "1" ] && { printf '%s\n' "pyright 99.0.0"; exit 0; }
@@ -53,7 +60,7 @@ FAKEPYRIGHT
 [ "${FAKE_RA_OLD:-}" = "1" ] && { printf '%s\n' "rust-analyzer 1.83.0 (fake 2026-08-06)"; exit 0; }
 printf '%s\n' "rust-analyzer 1.97.1 (fake 2026-08-06)"
 FAKERA
-  chmod +x "$dir/typescript-language-server" "$dir/pyright" "$dir/rust-analyzer"
+  chmod +x "$dir/typescript-language-server" "$dir/yaml-language-server" "$dir/pyright" "$dir/rust-analyzer"
 }
 
 # mock_docker_up <version>: plants a fake `docker` on PATH whose
@@ -115,7 +122,7 @@ setup_tree() {
   echo "$tree"
 }
 
-@test "check-host-lsp: all tools present at pinned versions -> exit 0 with 3 ok lines and summary" {
+@test "check-host-lsp: all tools present at pinned versions -> exit 0 with 4 ok lines and summary" {
   fakes="$BATS_TEST_TMPDIR/fakes"
   install_fakes "$fakes"
   tree="$(setup_tree)"
@@ -125,12 +132,13 @@ setup_tree() {
 
   assert_status 0
   assert_output_contains "ok: typescript-language-server 5.3.0 (host, version matches scripts/lsp-versions.env)"
+  assert_output_contains "ok: yaml-language-server 1.24.0 (host, version matches scripts/lsp-versions.env)"
   assert_output_contains "ok: pyright 1.1.411 (host, version matches scripts/lsp-versions.env)"
   assert_output_contains "ok: rust-analyzer 1.97.1 (container poetry-dev, version matches scripts/lsp-versions.env)"
-  assert_output_contains "summary: 3 ok, 0 fail, 0 warn, 0 skip"
+  assert_output_contains "summary: 4 ok, 0 fail, 0 warn, 0 skip"
 }
 
-@test "check-host-lsp: one tool missing on PATH (tolerant, DIA-071) -> exit 0 with warn line plus 2 ok lines" {
+@test "check-host-lsp: one tool missing on PATH (tolerant, DIA-071) -> exit 0 with warn line plus 3 ok lines" {
   fakes="$BATS_TEST_TMPDIR/fakes"
   install_fakes "$fakes"
   rm "$fakes/typescript-language-server"
@@ -141,9 +149,10 @@ setup_tree() {
 
   assert_status 0
   assert_output_contains "warn: typescript-language-server — not found on host PATH. The dev container provides it"
+  assert_output_contains "ok: yaml-language-server 1.24.0 (host, version matches scripts/lsp-versions.env)"
   assert_output_contains "ok: pyright 1.1.411 (host, version matches scripts/lsp-versions.env)"
   assert_output_contains "ok: rust-analyzer 1.97.1 (container poetry-dev, version matches scripts/lsp-versions.env)"
-  assert_output_contains "summary: 2 ok, 0 fail, 1 warn, 0 skip"
+  assert_output_contains "summary: 3 ok, 0 fail, 1 warn, 0 skip"
 }
 
 @test "check-host-lsp: CHECK_HOST_LSP_STRICT=1 restores hard-fail when a tool is missing" {
@@ -157,7 +166,7 @@ setup_tree() {
 
   assert_status 1
   assert_output_contains "fail: pyright — not found on PATH. Run scripts/install-host-lsp.sh"
-  assert_output_contains "summary: 2 ok, 1 fail, 0 warn, 0 skip — see above"
+  assert_output_contains "summary: 3 ok, 1 fail, 0 warn, 0 skip — see above"
 }
 
 @test "check-host-lsp: version mismatch on one tool -> exit 1 with fail line naming the mismatch" {
@@ -171,7 +180,35 @@ setup_tree() {
 
   assert_status 1
   assert_output_contains "fail: pyright — 99.0.0 on PATH, expected 1.1.411. Run scripts/install-host-lsp.sh"
-  assert_output_contains "summary: 2 ok, 1 fail, 0 warn, 0 skip — see above"
+  assert_output_contains "summary: 3 ok, 1 fail, 0 warn, 0 skip — see above"
+}
+
+@test "check-host-lsp: yaml-language-server version mismatch -> exit 1 with fail line naming the mismatch" {
+  fakes="$BATS_TEST_TMPDIR/fakes"
+  install_fakes "$fakes"
+  export FAKE_YAML_LS_MISMATCH=1
+  tree="$(setup_tree)"
+  docker_dir="$(mock_docker_up 1.97.1)"
+
+  run_probe "$tree" "$fakes" "$docker_dir"
+
+  assert_status 1
+  assert_output_contains "fail: yaml-language-server — 99.0.0 on PATH, expected 1.24.0. Run scripts/install-host-lsp.sh"
+  assert_output_contains "summary: 3 ok, 1 fail, 0 warn, 0 skip — see above"
+}
+
+@test "check-host-lsp: yaml-language-server missing on PATH (tolerant, DIA-071) -> exit 0 with warn line" {
+  fakes="$BATS_TEST_TMPDIR/fakes"
+  install_fakes "$fakes"
+  rm "$fakes/yaml-language-server"
+  tree="$(setup_tree)"
+  docker_dir="$(mock_docker_up 1.97.1)"
+
+  run_probe "$tree" "$fakes" "$docker_dir"
+
+  assert_status 0
+  assert_output_contains "warn: yaml-language-server — not found on host PATH. The dev container provides it"
+  assert_output_contains "summary: 3 ok, 0 fail, 1 warn, 0 skip"
 }
 
 @test "check-host-lsp: SKIP_RUST=1 -> skip line for rust-analyzer, exit 0" {
@@ -185,7 +222,7 @@ setup_tree() {
 
   assert_status 0
   assert_output_contains "skip: rust-analyzer (SKIP_RUST=1 set; not required for TS/Python LSP work)"
-  assert_output_contains "summary: 2 ok, 0 fail, 0 warn, 1 skip"
+  assert_output_contains "summary: 3 ok, 0 fail, 0 warn, 1 skip"
 }
 
 @test "check-host-lsp: missing tool warns + drifting tool fails -> all reported, exit 1, single summary" {
@@ -201,7 +238,7 @@ setup_tree() {
   assert_status 1
   assert_output_contains "warn: typescript-language-server — not found on host PATH. The dev container provides it"
   assert_output_contains "fail: rust-analyzer — 99.0.0 on PATH, expected 1.97.1. Run scripts/install-host-lsp.sh"
-  assert_output_contains "summary: 1 ok, 1 fail, 1 warn, 0 skip — see above"
+  assert_output_contains "summary: 2 ok, 1 fail, 1 warn, 0 skip — see above"
 }
 
 @test "check-host-lsp: container path version mismatch -> exit 1 with fail line naming the container version" {
@@ -214,7 +251,7 @@ setup_tree() {
 
   assert_status 1
   assert_output_contains "fail: rust-analyzer - 1.83.0 in dev container, expected 1.97.1 (scripts/lsp-versions.env). Rebuild: docker compose build dev && docker compose up -d dev"
-  assert_output_contains "summary: 2 ok, 1 fail, 0 warn, 0 skip — see above"
+  assert_output_contains "summary: 3 ok, 1 fail, 0 warn, 0 skip — see above"
 }
 
 @test "check-host-lsp: container down + host matches pin -> exit 0 with host ok line" {
@@ -227,7 +264,7 @@ setup_tree() {
 
   assert_status 0
   assert_output_contains "ok: rust-analyzer 1.97.1 (host, version matches scripts/lsp-versions.env)"
-  assert_output_contains "summary: 3 ok, 0 fail, 0 warn, 0 skip"
+  assert_output_contains "summary: 4 ok, 0 fail, 0 warn, 0 skip"
 }
 
 @test "check-host-lsp: container down + host version drifts from pin (designed) -> exit 1" {
@@ -241,7 +278,7 @@ setup_tree() {
 
   assert_status 1
   assert_output_contains "fail: rust-analyzer — 1.83.0 on PATH, expected 1.97.1. Run scripts/install-host-lsp.sh"
-  assert_output_contains "summary: 2 ok, 1 fail, 0 warn, 0 skip — see above"
+  assert_output_contains "summary: 3 ok, 1 fail, 0 warn, 0 skip — see above"
 }
 
 @test "check-host-lsp: lsp-versions.env missing -> exit 1 with remediation pointer" {

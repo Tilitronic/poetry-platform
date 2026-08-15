@@ -37,6 +37,10 @@ ARG TINI_VERSION=0.19.0
 ARG TYPESCRIPT_LS_VERSION=5.3.0
 ARG TYPESCRIPT_VERSION=5.9.3
 ARG PYRIGHT_VERSION=1.1.411
+# yaml-language-server is pinned in scripts/lsp-versions.env (host) and
+# mirrored here as YAML_LS_VERSION (container) — the npm global install
+# pattern is identical to typescript-language-server (DIA-180 A1).
+ARG YAML_LS_VERSION=1.24.0
 # rust-analyzer is pinned independently of the compiler toolchain (RUST_VERSION):
 # the LSP gate (scripts/check-host-lsp.sh) resolves it through the dev
 # container, and it is provisioned on its own rustup toolchain below so
@@ -141,7 +145,8 @@ RUN npm install -g pnpm@${PNPM_VERSION} bun@${BUN_VERSION} \
     @fission-ai/openspec@${OPENSPEC_VERSION} \
     typescript-language-server@${TYPESCRIPT_LS_VERSION} \
     typescript@${TYPESCRIPT_VERSION} \
-    pyright@${PYRIGHT_VERSION}
+    pyright@${PYRIGHT_VERSION} \
+    yaml-language-server@${YAML_LS_VERSION}
 
 # === snip — command runner (checksum-verified) ===
 RUN SNIP_ARCH=$(case "${TARGETARCH:-$(uname -m)}" in x86_64|amd64) echo "amd64" ;; aarch64|arm64) echo "arm64" ;; esac) && \

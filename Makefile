@@ -174,9 +174,13 @@ test-skills:
 # validator (DIA-104: scripts/validate-grilling-gate.sh, warn-not-fail on
 # legacy tickets - absent gate_state = grandfathered, hard-fail only on
 # invalid state or bypassed-without-override) + tool-coverage audit
-# (change dia-066-tool-coverage-audit, T6) + docker-compose.yml syntax
-# (DIA-124: `docker compose config --quiet` so compose drift fails the config
-# gate without the heavy test-infra). Invariant: test-config passes
+# (change dia-066-tool-coverage-audit, T6) + memory-shelf JSON Schema gate
+# (DIA-180 A2: scripts/validate-memory-shelf.sh validates
+# .opencode/memory-shelf.yaml against scripts/schemas/memory-shelf.schema.json -
+# the first agent-written YAML artifact under a machine-enforced shape
+# contract) + docker-compose.yml syntax (DIA-124: `docker compose config
+# --quiet` so compose drift fails the config gate without the heavy
+# test-infra). Invariant: test-config passes
 # iff no HARD write-capable gaps remain — WARN-only gaps (the ~440 unlisted
 # default-allow non-write-capable tools) do NOT break the gate (Decision 6
 # scoping; see scripts/audit-agent-tool-coverage.sh).
@@ -191,6 +195,7 @@ test-config: test-interview test-skills
 	bash scripts/check-orchestrator-prompt-drift.sh
 	bash scripts/validate-handoff.sh
 	bash scripts/test-ticket-gate.sh
+	bash scripts/validate-memory-shelf.sh
 	bash scripts/audit-agent-tool-coverage.sh .opencode/opencode.jsonc
 	bash scripts/audit-agent-tool-coverage.sh tools/opencode-docker/config/opencode.json
 	# DIA-134 item 2: persistent behavioral suite (replaces DIA-132 throwaway

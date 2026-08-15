@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# install-host-lsp.sh — installs the three language servers on the HOST.
+# install-host-lsp.sh — installs the four language servers on the HOST.
 #
 # WHY: the dev container ships LS binaries (Dockerfile.dev), but developers
 # editing outside the container (host mode, no Docker) have none. This script
@@ -23,7 +23,7 @@ if [ ! -f "${ENV_FILE}" ]; then
   exit 1
 fi
 source "${ENV_FILE}"
-for key in TYPESCRIPT_LANGUAGE_SERVER_VERSION PYRIGHT_VERSION RUST_ANALYZER_VERSION; do
+for key in TYPESCRIPT_LANGUAGE_SERVER_VERSION YAML_LANGUAGE_SERVER_VERSION PYRIGHT_VERSION RUST_ANALYZER_VERSION; do
   if [ -z "${!key:-}" ]; then
     echo "error: ${key} is not set in ${ENV_FILE}. Restore the key (single source of truth) and re-run. See docs/dev-infra/host-lsp-setup.md." >&2
     exit 1
@@ -103,5 +103,6 @@ install_rust_analyzer() {
 }
 
 install_npm_ls typescript-language-server "${TYPESCRIPT_LANGUAGE_SERVER_VERSION}"
+install_npm_ls yaml-language-server "${YAML_LANGUAGE_SERVER_VERSION}"
 install_npm_ls pyright "${PYRIGHT_VERSION}"
 install_rust_analyzer

@@ -2,24 +2,26 @@
 # check-host-lsp.sh — host-runnable language-server integrity probe (Gate B).
 #
 # WHY: mirrors scripts/check-tools.sh (ok:/fail:/skip: line shape) for the
-# three language servers that scripts/install-host-lsp.sh installs on the host.
-# It is wired into `make test-shell` as a prerequisite so host-tool drift fails
-# loudly BEFORE any bats run. Aggregate probe: all three tools are probed and
-# all failures reported before any exit — one run gives the complete picture.
-# Exit 0 if all pass (SKIP_RUST=1 is neutral); exit 1 if any fail. Every
-# exit-1 is preceded by per-failure remediation pointers (no bare exit 1).
-# Requires bash 4+; runs from any cwd (lsp-versions.env resolved relative to
-# this script). The probe is install-method-agnostic: it checks the binary on
-# PATH and its --version, not how it was installed (rustup or apt).
+# four language servers that scripts/install-host-lsp.sh installs on the host
+# (typescript-language-server, yaml-language-server, pyright via npm global;
+# rust-analyzer via rustup). It is wired into `make test-shell` as a
+# prerequisite so host-tool drift fails loudly BEFORE any bats run. Aggregate
+# probe: all tools are probed and all failures reported before any exit — one
+# run gives the complete picture. Exit 0 if all pass (SKIP_RUST=1 is neutral);
+# exit 1 if any fail. Every exit-1 is preceded by per-failure remediation
+# pointers (no bare exit 1). Requires bash 4+; runs from any cwd
+# (lsp-versions.env resolved relative to this script). The probe is
+# install-method-agnostic: it checks the binary on PATH and its --version, not
+# how it was installed (rustup or apt).
 #
 # TOLERANT GATE (DIA-071): the dev container (poetry-dev, Dockerfile.dev)
-# provides all three language servers, so a host WITHOUT them is an
-# unconfigured host, not a broken repo. A MISSING host tool therefore emits
-# `warn:` and does not fail the gate — `make test-shell` / `make test-infra`
-# exit 0 on fresh hosts. Version DRIFT (a tool present at a version differing
-# from the pin) still fails: that is the gate's drift-detection purpose, and
-# the container-first rust-analyzer host fallback keeps its designed drift
-# fail (DIA-106). Set CHECK_HOST_LSP_STRICT=1 to restore the old hard-fail on
+# provides all four language servers, so a host WITHOUT them is an unconfigured
+# host, not a broken repo. A MISSING host tool therefore emits `warn:` and
+# does not fail the gate — `make test-shell` / `make test-infra` exit 0 on
+# fresh hosts. Version DRIFT (a tool present at a version differing from the
+# pin) still fails: that is the gate's drift-detection purpose, and the
+# container-first rust-analyzer host fallback keeps its designed drift fail
+# (DIA-106). Set CHECK_HOST_LSP_STRICT=1 to restore the old hard-fail on
 # missing tools (hosts that must have full LSP parity, e.g. CI).
 #
 # rust-analyzer is CONTAINER-FIRST (DIA-106): the primary probe execs
@@ -42,7 +44,7 @@ if [ ! -f "${ENV_FILE}" ]; then
   exit 1
 fi
 source "${ENV_FILE}"
-for key in TYPESCRIPT_LANGUAGE_SERVER_VERSION PYRIGHT_VERSION RUST_ANALYZER_VERSION; do
+for key in TYPESCRIPT_LANGUAGE_SERVER_VERSION YAML_LANGUAGE_SERVER_VERSION PYRIGHT_VERSION RUST_ANALYZER_VERSION; do
   if [ -z "${!key:-}" ]; then
     echo "error: ${key} is not set in ${ENV_FILE}. Restore the key (single source of truth) and re-run. See docs/dev-infra/host-lsp-setup.md." >&2
     exit 1
@@ -65,8 +67,9 @@ status=0
 # (probe_tool) and the container probe (probe_rust_analyzer_container) so the
 # version-extraction regex lives in ONE place; both probe paths must
 # normalize --version output identically. Works across output shapes: TS LS
-# prints a bare version ("5.3.0"), pyright prints "pyright 1.1.411",
-# rust-analyzer prints "rust-analyzer 1.97.1 (hash 2026-01-01)".
+# and yaml-language-server print a bare version ("5.3.0" / "1.24.0"), pyright
+# prints "pyright 1.1.411", rust-analyzer prints "rust-analyzer 1.97.1 (hash
+# 2026-01-01)".
 extract_version() {
   printf '%s\n' "${1:-}" | grep -oE '[0-9]+(\.[0-9]+)+' | head -n1 || true
 }
@@ -138,6 +141,7 @@ probe_rust_analyzer_container() {
 }
 
 probe_tool typescript-language-server "${TYPESCRIPT_LANGUAGE_SERVER_VERSION}"
+probe_tool yaml-language-server "${YAML_LANGUAGE_SERVER_VERSION}"
 probe_tool pyright "${PYRIGHT_VERSION}"
 if [ "${SKIP_RUST}" = "1" ]; then
   echo "skip: rust-analyzer (SKIP_RUST=1 set; not required for TS/Python LSP work)"

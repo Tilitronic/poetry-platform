@@ -1,10 +1,11 @@
 # Host Language Server Setup (dev-infra)
 
-Install and verify the three language servers (TypeScript, Python, Rust) on
-**your host**, outside the dev container. This mirrors what `Dockerfile.dev`
+Install and verify the four language servers (TypeScript, YAML, Python, Rust)
+on **your host**, outside the dev container. This mirrors what `Dockerfile.dev`
 already ships inside the container (see
-`openspec/changes/dev-infra-language-servers`) so editors running in host mode
-(VSCode, opencode-on-host) get the same LSP intelligence.
+`openspec/changes/dev-infra-language-servers`; `yaml-language-server` added in
+DIA-180 A1) so editors running in host mode (VSCode, opencode-on-host) get the
+same LSP intelligence.
 
 Everything below is owner-run. The scripts are deliberately small, bash-only,
 and idempotent — they never touch your shell rc files and never use `sudo`.
@@ -12,8 +13,9 @@ and idempotent — they never touch your shell rc files and never use `sudo`.
 ## Prerequisites
 
 - **bash >= 4** (Linux/macOS host; Windows developers use the dev container).
-- **Node.js >= 18** and **npm** on `PATH` — required for the TypeScript and
-  Python language servers (`typescript-language-server`, `pyright`).
+- **Node.js >= 18** and **npm** on `PATH` — required for the TypeScript, YAML,
+  and Python language servers (`typescript-language-server`,
+  `yaml-language-server`, `pyright`).
 - **rustup** on `PATH` — OPTIONAL, only for `rust-analyzer`. If absent, the
   install script warns and continues (partial install); or skip Rust entirely
   with `SKIP_RUST=1`.
@@ -70,6 +72,7 @@ installs:
 | Tool                         | Pinned version | Method                                                   |
 | ---------------------------- | -------------- | -------------------------------------------------------- |
 | `typescript-language-server` | 5.3.0          | `npm install -g --prefix "$HOME/.local"`                 |
+| `yaml-language-server`       | 1.24.0         | `npm install -g --prefix "$HOME/.local"`                 |
 | `pyright`                    | 1.1.411        | `npm install -g --prefix "$HOME/.local"`                 |
 | `rust-analyzer`              | 1.97.1         | `rustup component add rust-analyzer` (if rustup present) |
 
@@ -103,9 +106,10 @@ Expected output on a fully configured host:
 
 ```
 ok: typescript-language-server 5.3.0 (host, version matches scripts/lsp-versions.env)
+ok: yaml-language-server 1.24.0 (host, version matches scripts/lsp-versions.env)
 ok: pyright 1.1.411 (host, version matches scripts/lsp-versions.env)
 ok: rust-analyzer 1.97.1 (container poetry-dev, version matches scripts/lsp-versions.env)
-summary: 3 ok, 0 fail, 0 warn, 0 skip
+summary: 4 ok, 0 fail, 0 warn, 0 skip
 ```
 
 > **rust-analyzer is container-first (DIA-106):** `check-host-lsp` probes
@@ -117,7 +121,7 @@ poetry-dev, ...)`. The host PATH probe runs only as a fallback while the
 > the host toolchain is bumped).
 
 **Tolerant gate (DIA-071):** a MISSING host tool emits `warn:` and does NOT
-fail the gate — the dev container provides all three language servers, so an
+fail the gate — the dev container provides all four language servers, so an
 unconfigured host is expected and harmless (`make test-shell`/`make test-infra`
 exit 0). Version DRIFT on a present tool still fails (drift detection is the
 gate's purpose). Set `CHECK_HOST_LSP_STRICT=1` to restore the pre-DIA-071
@@ -135,7 +139,7 @@ the script lists every failing tool before exiting.
 - **`SKIP_RUST=1`** — skip `rust-analyzer` entirely (install emits
   `skip: rust-analyzer (SKIP_RUST=1)`; the probe reports `skip:` and does not
   fail). Use when Rust is not needed for your work, or when rustup is absent
-  and you don't want the warning. TS/Python are NOT skippable.
+  and you don't want the warning. TS/Python/YAML are NOT skippable.
 - **`CHECK_HOST_LSP_STRICT=1`** — restore the pre-DIA-071 hard gate: a missing
   host tool becomes a `fail:` (exit 1) instead of a tolerant `warn:`. Use on
   hosts that must have full LSP parity (CI, shared dev machines).
@@ -161,13 +165,13 @@ client you used and the date/initials.
 
 **Expected on hosts that have not run the install yet** — this is the DIA-071
 tolerant-gate behavior, not a bug. `make test-shell` runs `check-host-lsp` as a
-prerequisite before any bats test, and on a fresh host the three LS binaries
-are absent. Because the dev container provides all three language servers, the
+prerequisite before any bats test, and on a fresh host the four LS binaries
+are absent. Because the dev container provides all four language servers, the
 gate WARNS and exits 0 — the bats suite still runs:
 
 ```
 warn: typescript-language-server — not found on host PATH. The dev container provides it; install on the host only for host-mode editors: scripts/install-host-lsp.sh (see docs/dev-infra/host-lsp-setup.md)
-summary: 2 ok, 0 fail, 1 warn, 0 skip
+summary: 3 ok, 0 fail, 1 warn, 0 skip
 ```
 
 To turn the warns into `ok:` lines, run `bash scripts/install-host-lsp.sh` once
@@ -220,7 +224,19 @@ The probe compares the `--version` output of the binary on `PATH` against
   and re-run the install. `rust-analyzer` tracks your active rustup toolchain:
   if your host toolchain is newer than the pin, either pin
   `RUST_ANALYZER_VERSION` to your `rustc --version` release or set
-  `SKIP_RUST=1`.
+  `SKIP_RUST=1`. `yaml-language-server` follows the same pin/bump flow as
+  `typescript-language-server` (DIA-180 A1).
+
+### YAML editing: LSP + the memory-shelf schema gate
+
+`yaml-language-server` gives YAML intelligence (syntax, schema hints) in
+editors, but agents do not consume LSP diagnostics — the machine-enforced
+safety net for agent-written YAML is the repo gate
+`scripts/validate-memory-shelf.sh` (wired into `make test-config`), which
+validates `.opencode/memory-shelf.yaml` against
+`scripts/schemas/memory-shelf.schema.json` (DIA-180 A2). YAML files outside
+the shelf that agents write get a schema per DIA-180 A2 as the analysis
+(Deliverable B) identifies them.
 
 ### rustup not found (install warning)
 
