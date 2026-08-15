@@ -139,13 +139,10 @@ exit 0 (390); npx prettier --check exit 0.
 
 PENDING-restart-verify (after next OpenCode restart; ai-auditor review):
 
-Smoke A (double-encoded prognosis):
+**Smoke A (double-encoded prognosis):**
 
-- [ ] invoke log_decision(handoff, done, prognosis=<double-encoded JSON
-            string>); confirm the handoff slot carries the RECOVERED structured
-      prognosis (open_tickets etc.), the slot checksum is valid, and NO
-      high-severity TUI notification appears
-      Smoke B (single-encoded prognosis):
-- [ ] invoke log_decision(handoff, done, prognosis=<single-encoded JSON>);
-      confirm it parses cleanly with no fallback wrapper and no info-level
-      parse-failed log
+- [ ] Invoke log_decision(handoff, done, prognosis=<double-encoded JSON string>) and confirm the handoff slot carries the RECOVERED structured prognosis (open_tickets etc.), the slot checksum is valid, and NO high-severity TUI notification appears.
+
+**Smoke B (single-encoded prognosis):**
+
+- [ ] Invoke log_decision(handoff, done, prognosis=<single-encoded JSON>) and confirm it parses cleanly with no fallback wrapper and no info-level parse-failed log.
