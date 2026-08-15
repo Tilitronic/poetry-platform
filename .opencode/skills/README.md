@@ -23,7 +23,7 @@ repo.
 
 ## Which skills live where (post-DIA-084)
 
-### Project-pinned skills (22)
+### Project-pinned skills (23)
 
 These resolve in this repo regardless of where the repo is cloned or run. Five
 skills (`tdd-craftsman`, `teaching`, `mermaid-diagramming`, `console-charting`,
@@ -36,12 +36,13 @@ copies were deleted so the project versions load (the global copy of
 version — DIA-084 URGENT fix).
 
 ```
-book-rag, code-review-fowler, console-charting, debugging-workflow,
-domain-grilling, git-diff, git-permissions, mermaid-diagramming,
-openspec-apply-change, openspec-archive-change, openspec-explore,
-openspec-propose, openspec-sync-specs, openspec-update-change,
-playwright-browser, research-pipeline, resolving-merge-conflicts,
-review-re-verify, simplify, tdd-craftsman, teaching, to-tickets
+book-rag, code-review-fowler, console-charting, data-reducer,
+debugging-workflow, domain-grilling, git-diff, git-permissions,
+mermaid-diagramming, openspec-apply-change, openspec-archive-change,
+openspec-explore, openspec-propose, openspec-sync-specs,
+openspec-update-change, playwright-browser, research-pipeline,
+resolving-merge-conflicts, review-re-verify, simplify, tdd-craftsman,
+teaching, to-tickets
 ```
 
 ### Global-only skills (8, accepted as non-load-bearing)
@@ -86,7 +87,7 @@ container without the home mount, another developer's machine) will NOT
 resolve them. Mitigation per DIA-084 disposition:
 
 - All skills the repo actually needs for builds / tests / agent contracts are
-  now **project-pinned** (22 above) and resolve anywhere.
+  now **project-pinned** (23 above) and resolve anywhere.
 - The 8 global-only skills are deliberately non-load-bearing: if a future
   workflow makes one of them load-bearing, pin it at project level (copy in +
   delete the global copy) in the same change that adds the dependency.
