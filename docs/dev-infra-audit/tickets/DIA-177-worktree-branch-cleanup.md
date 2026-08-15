@@ -8,7 +8,7 @@ id: DIA-177
 title: "worktree branch cleanup subcommand with merge verification"
 area: dev-infra
 severity: Low
-status: FIXED
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 discovered: 2026-08-14
 source: developer-request
@@ -190,3 +190,31 @@ itself, no spec change needed.
 > a here-string `<<< "$paths"` (no delimiter-collision edge case, verified
 > one-path-per-line with space filenames); RO-3 rc comment reworded. Same
 > gates re-run: test-shell 344/344, test-config 56/56.
+
+## Merge
+
+> Merged to `omo-slim-changes` 2026-08-15 (serialized squash lane) as commit
+> `6c47c58` — squash of `omos/dia-177` @ a676cb3 onto the 49cb3de lineage
+> (base 8a737a3). Status FIXED -> CLOSED per ledger convention. README row
+> updated OPEN -> FIXED by the squash; final CLOSED row + summary counts in
+> the ledger commit.
+
+**R3 merge-gate evidence** (`docker compose ps`, before the first merge of the
+lane, 2026-08-15):
+
+- poetry-dev Up 9 hours (healthy)
+- poetry-postgres Up 9 hours (healthy)
+
+**Gate results (this lane, post-merge):**
+
+- `make test-config`: exit 0 (node batch-d-infra 56/56; all validators pass).
+- `make test-shell` / bats-wrapper: 344 tests, 343 ok, 1 not-ok. The single
+  not-ok (`overnight: TUI mode launches fake opencode with hardened env`) is a
+  PRE-EXISTING main-line failure: DIA-186 expanded the OPENCODE_PERMISSION
+  payload in `.opencode/opencode-overnight.jsonc` (+109 lines) but the
+  exact-string assertion in `scripts/__tests__/overnight.bats` was not
+  updated. Verified identical failure on a clean checkout of HEAD 49cb3de
+  (pre-merge state) — NOT introduced by this merge.
+- Pre-commit hook passed (no `--no-verify`; container up).
+- All DIA-177 bats green: worktrees T1-T30 (cleanup cases T20-T30 incl. the
+  fail-safe T30 mocked `git diff` exit-2 case).

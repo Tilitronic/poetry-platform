@@ -127,12 +127,12 @@
 | DIA-174 | Batch D infra hardening: worktree hooks, test persistence, branch-ownership payloads, dispatch tokens (DIA-172 retrospective) | dev-infra | Major | DONE | [DIA-174-batch-d-infra-hardening.md](DIA-174-batch-d-infra-hardening.md) |
 | DIA-175 | Coder prompt hygiene: instance separation, same-session fixes, scratch-dir permissions (DIA-174 follow-up) | opencode-config | Medium | DONE | [DIA-175-coder-prompt-hygiene-scratch-dir.md](DIA-175-coder-prompt-hygiene-scratch-dir.md) |
 | DIA-176 | Deep review: 2-day commit window (DIA-167..176) consistency vs pre-existing docs/config/docker | dev-infra | Major | DONE | [DIA-176-deep-review-2day-window-consistency.md](DIA-176-deep-review-2day-window-consistency.md) |
-| DIA-177 | worktree branch cleanup subcommand with merge verification | dev-infra | Low | FIXED | [DIA-177-worktree-branch-cleanup.md](DIA-177-worktree-branch-cleanup.md) |
+| DIA-177 | worktree branch cleanup subcommand with merge verification | dev-infra | Low | CLOSED | [DIA-177-worktree-branch-cleanup.md](DIA-177-worktree-branch-cleanup.md) |
 | DIA-178 | Memory shelf hygiene audit: duplicate/stale/irrelevant lessons, conspects, analyses | docs | Medium | DONE | [DIA-178-memory-shelf-hygiene-audit.md](DIA-178-memory-shelf-hygiene-audit.md) |
 | DIA-179 | Full test-suite audit: execution order, fast-to-fail, duplicates, stale tests, verification honesty, DRY helpers | tests-infra | Medium | DONE | [DIA-179-full-test-suite-audit.md](DIA-179-full-test-suite-audit.md) |
-| DIA-180 | artifact format substrate review: YAML vs Markdown per artifact type (changelog, tickets, learnings, knowledge, session) | docs | Medium | OPEN | [DIA-180-artifact-format-substrate-review-yaml-vs-markdown-per-artifact-type-changelog-tickets-learnings-knowledge-session.md](DIA-180-artifact-format-substrate-review-yaml-vs-markdown-per-artifact-type-changelog-tickets-learnings-knowledge-session.md) |
-| DIA-181 | data-reducer skill + scripts/data-reduce.sh: RLM pattern - reduce large data before reading into context (DeepSeek TUI RLM adoption) | opencode-config | Medium | OPEN | [DIA-181-data-reducer-skill-rlm.md](DIA-181-data-reducer-skill-rlm.md) |
-| DIA-182 | native telemetry analytics wrapper - scripts/session-analytics.sh over opencode stats/db (per-agent cost/tokens, tool/model usage) | opencode-config | Medium | OPEN | [DIA-182-native-telemetry-analytics-wrapper.md](DIA-182-native-telemetry-analytics-wrapper.md) |
+| DIA-180 | artifact format substrate review: YAML vs Markdown per artifact type (changelog, tickets, learnings, knowledge, session) | docs | Medium | CLOSED | [DIA-180-artifact-format-substrate-review-yaml-vs-markdown-per-artifact-type-changelog-tickets-learnings-knowledge-session.md](DIA-180-artifact-format-substrate-review-yaml-vs-markdown-per-artifact-type-changelog-tickets-learnings-knowledge-session.md) |
+| DIA-181 | data-reducer skill + scripts/data-reduce.sh: RLM pattern - reduce large data before reading into context (DeepSeek TUI RLM adoption) | opencode-config | Medium | CLOSED | [DIA-181-data-reducer-skill-rlm.md](DIA-181-data-reducer-skill-rlm.md) |
+| DIA-182 | native telemetry analytics wrapper - scripts/session-analytics.sh over opencode stats/db (per-agent cost/tokens, tool/model usage) | opencode-config | Medium | CLOSED | [DIA-182-native-telemetry-analytics-wrapper.md](DIA-182-native-telemetry-analytics-wrapper.md) |
 | DIA-183 | Properly introduce ponytail skill and headroom context-compression (DCP stays active; routed via AGENTS.md 2.5) | opencode-config | Medium | OPEN | [DIA-183-ponytail-headroom-context-compression.md](DIA-183-ponytail-headroom-context-compression.md) |
 | DIA-184 | host make test-config exit 2: batch-d-infra.test.mjs TEST_ROOT defaults to container path /workspace | tests-infra | Medium | CLOSED | [DIA-184-host-make-test-config-enoent-batch-d-infra-test-root-container-path.md](DIA-184-host-make-test-config-enoent-batch-d-infra-test-root-container-path.md) |
 | DIA-185 | bake safe.directory=/workspace into Dockerfile.dev (container gitconfig ephemeral repair) | docker | Low | CLOSED | [DIA-185-bake-safe-directory-into-dockerfile-dev.md](DIA-185-bake-safe-directory-into-dockerfile-dev.md) |
@@ -145,15 +145,15 @@
 | -------- | ----- |
 | Blocker  | 7     |
 | Critical | 8     |
-| Major    | 44    |
-| Medium   | 64    |
+| Major    | 46    |
+| Medium   | 67    |
 | Minor    | 0     |
-| Low      | 15    |
+| Low      | 16    |
 | Info     | 0     |
 
 | Status      | Count |
 | ----------- | ----- |
-| OPEN        | 15    |
+| OPEN        | 17    |
 | DONE        | 11    |
 | VALIDATE    | 0     |
 | E2E         | 0     |
@@ -162,7 +162,7 @@
 | FIXED       | 1     |
 | IMPLEMENTED | 2     |
 | VERIFIED    | 28    |
-| CLOSED      | 79    |
+| CLOSED      | 83    |
 | BLOCKED     | 0     |
 | DISPATCHED  | 0     |
 | RUNNING     | 0     |
