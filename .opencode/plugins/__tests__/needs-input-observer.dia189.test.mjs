@@ -92,6 +92,17 @@
  *   silently-swallowing implementation), so P1d is RED today for the right
  *   reason and flips green with A1b. Actual split today: 18 pass / 4 fail
  *   (P1a, P1d, P2a, P2c RED; guards P1b/P1c/P2b/P2d pass).
+ *
+ *   DIA-189 fix follow-up (2026-08-15, runtime probe cod-4): the rename
+ *   guard used isDefaultLabel (title === "" || startsWith("opencode ")), but
+ *   opencode 1.18.18 defaults sessions to "New session - <ISO>" and ptys to
+ *   "Terminal N" / "Terminal <id4>", so the rename NEVER fired (0 of 1,742
+ *   all-time sessions ever carried a suffix). Developer-approved fix:
+ *   rename-if-not-suffixed - append " [<id.slice(-6)>]" to ANY unsuffixed
+ *   title (default OR user-set); the alreadySuffixed / \[\w{6}\]$/ dedupe
+ *   guard is the only gate. DEFAULT_TITLE and DEFAULT_PTY_TITLE now carry the
+ *   real runtime defaults; A1a/A1b/P1a/P1b/P2a/P2b/P2c/F5/F6a/G1 are RED
+ *   against the old guard and flip GREEN with the fix (G2 stays a guard).
  */
 import { mock, test, expect } from "bun:test"
 import { mkdtempSync } from "node:fs"
@@ -117,7 +128,19 @@ const { default: createNeedsInputObserver } = await import(
   "../needs-input-observer.ts"
 )
 
-const DEFAULT_TITLE = "opencode poetry-platform"
+// DIA-189 fix (rename-if-not-suffixed, 2026-08-15): the stale DEFAULT_TITLE
+// "opencode poetry-platform" assumed the old default TUI label, but the
+// runtime probe (cod-4, 2026-08-15) verified opencode 1.18.18 actually
+// defaults sessions to "New session - <ISO>" and ptys to "Terminal N" /
+// "Terminal <id4>". The plugin's old guard (title === "" OR starts with
+// "opencode ") never matched those, so the rename silently never ran (0 of
+// 1,742 all-time sessions ever carried a suffix). These constants now carry
+// the REAL runtime defaults so the regression tests pin the fix: the suffix
+// must be appended to ANY unsuffixed title, default OR user-set.
+const DEFAULT_TITLE = "New session - 2026-08-15T10:30:00.000Z"
+// DIA-189 fix: the real 1.18.18 pty default is "Terminal N" (probe-verified),
+// not "opencode <cwd>".
+const DEFAULT_PTY_TITLE = "Terminal 1"
 const SESSION_ID = "ses_1234567890abcdef"
 const SHORT_ID = "abcdef" // SESSION_ID.slice(-6) - verified on bun 1.3.14: "ses_1234567890abcdef".slice(-6) === "abcdef"
 // DIA-189b: pty identity. NOTE the dispatch's "[3456]" was slice(-4) - the
@@ -286,21 +309,27 @@ function desktopScript() {
 // A1: session.created rename to a unique title
 // ---------------------------------------------------------------------------
 
-test("A1a RED: default title on session.created triggers session.update with derived unique title", async () => {
+test("A1a RED: runtime session default 'New session - <ISO>' on session.created triggers session.update with derived unique title", async () => {
   const { hooks, updateCalls } = await makeHarness()
   await hooks.event(sessionCreatedEvent(DEFAULT_TITLE))
-  // A1: derived = baseTitle + " [" + id.slice(-6) + "]"
+  // A1: derived = baseTitle + " [" + id.slice(-6) + "]". DEFAULT_TITLE is
+  // the real 1.18.18 session default - RED against the old prefix guard
+  // (it does not start with "opencode ", so the rename never fired).
   expect(updateCalls).toHaveLength(1)
   expect(updateCalls[0].path).toEqual({ id: SESSION_ID })
   expect(updateCalls[0].body.title).toBe(`${DEFAULT_TITLE} [${SHORT_ID}]`)
 })
 
-test("A1b guard: custom non-default title is NOT renamed (no session.update)", async () => {
+test("A1b RED: user-set title 'My Custom Session' gets the suffix appended (rename-if-not-suffixed)", async () => {
   const { hooks, updateCalls } = await makeHarness()
-  await hooks.event(sessionCreatedEvent("My special session"))
-  // Guard: only default-label / empty titles are renamed. PASSES today
-  // (trivially - no update call exists at all); must still pass after A1.
-  expect(updateCalls).toHaveLength(0)
+  await hooks.event(sessionCreatedEvent("My Custom Session"))
+  // DIA-189 fix: rename-if-not-suffixed appends " [<short-id>]" to ANY
+  // unsuffixed title, user-set included - developer-approved because it
+  // survives future default-format changes. RED against the old rule (only
+  // "opencode "-prefixed labels were renamed, so no update call fired).
+  expect(updateCalls).toHaveLength(1)
+  expect(updateCalls[0].path).toEqual({ id: SESSION_ID })
+  expect(updateCalls[0].body.title).toBe("My Custom Session [abcdef]")
 })
 
 test("A1c RED: missing/empty title on session.created triggers session.update with default-label base + short-id", async () => {
@@ -469,28 +498,33 @@ test("A3e guard: C1 control chars (U+0080-U+009F) are still stripped to spaces i
 // DIA-189b P1: pty.created rename (the visible terminal strip is Pty.title)
 // ---------------------------------------------------------------------------
 
-test("P1a RED: pty.created with default title triggers pty.update with derived unique title", async () => {
+test("P1a RED: pty.created with runtime pty default 'Terminal 1' triggers pty.update with derived unique title", async () => {
   const { hooks, ptyUpdateCalls } = await makeHarness()
-  await hooks.event(ptyCreatedEvent(DEFAULT_TITLE))
+  await hooks.event(ptyCreatedEvent(DEFAULT_PTY_TITLE))
   // A1b: derived = baseTitle + " [" + id.slice(-6) + "]" - same rule as the
-  // session rename, applied to the PTY object. RED today: no pty handling.
+  // session rename, applied to the PTY object. DEFAULT_PTY_TITLE is the real
+  // 1.18.18 pty default - RED against the old prefix guard (no "opencode "
+  // prefix, so the rename never fired).
   expect(ptyUpdateCalls).toHaveLength(1)
   expect(ptyUpdateCalls[0].path).toEqual({ id: PTY_ID })
-  expect(ptyUpdateCalls[0].body.title).toBe(`${DEFAULT_TITLE} [${PTY_SHORT}]`)
+  expect(ptyUpdateCalls[0].body.title).toBe(`${DEFAULT_PTY_TITLE} [${PTY_SHORT}]`)
 })
 
-test("P1b guard: pty.created with custom non-default title is NOT renamed", async () => {
+test("P1b RED: pty.created with a user-set title gets the suffix appended (rename-if-not-suffixed)", async () => {
   const { hooks, ptyUpdateCalls } = await makeHarness()
   await hooks.event(ptyCreatedEvent("My custom pty"))
-  // Guard: only default-label / empty pty titles are renamed. PASSES today
-  // (trivially - no pty handling exists at all); must keep passing after A1b.
-  expect(ptyUpdateCalls).toHaveLength(0)
+  // DIA-189 fix: the pty rename rule matches the session rule - any
+  // unsuffixed title is suffixed, user-set included. RED against the old
+  // "opencode "-prefix-only guard.
+  expect(ptyUpdateCalls).toHaveLength(1)
+  expect(ptyUpdateCalls[0].path).toEqual({ id: PTY_ID })
+  expect(ptyUpdateCalls[0].body.title).toBe("My custom pty [123456]")
 })
 
 test("P1c guard: pty.created with already-suffixed title is NOT renamed again", async () => {
   const { hooks, ptyUpdateCalls } = await makeHarness()
   await hooks.event(
-    ptyCreatedEvent(`${DEFAULT_TITLE} [${PTY_SHORT}]`, PTY_ID)
+    ptyCreatedEvent(`${DEFAULT_PTY_TITLE} [${PTY_SHORT}]`, PTY_ID)
   )
   // Guard: skip when the title already ends with " [xxxxxx]" (no double
   // rename). PASSES today (trivially); must keep passing after A1b.
@@ -510,7 +544,7 @@ test("P1d guard: pty.update throw warns and continues, never crashes the hook", 
   console.warn = (...args) => warnings.push(args.join(" "))
   try {
     await expect(
-      hooks.event(ptyCreatedEvent(DEFAULT_TITLE))
+      hooks.event(ptyCreatedEvent(DEFAULT_PTY_TITLE))
     ).resolves.toBeUndefined()
   } finally {
     console.warn = origWarn
@@ -523,32 +557,37 @@ test("P1d guard: pty.update throw warns and continues, never crashes the hook", 
 // DIA-189b P2: boot retro pass - rename pre-existing pty/session titles
 // ---------------------------------------------------------------------------
 
-test("P2a RED: boot retro pass renames pre-existing default-title ptys from pty.list", async () => {
+test("P2a RED: boot retro pass renames pre-existing default-titled ptys from pty.list", async () => {
   const { ctx, ptyUpdateCalls } = freshCtx()
-  ctx.client.pty.list = async () => [ptyRecord(DEFAULT_TITLE)]
+  ctx.client.pty.list = async () => [ptyRecord(DEFAULT_PTY_TITLE)]
   // Plugin instance creation IS the test subject here: the constructor fires
   // bootRetroPass, so the call must stay even though `hooks` is not needed.
   await createNeedsInputObserver(ctx)
   // Boot retro pass runs after seedFromDisk() at startup, asynchronously.
   await settleBootPass()
   // A2b: the pty existed before the plugin loaded - the retro pass must
-  // apply the same default-title rename. RED today: no boot pass at all.
+  // apply the same rename rule. "Terminal 1" is the real 1.18.18 pty default:
+  // RED against the old prefix guard (no "opencode " prefix, no rename).
   expect(ptyUpdateCalls).toHaveLength(1)
   expect(ptyUpdateCalls[0].path).toEqual({ id: PTY_ID })
-  expect(ptyUpdateCalls[0].body.title).toBe(`${DEFAULT_TITLE} [${PTY_SHORT}]`)
+  expect(ptyUpdateCalls[0].body.title).toBe(`${DEFAULT_PTY_TITLE} [${PTY_SHORT}]`)
 })
 
-test("P2b guard: boot retro pass skips custom and already-suffixed ptys", async () => {
+test("P2b RED: boot retro pass renames an unsuffixed custom pty but skips an already-suffixed one", async () => {
   const { ctx, ptyUpdateCalls } = freshCtx()
   ctx.client.pty.list = async () => [
     ptyRecord("My custom pty", "pty_custom000001"),
-    ptyRecord(`${DEFAULT_TITLE} [${PTY_SHORT}]`, PTY_ID),
+    ptyRecord(`${DEFAULT_PTY_TITLE} [${PTY_SHORT}]`, PTY_ID),
   ]
   await createNeedsInputObserver(ctx)
   await settleBootPass()
-  // Guard: neither a custom title nor an already-suffixed title may be
-  // renamed. PASSES today (trivially); must keep passing after A2b.
-  expect(ptyUpdateCalls).toHaveLength(0)
+  // DIA-189 fix: rename-if-not-suffixed renames the custom pty (its title
+  // has no " [xxxxxx]" suffix) but leaves the already-suffixed one alone.
+  // RED against the old rule: only "opencode "-prefixed labels were renamed,
+  // so neither pty was touched.
+  expect(ptyUpdateCalls).toHaveLength(1)
+  expect(ptyUpdateCalls[0].path).toEqual({ id: "pty_custom000001" })
+  expect(ptyUpdateCalls[0].body.title).toBe("My custom pty [000001]")
 })
 
 test("P2c RED: boot retro pass renames pre-existing default-title sessions from session.list", async () => {
@@ -557,8 +596,8 @@ test("P2c RED: boot retro pass renames pre-existing default-title sessions from 
   await createNeedsInputObserver(ctx)
   await settleBootPass()
   // A2b: the session retro pass uses session.update with the same
-  // derived-title rule (baseTitle + " [id.slice(-6)]"). RED today: no boot
-  // pass -> 0 calls -> FAIL.
+  // derived-title rule (baseTitle + " [id.slice(-6)]"). DEFAULT_TITLE is the
+  // real 1.18.18 session default - RED against the old prefix guard.
   expect(updateCalls).toHaveLength(1)
   expect(updateCalls[0].path).toEqual({ id: SESSION_ID })
   expect(updateCalls[0].body.title).toBe(`${DEFAULT_TITLE} [${SHORT_ID}]`)
@@ -583,16 +622,17 @@ test("P2d guard: boot retro pass is fail-soft - pty.list throw must not crash pl
 // DIA-189 F5: pty.updated rename (regression lock against eba07c8)
 // ---------------------------------------------------------------------------
 
-test("F5 lock: pty.updated with default title triggers pty.update with derived unique title", async () => {
+test("F5 lock: pty.updated with runtime pty default triggers pty.update with derived unique title", async () => {
   // F5 (ai-auditor): the A1b rename must fire on pty.updated too - the title
   // can change after creation and the terminal strip must stay unique. This
-  // is a regression-lock test: PASSES against eba07c8 (the event switch
-  // handles pty.updated via the shared renameDefaultTitle).
+  // is a regression-lock test: PASSES against the fix (the event switch
+  // handles pty.updated via the shared renameDefaultTitle). DEFAULT_PTY_TITLE
+  // is the real 1.18.18 pty default - RED against the old prefix guard.
   const { hooks, ptyUpdateCalls } = await makeHarness()
-  await hooks.event(ptyUpdatedEvent(DEFAULT_TITLE))
+  await hooks.event(ptyUpdatedEvent(DEFAULT_PTY_TITLE))
   expect(ptyUpdateCalls).toHaveLength(1)
   expect(ptyUpdateCalls[0].path).toEqual({ id: PTY_ID })
-  expect(ptyUpdateCalls[0].body.title).toBe(`${DEFAULT_TITLE} [${PTY_SHORT}]`)
+  expect(ptyUpdateCalls[0].body.title).toBe(`${DEFAULT_PTY_TITLE} [${PTY_SHORT}]`)
 })
 
 // ---------------------------------------------------------------------------
@@ -605,14 +645,14 @@ test("F6a lock: boot retro pass tolerates the SDK { data, error } envelope from 
   // BOTH shapes. PASSES against eba07c8 (res?.data ?? [] fallback).
   const { ctx, ptyUpdateCalls } = freshCtx()
   ctx.client.pty.list = async () => ({
-    data: [ptyRecord(DEFAULT_TITLE)],
+    data: [ptyRecord(DEFAULT_PTY_TITLE)],
     error: undefined,
   })
   await createNeedsInputObserver(ctx)
   await settleBootPass()
   expect(ptyUpdateCalls).toHaveLength(1)
   expect(ptyUpdateCalls[0].path).toEqual({ id: PTY_ID })
-  expect(ptyUpdateCalls[0].body.title).toBe(`${DEFAULT_TITLE} [${PTY_SHORT}]`)
+  expect(ptyUpdateCalls[0].body.title).toBe(`${DEFAULT_PTY_TITLE} [${PTY_SHORT}]`)
 })
 
 test("F6b RED: boot retro pass must warn on the non-throw { error } envelope from pty.list (F2 gap)", async () => {
@@ -660,11 +700,41 @@ test("F6c guard: pty.update non-throw { error } envelope warns and never crashes
   console.warn = (...args) => warnings.push(args.join(" "))
   try {
     await expect(
-      hooks.event(ptyCreatedEvent(DEFAULT_TITLE))
+      hooks.event(ptyCreatedEvent(DEFAULT_PTY_TITLE))
     ).resolves.toBeUndefined()
   } finally {
     console.warn = origWarn
   }
   // Fail-soft: the warn must mention the pty rename path.
   expect(warnings.some((w) => w.includes("pty"))).toBe(true)
+})
+
+// ---------------------------------------------------------------------------
+// DIA-189 fix: rename-if-not-suffixed against the real 1.18.18 runtime
+// defaults (cod-4 probe, 2026-08-15). The old guard renamed only titles that
+// were empty or started with "opencode ", but the runtime defaults sessions
+// to "New session - <ISO>" and ptys to "Terminal N" / "Terminal <id4>" - so
+// the rename never fired (0 of 1,742 sessions ever suffixed). The approved
+// rule appends the suffix to ANY unsuffixed title.
+// ---------------------------------------------------------------------------
+
+test("G1 RED: pty title 'Terminal <id4>' (second real runtime default shape) gets suffixed", async () => {
+  const { hooks, ptyUpdateCalls } = await makeHarness()
+  // opencode 1.18.18 defaults ptys to "Terminal N" (covered by P1a) or
+  // "Terminal <id4>" - the last 4 chars of the pty id. PTY_ID
+  // "pty_abcdef123456" -> id4 "3456". RED against the old prefix guard.
+  await hooks.event(ptyCreatedEvent("Terminal 3456"))
+  expect(ptyUpdateCalls).toHaveLength(1)
+  expect(ptyUpdateCalls[0].path).toEqual({ id: PTY_ID })
+  expect(ptyUpdateCalls[0].body.title).toBe("Terminal 3456 [123456]")
+})
+
+test("G2 guard: any title already ending in ' [abc123]' is NOT re-renamed", async () => {
+  const { hooks, updateCalls } = await makeHarness()
+  // Ticket wording pins the dedupe guard on the literal suffix shape
+  // " [abc123]" (6 alnum chars) regardless of how the suffix got there -
+  // here on a user-set title, proving the alreadySuffixed check gates
+  // independently of the rename-if-not-suffixed append rule.
+  await hooks.event(sessionCreatedEvent("My Custom Session [abc123]"))
+  expect(updateCalls).toHaveLength(0)
 })

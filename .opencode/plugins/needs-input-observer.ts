@@ -844,15 +844,19 @@ const needsInputObserver: Plugin = async (ctx) => {
   }
 
   /**
-   * DIA-189b: shared default-label rename rule for the two terminal-title
-   * surfaces (Session and Pty). A title that is missing/empty or still the
-   * default "opencode <cwd>" label is renamed to "<label> [<short-id>]" so
-   * the terminal strip shows a unique per-session label that notification
-   * attribution (A2) can pin. Guards: never double-rename a title that
-   * already carries a " [xxxxxx]" short-id suffix; fail-soft - a cosmetic
-   * rename must never crash the plugin (console.warn on error, stderr only,
-   * mirroring the plugin's fail-soft pattern). `update` is bound to its SDK
-   * client so `this` survives the detached call.
+   * DIA-189 fix: shared rename-if-not-suffixed rule for the two terminal-
+   * title surfaces (Session and Pty). A title that does NOT already carry a
+   * " [xxxxxx]" short-id suffix is renamed to "<title> [<short-id>]" so the
+   * terminal strip shows a unique per-session label that notification
+   * attribution (A2) can pin. The suffix is appended to ANY unsuffixed title
+   * - default OR user-set - because the 1.18.18 runtime defaults ("New
+   * session - <ISO>" for sessions, "Terminal N" / "Terminal <id4>" for
+   * ptys) do not share a fixed prefix, and the developer-approved rule
+   * survives future default-format changes. Guards: never double-rename a
+   * title that already carries the suffix (the ONLY gate); fail-soft - a
+   * cosmetic rename must never crash the plugin (console.warn on error,
+   * stderr only, mirroring the plugin's fail-soft pattern). `update` is
+   * bound to its SDK client so `this` survives the detached call.
    */
   async function renameDefaultTitle(
     id: string,
@@ -860,10 +864,13 @@ const needsInputObserver: Plugin = async (ctx) => {
     surface: "session" | "pty"
   ): Promise<void> {
     const createdTitle = typeof rawTitle === "string" ? rawTitle : ""
-    const isDefaultLabel =
-      createdTitle === "" || createdTitle.startsWith("opencode ")
+    // DIA-189 fix: the dedupe guard is the only gate. The old isDefaultLabel
+    // check (title === "" || startsWith("opencode ")) never matched the real
+    // 1.18.18 defaults ("New session - <ISO>" / "Terminal N"), so the rename
+    // silently never ran (0 of 1,742 sessions ever suffixed). Empty title
+    // still falls back to the "opencode <cwd>" base before appending.
     const alreadySuffixed = / \[\w{6}\]$/.test(createdTitle)
-    if (!isDefaultLabel || alreadySuffixed) return
+    if (alreadySuffixed) return
     const baseTitle =
       createdTitle !== ""
         ? createdTitle
@@ -894,7 +901,8 @@ const needsInputObserver: Plugin = async (ctx) => {
    * DIA-189b A2b: boot retro pass. Sessions/ptys created BEFORE this plugin
    * loaded never saw the session.created/pty.created rename, so at startup
    * we iterate the existing pty.list() and session.list() and apply the same
-   * default-title -> "<label> [<short-id>]" rename. Fail-soft at every seam
+   * rename-if-not-suffixed "<title> [<short-id>]" rule (DIA-189 fix: any
+   * unsuffixed title, default OR user-set). Fail-soft at every seam
    * (a list failure warns and skips that surface; an item update failure
    * warns and continues) - a cosmetic boot task must never crash the plugin
    * or block instantiation. Fired as a void call after seedFromDisk(); the
@@ -1023,23 +1031,27 @@ const needsInputObserver: Plugin = async (ctx) => {
             agent: typeof info.agent === "string" ? info.agent : undefined,
           })
 
-          // DIA-189 A1: unique terminal session titles. With many sessions in
-          // parallel (DIA-085 worktree model) every one shows the identical
-          // default TUI label "opencode <cwd>", so a notification cannot say
-          // WHICH session needs input. When the created title is missing/
-          // empty or still the default label, rename it to "<label>
-          // [<short-id>]" via the SDK - the label matches what the TUI shows
-          // after rename and the suffix is exactly what notify() (A2) pins to
-          // attribute notifications to this session. Guards: never double-
-          // rename a title that already carries a " [xxxxxx]" short-id
-          // suffix; fail-soft (a cosmetic rename must never crash the plugin
-          // - warn on error and continue, mirroring the plugin's fail-soft
+          // DIA-189 A1 + fix: unique terminal session titles. With many
+          // sessions in parallel (DIA-085 worktree model) every one shows a
+          // near-identical default label, so a notification cannot say WHICH
+          // session needs input. Rename-if-not-suffixed: any title without a
+          // " [<short-id>]" suffix gets "<title> [<short-id>]" appended via
+          // the SDK. The 1.18.18 runtime defaults sessions to "New session -
+          // <ISO>", which the old "opencode " prefix check never matched, so
+          // the suffix is appended regardless of starting label (default OR
+          // user-set - developer-approved, survives future default-format
+          // changes). The label matches what the TUI shows after rename and
+          // the suffix is exactly what notify() (A2) pins to attribute
+          // notifications to this session. Guards: never double-rename a
+          // title that already carries a " [xxxxxx]" short-id suffix;
+          // fail-soft (a cosmetic rename must never crash the plugin - warn
+          // on error and continue, mirroring the plugin's fail-soft
           // pattern). The await is non-blocking; the hook is async-capable.
           const createdTitle = typeof info.title === "string" ? info.title : ""
-          const isDefaultLabel =
-            createdTitle === "" || createdTitle.startsWith("opencode ")
+          // DIA-189 fix: the dedupe guard is the only gate (same rationale
+          // as renameDefaultTitle) - any unsuffixed title is renamed.
           const alreadySuffixed = / \[\w{6}\]$/.test(createdTitle)
-          if (isDefaultLabel && !alreadySuffixed) {
+          if (!alreadySuffixed) {
             const baseTitle =
               createdTitle !== ""
                 ? createdTitle
@@ -1087,9 +1099,9 @@ const needsInputObserver: Plugin = async (ctx) => {
           return
         }
 
-        // DIA-189b A1b: the visible terminal strip is the PTY strip
-        // (Pty.title), not Session.title - a pty.created/pty.updated with a
-        // default/empty title gets the same unique-label rename so the
+        // DIA-189b A1b + fix: the visible terminal strip is the PTY strip
+        // (Pty.title), not Session.title - a pty.created/pty.updated with an
+        // unsuffixed title gets the same rename-if-not-suffixed label so the
         // terminal list shows distinguishable labels and notifications (A2)
         // match the strip. Same guards and fail-soft as the session rename.
         case "pty.created":
