@@ -563,13 +563,21 @@ const delegationObserver: Plugin = async (ctx) => {
   )
   const gateTokenDir = dirname(gateTokenPath)
 
-  // Handoff paths — deterministic fixed path under .opencode/session/ (the
-  // orchestrator artifact directory). No separate directory needed; the session
-  // directory already exists and is gitignored. The consumer always reads the
-  // SAME path via read(); no glob needed.
+  // Handoff paths - DIA-085 (parallel-handoff-slots): per-session handoff
+  // slots replace the legacy single-slot file for WRITES. Each session owns
+  // handoffs/<session-id>.json (the source of truth); active.json is the
+  // dispensable pointer to the most recent writer; archive/ preserves prior
+  // slot content on same-session rewrites (no silent data loss); .reconciled
+  // is the boot-gate sidecar (reader-side, T2.x/T3.x territory). The legacy
+  // current-handoff.json path is kept as the documented READ-ONLY fallback
+  // constant - the new writer never touches it. All paths live under
+  // .opencode/session/ (gitignored via .gitignore:82).
   const handoffDir = join(ctx.directory, ".opencode/session")
-  const handoffPath = join(handoffDir, "current-handoff.json")
-  const handoffTmpPath = join(handoffDir, ".current-handoff.json.tmp")
+  const handoffLegacyPath = join(handoffDir, "current-handoff.json")
+  const handoffSlotsDir = join(handoffDir, "handoffs")
+  const handoffArchiveDir = join(handoffSlotsDir, "archive")
+  const handoffPointerPath = join(handoffSlotsDir, "active.json")
+  const handoffReconciledPath = join(handoffSlotsDir, ".reconciled")
 
   // DIA-123 boot marker paths — a dedicated boot marker file under
   // .opencode/session/ (NOT ticker.json, which needs-input-observer owns).
@@ -1079,32 +1087,144 @@ const delegationObserver: Plugin = async (ctx) => {
   }
 
   /**
-   * Atomic write of the handoff JSON file. Pattern: temp file → fsync →
-   * atomic rename → fsync directory. On same-filesystem rename is atomic by
-   * POSIX guarantee — the reader sees either the old file or the new file,
-   * never a partial write. Catches errors: unlinks tmp on failure (if not yet
-   * renamed).
+   * DIA-085 (parallel-handoff-slots): atomic per-session handoff write.
+   *
+   * Flow (design.md section 2):
+   *   1. archive_prior(sessionId) - if a prior slot exists for this session,
+   *      rename it to archive/<session-id>.<iso-ts-hyphenated>.json (ISO
+   *      colons become hyphens for filesystem safety). Best-effort: on
+   *      failure, console.warn and proceed - the archive is the forensic
+   *      safety net, never a blocker.
+   *   2. write_slot(sessionId, content) - atomic write of
+   *      handoffs/<session-id>.json (temp -> fsync -> rename -> fsync dir).
+   *      The slot is the source of truth.
+   *   3. write_pointer(sessionId) - atomic write of handoffs/active.json,
+   *      AFTER the slot: a crash between the two renames leaves slot-new /
+   *      pointer-old, and the boot gate's mtime scan recovers (pointer is a
+   *      dispensable optimization).
+   *   4. Returns { archived_prior } so the caller can enrich the terminal
+   *      handoff registry row with the archive path when one happened
+   *      (design.md section 2 step 4 / section 5).
+   *
+   * Parallel-writer safety: different sessions write different slot files (no
+   * collision by construction); same-session racing writers both archive
+   * first, so the prior prognosis survives in archive/ and the last atomic
+   * rename wins.
+   *
+   * Preserves the POSIX-atomic pattern of the legacy single-slot writer (temp
+   * file -> fsync -> rename -> fsync dir; rename is atomic on POSIX
+   * filesystems including the Docker volume - the reader sees either the old
+   * file or the new file, never a partial write).
    */
-  function atomicWriteHandoff(content: Record<string, unknown>): void {
-    const json = JSON.stringify(content, null, 2) + "\n"
+  function atomicWriteHandoff(
+    content: Record<string, unknown>,
+    sessionId: string
+  ): { archived_prior: string | null } {
+    // mkdir -p semantics for handoffs/ + handoffs/archive/ (idempotent). A
+    // failed directory creation must NOT proceed silently - every later write
+    // would fail opaquely. mkdirSync throws; the log_decision caller catches,
+    // warns, and still writes the audit row (design.md section 4: the log row
+    // is the non-negotiable audit trail).
+    mkdirSync(handoffSlotsDir, { recursive: true })
+    mkdirSync(handoffArchiveDir, { recursive: true })
+
+    const slotPath = join(handoffSlotsDir, `${sessionId}.json`)
+    // Layout invariants (DIA-085): a slot write must never target the legacy
+    // single-slot fallback, the pointer, or the reconciliation sidecar. The
+    // pointer check is REAL - a session literally id'd "active" would clobber
+    // active.json; the legacy/reconciled checks pin the "never write them"
+    // invariant structurally so an accidental re-wiring fails loudly.
+    if (
+      slotPath === handoffLegacyPath ||
+      slotPath === handoffPointerPath ||
+      slotPath === handoffReconciledPath
+    ) {
+      throw new Error(
+        `[delegation-observer] slot path collision: '${slotPath}' is a reserved handoff path`
+      )
+    }
+
+    // Step 1 - archive prior slot (best-effort, never blocks the write).
+    let archivedPrior: string | null = null
+    if (existsSync(slotPath)) {
+      const iso = new Date().toISOString().replace(/:/g, "-")
+      const archiveName = `${sessionId}.${iso}.json`
+      try {
+        renameSync(slotPath, join(handoffArchiveDir, archiveName))
+        archivedPrior = `archive/${archiveName}`
+        console.warn(
+          `[delegation-observer] handoff archived: ${sessionId} prior slot -> archive/${archiveName}`
+        )
+      } catch (err) {
+        // Best-effort archive (design.md section 4): a failed archive must
+        // not lose the new write. The prior slot stays in place and is
+        // atomically overwritten by the slot rename below.
+        console.warn(
+          `[delegation-observer] handoff archive failed for ${sessionId}: ${errorMessage(err)}`
+        )
+      }
+    }
+
+    // Step 2 - write the slot (source of truth). POSIX-atomic pattern:
+    // temp -> fsync -> rename -> fsync dir. On failure, unlink the tmp (if
+    // rename did not happen) and rethrow so the caller's audit row still
+    // lands and the pointer is never updated for a slot that did not land.
+    const slotTmpPath = join(handoffSlotsDir, `.${sessionId}.json.tmp`)
     try {
-      writeFileSync(handoffTmpPath, json)
-      const tmpFd = openSync(handoffTmpPath, "r+")
+      const json = JSON.stringify(content, null, 2) + "\n"
+      writeFileSync(slotTmpPath, json)
+      const tmpFd = openSync(slotTmpPath, "r+")
       fsyncSync(tmpFd)
       closeSync(tmpFd)
-      renameSync(handoffTmpPath, handoffPath)
-      const dirFd = openSync(handoffDir, "r")
+      renameSync(slotTmpPath, slotPath)
+      const dirFd = openSync(handoffSlotsDir, "r")
       fsyncSync(dirFd)
       closeSync(dirFd)
     } catch (err) {
       // Best-effort cleanup: unlink tmp if it still exists (rename failed).
       try {
-        if (existsSync(handoffTmpPath)) unlinkSync(handoffTmpPath)
+        if (existsSync(slotTmpPath)) unlinkSync(slotTmpPath)
       } catch {
-        // Secondary failure — nothing more we can do.
+        // Secondary failure - nothing more we can do.
       }
       throw err
     }
+
+    // Step 3 - write the pointer (dispensable optimization; design.md
+    // section 4: "pointer is optimization, slot is source of truth"). Written
+    // AFTER the slot; on failure warn and continue - the slot is valid and
+    // the boot gate falls back to the mtime scan (stale pointer recovery).
+    const pointerContent = {
+      active_session_id: sessionId,
+      timestamp: new Date().toISOString(),
+      pointer_version: 1,
+    }
+    const pointerTmpPath = join(handoffSlotsDir, ".active.json.tmp")
+    try {
+      const json = JSON.stringify(pointerContent, null, 2) + "\n"
+      writeFileSync(pointerTmpPath, json)
+      const tmpFd = openSync(pointerTmpPath, "r+")
+      fsyncSync(tmpFd)
+      closeSync(tmpFd)
+      renameSync(pointerTmpPath, handoffPointerPath)
+      const dirFd = openSync(handoffSlotsDir, "r")
+      fsyncSync(dirFd)
+      closeSync(dirFd)
+    } catch (err) {
+      try {
+        if (existsSync(pointerTmpPath)) unlinkSync(pointerTmpPath)
+      } catch {
+        // Secondary failure - nothing more we can do.
+      }
+      console.warn(
+        `[delegation-observer] handoff pointer write failed for ${sessionId}: ${errorMessage(err)}`
+      )
+    }
+
+    // Step 4 - surface the archive result for the caller's registry row
+    // enrichment (design.md section 2 step 4). null when no prior slot
+    // existed (the field is then omitted from the row - backward-compatible).
+    return { archived_prior: archivedPrior }
   }
 
   /**
@@ -2422,10 +2542,16 @@ const delegationObserver: Plugin = async (ctx) => {
             "pending-owner",
           ])
           // When event_type is "handoff" and prognosis is provided, write the
-          // atomic handoff JSON to .opencode/session/current-handoff.json so the
-          // successor session can detect it via a deterministic read() — no
-          // glob needed (eliminates the fast-glob dot:false footgun). Only
-          // terminal resolution_status events write (DIA-120).
+          // atomic per-session handoff slot to .opencode/session/handoffs/
+          // (DIA-085) so the successor session can detect it via a
+          // deterministic read() - no glob needed. Only terminal
+          // resolution_status events write (DIA-120 terminal-status filter,
+          // preserved unchanged).
+          // DIA-085: archive result from atomicWriteHandoff, surfaced into the
+          // terminal handoff registry row below when an archive happened (null
+          // when no prior slot existed -> optional field omitted, so the row
+          // stays backward-compatible).
+          let writeResult: { archived_prior: string | null } | null = null
           if (
             args.event_type === "handoff" &&
             typeof args.prognosis === "string" &&
@@ -2445,14 +2571,24 @@ const delegationObserver: Plugin = async (ctx) => {
               const status =
                 statusMap[args.resolution_status] ?? "manual-halt"
               const checksum = computeChecksum(prognosis)
-              atomicWriteHandoff({
-                status,
-                session_id: parentSessionId ?? args.lane_id ?? "unknown",
-                cycle_id: args.cycle_id ?? null,
-                timestamp: new Date().toISOString(),
-                checksum,
-                prognosis,
-              })
+              // DIA-085: the session identity becomes the SLOT identity - the
+              // same resolution as before (parentSessionId ?? lane_id ??
+              // "unknown"), now passed to atomicWriteHandoff as the slot
+              // selector so parallel orchestrator sessions never clobber each
+              // other's handoff file.
+              const handoffSessionId =
+                parentSessionId ?? args.lane_id ?? "unknown"
+              writeResult = atomicWriteHandoff(
+                {
+                  status,
+                  session_id: handoffSessionId,
+                  cycle_id: args.cycle_id ?? null,
+                  timestamp: new Date().toISOString(),
+                  checksum,
+                  prognosis,
+                },
+                handoffSessionId
+              )
             } catch (err) {
               console.warn(
                 `[delegation-observer] handoff atomic write failed: ${errorMessage(err)}`
@@ -2479,6 +2615,13 @@ const delegationObserver: Plugin = async (ctx) => {
               event_type: args.event_type,
               task_ref: args.task_ref,
               resolution_status: args.resolution_status,
+              // DIA-085 registry-row enrichment (design.md section 5): when
+              // the writer archived a prior slot, the terminal handoff row
+              // carries the relative archive path; omitted when no prior slot
+              // existed (optional, backward-compatible field).
+              ...(writeResult?.archived_prior
+                ? { archived_prior: writeResult.archived_prior }
+                : {}),
               ...(args.lane_id ? { lane_id: args.lane_id } : {}),
               ...(args.cycle_id ? { cycle_id: args.cycle_id } : {}),
               ...(args.ticket_id ? { ticket_id: args.ticket_id } : {}),

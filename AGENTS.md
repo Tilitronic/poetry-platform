@@ -160,12 +160,13 @@ Full setup docs: `docs/docker-dev.md`.
 
 ### Session-end handoff (DIA-124)
 
-- **HARD RULE:** the handoff file (`.opencode/session/current-handoff.json`)
-  MUST be written via `log_decision(handoff)` BEFORE the final session
-  summary is presented to the developer - never after, never
-  only-if-time-permits. The final summary references the handoff. On plugin
-  failure, flag the missing handoff explicitly. (Operating protocol:
-  `docs/dev-infra-audit/NEXT-RUN.md` §7.2.)
+- **HARD RULE:** the handoff - the per-session slot
+  (`.opencode/session/handoffs/<session-id>.json`) plus the `active.json`
+  pointer (DIA-085 parallel-handoff-slots) - MUST be written via
+  `log_decision(handoff)` BEFORE the final session summary is presented to
+  the developer - never after, never only-if-time-permits. The final summary
+  references the handoff. On plugin failure, flag the missing handoff
+  explicitly. (Operating protocol: `docs/dev-infra-audit/NEXT-RUN.md` §7.2.)
 
 ### Edit-time formatting (DIA-105)
 

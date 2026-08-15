@@ -16,7 +16,11 @@ discovered: 2026-08-10
 source: inventory
 date: 2026-08-10
 created: 2026-08-10
-updated: 2026-08-11
+updated: 2026-08-15
+gate_state: grilled
+gate_triggers: [new-module, schema-state, cross-cutting]
+gate_waivers: []
+gate_override: none
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -49,11 +53,40 @@ separate worktrees/checkouts.
 
 ## Fix
 
-> To be filled at fix time.
+DIA-085 resolved by the OpenSpec change `openspec/changes/parallel-handoff-slots/`
+(validated exit 0, isComplete true). Design (developer-approved Option B,
+2026-08-15): per-session handoff slots under
+`.opencode/session/handoffs/<session-id>.json` (schema unchanged: status,
+session_id, cycle_id, timestamp, checksum, prognosis) + `active.json` pointer
+({active_session_id, timestamp, pointer_version: 1}) + archive-on-overwrite
+(`handoffs/archive/<session-id>.<ts>.json`) + `.reconciled` sidecar (batch-approved
+session_ids). Boot-gate resolution chain: active pointer -> mtime scan of
+`handoffs/*.json` (reconciled slots filtered) -> legacy `current-handoff.json`
+fallback (read-only). Plugin writer flow (`atomicWriteHandoff(content, sessionId)`):
+archive_prior -> write_slot -> write_pointer, each atomic (temp -> fsync -> rename
+-> fsync dir); slot written BEFORE pointer; terminal-status filter (DIA-120)
+preserved; slot identity from `parentSessionId ?? lane_id ?? "unknown"`.
+
+Implementation slices (all DONE): T1.1 plugin writer
+(`.opencode/plugins/delegation-observer.ts`); T3.1 slot-aware
+`scripts/validate-handoff.sh` (-s flag, env overrides HANDOFFS_DIR/LEGACY_HANDOFF/
+HANDOFF_TEMPLATE); T4.1 `scripts/test-parallel-handoff.sh` smoke (six scenarios);
+T4.2 bun harness `.opencode/plugins/__tests__/parallel-handoff.test.mjs` (9 tests,
+S1 seam); T4.3 `scripts/__tests__/validate-handoff.bats` (S3 seam). Docs/reporting:
+T2.1 NEXT-RUN.md section 1/2/7.3/7.8 + AGENTS.md section 6 updated; T5.1 this
+ticket.
+
+Wiring decision (T5.1): the S1 bun harness is NOT wired into `make test-config` -
+`bun` is absent from the host PATH (test-config is a host gate; bun runs only inside
+the dev container) and the direct precedent for plugin bun harnesses is the DIA-189
+harness (`needs-input-observer.dia189.test.mjs`), which is manual-run only
+(`bun test`, in-container). The wired `batch-d-infra.test.mjs` is a NODE harness
+(host-run), so it is not the pattern for a bun suite. Consistency tiebreaker:
+DIA-189 manual precedent followed; Makefile unchanged.
 
 ## Re-verify
 
-> To be filled at re-verify time.
+> To be filled at review time.
 
 ## Scope extension (batch brief 2026-08-11)
 
@@ -124,3 +157,14 @@ Report: `knowledge/ana011-parallel-sessions-coordination/ana011-parallel-session
 
 Status: OPEN (deferred build; frontmatter status left unchanged, consistent
 with the existing OPEN convention for this ticket).
+
+## DIA-085 activation (2026-08-15)
+
+Activated from deferred-build to build-now after the 2026-08-15 clobber
+incident: two parallel orchestrator sessions wrote the same single-slot
+current-handoff.json within 65s (DIA-174 prognosis lost from file, recoverable
+via NEXT-RUN section 7.8). Scope = per-session handoff slots + pointer +
+archive + reconciliation sidecar (Option B, developer-approved 2026-08-15).
+OpenSpec change 'parallel-handoff-slots' created (openspec/changes/
+parallel-handoff-slots/). The ana011 claim+heartbeat protocol remains a
+separate follow-up change.

@@ -1,23 +1,30 @@
 #!/usr/bin/env bash
-# Validates the Prognosis schema of a HANDOFF.md file (`make test-config`,
-# wired via `test-config`; standalone: `bash scripts/validate-handoff.sh <path>`).
+# Validates the Prognosis schema of a HANDOFF file (`make test-config`, wired
+# via `test-config`; standalone: `bash scripts/validate-handoff.sh <path>`).
 #
 # WHY this gate exists: the fresh-session verifier contract (openspec/templates/
 # HANDOFF.md) depends on the `## Prognosis for next cycle` section carrying
-# exactly the 5 required `###` subsections — session_summary / fixes_applied /
+# exactly the 5 required `###` subsections - session_summary / fixes_applied /
 # open_tickets / verification_request / resume_instructions. A typo in any
 # subsection heading (e.g. `session_sumary`, `fixes_aplied`) silently breaks
 # batch-approval boot without any gate catching it (DIA-045 audit gap 2).
 # This script is the deterministic pre-runtime gate.
 #
-# Contract (design.md §2, §3, §4 — locked rulings):
-#   - Takes ONE positional argument: the HANDOFF file path (exact-name only —
-#     no glob, Q2 ruling 6). When NO argument is given, the validator defaults
-#     to the reference template itself — this is what makes the make-callable
-#     contract work (design §5: `make test-config` invokes the script with no
-#     arguments, and validating the template guards the canonical schema
-#     against regression, cf. DIA-045 F6/NF-1). The no-argument INFRA case
-#     (exit 2) then manifests only when the default template is unavailable.
+# Contract (dev-infra-config-validators design.md + DIA-085 parallel-handoff-
+# slots design.md sections 1/3/4 - locked rulings):
+#   - With a positional path argument: validates that exact file. JSON handoffs
+#     (the live current-handoff.json) are validated via the DIA-061 checksum
+#     block; markdown handoffs via the heading/subsection schema. Unchanged
+#     contract.
+#   - With `-s <session-id>`: validates the per-session slot
+#     .opencode/session/handoffs/<session-id>.json (DIA-085 slot layout).
+#   - With NO argument: resolution chain per DIA-085 design section 3:
+#       1. active pointer (handoffs/active.json -> active_session_id)
+#       2. newest slot by mtime over handoffs/*.json (pointer missing/stale)
+#       3. legacy .opencode/session/current-handoff.json
+#       4. reference template (terminal fallback - preserves the make-callable
+#          contract in fresh clones/worktrees where .opencode/session/ is
+#          gitignored and therefore absent; .gitignore line 82)
 #   - The 5 required subsection names are taken from the reference template
 #     openspec/templates/HANDOFF.md (strict literal match, Q2 ruling 7).
 #   - Extra `###` subsections under `## Prognosis for next cycle` are SOFT
@@ -27,31 +34,129 @@
 #     never fail-fast.
 #
 # Exit codes: 0 all required headings/subsections present (SOFT warnings may
-# print), 1 HARD failure (missing heading or subsection), 2 infrastructure
-# error (missing input path / nonexistent path / reference template missing).
+# print), 1 HARD failure (missing heading/subsection/checksum mismatch),
+# 2 infrastructure error (missing/absent target path / unusable -s argument).
 #
-# HANDOFF_TEMPLATE env override points the reference template elsewhere
-# (defaults to the repo's openspec/templates/HANDOFF.md) — bats meta-tests use
-# it to validate temp fixture trees hermetically.
+# HANDOFF_TEMPLATE / HANDOFFS_DIR / LEGACY_HANDOFF env overrides point the
+# reference template, the handoffs directory, and the legacy fallback file
+# elsewhere (defaults to the repo layout under .opencode/session/) - bats
+# meta-tests use them to validate temp fixture trees hermetically.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 HANDOFF_TEMPLATE="${HANDOFF_TEMPLATE:-$ROOT/openspec/templates/HANDOFF.md}"
-HANDOFF="${1:-$HANDOFF_TEMPLATE}"
+HANDOFFS_DIR="${HANDOFFS_DIR:-$ROOT/.opencode/session/handoffs}"
+LEGACY_HANDOFF="${LEGACY_HANDOFF:-$ROOT/.opencode/session/current-handoff.json}"
 
-if [ -z "$HANDOFF" ]; then
-  echo "FAIL: no HANDOFF file path provided (usage: validate-handoff.sh <handoff-path>)" >&2
-  exit 2
+# ---------------------------------------------------------------------------
+# Argument parsing (DIA-085 T3.1): three mutually exclusive entry points.
+# `-s <session-id>` wins over a positional path; no argument triggers the
+# design-section-3 resolution chain (see `default` case below).
+# ---------------------------------------------------------------------------
+mode="default"
+target_is_slot=0
+
+if [ "${1:-}" = "-s" ]; then
+  if [ -z "${2:-}" ]; then
+    echo "FAIL: -s requires a session id (usage: validate-handoff.sh -s <session-id>)" >&2
+    exit 2
+  fi
+  mode="slot"
+  session_id="$2"
+elif [ $# -gt 0 ]; then
+  mode="file"
+  if [ -z "$1" ]; then
+    echo "FAIL: no HANDOFF file path provided (usage: validate-handoff.sh <handoff-path>)" >&2
+    exit 2
+  fi
+  file_arg="$1"
 fi
 
-if [ ! -f "$HANDOFF" ]; then
-  echo "FAIL: HANDOFF file not found: $HANDOFF" >&2
-  exit 2
-fi
+HANDOFF=""
 
-if [ ! -f "$HANDOFF_TEMPLATE" ]; then
-  echo "FAIL: reference template not found: $HANDOFF_TEMPLATE" >&2
-  exit 2
+case "$mode" in
+  slot)
+    # Explicit slot target: handoffs/<session-id>.json (design section 1).
+    HANDOFF="$HANDOFFS_DIR/$session_id.json"
+    if [ ! -f "$HANDOFF" ]; then
+      echo "FAIL: handoff slot not found: $HANDOFF (validate-handoff.sh -s <session-id>)" >&2
+      exit 2
+    fi
+    target_is_slot=1
+    echo "info: validating slot '$session_id' ($HANDOFF)" >&2
+    ;;
+  file)
+    HANDOFF="$file_arg"
+    if [ ! -f "$HANDOFF" ]; then
+      echo "FAIL: HANDOFF file not found: $HANDOFF" >&2
+      exit 2
+    fi
+    ;;
+  default)
+    # --- Step 1: active pointer (design section 3) ---
+    # The pointer is a dispensable optimization (design section 4 policy
+    # principle); a missing, corrupt, or stale pointer must never fail the
+    # gate - it degrades to the mtime scan below.
+    if [ -d "$HANDOFFS_DIR" ] && [ -f "$HANDOFFS_DIR/active.json" ]; then
+      if active_session_id="$(jq -er '.active_session_id // empty' "$HANDOFFS_DIR/active.json" 2>/dev/null)"; then
+        if [ -n "$active_session_id" ] && [ -f "$HANDOFFS_DIR/$active_session_id.json" ]; then
+          HANDOFF="$HANDOFFS_DIR/$active_session_id.json"
+          target_is_slot=1
+          echo "info: resolved slot via active pointer -> $active_session_id" >&2
+        else
+          echo "info: active pointer points to missing slot '$active_session_id' - resolving newest slot" >&2
+        fi
+      else
+        echo "warn: active pointer unreadable - resolving newest slot" >&2
+      fi
+    fi
+
+    # --- Step 2: mtime scan (design section 3) ---
+    # Newest handoffs/*.json wins. active.json is the pointer (excluded by
+    # -name); archive/ lives in a subdir (excluded by maxdepth 1); the
+    # .reconciled sidecar has no .json suffix (excluded by -name). Reconciled
+    # filtering is deliberately NOT applied here: approval state is boot-gate
+    # presentation logic (design section 3 step 2), while this script is an
+    # integrity check over the newest slot regardless of approval.
+    if [ -z "$HANDOFF" ] && [ -d "$HANDOFFS_DIR" ]; then
+      newest_slot="$(find "$HANDOFFS_DIR" -maxdepth 1 -type f -name '*.json' ! -name 'active.json' -printf '%T@ %p\n' 2>/dev/null | sort -rn | sed -n '1p' | cut -d' ' -f2- || true)"
+      if [ -n "$newest_slot" ]; then
+        HANDOFF="$newest_slot"
+        target_is_slot=1
+        echo "info: resolved newest slot by mtime ($(basename "$newest_slot"))" >&2
+      fi
+    fi
+
+    # --- Step 3: legacy fallback (design section 3) ---
+    if [ -z "$HANDOFF" ] && [ -f "$LEGACY_HANDOFF" ]; then
+      HANDOFF="$LEGACY_HANDOFF"
+      echo "info: no handoff slots present - validating legacy current-handoff.json" >&2
+    fi
+
+    # --- Step 4: reference template (make-callable contract) ---
+    # .opencode/session/ is gitignored, so a fresh clone or worktree has no
+    # session state at all; validating the committed template keeps the
+    # `make test-config` no-arg invocation meaningful there (the pre-DIA-085
+    # default) instead of failing infra on absent transient state.
+    if [ -z "$HANDOFF" ] && [ -f "$HANDOFF_TEMPLATE" ]; then
+      HANDOFF="$HANDOFF_TEMPLATE"
+      echo "info: no session handoff state - validating reference template" >&2
+    fi
+
+    # --- Step 5: nothing to validate ---
+    if [ -z "$HANDOFF" ]; then
+      echo "FAIL: no handoff target found (checked pointer $HANDOFFS_DIR/active.json, slots in $HANDOFFS_DIR, legacy $LEGACY_HANDOFF, template $HANDOFF_TEMPLATE)" >&2
+      exit 2
+    fi
+    ;;
+esac
+
+# Slots are always JSON (design section 1: identical schema to
+# current-handoff.json). A non-JSON slot is corrupt state - fail loudly with
+# the exact path rather than running the markdown branch on foreign content.
+if [ "$target_is_slot" -eq 1 ] && ! jq -e . "$HANDOFF" >/dev/null 2>&1; then
+  echo "FAIL: handoff slot is not valid JSON: $HANDOFF" >&2
+  exit 1
 fi
 
 # The 5 required subsection names — strict literal match (Q2 ruling 7). The

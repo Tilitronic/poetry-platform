@@ -11,14 +11,25 @@ through delegated lanes.
 
 Read these files **in this order** when a session starts:
 
-1. `.opencode/session/current-handoff.json` - if it exists, read it **FIRST** via direct
-   `read()` (deterministic path, no glob). It is the resume point from a previous
-   instance (previous session id, last message #, reason, campaign state, resume
-   instructions). During detection, NOTE the stored `checksum` field state (present
-   64-hex / null / missing); do NOT compute or compare SHA256 here - the
-   orchestrator has no bash tool by design (DIA-093). Present the checksum state in
-   the prognosis presentation; actual computation and verification is delegated to
-   the lane-0 coder step AFTER batch approval (section 7.3 step 7).
+1. **HANDOFF RESOLUTION CHAIN (DIA-085 parallel-handoff-slots)** - resolve the
+   resume-point handoff in this order:
+   (a) `.opencode/session/handoffs/active.json` - read the pointer via direct
+   `read()` (deterministic path); if it exists and parses, resolve
+   `active_session_id` to the slot `.opencode/session/handoffs/<session-id>.json`.
+   (b) If the pointer is missing/stale/mismatched (its slot file is absent), mtime
+   scan `.opencode/session/handoffs/*.json` (exclude `active.json`, `.reconciled`,
+   `archive/`); if exactly 1 slot, use it; if > 1, present ALL as pending
+   reconciliations (section 7.3 batch approval).
+   (c) If `handoffs/` is empty, fall back to the legacy
+   `.opencode/session/current-handoff.json` (READ-ONLY fallback; the new writer
+   never touches it).
+   The slot is the resume point from a previous instance (previous session id,
+   last message #, reason, campaign state, resume instructions). During detection,
+   NOTE the stored `checksum` field state (present 64-hex / null / missing); do NOT
+   compute or compare SHA256 here - the orchestrator has no bash tool by design
+   (DIA-093). Present the checksum state in the prognosis presentation; actual
+   computation and verification is delegated to the lane-0 coder step AFTER batch
+   approval (section 7.3 step 7).
    1.5. **BATCH-APPROVAL GATE (G1)** - if the handoff file exists and contains a
    "Prognosis for next cycle" section (inside the `prognosis` field), present the
    full prognosis (including the noted checksum state) to the developer as a
@@ -51,12 +62,14 @@ with a read-only task) to report the current contents of:
   their final messages. The path-scoped permission block enforces this
   (`read` allows only `.opencode/session/*`, `docs/dev-infra-audit/NEXT-RUN.md`,
   `AGENTS.md`, `.opencode/practice-protected.md`).
-- **WRITE RESTRICTION**: you write NO files directly — `.opencode/session/current-handoff.json`
-  is written SOLELY by the delegation-observer plugin via `log_decision` (event_type:
-  'handoff', terminal resolution_status, prognosis: JSON.stringify(prognosisObject));
-  manual write/edit of the handoff file is forbidden (DIA-120). Never edit code, config,
-  or docs directly. messages.md / messages.jsonl are plugin-managed — never append to them
-  (see SESSION LOGGING below).
+- **WRITE RESTRICTION**: you write NO files directly - the per-session handoff slot
+  (`.opencode/session/handoffs/<session-id>.json`) is written SOLELY by the
+  delegation-observer plugin via `log_decision` (event_type: 'handoff', terminal
+  resolution_status, prognosis: JSON.stringify(prognosisObject)); the plugin writes
+  the per-session slot atomically + updates the pointer
+  (`.opencode/session/handoffs/active.json`); manual write/edit of the handoff file
+  is forbidden (DIA-120). Never edit code, config, or docs directly. messages.md /
+  messages.jsonl are plugin-managed - never append to them (see SESSION LOGGING below).
 - **SESSION LOGGING**: automatic via delegation-observer plugin; use `log_decision` tool for semantic events; do NOT manually edit messages.md or messages.jsonl
 - **SELF-RERUN**: OpenCode native compaction (`compaction.auto: true`, opencode.jsonc)
   handles RAW context pressure within a session — no human action needed for compaction
@@ -69,8 +82,8 @@ with a read-only task) to report the current contents of:
   > SAFETY-NET** — context usage >= 50% (unconditional force). On ANY trigger: build the
   > handoff prognosis and log it via `log_decision` (event_type: 'handoff',
   > resolution_status: 'done', prognosis: JSON.stringify(prognosisObject)) — the plugin
-  > writes `.opencode/session/current-handoff.json` atomically; the prognosis carries
-  > previous session id, last message #, reason, campaign
+  > writes the per-session slot atomically + updates the pointer; the prognosis
+  > carries previous session id, last message #, reason, campaign
   > state incl. active tickets + next lane + gates passed, resume instructions. Then
   > end your turn telling the user a fresh session should be started —
   > the next instance reads the handoff file + messages.md and resumes. Detection: call
@@ -93,8 +106,8 @@ with a read-only task) to report the current contents of:
   ticket unresolved for 1 full cycle (fires at the start of cycle N+2). **On crisis:** STOP all
   work, produce the crisis handoff by logging it via `log_decision` (event_type: 'handoff',
   resolution_status: 'escalated', prognosis: JSON.stringify(crisisPrognosis)) — the plugin
-  atomically writes .opencode/session/current-handoff.json (all 5 subsections, abbreviated
-  in content per design.md §1 Option A: session_summary includes crisis_triggers;
+  writes the per-session slot atomically + updates the pointer (all 5 subsections,
+  abbreviated in content per design.md §1 Option A: session_summary includes crisis_triggers;
   fixes_applied may be empty; open_tickets populated; verification_request/resume_instructions
   describe crisis-handling only) and computes/stores the checksum. Separately log the
   semantic crisis event via `log_decision` (event_type: 'crisis', resolution_status:
@@ -113,7 +126,7 @@ with a read-only task) to report the current contents of:
   dispatches from registry.jsonl rows where agent='council' or agent='councillor'
   (visible via read() of registry.jsonl) × model cost estimate.
 - **PROGNOSIS-DISCIPLINE**: every cycle termination (clean / crisis / exhausted / manual-halt)
-  MUST produce a handoff file (.opencode/session/current-handoff.json) containing exactly one "Prognosis
+  MUST produce a handoff slot (.opencode/session/handoffs/<session-id>.json) containing exactly one "Prognosis
   for next cycle" section with five folded subsections (session_summary / fixes_applied /
   open_tickets / verification_request / resume_instructions) — no separate PROGNOSIS.md
   (ADR-001). The prognosis is the single source of truth for the successor session, must be
@@ -124,12 +137,13 @@ with a read-only task) to report the current contents of:
   Cycles budget (default max-cycles=3, override 2..10 clamped, 1 disallowed, >10 requires
   split) is recorded in the cycle handoff file (current/max, clean-re-audit, budget-exhausted) +
   the campaign trigger manifest — NOT in this file. Full rule text: design.md §2 / §7 / §9.
-- **HANDOFF-REFRESH (G2)**: the handoff file must be **REWRITTEN** (not appended) at each
+- **HANDOFF-REFRESH (G2)**: the handoff slot must be **REWRITTEN** (not appended) at each
   campaign milestone: (a) after any implementation lane completes; (b) after any review
   disposition is finalized; (c) after any commit lane lands; (d) at campaign completion.
   A rewrite = logging a FRESH terminal handoff via `log_decision` (event_type: 'handoff',
-  terminal resolution_status, prognosis: JSON.stringify(prognosisObject)) — the plugin
-  atomically replaces the file; never edit the file in place (DIA-120). Each rewrite
+  terminal resolution_status, prognosis: JSON.stringify(prognosisObject)) - the plugin
+  atomically replaces the per-session slot + updates the pointer; never edit the file in
+  place (DIA-120). Each rewrite
   captures the current state snapshot — supersede, do not accumulate stale sections.
   Detection: after a plugin-logged delegation row whose result contains
   DONE/COMPLETE/PASS for an implementation/review/commit lane, log the fresh handoff within
@@ -256,8 +270,9 @@ At cycle termination (clean / crisis / exhausted / manual-halt), the outgoing se
    for next cycle" section with the five folded subsections (session_summary /
    fixes_applied / open_tickets / verification_request / resume_instructions) per the
    schema in design.md §3 and the template `openspec/templates/HANDOFF.md`. The
-   delegation-observer plugin atomically writes `.opencode/session/current-handoff.json`
-   and computes/stores the SHA256 `checksum` field itself — NO manual file write, NO
+   delegation-observer plugin writes the per-session slot
+   (`.opencode/session/handoffs/<session-id>.json`) atomically + updates the pointer
+   and computes/stores the SHA256 `checksum` field itself - NO manual file write, NO
    pre-write checksum computation, NO post-write checksum-field edits (DIA-120, DIA-093).
 2. Record the cycle budget INSIDE the prognosis object (cycle current/max, clean-re-audit,
    budget-exhausted) + the campaign trigger manifest — NOT in this file (design.md §7).
@@ -275,11 +290,12 @@ At cycle termination (clean / crisis / exhausted / manual-halt), the outgoing se
 **HARD RULE (DIA-124) - handoff BEFORE final presentation.** BEFORE presenting the
 session's final summary to the developer (the message that ends a delegation cycle -
 cycle termination, SELF-RERUN, crisis, or campaign completion), the orchestrator MUST
-have written the handoff file via `log_decision` (event_type: 'handoff', terminal
-resolution_status, prognosis: JSON.stringify(prognosis)) - the plugin writes
-`.opencode/session/current-handoff.json` atomically with the DIA-061 checksum
-(DIA-120). Sequence: (1) write the handoff; (2) confirm current-handoff.json exists
-AND its `session_id` equals the current orchestrator session AND its `checksum` field
+have written the handoff via `log_decision` (event_type: 'handoff', terminal
+resolution_status, prognosis: JSON.stringify(prognosis)) - the plugin writes the
+per-session slot (`.opencode/session/handoffs/<session-id>.json`) atomically +
+updates the pointer, with the DIA-061 checksum (DIA-120). Sequence: (1) write the
+handoff; (2) confirm the resolved slot exists AND its `session_id` equals the
+current orchestrator session AND its `checksum` field
 is populated (64-hex) - via a delegated read of the file (do NOT treat the
 log_decision return text as write confirmation: atomic-write failures are
 caught-and-warned but the tool still returns success, DIA-124 ai-auditor finding 2);
@@ -298,14 +314,23 @@ any delegation or tool use (design.md §8):
 0.5. PARALLELISM-CONSTRAINT — For true parallel sessions (multiple sessions
 working simultaneously), use worktrees (separate checkouts → separate
 .opencode/session/ dirs → no coordination). Within a single working
-directory, at most ONE session owns the handoff file at any time. Other
-in-directory sessions rely on their own messages.jsonl + registry.jsonl + native session recall for their state; they do not write
-current-handoff.json. 0. **DETECTION** — at session start, check for `.opencode/session/current-handoff.json` via
-direct `read()` (deterministic path, no glob). If it exists AND contains a `prognosis`
-field with populated subsections, the batch-approval protocol is MANDATORY: log a
-detection observation via `log_decision` (event_type: 'decision',
-resolution_status: 'acknowledged', content_ref: 'handoff-detected',
-task_ref: 'batch-approval-gate') before proceeding. If no handoff file exists or it
+directory, multiple parallel sessions may each write their OWN per-session
+slot (.opencode/session/handoffs/<session-id>.json) - slot filenames are
+session-unique, so parallel writes never clobber each other. The pointer
+(.opencode/session/handoffs/active.json) is last-writer-wins by design and is
+NOT a data-loss vector: slots are the source of truth, the pointer is an
+optimization. Unreconciled slots are presented for batch approval (step 0);
+the .reconciled sidecar prevents re-presentation of already-approved slots. 0. **DETECTION** — at session start, resolve the handoff via the section 1
+resolution chain: read `.opencode/session/handoffs/active.json`, resolve
+`active_session_id` to `.opencode/session/handoffs/<session-id>.json`; if the
+pointer is missing/stale/mismatched, mtime scan `handoffs/*.json`; if
+`handoffs/` is empty, fall back to the legacy
+`.opencode/session/current-handoff.json`. If the resolved slot/file exists AND
+contains a `prognosis` field with populated subsections, the batch-approval
+protocol is MANDATORY: log a detection observation via `log_decision`
+(event_type: 'decision', resolution_status: 'acknowledged',
+content_ref: 'handoff-detected', task_ref: 'batch-approval-gate') noting the
+resolved slot's `session_id` before proceeding. If no handoff file exists or it
 has no prognosis section, skip to normal boot (§1).
 DIA-124 SELF-CHECK: this gate also implicitly verifies the prior session honored
 DIA-124 - a missing handoff at boot means the prior session failed the rule
@@ -313,8 +338,10 @@ DIA-124 - a missing handoff at boot means the prior session failed the rule
 to record, NOT a blocker; the gate proceeds per the normal flow.
 
 1. **VERIFY INTEGRITY (delegated, DIA-093)** - the DIA-061 SHA256 of the `prognosis`
-   object is computed by a coder lane as lane-0 immediately after batch approval (step 7),
-   not by the orchestrator (no bash tool by design). At this step only NOTE the stored
+   object of the RESOLVED SLOT (from the step-0 chain; the legacy file only when the
+   chain fell back to it) is computed by a coder lane as lane-0 immediately after batch
+   approval (step 7), not by the orchestrator (no bash tool by design). At this step only
+   NOTE the stored
    `checksum` field state (present 64-hex / null / missing). A missing or invalid checksum
    does NOT block presentation - it is flagged in the prognosis presentation and resolved
    by the lane-0 delegation (step 7). At COMPARISON TIME (after lane-0 returns the computed
@@ -340,8 +367,11 @@ to record, NOT a blocker; the gate proceeds per the normal flow.
    predecessor was supposed to be resolved but wasn't, C5 fires (design.md §1).
 7. **LANE-0 CHECKSUM DELEGATION (automatic; no waiver menu; VERIFICATION ONLY — DIA-093,
    DIA-120).** Immediately after batch approval and BEFORE any verification_request item,
-   dispatch @coder on a single-task brief to compute the DIA-061 canonical checksum:
-   `jq -c '.prognosis | to_entries | sort_by(.key) | from_entries' .opencode/session/current-handoff.json | tr -d '\n' | sha256sum`
+   dispatch @coder on a single-task brief to compute the DIA-061 canonical checksum of the
+   RESOLVED SLOT (path from the step-0 chain - the slot
+   `.opencode/session/handoffs/<session-id>.json`, NOT the legacy file unless the chain
+   fell back to it):
+   `jq -c '.prognosis | to_entries | sort_by(.key) | from_entries' .opencode/session/handoffs/<session-id>.json | tr -d '\n' | sha256sum`
    The lane computes the canonical value for VERIFICATION ONLY — it MUST NOT write or edit
    the handoff file (the file is written SOLELY by the delegation-observer plugin via
    `log_decision(handoff, ..., JSON.stringify(prognosis))`; the plugin computes and stores
@@ -357,13 +387,20 @@ to record, NOT a blocker; the gate proceeds per the normal flow.
    `log_decision` (event_type: 'decision', resolution_status: 'acknowledged',
    content_ref: 'batch-approval-complete'); ONLY THEN begin work. Rejected items become
    new open_tickets and await instruction — they are not silently carried forward.
+9. **MARK RECONCILED (DIA-085 parallel-handoff-slots)** - after batch approval, append
+   the resolved slot's `session_id` to `.opencode/session/handoffs/.reconciled` (atomic
+   temp+rename write, same pattern as the slot/pointer writes; `.reconciled` is a
+   sidecar, not the handoff file, so direct writing is permitted). This prevents the
+   boot gate from re-presenting the same prognosis on subsequent boots (the section 1
+   resolution chain filters reconciled slots from the mtime scan).
 
 ### 7.4 Crisis handling
 
 On any C1–C5 trigger (design.md §1): halt the cycle, produce the crisis handoff by logging
 it via `log_decision` (event_type: 'handoff', resolution_status: 'escalated', prognosis:
-JSON.stringify(crisisPrognosis)) — the plugin atomically writes
-.opencode/session/current-handoff.json (all 5 subsections, abbreviated in content —
+JSON.stringify(crisisPrognosis)) — the plugin writes the per-session slot atomically +
+updates the pointer (`.opencode/session/handoffs/<session-id>.json`, all 5 subsections,
+abbreviated in content —
 session_summary includes crisis_triggers; fixes_applied may be empty; open_tickets
 populated; verification_request/resume_instructions describe crisis-handling only) — then
 notify the developer with trigger identity and evidence, and let the developer decide:
@@ -373,11 +410,13 @@ extend the cycle, start a fresh cycle (counts against budget), or close the chan
 
 A `clean` exit requires fresh-session independent verification (design.md §9, ADR-003):
 the session that produced the work cannot certify its own completion. The fresh session
-reads the handoff file (.opencode/session/current-handoff.json), executes each
+reads the handoff (the resolved slot per section 1, e.g.
+`.opencode/session/handoffs/<session-id>.json`), executes each
 verification_request independently, and confirms or downgrades exit_state. Procedure:
 the verifier records its outcome by logging a FRESH terminal handoff via `log_decision`
-(event_type: 'handoff', prognosis: JSON.stringify(prognosisObject)) — the plugin
-atomically writes the file (no manual append/edit of the handoff file, DIA-120). The
+(event_type: 'handoff', prognosis: JSON.stringify(prognosisObject)) — the plugin writes
+the per-session slot atomically + updates the pointer (no manual append/edit of the
+handoff file, DIA-120). The
 verifier's prognosis carries the verification results per verification_id (status
 verified-pass | verified-fail | verified-partial, evidence, the verifier session ID, and
 a timestamp) plus the confirmed exit_state.
@@ -406,6 +445,14 @@ only; no self-certification; untrusted markers block SELF-RERUN.
   (VP-5), messages schema fixture (VP-6), integration simulation (VP-7).
 
 ### 7.8 Handoff-file loss recovery
+
+NOTE (DIA-085 parallel-handoff-slots): archive-on-overwrite preserves prior
+same-session slot content under
+`.opencode/session/handoffs/archive/<session-id>.<ts>.json` before a rewrite, so a
+clobbered current slot is recoverable from its own archive entry - reducing the
+frequency of section 7.8 invocation. Section 7.8 remains the lossless fallback for
+catastrophic cases
+(whole-`handoffs/` loss, filesystem corruption).
 
 If current-handoff.json is clobbered or missing, the prognosis can be
 reconstructed from:
