@@ -13,7 +13,7 @@ id: DIA-184
 title: "host make test-config exit 2: batch-d-infra.test.mjs TEST_ROOT defaults to container path /workspace"
 area: tests-infra
 severity: Medium
-status: OPEN
+status: VERIFIED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: ""
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
@@ -25,6 +25,7 @@ source: test-lane
 date: 2026-08-15
 created: 2026-08-15
 updated: 2026-08-15
+resolved: 2026-08-15
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -35,7 +36,7 @@ model: ""
 parent_session_id: "ses_ffe359d8bffegJun06OC9Wg749"
 attempts: 0
 lease_expires_at: "" # ISO-8601; set on DISPATCHED, cleared on COMPLETE
-files_touched: ["docs/dev-infra-audit/tickets/DIA-184-host-make-test-config-enoent-batch-d-infra-test-root-container-path.md"]
+files_touched: ["docs/dev-infra-audit/tickets/DIA-184-host-make-test-config-enoent-batch-d-infra-test-root-container-path.md", "scripts/__tests__/batch-d-infra.test.mjs"]
 artifacts: []
 evidence: ["cod-7 reconciliation report (ses_ffde3ced9ffe5Yx7IcgsJEvBLa): host make test-config exit 2 ENOENT /workspace", "cod-8 DIA-156 gate runs: host exit 2 ENOENT /workspace", "cod-9 DIA-155 gate runs: host exit 2 ENOENT /workspace", "container `docker compose exec dev make test-config` exit 0 (49/49)"]
 
@@ -81,20 +82,51 @@ real container mount.
 
 ## Fix
 
-<What changed — fill at fix time. Leave blank with this note until then.>
+Implemented 2026-08-15 (fix lane, worktree .slim/worktrees/dia-184, branch omos/dia-184).
 
-> To be filled at fix time.
+**Root cause:** `scripts/__tests__/batch-d-infra.test.mjs` hardcoded all three
+path defaults (TEST_ROOT, ESBUILD_BIN, OMO_NODE_MODULES) to the CONTAINER
+mount path `/workspace`, which does not exist on the host. Host-side
+`make test-config` therefore exit 2 with ENOENT /workspace.
 
-Suggested direction (owned by the next session): TEST_ROOT should be
-host-aware - detect cwd/repo root, or accept a TEST_ROOT env override with a
-sane default (e.g. repo-root resolution instead of the hardcoded
-/workspace). Note ESBUILD_BIN and OMO_NODE_MODULES at lines 45-46 have the
-same /workspace default pattern and likely need the same treatment. The exact
-fix, tests, and gate re-verification are queued for the next session.
+**Fix (host-aware defaults, env override still wins):**
+
+- **TEST_ROOT** now defaults to the repo root of the tree the suite is checked
+  out in, derived from `import.meta.url` (the suite is tracked at
+  `<tree>/scripts/__tests__/batch-d-infra.test.mjs`, so the tree root is two
+  levels above the file). Cwd-independent: correct in-container (/workspace)
+  and on the host for both the main tree and worktrees. `process.env.TEST_ROOT`
+  still wins when set.
+- **ESBUILD_BIN / OMO_NODE_MODULES** get the same treatment via a `findUp`
+  helper: walk up from TEST_ROOT to the nearest ancestor that holds the path
+  (worktrees have no node_modules of their own - the main tree supplies them).
+  Falls back to the TEST_ROOT-relative path at the filesystem root, matching
+  the old semantics. Env overrides still win.
+- **S6 test section added** pinning the resolution logic: repoRootOf unit
+  tests (container / main-tree / worktree layouts) + findUp behavior (walk-up,
+  miss-fallback, direct-hit). The helpers stay module-scope so the fix logic
+  itself is asserted directly, not just the end state.
+
+**Files changed:** `scripts/__tests__/batch-d-infra.test.mjs` (the fix itself)
+plus this ticket file (Fix/Re-verify sections filled + frontmatter updated per
+ledger convention).
 
 ## Re-verify
 
-<Result of re-running Verification after the fix — fill at re-verify time.
-Must include the actual gate output/exit code that proves VERIFIED.>
+Re-verified 2026-08-15 after the fix (fix lane, worktree .slim/worktrees/dia-184):
 
-> To be filled at re-verify time.
+- **HOST** (outside dev container, worktree repo root): `make test-config`
+  exit **0** (was exit 2 ENOENT /workspace). batch-d-infra suite line:
+  `node scripts/__tests__/batch-d-infra.test.mjs` -> 56 tests, 56 pass,
+  0 fail, exit 0 (incl. new S6 DIA-184 section).
+- **CONTAINER** (no regression): `docker compose exec dev make test-config`
+  exit **0** (49/49, pre-fix main-tree suite). New suite run in-container
+  directly (`node /workspace/.slim/worktrees/dia-184/scripts/__tests__/batch-d-infra.test.mjs`)
+  exit **0** (56/56).
+- `git status` shows only the intended change: `scripts/__tests__/batch-d-infra.test.mjs`
+  (+ this ticket's Fix/Re-verify update).
+
+Re-review cycle 1/2 (rev-3): all prior findings verified-closed; OBS-1 (stale
+"exported" wording in this Fix narrative, now module-scope) fixed 2026-08-15.
+
+Status: VERIFIED.

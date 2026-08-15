@@ -22,8 +22,11 @@
  * node_modules).
  *
  * Run: TEST_ROOT=/workspace node scripts/__tests__/batch-d-infra.test.mjs
- *   TEST_ROOT defaults to /workspace; every file assertion resolves against
- *   it, so the same suite runs against the main tree or a worktree.
+ *   TEST_ROOT defaults to the repo root of the tree the suite is checked out
+ *   in (DIA-184: host-aware since 2026-08-15 - the old hardcoded container
+ *   default /workspace made host-side `make test-config` exit 2 with ENOENT
+ *   /workspace); every file assertion resolves against it, so the same suite
+ *   runs against the main tree or a worktree.
  *
  * Sections:
  *   1. PLUGIN CLASSIFICATION (batch D, post-DIA-172) - GREEN now
@@ -36,14 +39,50 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { appendFileSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import {
+  appendFileSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
-import { pathToFileURL } from 'node:url';
+import { dirname, join, resolve } from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
-const TEST_ROOT = process.env.TEST_ROOT || '/workspace';
-const ESBUILD_BIN = process.env.ESBUILD_BIN || '/workspace/node_modules/.bin/esbuild';
-const OMO_NODE_MODULES = process.env.OMO_NODE_MODULES || '/workspace/.opencode/node_modules';
+// DIA-184: host-aware root defaults. The previous defaults hardcoded the
+// CONTAINER mount path /workspace, which does not exist on the host, so a
+// host-side `make test-config` false-failed with ENOENT /workspace (exit 2).
+// The suite is tracked at <tree>/scripts/__tests__/batch-d-infra.test.mjs, so
+// the tree root is always two levels above the file - derive it from
+// import.meta.url (cwd-independent: correct in-container at /workspace and on
+// the host for both the main tree and worktrees). Env overrides still win.
+function repoRootOf(moduleUrl) {
+  return resolve(dirname(fileURLToPath(moduleUrl)), '../..');
+}
+const REPO_ROOT = repoRootOf(import.meta.url);
+const TEST_ROOT = process.env.TEST_ROOT || REPO_ROOT;
+
+// DIA-184: esbuild + OMO node_modules live in the MAIN tree, which a worktree
+// (no node_modules of its own - see the header note) reaches by walking up the
+// physical path. Walk from TEST_ROOT upward until the path exists; fall back
+// to the TEST_ROOT-relative path (matching the old /workspace-relative
+// semantics) once the filesystem root is reached.
+function findUp(startDir, relPath) {
+  let dir = startDir;
+  for (;;) {
+    const candidate = join(dir, relPath);
+    if (existsSync(candidate)) return candidate;
+    const parent = dirname(dir);
+    if (parent === dir) return join(startDir, relPath);
+    dir = parent;
+  }
+}
+const ESBUILD_BIN = process.env.ESBUILD_BIN || findUp(TEST_ROOT, 'node_modules/.bin/esbuild');
+const OMO_NODE_MODULES =
+  process.env.OMO_NODE_MODULES || findUp(TEST_ROOT, '.opencode/node_modules');
 
 const readRoot = (rel) => readFileSync(join(TEST_ROOT, rel), 'utf8');
 
@@ -511,5 +550,83 @@ describe('S5 DIA-139 SLICE B (F-2): turbo base test task default', () => {
         `${key} override must be removed (new base default covers it)`,
       );
     }
+  });
+});
+
+// ============================================================================
+// S6 DIA-184 - host-aware root defaults. Regression pin for the container-only
+// /workspace hardcode that made host-side `make test-config` exit 2 with
+// ENOENT /workspace (observed cod-7/8/9, fixed 2026-08-15). The resolution
+// helpers (repoRootOf, findUp) stay module-scope and are asserted directly
+// here, so the fix logic itself is pinned, not just the end state.
+// ============================================================================
+describe('S6 DIA-184: host-aware root defaults', () => {
+  it('TEST_ROOT resolves to a real repo root containing AGENTS.md + Makefile (no ENOENT /workspace)', () => {
+    assert.equal(
+      existsSync(join(TEST_ROOT, 'AGENTS.md')),
+      true,
+      'TEST_ROOT must contain AGENTS.md',
+    );
+    assert.equal(existsSync(join(TEST_ROOT, 'Makefile')), true, 'TEST_ROOT must contain Makefile');
+  });
+
+  it('repoRootOf derives the tree root two levels above scripts/__tests__ (container layout)', () => {
+    assert.equal(
+      repoRootOf('file:///workspace/scripts/__tests__/batch-d-infra.test.mjs'),
+      '/workspace',
+    );
+  });
+
+  it('repoRootOf derives the tree root two levels above scripts/__tests__ (host main-tree layout)', () => {
+    assert.equal(
+      repoRootOf('file:///home/dev/poetry-platform/scripts/__tests__/batch-d-infra.test.mjs'),
+      '/home/dev/poetry-platform',
+    );
+  });
+
+  it('repoRootOf derives the tree root two levels above scripts/__tests__ (host worktree layout)', () => {
+    assert.equal(
+      repoRootOf(
+        'file:///home/dev/poetry-platform/.worktrees/omos-dia-184/scripts/__tests__/batch-d-infra.test.mjs',
+      ),
+      '/home/dev/poetry-platform/.worktrees/omos-dia-184',
+    );
+  });
+
+  it('findUp walks up to the nearest ancestor holding the path (worktree has no node_modules)', () => {
+    const tmpDir = mkdtempSync(join(tmpdir(), 'dia184-findup-'));
+    process.on('exit', () => rmSync(tmpDir, { recursive: true, force: true }));
+    // Simulate a main tree with node_modules and a nested worktree without.
+    const mainTree = join(tmpDir, 'repo');
+    const worktree = join(mainTree, '.worktrees', 'omos-dia-184');
+    mkdirSync(join(mainTree, 'node_modules', '.bin'), { recursive: true });
+    writeFileSync(join(mainTree, 'node_modules', '.bin', 'esbuild'), '');
+    mkdirSync(worktree, { recursive: true });
+    assert.equal(
+      findUp(worktree, 'node_modules/.bin/esbuild'),
+      join(mainTree, 'node_modules', '.bin', 'esbuild'),
+    );
+  });
+
+  it('findUp falls back to the start-relative path when no ancestor holds it', () => {
+    const tmpDir = mkdtempSync(join(tmpdir(), 'dia184-findup-miss-'));
+    process.on('exit', () => rmSync(tmpDir, { recursive: true, force: true }));
+    const emptyTree = join(tmpDir, 'empty');
+    mkdirSync(emptyTree, { recursive: true });
+    assert.equal(
+      findUp(emptyTree, 'node_modules/.bin/esbuild'),
+      join(emptyTree, 'node_modules', '.bin', 'esbuild'),
+    );
+  });
+
+  it('findUp returns the path when TEST_ROOT itself holds it (container / main-tree layout)', () => {
+    const tmpDir = mkdtempSync(join(tmpdir(), 'dia184-findup-hit-'));
+    process.on('exit', () => rmSync(tmpDir, { recursive: true, force: true }));
+    mkdirSync(join(tmpDir, '.opencode'), { recursive: true });
+    mkdirSync(join(tmpDir, '.opencode', 'node_modules'), { recursive: true });
+    assert.equal(
+      findUp(tmpDir, '.opencode/node_modules'),
+      join(tmpDir, '.opencode', 'node_modules'),
+    );
   });
 });
