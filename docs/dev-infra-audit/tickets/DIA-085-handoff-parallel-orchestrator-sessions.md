@@ -10,13 +10,13 @@ id: DIA-085
 title: "investigate parallel orchestrator sessions — handoff coordination between them (session IDs, worktrees, handoff-file ownership)"
 area: docs
 severity: Medium
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 discovered: 2026-08-10
 source: inventory
 date: 2026-08-10
 created: 2026-08-10
-updated: 2026-08-15
+updated: 2026-08-16
 gate_state: grilled
 gate_triggers: [new-module, schema-state, cross-cutting]
 gate_waivers: []
@@ -168,3 +168,30 @@ archive + reconciliation sidecar (Option B, developer-approved 2026-08-15).
 OpenSpec change 'parallel-handoff-slots' created (openspec/changes/
 parallel-handoff-slots/). The ana011 claim+heartbeat protocol remains a
 separate follow-up change.
+
+## UPDATE (2026-08-16) - CLOSE: final verification green, all slices DONE
+
+Closeout lane (AFK campaign 2026-08-16, developer-authorized autonomous
+closeout):
+
+- Final verification (host gates, 2026-08-16):
+  - `bash scripts/test-parallel-handoff.sh` -> exit 0 (6 passed / 0 failed;
+    six acceptance scenarios: two-session smoke, forced race, same-session
+    rewrite (archive), legacy fallback, pointer stale recovery, pointer
+    mismatch recovery).
+  - `bash scripts/validate-handoff.sh -s ses_ff556cf05ffe55oXNmk41IV1Gq`
+    -> exit 0 (1 passed / 0 failed / 0 warnings; DIA-061 canonical checksum
+    verified on a live slot under .opencode/session/handoffs/).
+  - `openspec validate parallel-handoff-slots` -> exit 0 ("Change
+    'parallel-handoff-slots' is valid"; isComplete true).
+- Implementation slices (Fix block, all DONE): T1.1 plugin writer
+  (delegation-observer.ts), T3.1 slot-aware validate-handoff.sh (-s flag),
+  T4.1 test-parallel-handoff.sh smoke, T4.2 bun harness
+  parallel-handoff.test.mjs (9 tests, S1 seam), T4.3 validate-handoff.bats
+  (S3 seam), T2.1 NEXT-RUN.md/AGENTS.md docs, T5.1 this ticket.
+- Live state: .opencode/session/handoffs/ carries active.json pointer + 4
+  session slots + archive/ (5 archived writes, including the 2026-08-15
+  clobber-window archive); resolution chain verified by the smoke suite.
+- ana011 claim+heartbeat protocol: REMAINS a documented separate follow-up
+  (session-11 dispositions + activation note) - NOT in scope for this change.
+- Status: OPEN -> CLOSED (2026-08-16).

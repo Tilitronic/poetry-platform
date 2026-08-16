@@ -6,13 +6,13 @@ id: DIA-200
 title: "Analyze worktree/branch/merge mechanism + verify Codex/ClaudeCode follow the same conventions"
 area: dev-infra
 severity: Medium
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 discovered: 2026-08-14
 source: developer-directive
 date: 2026-08-14
 created: 2026-08-14
-updated: 2026-08-14
+updated: 2026-08-16
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -97,3 +97,34 @@ speculation.
 ## Re-verify
 
 > To be filled at re-verify time.
+
+## UPDATE (2026-08-16) - CLOSE: ana022 mechanism deliverable, follow-ups filed, CODE-CLIENT-PARITY verified
+
+Closeout lane (AFK campaign 2026-08-16, developer-authorized autonomous
+closeout):
+
+- Mechanism deliverable: knowledge/ana022-worktree-mechanism-analysis/
+  ana022-worktree-mechanism-analysis-report.md (418 lines, committed 8f227f2,
+  shelf-registered .opencode/memory-shelf.yaml:554). Categorized findings
+  MECHANISM (M-1..M-5) / DRY (D-1..D-3) / OBSERVATIONS (O-1..O-7), each with
+  rationale + recommendation + effort; prioritized summary R-1..R-6 in
+  section 7. Verification checklist satisfied: analysis report exists with
+  all required categories and evidence-based recommendations.
+- CODE-CLIENT-PARITY scope item: CLOSED with evidence - no `.codex/`, no
+  `.claude/`, no `.cursorrules`, no `.cursor/`, no
+  `.github/copilot-instructions.md` exist anywhere in the repo (checked
+  2026-08-16 at closeout); no AI-client configs reference
+  worktree-conventions.md / worktrees.sh / batch-D, and none define divergent
+  workflows. The parity question resolves to "no clients configured, no
+  conventions to diverge".
+- Follow-up tickets filed for the highest-value fixes (this ticket does NOT
+  close the tooling gaps - it delivers the analysis that drives them):
+  - DIA-201 worktree cleanup: orphaned-dir sweep for .worktrees/ (ana022 R-1,
+    section 2 + M-2) - highest-value fix, effort M.
+  - DIA-202 worktrees.sh: nested-worktree creation guard (ana022 R-2, M-3) -
+    effort S-M.
+  - DIA-203 make worktree-gc target + dry-run post-push warning (ana022 R-4,
+    section 7 + M-1) - effort M, explicitly NOT cron/auto-scheduled.
+    (R-3 spec-template seam rule, R-5 worktree_pairs() DRY, R-6 policy-prose
+    trim were judged lower-value and left to normal maintenance.)
+- Status: OPEN -> CLOSED (2026-08-16).

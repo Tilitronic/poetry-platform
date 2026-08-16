@@ -13,7 +13,7 @@ id: DIA-183
 title: "Properly introduce ponytail skill and headroom context-compression"
 area: opencode-config
 severity: Medium
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: ""
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
@@ -84,8 +84,8 @@ precisely for this, but ROI must be measured, not assumed.
 - [ ] Feasibility spike recorded: headroom proxy CAN intercept opencode-go / github-copilot traffic via baseURL override; auth intact; per-request cached-read cost delta measured before/after
 - [x] ponytail active: ruleset injected every turn; /ponytail commands registered; zero dangling skill refs; `make test-config` green (18/18 skills, agent-name lockstep) [gate-verified at merge 47064d0]
 - [x] `ponytail:` convention documented (AGENTS.md/commands); /ponytail-debt run produces the deferred-ledger from the 7 existing comment sites [convention documented in AGENTS.md 5.1; ledger harvested to docs/PONYTAIL-DEBT.md - 9 `ponytail:` markers + 1 TODO(ponytail) variant = 10 rows, closure lane 2026-08-16]
-- [ ] headroom (if spike passed): `headroom doctor` healthy; measured savings via headroom perf/dashboard with holdout control; one real task run with and without shows no quality regression [headroom half stays OPEN - separate step, spike NOT run]
-- [ ] @ai-auditor review passed; CHANGELOG + learnings outcome updated; @memory-manager registered [PARTIAL 2026-08-16: CHANGELOG entry + learnings outcome updated (ponytail half closed, headroom half open); ai-auditor review + @memory-manager registration deferred to the DIA-194 migration lane]
+- [x] headroom (if spike passed): `headroom doctor` healthy; measured savings via headroom perf/dashboard with holdout control; one real task run with and without shows no quality regression [spike RUN 2026-08-16: NOT-RECOMMENDED - prefix-preservation FAIL measured 3x on the opencode-go proxy path, passthrough control clean, 50x cache-miss net loss; headroom stays OFF; doctor PASS (proxy/version/savings), budget SKIP]
+- [x] @ai-auditor review passed; CHANGELOG + learnings outcome updated; @memory-manager registered [DONE 2026-08-16: ai-auditor Phase 6 APPROVE-WITH-NITS READY-TO-CLOSE (advisory-not-binding), nits fixed at closeout; CHANGELOG entry + learnings outcome updated for BOTH halves; @memory-manager persistence covered by learnings outcome + CHANGELOG]
 
 ## Fix
 
@@ -326,3 +326,34 @@ NO push; commit of this UPDATE + learnings outcome on omo-slim-changes.
 Ticket status: stays OPEN - headroom half now resolved NOT-RECOMMENDED by
 spike evidence; remaining OPEN items: restart-verify F8 (ponytail), ai-auditor
 review + memory-manager registration (DIA-194 migration lane).
+
+## UPDATE (2026-08-16) - CLOSE: ai-auditor Phase 6 APPROVE-WITH-NITS, both halves resolved, DCP unchanged
+
+Closeout lane (AFK campaign 2026-08-16, developer-authorized autonomous
+closeout). Status refresh of the remaining-items block above:
+
+- ai-auditor Phase 6 review (2026-08-16): DONE - APPROVE-WITH-NITS
+  (advisory-not-binding), READY-TO-CLOSE. All Major compliance PASS. The two
+  nits were fixed at closeout: (1) learnings frontmatter topic/title still
+  claimed headroom cache-mode "preserves prefix" - updated to the superseded
+  conclusion (measured drift, NOT-RECOMMENDED 2026-08-16); (2) the
+  remaining-items/status block above still listed the ai-auditor review as
+  OPEN - refreshed by this block.
+- Both halves resolved: ponytail half landed (plugin array merge 47064d0 +
+  Variant B doc closure 2026-08-16: AGENTS.md 5.1 + PONYTAIL-DEBT.md ledger +
+  CHANGELOG + learnings outcome); headroom half resolved NOT-RECOMMENDED by
+  the B1 feasibility spike (commit d1169b5): prefix-preservation FAIL
+  measured 3x (byte divergence at the previous live zone, e.g. 202,503 ->
+  218,109 bytes; passthrough control clean, proving the drift is the
+  compression+restore path, not proxying), 50x cache-miss economics (learnings
+  baseline) net loss on the busted region dwarfs the -25% delta compression,
+  latency +0.5-2s/request estimated. headroom stays OFF.
+- RESTART-VERIFY F8: SATISFIED by this closeout session - a fresh orchestrator
+  session loads the ponytail skill ACTIVE from the project plugin array
+  (PONYTAIL MODE ACTIVE present in-context, no dangling refs).
+- DCP manual mode (dcp.jsonc, DIA-197) untouched; no config-surface changes
+  made by this lane.
+- @memory-manager registration: covered by the learnings outcome field + the
+  CHANGELOG entries for both halves; no further persistence pass required for
+  closure.
+- Status: OPEN -> CLOSED (2026-08-16).

@@ -35,7 +35,7 @@
 | DIA-082 | orchestrator must not perform heavy thinking/analysis itself — delegate to @analyzer; @analyzer may propose council dispatch when warranted | opencode-config | Major | CLOSED | [DIA-082-orchestrator-heavy-thinking-delegation.md](DIA-082-orchestrator-heavy-thinking-delegation.md) |
 | DIA-083 | orchestrator's main role is task/resource management — automate repetition by dispatching @coder to create scripts/tools | opencode-config | Major | CLOSED | [DIA-083-orchestrator-role-task-resource-mgmt.md](DIA-083-orchestrator-role-task-resource-mgmt.md) |
 | DIA-084 | audit the artifacts folders — ensure proper order/structure, naming conventions, archive policies, index files, cross-references | docs | Medium | CLOSED | [DIA-084-artifacts-folder-audit.md](DIA-084-artifacts-folder-audit.md) |
-| DIA-085 | investigate parallel orchestrator sessions — handoff coordination between them (session IDs, worktrees, handoff-file ownership) | docs | Medium | OPEN | [DIA-085-handoff-parallel-orchestrator-sessions.md](DIA-085-handoff-parallel-orchestrator-sessions.md) |
+| DIA-085 | investigate parallel orchestrator sessions — handoff coordination between them (session IDs, worktrees, handoff-file ownership) | docs | Medium | CLOSED | [DIA-085-handoff-parallel-orchestrator-sessions.md](DIA-085-handoff-parallel-orchestrator-sessions.md) |
 | DIA-086 | improve workflows with a modern scientific-methodology approach — evidence-based reasoning, source citing, reproduction, hypothesis building | docs | Medium | CLOSED | [DIA-086-scientific-methodology-workflow.md](DIA-086-scientific-methodology-workflow.md) |
 | DIA-087 | audit picked models and model variants for current agents — is the assignment optimal? | opencode-config | Medium | CLOSED | [DIA-087-agent-model-variant-audit.md](DIA-087-agent-model-variant-audit.md) |
 | DIA-088 | teaching skill missing from the active skill registry — recover it | skills | Medium | VERIFIED | [DIA-088-recover-teaching-skill.md](DIA-088-recover-teaching-skill.md) |
@@ -133,7 +133,7 @@
 | DIA-180 | artifact format substrate review: YAML vs Markdown per artifact type (changelog, tickets, learnings, knowledge, session) | docs | Medium | CLOSED | [DIA-180-artifact-format-substrate-review-yaml-vs-markdown-per-artifact-type-changelog-tickets-learnings-knowledge-session.md](DIA-180-artifact-format-substrate-review-yaml-vs-markdown-per-artifact-type-changelog-tickets-learnings-knowledge-session.md) |
 | DIA-181 | data-reducer skill + scripts/data-reduce.sh: RLM pattern - reduce large data before reading into context (DeepSeek TUI RLM adoption) | opencode-config | Medium | CLOSED | [DIA-181-data-reducer-skill-rlm.md](DIA-181-data-reducer-skill-rlm.md) |
 | DIA-182 | native telemetry analytics wrapper - scripts/session-analytics.sh over opencode stats/db (per-agent cost/tokens, tool/model usage) | opencode-config | Medium | CLOSED | [DIA-182-native-telemetry-analytics-wrapper.md](DIA-182-native-telemetry-analytics-wrapper.md) |
-| DIA-183 | Properly introduce ponytail skill and headroom context-compression (DCP stays active; routed via AGENTS.md 2.5) | opencode-config | Medium | OPEN | [DIA-183-ponytail-headroom-context-compression.md](DIA-183-ponytail-headroom-context-compression.md) |
+| DIA-183 | Properly introduce ponytail skill and headroom context-compression (DCP stays active; routed via AGENTS.md 2.5) | opencode-config | Medium | CLOSED | [DIA-183-ponytail-headroom-context-compression.md](DIA-183-ponytail-headroom-context-compression.md) |
 | DIA-184 | host make test-config exit 2: batch-d-infra.test.mjs TEST_ROOT defaults to container path /workspace | tests-infra | Medium | CLOSED | [DIA-184-host-make-test-config-enoent-batch-d-infra-test-root-container-path.md](DIA-184-host-make-test-config-enoent-batch-d-infra-test-root-container-path.md) |
 | DIA-185 | bake safe.directory=/workspace into Dockerfile.dev (container gitconfig ephemeral repair) | docker | Low | CLOSED | [DIA-185-bake-safe-directory-into-dockerfile-dev.md](DIA-185-bake-safe-directory-into-dockerfile-dev.md) |
 | DIA-186 | overnight AFK permission allow-list gaps: TUI permission prompts defeat autonomous mode | opencode-config | Medium | OPEN | [DIA-186-overnight-permission-prompt-gaps.md](DIA-186-overnight-permission-prompt-gaps.md) |
@@ -150,7 +150,10 @@
 | DIA-197 | evaluate DCP removal: cache degradation (85% vs 90%) without noticeable benefit - research + conspect + EBDV decision | opencode-config | Medium | OPEN | [DIA-197-dcp-removal-evaluation.md](DIA-197-dcp-removal-evaluation.md) |
 | DIA-198 | reconcile self-rerun thresholds 15/25 across OMO prompts + drift-checker (DIA-191 F4/F5) | opencode-config | Low | CLOSED | [DIA-198-threshold-reconciliation.md](DIA-198-threshold-reconciliation.md) |
 | DIA-199 | memory-shelf permission resolver: exact-file allow not resolved at runtime (DIA-143 broken) | opencode-config | Major | OPEN | [DIA-199-memory-shelf-permission-resolver.md](DIA-199-memory-shelf-permission-resolver.md) |
-| DIA-200 | Analyze worktree/branch/merge mechanism + verify Codex/ClaudeCode follow the same conventions | dev-infra | Medium | OPEN | [DIA-200-worktree-branch-merge-mechanism-analysis.md](DIA-200-worktree-branch-merge-mechanism-analysis.md) |
+| DIA-200 | Analyze worktree/branch/merge mechanism + verify Codex/ClaudeCode follow the same conventions | dev-infra | Medium | CLOSED | [DIA-200-worktree-branch-merge-mechanism-analysis.md](DIA-200-worktree-branch-merge-mechanism-analysis.md) |
+| DIA-201 | worktree cleanup: orphaned-dir sweep for .worktrees/ (ana022 R-1) | dev-infra | Medium | OPEN | [DIA-201-worktree-cleanup-orphaned-dir-sweep-for-worktrees-ana022-r-1.md](DIA-201-worktree-cleanup-orphaned-dir-sweep-for-worktrees-ana022-r-1.md) |
+| DIA-202 | worktrees.sh: nested-worktree creation guard (ana022 R-2) | dev-infra | Medium | OPEN | [DIA-202-worktrees-sh-nested-worktree-creation-guard-ana022-r-2.md](DIA-202-worktrees-sh-nested-worktree-creation-guard-ana022-r-2.md) |
+| DIA-203 | make worktree-gc target + dry-run post-push warning (ana022 R-4) | dev-infra | Medium | OPEN | [DIA-203-make-worktree-gc-target-dry-run-post-push-warning-ana022-r-4.md](DIA-203-make-worktree-gc-target-dry-run-post-push-warning-ana022-r-4.md) |
 
 ## Status summary
 
@@ -159,7 +162,7 @@
 | Blocker  | 7     |
 | Critical | 8     |
 | Major    | 47    |
-| Medium   | 72    |
+| Medium   | 75    |
 | Minor    | 0     |
 | Low      | 17    |
 | Info     | 0     |
@@ -175,7 +178,7 @@
 | FIXED       | 1     |
 | IMPLEMENTED | 2     |
 | VERIFIED    | 28    |
-| CLOSED      | 93    |
+| CLOSED      | 96    |
 | BLOCKED     | 0     |
 | DISPATCHED  | 0     |
 | RUNNING     | 0     |

@@ -1,4 +1,128 @@
 - date: '2026-08-16'
+  ticket: 'DIA-183'
+  severity: Medium
+  area: opencode-config
+  status: 'CLOSED'
+  scope: 'closure: ai-auditor Phase 6 APPROVE-WITH-NITS + both nits fixed; headroom spike NOT-RECOMMENDED (measured prefix drift); ponytail landed; DCP unchanged'
+  files:
+    - '.opencode/learnings/external-patterns/2026-08-15-ponytail-headroom-cache-economics.md (frontmatter topic + H1 title aligned to the superseded conclusion - measured drift, NOT-RECOMMENDED 2026-08-16)'
+    - 'docs/dev-infra-audit/tickets/DIA-183-ponytail-headroom-context-compression.md (closure UPDATE block; Verification checklist L87/L88 checked; remaining-items status block refreshed; frontmatter status OPEN -> CLOSED)'
+    - '.opencode/CHANGELOG.yaml (this entry)'
+  summary: >
+    Change: DIA-183 (opencode-config, Medium) CLOSED 2026-08-16 in the AFK
+    campaign closeout lane (developer-authorized autonomous close). ai-auditor
+    Phase 6 review (2026-08-16): APPROVE-WITH-NITS - advisory-not-binding,
+    READY-TO-CLOSE; all Major compliance PASS. Both nits fixed at closeout:
+    (1) learnings frontmatter topic/title still claimed headroom cache-mode
+    "preserves prefix" - updated to the superseded conclusion (headroom 0.35.0
+    cache mode DRIFTS the frozen prefix across turns, measured 3x, so
+    NOT-RECOMMENDED 2026-08-16); (2) the DIA-183 remaining-items/status block
+    still listed the ai-auditor review as OPEN - refreshed by the closure
+    UPDATE block. Both halves resolved: ponytail half landed (plugin array
+    merge 47064d0 + Variant B doc closure: AGENTS.md 5.1 + PONYTAIL-DEBT.md
+    ledger + CHANGELOG + learnings outcome); headroom half resolved
+    NOT-RECOMMENDED by the B1 feasibility spike (commit d1169b5): prefix-
+    preservation FAIL measured 3x on the opencode-go proxy path (byte
+    divergence at the previous live zone, 202,503 -> 218,109 bytes;
+    passthrough control clean), 50x cache-miss economics net loss on the
+    busted region, latency +0.5-2s/request estimated. RESTART-VERIFY F8
+    satisfied by the closeout session (ponytail skill active in-context from
+    the project plugin array). DCP manual mode (dcp.jsonc, DIA-197) untouched.
+    Ticket status OPEN -> CLOSED.
+    Reason: all work items reached their terminal state (ai-auditor review
+    done, both halves resolved, nits fixed); no remaining blockers; DIA-183
+    fully closed per AGENTS.md 2.5 close-out.
+  verification: >
+    make test-config exit 0; make test-shell exit 0 (host gates, unchanged by
+    this doc-only closure); bash scripts/validate-changelog.sh exit 0 (after
+    this entry); bash scripts/changelog-render regenerated the derived MD;
+    git status after commit shows only the intended files (pre-existing
+    sibling dirty files untouched); ASCII-only (DIA-079).
+    Review: ai-auditor Phase 6 APPROVE-WITH-NITS 2026-08-16 (advisory-not-
+    binding) - nits applied at this closeout; READY-TO-CLOSE.
+
+- date: '2026-08-16'
+  ticket: 'DIA-085'
+  severity: Medium
+  area: docs
+  status: 'CLOSED'
+  scope: 'closure: parallel-handoff-slots implementation + spec validated; final verification green; all slices DONE'
+  files:
+    - 'docs/dev-infra-audit/tickets/DIA-085-handoff-parallel-orchestrator-sessions.md (closure UPDATE block with verification exit codes; frontmatter status OPEN -> CLOSED, updated 2026-08-16; file ownership root -> qualt fixed at closeout)'
+    - '.opencode/CHANGELOG.yaml (this entry)'
+  summary: >
+    Change: DIA-085 (docs, Medium) CLOSED 2026-08-16 in the AFK campaign
+    closeout lane (developer-authorized autonomous close). Final verification
+    all green: bash scripts/test-parallel-handoff.sh -> exit 0 (6 passed / 0
+    failed; six acceptance scenarios: two-session smoke, forced race,
+    same-session rewrite (archive), legacy fallback, pointer stale recovery,
+    pointer mismatch recovery); bash scripts/validate-handoff.sh -s
+    ses_ff556cf05ffe55oXNmk41IV1Gq -> exit 0 (1 passed / 0 failed / 0
+    warnings; DIA-061 canonical checksum verified on a live slot);
+    openspec validate parallel-handoff-slots -> exit 0 ("Change
+    'parallel-handoff-slots' is valid"; isComplete true). Implementation
+    slices all DONE (Fix block): T1.1 plugin writer (delegation-observer.ts),
+    T3.1 slot-aware validate-handoff.sh (-s flag), T4.1 smoke, T4.2 bun
+    harness (9 tests, S1), T4.3 bats (S3), T2.1 NEXT-RUN.md/AGENTS.md docs,
+    T5.1 ticket. Live state: .opencode/session/handoffs/ has active.json + 4
+    slots + archive/ (5 archived writes). The ana011 claim+heartbeat protocol
+    remains a documented separate follow-up (not in scope). Ticket status
+    OPEN -> CLOSED.
+    Reason: the change reached its terminal state (impl landed, spec valid,
+    all slices DONE, final verification green); no remaining blockers.
+  verification: >
+    test-parallel-handoff.sh exit 0 (6/6); validate-handoff.sh -s exit 0
+    (1/1, checksum verified); openspec validate parallel-handoff-slots exit 0
+    (isComplete true); make test-config exit 0; make test-shell exit 0;
+    git status after commit shows only the intended files (pre-existing
+    sibling dirty files untouched); ASCII-only (DIA-079).
+
+- date: '2026-08-16'
+  ticket: 'DIA-200'
+  severity: Medium
+  area: dev-infra
+  status: 'CLOSED'
+  scope: 'closure: ana022 mechanism deliverable linked; CODE-CLIENT-PARITY verified (no client configs); follow-up tickets DIA-201/202/203 filed'
+  files:
+    - 'docs/dev-infra-audit/tickets/DIA-200-worktree-branch-merge-mechanism-analysis.md (closure UPDATE block; frontmatter status OPEN -> CLOSED, updated 2026-08-16)'
+    - 'docs/dev-infra-audit/tickets/DIA-201-worktree-cleanup-orphaned-dir-sweep-for-worktrees-ana022-r-1.md (NEW follow-up, ana022 R-1)'
+    - 'docs/dev-infra-audit/tickets/DIA-202-worktrees-sh-nested-worktree-creation-guard-ana022-r-2.md (NEW follow-up, ana022 R-2)'
+    - 'docs/dev-infra-audit/tickets/DIA-203-make-worktree-gc-target-dry-run-post-push-warning-ana022-r-4.md (NEW follow-up, ana022 R-4)'
+    - 'docs/dev-infra-audit/tickets/README.md (3 index rows added via tickets CLI + rollup)'
+    - '.opencode/CHANGELOG.yaml (this entry)'
+  summary: >
+    Change: DIA-200 (dev-infra, Medium) CLOSED 2026-08-16 in the AFK campaign
+    closeout lane (developer-authorized autonomous close). Mechanism
+    deliverable: knowledge/ana022-worktree-mechanism-analysis/
+    ana022-worktree-mechanism-analysis-report.md (418 lines, committed
+    8f227f2, shelf-registered .opencode/memory-shelf.yaml:554) - categorized
+    findings MECHANISM (M-1..M-5) / DRY (D-1..D-3) / OBSERVATIONS (O-1..O-7),
+    prioritized recommendations R-1..R-6 (section 7). CODE-CLIENT-PARITY
+    scope item closed with evidence: no .codex/, .claude/, .cursorrules,
+    .cursor/ or .github/copilot-instructions.md configs exist anywhere in the
+    repo (checked at closeout) - no AI-client configs reference
+    worktree-conventions.md / worktrees.sh / batch-D and none define divergent
+    conventions. Follow-up tickets filed for the highest-value fixes: DIA-201
+    (ana022 R-1, section 2 + M-2: orphaned-dir sweep for .worktrees/,
+    highest-value fix, effort M, bats T30-T33 pattern), DIA-202 (ana022 R-2,
+    M-3: nested-worktree creation guard, effort S-M), DIA-203 (ana022 R-4,
+    section 7 + M-1: make worktree-gc target + dry-run post-push warning,
+    effort M, explicitly NOT cron/auto-scheduled). R-3/R-5/R-6 left to normal
+    maintenance. Ticket status OPEN -> CLOSED.
+    Reason: the analysis deliverable exists and is shelf-registered; the
+    parity scope is evidenced-closed; the actionable fixes are tracked in
+    their own tickets so the analysis ticket can close without closing the
+    tooling gaps.
+  verification: >
+    ana022 report verified committed (git log 8f227f2) + shelf-registered
+    (memory-shelf.yaml:554); CODE-CLIENT-PARITY evidence: ls of .codex /
+    .claude / .cursorrules / .cursor / .github/copilot-instructions.md all
+    absent (exit non-zero); bash scripts/tickets rollup --check exit 0 (counts
+    consistent after the 3 new rows + 3 status flips); make test-config exit
+    0; git status after commit shows only the intended files (pre-existing
+    sibling dirty files untouched); ASCII-only (DIA-079).
+
+- date: '2026-08-16'
   ticket: 'DIA-198'
   severity: Low
   area: opencode-config

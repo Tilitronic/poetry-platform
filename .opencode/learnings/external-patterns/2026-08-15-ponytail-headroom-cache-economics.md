@@ -1,12 +1,12 @@
 ---
 date: 2026-08-15
-topic: prompt-cache economics for context compression - DCP degrades cache, ponytail is safe, headroom cache-mode preserves prefix
+topic: prompt-cache economics for context compression - DCP degrades cache, ponytail is safe, headroom cache-mode DRIFTS the frozen prefix (measured 2026-08-16, NOT-RECOMMENDED)
 source: ai-specialist phase-1 gate (DIA-183), web-fresh fetches 2026-08-15
 ticket: DIA-183-ponytail-headroom-context-compression
 status: active
 ---
 
-# Prompt-cache economics for context compression (DIA-183 Phase 1 gate findings)
+# Prompt-cache economics for context compression (DIA-183 Phase 1 gate findings; headroom cache-mode preservation claim SUPERSEDED - measured drift, NOT-RECOMMENDED 2026-08-16)
 
 ## 1. FACT: the current DCP configuration ALREADY degrades the prompt cache
 
