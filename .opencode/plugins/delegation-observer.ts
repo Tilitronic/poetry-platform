@@ -2697,7 +2697,7 @@ const delegationObserver: Plugin = async (ctx) => {
       // risking context degradation (campaign-critical state loss).
       context_usage: tool({
         description:
-          "Estimate context-window usage for the current session. Returns JSON with estimated usage fraction, delegation counts, and optional council-scoped breakdown. NOT token-accurate — uses registry.jsonl activity signals as a proxy. Sufficient for self-rerun (>=25%) and council budget guard decisions.",
+          "Estimate context-window usage for the current session. Returns JSON with estimated usage fraction, delegation counts, and optional council-scoped breakdown. NOT token-accurate — uses registry.jsonl activity signals as a proxy. Output includes dual self-rerun flags threshold_15pct (primary, >=15%) and threshold_25pct (safety-net, >=25%) per NEXT-RUN.md; sufficient for self-rerun and council budget guard decisions.",
         args: {
           scope: tool.schema
             .enum(["session", "council"])

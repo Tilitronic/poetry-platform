@@ -24,19 +24,19 @@ CHECKER="$REPO_ROOT/scripts/check-orchestrator-prompt-drift.sh"
 # greps for (pure-dispatch appears uppercase as PURE-DISPATCH in the real
 # prompts; the checker matches it case-insensitively). The last three clauses
 # mirror the DIA-097-added content locked by the ai-auditor Minor fix: the
-# DIA-126a READ-SCOPE note, the EBDV (DIA-115) clause, and the 30/50 threshold
-# text (READ-SCOPE / EBDV / 30% (primary) are the three new needles).
-FULL_PROMPT="Orchestrator Operating Rules: you are delegation-only and FORBIDDEN from reading repo files. batch-approval boot gate. DIA-133: consult the model registry. PURE-DISPATCH RULE: every task() call is the sole tool call. The orchestrator has no bash tool by design. DIA-126a READ-SCOPE NOTE: read/glob allow-list expanded 2026-08-13. EBDV (DIA-115): evidence-backed decision variants. Self-rerun at >=30% (primary) / >=50% (safety-net)."
+# DIA-126a READ-SCOPE note, the EBDV (DIA-115) clause, and the 15/25 threshold
+# text (READ-SCOPE / EBDV / 15% (primary) are the three new needles).
+FULL_PROMPT="Orchestrator Operating Rules: you are delegation-only and FORBIDDEN from reading repo files. batch-approval boot gate. DIA-133: consult the model registry. PURE-DISPATCH RULE: every task() call is the sole tool call. The orchestrator has no bash tool by design. DIA-126a READ-SCOPE NOTE: read/glob allow-list expanded 2026-08-13. EBDV (DIA-115): evidence-backed decision variants. Self-rerun at >=15% (primary) / >=25% (safety-net)."
 
 # A full-marker prompt minus ONE marker's clause (each drifty test below spells
 # its variant out explicitly - the removed clause is exactly the needle the
 # checker must miss, so gap-count assertions stay accurate). READ-SCOPE /
-# EBDV / 30% (primary) are the three markers added by the ai-auditor Minor fix.
-DRIFTY_NO_DIA133="Orchestrator Operating Rules: you are delegation-only and FORBIDDEN from reading repo files. batch-approval boot gate. PURE-DISPATCH RULE: every task() call is the sole tool call. The orchestrator has no bash tool by design. DIA-126a READ-SCOPE NOTE: read/glob allow-list expanded 2026-08-13. EBDV (DIA-115): evidence-backed decision variants. Self-rerun at >=30% (primary) / >=50% (safety-net)."
-DRIFTY_NO_DELEGATION="Orchestrator Operating Rules: batch-approval boot gate. DIA-133: consult the model registry. PURE-DISPATCH RULE: every task() call is the sole tool call. The orchestrator has no bash tool by design. DIA-126a READ-SCOPE NOTE: read/glob allow-list expanded 2026-08-13. EBDV (DIA-115): evidence-backed decision variants. Self-rerun at >=30% (primary) / >=50% (safety-net)."
-DRIFTY_NO_BASH="Orchestrator Operating Rules: you are delegation-only and FORBIDDEN from reading repo files. batch-approval boot gate. DIA-133: consult the model registry. PURE-DISPATCH RULE: every task() call is the sole tool call. DIA-126a READ-SCOPE NOTE: read/glob allow-list expanded 2026-08-13. EBDV (DIA-115): evidence-backed decision variants. Self-rerun at >=30% (primary) / >=50% (safety-net)."
-DRIFTY_NO_READSCOPE="Orchestrator Operating Rules: you are delegation-only and FORBIDDEN from reading repo files. batch-approval boot gate. DIA-133: consult the model registry. PURE-DISPATCH RULE: every task() call is the sole tool call. The orchestrator has no bash tool by design. EBDV (DIA-115): evidence-backed decision variants. Self-rerun at >=30% (primary) / >=50% (safety-net)."
-DRIFTY_NO_EBDV="Orchestrator Operating Rules: you are delegation-only and FORBIDDEN from reading repo files. batch-approval boot gate. DIA-133: consult the model registry. PURE-DISPATCH RULE: every task() call is the sole tool call. The orchestrator has no bash tool by design. DIA-126a READ-SCOPE NOTE: read/glob allow-list expanded 2026-08-13. Self-rerun at >=30% (primary) / >=50% (safety-net)."
+# EBDV / 15% (primary) are the three markers added by the ai-auditor Minor fix.
+DRIFTY_NO_DIA133="Orchestrator Operating Rules: you are delegation-only and FORBIDDEN from reading repo files. batch-approval boot gate. PURE-DISPATCH RULE: every task() call is the sole tool call. The orchestrator has no bash tool by design. DIA-126a READ-SCOPE NOTE: read/glob allow-list expanded 2026-08-13. EBDV (DIA-115): evidence-backed decision variants. Self-rerun at >=15% (primary) / >=25% (safety-net)."
+DRIFTY_NO_DELEGATION="Orchestrator Operating Rules: batch-approval boot gate. DIA-133: consult the model registry. PURE-DISPATCH RULE: every task() call is the sole tool call. The orchestrator has no bash tool by design. DIA-126a READ-SCOPE NOTE: read/glob allow-list expanded 2026-08-13. EBDV (DIA-115): evidence-backed decision variants. Self-rerun at >=15% (primary) / >=25% (safety-net)."
+DRIFTY_NO_BASH="Orchestrator Operating Rules: you are delegation-only and FORBIDDEN from reading repo files. batch-approval boot gate. DIA-133: consult the model registry. PURE-DISPATCH RULE: every task() call is the sole tool call. DIA-126a READ-SCOPE NOTE: read/glob allow-list expanded 2026-08-13. EBDV (DIA-115): evidence-backed decision variants. Self-rerun at >=15% (primary) / >=25% (safety-net)."
+DRIFTY_NO_READSCOPE="Orchestrator Operating Rules: you are delegation-only and FORBIDDEN from reading repo files. batch-approval boot gate. DIA-133: consult the model registry. PURE-DISPATCH RULE: every task() call is the sole tool call. The orchestrator has no bash tool by design. EBDV (DIA-115): evidence-backed decision variants. Self-rerun at >=15% (primary) / >=25% (safety-net)."
+DRIFTY_NO_EBDV="Orchestrator Operating Rules: you are delegation-only and FORBIDDEN from reading repo files. batch-approval boot gate. DIA-133: consult the model registry. PURE-DISPATCH RULE: every task() call is the sole tool call. The orchestrator has no bash tool by design. DIA-126a READ-SCOPE NOTE: read/glob allow-list expanded 2026-08-13. Self-rerun at >=15% (primary) / >=25% (safety-net)."
 DRIFTY_NO_THRESHOLD="Orchestrator Operating Rules: you are delegation-only and FORBIDDEN from reading repo files. batch-approval boot gate. DIA-133: consult the model registry. PURE-DISPATCH RULE: every task() call is the sole tool call. The orchestrator has no bash tool by design. DIA-126a READ-SCOPE NOTE: read/glob allow-list expanded 2026-08-13. EBDV (DIA-115): evidence-backed decision variants."
 
 # fixture_dir: echoes a fresh throwaway tree (created on demand).
@@ -148,14 +148,14 @@ JSONC
   assert_output_not_contains "FAIL: cebula"
 }
 
-@test "check-orchestrator-prompt-drift: missing threshold text (30% primary) in ONE prompt FAILS and names the preset" {
+@test "check-orchestrator-prompt-drift: missing threshold text (15% primary) in ONE prompt FAILS and names the preset" {
   dir="$(fixture_dir)"
   write_config "$dir/drift.jsonc" "$FULL_PROMPT" "$FULL_PROMPT" "$DRIFTY_NO_THRESHOLD"
 
   SLIM_JSONC="$dir/drift.jsonc" run bash "$CHECKER"
 
   assert_status 1
-  assert_output_contains "FAIL: free: missing required marker '30% (primary)'"
+  assert_output_contains "FAIL: free: missing required marker '15% (primary)'"
   assert_output_contains "1 marker gap(s)"
   assert_output_not_contains "FAIL: opencode-go"
   assert_output_not_contains "FAIL: cebula"

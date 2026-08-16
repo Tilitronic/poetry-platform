@@ -16,7 +16,7 @@
 # Required markers (DIA-097 lane scope, current as of 2026-08-13; marker set
 # EXTENDED 2026-08-13 by the ai-auditor Minor fix to also lock the DIA-097-added
 # content - the DIA-126a read-scope note, the EBDV (DIA-115) clause, and the
-# 30/50 threshold text - so future drift of THOSE phrases fails the gate too):
+# 15/25 threshold text - so future drift of THOSE phrases fails the gate too):
 #   delegation-only   role boundary: orchestrator delegates, never executes
 #   batch-approval    boot gate: prognosis presented before any delegation
 #   DIA-133           registry pointer: consult model-registry.yaml before
@@ -32,7 +32,7 @@
 #   EBDV              DIA-115 evidence-backed decision variants clause: >=2
 #                     genuine options each carrying evidence, abort/status-quo
 #                     always included, recommendation + chosen record
-#   >=30% (primary)   self-rerun threshold text: >=30% (primary) / >=50%
+#   >=15% (primary)   self-rerun threshold text: >=15% (primary) / >=25%
 #                     (safety-net) context per NEXT-RUN.md
 #
 # The marker set is a FIXED contract, not configurable per run - a future
@@ -55,16 +55,16 @@ PRESETS="${PRESETS:-opencode-go cebula free}"
 # Fixed required-marker contract (see header). Matched as fixed strings;
 # pure-dispatch additionally case-insensitive (PURE-DISPATCH in the prompts).
 MARKERS=(delegation-only batch-approval DIA-133 pure-dispatch no-bash-tool \
-  read-scope-note ebdv-clause threshold-30-50)
+  read-scope-note ebdv-clause threshold-15-25)
 # The MARKERS tokens stay hyphenated/whitespace-safe; the needles below spell
 # out the exact prompt phrases they match (verified present in all 3 prompts
 # as of 2026-08-13 - including the DIA-097 additions the ai-auditor Minor
 # locks: the DIA-126a READ-SCOPE note, the EBDV (DIA-115) clause, and the
-# 30/50 threshold text).
+# 15/25 threshold text).
 NO_BASH_MARKER="no bash tool"
 READ_SCOPE_NOTE_MARKER="READ-SCOPE"
 EBDV_CLAUSE_MARKER="EBDV"
-THRESHOLD_MARKER="30% (primary)"
+THRESHOLD_MARKER="15% (primary)"
 
 if [ ! -f "$SLIM_JSONC" ]; then
   echo "FAIL: oh-my-opencode-slim.jsonc not found: $SLIM_JSONC (run from the repo root or set SLIM_JSONC)" >&2
@@ -180,7 +180,7 @@ while IFS= read -r -d '' preset && IFS= read -r -d '' prompt; do
       no-bash-tool)    needle="$NO_BASH_MARKER" ;;
       read-scope-note) needle="$READ_SCOPE_NOTE_MARKER" ;;
       ebdv-clause)     needle="$EBDV_CLAUSE_MARKER" ;;
-      threshold-30-50) needle="$THRESHOLD_MARKER" ;;
+      threshold-15-25) needle="$THRESHOLD_MARKER" ;;
     esac
     if [ "$marker" = "pure-dispatch" ]; then
       # PURE-DISPATCH (uppercase) in the prompts; match case-insensitively.

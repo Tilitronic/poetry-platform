@@ -84,12 +84,59 @@ runtime behavior change.
 
 ## Fix
 
-To be filled at fix time.
+Implemented 2026-08-16 (cod-13 follow-up lane, branch omo-slim-changes,
+commit referencing DIA-198). Text-alignment only; no runtime behavior change.
 
-> To be filled at fix time.
+1. `.opencode/oh-my-opencode-slim.jsonc` - replaced `>=30% (primary) / >=50%
+(safety-net)` with `>=15% (primary) / >=25% (safety-net)` in the
+   "Orchestrator Operating Rules" prompt of ALL THREE presets (lines 26 / 209
+   / 433, opencode-go / cebula / free).
+2. `scripts/check-orchestrator-prompt-drift.sh` - retuned the marker contract:
+   header comment (line 19 + lines 35-36) and `THRESHOLD_MARKER` (line 67)
+   now assert `15% (primary)`; internal marker token renamed
+   `threshold-30-50` -> `threshold-15-25` (MARKERS array + case arm) so the
+   contract id matches the needle it locks.
+3. `scripts/__tests__/check-orchestrator-prompt-drift.bats` - fixture needles
+   `>=30% (primary) / >=50% (safety-net)` -> `>=15% (primary) / >=25%
+(safety-net)` in FULL*PROMPT and all DRIFTY*\* fixtures; comments + test
+   name + output assertion updated to `15% (primary)`.
+4. `.opencode/plugins/delegation-observer.ts` (~line 2700) - context_usage
+   tool description now documents the dual self-rerun output fields
+   (`threshold_15pct` primary >=15% / `threshold_25pct` safety-net >=25% per
+   NEXT-RUN.md) instead of the old single `>=25%` framing. Description-string
+   edit only; validated by the esbuild bundle in
+   `scripts/__tests__/batch-d-infra.test.mjs` (wired into make test-config).
+
+Verification evidence (all run on the current tree):
+
+- `make test-config` exit 0 (56 tests pass / 0 fail; includes batch-d-infra
+  plugin bundle + drift-checker Makefile wiring).
+- `make test-shell` exit 0 (404 bats tests pass; drift-checker suite green,
+  incl. retuned "missing threshold text (15% primary)" test).
+- `grep -n "30%\|50%" .opencode/oh-my-opencode-slim.jsonc` -> empty (exit 1,
+  no matches) - no 30/50 summary text remains.
+- `bash scripts/check-orchestrator-prompt-drift.sh` exit 0 ("3 preset(s)
+  checked, 8 markers each, 0 gaps").
+- `grep -n "30%\|50%"` across the other three changed files -> empty too.
+
+No tsc config exists for `.opencode/plugins/` (plugin typecheck path is the
+esbuild bundle in test-config, which passed); the edit is a string literal so
+no type surface changed.
 
 ## Re-verify
 
-To be filled at re-verify time.
+Re-verified 2026-08-16 (same lane, post-fix): all four surfaces now carry
+the 15/25 authority and the drift-checker contract is internally consistent:
 
-> To be filled at re-verify time.
+| Check                                        | Result                                                          |
+| -------------------------------------------- | --------------------------------------------------------------- |
+| grep 30%/50% in oh-my-opencode-slim.jsonc    | empty (0 matches)                                               |
+| grep 30%/50% in drift script + bats + plugin | empty (0 matches)                                               |
+| scripts/check-orchestrator-prompt-drift.sh   | exit 0, 0 gaps                                                  |
+| make test-config                             | exit 0 (56/56)                                                  |
+| make test-shell                              | exit 0 (404/404, drift suite green)                             |
+| git status                                   | only the 5 intended files staged; sibling dirty files untouched |
+
+No behavioral delta: prompts/contract/tool description all read 15% primary /
+25% safety-net, matching the merged NEXT-RUN.md (lines 81-82, 238-239) and
+the context_usage output fields (threshold_15pct/threshold_25pct).
