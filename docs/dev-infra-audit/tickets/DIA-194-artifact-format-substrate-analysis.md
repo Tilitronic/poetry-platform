@@ -6,7 +6,7 @@ id: DIA-194
 title: "artifact format substrate analysis (DIA-180 Deliverable B): YAML vs Markdown EBDV matrix with token-economy evidence"
 area: docs
 severity: Medium
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: DIA-180
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
@@ -17,7 +17,7 @@ discovered: 2026-08-15
 source: follow-up
 date: 2026-08-15
 created: 2026-08-15
-updated: 2026-08-15
+updated: 2026-08-16
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -296,3 +296,22 @@ reads deliver the token win. FIX-1..FIX-6 introduce no new deviations.
 ## Re-verify
 
 > To be filled at re-verify time.
+
+## UPDATE (2026-08-16) - CLOSED: analysis + Phase-3 design + implementation via DIA-196 + review APPROVE
+
+Closure record:
+
+- Analysis complete: ana022 (artifact-format-substrate report,
+  knowledge/ana022-artifact-format-substrate/) + ana024 (EBDV report,
+  knowledge/ana024-artifact-format-ebdv/).
+- Phase-3 design approved: Variant B (YAML ledger source + derived MD view),
+  developer GO 2026-08-15.
+- Implementation landed via DIA-196: commit 28d1a2d (rebased -> 8cade8c) with
+  fix commits bbd3a40/d0e0626/0c150cb (rebased -> b101a67/e728ab7/66b45e3).
+- Review: re-review cycle 1/2 all findings verified-closed (reviewer); re-audit
+  cycle 2/2 APPROVE (ai-auditor, verdict advisory-not-binding, no remaining
+  findings).
+- Push: origin/omo-slim-changes 8f227f2 -> 66b45e3 (pre-push ladder passed:
+  prettier, eslint, js-tests, test-config, python, test-shell).
+
+Status: CLOSED.

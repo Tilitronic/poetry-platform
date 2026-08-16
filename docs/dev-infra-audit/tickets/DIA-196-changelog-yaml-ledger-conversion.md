@@ -10,7 +10,7 @@ id: DIA-196
 title: "changelog YAML-ledger conversion: YAML source + derived MD view (ana024 Variant B)"
 area: opencode-config
 severity: Medium
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: "DIA-194" # optional DIA-NNN parent epic ticket (DIA-125 keep-local extension; scripts/tickets emits this field always)
 
@@ -26,7 +26,7 @@ discovered: 2026-08-15
 source: developer-requirement
 date: 2026-08-15
 created: 2026-08-15
-updated: 2026-08-15
+updated: 2026-08-16
 
 # --- Session Attribution (v2 schema, optional - GRANDFATHERED for DIA-001..049) ---
 
@@ -228,3 +228,26 @@ Evidence recorded by the implementation lane (coder, 2026-08-16):
   dirty files untouched; no push (branch omo-slim-changes).
 
 Pending reviewer confirmation of FIX-1..FIX-6 before status flip to CLOSED.
+
+## UPDATE (2026-08-16) - CLOSED: re-review cycle 1/2 verified-closed + ai-auditor cycle 2/2 APPROVE + pushed
+
+Closure evidence (the only prior blocker, reviewer re-verification, is now in
+hand):
+
+- Re-review cycle 1/2 (reviewer): ALL prior findings verified-closed - FIX-1
+  (Major latent, files: [] structural fallback parity), FIX-2 (Minor, render
+  datetime normalization), FIX-3..FIX-6 (Minor, AGENTS.md dead yq branch,
+  orchestrator delegation scope, Python prefix-match fallback, ticket Fix/
+  Re-verify population) plus D1-D3 accuracy fixes. No still-open or partial.
+- Re-audit cycle 2/2 (ai-auditor): APPROVE - verdict advisory-not-binding, no
+  remaining findings.
+- Pushed to origin/omo-slim-changes: 8f227f2 -> 66b45e3 (fast-forward after
+  integration rebase onto the concurrent DIA-180/200 lane commits; the
+  pre-push ladder passed on both pushes: prettier, eslint, js-tests,
+  test-config, python, test-shell).
+- Implementation commits as recorded in this ticket (pre-rebase SHAs):
+  28d1a2d (Variant B impl), bbd3a40 (FIX-1/2), d0e0626 (FIX-3..6),
+  0c150cb (D1-D3). Rebased equivalents on origin: 8cade8c, b101a67, e728ab7,
+  66b45e3 (linear history preserved).
+
+Status: CLOSED.

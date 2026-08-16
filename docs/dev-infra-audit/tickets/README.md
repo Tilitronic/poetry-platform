@@ -144,9 +144,9 @@
 | DIA-191 | context_usage tool overestimates vs TUI indicator (48% proxy vs 23% actual, ~2x) causing premature SELF-RERUN | opencode-config | Medium | OPEN | [DIA-191-context-usage-estimator-overestimates-tui.md](DIA-191-context-usage-estimator-overestimates-tui.md) |
 | DIA-192 | delegation-observer prognosis parse fallback firing: lossy handoff + spurious high-severity TUI notification | opencode-config | Medium | OPEN | [DIA-192-delegation-observer-prognosis-parse-fallback.md](DIA-192-delegation-observer-prognosis-parse-fallback.md) |
 | DIA-193 | delegation-observer handoff-writer skip for non-terminal in-flight: benign guard surfaced as alarming high-severity notification | opencode-config | Low | OPEN | [DIA-193-delegation-observer-handoff-skip-inflight-notification.md](DIA-193-delegation-observer-handoff-skip-inflight-notification.md) |
-| DIA-194 | artifact format substrate analysis (DIA-180 Deliverable B): YAML vs Markdown EBDV matrix with token-economy evidence | docs | Medium | OPEN | [DIA-194-artifact-format-substrate-analysis.md](DIA-194-artifact-format-substrate-analysis.md) |
+| DIA-194 | artifact format substrate analysis (DIA-180 Deliverable B): YAML vs Markdown EBDV matrix with token-economy evidence | docs | Medium | CLOSED | [DIA-194-artifact-format-substrate-analysis.md](DIA-194-artifact-format-substrate-analysis.md) |
 | DIA-195 | harness RLM integration: unify test harnesses + RLM data-reduction + workflow guard + observability | opencode-config | Medium | OPEN | [DIA-195-harness-rlm-integration.md](DIA-195-harness-rlm-integration.md) |
-| DIA-196 | changelog YAML-ledger conversion: YAML source + derived MD view (ana024 Variant B) | opencode-config | Medium | OPEN | [DIA-196-changelog-yaml-ledger-conversion.md](DIA-196-changelog-yaml-ledger-conversion.md) |
+| DIA-196 | changelog YAML-ledger conversion: YAML source + derived MD view (ana024 Variant B) | opencode-config | Medium | CLOSED | [DIA-196-changelog-yaml-ledger-conversion.md](DIA-196-changelog-yaml-ledger-conversion.md) |
 | DIA-197 | evaluate DCP removal: cache degradation (85% vs 90%) without noticeable benefit - research + conspect + EBDV decision | opencode-config | Medium | OPEN | [DIA-197-dcp-removal-evaluation.md](DIA-197-dcp-removal-evaluation.md) |
 | DIA-198 | reconcile self-rerun thresholds 15/25 across OMO prompts + drift-checker (DIA-191 F4/F5) | opencode-config | Low | OPEN | [DIA-198-threshold-reconciliation.md](DIA-198-threshold-reconciliation.md) |
 | DIA-199 | memory-shelf permission resolver: exact-file allow not resolved at runtime (DIA-143 broken) | opencode-config | Major | OPEN | [DIA-199-memory-shelf-permission-resolver.md](DIA-199-memory-shelf-permission-resolver.md) |
@@ -159,14 +159,14 @@
 | Blocker  | 7     |
 | Critical | 8     |
 | Major    | 47    |
-| Medium   | 73    |
+| Medium   | 72    |
 | Minor    | 0     |
-| Low      | 16    |
+| Low      | 17    |
 | Info     | 0     |
 
 | Status      | Count |
 | ----------- | ----- |
-| OPEN        | 17    |
+| OPEN        | 15    |
 | DONE        | 11    |
 | VALIDATE    | 0     |
 | E2E         | 0     |
@@ -175,7 +175,7 @@
 | FIXED       | 1     |
 | IMPLEMENTED | 2     |
 | VERIFIED    | 28    |
-| CLOSED      | 90    |
+| CLOSED      | 92    |
 | BLOCKED     | 0     |
 | DISPATCHED  | 0     |
 | RUNNING     | 0     |
