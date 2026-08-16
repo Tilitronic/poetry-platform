@@ -84,12 +84,13 @@ After the developer disposes review findings (accept/reject per practice-protect
   6. **Independent review** — `@ai-auditor` reviews the implemented change against best practices + AIHero patterns. ai-auditor is THE independent reviewer for config changes.
   7. **Register** — append the changelog entry to `.opencode/CHANGELOG.yaml`
      (the YAML ledger is the source of truth; `.opencode/CHANGELOG.md` is the
-     derived view). Append via `yq -i` when yq is available, otherwise via a
-     text edit adding one schema-valid entry (see
-     `scripts/schemas/changelog.schema.json`), then regenerate the derived MD
-     with `scripts/changelog-render` and update the learnings outcome field.
+     derived view). Append via a text edit adding one schema-valid entry (see
+     `scripts/schemas/changelog.schema.json`; the settled YAML stack is
+     PyYAML — yq is rejected by DIA-137 and not installed), then validate with
+     `scripts/validate-changelog.sh`, regenerate the derived MD with
+     `scripts/changelog-render`, and update the learnings outcome field.
      Partial reads only, e.g. the per-DIA query
-     `yq '.[] | select(.ticket == "DIA-NNN")' .opencode/CHANGELOG.yaml`
+     `python3 -c "import yaml,json,sys; [print(json.dumps(e,indent=2,default=str)) for e in yaml.safe_load(open('.opencode/CHANGELOG.yaml')) if e.get('ticket')=='DIA-NNN']"`
      (DIA-194).
 - **Review matrix**: dev-infra → `@reviewer`; opencode config → `@ai-auditor`.
 

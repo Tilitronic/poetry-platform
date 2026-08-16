@@ -254,6 +254,43 @@ Agents need instructions to use `yq` for partial reads and writes.
 
 > To be filled at fix time.
 
+## UPDATE (2026-08-16) - Review outcome: implementation + re-review cycle 1/2
+
+Implementation of the Phase-3 design (Variant B) landed as commit 28d1a2d on
+branch omo-slim-changes (tracked by DIA-196, status OPEN). Review findings
+were disposed by the developer (fix all actionable) and applied in re-review
+cycle 1/2 as fix commit `bbd3a40`:
+
+- FIX-1 (F2, Major latent): validate-changelog.sh structural fallback now
+  accepts `files: []` (schema has no minItems; committed ledger legitimately
+  carries empty files lists, e.g. DIA-189b). Both layers agree, pinned by a
+  new parity fixture + bats test.
+- FIX-2 (F1, Minor): changelog-render normalizes YAML-native datetime date
+  values to ISO dates before header formatting (mirrors the validator's
+  normalize); new fixture + render test.
+- FIX-3 (F3, Minor): AGENTS.md 2.5 Phase 7 dead `yq -i` branch removed - the
+  register instruction now leads with the settled PyYAML text-edit path
+  (yq rejected by DIA-137, not installed).
+- FIX-4 (ai--4 item 5, Minor): orchestrator_append.md Changelog Read Protocol
+  states the partial-read lookup is executed by a delegated coder lane (the
+  orchestrator has bash: deny; it dispatches the query, never pastes the file).
+- FIX-5 (ai--4 item 6, Minor): Python fallback now documents the prefix-match
+  (startswith) form alongside exact match - parity with the yq behavior for
+  multi-ticket entries (e.g. DIA-190/192/193).
+- FIX-6 (ai--4 item 7, Minor): DIA-196 ticket Fix/Re-verify sections
+  populated with commit evidence; status stays OPEN pending reviewer
+  re-verification.
+
+Design deviations from the approved Phase-3 design (unchanged from the
+28d1a2d commit message): render/validator use the settled PyYAML stack
+(bash + python3) instead of the design's "bash + yq" wording - yq is not
+installed on host or dev container and DIA-137 explicitly rejected it
+(res027 section 2.7); no opencode.jsonc edit was needed because the global
+bash baseline is "\*": allow (yq read/write already permitted). Full-read
+size is ~238 KB (lossless migration per design section 3) rather than the
+ana024 ~61-67 KB band, which assumed condensed entries; per-entry partial
+reads deliver the token win. FIX-1..FIX-6 introduce no new deviations.
+
 ## Re-verify
 
 > To be filled at re-verify time.

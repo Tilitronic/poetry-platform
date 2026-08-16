@@ -158,3 +158,72 @@ work (one section-10 cycle, ana024 section 2 Variant B).
   ~175).
 - Rollback verified: single-commit revert restores the prose file.
 - ASCII-only (DIA-079) on all source files added/changed.
+
+## Fix
+
+> Filled by the implementation lane (coder, commit 28d1a2d, branch
+> omo-slim-changes, unpushed).
+
+Implementation landed 2026-08-16 as commit 28d1a2d (single-commit migration
+per the Rollback section: YAML ledger + schema + validator + render script +
+derived MD + prompt updates all in ONE commit):
+
+- `.opencode/CHANGELOG.yaml` (NEW): 90-entry ledger migrated from the prose
+  CHANGELOG.md (89 sections + the headerless DIA-154 orphan + the DIA-183
+  2026-08-16 entry), reverse-chronological, every entry schema-valid.
+- `scripts/schemas/changelog.schema.json` (NEW): strict entry shape
+  (additionalProperties: false; date/ticket/scope/files/summary/verification
+  required), mirroring memory-shelf.schema.json conventions (DIA-180-A).
+- `scripts/validate-changelog.sh` (NEW): JSON Schema gate + embedded
+  structural fallback (clone of validate-memory-shelf.sh, two-layer parity
+  pinned by bats), wired into `make test-config`.
+- `scripts/changelog-render` (NEW, executable): deterministic derived-view
+  generator (CHANGELOG.yaml -> CHANGELOG.md), defensive on empty/missing keys.
+- `scripts/__tests__/validate-changelog.bats` + `changelog-render.bats` +
+  9 fixtures (NEW): 12+1 tests covering valid/missing/malformed/extra/empty/
+  empty-array/missing-file/empty-files/datetime-date cases.
+- `.opencode/CHANGELOG.md`: regenerated derived view (90 entries).
+- Prompts: AGENTS.md section 2.5 Phase 7 (register via YAML ledger + render)
+  and `.opencode/oh-my-opencode-slim/orchestrator_append.md` (Changelog Read
+  Protocol: partial reads via yq/python3, never the full file).
+
+Design deviations (recorded in the commit message; reviewer diff anchor is
+the DIA-194 UPDATE block):
+
+1. Render/validator use the settled PyYAML stack (bash + python3) instead of
+   the design's "bash + yq" wording - yq is not installed on host or dev
+   container and DIA-137 explicitly rejected it (res027 section 2.7).
+2. No opencode.jsonc edit needed: global bash baseline is "\*": allow, so yq
+   read/write are already permitted (design section 7's allow-list item is
+   moot).
+
+Re-review cycle 1/2 (2026-08-16): developer approved fixing all actionable
+findings. Fix commit `bbd3a40` (see Re-verify) applied FIX-1..FIX-6:
+structural fallback `files: []` parity (FIX-1), render datetime normalization
+(FIX-2), AGENTS.md dead yq branch removed (FIX-3), orchestrator delegation
+scope clarified (FIX-4), Python prefix-match fallback parity (FIX-5), ticket
+Fix/Re-verify populated (FIX-6).
+
+## Re-verify
+
+> Filled by the implementation lane; status stays OPEN pending reviewer
+> re-verification (re-review cycle 1/2).
+
+Evidence recorded by the implementation lane (coder, 2026-08-16):
+
+- `make test-config` exit 0 (56 pass / 0 fail, incl. validate-changelog.sh).
+- `make test-shell` exit 0 (402 bats, incl. the 12 changelog validator/render
+  tests + the new FIX-1 empty-files parity test + FIX-2 datetime-date test).
+- `scripts/validate-changelog.sh` against the committed ledger exit 0 (the
+  FIX-1 proof: DIA-189b's `files: []` entry passes).
+- Derived MD regenerates deterministically (byte-identical across runs);
+  rendered MD closely approximates the legacy prose for spot-checked sections.
+- Prettier: `.opencode/CHANGELOG.yaml` passes `npx prettier --check`.
+- Per-DIA query works via the documented yq/python3 forms; full-read size is
+  ~238 KB (lossless migration per design section 3; the ana024 full-read
+  token band assumed condensed entries - recorded deviation, per-entry
+  partial reads deliver the token win).
+- git status at commit time showed only the intended files changed; sibling
+  dirty files untouched; no push (branch omo-slim-changes).
+
+Pending reviewer confirmation of FIX-1..FIX-6 before status flip to CLOSED.
