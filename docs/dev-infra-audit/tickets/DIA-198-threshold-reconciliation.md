@@ -161,7 +161,7 @@ Closure evidence (register lane, omo-slim-changes):
   Major compliance PASS; the single optional nit (independent 25% safety-net
   marker in the drift-checker) DEFERRED by developer disposition as
   future-hardening - logged here, NOT part of this closure.
-- Pushed to origin/omo-slim-changes: f4dcf73 -> <CLOSURE_SHA> (pre-push
+- Pushed to origin/omo-slim-changes: f4dcf73 -> 9a1c08e (pre-push
   ladder passed: prettier, eslint, js-tests, test-config, python, test-shell).
 - Registration: .opencode/CHANGELOG.yaml entry appended (DIA-198, 2026-08-16)
   - derived CHANGELOG.md regenerated via scripts/changelog-render;
