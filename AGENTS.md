@@ -114,6 +114,30 @@ See `.opencode/practice-protected.md` for zones where agents must ask guiding qu
 - When writing tests: invoke the `tdd-craftsman` skill at the start of the workflow.
 - For new features: dispatch `@openspec-plan` to gather specs and author the OpenSpec change (`openspec/changes/<name>/{proposal,design,tasks}.md`). It is the spec-interview role.
 
+### 5.1 Ponytail convention (DIA-183)
+
+- **What**: `@dietrichgebert/ponytail` (project plugin array) is a YAGNI /
+  simplicity-enforcement ruleset. It steers agents to write only the code that
+  is needed and to reuse what already exists before writing anything new.
+- **The ladder** (stop at the first rung that holds): skip speculative need
+  (YAGNI); reuse an existing helper in this repo; use the standard library;
+  use a native platform feature; use an already-installed dependency; write
+  one line; only then write the minimum code that works.
+- **Command family**: `/ponytail lite|full|ultra|off` (intensity),
+  `/ponytail-review` (over-engineering review of a diff),
+  `/ponytail-audit` (whole-repo over-engineering scan),
+  `/ponytail-debt` (harvest `ponytail:` comments into a ledger),
+  `/ponytail-gain` (measured impact), `/ponytail-help` (reference card).
+- **`ponytail:` comment convention**: when you deliberately cut a real corner
+  with a known ceiling (global lock, naive heuristic, O(n^2) scan, deferred
+  validation), leave a `ponytail: <ceiling>, <upgrade path>` comment naming
+  the ceiling and the trigger that should revisit it. This is a shortcut
+  marker, not prose: the ledger harvest greps for it, and a marker with no
+  upgrade path is flagged as rot risk.
+- **When to run `/ponytail-debt`**: at the end of a feature or when a
+  `ponytail:` marker's upgrade trigger fires. The ledger lives at
+  `docs/PONYTAIL-DEBT.md`.
+
 ## 6. Project Ops Quick Reference
 
 The project runs inside Docker. One dev workstation container

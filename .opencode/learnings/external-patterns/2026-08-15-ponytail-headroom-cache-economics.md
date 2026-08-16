@@ -39,7 +39,7 @@ Resolves 7 dangling `ponytail:` comment sites already present in the repo.
 
 ## 4. FACT: headroom cache-mode is the ONLY tool whose default preserves the prefix
 
-`chopratejas/headroom` (66.4k stars, Apache-2.0): `cache` mode (default) "compresses
+`headroomlabs-ai/headroom` (66.4k stars, Apache-2.0): `cache` mode (default) "compresses
 only the newest delta in each turn and forwards prior turns byte-faithfully, so the
 provider's prefix cache is never invalidated mid-conversation". CacheAligner is a
 read-only drift detector (off by default, never mutates). BUT: preservation through the
@@ -63,7 +63,24 @@ is NOT recommended - it accepts a documented 5% cache degradation with no upside
 - https://api-docs.deepseek.com/quick_start/pricing (50x cache miss vs hit)
 - https://api-docs.deepseek.com/guides/kv_cache (best-effort prefix matching)
 - https://github.com/Opencode-DCP/opencode-dynamic-context-pruning (85% vs 90%, moved to Sleev)
-- https://github.com/chopratejas/headroom (cache-mode preserves prefix)
+- https://github.com/headroomlabs-ai/headroom (cache-mode preserves prefix)
 - https://headroom-docs.vercel.app/docs/architecture (CacheAligner never mutates)
 - https://github.com/DietrichGebert/ponytail (benchmarks, 103.3k stars)
 - knowledge/ana023-ticket-backlog-priority-plan/ana023-ticket-backlog-priority-plan-report.md (Tier-1, L54 scope)
+
+## Outcome field
+
+- Ponytail half: VERIFIED/CLOSED 2026-08-16 (DIA-183 Variant B minimal
+  closure, doc-only). Plugin active via the project plugin array
+  (@dietrichgebert/ponytail, 6 plugin entries, merge 47064d0); /ponytail
+  commands registered (lite|full|ultra|off, -review, -audit, -debt, -gain,
+  -help); convention documented in AGENTS.md section 5.1; /ponytail-debt
+  ledger harvested to docs/PONYTAIL-DEBT.md (9 `ponytail:` markers + 1
+  TODO(ponytail) variant = 10 rows); make test-config exit 0. See the
+  DIA-183 ticket for the closure record.
+- Headroom half: STAYS OPEN (separate step). The feasibility spike
+  (cache-hit rate with/without compression on the opencode-go endpoint, net
+  cost delta) is NOT yet run; headroom --mode cache + CacheAligner monitor
+  stay OFF until the spike proves prefix preservation. Org-rename correction
+  applied 2026-08-16: chopratejas/headroom -> headroomlabs-ai/headroom (URLs
+  in section 4 + 6 above updated; the DIA-183 gate discovered the rename).

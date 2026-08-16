@@ -82,10 +82,10 @@ precisely for this, but ROI must be measured, not assumed.
 
 - [ ] Section-10 gate complete: @ai-specialist findings registered in learnings; EBDV (DIA-115) with >=2 genuine variants + chosen variant documented in this ticket
 - [ ] Feasibility spike recorded: headroom proxy CAN intercept opencode-go / github-copilot traffic via baseURL override; auth intact; per-request cached-read cost delta measured before/after
-- [ ] ponytail active: ruleset injected every turn; /ponytail commands registered; zero dangling skill refs; `make test-config` green (18/18 skills, agent-name lockstep)
-- [ ] `ponytail:` convention documented (AGENTS.md/commands); /ponytail-debt run produces the deferred-ledger from the 7 existing comment sites
-- [ ] headroom (if spike passed): `headroom doctor` healthy; measured savings via headroom perf/dashboard with holdout control; one real task run with and without shows no quality regression
-- [ ] @ai-auditor review passed; CHANGELOG + learnings outcome updated; @memory-manager registered
+- [x] ponytail active: ruleset injected every turn; /ponytail commands registered; zero dangling skill refs; `make test-config` green (18/18 skills, agent-name lockstep) [gate-verified at merge 47064d0]
+- [x] `ponytail:` convention documented (AGENTS.md/commands); /ponytail-debt run produces the deferred-ledger from the 7 existing comment sites [convention documented in AGENTS.md 5.1; ledger harvested to docs/PONYTAIL-DEBT.md - 9 `ponytail:` markers + 1 TODO(ponytail) variant = 10 rows, closure lane 2026-08-16]
+- [ ] headroom (if spike passed): `headroom doctor` healthy; measured savings via headroom perf/dashboard with holdout control; one real task run with and without shows no quality regression [headroom half stays OPEN - separate step, spike NOT run]
+- [ ] @ai-auditor review passed; CHANGELOG + learnings outcome updated; @memory-manager registered [PARTIAL 2026-08-16: CHANGELOG entry + learnings outcome updated (ponytail half closed, headroom half open); ai-auditor review + @memory-manager registration deferred to the DIA-194 migration lane]
 
 ## Fix
 
@@ -164,3 +164,70 @@ reweight (ana025) [0016a66,f18281f,64281e0]` (ponytail plugin +
 - RESTART-VERIFY PENDING (F8): fresh orchestrator session must show ponytail
   loading from the plugin array without dangling refs; verify before CLOSED.
 - Status stays OPEN (restart-verify pending).
+
+## UPDATE (2026-08-16) - ponytail-half closure, Variant B (doc-only lane)
+
+Developer-approved Variant B (EBDV below, DIA-115): minimal doc-only closure
+of the 3 remaining ponytail-half verification items. NO config-surface
+changes - .opencode/opencode.jsonc and .opencode/oh-my-opencode-slim.jsonc
+untouched.
+
+- Verification L85 (ponytail active): DONE - plugin in the project plugin
+  array (@dietrichgebert/ponytail, 6 entries), 6 skills loaded, /ponytail
+  commands registered, make test-config green at merge 47064d0 (gate-
+  verified, DIA-183 gate lane).
+- Verification L86 (convention documented + /ponytail-debt ledger): DONE -
+  AGENTS.md section 5.1 "Ponytail convention (DIA-183)" added; ledger
+  harvested via the ponytail-debt skill workflow to docs/PONYTAIL-DEBT.md
+  (9 `ponytail:` markers + 1 TODO(ponytail) variant = 10 rows: 6 docker-side
+  kept as-is, 3 OMO vendored src reference-only, 1 TODO test-coverage
+  deferral kept; lessons.md:880 mention excluded per the skill's
+  comment-prefix rule).
+- Verification L88 (CHANGELOG + learnings outcome): PARTIAL - CHANGELOG
+  entry appended + learnings outcome field updated (ponytail half closed,
+  headroom half stays open; headroom org-rename URLs corrected to
+  headroomlabs-ai/headroom); ai-auditor review + @memory-manager registration
+  remain for the DIA-194 migration lane (out of Variant B scope).
+- Verification L87 (headroom spike): stays OPEN - separate step, NOT this
+  change (overnight cache-economics spike on the opencode-go endpoint).
+- RESTART-VERIFY (F8): stays PENDING - a fresh orchestrator session must show
+  ponytail loading from the plugin array without dangling refs; this lane is
+  doc-only and does not satisfy it.
+- Commit: this lane's single doc-only commit on omo-slim-changes (message
+  header "docs: DIA-183 ponytail closure ..."); NO push.
+- Status: stays OPEN (headroom half + restart-verify F8 + ai-auditor/
+  memory-manager registration remain).
+
+## Decision-variants (DIA-183 closure, 2026-08-16)
+
+Evidence base: DIA-183 phase-1 gate learnings file
+(.opencode/learnings/external-patterns/2026-08-15-ponytail-headroom-cache-economics.md)
+
+- ponytail plugin docs (https://github.com/DietrichGebert/ponytail, fetched
+  2026-08-15; agentic benchmark -54% LOC / -22% tokens / -20% cost).
+
+### Variant A: full closure lane (doc work + ai-auditor review + @memory-manager registration now)
+
+Everything Variant B does PLUS the section-2.5 independent ai-auditor review
+and the @memory-manager persistence pass, closing L88 fully in one lane.
+Cost: two extra dispatches delay the merge for doc-only value; no config
+surface changed, so the review adds ceremony without risk delta. Evidence:
+https://github.com/DietrichGebert/ponytail (2026) + learnings file above.
+
+### Variant B: minimal closure - doc-only (AGENTS.md 5.1 + PONYTAIL-DEBT.md ledger + learnings outcome + CHANGELOG + ticket record)
+
+Chosen. The 3 remaining items are documentation; a single doc-only commit
+closes them with no restart and no config-surface risk. The ai-auditor
+review and @memory-manager registration stay meaningful at the DIA-194
+CHANGELOG migration, where the full section-2.5 close-out runs once.
+Evidence: ponytail-debt skill workflow (SKILL.md, /ponytail-debt command) +
+https://github.com/DietrichGebert/ponytail (2026).
+
+### Variant C: status-quo / abort - leave the 3 items open
+
+Do nothing; L86/L88 stay unchecked and the convention remains undocumented.
+Cost: ticket drifts past its useful half-life; /ponytail-debt has no ledger
+target. Evidence: DIA-183 verification checklist L81-88 (filed 2026-08-15) +
+https://github.com/DietrichGebert/ponytail (2026).
+
+### Chosen: Variant B

@@ -1,5 +1,52 @@
 # OpenCode Config Changelog
 
+## 2026-08-16 - DIA-183 ponytail-half closure (Variant B, doc-only): AGENTS.md 5.1 convention + docs/PONYTAIL-DEBT.md ledger + learnings outcome + CHANGELOG entry
+
+- **Change:** DIA-183 (ponytail half) closed via developer-approved Variant B
+  (EBDV, DIA-115): minimal doc-only closure of the 3 remaining ponytail-half
+  verification items. (1) AGENTS.md section 5.1 "Ponytail convention
+  (DIA-183)" - what ponytail is (YAGNI/simplicity ruleset via the project
+  plugin array), the 7-rung ladder (skip speculative need -> reuse existing
+  helper -> stdlib -> native -> installed dep -> one line -> minimum code),
+  the /ponytail command family (lite|full|ultra|off, -review, -audit, -debt,
+  -gain, -help), the `ponytail: <ceiling>, <upgrade path>` comment convention,
+  and when to run /ponytail-debt. (2) docs/PONYTAIL-DEBT.md (NEW) - the
+  /ponytail-debt ledger harvested per the ponytail-debt skill workflow: 9
+  `ponytail:` markers + 1 TODO(ponytail) variant = 10 rows (4 docker-side
+  kept as-is, 3 OMO vendored src reference-only, 1 TODO test-coverage
+  deferral kept, 1 lessons.md mention excluded); 7 rows carry no explicit
+  upgrade trigger (no-trigger tags). (3) learnings outcome -
+  .opencode/learnings/external-patterns/2026-08-15-ponytail-headroom-cache-economics.md:
+  Outcome field added (ponytail half VERIFIED/CLOSED, headroom half stays
+  OPEN); headroom org-rename URLs corrected chopratejas/headroom ->
+  headroomlabs-ai/headroom (L42 + L66). (4) CHANGELOG entry (this entry).
+  NO config-surface changes - .opencode/opencode.jsonc and
+  .opencode/oh-my-opencode-slim.jsonc untouched (Variant B mandate). Ticket
+  DIA-183: UPDATE block appended + Decision-variants section + Verification
+  checklist L85/L86 checked, L88 partial (CHANGELOG + learnings done;
+  ai-auditor + memory-manager deferred to the DIA-194 migration lane), L87
+  (headroom spike) stays OPEN, restart-verify F8 stays PENDING.
+- **Reason:** the ponytail half of DIA-183 was gate-verified at merge 47064d0
+  (plugin active in the project plugin array, /ponytail commands registered,
+  make test-config green); the 3 remaining verification items (convention
+  doc, /ponytail-debt ledger, CHANGELOG + learnings outcome) are
+  documentation-only - no config surface, no restart, no new review. Variant
+  B (minimal closure) chosen over Variant A (full closure incl. ai-auditor +
+  memory-manager now) and Variant C (status-quo/abort) per EBDV (DIA-115).
+- **Files:** AGENTS.md (5.1) - docs/PONYTAIL-DEBT.md (NEW) -
+  .opencode/learnings/external-patterns/2026-08-15-ponytail-headroom-cache-economics.md
+  (Outcome field + 2 URL org-rename fixes) -
+  docs/dev-infra-audit/tickets/DIA-183-ponytail-headroom-context-compression.md
+  (UPDATE block + Decision-variants section + checklist marks) - CHANGELOG.md.
+- **Review:** developer-approved Variant B (EBDV, DIA-115); ai-auditor review
+  deferred to the DIA-194 migration lane per Variant B scope (doc-only
+  closure).
+- **Verification:** make test-config exit 0 (incl. validate-decision-variants
+  on the new DIA-183 Decision-variants section); git status shows ONLY the 5
+  intended files (pre-existing sibling dirty files untouched); ASCII-only
+  (DIA-079). Commit: this lane's doc-only commit on omo-slim-changes (message
+  references DIA-183); NO push. Entry to be migrated by DIA-194.
+
 ## 2026-08-15 - DIA-190/192/193 (IMPLEMENTED, review pending): conspecter shelf-registration doc alignment (Option B) + delegation-observer TUI-safe notification downgrades (AGENTS.md 2.5 workflow, ai-specialist gate + developer-approved)
 
 - **Change:** three section-2.5 config changes implemented as one working-tree diff (no commit - ai-auditor review + commit/push lanes follow). (1) DIA-190 (Major; conspecter memory-shelf edit-permission defect) developer-approved Option B: align the conspecter contract docs to the DIA-143 centralization design (memory-manager is the SOLE memory-shelf writer; conspecter reports the artifact path instead of self-registering). The config (.opencode/opencode.jsonc conspecter edit block = knowledge/* only) is CORRECT and UNCHANGED. Doc/prompt edits: .opencode/agents/conspecter.md (frontmatter description; edit allow-list block lines 17-19 now knowledge/* only with delegation note; Conspect Synthesis step 4 no longer self-registers; output-contract header line 58 now "memory-shelf.yaml (shelf.conspects), delegated to @memory-manager" - keeps the M2 validator's required memory-shelf.yaml+shelf.conspects reference tokens; Permissions section lines 76-80 drops the memory-shelf.yaml allow claim), .opencode/oh-my-opencode-slim.jsonc conspecter orchestratorPrompt step 4 (report path; @memory-manager registers), .opencode/skills/research-pipeline/SKILL.md lines 53+87 (reports artifact path; @memory-manager registers). (2) DIA-192 (Medium; prognosis parse fallback firing - lossy handoff + spurious high-severity TUI notification) combined plugin fix in .opencode/plugins/delegation-observer.ts parsePrognosis: added a double-decode retry (JSON.parse(raw) -> if string, JSON.parse(inner)) so a double-encoded prognosis recovers the structured object instead of the lossy plain-text wrapper; the info-level app log (ctx.client.app.log, service delegation-observer, level info) fires ONLY when both parses fail; the plain-text fallback shape is unchanged. (3) DIA-193 (Low; handoff-writer skip for non-terminal in-flight - benign guard surfaced as alarming high-severity notification): the skip-if-inflight branch console.warn is now an info-level TUI-safe app log (same message text); the DIA-120 guard behavior (MUST NOT write the handoff file for non-terminal statuses) is unchanged. Gate-driven extension: the log_decision execute-path grep gate (ZERO console.warn) also required converting the pre-existing "handoff atomic write failed" catch to error-level app.log - severity preserved, raw console.warn removed from the execute path.
