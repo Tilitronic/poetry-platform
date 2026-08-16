@@ -1,6 +1,17 @@
 {
   "$schema": "https://raw.githubusercontent.com/Opencode-DCP/opencode-dynamic-context-pruning/master/dcp.schema.json",
+  // DIA-197 V2 (2026-08-16): autonomous pruning disabled - DCP mutates outbound
+  // request messages which invalidates the provider prefix cache (85% vs 90%
+  // vendor claim, no measured benefit). Plugin kept loaded for manual /dcp use.
+  // Re-enable by reverting this block: manualMode.enabled -> false,
+  // automaticStrategies -> true, compress.permission -> "allow",
+  // strategies.deduplication.enabled -> true, strategies.purgeErrors.enabled -> true.
+  "manualMode": {
+    "enabled": true,
+    "automaticStrategies": false
+  },
   "compress": {
+    "permission": "deny",
     "modelMaxLimits": {
       "opencode-go/deepseek-v4-flash": "50%",
       "opencode/deepseek-v4-flash": "50%",
@@ -32,6 +43,14 @@
       "ollama/qwen2.5-coder:14b": "12%",
       "ollama/qwen3-coder:30b": "10%",
       "ollama/gemma3:12b": "12%"
+    }
+  },
+  "strategies": {
+    "deduplication": {
+      "enabled": false
+    },
+    "purgeErrors": {
+      "enabled": false
     }
   }
 }
