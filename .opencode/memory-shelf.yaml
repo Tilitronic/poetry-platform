@@ -530,7 +530,7 @@ shelf:
       DIA-191). Guardrail: read-only analysis, no conversions applied. Routing: CHANGELOG
       conversion flagged section-10 (AGENTS.md section-10 routing applies); stays under
       @architector/design before any follow-up ticket dispatch."
-    path: knowledge/ana022-artifact-format-substrate/ana022-artifact-format-substrate-report.md
+    path: knowledge/ana026-artifact-format-substrate/ana026-artifact-format-substrate-report.md
     created: 2026-08-15
     task_ref: DIA-194
   - name: Worktree/Branch/Merge Mechanism Analysis (DIA-200)

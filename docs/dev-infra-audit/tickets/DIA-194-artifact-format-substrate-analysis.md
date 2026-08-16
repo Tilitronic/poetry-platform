@@ -301,8 +301,9 @@ reads deliver the token win. FIX-1..FIX-6 introduce no new deviations.
 
 Closure record:
 
-- Analysis complete: ana022 (artifact-format-substrate report,
-  knowledge/ana022-artifact-format-substrate/) + ana024 (EBDV report,
+- Analysis complete: ana026 (artifact-format-substrate report, renumbered
+  from ana022 on 2026-08-16 to resolve ID collision with the DIA-180 sibling
+  analysis, knowledge/ana026-artifact-format-substrate/) + ana024 (EBDV report,
   knowledge/ana024-artifact-format-ebdv/).
 - Phase-3 design approved: Variant B (YAML ledger source + derived MD view),
   developer GO 2026-08-15.
