@@ -28,7 +28,7 @@ discovered:
 source: developer-report
 date: 2026-08-15
 created: 2026-08-15
-updated: 2026-08-15
+updated: 2026-08-16
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -169,3 +169,19 @@ orchestrator prompts (.opencode/oh-my-opencode-slim.jsonc lines 26/209/433)
 still summarize 30/50 — the dispatch scoped the threshold retune to NEXT-RUN.md
 (the referenced authority); reconciling the inline prompt summaries is a
 follow-up decision, flag for the reviewer.
+
+## UPDATE (2026-08-16) - MERGED to omo-slim-changes (merge lane cod-13)
+
+- Merged via squash commit 47064d0 `feat(.opencode): DIA-183 ponytail plugin +
+DIA-191 context_usage reweight (ana025) [0016a66,f18281f,64281e0]` on
+  omo-slim-changes (delegation-observer.ts reweight + NEXT-RUN.md thresholds).
+- Thresholds 15/25 now live in docs/dev-infra-audit/NEXT-RUN.md (ALL
+  occurrences) + context_usage tool output (threshold_15pct/threshold_25pct).
+- RESTART-VERIFY PENDING (F8): fresh orchestrator session must read
+  context_usage vs TUI at 3 depths with |proxy - tui| / tui < 0.25 and confirm
+  the 15/25 thresholds fire at intended actual before CLOSED.
+- F4/F5 (ai-auditor nits, developer-accepted) -> follow-up ticket DIA-198
+  (reconcile OMO inline prompt summaries 30/50 -> 15/25 at
+  oh-my-opencode-slim.jsonc lines 26/209/433 + drift-checker marker contract
+  - context_usage tool description). OPEN, not part of this merge.
+- Status stays OPEN (restart-verify pending).

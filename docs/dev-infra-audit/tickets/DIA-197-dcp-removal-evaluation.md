@@ -157,3 +157,17 @@ Status: **PENDING restart-verify** - next OpenCode restart must show DCP
 loading without autonomous pruning (no prefix-mutating prunes on normal
 requests) and /dcp manual commands still functional. V1 (full removal) remains
 a future option if V2 proves insufficient.
+
+## UPDATE (2026-08-16) - MERGED to omo-slim-changes (merge lane cod-13)
+
+- Merged via squash commit bd4133d `config(dcp): DIA-197 V2 disable autonomous
+pruning + ticket [5433df0,4f51668]` on omo-slim-changes (dcp.jsonc +
+  DIA-197 ticket + README.md only; no re-application of DIA-183/191 deltas).
+- V2 ACTIVE: .opencode/dcp.jsonc - manualMode.enabled true,
+  automaticStrategies false, compress.permission "deny", dedup/purge
+  strategies disabled (cache preservation).
+- RESTART-VERIFY PENDING (F8): next OpenCode restart must show DCP loading
+  WITHOUT autonomous pruning and /dcp manual commands still functional;
+  verify before CLOSED.
+- V1 (full removal) remains a future option if V2 proves insufficient.
+- Status stays OPEN (restart-verify pending).

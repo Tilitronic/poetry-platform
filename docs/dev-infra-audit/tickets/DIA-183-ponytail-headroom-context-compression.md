@@ -24,7 +24,7 @@ discovered: 2026-08-15
 source: baseline
 date: 2026-08-15
 created: 2026-08-15
-updated: 2026-08-15
+updated: 2026-08-16
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -146,3 +146,21 @@ read-only monitor if the spike proves prefix preservation. Verification items
 above for headroom stay OPEN. /ponytail-debt ledger run + convention
 documentation (AGENTS.md/commands) remain OPEN verification items for the
 follow-up lane.
+
+## UPDATE (2026-08-16) - MERGED to omo-slim-changes (merge lane cod-13)
+
+- Merged via squash commits on omo-slim-changes:
+  - 873d88d `docs(learnings): DIA-183 phase-1 gate findings - prompt-cache
+economics [a2e1bca]` (learnings file only).
+  - 47064d0 `feat(.opencode): DIA-183 ponytail plugin + DIA-191 context_usage
+reweight (ana025) [0016a66,f18281f,64281e0]` (ponytail plugin +
+    lessons.md + opencode-docker deltas).
+- Ponytail plugin ACTIVE via project plugin array (.opencode/opencode.jsonc,
+  @dietrichgebert/ponytail entry present, 6 entries total).
+- REMAINING: headroom half is a SEPARATE step - overnight cache-economics
+  spike (cache-hit rate with/without compression on opencode-go endpoint, net
+  cost delta) NOT yet run; headroom --mode cache + CacheAligner monitor stay
+  OFF until the spike proves prefix preservation.
+- RESTART-VERIFY PENDING (F8): fresh orchestrator session must show ponytail
+  loading from the plugin array without dangling refs; verify before CLOSED.
+- Status stays OPEN (restart-verify pending).
