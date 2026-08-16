@@ -90,6 +90,19 @@ run_render() {
   assert_output_not_contains "ok:"
 }
 
+@test "changelog-render: datetime-valued date field renders as ISO date (FIX-2)" {
+  tree="$(setup_tree)"
+  out="$BATS_TEST_TMPDIR/CHANGELOG.md"
+  run_render "$tree" "$FIXTURES/changelog-datetime-date.yaml" "$out"
+
+  assert_status 0
+  assert_output_contains "ok: wrote $out (1 entries)"
+  # The unquoted `date: 2026-08-16T10:00:00` parses as a datetime object;
+  # the render must normalize it to "2026-08-16" like the validator does,
+  # never emit the raw datetime repr in the header.
+  assert_file_contains "$out" "## 2026-08-16 - DIA-FIX2: datetime-normalized date renders as ISO date"
+}
+
 @test "changelog-render: missing ledger file -> exit 2 INFRA" {
   tree="$(setup_tree)"
   out="$BATS_TEST_TMPDIR/CHANGELOG.md"

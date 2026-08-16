@@ -48,11 +48,27 @@ if [ ! -f "${CHANGELOG_YAML}" ]; then
 fi
 
 python3 - "${CHANGELOG_YAML}" "${CHANGELOG_MD}" <<'PYEOF'
+import datetime
 import sys
 
 import yaml
 
 yaml_path, md_path = sys.argv[1], sys.argv[2]
+
+
+def normalize_date(value):
+    """Normalize YAML-native datetime objects to ISO date strings, mirroring
+    the validator's normalize() (FIX-2, re-review 1/2). WHY: an entry with
+    `date: 2026-08-16T10:00:00` (unquoted) parses as a datetime object - the
+    validator's normalize converts it to '2026-08-16' before the schema check,
+    so it PASSES validation; the render script must apply the same conversion
+    or it would emit a broken header with the raw datetime repr."""
+    if isinstance(value, datetime.datetime):
+        return value.date().isoformat()
+    if isinstance(value, datetime.date):
+        return value.isoformat()
+    return value
+
 
 try:
     with open(yaml_path) as f:
@@ -80,7 +96,17 @@ else:
         if not isinstance(entry, dict):
             print("FAIL: %s is not a mapping" % where)
             sys.exit(1)
+        # Normalize YAML-native datetime values for the 'date' key BEFORE the
+        # required-key type check (FIX-2): an unquoted `date: 2026-08-16T10:00:00`
+        # parses as a datetime object and passes the validator's normalize, so
+        # the render must accept it too (the validator treats it as valid).
+        date = normalize_date(entry.get("date"))
         for key in REQUIRED:
+            if key == "date":
+                if not isinstance(date, str):
+                    print("FAIL: %s missing required 'date' (or not a string)" % where)
+                    sys.exit(1)
+                continue
             if not isinstance(entry.get(key), str) and key != "files":
                 print("FAIL: %s missing required '%s' (or not a string)" % (where, key))
                 sys.exit(1)
@@ -88,7 +114,6 @@ else:
                 print("FAIL: %s missing required 'files' (or not a list)" % where)
                 sys.exit(1)
 
-        date = entry["date"]
         ticket = entry["ticket"]
         scope = entry["scope"]
         status = entry.get("status")

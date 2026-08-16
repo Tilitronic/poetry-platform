@@ -128,12 +128,24 @@ def structural_checks(doc):
             # entries the committed schema accepts and break the
             # "both layers agree" invariant the bats suite pins.
             if key == "files":
-                if not isinstance(value, list) or not value:
-                    failures.append("%s missing required 'files' (non-empty list)" % where)
-                else:
-                    for f in value:
-                        if not isinstance(f, str) or len(f) < 1:
-                            failures.append("%s files entries must be non-empty strings" % where)
+                # Contract parity (re-review 1/2, FIX-1): the schema declares
+                # `files` as an array with NO `minItems: 1`, so an EMPTY array
+                # (`files: []`) is valid - the committed ledger legitimately
+                # contains empty files lists for entries whose source prose had
+                # no Files block (e.g. DIA-189b). The fallback must accept
+                # empty lists: only MISSING/None files fails. (Pre-fix, the
+                # truthiness `not value` wrongly rejected `[]` on
+                # jsonschema-absent hosts, breaking the "both layers agree"
+                # invariant.)
+                if value is None:
+                    failures.append("%s missing required 'files'" % where)
+                    continue
+                if not isinstance(value, list):
+                    failures.append("%s 'files' is not a list" % where)
+                    continue
+                for f in value:
+                    if not isinstance(f, str) or len(f) < 1:
+                        failures.append("%s files entries must be non-empty strings" % where)
                 continue
             if not isinstance(value, str) or len(value) < 1:
                 failures.append("%s missing required '%s'" % (where, key))

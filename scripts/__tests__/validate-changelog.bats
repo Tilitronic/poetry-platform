@@ -91,6 +91,24 @@ block_jsonschema() {
   assert_output_contains "0 passed, 1 failed"
 }
 
+@test "validate-changelog: empty files list passes identically on schema AND fallback layers (FIX-1)" {
+  tree="$(setup_tree)"
+  blocked="$(block_jsonschema "$BATS_TEST_TMPDIR/nojs")"
+
+  # Layer 1: jsonschema present. `files` has no minItems, so [] is valid.
+  run_validator "$tree" "$FIXTURES/changelog-empty-files.yaml"
+  assert_status 0
+  assert_output_contains "1 passed, 0 failed"
+
+  # Layer 2: jsonschema blocked -> embedded structural fallback. The fallback
+  # must accept [] too (pre-fix it rejected via `not value` truthiness, which
+  # would fail the committed ledger's DIA-189b entry on bare hosts).
+  run env PYTHONPATH="$blocked" CHANGELOG_FILE="$FIXTURES/changelog-empty-files.yaml" \
+    bash "$tree/scripts/validate-changelog.sh"
+  assert_status 0
+  assert_output_contains "1 passed, 0 failed"
+}
+
 @test "validate-changelog: extra property -> exit 1 (additionalProperties: false)" {
   tree="$(setup_tree)"
   run_validator "$tree" "$FIXTURES/changelog-extra-property.yaml"
