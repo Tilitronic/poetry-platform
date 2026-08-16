@@ -231,3 +231,98 @@ target. Evidence: DIA-183 verification checklist L81-88 (filed 2026-08-15) +
 https://github.com/DietrichGebert/ponytail (2026).
 
 ### Chosen: Variant B
+
+## UPDATE (2026-08-16) - HEADROOM FEASIBILITY SPIKE RESULT: NOT-RECOMMENDED (cache-prefix preservation FAILS on the opencode-go endpoint)
+
+Developer-approved B1 spike (2026-08-16): install headroom in dev container,
+headroom doctor, measure cache-hit/cost delta on the opencode-go endpoint with
+a holdout control, then enable only if prefix-preservation + positive delta
+measured. Spike executed in the poetry-dev container (Up healthy) by the coder
+lane. Result: the single blocking unknown (cache-prefix preservation through
+the OpenAI-compatible proxy path) resolves NEGATIVE - headroom cache mode
+DRIFTS the frozen prefix across turns. NOT-RECOMMENDED to enable.
+
+INSTALL_VERDICT: PASS. `uv tool install "headroom-ai[all]"` succeeded (uv
+0.11.29, Python 3.13.5, 6 cores, AVX2 present). headroom v0.35.0. `headroom
+doctor` (proxy live): proxy PASS, version PASS, claude/codex WARN (not routed -
+expected), shell env WARN (bypass expected), savings PASS (lifetime ledger),
+budget SKIP. 0 failures. Both runtime TLS downloads OK: Kompress model in
+~/.cache/huggingface/hub/models--chopratejas--kompress-v2-base; ONNX/SmartCrusher
+engine live (per-request transforms show "router:smart_crusher:0.29").
+
+PREFIX_PRESERVATION: FAIL - MEASURED, decisive. Method: capturing mock
+OpenAI-compatible upstream (localhost:9911) + headroom proxy on 8788
+(OPENAI_TARGET_API_URL=mock, HEADROOM_OUTPUT_HOLDOUT=0.1, cache mode default,
+explicit x-headroom-session-id on all requests). Three-turn synthetic
+conversation with realistic opencode-style traffic (system prompt from
+project AGENTS.md, user/assistant(tool_call)/tool turns, structured-JSON tool
+results as the compressible live zone). Verified byte-identity of the shared
+prefix across turns (canonical JSON of forwarded messages). Evidence:
+
+- T1 (turn A frozen prefix vs client): PASS - headroom forwards the frozen
+  prefix byte-identical to the client (frozen-before-compression messages are
+  safe).
+- T2a/T2b (turn N+1 shared prefix vs turn N FORWARDED prefix): FAIL - DRIFT.
+  Turn A forwarded the live-zone tool result COMPRESSED (202,503 bytes);
+  turn B forwards the SAME logical message at 218,109 bytes (client-original).
+  First byte divergence at 21,123 (turn A->B) and 239,558 (B->C) - exactly the
+  previous turn's live zone. Reproduced 3x (identical numbers each run).
+- Passthrough control (--no-optimize, same fixture): T2a/T2b PASS, drift null.
+  Proves the drift is caused by the compression+restore path, not by proxying
+  or the mock.
+- Mechanism (source, headroom 0.35.0 openai.py): cache mode compresses the
+  newest observation (live zone) in turn N and forwards those compressed
+  bytes; in turn N+1 that message is inside the frozen count, the pipeline
+  skips it, and `_restore_frozen_prefix` (line ~3590, runs AFTER
+  `overlay_cached_prefix` at line ~3439) forcibly overwrites it with the
+  CLIENT-ORIGINAL bytes. The provider's prefix cache is keyed on the
+  compressed bytes forwarded in turn N; turn N+1's original bytes do not match
+  -> provider prefix cache busts from the previous live zone onward on every
+  subsequent turn. The overlay mechanism exists to replay previously-forwarded
+  bytes (its docstring names exactly this failure: "100% of observed misses
+  were this prefix_change") but the cache-mode restore clobbers it.
+
+CACHE_ECONOMICS: NET LOSS - MEASURED drift + ESTIMATED cost. Measured on the
+synthetic workload (cache mode): turn A 79,028 -> 66,622 tokens (-15.7%);
+turn B 153,286 -> 98,792 (-35.6%, best); turn C 227,535 -> 173,041 (-24.0%);
+avg -25.1%, 121,394 tokens removed across 3 requests. Headroom's own ledger
+reports "$0.05 saved" - but that uses the mock's flat usage accounting, NOT
+the DeepSeek 50x cache-miss multiplier from the learnings file (hit $0.0028
+vs miss $0.14 per 1M). Applying the learnings baseline (typical request 68K
+cached / 790 input = 86% cached): the measured drift converts the
+previously-compressed live zone (a large share of the accumulated 68K cached
+prefix in tool-heavy agentic traffic) from $0.0028/1M to $0.14/1M - the 50x
+multiplier on a large region dwarfs the -25% compression on the small new
+delta. Estimated net: the cache-bust cost per subsequent turn is orders of
+magnitude larger than the compression savings (e.g. 10K busted cached tokens
+= +$0.00140/request vs ~$0.00003-0.00008/request saved on the delta). The
+spike's enablement threshold (prefix-preservation + positive delta) is NOT
+met.
+
+LATENCY: MEASURED (synthetic). Optimization mode added ~2.0-6.5s per request
+on the large synthetic payloads (turn A 6.5s incl. first-run model load; B
+3.4s; C 4.9s) vs 3-11ms direct-to-mock. Passthrough still showed ~2-3s
+(tokenizer + overhead run regardless). Real opencode-go requests (68K cached
+prefix) are smaller than the fixture; estimated +0.5-2s/request - material
+for interactive use but secondary to the prefix-bust finding.
+
+RECOMMENDATION: NOT-RECOMMENDED to enable headroom on the opencode-go
+endpoint. Because: the blocking unknown resolves NEGATIVE - cache mode does
+not preserve the provider prefix cache across turns once a live-zone message
+is compressed, the restore clobbers the overlay, and the 50x miss multiplier
+on the busted region makes the net cost delta strongly negative. DCP manual
+mode (dcp.jsonc, DIA-197) stays as-is; no config-surface changes made. The
+ponytail half (Variant B, closed 2026-08-16) is unaffected - ponytail is a
+zero-cache-interaction ruleset injection.
+
+SPIKE HYGIENE: headroom was installed via `uv tool install "headroom-ai[all]"`
+into the ephemeral poetry-dev container for the spike; the tool install was
+removed after measurement (container is ephemeral-ish per docker-dev.md; no
+persistent config surface was touched). Spike scratch (mock upstream, runner
+scripts, captured bodies) is in the container /tmp/headroom-spike/ and host
+.scratch/headroom-spike/ - gitignored, documented here for traceability.
+NO push; commit of this UPDATE + learnings outcome on omo-slim-changes.
+
+Ticket status: stays OPEN - headroom half now resolved NOT-RECOMMENDED by
+spike evidence; remaining OPEN items: restart-verify F8 (ponytail), ai-auditor
+review + memory-manager registration (DIA-194 migration lane).

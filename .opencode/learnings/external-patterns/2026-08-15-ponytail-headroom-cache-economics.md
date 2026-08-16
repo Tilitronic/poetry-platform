@@ -78,9 +78,19 @@ is NOT recommended - it accepts a documented 5% cache degradation with no upside
   ledger harvested to docs/PONYTAIL-DEBT.md (9 `ponytail:` markers + 1
   TODO(ponytail) variant = 10 rows); make test-config exit 0. See the
   DIA-183 ticket for the closure record.
-- Headroom half: STAYS OPEN (separate step). The feasibility spike
-  (cache-hit rate with/without compression on the opencode-go endpoint, net
-  cost delta) is NOT yet run; headroom --mode cache + CacheAligner monitor
-  stay OFF until the spike proves prefix preservation. Org-rename correction
-  applied 2026-08-16: chopratejas/headroom -> headroomlabs-ai/headroom (URLs
-  in section 4 + 6 above updated; the DIA-183 gate discovered the rename).
+- Headroom half: RESOLVED NOT-RECOMMENDED 2026-08-16 (DIA-183 B1 feasibility
+  spike, coder lane). The single blocking unknown (cache-prefix preservation
+  through the OpenAI-compatible proxy path used by opencode-go) resolves
+  NEGATIVE: headroom 0.35.0 cache mode DRIFTS the frozen prefix across turns
+  - turn N compresses the live-zone observation and forwards the compressed
+  bytes; turn N+1 restores that message to client-original bytes
+  (_restore_frozen_prefix runs after overlay_cached_prefix and clobbers the
+  replay), so the provider prefix cache busts from the previous live zone
+  onward on every subsequent turn. Measured 3x (byte divergence at the
+  previous live zone, e.g. 202,503 -> 218,109 bytes for the same message);
+  passthrough control stable (proves compression path, not proxying). Net
+  cost delta estimated strongly negative (50x miss multiplier on a large
+  busted cached region vs -25% compression on the small delta). headroom
+  stays OFF; DCP manual mode (dcp.jsonc, DIA-197) stays as-is. Full evidence:
+  DIA-183 ticket UPDATE 2026-08-16. (Supersedes the "spike NOT run" text
+  below; keep the earlier pricing/cache facts - they remain valid references.)
