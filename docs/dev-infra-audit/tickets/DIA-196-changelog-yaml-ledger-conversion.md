@@ -198,11 +198,12 @@ the DIA-194 UPDATE block):
    moot).
 
 Re-review cycle 1/2 (2026-08-16): developer approved fixing all actionable
-findings. Fix commit `bbd3a40` (see Re-verify) applied FIX-1..FIX-6:
-structural fallback `files: []` parity (FIX-1), render datetime normalization
-(FIX-2), AGENTS.md dead yq branch removed (FIX-3), orchestrator delegation
-scope clarified (FIX-4), Python prefix-match fallback parity (FIX-5), ticket
-Fix/Re-verify populated (FIX-6).
+findings. The fix loop landed as TWO commits (attribution corrected, re-review
+accuracy fix D2): `bbd3a40` = FIX-1 + FIX-2 (scripts/tests: validate-changelog.sh
+structural fallback `files: []` parity, changelog-render datetime normalization,
+new fixtures + bats), `d0e0626` = FIX-3..FIX-6 (docs/tickets: AGENTS.md dead yq
+branch removed, orchestrator delegation scope clarified, Python prefix-match
+fallback parity, ticket Fix/Re-verify populated).
 
 ## Re-verify
 

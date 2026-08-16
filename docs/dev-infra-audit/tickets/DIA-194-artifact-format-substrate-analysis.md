@@ -259,7 +259,9 @@ Agents need instructions to use `yq` for partial reads and writes.
 Implementation of the Phase-3 design (Variant B) landed as commit 28d1a2d on
 branch omo-slim-changes (tracked by DIA-196, status OPEN). Review findings
 were disposed by the developer (fix all actionable) and applied in re-review
-cycle 1/2 as fix commit `bbd3a40`:
+cycle 1/2 as TWO fix commits (attribution corrected, re-review accuracy fix
+D2): `bbd3a40` = FIX-1 + FIX-2 (scripts/tests), `d0e0626` = FIX-3..FIX-6
+(docs/tickets):
 
 - FIX-1 (F2, Major latent): validate-changelog.sh structural fallback now
   accepts `files: []` (schema has no minItems; committed ledger legitimately
