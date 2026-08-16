@@ -870,3 +870,50 @@ not break the gate; removing or re-ordering an invariant rule does.
 - Created: 2026-08-15
 - Related: DIA-186, DIA-134, scripts/__tests__/overnight.bats,
   .opencode/opencode-overnight.jsonc
+## ADR: Codex/ClaudeCode client parity is UNVERIFIED - no .codex/ .claude/ configs exist (DIA-180)
+
+### Status
+
+Accepted - 2026-08-14
+
+### Context
+
+DIA-180 asked whether Codex and ClaudeCode follow the same worktree/branch/merge
+conventions as the OpenCode-based lanes, by inventorying their .codex/ .claude/
+configs. The ana022 analyzer report explicitly scopes client-parity OUT (report
+line 16: "Codex/ClaudeCode client-parity is a SEPARATE lane (code-navigator) and
+is NOT covered here"), and the DIA-180 ticket's CODE-CLIENT-PARITY section has
+no evidence recorded yet (Fix section unfilled). Live repo state verified
+2026-08-14: NO .codex/ or .claude/ directory (or .claude.json / .config/codex)
+exists anywhere in the repository, and no gitignore entry references them.
+
+### Decision
+
+Record Codex/ClaudeCode parity as UNVERIFIED: with no .codex/ .claude/ configs
+present anywhere, those tools - IF used in this repo - silently follow vanilla
+git conventions (plain branch + push, no squash-merge convention, no worktrees.sh
+cleanup, no batch-D workflow) unless configured. No claim of parity is made or
+assumed.
+
+### Rationale (irrecoverable context)
+
+- The finding is a negative-evidence snapshot (absence of config files at a point
+  in time), which is not reconstructible from git history or diffs once configs
+  are later added - a future reader cannot tell whether parity was ever verified.
+- The DIA-180 ticket does not yet carry the inventory result; without this ADR the
+  UNVERIFIED state would live only in the gitignored session log and be lost.
+- The ana022 report deliberately excludes the lane, so the report file must not be
+  treated as covering it.
+
+### Consequences
+
+- Before relying on Codex/ClaudeCode in this repo, either add .codex/ .claude/
+  configs wiring them to worktree-conventions.md / worktrees.sh, or accept the
+  vanilla-git behavior explicitly.
+- The DIA-180 CODE-CLIENT-PARITY verification remains an open work item (separate
+  code-navigator lane), not resolved by this ADR.
+
+### Metadata
+
+- Created: 2026-08-14
+- Related: DIA-180, knowledge/ana022-worktree-mechanism-analysis/ana022-worktree-mechanism-analysis-report.md, docs/dev-infra-audit/tickets/DIA-180-worktree-branch-merge-mechanism-analysis.md
