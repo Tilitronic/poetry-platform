@@ -12,7 +12,7 @@ id: DIA-198
 title: "reconcile self-rerun thresholds 15/25 across OMO inline prompts + drift-checker marker (DIA-191 F4/F5 follow-up)"
 area: opencode-config
 severity: Low
-status: OPEN
+status: CLOSED
 blocked_by: [] # no blockers
 parent_epic: "DIA-191" # optional DIA-NNN parent epic ticket (DIA-125 keep-local extension; scripts/tickets emits this field always)
 
@@ -140,3 +140,33 @@ the 15/25 authority and the drift-checker contract is internally consistent:
 No behavioral delta: prompts/contract/tool description all read 15% primary /
 25% safety-net, matching the merged NEXT-RUN.md (lines 81-82, 238-239) and
 the context_usage output fields (threshold_15pct/threshold_25pct).
+
+## UPDATE (2026-08-16) - CLOSED: implementation verified + ai-auditor APPROVE-WITH-NITS + pushed
+
+Closure evidence (register lane, omo-slim-changes):
+
+- Implementation: commit f4dcf73 (5 files, +74/-27) retuned all THREE preset
+  "Orchestrator Operating Rules" inline prompts (opencode-go / cebula / free,
+  lines 26/209/433), retuned the drift-checker marker contract
+  (THRESHOLD_MARKER `15% (primary)`, internal token threshold-30-50 ->
+  threshold-15-25), updated the bats fixture needles, and documented the dual
+  threshold_15pct/threshold_25pct fields in the context_usage tool
+  description. Text-alignment only; no runtime behavior change.
+- Test evidence: make test-config exit 0 (56/56, incl. batch-d-infra plugin
+  bundle + drift-checker wiring); make test-shell exit 0 (404/404, drift
+  suite green); bash scripts/check-orchestrator-prompt-drift.sh exit 0 (3
+  preset(s) checked, 8 markers each, 0 gaps); grep `30%|50%` empty across all
+  four non-ticket files.
+- Review: ai-auditor Phase 6 review APPROVE-WITH-NITS (2026-08-16) - all
+  Major compliance PASS; the single optional nit (independent 25% safety-net
+  marker in the drift-checker) DEFERRED by developer disposition as
+  future-hardening - logged here, NOT part of this closure.
+- Pushed to origin/omo-slim-changes: f4dcf73 -> <CLOSURE_SHA> (pre-push
+  ladder passed: prettier, eslint, js-tests, test-config, python, test-shell).
+- Registration: .opencode/CHANGELOG.yaml entry appended (DIA-198, 2026-08-16)
+  - derived CHANGELOG.md regenerated via scripts/changelog-render;
+    validate-changelog.sh exit 0. Learnings outcome: no DIA-191/ana025 learnings
+    entry carries an outcome field (lessons.md L20260815-011 has none; adr.md is
+    a pre-existing sibling dirty file) - skipped per register-lane instruction.
+
+Status: CLOSED.
