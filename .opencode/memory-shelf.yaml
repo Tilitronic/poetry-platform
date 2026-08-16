@@ -533,11 +533,11 @@ shelf:
     path: knowledge/ana022-artifact-format-substrate/ana022-artifact-format-substrate-report.md
     created: 2026-08-15
     task_ref: DIA-194
-  - name: Worktree/Branch/Merge Mechanism Analysis (DIA-180)
+  - name: Worktree/Branch/Merge Mechanism Analysis (DIA-200)
     description: "Mechanism review of the parallel-worktree model (DIA-100/172/174/177/179) against the five known frictions. Verdict: mechanism fundamentally sound - squash-merge keeps main linear, cleanup (DIA-177) correctly answers the squash-merge/git branch -d refusal, batch D at 5 slices ran with zero cross-slice file-ownership violations. Frictions resolve to 1 inherent git limitation, 1 accepted-by-design operational gap, 3 genuine tooling gaps. Findings: M-1 [Medium] branch -d refuses squash-merged branches (inherent, mitigated by cleanup two-pass merge check; regular-merge alternative rejected in M-1a - keep squash; recommends make worktree-gc + post-push dry-run warning); M-2 [High] cleanup enumerates only branch-backed worktrees (worktrees.sh:576) so orphaned dirs are invisible to every tool - live state has 12 orphaned + 1 nested dir, zero branches, zero registration metadata, git worktree prune a no-op, manual rm -rf the only remedy (worst-case state); M-3 nested worktree - create derives target root from its own checkout (worktrees.sh:58-60), no guard exists, nested selfcheck worktree still on disk; M-4 shared test seam convention gap - ADR-level fix exists (adr.md:724) but not woven into the spec-authoring template. ana021 findings F-1/F-2 verified intact post-rebase. Codex/ClaudeCode client-parity explicitly out of scope (separate code-navigator lane)."
     path: knowledge/ana022-worktree-mechanism-analysis/ana022-worktree-mechanism-analysis-report.md
     created: 2026-08-14
-    task_ref: DIA-180
+    task_ref: DIA-200
   adrs:
   - name: Memory Storage Strategy
     description: 'Evaluation of Claude-Mem, Honcho, and current hand-written memory

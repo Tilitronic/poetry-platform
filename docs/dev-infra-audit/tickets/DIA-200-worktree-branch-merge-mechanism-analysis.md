@@ -1,8 +1,8 @@
-# DIA-180 - Analyze worktree/branch/merge mechanism + verify Codex/ClaudeCode follow the same conventions
+# DIA-200 - Analyze worktree/branch/merge mechanism + verify Codex/ClaudeCode follow the same conventions
 
 ---
 
-id: DIA-180
+id: DIA-200
 title: "Analyze worktree/branch/merge mechanism + verify Codex/ClaudeCode follow the same conventions"
 area: dev-infra
 severity: Medium
@@ -23,7 +23,7 @@ model: "opencode-go/deepseek-v4-flash" # model ID used
 parent_session_id: "" # orchestrator's session ID
 attempts: 0 # how many delegations attempted
 lease_expires_at: "" # ISO-8601; set on DISPATCHED, cleared on COMPLETE
-files_touched: [docs/dev-infra-audit/tickets/DIA-180-worktree-branch-merge-mechanism-analysis.md, docs/dev-infra-audit/tickets/README.md]
+files_touched: [docs/dev-infra-audit/tickets/DIA-200-worktree-branch-merge-mechanism-analysis.md, docs/dev-infra-audit/tickets/README.md]
 artifacts: []
 evidence: []
 

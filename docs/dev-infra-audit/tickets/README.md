@@ -150,7 +150,7 @@
 | DIA-197 | evaluate DCP removal: cache degradation (85% vs 90%) without noticeable benefit - research + conspect + EBDV decision | opencode-config | Medium | OPEN | [DIA-197-dcp-removal-evaluation.md](DIA-197-dcp-removal-evaluation.md) |
 | DIA-198 | reconcile self-rerun thresholds 15/25 across OMO prompts + drift-checker (DIA-191 F4/F5) | opencode-config | Low | OPEN | [DIA-198-threshold-reconciliation.md](DIA-198-threshold-reconciliation.md) |
 | DIA-199 | memory-shelf permission resolver: exact-file allow not resolved at runtime (DIA-143 broken) | opencode-config | Major | OPEN | [DIA-199-memory-shelf-permission-resolver.md](DIA-199-memory-shelf-permission-resolver.md) |
-| DIA-180 | Analyze worktree/branch/merge mechanism + verify Codex/ClaudeCode follow the same conventions | dev-infra | Medium | OPEN | [DIA-180-worktree-branch-merge-mechanism-analysis.md](DIA-180-worktree-branch-merge-mechanism-analysis.md) |
+| DIA-200 | Analyze worktree/branch/merge mechanism + verify Codex/ClaudeCode follow the same conventions | dev-infra | Medium | OPEN | [DIA-200-worktree-branch-merge-mechanism-analysis.md](DIA-200-worktree-branch-merge-mechanism-analysis.md) |
 
 ## Status summary
 

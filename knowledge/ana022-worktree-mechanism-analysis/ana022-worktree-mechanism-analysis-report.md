@@ -1,15 +1,15 @@
-# ana022 - Worktree / Branch / Merge Mechanism Analysis (DIA-180)
+# ana022 - Worktree / Branch / Merge Mechanism Analysis (DIA-200)
 
 <!-- ANALYZER-OUTPUT-CONTRACT
 schema-version: 1.0
 agent: analyzer
 claim-type: finding
-evidence-source: docs/dev-infra-audit/tickets/DIA-180-worktree-branch-merge-mechanism-analysis.md; live repo state 2026-08-14 (git worktree list, git branch, .worktrees/ scan)
+evidence-source: docs/dev-infra-audit/tickets/DIA-200-worktree-branch-merge-mechanism-analysis.md; live repo state 2026-08-14 (git worktree list, git branch, .worktrees/ scan)
 confidence: High
 shelf-registration: memory-shelf.yaml (shelf.analyses), delegated to @memory-manager
 -->
 
-Auditor: @analyzer (DIA-180)
+Auditor: @analyzer (DIA-200)
 Date: 2026-08-14
 Scope: mechanism review of the parallel-worktree model (DIA-100 / DIA-172 /
 DIA-174 / DIA-177 / DIA-179) against the five known frictions from lived
@@ -19,7 +19,7 @@ dispatch; noted only as resolved.
 
 Governing documents read: docs/dev-infra-audit/worktree-conventions.md,
 scripts/worktrees.sh, tickets DIA-100 / DIA-132 / DIA-137 / DIA-153 / DIA-172 /
-DIA-174 / DIA-177 / DIA-179 / DIA-180, openspec/changes/test-suite-audit-fixes/
+DIA-174 / DIA-177 / DIA-179 / DIA-200, openspec/changes/test-suite-audit-fixes/
 design.md, openspec/changes/worktree-branch-cleanup/design.md,
 .opencode/memory/lessons.md, .opencode/memory/adr.md, and the live repo state
 (worktree list, branch list, .worktrees/ filesystem scan).
