@@ -154,6 +154,7 @@
 | DIA-201 | worktree cleanup: orphaned-dir sweep for .worktrees/ (ana022 R-1) | dev-infra | Medium | OPEN | [DIA-201-worktree-cleanup-orphaned-dir-sweep-for-worktrees-ana022-r-1.md](DIA-201-worktree-cleanup-orphaned-dir-sweep-for-worktrees-ana022-r-1.md) |
 | DIA-202 | worktrees.sh: nested-worktree creation guard (ana022 R-2) | dev-infra | Medium | OPEN | [DIA-202-worktrees-sh-nested-worktree-creation-guard-ana022-r-2.md](DIA-202-worktrees-sh-nested-worktree-creation-guard-ana022-r-2.md) |
 | DIA-203 | make worktree-gc target + dry-run post-push warning (ana022 R-4) | dev-infra | Medium | OPEN | [DIA-203-make-worktree-gc-target-dry-run-post-push-warning-ana022-r-4.md](DIA-203-make-worktree-gc-target-dry-run-post-push-warning-ana022-r-4.md) |
+| DIA-204 | delegation-observer handoff-archived log line leaks into OpenCode chat UI (console.warn surfaces in conversation stream) | opencode-config | Medium | OPEN | [DIA-204-delegation-observer-handoff-log-leaks-into-chat-ui.md](DIA-204-delegation-observer-handoff-log-leaks-into-chat-ui.md) |
 
 ## Status summary
 
@@ -162,14 +163,14 @@
 | Blocker  | 7     |
 | Critical | 8     |
 | Major    | 47    |
-| Medium   | 75    |
+| Medium   | 76    |
 | Minor    | 0     |
 | Low      | 17    |
 | Info     | 0     |
 
 | Status      | Count |
 | ----------- | ----- |
-| OPEN        | 14    |
+| OPEN        | 15    |
 | DONE        | 11    |
 | VALIDATE    | 0     |
 | E2E         | 0     |
