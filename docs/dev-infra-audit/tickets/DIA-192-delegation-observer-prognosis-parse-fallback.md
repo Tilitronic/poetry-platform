@@ -168,3 +168,18 @@ PENDING-restart-verify (after next OpenCode restart; ai-auditor review):
      Commit: 9000fad fix(plugin): DIA-192 downgrade prognosis parse-fallback
      notification severity. Status stays OPEN (restart-verify + ai-auditor
      pending per section 2.5 Phase 5). -->
+
+<!-- UPDATE 2026-08-16 (merge lane): MERGED into omo-slim-changes as part of
+     the DIA-190/192/193 batch. ai-auditor ai--4 re-review ALL-CLOSED,
+     APPROVE-FOR-MERGE (cycle 2/2); developer disposition 2026-08-16
+     approved. Squash commit 28d7aac (b6aff13 + 255bf90 + 8cacfc5 + branch
+     base) on omo-slim-changes:
+
+     - .opencode/plugins/delegation-observer.ts parse-fallback notification
+       active at DEBUG level (net of the batch; wrapper shape unchanged).
+     - .opencode/plugins/__tests__/parallel-handoff.test.mjs S1 DIA-192
+       parse-fallback harness assertion active (debug-level + plain-text
+       wrapper shape + no crash).
+
+     Status stays OPEN: restart-verify pending (Smoke A/B above, after next
+     OpenCode restart). -->

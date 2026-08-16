@@ -144,3 +144,16 @@ PENDING-restart-verify (after next OpenCode restart; ai-auditor review):
      Commit: 5b8cfee fix(plugin): DIA-193 downgrade handoff-writer skip
      notification. Status stays OPEN (restart-verify + ai-auditor pending
      per section 2.5 Phase 5). -->
+
+<!-- UPDATE 2026-08-16 (merge lane): MERGED into omo-slim-changes as part of
+     the DIA-190/192/193 batch. ai-auditor ai--4 re-review ALL-CLOSED,
+     APPROVE-FOR-MERGE (cycle 2/2); developer disposition 2026-08-16
+     approved. Squash commit 28d7aac (b6aff13 + 255bf90 + 8cacfc5 + branch
+     base) on omo-slim-changes:
+
+     - .opencode/plugins/delegation-observer.ts handoff-writer skip
+       notification active at DEBUG level (net of the batch; guard behavior
+       unchanged - non-terminal statuses still write NO slot and NO pointer).
+
+     Status stays OPEN: restart-verify pending (in-flight invocation check
+     above, after next OpenCode restart). -->
