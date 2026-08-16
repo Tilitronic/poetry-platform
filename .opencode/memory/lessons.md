@@ -877,10 +877,13 @@ orchestrator dispatches.
 - **Deferred: consolidate triplicated orchestrator prompt across 3 presets (L5,
   accepted residual).** F12 was deliberately skipped because preset-inheritance
   runtime semantics are unverified; consolidating the byte-identical prompt could
-  change runtime behavior for unknown presets. ponytail: deferred, not dead - add
-  when preset-inheritance semantics are verified (e.g. against the installed OMO
-  dist per the dual-runtime lesson) or when a 4th preset forces the issue. Why
-  recorded: the skip reason is an accepted-risk decision, not visible in the diff.
+  change runtime behavior for unknown presets. ponytail: introduced 2026-08-15
+  via the project plugin array (@dietrichgebert/ponytail, DIA-183 Variant D) —
+  the plugin route does NOT depend on preset-inheritance semantics; the preset
+  skill-ref reintroduction remains gated on preset-inheritance verification (see
+  the installed OMO dist per the dual-runtime lesson) or a 4th preset forcing the
+  issue. Why recorded: the skip reason is an accepted-risk decision, not visible
+  in the diff.
 
 ## DIA-177 worktree branch cleanup - post-squash-merge teardown is an OPERATIONAL step (2026-08-14)
 

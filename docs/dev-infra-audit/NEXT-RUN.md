@@ -78,8 +78,8 @@ with a read-only task) to report the current contents of:
   the next phase benefits from a fresh session; (b) **CONTEXT DEGRADATION** — compaction
   has compacted campaign-critical context (the handoff file, prognosis, cycle state) so the
   orchestrator cannot reliably continue; (c) **PRIMARY THRESHOLD** — context usage
-  > = 30% of the model context window (300K tokens for 1M-window models); (d) **HARD
-  > SAFETY-NET** — context usage >= 50% (unconditional force). On ANY trigger: build the
+  > = 15% of the model context window (150K tokens for 1M-window models); (d) **HARD
+  > SAFETY-NET** — context usage >= 25% (unconditional force). On ANY trigger: build the
   > handoff prognosis and log it via `log_decision` (event_type: 'handoff',
   > resolution_status: 'done', prognosis: JSON.stringify(prognosisObject)) — the plugin
   > writes the per-session slot atomically + updates the pointer; the prognosis
@@ -92,9 +92,9 @@ with a read-only task) to report the current contents of:
   > session metadata. The tool handles model context-window lookup internally (1M
   > default). If the plugin is not loaded (tool unavailable), fall back to manual
   > estimation: count delegations dispatched × ~2000 tokens average per delegation,
-  > add to visible conversation length heuristic, and apply the 30%/50% thresholds
+  > add to visible conversation length heuristic, and apply the 15%/25% thresholds
   > conservatively (trigger earlier when uncertain). NOTE: compaction is size-triggered, not
-  > relevance-triggered, and loses campaign-critical detail — hence the 30% primary
+  > relevance-triggered, and loses campaign-critical detail — hence the 15% primary
   > threshold (research-refined division of labor).
 - **CRISIS-DETECTION**: a cycle is in crisis when **ANY** of C1–C5 fires (binary OR — ADR-002,
   `.sdd/dia-redispatch-cycle/architecture.md`; full rule text in
@@ -102,7 +102,7 @@ with a read-only task) to report the current contents of:
   same task (counter per-task, resets on success, not on cycle change). C2: ≥2 substantive
   design.md re-plans within one cycle. C3: ≥5 tool calls with no observable state change (no
   file written, no test status change, no git diff). C4: hard context overflow/truncation —
-  fires; ≥50% context rerun (soft) — flagged only, does NOT fire. C5: a `[BLOCKING]` prognosis
+  fires; ≥25% context rerun (soft) — flagged only, does NOT fire. C5: a `[BLOCKING]` prognosis
   ticket unresolved for 1 full cycle (fires at the start of cycle N+2). **On crisis:** STOP all
   work, produce the crisis handoff by logging it via `log_decision` (event_type: 'handoff',
   resolution_status: 'escalated', prognosis: JSON.stringify(crisisPrognosis)) — the plugin
@@ -235,8 +235,8 @@ tickets are only DEFERRED / USER-DECISION / MONITOR (non-blocking).
 
 `messages.jsonl` is your memory (plugin-logged); never lose state — the
 delegation-observer plugin logs delegations automatically; log semantic events via
-`log_decision` before ending any session; handoff protocol per rule 2 (30% primary
-threshold / 50% safety-net; campaign milestones).
+`log_decision` before ending any session; handoff protocol per rule 2 (15% primary
+threshold / 25% safety-net; campaign milestones).
 
 ## 7. Redispatch Protocol (dia-redispatch-cycle)
 
@@ -433,7 +433,7 @@ only; no self-certification; untrusted markers block SELF-RERUN.
 - Exit states: `clean` / `crisis` / `exhausted` / `manual-halt`. `exhausted` is a soft
   non-crisis exit with a ≤200-char postmortem and NO C6 trigger (ADR-005).
 - Budget increments only on full audit pass (complete handoff file + successor
-  acknowledgment via batch approval); ≥50% context reruns are tracked but do not
+  acknowledgment via batch approval); ≥25% context reruns are tracked but do not
   consume budget unless the cycle terminates.
 
 ### 7.7 Reference artifacts

@@ -94,3 +94,55 @@ precisely for this, but ROI must be measured, not assumed.
 ## Re-verify
 
 > To be filled at re-verify time.
+
+## UPDATE 2026-08-15 (coder lane, branch omos/dia-183-191)
+
+EBDV decision (developer, 2026-08-15): **Variant D — ponytail now + headroom
+feasibility spike later (parallel)**. Evidence: learnings file
+`.opencode/learnings/external-patterns/2026-08-15-ponytail-headroom-cache-economics.md`
+(phase-1 gate; DIA-115: D/A/B variants compared, abort included). Chosen because
+ponytail is a zero-cache-interaction, benchmarked (-20% cost) ruleset injection
+that resolves the 7 dangling `ponytail:` comment sites immediately, while the
+headroom cache-preservation claim on the opencode-go endpoint is UNVERIFIED and
+needs the overnight spike before any enabling decision.
+
+Implemented (this ticket's ponytail half only; headroom is a separate step):
+
+- `@dietrichgebert/ponytail` added to the project plugin array in
+  `.opencode/opencode.jsonc` (Bun-installed by OpenCode at startup; NOT added
+  to the root pnpm tree; .opencode/package.json is the plugin-SDK dep file, not
+  a Bun-install manifest, so no change there — consistent with the other
+  plugin-array entries).
+- Dangling refs disposition (7 sites located via `rg -l 'ponytail:'`,
+  excluding this ticket + the learnings doc which document the convention):
+  - lessons.md:880 — marker updated to record ponytail introduced (plugin
+    route does not depend on preset-inheritance semantics; preset skill-ref
+    reintroduction stays gated).
+  - opencode-docker bin:120 — mount-hook comment updated (plugin now installed
+    via plugin array; host mount retained as legacy fallback; ssh-agent-
+    forward.bats asserts the source stays in the allowed set).
+  - Dockerfile:199, collect-runtime-deps.sh:87, opencode-docker:59/114/126 —
+    WHY/justification comments now serviced by the installed plugin's
+    /ponytail-debt convention; content verified accurate, kept as-is.
+  - OMO vendored src x3 (foreground-fallback:46, preset-manager:220,
+    session-manager:620) — LEFT + documented: they live in the vendored
+    REFERENCE-ONLY OMO source checkout (.opencode/oh-my-opencode-slim/
+    REFERENCE-ONLY.md: src/ not loaded at runtime, do not edit as the live
+    plugin; the running plugin is the npm-installed package). Cannot be
+    resolved here without diverging the vendored reference.
+  - example-store.test.ts:1 — LEFT + documented: TODO(ponytail) is a genuine
+    test-coverage deferral (replace scaffold test when real stores exist),
+    not resolvable by the plugin; marker now serviced by /ponytail-debt.
+- Verification: `make test-config` exit 0 (56 tests pass; JSONC valid;
+  ponytail present in plugin array, 6 entries); `make test-shell` exit 0
+  (390 bats tests); audit-agent-tool-coverage census clean (no HARD gaps).
+- Commit: 0016a66 `feat(.opencode): DIA-183 ponytail plugin (Variant D) +
+resolve dangling refs` (branch omos/dia-183-191).
+
+REMAINING (headroom half — separate step, not this change): overnight headroom
+feasibility spike (cache-hit rate with/without compression on the opencode-go
+endpoint, net cost delta), then enable headroom --mode cache + CacheAligner
+read-only monitor if the spike proves prefix preservation. Verification items
+above for headroom stay OPEN. /ponytail-debt ledger run + convention
+documentation (AGENTS.md/commands) remain OPEN verification items for the
+follow-up lane.

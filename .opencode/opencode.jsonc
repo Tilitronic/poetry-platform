@@ -584,6 +584,11 @@
     // after Phase 2 the global entry is removed and this becomes the single
     // declaration source.
     "oh-my-opencode-slim@2.2.14",
+    // DIA-183 (Variant D): ponytail ruleset injection (YAGNI 7-rung ladder).
+    // Zero cache interaction, benchmarked -20% cost; installed via Bun at
+    // startup from the plugin-array entry (NOT the root pnpm tree). Resolves
+    // the 7 dangling `ponytail:` comment sites (harvested by /ponytail-debt).
+    "@dietrichgebert/ponytail",
     "envsitter-guard@0.0.4",
     "@tarquinen/opencode-dcp@3.1.14",
     "file:///workspace/.opencode/plugins/delegation-observer.ts",

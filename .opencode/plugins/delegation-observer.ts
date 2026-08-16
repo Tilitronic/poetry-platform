@@ -2690,7 +2690,7 @@ const delegationObserver: Plugin = async (ctx) => {
       // risking context degradation (campaign-critical state loss).
       context_usage: tool({
         description:
-          "Estimate context-window usage for the current session. Returns JSON with estimated usage fraction, delegation counts, and optional council-scoped breakdown. NOT token-accurate — uses registry.jsonl activity signals as a proxy. Sufficient for self-rerun (>=50%) and council budget guard decisions.",
+          "Estimate context-window usage for the current session. Returns JSON with estimated usage fraction, delegation counts, and optional council-scoped breakdown. NOT token-accurate — uses registry.jsonl activity signals as a proxy. Sufficient for self-rerun (>=25%) and council budget guard decisions.",
         args: {
           scope: tool.schema
             .enum(["session", "council"])
@@ -2816,15 +2816,19 @@ const delegationObserver: Plugin = async (ctx) => {
             sessionCount = scopedSessions
           }
 
-          // Conservative estimation formula (approved design): per-delegation
-          // weight 3000, per-message weight 1000 (session scope only),
-          // per-session weight 10000. Context window hardcoded to 1M — the
-          // plugin has no model metadata access and the orchestrator models
-          // are the deepseek-v4-flash / qwen3.7-max 1M-window class.
+          // Conservative estimation formula (DIA-191 / ana025 V1 reweight):
+          // per-delegation weight 5000, per-message weight 500 (session scope
+          // only), plus a flat 30000 ONE-TIME system-prompt term replacing
+          // the old per-session weight 10000 (that term was 70% of the
+          // estimate and over-counted child-session overhead as if it lived
+          // in the orchestrator's context window — the DIA-191 divergence
+          // cause). Context window hardcoded to 1M — the plugin has no model
+          // metadata access and the orchestrator models are the
+          // deepseek-v4-flash / qwen3.7-max 1M-window class.
           const estimatedTokens =
-            delegationCount * 3000 +
-            (scope === "session" ? messageCount * 1000 : 0) +
-            sessionCount * 10000
+            delegationCount * 5000 +
+            (scope === "session" ? messageCount * 500 : 0) +
+            30000
           const contextWindow = 1_000_000
           const usageFraction = Math.min(estimatedTokens / contextWindow, 1)
           const estimatedCredits =
@@ -2838,8 +2842,8 @@ const delegationObserver: Plugin = async (ctx) => {
             usage_percent: `${Math.round(usageFraction * 100)}%`,
             delegation_count: delegationCount,
             session_count: sessionCount,
-            threshold_30pct: usageFraction >= 0.3,
-            threshold_50pct: usageFraction >= 0.5,
+            threshold_15pct: usageFraction >= 0.15,
+            threshold_25pct: usageFraction >= 0.25,
             confidence: "low — proxy estimation, not token-accurate",
             fallback_note:
               "If this seems inaccurate, the estimate covers only in-session activity of the current orchestrator session",

@@ -117,7 +117,12 @@ if [ -f "$HOME/.gitconfig" ]; then
     GITCONFIG_MOUNT=(-v "$ocd_dir/.gitconfig:/app/.gitconfig:ro,Z")
 fi
 
-# ponytail: mount ponytail plugin if present on host
+# ponytail: mount ponytail plugin if present on host. Legacy fallback path —
+# since DIA-183 (2026-08-15) the canonical install is the project plugin
+# array entry (@dietrichgebert/ponytail, Bun-installed at opencode startup);
+# the host mount remains only for host-side checkout copies. ssh-agent-
+# forward.bats asserts this source is in the allowed mount-source set, so
+# the hook MUST stay.
 PONYTAIL_MOUNT=()
 if [ -d "$HOME/ponytail" ]; then
     PONYTAIL_MOUNT=(-v "$HOME/ponytail:/app/ponytail:ro,Z")

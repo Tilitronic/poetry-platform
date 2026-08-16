@@ -123,3 +123,49 @@ modernization workflow).
 ## Re-verify
 
 > To be filled at re-verify time.
+
+## UPDATE 2026-08-15 (coder lane, branch omos/dia-183-191)
+
+EBDV decision (developer, 2026-08-15): **V1 — reweight the formula** (ana025,
+`knowledge/ana025-context-usage-calibration/ana025-context-usage-calibration-report.md`).
+Chosen because it is the only variant that removes the root-cause term
+(session\*10000 = 70% of the over-estimate), calibrates within 7% of the TUI at
+the observed failure point, preserves the conservative under-estimate bias, and
+is a 5-constant low-risk change. V2 (DB cumulative read) rejected: cumulative is
+8.7x over in-context post-compact, would worsen premature reruns. V3 (flat
+correction) rejected: divergence is non-monotonic across the compaction
+boundary. V4 (abort) rejected: dual failure mode persists.
+
+Implemented:
+
+- `.opencode/plugins/delegation-observer.ts` context_usage estimator reweight
+  (ana025 V1):
+  `estimatedTokens = delegationCount * 5000 + messageCount * 500 + 30000`
+  (flat 30000 ONE-TIME system-prompt term replaces the sessionCount\*10000 term;
+  sessionCount still computed/reported but no longer weighted). Doc comment
+  updated with the WHY. Tool description + threshold fields retuned
+  (threshold_30pct/threshold_50pct -> threshold_15pct/threshold_25pct) so the
+  tool output agrees with the retuned NEXT-RUN.md thresholds.
+- `docs/dev-infra-audit/NEXT-RUN.md` self-rerun thresholds retuned per ana025:
+  30%/50% -> 15%/25% (ALL occurrences: section 2 primary/safety-net, manual
+  fallback, C4 soft rerun note, section 6 handoff rule, section 7.6 tracked
+  reruns; 300K -> 150K tokens for the 1M-window figure).
+- Verification: plugin typecheck `tsc --noEmit --strict` exit 0;
+  `make test-config` exit 0 (56 tests, incl. batch-d-infra which bundles the
+  real plugin); parallel-handoff harness 6/6; make test-shell exit 0.
+  Estimator sanity at the DIA-191 reference snapshot (D=33, M=41 at snapshot):
+  NEW = 33*5000 + 41*500 + 30000 = 215,500 tokens = 21.55% vs TUI 234.6K
+  (23.5%) -> ratio 0.92 (within 7% under, conservative). Matches ana025's
+  predicted 21.5%.
+- Commit: f18281f `fix(plugin): DIA-191 context_usage V1 reweight + self-rerun
+thresholds 15/25 (ana025)` (branch omos/dia-183-191).
+
+RESTART-VERIFY PENDING (per ana025 post-fix verification plan + this ticket's
+Re-verify section): start a fresh orchestrator session, read context_usage vs
+TUI at 3 depths (fresh / mid / deep post-compact), assert |proxy - tui| /
+tui < 0.25 at each, and confirm the retuned 15/25 thresholds fire at the
+intended actual in-context. NOTE for restart-verify: the OMO inline
+orchestrator prompts (.opencode/oh-my-opencode-slim.jsonc lines 26/209/433)
+still summarize 30/50 — the dispatch scoped the threshold retune to NEXT-RUN.md
+(the referenced authority); reconciling the inline prompt summaries is a
+follow-up decision, flag for the reviewer.
