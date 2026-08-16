@@ -313,6 +313,9 @@ describe('S2 CONFIG DRIFT (post-DIA-172)', () => {
   it('conspecter edit allow is knowledge/* only (agent md + opencode config agree)', () => {
     assert.match(readRoot('.opencode/agents/conspecter.md'), /knowledge\/\*/);
     const edit = opencodeConfig.agent['conspecter'].permission.edit;
+    // DIA-143 (VERIFIED) keeps memory-manager the SOLE memory-shelf writer;
+    // DIA-190 reverted to direction B (delegation) on 2026-08-16 - the
+    // conspecter edit allow must stay knowledge/* only, no memory-shelf.yaml.
     assert.deepEqual(Object.keys(edit).sort(), ['*', 'knowledge/*']);
     assert.equal(edit['*'], 'deny');
     assert.equal(edit['knowledge/*'], 'allow');

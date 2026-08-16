@@ -13,7 +13,7 @@ id: DIA-192
 title: "delegation-observer prognosis parse fallback firing: lossy handoff + spurious high-severity TUI notification"
 area: opencode-config
 severity: Medium
-status: VERIFIED
+status: OPEN
 blocked_by: [] # no blockers
 parent_epic: ""
 
@@ -29,7 +29,7 @@ discovered:
 source: session-observation (developer screenshot clipboard-6107e1fa.png 2026-08-15)
 date: 2026-08-15
 created: 2026-08-15
-updated: 2026-08-15
+updated: 2026-08-16
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -146,3 +146,25 @@ PENDING-restart-verify (after next OpenCode restart; ai-auditor review):
 **Smoke B (single-encoded prognosis):**
 
 - [ ] Invoke log_decision(handoff, done, prognosis=<single-encoded JSON>) and confirm it parses cleanly with no fallback wrapper and no info-level parse-failed log.
+
+<!-- UPDATE 2026-08-16 (docs lane): RE-OPENED 2026-08-16 (docs lane): fix
+     work item - downgrade prognosis parse-fallback notification severity
+     (spurious high-severity TUI noise). Implementation + ai-auditor +
+     restart-verify pending (Phase 1+ per ana023). -->
+
+<!-- UPDATE 2026-08-16 (coder lane, branch omos/dia-190-192-193):
+     SEVERITY RE-DOWNGRADE IMPLEMENTED. The 2026-08-15 fix landed at
+     info-level app.log; the re-open work item wants the recovered-error
+     notification quieter still (ana023 Phase 1: "severity downgrade in
+     plugin"). .opencode/plugins/delegation-observer.ts parsePrognosis
+     catch branch: ctx.client.app.log level "info" -> "debug" (lowest valid
+     SDK level, still a forensic app.log trail). Double-decode retry and
+     plain-text wrapper shape UNCHANGED - only the severity field moved.
+
+     Verification: node --experimental-strip-types --check exit 0; bun
+     parallel-handoff harness 9/9 (63 expect calls) in the dev container;
+     make test-config exit 0 (56/56); npx prettier --check clean.
+
+     Commit: 9000fad fix(plugin): DIA-192 downgrade prognosis parse-fallback
+     notification severity. Status stays OPEN (restart-verify + ai-auditor
+     pending per section 2.5 Phase 5). -->

@@ -370,6 +370,61 @@ test("S1 directory creation: first write creates handoffs/ and handoffs/archive/
   expect(existsSync(paths.archiveDir)).toBe(true)
 })
 
+test("S1 DIA-192 parse-fallback: malformed prognosis logs at debug level and writes the plain-text wrapper (no crash)", async () => {
+  const { hooks, paths, logs } = await makeHarness()
+
+  // A prognosis string that genuinely fails JSON.parse (not double-encoded
+  // JSON - that path recovers the structured object via the DIA-192
+  // double-decode retry and never reaches the fallback).
+  const malformed = '{not-valid-json: '
+  const { result } = await runLogDecision(hooks, {
+    event_type: "handoff",
+    task_ref: "DIA-192-malformed",
+    resolution_status: "done",
+    lane_id: "ses_parse_fallback",
+    prognosis: malformed,
+  })
+
+  // The recovered error is reported on the TUI-safe app-log channel at
+  // debug level (DIA-192: info-level was still too loud for a recovered
+  // error - 2026-08-16 re-open downgraded to debug). It must NOT be info.
+  expect(
+    logs.some(
+      (l) =>
+        l?.body?.level === "debug" &&
+        l?.body?.message?.includes("prognosis parse failed")
+    )
+  ).toBe(true)
+  expect(
+    logs.some(
+      (l) =>
+        l?.body?.level === "info" &&
+        l?.body?.message?.includes("prognosis parse failed")
+    )
+  ).toBe(false)
+
+  // The handoff slot is still written with the plain-text wrapper shape
+  // (session_summary.note = raw string; structured fields empty) - the
+  // fallback must not crash the writer, and the slot carries a valid
+  // checksum over that wrapper.
+  const slotPath = paths.slotPath("ses_parse_fallback")
+  expect(existsSync(slotPath)).toBe(true)
+  const slot = readJson(slotPath)
+  expect(slot.status).toBe("done")
+  expect(slot.prognosis).toEqual({
+    session_summary: { note: malformed },
+    fixes_applied: [],
+    open_tickets: [],
+    verification_request: [],
+    resume_instructions: "",
+  })
+  expect(slot.checksum).toMatch(/^[0-9a-f]{64}$/)
+  expect(slot.checksum).toBe(canonicalChecksum(slot.prognosis))
+
+  // Tool contract: the call still resolves (no crash on malformed input).
+  expect(result.startsWith("Logged: handoff")).toBe(true)
+})
+
 test("S1 DIA-120 filter: non-terminal 'in-flight' first write creates NO slot and NO pointer", async () => {
   const { hooks, paths, logs } = await makeHarness()
 
@@ -384,13 +439,14 @@ test("S1 DIA-120 filter: non-terminal 'in-flight' first write creates NO slot an
   // The writer is never reached: no handoffs/ dir, no slot, no pointer.
   expect(existsSync(paths.handoffsDir)).toBe(false)
   expect(existsSync(paths.pointerPath)).toBe(false)
-  // The skip is observable on the TUI-safe app-log channel at info level
-  // (DIA-193: demoted from console.warn, which surfaced as a high-severity
-  // notification; the guard behavior itself is unchanged - no slot/pointer).
+  // The skip is observable on the TUI-safe app-log channel at debug level
+  // (DIA-193: demoted from console.warn to info 2026-08-15, then to debug on
+  // the 2026-08-16 re-open - a benign guard must never read as alarming;
+  // the guard behavior itself is unchanged - no slot/pointer).
   expect(
     logs.some(
       (l) =>
-        l?.body?.level === "info" &&
+        l?.body?.level === "debug" &&
         l?.body?.message?.includes("handoff-writer skipped")
     )
   ).toBe(true)
@@ -423,12 +479,12 @@ test("S1 DIA-120 filter: non-terminal event does NOT touch an existing slot or p
   expect(readFileSync(paths.slotPath("ses_A"), "utf-8")).toBe(slotBefore)
   expect(readFileSync(paths.pointerPath, "utf-8")).toBe(pointerBefore)
   expect(readdirSync(paths.archiveDir)).toEqual(archiveBefore)
-  // The skip is observable on the TUI-safe app-log channel at info level
+  // The skip is observable on the TUI-safe app-log channel at debug level
   // (DIA-193; same demotion rationale as the first-write filter test).
   expect(
     logs.some(
       (l) =>
-        l?.body?.level === "info" &&
+        l?.body?.level === "debug" &&
         l?.body?.message?.includes("handoff-writer skipped")
     )
   ).toBe(true)

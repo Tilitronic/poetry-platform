@@ -13,7 +13,7 @@ id: DIA-193
 title: "delegation-observer handoff-writer skip for non-terminal in-flight: benign guard surfaced as alarming high-severity notification"
 area: opencode-config
 severity: Low
-status: VERIFIED
+status: OPEN
 blocked_by: [] # no blockers
 parent_epic: ""
 
@@ -29,7 +29,7 @@ discovered:
 source: session-observation (developer screenshot clipboard-e3be15ea.png 2026-08-15)
 date: 2026-08-15
 created: 2026-08-15
-updated: 2026-08-15
+updated: 2026-08-16
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -117,3 +117,30 @@ PENDING-restart-verify (after next OpenCode restart; ai-auditor review):
 - [ ] invoke log_decision(handoff, in-flight, prognosis) and confirm: the
       handoff file is NOT touched (no slot, no pointer); the skip is visible
       in app.log at info level; NO high-severity TUI notification appears
+
+<!-- UPDATE 2026-08-16 (docs lane): RE-OPENED 2026-08-16 (docs lane): fix
+     work item - downgrade/silence handoff-writer skip notification (benign
+     skip surfaced as alarming). Implementation + ai-auditor + restart-verify
+     pending (Phase 1+ per ana023). -->
+
+<!-- UPDATE 2026-08-16 (coder lane, branch omos/dia-190-192-193):
+     SKIP NOTIFICATION RE-DOWNGRADED. The 2026-08-15 fix landed at
+     info-level app.log; the re-open work item wants the benign-skip
+     notification quieter (downgrade chosen over silence so the event keeps
+     a forensic app.log trail - the DIA-120 audit row below it already
+     records the observation regardless). .opencode/plugins/
+     delegation-observer.ts skip-if-inflight branch: ctx.client.app.log
+     level "info" -> "debug" (lowest valid SDK level). Guard behavior
+     UNCHANGED: non-terminal statuses still write NO slot and NO pointer.
+
+     Tests: parallel-handoff.test.mjs S1 DIA-120 filter tests now assert the
+     debug-level app-log "handoff-writer skipped" message AND the absence of
+     any slot/pointer write (2 assertions updated).
+
+     Verification: node --experimental-strip-types --check exit 0; bun
+     parallel-handoff harness 9/9 (63 expect calls) in the dev container;
+     make test-config exit 0 (56/56); npx prettier --check clean.
+
+     Commit: 5b8cfee fix(plugin): DIA-193 downgrade handoff-writer skip
+     notification. Status stays OPEN (restart-verify + ai-auditor pending
+     per section 2.5 Phase 5). -->

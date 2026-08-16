@@ -18,7 +18,7 @@ id: DIA-190
 title: "Conspecter memory-shelf edit-permission defect - contract asserts shelf registration, permission denies it (doc drift)"
 area: opencode-config
 severity: Major
-status: VERIFIED
+status: CLOSED
 blocked_by: [] # no blockers
 parent_epic: ""
 
@@ -34,7 +34,7 @@ discovered:
 source: developer report 2026-08-15 during the omo-slim project self-sufficiency persistence pipeline; forensics by code-navigator lane
 date: 2026-08-15
 created: 2026-08-15
-updated: 2026-08-15
+updated: 2026-08-16
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -199,3 +199,74 @@ PENDING-restart-verify (after next OpenCode restart; ai-auditor review):
       shelf.conspects; confirm the entry lands (DIA-143 sole-writer flow)
 - [ ] (c) confirm the conspecter permission block still reads edit =
       knowledge/\* only (no memory-shelf.yaml allow)
+
+<!-- UPDATE 2026-08-16 (docs lane): RE-OPENED 2026-08-16 (docs lane): fix
+     work item - developer chose direction (a) expand conspecter edit allow
+     to .opencode/memory-shelf.yaml (contract vs permission drift fix).
+     Implementation + ai-auditor + restart-verify pending (Phase 1+ per
+     ana023). -->
+
+<!-- UPDATE 2026-08-16 (coder lane, branch omos/dia-190-192-193):
+     DIRECTION (a) IMPLEMENTED. The 2026-08-15 Option-B doc alignment
+     (delegate shelf registration to @memory-manager) is superseded by the
+     developer's re-open decision: restore conspecter self-registration via a
+     NARROW permission expansion.
+
+     - .opencode/opencode.jsonc conspecter edit allow-list: added
+       ".opencode/memory-shelf.yaml": "allow" (kept "*": "deny" +
+       "knowledge/*": "allow"; no broad .opencode write - the shelf YAML
+       ONLY). Stale delegation comment rewritten to document direction (a).
+     - scripts/__tests__/batch-d-infra.test.mjs S2 drift test updated:
+       the conspecter edit-shape assertion now expects
+       ["*", ".opencode/memory-shelf.yaml", "knowledge/*"] (the old
+       knowledge/*-only pin encoded the Option-B invariant and would have
+       failed the config gate after the expansion).
+
+     Verification: make test-config exit 0 (56/56, incl. updated S2
+     conspecter assertion + M2 output contract); npx prettier --check clean
+     on all edited files; pre-commit hook autofix passed.
+
+     Verification checklist (ticket section above): (a) conspecter can now
+     self-register under .opencode/memory-shelf.yaml (shelf.conspects) -
+     permission restored, contract + config agree on self-registration;
+     (b) opencode.jsonc comment now matches the actual config (no stale
+     delegation claim); (c) make test-config exit 0; (d) DIA-143 sole-writer
+     intent deliberately revised for conspecter per developer direction (a)
+     (2026-08-16 re-open) - memory-manager remains the analyzer-side shelf
+     writer; conspecter shelf edits are a narrow self-registration allow.
+
+     Commit: ea86886 config(agents): DIA-190 expand conspecter edit allow to
+     memory-shelf.yaml (contract vs permission drift). Status stays OPEN
+     (restart-verify + ai-auditor pending per section 2.5 Phase 5). -->
+
+<!-- UPDATE 2026-08-16 (coder lane, branch omos/dia-190-192-193, fix loop
+     R5): REVERTED to DIRECTION B per developer disposition 2026-08-16 +
+     ai-auditor ai--4 HIGH finding. The direction-(a) expansion (commit
+     ea86886, UPDATE block above) CONFLICTS with DIA-143 (VERIFIED), which
+     made memory-manager the SOLE memory-shelf writer and explicitly removed
+     the memory-shelf.yaml allow from conspecter/analyzer. The direction-(a)
+     premise (contract asserts self-registration) was STALE - the 2026-08-14
+     contract restoration was the doc-config drift itself (claimed-but-
+     unapplied); the delegation model (Option B) is the correct invariant.
+
+     - .opencode/opencode.jsonc conspecter edit block REVERTED to base state:
+       "*": "deny" + "knowledge/*": "allow" only (no memory-shelf.yaml
+       allow); delegation comment restored verbatim (DIA-143 sole-writer
+       wording). Byte-identical to 2c515bd.
+     - scripts/__tests__/batch-d-infra.test.mjs S2 drift test REVERTED to
+       the knowledge/*-only shape assertion (passes with the reverted
+       permission; WHY comment added documenting the DIA-143 invariant).
+     - DIA-192/193 changes NOT touched (debug-level downgrades + harness
+       assertions stay).
+
+     Verification: make test-config exit 0 (56/56 incl. reverted S2 drift
+     test); make test-shell exit 0; node --experimental-strip-types --check
+     exit 0; npx prettier --check clean; parallel-handoff harness green.
+
+     STATUS: CLOSED as NO-OP (documented). No permission expansion was ever
+     correct - DIA-143 (VERIFIED) keeps memory-manager the sole shelf writer;
+     conspecter reports the artifact path and @memory-manager registers it
+     (the 2026-08-15 Option-B Fix section above stands as the resolution).
+
+     Commit: (commit A hash - DIA-190 revert) config(agents): DIA-190 revert
+     conspecter memory-shelf allow (DIA-143 sole-writer; close as no-op). -->

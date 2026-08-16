@@ -2539,14 +2539,18 @@ const delegationObserver: Plugin = async (ctx) => {
               return parsed as Record<string, unknown>
             } catch {
               // Truly malformed JSON: this is a recovered error, so report it
-              // on the TUI-safe info-level app-log channel (no raw console
-              // output into the TUI stream, DIA-192) and fall back to the
-              // plain-text wrapper. The info log fires ONLY when parsing
+              // on the TUI-safe app-log channel (no raw console output into
+              // the TUI stream). DIA-192 (2026-08-15) demoted this from
+              // console.warn to info; the 2026-08-16 re-open downgraded it
+              // FURTHER to debug - even info-level app-log entries read as
+              // alarming noise for a recovered error, so the parse-fallback
+              // notification now sits at the lowest severity that still
+              // leaves a forensic trail in app.log. Fires ONLY when parsing
               // genuinely failed (outer + any inner decode).
               ctx.client.app.log({
                 body: {
                   service: "delegation-observer",
-                  level: "info",
+                  level: "debug",
                   message:
                     "[delegation-observer] prognosis parse failed -- falling back to plain-text wrapper",
                 },
@@ -2639,12 +2643,15 @@ const delegationObserver: Plugin = async (ctx) => {
           ) {
             // Non-terminal handoff event (e.g. 'in-flight' detection log):
             // observation only, must NOT touch the handoff file (DIA-120).
-            // DIA-193: benign skip surfaced as info-level app log instead of
-            // a high-severity TUI notification (guard behavior unchanged).
+            // DIA-193: the skip is a BENIGN guard (writer must not clobber a
+            // valid handoff file) - surfaced as an info-level app log since
+            // 2026-08-15; the 2026-08-16 re-open downgraded it FURTHER to
+            // debug so a routine in-flight observation never reads as
+            // alarming, while the audit row below still records the event.
             ctx.client.app.log({
               body: {
                 service: "delegation-observer",
-                level: "info",
+                level: "debug",
                 message: `[delegation-observer] handoff-writer skipped: non-terminal resolution_status '${args.resolution_status}'`,
               },
             })
