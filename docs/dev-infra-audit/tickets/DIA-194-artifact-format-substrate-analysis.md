@@ -112,6 +112,144 @@ Gate evidence at fix time: memory-shelf entry ana<NNN> registered in
 validates the new entry); the EBDV matrix satisfies
 scripts/validate-decision-variants.sh if run mechanically.
 
+## UPDATE (2026-08-16) - Phase-3 design approved (Variant B)
+
+Architector arc-1 design (session ses_ff67dd822ffeU4Aee704j5ZFtu, resume lane
+final message 2026-08-16), transcribed verbatim for the reviewer diff anchor
+(DIA-174 R2 persistence). Developer approved the design; implementation is
+tracked by DIA-196 (branch omo-slim-changes). Technical decisions below are
+the architector's, unchanged:
+
+# DIA-194 Design: CHANGELOG.md -> YAML-Ledger Conversion
+
+## 1. SCHEMA DESIGN
+
+File: `scripts/schemas/changelog.schema.json`
+Follows the `memory-shelf.schema.json` strictness (additionalProperties: false).
+
+**Fields:**
+
+- `date`: string, required, pattern "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+- `ticket`: string, required (e.g., "DIA-183" or "DIA-190/192/193")
+- `severity`: string, optional (e.g., "Major", "Minor")
+- `status`: string, optional (e.g., "IMPLEMENTED", "CLOSED")
+- `area`: string, optional (e.g., "opencode-config")
+- `scope`: string, required (short descriptor)
+- `route`: string, optional (e.g., "section-10", "section-2.5")
+- `files`: array of strings, required (files touched)
+- `summary`: string, required (combined Change + Reason)
+- `verification`: string, required (Verification + Review details)
+
+**YAML Structure Example:**
+
+```yaml
+- date: '2026-08-16'
+  ticket: 'DIA-183'
+  status: 'CLOSED'
+  scope: 'ponytail-half closure (Variant B, doc-only)'
+  route: 'section-10'
+  files:
+    - 'AGENTS.md'
+    - 'docs/PONYTAIL-DEBT.md'
+    - '.opencode/learnings/external-patterns/2026-08-15-ponytail-headroom-cache-economics.md'
+    - 'docs/dev-infra-audit/tickets/DIA-183-ponytail-headroom-context-compression.md'
+  summary: >
+    Change: DIA-183 (ponytail half) closed via developer-approved Variant B.
+    Reason: ponytail half was gate-verified at merge 47064d0.
+  verification: >
+    make test-config exit 0. Review: developer-approved Variant B.
+```
+
+## 2. RENDER SCRIPT DESIGN
+
+File: `scripts/changelog-render`
+Stack: bash + yq (per DIA-137 status-quo tooling).
+
+**Layout:**
+Reads `.opencode/CHANGELOG.yaml`, outputs formatted markdown to standard out or overwrites `.opencode/CHANGELOG.md`.
+Header mapping preserves existing prose continuity:
+
+```markdown
+## <date> - <ticket> (<status>): <scope>
+
+- **Change:** <summary>
+- **Files:** <files array joined by " - ">
+- **Verification:** <verification>
+```
+
+Block-scalar prose (`summary: >`) handled natively by yq. yq iterates the array and formats output using string interpolation.
+
+## 3. MIGRATION STRATEGY
+
+Coders will execute a one-time mechanical extraction of the 88 sections (plus the DIA-183 entry from 2026-08-16).
+
+- **Ordering:** Reverse-chronological (newest first), matching the current MD file.
+- **Extraction rules:**
+  - Date and ticket parsed from `## <date> - <ticket>` headers.
+  - `- **Change:**` and `- **Reason:**` blocks concatenated into the `summary` block-scalar.
+  - `- **Files:**` block parsed into the `files` YAML array.
+  - `- **Verification:**` and `- **Review:**` blocks concatenated into `verification`.
+- **Validation:** Run the output through the new schema validator to catch missing required fields.
+
+## 4. VALIDATOR + GATE
+
+- **Validator Script:** `scripts/validate-changelog.sh` (direct clone of `validate-memory-shelf.sh`, swapping SHELF_FILE for CHANGELOG_FILE and schema path). Uses python jsonschema with structural fallback.
+- **Bats Coverage:** `scripts/__tests__/validate-changelog.bats` covering valid entry, missing required field, malformed date, and extra property.
+- **Makefile Wiring:** Add `bash scripts/validate-changelog.sh` to the `test-config` target, exactly alongside `validate-memory-shelf.sh`.
+
+## 5. FILE MANIFEST
+
+- **Create:** `.opencode/CHANGELOG.yaml` (source of truth)
+- **Create:** `scripts/schemas/changelog.schema.json` (schema gate)
+- **Create:** `scripts/validate-changelog.sh` (mechanical gate)
+- **Create:** `scripts/changelog-render` (derived view generator)
+- **Create:** `scripts/__tests__/validate-changelog.bats` (gate tests)
+- **Modify:** `.opencode/CHANGELOG.md` (becomes the derived view, completely overwritten by render script, remains committed)
+- **Modify:** `Makefile` (wiring `test-config`)
+
+## 6. ROLLBACK PLAN
+
+Single-commit migration on branch `omo-slim-changes` (or feature branch).
+If the YAML workflow proves too high-friction or tooling breaks, executing `git revert <migration-commit>` will atomically restore the prose `.opencode/CHANGELOG.md`, delete the YAML ledger, and remove the schema/scripts.
+
+## 7. PROMPT UPDATE INVENTORY
+
+Agents need instructions to use `yq` for partial reads and writes.
+
+- `.opencode/oh-my-opencode-slim/orchestrator_append.md`: Add a rule under documentation reading: "When referencing the CHANGELOG, use `yq '.[] | select(.ticket == \"DIA-NNN\")' .opencode/CHANGELOG.yaml`. Do not read the full file."
+- `AGENTS.md`: Update Section 2.5 Phase 7 ("Register - update CHANGELOG") to specify appending to `CHANGELOG.yaml` using `yq -i`.
+- `.opencode/opencode.jsonc`: Verify/add `yq *` or `yq -i *` to the coder bash allow-list to ensure DIA-186 overnight permissions do not block YAML updates.
+
+## 8. RISK ASSESSMENT
+
+| Risk                  | Mitigations                                                                                      |
+| --------------------- | ------------------------------------------------------------------------------------------------ |
+| Malformed YAML        | Deliverable A stack (JSON Schema gate via `test-config`, LSP).                                   |
+| Schema evolution      | JSON Schema is additive; adding optional fields later breaks nothing.                            |
+| Render drift          | `bats` testing on `changelog-render` ensures structural consistency.                             |
+| Merge friction        | YAML line-based diffs are coarser, but derived MD is committed (preserves human readable diffs). |
+| Partial-read adoption | Addressed via prompt updates pointing orchestrator to `yq` lookup pattern.                       |
+| Permission blocks     | Explicit `yq` allow-list updates prevent unattended stalling (DIA-186).                          |
+
+## 9. SEQUENCING
+
+1. **Schema & Gates:** Create `changelog.schema.json`, `validate-changelog.sh`, and `.bats` tests. Wire into `Makefile`.
+2. **Render Script:** Write `changelog-render` + tests.
+3. **Migration:** Coder script/manual-assist to convert the 88+1 MD sections to `CHANGELOG.yaml`.
+4. **Initial Render:** Run `changelog-render` to overwrite `.opencode/CHANGELOG.md`.
+5. **Prompt/Permission Updates:** Update `orchestrator_append.md`, `AGENTS.md`, and `opencode.jsonc` (allow `yq`).
+6. **Validation:** Run `make test-config` to ensure zero failures.
+
+## 10. ADR-WORTHY DECISIONS
+
+**ADR: Derived MD View Committed (Not Gitignored)**
+
+- **Status:** Proposed
+- **Context:** The CHANGELOG is moving to a YAML source of truth for agent token economy. Developers need a human-readable diff for PR reviews.
+- **Decision:** The derived `.opencode/CHANGELOG.md` will remain tracked in Git and updated synchronously with the YAML ledger via the render script.
+- **Consequences:** Slight duplication in Git storage. Excellent PR review ergonomics (human readable prose diffs are preserved).
+- **Alternatives:** Gitignore the MD and render on-demand. Rejected because it destroys human visibility during git merge and code review.
+
 ## Fix
 
 > To be filled at fix time.

@@ -82,7 +82,15 @@ After the developer disposes review findings (accept/reject per practice-protect
   4. **Implement** — `@coder` applies approved design.
   5. **Validate** — config validation (`make test-config`), schema/JSONC validity, restart OpenCode + functional smoke test.
   6. **Independent review** — `@ai-auditor` reviews the implemented change against best practices + AIHero patterns. ai-auditor is THE independent reviewer for config changes.
-  7. **Register** — update CHANGELOG + learnings outcome field.
+  7. **Register** — append the changelog entry to `.opencode/CHANGELOG.yaml`
+     (the YAML ledger is the source of truth; `.opencode/CHANGELOG.md` is the
+     derived view). Append via `yq -i` when yq is available, otherwise via a
+     text edit adding one schema-valid entry (see
+     `scripts/schemas/changelog.schema.json`), then regenerate the derived MD
+     with `scripts/changelog-render` and update the learnings outcome field.
+     Partial reads only, e.g. the per-DIA query
+     `yq '.[] | select(.ticket == "DIA-NNN")' .opencode/CHANGELOG.yaml`
+     (DIA-194).
 - **Review matrix**: dev-infra → `@reviewer`; opencode config → `@ai-auditor`.
 
 ### Evidence-Backed Decision Variants (EBDV, DIA-115)

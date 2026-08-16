@@ -179,7 +179,10 @@ test-skills:
 # (DIA-180 A2: scripts/validate-memory-shelf.sh validates
 # .opencode/memory-shelf.yaml against scripts/schemas/memory-shelf.schema.json -
 # the first agent-written YAML artifact under a machine-enforced shape
-# contract) + docker-compose.yml syntax (DIA-124: `docker compose config
+# contract) + changelog ledger schema gate (DIA-194 Variant B:
+# scripts/validate-changelog.sh validates .opencode/CHANGELOG.yaml against
+# scripts/schemas/changelog.schema.json - the second YAML artifact under
+# contract, extension of the Deliverable-A pattern) + docker-compose.yml syntax (DIA-124: `docker compose config
 # --quiet` so compose drift fails the config gate without the heavy
 # test-infra). Invariant: test-config passes
 # iff no HARD write-capable gaps remain — WARN-only gaps (the ~440 unlisted
@@ -197,6 +200,7 @@ test-config: test-interview test-skills
 	bash scripts/validate-handoff.sh
 	bash scripts/test-ticket-gate.sh
 	bash scripts/validate-memory-shelf.sh
+	bash scripts/validate-changelog.sh
 	bash scripts/audit-agent-tool-coverage.sh .opencode/opencode.jsonc
 	bash scripts/audit-agent-tool-coverage.sh tools/opencode-docker/config/opencode.json
 	# DIA-134 item 2: persistent behavioral suite (replaces DIA-132 throwaway

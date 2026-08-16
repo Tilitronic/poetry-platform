@@ -1,0 +1,12 @@
+- date: '2026-08-16'
+  ticket: 'DIA-183'
+  scope: 'entry missing summary and verification'
+  files:
+    - 'AGENTS.md'
+- date: '2026-08-15'
+  ticket: 'DIA-190'
+  scope: 'missing files list'
+  summary: >
+    Change: summary present but files absent.
+  verification: >
+    make test-config exit 0.
