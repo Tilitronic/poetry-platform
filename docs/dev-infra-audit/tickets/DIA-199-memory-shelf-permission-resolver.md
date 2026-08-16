@@ -144,6 +144,25 @@ Developer EBDV decision 2026-08-16 (binding): Variant A - trailing `*` glob.
   mem-1 for ana023/024/025 + res029 shelf registrations after OpenCode
   restart; flip CLOSED only after developer confirms the shelf write lands).
 
+## UPDATE (2026-08-16, merged - Phase-5 restart-verify pending)
+
+- Merged to omo-slim-changes: commit 311acde (squash of omos/dia-199-fix
+  @0dd0d66; fix commit 8034170 inside). No --no-verify; pre-commit autofix
+  green. Staged diff contained ONLY the 3 intended items: (a) opencode.jsonc
+  memory-manager edit glob change + WHY comment, (b) this ticket file (new),
+  (c) tickets/README.md row + count updates. analyzer/conspecter blocks
+  untouched.
+- ai-auditor ai--6: APPROVE-WITH-NITS. F6 (check-at-retest): confirm at
+  Phase-5 retest that memory-manager writes ONLY the intended target path
+  (.opencode/memory-shelf.yaml\*) - no broader write surface introduced.
+  F7 (follow-up): S2 assertion for the glob form to be added in a follow-up
+  test-pin update. Both accepted by developer 2026-08-16.
+- Status: stays OPEN - Phase-5 restart-verify pending (after OpenCode
+  restart, re-dispatch mem-1 for ana023/024/025 + res029 shelf
+  registrations = the runtime retest; F6 check at retest; F7 -> follow-up
+  S2 assertion). Flip CLOSED only after developer confirms the shelf write
+  lands.
+
 ## Re-verify
 
 > To be filled at re-verify time.
