@@ -388,6 +388,9 @@
         "bash": "deny"
       }
     },
+    // DIA-199 (2026-08-16): trailing * glob required - OpenCode edit-permission
+    // matcher does not resolve exact-file patterns (reproduced PermissionDenied);
+    // glob form works. DIA-143 sole-writer: memory-manager ONLY.
     "memory-manager": {
       "mode": "subagent",
       "color": "#F472B6",
@@ -395,7 +398,7 @@
         "edit": {
           "*": "deny",
           ".opencode/memory/*": "allow",
-          ".opencode/memory-shelf.yaml": "allow"
+          ".opencode/memory-shelf.yaml*": "allow"
         }
       }
     },
