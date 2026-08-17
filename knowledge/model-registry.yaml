@@ -2,7 +2,7 @@
 schema_version: "1.0"
 models:
   - model_id: "deepseek-v4-flash"
-    role: "coder-default"
+    role: "coder-volume-fallback"
     price_in_1m: 0.22
     price_out_1m: 0.66
     req_per_month: 18900  # ESTIMATE (per res024 sec 3.3)

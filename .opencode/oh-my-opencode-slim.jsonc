@@ -189,7 +189,7 @@
     },
     "cebula": {
       "orchestrator": {
-        "model": ["opencode-go/mimo-v2.5", "opencode/mimo-v2.5"],
+        "model": ["opencode-go/mimo-v2.5", "opencode/mimo-v2.5-free"],
         "variant": "high",
         "temperature": 0.3,
         "skills": [
@@ -250,7 +250,7 @@
         }
       },
       "coder": {
-        "model": ["opencode-go/mimo-v2.5", "opencode/mimo-v2.5"],
+        "model": ["opencode-go/mimo-v2.5", "opencode/mimo-v2.5-free"],
         "variant": "medium",
         "skills": [
           "simplify",
@@ -288,7 +288,7 @@
         "mcps": []
       },
       "conspecter": {
-        "model": ["opencode-go/mimo-v2.5", "opencode/mimo-v2.5"],
+        "model": ["opencode-go/mimo-v2.5", "opencode/mimo-v2.5-free"],
         "variant": "low",
         "mcps": [],
         "temperature": 0.1
@@ -373,7 +373,7 @@
         ]
       },
       "resource-manager": {
-        "model": ["opencode-go/mimo-v2.5", "opencode/mimo-v2.5"],
+        "model": ["opencode-go/mimo-v2.5", "opencode/mimo-v2.5-free"],
         "variant": "low",
         "skills": [],
         "mcps": [
@@ -381,7 +381,7 @@
         ]
       },
       "memory-manager": {
-        "model": ["opencode-go/mimo-v2.5", "opencode/mimo-v2.5"],
+        "model": ["opencode-go/mimo-v2.5", "opencode/mimo-v2.5-free"],
         "variant": "low",
         "skills": [
           "git-diff"
@@ -390,13 +390,13 @@
         "temperature": 0.1
       },
       "code-navigator": {
-        "model": ["opencode-go/mimo-v2.5", "opencode/mimo-v2.5"],
+        "model": ["opencode-go/mimo-v2.5", "opencode/mimo-v2.5-free"],
         "variant": "low",
         "skills": [],
         "mcps": []
       },
       "researcher": {
-        "model": ["opencode-go/mimo-v2.5"],
+        "model": ["opencode-go/mimo-v2.5", "opencode/mimo-v2.5-free"],
         "variant": "low",
         "temperature": 0.3,
         "skills": [
