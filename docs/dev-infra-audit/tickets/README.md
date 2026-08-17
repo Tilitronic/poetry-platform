@@ -161,6 +161,7 @@
 | DIA-210 | Fix pre-commit root:root ownership flip in Docker container | dev-infra | Medium | OPEN | [DIA-210-pre-commit-root-ownership-flip.md](DIA-210-pre-commit-root-ownership-flip.md) |
 | DIA-211 | Event-driven orchestration harness evolution | opencode-config | Medium | OPEN | [DIA-211-event-driven-orchestration-harness-evolution.md](DIA-211-event-driven-orchestration-harness-evolution.md) |
 | DIA-212 | Researcher dispatched without pre-allocated res ID -- extra iteration required | opencode-config | Medium | OPEN | [DIA-212-researcher-dispatch-without-res-id.md](DIA-212-researcher-dispatch-without-res-id.md) |
+| DIA-213 | Orchestrator scope limitation: delegation + workflow decisions only, content decisions to specialized agents | opencode-config | High | OPEN | [DIA-213-orchestrator-scope-limitation.md](DIA-213-orchestrator-scope-limitation.md) |
 
 ## Status summary
 
@@ -168,6 +169,7 @@
 | -------- | ----- |
 | Blocker  | 7     |
 | Critical | 8     |
+| High     | 1     |
 | Major    | 48    |
 | Medium   | 80    |
 | Minor    | 0     |
@@ -176,7 +178,7 @@
 
 | Status      | Count |
 | ----------- | ----- |
-| OPEN        | 18    |
+| OPEN        | 19    |
 | DONE        | 11    |
 | VALIDATE    | 0     |
 | E2E         | 0     |
