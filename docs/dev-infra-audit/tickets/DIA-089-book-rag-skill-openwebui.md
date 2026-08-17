@@ -57,6 +57,15 @@ OpenWebUI endpoint, and test retrieval.
 
 Phase A COMPLETE 2026-08-13 (res-5/res025): inventory + architecture + gaps + Phase B/C verification plan delivered and persisted. Phases B/C blocked on developer env setup (server start + 3 env vars per res025 section 4). Lane-owned post-B/C items: fix SKILL.md stale API-key claim, refresh stale KB cache, reconcile memory-shelf/global-copy drift.
 
+## Lane-owned Fixes
+
+- **SKILL.md stale API-key claim (2026-08-17):** Fixed line 354. Old text stated
+  `OPENWEBUI_API_KEY is set as a user env var` — false. Updated to list both auth
+  methods (API key, JWT auto-minting) and note the API key is NOT currently configured
+  and must be set by the developer.
+- **Phase B/C still blocked:** OpenWebUI server + env vars (OPENWEBUI_URL,
+  OPENWEBUI_API_KEY, OPENWEBUI_DATA_DIR) remain developer-blocked.
+
 ## Re-verify
 
 **Session-6 verification (2026-08-11, wrap-up lane, campaign

@@ -351,8 +351,9 @@ User query received with #rag or #tag
   ```bash
   python3 ../../scripts/query_rag.py "#csc OOP"
   ```
-- **Authentication:** `OPENWEBUI_API_KEY` is set as a user env var. The script
-  also supports JWT auto-minting from OpenWebUI's `.key` file (requires PyJWT).
+- **Authentication:** The script supports two auth methods:
+  1. **API key:** Set `OPENWEBUI_API_KEY` env var (not currently configured — developer must set this).
+  2. **JWT auto-minting:** Reads OpenWebUI's `.key` file to forge an admin token (requires PyJWT).
   > ⚠ **Security:** JWT auto-minting reads the OpenWebUI signing key and
   > forges an admin token. Never use on multi-user or internet-exposed instances.
 
