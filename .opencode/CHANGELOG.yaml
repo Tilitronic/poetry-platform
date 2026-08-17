@@ -1702,3 +1702,79 @@
     depth-1 PASS (proxy 10% vs TUI 10% pre-implementation);
     post-implementation restart-verify PENDING (requires OpenCode restart to
     activate the plugin change). ASCII-only (DIA-079).
+
+- date: '2026-08-17'
+  ticket: 'DIA-189'
+  scope: 'plugin path portability - cwd-relative registration (delegation-observer + needs-input-observer)'
+  files:
+    - '.opencode/opencode.jsonc (00de216 - plugin array switched to cwd-relative specs)'
+  summary: >
+    Change: DIA-189 (opencode-config): both project plugin registrations in
+    `.opencode/opencode.jsonc` switched from container-only absolute paths
+    (file:///workspace/.opencode/plugins/...) to cwd-relative specs
+    (./.opencode/plugins/...). The cwd-relative spec resolves against
+    process.cwd(), which is the repo root in BOTH /workspace (container) and
+    /home/qualt/Projects/poetry-platform (WSL host).
+    Reason: the developer runs globally-installed OpenCode on the WSL host
+    where /workspace does not exist; the file:// imports threw and both
+    plugins (delegation-observer, needs-input-observer) were silently
+    dropped. ai-auditor verdict: APPROVE-WITH-NITS (F3/F4 evidence-gap nits,
+    non-blocking). Commit 00de216.
+  verification: >
+    make test-config exit 0 (config validation gates pass with the new plugin
+    paths); commit 00de216 verified in git log; ai-auditor APPROVE-WITH-NITS
+    (informational only, no blockers). ASCII-only (DIA-079).
+
+- date: '2026-08-17'
+  ticket: 'DIA-204'
+  scope: 'delegation-observer handoff-archived log demoted from console.warn to ctx.client.app.log (chat-UI leak fix)'
+  files:
+    - '.opencode/plugins/delegation-observer.ts (44d1abc - atomicWriteHandoff console.warn demoted to TUI-safe SDK logger ctx.client.app.log, info level, service delegation-observer)'
+    - '.opencode/plugins/delegation-observer.test/parallel-handoff.test.mjs (44d1abc - asserts app.log message instead of console.warn capture)'
+  summary: >
+    Change: DIA-204 (opencode-config): the handoff-archived console.warn in
+    `.opencode/plugins/delegation-observer.ts` (atomicWriteHandoff, ~L1155)
+    was demoted to the TUI-safe SDK logger ctx.client.app.log (info level,
+    service delegation-observer), following the DIA-193 pattern.
+    Reason: OpenCode surfaces plugin console.warn output in the TUI chat
+    stream, so routine handoff-archive telemetry was user-visible noise in
+    the chat UI; the SDK logger routes to the TUI log panel instead.
+    ai-auditor verdict: APPROVE-WITH-NITS (F5 evidence gap, F6 test-hardening
+    nit - non-blocking). Commit 44d1abc.
+  verification: >
+    bun plugin test harness 10/10 pass (parallel-handoff.test.mjs asserts
+    app.log message); make test-config exit 0 (56 pass); make test-shell 404
+    ok; tsc --noEmit exit 0; eslint exit 0; commit 44d1abc verified in git
+    log; ai-auditor APPROVE-WITH-NITS (informational only, no blockers).
+    ASCII-only (DIA-079).
+
+- date: '2026-08-17'
+  ticket: 'DIA-208'
+  scope: 'cebula preset model swap deepseek-v4-flash -> mimo-v2.5 (7 lanes) + knowledge/model-registry.yaml refresh'
+  files:
+    - '.opencode/oh-my-opencode-slim.jsonc (1baee98f - cebula preset: 7 deepseek-v4-flash lanes -> opencode-go/mimo-v2.5)'
+    - 'knowledge/model-registry.yaml (1baee98f - flash price/budget refresh $0.22/$0.66, 18,900 req/mo, $15 bucket; new mimo-v2.5 entry $0.14/$0.28, 150,400 req/mo, $60 bucket; deepseek-v4-pro price correction $0.66/$1.98; routing Rung0/Rung1 -> mimo-v2.5)'
+  summary: >
+    Change: DIA-208 (opencode-config): the cebula preset in
+    `.opencode/oh-my-opencode-slim.jsonc` (active preset) swapped all 7
+    deepseek-v4-flash model entries (orchestrator, coder, conspecter,
+    resource-manager, memory-manager, code-navigator, researcher) to
+    opencode-go/mimo-v2.5. knowledge/model-registry.yaml updated in lockstep:
+    deepseek-v4-flash price/budget refresh (per res030 - price rose
+    $0.14/$0.28 -> $0.22/$0.66 off-peak / $0.44/$1.32 peak, monthly budget
+    collapsed 158,150 -> 18,900, usage bucket $60 -> $15, 2x promo removed),
+    new mimo-v2.5 entry added ($0.14/$0.28, 150,400 req/mo, $60 bucket - the
+    new volume king per res030), deepseek-v4-pro price anomaly corrected
+    ($0.435/$0.87 transcription collision with mimo-v2.5-pro -> fresh value
+    $0.66/$1.98 off-peak / $1.32/$3.96 peak), routing Rung0/Rung1 ->
+    mimo-v2.5. Reason: developer directive 2026-08-17 (critical priority) -
+    deepseek-v4-flash is now expensive on OpenCode Go (res030 triple-source
+    research); mimo-v2.5 matches the archived Flash price point with ~8x the
+    budget. ai-auditor verdict: APPROVE-WITH-NITS (F3/F4 - non-blocking),
+    nits fixed in bedfaddb (valid mimo-v2.5-free fallback + registry role
+    label).
+  verification: >
+    make test-config exit 0 (config validation + agent-name lockstep +
+    changelog schema); commits 1baee98f and bedfaddb verified in git log;
+    ai-auditor APPROVE-WITH-NITS (informational only, nits fixed in
+    bedfaddb). ASCII-only (DIA-079).
