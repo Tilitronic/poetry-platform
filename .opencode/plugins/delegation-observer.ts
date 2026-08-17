@@ -2704,7 +2704,7 @@ const delegationObserver: Plugin = async (ctx) => {
       // (campaign-critical state loss).
       context_usage: tool({
         description:
-          "Estimate context-window usage for the current session. Returns JSON with usage fraction, delegation counts, and optional council-scoped breakdown. PRIMARY: direct live read of the last completed assistant message's tokens (input + output + reasoning + cache.read + cache.write) divided by the model's context limit — token-accurate, same computation as the TUI, compaction-aware. FALLBACK (fresh session with no completed assistant message, or client-call failure): registry.jsonl activity-signal proxy. Output includes dual self-rerun flags threshold_15pct (primary, >=15%) and threshold_25pct (safety-net, >=25%) per NEXT-RUN.md; sufficient for self-rerun and council budget guard decisions.",
+          "Estimate context-window usage for the current session. Returns JSON with usage fraction, delegation counts, and optional council-scoped breakdown. PRIMARY: direct live read of the last completed assistant message's tokens (input + output + reasoning + cache.read + cache.write) divided by the model's context limit — token-accurate, same computation as the TUI, compaction-aware. FALLBACK (fresh session with no completed assistant message, or client-call failure): registry.jsonl activity-signal proxy. NOTE (scope semantics): usage_fraction/usage_percent/threshold_* always reflect the FULL calling session's context window (the direct read is session-wide); only delegation_count/session_count/estimated_credits are council-scoped when scope='council'. Output includes dual self-rerun flags threshold_15pct (primary, >=15%) and threshold_25pct (safety-net, >=25%) per NEXT-RUN.md; sufficient for self-rerun and council budget guard decisions.",
         args: {
           scope: tool.schema
             .enum(["session", "council"])
@@ -2857,9 +2857,28 @@ const delegationObserver: Plugin = async (ctx) => {
               for (let i = messages.length - 1; i >= 0; i--) {
                 const info = messages[i].info
                 if (info.role !== "assistant") continue
-                const t = info.tokens
+                // DIA-191 FIX-1 (ai-auditor): defensive per-row token read.
+                // The SDK type declares the full tokens shape, but a runtime
+                // row may lack nested fields (e.g. cache) — a bare
+                // t.cache.read would throw and abort the WHOLE direct-read
+                // attempt, dropping to the proxy fallback even when an older
+                // valid assistant row exists. Missing fields count as 0, so a
+                // malformed row yields total 0 and the scan CONTINUES to
+                // older rows instead of aborting.
+                const t = info.tokens as
+                  | Partial<{
+                      input: number
+                      output: number
+                      reasoning: number
+                      cache: Partial<{ read: number; write: number }>
+                    }>
+                  | undefined
                 const total =
-                  t.input + t.output + t.reasoning + t.cache.read + t.cache.write
+                  (typeof t?.input === "number" ? t.input : 0) +
+                  (typeof t?.output === "number" ? t.output : 0) +
+                  (typeof t?.reasoning === "number" ? t.reasoning : 0) +
+                  (typeof t?.cache?.read === "number" ? t.cache.read : 0) +
+                  (typeof t?.cache?.write === "number" ? t.cache.write : 0)
                 if (total > 0) {
                   directTokens = total
                   try {
@@ -2908,6 +2927,13 @@ const delegationObserver: Plugin = async (ctx) => {
           const estimatedCredits =
             scope === "council" ? delegationCount * 150 : undefined
 
+          // DIA-191 FIX-2 (ai-auditor): mixed-scope semantics are DOCUMENTED,
+          // not changed (ponytail - simplest correct option). The direct read
+          // is session-wide by construction (the calling session's context
+          // window), so usage_fraction/usage_percent/threshold_* are
+          // full-session even for scope='council'; only the count/credit
+          // fields below are council-scoped. Consumers must not read the
+          // usage fields as council-only.
           const result: Record<string, unknown> = {
             scope,
             estimated_tokens: estimatedTokens,

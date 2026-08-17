@@ -87,9 +87,12 @@ with a read-only task) to report the current contents of:
   > state incl. active tickets + next lane + gates passed, resume instructions. Then
   > end your turn telling the user a fresh session should be started —
   > the next instance reads the handoff file + messages.md and resumes. Detection: call
-  > `context_usage` (delegation-observer plugin tool); it returns estimated usage as a
-  > fraction of the model context window using registry.jsonl activity signals and
-  > session metadata. The tool handles model context-window lookup internally (1M
+  > `context_usage` (delegation-observer plugin tool); it returns usage as a
+  > fraction of the model context window via a direct live read of the last
+  > completed assistant message's tokens (TUI-equivalent computation), with a
+  > registry.jsonl activity-signal proxy fallback for fresh sessions (no
+  > completed assistant message yet) or client-call failure. The tool handles
+  > model context-window lookup internally (1M
   > default). If the plugin is not loaded (tool unavailable), fall back to manual
   > estimation: count delegations dispatched × ~2000 tokens average per delegation,
   > add to visible conversation length heuristic, and apply the 15%/25% thresholds
