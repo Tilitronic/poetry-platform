@@ -3,14 +3,26 @@ schema_version: "1.0"
 models:
   - model_id: "deepseek-v4-flash"
     role: "coder-default"
-    price_in_1m: 0.14
-    price_out_1m: 0.28
-    req_per_month: 158150  # ESTIMATE (per res024 sec 3.3)
+    price_in_1m: 0.22
+    price_out_1m: 0.66
+    req_per_month: 18900  # ESTIMATE (per res024 sec 3.3)
     swe_bench_verified: 73.7
-    source_ref: "res013"
+    source_ref: "res013, res030"
     lane: "coder"
     fallback: []
-    quota_notes: "Volume default, 158K req/mo headroom"
+    quota_notes: "Volume default NO LONGER - price rose +57-371%, budget -88% (res030 2026-08-17); peak $0.44/$1.32 01:00-04:00+06:00-10:00 UTC"
+    active: true
+
+  - model_id: "mimo-v2.5"
+    role: "coder-default-volume"
+    price_in_1m: 0.14
+    price_out_1m: 0.28
+    req_per_month: 150400  # ESTIMATE (per res024 sec 3.3)
+    swe_bench_verified: null  # vendor-only, benchmark gap per res017
+    source_ref: "res030"
+    lane: "coder"
+    fallback: []
+    quota_notes: "New volume king 2026-08-17: $0.14/$0.28, 150,400 req/mo, $60 bucket (res030)"
     active: true
 
   - model_id: "qwen3.7-plus"
@@ -51,14 +63,14 @@ models:
 
   - model_id: "deepseek-v4-pro"
     role: "fallback"
-    price_in_1m: 0.435
-    price_out_1m: 0.87
-    req_per_month: 17150  # ESTIMATE (per res024 sec 3.3)
+    price_in_1m: 0.66
+    price_out_1m: 1.98
+    req_per_month: 5200  # ESTIMATE (per res024 sec 3.3)
     swe_bench_verified: 74.0
-    source_ref: "res017"
+    source_ref: "res017, res030"
     lane: "coder-escalated"
     fallback: []
-    quota_notes: "Independent CAISI evidence"
+    quota_notes: "Independent CAISI evidence; price corrected 2026-08-17 (res030 sec 7: res013's $0.435/$0.87 was a transcription collision with mimo-v2.5-pro; fresh $0.66/$1.98 off-peak / $1.32/$3.96 peak)"
     active: true
 
   - model_id: "mimo-v2.5-pro"
@@ -89,12 +101,12 @@ routing_table:
   - rung: "Rung0"
     signal: "Start / routine work"
     lane: "coder"
-    model: "deepseek-v4-flash"
+    model: "mimo-v2.5"
     quota_guarded: false
   - rung: "Rung1"
     signal: "Verify-fail #1 / Minor finding"
     lane: "coder"
-    model: "deepseek-v4-flash"
+    model: "mimo-v2.5"
     quota_guarded: false
   - rung: "Rung2"
     signal: "Verify-fail #2"
