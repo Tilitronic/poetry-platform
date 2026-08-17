@@ -2685,19 +2685,26 @@ const delegationObserver: Plugin = async (ctx) => {
         },
       }),
 
-      // context_usage — context-window usage estimate from proxy signals
-      // (approved plugin-removal campaign §10 Phase 3 design, option (e)).
-      // Replaces the removed token_stats tool for the two orchestrator
-      // safety mechanisms (self-rerun detection, council budget guard).
-      // NOT token-accurate: registry.jsonl activity rows + messages.jsonl
-      // line count + session metadata are proxies, not real token counts.
-      // The formula deliberately UNDER-estimates (conservative): the
-      // self-rerun thresholds fire on the estimated fraction, so a low
-      // estimate keeps the orchestrator rerunning earlier rather than
-      // risking context degradation (campaign-critical state loss).
+      // context_usage — context-window usage estimate (approved plugin-removal
+      // campaign §10 Phase 3 design, option (e)). Replaces the removed
+      // token_stats tool for the two orchestrator safety mechanisms
+      // (self-rerun detection, council budget guard).
+      // DIA-191: PRIMARY path is a DIRECT live read of the session's last
+      // completed assistant message tokens (input + output + reasoning +
+      // cache.read + cache.write) divided by the model's context limit —
+      // token-accurate, the same computation the TUI renders, and
+      // compaction-aware by construction (a compacted session reports its
+      // post-compaction footprint). The V1 proxy formula (registry.jsonl
+      // activity rows + messages.jsonl line count + session metadata) is the
+      // FALLBACK only: fresh sessions with no completed assistant message
+      // yet, or a client-call failure. The formula deliberately
+      // UNDER-estimates (conservative): the self-rerun thresholds fire on
+      // the estimated fraction, so a low estimate keeps the orchestrator
+      // rerunning earlier rather than risking context degradation
+      // (campaign-critical state loss).
       context_usage: tool({
         description:
-          "Estimate context-window usage for the current session. Returns JSON with estimated usage fraction, delegation counts, and optional council-scoped breakdown. NOT token-accurate — uses registry.jsonl activity signals as a proxy. Output includes dual self-rerun flags threshold_15pct (primary, >=15%) and threshold_25pct (safety-net, >=25%) per NEXT-RUN.md; sufficient for self-rerun and council budget guard decisions.",
+          "Estimate context-window usage for the current session. Returns JSON with usage fraction, delegation counts, and optional council-scoped breakdown. PRIMARY: direct live read of the last completed assistant message's tokens (input + output + reasoning + cache.read + cache.write) divided by the model's context limit — token-accurate, same computation as the TUI, compaction-aware. FALLBACK (fresh session with no completed assistant message, or client-call failure): registry.jsonl activity-signal proxy. Output includes dual self-rerun flags threshold_15pct (primary, >=15%) and threshold_25pct (safety-net, >=25%) per NEXT-RUN.md; sufficient for self-rerun and council budget guard decisions.",
         args: {
           scope: tool.schema
             .enum(["session", "council"])
@@ -2823,21 +2830,81 @@ const delegationObserver: Plugin = async (ctx) => {
             sessionCount = scopedSessions
           }
 
-          // Conservative estimation formula (DIA-191 / ana025 V1 reweight):
-          // per-delegation weight 5000, per-message weight 500 (session scope
-          // only), plus a flat 30000 ONE-TIME system-prompt term replacing
-          // the old per-session weight 10000 (that term was 70% of the
-          // estimate and over-counted child-session overhead as if it lived
-          // in the orchestrator's context window — the DIA-191 divergence
-          // cause). Context window hardcoded to 1M — the plugin has no model
-          // metadata access and the orchestrator models are the
-          // deepseek-v4-flash / qwen3.7-max 1M-window class.
-          const estimatedTokens =
-            delegationCount * 5000 +
-            (scope === "session" ? messageCount * 500 : 0) +
-            30000
-          const contextWindow = 1_000_000
-          const usageFraction = Math.min(estimatedTokens / contextWindow, 1)
+          // DIA-191: PRIMARY PATH — direct live in-context read (token-
+          // accurate). Mirrors the TUI algorithm (s7e): scan the session's
+          // messages from the END for the LAST assistant message with nonzero
+          // tokens, where nY = input + output + reasoning + cache.read +
+          // cache.write. Compaction-aware by construction (reads the live
+          // session state, so a compacted session reports its post-compaction
+          // footprint). The model's context limit comes from provider.list()
+          // (Provider.models[modelID].limit.context), falling back to the
+          // hardcoded 1M when unavailable. The V1 proxy formula below is the
+          // FALLBACK only — fresh sessions with no completed assistant
+          // message yet, or a client-call failure.
+          let usageFraction: number
+          let usagePercent: string
+          let confidence: string
+          let contextWindow = 1_000_000
+          let estimatedTokens = 0
+          let directTokens: number | undefined
+
+          try {
+            const messagesRes = await ctx.client.session.messages({
+              path: { id: callingSession },
+            })
+            const messages = messagesRes.data
+            if (messages && messages.length > 0) {
+              for (let i = messages.length - 1; i >= 0; i--) {
+                const info = messages[i].info
+                if (info.role !== "assistant") continue
+                const t = info.tokens
+                const total =
+                  t.input + t.output + t.reasoning + t.cache.read + t.cache.write
+                if (total > 0) {
+                  directTokens = total
+                  try {
+                    const provRes = await ctx.client.provider.list()
+                    const provider = provRes.data?.all.find(
+                      (p) => p.id === info.providerID
+                    )
+                    const limit = provider?.models[info.modelID]?.limit?.context
+                    if (typeof limit === "number" && limit > 0) {
+                      contextWindow = limit
+                    }
+                  } catch {
+                    // provider.list() failure -> keep the 1M fallback.
+                  }
+                  break
+                }
+              }
+            }
+          } catch {
+            // session.messages failure -> fall through to the proxy formula.
+          }
+
+          if (directTokens !== undefined) {
+            estimatedTokens = directTokens
+            usageFraction = Math.min(directTokens / contextWindow, 1)
+            usagePercent = `${Math.round(usageFraction * 100)}%`
+            confidence =
+              "direct read - token-accurate (same computation as TUI)"
+          } else {
+            // V1 proxy fallback (DIA-191 / ana025 V1 reweight): per-delegation
+            // weight 5000, per-message weight 500 (session scope only), plus
+            // a flat 30000 ONE-TIME system-prompt term replacing the old
+            // per-session weight 10000 (that term was 70% of the estimate and
+            // over-counted child-session overhead as if it lived in the
+            // orchestrator's context window — the DIA-191 divergence cause).
+            // Context window 1M — the orchestrator models are the
+            // deepseek-v4-flash / qwen3.7-max 1M-window class.
+            estimatedTokens =
+              delegationCount * 5000 +
+              (scope === "session" ? messageCount * 500 : 0) +
+              30000
+            usageFraction = Math.min(estimatedTokens / contextWindow, 1)
+            usagePercent = `${Math.round(usageFraction * 100)}%`
+            confidence = "low - proxy fallback"
+          }
           const estimatedCredits =
             scope === "council" ? delegationCount * 150 : undefined
 
@@ -2846,14 +2913,16 @@ const delegationObserver: Plugin = async (ctx) => {
             estimated_tokens: estimatedTokens,
             context_window: contextWindow,
             usage_fraction: Number(usageFraction.toFixed(6)),
-            usage_percent: `${Math.round(usageFraction * 100)}%`,
+            usage_percent: usagePercent,
             delegation_count: delegationCount,
             session_count: sessionCount,
             threshold_15pct: usageFraction >= 0.15,
             threshold_25pct: usageFraction >= 0.25,
-            confidence: "low — proxy estimation, not token-accurate",
-            fallback_note:
-              "If this seems inaccurate, the estimate covers only in-session activity of the current orchestrator session",
+            confidence,
+          }
+          if (directTokens === undefined) {
+            result.fallback_note =
+              "If this seems inaccurate, the estimate covers only in-session activity of the current orchestrator session"
           }
           if (scope === "session") {
             result.message_count = messageCount
