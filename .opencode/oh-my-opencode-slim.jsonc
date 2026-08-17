@@ -353,7 +353,7 @@
         "mcps": []
       },
       "ai-specialist": {
-        "model": ["opencode-go/qwen3.7-plus", "opencode/big-pickle"],
+        "model": ["opencode-go/qwen3.7-plus", "github-copilot/gpt-5.3-codex", "opencode/big-pickle"],
         "variant": "high",
         "skills": [
           "teaching"
