@@ -26,7 +26,7 @@ discovered:
 source: developer-report
 date: 2026-08-16
 created: 2026-08-16
-updated: 2026-08-16
+updated: 2026-08-17
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -39,7 +39,7 @@ attempts: 0
 lease_expires_at: ""
 files_touched: [docs/dev-infra-audit/tickets/DIA-204-delegation-observer-handoff-log-leaks-into-chat-ui.md, docs/dev-infra-audit/tickets/README.md]
 artifacts: []
-evidence: [.opencode/images/ses_ff556cf05ffe55oXNmk41IV1Gq/clipboard-1da748a9.png]
+evidence: [.opencode/images/ses_ff556cf05ffe55oXNmk41IV1Gq/clipboard-1da748a9.png, .opencode/images/ses_ff13737d4ffe6X6d4eZs5IfVAT/clipboard-0848dbf6.png]
 
 ---
 
@@ -115,14 +115,36 @@ archived` line appears in the chat stream; the event must be visible
 
 ## Fix
 
-> To be filled at fix time.
+Implemented 2026-08-17 (coder lane; developer-approved "Fix DIA-204 now";
+ai-specialist gate down - qwen model failing - coder fallback per Routing
+above; root-cause research already documented in this ticket).
 
-Fix direction (for design): demote the handoff-archived console.warn at
-delegation-observer.ts:1155-1157 to `ctx.client.app.log` (level debug or
-info, service delegation-observer) - the DIA-193 pattern. Update
-parallel-handoff.test.mjs to capture/assert the app.log message instead of
-console.warn. Decide scope: minimum (this line only) vs. sweep (audit all
-17+ console.warn call sites for the same leak).
+- .opencode/plugins/delegation-observer.ts atomicWriteHandoff step 1
+  (~L1155-1165): the handoff-archived console.warn is now
+  ctx.client.app.log (service delegation-observer, level info), SAME message
+  text - routine archive telemetry no longer surfaces in the OpenCode TUI
+  chat stream (DIA-193 pattern). Archive behavior UNCHANGED: prior slot
+  still renamed to archive/, archived_prior still returned for registry-row
+  enrichment.
+- Tests: parallel-handoff.test.mjs S1 slot-write test now asserts NO
+  info-level "handoff archived" app-log on first write; S1
+  archive-on-overwrite test now asserts the info-level "handoff archived:
+  ses_A ... archive/" app-log message (both switched from the console.warn
+  capture to the ctx.logs app-log capture; the console.warn capture in
+  runLogDecision stays for the remaining failure warns - archive failure,
+  pointer-write failure).
+- Scope decision: MINIMUM fix - only the handoff-archived line (the visible
+  leak). The other 17+ console.warn call sites (759, 865, 1016, 1162, 1219,
+  1343, 1364, 1630, 1900, 1937, 1980, 2004, 2160, 2181, 2215, 2544) are
+  mostly error paths (rarer) and were NOT swept; a full sweep is a separate
+  follow-up decision.
+
+Validation: bun parallel-handoff harness 10/10 (71 expect calls) in the dev
+container; make test-config exit 0 (56/56); make test-shell exit 0 (404);
+tsc --noEmit on the plugin (project compiler options + node types) 0 errors;
+eslint on the plugin 0 errors.
+
+Commit: <filled at commit time>
 
 ## Routing
 

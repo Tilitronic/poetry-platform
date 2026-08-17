@@ -105,7 +105,7 @@ function freshCtx() {
   // raw console.warn (which surfaced as high-severity TUI notifications).
   // Capture those calls so assertions can check the NEW channel; the OLD
   // console.warn capture in runLogDecision still covers the
-  // atomicWriteHandoff helper's archive/failure warns (unchanged console.warn).
+  // atomicWriteHandoff helper's remaining failure warns (unchanged console.warn).
   const logs = []
   return {
     directory,
@@ -136,8 +136,9 @@ async function makeHarness() {
 
 /**
  * Drive the real log_decision tool.execute with a log_decision args record.
- * Collects console.warn output (the writer reports archive events and
- * failures through warn - design.md section 5).
+ * Collects console.warn output (the writer reports archive FAILURES and
+ * pointer-write failures through warn - design.md section 5; the benign
+ * archive event itself moved to the TUI-safe app.log channel, DIA-204).
  */
 async function runLogDecision(hooks, args) {
   const warnings = []
@@ -215,9 +216,9 @@ function prognosisB() {
 // ---------------------------------------------------------------------------
 
 test("S1 slot write: terminal handoff creates <session-id>.json with correct schema", async () => {
-  const { hooks, paths } = await makeHarness()
+  const { hooks, paths, logs } = await makeHarness()
   const pA = prognosisA()
-  const { result, warnings } = await writeTerminalHandoff(hooks, "ses_A", pA)
+  const { result } = await writeTerminalHandoff(hooks, "ses_A", pA)
 
   // Tool contract: execute resolves with the human-readable log line.
   expect(result.startsWith("Logged: handoff")).toBe(true)
@@ -248,9 +249,16 @@ test("S1 slot write: terminal handoff creates <session-id>.json with correct sch
   )
 
   // Archive skipped when no prior slot exists: archive/ is empty after the
-  // first write, and no archive warn was emitted.
+  // first write, and no archive event was emitted on either channel
+  // (console.warn historically; the TUI-safe app.log since DIA-204).
   expect(readdirSync(paths.archiveDir)).toHaveLength(0)
-  expect(warnings.some((w) => w.includes("handoff archived"))).toBe(false)
+  expect(
+    logs.some(
+      (l) =>
+        l?.body?.level === "info" &&
+        l?.body?.message?.includes("handoff archived")
+    )
+  ).toBe(false)
 })
 
 test("S1 checksum: slot checksum equals the canonical DIA-061 SHA256 over the prognosis", async () => {
@@ -275,7 +283,7 @@ test("S1 checksum: slot checksum equals the canonical DIA-061 SHA256 over the pr
 })
 
 test("S1 archive-on-overwrite: same-session rewrite archives the prior slot and replaces the slot", async () => {
-  const { hooks, paths } = await makeHarness()
+  const { hooks, paths, logs } = await makeHarness()
   const pA = prognosisA()
   const pB = prognosisB()
 
@@ -283,7 +291,7 @@ test("S1 archive-on-overwrite: same-session rewrite archives the prior slot and 
   const pointerAfterFirst = readJson(paths.pointerPath)
 
   // Second terminal write for the SAME session with different prognosis.
-  const { warnings } = await writeTerminalHandoff(hooks, "ses_A", pB)
+  await writeTerminalHandoff(hooks, "ses_A", pB)
 
   // Archive holds exactly one file with the documented naming convention
   // <session-id>.<iso-ts-hyphenated>.json (colons -> hyphens).
@@ -311,10 +319,15 @@ test("S1 archive-on-overwrite: same-session rewrite archives the prior slot and 
   )
   expect(pointerAfterSecond.pointer_version).toBe(1)
 
-  // The archive event is observable (design.md section 5 observability).
+  // The archive event is observable on the TUI-safe app-log channel at info
+  // level (DIA-204: demoted from console.warn, which surfaced as a
+  // high-severity TUI notification; design.md section 5 observability).
   expect(
-    warnings.some(
-      (w) => w.includes("handoff archived: ses_A") && w.includes("archive/")
+    logs.some(
+      (l) =>
+        l?.body?.level === "info" &&
+        l?.body?.message?.includes("handoff archived: ses_A") &&
+        l?.body?.message?.includes("archive/")
     )
   ).toBe(true)
 

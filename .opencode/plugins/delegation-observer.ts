@@ -1152,9 +1152,17 @@ const delegationObserver: Plugin = async (ctx) => {
       try {
         renameSync(slotPath, join(handoffArchiveDir, archiveName))
         archivedPrior = `archive/${archiveName}`
-        console.warn(
-          `[delegation-observer] handoff archived: ${sessionId} prior slot -> archive/${archiveName}`
-        )
+        // DIA-204: routine archive telemetry demoted from console.warn (which
+        // OpenCode surfaces in the TUI chat stream) to the TUI-safe SDK app
+        // log at info level - DIA-193 pattern. Message text unchanged (tests
+        // assert on it).
+        ctx.client.app.log({
+          body: {
+            service: "delegation-observer",
+            level: "info",
+            message: `[delegation-observer] handoff archived: ${sessionId} prior slot -> archive/${archiveName}`,
+          },
+        })
       } catch (err) {
         // Best-effort archive (design.md section 4): a failed archive must
         // not lose the new write. The prior slot stays in place and is
