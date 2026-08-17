@@ -1659,3 +1659,46 @@
     - Decision: Option C — no forks, plugins auto-update (npm oh-my-opencode-slim@2.2.8 unchanged). Phase 2 (compiled boss gate) deferred.
   verification: >
     No explicit verification recorded in the legacy prose entry.
+
+- date: '2026-08-17'
+  ticket: 'DIA-189'
+  scope: 'ai-specialist model-array fallback - gpt-5.3-codex added as second entry (S10-P7 registration + ticket VERIFIED)'
+  files:
+    - '.opencode/oh-my-opencode-slim.jsonc (6fb7f14 - cebula preset, ai-specialist model array)'
+  summary: >
+    Change: DIA-189 (opencode-config): added `github-copilot/gpt-5.3-codex` as the SECOND entry of the ai-specialist model array in the cebula preset (`.opencode/oh-my-opencode-slim.jsonc`). OMO model arrays are ordered automatic fallback chains, so gpt-5.3-codex now serves as the automatic fallback behind the primary `opencode-go/qwen3.7-plus`; `opencode/big-pickle` remains the tertiary entry. Primary unchanged.
+    Reason: qwen3.7-plus failing with empty subagent results (DIA-099 D2) on 2026-08-17; the fallback chain guarantees the ai-specialist lane still returns a result when the primary model produces an empty/truncated lane. ai-auditor verdict: APPROVE-WITH-NITS (F4 silent-empty caveat, F5 credit watch, F7 restart required - all informational). Commit 6fb7f14.
+  verification: >
+    make test-config exit 0 (config validation gates pass with the new model array); commit 6fb7f14 verified in git log; ai-auditor APPROVE-WITH-NITS (informational only, no blockers). ASCII-only (DIA-079).
+
+- date: '2026-08-17'
+  ticket: 'DIA-191'
+  severity: Medium
+  area: opencode-config
+  scope: 'context_usage direct live in-context read (TUI-equivalent computation, V1 proxy fallback); ai-auditor APPROVE after 2 review cycles'
+  files:
+    - '.opencode/plugins/delegation-observer.ts (a69cb45 + 5be1df1 - direct live in-context read, token-shape guard, council-scope docs)'
+    - 'docs/dev-infra-audit/NEXT-RUN.md (5be1df1 - wording updated to describe the direct read)'
+    - 'docs/dev-infra-audit/tickets/DIA-191-context-usage-estimator-overestimates-tui.md (UPDATE block, this registration)'
+    - '.opencode/CHANGELOG.yaml (this entry)'
+  summary: >
+    Change: DIA-191 (Medium, opencode-config; context_usage tool overestimates
+    vs TUI indicator ~2x causing premature SELF-RERUN) implementation
+    registered. The context_usage tool now reads the LIVE in-context token
+    count directly via the SDK (TUI-equivalent computation: last completed
+    assistant message tokens / model limit.context), replacing the
+    registry-signal proxy as PRIMARY source; the V1 proxy formula (ana025
+    reweight, commit f18281f) is retained as FALLBACK for fresh sessions or
+    client failure. NEXT-RUN.md wording updated to describe the direct read.
+    ai-auditor APPROVE after 2 review cycles (findings fixed in 5be1df1:
+    token-shape guard, council-scope docs, NEXT-RUN wording).
+    Reason: the registry-signal proxy overestimated actual usage ~2x at the
+    observed depth (48% proxy vs 23% TUI), triggering premature SELF-RERUN
+    and session churn; the direct SDK read is token-accurate and
+    TUI-equivalent, eliminating the divergence at the source.
+  verification: >
+    typecheck (tsc --noEmit --strict) exit 0; make test-config exit 0 (56
+    pass); plugin test harness 10+28 pass; prettier exit 0. F8 restart-verify:
+    depth-1 PASS (proxy 10% vs TUI 10% pre-implementation);
+    post-implementation restart-verify PENDING (requires OpenCode restart to
+    activate the plugin change). ASCII-only (DIA-079).

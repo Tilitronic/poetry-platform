@@ -185,3 +185,19 @@ DIA-191 context_usage reweight (ana025) [0016a66,f18281f,64281e0]` on
   oh-my-opencode-slim.jsonc lines 26/209/433 + drift-checker marker contract
   - context_usage tool description). OPEN, not part of this merge.
 - Status stays OPEN (restart-verify pending).
+
+## UPDATE (2026-08-17) - REGISTER step (changelog lane, section 2.5 Phase 7)
+
+- Implemented: direct live in-context read (a69cb45) - context_usage now reads
+  the live in-context token count via the SDK (TUI-equivalent computation:
+  last completed assistant message tokens / model limit.context), replacing
+  the registry-signal proxy as primary; V1 proxy formula retained as fallback
+  for fresh sessions or client failure. ai-auditor findings fixed (5be1df1:
+  token-shape guard, council-scope docs, NEXT-RUN wording). Re-review
+  APPROVE (cycle 1/2).
+- Verification: typecheck 0, make test-config 56 pass, plugin tests 10+28
+  pass, prettier 0.
+- F8 restart-verify: depth-1 PASS (proxy 10% vs TUI 10% pre-implementation);
+  post-implementation restart-verify PENDING (requires OpenCode restart to
+  activate the plugin change).
+- Status: keep OPEN until restart-verify completes (do NOT close).
