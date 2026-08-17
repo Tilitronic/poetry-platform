@@ -12,7 +12,8 @@ id: DIA-191
 title: "context_usage tool overestimates vs TUI indicator (48% proxy vs 23% actual, ~2x) causing premature SELF-RERUN"
 area: opencode-config
 severity: Medium
-status: OPEN
+status: CLOSED
+closed_date: 2026-08-17
 blocked_by: [] # no blockers
 parent_epic: ""
 
@@ -28,7 +29,7 @@ discovered:
 source: developer-report
 date: 2026-08-15
 created: 2026-08-15
-updated: 2026-08-16
+updated: 2026-08-17
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -201,3 +202,18 @@ DIA-191 context_usage reweight (ana025) [0016a66,f18281f,64281e0]` on
   post-implementation restart-verify PENDING (requires OpenCode restart to
   activate the plugin change).
 - Status: keep OPEN until restart-verify completes (do NOT close).
+
+## Disposition
+
+CLOSED — All 3 depth verifications passed (|direct - tui| / tui < 0.25):
+
+| Depth             | Direct Read | TUI | Deviation |
+| ----------------- | ----------- | --- | --------- |
+| Fresh             | 9%          | 9%  | 0%        |
+| Mid-session       | 12%         | 13% | 7.7%      |
+| Deep-post-compact | 13%         | 13% | 0%        |
+
+The V2 direct live in-context read (commit a69cb45) returns TUI-equivalent
+token-accurate estimates. V1 proxy fallback retained for fresh sessions or
+client failures. Token-shape guard (FIX-1, 5be1df1) prevents malformed rows
+from aborting the scan.

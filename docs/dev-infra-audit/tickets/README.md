@@ -141,7 +141,7 @@
 | DIA-188 | OMO self-sufficiency: project-level plugin declaration + docker bake (openCode >= 1.18.13 in image) | opencode-config | Medium | OPEN | [DIA-188-omo-slim-project-self-sufficiency.md](DIA-188-omo-slim-project-self-sufficiency.md) |
 | DIA-189 | terminal session identity: unique names + notification attribution + Cyrillic visibility | opencode-config | Major | OPEN | [DIA-189-terminal-session-identity-names-notifications-cyrillic.md](DIA-189-terminal-session-identity-names-notifications-cyrillic.md) |
 | DIA-190 | Conspecter memory-shelf edit-permission defect - contract asserts shelf registration, permission denies it (doc drift) | opencode-config | Major | CLOSED | [DIA-190-conspecter-shelf-edit-permission.md](DIA-190-conspecter-shelf-edit-permission.md) |
-| DIA-191 | context_usage tool overestimates vs TUI indicator (48% proxy vs 23% actual, ~2x) causing premature SELF-RERUN | opencode-config | Medium | OPEN | [DIA-191-context-usage-estimator-overestimates-tui.md](DIA-191-context-usage-estimator-overestimates-tui.md) |
+| DIA-191 | context_usage tool overestimates vs TUI indicator (48% proxy vs 23% actual, ~2x) causing premature SELF-RERUN | opencode-config | Medium | CLOSED | [DIA-191-context-usage-estimator-overestimates-tui.md](DIA-191-context-usage-estimator-overestimates-tui.md) |
 | DIA-192 | delegation-observer prognosis parse fallback firing: lossy handoff + spurious high-severity TUI notification | opencode-config | Medium | OPEN | [DIA-192-delegation-observer-prognosis-parse-fallback.md](DIA-192-delegation-observer-prognosis-parse-fallback.md) |
 | DIA-193 | delegation-observer handoff-writer skip for non-terminal in-flight: benign guard surfaced as alarming high-severity notification | opencode-config | Low | OPEN | [DIA-193-delegation-observer-handoff-skip-inflight-notification.md](DIA-193-delegation-observer-handoff-skip-inflight-notification.md) |
 | DIA-194 | artifact format substrate analysis (DIA-180 Deliverable B): YAML vs Markdown EBDV matrix with token-economy evidence | docs | Medium | CLOSED | [DIA-194-artifact-format-substrate-analysis.md](DIA-194-artifact-format-substrate-analysis.md) |
@@ -160,6 +160,7 @@
 | DIA-209 | CHANGELOG-to-YAML ledger conversion | opencode-config | Medium | CLOSED | [DIA-209-changelog-to-yaml-ledger-conversion.md](DIA-209-changelog-to-yaml-ledger-conversion.md) |
 | DIA-210 | Fix pre-commit root:root ownership flip in Docker container | dev-infra | Medium | OPEN | [DIA-210-pre-commit-root-ownership-flip.md](DIA-210-pre-commit-root-ownership-flip.md) |
 | DIA-211 | Event-driven orchestration harness evolution | opencode-config | Medium | OPEN | [DIA-211-event-driven-orchestration-harness-evolution.md](DIA-211-event-driven-orchestration-harness-evolution.md) |
+| DIA-212 | Researcher dispatched without pre-allocated res ID -- extra iteration required | opencode-config | Medium | OPEN | [DIA-212-researcher-dispatch-without-res-id.md](DIA-212-researcher-dispatch-without-res-id.md) |
 
 ## Status summary
 
@@ -168,7 +169,7 @@
 | Blocker  | 7     |
 | Critical | 8     |
 | Major    | 48    |
-| Medium   | 79    |
+| Medium   | 80    |
 | Minor    | 0     |
 | Low      | 17    |
 | Info     | 0     |
@@ -184,7 +185,7 @@
 | FIXED       | 1     |
 | IMPLEMENTED | 2     |
 | VERIFIED    | 28    |
-| CLOSED      | 97    |
+| CLOSED      | 98    |
 | BLOCKED     | 0     |
 | DISPATCHED  | 0     |
 | RUNNING     | 0     |
