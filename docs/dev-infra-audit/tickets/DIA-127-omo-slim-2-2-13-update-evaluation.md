@@ -15,9 +15,17 @@
      override directory (npm 2.2.13 PROMPTS_DIR_NAME = "oh-my-opencode-slim",
      dist/index.js line 18885) - orchestrator_append.md, reviewer.md, coder.md,
      coder_append.md, analyzer_append.md, knowledge/* are loaded at runtime by the
-     npm plugin. Ticket flipped CLOSED -> OPEN for the incomplete rollout. Fix
-     plan: remove bare tui.json entry + dead file:// entry + stale cache dirs +
-     docs sync; keep the prompt directory. -->
+     npm plugin. Ticket flipped CLOSED -> OPEN for the incomplete rollout.
+
+     CORRECTION 2026-08-14 (second pass, post-restart): the first fix pass emptied
+     the global tui.json plugin array ({"plugin": []}) which REMOVED the OMO panel
+     entirely - the legacy TUI plugin host in opencode 1.18.18 registers plugin.tui
+     slots (the panel) from the tui.json plugin array (binary: XU0/HU0
+     createLegacyTuiPluginHost reads .opencode/tui.json + global tui.json), NOT
+     from opencode.jsonc. The opencode.jsonc @2.2.13 entry provides agents/hooks/
+     tools only. Correct fix: PIN the tui.json entry to @2.2.13 instead of removing
+     it - panel survives AND shows v2.2.13. The first-pass "remove" assumption
+     (ai-specialist schema-based) was wrong for this opencode version. -->
 
 <!-- UPDATE 2026-08-13 (Step B done + CLOSED): res019-omo-slim-version-gate
      conspect persisted (10 archived sources, 2 documented NOT-ARCHIVED npmjs
@@ -31,7 +39,7 @@ id: DIA-127
 title: "OMO slim 2.2.13 update evaluation - research what is new, decide safety/worth for the project"
 area: opencode-config
 severity: Medium
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 discovered:
 source: inventory
@@ -270,9 +278,13 @@ ticket. Read-only forensics by the plan lane established the root cause:
 
 ### Fix plan (section-10 chain, approved)
 
-1. Remove the bare `"oh-my-opencode-slim"` entry from global
-   `~/.config/opencode/tui.json` (plugin array -> empty; the panel is provided
-   by the opencode.jsonc `@2.2.13` entry, so the TUI panel survives).
+1. PIN the global `~/.config/opencode/tui.json` entry: replace bare
+   `"oh-my-opencode-slim"` with `"oh-my-opencode-slim@2.2.13"`. DO NOT remove it:
+   the legacy TUI plugin host (opencode 1.18.18) registers the OMO panel
+   (plugin.tui slot) from the tui.json plugin array; removing the entry kills the
+   panel even though agents/hooks keep loading from opencode.jsonc. First pass
+   wrongly emptied it ({"plugin": []}) - post-restart evidence showed the panel
+   disappear; corrected to pinned entry 2026-08-14.
 2. Remove the dead `"file:///workspace/.opencode/oh-my-opencode-slim"` entry
    from project `.opencode/opencode.jsonc` plugin array (line 570).
 3. Purge stale cache installs: `oh-my-opencode-slim@2.2.8`, `@latest`, and the
@@ -286,7 +298,33 @@ oh-my-opencode-slim.jsonc` (OMO config), global pin `@2.2.13`.
 
 ### Success criteria
 
-- [ ] OMO panel shows v2.2.13 after restart
-- [ ] `make test-config` exit 0, `make test-interview` PASS
-- [ ] One OMO plugin log per process (currently 3)
-- [ ] DIA-127 re-verified and flipped back to CLOSED
+- [x] OMO panel shows v2.2.13 after restart (CONFIRMED 2026-08-14 by developer: "pratsiuie, tiket mozhna zakryvaty" - panel present, v2.2.13)
+- [x] `make test-config` exit 0, `make test-interview` PASS (verified by coder lane)
+- [ ] One OMO plugin log per process (currently 3 - legacy TUI-host + opencode.jsonc entries; accepted residual, both resolve @2.2.13 now)
+- [x] DIA-127 re-verified and flipped back to CLOSED
+
+## Restart-verify evidence (2026-08-14, post-correction restart) - PASS
+
+Developer confirmed after restarting opencode with the corrected config that
+the OMO panel is present and shows v2.2.13 (message 2026-08-14: "pratsiuie,
+tiket mozhna zakryvaty"). Verification chain:
+
+1. Corrected global `~/.config/opencode/tui.json` = `{"plugin":
+["oh-my-opencode-slim@2.2.13"]}` - pinned, panel survives AND shows v2.2.13.
+   (First-pass `{"plugin": []}` removed the panel: legacy TUI plugin host in
+   opencode 1.18.18 registers plugin.tui slots from the tui.json plugin array -
+   binary XU0/HU0 createLegacyTuiPluginHost - NOT from opencode.jsonc.)
+2. Project `.opencode/opencode.jsonc` plugin array: dead
+   `file:///workspace/.opencode/oh-my-opencode-slim` removed; 4 entries remain.
+3. Docker `tools/opencode-docker/config/opencode.json`: same dead entry removed.
+4. Cache: only `oh-my-opencode-slim@2.2.13` remains (@2.2.8/@latest/bare purged).
+5. Live prompt dir `.opencode/oh-my-opencode-slim/` intact (orchestrator_append.md
+   etc.) - make test-config + make test-interview exit 0.
+6. Commit history: b93b61d (main fix pass), 8541f98 (audit round), 5a9b789
+   (registration), doc-correction commit pending (blocked by concurrent
+   ticket-renumber session's staged renames; changes staged and safe).
+
+Lesson registered: memory/lessons.md L20260814-001 (upgrade verification must
+check the LOADED instance + ALL plugin declaration sources; bare entries resolve
+to stale @latest; tui.json plugin key drives the TUI panel in 1.18.18; the
+prompt dir is LIVE). Ticket flipped OPEN -> CLOSED 2026-08-14.
