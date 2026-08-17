@@ -156,6 +156,10 @@
 | DIA-203 | make worktree-gc target + dry-run post-push warning (ana022 R-4) | dev-infra | Medium | OPEN | [DIA-203-make-worktree-gc-target-dry-run-post-push-warning-ana022-r-4.md](DIA-203-make-worktree-gc-target-dry-run-post-push-warning-ana022-r-4.md) |
 | DIA-204 | delegation-observer handoff-archived log line leaks into OpenCode chat UI (console.warn surfaces in conversation stream) | opencode-config | Medium | OPEN | [DIA-204-delegation-observer-handoff-log-leaks-into-chat-ui.md](DIA-204-delegation-observer-handoff-log-leaks-into-chat-ui.md) |
 | DIA-205 | changelog YAML-ledger conversion: migrate historical CHANGELOG.md entries into the ledger + reconcile derived MD view | opencode-config | Medium | CLOSED | [DIA-205-changelog-yaml-ledger-conversion.md](DIA-205-changelog-yaml-ledger-conversion.md) |
+| DIA-207 | WSL memory/CPU cap exhaustion causes vsock relay stalls and remote disconnects | env | Major | OPEN | [DIA-207-wsl-memory-cap-vsock-relay-disconnects.md](DIA-207-wsl-memory-cap-vsock-relay-disconnects.md) |
+| DIA-209 | CHANGELOG-to-YAML ledger conversion | opencode-config | Medium | CLOSED | [DIA-209-changelog-to-yaml-ledger-conversion.md](DIA-209-changelog-to-yaml-ledger-conversion.md) |
+| DIA-210 | Fix pre-commit root:root ownership flip in Docker container | dev-infra | Medium | OPEN | [DIA-210-pre-commit-root-ownership-flip.md](DIA-210-pre-commit-root-ownership-flip.md) |
+| DIA-211 | Event-driven orchestration harness evolution | opencode-config | Medium | OPEN | [DIA-211-event-driven-orchestration-harness-evolution.md](DIA-211-event-driven-orchestration-harness-evolution.md) |
 
 ## Status summary
 
@@ -163,15 +167,15 @@
 | -------- | ----- |
 | Blocker  | 7     |
 | Critical | 8     |
-| Major    | 47    |
-| Medium   | 77    |
+| Major    | 48    |
+| Medium   | 79    |
 | Minor    | 0     |
 | Low      | 17    |
 | Info     | 0     |
 
 | Status      | Count |
 | ----------- | ----- |
-| OPEN        | 15    |
+| OPEN        | 18    |
 | DONE        | 11    |
 | VALIDATE    | 0     |
 | E2E         | 0     |

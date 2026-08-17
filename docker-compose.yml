@@ -27,7 +27,6 @@ name: poetry-platform
 
 services:
   dev:
-    user: '0:0'
     build:
       context: .
       dockerfile: Dockerfile.dev
