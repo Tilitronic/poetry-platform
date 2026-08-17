@@ -13,7 +13,8 @@ id: DIA-193
 title: "delegation-observer handoff-writer skip for non-terminal in-flight: benign guard surfaced as alarming high-severity notification"
 area: opencode-config
 severity: Low
-status: OPEN
+status: CLOSED
+closed_date: 2026-08-17
 blocked_by: [] # no blockers
 parent_epic: ""
 
@@ -155,5 +156,16 @@ PENDING-restart-verify (after next OpenCode restart; ai-auditor review):
        notification active at DEBUG level (net of the batch; guard behavior
        unchanged - non-terminal statuses still write NO slot and NO pointer).
 
-     Status stays OPEN: restart-verify pending (in-flight invocation check
-     above, after next OpenCode restart). -->
+      Status stays OPEN: restart-verify pending (in-flight invocation check
+      above, after next OpenCode restart). -->
+
+## Disposition
+
+CLOSED -- Restart-verify passed. All 3 acceptance criteria met:
+
+1. Handoff file NOT touched (DIA-120 guard intact)
+2. Skip visible in app.log at debug level (ctx.client.app.log, not console.warn)
+3. No high-severity TUI notification
+
+Fix: console.warn demoted to ctx.client.app.log at debug level (commit 28d7aac).
+Minimal change, correct behavior. ai-auditor APPROVE-FOR-MERGE.

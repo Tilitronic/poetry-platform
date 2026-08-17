@@ -143,7 +143,7 @@
 | DIA-190 | Conspecter memory-shelf edit-permission defect - contract asserts shelf registration, permission denies it (doc drift) | opencode-config | Major | CLOSED | [DIA-190-conspecter-shelf-edit-permission.md](DIA-190-conspecter-shelf-edit-permission.md) |
 | DIA-191 | context_usage tool overestimates vs TUI indicator (48% proxy vs 23% actual, ~2x) causing premature SELF-RERUN | opencode-config | Medium | CLOSED | [DIA-191-context-usage-estimator-overestimates-tui.md](DIA-191-context-usage-estimator-overestimates-tui.md) |
 | DIA-192 | delegation-observer prognosis parse fallback firing: lossy handoff + spurious high-severity TUI notification | opencode-config | Medium | OPEN | [DIA-192-delegation-observer-prognosis-parse-fallback.md](DIA-192-delegation-observer-prognosis-parse-fallback.md) |
-| DIA-193 | delegation-observer handoff-writer skip for non-terminal in-flight: benign guard surfaced as alarming high-severity notification | opencode-config | Low | OPEN | [DIA-193-delegation-observer-handoff-skip-inflight-notification.md](DIA-193-delegation-observer-handoff-skip-inflight-notification.md) |
+| DIA-193 | delegation-observer handoff-writer skip for non-terminal in-flight: benign guard surfaced as alarming high-severity notification | opencode-config | Low | CLOSED | [DIA-193-delegation-observer-handoff-skip-inflight-notification.md](DIA-193-delegation-observer-handoff-skip-inflight-notification.md) |
 | DIA-194 | artifact format substrate analysis (DIA-180 Deliverable B): YAML vs Markdown EBDV matrix with token-economy evidence | docs | Medium | CLOSED | [DIA-194-artifact-format-substrate-analysis.md](DIA-194-artifact-format-substrate-analysis.md) |
 | DIA-195 | harness RLM integration: unify test harnesses + RLM data-reduction + workflow guard + observability | opencode-config | Medium | OPEN | [DIA-195-harness-rlm-integration.md](DIA-195-harness-rlm-integration.md) |
 | DIA-196 | changelog YAML-ledger conversion: YAML source + derived MD view (ana024 Variant B) | opencode-config | Medium | CLOSED | [DIA-196-changelog-yaml-ledger-conversion.md](DIA-196-changelog-yaml-ledger-conversion.md) |
@@ -178,7 +178,7 @@
 
 | Status      | Count |
 | ----------- | ----- |
-| OPEN        | 19    |
+| OPEN        | 18    |
 | DONE        | 11    |
 | VALIDATE    | 0     |
 | E2E         | 0     |
@@ -187,7 +187,7 @@
 | FIXED       | 1     |
 | IMPLEMENTED | 2     |
 | VERIFIED    | 28    |
-| CLOSED      | 98    |
+| CLOSED      | 99    |
 | BLOCKED     | 0     |
 | DISPATCHED  | 0     |
 | RUNNING     | 0     |
