@@ -144,7 +144,8 @@ container; make test-config exit 0 (56/56); make test-shell exit 0 (404);
 tsc --noEmit on the plugin (project compiler options + node types) 0 errors;
 eslint on the plugin 0 errors.
 
-Commit: <filled at commit time>
+Commit: 44d1abc fix(plugin): DIA-204 demote handoff-archived console.warn to
+app.log (chat-UI leak)
 
 ## Routing
 
