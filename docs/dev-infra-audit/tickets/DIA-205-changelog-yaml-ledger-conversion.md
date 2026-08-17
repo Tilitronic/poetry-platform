@@ -14,7 +14,7 @@ id: DIA-205
 title: "changelog YAML-ledger conversion: migrate historical CHANGELOG.md entries into the ledger + reconcile derived MD view"
 area: opencode-config
 severity: Medium
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: "DIA-194" # optional DIA-NNN parent epic ticket (DIA-125 keep-local extension; scripts/tickets emits this field always)
 
@@ -130,3 +130,23 @@ AGENTS.md section 2.5 (opencode-config / AI-devtools modernization workflow):
 ## Re-verify
 
 > To be filled at re-verify time.
+
+## UPDATE (2026-08-17) - CLOSED: duplicate of DIA-196 (conversion already fully implemented)
+
+Closure evidence (recon lane proof, 2026-08-17):
+
+- Closed as DUPLICATE of DIA-196 (CLOSED 2026-08-16). A recon lane proved the
+  conversion this ticket tracks was ALREADY fully implemented by DIA-196:
+  YAML ledger (94 entries), scripts/schemas/changelog.schema.json, scripts/
+  validate-changelog.sh, scripts/changelog-render, derived
+  .opencode/CHANGELOG.md (byte-identical to a fresh render).
+- Merged at 8cade8c, re-reviewed (all findings verified-closed), ai-auditor
+  APPROVE, pushed to origin/omo-slim-changes.
+- DIA-205 was filed on stale handoff info: the handoff claimed the conversion
+  was NOT started, which the recon lane disproved. DIA-205's stated scope
+  (historical migration + MD reconciliation) is already satisfied by DIA-196.
+- Residual items (token-economy re-measurement vs DIA-182 telemetry,
+  gate-formality completion) are verification bookkeeping, not conversion
+  scope - tracked separately if desired.
+
+Status: CLOSED (duplicate).
