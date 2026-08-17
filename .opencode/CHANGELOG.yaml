@@ -1778,3 +1778,21 @@
     changelog schema); commits 1baee98f and bedfaddb verified in git log;
     ai-auditor APPROVE-WITH-NITS (informational only, nits fixed in
     bedfaddb). ASCII-only (DIA-079).
+
+- date: '2026-08-17'
+  ticket: 'DIA-208'
+  scope: 'Global cebula orchestrator model: deepseek-v4-flash -> mimo-v2.5'
+  files:
+    - '~/.config/opencode/oh-my-opencode-slim.jsonc'
+  summary: >
+    Fixed stale global OMO config (line 109) where cebula orchestrator model
+    was still deepseek-v4-flash despite project-level swap. Changed to array
+    [opencode-go/mimo-v2.5, opencode/mimo-v2.5-free] matching project config.
+    Root cause: OMO plugin resolves mimo-v2.5 but OpenCode core falls back
+    to default when model isn't on agent definition; global config merge gap
+    let the old value persist. Restart required for change to take effect.
+    Coder/researcher/conspecter global cebula entries still show
+    deepseek-v4-flash — out of scope for this fix but noted as divergence.
+  verification: >
+    make test-config exit 0 (56/56); ai-auditor PASS-WITH-NITS
+    (2 informational nits, both non-blocking)

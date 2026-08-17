@@ -1800,6 +1800,10 @@ const delegationObserver: Plugin = async (ctx) => {
         }
       }
 
+      // === JUXTACRINE MODULE -- Synchronous gates (receptor-ligand) ===
+      // These hooks block/allow tool calls at execution boundary.
+      // Biological equivalent: receptor-ligand binding at cell surface.
+      //
       // §10 TICKET GATE (DIA-063): before §10-scoped lanes are dispatched, a
       // DIA ticket must exist in docs/dev-infra-audit/tickets/ tracking the
       // work (the "create a ticket before starting work" process rule). Scope:
@@ -1828,6 +1832,37 @@ const delegationObserver: Plugin = async (ctx) => {
           const prompt =
             typeof args.prompt === "string" ? args.prompt : ""
           const dispatchText = `${description}\n${prompt}`
+
+          // DIA-212: Autocrine gate -- researcher dispatch without res ID.
+          // Detects when @researcher is dispatched WITHOUT a pre-allocated res
+          // ID. Fail-soft (warn + allow): blocking would break existing
+          // workflows that don't use research-pipeline. The warn creates a
+          // registry event that can be audited. Future Phase 3 (YAML
+          // declarative gates) can make it a hard gate.
+          if (subagentType === "researcher" && prompt) {
+            const hasResId = /res\d+/.test(prompt)
+            const isPhaseA = /Phase A|source.?capture/i.test(prompt)
+            if (!hasResId && !isPhaseA) {
+              try {
+                writeFileSync(
+                  registryPath,
+                  JSON.stringify({
+                    event_type: "autocrine_gate_warn",
+                    timestamp: new Date().toISOString(),
+                    session_id: input.sessionID,
+                    detail:
+                      "Researcher dispatched without pre-allocated res ID -- Phase 1 of research-pipeline skipped",
+                    dispatch_text: prompt.slice(0, 200),
+                  }) + "\n",
+                  { flag: "a" }
+                )
+              } catch (err) {
+                console.warn(
+                  `[DIA-212] autocrine gate warn write failed: ${errorMessage(err)}`
+                )
+              }
+            }
+          }
 
           // Scope gate: fire for ai-specialist, or for any lane describing
           // config work (config-file pattern AND config-work words).
@@ -1993,6 +2028,10 @@ const delegationObserver: Plugin = async (ctx) => {
         return
       }
 
+      // === PARACRINE MODULE -- Local non-lethal signals ===
+      // These hooks modify behavior but don't block execution.
+      // Biological equivalent: local diffusion to nearby cells.
+      //
       // DIA-105 edit-time formatter (PostToolUse pattern): after an agent
       // edits/writes/patch-applies file(s), run the repo formatter on the
       // touched files so formatting diffs do not accumulate until the
@@ -2227,6 +2266,10 @@ const delegationObserver: Plugin = async (ctx) => {
       }
     },
 
+    // === ENDOCRINE MODULE -- Systemic broadcast ===
+    // These hooks affect the entire system state.
+    // Biological equivalent: hormones via bloodstream.
+    //
     // C1: session lifecycle events arrive via the generic `event` catch-all —
     // session.created / session.idle / session.error are NOT named hooks.
     event: async (input) => {
@@ -2581,6 +2624,9 @@ const delegationObserver: Plugin = async (ctx) => {
             "escalated",
             "pending-owner",
           ])
+          // === PARACRINE MODULE (continued) -- Session-local state ===
+          // Biological equivalent: local extracellular matrix signals.
+          //
           // When event_type is "handoff" and prognosis is provided, write the
           // atomic per-session handoff slot to .opencode/session/handoffs/
           // (DIA-085) so the successor session can detect it via a

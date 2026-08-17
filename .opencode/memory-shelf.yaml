@@ -266,12 +266,64 @@ shelf:
       Cross-refs res026 (DIA-136 sibling, no re-litigation), res018/res021 (DIA-125 ticket ledger).'
     path: knowledge/res027-orchestrator-routine-work-tools/res027-orchestrator-routine-work-tools-conspect.md
     created: 2026-08-14
+  - name: OpenCode Version Pin + OMO 2.2.14 Compatibility Floor (DIA-188)
+    description: 'Conspect persisting the DIA-188 research (8 archived sources, zero failures):
+      newest stable opencode = 1.18.18 (2026-08-13), releases only in 1.18.x line, npm NOT a
+      version source (both @opencode-ai/opencode and opencode 404 archived); REPO RELOCATION
+      sst/opencode -> anomalyco/opencode (install script + release assets resolve from anomalyco;
+      198k-star figure researcher-supplied, not in archive); INSTALLER TRUTH opencode.ai/install
+      is a mutable dev-branch artifact with NO sha256 verification of the downloaded binary,
+      Dockerfile pinned hash fc3c1b2... verifies the script not the binary (stale) -> recommended
+      direct binary download + sha256sum -c against 0cddc222418b8553669905a8980c0cda7088f00da24d83d6ac76b01c9fdb2aaf
+      (opencode-linux-x64.tar.gz v1.18.18); OMO 2.2.14 floor exact-pins @opencode-ai/plugin+sdk
+      1.18.13 (unchanged from 2.2.13 per res019), 1.18.18 satisfies; NO breaking changes
+      1.18.4->1.18.18 for plugins/TUI-host/config-schema (v1.18.16 config parser more lenient).
+      Project implication: Dockerfile.dev pin OPENCODE_VERSION=1.18.18 + switch install block to
+      direct binary + sha256 verify + update sst/opencode refs. Extends res019.'
+    path: knowledge/res028-opencode-version-pin/res028-opencode-version-pin-conspect.md
+    created: 2026-08-15
   - name: res020-ssh-add-confirmation
     description: 'OpenSSH ssh-add -c confirmation-per-use on Fedora 44 + KDE Plasma + systemd user ssh-agent (socket-activated, /run/user/1000/ssh-agent.socket) with the agent socket forwarded into opencode-docker (DIA-173). Key facts: -c = per-operation host-side confirm via ssh-askpass (each git push = one host GUI prompt); SSH_ASKPASS + SSH_ASKPASS_REQUIRE=force must be in the AGENT OWN systemd Drop-in (~/.config/systemd/user/ssh-agent.service.d/override.conf) - the agent reads them from its own env at prompt time, no file fallback; KDE Wayland gotcha: ksshaskpass needs QT_QPA_PLATFORM=wayland + WAYLAND_DISPLAY=wayland-0 (else qt.qpa.xcb could not connect to display :0); ksshaskpass is a SEPARATE package (6.7.4-1.fc44) not default on KDE; ssh-add -l does NOT show confirm-on (no simple CLI check); agent restart clears keys + confirm flags (Drop-in first, then ssh-add -c); no container-side change needed for DIA-173 (confirm state is host-agent); recommended combo ssh-add -c -t 8h; YubiKey: hardware touch OR -c, not both.'
     path: knowledge/res020-ssh-add-confirmation/res020-ssh-add-confirmation-conspect.md
     created: 2026-08-13
     status: registered
-
+  - name: Model Fallback Semantics (DIA-189)
+    description: 'Conspect establishing that OpenCode native AgentConfig.model is a
+      single model string (provider/model-id) with no array or fallback semantics;
+      model-array fallback is an oh-my-opencode-slim (OMO) runtime extension storing
+      ordered fallback chains with a foreground-fallback manager that auto-switches
+      on rate-limit/quota/error/session-status signals. Documents that retry_on_empty
+      is council-only, not global, so silent-empty-without-error may not trigger
+      fallback for non-council agents. Practical consequence: adding
+      github-copilot/gpt-5.3-codex as the second ai-specialist model-array entry
+      yields automatic fallback when qwen3.7-plus fails with error signals (the
+      2026-08-17 failures were session errors, DIA-099 signal D2).'
+    path: knowledge/res029-model-fallback-semantics/res029-model-fallback-semantics-conspect.md
+    created: 2026-08-17
+  - name: OpenCode Go usage-limits + model pricing refresh (DIA-208)
+    description: 'Conspect refreshing OpenCode Go usage limits and per-model pricing as of 2026-08-17 (5 archived sources, triple-source agreement: official docs opencode.ai/docs/go, models.dev API, julien.ai community tracker snapshot 10:08 UTC). KEY DELTAS vs res013/res021 (2026-08-12/13): deepseek-v4-flash price rose $0.14/$0.28 -> $0.22/$0.66 off-peak / $0.44/$1.32 peak (+57-371%), monthly request budget collapsed 158,150 -> 18,900 (-88%), usage bucket $60 -> $15, 2x promo REMOVED; mimo-v2.5 (non-pro) is the NEW volume king at $0.14/$0.28, 150,400 req/mo, $60 bucket (same price point as archived Flash, 8x budget); mimo-v2.5-pro UNCHANGED ($0.435/$0.87, 16,300 req/mo, $15 bucket); mimo-v2.5-free NOT on Go (Zen provider only); other candidates Qwen3.7 Plus $0.40/$1.60 21,600 / Hy3 $0.14/$0.58 21,500 / MiniMax M3 halved $0.30/$1.20 / GPT-5.6 Luna $0.20/$1.20 (2x promo) 10,250 / Kimi K2.7 Code $0.95/$4.00 6,750; nemotron NOT on Go; availability churn GLM-5.3 added, MiniMax-M2.5/Kimi K2.5/GLM-5 deprecated, DeepSeek V4 Pro price corrected (res013 transcription collision with mimo-v2.5-pro). Drove DIA-208: developer-approved Variant A full cebula swap to opencode-go/mimo-v2.5 (7 lanes) + model-registry.yaml refresh. Cross-references res013/021/024/029.'
+    path: knowledge/res030-opencode-go-usage-limits-mimo-v25/res030-opencode-go-usage-limits-mimo-v25-conspect.md
+    created: 2026-08-17
+  - name: Agent harness and workflow execution (tch001)
+    description: 'Teaching conspect (Ukrainian) explaining how the poetry-platform
+      agent harness executes workflows: 6-layer mental model (OpenCode runtime, OMO
+      orchestrator, plugins, gates, observability, process rules) + dispatch lifecycle.
+      Detailed DIA-063 section-10 ticket gate walkthrough (scope -> exempt -> Path
+      1/2/3 correlation -> hard-throw/warn-allow, strict tri-state explicit-id
+      precedence), other gates (section-10 edit-gate, DIA-094 docker gate, A5, S2,
+      merge-gate R3), observability (registry.jsonl, messages.jsonl, log_decision,
+      context_usage, handoff slots DIA-085/DIA-124), workflow chain (openspec-plan ->
+      coder RED/GREEN instance separation DIA-175 -> reviewer two-axis -> fix loop max
+      2 cycles -> memory-manager), practice-protected zones, ticket ledger. 4 mermaid
+      diagrams (architecture layers, ticket-gate decision tree, dispatch sequence,
+      workflow chain). Worked example: DIA-194 hard-block case + counterexample.'
+    path: knowledge/tch001-agent-harness/tch001-agent-harness-conspect.md
+    created: 2026-08-17
+  - name: Intercellular Communication (biological signal taxonomy + event-driven orchestration patterns)
+    description: Conspect on intercellular communication mechanisms and their mapping
+      to event-driven orchestration patterns in AI agent systems.
+    path: knowledge/res031-intercellular-communication/res031-intercellular-communication-conspect.md
+    created: 2026-08-17
 
   analyses:
   - name: Agent Alignment Audit
@@ -850,6 +902,23 @@ shelf:
     created: 2026-08-14
     task_ref: DIA-179
     status: implemented
+  - name: omo-self-sufficiency
+    description: 'OpenSpec change (DIA-188, scope opencode-config/dev-infra): project-level
+      OMO plugin declaration + Docker cache pre-population + installer hardening. Adds
+      oh-my-opencode-slim@2.2.14 to project .opencode/opencode.jsonc plugin array, project
+      .opencode/tui.json (panel registration via createLegacyTuiPluginHost), and
+      tools/opencode-docker/config/opencode.json. Upgrades Dockerfile.dev OPENCODE_VERSION
+      1.18.4 -> 1.18.18 (newest stable per res028; repo relocation sst/opencode ->
+      anomalyco/opencode). Direct binary download + SHA256 (linux-x64 0cddc22...fdb2aaf;
+      arm64 at implementation time). Pre-populates ~/.cache/opencode/node_modules/ at
+      build (offline-capable; Variant B npm install -g fallback). Two-phase host global
+      removal with verification gate (DIA-123 second-boot pattern). skip_specs: true.
+      Out of scope: conspecter defect (DIA-190), Windows pin (follow-up). 6 task groups,
+      20 tasks.'
+    path: openspec/changes/omo-self-sufficiency/
+    created: 2026-08-15
+    task_ref: DIA-188
+    status: proposed
   - name: parallel-handoff-slots
     description: "OpenSpec change (DIA-085, scope dev-infra): replace the single-slot .opencode/session/current-handoff.json with per-session handoff slots to prevent last-writer-wins data loss when parallel orchestrator sessions both write terminal handoffs. Triggered by 2026-08-15 incident where ses_ffd538953ffeHi5JxeN4RF1aAp (DIA-174) and ses_ffb7ba1daffemGh05K4YUPlQe2 (DIA-189) wrote the same single slot within 65s, clobbering the DIA-174 prognosis. Layout: handoffs/<session-id>.json (per-session slot, identical schema to current-handoff.json including DIA-061 checksum), handoffs/active.json (pointer optimization, {active_session_id, timestamp, pointer_version:1}), handoffs/.reconciled (sidecar tracking batch-approved slots to prevent re-presentation), handoffs/archive/<session-id>.<iso-ts-hyphenated>.json (archive-on-overwrite for same-session rewrites). Boot-gate resolution chain: pointer -> mtime scan -> legacy current-handoff.json fallback. Writer flow: archive_prior -> write_slot (atomic temp+fsync+rename+fsync-dir) -> write_pointer (atomic). log_decision terminal-status filter (DIA-120 commit e15a876) preserved. Plugin TS changes in delegation-observer.ts (handoffPath constant line 571 -> dynamic per-session; atomicWriteHandoff line 1088 -> archive+slot+pointer flow; log_decision handler line 2448 passes session_id). Registry row gains optional archived_prior field. validate-handoff.sh extended with -s <session-id> flag + pointer auto-discovery + legacy fallback. New scripts/test-parallel-handoff.sh with 6 acceptance scenarios. Bun harness extended with parallel-handoff.test.mjs (S1 seam). NEXT-RUN.md section 1/2/7.3/7.8 + AGENTS.md section 6 DIA-124 reference updated. All under .gitignore:82 (.opencode/session/). No .sdd/ module doc (operates within .sdd/dev-infra/ and .sdd/dia-redispatch-cycle/ boundaries). 5 vertical slices: T1 plugin writer, T2 boot-gate docs, T3 validator extension, T4 tests (smoke + bun + bats), T5 ticket+docs reconciliation. skip_specs: true. Ana011 full claim+heartbeat protocol explicitly scoped out (separate follow-up change). Gate state: full-interview (triggers: new-module, schema-state, cross-cutting; waivers: none)."
     path: openspec/changes/parallel-handoff-slots/

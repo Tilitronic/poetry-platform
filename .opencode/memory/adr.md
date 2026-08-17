@@ -917,3 +917,378 @@ assumed.
 
 - Created: 2026-08-14
 - Related: DIA-200, knowledge/ana022-worktree-mechanism-analysis/ana022-worktree-mechanism-analysis-report.md, docs/dev-infra-audit/tickets/DIA-200-worktree-branch-merge-mechanism-analysis.md
+
+## ADR: Conspecter shelf registration DELEGATED to @memory-manager (DIA-190, Option B)
+
+### Status
+
+Accepted (policy decision made 2026-08-15, developer-approved Option B, ai-auditor
+APPROVE-WITH-NITS F6/F7 applied).
+
+### Context
+
+DIA-190: the conspecter lane contract asserted it registers conspects in
+memory-shelf.yaml, but its edit permission denies that (conspecter edit =
+knowledge/* only). This is a doc-drift defect: contract says shelf registration,
+permission denies it. Two options: (A) expand conspecter edit to include
+memory-shelf.yaml, or (B) change the conspecter contract + research-pipeline skill
+to delegate shelf registration to @memory-manager.
+
+### Decision
+
+Option B: conspecter shelf registration is DELEGATED to @memory-manager. Conspecter
+edit scope = knowledge/* only. Conspecter REPORTS the conspect artifact path;
+@memory-manager performs the memory-shelf.yaml registration under shelf.conspects.
+This preserves the DIA-143 sole-writer invariant for memory-shelf.yaml. @analyzer
+already models this delegation (analyzer writes knowledge/* + analysis report,
+registration delegated). Implemented via doc-config alignment: conspecter.md,
+oh-my-opencode-slim.jsonc step 4, research-pipeline SKILL.md L53/L87, and an
+opencode.jsonc comment fix (F6); config edit permission unchanged (still
+knowledge/* only).
+
+### Rationale (irrecoverable context)
+
+- The choice between expanding the writer scope (A) vs delegating (B) is a policy
+  decision, not recoverable from the config diff. The deciding factor was preserving
+  the DIA-143 sole-writer invariant (a single memory-shelf writer) over expanding a
+  writer's scope.
+- The analyzer precedent (write artifact, delegate registration) establishes the
+  delegation pattern this ADR extends to conspecter.
+
+### Consequences
+
+- Conspecter never writes memory-shelf.yaml; it reports the artifact path and the
+  orchestrator dispatches @memory-manager to register.
+- memory-shelf.yaml stays single-writer (DIA-143), avoiding concurrent-writer
+  conflicts on the shelf.
+
+### Metadata
+
+- Created: 2026-08-15
+- Related: DIA-190, DIA-143 (sole-writer invariant), conspecter.md,
+  research-pipeline SKILL.md, oh-my-opencode-slim.jsonc, memory-shelf.yaml
+
+## ADR: Rename-if-not-suffixed terminal identity guard (DIA-189)
+
+### Status
+
+Accepted (2026-08-16, merged 9d96310).
+
+### Context
+
+DIA-189: the needs-input-observer plugin renames terminal/session titles. The
+prior predicate approach failed to keep titles suffixed with the expected tag
+after an upstream default drift (runtime 1.18.18 changed default title
+behavior). Candidates: (A) rename-if-not-suffixed guard, (B) broaden the
+predicate, (C) harness-side fix.
+
+### Decision
+
+Option A - rename-if-not-suffixed terminal identity guard: only rename when the
+title is not already suffixed with the expected tag. Chosen because it is robust
+to upstream default drift (never re-clobbers a title the SDK already set) and
+avoids clobbering user-provided titles.
+
+### Rationale (irrecoverable context)
+
+- The decision between guard (A) vs broaden-predicate (B) vs harness-fix (C) is
+  a policy choice not recoverable from the plugin diff; the deciding factor was
+  resilience to upstream default drift and non-destruction of user titles.
+- Upstream default drift (1.18.18) is a runtime behavior change that made the
+  simpler predicate approach unreliable.
+
+### Consequences
+
+- Terminal/session entries are only renamed when the expected suffix is missing,
+  so SDK-defaulted and user-set titles are preserved.
+- The guard pattern generalizes to future plugin title-renaming logic.
+
+### Metadata
+
+- Created: 2026-08-16
+- Related: DIA-189, needs-input-observer.ts, lessons L20260815-005..010,
+  L20260816-001 (branch topology in the same merge campaign).
+
+## ADR: Ponytail cache-economics plugin now, headroom spike later (DIA-183 Variant D)
+
+### Status
+
+Accepted (2026-08-16, merged 47064d0).
+
+### Context
+
+DIA-183: prompt-cache economics for the DeepSeek/OpenCode workflow. Candidates
+considered for the cache-cost reduction. Ponytail and headroom are the two
+candidate cache-economics plugins.
+
+### Decision
+
+Variant D - add the ponytail plugin now and spike headroom later. Ponytail was
+chosen first because it has zero cache interaction (safe additive layer) and
+delivers an immediate ~-20% cost reduction, whereas headroom cache-mode requires
+a dedicated spike.
+
+### Rationale (irrecoverable context)
+
+- The staging choice (ponytail now, headroom later) is a sequencing policy not
+  recoverable from the plugin array diff.
+- Ponytail's zero-cache-interaction property made it the low-risk first step;
+  headroom was deferred to a separate spike to avoid bundling two cache-economics
+  tools whose interaction was not yet characterized.
+
+### Consequences
+
+- ponytail is present in the project plugin array (DIA-183 Variant D);
+  headroom remains a future spike.
+- Cache-economics reasoning is captured in learnings
+  (2026-08-15-ponytail-headroom-cache-economics).
+
+### Metadata
+
+- Created: 2026-08-16
+- Related: DIA-183, ponytail plugin, headroom, res029 (DCP sibling cache work).
+
+## ADR: context_usage reweight formula V1 (DIA-191)
+
+### Status
+
+Accepted (2026-08-16, merged 47064d0; calibrated by ana025).
+
+### Context
+
+DIA-191: the delegation-observer `context_usage` tool proxy overestimated ~2x vs
+the TUI indicator (lesson L20260815-011). The prior formula
+(`delegation*3000 + message*1000 + session*10000`) was recalibrated.
+
+### Decision
+
+V1 reweight formula: `delegation*5000 + message*500 + 30000 flat`. The V2
+candidate (read cumulative tokens from opencode-db/sqlite) was REJECTED: cumulative
+token counts are the wrong metric after compaction, so a cumulative-token-based
+proxy would still misreport post-compaction usage.
+
+### Rationale (irrecoverable context)
+
+- The reweight arithmetic and the V2 rejection reasoning are calibration
+  decisions not recoverable from the plugin formula diff alone.
+- The V2 rejection turns on a subtle point: post-compaction the accumulated
+  token total no longer reflects live context pressure, so a database-derived
+  cumulative metric cannot ground the proxy.
+
+### Consequences
+
+- context_usage uses the V1 reweight formula; V2 (opencode-db) is documented as
+  rejected with rationale.
+- Calibration evidence is captured in ana025.
+
+### Metadata
+
+- Created: 2026-08-16
+- Related: DIA-191, context_usage tool, delegation-observer.ts, ana025,
+  lesson L20260815-011.
+
+## ADR: Keep DCP but disable autonomous pruning (DIA-197 V2)
+
+### Status
+
+Accepted (2026-08-16, merged bd4133d).
+
+### Context
+
+DIA-197: evaluate the dual-compaction-pipeline (DCP) plugin for removal because
+of a cache-hit degradation (85% vs 90%) without noticeable benefit. res029
+established that DCP has NO cache-preserving mode - both compaction tiers clear
+the prompt cache.
+
+### Decision
+
+V2 - KEEP DCP in the plugin array but disable its autonomous pruning via
+manualMode + deny + strategies-off. V1 (full removal) remains a documented future
+option if the pruning cost outweighs keeping the plugin.
+
+### Rationale (irrecoverable context)
+
+- The V2 compromise (keep-but-disable) vs V1 (remove) is an EBDV policy decision
+  recorded in the DIA-197 ticket; it is not recoverable from the dcp.jsonc diff.
+- Because DCP has no cache-preserving mode, "keep DCP and preserve the cache" is
+  not achievable; the acceptable middle ground is disabling autonomous pruning
+  while retaining the plugin surface.
+
+### Consequences
+
+- Autonomous DCP pruning is disabled (manualMode + deny + strategies-off);
+  native compaction remains configured.
+- Full DCP removal (V1) stays open as a future option pending further signal.
+
+### Metadata
+
+- Created: 2026-08-16
+- Related: DIA-197, res029, dcp.jsonc, DIA-183 (sibling cache work).
+
+## ADR: ai-specialist model-array fallback - gpt-5.3-codex behind qwen3.7-plus (DIA-189)
+
+### Status
+
+Accepted - 2026-08-17
+
+### Context
+
+The ai-specialist lane (cebula preset) ran on qwen3.7-plus. On 2026-08-17 the lane
+failed with empty subagent results (DIA-099 signal D2 = session errors). The res029
+research (knowledge/res029-model-fallback-semantics/) established that OMO model
+arrays are ordered fallback chains with a foreground-fallback manager that
+auto-switches on rate-limit/quota/error/session-status signals, and that
+github-copilot/gpt-5.3-codex is a valid second entry: Copilot-credit billing
+(req_per_month null, quota guard skips the lane), no exclusivity constraint in the
+model registry, and the D2 session-error class is exactly the session.error event
+the fallback manager handles.
+
+### Decision
+
+Add github-copilot/gpt-5.3-codex as the SECOND entry of the ai-specialist model
+array (cebula preset), keeping qwen3.7-plus primary. The first entry stays active
+at startup; the foreground-fallback manager auto-switches to codex on detected
+error signals (the 2026-08-17 failure class). Implemented in commit 6fb7f14.
+
+### Rationale (irrecoverable context)
+
+- The choice of codex as fallback (vs the alternatives below) is a model-routing
+  policy decision not recoverable from the one-line config diff (6fb7f14).
+- codex carries no Go request-meter quota (Copilot credits, req_per_month null in
+  knowledge/model-registry.yaml), so a fallback switch does not consume the Go
+  quota; the registry row has no exclusivity constraint, so dual use (reviewer
+  lane + ai-specialist fallback) is permitted.
+- The failure class (session errors, D2) is precisely the session.error event
+  class the foreground-fallback manager handles (res029 finding 3), so the
+  fallback is expected to engage for this incident class.
+
+### Alternatives considered
+
+- gemini-3.1-pro-preview: not chosen - Copilot-only model with no established
+  lane precedent in this repo's routing tables.
+- Route ai-specialist research to other lanes (e.g. @coder read-only, precedent
+  L20260816-006): remains the manual fallback when the endpoint is dead, but does
+  not fix the lane's own model reliability.
+- Status-quo (no fallback): rejected - the 2026-08-17 empty-result failures would
+  recur with no automatic recovery.
+
+### Consequences
+
+- Auto-fallback on error signals: ai-specialist sessions switch to codex on
+  rate-limit/quota/error/session-status patterns. Silent-empty-without-error may
+  NOT trigger fallback (retry_on_empty is council-only) - monitor for silent
+  empties separately.
+- Credit consumption watch: codex consumes Copilot AI credits, not Go quota; the
+  quota guard skips Copilot-credit lanes.
+- Restart required: the config change takes effect on the next OpenCode restart.
+- If qwen3.7-plus continues failing, consider a permanent model reassignment via
+  knowledge/model-registry.yaml (tracked in L20260817-004).
+
+### Metadata
+
+- Created: 2026-08-17
+- Related: DIA-189, commit 6fb7f14, knowledge/res029-model-fallback-semantics/,
+  knowledge/model-registry.yaml, lessons.md L20260817-004
+
+## ADR: context_usage direct live in-context read (DIA-191 V2)
+
+### Status
+
+Accepted (2026-08-17, commits a69cb45 + 5be1df1, ai-auditor APPROVE after 2
+cycles, registered b469791).
+
+### Context
+
+The V1 reweight proxy (ana025) still overestimated vs the TUI indicator
+(L20260815-011). ana025's V1 rationale claimed "the plugin has no model
+metadata access" (ana025 report L394) - PROVEN FALSE: the plugin SDK exposes
+the model's context limit via Model.limit.context (chat.params /
+client.provider.list()) and AssistantMessage carries the per-message token
+breakdown. The direct read computes the SAME value the TUI indicator shows:
+the last completed assistant message's tokens
+(input+output+reasoning+cache.read+cache.write) divided by the model's
+limit.context.
+
+### Decision
+
+context_usage now performs a DIRECT LIVE IN-CONTEXT READ via the plugin SDK
+(TUI-equivalent computation, compaction-aware by construction). The V1 proxy
+formula remains as the fallback path for fresh sessions (no completed
+assistant message yet) and client/provider failure.
+
+### Rationale (irrecoverable context)
+
+- The direct read supersedes part of ana025's V1 rationale: the "no model
+  metadata access" constraint is false, so the proxy is no longer the only
+  viable estimator.
+- The direct read is compaction-aware BY CONSTRUCTION: after compaction the
+  last completed assistant message reflects live context pressure - which is
+  exactly the flaw that rejected the V2 (opencode-db cumulative tokens)
+  candidate for the proxy. The direct read does not suffer that flaw.
+- The V1 proxy is retained as fallback, not removed, because a fresh session
+  or a client/provider failure has no completed assistant message to read.
+
+### Consequences
+
+- Restart-verify (F8) is PENDING: the change activates only after an OpenCode
+  restart loads the updated plugin.
+- Future context-usage work should start from the runtime surface (SDK token
+  data), not the proxy formula.
+
+### Metadata
+
+- Created: 2026-08-17
+- Related: DIA-191, commits a69cb45/5be1df1/b469791, delegation-observer.ts,
+  ana025, lessons L20260815-011.
+
+## ADR: OpenCode Go pricing/budgets are volatile - refresh model-registry.yaml with web-fresh research before every model-selection decision (DIA-208)
+
+### Status
+
+Accepted (2026-08-17, commits 1baee98f + bedfaddb + a7b9c21, res030).
+
+### Context
+
+DIA-208 compared archived OpenCode Go pricing (res013/res021, dated
+2026-08-12/13) against web-fresh research (res030, 2026-08-17) and found
+massive within-days deltas for the SAME model: deepseek-v4-flash price rose
+$0.14/$0.28 -> $0.22/$0.66 off-peak / $0.44/$1.32 peak (+57-371%), monthly
+request budget collapsed 158,150 -> 18,900 (-88%), usage bucket $60 -> $15,
+and the 2x promo was removed. This repositioned mimo-v2.5 (non-pro) as the
+volume king ($0.14/$0.28, 150,400 req/mo, $60 bucket) and drove the cebula
+preset swap. Availability also churns (models added/deprecated/renamed).
+
+### Decision
+
+OpenCode Go per-model pricing and request budgets change within days, not
+weeks. Before ANY model-selection decision (preset swap, escalation rebalance,
+model-registry.yaml edit), the governing data MUST be refreshed from
+web-fresh research (official docs opencode.ai/docs/go + models.dev + a
+community tracker) rather than trusted from archived conspects or the
+in-repo model-registry.yaml lookup table alone.
+
+### Rationale (irrecoverable context)
+
+- The archived data (res013/res021, days old) was materially wrong for
+  model-selection purposes by the time DIA-208 ran, yet nothing in git
+  signaled the drift - the pricing is external to the repo and only a live
+  web fetch detects it.
+- A stale lookup table silently steers a wrong (or merely outdated) model
+  choice, and the error is invisible in commits. This mirrors the earlier
+  model-window-drift lesson (2026-08-03): in-repo model metadata is not
+  authoritative without a verify-on-use step.
+
+### Consequences
+
+- model-registry.yaml entries that drive selection must record the research
+  date (res030: 2026-08-17) so staleness is visible.
+- Future preset/rebalance/model-selection work: fetch fresh pricing first,
+  then reference the dated conspect; do not reuse an undated prior finding.
+- The DIA-208 swap decision itself (Variant A, cebula -> opencode-go/mimo-v2.5)
+  is recoverable from the ticket (EBDV Variant A) and is NOT duplicated here.
+
+### Metadata
+
+- Created: 2026-08-17
+- Related: DIA-208, commits 1baee98f/bedfaddb/a7b9c21, res030/res013/res021,
+  model-registry.yaml, lessons L20260817-008.

@@ -294,3 +294,81 @@ Failed-loop lessons & preventive actions
   - Lesson: when a config payload is additive-by-design (permission allow/deny maps, deny-list baselines, appended section-10 CHANGELOG entries), tests must assert SUBSET-PRESENCE/INVARIANT contracts, not exact-string equality with the whole payload. Exact-string coupling turns a legitimate additive change into a spurious gate failure and masks invariant regressions. Update the test IN THE SAME change that expands the payload.
   - Why irrecoverable: the test diff (d18672b) shows the subset-presence arrays and the fix, but the process lesson - "exact-string coupling breaks on additive config growth; use invariant/subset-presence contracts and update the test atomically with the payload change" - is not stated in the commit.
   - Cross-reference: DIA-186 (fix commit d18672b), DIA-134 (baseline v1), .opencode/opencode-overnight.jsonc, scripts/__tests__/overnight.bats, adr.md DIA-186 ADRs.
+
+- Failure mode (2026-08-15, DIA-085 review falsification F-1 CRITICAL): delegation-observer.ts atomicWriteHandoff same-millisecond same-session archive collision - two terminal writes for the same sessionId within the same millisecond compute an identical archiveName, and POSIX rename silently REPLACES the first archived prognosis (design claim "both prognoses survive" and proposal claim "no prognosis ever silently lost" are BOTH falsified).
+  - Symptom: the DIA-085 implementation review found that the archive-file name derivation (delegation-observer.ts) keys on sessionId + a millisecond-resolution timestamp. Two terminal handoff writes for the same session within the same millisecond produce the identical archiveName. POSIX rename() onto an existing name atomically replaces it, so the first prognosis is silently destroyed - the exact "silent loss" the feature was designed to prevent.
+  - Root cause: archiveName uniqueness depends on millisecond resolution (or an equal sessionId + timestamp), which is not a uniqueness guarantee under same-millisecond double-fire. There is no monotonic counter / UUID / presence-check before rename.
+  - Current state: NOT yet live - the handoffs/ directory is absent (legacy current-handoff.json authoritative) - so there is still time to fix before activation.
+  - Preventive action: needs developer disposition (interactive review gate). Candidate fix: disambiguate archiveName with a monotonic counter or UUID suffix, or use write-if-absent (O_EXCL) semantics instead of rename-overwrite.
+  - Why irrecoverable: the review result is the ONLY record of this finding - it is not yet in any ticket or commit. The delegation-observer.ts source shows the rename logic but not the review's falsification verdict against the design/proposal claims.
+  - Cross-reference: DIA-085 (commit c966b8d), .opencode/plugins/delegation-observer.ts, repo.md parallel-handoff-slots-not-live entry.
+
+- Failure mode (2026-08-15, DIA-085 review falsification F-3 CRITICAL): slot identity `parentSessionId ?? lane_id ?? "unknown"` collapses parallel resumed-orchestrator sessions firing a terminal handoff before any task() dispatch into the same handoffs/unknown.json (last-writer-wins clobber - the exact class DIA-085 claims to eliminate).
+  - Symptom: for a freshly resumed parallel orchestrator session that fires a terminal handoff BEFORE any task() dispatch, both parentSessionId and lane_id are unset/undefined, so the slot identity falls through to the literal "unknown". Two such sessions write the same handoffs/unknown.json; the second silently clobbers the first.
+  - Root cause: the slot-identity fallback chain collapses distinct sessions onto a shared "unknown" key precisely when session context is minimal (pre-first-dispatch), which is a realistic state for resumed parallel orchestrators.
+  - Current state: NOT yet live - handoffs/ dir absent; legacy current-handoff.json authoritative - still time to fix before activation.
+  - Preventive action: needs developer disposition (interactive review gate). Candidate fix: use the actual sessionId as the last resort (or a per-write unique id) so two sessions never collide on "unknown".
+  - Why irrecoverable: review result is the ONLY record; the design's claim to eliminate last-writer-wins clobber is falsified by this case and the finding is not yet in any ticket/commit.
+  - Cross-reference: DIA-085 (commit c966b8d), .opencode/plugins/delegation-observer.ts slot-identity logic.
+
+- Failure mode (2026-08-15, DIA-085 review falsification F-2 MAJOR): scripts/validate-handoff.sh:122 uses GNU-only `find -printf` in a HOST-documented gate - make test-config runs on host per AGENTS.md section 6 - so it is silently dead on BSD/macOS hosts.
+  - Symptom: the DIA-085 review flagged validate-handoff.sh line 122 using `find -printf` (GNU find), which is not available on BSD/macOS find. Since make test-config is documented to run on the HOST (AGENTS.md section 6), a BSD/macOS host would silently skip/fail that check.
+  - Root cause: the script is written for GNU findportability while the host gate contract is platform-agnostic.
+  - Preventive action: needs developer disposition. Candidate fix: replace `find -printf` with a portable pattern (find + -print0 piped to a POSIX-compliant formatter, or a shell/python loop).
+  - Why irrecoverable: the review result is the ONLY record of this portability defect; it is not in any ticket/commit yet.
+  - Cross-reference: DIA-085, scripts/validate-handoff.sh:122, AGENTS.md section 6 (make test-config host gate).
+
+- Failure mode (2026-08-16, cod-12 merge-lane session error): the merge-lane
+  subagent (cod-12) errored and its session is not reusable per the job board.
+  - Symptom: cod-12 returned a session error with no partial work landed; git
+    state was clean.
+  - Root cause: the cod-12 session errored (job board marks errored sessions as
+    not reusable). Recovery via exact-instance resume is not possible for an
+    errored session.
+  - Recovery: verify-first read-only confirmed nothing was committed (git state
+    clean, WORK_LANDED: no); the fix was a FRESH dispatch with verify-first,
+    NOT a resume of the errored session.
+  - Preventive action: treat errored sessions as non-resumable per the job board;
+    dispatch a fresh lane with verify-first instead of attempting a resume.
+  - Why irrecoverable: the errored-session-not-reusable rule and the
+    fresh-dispatch recovery are operational knowledge not in any commit.
+  - Cross-reference: cod-12, DIA-099, resume-truncated-lane skill, 2026-08-16
+    merge lane.
+
+- Failure mode (2026-08-16, DIA-085 root-owned ticket file): a container-created
+  ticket file under docs/ landed as root:root on the host mount, so OpenCode's
+  OS-level write was denied; the lane copy-replaced it with a qualt-owned file to
+  unblock edits.
+  - Root cause: files created by processes running in the dev container (here the
+    DIA-085 ticket file) inherit container UID 0, and on the host bind mount they
+    appear root:root, which blocks the host-side editor/agent (qualt) from writing.
+  - Preventive action: when a lane reports a write-denied on a docs/ or
+    container-managed path, first check file ownership (`ls -l`); if root:root,
+    copy-replace to the dev user (chown/cp) before retrying the edit. Prefer
+    container hooks creating files to chown after creation. Distinct from the
+    pre-commit lint-staged flip (L20260815-014/015) but same ownership mechanism.
+  - Why irrecoverable: the ownership state (root:root) is runtime filesystem
+    state on the host mount, not reconstructible from git (which records content,
+    not inode ownership); the check-ownership-before-edit rule is operational.
+  - Cross-reference: DIA-085 ticket file, .opencode/memory/lessons.md
+    L20260815-014/015 (related root-flip), 2026-08-16.
+
+- Failure mode (2026-08-17, DIA-191): ai-specialist lane returned EMPTY
+  results 3 consecutive times (session-return failure signature)
+  - Symptom: the ai-specialist lane failed EMPTY 3x during DIA-191 Phase-1
+    research. Signature: the session STARTS and reads files, then returns an
+    EMPTY final result - a session-return failure, not a content failure, and
+    no endpoint error surfaced. The lane issue is systemic and not yet
+    diagnosed.
+  - Recovery: the research was routed to @coder as a substitute lane and
+    completed successfully (DIA-191 Phase-1 gate research).
+  - Preventive action: when a designated lane fails EMPTY 3x with the
+    session-return signature, route the work to a reliable substitute lane
+    (@coder for read-only research) rather than looping the same lane; file a
+    follow-up for the systemic lane diagnosis. Distinct from the
+    endpoint-outage variant (L20260816-006) and the model-level fix
+    (L20260817-004).
+  - Why irrecoverable: the failure signature and the routing decision are
+    runtime/session behavior, not reconstructible from commits.
+  - Cross-reference: DIA-191, L20260816-006, L20260817-004, DIA-099 (3-failure
+    cap), adr.md DIA-189 model-array fallback.

@@ -86,3 +86,8 @@ secrets/*
 
 # DIA-135 scratch dir (coders never need /tmp)
 .scratch/
+
+# BEGIN oh-my-opencode-slim worktrees
+.slim/worktrees/
+.slim/worktrees.json
+# END oh-my-opencode-slim worktrees
