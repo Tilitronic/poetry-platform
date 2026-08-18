@@ -223,8 +223,13 @@ At session start, the orchestrator MUST run the batch-approval gate BEFORE any
 delegation, tool call, or file read beyond the handoff file (NEXT-RUN.md §7.3, G1 — hard
 gate, no exceptions):
 
-1. **Check** for `.opencode/session/current-handoff.json` via direct `read()` and confirm it
-   contains a `prognosis` field with populated subsections.
+1. **Resolve the handoff via the DIA-085 resolution chain** (NEXT-RUN.md §1, §7.3 step 0):
+   (a) Read `.opencode/session/handoffs/active.json` to get `active_session_id`, then read
+   `.opencode/session/handoffs/<active_session_id>.json`;
+   (b) If active.json is missing/stale/mismatched, mtime-scan `handoffs/*.json` (exclude
+   `active.json`, `.reconciled`, `archive/`); if exactly 1 slot, use it;
+   (c) If `handoffs/` is empty, fall back to the legacy `.opencode/session/current-handoff.json`.
+   Confirm the resolved file contains a `prognosis` field with populated subsections.
 2. **Note checksum state (verification delegated, DIA-093).** The DIA-061 checksum is
    computed by a coder lane as lane-0 AFTER batch approval (step 7 below), not by the
    orchestrator (no bash tool by design). At this point only note the stored `checksum`
@@ -259,8 +264,10 @@ gate, no exceptions):
    skip to normal boot — no gate is needed.
 7. **LANE-0 CHECKSUM DELEGATION (automatic; no waiver menu; VERIFICATION ONLY — DIA-093,
    DIA-120).** Immediately after batch approval and BEFORE any verification_request item,
-   dispatch @coder on a single-task brief to compute the DIA-061 canonical checksum:
-   `jq -c '.prognosis | to_entries | sort_by(.key) | from_entries' .opencode/session/current-handoff.json | tr -d '\n' | sha256sum`
+    dispatch @coder on a single-task brief to compute the DIA-061 canonical checksum of the
+    RESOLVED SLOT (from step 1 — the slot `.opencode/session/handoffs/<session-id>.json`,
+    NOT the legacy file unless the chain fell back to it):
+    `jq -c '.prognosis | to_entries | sort_by(.key) | from_entries' <resolved-slot-path> | tr -d '\n' | sha256sum`
    The lane computes the canonical value for VERIFICATION ONLY — it MUST NOT write or edit
    the handoff file (the file is written SOLELY by the delegation-observer plugin via
    `log_decision(handoff, ..., JSON.stringify(prognosis))`; the plugin computes and stores
