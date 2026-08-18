@@ -1504,3 +1504,98 @@ recorded here). Irrecoverable process lessons:
   to be part of a broader systemic pattern), L20260816-006 (endpoint-outage
   variant), L20260817-004 (qwen3.7-plus model fallback), reviewer
   empty-result resume-exact-instance pattern (2026-08-06).
+
+## L20260817-009 - Orchestrator must pre-allocate res ID BEFORE dispatching researcher (DIA-212)
+
+- Observation: when dispatching @researcher for work requiring source capture,
+  the researcher cannot write to knowledge/ without a res ID path. Skipping
+  Phase 1 (ID pre-allocation) forces an extra dispatch cycle to retroactively
+  create the ID.
+- Lesson: always run Phase 1 (res ID pre-allocation) BEFORE dispatching
+  @researcher for research that needs source persistence. The autocrine gate
+  (DIA-211) was added as a soft gate (warn+allow) using the appendRow standard
+  writer; the warning is a signal that Phase 1 was skipped, not a blocker.
+  Hard gate deferred to Phase 3 YAML declarative rules.
+- Why irrecoverable: the dispatch-order dependency and the autocrine-gate design
+  choice (soft vs hard) are workflow decisions not stated in any commit; the
+  DIA-212 ticket records the fix but not the generalizable dispatch-order rule.
+- Cross-reference: DIA-211, DIA-212, adr.md ADR-007 (autocrine gate), repo.md
+  hook consolidation headers entry.
+
+## L20260817-010 - active.json must be written INSIDE the handoff success path to prevent split-brain state (DIA-211, 2026-08-17)
+
+- Observation: the DIA-211 Phase 2 implementation writes active.json (workflow
+  state hint) on terminal handoff. The critical ordering constraint: the
+  active.json write MUST execute only AFTER the handoff write succeeds. If
+  active.json is written outside the handoff success path (e.g. unconditionally
+  after the handoff call), a failed handoff leaves active.json pointing to a
+  next_agent/next_action that the handoff did not persist - a split-brain state
+  where the stigmergic choreography signal disagrees with the actual handoff.
+- Lesson: when writing multiple coordination artifacts (handoff + active state),
+  the state artifact must be gated on the handoff's success. The handoff is the
+  authoritative terminal event; active.json is a derived hint. If the handoff
+  fails, active.json must NOT be written (or must be rolled back).
+- Why irrecoverable: the write-ordering constraint is a correctness invariant for
+  the stigmergic choreography pattern, not visible in the code diff alone (which
+  shows the writes but not the ordering dependency). Split-brain state between
+  handoff and active.json would cause agents to navigate by a stale or incorrect
+  workflow hint.
+- Cross-reference: DIA-211, adr.md ADR-008 (stigmergic state), repo.md
+  active.json schema entry.
+
+## L20260817-011 - Adaptive performance routing tracks dispatch duration via pendingAdaptiveDispatches map (DIA-211, 2026-08-17)
+
+- Observation: adaptive performance routing tracks dispatch duration via a
+  pendingAdaptiveDispatches map, not a pre-start timer. Real duration is measured
+  on completion (completionTime - startTime), not at dispatch time. The map entry
+  is keyed by dispatch signature (agent + description hash or similar) and carries
+  the start timestamp; on task completion the elapsed time is computed and fed
+  into the EMA (exponential moving average) tracker.
+- Lesson: when implementing duration-based routing, measure wall-clock time from
+  dispatch to completion, not from an estimated/tplanned duration. The
+  pendingAdaptiveDispatches map pattern avoids timing drift from async dispatch
+  overhead.
+- Why irrecoverable: the duration-measurement pattern (pending map + completion
+  timestamp) is an implementation decision not visible in the code diff alone;
+  the diff shows the EMA computation but not the dispatch-to-completion timing
+  architecture.
+- Cross-reference: DIA-211, delegation-observer.ts adaptive routing module.
+
+## L20260817-012 - Circuit breaker recovery requires recovery_streak >= 3 consecutive successes; probe cooldown starts from failure time (DIA-211, 2026-08-17)
+
+- Observation: circuit breaker recovery requires recovery_streak >= 3 consecutive
+  successes to transition from OPEN back to CLOSED. The recovery probe cooldown
+  starts from failure time: last_probe is set to Date.now() on the OPEN
+  transition (when the circuit opens), not on each probe attempt. A recovery probe
+  fires only after 5 minutes from the OPEN transition.
+- Lesson: when implementing circuit breaker recovery, the cooldown timer must
+  anchor to the OPEN-transition time (when the circuit broke), not to each
+  individual probe attempt. This prevents rapid re-probing during the cooldown
+  window. The recovery_streak threshold of 3 is a starting heuristic; tune based
+  on observed false-positive rates.
+- Why irrecoverable: the cooldown-anchor design decision (failure-time vs
+  probe-time) and the recovery_streak threshold are implementation choices not
+  stated in any spec or ticket; they were settled during implementation based on
+  circuit breaker best practices.
+- Cross-reference: DIA-211, delegation-observer.ts circuit breaker recovery.
+
+## L20260817-013 - Resource pressure thresholds: 50% (YAGNI), 80% (block non-critical), 95% (block all); YAGNI must propagate to args.prompt, not local copy (DIA-211, 2026-08-17)
+
+- Observation: resource pressure adaptation uses three context_usage thresholds:
+  50% triggers YAGNI constraint append, 80% blocks non-critical dispatches,
+  95% blocks all dispatches. The YAGNI constraint MUST be propagated to
+  args.prompt (the dispatch payload that goes to the agent), not just set in a
+  local variable. A local-only copy of the YAGNI text would never reach the
+  agent and the constraint would be silently lost.
+- Lesson: when appending behavioral constraints under resource pressure, the
+  constraint text must be written into the actual dispatch payload (args.prompt)
+  that reaches the target agent. A local variable holding the constraint is
+  invisible to the agent and produces a silent no-op. The three thresholds
+  (50/80/95) are starting heuristics; tune based on observed agent behavior
+  under load.
+- Why irrecoverable: the propagation path (args.prompt vs local copy) is a
+  correctness invariant that was caught during ai-auditor review; the threshold
+  values and the YAGNI-propagation rule are design decisions not stated in any
+  spec.
+- Cross-reference: DIA-211, delegation-observer.ts resource pressure adaptation,
+  ai-auditor findings.

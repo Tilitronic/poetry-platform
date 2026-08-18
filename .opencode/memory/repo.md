@@ -211,3 +211,49 @@ Note: These are navigational facts to help future humans find the infra/test art
   pointer records the tool's semantics and the proxy-fallback split so future
   context-usage work starts from the runtime surface. Restart-verify (F8)
   pending - requires an OpenCode restart to activate.
+
+- delegation-observer.ts hook consolidation headers (DIA-211, 2026-08-17):
+  The plugin now has self-descriptive namespace section headers (JUXTACRINE,
+  PARACRINE, ENDOCRINE) organizing the hook consolidation. An autocrine gate at
+  ~line 1844 warns on researcher dispatch without a pre-allocated res ID (soft
+  gate: warn+allow, no hard block). The isPhaseA exception was removed;
+  appendRow is the standard writer. Three ai-auditor findings fixed: isPhaseA
+  exception removal, appendRow standardization, header accuracy. Biological
+  mechanism names (chemotaxis, hysteresis, etc.) were renamed to self-descriptive
+  terms per DIA-211 (e.g. "adaptive performance routing", "circuit breaker
+  recovery").
+
+- delegation-observer active.json stigmergic state (DIA-211 Phase 2, 2026-08-17):
+  - delegation-observer.ts now writes `.opencode/session/active.json` on
+    terminal handoff (event_type='handoff', resolution_status in terminal set).
+  - Schema: `{ schema_version: number, workflow_state: string, next_agent:
+    string, next_action: string, context: string, updated_at: string,
+    updated_by: string }`. Schema versioned (currently 1) for future evolution.
+  - Atomic write pattern: temp file + fsync + rename (prevents race conditions
+    from concurrent writes).
+  - Action map: review, implement, plan, research, analyze, investigate,
+    continue, escalate. Unknown actions treated as "continue" by consumers.
+  - active.json is a WORKFLOW STATE HINT, not a command. The handoff remains
+    authoritative; active.json is derived. Must be written INSIDE the handoff
+    success path (L20260817-010) to prevent split-brain state.
+  - File is gitignored (session-scoped ephemeral state).
+
+- delegation-observer.ts ADAPTIVE ROUTING MODULE (DIA-211 Phase 3b, 2026-08-17):
+  - Adaptive performance routing: epsilon-greedy selection over agent alternatives
+    based on EMA (exponential moving average) dispatch duration tracking.
+    Dispatch durations measured via pendingAdaptiveDispatches map (start timestamp
+    on dispatch, elapsed computed on completion).
+  - Circuit breaker recovery: per-agent circuit breaker with active/isolated
+    states. Recovery requires recovery_streak >= 3 consecutive successes. Recovery
+    probe cooldown 5 minutes, anchored to OPEN transition time (failure time).
+  - State files: `.opencode/session/adaptive-routing-state.json` (circuit breaker
+    + routing state) and `.opencode/session/adaptive-performance.json` (EMA
+    duration data). Backup: `.bak` files. All gitignored.
+
+- delegation-observer.ts RESOURCE PRESSURE ADAPTATION (DIA-211 Phase 3c, 2026-08-17):
+  - Three context_usage thresholds: 50% (append YAGNI constraint to dispatch
+    payload), 80% (block non-critical dispatches), 95% (block all dispatches).
+  - YAGNI constraint propagates to args.prompt (the dispatch payload that reaches
+    the agent), not a local variable. Local-only copies are invisible to agents.
+  - Critical dispatches (review, handoff) are never blocked; non-critical
+    dispatches (research, analysis) are blocked first under pressure.

@@ -870,6 +870,54 @@ not break the gate; removing or re-ordering an invariant rule does.
 - Created: 2026-08-15
 - Related: DIA-186, DIA-134, scripts/__tests__/overnight.bats,
   .opencode/opencode-overnight.jsonc
+
+## ADR-007: Autocrine gate for researcher dispatch (DIA-211/DIA-212)
+
+### Status
+
+Accepted - 2026-08-17
+
+### Context
+
+During DIA-211 Phase 1 (consolidation of delegation-observer hooks into biological
+namespace labels), the researcher dispatch path lacked a check for whether a res ID
+had been pre-allocated. The researcher cannot write to knowledge/ without a res ID
+path; dispatching without one forces an extra retroactive cycle. The question was
+whether to hard-block (gate) or soft-warn (autocrine) the dispatch.
+
+### Decision
+
+Adopt a soft gate (warn+allow) using the appendRow standard writer, with NO isPhaseA
+exception. The gate emits a warning row to registry.jsonl when a researcher is
+dispatched without a pre-allocated res ID, but allows the dispatch to proceed.
+
+### Rationale (irrecoverable context)
+
+- Fail-soft preserves backward compatibility: existing orchestrator flows that dispatch
+  researcher without Phase 1 pre-allocation continue to work; the warning surfaces the
+  gap without breaking the pipeline.
+- Hard gate deferred to Phase 3 YAML declarative rules: the full enforcement will be
+  declarative and rule-based once the Phase 3 rule engine is in place. The autocrine
+  gate is the Phase 1/2 bridge.
+- isPhaseA exception removed: the earlier exception allowed Phase A (ID allocation)
+  dispatches to bypass the gate, but this created an inconsistency. The standard
+  appendRow writer is the single code path; no special-casing.
+
+### Consequences
+
+- Orchestrators that skip Phase 1 will see a warning in registry.jsonl but the
+  dispatch will proceed. The warning is a signal, not a blocker.
+- Phase 3 will replace this with a declarative YAML rule that can enforce the gate
+  as a hard block when the rule engine is ready.
+- Three ai-auditor findings were fixed in this change: isPhaseA exception removed,
+  appendRow standardization, header accuracy.
+
+### Metadata
+
+- Created: 2026-08-17
+- Related: DIA-211, DIA-212, .opencode/plugins/delegation-observer.ts (biological
+  namespace section headers at ~line 1844), tests: make test-config 56 pass,
+  make test-shell 404 pass
 ## ADR: Codex/ClaudeCode client parity is UNVERIFIED - no .codex/ .claude/ configs exist (DIA-200)
 
 ### Status
@@ -1292,3 +1340,124 @@ in-repo model-registry.yaml lookup table alone.
 - Created: 2026-08-17
 - Related: DIA-208, commits 1baee98f/bedfaddb/a7b9c21, res030/res013/res021,
   model-registry.yaml, lessons L20260817-008.
+
+## ADR-008: Stigmergic State via active.json (DIA-211 Phase 2)
+
+### Status
+
+Accepted - 2026-08-17
+
+### Context
+
+DIA-211 Phase 2 introduced active.json as a workflow state hint written by the
+delegation-observer plugin on terminal handoff. The stigmergic choreography
+pattern means agents navigate by environment traces (artifacts left in the
+workspace) rather than direct commands. active.json is the primary such trace:
+it tells the next agent what state the workflow is in, what action to take,
+and which agent should act next.
+
+### Decision
+
+active.json is the workflow state hint, written atomically on terminal handoff
+only. Schema: `{ schema_version, workflow_state, next_agent, next_action,
+context, updated_at, updated_by }`. Atomic write pattern: temp file + fsync +
+rename. Action map covers: review, implement, plan, research, analyze,
+investigate, continue, escalate. Schema is versioned (schema_version: 1) for
+future evolution.
+
+### Rationale (irrecoverable context)
+
+- Stigmergic choreography enables decentralized coordination: agents read the
+  environment state and decide their own next action, rather than being
+  dispatched via explicit commands. This reduces orchestrator coupling and
+  enables autonomous overnight runs.
+- active.json is a HINT, not a command. Agents may ignore it if the workspace
+  state has changed since the hint was written. The handoff remains the
+  authoritative terminal event; active.json is derived from it.
+- Atomic write (temp + fsync + rename) prevents race conditions when multiple
+  agents or plugin hooks write concurrently. A partial write would leave a
+  corrupt state file that the next agent reads.
+- Schema versioning allows future evolution without breaking existing consumers.
+  The version field enables migration logic when the schema changes.
+
+### Consequences
+
+- active.json must be written INSIDE the handoff success path (see
+  L20260817-010). A failed handoff must not leave active.json pointing to a
+  non-existent handoff.
+- The action map is extensible but must be updated in the plugin code, not in
+  the consumer. Consumers should treat unknown actions as "continue".
+- active.json is gitignored (session-scoped ephemeral state) and not part of
+  the repository history.
+
+### Metadata
+
+- Created: 2026-08-17
+- Related: DIA-211, DIA-212, .opencode/plugins/delegation-observer.ts,
+  .opencode/session/active.json, lessons L20260817-010
+
+## ADR-009: Adaptive Performance Routing + Circuit Breaker + Resource Pressure (DIA-211 Phase 3)
+
+### Status
+
+Accepted - 2026-08-17
+
+### Context
+
+DIA-211 Phase 3 introduced three interrelated mechanisms into the
+delegation-observer plugin to improve dispatch routing under real-world
+conditions:
+
+1. **Adaptive performance routing (Phase 3b):** epsilon-greedy selection over
+   agent alternatives based on EMA (exponential moving average) duration tracking.
+   Dispatch durations are measured via a pendingAdaptiveDispatches map (start
+   timestamp on dispatch, elapsed computed on completion).
+
+2. **Circuit breaker recovery (Phase 3b):** per-agent circuit breaker with
+   active/isolated states. Recovery requires recovery_streak >= 3 consecutive
+   successes. Recovery probe cooldown is 5 minutes, anchored to the OPEN
+   transition time (failure time), not per-probe.
+
+3. **Resource pressure adaptation (Phase 3c):** three context_usage thresholds
+   (50% YAGNI constraint append, 80% non-critical dispatch block, 95% all
+   dispatch block). YAGNI constraint propagates to args.prompt (the dispatch
+   payload), not a local variable.
+
+### Decision
+
+Implement all three mechanisms as in-memory state with debounced async write to
+persistent state files. No external dependencies. State files:
+adaptive-routing-state.json, adaptive-performance.json, with .bak backup.
+
+### Rationale (irrecoverable context)
+
+- Plugin API limits: the delegation-observer plugin cannot directly spawn agents
+  or hook into agent lifecycle events. It can only observe dispatches and modify
+  dispatch payloads. In-memory state is sufficient for routing heuristics that
+  operate within a single plugin lifecycle.
+- Debounced async write reduces I/O overhead: writing state files on every
+  dispatch would create excessive filesystem churn. Debouncing (writing after a
+  short delay with no further mutations) reduces writes while keeping state
+  reasonably fresh.
+- The three thresholds (50/80/95%) and the recovery_streak threshold (3) are
+  starting heuristics, not derived from formal analysis. They are expected to be
+  tuned based on observed agent behavior under load.
+- YAGNI propagation to args.prompt (not local copy) was an ai-auditor finding:
+  a local variable holding the constraint text is invisible to the agent and
+  produces a silent no-op.
+
+### Consequences
+
+- Routing decisions are best-effort heuristics, not guarantees. Agents may still
+  fail or perform poorly despite adaptive routing.
+- Circuit breaker recovery is conservative (3 consecutive successes required)
+  to avoid flapping between active and isolated states.
+- Resource pressure thresholds are tunable; the initial values are documented
+  in the plugin source and can be adjusted without architectural changes.
+- State files are gitignored (session-scoped ephemeral state).
+
+### Metadata
+
+- Created: 2026-08-17
+- Related: DIA-211, DIA-212, .opencode/plugins/delegation-observer.ts,
+  lessons L20260817-011, L20260817-012, L20260817-013

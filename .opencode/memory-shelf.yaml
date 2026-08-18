@@ -324,6 +324,17 @@ shelf:
       to event-driven orchestration patterns in AI agent systems.
     path: knowledge/res031-intercellular-communication/res031-intercellular-communication-conspect.md
     created: 2026-08-17
+  - name: Bio-mechanisms Architecture Patterns (biological system mechanisms as software design principles)
+    description: Conspect on biological system mechanisms and their mapping to software
+      architecture patterns and design principles.
+    path: knowledge/res032-bio-mechanisms-architecture-patterns/res032-bio-mechanisms-architecture-patterns-conspect.md
+    created: 2026-08-17
+  - name: Agent Determinism (state machines, contracts, message passing, circuit breakers,
+      formal verification)
+    description: Conspect on agent determinism patterns including state machines, contracts,
+      message passing, circuit breakers, and formal verification.
+    path: knowledge/res033-agent-determinism/res033-agent-determinism-conspect.md
+    created: 2026-08-17
 
   analyses:
   - name: Agent Alignment Audit
@@ -590,6 +601,14 @@ shelf:
     path: knowledge/ana022-worktree-mechanism-analysis/ana022-worktree-mechanism-analysis-report.md
     created: 2026-08-14
     task_ref: DIA-200
+  - name: Bio-Agent Determinism Links (biological mechanisms mapped to agent determinism patterns)
+    description: "Analysis mapping biological mechanisms to agent determinism patterns.
+      Explores parallels between cellular signaling, homeostasis, quorum sensing,
+      circadian rhythms, and evolutionary strategies with deterministic agent behaviors
+      such as state machines, contracts, message passing, circuit breakers, and formal
+      verification."
+    path: knowledge/ana024-bio-agent-determinism-links/ana024-bio-agent-determinism-links-report.md
+    created: 2026-08-17
   adrs:
   - name: Memory Storage Strategy
     description: 'Evaluation of Claude-Mem, Honcho, and current hand-written memory
