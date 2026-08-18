@@ -91,7 +91,6 @@ collect_node() {
   for d in /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack \
            /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/corepack \
            /usr/local/lib/node_modules/pnpm /usr/local/lib/node_modules/bun \
-           /usr/local/lib/node_modules/@tarquinen/opencode-dcp \
            /usr/local/lib/node_modules/@fission-ai/openspec; do
     [ -e "$d" ] && cp_with_parents "$d"
   done

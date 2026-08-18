@@ -24,7 +24,6 @@
   "plugin": [
     "oh-my-opencode-slim@2.2.14",
     "envsitter-guard@0.0.4",
-    "opencode-telemetry@0.1.19",
-    "@tarquinen/opencode-dcp@3.1.14"
+    "opencode-telemetry@0.1.19"
   ]
 }

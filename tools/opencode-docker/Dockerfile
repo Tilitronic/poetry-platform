@@ -7,7 +7,6 @@ ARG OPENCODE_VERSION=1.18.4
 ARG PNPM_VERSION=10.33.0
 ARG BUN_VERSION=1.3.14
 ARG SNIP_VERSION=0.22.0  # standalone CLI binary — different artifact from @yelling_mimic/opencode-snip plugin
-ARG DCP_VERSION=3.1.14
 ARG OPENSPEC_VERSION=1.7.0
 
 ENV DEBIAN_FRONTEND=noninteractive
@@ -48,7 +47,7 @@ RUN echo "Installing OpenCode version: ${OPENCODE_VERSION}" && \
     rm -f /tmp/install-opencode.sh && \
     install -m 0755 /root/.opencode/bin/opencode /usr/local/bin/opencode
 
-RUN npm install -g pnpm@${PNPM_VERSION} bun@${BUN_VERSION} @tarquinen/opencode-dcp@${DCP_VERSION} @fission-ai/openspec@${OPENSPEC_VERSION}
+RUN npm install -g pnpm@${PNPM_VERSION} bun@${BUN_VERSION} @fission-ai/openspec@${OPENSPEC_VERSION}
 
 # Install mise v2026.8.0 — JS tool manager (replaces Volta; DIA-030 closure)
 # SEC-DOCKER-001: SHA256-verified against the upstream SHASUMS256.txt manifest
