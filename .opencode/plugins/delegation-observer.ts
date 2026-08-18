@@ -1191,9 +1191,10 @@ const delegationObserver: Plugin = async (ctx) => {
     // process-level capture would attribute every row of a
     // multi-orchestrator-session process to the FIRST orchestrator, making
     // context_usage report the wrong session (DIA-080 review nit). Fallbacks:
-    // parentSessionId (best effort before tool context) then "unknown", which
-    // is the same key context_usage reads when called that early.
-    const writerSession = sessionID ?? parentSessionId ?? "unknown"
+    // parentSessionId (best effort before tool context). At least one of
+    // sessionID/parentSessionId is always set when appendMessageRow is called;
+    // the cast is safe and avoids "unknown" key collisions.
+    const writerSession = (sessionID ?? parentSessionId) as string
     sessionMessageCount.set(
       writerSession,
       (sessionMessageCount.get(writerSession) ?? 0) + 1
@@ -1350,7 +1351,7 @@ const delegationObserver: Plugin = async (ctx) => {
     let archivedPrior: string | null = null
     if (existsSync(slotPath)) {
       const iso = new Date().toISOString().replace(/:/g, "-")
-      const archiveName = `${sessionId}.${iso}.json`
+      const archiveName = `${sessionId}.${iso}.${randomUUID()}.json`
       try {
         renameSync(slotPath, join(handoffArchiveDir, archiveName))
         archivedPrior = `archive/${archiveName}`
@@ -3302,7 +3303,7 @@ const delegationObserver: Plugin = async (ctx) => {
                 },
               }
               const apoptosisSessionId =
-                parentSessionId ?? sessionID ?? "unknown"
+                parentSessionId ?? sessionID ?? "unidentified-session"
               atomicWriteHandoff(handoffContent, apoptosisSessionId)
             } catch (err) {
               console.warn(
@@ -3509,7 +3510,7 @@ const delegationObserver: Plugin = async (ctx) => {
                 },
               }
               const apoptosisSessionId =
-                parentSessionId ?? sessionID ?? "unknown"
+                parentSessionId ?? sessionID ?? "unidentified-session"
               atomicWriteHandoff(handoffContent, apoptosisSessionId)
             } catch (err) {
               console.warn(
@@ -3734,13 +3735,15 @@ const delegationObserver: Plugin = async (ctx) => {
               const status =
                 statusMap[args.resolution_status] ?? "manual-halt"
               const checksum = computeChecksum(prognosis)
-              // DIA-085: the session identity becomes the SLOT identity - the
-              // same resolution as before (parentSessionId ?? lane_id ??
-              // "unknown"), now passed to atomicWriteHandoff as the slot
-              // selector so parallel orchestrator sessions never clobber each
-              // other's handoff file.
+              // DIA-085: the session identity becomes the SLOT identity -
+              // parentSessionId ?? lane_id ?? context?.sessionID, now passed
+              // to atomicWriteHandoff as the slot selector so parallel
+              // orchestrator sessions never clobber each other's handoff file.
+              // DIA-222 F-3: replaced "unknown" sentinel with
+              // context?.sessionID then "unidentified-session" to prevent
+              // parallel pre-dispatch sessions from collapsing.
               const handoffSessionId =
-                parentSessionId ?? args.lane_id ?? "unknown"
+                parentSessionId ?? args.lane_id ?? context?.sessionID ?? "unidentified-session"
               writeResult = atomicWriteHandoff(
                 {
                   status,
@@ -3940,12 +3943,12 @@ const delegationObserver: Plugin = async (ctx) => {
           // captured at the first task() dispatch: with multiple orchestrator
           // sessions in one process, the sticky capture would report the
           // FIRST orchestrator's counts (DIA-080 review nit). parentSessionId
-          // remains as a pre-context fallback, then "unknown" for pre-session
-          // calls. The council scope keeps the file-derived path: agent
-          // attribution lives only in the logs / childSessionAgent, so it
-          // cannot come from counters.
+          // remains as a pre-context fallback, then "unidentified-session"
+          // for pre-session calls. The council scope keeps the file-derived
+          // path: agent attribution lives only in the logs / childSessionAgent,
+          // so it cannot come from counters.
           const callingSession =
-            context?.sessionID ?? parentSessionId ?? "unknown"
+            context?.sessionID ?? parentSessionId ?? "unidentified-session"
 
           let delegationCount: number
           let messageCount = 0
