@@ -792,6 +792,19 @@ const delegationObserver: Plugin = async (ctx) => {
   // that completed with no file edits (empty result signal D1/D2/D5).
   const sessionEditCount = new Map<string, number>()
 
+  // DIA-225: per-lane failure counter for consecutive empty results.
+  // Keyed by session_id (child session that completed with zero edits).
+  // On each SILENT_FAILURE detection, the counter increments. At 3
+  // consecutive failures within a 10-minute cooldown window, a warning
+  // event is emitted. Counter resets on non-empty result or cooldown
+  // expiry. WARNING ONLY -- never auto-dispatch or auto-block.
+  const failureCap = new Map<
+    string,
+    { count: number; firstFailure: number }
+  >()
+  const FAILURE_CAP_THRESHOLD = 3
+  const FAILURE_CAP_COOLDOWN_MS = 600_000 // 10 minutes
+
   // DIA-211 Phase 3b: pending adaptive-dispatch tracking (callId -> {agentId, start}).
   // Populated in tool.execute.before, consumed in tool.execute.after.
   const pendingAdaptiveDispatches = new Map<
@@ -3449,6 +3462,40 @@ const delegationObserver: Plugin = async (ctx) => {
               },
               sessionMeta.get(sessionID)?.parentID
             )
+
+            // DIA-225: failure cap -- track consecutive empty results per lane.
+            // If the cooldown window expired, reset before incrementing so
+            // stale failures do not accumulate across long gaps.
+            const now = Date.now()
+            const prev = failureCap.get(sessionID)
+            if (prev && now - prev.firstFailure > FAILURE_CAP_COOLDOWN_MS) {
+              failureCap.delete(sessionID)
+            }
+            const entry = failureCap.get(sessionID) ?? {
+              count: 0,
+              firstFailure: now,
+            }
+            entry.count += 1
+            failureCap.set(sessionID, entry)
+
+            if (entry.count >= FAILURE_CAP_THRESHOLD) {
+              appendMessageRow(
+                {
+                  "gen_ai.operation.name": "failure_cap_reached",
+                  "gen_ai.agent.name":
+                    childSessionAgent.get(sessionID) ?? "subagent",
+                  from: "orchestrator",
+                  event_type: "crisis",
+                  task_ref: `failure cap reached: ${entry.count} consecutive empty results from lane ${sessionID}`,
+                  resolution_status: "in-flight",
+                  "gen_ai.agent.id": sessionID,
+                },
+                sessionMeta.get(sessionID)?.parentID
+              )
+            }
+          } else {
+            // DIA-225: non-empty result resets the failure cap counter.
+            failureCap.delete(sessionID)
           }
           // Clean up edit counter for completed sessions.
           sessionEditCount.delete(sessionID)
