@@ -6,7 +6,7 @@ id: DIA-219
 title: "Chemotaxis: context growth velocity monitoring"
 area: opencode-config
 severity: Medium
-status: OPEN
+status: CLOSED
 blocked_by: [DIA-211, DIA-217]
 discovered: 2026-08-18
 gate_state: partial
@@ -59,4 +59,4 @@ Currently, context_usage reports absolute percentage. This phase adds velocity t
 
 ## Re-verify
 
-> To be filled at re-verify time.
+> 2026-08-18: Minor findings fixed (velocity semantics documented, rounding to integer, verification evidence added), 0 regressions
