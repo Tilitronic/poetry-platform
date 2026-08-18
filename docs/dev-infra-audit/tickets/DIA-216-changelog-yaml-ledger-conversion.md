@@ -13,7 +13,7 @@ source: handoff-followup
 date: 2026-08-18
 created: 2026-08-18
 updated: 2026-08-18
-gate_state: "pending"
+gate_state: "partial"
 gate_triggers: [schema-state]
 
 # --- Session Attribution (v2 schema, optional) ---
