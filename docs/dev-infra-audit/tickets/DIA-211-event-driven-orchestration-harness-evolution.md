@@ -63,15 +63,77 @@ once the architectural plan is approved.
 
 Acceptance criteria at fix time:
 
-- [ ] Teaching conspect updated with event-driven orchestration section
-- [ ] Biological signal taxonomy research artifact produced
-- [ ] Current harness signal mapping analysis completed
+- [x] Teaching conspect updated with event-driven orchestration section
+- [x] Biological signal taxonomy research artifact produced
+- [x] Current harness signal mapping analysis completed
 - [ ] Evolution phases architectural plan documented and reviewed
+- [x] Architectural plan produced by @architector
 
 ## Fix
 
-> To be filled at fix time.
+### Architectural Plan: Event-Driven Orchestration Harness Evolution
+
+#### 1. Biological Signal Mapping
+
+| Biological Pattern                   | Harness Component                   | Concrete Change                                                                                                                                               |
+| :----------------------------------- | :---------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Juxtacrine** (direct contact)      | DIA-063 Ticket Gate & Boot Gate     | Hard-block subagent init if JSON payload lacks valid ticket_id via synchronous `dispatch.before` hook                                                         |
+| **Negative Feedback** (control loop) | Tool Execution & Retry Loops        | 3-state Circuit Breaker (CLOSED/OPEN/HALF_OPEN) for tool.execute.after; 3 errors in rolling window of 5 calls → circuit OPEN → force fallback to orchestrator |
+| **Apoptosis** (graceful shutdown)    | Truncated Subagent (DIA-099)        | Dual-key self-termination: fatal state AND session.idle → autonomous log_decision(handoff) + worktree cleanup + exit                                          |
+| **Chemotaxis** (change detection)    | Context Usage Estimation            | Track velocity of context growth (+15% per cycle → early compaction/crisis), not just absolute threshold                                                      |
+| **Paracrine** (local event bus)      | Semantic Event Log (messages.jsonl) | Emit discrete state changes (build.passed, tests.failed) for orchestrator to drive next dispatch                                                              |
+| **Synapse** (saga/event chain)       | Batch-D Serialized Merge            | Compensating actions: post-merge test failure → auto-drop worktree + restore baseline                                                                         |
+
+#### 2. Phased Evolution Plan
+
+**Phase 1: Juxtacrine Ticket & Boot Gates**
+
+- Harden DIA-063/DIA-061 via synchronous plugin hooks
+- Modify delegation-observer to intercept dispatch.before
+- Test: make test-config with mock dispatch lacking ticket → expect exit 1
+
+**Phase 2: Negative Feedback Circuit Breakers**
+
+- Stop infinite agent error loops
+- CircuitBreaker module tracking tool.execute.error in sliding window
+- Test: simulate 4 sequential bash errors → 4th call emits circuit.open
+
+**Phase 3: Chemotaxis Context Velocity**
+
+- Proactive context management via delta
+- Enhance context_usage to return velocity_percent_per_cycle
+- Test: feed 50K token read → assert crisis threshold tripped
+
+**Phase 4: Apoptosis & Paracrine Handoffs**
+
+- Clean shutdown of stranded worktrees/parallel coders
+- Dual-key: circuit.open AND session.error → auto handoff + worktree remove
+- Test: spawn Batch-D coder, force failure → verify worktree deleted + handoff written
+
+#### 3. Priority Ranking
+
+1. High value/low effort: Juxtacrine hooks (prevents wasted tokens)
+2. High value/medium effort: Circuit Breaker (reduces agent looping)
+3. Medium value/medium effort: Apoptosis + Chemotaxis
+4. Low value (YAGNI risk): Saga for merges (use bash trap instead)
+
+#### 4. Anti-Patterns Rejected
+
+- **Endocrine (global brokers):** No Kafka/RabbitMQ — registry.jsonl is sufficient
+- **Autocrine loops:** Self-prompting must have hard circuit breaker limits
+- **Electrical (shared memory):** Agents communicate via narrow signals (JSON handoffs), not raw LLM context
+- **Quorum sensing for trivial logic:** Council reserved for high-stakes irreversible actions only
 
 ## Re-verify
 
 > To be filled at re-verify time.
+
+---
+
+## UPDATE 2026-08-18
+
+Architectural plan has been produced by @architector. The plan maps biological
+signal patterns (juxtacrine, negative feedback, apoptosis, chemotaxis,
+paracrine, synapse) to concrete harness components and defines a 4-phase
+evolution approach. Research artifacts (items 1-3) verified complete.
+Architecture review (item 4) pending.
