@@ -540,6 +540,130 @@ function isSafeTaskBatch(
   return false
 }
 
+// === DIA-218: Tool-level circuit breaker (CLOSED/OPEN/HALF_OPEN) ===
+//
+// Tracks per-session tool execution errors in a sliding window. Trips to
+// OPEN after 3 errors in the last 5 calls, blocking further dispatches
+// for that session. Recovery: after a 5-minute cooldown, allows 1 test
+// call (HALF_OPEN); success -> CLOSED, failure -> back to OPEN.
+//
+// Biological equivalent: nociceptive reflex -- local pain signal that
+// blocks further刺激 until the tissue recovers.
+//
+// This is DISTINCT from the adaptive routing circuit breaker (DIA-211
+// Phase 3b) which tracks task-level completion. This breaker tracks
+// per-tool execution errors at a finer granularity.
+
+const CB_WINDOW_SIZE = 5
+const CB_ERROR_THRESHOLD = 3
+const CB_COOLDOWN_MS = 5 * 60 * 1000 // 5 minutes
+
+type CircuitState = "CLOSED" | "OPEN" | "HALF_OPEN"
+
+interface CircuitBreakerEntry {
+  state: CircuitState
+  /** Sliding window of booleans: true = error, false = success. */
+  window: boolean[]
+  /** Timestamp when the circuit tripped to OPEN (for cooldown). */
+  openedAt: number
+  /** True when a test call has been allowed in HALF_OPEN (only 1 allowed). */
+  testCallMade: boolean
+}
+
+class ToolCircuitBreaker {
+  /** Per-session circuit state, keyed by session_id. */
+  private circuits = new Map<string, CircuitBreakerEntry>()
+
+  private getEntry(sessionId: string): CircuitBreakerEntry {
+    let entry = this.circuits.get(sessionId)
+    if (!entry) {
+      entry = { state: "CLOSED", window: [], openedAt: 0, testCallMade: false }
+      this.circuits.set(sessionId, entry)
+    }
+    return entry
+  }
+
+  /**
+   * Record a tool execution result. Returns the new state.
+   * On error: appends true to the window; on success: appends false.
+   * Trips to OPEN when CB_ERROR_THRESHOLD errors appear in the last
+   * CB_WINDOW_SIZE calls.
+   */
+  record(sessionId: string, isError: boolean): CircuitState {
+    const entry = this.getEntry(sessionId)
+
+    // If currently OPEN, check cooldown.
+    if (entry.state === "OPEN") {
+      if (Date.now() - entry.openedAt >= CB_COOLDOWN_MS) {
+        entry.state = "HALF_OPEN"
+        entry.testCallMade = false
+        // Allow exactly 1 test call -- don't add to window yet.
+      } else {
+        return entry.state
+      }
+    }
+
+    // HALF_OPEN: this is the test call. Record result and decide.
+    if (entry.state === "HALF_OPEN") {
+      entry.testCallMade = false
+      if (isError) {
+        // Test call failed -> back to OPEN, reset cooldown.
+        entry.state = "OPEN"
+        entry.openedAt = Date.now()
+        entry.window.push(true)
+        if (entry.window.length > CB_WINDOW_SIZE) entry.window.shift()
+      } else {
+        // Test call succeeded -> back to CLOSED.
+        entry.state = "CLOSED"
+        entry.window = []
+      }
+      return entry.state
+    }
+
+    // CLOSED: record and check threshold.
+    entry.window.push(isError)
+    if (entry.window.length > CB_WINDOW_SIZE) entry.window.shift()
+
+    const errorCount = entry.window.filter(Boolean).length
+    if (errorCount >= CB_ERROR_THRESHOLD) {
+      entry.state = "OPEN"
+      entry.openedAt = Date.now()
+    }
+
+    return entry.state
+  }
+
+  /**
+   * Try to pass through the circuit breaker. Returns true if the dispatch
+   * should be BLOCKED (circuit is OPEN and not yet in HALF_OPEN test-call
+   * slot), false if allowed. Side effect: transitions OPEN -> HALF_OPEN
+   * and marks testCallMade so only ONE test call gets through.
+   */
+  tryPass(sessionId: string): boolean {
+    const entry = this.circuits.get(sessionId)
+    if (!entry) return false
+    // Check cooldown expiry.
+    if (entry.state === "OPEN" && Date.now() - entry.openedAt >= CB_COOLDOWN_MS) {
+      entry.state = "HALF_OPEN"
+      entry.testCallMade = false
+    }
+    // BLOCK if OPEN (cooldown not expired) or if HALF_OPEN test call already used.
+    if (entry.state === "OPEN") return true
+    if (entry.state === "HALF_OPEN" && entry.testCallMade) return true
+    if (entry.state === "HALF_OPEN") {
+      entry.testCallMade = true
+      return false
+    }
+    return false
+  }
+
+  /** Get the current state of a session's circuit. */
+  getState(sessionId: string): CircuitState {
+    const entry = this.circuits.get(sessionId)
+    return entry?.state ?? "CLOSED"
+  }
+}
+
 const delegationObserver: Plugin = async (ctx) => {
   // DIA-123: capture the process-start timestamp FIRST — before any file I/O —
   // so the boot event carries the plugin-load (≈ process start) time, not the
@@ -1614,6 +1738,9 @@ const delegationObserver: Plugin = async (ctx) => {
     saveRoutingState()
   }
 
+  // DIA-218: tool-level circuit breaker (CLOSED/OPEN/HALF_OPEN).
+  const toolCircuitBreaker = new ToolCircuitBreaker()
+
   // Load bio-state at startup
   loadRoutingState()
 
@@ -2166,9 +2293,30 @@ const delegationObserver: Plugin = async (ctx) => {
       // DIA-211 Phase 3b: adaptive-routing dispatch gate (scope exemption,
       // idempotency, critical-health). Runs before section-10 and ticket gates.
       // DIA-211 Phase 3c: resource pressure adaptation runs BEFORE adaptive
-      // dispatch — it may modify the prompt (YAGNI constraints) or throw
+      // dispatch -- it may modify the prompt (YAGNI constraints) or throw
       // (critical pressure blocks non-critical dispatches).
       if (input.tool === "task") {
+        // === DIA-218: Circuit breaker gate ===
+        // When the circuit for this session is OPEN, block the dispatch to
+        // prevent infinite error loops. The circuit opens after 3 errors in
+        // the last 5 tool calls (sliding window) and stays open for a
+        // 5-minute cooldown before allowing a single test call.
+        if (toolCircuitBreaker.tryPass(input.sessionID)) {
+          appendRow({
+            event: "circuit_blocked",
+            session_id: input.sessionID,
+            subagent_type: taskSubagent ?? "",
+            dispatch_state: "circuit_blocked",
+            detail: "task() dispatch blocked: circuit breaker OPEN for this session",
+            writer: "plugin",
+          })
+          throw new Error(
+            "CIRCUIT_BREAKER: task() dispatch blocked -- too many recent tool errors.\n" +
+              "Circuit is OPEN for this session. Wait for cooldown or escalate to orchestrator.\n" +
+              "Action: investigate the root cause of recent tool failures, then retry."
+          )
+        }
+
         const bioPrompt =
           typeof taskArgRecord.prompt === "string" ? taskArgRecord.prompt : ""
         const bioDescription =
@@ -2555,6 +2703,39 @@ const delegationObserver: Plugin = async (ctx) => {
     "tool.execute.after": async (input, output) => {
       // Reset the per-session turn-tracking list (message-boundary heuristic).
       turnToolCalls.delete(input.sessionID)
+
+      // === DIA-218: Tool-level circuit breaker error tracking ===
+      // Detect tool execution errors and feed the circuit breaker. An error
+      // is: (a) for task() calls, the output does NOT match the completed
+      // state regex; (b) for all other tools, an empty or missing output
+      // indicates failure. The circuit breaker tracks a sliding window of
+      // the last CB_WINDOW_SIZE calls per session.
+      {
+        const text = typeof output?.output === "string" ? output.output : ""
+        let isError: boolean
+        if (input.tool === "task") {
+          // task() success is detected by the state attribute in the output.
+          isError = !/state\b\s*[:=]\s*["']?completed["']?/i.test(text)
+        } else {
+          // Non-task tools: empty output = likely error (tool produced
+          // nothing). Non-empty = likely success. This is a heuristic --
+          // some tools legitimately return empty on success, but the
+          // circuit breaker is a safety net, not a precision instrument.
+          isError = text.trim().length === 0
+        }
+        const newState = toolCircuitBreaker.record(input.sessionID, isError)
+        if (newState === "OPEN") {
+          // Emit a circuit_open registry row so the event is traceable.
+          appendRow({
+            event: "circuit_open",
+            session_id: input.sessionID,
+            tool: input.tool,
+            status: "OPEN",
+            note: `circuit breaker tripped after ${CB_ERROR_THRESHOLD} errors in last ${CB_WINDOW_SIZE} calls`,
+            writer: "plugin",
+          })
+        }
+      }
 
       // §10 gate token: log_decision events with event_type "gate-token"
       // write or clear the @ai-specialist gate review token file.
