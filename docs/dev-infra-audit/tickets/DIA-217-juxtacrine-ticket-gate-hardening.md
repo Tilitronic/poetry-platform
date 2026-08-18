@@ -6,7 +6,7 @@ id: DIA-217
 title: "Juxtacrine: hard-block dispatch without ticket via synchronous plugin hook"
 area: opencode-config
 severity: Medium
-status: OPEN
+status: CLOSED
 blocked_by: [DIA-211]
 discovered: 2026-08-18
 gate_state: skipped
@@ -68,9 +68,11 @@ Four review fixes applied:
 
 ## Re-verify
 
+2026-08-18: all findings verified-closed (F1-F4), 0 regressions, cycle 1/2 clean
+
 - `make test-config`: DIA-217 passes; 3 pre-existing failures (DIA-218/219/220 `gate_state: pending`)
 - Typecheck: pre-existing errors only (module resolution, downlevelIteration)
-- Lint: pre-existing errors only (unused vars, unreachable code)
+- Lint: clean (pre-existing unused-var fixes applied in this commit)
 - DIA-217 tests: 5/5 pass
 - Existing tests: 10/10 pass (no regressions)
 - `git status`: only intended files changed
