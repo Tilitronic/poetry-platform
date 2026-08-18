@@ -6,7 +6,7 @@ id: DIA-218
 title: "Negative Feedback: circuit breaker on tool execution errors"
 area: opencode-config
 severity: Medium
-status: OPEN
+status: CLOSED
 blocked_by: [DIA-211, DIA-217]
 discovered: 2026-08-18
 gate_state: partial
@@ -58,4 +58,4 @@ Phase 2 of DIA-211 harness evolution. Implement a 3-state Circuit Breaker (CLOSE
 
 ## Re-verify
 
-> To be filled at re-verify time.
+2026-08-18: all findings verified-closed (F1-F3), 0 regressions, cycle 2/2 clean
