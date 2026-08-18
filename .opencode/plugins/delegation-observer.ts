@@ -766,6 +766,12 @@ const delegationObserver: Plugin = async (ctx) => {
   const sessionDelegationCount = new Map<string, number>()
   const sessionMessageCount = new Map<string, number>()
 
+  // DIA-219: per-session context growth velocity tracking. Stores the last
+  // usage_fraction reported for each session so the next context_usage call
+  // can compute delta (velocity). Keys match the callingSession used by
+  // sessionDelegationCount/sessionMessageCount (the orchestrator's own session).
+  const lastContextUsage = new Map<string, number>()
+
   // Child session id (task_id) -> agent name captured at dispatch. Enriches
   // completion/failure messages rows with the actual delegated agent.
   const childSessionAgent = new Map<string, string>()
@@ -3597,7 +3603,7 @@ const delegationObserver: Plugin = async (ctx) => {
       // (campaign-critical state loss).
       context_usage: tool({
         description:
-          "Estimate context-window usage for the current session. Returns JSON with usage fraction, delegation counts, and optional council-scoped breakdown. PRIMARY: direct live read of the last completed assistant message's tokens (input + output + reasoning + cache.read + cache.write) divided by the model's context limit — token-accurate, same computation as the TUI, compaction-aware. FALLBACK (fresh session with no completed assistant message, or client-call failure): registry.jsonl activity-signal proxy. NOTE (scope semantics): usage_fraction/usage_percent/threshold_* always reflect the FULL calling session's context window (the direct read is session-wide); only delegation_count/session_count/estimated_credits are council-scoped when scope='council'. Output includes dual self-rerun flags threshold_15pct (primary, >=15%) and threshold_25pct (safety-net, >=25%) per NEXT-RUN.md; sufficient for self-rerun and council budget guard decisions.",
+          "Estimate context-window usage for the current session. Returns JSON with usage fraction, delegation counts, and optional council-scoped breakdown. PRIMARY: direct live read of the last completed assistant message's tokens (input + output + reasoning + cache.read + cache.write) divided by the model's context limit — token-accurate, same computation as the TUI, compaction-aware. FALLBACK (fresh session with no completed assistant message, or client-call failure): registry.jsonl activity-signal proxy. NOTE (scope semantics): usage_fraction/usage_percent/threshold_* always reflect the FULL calling session's context window (the direct read is session-wide); only delegation_count/session_count/estimated_credits are council-scoped when scope='council'. Output includes dual self-rerun flags threshold_15pct (primary, >=15%) and threshold_25pct (safety-net, >=25%) per NEXT-RUN.md; sufficient for self-rerun and council budget guard decisions. Also tracks context growth velocity (delta between consecutive measurements): velocity_percent_per_cycle, velocity_crisis (>15% per cycle), velocity_emergency (>25% per cycle). Velocity crises emit context.crisis events; velocity emergencies emit context.emergency events and recommend immediate compaction.",
         args: {
           scope: tool.schema
             .enum(["session", "council"])
@@ -3827,6 +3833,45 @@ const delegationObserver: Plugin = async (ctx) => {
           // full-session even for scope='council'; only the count/credit
           // fields below are council-scoped. Consumers must not read the
           // usage fields as council-only.
+          // DIA-219: compute context growth velocity (delta between this
+          // measurement and the last one for the same session). Velocity is
+          // expressed as integer percentage points (-100 to 100), not fractional.
+          // Positive = context grew (e.g. going from 10% to 35% = +25).
+          // Negative = compaction occurred (e.g. going from 40% to 15% = -25).
+          const prevUsage = lastContextUsage.get(callingSession)
+          const velocityPercent =
+            prevUsage !== undefined
+              ? Math.round((usageFraction - prevUsage) * 100)
+              : 0
+          lastContextUsage.set(callingSession, usageFraction)
+
+          // DIA-219 threshold events: crisis (>15%/cycle) and emergency
+          // (>25%/cycle). Emitted via console.warn + registry row so the
+          // orchestrator sees them without blocking the tool response.
+          if (velocityPercent > 25) {
+            appendRow({
+              event: "context_emergency",
+              session_id: callingSession,
+              velocity_pct: velocityPercent,
+              usage_pct: Math.round(usageFraction * 100),
+              note: "context grew >25% in one cycle - recommend immediate compaction",
+            })
+            console.warn(
+              `[delegation-observer] CONTEXT EMERGENCY: session ${callingSession} velocity ${velocityPercent}% (threshold 25%)`
+            )
+          } else if (velocityPercent > 15) {
+            appendRow({
+              event: "context_crisis",
+              session_id: callingSession,
+              velocity_pct: velocityPercent,
+              usage_pct: Math.round(usageFraction * 100),
+              note: "context grew >15% in one cycle",
+            })
+            console.warn(
+              `[delegation-observer] CONTEXT CRISIS: session ${callingSession} velocity ${velocityPercent}% (threshold 15%)`
+            )
+          }
+
           const result: Record<string, unknown> = {
             scope,
             estimated_tokens: estimatedTokens,
@@ -3838,6 +3883,10 @@ const delegationObserver: Plugin = async (ctx) => {
             threshold_15pct: usageFraction >= 0.15,
             threshold_25pct: usageFraction >= 0.25,
             confidence,
+            /** Velocity of context growth in percentage points per cycle. Negative values indicate compaction occurred. */
+            velocity_percent_per_cycle: velocityPercent,
+            velocity_crisis: velocityPercent > 15,
+            velocity_emergency: velocityPercent > 25,
           }
           if (directTokens === undefined) {
             result.fallback_note =
