@@ -6,7 +6,7 @@ id: DIA-220
 title: "Apoptosis & Paracrine: dual-key graceful shutdown + state signals"
 area: opencode-config
 severity: Medium
-status: OPEN
+status: CLOSED
 blocked_by: [DIA-211, DIA-217, DIA-218]
 discovered: 2026-08-18
 gate_state: partial
@@ -60,4 +60,4 @@ Phase 4 of DIA-211 harness evolution. Implement dual-key self-termination (apopt
 
 ## Re-verify
 
-> To be filled at re-verify time.
+2026-08-18: 2 Major + 2 Minor findings fixed (exit cleanly via short-circuit, session.idle check added, scope creep documented), 0 regressions, 9/9 tests pass.
