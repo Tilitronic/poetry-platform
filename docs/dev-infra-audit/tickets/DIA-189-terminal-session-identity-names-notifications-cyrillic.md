@@ -141,3 +141,19 @@ Residual terminal-label gap root cause (post-restart follow-up; P1/A1 chain):
   new and pre-existing terminal panes, and confirm a Ukrainian-language
   notification renders Cyrillic in both channels (in-TUI toast + WinRT
   desktop toast). Flip CLOSED only after developer confirms both channels.
+
+## UPDATE (2026-08-18, developer readable-ID feedback)
+
+Developer requests more human-readable session identifiers beyond the current `[xxxxxx]` short-id suffix:
+
+**Current state:** sessions show `opencode poetry-platform [de6239]` -- better than identical labels but still requires reading hex.
+
+**Developer suggestions:**
+
+1. **Word-based naming:** cartoon titles (SpongeBob, TomJerry), animal names, color+animal combos (like Docker container naming). A list of 50+ words gives 50^2 = 2,500 two-word combos -- sufficient for session scale.
+2. **Short datetime + letters:** e.g., `aug18-0621-r0t` -- timestamp + short random suffix.
+3. **Libraries to research:** didyoumean, humanhash, moniker, uuid-words, or similar npm packages that generate readable short IDs.
+
+**Ticket numbering conflict (related):** sequential DIA numbering creates conflicts when multiple team members create tickets in parallel. Research globally-unique short IDs from datetime (e.g., `DIA-260818-a1b2` format) to eliminate merge conflicts.
+
+**Action:** research feasible approaches, present EBDV to developer, implement selected approach.
