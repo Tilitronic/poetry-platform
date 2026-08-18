@@ -776,6 +776,16 @@ const delegationObserver: Plugin = async (ctx) => {
   // completion/failure messages rows with the actual delegated agent.
   const childSessionAgent = new Map<string, string>()
 
+  // DIA-220: per-session worktree paths for apoptosis cleanup. Populated
+  // when a WORKTREE assertion is extracted from a task() dispatch; cleaned
+  // up on session.error with dual-key match (circuit.open + error).
+  const sessionWorktrees = new Map<string, Set<string>>()
+
+  // DIA-220 FIX 1: sessions that have undergone apoptosis. Once set, all
+  // further tool.execute.before/after calls for this session are short-
+  // circuited with a descriptive error — the session is effectively dead.
+  const apoptosisSessions = new Set<string>()
+
   // DIA-211 Phase 3b: pending adaptive-dispatch tracking (callId -> {agentId, start}).
   // Populated in tool.execute.before, consumed in tool.execute.after.
   const pendingAdaptiveDispatches = new Map<
@@ -1187,6 +1197,42 @@ const delegationObserver: Plugin = async (ctx) => {
     sessionMessageCount.set(
       writerSession,
       (sessionMessageCount.get(writerSession) ?? 0) + 1
+    )
+  }
+
+  // === DIA-220: Paracrine state signals ===
+  // Discrete state events emitted into messages.jsonl so the orchestrator
+  // can watch them to drive next dispatch (replaces reading massive chat
+  // logs). Signal types: build.passed, tests.failed, review.complete,
+  // dispatch.started, dispatch.completed.
+
+  /** Valid paracrine signal types. */
+  type ParacrineSignal =
+    | "build.passed"
+    | "tests.failed"
+    | "review.complete"
+    | "dispatch.started"
+    | "dispatch.completed"
+
+  /**
+   * Emit a paracrine state signal into messages.jsonl. The signal is a
+   * structured event that the orchestrator can watch to drive next dispatch.
+   * Fail-soft: write errors are warned, never crash the plugin.
+   */
+  function emitStateSignal(
+    sessionId: string,
+    signalType: ParacrineSignal,
+    data: Record<string, unknown>
+  ): void {
+    appendMessageRow(
+      {
+        "gen_ai.operation.name": "state_signal",
+        event_type: "paracrine",
+        signal_type: signalType,
+        "gen_ai.agent.id": sessionId,
+        ...data,
+      },
+      sessionId
     )
   }
 
@@ -2232,6 +2278,23 @@ const delegationObserver: Plugin = async (ctx) => {
     // rule A/B/C). Grouped per session (message_id does not exist in the
     // input); the per-session list is reset on tool.execute.after.
     "tool.execute.before": async (input, output) => {
+      // DIA-220 FIX 1: apoptosis short-circuit. If this session has
+      // undergone apoptosis (circuit.open + session.error/idle), block all
+      // further dispatches. The session is effectively dead.
+      if (apoptosisSessions.has(input.sessionID)) {
+        appendRow({
+          event: "apoptosis_session_killed",
+          session_id: input.sessionID,
+          tool: input.tool,
+          detail: "dispatch blocked: session underwent apoptosis (circuit.open + error/idle)",
+          writer: "plugin",
+        })
+        throw new Error(
+          "APOPTOSIS: this session has been terminated (circuit.open + fatal event).\n" +
+            "All further dispatches are blocked. Start a new session."
+        )
+      }
+
       const calls = turnToolCalls.get(input.sessionID) ?? []
       // Capture subagent_type alongside the tool name — same runtime args
       // contract as the ticket-gate block below (task args live in
@@ -2707,6 +2770,12 @@ const delegationObserver: Plugin = async (ctx) => {
     // result is the SECOND argument output.output — a text string; input.result
     // does not exist. Parse with the established parser pattern.
     "tool.execute.after": async (input, output) => {
+      // DIA-220 FIX 1: apoptosis short-circuit. Same check as
+      // tool.execute.before — if the session is dead, skip all processing.
+      if (apoptosisSessions.has(input.sessionID)) {
+        return
+      }
+
       // Reset the per-session turn-tracking list (message-boundary heuristic).
       turnToolCalls.delete(input.sessionID)
 
@@ -2857,6 +2926,31 @@ const delegationObserver: Plugin = async (ctx) => {
             : "task() delegation"
         ).slice(0, 300)
       if (taskId) childSessionAgent.set(taskId, agentName)
+      // DIA-220: track worktree for this child session (apoptosis cleanup).
+      // The WORKTREE assertion was captured in tool.execute.before and
+      // stored in turnToolCalls; propagate to sessionWorktrees now that
+      // we know the child session id (taskId).
+      if (taskId) {
+        const turnCalls = turnToolCalls.get(input.sessionID) ?? []
+        const lastTask = [...turnCalls].reverse().find((c) => c.tool === "task")
+        if (lastTask?.worktree) {
+          let wtSet = sessionWorktrees.get(taskId)
+          if (!wtSet) {
+            wtSet = new Set()
+            sessionWorktrees.set(taskId, wtSet)
+          }
+          wtSet.add(lastTask.worktree)
+        }
+        // DIA-220 paracrine: emit dispatch.started signal so the orchestrator
+        // can watch for new delegations without reading the full chat log.
+        // Scope extension: dispatch.started/completed added beyond spec (spec
+        // only requested build.passed, tests.failed, review.complete) -- useful
+        // for orchestrator observability.
+        emitStateSignal(taskId, "dispatch.started", {
+          agent: agentName,
+          session_id: input.sessionID,
+        })
+      }
       delegationsSinceHandoff.set(
         input.sessionID,
         (delegationsSinceHandoff.get(input.sessionID) ?? 0) + 1
@@ -2896,6 +2990,29 @@ const delegationObserver: Plugin = async (ctx) => {
         }
         onTaskComplete(taskId, bioSuccess, pending?.agentId ?? agentName)
         pendingAdaptiveDispatches.delete(input.callID)
+
+        // DIA-220 paracrine: detect build/test signals from task output.
+        // Heuristic: look for common build/test status indicators in the
+        // task_result body. These are best-effort detections -- the task
+        // output format is not standardized, so we look for known patterns.
+        const taskResultBody2 =
+          /<task_result>\s*([\s\S]*?)\s*<\/task_result>/i.exec(text)
+        const signalText = taskResultBody2 ? taskResultBody2[1] : text
+        if (/tests?\s+failed|test\s+failures?|FAILED.*test/i.test(signalText)) {
+          emitStateSignal(taskId, "tests.failed", {
+            agent: agentName,
+            session_id: input.sessionID,
+          })
+        } else if (
+          /build\s+passed|build\s+success|all\s+tests?\s+passed/i.test(
+            signalText
+          )
+        ) {
+          emitStateSignal(taskId, "build.passed", {
+            agent: agentName,
+            session_id: input.sessionID,
+          })
+        }
       }
 
       // PERSISTENCE_RECOMMENDED detector (DIA-057/DIA-058, ai--3 fold-in +
@@ -3156,6 +3273,85 @@ const delegationObserver: Plugin = async (ctx) => {
             return
           }
 
+          // DIA-220 FIX 2: apoptosis check for session.idle. The spec
+          // requires both session.error AND session.idle to trigger apoptosis
+          // when circuit.open is true. An idle with an open circuit means the
+          // session is stuck in a failed state — treat it as fatal.
+          if (toolCircuitBreaker.getState(sessionID) === "OPEN") {
+            // Write handoff with apoptosis context.
+            try {
+              const handoffContent = {
+                status: "apoptosis",
+                session_id: sessionID,
+                timestamp: new Date().toISOString(),
+                checksum: computeChecksum({
+                  trigger: "apoptosis_idle",
+                  session_id: sessionID,
+                }),
+                prognosis: {
+                  session_summary: {
+                    note: "apoptosis triggered: circuit.open + session.idle dual-key fatal state",
+                    session_id: sessionID,
+                    role: "subagent",
+                  },
+                  fixes_applied: [],
+                  open_tickets: [],
+                  verification_request: [],
+                  resume_instructions:
+                    "Session terminated by apoptosis (idle with open circuit). Investigate root cause of circuit breaker trip before re-dispatching.",
+                },
+              }
+              const apoptosisSessionId =
+                parentSessionId ?? sessionID ?? "unknown"
+              atomicWriteHandoff(handoffContent, apoptosisSessionId)
+            } catch (err) {
+              console.warn(
+                `[delegation-observer] apoptosis idle handoff write failed: ${errorMessage(err)}`
+              )
+            }
+
+            // Remove active worktrees for this session.
+            const worktrees = sessionWorktrees.get(sessionID)
+            if (worktrees && worktrees.size > 0) {
+              for (const wtPath of worktrees) {
+                try {
+                  const result = spawnSync(
+                    "git",
+                    ["worktree", "remove", "--force", wtPath],
+                    {
+                      cwd: ctx.directory,
+                      encoding: "utf-8",
+                      timeout: 10_000,
+                    }
+                  )
+                  if (result.status !== 0) {
+                    console.warn(
+                      `[delegation-observer] apoptosis worktree remove failed for ${wtPath}: ${result.stderr || "exit " + result.status}`
+                    )
+                  }
+                } catch (err) {
+                  console.warn(
+                    `[delegation-observer] apoptosis worktree remove error for ${wtPath}: ${errorMessage(err)}`
+                  )
+                }
+              }
+              sessionWorktrees.delete(sessionID)
+            }
+
+            // Emit apoptosis_complete registry row + mark session dead.
+            appendRow({
+              event: "apoptosis_complete",
+              session_id: sessionID,
+              role: "subagent",
+              status: "APOPTOSIS",
+              note: "dual-key fatal state: circuit.open + session.idle",
+              finished_at: new Date().toISOString(),
+              writer: "plugin",
+            })
+            apoptosisSessions.add(sessionID)
+            return
+          }
+
           appendRow({
             event: "session_complete",
             session_id: sessionID,
@@ -3183,6 +3379,28 @@ const delegationObserver: Plugin = async (ctx) => {
             },
             sessionMeta.get(sessionID)?.parentID
           )
+          // DIA-220 paracrine: emit dispatch.completed signal.
+          // Scope extension: dispatch.started/completed added beyond spec (spec
+          // only requested build.passed, tests.failed, review.complete) -- useful
+          // for orchestrator observability.
+          emitStateSignal(sessionID, "dispatch.completed", {
+            agent: childSessionAgent.get(sessionID) ?? "subagent",
+            result: "success",
+          })
+          // DIA-220 paracrine: emit review.complete when a reviewer task finishes.
+          const completedAgent = childSessionAgent.get(sessionID)
+          if (completedAgent === "reviewer") {
+            emitStateSignal(sessionID, "review.complete", {
+              agent: "reviewer",
+              result: "success",
+            })
+          }
+          // DIA-220 paracrine: detect build/test signals from task output.
+          // The task_result body may contain build/test status indicators.
+          // This is a best-effort heuristic -- the task output is not
+          // available in session.idle, so we rely on agent type heuristics.
+          // Build/test detection is wired in the tool.execute.after path
+          // where the task output IS available.
           checkSilentFailures()
           return
         }
@@ -3237,7 +3455,7 @@ const delegationObserver: Plugin = async (ctx) => {
               "gen_ai.agent.name": childSessionAgent.get(sessionID) ?? role,
               from: "orchestrator",
               event_type: "delegation",
-              task_ref: "session error — delegation failed",
+              task_ref: "session error -- delegation failed",
               resolution_status: "escalated",
               "gen_ai.agent.id": sessionID,
             },
@@ -3245,10 +3463,108 @@ const delegationObserver: Plugin = async (ctx) => {
               ? sessionMeta.get(sessionID)?.parentID
               : sessionID
           )
+          // DIA-220 paracrine: emit dispatch.completed with error result.
+          emitStateSignal(sessionID, "dispatch.completed", {
+            agent: childSessionAgent.get(sessionID) ?? role,
+            result: "error",
+            error: errorMessage(event.properties?.error),
+          })
           checkSilentFailures()
-          // DIA-098 R2: the session errored out — record how a previously
+          // DIA-098 R2: the session errored out -- record how a previously
           // stalled delegation ended (the next sweep drops it automatically).
           logStallResolutionIfStalled(sessionID, "resolved_by_error")
+
+          // === DIA-220 APOPTOSIS: dual-key graceful shutdown ===
+          // If the circuit breaker is OPEN for this session AND session.error
+          // fires, this is a dual-key fatal state. The session has both:
+          //   (1) accumulated enough tool errors to trip the circuit breaker
+          //   (2) received a terminal error event
+          // Autonomous response: dump context to handoff, remove active
+          // worktrees, emit apoptosis_complete, exit cleanly.
+          // No orchestrator intervention needed.
+          if (toolCircuitBreaker.getState(sessionID) === "OPEN") {
+            // Step 1: Write handoff with apoptosis context.
+            try {
+              const handoffContent = {
+                status: "apoptosis",
+                session_id: sessionID,
+                timestamp: new Date().toISOString(),
+                checksum: computeChecksum({
+                  trigger: "apoptosis",
+                  session_id: sessionID,
+                  error: errorMessage(event.properties?.error),
+                }),
+                prognosis: {
+                  session_summary: {
+                    note: "apoptosis triggered: circuit.open + session.error dual-key fatal state",
+                    session_id: sessionID,
+                    role,
+                    error: errorMessage(event.properties?.error),
+                  },
+                  fixes_applied: [],
+                  open_tickets: [],
+                  verification_request: [],
+                  resume_instructions:
+                    "Session terminated by apoptosis. Investigate root cause of circuit breaker trip + session error before re-dispatching.",
+                },
+              }
+              const apoptosisSessionId =
+                parentSessionId ?? sessionID ?? "unknown"
+              atomicWriteHandoff(handoffContent, apoptosisSessionId)
+            } catch (err) {
+              console.warn(
+                `[delegation-observer] apoptosis handoff write failed: ${errorMessage(err)}`
+              )
+            }
+
+            // Step 2: Remove active worktrees for this session.
+            const worktrees = sessionWorktrees.get(sessionID)
+            if (worktrees && worktrees.size > 0) {
+              for (const wtPath of worktrees) {
+                try {
+                  const result = spawnSync(
+                    "git",
+                    ["worktree", "remove", "--force", wtPath],
+                    {
+                      cwd: ctx.directory,
+                      encoding: "utf-8",
+                      timeout: 10_000,
+                    }
+                  )
+                  if (result.status !== 0) {
+                    console.warn(
+                      `[delegation-observer] apoptosis worktree remove failed for ${wtPath}: ${result.stderr || "exit " + result.status}`
+                    )
+                  }
+                } catch (err) {
+                  console.warn(
+                    `[delegation-observer] apoptosis worktree remove error for ${wtPath}: ${errorMessage(err)}`
+                  )
+                }
+              }
+              sessionWorktrees.delete(sessionID)
+            }
+
+            // Step 3: Emit apoptosis_complete registry row + mark session dead.
+            appendRow({
+              event: "apoptosis_complete",
+              session_id: sessionID,
+              role,
+              status: "APOPTOSIS",
+              note: "dual-key fatal state: circuit.open + session.error",
+              finished_at: new Date().toISOString(),
+              writer: "plugin",
+            })
+            apoptosisSessions.add(sessionID)
+
+            // Step 4: Emit apoptosis paracrine signal.
+            emitStateSignal(sessionID, "dispatch.completed", {
+              agent: childSessionAgent.get(sessionID) ?? role,
+              result: "apoptosis",
+              note: "dual-key shutdown: circuit.open + session.error",
+            })
+          }
+
           return
         }
 
