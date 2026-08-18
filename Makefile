@@ -23,8 +23,9 @@
 #   make context7-docs  fetch library docs from Context7 (requires CONTEXT7_API_KEY; dry-run without it)
 #   make session-query  read-only SQL query over session records (node:sqlite :memory:; ARGS pass-through)
 #   make session-analytics  canned analytics over native OpenCode telemetry (opencode stats/db; ARGS pass-through)
+#   make test-harness  C5 scenario replay (bats) + bun plugin tests (requires Docker)
 
-.PHONY: build up shell opencode dev stack install db-psql logs down clean check-pin-sync check-tools check-host-jq check-host-lsp gen-jsconfig test-shell test-opencode-docker test-python test-infra test-config test-interview test-skills eval-lite audit-python context7-docs jsonl-stats session-log-render jsonl-cross-check session-query session-analytics
+.PHONY: build up shell opencode dev stack install db-psql logs down clean check-pin-sync check-tools check-host-jq check-host-lsp gen-jsconfig test-shell test-opencode-docker test-python test-infra test-config test-interview test-skills eval-lite audit-python context7-docs jsonl-stats session-log-render jsonl-cross-check session-query session-analytics test-harness
 
 stack:
 	bash scripts/dev-stack.sh
@@ -137,7 +138,7 @@ gen-jsconfig:
 # Single rebuild: smoke test leaves the stack up for test-python (SMOKE_LEAVE_UP=1,
 # F-3, DIA-139) -- it is the sole bring-up; there is no second up --build.
 # Requires a running Docker daemon.
-test-infra: gen-jsconfig test-shell
+test-infra: gen-jsconfig test-shell test-harness
 	SMOKE_LEAVE_UP=1 bash scripts/test-docker-smoke.sh
 	$(MAKE) test-python
 	docker compose down
@@ -284,3 +285,13 @@ session-query:
 #   make session-analytics ARGS="--view models --top 5"
 session-analytics:
 	@bash scripts/session-analytics.sh $(ARGS)
+
+# C5 scenario replay tests (DIA-226): bats regression tests from the incident
+# corpus (DIA-206 empty returns, DIA-085 clobber scenarios) driving the real
+# delegation-observer plugin via bun scenario scripts inside the container.
+# Two-part gate: (1) bats scenarios on the host exercise the plugin via docker
+# compose exec + bun, (2) bun plugin tests inside the container validate the
+# C1-C4 contracts. Both must pass for the target to exit 0.
+test-harness:
+	bash scripts/__tests__/bats-wrapper.sh --filter harness-scenario-replay
+	docker compose exec -T dev bash -lc 'cd /workspace/.opencode/plugins/__tests__ && bun test'
