@@ -58,6 +58,9 @@ import {
 import { dirname, extname, isAbsolute, join, relative, resolve } from "node:path"
 import { tool, type Hooks, type Plugin } from "@opencode-ai/plugin"
 
+/** Relative path to the tickets directory (workspace-root-relative). */
+const TICKETS_DIR_REL = "docs/dev-infra-audit/tickets"
+
 /**
  * Parse a task() tool result to recover the child session id.
  * Mirrors the established parser (oh-my-opencode-slim/src/utils/task.ts:20-38):
@@ -579,6 +582,22 @@ const delegationObserver: Plugin = async (ctx) => {
   const handoffPointerPath = join(handoffSlotsDir, "active.json")
   const handoffReconciledPath = join(handoffSlotsDir, ".reconciled")
 
+  // DIA-211 Phase 2: stigmergic active.json — tracks the current workflow
+  // state so the orchestrator can read it on wake and route to the next agent.
+  // Written ONLY on terminal handoff events with a next_action; the file is
+  // optional (if it fails, the handoff still works). Path is
+  // .opencode/session/active.json (NOT handoffs/active.json — that is the
+  // handoff pointer, a different file).
+  const ACTIVE_JSON_PATH = join(handoffDir, "active.json")
+
+  // DIA-211 Phase 3a: Idempotency cache — prevents duplicate work by hashing
+  // prompt + file state. Same hash within 5 minutes = blocked dispatch.
+  const _IDEMPOTENCY_CACHE_PATH = join(handoffDir, "idempotency-cache.json")
+
+  // DIA-211 Phase 3a: Agent health state — critical-health gate uses this
+  // to track per-agent score (0-100) and decide whether to block dispatch.
+  const HEALTH_PATH = join(handoffDir, "health.json")
+
   // DIA-123 boot marker paths — a dedicated boot marker file under
   // .opencode/session/ (NOT ticker.json, which needs-input-observer owns).
   // Written once per process start, atomically, carrying boot_id +
@@ -626,6 +645,13 @@ const delegationObserver: Plugin = async (ctx) => {
   // Child session id (task_id) -> agent name captured at dispatch. Enriches
   // completion/failure messages rows with the actual delegated agent.
   const childSessionAgent = new Map<string, string>()
+
+  // DIA-211 Phase 3b: pending adaptive-dispatch tracking (callId -> {agentId, start}).
+  // Populated in tool.execute.before, consumed in tool.execute.after.
+  const pendingAdaptiveDispatches = new Map<
+    string,
+    { agentId: string; start: number }
+  >()
 
   // Seed the gated-session set from existing registry rows (RR-2: the
   // per-idle gate check stays O(1) instead of re-reading the whole registry
@@ -1236,6 +1262,432 @@ const delegationObserver: Plugin = async (ctx) => {
   }
 
   /**
+   * DIA-211: atomic write for JSON files (active.json). Simpler than
+   * atomicWriteHandoff — no fsync/dir-fsync (the file is a dispensable
+   * workflow-state hint, not a source of truth). Temp rename is atomic on
+   * the same filesystem (POSIX guarantee; the Docker volume qualifies).
+   * Fail-soft: callers wrap in try/catch.
+   */
+  function atomicWriteJson(filePath: string, data: object): void {
+    const tmpPath = `${filePath}.tmp.${Date.now()}`
+    writeFileSync(tmpPath, JSON.stringify(data, null, 2))
+    const fd = openSync(tmpPath, "r+")
+    fsyncSync(fd)
+    closeSync(fd)
+    renameSync(tmpPath, filePath)
+  }
+
+  // === DIA-211 Phase 3a: Idempotency & Health helpers ===
+
+  /**
+   * Compute a short hash of subagentType + prompt to detect duplicate dispatches.
+   * SHA-256 truncated to 16 hex chars — enough for collision resistance in a
+   * single-session cache, short enough for readable error messages.
+   */
+  function computeDispatchHash(
+    subagentType: string,
+    prompt: string
+  ): string {
+    return createHash("sha256")
+      .update(`${subagentType}:${prompt}`)
+      .digest("hex")
+      .slice(0, 16)
+  }
+
+  /** Per-agent health state for the critical-health gate. */
+  interface AgentHealth {
+    score: number // 0-100
+    last_updated: string
+    failure_count: number
+    success_count: number
+    last_probe?: string // ISO timestamp of last recovery probe
+  }
+
+  /** Map of agent type -> health state. Single global file, keyed per agent. */
+  interface HealthStore {
+    [agentType: string]: AgentHealth
+  }
+
+  function readHealth(): HealthStore {
+    try {
+      return JSON.parse(readFileSync(HEALTH_PATH, "utf-8"))
+    } catch {
+      return {}
+    }
+  }
+
+  function writeHealth(store: HealthStore): void {
+    atomicWriteJson(HEALTH_PATH, store)
+  }
+
+  function _getAgentHealth(agentType: string): AgentHealth {
+    const store = readHealth()
+    return (
+      store[agentType] ?? {
+        score: 100,
+        last_updated: new Date().toISOString(),
+        failure_count: 0,
+        success_count: 0,
+      }
+    )
+  }
+
+  function _setAgentHealth(agentType: string, health: AgentHealth): void {
+    const store = readHealth()
+    store[agentType] = health
+    writeHealth(store)
+  }
+
+  // ============================================================
+  // ADAPTIVE ROUTING MODULE (Phase 3b)
+  // Pattern inspired by adaptive performance routing
+  // ============================================================
+
+  const ADAPTIVE_ROUTING_STATE_PATH = join(handoffDir, "adaptive-routing-state.json")
+  const ADAPTIVE_ROUTING_BACKUP_PATH = join(handoffDir, "adaptive-routing-state.json.bak")
+  const WRITE_DEBOUNCE_MS = 1000
+  const GIT_CACHE_TTL_MS = 5000
+  const EXPLORATION_RATE = 0.1
+  const EMA_ALPHA = 0.2
+  const RECOVERY_THRESHOLD = 3
+  const PROBE_COOLDOWN_MS = 300000 // 5 minutes
+
+  interface AgentRoutingState {
+    status: "CLOSED" | "HALF_OPEN" | "OPEN"
+    ema: number
+    last_probe: number
+    recovery_streak: number
+  }
+
+  interface RoutingState {
+    agents: { [key: string]: AgentRoutingState }
+    activeTasks: { [taskId: string]: { start: number; agentId: string } }
+  }
+
+  // In-memory state + debounced write (lose <1s on crash -- acceptable)
+  let routingState: RoutingState = { agents: {}, activeTasks: {} }
+  let routingWriteTimer: ReturnType<typeof setTimeout> | null = null
+
+  function loadRoutingState(): void {
+    try {
+      routingState = JSON.parse(readFileSync(ADAPTIVE_ROUTING_STATE_PATH, "utf-8"))
+    } catch {
+      // DIA-211 fix #9: try backup before resetting to empty.
+      try {
+        routingState = JSON.parse(readFileSync(ADAPTIVE_ROUTING_BACKUP_PATH, "utf-8"))
+        console.warn(
+          "[delegation-observer] adaptive-routing-state recovered from backup"
+        )
+      } catch {
+        routingState = { agents: {}, activeTasks: {} }
+      }
+    }
+  }
+
+  function saveRoutingState(): void {
+    if (routingWriteTimer) clearTimeout(routingWriteTimer)
+    routingWriteTimer = setTimeout(() => {
+      try {
+        // DIA-211 fix #9: write backup before primary so a corrupted primary
+        // can be recovered on next load.
+        try {
+          writeFileSync(ADAPTIVE_ROUTING_BACKUP_PATH, JSON.stringify(routingState, null, 2))
+        } catch {
+          // Backup write is best-effort — primary write still proceeds.
+        }
+        // DIA-211 fix #7: atomic write prevents partial/corrupt state on crash.
+        atomicWriteJson(ADAPTIVE_ROUTING_STATE_PATH, routingState)
+      } catch (err) {
+        console.warn(
+          `[delegation-observer] adaptive-routing-state write failed: ${errorMessage(err)}`
+        )
+      }
+    }, WRITE_DEBOUNCE_MS)
+  }
+
+  function getAgentRouting(agentType: string): AgentRoutingState {
+    if (!routingState.agents[agentType]) {
+      routingState.agents[agentType] = {
+        status: "CLOSED",
+        ema: 0,
+        last_probe: 0,
+        recovery_streak: 0,
+      }
+    }
+    return routingState.agents[agentType]
+  }
+
+  // Git HEAD cache (read .git/HEAD directly, 5s TTL -- fix #5)
+  let gitCache = { hash: "", updated: 0 }
+  function getGitHead(): string {
+    if (Date.now() - gitCache.updated > GIT_CACHE_TTL_MS) {
+      try {
+        gitCache.hash = readFileSync(
+          join(ctx.directory, ".git/HEAD"),
+          "utf-8"
+        ).trim()
+        if (gitCache.hash.startsWith("ref: ")) {
+          const refPath = join(ctx.directory, ".git", gitCache.hash.slice(5))
+          try {
+            gitCache.hash = readFileSync(refPath, "utf-8").trim()
+          } catch {
+            // ref file missing -- keep the ref string as hash
+          }
+        }
+      } catch {
+        gitCache.hash = ""
+      }
+      gitCache.updated = Date.now()
+    }
+    return gitCache.hash
+  }
+
+  // Active performance-based selection: 90% exploit (lowest EMA), 10% explore (fix #7)
+  // Pattern inspired by adaptive performance routing
+  // Available for future wiring when user-message hook is implemented.
+  // Currently dispatch uses requested subagentType directly.
+  function _selectAgentByPerformance(candidates: string[]): string {
+    if (candidates.length === 0) return "coder"
+    const healthy = candidates.filter(
+      (c) => getAgentRouting(c).status !== "OPEN"
+    )
+    if (healthy.length === 0) return candidates[0] // All isolated, pick first
+    if (Math.random() < EXPLORATION_RATE) {
+      return healthy[Math.floor(Math.random() * healthy.length)]
+    }
+    return healthy.reduce((best, a) => {
+      const aEma = getAgentRouting(a).ema || 5000
+      const bEma = getAgentRouting(best).ema || 5000
+      return aEma < bEma ? a : best
+    })
+  }
+
+  // Scope exemption: ticket-creation and checksum-verification dispatches
+  // skip all routing gates (same rationale as the section-10 ticket-gate exemption).
+  function isScopeExempt(dispatch: {
+    prompt?: string
+    description?: string
+  }): boolean {
+    const text = `${dispatch.description || ""}\n${dispatch.prompt || ""}`
+    return /create.*ticket|ticket.*creat|DIA-\d+.*ticket|checksum.*verif/i.test(
+      text
+    )
+  }
+
+  // Idempotency cache (in-memory, 5min TTL, lose <1s on crash)
+  const idempotencyCache = new Map<string, number>()
+  const IDEMPOTENCY_TTL_MS = 300000
+
+  function checkIdempotencyCache(hash: string): boolean {
+    const now = Date.now()
+    const lastSeen = idempotencyCache.get(hash)
+    if (lastSeen && now - lastSeen < IDEMPOTENCY_TTL_MS) return true
+    idempotencyCache.set(hash, now)
+    // Evict expired entries when cache grows large
+    if (idempotencyCache.size > 100) {
+      for (const [k, v] of idempotencyCache) {
+        if (now - v > IDEMPOTENCY_TTL_MS) idempotencyCache.delete(k)
+      }
+    }
+    return false
+  }
+
+  // Critical-health gate: block dispatches to OPEN agents unless probe cooldown
+  // has elapsed (then allow ONE probe by transitioning to HALF_OPEN).
+  function criticalHealthGate(agentType: string): void {
+    const agent = getAgentRouting(agentType)
+    if (agent.status === "OPEN") {
+      const now = Date.now()
+      if (now - agent.last_probe > PROBE_COOLDOWN_MS) {
+        agent.status = "HALF_OPEN"
+        agent.last_probe = now
+        agent.recovery_streak = 0
+        saveRoutingState()
+      } else {
+        throw new Error(
+          `Agent ${agentType} is OPEN (critical-health). Probe cooldown active.`
+        )
+      }
+    }
+  }
+
+  /**
+   * Adaptive routing dispatch gate (called in tool.execute.before for task()).
+   * Gate ordering (fix #6):
+   *   1. Scope exemptions (skip all routing gates)
+   *   2. Idempotency (block duplicate dispatches)
+   *   3. Critical-health / circuit-breaker-recovery (block OPEN agents)
+   *   4. Record pending dispatch for start-time tracking
+   */
+  function adaptiveDispatch(
+    dispatch: { subagentType: string; prompt?: string; description?: string },
+    callId: string
+  ): void {
+    if (isScopeExempt(dispatch)) return
+
+    const dispatchText = `${dispatch.description || ""}${dispatch.prompt || ""}`
+    const hash = computeDispatchHash(
+      dispatch.subagentType,
+      `${dispatchText}${getGitHead()}`
+    )
+    // Idempotency check first (throws on duplicate)
+    if (checkIdempotencyCache(hash)) {
+      throw new Error(
+        `Idempotent duplicate dispatch blocked (agent: ${dispatch.subagentType})`
+      )
+    }
+
+    // Critical-health gate with all-isolated fallback (DIA-211 fix #4):
+    // If the specific agent is OPEN but ALL candidate agents are isolated,
+    // allow dispatch with a warning instead of blocking — a degraded
+    // dispatch is better than total paralysis.
+    try {
+      criticalHealthGate(dispatch.subagentType)
+    } catch (gateErr) {
+      const allIsolated = Object.values(routingState.agents).every(
+        (a) => a.status === "OPEN"
+      )
+      if (allIsolated && Object.keys(routingState.agents).length > 0) {
+        console.warn(
+          `[delegation-observer] all agents isolated — allowing degraded dispatch of ${dispatch.subagentType}`
+        )
+        appendRow({
+          event: "health_gate_all_isolated_override",
+          session_id: pendingAdaptiveDispatches.get(callId)?.agentId ?? dispatch.subagentType,
+          agent: dispatch.subagentType,
+          note: "all agents OPEN — degraded dispatch allowed",
+          writer: "plugin",
+        })
+      } else {
+        throw gateErr
+      }
+    }
+
+    // Track start time -- consumed in tool.execute.after when taskId is known
+    pendingAdaptiveDispatches.set(callId, {
+      agentId: dispatch.subagentType,
+      start: Date.now(),
+    })
+  }
+
+  /**
+   * Completion handler (fix #1, #2, #3): update performance EMA and
+   * circuit-breaker-recovery state. Health transitions happen ONLY here,
+   * never in dispatch.
+   * Called from tool.execute.after when a task() result is received.
+   */
+  function onTaskComplete(
+    taskId: string,
+    success: boolean,
+    agentId: string
+  ): void {
+    const agent = getAgentRouting(agentId)
+
+    if (success) {
+      const meta = routingState.activeTasks[taskId]
+      if (meta) {
+        const duration = Date.now() - meta.start
+        // Performance: exponential moving average of task duration (fix #4)
+        // Pattern inspired by adaptive performance routing
+        agent.ema =
+          EMA_ALPHA * duration + (1 - EMA_ALPHA) * (agent.ema || duration)
+        delete routingState.activeTasks[taskId]
+      }
+      // Circuit breaker recovery: recovery streak on success
+      // Pattern inspired by circuit breaker recovery
+      if (agent.status === "HALF_OPEN") {
+        agent.recovery_streak++
+        if (agent.recovery_streak >= RECOVERY_THRESHOLD) {
+          agent.status = "CLOSED"
+          agent.recovery_streak = 0
+        }
+      }
+    } else {
+      // Failure: open circuit breaker. Set last_probe = Date.now() so the
+      // probe cooldown starts from failure time (DIA-211 Phase 3b fix #3).
+      agent.status = "OPEN"
+      agent.last_probe = Date.now()
+      agent.recovery_streak = 0
+      delete routingState.activeTasks[taskId]
+    }
+
+    saveRoutingState()
+  }
+
+  // Load bio-state at startup
+  loadRoutingState()
+
+  // ============================================================
+  // RESOURCE PRESSURE ADAPTATION (Phase 3c)
+  // Modulates dispatch based on context usage — the "allosteric
+  // modulation" pattern: the same signal (dispatch) produces
+  // different responses based on environmental pressure.
+  // ============================================================
+
+  const CONTEXT_PRESSURE_THRESHOLDS = {
+    NORMAL: 0.5,     // <50%: normal behavior (no modification)
+    STRESSED: 0.5,   // 50-80%: append YAGNI constraints to prompt
+    CRITICAL: 0.8,   // >80%: block non-critical dispatches
+    BLOCKING: 0.95,  // >95%: block all dispatches
+  }
+
+  const YAGNI_CONSTRAINT =
+    "\n\n[YAGNI MODE: Write only the minimum code needed. No abstractions, no speculation, no boilerplate. One function, one file, one purpose.]"
+
+  /**
+   * Read current context pressure (0-1 fraction). PLACEHOLDER — returns 0
+   * (normal) by default. The real implementation will be wired when OpenCode
+   * exposes a context_usage API callable from plugin hooks. Currently the
+   * context_usage tool uses ctx.client.session.messages() + provider.list()
+   * but that async path is too expensive for the synchronous before-hook;
+   * the placeholder keeps the module idempotent and testable.
+   */
+  function getContextPressure(): number {
+    // Future: read from ctx.client.session.messages() or a lightweight
+    // signal. For now, the plugin does not have a synchronous context
+    // usage API, so we return 0 (NORMAL behavior).
+    return 0
+  }
+
+  /**
+   * Apply resource pressure modulation to a dispatch. Four tiers:
+   *   - NORMAL (<50%): no modification
+   *   - STRESSED (50-80%): append YAGNI constraints to prompt
+   *   - CRITICAL (>80%): block non-critical dispatches
+   *   - BLOCKING (>95%): block all dispatches
+   *
+   * Throws on critical/blocking pressure for non-critical dispatches so the
+   * caller can propagate the block. Modifies dispatch.prompt in-place for the
+   * stressed tier.
+   */
+  function applyResourcePressure(
+    dispatch: { subagentType: string; prompt?: string; description?: string }
+  ): void {
+    const pressure = getContextPressure()
+
+    if (pressure > CONTEXT_PRESSURE_THRESHOLDS.BLOCKING) {
+      throw new Error(
+        `Resource pressure blocking (${(pressure * 100).toFixed(0)}%). All dispatches blocked.`
+      )
+    }
+
+    if (pressure > CONTEXT_PRESSURE_THRESHOLDS.CRITICAL) {
+      const text = `${dispatch.description || ""}${dispatch.prompt || ""}`
+      const isCritical =
+        /handoff|apoptosis|circuit-breaker|ticket-gate/i.test(text)
+      if (!isCritical) {
+        throw new Error(
+          `Resource pressure critical (${(pressure * 100).toFixed(0)}%). Non-critical dispatch blocked.`
+        )
+      }
+    }
+
+    if (pressure > CONTEXT_PRESSURE_THRESHOLDS.STRESSED) {
+      dispatch.prompt = (dispatch.prompt || "") + YAGNI_CONSTRAINT
+    }
+  }
+
+  /**
    * Check whether `filePath` (absolute or relative) is under a protected
    * directory or equals a protected file. Resolves against the workspace root.
    */
@@ -1711,6 +2163,126 @@ const delegationObserver: Plugin = async (ctx) => {
         }
       }
 
+      // DIA-211 Phase 3b: adaptive-routing dispatch gate (scope exemption,
+      // idempotency, critical-health). Runs before section-10 and ticket gates.
+      // DIA-211 Phase 3c: resource pressure adaptation runs BEFORE adaptive
+      // dispatch — it may modify the prompt (YAGNI constraints) or throw
+      // (critical pressure blocks non-critical dispatches).
+      if (input.tool === "task") {
+        const bioPrompt =
+          typeof taskArgRecord.prompt === "string" ? taskArgRecord.prompt : ""
+        const bioDescription =
+          typeof taskArgRecord.description === "string"
+            ? taskArgRecord.description
+            : ""
+        const dispatch = {
+          subagentType: taskSubagent ?? "coder",
+          prompt: bioPrompt,
+          description: bioDescription,
+        }
+        applyResourcePressure(dispatch)
+        // Propagate YAGNI constraint back to actual args (FINDING 2 fix):
+        // applyResourcePressure mutates dispatch.prompt, but dispatch is a
+        // local copy — the real task payload lives in output.args.prompt.
+        // Write back so the constraint reaches the child session.
+        if (dispatch.prompt !== bioPrompt) {
+          taskArgRecord.prompt = dispatch.prompt
+        }
+        adaptiveDispatch(dispatch, input.callID)
+      }
+
+      // === DIA-217: Universal ticket gate (juxtacrine) ===
+      // Every task() dispatch must carry a valid ticket_id field. This is the
+      // hard synchronous gate that enforces ticket-attribution at the plugin
+      // level, replacing the soft text-based correlation for non-config-work
+      // lanes. Biological equivalent: juxtacrine signaling -- direct contact
+      // between dispatching cell (orchestrator) and target cell (agent).
+      //
+      // Check order:
+      //   1. ticket_id field present in task args -> validate format + file
+      //   2. ticket_id missing -> block (gate_blocked)
+      //   3. ticket_id present but invalid format -> block (gate_blocked)
+      //   4. ticket_id present, format valid, file not found -> warn (gate.warn)
+      //   5. ticket_id present, format valid, file found -> proceed
+      //
+      // Fail-soft on scan errors: a missing/unreadable tickets directory is
+      // treated as "ticket not found" (warn, not block) -- a broken gate is
+      // worse than no gate (same fail-soft pattern as the §10 edit gate).
+      if (input.tool === "task") {
+        // FIX 2: reuse already-extracted args from the top of the hook
+        const ticketId =
+          typeof taskArgRecord.ticket_id === "string"
+            ? taskArgRecord.ticket_id
+            : ""
+        const agentType = taskSubagent ?? ""
+
+        if (!ticketId) {
+          appendRow({
+            event: "gate_blocked",
+            session_id: input.sessionID,
+            subagent_type: agentType,
+            dispatch_state: "gate_blocked",
+            detail: "task() dispatch missing required ticket_id field",
+            writer: "plugin",
+          })
+          throw new Error(
+            "DIA-217 GATE: task() dispatch requires a ticket_id field (DIA-NNN format).\n" +
+              "Action: add ticket_id to the task() args."
+          )
+        }
+
+        if (!/^DIA-\d+$/i.test(ticketId)) {
+          appendRow({
+            event: "gate_blocked",
+            session_id: input.sessionID,
+            subagent_type: agentType,
+            dispatch_state: "gate_blocked",
+            ticket_id: ticketId,
+            detail: `invalid ticket_id format: ${ticketId}`,
+            writer: "plugin",
+          })
+          throw new Error(
+            `DIA-217 GATE: invalid ticket_id format '${ticketId}'. Expected DIA-NNN.`
+          )
+        }
+
+        // FIX 1: exact ID match via regex (prevents DIA-21 matching DIA-217).
+        const ticketsDir = join(ctx.directory, TICKETS_DIR_REL)
+        const normalizedId = ticketId.toUpperCase()
+        let ticketExists = false
+        try {
+          if (existsSync(ticketsDir)) {
+            ticketExists = readdirSync(ticketsDir).some((f) => {
+              const match = /^DIA-(\d+)/i.exec(f)
+              return match && match[0].toUpperCase() === normalizedId
+            })
+          }
+        } catch (err) {
+          // FIX 4: log scan errors instead of silently swallowing.
+          appendRow({
+            event: "gate_scan_failed",
+            session_id: input.sessionID,
+            ticket_id: ticketId,
+            error: String(err),
+            writer: "plugin",
+          })
+        }
+
+        if (!ticketExists) {
+          appendRow({
+            event: "gate_warn",
+            session_id: input.sessionID,
+            subagent_type: agentType,
+            ticket_id: ticketId,
+            detail: `ticket_id '${ticketId}' not found in tickets directory`,
+            writer: "plugin",
+          })
+          console.warn(
+            `[DIA-217] ticket gate: ticket_id '${ticketId}' not found in tickets dir - allowing (weak correlation)`
+          )
+        }
+      }
+
       // §10 gate: mechanically block edits to .opencode/ and AGENTS.md until
       // @ai-specialist gate review has been completed (token file exists).
       // Intercept edit, write, apply_patch; bash is excluded (too many false
@@ -1800,9 +2372,9 @@ const delegationObserver: Plugin = async (ctx) => {
         }
       }
 
-      // === JUXTACRINE MODULE -- Synchronous gates (receptor-ligand) ===
-      // These hooks block/allow tool calls at execution boundary.
-      // Biological equivalent: receptor-ligand binding at cell surface.
+      // === JUXTACRINE MODULE -- Synchronous signal recognition ===
+      // These hooks recognize dispatch patterns at execution boundary.
+      // Biological equivalent: signal recognition at cell surface.
       //
       // §10 TICKET GATE (DIA-063): before §10-scoped lanes are dispatched, a
       // DIA ticket must exist in docs/dev-infra-audit/tickets/ tracking the
@@ -1841,26 +2413,15 @@ const delegationObserver: Plugin = async (ctx) => {
           // declarative gates) can make it a hard gate.
           if (subagentType === "researcher" && prompt) {
             const hasResId = /res\d+/.test(prompt)
-            const isPhaseA = /Phase A|source.?capture/i.test(prompt)
-            if (!hasResId && !isPhaseA) {
-              try {
-                writeFileSync(
-                  registryPath,
-                  JSON.stringify({
-                    event_type: "autocrine_gate_warn",
-                    timestamp: new Date().toISOString(),
-                    session_id: input.sessionID,
-                    detail:
-                      "Researcher dispatched without pre-allocated res ID -- Phase 1 of research-pipeline skipped",
-                    dispatch_text: prompt.slice(0, 200),
-                  }) + "\n",
-                  { flag: "a" }
-                )
-              } catch (err) {
-                console.warn(
-                  `[DIA-212] autocrine gate warn write failed: ${errorMessage(err)}`
-                )
-              }
+            if (!hasResId) {
+              appendRow({
+                event: "autocrine_gate_warn",
+                session_id: input.sessionID,
+                tool: input.tool,
+                detail:
+                  "Researcher dispatched without pre-allocated res ID -- Phase 1 of research-pipeline skipped",
+                dispatch_text: prompt.slice(0, 200),
+              })
             }
           }
 
@@ -1912,10 +2473,7 @@ const delegationObserver: Plugin = async (ctx) => {
           // tickets directory (finding D) — and the catch below converts any
           // non-gate throw into warn + allow + ticket_gate_scan_failed
           // (fail-soft: a broken gate is worse than no gate).
-          const ticketsDir = join(
-            ctx.directory,
-            "docs/dev-infra-audit/tickets"
-          )
+          const ticketsDir = join(ctx.directory, TICKETS_DIR_REL)
           const diaIds =
             dispatchText.match(/DIA-\d+/gi)?.map((s) => s.toUpperCase()) ?? []
           const tickets = scanTickets(ticketsDir)
@@ -1969,8 +2527,8 @@ const delegationObserver: Plugin = async (ctx) => {
           )
         } catch (err) {
           // Re-throw §10 TICKET GATE errors; all other errors (fs error,
-          // malformed frontmatter, missing dir) are fail-soft — a broken gate
-          // is worse than no gate.
+          // malformed frontmatter, missing dir) are fail-soft -- a broken
+          // gate is worse than no gate.
           if (
             err instanceof Error &&
             err.message.startsWith("§10 TICKET GATE:")
@@ -2136,6 +2694,22 @@ const delegationObserver: Plugin = async (ctx) => {
         },
         input.sessionID
       )
+
+      // DIA-211 Phase 3b: adaptive-routing completion handler. Detect success/failure
+      // from the task() output and update performance EMA + circuit-breaker-recovery state.
+      if (taskId && input.callID) {
+        const bioSuccess = /state\b\s*[:=]\s*["']?completed["']?/i.test(text)
+        const pending = pendingAdaptiveDispatches.get(input.callID)
+        if (pending) {
+          routingState.activeTasks[taskId] = {
+            start: pending.start,
+            agentId: pending.agentId,
+          }
+          saveRoutingState()
+        }
+        onTaskComplete(taskId, bioSuccess, pending?.agentId ?? agentName)
+        pendingAdaptiveDispatches.delete(input.callID)
+      }
 
       // PERSISTENCE_RECOMMENDED detector (DIA-057/DIA-058, ai--3 fold-in +
       // Phase-6 lane scoping): when a COMPLETED researcher task result carries
@@ -2675,6 +3249,89 @@ const delegationObserver: Plugin = async (ctx) => {
                 },
                 handoffSessionId
               )
+
+              // DIA-211 Phase 2: stigmergic active.json -- on terminal handoff
+              // events with a next_action, update the workflow state file so
+              // the orchestrator can read it on wake and route to the next
+              // agent. Written INSIDE the handoff success path so active.json
+              // is only updated when the handoff slot actually landed.
+              // Fail-soft: if it fails, the handoff is still valid.
+              if (typeof args.next_action === "string" && args.next_action) {
+                try {
+                  const ACTION_MAP: Record<
+                    string,
+                    { workflow_state: string; next_agent: string | null }
+                  > = {
+                    review: { workflow_state: "review", next_agent: "reviewer" },
+                    implement: {
+                      workflow_state: "implementation",
+                      next_agent: "coder",
+                    },
+                    plan: { workflow_state: "planning", next_agent: "openspec-plan" },
+                    research: {
+                      workflow_state: "research",
+                      next_agent: "researcher",
+                    },
+                    analyze: { workflow_state: "analysis", next_agent: "analyzer" },
+                    "investigate and re-dispatch": {
+                      workflow_state: "investigation",
+                      next_agent: null,
+                    },
+                    continue: {
+                      workflow_state: "current",
+                      next_agent: null,
+                    },
+                    escalate: {
+                      workflow_state: "escalation",
+                      next_agent: null,
+                    },
+                  }
+                  const mapping = ACTION_MAP[args.next_action]
+                  // Read current active.json to preserve fields we don't
+                  // update (e.g. stale context from a prior handoff).
+                  let current: Record<string, unknown> = {}
+                  if (existsSync(ACTIVE_JSON_PATH)) {
+                    try {
+                      current = JSON.parse(
+                        readFileSync(ACTIVE_JSON_PATH, "utf-8")
+                      ) as Record<string, unknown>
+                    } catch {
+                      // Corrupted file -- start fresh.
+                    }
+                  }
+                  const active: Record<string, unknown> = {
+                    schema_version: 1,
+                    ...current,
+                    workflow_state: mapping?.workflow_state ?? args.next_action,
+                    next_agent: mapping?.next_agent ?? null,
+                    next_action: args.next_action,
+                    context: {
+                      ...(typeof current.context === "object" &&
+                      current.context !== null
+                        ? (current.context as Record<string, unknown>)
+                        : {}),
+                      ...(args.ticket_id ? { ticket_id: args.ticket_id } : {}),
+                      ...(args.cycle_id ? { fixed_point: args.cycle_id } : {}),
+                      ...(context?.sessionID
+                        ? { session_id: context.sessionID }
+                        : {}),
+                    },
+                    updated_at: new Date().toISOString(),
+                    updated_by: "delegation-observer",
+                  }
+                  mkdirSync(handoffDir, { recursive: true })
+                  atomicWriteJson(ACTIVE_JSON_PATH, active)
+                } catch (err) {
+                  // Active.json is dispensable -- warn and continue.
+                  ctx.client.app.log({
+                    body: {
+                      service: "delegation-observer",
+                      level: "warn",
+                      message: `[delegation-observer] active.json write failed: ${errorMessage(err)}`,
+                    },
+                  })
+                }
+              }
             } catch (err) {
               // TUI-safe error-level app log (DIA-192 pattern): a genuine
               // atomic-write failure keeps error severity but no longer
@@ -2710,6 +3367,7 @@ const delegationObserver: Plugin = async (ctx) => {
               },
             })
           }
+
           appendMessageRow(
             {
               "gen_ai.operation.name": "invoke_workflow",
@@ -3021,6 +3679,22 @@ const delegationObserver: Plugin = async (ctx) => {
     // plugin is unloaded so no orphaned interval keeps scanning the registry.
     dispose: async () => {
       clearInterval(stallSweepInterval)
+      // DIA-211 fix #6: flush any pending debounced write before clearing
+      // the timer — losing <1s of state on dispose is unnecessary.
+      if (routingWriteTimer) {
+        clearTimeout(routingWriteTimer)
+        routingWriteTimer = null
+        try {
+          writeFileSync(
+            ADAPTIVE_ROUTING_STATE_PATH,
+            JSON.stringify(routingState, null, 2)
+          )
+        } catch (err) {
+          console.warn(
+            `[delegation-observer] adaptive-routing-state flush-on-dispose failed: ${errorMessage(err)}`
+          )
+        }
+      }
     },
   }
 
