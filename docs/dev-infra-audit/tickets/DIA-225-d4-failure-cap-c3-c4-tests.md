@@ -3,7 +3,7 @@ id: DIA-225
 title: 'D4 failure cap + C3/C4 tests (empty-result detection + failure cap)'
 area: tests-infra
 severity: Major
-status: OPEN
+status: DONE
 blocked_by: [DIA-223, DIA-224]
 discovered:
   source: council-consensus
@@ -17,9 +17,14 @@ model: ''
 parent_session_id: ''
 attempts: 0
 lease_expires_at: ''
-files_touched: []
+files_touched:
+  - .opencode/plugins/delegation-observer.ts
+  - .opencode/plugins/__tests__/empty-result-detection.test.mjs
+  - .opencode/plugins/__tests__/failure-cap.test.mjs
 artifacts: []
-evidence: []
+evidence:
+  - commit: dd1b005
+  - test_results: '5 pass, 0 fail (C3: 2 pass, C4: 3 pass)'
 ---
 
 ## Description
