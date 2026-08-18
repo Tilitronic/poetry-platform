@@ -786,6 +786,12 @@ const delegationObserver: Plugin = async (ctx) => {
   // circuited with a descriptive error — the session is effectively dead.
   const apoptosisSessions = new Set<string>()
 
+  // DIA-224: per-session file edit counter for empty-result detection.
+  // Incremented in tool.execute.after when edit/write/apply_patch tools
+  // execute successfully. Checked in session.idle to detect child sessions
+  // that completed with no file edits (empty result signal D1/D2/D5).
+  const sessionEditCount = new Map<string, number>()
+
   // DIA-211 Phase 3b: pending adaptive-dispatch tracking (callId -> {agentId, start}).
   // Populated in tool.execute.before, consumed in tool.execute.after.
   const pendingAdaptiveDispatches = new Map<
@@ -2858,6 +2864,13 @@ const delegationObserver: Plugin = async (ctx) => {
         input.tool === "write" ||
         input.tool === "apply_patch"
       ) {
+        // DIA-224: track file edits per session for empty-result detection.
+        // Any successful edit/write/apply_patch counts — even if the
+        // formatter later warns, the agent DID touch a file.
+        sessionEditCount.set(
+          input.sessionID,
+          (sessionEditCount.get(input.sessionID) ?? 0) + 1
+        )
         try {
           runEditTimeFormatter(input)
         } catch (err) {
@@ -3403,6 +3416,42 @@ const delegationObserver: Plugin = async (ctx) => {
           // Build/test detection is wired in the tool.execute.after path
           // where the task output IS available.
           checkSilentFailures()
+
+          // DIA-224: D3 empty-result detection. When a child session completes
+          // with zero file edits, flag it as a potential silent failure. This
+          // is ALERT-ONLY -- never auto-dispatch or auto-block. The detection
+          // covers DIA-099 detection signals D1 (empty result), D2 (no file
+          // edits), D5 (no meaningful output). Sessions that produced file
+          // edits are excluded even if their text output was empty (the agent
+          // did work, just not file-touching work).
+          const edits = sessionEditCount.get(sessionID) ?? 0
+          if (edits === 0) {
+            appendRow({
+              event: "empty_result_detected",
+              session_id: sessionID,
+              dispatch_state: "SILENT_FAILURE",
+              status: "EMPTY_RESULT",
+              file_edit_count: 0,
+              agent: childSessionAgent.get(sessionID) ?? "subagent",
+              alert_note:
+                "child session completed with zero file edits (DIA-224 D3 empty-result detection)",
+              writer: "plugin",
+            })
+            appendMessageRow(
+              {
+                "gen_ai.operation.name": "empty_result_detected",
+                "gen_ai.agent.name": childSessionAgent.get(sessionID) ?? "subagent",
+                from: "orchestrator",
+                event_type: "crisis",
+                task_ref: "empty result -- child session completed with no file edits",
+                resolution_status: "in-flight",
+                "gen_ai.agent.id": sessionID,
+              },
+              sessionMeta.get(sessionID)?.parentID
+            )
+          }
+          // Clean up edit counter for completed sessions.
+          sessionEditCount.delete(sessionID)
           return
         }
 
@@ -3474,6 +3523,8 @@ const delegationObserver: Plugin = async (ctx) => {
           // DIA-098 R2: the session errored out -- record how a previously
           // stalled delegation ended (the next sweep drops it automatically).
           logStallResolutionIfStalled(sessionID, "resolved_by_error")
+          // DIA-224: clean up edit counter for errored sessions.
+          sessionEditCount.delete(sessionID)
 
           // === DIA-220 APOPTOSIS: dual-key graceful shutdown ===
           // If the circuit breaker is OPEN for this session AND session.error
