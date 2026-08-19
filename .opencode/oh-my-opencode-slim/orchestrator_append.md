@@ -141,7 +141,9 @@ The orchestrator does NOT run verification itself. Verification is performed by 
    evidence in delegation results.
 
 **Exit checksum delegation (DIA-093, FIX E — verification only):** The handoff file
-(.opencode/session/current-handoff.json) is written SOLELY via the `log_decision` tool
+(the DIA-085 resolved slot `.opencode/session/handoffs/<session-id>.json` — the legacy
+`.opencode/session/current-handoff.json` only if the resolution chain fell back to it) is
+written SOLELY via the `log_decision` tool
 (event_type: 'handoff', resolution_status: 'done', prognosis: JSON.stringify(prognosisObject))
 — the delegation-observer plugin's atomicWriteHandoff computes and stores the `checksum`
 field automatically (DIA-120). NEVER manually write or edit the handoff file: no
