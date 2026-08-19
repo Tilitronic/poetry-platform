@@ -1,7 +1,8 @@
 ---
 id: DIA-210
 title: 'Fix pre-commit root:root ownership flip in Docker container'
-status: DONE
+status: CLOSED
+updated: 2026-08-19
 area: dev-infra
 severity: Medium
 created: 2026-08-17
@@ -42,3 +43,7 @@ Remove `user: '0:0'` from docker-compose.yml line 30.
 - **Change:** `user: '0:0'` removed from docker-compose.yml line 30
 - **Effect:** dev container now runs as UID 1000 (Dockerfile.dev's `USER 1000:1000`)
 - **Verified:** `docker compose config` shows no `user:` directive; config parses clean; services list unchanged
+
+## Updates
+
+- status DONE -> CLOSED 2026-08-19 (fix applied and verified, ticket closure administrative)

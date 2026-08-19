@@ -158,7 +158,7 @@
 | DIA-205 | changelog YAML-ledger conversion: migrate historical CHANGELOG.md entries into the ledger + reconcile derived MD view | opencode-config | Medium | CLOSED | [DIA-205-changelog-yaml-ledger-conversion.md](DIA-205-changelog-yaml-ledger-conversion.md) |
 | DIA-207 | WSL memory/CPU cap exhaustion causes vsock relay stalls and remote disconnects | env | Major | OPEN | [DIA-207-wsl-memory-cap-vsock-relay-disconnects.md](DIA-207-wsl-memory-cap-vsock-relay-disconnects.md) |
 | DIA-209 | CHANGELOG-to-YAML ledger conversion | opencode-config | Medium | CLOSED | [DIA-209-changelog-to-yaml-ledger-conversion.md](DIA-209-changelog-to-yaml-ledger-conversion.md) |
-| DIA-210 | Fix pre-commit root:root ownership flip in Docker container | dev-infra | Medium | OPEN | [DIA-210-pre-commit-root-ownership-flip.md](DIA-210-pre-commit-root-ownership-flip.md) |
+| DIA-210 | Fix pre-commit root:root ownership flip in Docker container | dev-infra | Medium | CLOSED | [DIA-210-pre-commit-root-ownership-flip.md](DIA-210-pre-commit-root-ownership-flip.md) |
 | DIA-211 | Event-driven orchestration harness evolution | opencode-config | Medium | OPEN | [DIA-211-event-driven-orchestration-harness-evolution.md](DIA-211-event-driven-orchestration-harness-evolution.md) |
 | DIA-212 | Researcher dispatched without pre-allocated res ID -- extra iteration required | opencode-config | Medium | OPEN | [DIA-212-researcher-dispatch-without-res-id.md](DIA-212-researcher-dispatch-without-res-id.md) |
 | DIA-213 | Orchestrator scope limitation: delegation + workflow decisions only, content decisions to specialized agents | opencode-config | High | OPEN | [DIA-213-orchestrator-scope-limitation.md](DIA-213-orchestrator-scope-limitation.md) |
@@ -179,7 +179,7 @@
 
 | Status      | Count |
 | ----------- | ----- |
-| OPEN        | 11    |
+| OPEN        | 10    |
 | DONE        | 12    |
 | VALIDATE    | 0     |
 | E2E         | 0     |
@@ -188,7 +188,7 @@
 | FIXED       | 1     |
 | IMPLEMENTED | 2     |
 | VERIFIED    | 28    |
-| CLOSED      | 106   |
+| CLOSED      | 107   |
 | BLOCKED     | 0     |
 | DISPATCHED  | 0     |
 | RUNNING     | 0     |
