@@ -1135,43 +1135,50 @@ proxy would still misreport post-compaction usage.
 - Related: DIA-191, context_usage tool, delegation-observer.ts, ana025,
   lesson L20260815-011.
 
-## ADR: Keep DCP but disable autonomous pruning (DIA-197 V2)
+## ADR: Full DCP removal, superseding V2 keep-but-disable (DIA-197 V1)
 
 ### Status
 
-Accepted (2026-08-16, merged bd4133d).
+Accepted (2026-08-17, commit 69dcdaf on omo-slim-changes branch).
+SUPERSEDES the earlier V2 keep-but-disable ADR (2026-08-16).
 
 ### Context
 
-DIA-197: evaluate the dual-compaction-pipeline (DCP) plugin for removal because
+DIA-197 evaluated the dual-compaction-pipeline (DCP) plugin for removal because
 of a cache-hit degradation (85% vs 90%) without noticeable benefit. res029
-established that DCP has NO cache-preserving mode - both compaction tiers clear
-the prompt cache.
+established that DCP has NO cache-preserving mode. The initial decision (V2,
+2026-08-16) was to keep DCP in the plugin array but disable autonomous pruning.
+On further evaluation, the developer chose full removal (V1) as the cleaner
+outcome.
 
 ### Decision
 
-V2 - KEEP DCP in the plugin array but disable its autonomous pruning via
-manualMode + deny + strategies-off. V1 (full removal) remains a documented future
-option if the pruning cost outweighs keeping the plugin.
+V1 - Full DCP removal. Seven touchpoints edited: removed from plugin arrays
+(project + global), deleted dcp.jsonc, removed from config validator, removed
+from Dockerfiles (Dockerfile.dev + Dockerfile), and removed runtime deps.
+Rationale: DCP was disabled since Aug 16, zero manual usage, dead weight.
 
 ### Rationale (irrecoverable context)
 
-- The V2 compromise (keep-but-disable) vs V1 (remove) is an EBDV policy decision
-  recorded in the DIA-197 ticket; it is not recoverable from the dcp.jsonc diff.
-- Because DCP has no cache-preserving mode, "keep DCP and preserve the cache" is
-  not achievable; the acceptable middle ground is disabling autonomous pruning
-  while retaining the plugin surface.
+- The shift from V2 (keep-but-disable) to V1 (full removal) is a developer
+  preference decision: when a plugin is disabled and unused, full removal is
+  cleaner than keep-but-disable. The intermediate V2 state created config
+  complexity (manualMode + deny + strategies-off) with zero benefit.
+- DCP's zero-cache-preserving property made even the disabled state pointless:
+  there was no future scenario where re-enabling DCP would help (it clears
+  the cache either way).
 
 ### Consequences
 
-- Autonomous DCP pruning is disabled (manualMode + deny + strategies-off);
-  native compaction remains configured.
-- Full DCP removal (V1) stays open as a future option pending further signal.
+- DCP is fully removed from the codebase. Seven touchpoints cleaned in one commit.
+- No remaining DCP config surface (no dcp.jsonc, no plugin array entries, no
+  Docker references).
+- Future DCP-related work would require re-adding from scratch.
 
 ### Metadata
 
-- Created: 2026-08-16
-- Related: DIA-197, res029, dcp.jsonc, DIA-183 (sibling cache work).
+- Created: 2026-08-17 (supersedes V2 entry from 2026-08-16)
+- Related: DIA-197, res029, commit 69dcdaf, dcp.jsonc (deleted).
 
 ## ADR: ai-specialist model-array fallback - gpt-5.3-codex behind qwen3.7-plus (DIA-189)
 
@@ -1461,3 +1468,106 @@ adaptive-routing-state.json, adaptive-performance.json, with .bak backup.
 - Created: 2026-08-17
 - Related: DIA-211, DIA-212, .opencode/plugins/delegation-observer.ts,
   lessons L20260817-011, L20260817-012, L20260817-013
+
+## ADR: Advisory routing-order enforcement for section 2.5 config-work (DIA-230)
+
+### Status
+
+Accepted - 2026-08-18
+
+### Context
+
+The orchestrator LLM cannot be trusted to self-police the AGENTS.md section 2.5
+routing rules under context pressure. A retrospective audit (DIA-204/212/214/215/
+229) found that config-work changes had bypassed the required @ai-specialist
+research gate and @ai-auditor review, sending @coder directly on "investigate and
+fix" tasks. The delegation-observer plugin lacked mechanical enforcement of the
+routing contract.
+
+### Decision
+
+Adopt advisory-only mechanical enforcement of section 2.5 routing rules via the
+delegation-observer plugin's `tool.execute.before` hook. The gate detects when
+@coder is dispatched on config-work (file paths matching `.opencode/plugins/`,
+`.opencode/oh-my-opencode-slim/`, `orchestrator_append.md`) without a prior
+@ai-specialist dispatch in the session, and emits a `ROUTING_VIOLATION` warning
+to `registry.jsonl` + `messages.jsonl`. Advisory-only (warning, not blocking) to
+avoid breaking existing workflows.
+
+### Rationale (irrecoverable context)
+
+- Advisory-only over hard-block: a hard block would break in-flight sessions and
+  override the owner's discretion. The warning signals the violation without
+  halting the pipeline; the owner can accept or reject the routing at review time.
+- Session-scanning (not registry.jsonl) for prior ai-specialist dispatch: the
+  registry sidecar does not reliably carry agent identity for older rows, so the
+  gate scans messages.jsonl for a prior @ai-specialist dispatch in the current
+  session as the stronger signal.
+- 11 config-work path patterns covered: the gate matches against a broad set of
+  .opencode/ paths to catch config-work dispatched under various aliases.
+
+### Consequences
+
+- Future config-work dispatches without @ai-specialist research produce a visible
+  ROUTING_VIOLATION warning. The orchestrator can review and accept/reject the
+  routing.
+- The gate is advisory-only; a determined orchestrator can still bypass it. The
+  mechanical enforcement is a signal layer, not a policy enforcement layer.
+- The gate was reviewed by @ai-auditor with 4 findings (F1-F4) all resolved in the
+  same coder session (DIA-175 R5 same-session fix pattern).
+
+### Metadata
+
+- Created: 2026-08-18
+- Related: DIA-230, DIA-204, DIA-212, DIA-214, DIA-215, DIA-229,
+  .opencode/plugins/delegation-observer.ts, AGENTS.md section 2.5
+
+## ADR: Exempt read-only lanes from DIA-224 empty_result_detected crisis detector (DIA-206)
+
+### Status
+
+Accepted (2026-08-17).
+
+### Context
+
+DIA-224 introduced an `empty_result_detected` crisis detector in the
+delegation-observer plugin to catch silent failures (subagent returns an empty
+result). The detector checks whether a subagent completed with no output.
+However, read-only lanes (code-navigator, researcher, ai-specialist in
+read-only mode) are designed to return findings in their final message without
+writing repo files. The edit-count check fired a false positive for these
+lanes because they legitimately never edit files.
+
+### Decision
+
+Exempt read-only lanes from the edit-count check in the DIA-224 crisis
+detector. The 3-line change adds a lane-name allowlist so that lanes known
+to be read-only (code-navigator, researcher, ai-specialist in read-only mode)
+are not flagged by the empty_result detector.
+
+### Rationale (irrecoverable context)
+
+- The DIA-224 detector's edit-count signal is the wrong discriminator for
+  read-only lanes: these lanes produce findings in their final text message,
+  not in repo file edits. A lane that never edits files is not failing by
+  design; the detector treats the absence of edits as absence of work.
+- The allowlist approach (explicit exemption per lane name) was chosen over
+  removing the edit-count check entirely because the check IS valuable for
+  write-capable lanes (coder, code-executor) where empty results are genuine
+  failures.
+- Root cause is DIA-224: the detector was added without accounting for the
+  read-only lane class. The fix is surgical (3 lines) because the lane
+  classification already exists in the plugin's dispatch metadata.
+
+### Consequences
+
+- Read-only lanes no longer trigger false-positive crisis alerts on completion.
+- Write-capable lanes (coder, code-executor) retain the edit-count check as
+  a genuine failure signal.
+- Future read-only lane additions must be added to the exemption list.
+
+### Metadata
+
+- Created: 2026-08-17
+- Related: DIA-206, DIA-224, .opencode/plugins/delegation-observer.ts (3-line
+  change), .opencode/agents/ai-specialist.md (created in same session)

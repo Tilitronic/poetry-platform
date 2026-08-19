@@ -56,6 +56,17 @@ Reason: <one-line justification>
 4. Write `.source-urls.txt`: one URL per line WITH the per-source relevance/reliability rating; mark any remaining failures as `# NOT ARCHIVED (all methods exhausted)`; list excluded sources with reason.
 5. The conspect (written later by @conspecter) must cite ONLY sources that pass this evaluation.
 
+## HARD RULE: Phase A Checkpoint
+When a res<id> is provided in the dispatch payload:
+1. FIRST: create sources/ directory and archive all URLs (Phase A steps 1-4)
+2. THEN: return findings + persistence recommendation
+
+You MUST NOT return PERSISTENCE_RECOMMENDED until after writing .source-urls.txt.
+The manifest file is the evidence that Phase A completed.
+
+VIOLATION CONSEQUENCE: The orchestrator will REJECT your return and re-dispatch
+you with explicit Phase A instructions. This wastes context and delays the pipeline.
+
 ## Boundaries
 - Source capture only when the orchestrator pre-allocates a res ID — otherwise return findings in conversation
 - Never modify files outside `knowledge/*` — config and code route through @coder

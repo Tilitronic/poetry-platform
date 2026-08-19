@@ -1599,3 +1599,102 @@ recorded here). Irrecoverable process lessons:
   spec.
 - Cross-reference: DIA-211, delegation-observer.ts resource pressure adaptation,
   ai-auditor findings.
+
+## L20260818-001 - Retrospective audit value: workflow bypasses leave process integrity debt (DIA-204/212/214/215/229, 2026-08-18)
+
+- Observation: @ai-auditor reviewed 5 config changes that bypassed the section 2.5
+  routing workflow (DIA-204/212/214/215/229). 4 of 5 had missing changelog
+  registration, status drift (OPEN not flipped to CLOSED at completion), and/or
+  incomplete fix traceability. DIA-204 was APPROVED (no gaps); the rest were
+  NEEDS_REVISION until cleanup executed (4 changelog entries appended, README status
+  drift fixed).
+- Lesson: workflow bypasses leave process integrity debt even when the underlying
+  changes are technically sound. The mechanical gap (no routing-order gate existed)
+  allowed the bypass to occur, but the debt (missing registrations, status drift)
+  accumulated silently and was only caught by a retrospective audit. The audit's
+  value is not just finding defects but closing the registration/traceability gaps
+  that make future audits harder.
+- Preventive action: (1) mechanical enforcement (DIA-230 advisory routing-order
+  gate) prevents future bypasses; (2) retrospective audits close past gaps; (3)
+  when auditing, always check changelog registration + ticket status drift + fix
+  traceability as a standard checklist, not just code correctness.
+- Why irrecoverable: the audit findings (4/5 NEEDS_REVISION) and the cleanup
+  actions are session-state; the generalizable lesson (bypasses accumulate process
+  debt that only retrospective audits close) is a workflow insight not stated in
+  any commit.
+- Cross-reference: DIA-230 (routing-order gate), DIA-204/212/214/215/229
+  (retrospective audit targets), .opencode/CHANGELOG.yaml (4 entries appended).
+
+## L20260818-002 - DIA-230 same-session fix pattern validated for review findings (2026-08-18)
+
+- Observation: DIA-230's initial implementation had 4 ai-auditor findings (F1-F4:
+  gate placement after early returns, wrong agent-identity check, incomplete pattern
+  coverage, insufficient test scope). All 4 were fixed in the SAME coder session
+  that wrote the initial implementation (DIA-175 R5 same-session fix pattern).
+  Re-review cycle 1/2 was sufficient (all findings verified-closed).
+- Lesson: the DIA-175 R5 same-session fix-loop policy works for review finding
+  fixes as well as general bug fixes. Resuming the original coder session for
+  review fixes preserves implementer context (knowledge of the initial
+  implementation decisions) and avoids fresh-instance overhead. This is a second
+  validation of the DIA-175 R5 policy (first: L20260816-003, DIA-190 revert).
+- Why irrecoverable: the working proof of the same-session-resume policy for
+  review finding fixes is a session outcome, not stated in any commit or ticket.
+- Cross-reference: DIA-175 R5 (same-session fix-loop policy), L20260816-003
+  (first validation), DIA-230 (this session).
+
+## L20260818-003 - Read-only lanes produce false-positive crisis alerts when detector checks edit-count (DIA-206, 2026-08-17)
+
+- Observation: the DIA-224 `empty_result_detected` crisis detector fired for
+  read-only lanes (code-navigator, researcher, ai-specialist) that legitimately
+  never edit files. The detector's edit-count signal is the wrong discriminator
+  for lanes designed to return findings in their final text message, not in repo
+  file edits.
+- Lesson: when adding detection heuristics (crisis alerts, failure detectors,
+  empty-result checks), explicitly account for the read-only lane class. A lane
+  that never edits files is not failing by design; an edit-count absence is a
+  false positive for that class. Use an allowlist (explicit lane-name exemption)
+  rather than removing the check entirely, because the check IS valuable for
+  write-capable lanes.
+- Why irrecoverable: the false-positive detection and the allowlist fix are
+  behavioral decisions not stated in any spec; the DIA-224 detector was added
+  without accounting for read-only lanes, which is a gap in the original design
+  not visible in the detector's code alone.
+- Cross-reference: DIA-206, DIA-224, .opencode/plugins/delegation-observer.ts,
+  ADR "Exempt read-only lanes from DIA-224".
+
+## L20260818-004 - When a plugin is disabled and unused, full removal is cleaner than keep-but-disable (DIA-197, 2026-08-17)
+
+- Observation: DIA-197 initially chose V2 (keep DCP in plugin array, disable
+  autonomous pruning via manualMode + deny + strategies-off). On further
+  evaluation, the developer chose V1 (full removal, 7 touchpoints, commit
+  69dcdaf). The V2 intermediate state created config complexity with zero
+  benefit: DCP was disabled since Aug 16, had zero manual usage, and its
+  zero-cache-preserving property meant even the disabled state was pointless.
+- Lesson: when evaluating plugin removal, the keep-but-disable intermediate
+  state is only valuable when there is a plausible future re-enable scenario.
+  If the plugin has no cache-preserving mode, zero usage, and no future use
+  case, full removal in a single commit is cleaner than maintaining disabled
+  config surface. The intermediate V2 state is dead weight that creates
+  config complexity for no benefit.
+- Why irrecoverable: the V2-to-V1 decision shift is a developer preference
+  about config cleanliness, not a code defect; the commits show the final
+  removal but not the intermediate V2 state that was evaluated and rejected.
+- Cross-reference: DIA-197, ADR "Full DCP removal superseding V2", commit
+  69dcdaf, res029.
+
+## L20260818-005 - OMO 2.2.14 -> 2.2.15 upgrade is safe (no breaking changes, additive features) (DIA-187, 2026-08-17)
+
+- Observation: upgraded oh-my-opencode-slim from 2.2.14 to 2.2.15 in global
+  config (~/.config/opencode/tui.json + opencode.jsonc). No breaking changes
+  detected; the release includes task lifecycle hardening and new
+  task_status/task_nudge tools.
+- Lesson: the 2.2.14 -> 2.2.15 upgrade path is safe for this project's
+  configuration. Record this so future upgrade evaluations do not re-research
+  the same version delta. The upgrade required changes in both global config
+  files (tui.json pin + opencode.jsonc pin), consistent with the
+  L20260814-001 lesson that ALL plugin declaration sources must be updated.
+- Why irrecoverable: the safety assessment and the two-file upgrade surface
+  are session observations; the release notes are external and the upgrade
+  path (which files to change) is project-specific.
+- Cross-reference: DIA-187, L20260814-001 (upgrade verification must check
+  ALL declaration sources), L20260815-004 (version-text drift reconciliation).

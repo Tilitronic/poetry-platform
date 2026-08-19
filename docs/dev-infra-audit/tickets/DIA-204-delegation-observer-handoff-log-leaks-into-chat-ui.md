@@ -10,7 +10,7 @@ id: DIA-204
 title: "delegation-observer handoff-archived log line leaks into OpenCode chat UI (console.warn surfaces in conversation stream)"
 area: opencode-config
 severity: Medium
-status: OPEN
+status: CLOSED
 blocked_by: [] # no blockers
 parent_epic: ""
 

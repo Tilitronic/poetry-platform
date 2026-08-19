@@ -3,7 +3,7 @@ id: DIA-215
 title: 'ticket numbering sequential ID conflicts in parallel creation'
 area: dev-infra
 severity: Major
-status: OPEN
+status: CLOSED
 blocked_by: []
 discovered: 2026-08-18
 source: session-observation (developer report, 2026-08-18)

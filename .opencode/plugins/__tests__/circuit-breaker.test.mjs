@@ -79,16 +79,10 @@ async function makeHarness() {
  * Simulates a tool error by passing empty output or error-like output.
  */
 async function driveToolAfter(hooks, ctx, { tool, sessionID, output, callID }) {
-  const origWarn = console.warn
-  console.warn = () => {}
-  try {
-    await hooks["tool.execute.after"](
-      { tool, sessionID, callID: callID ?? "call_test", args: {} },
-      { output: output ?? "" }
-    )
-  } finally {
-    console.warn = origWarn
-  }
+  await hooks["tool.execute.after"](
+    { tool, sessionID, callID: callID ?? "call_test", args: {} },
+    { output: output ?? "" }
+  )
 }
 
 /**
@@ -96,8 +90,6 @@ async function driveToolAfter(hooks, ctx, { tool, sessionID, output, callID }) {
  * Returns { error } - the thrown Error if the circuit blocked, null otherwise.
  */
 async function driveToolBefore(hooks, ctx, { tool, sessionID, callID, args }) {
-  const origWarn = console.warn
-  console.warn = () => {}
   let error = null
   try {
     await hooks["tool.execute.before"](
@@ -106,8 +98,6 @@ async function driveToolBefore(hooks, ctx, { tool, sessionID, callID, args }) {
     )
   } catch (err) {
     error = err instanceof Error ? err : new Error(String(err))
-  } finally {
-    console.warn = origWarn
   }
   return error
 }

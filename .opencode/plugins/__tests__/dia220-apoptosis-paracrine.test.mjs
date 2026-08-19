@@ -83,45 +83,31 @@ async function makeHarness() {
  * Simulates a tool error by passing empty output.
  */
 async function driveToolAfter(hooks, ctx, { tool, sessionID, output, callID }) {
-  const origWarn = console.warn
-  console.warn = () => {}
-  try {
-    await hooks["tool.execute.after"](
-      { tool, sessionID, callID: callID ?? "call_test", args: {} },
-      { output: output ?? "" }
-    )
-  } finally {
-    console.warn = origWarn
-  }
+  await hooks["tool.execute.after"](
+    { tool, sessionID, callID: callID ?? "call_test", args: {} },
+    { output: output ?? "" }
+  )
 }
 
 /**
  * Drive the real tool.execute.after for a task() call with specific args.
  */
 async function driveTaskAfter(hooks, ctx, { sessionID, output, callID, args }) {
-  const origWarn = console.warn
-  console.warn = () => {}
-  try {
-    await hooks["tool.execute.after"](
-      {
-        tool: "task",
-        sessionID,
-        callID: callID ?? "call_task",
-        args: args ?? {},
-      },
-      { output: output ?? "" }
-    )
-  } finally {
-    console.warn = origWarn
-  }
+  await hooks["tool.execute.after"](
+    {
+      tool: "task",
+      sessionID,
+      callID: callID ?? "call_task",
+      args: args ?? {},
+    },
+    { output: output ?? "" }
+  )
 }
 
 /**
  * Drive the real tool.execute.before hook for a task() dispatch.
  */
 async function driveTaskBefore(hooks, ctx, { sessionID, callID, args }) {
-  const origWarn = console.warn
-  console.warn = () => {}
   let error = null
   try {
     await hooks["tool.execute.before"](
@@ -130,8 +116,6 @@ async function driveTaskBefore(hooks, ctx, { sessionID, callID, args }) {
     )
   } catch (err) {
     error = err instanceof Error ? err : new Error(String(err))
-  } finally {
-    console.warn = origWarn
   }
   return error
 }
@@ -140,13 +124,7 @@ async function driveTaskBefore(hooks, ctx, { sessionID, callID, args }) {
  * Drive the event hook (session lifecycle events).
  */
 async function driveEvent(hooks, { event }) {
-  const origWarn = console.warn
-  console.warn = () => {}
-  try {
-    await hooks.event({ event })
-  } finally {
-    console.warn = origWarn
-  }
+  await hooks.event({ event })
 }
 
 /**

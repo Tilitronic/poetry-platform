@@ -103,9 +103,8 @@ function freshCtx() {
   // DIA-192/193: the log_decision execute path reports benign/recovered
   // conditions via the TUI-safe SDK app log (ctx.client.app.log) instead of
   // raw console.warn (which surfaced as high-severity TUI notifications).
-  // Capture those calls so assertions can check the NEW channel; the OLD
-  // console.warn capture in runLogDecision still covers the
-  // atomicWriteHandoff helper's remaining failure warns (unchanged console.warn).
+  // DIA-233: all plugin diagnostics now use tuiSafeWarn (app.log channel),
+  // so the logs array captures all warning/error output from the plugin.
   const logs = []
   return {
     directory,
@@ -136,22 +135,17 @@ async function makeHarness() {
 
 /**
  * Drive the real log_decision tool.execute with a log_decision args record.
- * Collects console.warn output (the writer reports archive FAILURES and
- * pointer-write failures through warn - design.md section 5; the benign
+ * Collects app.log output (the writer reports archive FAILURES and
+ * pointer-write failures through tuiSafeWarn - design.md section 5; the benign
  * archive event itself moved to the TUI-safe app.log channel, DIA-204).
  */
-async function runLogDecision(hooks, args) {
-  const warnings = []
-  const origWarn = console.warn
-  console.warn = (...chunks) => warnings.push(chunks.join(" "))
-  try {
-    const result = await hooks.tool.log_decision.execute(args, {
-      sessionID: "ses_harness",
-    })
-    return { result, warnings }
-  } finally {
-    console.warn = origWarn
-  }
+async function runLogDecision(hooks, args, logs) {
+  const beforeCount = logs.length
+  const result = await hooks.tool.log_decision.execute(args, {
+    sessionID: "ses_harness",
+  })
+  const newLogs = logs.slice(beforeCount)
+  return { result, warnings: newLogs.map((l) => l?.body?.message ?? "") }
 }
 
 /** Terminal handoff write (resolution_status 'done') for a session lane. */
@@ -166,8 +160,8 @@ function terminalHandoffArgs(laneId, prognosis, taskRef = "DIA-085-test") {
   }
 }
 
-async function writeTerminalHandoff(hooks, laneId, prognosis) {
-  return runLogDecision(hooks, terminalHandoffArgs(laneId, prognosis))
+async function writeTerminalHandoff(hooks, laneId, prognosis, logs) {
+  return runLogDecision(hooks, terminalHandoffArgs(laneId, prognosis), logs)
 }
 
 function readJson(filePath) {
@@ -175,7 +169,7 @@ function readJson(filePath) {
 }
 
 const ISO_TS_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/
-const ARCHIVE_NAME_RE = /^ses_A\.\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}\.\d{3}Z\.json$/
+const ARCHIVE_NAME_RE = /^ses_A\.\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}\.\d{3}Z\.[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.json$/
 
 /** Canonical DIA-061 checksum: sorted top-level keys, compact JSON, SHA256. */
 function canonicalChecksum(prognosis) {
@@ -218,7 +212,7 @@ function prognosisB() {
 test("S1 slot write: terminal handoff creates <session-id>.json with correct schema", async () => {
   const { hooks, paths, logs } = await makeHarness()
   const pA = prognosisA()
-  const { result } = await writeTerminalHandoff(hooks, "ses_A", pA)
+  const { result } = await writeTerminalHandoff(hooks, "ses_A", pA, logs)
 
   // Tool contract: execute resolves with the human-readable log line.
   expect(result.startsWith("Logged: handoff")).toBe(true)
@@ -262,11 +256,11 @@ test("S1 slot write: terminal handoff creates <session-id>.json with correct sch
 })
 
 test("S1 checksum: slot checksum equals the canonical DIA-061 SHA256 over the prognosis", async () => {
-  const { hooks, paths } = await makeHarness()
+  const { hooks, paths, logs } = await makeHarness()
   const pA = prognosisA()
   const pB = prognosisB()
 
-  await writeTerminalHandoff(hooks, "ses_A", pA)
+  await writeTerminalHandoff(hooks, "ses_A", pA, logs)
   const slotA = readJson(paths.slotPath("ses_A"))
   // Recompute by the canonical pipeline (jq to_entries|sort_by(.key)|
   // from_entries + printf %s + sha256) and compare.
@@ -276,7 +270,7 @@ test("S1 checksum: slot checksum equals the canonical DIA-061 SHA256 over the pr
   expect(canonicalChecksum(slotA.prognosis)).toBe(slotA.checksum)
 
   // A different prognosis must hash to a different checksum.
-  await writeTerminalHandoff(hooks, "ses_B", pB)
+  await writeTerminalHandoff(hooks, "ses_B", pB, logs)
   const slotB = readJson(paths.slotPath("ses_B"))
   expect(slotB.checksum).toBe(canonicalChecksum(pB))
   expect(slotB.checksum).not.toBe(slotA.checksum)
@@ -287,14 +281,14 @@ test("S1 archive-on-overwrite: same-session rewrite archives the prior slot and 
   const pA = prognosisA()
   const pB = prognosisB()
 
-  await writeTerminalHandoff(hooks, "ses_A", pA)
+  await writeTerminalHandoff(hooks, "ses_A", pA, logs)
   const pointerAfterFirst = readJson(paths.pointerPath)
 
   // Second terminal write for the SAME session with different prognosis.
-  await writeTerminalHandoff(hooks, "ses_A", pB)
+  await writeTerminalHandoff(hooks, "ses_A", pB, logs)
 
   // Archive holds exactly one file with the documented naming convention
-  // <session-id>.<iso-ts-hyphenated>.json (colons -> hyphens).
+  // <session-id>.<iso-ts-hyphenated>.<uuid>.json (DIA-222: UUID suffix for collision safety).
   const archiveFiles = readdirSync(paths.archiveDir)
   expect(archiveFiles).toHaveLength(1)
   expect(ARCHIVE_NAME_RE.test(archiveFiles[0])).toBe(true)
@@ -344,12 +338,12 @@ test("S1 archive-on-overwrite: same-session rewrite archives the prior slot and 
 })
 
 test("S1 two-session coexistence: ses_A then ses_B - both slots survive, pointer points to ses_B", async () => {
-  const { hooks, paths } = await makeHarness()
+  const { hooks, paths, logs } = await makeHarness()
   const pA = prognosisA()
   const pB = prognosisB()
 
-  await writeTerminalHandoff(hooks, "ses_A", pA)
-  await writeTerminalHandoff(hooks, "ses_B", pB)
+  await writeTerminalHandoff(hooks, "ses_A", pA, logs)
+  await writeTerminalHandoff(hooks, "ses_B", pB, logs)
 
   // Both slots exist; each carries its own prognosis (no clobber).
   const slotA = readJson(paths.slotPath("ses_A"))
@@ -370,13 +364,13 @@ test("S1 two-session coexistence: ses_A then ses_B - both slots survive, pointer
 })
 
 test("S1 directory creation: first write creates handoffs/ and handoffs/archive/", async () => {
-  const { hooks, paths } = await makeHarness()
+  const { hooks, paths, logs } = await makeHarness()
 
   // Precondition: plugin init creates only .opencode/session/ (boot.json +
   // registry.jsonl); handoffs/ must NOT exist yet.
   expect(existsSync(paths.handoffsDir)).toBe(false)
 
-  await writeTerminalHandoff(hooks, "ses_A", prognosisA())
+  await writeTerminalHandoff(hooks, "ses_A", prognosisA(), logs)
 
   // Postcondition: both handoffs/ and handoffs/archive/ exist.
   expect(existsSync(paths.handoffsDir)).toBe(true)
@@ -396,7 +390,7 @@ test("S1 DIA-192 parse-fallback: malformed prognosis logs at debug level and wri
     resolution_status: "done",
     lane_id: "ses_parse_fallback",
     prognosis: malformed,
-  })
+  }, logs)
 
   // The recovered error is reported on the TUI-safe app-log channel at
   // debug level (DIA-192: info-level was still too loud for a recovered
@@ -438,6 +432,54 @@ test("S1 DIA-192 parse-fallback: malformed prognosis logs at debug level and wri
   expect(result.startsWith("Logged: handoff")).toBe(true)
 })
 
+test("S1 DIA-231 warn branch: literal JSON.stringify(...) text logs at warn and wraps in fallback (no crash)", async () => {
+  const { hooks, paths, logs } = await makeHarness()
+
+  // Simulate the LLM passing the literal text "JSON.stringify(...)" instead
+  // of the actual stringified result. The raw string starts with
+  // "JSON.stringify(" so the warn branch fires; JSON.parse then fails
+  // because the literal text is not valid JSON, triggering the catch-only
+  // fallback to the plain-text wrapper.
+  const literalStringify =
+    "JSON.stringify({session_summary: 'test'})"
+  const { result } = await runLogDecision(hooks, {
+    event_type: "handoff",
+    task_ref: "DIA-231-warn",
+    resolution_status: "done",
+    lane_id: "ses_dia231",
+    prognosis: literalStringify,
+  }, logs)
+
+  // The warn branch fires: app.log receives a warn-level entry whose
+  // message mentions the literal JSON.stringify pattern.
+  expect(
+    logs.some(
+      (l) =>
+        l?.body?.level === "warn" &&
+        l?.body?.message?.includes("JSON.stringify(")
+    )
+  ).toBe(true)
+
+  // The handoff slot is still written with the plain-text wrapper shape
+  // (the catch block handles the parse failure after the warn fires).
+  const slotPath = paths.slotPath("ses_dia231")
+  expect(existsSync(slotPath)).toBe(true)
+  const slot = readJson(slotPath)
+  expect(slot.status).toBe("done")
+  expect(slot.prognosis).toEqual({
+    session_summary: { note: literalStringify },
+    fixes_applied: [],
+    open_tickets: [],
+    verification_request: [],
+    resume_instructions: "",
+  })
+  expect(slot.checksum).toMatch(/^[0-9a-f]{64}$/)
+  expect(slot.checksum).toBe(canonicalChecksum(slot.prognosis))
+
+  // Tool contract: the call still resolves (no crash on literal input).
+  expect(result.startsWith("Logged: handoff")).toBe(true)
+})
+
 test("S1 DIA-120 filter: non-terminal 'in-flight' first write creates NO slot and NO pointer", async () => {
   const { hooks, paths, logs } = await makeHarness()
 
@@ -447,7 +489,7 @@ test("S1 DIA-120 filter: non-terminal 'in-flight' first write creates NO slot an
     resolution_status: "in-flight",
     lane_id: "ses_A",
     prognosis: JSON.stringify(prognosisA()),
-  })
+  }, logs)
 
   // The writer is never reached: no handoffs/ dir, no slot, no pointer.
   expect(existsSync(paths.handoffsDir)).toBe(false)
@@ -474,7 +516,7 @@ test("S1 DIA-120 filter: non-terminal 'in-flight' first write creates NO slot an
 test("S1 DIA-120 filter: non-terminal event does NOT touch an existing slot or pointer", async () => {
   const { hooks, paths, logs } = await makeHarness()
 
-  await writeTerminalHandoff(hooks, "ses_A", prognosisA())
+  await writeTerminalHandoff(hooks, "ses_A", prognosisA(), logs)
   const slotBefore = readFileSync(paths.slotPath("ses_A"), "utf-8")
   const pointerBefore = readFileSync(paths.pointerPath, "utf-8")
   const archiveBefore = readdirSync(paths.archiveDir)
@@ -486,7 +528,7 @@ test("S1 DIA-120 filter: non-terminal event does NOT touch an existing slot or p
     resolution_status: "in-flight",
     lane_id: "ses_A",
     prognosis: JSON.stringify(prognosisB()),
-  })
+  }, logs)
 
   // Slot and pointer byte-identical; no archive was created.
   expect(readFileSync(paths.slotPath("ses_A"), "utf-8")).toBe(slotBefore)
@@ -508,7 +550,7 @@ test("S1 reserved-path guard: session id 'active' cannot clobber active.json", a
 
   // Establish a REAL pointer first so the guard's protection is observable:
   // an attempted write for lane 'active' must leave it intact.
-  await writeTerminalHandoff(hooks, "ses_A", prognosisA())
+  await writeTerminalHandoff(hooks, "ses_A", prognosisA(), logs)
   const pointerBefore = readFileSync(paths.pointerPath, "utf-8")
   const slotABefore = readFileSync(paths.slotPath("ses_A"), "utf-8")
 
@@ -518,7 +560,7 @@ test("S1 reserved-path guard: session id 'active' cannot clobber active.json", a
     resolution_status: "done",
     lane_id: "active",
     prognosis: JSON.stringify(prognosisB()),
-  })
+  }, logs)
 
   // The guard rejects the write before ANY file mutation: the real pointer
   // and the existing slot are byte-identical afterwards.
@@ -552,7 +594,7 @@ test("S1 reserved-path guard: session id 'active' cannot clobber active.json", a
 })
 
 test("S1 design s2: parentSessionId (task() capture) wins over lane_id for slot identity", async () => {
-  const { hooks, paths } = await makeHarness()
+  const { hooks, paths, logs } = await makeHarness()
 
   // Simulate the orchestrator's first task() dispatch: tool.execute.after
   // captures input.sessionID as the sticky parentSessionId (the source of
@@ -573,7 +615,7 @@ test("S1 design s2: parentSessionId (task() capture) wins over lane_id for slot 
 
   // Terminal handoff carrying a DIFFERENT lane_id: the slot must be named by
   // the parent orchestrator session, not the lane_id.
-  await writeTerminalHandoff(hooks, "ses_lane", prognosisA())
+  await writeTerminalHandoff(hooks, "ses_lane", prognosisA(), logs)
 
   expect(existsSync(paths.slotPath("ses_parent"))).toBe(true)
   expect(existsSync(paths.slotPath("ses_lane"))).toBe(false)

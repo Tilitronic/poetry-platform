@@ -61,6 +61,17 @@ if [ "${1:-}" = "--quick" ]; then
   shift
 fi
 
+# --- Parse the --filter flag (DIA-226) --------------------------------------
+# When --filter <pattern> is given, only bats files whose basename matches
+# the pattern are run (substring match). This lets `make test-harness` run
+# a single scenario replay suite without running the full monolith.
+FILTER=""
+if [ "${1:-}" = "--filter" ]; then
+  shift
+  FILTER="${1:-}"
+  shift
+fi
+
 # --- Re-validate the vendored bats checkout against the pin (DIA-121) --------
 # The vendor dir is cloned once and git-ignored; without this check a machine
 # can silently drift to a different bats version (shifting test numbering and
@@ -168,6 +179,23 @@ if [ "$QUICK" = "1" ]; then
     )
   fi
   exec "$BATS" --print-output-on-failure "${quick_files[@]}"
+fi
+
+# --- --filter mode: run only matching bats files (DIA-226) -------------------
+# Used by `make test-harness` to run harness-scenario-replay.bats without the
+# full monolith. Finds bats files whose basename contains FILTER and runs them.
+if [ -n "$FILTER" ]; then
+  filtered_files=()
+  while IFS= read -r -d '' f; do
+    case "$(basename "$f")" in
+      *"$FILTER"*) filtered_files+=("$f") ;;
+    esac
+  done < <(find "$TESTS_DIR" -maxdepth 1 -type f -name '*.bats' -print0)
+  if [ "${#filtered_files[@]}" -eq 0 ]; then
+    echo "error: --filter '$FILTER' matched no bats files under $TESTS_DIR" >&2
+    exit 1
+  fi
+  exec "$BATS" --print-output-on-failure "${filtered_files[@]}"
 fi
 
 exec "$BATS" --print-output-on-failure "$TESTS_DIR"

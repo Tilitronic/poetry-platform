@@ -31,6 +31,14 @@ Dispatch `@researcher` with a specific question, scope, the pre-allocated `res<i
 
 **Missing flag:** If the researcher's output does not include `PERSISTENCE_RECOMMENDED`, apply the Phase 3 criteria table yourself to assess persistence worthiness before proceeding. Do not silently skip the pipeline — the flag is a convenience, not a gate.
 
+### Phase 2 verification (HARD GATE):
+Before accepting the researcher's return, the orchestrator MUST verify
+`knowledge/res<id>-<topic>/sources/.source-urls.txt` exists. If missing:
+- REJECT the return
+- Re-dispatch @researcher with explicit Phase A instructions:
+  "Phase A checkpoint failed: sources/.source-urls.txt not found.
+  You MUST complete Phase A steps 1-4 before returning findings."
+
 ### Phase 3: Persistence Decision (Practice-Protected, D3)
 Evaluate the researcher's findings against these criteria. **Present to the developer** — do not auto-decide:
 

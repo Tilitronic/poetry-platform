@@ -121,10 +121,15 @@ mock.module("node:child_process", () => ({
     // The plugin attaches child.on("error", cb) - return a stub with on().
     return { on: () => {} }
   },
+  // ponytail: stub to prevent cross-file mock leakage from breaking
+  // delegation-observer.ts (which imports spawnSync). The mock.module
+  // leak is a bun 1.3.14 limitation; upgrade trigger: check if bun test
+  // isolates mock.module per file in a future release.
+  spawnSync: () => { throw new Error("spawnSync not mocked in dia189 test") },
 }))
 
 // Import AFTER mock.module registration (dynamic import defeats ESM hoisting).
-const { default: createNeedsInputObserver } = await import(
+const { default: createNeedsInputObserver, sessionWordPair } = await import(
   "../needs-input-observer.ts"
 )
 
@@ -138,15 +143,20 @@ const { default: createNeedsInputObserver } = await import(
 // the REAL runtime defaults so the regression tests pin the fix: the suffix
 // must be appended to ANY unsuffixed title, default OR user-set.
 const DEFAULT_TITLE = "New session - 2026-08-15T10:30:00.000Z"
-// DIA-189 fix: the real 1.18.18 pty default is "Terminal N" (probe-verified),
+// DIA-189 fix: the real 1.18.18 pty default is "Terminal 1" (probe-verified),
 // not "opencode <cwd>".
 const DEFAULT_PTY_TITLE = "Terminal 1"
 const SESSION_ID = "ses_1234567890abcdef"
-const SHORT_ID = "abcdef" // SESSION_ID.slice(-6) - verified on bun 1.3.14: "ses_1234567890abcdef".slice(-6) === "abcdef"
-// DIA-189b: pty identity. NOTE the dispatch's "[3456]" was slice(-4) - the
-// true slice(-6) of "pty_abcdef123456" is "123456" (bun-verified above).
 const PTY_ID = "pty_abcdef123456"
-const PTY_SHORT = "123456" // PTY_ID.slice(-6) - bun-verified
+// DIA-189 word-pair naming: deterministic adjective-noun pairs from session IDs.
+// Verified by running sessionWordPair() in node: "ses_1234567890abcdef" -> "jovial-elm",
+// "pty_abcdef123456" -> "droll-ridge", "pty_custom000001" -> "urbane-moon".
+// Hardcoded values must be updated if word lists change; format assertion ensures contract.
+const SESSION_WORD_PAIR = "jovial-elm"
+const PTY_WORD_PAIR = "droll-ridge"
+// Format contract: word pairs are lowercase-hyphenated ASCII.
+if (!/^[a-z]+-[a-z]+$/.test(SESSION_WORD_PAIR)) throw new Error("SESSION_WORD_PAIR format violated")
+if (!/^[a-z]+-[a-z]+$/.test(PTY_WORD_PAIR)) throw new Error("PTY_WORD_PAIR format violated")
 
 function freshCtx() {
   const directory = mkdtempSync(join(tmpdir(), "dia189-"))
@@ -312,42 +322,40 @@ function desktopScript() {
 test("A1a RED: runtime session default 'New session - <ISO>' on session.created triggers session.update with derived unique title", async () => {
   const { hooks, updateCalls } = await makeHarness()
   await hooks.event(sessionCreatedEvent(DEFAULT_TITLE))
-  // A1: derived = baseTitle + " [" + id.slice(-6) + "]". DEFAULT_TITLE is
-  // the real 1.18.18 session default - RED against the old prefix guard
-  // (it does not start with "opencode ", so the rename never fired).
+  // DIA-189: word-pair naming. derived = baseTitle + " [" + wordPair + "]".
   expect(updateCalls).toHaveLength(1)
   expect(updateCalls[0].path).toEqual({ id: SESSION_ID })
-  expect(updateCalls[0].body.title).toBe(`${DEFAULT_TITLE} [${SHORT_ID}]`)
+  expect(updateCalls[0].body.title).toBe(`${DEFAULT_TITLE} [${SESSION_WORD_PAIR}]`)
 })
 
 test("A1b RED: user-set title 'My Custom Session' gets the suffix appended (rename-if-not-suffixed)", async () => {
   const { hooks, updateCalls } = await makeHarness()
   await hooks.event(sessionCreatedEvent("My Custom Session"))
-  // DIA-189 fix: rename-if-not-suffixed appends " [<short-id>]" to ANY
+  // DIA-189 fix: rename-if-not-suffixed appends " [<word-pair>]" to ANY
   // unsuffixed title, user-set included - developer-approved because it
   // survives future default-format changes. RED against the old rule (only
   // "opencode "-prefixed labels were renamed, so no update call fired).
   expect(updateCalls).toHaveLength(1)
   expect(updateCalls[0].path).toEqual({ id: SESSION_ID })
-  expect(updateCalls[0].body.title).toBe("My Custom Session [abcdef]")
+  expect(updateCalls[0].body.title).toBe(`My Custom Session [${SESSION_WORD_PAIR}]`)
 })
 
-test("A1c RED: missing/empty title on session.created triggers session.update with default-label base + short-id", async () => {
+test("A1c RED: missing/empty title on session.created triggers session.update with default-label base + word-pair", async () => {
   const { hooks, updateCalls } = await makeHarness()
   await hooks.event(sessionCreatedEvent(""))
   // A1: empty title -> baseTitle = the default label ("opencode <...>") so the
-  // derived title starts with "opencode " and ends with the short-id suffix.
+  // derived title starts with "opencode " and ends with the word-pair suffix.
   expect(updateCalls).toHaveLength(1)
   expect(updateCalls[0].body.title.startsWith("opencode ")).toBe(true)
-  expect(updateCalls[0].body.title.endsWith(` [${SHORT_ID}]`)).toBe(true)
+  expect(updateCalls[0].body.title.endsWith(` [${SESSION_WORD_PAIR}]`)).toBe(true)
 })
 
-test("A1d guard: title already ending in [xxxxxx] is NOT renamed again (no double-rename)", async () => {
+test("A1d guard: title already ending in [word-pair] is NOT renamed again (no double-rename)", async () => {
   const { hooks, updateCalls } = await makeHarness()
   await hooks.event(
-    sessionCreatedEvent(`${DEFAULT_TITLE} [${SHORT_ID}]`, SESSION_ID)
+    sessionCreatedEvent(`${DEFAULT_TITLE} [${SESSION_WORD_PAIR}]`, SESSION_ID)
   )
-  // Guard from the A1 design: skip if the short-id suffix is already present.
+  // Guard from the A1 design: skip if the word-pair suffix is already present.
   // PASSES today (trivially); must still pass after A1.
   expect(updateCalls).toHaveLength(0)
 })
@@ -388,46 +396,47 @@ test("A1f guard: session.update { error } response branch warns and continues, n
 // A2: notification attribution - short-id suffix in both channels
 // ---------------------------------------------------------------------------
 
-test("A2 RED: notify() title carries the short-id suffix in the TUI toast title", async () => {
+test("A2 RED: notify() title carries the word-pair suffix in the TUI toast title", async () => {
   const { hooks, toastCalls } = await makeHarness()
   await hooks.event(sessionCreatedEvent(DEFAULT_TITLE))
   await hooks.event(
     questionAskedEvent("Need your input", SESSION_ID)
   )
   expect(toastCalls).toHaveLength(1)
-  // A2: body.title must contain " [abcdef]" so the toast matches the renamed
-  // terminal label. RED today: title is just the default label, no suffix.
-  expect(toastCalls[0].body.title).toContain(`[${SHORT_ID}]`)
+  // DIA-189: body.title must contain " [crimson-elm]" so the toast matches
+  // the renamed terminal label. RED today: title is just the default label,
+  // no suffix.
+  expect(toastCalls[0].body.title).toContain(`[${SESSION_WORD_PAIR}]`)
 })
 
-test("A2 RED: notify() title carries the short-id suffix in the desktop toast title", async () => {
+test("A2 RED: notify() title carries the word-pair suffix in the desktop toast title", async () => {
   const { hooks } = await makeHarness()
   spawnCalls.length = 0
   await hooks.event(sessionCreatedEvent(DEFAULT_TITLE))
   await hooks.event(
     questionAskedEvent("Need your input", SESSION_ID)
   )
-  // A2: the desktop toast title (first CreateTextNode text) must carry the
+  // DIA-189: the desktop toast title (first CreateTextNode text) must carry the
   // same suffixed title. Assert on the full expected title string so the
   // match is pinned to the title node, not the body node.
-  expect(desktopScript()).toContain(`${DEFAULT_TITLE} [${SHORT_ID}]`)
+  expect(desktopScript()).toContain(`${DEFAULT_TITLE} [${SESSION_WORD_PAIR}]`)
 })
 
-test("A2 guard: title already ending in the short-id suffix is NOT double-appended", async () => {
+test("A2 guard: title already ending in the word-pair suffix is NOT double-appended", async () => {
   // F4 coverage: seed sessionMeta/entry with a title that ALREADY carries
-  // the " [<short-id>]" suffix (e.g. the A1-renamed label), then trigger a
+  // the " [<word-pair>]" suffix (e.g. the A1-renamed label), then trigger a
   // question.asked - notify() must keep the suffix exactly once, never
-  // producing " [abcdef] [abcdef]".
+  // producing " [crimson-elm] [crimson-elm]".
   const { hooks, toastCalls } = await makeHarness()
   await hooks.event(
-    sessionCreatedEvent(`${DEFAULT_TITLE} [${SHORT_ID}]`, SESSION_ID)
+    sessionCreatedEvent(`${DEFAULT_TITLE} [${SESSION_WORD_PAIR}]`, SESSION_ID)
   )
   await hooks.event(
     questionAskedEvent("Need your input", SESSION_ID)
   )
   expect(toastCalls).toHaveLength(1)
   // Exact match proves exactly-once (a double-append would fail this).
-  expect(toastCalls[0].body.title).toBe(`${DEFAULT_TITLE} [${SHORT_ID}]`)
+  expect(toastCalls[0].body.title).toBe(`${DEFAULT_TITLE} [${SESSION_WORD_PAIR}]`)
 })
 
 // ---------------------------------------------------------------------------
@@ -501,13 +510,10 @@ test("A3e guard: C1 control chars (U+0080-U+009F) are still stripped to spaces i
 test("P1a RED: pty.created with runtime pty default 'Terminal 1' triggers pty.update with derived unique title", async () => {
   const { hooks, ptyUpdateCalls } = await makeHarness()
   await hooks.event(ptyCreatedEvent(DEFAULT_PTY_TITLE))
-  // A1b: derived = baseTitle + " [" + id.slice(-6) + "]" - same rule as the
-  // session rename, applied to the PTY object. DEFAULT_PTY_TITLE is the real
-  // 1.18.18 pty default - RED against the old prefix guard (no "opencode "
-  // prefix, so the rename never fired).
+  // DIA-189: word-pair naming. derived = baseTitle + " [" + wordPair + "]".
   expect(ptyUpdateCalls).toHaveLength(1)
   expect(ptyUpdateCalls[0].path).toEqual({ id: PTY_ID })
-  expect(ptyUpdateCalls[0].body.title).toBe(`${DEFAULT_PTY_TITLE} [${PTY_SHORT}]`)
+  expect(ptyUpdateCalls[0].body.title).toBe(`${DEFAULT_PTY_TITLE} [${PTY_WORD_PAIR}]`)
 })
 
 test("P1b RED: pty.created with a user-set title gets the suffix appended (rename-if-not-suffixed)", async () => {
@@ -518,15 +524,15 @@ test("P1b RED: pty.created with a user-set title gets the suffix appended (renam
   // "opencode "-prefix-only guard.
   expect(ptyUpdateCalls).toHaveLength(1)
   expect(ptyUpdateCalls[0].path).toEqual({ id: PTY_ID })
-  expect(ptyUpdateCalls[0].body.title).toBe("My custom pty [123456]")
+  expect(ptyUpdateCalls[0].body.title).toBe(`My custom pty [${PTY_WORD_PAIR}]`)
 })
 
 test("P1c guard: pty.created with already-suffixed title is NOT renamed again", async () => {
   const { hooks, ptyUpdateCalls } = await makeHarness()
   await hooks.event(
-    ptyCreatedEvent(`${DEFAULT_PTY_TITLE} [${PTY_SHORT}]`, PTY_ID)
+    ptyCreatedEvent(`${DEFAULT_PTY_TITLE} [${PTY_WORD_PAIR}]`, PTY_ID)
   )
-  // Guard: skip when the title already ends with " [xxxxxx]" (no double
+  // Guard: skip when the title already ends with " [word-pair]" (no double
   // rename). PASSES today (trivially); must keep passing after A1b.
   expect(ptyUpdateCalls).toHaveLength(0)
 })
@@ -570,24 +576,24 @@ test("P2a RED: boot retro pass renames pre-existing default-titled ptys from pty
   // RED against the old prefix guard (no "opencode " prefix, no rename).
   expect(ptyUpdateCalls).toHaveLength(1)
   expect(ptyUpdateCalls[0].path).toEqual({ id: PTY_ID })
-  expect(ptyUpdateCalls[0].body.title).toBe(`${DEFAULT_PTY_TITLE} [${PTY_SHORT}]`)
+  expect(ptyUpdateCalls[0].body.title).toBe(`${DEFAULT_PTY_TITLE} [${PTY_WORD_PAIR}]`)
 })
 
 test("P2b RED: boot retro pass renames an unsuffixed custom pty but skips an already-suffixed one", async () => {
   const { ctx, ptyUpdateCalls } = freshCtx()
   ctx.client.pty.list = async () => [
     ptyRecord("My custom pty", "pty_custom000001"),
-    ptyRecord(`${DEFAULT_PTY_TITLE} [${PTY_SHORT}]`, PTY_ID),
+    ptyRecord(`${DEFAULT_PTY_TITLE} [${PTY_WORD_PAIR}]`, PTY_ID),
   ]
   await createNeedsInputObserver(ctx)
   await settleBootPass()
   // DIA-189 fix: rename-if-not-suffixed renames the custom pty (its title
-  // has no " [xxxxxx]" suffix) but leaves the already-suffixed one alone.
+  // has no " [word-pair]" suffix) but leaves the already-suffixed one alone.
   // RED against the old rule: only "opencode "-prefixed labels were renamed,
   // so neither pty was touched.
   expect(ptyUpdateCalls).toHaveLength(1)
   expect(ptyUpdateCalls[0].path).toEqual({ id: "pty_custom000001" })
-  expect(ptyUpdateCalls[0].body.title).toBe("My custom pty [000001]")
+  expect(ptyUpdateCalls[0].body.title).toBe("My custom pty [urbane-moon]")
 })
 
 test("P2c RED: boot retro pass renames pre-existing default-title sessions from session.list", async () => {
@@ -596,11 +602,11 @@ test("P2c RED: boot retro pass renames pre-existing default-title sessions from 
   await createNeedsInputObserver(ctx)
   await settleBootPass()
   // A2b: the session retro pass uses session.update with the same
-  // derived-title rule (baseTitle + " [id.slice(-6)]"). DEFAULT_TITLE is the
+  // derived-title rule (baseTitle + " [word-pair]"). DEFAULT_TITLE is the
   // real 1.18.18 session default - RED against the old prefix guard.
   expect(updateCalls).toHaveLength(1)
   expect(updateCalls[0].path).toEqual({ id: SESSION_ID })
-  expect(updateCalls[0].body.title).toBe(`${DEFAULT_TITLE} [${SHORT_ID}]`)
+  expect(updateCalls[0].body.title).toBe(`${DEFAULT_TITLE} [${SESSION_WORD_PAIR}]`)
 })
 
 test("P2d guard: boot retro pass is fail-soft - pty.list throw must not crash plugin startup", async () => {
@@ -632,7 +638,7 @@ test("F5 lock: pty.updated with runtime pty default triggers pty.update with der
   await hooks.event(ptyUpdatedEvent(DEFAULT_PTY_TITLE))
   expect(ptyUpdateCalls).toHaveLength(1)
   expect(ptyUpdateCalls[0].path).toEqual({ id: PTY_ID })
-  expect(ptyUpdateCalls[0].body.title).toBe(`${DEFAULT_PTY_TITLE} [${PTY_SHORT}]`)
+  expect(ptyUpdateCalls[0].body.title).toBe(`${DEFAULT_PTY_TITLE} [${PTY_WORD_PAIR}]`)
 })
 
 // ---------------------------------------------------------------------------
@@ -652,7 +658,7 @@ test("F6a lock: boot retro pass tolerates the SDK { data, error } envelope from 
   await settleBootPass()
   expect(ptyUpdateCalls).toHaveLength(1)
   expect(ptyUpdateCalls[0].path).toEqual({ id: PTY_ID })
-  expect(ptyUpdateCalls[0].body.title).toBe(`${DEFAULT_PTY_TITLE} [${PTY_SHORT}]`)
+  expect(ptyUpdateCalls[0].body.title).toBe(`${DEFAULT_PTY_TITLE} [${PTY_WORD_PAIR}]`)
 })
 
 test("F6b RED: boot retro pass must warn on the non-throw { error } envelope from pty.list (F2 gap)", async () => {
@@ -726,15 +732,39 @@ test("G1 RED: pty title 'Terminal <id4>' (second real runtime default shape) get
   await hooks.event(ptyCreatedEvent("Terminal 3456"))
   expect(ptyUpdateCalls).toHaveLength(1)
   expect(ptyUpdateCalls[0].path).toEqual({ id: PTY_ID })
-  expect(ptyUpdateCalls[0].body.title).toBe("Terminal 3456 [123456]")
+  expect(ptyUpdateCalls[0].body.title).toBe(`Terminal 3456 [${PTY_WORD_PAIR}]`)
 })
 
-test("G2 guard: any title already ending in ' [abc123]' is NOT re-renamed", async () => {
+test("G2 guard: any title already ending in ' [adjective-noun]' is NOT re-renamed", async () => {
   const { hooks, updateCalls } = await makeHarness()
-  // Ticket wording pins the dedupe guard on the literal suffix shape
-  // " [abc123]" (6 alnum chars) regardless of how the suffix got there -
-  // here on a user-set title, proving the alreadySuffixed check gates
-  // independently of the rename-if-not-suffixed append rule.
-  await hooks.event(sessionCreatedEvent("My Custom Session [abc123]"))
+  // Ticket wording pins the dedupe guard on the word-pair suffix shape
+  // " [adjective-noun]" (lowercase-hyphenated) regardless of how the suffix
+  // got there - here on a user-set title, proving the alreadySuffixed check
+  // gates independently of the rename-if-not-suffixed append rule.
+  await hooks.event(sessionCreatedEvent("My Custom Session [bold-fox]"))
   expect(updateCalls).toHaveLength(0)
+})
+
+// ---------------------------------------------------------------------------
+// sessionWordPair determinism and format
+// ---------------------------------------------------------------------------
+
+test("sessionWordPair: same input always produces the same output (determinism)", async () => {
+  const id = "ses_1234567890abcdef"
+  const first = sessionWordPair(id)
+  const second = sessionWordPair(id)
+  expect(first).toBe(second)
+})
+
+test("sessionWordPair: output matches adjective-noun format (lowercase, hyphenated, ASCII-only)", async () => {
+  const result = sessionWordPair("ses_1234567890abcdef")
+  expect(result).toMatch(/^[a-z]+-[a-z]+$/)
+})
+
+test("sessionWordPair: different inputs produce different outputs (collision check)", async () => {
+  const a = sessionWordPair("ses_aaaaaaaaaaaaaaaa")
+  const b = sessionWordPair("ses_bbbbbbbbbbbbbbbb")
+  // Not a strict guarantee (hash collisions possible), but with 100x100 = 10000
+  // word-pair space the probability of collision for 2 inputs is ~1/10000.
+  expect(a).not.toBe(b)
 })

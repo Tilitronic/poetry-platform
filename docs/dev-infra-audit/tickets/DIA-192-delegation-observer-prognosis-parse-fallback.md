@@ -13,7 +13,7 @@ id: DIA-192
 title: "delegation-observer prognosis parse fallback firing: lossy handoff + spurious high-severity TUI notification"
 area: opencode-config
 severity: Medium
-status: OPEN
+status: CLOSED
 blocked_by: [] # no blockers
 parent_epic: ""
 

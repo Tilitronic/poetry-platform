@@ -189,7 +189,7 @@
     },
     "cebula": {
       "orchestrator": {
-        "model": ["opencode-go/mimo-v2.5", "opencode/mimo-v2.5-free"],
+        "model": "opencode-go/qwen3.7-plus",
         "variant": "high",
         "temperature": 0.3,
         "skills": [

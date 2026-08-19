@@ -93,8 +93,6 @@ async function runTaskDispatch(hooks, ctx, taskArgs) {
     : 0
 
   let error = null
-  const origWarn = console.warn
-  console.warn = () => {} // suppress warn output during tests
   try {
     await hooks["tool.execute.before"](
       {
@@ -106,8 +104,6 @@ async function runTaskDispatch(hooks, ctx, taskArgs) {
     )
   } catch (err) {
     error = err instanceof Error ? err : new Error(String(err))
-  } finally {
-    console.warn = origWarn
   }
 
   // Read any new registry rows appended during the call.

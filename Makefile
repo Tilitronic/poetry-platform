@@ -183,7 +183,9 @@ test-skills:
 # contract) + changelog ledger schema gate (DIA-194 Variant B:
 # scripts/validate-changelog.sh validates .opencode/CHANGELOG.yaml against
 # scripts/schemas/changelog.schema.json - the second YAML artifact under
-# contract, extension of the Deliverable-A pattern) + docker-compose.yml syntax (DIA-124: `docker compose config
+# contract, extension of the Deliverable-A pattern) + DIA mention format
+# gate (DIA-234: scripts/validate-dia-mentions.sh, warn-not-fail on
+# grandfathered bare references) + docker-compose.yml syntax (DIA-124: `docker compose config
 # --quiet` so compose drift fails the config gate without the heavy
 # test-infra). Invariant: test-config passes
 # iff no HARD write-capable gaps remain — WARN-only gaps (the ~440 unlisted
@@ -202,6 +204,7 @@ test-config: test-interview test-skills
 	bash scripts/test-ticket-gate.sh
 	bash scripts/validate-memory-shelf.sh
 	bash scripts/validate-changelog.sh
+	bash scripts/validate-dia-mentions.sh
 	bash scripts/audit-agent-tool-coverage.sh .opencode/opencode.jsonc
 	bash scripts/audit-agent-tool-coverage.sh tools/opencode-docker/config/opencode.json
 	# DIA-134 item 2: persistent behavioral suite (replaces DIA-132 throwaway

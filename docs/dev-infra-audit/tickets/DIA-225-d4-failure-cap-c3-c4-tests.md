@@ -3,7 +3,7 @@ id: DIA-225
 title: 'D4 failure cap + C3/C4 tests (empty-result detection + failure cap)'
 area: tests-infra
 severity: Major
-status: DONE
+status: CLOSED
 blocked_by: [DIA-223, DIA-224]
 discovered:
   source: council-consensus

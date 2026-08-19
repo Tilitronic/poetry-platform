@@ -257,3 +257,24 @@ Note: These are navigational facts to help future humans find the infra/test art
     the agent), not a local variable. Local-only copies are invisible to agents.
   - Critical dispatches (review, handoff) are never blocked; non-critical
     dispatches (research, analysis) are blocked first under pressure.
+
+- DIA-231 ID allocation: `DIA-231` is allocated to
+  `handoff-prognosis-json-stringify-detection` (status: CLOSED). Future cleanup
+  ticket authors should check existing IDs before allocating to avoid collisions.
+  The ticket file is at docs/dev-infra-audit/tickets/DIA-231-handoff-prognosis-
+  json-stringify-detection.md. Recorded because ID allocation is a one-time
+  allocation event not always visible in the active ticket index.
+
+- DCP fully removed from codebase (DIA-197, commit 69dcdaf, 2026-08-17):
+  the dual-compaction-pipeline plugin is fully removed. Seven touchpoints
+  edited in one commit: removed from plugin arrays (project + global),
+  deleted dcp.jsonc, removed from config validator, removed from Dockerfiles
+  (Dockerfile.dev + Dockerfile), and removed runtime deps. No remaining DCP
+  config surface. The earlier V2 keep-but-disable ADR is superseded by this
+  V1 full removal.
+
+- OMO slim upgraded to 2.2.15 (DIA-187, 2026-08-17): oh-my-opencode-slim
+  upgraded from 2.2.14 to 2.2.15 in global config. Two files changed:
+  ~/.config/opencode/tui.json (pin updated) and opencode.jsonc (pin updated).
+  No breaking changes; release includes task lifecycle hardening and new
+  task_status/task_nudge tools.

@@ -19,7 +19,8 @@
 #                           row in DIA sort position and recompute the
 #                           severity/status rollup counts. Does NOT claim:
 #                           lease_expires_at stays "" (claim happens at
-#                           take-time per COORDINATION.md).
+#                           take-time per COORDINATION.md). Retries up to 5
+#                           times on concurrent-creation collision (DIA-215).
 #   rollup [--check]        recompute the README severity + status count
 #                           tables from the ACTUAL ticket frontmatter (the
 #                           ledger source of truth, not the row display
@@ -193,48 +194,44 @@ fm_field() {
   printf '%s' "$val"
 }
 
-# num_of_file <path>: echo the numeric id the GATE would derive from the
-# filename (delegation-observer.ts scanTickets regex /^DIA-(\d+)/, applied to
-# the basename). "DIA-134-foo.md" and legacy "DIA-134.md" both yield 134;
-# non-DIA or malformed names yield nothing. Empty when the file is not a
+# num_of_file <path>: echo the ticket id the GATE would derive from the
+# filename (delegation-observer.ts scanTickets regex, applied to the
+# basename). For sequential tickets: "DIA-134-foo.md" and legacy
+# "DIA-134.md" both yield 134 (numeric). For datetime tickets:
+# "DIA-260819-a1b2-foo.md" yields "260819-a1b2" (string). Non-DIA or
+# malformed names yield nothing. Empty when the file is not a
 # gate-readable ticket (README/_TEMPLATE/COORDINATION included).
 num_of_file() {
-  local f="$1" n
+  local f="$1" n prefix
   n="$(basename "$f")"
-  n="$(printf '%s' "$n" | grep -o '^DIA-[0-9]*' | sed 's/^DIA-//')"
+  n="${n%.md}"
+  n="${n#DIA-}"
+  [ -n "$n" ] || return 0
+  # DIA-234: detect datetime format (6 digits + dash + 4 lowercase alphanum).
   case "$n" in
-    '' | *[!0-9]*) printf '' ;;
-    *) printf '%d' "$((10#$n))" ;;
+    [0-9][0-9][0-9][0-9][0-9][0-9]-[a-z0-9][a-z0-9][a-z0-9][a-z0-9]*)
+      # Return the datetime ID part (first 11 chars: YYMMDD-XXXX)
+      printf '%.11s' "$n" ;;
+    *)
+      # Sequential format: extract leading digits.
+      prefix="${n%%-*}"
+      case "$prefix" in
+        '' | *[!0-9]*) printf '' ;;
+        *) printf '%d' "$((10#$prefix))" ;;
+      esac ;;
   esac
 }
 
-# next_dia: allocate the next free DIA number = max(file ids, README row ids)
-# + 1. The README fallback covers archived-but-listed tickets (DIA-076/081
-# live in archive/ but still have README rows with archive/ links) so their
-# numbers are never reused.
+# next_dia: allocate a new ticket ID in datetime format (DIA-234).
+# Format: DIA-YYMMDD-XXXX where YYMMDD is today's date and XXXX is a
+# random 4-character lowercase alphanumeric suffix. Collision detection
+# happens in cmd_new() (the retry loop), not here -- this function just
+# generates a fresh candidate.
 next_dia() {
-  local max=0 n f line
-  for f in "$TICKETS_DIR"/DIA-*.md; do
-    [ -e "$f" ] || continue
-    n="$(num_of_file "$f")"
-    [ -n "$n" ] && [ "$n" -gt "$max" ] && max="$n"
-  done
-  if [ -f "$README" ]; then
-    while IFS= read -r line; do
-      case "$line" in
-        '| DIA-'*)
-          n="${line#*| DIA-}"
-          n="${n%% *}"
-          case "$n" in
-            '' | *[!0-9]*) continue ;;
-          esac
-          n=$((10#$n))
-          [ "$n" -gt "$max" ] && max="$n"
-          ;;
-      esac
-    done < "$README"
-  fi
-  printf '%03d' "$((max + 1))"
+  local date_part suffix
+  date_part="$(date +%y%m%d)"
+  suffix="$(cat /dev/urandom | tr -dc 'a-z0-9' | head -c4)"
+  printf '%s-%s' "$date_part" "$suffix"
 }
 
 # slugify <title>: kebab-case slug per DIA-110. "Fix Auth Bug!" ->
@@ -433,11 +430,25 @@ emit_count_rows() {
   fi
 }
 
+# is_datetime_id <id>: return 0 if the ID is datetime format (contains
+# non-digit chars in the ID part), 1 if sequential (all digits).
+is_datetime_id() {
+  case "$1" in
+    *[!0-9]*) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
 # find_insert_position <newnum>: scan the README index rows and echo
 # "<pos> <last>" where pos is the index of the FIRST row whose DIA number
 # exceeds newnum (the insertion point for a new row) and last is the index
 # of the LAST DIA row (-1 when there are no rows). Both are 0-based indices
 # into the README line sequence. Reads $README.
+#
+# DIA-234 dual-mode sorting: sequential IDs sort numerically among themselves,
+# datetime IDs sort lexicographically among themselves (YYMMDD-XXXX sorts
+# correctly), and all sequential IDs come before all datetime IDs (grandfather
+# policy: sequential IDs are always older than any datetime ticket).
 find_insert_position() {
   local newnum="$1" line n i=0 pos=-1 last=-1
   while IFS= read -r line; do
@@ -446,8 +457,20 @@ find_insert_position() {
         n="${line#*| DIA-}"
         n="${n%% *}"
         last=$i
-        if [ "$pos" = -1 ] && [ "$n" -gt "$newnum" ] 2>/dev/null; then
-          pos=$i
+        if [ "$pos" = -1 ]; then
+          if is_datetime_id "$newnum"; then
+            # New is datetime: skip sequential rows (they come first),
+            # compare lexicographically with datetime rows.
+            if is_datetime_id "$n" && [ "$n" \> "$newnum" ]; then
+              pos=$i
+            fi
+          else
+            # New is sequential: skip datetime rows (they come last),
+            # compare numerically with sequential rows.
+            if ! is_datetime_id "$n" && [ "$n" -gt "$newnum" ] 2>/dev/null; then
+              pos=$i
+            fi
+          fi
         fi
         ;;
     esac
@@ -618,22 +641,48 @@ pairs_to_kv() {
 }
 
 # rollup_sort_check: report whether README index rows are DIA ascending.
+# DIA-234: handles both sequential (numeric ascending) and datetime
+# (lexicographic ascending) formats. Cross-format: all sequential before
+# all datetime (grandfather policy).
 rollup_sort_check() {
-  local prev=-1 line n bad=0
+  local prev="" prev_is_dt=0 line n is_dt=0 bad=0
   while IFS= read -r line; do
     case "$line" in
       '| DIA-'*)
         n="${line#*| DIA-}"
         n="${n%% *}"
+        # Determine format: datetime (contains dash in ID) or sequential
         case "$n" in
-          '' | *[!0-9]*) continue ;;
+          *[!0-9]*) is_dt=1 ;;
+          *) is_dt=0 ;;
         esac
-        n=$((10#$n))
-        if [ "$n" -lt "$prev" ]; then
-          echo "warn: rollup: README index rows out of order: DIA-$n appears after DIA-$prev" >&2
-          bad=1
+        # Skip non-parseable IDs
+        case "$n" in
+          '') continue ;;
+        esac
+        # Cross-format check: datetime must come after all sequential
+        if [ "$is_dt" -ne "$prev_is_dt" ] && [ -n "$prev" ]; then
+          if [ "$is_dt" -eq 0 ]; then
+            echo "warn: rollup: sequential DIA-$n appears after datetime DIA-$prev (grandfather violation)" >&2
+            bad=1
+          fi
         fi
-        prev=$n
+        # Within-format sort check
+        if [ "$is_dt" -eq 0 ] && [ "$prev_is_dt" -eq 0 ]; then
+          # Both sequential: numeric ascending
+          if [ "$prev" -gt "$n" ] 2>/dev/null; then
+            echo "warn: rollup: README index rows out of order: DIA-$n appears after DIA-$prev" >&2
+            bad=1
+          fi
+        elif [ "$is_dt" -eq 1 ] && [ "$prev_is_dt" -eq 1 ]; then
+          # Both datetime: lexicographic ascending (YYMMDD-XXXX sorts correctly)
+          if [[ "$n" < "$prev" ]]; then
+            echo "warn: rollup: README index rows out of order: DIA-$n appears after DIA-$prev" >&2
+            bad=1
+          fi
+        fi
+        prev="$n"
+        prev_is_dt="$is_dt"
         ;;
     esac
   done < "$README"
@@ -741,22 +790,20 @@ cmd_new() {
     for token in "${toks[@]}"; do
       token="$(trim "$token")"
       [ -n "$token" ] || continue
+      # DIA-234: accept both sequential (DIA-NNN) and datetime (DIA-YYMMDD-XXXX) formats.
       case "$token" in
         DIA-[0-9]*) ;;
-        *) fail "invalid blocked-by entry '$token' (expected DIA-NNN)" ;;
-      esac
-      case "${token#DIA-}" in
-        *[!0-9]*) fail "invalid blocked-by entry '$token' (expected DIA-NNN)" ;;
+        DIA-[0-9][0-9][0-9][0-9][0-9][0-9]-[a-z0-9][a-z0-9][a-z0-9][a-z0-9]) ;;
+        *) fail "invalid blocked-by entry '$token' (expected DIA-NNN or DIA-YYMMDD-XXXX)" ;;
       esac
     done
   fi
   if [ -n "$parent_epic" ]; then
+    # DIA-234: accept both sequential (DIA-NNN) and datetime (DIA-YYMMDD-XXXX) formats.
     case "$parent_epic" in
       DIA-[0-9]*) ;;
-      *) fail "invalid parent-epic '$parent_epic' (expected DIA-NNN)" ;;
-    esac
-    case "${parent_epic#DIA-}" in
-      *[!0-9]*) fail "invalid parent-epic '$parent_epic' (expected DIA-NNN)" ;;
+      DIA-[0-9][0-9][0-9][0-9][0-9][0-9]-[a-z0-9][a-z0-9][a-z0-9][a-z0-9]) ;;
+      *) fail "invalid parent-epic '$parent_epic' (expected DIA-NNN or DIA-YYMMDD-XXXX)" ;;
     esac
   fi
 
@@ -764,119 +811,140 @@ cmd_new() {
   [ -f "$README" ] || fail "README not found: $README"
   [ -f "$TEMPLATE" ] || echo "warn: _TEMPLATE.md not found at $TEMPLATE (frontmatter conventions assumed per DIA-125 spec)" >&2
 
-  # --- allocation + collision guards ----------------------------------------
-  num="$(next_dia)"
-  slug="$(slugify "$title")"
-  [ -n "$slug" ] || fail "title produces an empty slug (needs at least one letter or digit)"
-  fname="DIA-$num-$slug.md"
-  path="$TICKETS_DIR/$fname"
-  # Collision guard: refuse rather than overwrite. With max+1 allocation the
-  # target cannot normally pre-exist (any DIA-<num>-*.md file would have
-  # raised the max); this is race defense against concurrent creation from a
-  # parallel session that computed the same number before either write.
-  if [ -e "$path" ]; then
-    fail "collision: '$fname' already exists; aborting (no overwrite)"
-  fi
-  if grep -q "| DIA-$num |" "$README"; then
-    fail "collision: README already has a row for DIA-$num; aborting (no duplicate row)"
-  fi
+  # --- allocation + collision retry loop ------------------------------------
+  # Two parallel `tickets new` calls can both compute the same max+1 number
+  # before either writes (TOCTOU race on next_dia + collision check). The
+  # retry loop handles this: on collision, sleep briefly (giving the other
+  # process time to finish) then retry. next_dia() re-scans files+README on
+  # each attempt so it sees the other process's write and picks a higher
+  # number. Max 5 retries covers realistic contention (2-3 parallel agents).
+  local max_retries=5 attempt=0
+  while [ $attempt -lt $max_retries ]; do
+    num="$(next_dia)"
+    slug="$(slugify "$title")"
+    [ -n "$slug" ] || fail "title produces an empty slug (needs at least one letter or digit)"
+    fname="DIA-$num-$slug.md"
+    path="$TICKETS_DIR/$fname"
 
-  # --- write the ticket file (printf %s, never unquoted heredoc: the title
-  # may contain $, backticks, &, / etc. and must not be re-expanded) --------
-  {
-    printf '# DIA-%s - %s\n' "$num" "$title"
-    printf '\n'
-    printf -- '---\n'
-    printf '\n'
-    printf 'id: DIA-%s\n' "$num"
-    printf 'title: "%s"\n' "$(printf '%s' "$title" | tr '"' "'")"
-    printf 'area: %s\n' "$area"
-    printf 'severity: %s\n' "$severity"
-    printf 'status: OPEN\n'
-    if [ -n "$blocked_by" ]; then
-      local cleaned="" t
-      IFS=',' read -r -a toks <<<"$blocked_by"
-      for t in "${toks[@]}"; do
-        t="$(trim "$t")"
-        [ -n "$t" ] || continue
-        [ -n "$cleaned" ] && cleaned="$cleaned, "
-        cleaned="$cleaned$t"
-      done
-      printf 'blocked_by: [%s] # DIA-NNN refs, or empty\n' "$cleaned"
-    else
-      printf 'blocked_by: [] # DIA-NNN refs, or empty\n'
+    # Collision guard: skip this number if file or README row already exists.
+    # On collision, sleep 0.1-0.3s (random jitter) and retry — the other
+    # process's write will be visible to next_dia() on the next attempt.
+    if [ -e "$path" ]; then
+      attempt=$((attempt + 1))
+      if [ $attempt -ge $max_retries ]; then
+        fail "collision: '$fname' still exists after $max_retries retries (concurrent creation conflict)"
+      fi
+      sleep 0.$(( RANDOM % 3 + 1 ))
+      continue
     fi
-    if [ -n "$parent_epic" ]; then
-      printf 'parent_epic: %s\n' "$parent_epic"
-    else
-      # parent_epic is always emitted (empty when not provided) so the
-      # frontmatter schema is stable across tickets (DIA-125 extension;
-      # see _TEMPLATE.md).
-      printf 'parent_epic: ""\n'
+    if grep -q "| DIA-$num |" "$README"; then
+      attempt=$((attempt + 1))
+      if [ $attempt -ge $max_retries ]; then
+        fail "collision: README already has a row for DIA-$num after $max_retries retries (concurrent creation conflict)"
+      fi
+      sleep 0.$(( RANDOM % 3 + 1 ))
+      continue
     fi
-    # DIA-104 grilling-gate markers: always emitted with defaults (empty
-    # state/arrays/override) so the frontmatter schema is stable across new
-    # tickets (ai--7 validated design; same always-emitted pattern as
-    # parent_epic above - absent = legacy/skipped, grandfather precedent).
-    # gate_override is YAML-quoted (empty at creation; the title: quoting
-    # technique at the top of this block keeps a filled value valid YAML).
-    printf 'gate_state: "skipped" # grilled | waived | bypassed | partial | skipped\n'
-    printf 'gate_triggers: [] # new-module | cross-boundary | schema-state | new-public-api | cross-cutting | hard-to-reverse | new-ui-component\n'
-    printf 'gate_waivers: [] # hotfix | incremental-to-grilled-module | spike-poc | refactor-no-behavior-change\n'
-    printf 'gate_override: "" # free-text: developer signal + reason; empty = no override\n'
-    printf 'discovered: %s\n' "$TODAY"
-    printf 'source: %s\n' "$source"
-    printf 'date: %s\n' "$TODAY"
-    printf 'created: %s\n' "$TODAY"
-    printf 'updated: %s\n' "$TODAY"
-    printf '\n'
-    printf '# --- Session Attribution (v2 schema, optional) ---\n'
-    printf '\n'
-    printf 'session_id: ""\n'
-    printf 'lane_id: ""\n'
-    printf 'agent: ""\n'
-    printf 'model: ""\n'
-    printf 'parent_session_id: ""\n'
-    printf 'attempts: 0\n'
-    printf 'lease_expires_at: "" # ISO-8601; set on DISPATCHED, cleared on COMPLETE\n'
-    printf 'files_touched: []\n'
-    printf 'artifacts: []\n'
-    printf 'evidence: []\n'
-    printf '\n'
-    printf -- '---\n'
-    printf '\n'
-    printf '## Description\n'
-    printf '\n'
-    printf '<To be filled at creation time: what is wrong / what to build, with exact\n'
-    printf 'files and line references where known.>\n'
-    printf '\n'
-    printf '## Verification\n'
-    printf '\n'
-    printf '<Acceptance criteria as checkboxes - how to prove the ticket is done.>\n'
-    printf '\n'
-    printf '## Fix\n'
-    printf '\n'
-    printf '> To be filled at fix time.\n'
-    printf '\n'
-    printf '## Re-verify\n'
-    printf '\n'
-    printf '> To be filled at re-verify time.\n'
-  } > "$path"
 
-  # --- README index row + rollup counts --------------------------------------
-  sep="$(grep -m1 '^| -' "$README" || true)"
-  if [ -n "$sep" ]; then
-    read -r w1 w2 w3 w4 w5 w6 <<<"$(read_sep_widths "$sep" 6)"
-  fi
-  link="[$fname]($fname)"
-  local tmp newrow
-  tmp="$(mktemp)"
-  newrow="$(build_index_row "DIA-$num" "$title" "$area" "$severity" OPEN "$link" \
-    "${w1:-7}" "${w2:-40}" "${w3:-15}" "${w4:-9}" "${w5:-8}" "${w6:-60}")"
-  compute_ledger_counts_including "$severity" "OPEN"
-  rewrite_readme "$tmp" "$newrow"
-  cp "$tmp" "$README"
-  rm -f "$tmp"
+    # --- write the ticket file (printf %s, never unquoted heredoc: the title
+    # may contain $, backticks, &, / etc. and must not be re-expanded) --------
+    {
+      printf '# DIA-%s - %s\n' "$num" "$title"
+      printf '\n'
+      printf -- '---\n'
+      printf '\n'
+      printf 'id: DIA-%s\n' "$num"
+      printf 'title: "%s"\n' "$(printf '%s' "$title" | tr '"' "'")"
+      printf 'area: %s\n' "$area"
+      printf 'severity: %s\n' "$severity"
+      printf 'status: OPEN\n'
+      if [ -n "$blocked_by" ]; then
+        local cleaned="" t
+        IFS=',' read -r -a toks <<<"$blocked_by"
+        for t in "${toks[@]}"; do
+          t="$(trim "$t")"
+          [ -n "$t" ] || continue
+          [ -n "$cleaned" ] && cleaned="$cleaned, "
+          cleaned="$cleaned$t"
+        done
+        printf 'blocked_by: [%s] # DIA-NNN refs, or empty\n' "$cleaned"
+      else
+        printf 'blocked_by: [] # DIA-NNN refs, or empty\n'
+      fi
+      if [ -n "$parent_epic" ]; then
+        printf 'parent_epic: %s\n' "$parent_epic"
+      else
+        # parent_epic is always emitted (empty when not provided) so the
+        # frontmatter schema is stable across tickets (DIA-125 extension;
+        # see _TEMPLATE.md).
+        printf 'parent_epic: ""\n'
+      fi
+      # DIA-104 grilling-gate markers: always emitted with defaults (empty
+      # state/arrays/override) so the frontmatter schema is stable across new
+      # tickets (ai--7 validated design; same always-emitted pattern as
+      # parent_epic above - absent = legacy/skipped, grandfather precedent).
+      # gate_override is YAML-quoted (empty at creation; the title: quoting
+      # technique at the top of this block keeps a filled value valid YAML).
+      printf 'gate_state: "skipped" # grilled | waived | bypassed | partial | skipped\n'
+      printf 'gate_triggers: [] # new-module | cross-boundary | schema-state | new-public-api | cross-cutting | hard-to-reverse | new-ui-component\n'
+      printf 'gate_waivers: [] # hotfix | incremental-to-grilled-module | spike-poc | refactor-no-behavior-change\n'
+      printf 'gate_override: "" # free-text: developer signal + reason; empty = no override\n'
+      printf 'discovered: %s\n' "$TODAY"
+      printf 'source: %s\n' "$source"
+      printf 'date: %s\n' "$TODAY"
+      printf 'created: %s\n' "$TODAY"
+      printf 'updated: %s\n' "$TODAY"
+      printf '\n'
+      printf '# --- Session Attribution (v2 schema, optional) ---\n'
+      printf '\n'
+      printf 'session_id: ""\n'
+      printf 'lane_id: ""\n'
+      printf 'agent: ""\n'
+      printf 'model: ""\n'
+      printf 'parent_session_id: ""\n'
+      printf 'attempts: 0\n'
+      printf 'lease_expires_at: "" # ISO-8601; set on DISPATCHED, cleared on COMPLETE\n'
+      printf 'files_touched: []\n'
+      printf 'artifacts: []\n'
+      printf 'evidence: []\n'
+      printf '\n'
+      printf -- '---\n'
+      printf '\n'
+      printf '## Description\n'
+      printf '\n'
+      printf '<To be filled at creation time: what is wrong / what to build, with exact\n'
+      printf 'files and line references where known.>\n'
+      printf '\n'
+      printf '## Verification\n'
+      printf '\n'
+      printf '<Acceptance criteria as checkboxes - how to prove the ticket is done.>\n'
+      printf '\n'
+      printf '## Fix\n'
+      printf '\n'
+      printf '> To be filled at fix time.\n'
+      printf '\n'
+      printf '## Re-verify\n'
+      printf '\n'
+      printf '> To be filled at re-verify time.\n'
+    } > "$path"
+
+    # --- README index row + rollup counts --------------------------------------
+    sep="$(grep -m1 '^| -' "$README" || true)"
+    if [ -n "$sep" ]; then
+      read -r w1 w2 w3 w4 w5 w6 <<<"$(read_sep_widths "$sep" 6)"
+    fi
+    link="[$fname]($fname)"
+    local tmp newrow
+    tmp="$(mktemp)"
+    newrow="$(build_index_row "DIA-$num" "$title" "$area" "$severity" OPEN "$link" \
+      "${w1:-7}" "${w2:-40}" "${w3:-15}" "${w4:-9}" "${w5:-8}" "${w6:-60}")"
+    compute_ledger_counts_including "$severity" "OPEN"
+    rewrite_readme "$tmp" "$newrow"
+    cp "$tmp" "$README"
+    rm -f "$tmp"
+
+    break  # success — exit the retry loop
+  done
 
   echo "created: docs/dev-infra-audit/tickets/$fname"
   echo "id: DIA-$num"
@@ -961,10 +1029,23 @@ cmd_frontier() {
     [ -n "$n" ] || continue
     status="$(fm_field "$f" status)"
     [ "$status" = "OPEN" ] || continue
-    id="$(printf 'DIA-%03d' "$n")"
+    # DIA-234: format display ID based on ticket type.
+    # Sequential: DIA-NNN (zero-padded to 3 digits). Datetime: DIA-YYMMDD-XXXX.
+    case "$n" in
+      *[!0-9]*) id="DIA-$n" ;;
+      *) id="$(printf 'DIA-%03d' "$n")" ;;
+    esac
     severity="$(fm_field "$f" severity)"
     title="$(sanitize "$(fm_field "$f" title)")"
     [ -n "$title" ] && title=" - $title"
+
+    # Sort key: sequential numbers sort numerically, datetime strings sort
+    # lexicographically (YYMMDD sorts correctly). Prefix datetime with a
+    # high constant so they sort after all sequential tickets (DIA-234).
+    case "$n" in
+      *[!0-9]*) sort_key="999999$n" ;;
+      *) sort_key="$n" ;;
+    esac
 
     # lease note: an OPEN ticket with a live lease is claimed by another
     # session (COORDINATION.md claim convention), so it is not actually
@@ -1010,20 +1091,22 @@ cmd_frontier() {
       done
     fi
     if [ "$has_open_blocker" = 0 ]; then
-      frontier_lines+=("$(severity_rank "$severity")|$n|$id$title")
+      frontier_lines+=("$(severity_rank "$severity")|$sort_key|$id$title")
     else
-      blocked_lines+=("$(severity_rank "$severity")|$n|$id$title (blocked by: $blockers_display)")
+      blocked_lines+=("$(severity_rank "$severity")|$sort_key|$id$title (blocked by: $blockers_display)")
     fi
   done
 
   printf 'frontier (%d ticket(s) you can start):\n' "${#frontier_lines[@]}"
   if [ "${#frontier_lines[@]}" -gt 0 ]; then
-    printf '%s\n' "${frontier_lines[@]}" | sort -t'|' -k1,1n -k2,2n | sed 's/^[0-9]*|[0-9]*|/  /'
+    # DIA-234: sort key may contain non-numeric chars (datetime tickets),
+    # so sed strips everything up to the second pipe, not just digits.
+    printf '%s\n' "${frontier_lines[@]}" | sort -t'|' -k1,1n -k2,2 | sed 's/^[0-9]*|[^|]*|/  /'
   fi
 
   printf '\nblocked (%d ticket(s) waiting on open blockers):\n' "${#blocked_lines[@]}"
   if [ "${#blocked_lines[@]}" -gt 0 ]; then
-    printf '%s\n' "${blocked_lines[@]}" | sort -t'|' -k1,1n -k2,2n | sed 's/^[0-9]*|[0-9]*|/  /'
+    printf '%s\n' "${blocked_lines[@]}" | sort -t'|' -k1,1n -k2,2 | sed 's/^[0-9]*|[^|]*|/  /'
   fi
 
   if [ "${#lease_lines[@]}" -gt 0 ]; then
@@ -1035,14 +1118,15 @@ cmd_frontier() {
 # blockers_of <file>: echo the comma-separated DIA-NNN blocker list from the
 # blocked_by frontmatter. The inline comment is stripped FIRST (DIA-134's
 # "blocked_by: [] # no blockers; follows DIA-126 (OPEN)" must not be read as
-# a blocker), then all DIA-NNN tokens inside the bracket list are extracted.
+# a blocker), then all DIA-NNN or DIA-YYMMDD-XXXX tokens inside the bracket
+# list are extracted (DIA-234).
 blockers_of() {
   local file="$1" line val out=""
   line="$(grep -m1 '^blocked_by:' "$file" 2>/dev/null || true)"
   [ -n "$line" ] || return 0
   val="${line#blocked_by:}"
   val="${val%%#*}"
-  out="$(printf '%s' "$val" | grep -o 'DIA-[0-9]*' | tr '\n' ',' | sed 's/,$//')"
+  out="$(printf '%s' "$val" | grep -oE 'DIA-[0-9]+(-[a-z0-9]{4})?' | tr '\n' ',' | sed 's/,$//')"
   printf '%s' "$out"
 }
 

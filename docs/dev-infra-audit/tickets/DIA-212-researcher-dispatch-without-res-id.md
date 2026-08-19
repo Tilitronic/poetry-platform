@@ -6,7 +6,7 @@ id: DIA-212
 title: "Researcher dispatched without pre-allocated res ID -- extra iteration required"
 area: opencode-config
 severity: Medium
-status: OPEN
+status: CLOSED
 blocked_by: []
 parent_epic: ""
 

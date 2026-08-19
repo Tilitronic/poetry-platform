@@ -13,7 +13,7 @@ id: DIA-199
 title: "memory-manager cannot write memory-shelf.yaml at runtime despite config allow - exact-file allow not resolved by permission matcher (DIA-143 contract broken)"
 area: opencode-config
 severity: Major
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: "DIA-143" # optional DIA-NNN parent epic ticket (DIA-125 keep-local extension; scripts/tickets emits this field always)
 

@@ -379,7 +379,7 @@ const TASK_NO_ID_GROUP_KEY = "__task_no_id__"
 // Design rules (DIA-105):
 //  - NON-FATAL: a missing formatter, spawn error, or prettier error NEVER
 //    breaks the agent's edit or the session. A format_warn registry row +
-//    console.warn is the worst case (never a throw from the hook).
+//    tuiSafeWarn is the worst case (never a throw from the hook).
 //  - Deterministic formatter: `npx --no-install prettier --write <file>`
 //    (--no-install forces the LOCAL prettier 3.8.3 from node_modules — never
 //    a network fetch, so behavior is identical to the DIA-094 lint-staged
@@ -941,7 +941,7 @@ const delegationObserver: Plugin = async (ctx) => {
       } catch {
         // Secondary failure — nothing more we can do.
       }
-      console.warn(
+      tuiSafeWarn(
         `[delegation-observer] boot.json write failed: ${errorMessage(err)}`
       )
     }
@@ -1041,15 +1041,36 @@ const delegationObserver: Plugin = async (ctx) => {
       entry.group_key = `${TASK_NO_ID_GROUP_KEY}${seq}`
     }
     // Failure policy (mirrors appendMessageRow): never crash the plugin — on
-    // write error console.warn and continue. A lost registry row is preferable
+    // write error tuiSafeWarn and continue. A lost registry row is preferable
     // to a crashed orchestrator (appendFileSync is atomic; the last row is
     // lost, never corrupted).
     try {
       appendFileSync(registryPath, JSON.stringify(entry) + "\n")
     } catch (err) {
-      console.warn(
+      tuiSafeWarn(
         `[delegation-observer] registry.jsonl write failed (seq=${seq}): ${errorMessage(err)}`
       )
+    }
+  }
+
+  /**
+   * TUI-safe warning: writes to app.log, never console.warn.
+   * DIA-204 precedent: console.warn from plugins surfaces in the TUI chat stream.
+   * DIA-233: all plugin diagnostics must use this channel instead of console.warn.
+   */
+  function tuiSafeWarn(
+    message: string,
+    options?: {
+      row?: Record<string, unknown>  // Optional registry row (merged with writer:"plugin")
+      level?: "info" | "warn" | "error"  // Default: "warn"
+    }
+  ): void {
+    const level = options?.level ?? "warn"
+    ctx.client.app.log({
+      body: { service: "delegation-observer", level, message },
+    })
+    if (options?.row) {
+      appendRow({ ...options.row, writer: "plugin" })
     }
   }
 
@@ -1070,7 +1091,9 @@ const delegationObserver: Plugin = async (ctx) => {
       const ticketPath = join(ticketsDir, entry)
       if (!statSync(ticketPath).isFile()) continue
       const fm = parseFrontmatterFields(readFileSync(ticketPath, "utf-8"))
-      const idMatch = /^DIA-(\d+)/.exec(entry)
+      // DIA-234: accept both sequential (DIA-NNN) and datetime (DIA-YYMMDD-XXXX) formats.
+      // Lowercase-only enforcement: generator produces lowercase suffixes, no /i flag.
+      const idMatch = /^DIA-(\d+|\d{6}-[a-z0-9]{4})/.exec(entry)
       tickets.push({
         id: idMatch ? `DIA-${idMatch[1]}` : "",
         status: (fm.status ?? "").trim().toUpperCase(),
@@ -1164,7 +1187,7 @@ const delegationObserver: Plugin = async (ctx) => {
    * setImmediate drain) to keep the event loop responsive.
    *
    * Failure policy: never crash the plugin, never block the event loop — on
-   * write error console.warn and continue. A lost row is preferable to a
+   * write error tuiSafeWarn and continue. A lost row is preferable to a
    * crashed orchestrator (appendFileSync is atomic; the last row is lost,
    * never corrupted).
    */
@@ -1198,7 +1221,7 @@ const delegationObserver: Plugin = async (ctx) => {
     try {
       appendFileSync(messagesPath, JSON.stringify(entry) + "\n")
     } catch (err) {
-      console.warn(
+      tuiSafeWarn(
         `[delegation-observer] messages.jsonl write failed (row_id=${rowId}): ${errorMessage(err)}`
       )
     }
@@ -1315,7 +1338,7 @@ const delegationObserver: Plugin = async (ctx) => {
    *   1. archive_prior(sessionId) - if a prior slot exists for this session,
    *      rename it to archive/<session-id>.<iso-ts-hyphenated>.json (ISO
    *      colons become hyphens for filesystem safety). Best-effort: on
-   *      failure, console.warn and proceed - the archive is the forensic
+   *      failure, tuiSafeWarn and proceed - the archive is the forensic
    *      safety net, never a blocker.
    *   2. write_slot(sessionId, content) - atomic write of
    *      handoffs/<session-id>.json (temp -> fsync -> rename -> fsync dir).
@@ -1374,7 +1397,7 @@ const delegationObserver: Plugin = async (ctx) => {
       try {
         renameSync(slotPath, join(handoffArchiveDir, archiveName))
         archivedPrior = `archive/${archiveName}`
-        // DIA-204: routine archive telemetry demoted from console.warn (which
+        // DIA-204: routine archive telemetry demoted from tuiSafeWarn (which
         // OpenCode surfaces in the TUI chat stream) to the TUI-safe SDK app
         // log at info level - DIA-193 pattern. Message text unchanged (tests
         // assert on it).
@@ -1389,9 +1412,16 @@ const delegationObserver: Plugin = async (ctx) => {
         // Best-effort archive (design.md section 4): a failed archive must
         // not lose the new write. The prior slot stays in place and is
         // atomically overwritten by the slot rename below.
-        console.warn(
-          `[delegation-observer] handoff archive failed for ${sessionId}: ${errorMessage(err)}`
-        )
+        // DIA-204: demoted from tuiSafeWarn (leaks into TUI chat stream) to
+        // the TUI-safe SDK app log at warn level - same pattern as the
+        // archive-success path above.
+        ctx.client.app.log({
+          body: {
+            service: "delegation-observer",
+            level: "warn",
+            message: `[delegation-observer] handoff archive failed for ${sessionId}: ${errorMessage(err)}`,
+          },
+        })
       }
     }
 
@@ -1446,7 +1476,7 @@ const delegationObserver: Plugin = async (ctx) => {
       } catch {
         // Secondary failure - nothing more we can do.
       }
-      console.warn(
+      tuiSafeWarn(
         `[delegation-observer] handoff pointer write failed for ${sessionId}: ${errorMessage(err)}`
       )
     }
@@ -1571,7 +1601,7 @@ const delegationObserver: Plugin = async (ctx) => {
       // DIA-211 fix #9: try backup before resetting to empty.
       try {
         routingState = JSON.parse(readFileSync(ADAPTIVE_ROUTING_BACKUP_PATH, "utf-8"))
-        console.warn(
+        tuiSafeWarn(
           "[delegation-observer] adaptive-routing-state recovered from backup"
         )
       } catch {
@@ -1594,7 +1624,7 @@ const delegationObserver: Plugin = async (ctx) => {
         // DIA-211 fix #7: atomic write prevents partial/corrupt state on crash.
         atomicWriteJson(ADAPTIVE_ROUTING_STATE_PATH, routingState)
       } catch (err) {
-        console.warn(
+        tuiSafeWarn(
           `[delegation-observer] adaptive-routing-state write failed: ${errorMessage(err)}`
         )
       }
@@ -1744,7 +1774,7 @@ const delegationObserver: Plugin = async (ctx) => {
         (a) => a.status === "OPEN"
       )
       if (allIsolated && Object.keys(routingState.agents).length > 0) {
-        console.warn(
+        tuiSafeWarn(
           `[delegation-observer] all agents isolated — allowing degraded dispatch of ${dispatch.subagentType}`
         )
         appendRow({
@@ -1911,7 +1941,7 @@ const delegationObserver: Plugin = async (ctx) => {
    * between edits.
    *
    * NON-FATAL by construction: the worst outcome is a format_warn registry
-   * row + console.warn. This function NEVER throws and NEVER modifies the
+   * row + tuiSafeWarn. This function NEVER throws and NEVER modifies the
    * edit result — a formatter failure cannot break the agent's edit or the
    * session.
    *
@@ -1999,7 +2029,7 @@ const delegationObserver: Plugin = async (ctx) => {
           note: `prettier spawn failed: ${errorMessage(err)}`,
           writer: "plugin",
         })
-        console.warn(
+        tuiSafeWarn(
           `[DIA-105] formatter spawn failed for ${relPath}: ${errorMessage(err)}`
         )
         continue
@@ -2020,7 +2050,7 @@ const delegationObserver: Plugin = async (ctx) => {
           note: why,
           writer: "plugin",
         })
-        console.warn(`[DIA-105] formatter failed for ${relPath}: ${why}`)
+        tuiSafeWarn(`[DIA-105] formatter failed for ${relPath}: ${why}`)
         continue
       }
 
@@ -2286,7 +2316,7 @@ const delegationObserver: Plugin = async (ctx) => {
     try {
       sweepStalledSessions()
     } catch (err) {
-      console.warn(
+      tuiSafeWarn(
         `[delegation-observer] stall sweep failed: ${errorMessage(err)}`
       )
     }
@@ -2468,7 +2498,9 @@ const delegationObserver: Plugin = async (ctx) => {
           )
         }
 
-        if (!/^DIA-\d+$/i.test(ticketId)) {
+        // DIA-234: accept both sequential (DIA-NNN) and datetime (DIA-YYMMDD-XXXX) formats.
+        // Lowercase-only enforcement: generator produces lowercase suffixes, no /i flag.
+        if (!/^DIA-(\d+|\d{6}-[a-z0-9]{4})$/.test(ticketId)) {
           appendRow({
             event: "gate_blocked",
             session_id: input.sessionID,
@@ -2479,7 +2511,7 @@ const delegationObserver: Plugin = async (ctx) => {
             writer: "plugin",
           })
           throw new Error(
-            `DIA-217 GATE: invalid ticket_id format '${ticketId}'. Expected DIA-NNN.`
+            `DIA-217 GATE: invalid ticket_id format '${ticketId}'. Expected DIA-NNN or DIA-YYMMDD-XXXX.`
           )
         }
 
@@ -2490,7 +2522,9 @@ const delegationObserver: Plugin = async (ctx) => {
         try {
           if (existsSync(ticketsDir)) {
             ticketExists = readdirSync(ticketsDir).some((f) => {
-              const match = /^DIA-(\d+)/i.exec(f)
+              // DIA-234: accept both sequential (DIA-NNN) and datetime (DIA-YYMMDD-XXXX) formats.
+              // Lowercase-only enforcement: generator produces lowercase suffixes, no /i flag.
+              const match = /^DIA-(\d+|\d{6}-[a-z0-9]{4})/.exec(f)
               return match && match[0].toUpperCase() === normalizedId
             })
           }
@@ -2514,7 +2548,7 @@ const delegationObserver: Plugin = async (ctx) => {
             detail: `ticket_id '${ticketId}' not found in tickets directory`,
             writer: "plugin",
           })
-          console.warn(
+          tuiSafeWarn(
             `[DIA-217] ticket gate: ticket_id '${ticketId}' not found in tickets dir - allowing (weak correlation)`
           )
         }
@@ -2662,6 +2696,96 @@ const delegationObserver: Plugin = async (ctx) => {
             }
           }
 
+          // === DIA-230: Routing-order gate (blocking) ===
+          // Runs BEFORE the ticket-gate early returns so it fires for ALL
+          // task() calls where subagent_type is coder/coder-escalated and
+          // prompt contains config-work paths. BLOCKING: the dispatch is
+          // rejected when @ai-specialist gate review has not been completed
+          // in this session. Matching the §10 edit gate pattern.
+          //
+          // Config-work path pattern: matches .opencode/ config directories,
+          // config files, and agent instruction files listed in AGENTS.md
+          // section 2.5. Deliberately excludes .opencode/session/* and
+          // .opencode/learnings/* (runtime artifacts, not config).
+          const CONFIG_WORK_PATTERN =
+            /(\.opencode\/plugins\/|\.opencode\/oh-my-opencode-slim|orchestrator_append\.md|\.opencode\/agents\/|\.opencode\/skills\/|\.opencode\/commands\/|\.opencode\/rules\/|opencode\.jsonc|dcp\.jsonc|AGENTS\.md|practice-protected\.md)/i
+          if (
+            subagentType === "coder" ||
+            subagentType === "coder-escalated"
+          ) {
+            const isConfigWork = CONFIG_WORK_PATTERN.test(dispatchText)
+            if (isConfigWork) {
+              // Scan messages.jsonl for a prior @ai-specialist delegation in
+              // this session. messages.jsonl carries gen_ai.agent.name which
+              // registry.jsonl task_success/task_no_id rows lack. The
+              // routing order requires @ai-specialist before @coder on
+              // config-work, so we check for a specific ai-specialist
+              // dispatch, not just any prior task().
+              let hasAiSpecialist = false
+              try {
+                if (existsSync(messagesPath)) {
+                  const lines = readFileSync(messagesPath, "utf-8")
+                    .split("\n")
+                    .filter(Boolean)
+                  hasAiSpecialist = lines.some((line) => {
+                    try {
+                      const row = JSON.parse(line) as Record<string, unknown>
+                      return (
+                        row.session_id === input.sessionID &&
+                        row["gen_ai.agent.name"] === "ai-specialist" &&
+                        row.event_type === "delegation"
+                      )
+                    } catch {
+                      return false
+                    }
+                  })
+                }
+              } catch {
+                // Fail-soft: scan error -> treat as no prior dispatch
+              }
+              if (!hasAiSpecialist) {
+                appendRow({
+                  event: "ROUTING_VIOLATION",
+                  dispatch_state: "BLOCKED",
+                  session_id: input.sessionID,
+                  subagent_type: subagentType,
+                  ticket_id:
+                    typeof taskArgRecord.ticket_id === "string"
+                      ? taskArgRecord.ticket_id
+                      : undefined,
+                  detected_paths: dispatchText.match(
+                    CONFIG_WORK_PATTERN
+                  )?.join(", "),
+                  writer: "plugin",
+                })
+                appendMessageRow(
+                  {
+                    "gen_ai.operation.name": "routing_violation",
+                    "gen_ai.agent.name": subagentType,
+                    event_type: "routing_violation",
+                    task_ref: `ROUTING_VIOLATION: @coder dispatched on config-work without prior @ai-specialist gate review (session ${input.sessionID})`,
+                    resolution_status: "BLOCKED",
+                    violation_detail: {
+                      subagent_type: subagentType,
+                      detected_paths: dispatchText.match(
+                        CONFIG_WORK_PATTERN
+                      )?.join(", "),
+                    },
+                  },
+                  input.sessionID
+                )
+                throw new Error(
+                  "ROUTING GATE: @coder dispatched on config-work without prior @ai-specialist gate review.\n" +
+                  "AGENTS.md section 2.5 requires:\n" +
+                  "  1. @ai-specialist gate research -> findings registered in .opencode/learnings/external-patterns/\n" +
+                  "  2. User reviews & approves findings\n" +
+                  "  3. THEN @coder implementation can proceed\n" +
+                  "Action: dispatch @ai-specialist first."
+                )
+              }
+            }
+          }
+
           // Scope gate: fire for ai-specialist, or for any lane describing
           // config work (config-file pattern AND config-work words).
           // Conservative: routine lanes (code-navigator recon, researcher
@@ -2712,7 +2836,9 @@ const delegationObserver: Plugin = async (ctx) => {
           // (fail-soft: a broken gate is worse than no gate).
           const ticketsDir = join(ctx.directory, TICKETS_DIR_REL)
           const diaIds =
-            dispatchText.match(/DIA-\d+/gi)?.map((s) => s.toUpperCase()) ?? []
+            // DIA-234: accept both sequential (DIA-NNN) and datetime (DIA-YYMMDD-XXXX) formats.
+            // Lowercase-only enforcement: generator produces lowercase suffixes, no /gi flag.
+            dispatchText.match(/DIA-(?:\d+|\d{6}-[a-z0-9]{4})/g)?.map((s) => s.toUpperCase()) ?? []
           const tickets = scanTickets(ticketsDir)
           const hasValidTicket = evaluateTicketCorrelation(
             tickets,
@@ -2735,7 +2861,7 @@ const delegationObserver: Plugin = async (ctx) => {
               description: description.slice(0, 300),
               writer: "plugin",
             })
-            console.warn(
+            tuiSafeWarn(
               `[DIA-063] §10 ticket gate: no DIA-id in dispatch and no keyword correlation — allowing ${subagentType || "unknown lane"} (weak-correlation pass)`
             )
             return
@@ -2772,7 +2898,7 @@ const delegationObserver: Plugin = async (ctx) => {
           ) {
             throw err
           }
-          console.warn(
+          tuiSafeWarn(
             `[DIA-063] ticket-gate scan failed, allowing dispatch: ${errorMessage(err)}`
           )
           appendRow({
@@ -2854,7 +2980,7 @@ const delegationObserver: Plugin = async (ctx) => {
               }
             }
           } catch (err) {
-            console.warn(
+            tuiSafeWarn(
               `[delegation-observer] gate-token write failed: ${errorMessage(err)}`
             )
           }
@@ -2889,7 +3015,7 @@ const delegationObserver: Plugin = async (ctx) => {
         } catch (err) {
           // Absolute last resort — never let a formatter defect reach the
           // tool result / session. warn + continue is the DIA-105 contract.
-          console.warn(
+          tuiSafeWarn(
             `[DIA-105] formatter hook error: ${errorMessage(err)}`
           )
         }
@@ -3059,7 +3185,7 @@ const delegationObserver: Plugin = async (ctx) => {
       // <task_result> payload segment only. Pure additive — no changes to
       // registry rows, checksum logic, gate logic, or other hooks. Same
       // failure policy as the registry writes: never crash the plugin,
-      // console.warn and continue.
+      // tuiSafeWarn and continue.
       const isResearcherLane =
         agentName === "researcher" ||
         childSessionAgent.get(taskId ?? "") === "researcher"
@@ -3109,7 +3235,7 @@ const delegationObserver: Plugin = async (ctx) => {
             },
           })
         } catch (err) {
-          console.warn(
+          tuiSafeWarn(
             `[delegation-observer] persistence-pending.json write failed: ${errorMessage(err)}`
           )
         }
@@ -3130,7 +3256,7 @@ const delegationObserver: Plugin = async (ctx) => {
       // <task_result> payload segment only. Same write path (mkdirSync +
       // writeFileSync into .opencode/session/), same TUI-safe app.log, same
       // failure policy as the persistence gate: never crash the plugin,
-      // console.warn and continue. Pure additive.
+      // tuiSafeWarn and continue. Pure additive.
       const isConspecterLane =
         agentName === "conspecter" ||
         childSessionAgent.get(taskId ?? "") === "conspecter"
@@ -3164,7 +3290,7 @@ const delegationObserver: Plugin = async (ctx) => {
             },
           })
         } catch (err) {
-          console.warn(
+          tuiSafeWarn(
             `[delegation-observer] analysis-pending.json write failed: ${errorMessage(err)}`
           )
         }
@@ -3332,7 +3458,7 @@ const delegationObserver: Plugin = async (ctx) => {
                 parentSessionId ?? sessionID ?? "unidentified-session"
               atomicWriteHandoff(handoffContent, apoptosisSessionId)
             } catch (err) {
-              console.warn(
+              tuiSafeWarn(
                 `[delegation-observer] apoptosis idle handoff write failed: ${errorMessage(err)}`
               )
             }
@@ -3352,12 +3478,12 @@ const delegationObserver: Plugin = async (ctx) => {
                     }
                   )
                   if (result.status !== 0) {
-                    console.warn(
+                    tuiSafeWarn(
                       `[delegation-observer] apoptosis worktree remove failed for ${wtPath}: ${result.stderr || "exit " + result.status}`
                     )
                   }
                 } catch (err) {
-                  console.warn(
+                  tuiSafeWarn(
                     `[delegation-observer] apoptosis worktree remove error for ${wtPath}: ${errorMessage(err)}`
                   )
                 }
@@ -3438,7 +3564,9 @@ const delegationObserver: Plugin = async (ctx) => {
           // edits are excluded even if their text output was empty (the agent
           // did work, just not file-touching work).
           const edits = sessionEditCount.get(sessionID) ?? 0
-          if (edits === 0) {
+          const agentName = childSessionAgent.get(sessionID) ?? "subagent"
+          const isReadOnly = READ_ONLY_LANES.has(agentName)
+          if (edits === 0 && !isReadOnly) {
             appendRow({
               event: "empty_result_detected",
               session_id: sessionID,
@@ -3611,7 +3739,7 @@ const delegationObserver: Plugin = async (ctx) => {
                 parentSessionId ?? sessionID ?? "unidentified-session"
               atomicWriteHandoff(handoffContent, apoptosisSessionId)
             } catch (err) {
-              console.warn(
+              tuiSafeWarn(
                 `[delegation-observer] apoptosis handoff write failed: ${errorMessage(err)}`
               )
             }
@@ -3631,12 +3759,12 @@ const delegationObserver: Plugin = async (ctx) => {
                     }
                   )
                   if (result.status !== 0) {
-                    console.warn(
+                    tuiSafeWarn(
                       `[delegation-observer] apoptosis worktree remove failed for ${wtPath}: ${result.stderr || "exit " + result.status}`
                     )
                   }
                 } catch (err) {
-                  console.warn(
+                  tuiSafeWarn(
                     `[delegation-observer] apoptosis worktree remove error for ${wtPath}: ${errorMessage(err)}`
                   )
                 }
@@ -3715,7 +3843,7 @@ const delegationObserver: Plugin = async (ctx) => {
     tool: {
       log_decision: tool({
         description:
-          "Log a semantic orchestrator event (decision/handoff/crisis) to the session messages.jsonl log. COMPACT replacement for manual messages.md/jsonl edits: use for owner decisions, handoffs, and crisis declarations; mechanical delegation events are captured automatically by hooks and must NOT be logged via this tool. IMPORTANT: when event_type='handoff' and prognosis is provided, prognosis MUST be JSON.stringify()'d (the plugin parses it via JSON.parse to write the handoff file).",
+          "Log a semantic orchestrator event (decision/handoff/crisis) to the session messages.jsonl log. COMPACT replacement for manual messages.md/jsonl edits: use for owner decisions, handoffs, and crisis declarations; mechanical delegation events are captured automatically by hooks and must NOT be logged via this tool. IMPORTANT: when event_type='handoff' and prognosis is provided, prognosis MUST be a JSON-stringified object (call JSON.stringify(yourPrognosisObject) and pass the RESULT as the prognosis parameter, NOT the literal text 'JSON.stringify(...)')",
         args: {
           event_type: tool.schema.enum([
             "decision",
@@ -3747,6 +3875,19 @@ const delegationObserver: Plugin = async (ctx) => {
           function parsePrognosis(raw: string | undefined): Record<string, unknown> {
             if (!raw) return {};
             try {
+              // DIA-231: detect literal "JSON.stringify(...)" text passed by the
+              // LLM instead of the actual stringified result. The tool description
+              // (Option A) warns against this, but the LLM may still do it.
+              if (raw.trim().startsWith("JSON.stringify(")) {
+                ctx.client.app.log({
+                  body: {
+                    service: "delegation-observer",
+                    level: "warn",
+                    message:
+                      "[delegation-observer] prognosis appears to be literal 'JSON.stringify(...)' text, not actual JSON -- LLM instruction-following failure",
+                  },
+                })
+              }
               const parsed = JSON.parse(raw) as unknown
               // DIA-192: the caller may double-encode (a JSON string inside a
               // JSON string). The outer parse then SUCCEEDS but yields a
@@ -3768,7 +3909,7 @@ const delegationObserver: Plugin = async (ctx) => {
               // Truly malformed JSON: this is a recovered error, so report it
               // on the TUI-safe app-log channel (no raw console output into
               // the TUI stream). DIA-192 (2026-08-15) demoted this from
-              // console.warn to info; the 2026-08-16 re-open downgraded it
+              // tuiSafeWarn to info; the 2026-08-16 re-open downgraded it
               // FURTHER to debug - even info-level app-log entries read as
               // alarming noise for a recovered error, so the parse-fallback
               // notification now sits at the lowest severity that still
@@ -4263,7 +4404,7 @@ const delegationObserver: Plugin = async (ctx) => {
           lastContextUsage.set(callingSession, usageFraction)
 
           // DIA-219 threshold events: crisis (>15%/cycle) and emergency
-          // (>25%/cycle). Emitted via console.warn + registry row so the
+          // (>25%/cycle). Emitted via tuiSafeWarn + registry row so the
           // orchestrator sees them without blocking the tool response.
           if (velocityPercent > 25) {
             appendRow({
@@ -4273,7 +4414,7 @@ const delegationObserver: Plugin = async (ctx) => {
               usage_pct: Math.round(usageFraction * 100),
               note: "context grew >25% in one cycle - recommend immediate compaction",
             })
-            console.warn(
+            tuiSafeWarn(
               `[delegation-observer] CONTEXT EMERGENCY: session ${callingSession} velocity ${velocityPercent}% (threshold 25%)`
             )
           } else if (velocityPercent > 15) {
@@ -4284,7 +4425,7 @@ const delegationObserver: Plugin = async (ctx) => {
               usage_pct: Math.round(usageFraction * 100),
               note: "context grew >15% in one cycle",
             })
-            console.warn(
+            tuiSafeWarn(
               `[delegation-observer] CONTEXT CRISIS: session ${callingSession} velocity ${velocityPercent}% (threshold 15%)`
             )
           }
@@ -4337,7 +4478,7 @@ const delegationObserver: Plugin = async (ctx) => {
             JSON.stringify(routingState, null, 2)
           )
         } catch (err) {
-          console.warn(
+          tuiSafeWarn(
             `[delegation-observer] adaptive-routing-state flush-on-dispose failed: ${errorMessage(err)}`
           )
         }

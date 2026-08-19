@@ -31,8 +31,20 @@ Architecture → Specification → Implementation:
 
 1. **Pre-flight**: Check `.sdd/` and `openspec/` for governing constraints before touching code
 2. **Dispatch** `@coder` — implements against `tasks.md`, within architectural constraints
-   - Optionally run `to-tickets` first to publish the tasks as DIA tickets in `docs/dev-infra-audit/tickets/`
+   - Optionally run `to-tickets` first to publish the tasks as DIA tickets in `docs/dev-infra-audit/tickets/` — use `scripts/tickets new` (not raw writes) to create each ticket (DIA-229)
    - **Ticket reference format:** when referencing DIA tickets in any user-facing output (session summaries, handoff prognoses, batch approvals), ALWAYS quote ID + human-readable slug from the filename (e.g., "DIA-100 'git worktrees for parallel dev sessions'"), not bare ID alone. Derive the slug from DIA-NNN-<descriptor>.md filenames or the README index.
+
+   #### DIA Ticket ID Formats (DIA-234)
+
+   Two ID formats coexist in the ledger:
+
+   | Format     | Example           | Allocation                                      |
+   | ---------- | ----------------- | ----------------------------------------------- |
+   | Sequential | `DIA-190`         | Grandfathered (DIA-001 through DIA-234)         |
+   | Datetime   | `DIA-260819-a1b2` | All new tickets (YYMMDD + 4-char random suffix) |
+
+   When referencing DIA tickets in prose, always use `DIA-NNN 'slug'` or `DIA-YYMMDD-XXXX 'slug'` with the human-readable slug from the filename. Never use bare IDs without the slug.
+
 3. **Post-flight**: Run dev build, lint, tests before handing off. Coder MUST include verification evidence (exit codes + summary lines) — see §2.3.1
 4. **Review**: Dispatch `@reviewer` (two-axis: Standards + Spec fidelity)
 5. **Fix → Re-review loop** (§2.3.1): after developer disposition and coder fixes, re-dispatch `@reviewer` for targeted re-verification (max 2 cycles)

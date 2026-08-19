@@ -129,17 +129,11 @@ async function makeHarness(sessionMessagesMock, providerListMock) {
  * Drive the context_usage tool and return the parsed JSON result.
  */
 async function callContextUsage(hooks, { scope, sessionID }) {
-  const origWarn = console.warn
-  console.warn = () => {}
-  try {
-    const result = await hooks.tool.context_usage.execute(
-      { scope: scope ?? "session" },
-      { sessionID: sessionID ?? "ses_velocity_test" }
-    )
-    return JSON.parse(result)
-  } finally {
-    console.warn = origWarn
-  }
+  const result = await hooks.tool.context_usage.execute(
+    { scope: scope ?? "session" },
+    { sessionID: sessionID ?? "ses_velocity_test" }
+  )
+  return JSON.parse(result)
 }
 
 /**

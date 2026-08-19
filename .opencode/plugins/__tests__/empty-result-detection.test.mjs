@@ -77,34 +77,22 @@ async function makeHarness() {
  * Drive the event hook (session lifecycle events).
  */
 async function driveEvent(hooks, { event }) {
-  const origWarn = console.warn
-  console.warn = () => {}
-  try {
-    await hooks.event({ event })
-  } finally {
-    console.warn = origWarn
-  }
+  await hooks.event({ event })
 }
 
 /**
  * Drive tool.execute.after to register a file edit for a session.
  */
 async function driveToolEdit(hooks, ctx, { sessionID, tool, callID }) {
-  const origWarn = console.warn
-  console.warn = () => {}
-  try {
-    await hooks["tool.execute.after"](
-      {
-        tool: tool ?? "edit",
-        sessionID,
-        callID: callID ?? "call_edit",
-        args: {},
-      },
-      { output: "ok" }
-    )
-  } finally {
-    console.warn = origWarn
-  }
+  await hooks["tool.execute.after"](
+    {
+      tool: tool ?? "edit",
+      sessionID,
+      callID: callID ?? "call_edit",
+      args: {},
+    },
+    { output: "ok" }
+  )
 }
 
 /**
