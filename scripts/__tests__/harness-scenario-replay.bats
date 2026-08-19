@@ -27,6 +27,12 @@ run_scenario() {
     echo "run_scenario: missing script: $script" >&2
     return 1
   }
+  # Skip when Docker is unavailable (inside container or daemon down).
+  # These tests require docker compose exec which is only possible from the host.
+  if ! docker info >/dev/null 2>&1; then
+    echo "# skip: Docker not available (inside container or daemon down)" >&3
+    return 0
+  fi
   docker compose exec -T dev bash -lc \
     "cd /workspace/.opencode/plugins/__tests__/harness-scenarios && bun run $name.scenario.mjs"
 }
