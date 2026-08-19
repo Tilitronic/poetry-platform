@@ -6,7 +6,7 @@ id: DIA-202
 title: "worktrees.sh: nested-worktree creation guard (ana022 R-2)"
 area: dev-infra
 severity: Medium
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: ""
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
@@ -17,7 +17,7 @@ discovered: 2026-08-16
 source: inventory
 date: 2026-08-16
 created: 2026-08-16
-updated: 2026-08-16
+updated: 2026-08-19
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -68,11 +68,11 @@ nested invocation lands flat under `.worktrees/`.
 
 ## Verification
 
-- [ ] `worktrees.sh create` run from inside a worktree exits non-zero with a clear "not the main worktree" message (bats).
-- [ ] `worktrees.sh create` from the main checkout behaves exactly as before (regression green).
-- [ ] `worktrees.sh remove` on a worktree containing a registered nested worktree fails with the innermost-first message naming the nested path (bats).
-- [ ] worktree-conventions.md documents the innermost-first removal ordering.
-- [ ] `make test-shell` exit 0 (worktrees.bats suite green).
+- [x] `worktrees.sh create` run from inside a worktree exits non-zero with a clear "not the main worktree" message (bats).
+- [x] `worktrees.sh create` from the main checkout behaves exactly as before (regression green).
+- [x] `worktrees.sh remove` on a worktree containing a registered nested worktree fails with the innermost-first message naming the nested path (bats).
+- [x] worktree-conventions.md documents the innermost-first removal ordering.
+- [x] `make test-shell` exit 0 (worktrees.bats suite green).
 
 ## Fix
 
@@ -81,3 +81,5 @@ nested invocation lands flat under `.worktrees/`.
 ## Re-verify
 
 > To be filled at re-verify time.
+
+<!-- UPDATE 2026-08-19: Implementation landed (worktrees.sh:261-268 create guard, :367-383 remove guard; tests T35-T36; docs worktree-conventions.md:65-91). make test-shell green. Status -> CLOSED. -->

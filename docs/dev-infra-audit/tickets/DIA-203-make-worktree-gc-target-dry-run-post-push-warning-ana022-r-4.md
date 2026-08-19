@@ -6,7 +6,7 @@ id: DIA-203
 title: "make worktree-gc target + dry-run post-push warning (ana022 R-4)"
 area: dev-infra
 severity: Medium
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: ""
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
@@ -17,7 +17,7 @@ discovered: 2026-08-16
 source: inventory
 date: 2026-08-16
 created: 2026-08-16
-updated: 2026-08-16
+updated: 2026-08-19
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -67,10 +67,10 @@ main-history quality).
 
 ## Verification
 
-- [ ] `make worktree-gc` runs remove-leftovers + cleanup + prune and exits 0 on a clean tree (smoke).
-- [ ] `.husky/post-push` dry-run fires after a push and prints the stale-branch/worktree warning when stale state exists; no deletion happens (bats).
-- [ ] worktree-conventions.md documents `make worktree-gc` as the post-merge step (no cron/auto-schedule anywhere).
-- [ ] `make test-shell` exit 0 (new bats coverage for the hook + dry-run path).
+- [x] `make worktree-gc` runs remove-leftovers + cleanup + prune and exits 0 on a clean tree (smoke).
+- [x] `.husky/post-push` dry-run fires after a push and prints the stale-branch/worktree warning when stale state exists; no deletion happens (bats).
+- [x] worktree-conventions.md documents `make worktree-gc` as the post-merge step (no cron/auto-schedule anywhere).
+- [x] `make test-shell` exit 0 (new bats coverage for the hook + dry-run path).
 
 ## Fix
 
@@ -79,3 +79,5 @@ main-history quality).
 ## Re-verify
 
 > To be filled at re-verify time.
+
+<!-- UPDATE 2026-08-19: Implementation landed (Makefile:307-309 worktree-gc target; .husky/post-push dry-run hook; tests post-push.bats:81-109; docs worktree-conventions.md:220-248). make test-shell green. Status -> CLOSED. -->

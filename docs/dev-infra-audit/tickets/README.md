@@ -152,8 +152,8 @@
 | DIA-199 | memory-shelf permission resolver: exact-file allow not resolved at runtime (DIA-143 broken) | opencode-config | Major | OPEN | [DIA-199-memory-shelf-permission-resolver.md](DIA-199-memory-shelf-permission-resolver.md) |
 | DIA-200 | Analyze worktree/branch/merge mechanism + verify Codex/ClaudeCode follow the same conventions | dev-infra | Medium | CLOSED | [DIA-200-worktree-branch-merge-mechanism-analysis.md](DIA-200-worktree-branch-merge-mechanism-analysis.md) |
 | DIA-201 | worktree cleanup: orphaned-dir sweep for .worktrees/ (ana022 R-1) | dev-infra | Medium | OPEN | [DIA-201-worktree-cleanup-orphaned-dir-sweep-for-worktrees-ana022-r-1.md](DIA-201-worktree-cleanup-orphaned-dir-sweep-for-worktrees-ana022-r-1.md) |
-| DIA-202 | worktrees.sh: nested-worktree creation guard (ana022 R-2) | dev-infra | Medium | OPEN | [DIA-202-worktrees-sh-nested-worktree-creation-guard-ana022-r-2.md](DIA-202-worktrees-sh-nested-worktree-creation-guard-ana022-r-2.md) |
-| DIA-203 | make worktree-gc target + dry-run post-push warning (ana022 R-4) | dev-infra | Medium | OPEN | [DIA-203-make-worktree-gc-target-dry-run-post-push-warning-ana022-r-4.md](DIA-203-make-worktree-gc-target-dry-run-post-push-warning-ana022-r-4.md) |
+| DIA-202 | worktrees.sh: nested-worktree creation guard (ana022 R-2) | dev-infra | Medium | CLOSED | [DIA-202-worktrees-sh-nested-worktree-creation-guard-ana022-r-2.md](DIA-202-worktrees-sh-nested-worktree-creation-guard-ana022-r-2.md) |
+| DIA-203 | make worktree-gc target + dry-run post-push warning (ana022 R-4) | dev-infra | Medium | CLOSED | [DIA-203-make-worktree-gc-target-dry-run-post-push-warning-ana022-r-4.md](DIA-203-make-worktree-gc-target-dry-run-post-push-warning-ana022-r-4.md) |
 | DIA-204 | delegation-observer handoff-archived log line leaks into OpenCode chat UI (console.warn surfaces in conversation stream) | opencode-config | Medium | OPEN | [DIA-204-delegation-observer-handoff-log-leaks-into-chat-ui.md](DIA-204-delegation-observer-handoff-log-leaks-into-chat-ui.md) |
 | DIA-205 | changelog YAML-ledger conversion: migrate historical CHANGELOG.md entries into the ledger + reconcile derived MD view | opencode-config | Medium | CLOSED | [DIA-205-changelog-yaml-ledger-conversion.md](DIA-205-changelog-yaml-ledger-conversion.md) |
 | DIA-207 | WSL memory/CPU cap exhaustion causes vsock relay stalls and remote disconnects | env | Major | OPEN | [DIA-207-wsl-memory-cap-vsock-relay-disconnects.md](DIA-207-wsl-memory-cap-vsock-relay-disconnects.md) |
@@ -179,7 +179,7 @@
 
 | Status      | Count |
 | ----------- | ----- |
-| OPEN        | 13    |
+| OPEN        | 11    |
 | DONE        | 12    |
 | VALIDATE    | 0     |
 | E2E         | 0     |
@@ -188,7 +188,7 @@
 | FIXED       | 1     |
 | IMPLEMENTED | 2     |
 | VERIFIED    | 28    |
-| CLOSED      | 104   |
+| CLOSED      | 106   |
 | BLOCKED     | 0     |
 | DISPATCHED  | 0     |
 | RUNNING     | 0     |

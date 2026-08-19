@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# worktrees.sh — worktree lifecycle CLI for the worktrees-only parallel dev
+# worktrees.sh -- worktree lifecycle CLI for the worktrees-only parallel dev
 # model (DIA-100; DIA-073 option d, adopted by developer decision 2026-08-09).
 #
 # WHY: parallel OpenCode lanes need isolated checkouts on feature branches.
 # The global worktrees skill (~/.config/opencode/skills/worktrees/SKILL.md)
 # defines the ORCHESTRATION protocol (planning, ownership, integration,
-# cleanup); this script is the mechanical layer — it turns the protocol's
+# cleanup); this script is the mechanical layer -- it turns the protocol's
 # add/remove/list steps into one testable CLI so lanes and the developer
 # execute identical, safe commands instead of ad-hoc git.
 #
@@ -17,11 +17,15 @@
 #                            refuses already-existing branches, verifies
 #                            .opencode/session/ isolation in the new worktree,
 #                            and materializes the .husky/_ shim (DIA-174 S1).
+#                            DIA-202: refuses create when CWD is not the main
+#                            worktree (nested-worktree prevention).
 #   remove <branch|path>     remove a worktree. The branch is KEPT for the
 #                            rollback window (cleanup after the window is a
-#                            developer action — git branch -d/-D is denied
+#                            developer action -- git branch -d/-D is denied
 #                            for lanes, DIA-096). Refuses dirty/uncommitted
-#                            worktrees unless --force.
+#                            worktrees unless --force. DIA-202: refuses remove
+#                            when the target contains a registered nested
+#                            worktree (innermost-first ordering).
 #   cleanup [--days N] [--dry-run]
 #                            delete merged feature/* branches whose rollback
 #                            window elapsed (DIA-177), then sweep orphaned
@@ -31,7 +35,7 @@
 #                            for squash parity); dirty linked worktrees are
 #                            ALWAYS skipped; the default window is 0 days
 #                            (immediate post-merge teardown). Local state
-#                            only — no fetch, no remote reads.
+#                            only -- no fetch, no remote reads.
 #   list                     show active worktrees (path + HEAD + branch).
 #
 # Options:
@@ -58,6 +62,8 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# DIA-202: capture caller's CWD before cd to ROOT (guard needs original location)
+INVOKED_FROM="$(pwd -P)"
 cd "$ROOT"
 WORKTREES_DIR="${WORKTREES_DIR:-$ROOT/.worktrees}"
 DEFAULT_BASE="${DEFAULT_BASE:-main}"
@@ -253,6 +259,18 @@ cmd_create() {
   case "$1" in
     -h | --help) usage ;;
   esac
+
+  # DIA-202 create-time guard: refuse when the caller invoked from inside a
+  # nested worktree (a subdirectory of .worktrees/). Uses INVOKED_FROM
+  # (captured before cd to ROOT) so the guard fires even though the script
+  # cd's to ROOT first. Only blocks invocations from INSIDE .worktrees/;
+  # invocations from outside the repo entirely (host CWD) are allowed.
+  case "$INVOKED_FROM" in
+    "$ROOT"/.worktrees/*)
+      fail "refusing to create a worktree: current checkout '$INVOKED_FROM' is not the main worktree (inside a nested worktree); create worktrees from the main checkout only"
+      ;;
+  esac
+
   local branch="$1" base="${2:-$DEFAULT_BASE}" path
   validate_branch "$branch"
   path="$WORKTREES_DIR/$(path_from_branch "$branch")"
@@ -349,6 +367,25 @@ cmd_remove() {
   if [ "$path" = "$main_path" ]; then
     fail "refusing to remove the main checkout ('$path')"
   fi
+
+  # DIA-202 remove-time guard: refuse if any registered worktree is nested
+  # inside the target. Git requires innermost-first removal, so removing the
+  # outer worktree first would fail with a confusing raw git error. Name the
+  # nested path so the developer can remove innermost-first.
+  local registered_line wt_path
+  while IFS= read -r registered_line; do
+    wt_path="${registered_line#worktree }"
+    [ -n "$wt_path" ] || continue
+    # skip the main checkout itself and the target (it IS the target)
+    [ "$wt_path" = "$main_path" ] && continue
+    [ "$wt_path" = "$path" ] && continue
+    case "$wt_path" in
+      "$path"/*)
+        fail "refusing to remove '$path': nested worktree '$wt_path' must be removed first (innermost-first ordering)"
+        ;;
+    esac
+  done < <(git worktree list --porcelain | grep '^worktree ')
+
   branch="$(worktree_branch_at "$path")"
 
   dirty="$(git -C "$path" status --porcelain)"
