@@ -24,7 +24,9 @@
 #                            worktrees unless --force.
 #   cleanup [--days N] [--dry-run]
 #                            delete merged feature/* branches whose rollback
-#                            window elapsed (DIA-177). Merge-verified against
+#                            window elapsed (DIA-177), then sweep orphaned
+#                            dirs in .worktrees/ that have no matching
+#                            feature/* branch (DIA-201). Merge-verified against
 #                            main (is-ancestor fast path, tree-subset check
 #                            for squash parity); dirty linked worktrees are
 #                            ALWAYS skipped; the default window is 0 days
@@ -80,7 +82,8 @@ commands:
                            rollback window
   cleanup [--days N] [--dry-run]
                            delete merged feature/* branches whose rollback
-                           window elapsed (default 0 days: immediate)
+                           window elapsed (default 0 days: immediate);
+                           also sweeps orphaned dirs in .worktrees/
   list                     show active worktrees (path + HEAD + branch)
 
 options:
@@ -539,6 +542,90 @@ cleanup_candidate() {
   return 0
 }
 
+# sweep_orphaned_dirs: post-branch-scan phase that removes dirs in
+# $WORKTREES_DIR/ that are not registered worktrees, have no matching
+# feature/* branch, and have no valid .git file pointing at an existing
+# gitdir (DIA-201). Safety gates: never touch the main checkout; skip
+# dirs containing a registered nested worktree; respect --dry-run.
+# WHY: .worktrees/ accumulates orphaned directories that no existing tool
+# can see or remove -- they are dirs whose .git file points at a dead
+# gitdir AND have no matching feature/* branch.
+sweep_orphaned_dirs() {
+  [ -d "$WORKTREES_DIR" ] || return 0
+  local dir dir_name main_path gitdir_file gitdir_path
+  local registered_paths branch has_branch has_nested nested_path
+
+  main_path="$(git rev-parse --show-toplevel 2>/dev/null)" || main_path=""
+
+  # Build newline-delimited list of registered worktree paths for fast lookup
+  # (small set; bash-3 compatible: grep -Fx on the list).
+  registered_paths="$(git worktree list --porcelain 2>/dev/null | grep '^worktree ' | sed 's/^worktree //')" || true
+
+  for dir in "$WORKTREES_DIR"/*; do
+    [ -d "$dir" ] || continue
+    dir_name="$(basename "$dir")"
+
+    # Main checkout guard: never touch the main checkout (mirrors T11 / DIA-096).
+    # pwd -P resolves symlinks so a symlink to the main checkout is caught.
+    if [ -n "$main_path" ] && [ "$(cd "$dir" 2>/dev/null && pwd -P)" = "$main_path" ]; then
+      continue
+    fi
+
+    # Case (i): registered worktree -> skip (handled by cleanup_candidate
+    # or still actively used).
+    if printf '%s\n' "$registered_paths" | grep -qFx "$dir"; then
+      continue
+    fi
+
+    # Case (ii): leftover for a still-existing branch -> skip. The branch
+    # scan in cleanup_candidate handles these via row 6 (leftover dir removal).
+    has_branch=0
+    while IFS= read -r branch; do
+      [ -n "$branch" ] || continue
+      if [ "$(path_from_branch "$branch")" = "$dir_name" ]; then
+        has_branch=1
+        break
+      fi
+    done < <(git for-each-ref --format='%(refname:short)' refs/heads/feature/ 2>/dev/null)
+    if [ "$has_branch" -eq 1 ]; then
+      continue
+    fi
+
+    # Safety gate: skip dir that contains a registered nested worktree.
+    has_nested=0
+    for nested_path in "$dir"/*/; do
+      [ -d "$nested_path" ] || continue
+      nested_path="${nested_path%/}" # strip trailing slash from glob expansion
+      if printf '%s\n' "$registered_paths" | grep -qFx "$nested_path"; then
+        has_nested=1
+        break
+      fi
+    done
+    if [ "$has_nested" -eq 1 ]; then
+      [ "$DRY_RUN" = "1" ] || echo "skipped: orphaned dir '$dir' (contains a registered nested worktree)"
+      continue
+    fi
+
+    # Case (iii): fully orphaned - no matching branch, not registered,
+    # no nested worktree. Check .git file and gitdir for diagnostic detail.
+    gitdir_file="$dir/.git"
+    if [ -f "$gitdir_file" ]; then
+      gitdir_path="$(sed -n 's/^gitdir: //p' "$gitdir_file")"
+      if [ -n "$gitdir_path" ] && [ -d "$gitdir_path" ]; then
+        # gitdir exists -> valid but unregistered worktree. Defense-in-depth skip.
+        continue
+      fi
+    fi
+    # Fully orphaned: report and remove.
+    if [ "$DRY_RUN" = "1" ]; then
+      echo "would-remove: orphaned dir '$dir'"
+    else
+      rm -rf "$dir"
+      echo "removed: orphaned dir '$dir'"
+    fi
+  done
+}
+
 cmd_cleanup() {
   local days="" dry_run=0
   # Flag parsing mirrors cmd_remove: --days N and --dry-run in ANY order,
@@ -598,6 +685,10 @@ cmd_cleanup() {
       had_error=1
     fi
   done < <(git for-each-ref --format='%(refname:short)' refs/heads/feature/)
+
+  # Phase 2: sweep orphaned dirs in .worktrees/ that have no matching
+  # feature/* branch and are not registered worktrees (DIA-201).
+  sweep_orphaned_dirs
 
   # Exit-code contract: 0 when every candidate was handled or intentionally
   # skipped; non-zero when any candidate hit a git error (broken ref, lock).

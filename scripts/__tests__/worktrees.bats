@@ -44,6 +44,10 @@
 #   T30 cleanup per-candidate non-128 non-1 git failure (mocked `git diff`
 #       exits 2) -> stderr warning + fail-safe skip + branch preserved +
 #       run-level non-zero exit + scan continues (DIA-177 re-review F1)
+#   T31 cleanup removes orphaned dir (dead gitdir, no matching branch)
+#   T32 cleanup --dry-run lists orphaned dir without removal
+#   T33 cleanup skips orphaned dir containing a registered nested worktree
+#   T34 cleanup sweep never touches the main checkout (symlink defense)
 
 load test-helper
 
@@ -729,4 +733,76 @@ make_unmerged_worktree() {
   # the scan continued: the unaffected merged+old candidate was deleted
   run git -C "$tree" branch --list feature/DIA-137-ok
   assert_output_not_contains "feature/DIA-137-ok"
+}
+
+@test "worktrees: T31 cleanup removes orphaned dir (dead gitdir, no matching branch)" {
+  tree="$(setup_worktree_repo)"
+  # Create an orphaned dir: has .git file pointing to a dead gitdir, no matching branch
+  mkdir -p "$tree/.worktrees/orphan-dead"
+  printf 'gitdir: /nonexistent/gitdir\n' > "$tree/.worktrees/orphan-dead/.git"
+
+  run bash "$tree/scripts/worktrees.sh" cleanup
+
+  assert_status 0
+  assert_file_not_exists "$tree/.worktrees/orphan-dead"
+  assert_output_contains "removed: orphaned dir"
+}
+
+@test "worktrees: T32 cleanup --dry-run lists orphaned dir without removal" {
+  tree="$(setup_worktree_repo)"
+  mkdir -p "$tree/.worktrees/orphan-dead"
+  printf 'gitdir: /nonexistent/gitdir\n' > "$tree/.worktrees/orphan-dead/.git"
+
+  run bash "$tree/scripts/worktrees.sh" cleanup --dry-run
+
+  assert_status 0
+  assert_file_exists "$tree/.worktrees/orphan-dead"
+  assert_output_contains "would-remove: orphaned dir"
+}
+
+@test "worktrees: T33 cleanup skips orphaned dir containing a registered nested worktree" {
+  tree="$(setup_worktree_repo)"
+  # Create orphaned dir with a registered worktree inside it
+  mkdir -p "$tree/.worktrees/orphan-parent"
+  printf 'gitdir: /nonexistent\n' > "$tree/.worktrees/orphan-parent/.git"
+  git -C "$tree" worktree add -b feature/DIA-201-nested "$tree/.worktrees/orphan-parent/nested" main >/dev/null
+  # Add an unmerged commit so the branch survives cleanup (is-ancestor fails
+  # AND tree-subset check fails). Without a real file change, the empty commit
+  # keeps the tree identical to main's, so branch_tree_in_main returns 0
+  # (merged) and cleanup removes the worktree before the sweep can see it.
+  printf 'unmerged\n' > "$tree/.worktrees/orphan-parent/nested/unmerged.txt"
+  git -C "$tree/.worktrees/orphan-parent/nested" add unmerged.txt
+  git -C "$tree/.worktrees/orphan-parent/nested" commit -q -m "unmerged"
+
+  run bash "$tree/scripts/worktrees.sh" cleanup
+
+  assert_status 0
+  # orphan-parent is skipped because it contains a registered nested worktree
+  assert_file_exists "$tree/.worktrees/orphan-parent"
+  assert_output_contains "contains a registered nested worktree"
+  # the nested worktree is still registered
+  run git -C "$tree" worktree list
+  assert_output_contains "orphan-parent/nested"
+}
+
+@test "worktrees: T34 cleanup sweep never touches the main checkout (symlink defense)" {
+  tree="$(setup_worktree_repo)"
+  # Create an orphaned dir to prove the sweep runs
+  mkdir -p "$tree/.worktrees/orphan-dead"
+  printf 'gitdir: /nonexistent/gitdir\n' > "$tree/.worktrees/orphan-dead/.git"
+  # Symlink from .worktrees/ to the main checkout (the dangerous case:
+  # rm -rf on this symlink without the guard would remove the symlink,
+  # but the guard prevents even that -- the main checkout is never touched).
+  ln -s "$tree" "$tree/.worktrees/main-checkout"
+  printf 'keep-me\n' > "$tree/keep-me.txt"
+
+  run bash "$tree/scripts/worktrees.sh" cleanup
+
+  assert_status 0
+  # orphaned dir was removed (proves the sweep ran)
+  assert_file_not_exists "$tree/.worktrees/orphan-dead"
+  # main checkout symlink was NOT removed (guard skipped it)
+  assert_file_exists "$tree/.worktrees/main-checkout"
+  # main checkout files are intact
+  assert_file_exists "$tree/keep-me.txt"
 }
