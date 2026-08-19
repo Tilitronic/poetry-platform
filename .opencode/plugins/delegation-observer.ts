@@ -2715,12 +2715,15 @@ const delegationObserver: Plugin = async (ctx) => {
           ) {
             const isConfigWork = CONFIG_WORK_PATTERN.test(dispatchText)
             if (isConfigWork) {
-              // Scan messages.jsonl for a prior @ai-specialist delegation in
-              // this session. messages.jsonl carries gen_ai.agent.name which
-              // registry.jsonl task_success/task_no_id rows lack. The
-              // routing order requires @ai-specialist before @coder on
-              // config-work, so we check for a specific ai-specialist
-              // dispatch, not just any prior task().
+              // Scan messages.jsonl for a prior @ai-specialist dispatch in
+              // this session. Delegation rows (event_type "delegation") do
+              // not carry session_id in their payload, so we match the
+              // paracrine dispatch.started signal emitted by emitStateSignal
+              // before the delegation row (DIA-220) -- it carries both
+              // session_id and the agent name. The routing order requires
+              // @ai-specialist before @coder on config-work, so we check
+              // for a specific ai-specialist dispatch, not just any prior
+              // task().
               let hasAiSpecialist = false
               try {
                 if (existsSync(messagesPath)) {
@@ -2732,8 +2735,9 @@ const delegationObserver: Plugin = async (ctx) => {
                       const row = JSON.parse(line) as Record<string, unknown>
                       return (
                         row.session_id === input.sessionID &&
-                        row["gen_ai.agent.name"] === "ai-specialist" &&
-                        row.event_type === "delegation"
+                        row.agent === "ai-specialist" &&
+                        row.event_type === "paracrine" &&
+                        row.signal_type === "dispatch.started"
                       )
                     } catch {
                       return false

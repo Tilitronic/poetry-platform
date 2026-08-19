@@ -6,7 +6,7 @@
  * delegation-observer plugin. These tests validate:
  *
  * F1: Routing check fires BEFORE ticket-gate early returns
- * F2: Prior @ai-specialist check scans messages.jsonl (gen_ai.agent.name)
+ * F2: Prior @ai-specialist check scans messages.jsonl (paracrine dispatch.started)
  * F3: Config-work pattern coverage (commands/, dcp.jsonc, rules/)
  * F4: Integration tests simulating full hook control flow
  *
@@ -34,9 +34,11 @@ function isConfigWorkDispatch(dispatchText) {
 }
 
 /**
- * F2: Scan messages.jsonl for a prior @ai-specialist delegation in a session.
- * messages.jsonl carries gen_ai.agent.name which registry.jsonl lacks.
- * Returns true if any delegation row with agent name "ai-specialist" exists.
+ * F2: Scan messages.jsonl for a prior @ai-specialist dispatch in a session.
+ * Delegation rows (event_type "delegation") do not carry session_id in their
+ * payload, so we match the paracrine dispatch.started signal (DIA-220) which
+ * carries both session_id and the agent name.
+ * Returns true if any paracrine dispatch.started row for agent "ai-specialist" exists.
  */
 function hasPriorAiSpecialistDispatch(messagesPath, sessionId) {
   if (!existsSync(messagesPath)) return false;
@@ -46,8 +48,9 @@ function hasPriorAiSpecialistDispatch(messagesPath, sessionId) {
       const row = JSON.parse(line);
       return (
         row.session_id === sessionId &&
-        row['gen_ai.agent.name'] === 'ai-specialist' &&
-        row.event_type === 'delegation'
+        row.agent === 'ai-specialist' &&
+        row.event_type === 'paracrine' &&
+        row.signal_type === 'dispatch.started'
       );
     } catch {
       return false;
@@ -87,18 +90,20 @@ function simulateRoutingGate({ subagentType, dispatchText, messagesPath, session
   return { violation: true, reason: 'no prior @ai-specialist dispatch' };
 }
 
-// --- Test helpers ---
-function makeMessagesRow(overrides) {
+// Mirrors emitStateSignal's row shape in delegation-observer.ts (DIA-220):
+// paracrine dispatch.started rows carry session_id + agent in the payload,
+// unlike delegation rows.
+function makeParacrineRow(overrides) {
   return JSON.stringify({
     row_id: 1,
     event_uuid: 'test-uuid',
     timestamp: new Date().toISOString(),
     'gen_ai.provider.name': 'opencode-go',
-    'gen_ai.operation.name': 'invoke_agent',
-    'gen_ai.agent.name': 'coder',
-    event_type: 'delegation',
-    task_ref: 'test task',
-    resolution_status: 'in-flight',
+    'gen_ai.operation.name': 'state_signal',
+    event_type: 'paracrine',
+    signal_type: 'dispatch.started',
+    'gen_ai.agent.id': 'task-1',
+    agent: 'coder',
     session_id: 'ses_test123',
     writer: 'plugin',
     ...overrides,
@@ -202,25 +207,23 @@ describe('DIA-230: Prior @ai-specialist dispatch scanning (F2)', () => {
     assert.equal(hasPriorAiSpecialistDispatch(messagesPath, 'ses_123'), false);
   });
 
-  it('returns true when prior ai-specialist delegation exists for session', () => {
+  it('returns true when prior ai-specialist dispatch.started exists for session', () => {
     writeFileSync(
       messagesPath,
-      makeMessagesRow({
+      makeParacrineRow({
         session_id: 'ses_123',
-        'gen_ai.agent.name': 'ai-specialist',
-        event_type: 'delegation',
+        agent: 'ai-specialist',
       }) + '\n',
     );
     assert.equal(hasPriorAiSpecialistDispatch(messagesPath, 'ses_123'), true);
   });
 
-  it('returns false when prior delegation is for different session', () => {
+  it('returns false when prior dispatch.started is for different session', () => {
     writeFileSync(
       messagesPath,
-      makeMessagesRow({
+      makeParacrineRow({
         session_id: 'ses_other',
-        'gen_ai.agent.name': 'ai-specialist',
-        event_type: 'delegation',
+        agent: 'ai-specialist',
       }) + '\n',
     );
     assert.equal(hasPriorAiSpecialistDispatch(messagesPath, 'ses_123'), false);
@@ -229,22 +232,33 @@ describe('DIA-230: Prior @ai-specialist dispatch scanning (F2)', () => {
   it('returns false when agent is not ai-specialist', () => {
     writeFileSync(
       messagesPath,
-      makeMessagesRow({
+      makeParacrineRow({
         session_id: 'ses_123',
-        'gen_ai.agent.name': 'coder',
-        event_type: 'delegation',
+        agent: 'coder',
       }) + '\n',
     );
     assert.equal(hasPriorAiSpecialistDispatch(messagesPath, 'ses_123'), false);
   });
 
-  it('returns false when event_type is not delegation', () => {
+  it('returns false when signal_type is not dispatch.started', () => {
     writeFileSync(
       messagesPath,
-      makeMessagesRow({
+      makeParacrineRow({
         session_id: 'ses_123',
-        'gen_ai.agent.name': 'ai-specialist',
-        event_type: 'routing_violation',
+        agent: 'ai-specialist',
+        signal_type: 'dispatch.completed',
+      }) + '\n',
+    );
+    assert.equal(hasPriorAiSpecialistDispatch(messagesPath, 'ses_123'), false);
+  });
+
+  it('returns false when event_type is not paracrine', () => {
+    writeFileSync(
+      messagesPath,
+      makeParacrineRow({
+        session_id: 'ses_123',
+        agent: 'ai-specialist',
+        event_type: 'delegation',
       }) + '\n',
     );
     assert.equal(hasPriorAiSpecialistDispatch(messagesPath, 'ses_123'), false);
@@ -252,8 +266,8 @@ describe('DIA-230: Prior @ai-specialist dispatch scanning (F2)', () => {
 
   it('handles multiple rows (finds matching one)', () => {
     const rows = [
-      makeMessagesRow({ session_id: 'ses_123', 'gen_ai.agent.name': 'coder' }),
-      makeMessagesRow({ session_id: 'ses_123', 'gen_ai.agent.name': 'ai-specialist' }),
+      makeParacrineRow({ session_id: 'ses_123', agent: 'coder' }),
+      makeParacrineRow({ session_id: 'ses_123', agent: 'ai-specialist' }),
     ].join('\n');
     writeFileSync(messagesPath, rows + '\n');
     assert.equal(hasPriorAiSpecialistDispatch(messagesPath, 'ses_123'), true);
@@ -262,7 +276,7 @@ describe('DIA-230: Prior @ai-specialist dispatch scanning (F2)', () => {
   it('handles malformed JSON lines gracefully', () => {
     const rows = [
       'not valid json',
-      makeMessagesRow({ session_id: 'ses_123', 'gen_ai.agent.name': 'ai-specialist' }),
+      makeParacrineRow({ session_id: 'ses_123', agent: 'ai-specialist' }),
       '{broken',
     ].join('\n');
     writeFileSync(messagesPath, rows + '\n');
@@ -315,10 +329,9 @@ describe('DIA-230: Full routing gate simulation (F4)', () => {
   it('NO VIOLATION: coder + config-work + prior ai-specialist', () => {
     writeFileSync(
       messagesPath,
-      makeMessagesRow({
+      makeParacrineRow({
         session_id: 'ses_123',
-        'gen_ai.agent.name': 'ai-specialist',
-        event_type: 'delegation',
+        agent: 'ai-specialist',
       }) + '\n',
     );
     const result = simulateRoutingGate({
@@ -384,10 +397,9 @@ describe('DIA-230: Full routing gate simulation (F4)', () => {
     // Prior coder dispatch should NOT satisfy the routing check
     writeFileSync(
       messagesPath,
-      makeMessagesRow({
+      makeParacrineRow({
         session_id: 'ses_123',
-        'gen_ai.agent.name': 'coder',
-        event_type: 'delegation',
+        agent: 'coder',
       }) + '\n',
     );
     const result = simulateRoutingGate({
