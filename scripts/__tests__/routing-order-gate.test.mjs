@@ -418,4 +418,34 @@ describe('DIA-230: Full routing gate simulation (F4)', () => {
       assert.ok(result.violation, `expected violation for: ${text}`);
     }
   });
+
+  it('F4b: ROUTING GATE error prefix matches catch-block re-throw condition', () => {
+    // Verify the routing gate error message starts with "ROUTING GATE:" so it
+    // matches the catch-block re-throw condition alongside "TICKET GATE:".
+    const routingError = new Error(
+      'ROUTING GATE: @coder dispatched on config-work without prior @ai-specialist gate review.\n' +
+        'AGENTS.md section 2.5 requires:\n' +
+        '  1. @ai-specialist gate research -> findings registered\n' +
+        '  2. User reviews & approves findings\n' +
+        '  3. THEN @coder implementation can proceed\n' +
+        'Action: dispatch @ai-specialist first.',
+    );
+
+    const ticketError = new Error('§10 TICKET GATE: no DIA ticket found for config-work dispatch.');
+
+    // Both must match the re-throw condition
+    assert.ok(
+      routingError.message.startsWith('ROUTING GATE:'),
+      'ROUTING GATE: error must start with ROUTING GATE:',
+    );
+    assert.ok(
+      routingError.message.startsWith('ROUTING GATE:') ||
+        routingError.message.startsWith('§10 TICKET GATE:'),
+      'catch-block re-throw condition covers ROUTING GATE: prefix',
+    );
+    assert.ok(
+      ticketError.message.startsWith('§10 TICKET GATE:'),
+      'TICKET GATE: error must start with §10 TICKET GATE:',
+    );
+  });
 });

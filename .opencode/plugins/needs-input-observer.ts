@@ -60,6 +60,62 @@ import {
 import { basename, join } from "node:path"
 import type { Hooks, Plugin } from "@opencode-ai/plugin"
 
+// ---------------------------------------------------------------------------
+// DIA-189 word-pair naming: deterministically maps a session_id to a
+// human-readable adjective-noun pair like "bold-fox" or "calm-river".
+// Replaces the old 6-char hex short-id suffix for terminal titles.
+// ---------------------------------------------------------------------------
+
+// 100 unique adjectives. ADJECTIVES and NOUNS are disjoint sets to prevent
+// same-word pairs like "oak-oak". No duplicates (deduped 2026-08-19).
+const ADJECTIVES = [
+  "bold", "calm", "deep", "fair", "glad", "keen", "mild", "neat", "pure", "rare",
+  "safe", "warm", "wise", "brave", "clear", "quiet", "stern", "proud", "crisp", "dark",
+  "eager", "fresh", "grave", "hasty", "light", "lucid", "noble", "quick", "sharp", "solid",
+  "stark", "tidy", "vivid", "young", "azure", "ivory", "palm", "sage", "fern", "moss",
+  "iron", "steel", "scarlet", "golden", "violet", "crimson", "gentle", "fierce", "hollow", "lofty",
+  "modest", "placid", "resolute", "serene", "subtle", "valiant", "wistful", "zealous", "ardent", "blithe",
+  "canny", "droll", "felicitous", "gregarious", "hearty", "jovial", "luminous", "mirthful", "piquant", "quaint",
+  "robust", "sagacious", "tender", "urbane", "venerable", "whimsical", "copper", "silver", "bronze", "stoic",
+  "meek", "earnest", "loyal", "arcane", "hidden", "silent", "ancient", "prim", "dire", "fond",
+  "ripe", "nimble", "stout", "polite", "radiant", "candid", "ample", "vast", "merry", "plump",
+]
+
+const NOUNS = [
+  "fox", "hawk", "wolf", "bear", "lynx", "raven", "crane", "swift", "wren", "robin",
+  "stag", "hare", "elk", "orca", "finch", "marten", "otter", "badger", "falcon", "osprey",
+  "river", "stream", "brook", "lake", "marsh", "spring", "fjord", "creek", "delta", "cove",
+  "ridge", "peak", "vale", "glen", "mesa", "cliff", "bluff", "tor", "dale", "moor",
+  "oak", "pine", "elm", "ash", "yew", "birch", "cedar", "willow", "maple", "hawthorn",
+  "stone", "flint", "quartz", "amber", "pearl", "coral", "jade", "slate", "granite", "obsidian",
+  "crown", "forge", "anvil", "lance", "shield", "beacon", "harbor", "bridge", "tower", "gate",
+  "flame", "spark", "ember", "mist", "frost", "gale", "storm", "rain", "dew", "fog",
+  "star", "moon", "sun", "comet", "nova", "nebula", "aurora", "eclipse", "zenith", "horizon",
+  "echo", "whisper", "melody", "rhythm", "harmony", "cadence", "chorus", "requiem", "anthem", "prelude",
+]
+
+/**
+ * DIA-189: deterministic word-pair from a session_id. FNV-1a string hash
+ * split into two indices (adjective, noun). ASCII-only output, no special
+ * chars. Same input always produces the same word-pair.
+ * FNV-1a chosen over humanhash/moniker/uuid-words to avoid adding
+ * dependencies; provides uniform distribution for our scale (10k combinations).
+ */
+export function sessionWordPair(sessionId: string): string {
+  // FNV-1a 32-bit hash - simple, fast, no dependencies.
+  let h = 0x811c9dc5
+  for (let i = 0; i < sessionId.length; i++) {
+    h ^= sessionId.charCodeAt(i)
+    h = Math.imul(h, 0x01000193)
+  }
+  h = h >>> 0 // ensure unsigned
+  // Use lower 16 bits for adjective, upper 16 bits for noun to decorrelate
+  // indices while keeping hash computation simple.
+  const adjIdx = h % ADJECTIVES.length
+  const nounIdx = (h >>> 16) % NOUNS.length
+  return `${ADJECTIVES[adjIdx]}-${NOUNS[nounIdx]}`
+}
+
 type WaitingReason = "question" | "permission" | "idle"
 
 interface WaitingEntry {
@@ -757,15 +813,16 @@ const needsInputObserver: Plugin = async (ctx) => {
     notifyDebounceUntil = now + NOTIFY_DEBOUNCE_MS
 
     const title = entry.title || (await resolveTitle(entry.session_id)) || "Agent needs input"
-    // DIA-189 A2: notification attribution. Pin the same " [<short-id>]"
+    // DIA-189 A2: notification attribution. Pin the same " [<word-pair>]"
     // suffix that A1 wrote into the terminal label so a toast names the
     // session that is asking. Flows into BOTH the tui.showToast title and
     // the desktop toast title - do not special-case one channel. Guard:
     // never double-append when the title already carries the suffix.
-    const shortId = entry.session_id.slice(-6)
-    const attributedTitle = title.endsWith(` [${shortId}]`)
+    // DIA-189: word-pair suffix replaces the old hex short-id.
+    const wordPair = sessionWordPair(entry.session_id)
+    const attributedTitle = title.endsWith(` [${wordPair}]`)
       ? title
-      : `${title} [${shortId}]`
+      : `${title} [${wordPair}]`
     const message = `${entry.reason}: ${entry.detail}`.slice(0, 200)
 
     try {
@@ -846,16 +903,17 @@ const needsInputObserver: Plugin = async (ctx) => {
   /**
    * DIA-189 fix: shared rename-if-not-suffixed rule for the two terminal-
    * title surfaces (Session and Pty). A title that does NOT already carry a
-   * " [xxxxxx]" short-id suffix is renamed to "<title> [<short-id>]" so the
-   * terminal strip shows a unique per-session label that notification
-   * attribution (A2) can pin. The suffix is appended to ANY unsuffixed title
-   * - default OR user-set - because the 1.18.18 runtime defaults ("New
-   * session - <ISO>" for sessions, "Terminal N" / "Terminal <id4>" for
-   * ptys) do not share a fixed prefix, and the developer-approved rule
-   * survives future default-format changes. Guards: never double-rename a
-   * title that already carries the suffix (the ONLY gate); fail-soft - a
-   * cosmetic rename must never crash the plugin (console.warn on error,
-   * stderr only, mirroring the plugin's fail-soft pattern). `update` is
+   * " [word-pair]" suffix (e.g. "[bold-fox]") is renamed to
+   * "<title> [<word-pair>]" so the terminal strip shows a unique per-session
+   * label that notification attribution (A2) can pin. The suffix is appended
+   * to ANY unsuffixed title - default OR user-set - because the 1.18.18
+   * runtime defaults ("New session - <ISO>" for sessions, "Terminal N" /
+   * "Terminal <id4>" for ptys) do not share a fixed prefix, and the
+   * developer-approved rule survives future default-format changes. Guards:
+   * never double-rename a title that already carries the suffix (the ONLY
+   * gate); fail-soft - a cosmetic rename must never crash the plugin
+   * (console.warn on error, stderr only, mirroring the plugin's fail-soft
+   * pattern). `update` is
    * bound to its SDK client so `this` survives the detached call.
    */
   async function renameDefaultTitle(
@@ -869,13 +927,13 @@ const needsInputObserver: Plugin = async (ctx) => {
     // 1.18.18 defaults ("New session - <ISO>" / "Terminal N"), so the rename
     // silently never ran (0 of 1,742 sessions ever suffixed). Empty title
     // still falls back to the "opencode <cwd>" base before appending.
-    const alreadySuffixed = / \[\w{6}\]$/.test(createdTitle)
+    const alreadySuffixed = / \[[a-z]+-[a-z]+\]$/.test(createdTitle)
     if (alreadySuffixed) return
     const baseTitle =
       createdTitle !== ""
         ? createdTitle
         : `opencode ${basename(ctx.directory)}`
-    const derivedTitle = `${baseTitle} [${id.slice(-6)}]`
+    const derivedTitle = `${baseTitle} [${sessionWordPair(id)}]`
     // DIA-189 F3: skip an identical rename already issued within the TTL
     // (dedupes pty.created + pty.updated converging on the same title).
     if (isRecentRename(surface, id, derivedTitle)) return
@@ -901,7 +959,7 @@ const needsInputObserver: Plugin = async (ctx) => {
    * DIA-189b A2b: boot retro pass. Sessions/ptys created BEFORE this plugin
    * loaded never saw the session.created/pty.created rename, so at startup
    * we iterate the existing pty.list() and session.list() and apply the same
-   * rename-if-not-suffixed "<title> [<short-id>]" rule (DIA-189 fix: any
+   * rename-if-not-suffixed "<title> [<word-pair>]" rule (DIA-189 fix: any
    * unsuffixed title, default OR user-set). Fail-soft at every seam
    * (a list failure warns and skips that surface; an item update failure
    * warns and continues) - a cosmetic boot task must never crash the plugin
@@ -1035,28 +1093,28 @@ const needsInputObserver: Plugin = async (ctx) => {
           // sessions in parallel (DIA-085 worktree model) every one shows a
           // near-identical default label, so a notification cannot say WHICH
           // session needs input. Rename-if-not-suffixed: any title without a
-          // " [<short-id>]" suffix gets "<title> [<short-id>]" appended via
-          // the SDK. The 1.18.18 runtime defaults sessions to "New session -
-          // <ISO>", which the old "opencode " prefix check never matched, so
-          // the suffix is appended regardless of starting label (default OR
-          // user-set - developer-approved, survives future default-format
-          // changes). The label matches what the TUI shows after rename and
-          // the suffix is exactly what notify() (A2) pins to attribute
-          // notifications to this session. Guards: never double-rename a
-          // title that already carries a " [xxxxxx]" short-id suffix;
-          // fail-soft (a cosmetic rename must never crash the plugin - warn
+          // " [word-pair]" suffix (e.g. "[bold-fox]") gets
+          // "<title> [<word-pair>]" appended via the SDK. The 1.18.18 runtime
+          // defaults sessions to "New session - <ISO>", which the old
+          // "opencode " prefix check never matched, so the suffix is appended
+          // regardless of starting label (default OR user-set -
+          // developer-approved, survives future default-format changes). The
+          // label matches what the TUI shows after rename and the suffix is
+          // exactly what notify() (A2) pins to attribute notifications to this
+          // session. Guards: never double-rename a title that already carries
+          // a " [word-pair]" suffix; fail-soft (a cosmetic rename must never
           // on error and continue, mirroring the plugin's fail-soft
           // pattern). The await is non-blocking; the hook is async-capable.
           const createdTitle = typeof info.title === "string" ? info.title : ""
           // DIA-189 fix: the dedupe guard is the only gate (same rationale
           // as renameDefaultTitle) - any unsuffixed title is renamed.
-          const alreadySuffixed = / \[\w{6}\]$/.test(createdTitle)
+          const alreadySuffixed = / \[[a-z]+-[a-z]+\]$/.test(createdTitle)
           if (!alreadySuffixed) {
             const baseTitle =
               createdTitle !== ""
                 ? createdTitle
                 : `opencode ${basename(ctx.directory)}`
-            const derivedTitle = `${baseTitle} [${info.id.slice(-6)}]`
+            const derivedTitle = `${baseTitle} [${sessionWordPair(info.id)}]`
             try {
               const res = await ctx.client.session.update({
                 path: { id: info.id },

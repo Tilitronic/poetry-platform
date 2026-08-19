@@ -62,7 +62,23 @@ Iterate until the user approves the breakdown.
 
 ### 5. Publish the tickets to the ledger
 
-Publish the approved tickets as `DIA-NNN.md` files in `docs/dev-infra-audit/tickets/`, numbered sequentially (next after the highest existing DIA number), in dependency order (blockers first). Use the format from `_TEMPLATE.md`:
+**Use the CLI, not raw writes.** Run `scripts/tickets new` for each ticket — it allocates the next DIA number, writes the file from `_TEMPLATE.md` conventions, inserts the README index row in sort position, and recomputes the severity/status rollup counts in one bash call. Manual `write` toolcalls bypass the README row and rollup, breaking the ledger contract (DIA-229).
+
+```bash
+scripts/tickets new "<title>" --area <area> --severity <severity> [--blocked-by DIA-NNN,...] [--parent-epic DIA-NNN] [--source <src>]
+```
+
+After creating all tickets, verify the ledger is clean:
+```bash
+scripts/tickets rollup --check  # must exit 0
+```
+
+If you need to preview the frontier (startable tickets):
+```bash
+scripts/tickets frontier
+```
+
+The CLI format for each ticket file matches `_TEMPLATE.md`:
 
 ```md
 # DIA-NNN — <Title>

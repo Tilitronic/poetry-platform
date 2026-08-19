@@ -1853,3 +1853,14 @@
     Ticket status OPEN -> CLOSED.
   verification: >
     make test-config exit 0; make test-shell exit 0.
+
+- date: '2026-08-19'
+  ticket: 'DIA-260819-mh6p'
+  area: opencode-config
+  scope: 'P0 workflow compliance fixes: routing violation catch-block bug (DIA-230), empty result crisis escalation (DIA-099), orchestrator redispatch instruction'
+  files:
+    - '.opencode/plugins/delegation-observer.ts'
+    - '.opencode/oh-my-opencode-slim/orchestrator_append.md'
+    - 'docs/dev-infra-audit/tickets/DIA-224-d3-empty-result-detection.md'
+  summary: "P0 workflow compliance fixes: routing violation catch-block bug (DIA-230), empty result crisis escalation (DIA-099), orchestrator redispatch instruction"
+  verification: "make test-config: pass (after memory-shelf fix); routing-order-gate.test.mjs: 36/36 pass"

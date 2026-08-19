@@ -2894,7 +2894,8 @@ const delegationObserver: Plugin = async (ctx) => {
           // gate is worse than no gate.
           if (
             err instanceof Error &&
-            err.message.startsWith("§10 TICKET GATE:")
+            (err.message.startsWith("§10 TICKET GATE:") ||
+              err.message.startsWith("ROUTING GATE:"))
           ) {
             throw err
           }
@@ -3556,10 +3557,12 @@ const delegationObserver: Plugin = async (ctx) => {
           // where the task output IS available.
           checkSilentFailures()
 
-          // DIA-224: D3 empty-result detection. When a child session completes
-          // with zero file edits, flag it as a potential silent failure. This
-          // is ALERT-ONLY -- never auto-dispatch or auto-block. The detection
-          // covers DIA-099 detection signals D1 (empty result), D2 (no file
+          // DIA-224: D3 empty-result detection. Empty-result detection emits
+          // crisis event with resolution_status="escalated" and
+          // content_ref="empty-result-requires-redispatch". Orchestrator protocol
+          // mandates redispatch on this signal (see orchestrator_append.md).
+          // Detection does NOT auto-dispatch -- orchestrator retains control.
+          // Covers DIA-099 detection signals D1 (empty result), D2 (no file
           // edits), D5 (no meaningful output). Sessions that produced file
           // edits are excluded even if their text output was empty (the agent
           // did work, just not file-touching work).
@@ -3585,7 +3588,8 @@ const delegationObserver: Plugin = async (ctx) => {
                 from: "orchestrator",
                 event_type: "crisis",
                 task_ref: "empty result -- child session completed with no file edits",
-                resolution_status: "in-flight",
+                resolution_status: "escalated",
+                content_ref: "empty-result-requires-redispatch",
                 "gen_ai.agent.id": sessionID,
               },
               sessionMeta.get(sessionID)?.parentID

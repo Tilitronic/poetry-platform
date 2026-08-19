@@ -609,6 +609,11 @@ shelf:
       verification."
     path: knowledge/ana024-bio-agent-determinism-links/ana024-bio-agent-determinism-links-report.md
     created: 2026-08-17
+  - id: ana01
+    name: Agentic Workflow Compliance
+    description: "Systematic workflow compliance analysis identifying 20+ routing violations, 20+ empty result handling failures, and gating/verification gaps across 200+ sessions. Recommends hard plugin gates for P0 issues."
+    path: knowledge/ana01-agentic-workflow-compliance/ana01-agentic-workflow-compliance-report.md
+    created: 2026-08-19
   adrs:
   - name: Memory Storage Strategy
     description: 'Evaluation of Claude-Mem, Honcho, and current hand-written memory

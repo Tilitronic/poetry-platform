@@ -344,6 +344,12 @@ result and do NOT loop on re-dispatches.
    (RESULT / FILES_TOUCHED / VERIFICATION_EVIDENCE). If it returns empty
    again, escalate per the 3-failures rule - do NOT loop.
 
+**Plugin crisis signal:** If messages.jsonl contains crisis event with
+`content_ref=empty-result-requires-redispatch`, the orchestrator MUST
+re-dispatch to fresh session OR resume same session with
+resume-truncated-lane skill. Do NOT proceed to next task without
+addressing the empty result.
+
 ## Changelog Read Protocol (DIA-194)
 
 .opencode/CHANGELOG.yaml is the machine-first changelog ledger (source of

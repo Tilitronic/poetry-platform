@@ -162,24 +162,25 @@
 | DIA-211 | Event-driven orchestration harness evolution | opencode-config | Medium | OPEN | [DIA-211-event-driven-orchestration-harness-evolution.md](DIA-211-event-driven-orchestration-harness-evolution.md) |
 | DIA-212 | Researcher dispatched without pre-allocated res ID -- extra iteration required | opencode-config | Medium | OPEN | [DIA-212-researcher-dispatch-without-res-id.md](DIA-212-researcher-dispatch-without-res-id.md) |
 | DIA-213 | Orchestrator scope limitation: delegation + workflow decisions only, content decisions to specialized agents | opencode-config | High | OPEN | [DIA-213-orchestrator-scope-limitation.md](DIA-213-orchestrator-scope-limitation.md) |
+| DIA-260819-mh6p | Agentic workflow compliance analysis and fixes | opencode-config | Critical | OPEN | [DIA-260819-mh6p-agentic-workflow-compliance-analysis-and-fixes.md](DIA-260819-mh6p-agentic-workflow-compliance-analysis-and-fixes.md) |
 
 ## Status summary
 
 | Severity | Count |
 | -------- | ----- |
 | Blocker  | 7     |
-| Critical | 8     |
-| High     | 1     |
+| Critical | 9     |
 | Major    | 48    |
-| Medium   | 80    |
+| Medium   | 81    |
 | Minor    | 0     |
 | Low      | 17    |
 | Info     | 0     |
+| High     | 1     |
 
 | Status      | Count |
 | ----------- | ----- |
-| OPEN        | 18    |
-| DONE        | 11    |
+| OPEN        | 14    |
+| DONE        | 12    |
 | VALIDATE    | 0     |
 | E2E         | 0     |
 | DEFERRED    | 1     |
@@ -187,7 +188,7 @@
 | FIXED       | 1     |
 | IMPLEMENTED | 2     |
 | VERIFIED    | 28    |
-| CLOSED      | 99    |
+| CLOSED      | 104   |
 | BLOCKED     | 0     |
 | DISPATCHED  | 0     |
 | RUNNING     | 0     |
