@@ -26,18 +26,19 @@ CHECKER="$REPO_ROOT/scripts/check-orchestrator-prompt-drift.sh"
 # mirror the DIA-097-added content locked by the ai-auditor Minor fix: the
 # DIA-126a READ-SCOPE note, the EBDV (DIA-115) clause, and the 15/25 threshold
 # text (READ-SCOPE / EBDV / 15% (primary) are the three new needles).
-FULL_PROMPT="Orchestrator Operating Rules: you are delegation-only and FORBIDDEN from reading repo files. batch-approval boot gate. DIA-133: consult the model registry. PURE-DISPATCH RULE: every task() call is the sole tool call. The orchestrator has no bash tool by design. DIA-126a READ-SCOPE NOTE: read/glob allow-list expanded 2026-08-13. EBDV (DIA-115): evidence-backed decision variants. Self-rerun at >=15% (primary) / >=25% (safety-net)."
+FULL_PROMPT="Orchestrator Operating Rules: you are delegation-only and FORBIDDEN from reading repo files. batch-approval boot gate. DIA-133: consult the model registry. PURE-DISPATCH RULE: every task() call is the sole tool call. The orchestrator has no bash tool by design. DIA-126a READ-SCOPE NOTE: read/glob allow-list expanded 2026-08-13. EBDV (DIA-115): evidence-backed decision variants. Self-rerun at >=15% (primary) / >=25% (safety-net). TODOWRITE DIA-260819-880v: use todowrite for >=3-step work."
 
 # A full-marker prompt minus ONE marker's clause (each drifty test below spells
 # its variant out explicitly - the removed clause is exactly the needle the
 # checker must miss, so gap-count assertions stay accurate). READ-SCOPE /
 # EBDV / 15% (primary) are the three markers added by the ai-auditor Minor fix.
-DRIFTY_NO_DIA133="Orchestrator Operating Rules: you are delegation-only and FORBIDDEN from reading repo files. batch-approval boot gate. PURE-DISPATCH RULE: every task() call is the sole tool call. The orchestrator has no bash tool by design. DIA-126a READ-SCOPE NOTE: read/glob allow-list expanded 2026-08-13. EBDV (DIA-115): evidence-backed decision variants. Self-rerun at >=15% (primary) / >=25% (safety-net)."
-DRIFTY_NO_DELEGATION="Orchestrator Operating Rules: batch-approval boot gate. DIA-133: consult the model registry. PURE-DISPATCH RULE: every task() call is the sole tool call. The orchestrator has no bash tool by design. DIA-126a READ-SCOPE NOTE: read/glob allow-list expanded 2026-08-13. EBDV (DIA-115): evidence-backed decision variants. Self-rerun at >=15% (primary) / >=25% (safety-net)."
-DRIFTY_NO_BASH="Orchestrator Operating Rules: you are delegation-only and FORBIDDEN from reading repo files. batch-approval boot gate. DIA-133: consult the model registry. PURE-DISPATCH RULE: every task() call is the sole tool call. DIA-126a READ-SCOPE NOTE: read/glob allow-list expanded 2026-08-13. EBDV (DIA-115): evidence-backed decision variants. Self-rerun at >=15% (primary) / >=25% (safety-net)."
-DRIFTY_NO_READSCOPE="Orchestrator Operating Rules: you are delegation-only and FORBIDDEN from reading repo files. batch-approval boot gate. DIA-133: consult the model registry. PURE-DISPATCH RULE: every task() call is the sole tool call. The orchestrator has no bash tool by design. EBDV (DIA-115): evidence-backed decision variants. Self-rerun at >=15% (primary) / >=25% (safety-net)."
-DRIFTY_NO_EBDV="Orchestrator Operating Rules: you are delegation-only and FORBIDDEN from reading repo files. batch-approval boot gate. DIA-133: consult the model registry. PURE-DISPATCH RULE: every task() call is the sole tool call. The orchestrator has no bash tool by design. DIA-126a READ-SCOPE NOTE: read/glob allow-list expanded 2026-08-13. Self-rerun at >=15% (primary) / >=25% (safety-net)."
-DRIFTY_NO_THRESHOLD="Orchestrator Operating Rules: you are delegation-only and FORBIDDEN from reading repo files. batch-approval boot gate. DIA-133: consult the model registry. PURE-DISPATCH RULE: every task() call is the sole tool call. The orchestrator has no bash tool by design. DIA-126a READ-SCOPE NOTE: read/glob allow-list expanded 2026-08-13. EBDV (DIA-115): evidence-backed decision variants."
+DRIFTY_NO_DIA133="Orchestrator Operating Rules: you are delegation-only and FORBIDDEN from reading repo files. batch-approval boot gate. PURE-DISPATCH RULE: every task() call is the sole tool call. The orchestrator has no bash tool by design. DIA-126a READ-SCOPE NOTE: read/glob allow-list expanded 2026-08-13. EBDV (DIA-115): evidence-backed decision variants. Self-rerun at >=15% (primary) / >=25% (safety-net). TODOWRITE DIA-260819-880v: use todowrite for >=3-step work."
+DRIFTY_NO_DELEGATION="Orchestrator Operating Rules: batch-approval boot gate. DIA-133: consult the model registry. PURE-DISPATCH RULE: every task() call is the sole tool call. The orchestrator has no bash tool by design. DIA-126a READ-SCOPE NOTE: read/glob allow-list expanded 2026-08-13. EBDV (DIA-115): evidence-backed decision variants. Self-rerun at >=15% (primary) / >=25% (safety-net). TODOWRITE DIA-260819-880v: use todowrite for >=3-step work."
+DRIFTY_NO_BASH="Orchestrator Operating Rules: you are delegation-only and FORBIDDEN from reading repo files. batch-approval boot gate. DIA-133: consult the model registry. PURE-DISPATCH RULE: every task() call is the sole tool call. DIA-126a READ-SCOPE NOTE: read/glob allow-list expanded 2026-08-13. EBDV (DIA-115): evidence-backed decision variants. Self-rerun at >=15% (primary) / >=25% (safety-net). TODOWRITE DIA-260819-880v: use todowrite for >=3-step work."
+DRIFTY_NO_READSCOPE="Orchestrator Operating Rules: you are delegation-only and FORBIDDEN from reading repo files. batch-approval boot gate. DIA-133: consult the model registry. PURE-DISPATCH RULE: every task() call is the sole tool call. The orchestrator has no bash tool by design. EBDV (DIA-115): evidence-backed decision variants. Self-rerun at >=15% (primary) / >=25% (safety-net). TODOWRITE DIA-260819-880v: use todowrite for >=3-step work."
+DRIFTY_NO_EBDV="Orchestrator Operating Rules: you are delegation-only and FORBIDDEN from reading repo files. batch-approval boot gate. DIA-133: consult the model registry. PURE-DISPATCH RULE: every task() call is the sole tool call. The orchestrator has no bash tool by design. DIA-126a READ-SCOPE NOTE: read/glob allow-list expanded 2026-08-13. Self-rerun at >=15% (primary) / >=25% (safety-net). TODOWRITE DIA-260819-880v: use todowrite for >=3-step work."
+DRIFTY_NO_THRESHOLD="Orchestrator Operating Rules: you are delegation-only and FORBIDDEN from reading repo files. batch-approval boot gate. DIA-133: consult the model registry. PURE-DISPATCH RULE: every task() call is the sole tool call. The orchestrator has no bash tool by design. DIA-126a READ-SCOPE NOTE: read/glob allow-list expanded 2026-08-13. EBDV (DIA-115): evidence-backed decision variants. TODOWRITE DIA-260819-880v: use todowrite for >=3-step work."
+DRIFTY_NO_TODOWRITE="Orchestrator Operating Rules: you are delegation-only and FORBIDDEN from reading repo files. batch-approval boot gate. DIA-133: consult the model registry. PURE-DISPATCH RULE: every task() call is the sole tool call. The orchestrator has no bash tool by design. DIA-126a READ-SCOPE NOTE: read/glob allow-list expanded 2026-08-13. EBDV (DIA-115): evidence-backed decision variants. Self-rerun at >=15% (primary) / >=25% (safety-net)."
 
 # fixture_dir: echoes a fresh throwaway tree (created on demand).
 fixture_dir() {
@@ -82,7 +83,7 @@ JSONC
   SLIM_JSONC="$dir/ok.jsonc" run bash "$CHECKER"
 
   assert_status 0
-  assert_output_contains "3 preset(s) checked, 8 markers each, 0 gaps"
+  assert_output_contains "3 preset(s) checked, 9 markers each, 0 gaps"
   assert_output_not_contains "FAIL"
 }
 
@@ -156,6 +157,19 @@ JSONC
 
   assert_status 1
   assert_output_contains "FAIL: free: missing required marker '15% (primary)'"
+  assert_output_contains "1 marker gap(s)"
+  assert_output_not_contains "FAIL: opencode-go"
+  assert_output_not_contains "FAIL: cebula"
+}
+
+@test "check-orchestrator-prompt-drift: missing TODOWRITE (DIA-260819-880v) in ONE prompt FAILS and names the preset" {
+  dir="$(fixture_dir)"
+  write_config "$dir/drift.jsonc" "$FULL_PROMPT" "$FULL_PROMPT" "$DRIFTY_NO_TODOWRITE"
+
+  SLIM_JSONC="$dir/drift.jsonc" run bash "$CHECKER"
+
+  assert_status 1
+  assert_output_contains "FAIL: free: missing required marker 'TODOWRITE DIA-260819-880v'"
   assert_output_contains "1 marker gap(s)"
   assert_output_not_contains "FAIL: opencode-go"
   assert_output_not_contains "FAIL: cebula"
@@ -256,7 +270,7 @@ JSONC
   SLIM_JSONC="$dir/commenty.jsonc" run bash "$CHECKER"
 
   assert_status 0
-  assert_output_contains "3 preset(s) checked, 8 markers each, 0 gaps"
+  assert_output_contains "3 preset(s) checked, 9 markers each, 0 gaps"
 }
 
 @test "check-orchestrator-prompt-drift: invalid JSONC exits 1 (config defect, not INFRA)" {
