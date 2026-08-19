@@ -71,3 +71,5 @@ This ticket covers a systematic analysis of recent session logs (registry.jsonl,
 ## Re-verify
 
 > To be filled at re-verify time.
+
+<!-- UPDATE 2026-08-19: All P0 fixes committed (9bdc0bc). Status -> COMPLETE. -->
