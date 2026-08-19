@@ -6,13 +6,15 @@
      Scope (d)). Sibling of DIA-183 (ponytail + headroom) - DCP removal is a
      SEPARATE decision from the DIA-183 tool introductions. -->
 
+<!-- UPDATE 2026-08-19 (CLOSED): Superseded by DIA-260819-9oxi fix (DCP disabled at global config level). Ticket CLOSED. -->
+
 ---
 
 id: DIA-197
 title: "evaluate DCP removal: cache degradation (85% vs 90%) without noticeable benefit - research + conspect + EBDV decision"
 area: opencode-config
 severity: Medium
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: "DIA-183" # optional DIA-NNN parent epic ticket (DIA-125 keep-local extension; scripts/tickets emits this field always)
 
@@ -28,7 +30,7 @@ discovered: 2026-08-15
 source: developer-requirement
 date: 2026-08-15
 created: 2026-08-15
-updated: 2026-08-16
+updated: 2026-08-19 (CLOSED)
 
 # --- Session Attribution (v2 schema, optional - GRANDFATHERED for DIA-001..049) ---
 

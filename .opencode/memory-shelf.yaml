@@ -614,6 +614,26 @@ shelf:
     description: "Systematic workflow compliance analysis identifying 20+ routing violations, 20+ empty result handling failures, and gating/verification gaps across 200+ sessions. Recommends hard plugin gates for P0 issues."
     path: knowledge/ana01-agentic-workflow-compliance/ana01-agentic-workflow-compliance-report.md
     created: 2026-08-19
+  - name: Ticket Navigation Implementation Plan
+    description: 'Implementation plan for extending scripts/tickets CLI with missing
+      subcommands (frontier --json, show, temporal filters, blocked-by chain resolution).
+      Prioritizes bash extensions over SQLite/DuckDB at current 190-ticket scale.
+      Estimates 5.5h for Phases 1-3 (210 loc code + tests).'
+    path: knowledge/ana027-ticket-navigation-implementation/ana027-ticket-navigation-implementation-report.md
+    created: 2026-08-19
+    task_ref: DIA-260819-sl22
+  - name: Ticket System Comparison (custom bash vs proven solutions)
+    description: 'Comparative analysis of 5 ticket management candidates (custom
+      scripts/tickets, git-bug, Plane, Linear, taskwarrior) across 6 dimensions (gate
+      compatibility, local-first, agent accessibility, migration cost, maintenance
+      burden, feature parity). Recommendation: keep custom solution (architecturally
+      correct, 0h migration vs 136-284h for alternatives). All proven systems fail
+      at least one hard constraint (delegation-observer gate compatibility or local-first
+      operation). Revisit at 500+ tickets or when web UI/notifications/assignees needs
+      emerge.'
+    path: knowledge/ana030-ticket-system-comparison/ana030-ticket-system-comparison-report.md
+    created: 2026-08-19
+    task_ref: DIA-260819-mq4h
   adrs:
   - name: Memory Storage Strategy
     description: 'Evaluation of Claude-Mem, Honcho, and current hand-written memory

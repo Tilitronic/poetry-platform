@@ -1698,3 +1698,219 @@ recorded here). Irrecoverable process lessons:
   path (which files to change) is project-specific.
 - Cross-reference: DIA-187, L20260814-001 (upgrade verification must check
   ALL declaration sources), L20260815-004 (version-text drift reconciliation).
+
+## L20260819-002 - Config-file phantom pattern: code committed but runtime artifact absent (DIA-260819-9oxi, 2026-08-19)
+
+- Observation: DIA-197 V2 config was implemented (plugin config changes
+  committed) but the project .opencode/dcp.jsonc file was never created on
+  disk. DCP ran with all defaults from the global config, injecting
+  system-reminders despite the V2 disable intent. The next session discovered
+  the regression because no runtime check confirmed the file existed.
+- Root cause: implementation without same-session verification of file
+  existence on disk. The code change was committed but the runtime artifact
+  was absent.
+- Lesson: after implementing any config-file-dependent fix, add a "file exists
+  on disk" verification step to the fix's acceptance criteria. If restart-
+  verify cannot complete in-session, explicitly track the pending verify as
+  an open_ticket in the handoff prognosis. Do not close a config fix ticket
+  without runtime proof that the config artifact is present and loaded.
+- Preventive action: for any fix that depends on a config file, verify the
+  file exists on disk (ls/stat check) AND verify the runtime loads it
+  (restart + inspect or make test-config) in the same session.
+- Why irrecoverable: the config-file phantom pattern (code committed, artifact
+  absent) is a runtime state observation; the fix commits show the code change
+  but not the missing artifact that defeated it.
+- Cross-reference: DIA-260819-9oxi, DIA-197, adr.md "DCP config loss + prompt
+  gap patterns" ADR.
+
+## L20260819-003 - Permitted-but-undocumented tool is an invisible bug (DIA-260819-880v, 2026-08-19)
+
+- Observation: todowrite was in the permission allow-list but had ZERO
+  mentions across all prompt surfaces (orchestrator_append.md,
+  oh-my-opencode-slim.jsonc presets, drift-checker). The LLM could not
+  discover the tool's existence or usage discipline because no prompt guidance
+  existed.
+- Root cause: permission allow-list change without corresponding prompt-
+  surface coverage. The tool was permitted but never surfaced to the LLM.
+- Lesson: when adding a tool to the permission allow-list, the SAME change
+  MUST add prompt guidance (mentions in agent prompts, rules in
+  oh-my-opencode-slim.jsonc presets, or drift-checker markers). The tool
+  must be both PERMITTED (permission layer) and DOCUMENTED (prompt layer) to
+  be functionally available.
+- Preventive action: for any permission allow-list addition, verify the tool
+  is mentioned in at least one prompt surface (grep agent prompt files +
+  preset rules + drift-checker markers). If no mention exists, the tool is
+  invisible to the LLM and will not be used.
+- Why irrecoverable: the permission-vs-prompt mismatch is a runtime behavior
+  fact; the permission config shows the tool is allowed but does not show
+  that the LLM cannot discover it.
+- Cross-reference: DIA-260819-880v, adr.md "DCP config loss + prompt gap
+  patterns" ADR.
+
+## L20260819-001 - Comment accuracy in fail-path code: comments must state actual behavior, not intended behavior (DIA-235, 2026-08-19)
+
+- Observation: the routing gate in delegation-observer.ts (L2747-2750) had a comment
+  stating "Fail-soft: scan error -> treat as no prior dispatch" while the actual code
+  behavior was fail-closed: scan error -> hasAiSpecialist=false -> hard block
+  (ROUTING_VIOLATION). The misleading comment would cause a developer debugging a
+  routing issue to misunderstand the failure mode.
+- Lesson: comments in error-handling paths must accurately reflect THREE things:
+  1. What triggers the error path
+  2. What the actual behavior is (not what the developer wished it was)
+  3. Why this behavior was chosen (if non-obvious)
+  A comment that states "fail-soft" when the code is actually fail-closed is worse
+  than no comment -- it actively misleads the next developer.
+- Why irrecoverable: the fix (DIA-235, commit 10b02d1) corrected the comment, but
+  the generalizable rule -- "fail-path comments must describe the ACTUAL behavior,
+  not the intended or desired behavior" -- is a code-quality insight not stated in
+  any spec or ticket. The ai-auditor finding (Minor severity) caught it; the lesson
+  is the pattern to prevent recurrence.
+- Cross-reference: DIA-235, .opencode/learnings/external-patterns/
+  2026-08-19-comment-accuracy-fail-paths.md (full pattern description), adr.md
+  routing gate deadlock ADR.
+
+## L20260819-004 - Ticket status drift: implementation done but status never updated (2026-08-19)
+
+- Observation: 8 tickets (DIA-235, DIA-192, DIA-204, DIA-212, DIA-260819-880v,
+  DIA-199, DIA-187, DIA-188) had implementation completed and committed but
+  their README index status remained OPEN. DIA-201 had a full implementation
+  (sweep_orphaned_dirs in worktrees.sh) but the ticket was never CLOSED.
+- Root cause: the workflow completes the implementation step but the final
+  "update README status to CLOSED" step is skipped or forgotten. The
+  implementation agent closes the ticket file but doesn't sync the README
+  index, or the restart-verify step is pending and the ticket stays OPEN
+  indefinitely even though the code is done.
+- Lesson: periodic README index sync is needed. Pattern: after any batch of
+  ticket closures, verify the README index reflects the actual ticket file
+  statuses. A scripted index regeneration (recommended in repo.md) would
+  eliminate manual drift. Also: "restart-verify pending" should not block
+  status closure if the implementation is committed and the verify is a
+  formality -- track the pending verify separately rather than leaving the
+  ticket OPEN.
+- Preventive action: after completing a batch of tickets, run a sync check
+  (diff README status column against ticket file frontmatter). For tickets
+  where implementation is done but restart-verify is pending, either close
+  the ticket and note the pending verify in the handoff, or use a
+  IMPLEMENTED/VERIFY-PENDING intermediate status if the template supports it.
+- Why irrecoverable: the drift between ticket file status and README index is
+  a bookkeeping state observation; git log shows commits but not the
+  disconnect between the two status sources.
+- Cross-reference: repo.md L56-57 (scripted index regeneration recommendation),
+  lessons.md L1607 (status drift in gate context), DIA-201.
+
+## L20260819-005 - AFK mode: mechanical tasks work, design work does not (2026-08-19)
+
+- Observation: the AFK batch processed 8 README status syncs and 1 ticket
+  closure (DIA-201) successfully. All were mechanical: read file, check
+  status, update README. The remaining 7 OPEN tickets (DIA-089, DIA-186,
+  DIA-189, DIA-195, DIA-207, DIA-211, DIA-213) all require design work,
+  investigation, or restart verification that cannot be done by an agent
+  without user interaction.
+- Root cause: AFK mode (agent operates without real-time user input) is
+  effective for deterministic, verifiable tasks but cannot handle tasks that
+  require design decisions, domain investigation, or runtime verification
+  that depends on external state (Docker containers, OpenWebUI, etc.).
+- Lesson: classify tickets by AFK-readiness before dispatching an AFK batch.
+  AFK-eligible: status sync, README updates, file existence checks, simple
+  closures where implementation is already committed. NOT AFK-eligible:
+  design work, investigation requiring user decisions, restart verification
+  requiring container state, tasks with unresolved questions.
+- Preventive action: before starting an AFK batch, filter the ticket list to
+  only AFK-eligible items. Report which tickets were skipped and why, so the
+  user knows what remains.
+- Why irrecoverable: the AFK-mode boundary is an operational observation about
+  what agent autonomy can and cannot handle; the specific tickets that
+  required human interaction are evidence of the boundary.
+- Cross-reference: DIA-201, DIA-089, DIA-186, DIA-189, DIA-195, DIA-207,
+  DIA-211, DIA-213.
+
+## L20260819-006 - Custom vs proven infrastructure trade-off: evaluate migration when custom tooling exceeds ~1000 lines (DIA-260819-sl22, 2026-08-19)
+
+- Observation: scripts/tickets grew to 1700+ lines of bash implementing ticket
+  navigation, status management, and ledger operations. The developer questioned
+  whether this is sustainable ("vibecoded infrastructure") and raised alternatives:
+  git-bug, Plane, Linear, taskwarrior.
+- Root cause: incremental feature additions (Phase 1-3 improvements) expanded the
+  script beyond a threshold where the cost of maintaining custom code exceeds the
+  cost of migrating to a proven solution. The script handles edge cases (ASCII
+  validation, README rollup, YAML frontmatter parsing) that mature tools solve
+  out-of-the-box.
+- Lesson: when custom tooling exceeds ~1000 lines, trigger an explicit evaluation:
+  (1) enumerate the custom features actually used vs what proven alternatives
+  provide; (2) estimate migration cost vs ongoing maintenance cost; (3) make a
+  deliberate keep/migrate decision rather than continuing to extend. The threshold
+  is a signal, not a hard rule -- a 1000-line script with stable requirements may
+  be fine; a 1000-line script with frequent feature requests and debugging
+  sessions is a migration candidate.
+- Preventive action: track custom tooling line counts and maintenance frequency
+  (debugging sessions per month, feature requests per month). When either exceeds
+  a comfortable rate, trigger the evaluation. Document the decision (keep with
+  rationale or migrate with plan) so future developers don't re-evaluate from
+  scratch.
+- Why irrecoverable: the line count, the developer's strategic concern, and the
+  alternative evaluation are session-state; git shows the implementation but not
+  the question of whether it should exist at all.
+- Cross-reference: DIA-260819-sl22 (ticket navigation research pipeline),
+  scripts/tickets (1700+ lines bash).
+
+## L20260819-007 - Research pipeline workflow validation: research -> conspect -> analysis -> implementation is effective for complex feature decisions (DIA-260819-sl22, 2026-08-19)
+
+- Observation: the full research pipeline worked end-to-end for DIA-260819-sl22:
+  researcher gathered external sources, conspecter synthesized findings into a
+  structured conspect (ana027), analysis provided clear implementation priorities
+  with 3 phased recommendations, and implementation followed the phased plan.
+  The conspect synthesis was automatic (no decision gate needed between research
+  and conspect). The analysis provided clear, actionable priorities.
+- Lesson: the research pipeline is effective for complex feature decisions that
+  require external evidence before implementation. The pipeline's strength is
+  that each stage adds value: research gathers raw evidence, conspect distills it
+  into structured findings, analysis prioritizes implementation, and the phased
+  plan reduces risk. The automatic conspect synthesis (no gate) worked because
+  the researcher's output was well-structured; for messier research inputs, a
+  synthesis gate may be needed.
+- Why irrecoverable: the pipeline's effectiveness is a workflow validation
+  observation; git shows the implementation but not the pipeline's decision
+  quality or the alternatives that were rejected.
+- Cross-reference: DIA-260819-sl22, research-pipeline skill, ana027 conspect.
+
+## L20260819-008 - Implementation scope management: phased implementation with clear acceptance criteria reduces risk (DIA-260819-sl22, 2026-08-19)
+
+- Observation: ana027 recommended 3 phases for the ticket navigation improvements.
+  All 3 were implemented. Each phase was independently testable with clear
+  acceptance criteria. The phased approach meant that if Phase 1 revealed
+  problems, Phases 2-3 could be deferred without losing the Phase 1 value.
+- Lesson: when analysis recommends phased implementation, follow the phase
+  boundaries as independent delivery units. Each phase should have: (1) a clear
+  acceptance criteria that can be verified independently; (2) no hard dependency
+  on future phases for its own value; (3) a natural stopping point where the
+  implementation is shippable. This reduces risk because each phase is a
+  checkpoint where the approach can be validated before committing to the next
+  phase.
+- Why irrecoverable: the phased plan and the independent testability are
+  implementation decisions; git shows the final state but not the phase
+  boundaries or the risk-reduction rationale.
+- Cross-reference: DIA-260819-sl22, ana027 analysis.
+
+## L20260819-009 - Strategic pivots should happen before implementation, not after (DIA-260819-sl22, 2026-08-19)
+
+- Observation: the developer raised a strategic concern (custom vs proven
+  infrastructure) AFTER the implementation was complete. The concern doesn't
+  invalidate the work but questions the approach. The implementation produced
+  1700+ lines of bash that might be replaced by a proven tool.
+- Lesson: strategic decisions about build-vs-buy, custom-vs-proven, and
+  approach selection should happen BEFORE implementation begins, not after. The
+  research pipeline's analysis phase (ana027) is the right place for this
+  evaluation -- the analysis should include a "should we build this at all?"
+  question alongside the "how should we build it?" recommendations. If the
+  analysis only recommends implementation approaches without questioning the
+  approach itself, the pipeline has a gap.
+- Preventive action: add a "build-vs-buy evaluation" step to the research
+  pipeline's analysis phase. Before recommending implementation, the analysis
+  should explicitly evaluate: (1) does a proven tool exist that covers the use
+  case? (2) what is the migration cost vs the maintenance cost? (3) what is the
+  decision and why? This forces the strategic question before implementation
+  starts.
+- Why irrecoverable: the timing of the strategic concern (post-implementation)
+  is a session observation; git shows the implementation but not when the
+  approach question was raised.
+- Cross-reference: DIA-260819-sl22, L20260819-006 (custom vs proven threshold).

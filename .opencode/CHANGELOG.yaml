@@ -1864,3 +1864,31 @@
     - 'docs/dev-infra-audit/tickets/DIA-224-d3-empty-result-detection.md'
   summary: "P0 workflow compliance fixes: routing violation catch-block bug (DIA-230), empty result crisis escalation (DIA-099), orchestrator redispatch instruction"
   verification: "make test-config: pass (after memory-shelf fix); routing-order-gate.test.mjs: 36/36 pass"
+
+- date: "2026-08-19"
+  ticket: DIA-235
+  scope: opencode-config
+  files:
+    - .opencode/plugins/delegation-observer.ts
+    - scripts/check-orchestrator-prompt-drift.sh
+    - docs/dev-infra-audit/tickets/DIA-235-orchestrator-bugs-analysis.md
+  summary: "orchestrator bugs analysis - routing gate deadlock fix + prompt restructure"
+  verification: "56/56 tests passed, make test-config exit 0, byte-identity verified across 3 presets"
+
+- date: "2026-08-19"
+  ticket: DIA-260819-9oxi
+  scope: opencode-config
+  files:
+    - ~/.config/opencode/dcp.jsonc
+  summary: "DCP plugin disabled (enabled: false) -- DIA-197 V2 config was never applied, file missing"
+  verification: "restart-verify pending -- next OpenCode restart must show zero DCP system-reminders"
+
+- date: "2026-08-19"
+  ticket: DIA-260819-880v
+  scope: opencode-config
+  files:
+    - .opencode/oh-my-opencode-slim/orchestrator_append.md
+    - .opencode/oh-my-opencode-slim.jsonc
+    - scripts/check-orchestrator-prompt-drift.sh
+  summary: "Orchestrator todowrite discipline -- prompt gap fix, tool was permitted but undocumented"
+  verification: "make test-config exit 0, drift-checker marker #9 present, byte-identical x3 presets"

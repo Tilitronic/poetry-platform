@@ -39,8 +39,8 @@ Before accepting the researcher's return, the orchestrator MUST verify
   "Phase A checkpoint failed: sources/.source-urls.txt not found.
   You MUST complete Phase A steps 1-4 before returning findings."
 
-### Phase 3: Persistence Decision (Practice-Protected, D3)
-Evaluate the researcher's findings against these criteria. **Present to the developer** — do not auto-decide:
+### Phase 3: Quality Gate (auto-proceed, DIA-260819-qibv)
+Evaluate the researcher's findings against these quality criteria automatically. No developer decision required:
 
 | Criterion | Threshold |
 |-----------|-----------|
@@ -49,12 +49,14 @@ Evaluate the researcher's findings against these criteria. **Present to the deve
 | Domain gap | No existing conspect in memory shelf covering this topic |
 | Volatility | Sources may change (pricing, API docs, version-specific) |
 
-If ANY criterion met → recommend KEEP. If researcher flagged `PERSISTENCE_RECOMMENDED: true` → strong signal.
+If ANY criterion met AND researcher flagged `PERSISTENCE_RECOMMENDED: true` → auto-proceed to Phase 4.
 
-The developer decides BINARY: **KEEP** (archive + register conspect) or **DELETE** (discard the artifacts; findings remain only in the ticket). There is NO re-do-the-flow option — the sources are already captured, and a re-run would duplicate the fetch.
+If NONE met OR researcher flagged `PERSISTENCE_RECOMMENDED: false` → conspect synthesis is still attempted (the researcher's flag is advisory, not a gate). Only skip Phase 4 if sources/ is empty or missing.
+
+There is no developer-facing KEEP/DELETE decision. Conspect creation is automatic after successful Phase 2.
 
 ### Phase 4: Conspect Synthesis (conspecter = pure synthesis, D7)
-If the developer chose KEEP, dispatch `@conspecter` with:
+Dispatch `@conspecter` with:
 1. **The pre-allocated ID + topic** — `knowledge/res<id>-<topic>/` (already created by the researcher's Phase A capture)
 2. **Naming** — the `<id>` was pre-allocated in Phase 1; the conspecter must NOT re-derive it
 
@@ -74,8 +76,7 @@ Analysis is BLOCKED until the conspect is verified. When the conspecter complete
 The developer can explicitly skip analysis by setting `status: "skipped"`.
 
 ## Guard Gates
-- **No silent persistence** — Phase 3 must involve developer decision
-- **Binary only** — the persistence decision is KEEP vs DELETE; there is no re-do-the-flow option
+- **Conspect is automatic** — Phase 3 is a quality gate (auto-proceed), not a developer decision
 - **No orphaned sources** — if conspecter fails, sources/ may exist but no conspect; flag to developer
 - **No duplicate IDs** — IDs are pre-allocated by the orchestrator in Phase 1; always check existing res* directories before assigning
 - **Analysis blocked until verified** — Phase 5 gate; never dispatch @analyzer while analysis-pending.json is present and unverified
@@ -91,6 +92,6 @@ The developer can explicitly skip analysis by setting `status: "skipped"`.
 ## Delegation Rules
 - Phase 1: Orchestrator (ID pre-allocation)
 - Phase 2: `@researcher` (owns research + Phase A source capture; writes knowledge/<resid>-<topic>/sources/)
-- Phase 3: Orchestrator + developer (practice-protected binary decision)
+- Phase 3: Orchestrator (quality check, auto-proceed — no developer decision)
 - Phase 4: `@conspecter` (pure synthesis; writes conspect; reports artifact path; @memory-manager registers in memory-shelf)
 - Phase 5: Orchestrator verification (delegated read lane if needed) + developer skip option

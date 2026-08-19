@@ -871,6 +871,68 @@ not break the gate; removing or re-ordering an invariant rule does.
 - Related: DIA-186, DIA-134, scripts/__tests__/overnight.bats,
   .opencode/opencode-overnight.jsonc
 
+## ADR: DCP config loss + prompt gap patterns (DIA-260819-9oxi, DIA-260819-880v)
+
+### Status
+
+Accepted - 2026-08-19
+
+### Context
+
+Two critical agentic infrastructure bugs share a common root-cause class:
+config or prompt changes that were IMPLEMENTED but not VERIFIED in-session,
+leaving them invisible to subsequent sessions. DIA-260819-9oxi found the DCP
+plugin still injecting system-reminders despite DIA-197 V2 config -- the
+project .opencode/dcp.jsonc was never created/committed, so DCP ran with
+all defaults. DIA-260819-880v found the orchestrator not using todowrite for
+planned items -- the tool was permitted in the permission allow-list but had
+ZERO mentions across all prompt surfaces.
+
+### Decision
+
+1. **Config file existence is a runtime invariant.** After implementing any
+   config-file-dependent fix (plugin config, .jsonc, .yaml), the file MUST
+   exist on disk AND be verified at runtime (restart-verify) in the same
+   session. If restart-verify cannot complete in-session, the pending verify
+   MUST be explicitly tracked as an open_ticket in the handoff prognosis so
+   the next session resumes verification.
+
+2. **Permitted-but-undocumented tools are invisible bugs.** When adding a tool
+   to the permission allow-list, the change MUST include corresponding prompt
+   guidance (mentions in agent prompts, drift-checker markers, or explicit
+   rules) in the same change. A tool that is permitted but never mentioned in
+   any prompt surface is functionally invisible to the LLM -- it will not
+   self-discover the tool's existence or usage discipline.
+
+### Rationale (irrecoverable context)
+
+- The DCP config loss pattern: DIA-197 V2 was "implemented" but the project
+  config file was never created. The next session discovered DCP still running
+  with defaults -- an invisible regression because no runtime check confirmed
+  the file existed. This is a "config-file phantom" pattern: the code change
+  is committed but the runtime artifact is absent.
+- The prompt gap pattern: todowrite was in the permission allow-list but
+  never mentioned in orchestrator_append.md, oh-my-opencode-slim.jsonc presets,
+  or the drift-checker. The LLM could not discover the tool's discipline
+  rules because they did not exist. This is a "permitted-but-undocumented"
+  pattern: permission without prompt guidance = invisible tool.
+- Both patterns share a root cause: implementation without same-session
+  verification. The fix landed but the runtime proof was never collected.
+
+### Consequences
+
+- Config-file-dependent fixes require a "file exists on disk" check as part
+  of the fix's acceptance criteria, not just a code commit.
+- Permission allow-list changes require prompt-surface coverage in the same
+  change (ADR-260819-880v prompt gap rule).
+- Handoff prognosis MUST explicitly track any restart-verify that is deferred
+  to the next session.
+
+### Metadata
+
+- Created: 2026-08-19
+- Related: DIA-260819-9oxi, DIA-260819-880v, DIA-197
+
 ## ADR-007: Autocrine gate for researcher dispatch (DIA-211/DIA-212)
 
 ### Status
@@ -1521,6 +1583,54 @@ avoid breaking existing workflows.
 - Created: 2026-08-18
 - Related: DIA-230, DIA-204, DIA-212, DIA-214, DIA-215, DIA-229,
   .opencode/plugins/delegation-observer.ts, AGENTS.md section 2.5
+
+## ADR: Routing gate deadlock fix - paracrine dispatch signal scan replaces delegation-row dependency (DIA-235)
+
+### Status
+
+Accepted - 2026-08-19
+
+### Context
+
+DIA-235 identified a structural deadlock in the routing gate (delegation-observer.ts
+L2730-2741). The gate scanned for delegation rows containing a session_id to detect
+whether an @ai-specialist had already been dispatched in the current session. However,
+delegation rows in registry.jsonl do NOT include session_id in their payload -- only
+paracrine dispatch.started rows include session_id + agent fields. The gate therefore
+never matched, producing a false hasAiSpecialist=false that could hard-block legitimate
+dispatches or produce false ROUTING_VIOLATION warnings.
+
+### Decision
+
+Replace the delegation-row dependency with a scan of paracrine dispatch.started rows
+(which carry session_id + agent fields). The gate now searches messages.jsonl for a
+prior @ai-specialist dispatch in the current session using the dispatch.started signal
+rather than the delegation-row signal.
+
+### Rationale (irrecoverable context)
+
+- The delegation-row vs dispatch.started payload difference is a runtime data-shape
+  fact: delegation rows carry dispatch metadata (writer, description) but NOT
+  session_id, while dispatch.started rows carry session_id + agent fields. This
+  distinction is not documented in any schema or spec; it was discovered during
+  DIA-235 debugging.
+- The deadlock was invisible in code review because the scan logic LOOKED correct
+  (searching for agent identity in rows) -- the mismatch was in the row-type payload
+  shape, not the scan algorithm.
+- Fix committed 10b02d1: changed the scan to match paracrine dispatch.started rows.
+
+### Consequences
+
+- The routing gate now correctly detects prior @ai-specialist dispatches via
+  dispatch.started rows, eliminating the false-negative deadlock.
+- Future routing-gate changes must verify which row types carry the fields the gate
+  depends on; delegation rows and dispatch.started rows have different payload shapes.
+
+### Metadata
+
+- Created: 2026-08-19
+- Related: DIA-235, commit 10b02d1, .opencode/plugins/delegation-observer.ts
+  (L2730-2741 routing gate scan)
 
 ## ADR: Exempt read-only lanes from DIA-224 empty_result_detected crisis detector (DIA-206)
 

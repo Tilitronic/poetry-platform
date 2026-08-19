@@ -25,7 +25,7 @@
 #   make session-analytics  canned analytics over native OpenCode telemetry (opencode stats/db; ARGS pass-through)
 #   make test-harness  C5 scenario replay (bats) + bun plugin tests (requires Docker)
 
-.PHONY: build up shell opencode dev stack install db-psql logs down clean check-pin-sync check-tools check-host-jq check-host-lsp gen-jsconfig test-shell test-opencode-docker test-python test-infra test-config test-interview test-skills eval-lite audit-python context7-docs jsonl-stats session-log-render jsonl-cross-check session-query session-analytics test-harness
+.PHONY: build up shell opencode dev stack install db-psql logs down clean check-pin-sync check-tools check-host-jq check-host-lsp gen-jsconfig test-shell test-opencode-docker test-python test-infra test-config test-interview test-skills eval-lite audit-python context7-docs jsonl-stats session-log-render jsonl-cross-check session-query session-analytics test-harness worktree-gc
 
 stack:
 	bash scripts/dev-stack.sh
@@ -298,3 +298,12 @@ session-analytics:
 test-harness:
 	bash scripts/__tests__/bats-wrapper.sh --filter harness-scenario-replay
 	docker compose exec -T dev bash -lc 'cd /workspace/.opencode/plugins/__tests__ && bun test'
+
+# Post-merge worktree GC: delete merged feature/* branches + sweep orphaned
+# dirs in .worktrees/ + prune stale git worktree admin files. The documented
+# post-merge step (DIA-203). Advisory: runs cleanup (which deletes merged
+# branches under the configured window) then git worktree prune. Exit 0 on
+# a clean tree.
+worktree-gc:
+	bash scripts/worktrees.sh cleanup
+	git worktree prune

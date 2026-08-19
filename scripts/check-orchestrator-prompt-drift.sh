@@ -34,6 +34,9 @@
 #                     always included, recommendation + chosen record
 #   >=15% (primary)   self-rerun threshold text: >=15% (primary) / >=25%
 #                     (safety-net) context per NEXT-RUN.md
+#   todowrite-        todowrite discipline (DIA-260819-880v): todowrite for
+#   discipline        >=3-step work, one in_progress, mid-stream updates,
+#                     terminal-state gate
 #
 # The marker set is a FIXED contract, not configurable per run - a future
 # rule that must live in every orchestrator prompt is appended to MARKERS
@@ -55,7 +58,7 @@ PRESETS="${PRESETS:-opencode-go cebula free}"
 # Fixed required-marker contract (see header). Matched as fixed strings;
 # pure-dispatch additionally case-insensitive (PURE-DISPATCH in the prompts).
 MARKERS=(delegation-only batch-approval DIA-133 pure-dispatch no-bash-tool \
-  read-scope-note ebdv-clause threshold-15-25)
+  read-scope-note ebdv-clause threshold-15-25 todowrite-discipline)
 # The MARKERS tokens stay hyphenated/whitespace-safe; the needles below spell
 # out the exact prompt phrases they match (verified present in all 3 prompts
 # as of 2026-08-13 - including the DIA-097 additions the ai-auditor Minor
@@ -65,6 +68,7 @@ NO_BASH_MARKER="no bash tool"
 READ_SCOPE_NOTE_MARKER="READ-SCOPE"
 EBDV_CLAUSE_MARKER="EBDV"
 THRESHOLD_MARKER="15% (primary)"
+TODOWRITE_MARKER="TODOWRITE DIA-260819-880v"
 
 if [ ! -f "$SLIM_JSONC" ]; then
   echo "FAIL: oh-my-opencode-slim.jsonc not found: $SLIM_JSONC (run from the repo root or set SLIM_JSONC)" >&2
@@ -165,6 +169,7 @@ PYEOF
 
 checked=0
 missing=0
+prompts=()
 while IFS= read -r -d '' preset && IFS= read -r -d '' prompt; do
   checked=$((checked + 1))
 
@@ -174,13 +179,16 @@ while IFS= read -r -d '' preset && IFS= read -r -d '' prompt; do
     continue
   fi
 
+  prompts+=("$prompt")
+
   for marker in "${MARKERS[@]}"; do
     needle="$marker"
     case "$marker" in
-      no-bash-tool)    needle="$NO_BASH_MARKER" ;;
-      read-scope-note) needle="$READ_SCOPE_NOTE_MARKER" ;;
-      ebdv-clause)     needle="$EBDV_CLAUSE_MARKER" ;;
-      threshold-15-25) needle="$THRESHOLD_MARKER" ;;
+      no-bash-tool)          needle="$NO_BASH_MARKER" ;;
+      read-scope-note)       needle="$READ_SCOPE_NOTE_MARKER" ;;
+      ebdv-clause)           needle="$EBDV_CLAUSE_MARKER" ;;
+      threshold-15-25)       needle="$THRESHOLD_MARKER" ;;
+      todowrite-discipline)  needle="$TODOWRITE_MARKER" ;;
     esac
     if [ "$marker" = "pure-dispatch" ]; then
       # PURE-DISPATCH (uppercase) in the prompts; match case-insensitively.
@@ -202,5 +210,14 @@ if [ "$missing" -gt 0 ]; then
   exit 1
 fi
 
-echo "ok: check-orchestrator-prompt-drift: $checked preset(s) checked, ${#MARKERS[@]} markers each, 0 gaps"
+# Byte-identity verification across all 3 presets (after marker check so
+# "1 marker gap(s)" summary is visible when a single prompt drifts)
+if [ "${#prompts[@]}" -eq 3 ]; then
+  if [ "${prompts[0]}" != "${prompts[1]}" ] || [ "${prompts[1]}" != "${prompts[2]}" ]; then
+    echo "FAIL: prompts not byte-identical across presets" >&2
+    exit 1
+  fi
+fi
+
+echo "ok: check-orchestrator-prompt-drift: $checked preset(s) checked, ${#MARKERS[@]} markers each, 0 gaps, byte-identical"
 exit 0

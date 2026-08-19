@@ -278,3 +278,46 @@ Note: These are navigational facts to help future humans find the infra/test art
   ~/.config/opencode/tui.json (pin updated) and opencode.jsonc (pin updated).
   No breaking changes; release includes task lifecycle hardening and new
   task_status/task_nudge tools.
+
+- DIA-126a READ-SCOPE is an 18-path set matching orchestrator permissions (DIA-235,
+  2026-08-19): the orchestrator prompt references READ-SCOPE as the set of paths the
+  orchestrator is allowed to read. The 18 paths are: .opencode/session/*,
+  docs/dev-infra-audit/NEXT-RUN.md, docs/dev-infra-audit/tickets/*,
+  docs/dev-infra-audit/tickets/archive/*, .opencode/practice-protected.md, AGENTS.md,
+  knowledge/*, .opencode/learnings/*, .opencode/plugins/*, scripts/*, docs/*, .sdd/*,
+  openspec/*, .opencode/skills/*, .opencode/memory-shelf.yaml,
+  .opencode/oh-my-opencode-slim.jsonc, architecture.md, CONTEXT.md. This matches the
+  orchestrator's actual read permissions in opencode.jsonc. Recorded because the
+  READ-SCOPE reference was previously incorrect (DIA-235 ai-specialist gate review
+  found it referencing files outside allowed scope) and the corrected 18-path set is
+  the authoritative enumeration.
+
+- DIA-085 chain replaced stale current-handoff.json references (DIA-235, 2026-08-19):
+  the orchestrator prompt (3 presets: orchestrator, coder, reviewer) and
+  orchestrator_append.md previously referenced .opencode/session/current-handoff.json
+  for handoff checksum verification and batch-approval boot gates. DIA-235's
+  restructure replaced these stale references with the DIA-085 chain (per-session
+  handoff slots under .opencode/session/handoffs/<session-id>.json). One intentional
+  fallback reference to current-handoff.json was preserved in orchestrator_append.md
+  line 243 (documents the DIA-085 legacy fallback path). The three presets were
+  confirmed byte-identical after restructure.
+
+- DCP plugin config surface (DIA-260819-9oxi, 2026-08-19): the DCP plugin
+  (dual-compaction-pipeline) was fully removed from the codebase in DIA-197
+  (commit 69dcdaf, 7 touchpoints: plugin arrays, dcp.jsonc, config validator,
+  Dockerfiles, runtime deps). The earlier V2 keep-but-disable ADR is superseded.
+  Global config at ~/.config/opencode/dcp.jsonc is set to `enabled: false` as
+  a clean disable path if DCP is ever re-added. Project config at
+  .opencode/dcp.jsonc does NOT exist (was never created during DIA-197 V2).
+  Record: DCP config loss pattern -- if a config file is created in one session
+  but not committed/verified, it can be lost. See adr.md DIA-260819-9oxi ADR.
+
+- Todowrite discipline surfaces (DIA-260819-880v, 2026-08-19): todowrite tool
+  guidance was added to 3 surfaces in the same change:
+  1. A7 section in orchestrator_append.md (todowrite discipline rules)
+  2. oh-my-opencode-slim.jsonc x3 presets (orchestrator, coder, reviewer --
+     byte-identical rule blocks)
+  3. Drift-checker marker #9 (prevents prompt-surface regression)
+  Record: permitted-but-undocumented tools are invisible bugs. When adding a
+  tool to permission allow-list, MUST add corresponding prompt guidance +
+  drift-checker marker in the same change. See adr.md DIA-260819-880v ADR.

@@ -29,10 +29,7 @@ proceeding or applying changes.
   'mechanical' may be auto-applied if the developer has pre-approved mechanical
   fixes.
 
-### 5. Research persistence decision
-- When `@researcher` returns findings with `PERSISTENCE_RECOMMENDED: true`, the orchestrator presents the persistence decision to the developer (persist, skip, or partial). The orchestrator does not auto-decide.
-
-### 6. Grilling gate for significant changes (DIA-104)
+### 5. Grilling gate for significant changes (DIA-104)
 - Hybrid ownership: the developer owns the ANSWERS to the grill questions
   (substance); @openspec-plan structures and asks. The gate check result is
   logged in the ticket frontmatter (gate_state, gate_triggers,

@@ -6,7 +6,7 @@ id: DIA-201
 title: "worktree cleanup: orphaned-dir sweep for .worktrees/ (ana022 R-1)"
 area: dev-infra
 severity: Medium
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: ""
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
@@ -83,8 +83,8 @@ registered nested worktree / main-checkout never touched.
 
 ## Fix
 
-> To be filled at fix time.
+Implementation verified: sweep_orphaned_dirs() in worktrees.sh lines 590-663, bats T31-T34 pass (36/36 worktrees tests green)
 
 ## Re-verify
 
-> To be filled at re-verify time.
+> N/A - verified at close time.

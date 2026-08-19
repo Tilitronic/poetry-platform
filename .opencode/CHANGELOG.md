@@ -798,3 +798,60 @@
 
 - **Files:** ~/.config/opencode/oh-my-opencode-slim.jsonc
 - **Verification:** make test-config exit 0 (56/56); ai-auditor PASS-WITH-NITS (2 informational nits, both non-blocking)
+
+
+## 2026-08-18 - DIA-212 (CLOSED): research-pipeline pre-gate enforcement (warn-only autocrine gate in delegation-observer)
+
+- **Change:** Change: DIA-212 (Medium, opencode-config; researcher dispatched without pre-allocated res ID) CLOSED. Implemented warn-only autocrine gate in delegation-observer to enforce pre-gate research-pipeline dispatch discipline. Ticket status OPEN -> CLOSED.
+
+- **Files:** docs/dev-infra-audit/tickets/DIA-212-researcher-dispatch-without-res-id.md (status OPEN -> CLOSED) - docs/dev-infra-audit/tickets/README.md (DIA-212 row OPEN -> CLOSED)
+- **Verification:** make test-config exit 0; make test-shell exit 0.
+
+
+## 2026-08-18 - DIA-214 (CLOSED): ticket-ID token in dispatch prompts (hard gate for missing ticket_id, warn-allow for non-existent)
+
+- **Change:** Change: DIA-214 (Critical, orchestrator-workflow; orchestrator dev-infra dispatch without ticket) CLOSED. Implemented hard gate for missing ticket_id in dispatch prompts plus warn-allow for non-existent ticket references. Ticket status OPEN -> CLOSED.
+
+- **Files:** docs/dev-infra-audit/tickets/DIA-214-orchestrator-dev-infra-without-ticket.md (status OPEN -> CLOSED) - docs/dev-infra-audit/tickets/README.md (DIA-214 row OPEN -> CLOSED)
+- **Verification:** make test-config exit 0; make test-shell exit 0.
+
+
+## 2026-08-18 - DIA-215 (CLOSED): ticket ID allocation collision mitigation (retry loop in scripts/tickets)
+
+- **Change:** Change: DIA-215 (Major, dev-infra; ticket numbering sequential ID conflicts in parallel creation) CLOSED. Implemented retry loop in scripts/tickets to mitigate allocation collisions when multiple tickets are created in parallel. Ticket status OPEN -> CLOSED.
+
+- **Files:** docs/dev-infra-audit/tickets/DIA-215-ticket-numbering-sequential-id-conflicts.md (status OPEN -> CLOSED) - docs/dev-infra-audit/tickets/README.md (DIA-215 row OPEN -> CLOSED)
+- **Verification:** make test-config exit 0; make test-shell exit 0.
+
+
+## 2026-08-18 - DIA-229 (CLOSED): ticket creation via scripts/tickets new (to-tickets skill mandates CLI, template warns against manual copy)
+
+- **Change:** Change: DIA-229 (Critical, opencode-config; ticket creation bypasses scripts/tickets ledger CLI) CLOSED. to-tickets skill now mandates CLI usage, and the ticket template warns against manual copy to prevent ledger bypass and missing rollup. Ticket status OPEN -> CLOSED.
+
+- **Files:** docs/dev-infra-audit/tickets/DIA-229-ticket-creation-bypasses-scripts-tickets-ledger-cli-readme-row-and-rollup-skipped.md (status OPEN -> CLOSED) - docs/dev-infra-audit/tickets/README.md (DIA-229 row OPEN -> CLOSED)
+- **Verification:** make test-config exit 0; make test-shell exit 0.
+
+
+## 2026-08-19 - DIA-260819-mh6p: P0 workflow compliance fixes: routing violation catch-block bug (DIA-230), empty result crisis escalation (DIA-099), orchestrator redispatch instruction
+
+- **Change:** P0 workflow compliance fixes: routing violation catch-block bug (DIA-230), empty result crisis escalation (DIA-099), orchestrator redispatch instruction
+- **Files:** .opencode/plugins/delegation-observer.ts - .opencode/oh-my-opencode-slim/orchestrator_append.md - docs/dev-infra-audit/tickets/DIA-224-d3-empty-result-detection.md
+- **Verification:** make test-config: pass (after memory-shelf fix); routing-order-gate.test.mjs: 36/36 pass
+
+## 2026-08-19 - DIA-235: opencode-config
+
+- **Change:** orchestrator bugs analysis - routing gate deadlock fix + prompt restructure
+- **Files:** .opencode/plugins/delegation-observer.ts - scripts/check-orchestrator-prompt-drift.sh - docs/dev-infra-audit/tickets/DIA-235-orchestrator-bugs-analysis.md
+- **Verification:** 56/56 tests passed, make test-config exit 0, byte-identity verified across 3 presets
+
+## 2026-08-19 - DIA-260819-9oxi: opencode-config
+
+- **Change:** DCP plugin disabled (enabled: false) -- DIA-197 V2 config was never applied, file missing
+- **Files:** ~/.config/opencode/dcp.jsonc
+- **Verification:** restart-verify pending -- next OpenCode restart must show zero DCP system-reminders
+
+## 2026-08-19 - DIA-260819-880v: opencode-config
+
+- **Change:** Orchestrator todowrite discipline -- prompt gap fix, tool was permitted but undocumented
+- **Files:** .opencode/oh-my-opencode-slim/orchestrator_append.md - .opencode/oh-my-opencode-slim.jsonc - scripts/check-orchestrator-prompt-drift.sh
+- **Verification:** make test-config exit 0, drift-checker marker #9 present, byte-identical x3 presets

@@ -73,4 +73,4 @@ you with explicit Phase A instructions. This wastes context and delays the pipel
 - Never implement — research lane only
 - Provide evidence-based answers with sources
 - Distinguish between official and community patterns
-- When in doubt about persistence, flag `true` — the orchestrator decides
+- When in doubt about persistence, flag `true` — conspect synthesis proceeds automatically

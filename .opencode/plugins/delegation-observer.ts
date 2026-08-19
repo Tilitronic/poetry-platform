@@ -2745,7 +2745,7 @@ const delegationObserver: Plugin = async (ctx) => {
                   })
                 }
               } catch {
-                // Fail-soft: scan error -> treat as no prior dispatch
+                // Fail-closed: scan error -> hasAiSpecialist=false -> hard block (ROUTING_VIOLATION)
               }
               if (!hasAiSpecialist) {
                 appendRow({
@@ -3174,10 +3174,10 @@ const delegationObserver: Plugin = async (ctx) => {
       }
 
       // PERSISTENCE_RECOMMENDED detector (DIA-057/DIA-058, ai--3 fold-in +
-      // Phase-6 lane scoping): when a COMPLETED researcher task result carries
-      // the persistence flag, write .opencode/session/persistence-pending.json
-      // so the orchestrator's Research Persistence Gate
-      // (orchestrator_append.md) can pick it up. The task() output wraps the
+      // Phase-6 lane scoping, DIA-260819-qibv): when a COMPLETED researcher
+      // task result carries the persistence flag, write
+      // .opencode/session/conspect-pending.json so the orchestrator's Research
+      // Conspect Gate (orchestrator_append.md) can pick it up. The task() output wraps the
       // subagent's final result in <task_result>...</task_result> and the
       // <task> header carries `state="completed"` as an XML ATTRIBUTE on
       // completion (per OMO parseTaskStateFromOutput — XML attribute form is
@@ -3211,7 +3211,7 @@ const delegationObserver: Plugin = async (ctx) => {
             recursive: true,
           })
           writeFileSync(
-            join(ctx.directory, ".opencode/session/persistence-pending.json"),
+            join(ctx.directory, ".opencode/session/conspect-pending.json"),
             JSON.stringify(
               {
                 session_id: taskId ?? "",
@@ -3241,7 +3241,7 @@ const delegationObserver: Plugin = async (ctx) => {
           })
         } catch (err) {
           tuiSafeWarn(
-            `[delegation-observer] persistence-pending.json write failed: ${errorMessage(err)}`
+            `[delegation-observer] conspect-pending.json write failed: ${errorMessage(err)}`
           )
         }
       }

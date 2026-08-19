@@ -58,29 +58,28 @@ If the orchestrator cannot determine the next ID (e.g., `knowledge/` is inaccess
 
 This gate exists because skipping ID pre-allocation forces a wasted re-dispatch: the researcher returns `PERSISTENCE_RECOMMENDED: true` but has no path to write sources (DIA-212 incident).
 
-### Research Persistence Gate (DIA-057, DIA-058)
+### Research Conspect Gate (DIA-057, DIA-058, DIA-260819-qibv)
 
 When `@researcher` returns findings with `PERSISTENCE_RECOMMENDED: true`:
 
 1. **MUST load the `research-pipeline` skill** BEFORE closing the research lane.
-2. **MUST present the persistence decision to the developer** (practice-protected §5).
+2. **MUST NOT close the researcher lane** until conspect synthesis is complete (Phase 4 verified) or quality criteria fail (sources/ missing or empty).
 3. **MUST NOT dispatch analysis** until the research-pipeline skill confirms:
    - `knowledge/res<id>-<topic>/sources/` exists with .md files
    - `knowledge/res<id>-<topic>/res<id>-<topic>-conspect.md` exists
    - `.opencode/memory-shelf.yaml` has a `shelf.conspects` entry for this res<id>
 4. **Mechanical trigger (plugin-enforced):** the delegation-observer plugin writes
-   `.opencode/session/persistence-pending.json` when a completed task result contains
+   `.opencode/session/conspect-pending.json` when a completed task result contains
    `PERSISTENCE_RECOMMENDED: true`. At session start and after each researcher
    completion, check for this file. If present: load the `research-pipeline` skill,
-   present the persistence decision to the developer, and after pipeline completion
-   (or explicit developer skip) DELETE the flag file.
+   auto-proceed through Phases 3-4 (conspect synthesis is automatic), and after
+   pipeline completion DELETE the flag file.
 5. **Missing flag fallback:** If the researcher's output does not include
    `PERSISTENCE_RECOMMENDED`, apply the research-pipeline skill's Phase 2 criteria
    table before closing the lane.
 
 This is a HARD GATE — the orchestrator refuses to close a researcher lane with
-PERSISTENCE_RECOMMENDED: true until the pipeline artifacts are verified or the
-developer explicitly skips.
+PERSISTENCE_RECOMMENDED: true until the pipeline artifacts are verified.
 
 ### Fast-Path Opt-In (engineering work only)
 
@@ -306,6 +305,16 @@ These orderings are invariant regardless of batch parallelism:
 4. openspec-plan -> coder: coder implements validated specs; no overlap.
 5. batch-approval boot gate -> any work: handoff must be approved first.
 6. parallel coders -> reviewer: per-worktree reviews MUST operate on committed fixed points inside that worktree; squash-merges to the main branch MUST be serialized (one at a time).
+
+### A7 - Todowrite Discipline (DIA-260819-880v)
+
+The orchestrator MUST use `todowrite` for all multi-step work (>=3 distinct steps):
+
+1. **Create** todowrite items after planning, before first dispatch. Each item: specific, actionable, with priority.
+2. **State transitions**: `pending` -> `in_progress` (exactly ONE at a time, on dispatch) -> `completed` (on result with verification evidence).
+3. **Mid-stream plan changes**: MUST update todowrite — cancel obsolete items (status: `cancelled` with reason), add new items. Never abandon items silently.
+4. **Terminal state gate**: before session end, every todowrite item must be in a terminal state (`completed` or `cancelled`). Any `pending`/`in_progress` items must be resolved, cancelled, or listed as `open_tickets` in the handoff prognosis.
+5. **No parallel in_progress**: exactly ONE item `in_progress` at a time. Complete or cancel before starting the next.
 
 ## Truncated/Empty Subagent Result Protocol (DIA-099, Variant A2)
 

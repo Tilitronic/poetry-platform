@@ -48,6 +48,8 @@
 #   T32 cleanup --dry-run lists orphaned dir without removal
 #   T33 cleanup skips orphaned dir containing a registered nested worktree
 #   T34 cleanup sweep never touches the main checkout (symlink defense)
+#   T35 create from inside a worktree -> exit 1 (not the main worktree, DIA-202)
+#   T36 remove with registered nested worktree -> exit 1 (innermost-first, DIA-202)
 
 load test-helper
 
@@ -805,4 +807,39 @@ make_unmerged_worktree() {
   assert_file_exists "$tree/.worktrees/main-checkout"
   # main checkout files are intact
   assert_file_exists "$tree/keep-me.txt"
+}
+
+@test "worktrees: T35 create from inside a worktree -> exit 1 (not the main worktree)" {
+  tree="$(setup_worktree_repo)"
+  bash "$tree/scripts/worktrees.sh" create feature/DIA-202-parent >/dev/null
+  # cd into the nested worktree and attempt to create another one from there
+  local wt_path="$tree/.worktrees/feature-DIA-202-parent"
+
+  run bash -c "cd '$wt_path' && bash '$tree/scripts/worktrees.sh' create feature/DIA-202-child"
+
+  assert_status 1
+  assert_output_contains "not the main worktree"
+  # no nested worktree was created
+  assert_file_not_exists "$wt_path/.worktrees/feature-DIA-202-child"
+}
+
+@test "worktrees: T36 remove with registered nested worktree -> exit 1 (innermost-first)" {
+  tree="$(setup_worktree_repo)"
+  # create parent worktree
+  bash "$tree/scripts/worktrees.sh" create feature/DIA-202-parent >/dev/null
+  local parent_path="$tree/.worktrees/feature-DIA-202-parent"
+  # create a nested worktree inside it (simulates the accidental nesting
+  # that the create-time guard prevents in practice)
+  git -C "$tree" worktree add -b feature/DIA-202-nested "$parent_path/nested" main >/dev/null
+
+  run bash "$tree/scripts/worktrees.sh" remove feature/DIA-202-parent
+
+  assert_status 1
+  assert_output_contains "nested worktree"
+  assert_output_contains "innermost-first"
+  # the parent worktree still exists
+  assert_file_exists "$parent_path"
+  # the nested worktree is still registered
+  run git -C "$tree" worktree list
+  assert_output_contains "DIA-202-nested"
 }

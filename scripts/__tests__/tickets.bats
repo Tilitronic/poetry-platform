@@ -31,6 +31,7 @@ setup_tree() {
   local tree="$BATS_TEST_TMPDIR/tree"
   mkdir -p "$tree/scripts" "$tree/docs/dev-infra-audit/tickets"
   cp "$REPO_ROOT/scripts/tickets" "$tree/scripts/tickets"
+  cp "$REPO_ROOT/scripts/allocate-id" "$tree/scripts/allocate-id"
   cp "$REPO_ROOT/docs/dev-infra-audit/tickets/_TEMPLATE.md" \
     "$tree/docs/dev-infra-audit/tickets/_TEMPLATE.md"
   cat > "$tree/docs/dev-infra-audit/tickets/README.md" <<'README'
@@ -672,6 +673,202 @@ TICKET
   assert_output_contains "  DIA-260819-abcd - newer datetime ticket"
 }
 
+# ---------------------------------------------------------------------------
+# list
+# ---------------------------------------------------------------------------
+
+@test "tickets list: prints all tickets as a table" {
+  tree="$(setup_tree)"
+
+  run bash "$tree/scripts/tickets" list
+
+  assert_status 0
+  # Header row
+  assert_output_contains "ID"
+  assert_output_contains "Title"
+  assert_output_contains "Area"
+  assert_output_contains "Severity"
+  assert_output_contains "Status"
+  # All 4 fixture tickets present (sorted by filename: 130, 131, 132, 133)
+  assert_output_contains "DIA-130"
+  assert_output_contains "DIA-131"
+  assert_output_contains "DIA-132"
+  assert_output_contains "DIA-133"
+  assert_output_contains "alpha ticket"
+  assert_output_contains "delta ticket"
+}
+
+@test "tickets list --status OPEN: filters to OPEN tickets only" {
+  tree="$(setup_tree)"
+
+  run bash "$tree/scripts/tickets" list --status OPEN
+
+  assert_status 0
+  assert_output_contains "DIA-130"
+  assert_output_contains "DIA-131"
+  assert_output_contains "DIA-133"
+  # DIA-132 is CLOSED, must not appear
+  assert_output_not_contains "DIA-132"
+}
+
+@test "tickets list --severity Critical: filters to Critical severity" {
+  tree="$(setup_tree)"
+
+  run bash "$tree/scripts/tickets" list --severity Critical
+
+  assert_status 0
+  assert_output_contains "DIA-133"
+  assert_output_not_contains "DIA-130"
+  assert_output_not_contains "DIA-131"
+  assert_output_not_contains "DIA-132"
+}
+
+@test "tickets list --area docs: filters to docs area" {
+  tree="$(setup_tree)"
+
+  run bash "$tree/scripts/tickets" list --area docs
+
+  assert_status 0
+  # All 4 fixture tickets are in the docs area
+  assert_output_contains "DIA-130"
+  assert_output_contains "DIA-131"
+  assert_output_contains "DIA-132"
+  assert_output_contains "DIA-133"
+}
+
+@test "tickets list --json: emits valid JSON array" {
+  tree="$(setup_tree)"
+
+  run bash "$tree/scripts/tickets" list --json
+
+  assert_status 0
+  # Starts with [ and ends with ]
+  [[ "$output" == \[* ]]
+  [[ "$output" == *] ]]
+  # Contains all 4 fixture tickets
+  assert_output_contains '"id":"DIA-130"'
+  assert_output_contains '"id":"DIA-131"'
+  assert_output_contains '"id":"DIA-132"'
+  assert_output_contains '"id":"DIA-133"'
+  assert_output_contains '"status":"OPEN"'
+  assert_output_contains '"status":"CLOSED"'
+}
+
+@test "tickets list --json --status CLOSED: filtered JSON" {
+  tree="$(setup_tree)"
+
+  run bash "$tree/scripts/tickets" list --json --status CLOSED
+
+  assert_status 0
+  [[ "$output" == \[* ]]
+  assert_output_contains '"id":"DIA-132"'
+  assert_output_not_contains '"id":"DIA-130"'
+}
+
+@test "tickets list: no matching tickets returns empty result" {
+  tree="$(setup_tree)"
+
+  run bash "$tree/scripts/tickets" list --status BLOCKED
+
+  assert_status 0
+  # Only header rows, no data
+  assert_output_not_contains "DIA-"
+}
+
+# ---------------------------------------------------------------------------
+# search
+# ---------------------------------------------------------------------------
+
+@test "tickets search: finds tickets matching query in title" {
+  tree="$(setup_tree)"
+
+  run bash "$tree/scripts/tickets" search "alpha"
+
+  assert_status 0
+  assert_output_contains "DIA-130"
+  assert_output_contains "alpha ticket"
+  # beta/gamma/delta should not match
+  assert_output_not_contains "DIA-131"
+  assert_output_not_contains "DIA-132"
+  assert_output_not_contains "DIA-133"
+}
+
+@test "tickets search: case-insensitive match" {
+  tree="$(setup_tree)"
+
+  run bash "$tree/scripts/tickets" search "ALPHA"
+
+  assert_status 0
+  assert_output_contains "DIA-130"
+}
+
+@test "tickets search: no matches prints message" {
+  tree="$(setup_tree)"
+
+  run bash "$tree/scripts/tickets" search "nonexistent"
+
+  assert_status 0
+  assert_output_contains "no matches for 'nonexistent'"
+}
+
+@test "tickets search --json: emits JSON array" {
+  tree="$(setup_tree)"
+
+  run bash "$tree/scripts/tickets" search --json "alpha"
+
+  assert_status 0
+  [[ "$output" == \[* ]]
+  [[ "$output" == *] ]]
+  assert_output_contains '"id":"DIA-130"'
+  assert_output_contains '"title":"alpha ticket"'
+}
+
+@test "tickets search: requires a query" {
+  tree="$(setup_tree)"
+
+  run bash "$tree/scripts/tickets" search
+
+  assert_status 1
+  assert_output_contains "search requires a query"
+}
+
+# ---------------------------------------------------------------------------
+# stats
+# ---------------------------------------------------------------------------
+
+@test "tickets stats: counts by status, severity, and area" {
+  tree="$(setup_tree)"
+
+  run bash "$tree/scripts/tickets" stats
+
+  assert_status 0
+  assert_output_contains "Total tickets: 4"
+  assert_output_contains "OPEN"
+  assert_output_contains "CLOSED"
+  assert_output_contains "Major"
+  assert_output_contains "Critical"
+  assert_output_contains "Medium"
+  assert_output_contains "Low"
+  assert_output_contains "docs"
+}
+
+@test "tickets stats --json: emits JSON object" {
+  tree="$(setup_tree)"
+
+  run bash "$tree/scripts/tickets" stats --json
+
+  assert_status 0
+  assert_output_contains '"total":4'
+  assert_output_contains '"open":'
+  assert_output_contains '"closed":'
+  assert_output_contains '"major":'
+  assert_output_contains '"docs":'
+}
+
+# ---------------------------------------------------------------------------
+# rollup
+# ---------------------------------------------------------------------------
+
 @test "tickets rollup: handles datetime tickets in README" {
   tree="$(setup_tree)"
   readme="$tree/docs/dev-infra-audit/tickets/README.md"
@@ -717,4 +914,407 @@ TICKET
   # Counts now include the datetime ticket (Low + OPEN)
   assert_file_contains "$readme" "| Low      | 2     |"
   assert_file_contains "$readme" "| OPEN        | 4     |"
+}
+
+# ---------------------------------------------------------------------------
+# frontier --json
+# ---------------------------------------------------------------------------
+
+@test "tickets frontier --json: emits JSON with frontier and blocked arrays" {
+  tree="$(setup_tree)"
+
+  run bash "$tree/scripts/tickets" frontier --json
+
+  assert_status 0
+  # Starts with { and ends with }
+  [[ "$output" == \{* ]]
+  [[ "$output" == *'}'* ]]
+  assert_output_contains '"frontier":['
+  assert_output_contains '"blocked":['
+  # Frontier tickets (OPEN, no open blockers): DIA-133 (Critical), DIA-130 (Major)
+  assert_output_contains '"id":"DIA-133"'
+  assert_output_contains '"id":"DIA-130"'
+  # Blocked ticket: DIA-131 (blocked by DIA-130)
+  assert_output_contains '"id":"DIA-131"'
+  assert_output_contains '"blocked_by":'
+}
+
+@test "tickets frontier --json: includes severity and area fields" {
+  tree="$(setup_tree)"
+
+  run bash "$tree/scripts/tickets" frontier --json
+
+  assert_status 0
+  assert_output_contains '"severity":"Critical"'
+  assert_output_contains '"severity":"Major"'
+  assert_output_contains '"area":"docs"'
+}
+
+# ---------------------------------------------------------------------------
+# show command
+# ---------------------------------------------------------------------------
+
+@test "tickets show: displays full ticket info" {
+  tree="$(setup_tree)"
+
+  run bash "$tree/scripts/tickets" show DIA-130
+
+  assert_status 0
+  assert_output_contains "DIA-130"
+  assert_output_contains "alpha ticket"
+  assert_output_contains "Area:"
+  assert_output_contains "Severity:"
+  assert_output_contains "Status:"
+  assert_output_contains "Created:"
+}
+
+@test "tickets show --json: emits JSON object" {
+  tree="$(setup_tree)"
+
+  run bash "$tree/scripts/tickets" show --json DIA-130
+
+  assert_status 0
+  [[ "$output" == \{* ]]
+  [[ "$output" == *'}'* ]]
+  assert_output_contains '"id":"DIA-130"'
+  assert_output_contains '"title":"alpha ticket"'
+  assert_output_contains '"area":"docs"'
+  assert_output_contains '"severity":"Major"'
+  assert_output_contains '"status":"OPEN"'
+  assert_output_contains '"created":'
+}
+
+@test "tickets show: fails for nonexistent ticket" {
+  tree="$(setup_tree)"
+
+  run bash "$tree/scripts/tickets" show DIA-999
+
+  assert_status 1
+  assert_output_contains "ticket not found"
+}
+
+@test "tickets show: fails without ticket ID" {
+  tree="$(setup_tree)"
+
+  run bash "$tree/scripts/tickets" show
+
+  assert_status 1
+  assert_output_contains "show requires a ticket ID"
+}
+
+@test "tickets show: fails for invalid ID format" {
+  tree="$(setup_tree)"
+
+  run bash "$tree/scripts/tickets" show "not-a-ticket"
+
+  assert_status 1
+  assert_output_contains "invalid ticket ID"
+}
+
+@test "tickets show: shows blocked_by when present" {
+  tree="$(setup_tree)"
+
+  run bash "$tree/scripts/tickets" show DIA-131
+
+  assert_status 0
+  assert_output_contains "Blocked:"
+  assert_output_contains "DIA-130"
+}
+
+@test "tickets show: shows description body" {
+  tree="$(setup_tree)"
+
+  run bash "$tree/scripts/tickets" show DIA-130
+
+  assert_status 0
+  assert_output_contains "fixture"
+}
+
+# ---------------------------------------------------------------------------
+# temporal filters: list --since / --before
+# ---------------------------------------------------------------------------
+
+@test "tickets list --since: filters tickets created on or after date" {
+  tree="$(setup_tree)"
+  # All fixture tickets have created: 2026-08-13
+  # Add a ticket with a later created date
+  cat > "$tree/docs/dev-infra-audit/tickets/DIA-260819-later.md" <<'TICKET'
+---
+id: DIA-260819-later
+title: "later ticket"
+area: docs
+severity: Low
+status: OPEN
+blocked_by: []
+discovered: 2026-08-19
+source: inventory
+date: 2026-08-19
+created: 2026-08-19
+updated: 2026-08-19
+
+session_id: ""
+lane_id: ""
+agent: ""
+model: ""
+parent_session_id: ""
+attempts: 0
+lease_expires_at: ""
+files_touched: []
+artifacts: []
+evidence: []
+
+---
+
+## Description
+
+fixture
+TICKET
+
+  run bash "$tree/scripts/tickets" list --since 2026-08-19
+
+  assert_status 0
+  # Only the later ticket (created 2026-08-19) matches
+  # Note: num_of_file truncates datetime IDs to 11 chars for gate compatibility
+  assert_output_contains "DIA-260819-late"
+  assert_output_contains "later ticket"
+  # The 2026-08-13 tickets are excluded
+  assert_output_not_contains "DIA-130"
+  assert_output_not_contains "DIA-131"
+  assert_output_not_contains "DIA-132"
+  assert_output_not_contains "DIA-133"
+}
+
+@test "tickets list --before: filters tickets created before date" {
+  tree="$(setup_tree)"
+
+  run bash "$tree/scripts/tickets" list --before 2026-08-14
+
+  assert_status 0
+  # All fixture tickets (created 2026-08-13) are before 2026-08-14
+  assert_output_contains "DIA-130"
+  assert_output_contains "DIA-131"
+  assert_output_contains "DIA-132"
+  assert_output_contains "DIA-133"
+}
+
+@test "tickets list --since --before: date range filter" {
+  tree="$(setup_tree)"
+  # Add a ticket with a different created date
+  cat > "$tree/docs/dev-infra-audit/tickets/DIA-260819-range.md" <<'TICKET'
+---
+id: DIA-260819-range
+title: "range ticket"
+area: docs
+severity: Low
+status: OPEN
+blocked_by: []
+discovered: 2026-08-19
+source: inventory
+date: 2026-08-19
+created: 2026-08-19
+updated: 2026-08-19
+
+session_id: ""
+lane_id: ""
+agent: ""
+model: ""
+parent_session_id: ""
+attempts: 0
+lease_expires_at: ""
+files_touched: []
+artifacts: []
+evidence: []
+
+---
+
+## Description
+
+fixture
+TICKET
+
+  # Only tickets created on 2026-08-13 (the fixture date)
+  run bash "$tree/scripts/tickets" list --since 2026-08-13 --before 2026-08-14
+
+  assert_status 0
+  assert_output_contains "DIA-130"
+  assert_output_contains "DIA-133"
+  assert_output_not_contains "DIA-260819-range"
+}
+
+@test "tickets list --json --since: filtered JSON output" {
+  tree="$(setup_tree)"
+  cat > "$tree/docs/dev-infra-audit/tickets/DIA-260819-json.md" <<'TICKET'
+---
+id: DIA-260819-json
+title: "json test"
+area: docs
+severity: Low
+status: OPEN
+blocked_by: []
+discovered: 2026-08-19
+source: inventory
+date: 2026-08-19
+created: 2026-08-19
+updated: 2026-08-19
+
+session_id: ""
+lane_id: ""
+agent: ""
+model: ""
+parent_session_id: ""
+attempts: 0
+lease_expires_at: ""
+files_touched: []
+artifacts: []
+evidence: []
+
+---
+
+## Description
+
+fixture
+TICKET
+
+  run bash "$tree/scripts/tickets" list --json --since 2026-08-19
+
+  assert_status 0
+  [[ "$output" == \[* ]]
+  assert_output_contains '"id":"DIA-260819-json"'
+  assert_output_not_contains '"id":"DIA-130"'
+}
+
+# ---------------------------------------------------------------------------
+# temporal filters: frontier --since / --before
+# ---------------------------------------------------------------------------
+
+@test "tickets frontier --since: filters frontier by created date" {
+  tree="$(setup_tree)"
+  cat > "$tree/docs/dev-infra-audit/tickets/DIA-260819-future.md" <<'TICKET'
+---
+id: DIA-260819-future
+title: "future ticket"
+area: docs
+severity: Minor
+status: OPEN
+blocked_by: []
+discovered: 2026-08-19
+source: inventory
+date: 2026-08-19
+created: 2026-08-19
+updated: 2026-08-19
+
+session_id: ""
+lane_id: ""
+agent: ""
+model: ""
+parent_session_id: ""
+attempts: 0
+lease_expires_at: ""
+files_touched: []
+artifacts: []
+evidence: []
+
+---
+
+## Description
+
+fixture
+TICKET
+
+  run bash "$tree/scripts/tickets" frontier --since 2026-08-19
+
+  assert_status 0
+  # Only the future ticket (created 2026-08-19) is in the frontier
+  # Note: num_of_file truncates datetime IDs to 11 chars for gate compatibility
+  assert_output_contains "frontier (1 ticket(s) you can start):"
+  assert_output_contains "DIA-260819-futu"
+  assert_output_contains "future ticket"
+  assert_output_not_contains "DIA-133"
+  assert_output_not_contains "DIA-130"
+}
+
+@test "tickets frontier --before: filters frontier by created date" {
+  tree="$(setup_tree)"
+  cat > "$tree/docs/dev-infra-audit/tickets/DIA-260819-old.md" <<'TICKET'
+---
+id: DIA-260819-old
+title: "old datetime ticket"
+area: docs
+severity: Minor
+status: OPEN
+blocked_by: []
+discovered: 2026-08-19
+source: inventory
+date: 2026-08-19
+created: 2026-08-19
+updated: 2026-08-19
+
+session_id: ""
+lane_id: ""
+agent: ""
+model: ""
+parent_session_id: ""
+attempts: 0
+lease_expires_at: ""
+files_touched: []
+artifacts: []
+evidence: []
+
+---
+
+## Description
+
+fixture
+TICKET
+
+  run bash "$tree/scripts/tickets" frontier --before 2026-08-14
+
+  assert_status 0
+  # Only the sequential fixture tickets (created 2026-08-13) are in the frontier
+  assert_output_contains "DIA-133"
+  assert_output_contains "DIA-130"
+  assert_output_not_contains "DIA-260819-old"
+}
+
+@test "tickets frontier --json --since: filtered JSON frontier" {
+  tree="$(setup_tree)"
+  cat > "$tree/docs/dev-infra-audit/tickets/DIA-260819-jfix.md" <<'TICKET'
+---
+id: DIA-260819-jfix
+title: "json frontier ticket"
+area: docs
+severity: Minor
+status: OPEN
+blocked_by: []
+discovered: 2026-08-19
+source: inventory
+date: 2026-08-19
+created: 2026-08-19
+updated: 2026-08-19
+
+session_id: ""
+lane_id: ""
+agent: ""
+model: ""
+parent_session_id: ""
+attempts: 0
+lease_expires_at: ""
+files_touched: []
+artifacts: []
+evidence: []
+
+---
+
+## Description
+
+fixture
+TICKET
+
+  run bash "$tree/scripts/tickets" frontier --json --since 2026-08-19
+
+  assert_status 0
+  [[ "$output" == \{* ]]
+  assert_output_contains '"id":"DIA-260819-jfix"'
+  assert_output_not_contains '"id":"DIA-133"'
+  assert_output_not_contains '"id":"DIA-130"'
 }

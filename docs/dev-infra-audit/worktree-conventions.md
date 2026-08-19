@@ -62,6 +62,34 @@ Do not create worktrees as siblings of the repo root, and do not use the
 generic skill's `.slim/worktrees/` path here — `.worktrees/` is the repo
 convention.
 
+## Nested worktrees (DIA-202)
+
+Git worktrees cannot be nested: creating a worktree inside an existing
+worktree produces a nested checkout whose path falls under the outer
+worktree's directory tree. Git requires innermost-first removal, so an
+outer worktree that contains a registered nested worktree cannot be removed
+until the nested one is removed first.
+
+**Guards enforced by `scripts/worktrees.sh`:**
+
+1. **Create-time guard:** `create` refuses to run when the current checkout
+   is not the main worktree. Detection compares `pwd -P` against the main
+   root (derived from `BASH_SOURCE`). This prevents a lane from
+   accidentally nesting inside another worktree. Exit 1 with a clear
+   "not the main worktree" message.
+
+2. **Remove-time guard:** `remove` scans all registered worktrees and
+   refuses if any is a subdirectory of the target. The error names the
+   nested path and instructs "remove nested worktrees first
+   (innermost-first ordering)" instead of letting git fail with a raw
+   error.
+
+**Innermost-first removal ordering:** when multiple worktrees are nested
+(e.g. `.worktrees/outer/` contains `.worktrees/outer/inner/`), always
+remove the innermost worktree first, then its parent, and so on outward.
+The remove-time guard enforces this ordering by refusing to remove any
+worktree that has registered sub-worktrees.
+
 ## Lifecycle CLI
 
 One script, four subcommands (`scripts/worktrees.sh`; `make test-shell`
@@ -188,6 +216,36 @@ Escalate to the developer (complex) — ANY of:
 Escalation protocol: STOP resolving; leave the worktree in the conflicted
 state (do not force-resolve, do not `git checkout -- .`); hand the developer
 a summary of the conflict hunks and both sides' intent via the normal handoff.
+
+## Post-merge GC: `make worktree-gc`
+
+After a squash-merge is pushed to main, run `make worktree-gc` as the
+documented post-merge step (DIA-203). It chains the three cleanup operations
+in one target:
+
+```bash
+make worktree-gc
+# equivalent to:
+#   bash scripts/worktrees.sh cleanup   # delete merged branches + sweep orphaned dirs
+#   git worktree prune                   # remove stale git worktree admin files
+```
+
+- `cleanup` verifies each candidate branch is merged into main (is-ancestor
+  fast path or tree-subset squash parity), then deletes the branch. Orphaned
+  dirs in `.worktrees/` with dead gitdirs are also swept.
+- `git worktree prune` removes stale git administrative files left behind by
+  removed worktrees.
+- The default 0-day window deletes immediately after a verified squash-merge
+  (DIA-177). Opt-in grace via `--days N` or `WORKTREES_CLEANUP_DAYS=N`.
+
+A **post-push advisory hook** (`.husky/post-push`) runs `cleanup --dry-run`
+after every push and prints a warning when stale branches or worktree dirs
+are detected. It is advisory only -- it never auto-deletes. The developer
+decides when to run `make worktree-gc`.
+
+**No cron or auto-schedule.** Cleanup is a developer-triggered action, not a
+scheduled job (ana022 O-4; design.md:46-53 makes auto-scheduling a non-goal).
+The post-push hook warns; the developer acts.
 
 ## Cleanup policy
 

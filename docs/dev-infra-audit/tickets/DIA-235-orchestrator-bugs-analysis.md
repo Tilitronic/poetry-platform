@@ -6,7 +6,7 @@ id: DIA-235
 title: "Orchestrator bugs analysis and fix"
 area: opencode-config
 severity: Critical
-status: OPEN
+status: CLOSED
 blocked_by: []
 parent_epic: ""
 
@@ -32,6 +32,8 @@ artifacts: []
 evidence: []
 
 ---
+
+UPDATE: 2026-08-19 CLOSED - routing gate deadlock fixed (commit 10b02d1), orchestrator prompts restructured (commit d9e4482), ai-auditor findings addressed, verification passed (56/56 tests)
 
 ## Description
 

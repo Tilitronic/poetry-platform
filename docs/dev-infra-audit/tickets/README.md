@@ -137,33 +137,40 @@
 | DIA-184 | host make test-config exit 2: batch-d-infra.test.mjs TEST_ROOT defaults to container path /workspace | tests-infra | Medium | CLOSED | [DIA-184-host-make-test-config-enoent-batch-d-infra-test-root-container-path.md](DIA-184-host-make-test-config-enoent-batch-d-infra-test-root-container-path.md) |
 | DIA-185 | bake safe.directory=/workspace into Dockerfile.dev (container gitconfig ephemeral repair) | docker | Low | CLOSED | [DIA-185-bake-safe-directory-into-dockerfile-dev.md](DIA-185-bake-safe-directory-into-dockerfile-dev.md) |
 | DIA-186 | overnight AFK permission allow-list gaps: TUI permission prompts defeat autonomous mode | opencode-config | Medium | OPEN | [DIA-186-overnight-permission-prompt-gaps.md](DIA-186-overnight-permission-prompt-gaps.md) |
-| DIA-187 | OMO slim 2.2.14 update evaluation - research what is new, decide safety/worth for the project | opencode-config | Medium | OPEN | [DIA-187-omo-slim-2-2-14-update-evaluation.md](DIA-187-omo-slim-2-2-14-update-evaluation.md) |
-| DIA-188 | OMO self-sufficiency: project-level plugin declaration + docker bake (openCode >= 1.18.13 in image) | opencode-config | Medium | OPEN | [DIA-188-omo-slim-project-self-sufficiency.md](DIA-188-omo-slim-project-self-sufficiency.md) |
+| DIA-187 | OMO slim 2.2.14 update evaluation - research what is new, decide safety/worth for the project | opencode-config | Medium | CLOSED | [DIA-187-omo-slim-2-2-14-update-evaluation.md](DIA-187-omo-slim-2-2-14-update-evaluation.md) |
+| DIA-188 | OMO self-sufficiency: project-level plugin declaration + docker bake (openCode >= 1.18.13 in image) | opencode-config | Medium | CLOSED | [DIA-188-omo-slim-project-self-sufficiency.md](DIA-188-omo-slim-project-self-sufficiency.md) |
 | DIA-189 | terminal session identity: unique names + notification attribution + Cyrillic visibility | opencode-config | Major | OPEN | [DIA-189-terminal-session-identity-names-notifications-cyrillic.md](DIA-189-terminal-session-identity-names-notifications-cyrillic.md) |
 | DIA-190 | Conspecter memory-shelf edit-permission defect - contract asserts shelf registration, permission denies it (doc drift) | opencode-config | Major | CLOSED | [DIA-190-conspecter-shelf-edit-permission.md](DIA-190-conspecter-shelf-edit-permission.md) |
 | DIA-191 | context_usage tool overestimates vs TUI indicator (48% proxy vs 23% actual, ~2x) causing premature SELF-RERUN | opencode-config | Medium | CLOSED | [DIA-191-context-usage-estimator-overestimates-tui.md](DIA-191-context-usage-estimator-overestimates-tui.md) |
-| DIA-192 | delegation-observer prognosis parse fallback firing: lossy handoff + spurious high-severity TUI notification | opencode-config | Medium | OPEN | [DIA-192-delegation-observer-prognosis-parse-fallback.md](DIA-192-delegation-observer-prognosis-parse-fallback.md) |
+| DIA-192 | delegation-observer prognosis parse fallback firing: lossy handoff + spurious high-severity TUI notification | opencode-config | Medium | CLOSED | [DIA-192-delegation-observer-prognosis-parse-fallback.md](DIA-192-delegation-observer-prognosis-parse-fallback.md) |
 | DIA-193 | delegation-observer handoff-writer skip for non-terminal in-flight: benign guard surfaced as alarming high-severity notification | opencode-config | Low | CLOSED | [DIA-193-delegation-observer-handoff-skip-inflight-notification.md](DIA-193-delegation-observer-handoff-skip-inflight-notification.md) |
 | DIA-194 | artifact format substrate analysis (DIA-180 Deliverable B): YAML vs Markdown EBDV matrix with token-economy evidence | docs | Medium | CLOSED | [DIA-194-artifact-format-substrate-analysis.md](DIA-194-artifact-format-substrate-analysis.md) |
 | DIA-195 | harness RLM integration: unify test harnesses + RLM data-reduction + workflow guard + observability | opencode-config | Medium | OPEN | [DIA-195-harness-rlm-integration.md](DIA-195-harness-rlm-integration.md) |
 | DIA-196 | changelog YAML-ledger conversion: YAML source + derived MD view (ana024 Variant B) | opencode-config | Medium | CLOSED | [DIA-196-changelog-yaml-ledger-conversion.md](DIA-196-changelog-yaml-ledger-conversion.md) |
-| DIA-197 | evaluate DCP removal: cache degradation (85% vs 90%) without noticeable benefit - research + conspect + EBDV decision | opencode-config | Medium | OPEN | [DIA-197-dcp-removal-evaluation.md](DIA-197-dcp-removal-evaluation.md) |
+| DIA-197 | evaluate DCP removal: cache degradation (85% vs 90%) without noticeable benefit - research + conspect + EBDV decision | opencode-config | Medium | CLOSED | [DIA-197-dcp-removal-evaluation.md](DIA-197-dcp-removal-evaluation.md) |
 | DIA-198 | reconcile self-rerun thresholds 15/25 across OMO prompts + drift-checker (DIA-191 F4/F5) | opencode-config | Low | CLOSED | [DIA-198-threshold-reconciliation.md](DIA-198-threshold-reconciliation.md) |
-| DIA-199 | memory-shelf permission resolver: exact-file allow not resolved at runtime (DIA-143 broken) | opencode-config | Major | OPEN | [DIA-199-memory-shelf-permission-resolver.md](DIA-199-memory-shelf-permission-resolver.md) |
+| DIA-199 | memory-shelf permission resolver: exact-file allow not resolved at runtime (DIA-143 broken) | opencode-config | Major | CLOSED | [DIA-199-memory-shelf-permission-resolver.md](DIA-199-memory-shelf-permission-resolver.md) |
 | DIA-200 | Analyze worktree/branch/merge mechanism + verify Codex/ClaudeCode follow the same conventions | dev-infra | Medium | CLOSED | [DIA-200-worktree-branch-merge-mechanism-analysis.md](DIA-200-worktree-branch-merge-mechanism-analysis.md) |
-| DIA-201 | worktree cleanup: orphaned-dir sweep for .worktrees/ (ana022 R-1) | dev-infra | Medium | OPEN | [DIA-201-worktree-cleanup-orphaned-dir-sweep-for-worktrees-ana022-r-1.md](DIA-201-worktree-cleanup-orphaned-dir-sweep-for-worktrees-ana022-r-1.md) |
+| DIA-201 | worktree cleanup: orphaned-dir sweep for .worktrees/ (ana022 R-1) | dev-infra | Medium | CLOSED | [DIA-201-worktree-cleanup-orphaned-dir-sweep-for-worktrees-ana022-r-1.md](DIA-201-worktree-cleanup-orphaned-dir-sweep-for-worktrees-ana022-r-1.md) |
 | DIA-202 | worktrees.sh: nested-worktree creation guard (ana022 R-2) | dev-infra | Medium | CLOSED | [DIA-202-worktrees-sh-nested-worktree-creation-guard-ana022-r-2.md](DIA-202-worktrees-sh-nested-worktree-creation-guard-ana022-r-2.md) |
 | DIA-203 | make worktree-gc target + dry-run post-push warning (ana022 R-4) | dev-infra | Medium | CLOSED | [DIA-203-make-worktree-gc-target-dry-run-post-push-warning-ana022-r-4.md](DIA-203-make-worktree-gc-target-dry-run-post-push-warning-ana022-r-4.md) |
-| DIA-204 | delegation-observer handoff-archived log line leaks into OpenCode chat UI (console.warn surfaces in conversation stream) | opencode-config | Medium | OPEN | [DIA-204-delegation-observer-handoff-log-leaks-into-chat-ui.md](DIA-204-delegation-observer-handoff-log-leaks-into-chat-ui.md) |
+| DIA-204 | delegation-observer handoff-archived log line leaks into OpenCode chat UI (console.warn surfaces in conversation stream) | opencode-config | Medium | CLOSED | [DIA-204-delegation-observer-handoff-log-leaks-into-chat-ui.md](DIA-204-delegation-observer-handoff-log-leaks-into-chat-ui.md) |
 | DIA-205 | changelog YAML-ledger conversion: migrate historical CHANGELOG.md entries into the ledger + reconcile derived MD view | opencode-config | Medium | CLOSED | [DIA-205-changelog-yaml-ledger-conversion.md](DIA-205-changelog-yaml-ledger-conversion.md) |
 | DIA-207 | WSL memory/CPU cap exhaustion causes vsock relay stalls and remote disconnects | env | Major | OPEN | [DIA-207-wsl-memory-cap-vsock-relay-disconnects.md](DIA-207-wsl-memory-cap-vsock-relay-disconnects.md) |
 | DIA-209 | CHANGELOG-to-YAML ledger conversion | opencode-config | Medium | CLOSED | [DIA-209-changelog-to-yaml-ledger-conversion.md](DIA-209-changelog-to-yaml-ledger-conversion.md) |
 | DIA-210 | Fix pre-commit root:root ownership flip in Docker container | dev-infra | Medium | CLOSED | [DIA-210-pre-commit-root-ownership-flip.md](DIA-210-pre-commit-root-ownership-flip.md) |
 | DIA-211 | Event-driven orchestration harness evolution | opencode-config | Medium | OPEN | [DIA-211-event-driven-orchestration-harness-evolution.md](DIA-211-event-driven-orchestration-harness-evolution.md) |
-| DIA-212 | Researcher dispatched without pre-allocated res ID -- extra iteration required | opencode-config | Medium | OPEN | [DIA-212-researcher-dispatch-without-res-id.md](DIA-212-researcher-dispatch-without-res-id.md) |
+| DIA-212 | Researcher dispatched without pre-allocated res ID -- extra iteration required | opencode-config | Medium | CLOSED | [DIA-212-researcher-dispatch-without-res-id.md](DIA-212-researcher-dispatch-without-res-id.md) |
 | DIA-213 | Orchestrator scope limitation: delegation + workflow decisions only, content decisions to specialized agents | opencode-config | High | OPEN | [DIA-213-orchestrator-scope-limitation.md](DIA-213-orchestrator-scope-limitation.md) |
-| DIA-235 | Orchestrator bugs analysis and fix | opencode-config | Critical | OPEN | [DIA-235-orchestrator-bugs-analysis.md](DIA-235-orchestrator-bugs-analysis.md) |
+| DIA-235 | Orchestrator bugs analysis and fix | opencode-config | Critical | CLOSED | [DIA-235-orchestrator-bugs-analysis.md](DIA-235-orchestrator-bugs-analysis.md) |
+| DIA-260819-880v | Orchestrator not using todowrite for planned items | opencode-config | Low | CLOSED | [DIA-260819-880v-orchestrator-not-using-todowrite-for-planned-items.md](DIA-260819-880v-orchestrator-not-using-todowrite-for-planned-items.md) |
+| DIA-260819-8kwm | unified ID generation: all artifact types should use same datetime-based pattern | dev-infra | Medium | OPEN | [DIA-260819-8kwm-unified-id-generation-all-artifact-types-should-use-same-datetime-based-pattern.md](DIA-260819-8kwm-unified-id-generation-all-artifact-types-should-use-same-datetime-based-pattern.md) |
+| DIA-260819-97fg | memory-manager permission: scoped write access for learnings directory | opencode-config | Low | OPEN | [DIA-260819-97fg-memory-manager-permission-scoped-write-access-for-learnings-directory.md](DIA-260819-97fg-memory-manager-permission-scoped-write-access-for-learnings-directory.md) |
 | DIA-260819-mh6p | Agentic workflow compliance analysis and fixes | opencode-config | Critical | COMPLETE | [DIA-260819-mh6p-agentic-workflow-compliance-analysis-and-fixes.md](DIA-260819-mh6p-agentic-workflow-compliance-analysis-and-fixes.md) |
+| DIA-260819-9oxi | DCP plugin still injecting system-reminders despite DIA-197 V2 config | opencode-config | Medium | CLOSED | [DIA-260819-9oxi-dcp-plugin-still-injecting-system-reminders-despite-dia-197-v2-config.md](DIA-260819-9oxi-dcp-plugin-still-injecting-system-reminders-despite-dia-197-v2-config.md) |
+| DIA-260819-mq4h | ticket system comparison: custom bash vs proven solutions | dev-infra | Medium | CLOSED | [DIA-260819-mq4h-ticket-system-comparison-custom-bash-vs-proven-solutions.md](DIA-260819-mq4h-ticket-system-comparison-custom-bash-vs-proven-solutions.md) |
+| DIA-260819-qibv | research pipeline bug: conspect should be mandatory, not optional | opencode-config | Medium | OPEN | [DIA-260819-qibv-research-pipeline-bug-conspect-should-be-mandatory-not-optional.md](DIA-260819-qibv-research-pipeline-bug-conspect-should-be-mandatory-not-optional.md) |
+| DIA-260819-sl22 | ticket navigation scripts: search, filter, statistics, tool registration | dev-infra | Medium | CLOSED | [DIA-260819-sl22-ticket-navigation-scripts-search-filter-statistics-tool-registration.md](DIA-260819-sl22-ticket-navigation-scripts-search-filter-statistics-tool-registration.md) |
 
 ## Status summary
 
@@ -172,16 +179,16 @@
 | Blocker  | 7     |
 | Critical | 10    |
 | Major    | 48    |
-| Medium   | 81    |
+| Medium   | 86    |
 | Minor    | 0     |
-| Low      | 17    |
+| Low      | 19    |
 | Info     | 0     |
 | High     | 1     |
 
 | Status      | Count |
 | ----------- | ----- |
-| OPEN        | 11    |
-| DONE        | 12    |
+| OPEN        | 13    |
+| DONE        | 11    |
 | VALIDATE    | 0     |
 | E2E         | 0     |
 | DEFERRED    | 1     |
@@ -189,7 +196,7 @@
 | FIXED       | 1     |
 | IMPLEMENTED | 2     |
 | VERIFIED    | 28    |
-| CLOSED      | 107   |
+| CLOSED      | 113   |
 | BLOCKED     | 0     |
 | DISPATCHED  | 0     |
 | RUNNING     | 0     |
