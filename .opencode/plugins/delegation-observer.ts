@@ -39,7 +39,7 @@
  * C3 forward-only status transitions (S2 guard), DIA-105 edit-time format
  * (non-fatal, ignore-set-scoped, deterministic local prettier).
  */
-import { createHash, randomUUID } from "node:crypto"
+import { createHash, createHmac, randomBytes, randomUUID, timingSafeEqual } from "node:crypto"
 import { spawnSync } from "node:child_process"
 import {
   appendFileSync,
@@ -60,6 +60,93 @@ import { tool, type Hooks, type Plugin } from "@opencode-ai/plugin"
 
 /** Relative path to the tickets directory (workspace-root-relative). */
 const TICKETS_DIR_REL = "docs/dev-infra-audit/tickets"
+
+/**
+ * Ephemeral secret for HMAC capability tokens. Random per process start;
+ * tokens are short-lived (5 min) so process-restart invalidation is acceptable.
+ */
+const CAPABILITY_SECRET = randomBytes(32)
+
+// ── Capability token utilities (DIA-260820-jlu0) ────────────────────────────
+
+interface CapabilityPayload {
+  id: string
+  scope: string
+  reason: string
+  exp: number
+}
+
+/** Encode a Buffer or string as base64url (no padding). */
+function base64url(buf: Buffer | string): string {
+  const b = typeof buf === "string" ? Buffer.from(buf) : buf
+  return b
+    .toString("base64")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "")
+}
+
+/**
+ * Mint a short-lived HMAC-signed capability token (5 min TTL).
+ * The token carries a JSON payload (id, scope, reason, exp) signed with
+ * CAPABILITY_SECRET so it cannot be forged outside this plugin process.
+ */
+function mintCapabilityToken(scope: string, reason: string): string {
+  const payload = {
+    id: randomUUID(),
+    scope,
+    reason,
+    exp: Date.now() + 5 * 60 * 1000, // 5 minutes
+  }
+  const payloadB64 = base64url(JSON.stringify(payload))
+  const hmac = createHmac("sha256", CAPABILITY_SECRET)
+    .update(payloadB64)
+    .digest()
+  const sigB64 = base64url(hmac)
+  return `CAP-${payloadB64}.${sigB64}`
+}
+
+/**
+ * Verify a capability token: check HMAC signature, then expiry.
+ * Returns { valid, payload } on success, { valid: false, error } on failure.
+ */
+function verifyCapabilityToken(
+  token: string
+): { valid: boolean; payload?: CapabilityPayload; error?: string } {
+  // Strip the "CAP-" prefix before splitting: the mint format is
+  // "CAP-{payloadB64}.{sigB64}" but HMAC covers only the raw payload bytes.
+  const raw = token.startsWith("CAP-") ? token.slice(4) : token
+  const parts = raw.split(".")
+  if (parts.length !== 2) return { valid: false, error: "malformed token" }
+  const [payloadB64, sigB64] = parts
+  const expectedHmac = createHmac("sha256", CAPABILITY_SECRET)
+    .update(payloadB64)
+    .digest()
+  const expectedSig = base64url(expectedHmac)
+  // S3: timing-safe comparison to prevent timing side-channel attacks.
+  const sigBuf = Buffer.from(sigB64)
+  const expectedBuf = Buffer.from(expectedSig)
+  if (
+    sigBuf.length !== expectedBuf.length ||
+    !timingSafeEqual(sigBuf, expectedBuf)
+  ) {
+    return { valid: false, error: "invalid signature" }
+  }
+  try {
+    // S1: convert base64url back to base64 before decoding -- standard
+    // base64 decoding silently drops `-` and `_` which are valid base64url
+    // characters, causing valid tokens to be rejected.
+    const b64 = payloadB64.replace(/-/g, "+").replace(/_/g, "/")
+    const payload = JSON.parse(
+      Buffer.from(b64, "base64").toString()
+    ) as CapabilityPayload
+    if (Date.now() > payload.exp)
+      return { valid: false, error: "token expired" }
+    return { valid: true, payload }
+  } catch {
+    return { valid: false, error: "payload parse failed" }
+  }
+}
 
 /**
  * Parse a task() tool result to recover the child session id.
@@ -1688,16 +1775,23 @@ const delegationObserver: Plugin = async (ctx) => {
     })
   }
 
-  // Scope exemption: ticket-creation and checksum-verification dispatches
-  // skip all routing gates (same rationale as the section-10 ticket-gate exemption).
+  // Scope exemption: ticket-creation, checksum-verification, and valid
+  // capability-token dispatches skip all routing gates (same rationale as
+  // the section-10 ticket-gate exemption).
   function isScopeExempt(dispatch: {
     prompt?: string
     description?: string
   }): boolean {
     const text = `${dispatch.description || ""}\n${dispatch.prompt || ""}`
-    return /create.*ticket|ticket.*creat|DIA-\d+.*ticket|checksum.*verif/i.test(
-      text
-    )
+    if (/checksum.*verif|handoff\s*integrit/i.test(text)) return true
+    // Capability token bypass: a valid token in the dispatch text exempts
+    // from routing gates (DIA-260820-jlu0 Option A).
+    const capMatch = /\[CAPABILITY:\s*(CAP-[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+)\]/.exec(text)
+    if (capMatch) {
+      const result = verifyCapabilityToken(capMatch[1])
+      if (result.valid) return true
+    }
+    return false
   }
 
   // Idempotency cache (in-memory, 5min TTL, lose <1s on crash)
@@ -2476,6 +2570,35 @@ const delegationObserver: Plugin = async (ctx) => {
       // treated as "ticket not found" (warn, not block) -- a broken gate is
       // worse than no gate (same fail-soft pattern as the §10 edit gate).
       if (input.tool === "task") {
+        // === Capability token bypass (DIA-260820-jlu0) ===
+        // A valid HMAC-signed capability token in the dispatch text bypasses
+        // the DIA-217 ticket gate. Scoped to specific operations to limit
+        // blast radius. Checked BEFORE the ticket_id field check so a
+        // minted token fully replaces the ticket requirement.
+        const capMatch = /\[CAPABILITY:\s*(CAP-[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+)\]/.exec(
+          `${typeof taskArgRecord.description === "string" ? taskArgRecord.description : ""}\n${typeof taskArgRecord.prompt === "string" ? taskArgRecord.prompt : ""}`
+        )
+        if (capMatch) {
+          const result = verifyCapabilityToken(capMatch[1])
+          if (result.valid) {
+            appendRow({
+              event: "capability_used",
+              session_id: input.sessionID,
+              scope: result.payload!.scope,
+              writer: "plugin",
+            })
+            tuiSafeWarn(
+              `[capability-auth] Bypassing ticket gate via valid capability: ${result.payload!.scope}`,
+              { level: "info" }
+            )
+            return // Bypass the DIA-217 gate
+          } else {
+            throw new Error(
+              `§10 TICKET GATE: Capability token invalid (${result.error}). Mint a new one and try again.`
+            )
+          }
+        }
+
         // FIX 2: reuse already-extracted args from the top of the hook
         const ticketId =
           typeof taskArgRecord.ticket_id === "string"
@@ -2807,12 +2930,7 @@ const delegationObserver: Plugin = async (ctx) => {
             )
           if (subagentType !== "ai-specialist" && !configWorkHint) return
 
-          // Exempt ticket-CREATION dispatches ONLY (README "How to add a
-          // ticket" flows): the dispatch must ask to create/author/write a
-          // ticket. A bare DIA-id mention is NOT exempt — it is the
-          // work-to-ticket correlation signal below (finding A: the old
-          // /DIA-\d+/ exemption was a direct bypass).
-          // ALSO exempt mechanical boot-gate checksum verification (DIA-061/
+          // Exempt mechanical boot-gate checksum verification (DIA-061/
           // DIA-075): the canonical `bash -c "jq ..."` passthrough checksum
           // comparison is a mechanical BOOT task, not §10 work. Without this
           // exemption it creates a circular deadlock: the boot gate requires
@@ -2823,8 +2941,13 @@ const delegationObserver: Plugin = async (ctx) => {
           // `checksum\s+verif` matches; the bare `sha256\b` arm was dropped
           // (DIA-076 M1) because a bare keyword is too easy to trigger in
           // unrelated §10 text.
+          //
+          // Ticket-creation exemption REMOVED (DIA-260820-jlu0): capability
+          // tokens now handle gate bypass for ticket-creation and other
+          // scoped operations. The old text-based ticket-creation exemption
+          // was a brittle regex that could false-positive on unrelated text.
           if (
-            /create\s+(a\s+)?ticket\b|new\s+ticket\b|ticket\s+creation|author\s+ticket\b|checksum\s+verif|handoff\s*integrit/i.test(
+            /checksum\s+verif|handoff\s*integrit/i.test(
               dispatchText
             )
           ) {
@@ -4467,6 +4590,39 @@ const delegationObserver: Plugin = async (ctx) => {
             result.council_budget_90pct = (estimatedCredits ?? 0) >= 1350
           }
           return JSON.stringify(result, null, 2)
+        },
+      }),
+
+      // mint_capability — HMAC-signed capability token for gate bypass
+      // (DIA-260820-jlu0). Provides a short-lived (5 min) signed token that
+      // bypasses the DIA-217 ticket gate and §10 routing gates. Scoped to
+      // specific operations (ticket-creation, ai-infra-application, bootstrap)
+      // to limit blast radius. Token is process-scoped (ephemeral secret),
+      // so restart invalidates all outstanding tokens by design.
+      mint_capability: tool({
+        description:
+          "Mint a short-lived capability token (5 min TTL) to bypass ticket gates. Use ONLY for ticket creation, bootstrap operations, or applying ai-auditor recommendations.",
+        args: {
+          scope: tool.schema.enum([
+            "ticket-creation",
+            "ai-infra-application",
+            "bootstrap",
+          ]),
+          reason: tool.schema.string(),
+        },
+        async execute(args, ctx) {
+          const token = mintCapabilityToken(args.scope, args.reason)
+          appendRow({
+            event: "capability_minted",
+            session_id: ctx.sessionID,
+            scope: args.scope,
+            reason: args.reason,
+            writer: "plugin",
+          })
+          return JSON.stringify({
+            token,
+            instruction: `Embed this token anywhere in your task dispatch text exactly as: [CAPABILITY: ${token}]`,
+          })
         },
       }),
     },

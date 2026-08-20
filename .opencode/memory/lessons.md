@@ -1914,3 +1914,88 @@ recorded here). Irrecoverable process lessons:
   is a session observation; git shows the implementation but not when the
   approach question was raised.
 - Cross-reference: DIA-260819-sl22, L20260819-006 (custom vs proven threshold).
+
+## L20260820-001 - base64url vs base64: Node.js Buffer silently drops non-base64 characters (DIA-260820-jlu0, 2026-08-20)
+
+- Observation: Node.js `Buffer.from(str, 'base64')` silently drops characters
+  that are not valid base64 (specifically `-` and `_` from base64url encoding).
+  The capability token system initially encoded HMAC signatures as base64url
+  (URL-safe) but decoded them with `Buffer.from(sig, 'base64')`, which silently
+  stripped the URL-safe characters. Verification always failed with an incorrect
+  HMAC despite correct signature generation.
+- Root cause: base64url uses `-` and `_` instead of `+` and `/`. Node.js
+  `Buffer.from(str, 'base64')` is strict about base64 alphabet and silently
+  drops non-matching characters rather than throwing. The signature appeared
+  valid when printed but was corrupted on decode.
+- Fix: convert base64url to standard base64 before decoding (replace `-` with
+  `+`, `_` with `/`, pad with `=` as needed), or use a library that handles
+  the encoding round-trip.
+- Lesson: when using base64url encoding (common in JWT, HMAC, URL contexts),
+  ALWAYS verify the decode path handles the full alphabet. A signature that
+  "looks correct" when printed can silently decode to a different value.
+  Test with a known vector that includes `-` and `_` characters to catch
+  this class of bug.
+- Why irrecoverable: the bug was caught during code review (2 review cycles),
+  not by tests initially. The silent-drop behavior is a Node.js runtime fact
+  not stated in any committed file or documentation.
+- Cross-reference: DIA-260820-jlu0, capability-authorization architecture.
+
+## L20260820-002 - Test-first catches hidden bugs that review misses (DIA-260820-jlu0, 2026-08-20)
+
+- Observation: after the base64url bug was caught in review cycle 1 and fixed,
+  unit tests were added for the capability token system. The tests immediately
+  caught a SECOND bug: the `CAP-` prefix was not stripped from token strings
+  before HMAC verification. The prefix was added for type identification but
+  the verification function expected raw `tokenId:timestamp:hmac` format. The
+  reviewer had missed this because the prefix addition and verification lived
+  in different code sections.
+- Lesson: test-first TDD catches implementation bugs that code review misses,
+  especially when bugs span multiple code sections (prefix in one place,
+  verification in another). The CAP- prefix bug would have shipped without
+  tests because review focused on the HMAC fix, not the token format flow.
+- Why irrecoverable: the test-first discovery of the second bug is a session
+  observation; git shows both fixes but not that the tests caught the second
+  bug that review missed.
+- Cross-reference: DIA-260820-jlu0, tdd-craftsman skill, capability token tests.
+
+## L20260820-003 - Capability tokens solve chicken-and-egg for meta-task authorization (DIA-260820-jlu0, 2026-08-20)
+
+- Observation: the DIA-217 ticket gate required an OPEN ticket before any
+  engineering work could start, but creating tickets IS engineering work.
+  Meta-tasks (ticket creation, bootstrap operations, procedural
+  authorizations) could not bypass the gate because they had no ticket to
+  correlate against. The HMAC stateless capability token system solved this:
+  tokens carry their own authority (signed by a server secret with a 5-min
+  TTL), so meta-tasks can present a capability token instead of a ticket
+  reference to pass the gate.
+- Lesson: when a gate creates a chicken-and-egg problem (gate requires X
+  but obtaining X triggers the gate), evaluate whether a stateless
+  capability token (HMAC-signed, TTL-bounded) can break the cycle. The
+  token carries its own authority without needing a central lookup, making
+  it self-authorizing. This is the right pattern when: (1) the gate is
+  simple (check signature + TTL), (2) the token scope is narrow (specific
+  operation), and (3) the token lifetime is short (5 min default).
+- Why irrecoverable: the chicken-and-egg problem and the capability-token
+  solution are design decisions; git shows the implementation but not the
+  structural problem that motivated it.
+- Cross-reference: DIA-260820-jlu0, DIA-217, capability-authorization architecture.
+
+## L20260820-004 - Ponytail wins: HMAC + Node.js stdlib crypto beats UCAN/JWT for simple gates (DIA-260820-jlu0, 2026-08-20)
+
+- Observation: the capability token implementation used HMAC with Node.js
+  built-in `crypto` module (~200 lines total). Alternatives evaluated: UCAN
+  (decentralized authorization, complex DAG model) and JWT (JSON Web Token,
+  requires jose/jsonwebtoken dependency). Both would have been 10x more
+  complex for the same security properties: HMAC-SHA256 signing, base64url
+  encoding, TTL validation.
+- Lesson: for simple capability gates (sign a token, verify signature + TTL),
+  use HMAC + stdlib crypto. UCAN/JWT are overkill when: (1) you control both
+  issuer and verifier (no decentralized trust needed), (2) the token payload
+  is small (operation + TTL), (3) the gate is a single service (no
+  cross-service token exchange). The ponytail ladder applied: stdlib does it,
+  one dependency avoided, ~200 lines vs ~2000+.
+- Why irrecoverable: the technology selection rationale (HMAC over UCAN/JWT)
+  is a design decision; git shows the crypto usage but not the alternatives
+  evaluated or why they were rejected.
+- Cross-reference: DIA-260820-jlu0, capability-authorization architecture,
+  ponytail skill.

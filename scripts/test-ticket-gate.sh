@@ -63,12 +63,13 @@ else
 fi
 
 # --- Check 2: narrowed exemption regex (checksum\s+verif + handoff\s*integrit
-# present; sha256\b arm dropped) ---
+# present; sha256\b arm dropped; ticket-creation patterns removed per
+# DIA-260820-jlu0 capability-token bypass) ---
 # Scope the probe to the exemption-regex line (the single line carrying the
-# `/create\s+(a\s+)?ticket\b ...` literal) so the `sha256` absence assertion
-# is about the REGEX, not the unrelated `createHash("sha256")` helper at the
-# checksum-computation site.
-EXEMPT_RE="$(grep -F '/create\s+(a\s+)?ticket\b' "$PLUGIN" || true)"
+# `/checksum\s+verif|handoff\s*integrit` literal) so the `sha256` absence
+# assertion is about the REGEX, not the unrelated `createHash("sha256")`
+# helper at the checksum-computation site.
+EXEMPT_RE="$(grep -F 'checksum\s+verif|handoff\s*integrit' "$PLUGIN" || true)"
 if grep -Fq 'checksum\s+verif' <<<"$EXEMPT_RE" &&
    grep -Fq 'handoff\s*integrit' <<<"$EXEMPT_RE" &&
    ! grep -Fq 'sha256' <<<"$EXEMPT_RE"; then

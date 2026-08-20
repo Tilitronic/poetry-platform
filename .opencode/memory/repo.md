@@ -321,3 +321,15 @@ Note: These are navigational facts to help future humans find the infra/test art
   Record: permitted-but-undocumented tools are invisible bugs. When adding a
   tool to permission allow-list, MUST add corresponding prompt guidance +
   drift-checker marker in the same change. See adr.md DIA-260819-880v ADR.
+
+- delegation-observer.ts capability token system (DIA-260820-jlu0, 2026-08-20):
+  The plugin now implements HMAC stateless capability tokens for meta-task
+  authorization. Token format: `CAP-<tokenId>:<timestamp>:<hmacSignature>`.
+  Signed with HMAC-SHA256 using an in-memory server secret. 5-minute TTL.
+  The gate accepts valid capability tokens as an alternative to ticket
+  correlation for meta-tasks (ticket creation, bootstrap operations). The
+  CAP- prefix is stripped before HMAC verification. Architecture reference:
+  .sdd/capability-authorization/architecture.md. Lessons: base64url decode
+  gotcha (L20260820-001), test-first bug discovery (L20260820-002),
+  chicken-and-egg solution (L20260820-003), HMAC over UCAN/JWT rationale
+  (L20260820-004).

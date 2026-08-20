@@ -1681,3 +1681,71 @@ are not flagged by the empty_result detector.
 - Created: 2026-08-17
 - Related: DIA-206, DIA-224, .opencode/plugins/delegation-observer.ts (3-line
   change), .opencode/agents/ai-specialist.md (created in same session)
+
+## ADR: HMAC stateless capability tokens for meta-task authorization (DIA-260820-jlu0)
+
+### Status
+
+Accepted - 2026-08-20
+
+### Context
+
+The DIA-217 ticket gate created a chicken-and-egg problem: meta-tasks
+(ticket creation, bootstrap operations, procedural authorizations) needed
+an OPEN ticket to pass the gate, but creating tickets IS engineering work
+that triggers the gate. The gate's tri-state correlation logic (DIA-076
+C1) requires an explicit DIA-id in the dispatch prompt that resolves to
+an OPEN ticket. Meta-tasks have no pre-existing ticket to correlate
+against.
+
+### Decision
+
+Adopt HMAC stateless capability tokens as the authorization mechanism for
+meta-tasks. Tokens are signed by a server secret using HMAC-SHA256,
+encoded as base64url, and carry a 5-minute TTL. The token format is:
+`CAP-<tokenId>:<timestamp>:<hmacSignature>`. The gate accepts a valid
+capability token as an alternative to ticket correlation when the token's
+operation matches the dispatched task.
+
+### Rationale (irrecoverable context)
+
+- Stateless over stateful: capability tokens carry their own authority
+  (signed by server secret), so no central token store or lookup is needed.
+  This is critical for meta-tasks that run before the ticket system is
+  bootstrapped. A stateful token store would itself need authorization to
+  access, recreating the chicken-and-egg.
+- HMAC over UCAN/JWT: UCAN (decentralized authorization) and JWT (JSON Web
+  Token) both require external dependencies and complex verification logic.
+  HMAC-SHA256 via Node.js built-in `crypto` module provides equivalent
+  security properties for a single-service gate (issuer = verifier) at ~200
+  lines vs ~2000+ for UCAN/JWT. The ponytail ladder applied: stdlib does it.
+- 5-minute TTL: short lifetime limits exposure window. Tokens are generated
+  on-demand for specific meta-tasks and expire quickly. No revocation needed
+  because the TTL is the revocation mechanism.
+- base64url encoding: URL-safe encoding prevents transport corruption when
+  tokens are passed in dispatch prompts or URLs. The decode path must
+  handle the full base64url alphabet (- and _ characters) to avoid the
+  silent-drop bug discovered during implementation (see lessons.md
+  L20260820-001).
+
+### Consequences
+
+- Meta-tasks can bypass the ticket gate by presenting a valid capability
+  token instead of an OPEN ticket reference. The gate validates: (1) token
+  format, (2) HMAC signature against server secret, (3) TTL expiry.
+- The server secret must be available to the gate at runtime. For this
+  project it is stored in the delegation-observer plugin's in-memory state
+  (not persisted to disk) to avoid secret leakage.
+- Token scope is per-operation: each capability token is valid for a
+  specific operation (e.g. "create_ticket", "bootstrap_authorization"). A
+  token for one operation cannot authorize a different operation.
+- The CAP- prefix was added for type identification but caused a
+  verification bug (prefix not stripped before HMAC check). The prefix is
+  now stripped before verification; this interaction is recorded in
+  lessons.md L20260820-002.
+
+### Metadata
+
+- Created: 2026-08-20
+- Related: DIA-260820-jlu0, DIA-217, .opencode/plugins/delegation-observer.ts,
+  .sdd/capability-authorization/architecture.md, lessons L20260820-001..004

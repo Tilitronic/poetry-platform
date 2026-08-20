@@ -228,6 +228,7 @@
         },
         "cancel_task": "allow",
         "log_decision": "allow",
+        "mint_capability": "allow",
         "list": "allow",
         "lsp": "allow",
         "question": "allow",
@@ -404,7 +405,8 @@
         "edit": {
           "*": "deny",
           ".opencode/memory/*": "allow",
-          ".opencode/memory-shelf.yaml*": "allow"
+          ".opencode/memory-shelf.yaml*": "allow",
+          ".opencode/learnings/external-patterns/*": "allow"
         }
       }
     },

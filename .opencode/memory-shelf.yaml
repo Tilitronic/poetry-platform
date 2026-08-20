@@ -335,6 +335,33 @@ shelf:
       message passing, circuit breakers, and formal verification.
     path: knowledge/res033-agent-determinism/res033-agent-determinism-conspect.md
     created: 2026-08-17
+  - name: Readable Session Identifiers (DIA-189)
+    description: 'Conspect evaluating human-readable session ID approaches for OpenCode
+      terminal naming (10 archived sources). Covers Docker adjective_surname (35K combos),
+      unique-names-generator (npm, 14K dependents, 0 deps, seed support, 50M+ combos
+      -- RECOMMENDED), humanhash (deterministic but uuid dependency), moniker (unmaintained),
+      didyoumean (not ID generator), random-word-slugs (no seed). EBDV: Variant A
+      unique-names-generator with seed (deterministic, storage-free, high namespace);
+      Variant B Docker-style custom wordlist (zero-dep but 35K collision risk); Variant
+      C datetime+random (stdlib, less readable); Variant D humanhash (rejected: dependency+length);
+      Variant E status quo hex (rejected: not memorable). Recommendation: adopt unique-names-generator
+      with seed for deterministic session labels like big-donkey, focused-turing.'
+    path: knowledge/res034-readable-session-ids/res034-readable-session-ids-conspect.md
+    created: '2026-08-20'
+  - name: Capability-Based Authorization for Multi-Agent Workflows
+    description: 'Conspect synthesizing capability-based authorization patterns to
+      solve chicken-and-egg problems in multi-agent ticket gates (16 archived sources
+      from 14 distinct origins). Covers: capability-based security fundamentals (Wikipedia
+      + academic papers), UCAN/decentralized capability tokens (specification + implementations),
+      stamp/endorsement patterns, bootstrap authorization, key-based access control,
+      event-driven authorization. Pattern catalog: 10 authorization patterns with pros/cons/comparison
+      matrix. Recommendation: Adopt HMAC Stateless Capability (Pattern 1) + TTL Auto-Expiry
+      (Pattern 8) -- pragmatic formalization of existing log_decision + session handoff
+      system. ~200 lines TypeScript, zero new dependencies. Skip UCAN/ASP (over-engineered
+      for single-system deployment). Implementation sketch maps to existing delegation-observer
+      infrastructure.'
+    path: knowledge/res035-capability-authorization/res035-capability-authorization-conspect.md
+    created: '2026-08-20'
 
   analyses:
   - name: Agent Alignment Audit

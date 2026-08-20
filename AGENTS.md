@@ -213,6 +213,23 @@ Full setup docs: `docs/docker-dev.md`.
   references the handoff. On plugin failure, flag the missing handoff
   explicitly. (Operating protocol: `docs/dev-infra-audit/NEXT-RUN.md` §7.2.)
 
+### Ticket queries via scripts (DIA-260820-y268)
+
+When querying ticket status, **use `scripts/tickets` subcommands**. **Do NOT** read the `docs/dev-infra-audit/tickets/` directory directly. **Do NOT** rely on `README.md` for status.
+
+The `README.md` rollup in the tickets directory is a static snapshot that can drift from actual state. Scripts provide live, filtered, structured output on demand.
+
+| Query                                          | Command                              |
+| ---------------------------------------------- | ------------------------------------ |
+| Tickets with no blockers (what can I work on?) | `scripts/tickets frontier`           |
+| Ticket count by status                         | `scripts/tickets stats`              |
+| List tickets by status                         | `scripts/tickets list --status OPEN` |
+| Show single ticket                             | `scripts/tickets show <id>`          |
+| Create new ticket                              | `scripts/tickets new --title "..."`  |
+| Search tickets by keyword                      | `scripts/tickets search <query>`     |
+| Recompute README rollup                        | `scripts/tickets rollup`             |
+| Show help/usage                                | `scripts/tickets help`               |
+
 ### Edit-time formatting (DIA-105)
 
 - The delegation-observer plugin runs prettier (local, --no-install) on

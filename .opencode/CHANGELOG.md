@@ -855,3 +855,9 @@
 - **Change:** Orchestrator todowrite discipline -- prompt gap fix, tool was permitted but undocumented
 - **Files:** .opencode/oh-my-opencode-slim/orchestrator_append.md - .opencode/oh-my-opencode-slim.jsonc - scripts/check-orchestrator-prompt-drift.sh
 - **Verification:** make test-config exit 0, drift-checker marker #9 present, byte-identical x3 presets
+
+## 2026-08-20 - DIA-260819-97fg: memory-manager scoped write permission for learnings directory
+
+- **Change:** memory-manager scoped write permission for learnings directory -- Added .opencode/learnings/external-patterns/*: allow to memory-manager edit permission block. Eliminates bash-fallback token waste when writing learnings files. Follows established scoped-write pattern used by 6 other agents. Review: ai-auditor approve-with-notes (documentation fidelity note in learnings file, not safety concern).
+- **Files:** .opencode/opencode.jsonc
+- **Verification:** make test-config passed (56 tests, 0 failures)

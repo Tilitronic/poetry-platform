@@ -1,3 +1,5 @@
+> **DEPRECATED (DIA-260820-y268):** This README is a static snapshot. For live ticket status, use `scripts/tickets` subcommands (see AGENTS.md §6). This file is retained for historical reference only.
+
 # Dev-Infra Audit — Ticket Ledger
 
 | DIA-045 | OpenCode config drift backlog (ai-specialist review 2026-08-04, findings F6–F22) | opencode-config | Medium | CLOSED | [DIA-045-opencode-config-drift-backlog.md](DIA-045-opencode-config-drift-backlog.md) |
@@ -171,6 +173,9 @@
 | DIA-260819-mq4h | ticket system comparison: custom bash vs proven solutions | dev-infra | Medium | CLOSED | [DIA-260819-mq4h-ticket-system-comparison-custom-bash-vs-proven-solutions.md](DIA-260819-mq4h-ticket-system-comparison-custom-bash-vs-proven-solutions.md) |
 | DIA-260819-qibv | research pipeline bug: conspect should be mandatory, not optional | opencode-config | Medium | OPEN | [DIA-260819-qibv-research-pipeline-bug-conspect-should-be-mandatory-not-optional.md](DIA-260819-qibv-research-pipeline-bug-conspect-should-be-mandatory-not-optional.md) |
 | DIA-260819-sl22 | ticket navigation scripts: search, filter, statistics, tool registration | dev-infra | Medium | CLOSED | [DIA-260819-sl22-ticket-navigation-scripts-search-filter-statistics-tool-registration.md](DIA-260819-sl22-ticket-navigation-scripts-search-filter-statistics-tool-registration.md) |
+| DIA-260820-dr0g | researcher agent deviates from 3-tier fetch chain, uses WebFetch/context7 instead of trafilatura/crawl4ai | dev-infra | Medium | OPEN | [DIA-260820-dr0g-researcher-agent-deviates-from-3-tier-fetch-chain-uses-webfetch-context7-instead-of-trafilatura-crawl4ai.md](DIA-260820-dr0g-researcher-agent-deviates-from-3-tier-fetch-chain-uses-webfetch-context7-instead-of-trafilatura-crawl4ai.md) |
+| DIA-260820-jlu0 | DIA-217 ticket gate creates chicken-and-egg for meta-tasks and procedural authorizations | dev-infra | Major | OPEN | [DIA-260820-jlu0-dia-217-ticket-gate-creates-chicken-and-egg-for-meta-tasks-and-procedural-authorizations.md](DIA-260820-jlu0-dia-217-ticket-gate-creates-chicken-and-egg-for-meta-tasks-and-procedural-authorizations.md) |
+| DIA-260820-y268 | enforce ticket-status queries via scripts, deprecate README rollup | dev-infra | Medium | OPEN | [DIA-260820-y268-enforce-ticket-status-queries-via-scripts-deprecate-readme-rollup.md](DIA-260820-y268-enforce-ticket-status-queries-via-scripts-deprecate-readme-rollup.md) |
 
 ## Status summary
 
@@ -178,8 +183,8 @@
 | -------- | ----- |
 | Blocker  | 7     |
 | Critical | 10    |
-| Major    | 48    |
-| Medium   | 86    |
+| Major    | 49    |
+| Medium   | 88    |
 | Minor    | 0     |
 | Low      | 19    |
 | Info     | 0     |
@@ -187,7 +192,7 @@
 
 | Status      | Count |
 | ----------- | ----- |
-| OPEN        | 13    |
+| OPEN        | 16    |
 | DONE        | 11    |
 | VALIDATE    | 0     |
 | E2E         | 0     |
