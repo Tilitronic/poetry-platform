@@ -4,7 +4,9 @@
 #   - opencode + OMO slim plugins
 #   - Node 24, pnpm, bun, uv, mise, snip
 #   - Python 3 + uv for the FastAPI api-server
-#   - Rust toolchain (for stress-lang-core WASM builds, per architecture.md)
+#   - Rust toolchain (kept for the future W1 re-scaffold: stress-lang-core was
+#     deleted 2026-08-25 as a throwing stub; architecture.md is the seam of
+#     record, so the toolchain layer stays pinned for its WASM builds)
 #   - Playwright (chromium) + crawl4ai for browser automation
 #
 # The monorepo is mounted at /workspace. App services (author-studio,
@@ -221,7 +223,7 @@ ARG TRAFILATURA_VERSION=2.2.0
 RUN uv pip install --system --break-system-packages trafilatura==${TRAFILATURA_VERSION} && \
     trafilatura --version
 
-# === Rust toolchain (for stress-lang-core Rust FST → WASM) ===
+# === Rust toolchain (future W1: stress-lang-core deleted 2026-08-25, layer kept so the re-scaffold needs no image change) ===
 # Installed into /opt/rust (not /root/.cargo) so the non-root `dev` user can
 # access it at runtime. CARGO_HOME/RUSTUP_HOME keep everything in one tree.
 # SEC-DOCKER-001: rustup-init is downloaded directly and verified against the

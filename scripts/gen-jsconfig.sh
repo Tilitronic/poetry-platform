@@ -15,8 +15,8 @@
 # Entry-point resolution: a package's ACTUAL entry is read from package.json
 # main/types (stripped of any leading ./), falling back to the src/index.ts
 # convention only when neither is declared. This is intentional — several
-# packages (phonetics-core -> src/engine/ipa.ts, visualizer-2d ->
-# src/interactive/index.ts, stress-lang-core -> src/detector/index.ts) do NOT
+# packages (phonetics-core -> src/atlas/load-atlas.ts, visualizer-2d ->
+# src/interactive/index.ts) do NOT
 # use src/index.ts as their entry, so assuming that path would produce
 # mappings to files that exist but are not the package's public surface.
 #

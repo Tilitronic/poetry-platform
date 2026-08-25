@@ -274,18 +274,18 @@ YOU: "Add heteronym resolution to the editor"
 
 ### Package Status
 
-| Package               | What it does                                      | Tests       |
-| --------------------- | ------------------------------------------------- | ----------- |
-| `editor-engine`       | CodeMirror 6 editor + Signia state + orchestrator | ✅ 91 tests |
-| `data-contracts`      | JSON Schema shared across all packages            | 🔲 Not yet  |
-| `stress-lang-core`    | W1 worker: lang detection + WASM stress           | 🔲 Not yet  |
-| `phonetics-core`      | W2 worker: IPA + metrics + ring buffer            | 🔲 Not yet  |
-| `visualizer-2d`       | D3 SVG (interactive + SSR template)               | 🔲 Not yet  |
-| `visualizer-3d`       | TresJS/Three.js (lazy dynamic import)             | 🔲 Not yet  |
-| `analytics-pipeline`  | Python: offline analytics (NumPy, asyncpg)        | 🔲 Not yet  |
-| `author-studio`       | Quasar 2 + Vue 3 SPA (main editor app)            | 🔲 Not yet  |
-| `publishing-platform` | Nuxt 3 SSR (public reader — stub)                 | 🔲 Not yet  |
-| `api-server`          | FastAPI (Python — lives in `apps/api-server`)     | 🔲 Not yet  |
+| Package               | What it does                                      | Tests                                         |
+| --------------------- | ------------------------------------------------- | --------------------------------------------- |
+| `editor-engine`       | CodeMirror 6 editor + Signia state + orchestrator | ✅ 91 tests                                   |
+| `data-contracts`      | JSON Schema shared across all packages            | 🔲 Not yet                                    |
+| `stress-lang-core`    | W1 worker: lang detection + WASM stress           | deleted 2026-08-25, re-scaffold when W1 lands |
+| `phonetics-core`      | W2 worker: IPA + metrics + ring buffer            | 🔲 Not yet                                    |
+| `visualizer-2d`       | D3 SVG (interactive + SSR template)               | 🔲 Not yet                                    |
+| `visualizer-3d`       | TresJS/Three.js (lazy dynamic import)             | 🔲 Not yet                                    |
+| `analytics-pipeline`  | Python: offline analytics (NumPy, asyncpg)        | 🔲 Not yet                                    |
+| `author-studio`       | Quasar 2 + Vue 3 SPA (main editor app)            | 🔲 Not yet                                    |
+| `publishing-platform` | Nuxt 3 SSR (public reader — stub)                 | deleted 2026-08-25, re-scaffold when W1 lands |
+| `api-server`          | FastAPI (Python — lives in `apps/api-server`)     | 🔲 Not yet                                    |
 
 ### Root Commands
 
@@ -332,12 +332,12 @@ poetry-platform-monorepo/
 │   └── memory-shelf.yaml       Central index of RAG KBs, conspects, specs
 ├── apps/
 │   ├── author-studio/          Vue 3 / Quasar SPA
-│   ├── publishing-platform/    Nuxt 3 SSR
+│   ├── publishing-platform/    Nuxt 3 SSR (deleted 2026-08-25, re-scaffold when W1 lands)
 │   └── api-server/             FastAPI (Python)
 ├── packages/
 │   ├── editor-engine/          Core editor + state
 │   ├── phonetics-core/         IPA + metrics workers
-│   ├── stress-lang-core/       Stress detection worker
+│   ├── stress-lang-core/       Stress detection worker (deleted 2026-08-25, re-scaffold when W1 lands)
 │   ├── data-contracts/         Shared JSON schemas
 │   ├── visualizer-2d/          D3 visualizations
 │   ├── visualizer-3d/          Three.js visualizations

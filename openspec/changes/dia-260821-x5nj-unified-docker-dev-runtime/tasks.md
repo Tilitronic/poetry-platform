@@ -325,6 +325,11 @@
 **Tasks:**
 
 - [ ] **T7.0a** Create `scripts/check-secrets-ownership.sh`
+  - AMENDMENT (2026-08-25, DIA-260825-wprb fix-all): the launcher
+    (`scripts/opencode-dev`) skips this preflight ONLY when BOTH `./secrets`
+    and the CWD are foreign to the invoking user - the rootless userns remap
+    signature inside the dev container, where every host file presents as a
+    foreign uid; any invoker-owned anchor enforces as specified below.
   - Check `secrets/` owned by host rootless-Podman user (UID that `keep-id` maps)
   - Check each secret file is mode `0600`
   - Check no group/other read bits

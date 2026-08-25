@@ -22,12 +22,9 @@
     "quasar": "^2.22.0",
     "vue": "^3.5.22",
     "vue-router": "^5.0.3",
-    "signia": "^0.1.0",
     "@poetry/editor-engine": "workspace:*",
-    "@poetry/phonetics-core": "workspace:*",
     "@poetry/visualizer-2d": "workspace:*",
-    "@poetry/visualizer-3d": "workspace:*",
-    "@poetry/data-contracts": "workspace:*"
+    "@poetry/visualizer-3d": "workspace:*"
   },
   "devDependencies": {
     "vue-tsc": "^3.2.6",

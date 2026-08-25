@@ -228,3 +228,28 @@ setup() {
     return 1
   fi
 }
+
+# Fail-open skip branch (DIA-260825-wprb fix 2): when BOTH ./secrets and the
+# CWD are foreign to the invoking user -- the rootless userns remap signature
+# inside the dev container, where every host file presents as a foreign uid --
+# the launcher SKIPS the ownership preflight with a notice instead of
+# false-failing, and the launch proceeds. DIA-162 seed-the-fake pattern: fake
+# `stat` (always reports uid 0) + fake `id -u` (reports 999) on PATH simulate
+# the remapped view without real chown.
+@test "preflight wiring: foreign secrets AND foreign CWD skip preflight, launch proceeds" {
+  local prev_path="$PATH"
+  local bindir="$BATS_TEST_TMPDIR/foreign-bin"
+  mkdir -p "$bindir"
+  printf '#!/usr/bin/env bash\n# fake stat: every ownership query reports foreign uid 0\nif [ "${1:-}" = "-c" ]; then shift 2; fi\n[ $# -ge 1 ] && { echo 0; exit 0; }\nexit 1\n' > "$bindir/stat"
+  printf '#!/usr/bin/env bash\nif [ "${1:-}" = "-u" ]; then echo 999; exit 0; fi\necho "uid=999 gid=999 groups=999"\n' > "$bindir/id"
+  chmod +x "$bindir/stat" "$bindir/id"
+  PATH="$bindir:$PATH"
+  export PATH
+  run bash "$SCRIPT"
+  PATH="$prev_path"
+  export PATH
+  assert_status 0
+  assert_output_contains "preflight skipped"
+  # Fail-open means fail-OPEN: the launch itself must still happen.
+  assert_file_contains "$FAKE_DOCKER_LOG" "compose up -d dev"
+}
