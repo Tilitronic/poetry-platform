@@ -69,6 +69,11 @@
 # if absent).
 set -euo pipefail
 
+# Force C locale so printf uses '.' as the decimal separator regardless of the
+# host locale (comma-locale hosts rendered "100,0%" and broke the tests). jq is
+# locale-independent for number output; only the printf formatting needs this.
+export LC_ALL=C
+
 REG_FILE=".opencode/session/registry.jsonl"
 MSG_FILE=".opencode/session/messages.jsonl"
 THRESHOLD="0.99"

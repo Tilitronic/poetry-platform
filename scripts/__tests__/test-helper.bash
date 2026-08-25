@@ -96,10 +96,11 @@ case "${1:-}" in
     case "${1:-}" in
       exec)
         shift
-        # consume flags (-T/-it/--) until the container name
+        # consume flags (-T/-it/--/--user <user>) until the container name
         while [ $# -gt 0 ]; do
           case "$1" in
-            -T|-it|--) shift ;;
+            --user) shift 2 ;;
+            -T|-it|--|--) shift ;;
             *) break ;;
           esac
         done
@@ -419,6 +420,67 @@ NS
   chmod +x "$file"
 }
 
+# install_fake_priv_drop: plants fake gosu/runuser/su on PATH that exec the
+# command as the CURRENT (mapped-root) user. Inside `unshare -r` the namespace
+# root has no `dev` passwd entry, so the entrypoint's real privilege-drop
+# (runuser -u dev) fails with "user dev does not exist". The container's real
+# drop is untouched — this shim only makes the unit tests runnable. Echoes the
+# shim dir so callers can prepend it to PATH.
+install_fake_priv_drop() {
+  # Install into /var/tmp, NOT $BATS_TEST_TMPDIR (which lives under /tmp): the
+  # xvfb namespace test mounts a fresh tmpfs over /tmp, hiding anything under it
+  # — including a shim placed there — so the entrypoint's privilege-drop lookup
+  # would miss it and fall through to the real `su` (which fails with "user dev
+  # does not exist"). /var/tmp is never shadowed by the test namespaces.
+  local dir
+  dir="$(mktemp -d /var/tmp/poetry-nsbin.XXXXXX 2>/dev/null)" || dir="$BATS_TEST_TMPDIR/nsbin"
+  mkdir -p "$dir"
+  cat > "$dir/runuser" <<'RU'
+#!/usr/bin/env bash
+# test shim: exec command as current user (no real privilege drop)
+while [ $# -gt 0 ]; do
+  case "$1" in
+    -u|--user) shift 2 ;;
+    --) shift; break ;;
+    -*) shift ;;
+    *) break ;;
+  esac
+done
+exec "$@"
+RU
+  cat > "$dir/gosu" <<'GO'
+#!/usr/bin/env bash
+# test shim: drop the user arg, exec command as current user
+shift
+exec "$@"
+GO
+  cat > "$dir/su" <<'SU'
+#!/usr/bin/env bash
+# test shim: exec the -c command as current user
+while [ $# -gt 0 ]; do
+  if [ "$1" = "-c" ]; then shift; exec bash -c "$1"; fi
+  shift
+done
+SU
+  chmod +x "$dir/runuser" "$dir/gosu" "$dir/su"
+  # Hermetic Xvfb: the entrypoint's Xvfb block runs BEFORE the privilege drop,
+  # so with a real Xvfb on PATH every ns test launched it against the HOST
+  # /tmp — zombie Xvfb processes, ~20MB Mesa .so caches per spawn, and an
+  # rm -f against the host's /tmp/.X11-unix/X99. The no-op shim keeps the
+  # "Xvfb installed" branch exercised without host side effects. Planted ONLY
+  # when the host has a real Xvfb: on Xvfb-less hosts planting one would break
+  # the "does not start Xvfb when Xvfb is not installed" test.
+  if command -v Xvfb >/dev/null 2>&1; then
+    cat > "$dir/Xvfb" <<'XV'
+#!/usr/bin/env bash
+# test shim: no-op Xvfb (entrypoint backgrounds it; exit immediately)
+exit 0
+XV
+    chmod +x "$dir/Xvfb"
+  fi
+  echo "$dir"
+}
+
 # run_entrypoint_ns: run dev-entrypoint.sh inside `unshare -r -m` with tmpfs
 # mounted over /run only (host /tmp stays visible, so fixture dirs and PATH
 # shims that live under BATS_TEST_TMPDIR resolve). Fixtures via env (set by
@@ -430,7 +492,9 @@ run_entrypoint_ns() {
   unset DISPLAY # hermetic: entrypoint sets it only when it starts Xvfb
   local ns="$BATS_TEST_TMPDIR/ns.sh"
   _build_ns_script "$ns" 0
-  run unshare -r -m bash "$ns" bash "$REPO_ROOT/dev-entrypoint.sh" "$@"
+  local nsbin
+  nsbin="$(install_fake_priv_drop)"
+  PATH="$nsbin:$PATH" run unshare -r -m bash "$ns" bash "$REPO_ROOT/dev-entrypoint.sh" "$@"
 }
 
 # run_entrypoint_xvfb_ns: Xvfb-branch variant — ALSO mounts tmpfs over /tmp
@@ -444,5 +508,7 @@ run_entrypoint_xvfb_ns() {
   unset DISPLAY
   local ns="$BATS_TEST_TMPDIR/ns-xvfb.sh"
   _build_ns_script "$ns" 1
-  run unshare -r -m bash "$ns" bash "$REPO_ROOT/dev-entrypoint.sh" "$@"
+  local nsbin
+  nsbin="$(install_fake_priv_drop)"
+  PATH="$nsbin:$PATH" run unshare -r -m bash "$ns" bash "$REPO_ROOT/dev-entrypoint.sh" "$@"
 }

@@ -150,6 +150,13 @@ setup() {
   export XDG_RUNTIME_DIR="$BATS_TEST_TMPDIR/runtime"
   unset SSH_AUTH_SOCK SSH_AGENT_PID
   mkdir -p "$HOME" "$OPENCODE_WORKSPACE" "$XDG_RUNTIME_DIR"
+  # Hermetic repo dir: the wrapper copies $OPENCODE_DOCKER_REPO/config into
+  # $HOME/.opencode-docker/config on every launch. Point it at an empty
+  # fixture so tests never copy the real repo's config — which may carry a
+  # developer-installed node_modules (~60MB) — into BATS_TEST_TMPDIR under the
+  # /tmp tmpfs (10 tests x ~60MB filled a 512M /tmp to ENOSPC mid-suite), and
+  # so assertions stay independent of developer-local config state.
+  export OPENCODE_DOCKER_REPO="$BATS_TEST_TMPDIR/repo"
   mock_podman
 }
 
