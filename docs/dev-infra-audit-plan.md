@@ -10,7 +10,7 @@ Status legend: `[x]` done · `[~]` in progress (own session) · `[ ]` pending
   file-based secrets з `ALLOWED_SECRETS` whitelist, instance lock, healthcheck,
   `.dockerignore`, Xvfb + Playwright.
 - **Monorepo tooling**: pnpm workspaces, Turborepo pipeline, `pnpm-lock.yaml`.
-- **OpenCode config**: DCP config на 22+ моделі, MCP (context7 + gh_grep), команди, memory shelf.
+  - **OpenCode config**: MCP (context7 + gh_grep), команди, memory shelf.
 
 ## 🔴 Critical (C)
 
@@ -55,6 +55,8 @@ Status legend: `[x]` done · `[~]` in progress (own session) · `[ ]` pending
       (спосіб із README репо), `github:`-рядок прибрано з масиву; DCP
       (`opencode-dynamic-context-pruning`) випав під час C5 — повернуто як
       `@tarquinen/opencode-dcp@3.1.14`, щоб глобальний `dcp.jsonc` не був сиротою.)_
+      _(SUPERSEDED: DCP fully removed 2026-08-21 via DIA-260821-8kpc; no
+      `dcp.jsonc` exists in project or global config.)_
 - [x] **C6 — Суперечність прав** — `practice-protected.md` класифікує `@ai_assist_specialist`
       як pure-analyst (read-only), але `opencode.jsonc` дає йому `edit: allow` + `bash curl/wget`.
       → приведено до реальності: `ai-assist-specialist` → `ai-specialist`, `edit: deny`,
@@ -111,9 +113,6 @@ Status legend: `[x]` done · `[~]` in progress (own session) · `[ ]` pending
       (9000/8000/3000). → перевірити, що `.env.example` і compose збігаються.
 - [ ] **m3 — `references.shelf.path` вказує на директорію** — `.opencode/opencode.jsonc:149-152`
       вказує `.opencode` замість файлу. → поправити на `memory-shelf.yaml`.
-- [ ] **m4 — Глобальний DCP порожній** — `~/.config/opencode/dcp.jsonc` має лише
-      `maxContextLimit: "50%"`; project `.opencode/dcp.jsonc` має modelMaxLimits на 22+ моделі.
-      → перенести/уніфікувати.
 - [ ] **m5 — skills lock тільки на cli-review** — `.opencode/oh-my-opencode-slim/skills-lock.json`
       містить лише cli-review. → зафіксувати всі skills.
 - [x] **m6 — `ai-assist-specialist` має `mode: primary` замість `subagent`**

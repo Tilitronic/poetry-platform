@@ -86,7 +86,7 @@ After the developer disposes review findings (accept/reject per practice-protect
 
 ### 2.5 OpenCode Configuration Changes
 
-- **Scope**: `.opencode/*` (opencode.jsonc, oh-my-opencode-slim.jsonc, `agents/*.md`, `skills/*/SKILL.md`, `commands/`, dcp.jsonc), AGENTS.md edits, practice-protected.md.
+- **Scope**: `.opencode/*` (opencode.jsonc, oh-my-opencode-slim.jsonc, `agents/*.md`, `skills/*/SKILL.md`, `commands/`), AGENTS.md edits, practice-protected.md.
 - **Workflow**: routed through the AI Devtools Modernization Workflow (AGENTS.md section 2.5):
   1. **Gate** — dispatch `@ai-specialist` (read-only research); the orchestrator registers its findings in `.opencode/learnings/external-patterns/`.
   2. **User reviews & decides** (practice-protected — orchestrator does not silently apply).

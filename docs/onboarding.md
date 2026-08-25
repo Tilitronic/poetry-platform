@@ -153,7 +153,6 @@ Skills are like **cookbook recipes** the AI follows to the letter.
 | `git-diff`                | Project (`.opencode/skills/`) | Inject current git status + diff context                          |
 | `mermaid-diagramming`     | Project (`.opencode/skills/`) | Mermaid diagram best practices                                    |
 | `playwright-browser`      | Project (`.opencode/skills/`) | Browser automation for acceptance/E2E tests                       |
-| `simplify`                | Project (`.opencode/skills/`) | Simplifies code for clarity without changing behavior             |
 | `teaching`                | Project (`.opencode/skills/`) | Pedagogical explanations (mental models, worked examples)         |
 
 **Why skills instead of just telling the AI?** The AI can "forget" a step or take shortcuts. Skills are structured documents it must follow — they make the workflow repeatable and auditable.

@@ -68,6 +68,7 @@ area: docs
 severity: Medium
 status: CLOSED
 blocked_by: ["DIA-103"] # DIA-NNN refs, or empty - DIA-103 CLOSED 2026-08-14, dependency satisfied (see UPDATE above)
+
 discovered:
 source: inventory
 date: 2026-08-11

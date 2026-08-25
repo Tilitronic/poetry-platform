@@ -41,7 +41,7 @@ discovered: fix-lane
 source: developer-directive
 date: 2026-08-17
 created: 2026-08-17
-updated: 2026-08-17
+updated: 2026-08-22
 
 # --- Session Attribution (v2 schema, optional - GRANDFATHERED for DIA-001..049) ---
 
@@ -129,3 +129,27 @@ evidence: [] # list of evidence URIs (messages.md#row, registry.jsonl#seq)
 
 - PENDING: restart-verify - developer restarts OpenCode; cebula preset lanes
   should use mimo-v2.5. Ticket stays OPEN until developer confirms.
+
+## Re-verify (2026-08-22)
+
+- Developer restarted OpenCode. Effective runtime is the active preset
+  `cebula-openai-hy3` (NOT the `cebula` preset that holds the DIA-208 mimo-v2.5
+  swap). Effective runtime assignment: coder `opencode-go/hy3`, orchestrator
+  `openai/gpt-5.6-terra`, top-level default `opencode-go/deepseek-v4-flash`.
+- The effective runtime has NO mimo-v2.5 assignment. DIA-208's
+  deepseek-v4-flash -> opencode-go/mimo-v2.5 swap correctly exists ONLY in the
+  inactive `cebula` preset, so it is not in effect under the active
+  `cebula-openai-hy3` preset.
+- Acceptance criterion #6 (restart-verify: cebula preset lanes use mimo-v2.5
+  after restart) is UNMET, because the active preset is `cebula-openai-hy3`,
+  not `cebula`. The swap is correctly applied but dormant.
+- Developer-selected disposition: Variant 3 - KEEP OPEN. Do NOT change the
+  active preset or port Mimo until DIA-260821-mzk7 (routing mismatch) and
+  DIA-260821-qw29 (Hy3-vs-Mimo policy) are resolved.
+- Verification evidence:
+  - `bash scripts/validate-changelog.sh` exit 0 (1 passed, 0 failed; script
+    lacks +x bit, invoked via bash).
+  - `scripts/validate-agent-names.sh` exit 0.
+  - Full `make test-config` NOT executed: make/docker unavailable in this
+    environment.
+- Status preserved: OPEN.

@@ -176,23 +176,49 @@
 | DIA-260820-dr0g | researcher agent deviates from 3-tier fetch chain, uses WebFetch/context7 instead of trafilatura/crawl4ai | dev-infra | Medium | OPEN | [DIA-260820-dr0g-researcher-agent-deviates-from-3-tier-fetch-chain-uses-webfetch-context7-instead-of-trafilatura-crawl4ai.md](DIA-260820-dr0g-researcher-agent-deviates-from-3-tier-fetch-chain-uses-webfetch-context7-instead-of-trafilatura-crawl4ai.md) |
 | DIA-260820-jlu0 | DIA-217 ticket gate creates chicken-and-egg for meta-tasks and procedural authorizations | dev-infra | Major | OPEN | [DIA-260820-jlu0-dia-217-ticket-gate-creates-chicken-and-egg-for-meta-tasks-and-procedural-authorizations.md](DIA-260820-jlu0-dia-217-ticket-gate-creates-chicken-and-egg-for-meta-tasks-and-procedural-authorizations.md) |
 | DIA-260820-y268 | enforce ticket-status queries via scripts, deprecate README rollup | dev-infra | Medium | OPEN | [DIA-260820-y268-enforce-ticket-status-queries-via-scripts-deprecate-readme-rollup.md](DIA-260820-y268-enforce-ticket-status-queries-via-scripts-deprecate-readme-rollup.md) |
+| DIA-260821-3blw | remove persistent OpenCode input-area banner: powershell.exe toast spawn failed | opencode-config | Low | OPEN | [DIA-260821-3blw-remove-persistent-opencode-input-area-banner-powershell-exe-toast-spawn-failed.md](DIA-260821-3blw-remove-persistent-opencode-input-area-banner-powershell-exe-toast-spawn-failed.md) |
+| DIA-260821-4cx5 | Expose opencode serve over Tailscale for remote Android access | docker | Medium | OPEN | [DIA-260821-4cx5-expose-opencode-serve-over-tailscale-for-remote-android-access.md](DIA-260821-4cx5-expose-opencode-serve-over-tailscale-for-remote-android-access.md) |
+| DIA-260821-5r03 | runtime observer plugin duplicate-registration audit and hardening | opencode-config | Major | OPEN | [DIA-260821-5r03-runtime-observer-plugin-duplicate-registration-audit-and-hardening.md](DIA-260821-5r03-runtime-observer-plugin-duplicate-registration-audit-and-hardening.md) |
+| DIA-260821-8kpc | Disable DCP plugin (context/cache concerns) | scripts | Medium | OPEN | [DIA-260821-8kpc-disable-dcp-plugin-context-cache-concerns.md](DIA-260821-8kpc-disable-dcp-plugin-context-cache-concerns.md) |
+| DIA-260821-aoag | container engine socket security hardening: add default-off --with-engine opt-in flag | docker | Major | OPEN | [DIA-260821-aoag-container-engine-socket-security-hardening-add-default-off-with-engine-opt-in-flag.md](DIA-260821-aoag-container-engine-socket-security-hardening-add-default-off-with-engine-opt-in-flag.md) |
+| DIA-260821-bqy7 | audit repository risks and prioritize unresolved remediation | dev-infra | Major | OPEN | [DIA-260821-bqy7-audit-repository-risks-and-prioritize-unresolved-remediation.md](DIA-260821-bqy7-audit-repository-risks-and-prioritize-unresolved-remediation.md) |
+| DIA-260821-cku1 | Add minimal controlled scripts/tickets update capability for status and Fix/Re-verify evidence | dev-infra | Major | OPEN | [DIA-260821-cku1-add-minimal-controlled-scripts-tickets-update-capability-for-status-and-fix-re-verify-evidence.md](DIA-260821-cku1-add-minimal-controlled-scripts-tickets-update-capability-for-status-and-fix-re-verify-evidence.md) |
+| DIA-260821-m7vk | Repair in-container lint-staged Git index failure blocking pre-commit | dev-infra | Major | OPEN | [DIA-260821-m7vk-repair-in-container-lint-staged-git-index-failure-blocking-pre-commit.md](DIA-260821-m7vk-repair-in-container-lint-staged-git-index-failure-blocking-pre-commit.md) |
+| DIA-260821-mzk7 | diagnose active OpenCode preset routing mismatch after restart | opencode-config | Major | OPEN | [DIA-260821-mzk7-diagnose-active-opencode-preset-routing-mismatch-after-restart.md](DIA-260821-mzk7-diagnose-active-opencode-preset-routing-mismatch-after-restart.md) |
+| DIA-260821-n8sq | Add runtime config test (make test-runtime-config in clean HOME) | scripts | Medium | OPEN | [DIA-260821-n8sq-add-runtime-config-test-make-test-runtime-config-in-clean-home.md](DIA-260821-n8sq-add-runtime-config-test-make-test-runtime-config-in-clean-home.md) |
+| DIA-260821-qw29 | Verify opencode-go Hy3 x8 promo and whether to swap from mimo-v2.5 in the cebula preset | opencode-config | Info | OPEN | [DIA-260821-qw29-verify-opencode-go-hy3-x8-promo-and-whether-to-swap-from-mimo-v2-5-in-the-cebula-preset.md](DIA-260821-qw29-verify-opencode-go-hy3-x8-promo-and-whether-to-swap-from-mimo-v2-5-in-the-cebula-preset.md) |
+| DIA-260821-x5nj | unified Docker development runtime plan for Fedora Linux and WSL developers | docker | Medium | OPEN | [DIA-260821-x5nj-unified-docker-development-runtime-plan-for-fedora-linux-and-wsl-developers.md](DIA-260821-x5nj-unified-docker-development-runtime-plan-for-fedora-linux-and-wsl-developers.md) |
+| DIA-260822-fksf | Stale stall-sweep startup protection - suppress already-stale boot-time emissions | opencode-config | Major | OPEN | [DIA-260822-fksf-stale-stall-sweep-startup-protection-suppress-already-stale-boot-time-emissions.md](DIA-260822-fksf-stale-stall-sweep-startup-protection-suppress-already-stale-boot-time-emissions.md) |
+| DIA-260822-m035 | Investigate OpenCode restart crash-storm alerts | scripts | Medium | OPEN | [DIA-260822-m035-investigate-opencode-restart-crash-storm-alerts.md](DIA-260822-m035-investigate-opencode-restart-crash-storm-alerts.md) |
+| DIA-260822-medh | Research and advisory audit: session handoffs, context thresholds, auto-compaction, orchestrator-model choices | opencode-config | Major | OPEN | [DIA-260822-medh-research-and-advisory-audit-session-handoffs-context-thresholds-auto-compaction-orchestrator-model-choices.md](DIA-260822-medh-research-and-advisory-audit-session-handoffs-context-thresholds-auto-compaction-orchestrator-model-choices.md) |
+| DIA-260822-oldn | Plugin reload boot/sweep dedup - 30s persisted dedup and disposal-safe single ticker | opencode-config | Major | OPEN | [DIA-260822-oldn-plugin-reload-boot-sweep-dedup-30s-persisted-dedup-and-disposal-safe-single-ticker.md](DIA-260822-oldn-plugin-reload-boot-sweep-dedup-30s-persisted-dedup-and-disposal-safe-single-ticker.md) |
+| DIA-260822-unsn | Ticker expiry - purge invalid and stale waiting/error entries during seed/persist | opencode-config | Major | OPEN | [DIA-260822-unsn-ticker-expiry-purge-invalid-and-stale-waiting-error-entries-during-seed-persist.md](DIA-260822-unsn-ticker-expiry-purge-invalid-and-stale-waiting-error-entries-during-seed-persist.md) |
+| DIA-260822-wr2e | Evidence-based audit of five proposed delegation-observer plugin fixes | opencode | Major | OPEN | [DIA-260822-wr2e-evidence-based-audit-of-five-proposed-delegation-observer-plugin-fixes.md](DIA-260822-wr2e-evidence-based-audit-of-five-proposed-delegation-observer-plugin-fixes.md) |
+| DIA-260823-v9di | simplify skill duplicate: project vs global tree ownership/remedy | opencode-config | Medium | OPEN | [DIA-260823-v9di-simplify-skill-duplicate-project-vs-global-tree-ownership-remedy.md](DIA-260823-v9di-simplify-skill-duplicate-project-vs-global-tree-ownership-remedy.md) |
+| DIA-260824-1c3e | Add cebula-ox-alpha OpenCode preset | opencode-config | Medium | OPEN | [DIA-260824-1c3e-add-cebula-ox-alpha-opencode-preset.md](DIA-260824-1c3e-add-cebula-ox-alpha-opencode-preset.md) |
+| DIA-260824-8k62 | retire legacy tools/opencode-docker only after unified-runtime acceptance | docker | Medium | OPEN | [DIA-260824-8k62-retire-legacy-tools-opencode-docker-only-after-unified-runtime-acceptance.md](DIA-260824-8k62-retire-legacy-tools-opencode-docker-only-after-unified-runtime-acceptance.md) |
+| DIA-260824-a3mk | make opencode fails: PermissionDenied opening /home/dev/.local/share/opencode/log/opencode.log | docker | Blocker | OPEN | [DIA-260824-a3mk-make-opencode-fails-permissiondenied-opening-home-dev-local-share-opencode-log-opencode-log.md](DIA-260824-a3mk-make-opencode-fails-permissiondenied-opening-home-dev-local-share-opencode-log-opencode-log.md) |
+| DIA-260824-ifcf | persistent developer Git identity and config propagation for unified poetry-dev workstation | git-hooks | Medium | OPEN | [DIA-260824-ifcf-persistent-developer-git-identity-and-config-propagation-for-unified-poetry-dev-workstation.md](DIA-260824-ifcf-persistent-developer-git-identity-and-config-propagation-for-unified-poetry-dev-workstation.md) |
+| DIA-260824-iirx | Analysis of gaps and migration plan for one unified OpenCode dev container for Fedora and WSL Ubuntu/Debian replacing legacy dual containers | docker | Major | OPEN | [DIA-260824-iirx-analysis-of-gaps-and-migration-plan-for-one-unified-opencode-dev-container-for-fedora-and-wsl-ubuntu-debian-replacing-legacy-dual-containers.md](DIA-260824-iirx-analysis-of-gaps-and-migration-plan-for-one-unified-opencode-dev-container-for-fedora-and-wsl-ubuntu-debian-replacing-legacy-dual-containers.md) |
+| DIA-260824-p3hf | Repair DIA-217 task ticket ID schema pass-through | scripts | Medium | OPEN | [DIA-260824-p3hf-repair-dia-217-task-ticket-id-schema-pass-through.md](DIA-260824-p3hf-repair-dia-217-task-ticket-id-schema-pass-through.md) |
+| DIA-260825-lro1 | Release task idempotency reservation after failed dispatch | opencode-config | Blocker | OPEN | [DIA-260825-lro1-release-task-idempotency-reservation-after-failed-dispatch.md](DIA-260825-lro1-release-task-idempotency-reservation-after-failed-dispatch.md) |
 
 ## Status summary
 
 | Severity | Count |
 | -------- | ----- |
-| Blocker  | 7     |
+| Blocker  | 9     |
 | Critical | 10    |
-| Major    | 49    |
-| Medium   | 88    |
+| Major    | 61    |
+| Medium   | 98    |
 | Minor    | 0     |
-| Low      | 19    |
-| Info     | 0     |
+| Low      | 20    |
+| Info     | 1     |
 | High     | 1     |
 
 | Status      | Count |
 | ----------- | ----- |
-| OPEN        | 16    |
+| OPEN        | 41    |
 | DONE        | 11    |
 | VALIDATE    | 0     |
 | E2E         | 0     |
@@ -201,7 +227,7 @@
 | FIXED       | 1     |
 | IMPLEMENTED | 2     |
 | VERIFIED    | 28    |
-| CLOSED      | 113   |
+| CLOSED      | 114   |
 | BLOCKED     | 0     |
 | DISPATCHED  | 0     |
 | RUNNING     | 0     |
