@@ -1,4 +1,4 @@
-import { atom, computed } from 'signia';
+import { atom } from 'signia';
 import type { LineDecoration } from './decorations';
 
 export interface LineAtomValue {
@@ -14,7 +14,6 @@ export interface LineAtomValue {
 export class LineAtom {
   readonly id: string;
   readonly atom;
-  readonly revisionComputed;
 
   constructor(id: string, text = '') {
     this.id = id;
@@ -27,7 +26,6 @@ export class LineAtom {
       decorations: [],
       revisionId: 0,
     });
-    this.revisionComputed = computed(`line:${id}:rev`, () => this.atom.value.revisionId);
   }
 
   get value() {
