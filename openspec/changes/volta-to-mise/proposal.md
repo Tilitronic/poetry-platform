@@ -36,7 +36,7 @@ Continuing to ship an unverified, unmaintained tool manager in the dev image vio
 ### Out of scope
 
 - **Installing mise on the host** — mise runs inside the dev container only. Host tooling is unchanged.
-- **Migrating any other tool to mise** — only `node` and `pnpm` (the two tools Volta currently declared) move into `.mise.toml`. Python (uv), Rust (rustup), Bun (standalone), OpenCode (standalone), snip, DCP, OpenSpec, tini stay where they are.
+- **Migrating any other tool to mise** — only `node` and `pnpm` (the two tools Volta currently declared) move into `.mise.toml`. Python (uv), Rust (rustup), Bun (standalone), OpenCode (standalone), snip, OpenSpec, tini stay where they are.
 - **Using mise's `env`, `plugins`, or `settings` sections** — intentionally deferred. `.mise.toml` is `[tools]` only (interview Q8).
 - **Changing the `package.json` `engines` field** — that's a separate concern; out of scope.
 - **CI integration** — the project has no `.github/` and no CI (per inventory.md §12). This change does not add CI.

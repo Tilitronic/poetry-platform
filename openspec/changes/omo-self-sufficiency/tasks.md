@@ -1,6 +1,6 @@
 ## 1. Project Config Declarations
 
-- [ ] 1.1 Add `"oh-my-opencode-slim@2.2.14"` to `.opencode/opencode.jsonc` plugin array (after the existing entries: envsitter-guard, dcp, delegation-observer, needs-input-observer)
+- [ ] 1.1 Add `"oh-my-opencode-slim@2.2.14"` to `.opencode/opencode.jsonc` plugin array (after the existing entries: envsitter-guard, delegation-observer, needs-input-observer)
 - [ ] 1.2 Update `.opencode/tui.json` from `{}` to `{"plugin": ["oh-my-opencode-slim@2.2.14"]}` for panel registration (lessons L20260814-001: createLegacyTuiPluginHost reads tui.json, not opencode.jsonc)
 - [ ] 1.3 Add `"oh-my-opencode-slim@2.2.14"` to `tools/opencode-docker/config/opencode.json` plugin array (consistency for standalone `bin/opencode-docker` tool)
 
