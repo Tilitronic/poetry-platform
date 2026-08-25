@@ -15,6 +15,19 @@
 
 load test-helper
 
+# assert_file_not_contains <file> <substring>: fail when the file contains the
+# substring. (Companion to assert_file_contains; the RED suite for
+# DIA-260821-cku1 referenced this helper which was missing from
+# test-helper.bash - defined here, scoped to this suite, to keep the test
+# valid without touching shared test infra.)
+assert_file_not_contains() {
+  local file="$1" sub="$2"
+  if grep -q -- "$sub" "$file"; then
+    echo "assert_file_not_contains: $file unexpectedly contains: $sub" >&2
+    return 1
+  fi
+}
+
 REPO_ROOT="$(cd "$(dirname "$BATS_TEST_FILENAME")/../.." && pwd)"
 TODAY="$(date +%F)"
 
@@ -1317,4 +1330,359 @@ TICKET
   assert_output_contains '"id":"DIA-260819-jfix"'
   assert_output_not_contains '"id":"DIA-133"'
   assert_output_not_contains '"id":"DIA-130"'
+}
+
+# ---------------------------------------------------------------------------
+# DIA-260821-cku1: tickets update <id> (RED-only TDD lane)
+#
+# These tests specify the not-yet-implemented `update` subcommand. They MUST
+# fail (RED) until scripts/tickets gains cmd_update(). Each test builds its
+# own isolated fixture tree (setup_tree / setup_update_tree) so the real
+# ledger is never touched and existing tests are unaffected.
+#
+# run_update <tree> <args...>: run `tickets update` with stderr merged into
+# $output so error/warning messages are assertable regardless of bats version.
+# ---------------------------------------------------------------------------
+
+run_update() {
+  local t="$1"; shift
+  run bash -c 'bash "$1" update "${@:2}" 2>&1' _ "$t/scripts/tickets" "$@"
+}
+
+# setup_update_tree: like setup_tree but DIA-130 also has ## Fix / ## Re-verify
+# sections (with placeholder bodies) so replacement tests have a target.
+setup_update_tree() {
+  local tree
+  tree="$(setup_tree)"
+  local f="$tree/docs/dev-infra-audit/tickets/DIA-130-alpha.md"
+  cat >> "$f" <<'BODY'
+
+## Fix
+
+placeholder fix
+
+## Re-verify
+
+placeholder reverify
+BODY
+  echo "$tree"
+}
+
+# ---------------------------------------------------------------------------
+# status / timestamp / rollup
+# ---------------------------------------------------------------------------
+
+@test "tickets update: --status rewrites status line, bumps updated, leaves other fields untouched" {
+  tree="$(setup_update_tree)"
+  f="$tree/docs/dev-infra-audit/tickets/DIA-130-alpha.md"
+  run_update "$tree" DIA-130 --status FIXED
+  assert_status 0
+  assert_file_contains "$f" "status: FIXED"
+  assert_file_contains "$f" "updated: $TODAY"
+  # structural fields must be unchanged
+  assert_file_contains "$f" 'title: "alpha ticket"'
+  assert_file_contains "$f" "severity: Major"
+  assert_file_contains "$f" "area: docs"
+  assert_file_contains "$f" "id: DIA-130"
+}
+
+@test "tickets update: --status triggers README rollup (index row + count tables)" {
+  tree="$(setup_update_tree)"
+  readme="$tree/docs/dev-infra-audit/tickets/README.md"
+  run_update "$tree" DIA-130 --status FIXED
+  assert_status 0
+  # index row Status column flips OPEN -> FIXED (spacing-tolerant)
+  run grep -E '\| DIA-130 \| alpha ticket \| docs \| Major +\| FIXED' "$readme"
+  assert_status 0
+  # count tables recomputed from the actual files
+  assert_file_contains "$readme" "| OPEN        | 2     |"
+  assert_file_contains "$readme" "| FIXED       | 1     |"
+}
+
+@test "tickets update: no flags exits 2 with usage hint" {
+  tree="$(setup_update_tree)"
+  run_update "$tree" DIA-130
+  assert_status 2
+  assert_output_contains "usage"
+}
+
+@test "tickets update: invalid --status exits 1, leaves file unchanged, no temp left" {
+  tree="$(setup_update_tree)"
+  f="$tree/docs/dev-infra-audit/tickets/DIA-130-alpha.md"
+  run_update "$tree" DIA-130 --status BOGUS
+  assert_status 1
+  assert_output_contains "invalid status"
+  assert_file_contains "$f" "status: OPEN"
+  # atomicity: no .partial / temp leftovers on validation failure
+  [ -z "$(find "$tree/docs/dev-infra-audit/tickets" -name '*.partial' -print)" ]
+}
+
+@test "tickets update: mv failure leaves .partial file and original untouched" {
+  tree="$(setup_update_tree)"
+  f="$tree/docs/dev-infra-audit/tickets/DIA-130-alpha.md"
+  # root bypasses chmod, so simulate mv failure with a shim on PATH (same
+  # fake-mock seam as mock_docker); GREEN lane may swap for an immutable target
+  local bindir="$BATS_TEST_TMPDIR/fakebin"
+  mkdir -p "$bindir"
+  REAL_MV="$(command -v mv)"
+  cat > "$bindir/mv" <<FAKEMV
+#!/usr/bin/env bash
+last="\${!#}"
+case "\$last" in
+  *DIA-130-alpha.md) exit 1 ;;
+esac
+exec $REAL_MV "\$@"
+FAKEMV
+  chmod +x "$bindir/mv"
+  PATH="$bindir:$PATH" run_update "$tree" DIA-130 --status FIXED
+  assert_status 1
+  assert_file_exists "$f.partial"
+  assert_file_contains "$f" "status: OPEN"
+}
+
+# ---------------------------------------------------------------------------
+# evidence append / dedup
+# ---------------------------------------------------------------------------
+
+@test "tickets update: --evidence appends one YAML list item" {
+  tree="$(setup_update_tree)"
+  f="$tree/docs/dev-infra-audit/tickets/DIA-130-alpha.md"
+  run_update "$tree" DIA-130 --evidence "commit:abc123"
+  assert_status 0
+  assert_file_contains "$f" "  - commit:abc123"
+  local n
+  n="$(grep -c -- "commit:abc123" "$f")"
+  [ "$n" -eq 1 ]
+}
+
+@test "tickets update: duplicate --evidence is deduplicated" {
+  tree="$(setup_update_tree)"
+  f="$tree/docs/dev-infra-audit/tickets/DIA-130-alpha.md"
+  run_update "$tree" DIA-130 --evidence "commit:abc123" --evidence "commit:abc123"
+  assert_status 0
+  local n
+  n="$(grep -c -- "commit:abc123" "$f")"
+  [ "$n" -eq 1 ]
+}
+
+@test "tickets update: distinct --evidence values are both appended" {
+  tree="$(setup_update_tree)"
+  f="$tree/docs/dev-infra-audit/tickets/DIA-130-alpha.md"
+  run_update "$tree" DIA-130 --evidence "uri:one" --evidence "uri:two"
+  assert_status 0
+  assert_file_contains "$f" "  - uri:one"
+  assert_file_contains "$f" "  - uri:two"
+}
+
+@test "tickets update: non-ASCII --evidence exits 1 (DIA-079)" {
+  tree="$(setup_update_tree)"
+  f="$tree/docs/dev-infra-audit/tickets/DIA-130-alpha.md"
+  # non-ASCII built via escape so the TEST FILE stays ASCII-only
+  local bad=$'caf\xC3\xA9'
+  run_update "$tree" DIA-130 --evidence "$bad"
+  assert_status 1
+  assert_output_contains "non-ASCII"
+  assert_file_contains "$f" "status: OPEN"
+}
+
+@test "tickets update: --evidence on legacy ticket appends evidence: field" {
+  tree="$(setup_update_tree)"
+  # legacy v1 ticket: no session attribution block, no evidence: field
+  cat > "$tree/docs/dev-infra-audit/tickets/DIA-001-legacy.md" <<'TICKET'
+---
+id: DIA-001
+title: "legacy ticket"
+area: docs
+severity: Major
+status: OPEN
+blocked_by: []
+discovered: 2026-08-01
+source: inventory
+date: 2026-08-01
+created: 2026-08-01
+updated: 2026-08-01
+
+---
+
+## Description
+
+legacy fixture
+TICKET
+  f="$tree/docs/dev-infra-audit/tickets/DIA-001-legacy.md"
+  run_update "$tree" DIA-001 --evidence "commit:legacy1"
+  assert_status 0
+  assert_file_contains "$f" "evidence:"
+  assert_file_contains "$f" "  - commit:legacy1"
+}
+
+# ---------------------------------------------------------------------------
+# Fix / Re-verify body replacement
+# ---------------------------------------------------------------------------
+
+@test "tickets update: --fix-file replaces the ## Fix section body" {
+  tree="$(setup_update_tree)"
+  f="$tree/docs/dev-infra-audit/tickets/DIA-130-alpha.md"
+  local fixmd="$BATS_TEST_TMPDIR/fix.md"
+  printf 'FIXED BY PATCH 42\n' > "$fixmd"
+  run_update "$tree" DIA-130 --fix-file "$fixmd"
+  assert_status 0
+  assert_file_contains "$f" "FIXED BY PATCH 42"
+  ! grep -qF -- "placeholder fix" "$f"
+}
+
+@test "tickets update: --reverify-file replaces the ## Re-verify section body" {
+  tree="$(setup_update_tree)"
+  f="$tree/docs/dev-infra-audit/tickets/DIA-130-alpha.md"
+  local revmd="$BATS_TEST_TMPDIR/reverify.md"
+  printf 'REVERIFIED OK\n' > "$revmd"
+  run_update "$tree" DIA-130 --reverify-file "$revmd"
+  assert_status 0
+  assert_file_contains "$f" "REVERIFIED OK"
+  ! grep -qF -- "placeholder reverify" "$f"
+}
+
+@test "tickets update: non-ASCII in --fix-file is sanitized to ? with warning" {
+  tree="$(setup_update_tree)"
+  f="$tree/docs/dev-infra-audit/tickets/DIA-130-alpha.md"
+  local fixmd="$BATS_TEST_TMPDIR/fix.md"
+  printf 'caf\xC3\xA9 result\n' > "$fixmd"
+  run_update "$tree" DIA-130 --fix-file "$fixmd"
+  assert_status 0
+  assert_file_contains "$f" "caf? result"
+  assert_output_contains "non-ASCII"
+}
+
+@test "tickets update: --fix-file on ticket missing ## Fix appends the section" {
+  tree="$(setup_tree)"   # DIA-130 has no Fix/Re-verify sections here
+  f="$tree/docs/dev-infra-audit/tickets/DIA-130-alpha.md"
+  local fixmd="$BATS_TEST_TMPDIR/fix.md"
+  printf 'FIXED BY PATCH 42\n' > "$fixmd"
+  run_update "$tree" DIA-130 --fix-file "$fixmd"
+  assert_status 0
+  assert_file_contains "$f" "## Fix"
+  assert_file_contains "$f" "FIXED BY PATCH 42"
+}
+
+@test "tickets update: empty --fix-file keeps heading, removes placeholder" {
+  tree="$(setup_update_tree)"
+  f="$tree/docs/dev-infra-audit/tickets/DIA-130-alpha.md"
+  local fixmd="$BATS_TEST_TMPDIR/fix.md"
+  : > "$fixmd"
+  run_update "$tree" DIA-130 --fix-file "$fixmd"
+  assert_status 0
+  assert_file_contains "$f" "## Fix"
+  ! grep -qF -- "placeholder fix" "$f"
+}
+
+@test "tickets update: unreadable --fix-file exits 1, file unchanged" {
+  tree="$(setup_update_tree)"
+  f="$tree/docs/dev-infra-audit/tickets/DIA-130-alpha.md"
+  run_update "$tree" DIA-130 --fix-file "$BATS_TEST_TMPDIR/does-not-exist.md"
+  assert_status 1
+  assert_output_contains "file not readable"
+  assert_file_contains "$f" "status: OPEN"
+}
+
+# ---------------------------------------------------------------------------
+# combined mutations
+# ---------------------------------------------------------------------------
+
+@test "tickets update: all flags together apply status+evidence+fix+reverify" {
+  tree="$(setup_update_tree)"
+  readme="$tree/docs/dev-infra-audit/tickets/README.md"
+  f="$tree/docs/dev-infra-audit/tickets/DIA-130-alpha.md"
+  local fixmd="$BATS_TEST_TMPDIR/fix.md"
+  local revmd="$BATS_TEST_TMPDIR/reverify.md"
+  printf 'FIXED BY PATCH 42\n' > "$fixmd"
+  printf 'REVERIFIED OK\n' > "$revmd"
+  run_update "$tree" DIA-130 --status FIXED --fix-file "$fixmd" \
+    --reverify-file "$revmd" --evidence "uri:one" --evidence "uri:two"
+  assert_status 0
+  assert_file_contains "$f" "status: FIXED"
+  assert_file_contains "$f" "updated: $TODAY"
+  assert_file_contains "$f" "  - uri:one"
+  assert_file_contains "$f" "  - uri:two"
+  assert_file_contains "$f" "FIXED BY PATCH 42"
+  assert_file_contains "$f" "REVERIFIED OK"
+  run grep -E '\| DIA-130 \| alpha ticket \| docs \| Major +\| FIXED' "$readme"
+  assert_status 0
+}
+
+@test "tickets update: validation failure in one flag leaves file fully unchanged" {
+  tree="$(setup_update_tree)"
+  f="$tree/docs/dev-infra-audit/tickets/DIA-130-alpha.md"
+  run_update "$tree" DIA-130 --status BOGUS --evidence "uri:one"
+  assert_status 1
+  assert_output_contains "invalid status"
+  assert_file_contains "$f" "status: OPEN"
+  ! grep -qF -- "uri:one" "$f"
+}
+
+# ---------------------------------------------------------------------------
+# edge cases: archived / legacy / missing-section
+# ---------------------------------------------------------------------------
+
+@test "tickets update: archived ticket is updated, README rollup is a no-op" {
+  tree="$(setup_update_tree)"
+  mkdir -p "$tree/docs/dev-infra-audit/tickets/archive"
+  cat > "$tree/docs/dev-infra-audit/tickets/archive/DIA-050-arch.md" <<'TICKET'
+---
+id: DIA-050
+title: "archived ticket"
+area: docs
+severity: Low
+status: OPEN
+blocked_by: []
+discovered: 2026-08-01
+source: inventory
+date: 2026-08-01
+created: 2026-08-01
+updated: 2026-08-01
+
+---
+
+## Description
+
+archived fixture
+TICKET
+  readme="$tree/docs/dev-infra-audit/tickets/README.md"
+  f="$tree/docs/dev-infra-audit/tickets/archive/DIA-050-arch.md"
+  run_update "$tree" DIA-050 --status FIXED
+  assert_status 0
+  assert_file_contains "$f" "status: FIXED"
+  # archived ticket is not in the README index; counts stay all-zero
+  assert_file_not_contains "$readme" "DIA-050"
+  assert_file_contains "$readme" "| OPEN        | 0     |"
+}
+
+@test "tickets update: legacy ticket updated without adding session attribution" {
+  tree="$(setup_update_tree)"
+  cat > "$tree/docs/dev-infra-audit/tickets/DIA-001-legacy.md" <<'TICKET'
+---
+id: DIA-001
+title: "legacy ticket"
+area: docs
+severity: Major
+status: OPEN
+blocked_by: []
+discovered: 2026-08-01
+source: inventory
+date: 2026-08-01
+created: 2026-08-01
+updated: 2026-08-01
+
+---
+
+## Description
+
+legacy fixture
+TICKET
+  f="$tree/docs/dev-infra-audit/tickets/DIA-001-legacy.md"
+  run_update "$tree" DIA-001 --status FIXED --evidence "commit:legacy1"
+  assert_status 0
+  assert_file_contains "$f" "status: FIXED"
+  assert_file_contains "$f" "evidence:"
+  assert_file_contains "$f" "  - commit:legacy1"
+  # v1 schema must not gain a session attribution block
+  ! grep -qF -- "Session Attribution" "$f"
 }

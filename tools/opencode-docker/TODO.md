@@ -6,7 +6,7 @@ Audit date: 2026-05-28 (refreshed 2026-08-02 to match current code)
 
 - [x] **F1** — Pin OpenCode installer with SHA256 verification (`Dockerfile:39-44`)
 - [x] **F2** — Create `.dockerignore` to exclude `.git/`, `node_modules/`, `secrets/`, etc.
-- [x] **F3** — Pin external plugins: `superpowers` to commit SHA, `@tarquinen/opencode-dcp` to exact version (`config/opencode.json`)
+- [x] **F3** — Pin external plugins: `superpowers` to commit SHA (`config/opencode.json`)
 
 ## HIGH
 

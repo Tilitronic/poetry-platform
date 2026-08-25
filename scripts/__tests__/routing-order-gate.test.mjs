@@ -7,7 +7,7 @@
  *
  * F1: Routing check fires BEFORE ticket-gate early returns
  * F2: Prior @ai-specialist check scans messages.jsonl (paracrine dispatch.started)
- * F3: Config-work pattern coverage (commands/, dcp.jsonc, rules/)
+ * F3: Config-work pattern coverage (commands/, rules/)
  * F4: Integration tests simulating full hook control flow
  *
  * Plain node ESM, zero npm deps. No plugin loading needed -- tests the
@@ -21,9 +21,9 @@ import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node
 import { join } from 'node:path';
 
 // --- Config-work path detection regex (extracted from delegation-observer.ts) ---
-// F3: Added .opencode/commands/, dcp.jsonc, .opencode/rules/
+// F3: Added .opencode/commands/, .opencode/rules/
 const CONFIG_WORK_PATTERN =
-  /(\.opencode\/plugins\/|\.opencode\/oh-my-opencode-slim|orchestrator_append\.md|\.opencode\/agents\/|\.opencode\/skills\/|\.opencode\/commands\/|\.opencode\/rules\/|opencode\.jsonc|dcp\.jsonc|AGENTS\.md|practice-protected\.md)/i;
+  /(\.opencode\/plugins\/|\.opencode\/oh-my-opencode-slim|orchestrator_append\.md|\.opencode\/agents\/|\.opencode\/skills\/|\.opencode\/commands\/|\.opencode\/rules\/|opencode\.jsonc|AGENTS\.md|practice-protected\.md)/i;
 
 /**
  * Detect if a dispatch text contains config-work path indicators.
@@ -144,11 +144,6 @@ describe('DIA-230: Config-work path detection (F3)', () => {
 
   it('detects opencode.jsonc', () => {
     assert.ok(isConfigWorkDispatch('Update opencode.jsonc agent config'));
-  });
-
-  it('detects dcp.jsonc (F3)', () => {
-    assert.ok(isConfigWorkDispatch('Change dcp.jsonc permissions'));
-    assert.ok(isConfigWorkDispatch('Update dcp.jsonc tool access'));
   });
 
   it('detects AGENTS.md', () => {
@@ -417,7 +412,6 @@ describe('DIA-230: Full routing gate simulation (F4)', () => {
     const testCases = [
       'Create .opencode/commands/new-command.md',
       'Edit .opencode/rules/lint-config',
-      'Change dcp.jsonc permissions',
     ];
 
     for (const text of testCases) {

@@ -9,6 +9,7 @@
 #   -U, --update-config Overwrite ~/.opencode-docker/config/ files with repo versions
 #   -m, --memory        Set memory limit (default: 4g, e.g., -m 8g)
 #   -c, --cpus          Set CPU count (default: 4, e.g., -c 8)
+#   -S, --serve         Run `opencode serve` instead of the TUI, publishing 127.0.0.1:4096
 
 set -e
 
@@ -65,6 +66,7 @@ fi
 EXTRA_ENV=()
 MEMORY_LIMIT="${MEMORY_LIMIT:-4g}"
 CPU_LIMIT="${CPU_LIMIT:-4}"
+SERVE_MODE=0
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -88,6 +90,10 @@ while [[ $# -gt 0 ]]; do
         -c|--cpus)
             CPU_LIMIT="$2"
             shift 2
+            ;;
+        -S|--serve)
+            SERVE_MODE=1
+            shift
             ;;
         *)
             break
@@ -196,6 +202,28 @@ fi
 # in a child env (belt-and-braces, DIA-153).
 EXTRA_ENV+=("-e" "GIT_SSH_COMMAND=ssh -o StrictHostKeyChecking=accept-new -o UserKnownHostsFile=/tmp/known_hosts -o IdentityAgent=/tmp/ssh-agent.sock")
 
+# Serve mode (opt-in, -S/--serve): run `opencode serve` instead of the TUI so
+# the server daemon is reachable from other devices (e.g. Tailscale + Android
+# via the opencode Android app). Publish host 127.0.0.1:4096 -> container 4096,
+# forward OPENCODE_SERVER_PASSWORD from the host server.env, and set cwd to
+# /workspace (the Dockerfile WORKDIR is /app) so serve opens the mounted repo.
+# TUI mode (no -S) is unchanged: no port publish, no env-file, no workdir.
+SERVE_ENV_ARGS=()
+PORT_PUBLISH=()
+WORKDIR_FLAGS=()
+CMD_ARGS=(/workspace "$@")
+if [ "$SERVE_MODE" = 1 ]; then
+    SERVER_ENV_FILE="${OPENCODE_SERVER_ENV:-$HOME/.config/opencode/server.env}"
+    if [ -f "$SERVER_ENV_FILE" ]; then
+        SERVE_ENV_ARGS=(--env-file "$SERVER_ENV_FILE")
+    else
+        echo "Warning: server.env not found at $SERVER_ENV_FILE - serve mode exposes opencode without a password; create the file with OPENCODE_SERVER_PASSWORD=yourpassword" >&2
+    fi
+    PORT_PUBLISH=(-p 127.0.0.1:4096:4096)
+    WORKDIR_FLAGS=(--workdir /workspace)
+    CMD_ARGS=(serve --hostname 0.0.0.0 --port 4096)
+fi
+
 # The workspace mount must stay SHARED label (':z'), never private (':Z'): the
 # poetry-dev container mounts the same dir with ':z', and a ':Z' relabel from
 # this container would stamp private MCS categories onto the workspace files,
@@ -212,7 +240,9 @@ podman run --rm $DOCKER_FLAGS \
     --shm-size=1g \
     --memory="${MEMORY_LIMIT}" \
     --cpus="${CPU_LIMIT}" \
-    "${EXTRA_ENV[@]}" \
+    "${PORT_PUBLISH[@]}" \
+    "${WORKDIR_FLAGS[@]}" \
+    "${EXTRA_ENV[@]}" "${SERVE_ENV_ARGS[@]}" \
     -v "$ocd_dir/.local/share:/app/.local/share:rw,Z" \
     -v "$ocd_dir/.local/state:/app/.local/state:rw,Z" \
     -v "$ocd_dir/config:/app/.config/opencode:rw,Z" \
@@ -223,4 +253,4 @@ podman run --rm $DOCKER_FLAGS \
     "${SOCKET_MOUNT[@]}" \
     "${SSH_MOUNT[@]}" \
     -v "$WORKSPACE:/workspace:rw,z" \
-    opencode-docker:latest /workspace "$@"
+    opencode-docker:latest "${CMD_ARGS[@]}"

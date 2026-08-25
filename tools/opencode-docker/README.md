@@ -81,7 +81,23 @@ opencode-docker -s ses_2d068fdfaffefxNTts5doK0upT
 
 # Override workspace directory
 OPENCODE_WORKSPACE=/path/to/project opencode-docker
+
+# Serve mode (remote access)
+opencode-docker --serve
 ```
+
+### Serve mode (`-S` / `--serve`)
+
+Runs `opencode serve --hostname 0.0.0.0 --port 4096` inside the container
+instead of the interactive TUI, and publishes host `127.0.0.1:4096` to the
+container's port 4096. This lets the Remote CLI connect from other devices
+(e.g. the opencode Android app over Tailscale). The serve daemon opens the
+mounted /workspace because the wrapper sets `--workdir /workspace` (the
+Dockerfile WORKDIR is /app). The serve port is password-gated via
+`OPENCODE_SERVER_PASSWORD`, forwarded from the host's `server.env` (default
+`~/.config/opencode/server.env`, or `$OPENCODE_SERVER_ENV`). If the file is
+missing the wrapper warns and continues without a password. TUI mode (no
+flag) is unchanged.
 
 ## Security Features
 

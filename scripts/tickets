@@ -129,6 +129,11 @@ commands:
                     blockers) sorted by severity then DIA-NNN, plus a
                     blocker-graph summary of blocked tickets. --json emits
                     JSON object with frontier and blocked arrays.
+  update <id> [--status <s>] [--evidence <uri>]... [--fix-file <path>]
+             [--reverify-file <path>]
+                    mutate allowlisted fields of an existing ticket
+                    (status, evidence, Fix/Re-verify body) atomically, then
+                    rollup the README. Structural fields are unchanged.
   help              show this usage (also -h / --help / no arguments).
 
 options:
@@ -151,6 +156,11 @@ options:
         --since <date>           only OPEN tickets created on or after date
         --before <date>          only OPEN tickets created before date
   rollup: --check                report-only; exit 1 when counts are stale
+  update: <id>                   ticket ID (DIA-NNN or DIA-YYMMDD-XXXX)
+          --status <s>           set the status (one of: $STATUSES)
+          --evidence <uri>       append a deduplicated evidence URI (repeatable)
+          --fix-file <path>      replace the ## Fix body from a file
+          --reverify-file <path> replace the ## Re-verify body from a file
   -h, --help                     show this usage
 
 conventions: ASCII-only input and output (DIA-079); slug from the title
@@ -1697,6 +1707,251 @@ cmd_list() {
   fi
 }
 
+# --- update command ----------------------------------------------------------
+
+# apply_status <file> <newstatus>: rewrite the status: and updated: lines.
+apply_status() {
+  local file="$1" newstatus="$2"
+  sed -i -E "s/^status:.*/status: $newstatus/" "$file"
+  sed -i -E "s/^updated:.*/updated: $TODAY/" "$file"
+}
+
+# apply_evidence <file> <ev1> [<ev2> ...]: append deduplicated evidence items
+# to the evidence: YAML array. If evidence: is missing (legacy v1 ticket),
+# insert it before the closing frontmatter '---'.
+apply_evidence() {
+  local file="$1"; shift
+  [ $# -gt 0 ] || return 0
+  # dedup input values among themselves
+  local -a vals=() v seen e
+  for v in "$@"; do
+    seen=0
+    for e in "${vals[@]:-}"; do
+      [ "$e" = "$v" ] && seen=1 && break
+    done
+    [ "$seen" = 0 ] && vals+=("$v")
+  done
+  [ ${#vals[@]} -gt 0 ] || return 0
+
+  if grep -q '^evidence:' "$file"; then
+    # collect existing items within the evidence block only
+    local -a existing=() item in_block=0
+    while IFS= read -r line; do
+      if [ "$in_block" = 1 ]; then
+        case "$line" in
+          '  - '*|'   - '*|'  - '*)
+            item="${line#*- }"
+            item="$(printf '%s' "$item" | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')"
+            [ -n "$item" ] && existing+=("$item")
+            ;;
+          '---'|*) in_block=0 ;;
+        esac
+      else
+        case "$line" in
+          'evidence:'*) in_block=1 ;;
+        esac
+      fi
+    done < "$file"
+    # final = existing + new (deduped)
+    local -a final=("${existing[@]}")
+    for v in "${vals[@]}"; do
+      seen=0
+      for e in "${final[@]:-}"; do
+        [ "$e" = "$v" ] && seen=1 && break
+      done
+      [ "$seen" = 0 ] && final+=("$v")
+    done
+    local out="${file}.ev" vv
+    local in_block=0
+    while IFS= read -r line; do
+      case "$line" in
+        'evidence:'*)
+          printf 'evidence:\n' >> "$out"
+          for vv in "${final[@]}"; do printf '  - %s\n' "$vv" >> "$out"; done
+          in_block=1
+          ;;
+        *)
+          if [ "$in_block" = 1 ]; then
+            case "$line" in
+              '  - '*|'   - '*|'  - '*)
+                # skip old item line
+                ;;
+              '---')
+                in_block=0
+                printf '%s\n' "$line" >> "$out"
+                ;;
+              '')
+                # skip blank line inside block
+                ;;
+              *)
+                in_block=0
+                printf '%s\n' "$line" >> "$out"
+                ;;
+            esac
+          else
+            printf '%s\n' "$line" >> "$out"
+          fi
+          ;;
+      esac
+    done < "$file"
+    mv "$out" "$file"
+  else
+    # legacy: insert before the 2nd standalone '---' (closing frontmatter)
+    local out="${file}.ev" dashes=0 inserted=0 vv
+    while IFS= read -r line; do
+      if [ "$inserted" = 0 ] && [ "$line" = '---' ]; then
+        dashes=$((dashes + 1))
+        if [ "$dashes" -ge 2 ]; then
+          printf 'evidence:\n' >> "$out"
+          for vv in "${vals[@]}"; do printf '  - %s\n' "$vv" >> "$out"; done
+          inserted=1
+        fi
+      fi
+      printf '%s\n' "$line" >> "$out"
+    done < "$file"
+    mv "$out" "$file"
+  fi
+}
+
+# apply_body <file> <heading> <content_file>: replace the body of the
+# '## <heading>' section with the (ASCII-sanitized) content of content_file.
+# If the heading is missing, append the section at end of file. Non-ASCII
+# bytes in the content are sanitized to '?' with a stderr warning.
+apply_body() {
+  local file="$1" heading="$2" content_file="$3"
+  [ -r "$content_file" ] || fail "file not readable: $content_file"
+  if LC_ALL=C grep -q '[^ -~]' "$content_file"; then
+    echo "warn: non-ASCII bytes sanitized in $heading section" >&2
+  fi
+  local body
+  # collapse each maximal run of non-ASCII bytes into a single '?' so a
+  # multi-byte char (e.g. UTF-8 'e-acute' = 2 bytes) becomes one '?'
+  body="$(LC_ALL=C sed -E 's/[^ -~]+/?/g' "$content_file")"
+  local out="${file}.body" in_section=0 found=0
+  while IFS= read -r line; do
+    if [ "$in_section" = 1 ]; then
+      case "$line" in
+        '## '*) in_section=0; printf '%s\n' "$line" >> "$out" ;;
+        *) continue ;;
+      esac
+    else
+      case "$line" in
+        "## $heading")
+          found=1
+          in_section=1
+          printf '%s\n' "$line" >> "$out"
+          printf '%s\n' "$body" >> "$out"
+          ;;
+        *) printf '%s\n' "$line" >> "$out" ;;
+      esac
+    fi
+  done < "$file"
+  if [ "$found" = 0 ]; then
+    printf '\n## %s\n\n%s\n' "$heading" "$body" >> "$out"
+  fi
+  mv "$out" "$file"
+}
+
+# validate_ticket <file>: lightweight integrity check (non-empty, has opening
+# and closing frontmatter delimiters, has an id: field).
+validate_ticket() {
+  local file="$1"
+  [ -s "$file" ] || return 1
+  [ "$(grep -c '^---$' "$file")" -ge 2 ] || return 1
+  grep -q '^id:' "$file" || return 1
+  return 0
+}
+
+cmd_update() {
+  local ticket_id="" status="" fix_file="" reverify_file=""
+  local -a evidence_list=()
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --status)
+        [ $# -ge 2 ] || fail "--status needs a value"
+        status="$2"; shift 2 ;;
+      --evidence)
+        [ $# -ge 2 ] || fail "--evidence needs a value"
+        evidence_list+=("$2"); shift 2 ;;
+      --fix-file)
+        [ $# -ge 2 ] || fail "--fix-file needs a value"
+        fix_file="$2"; shift 2 ;;
+      --reverify-file)
+        [ $# -ge 2 ] || fail "--reverify-file needs a value"
+        reverify_file="$2"; shift 2 ;;
+      -h | --help) help_and_exit ;;
+      -*) fail "unknown option '$1' (see --help)" ;;
+      *)
+        [ -z "$ticket_id" ] || fail "too many arguments: unexpected '$1'"
+        ticket_id="$1"; shift ;;
+    esac
+  done
+  [ -n "$ticket_id" ] || usage
+  case "$ticket_id" in
+    DIA-[0-9]*) ;;
+    *) fail "invalid ticket ID '$ticket_id' (expected DIA-NNN or DIA-YYMMDD-XXXX)" ;;
+  esac
+  # no mutation flags -> usage (exit 2)
+  if [ -z "$status" ] && [ ${#evidence_list[@]} -eq 0 ] && [ -z "$fix_file" ] && [ -z "$reverify_file" ]; then
+    usage
+  fi
+  # PRE-mutation validation: any failure leaves the original file untouched
+  if [ -n "$status" ]; then
+    local ok=0 s
+    for s in $STATUSES; do
+      [ "$s" = "$status" ] && ok=1 && break
+    done
+    [ "$ok" = 1 ] || fail "invalid status '$status' (expected one of: $STATUSES)"
+  fi
+  if [ ${#evidence_list[@]} -gt 0 ]; then
+    local ev
+    for ev in "${evidence_list[@]}"; do
+      assert_ascii "evidence" "$ev"
+    done
+  fi
+  [ -z "$fix_file" ] || [ -r "$fix_file" ] || fail "file not readable: $fix_file"
+  [ -z "$reverify_file" ] || [ -r "$reverify_file" ] || fail "file not readable: $reverify_file"
+
+  local f
+  f="$(find_ticket_by_id "$ticket_id")"
+  [ -n "$f" ] || fail "ticket not found: $ticket_id"
+
+  # atomic copy-rename in the same directory
+  local tmp
+  tmp="$(mktemp -p "$TICKETS_DIR")" || fail "cannot create temp file in $TICKETS_DIR"
+  cp "$f" "$tmp"
+  [ -n "$status" ] && apply_status "$tmp" "$status"
+  [ ${#evidence_list[@]} -gt 0 ] && apply_evidence "$tmp" "${evidence_list[@]}"
+  [ -n "$fix_file" ] && apply_body "$tmp" "Fix" "$fix_file"
+  [ -n "$reverify_file" ] && apply_body "$tmp" "Re-verify" "$reverify_file"
+  if ! validate_ticket "$tmp"; then
+    rm -f "$tmp"
+    fail "validation failed for $ticket_id"
+  fi
+  if mv "$tmp" "$f" 2>/dev/null; then
+    # archived tickets are not in the README index: skip rollup (no-op)
+    case "$f" in
+      */archive/*) ;;
+      *)
+        if [ -n "$status" ]; then
+          sed -i -E "s/^(\| $ticket_id \|[^|]*\|[^|]*\|[^|]*\| *)[A-Z0-9]+( *\|)/\1$status\2/" "$README"
+        fi
+        compute_ledger_counts
+        local rtmp
+        rtmp="$(mktemp)"
+        rewrite_readme "$rtmp"
+        cp "$rtmp" "$README"
+        rm -f "$rtmp"
+        ;;
+    esac
+    echo "update: $ticket_id updated"
+  else
+    # mv failed: preserve the attempted mutation as .partial for inspection
+    mv "$tmp" "$f.partial" 2>/dev/null || true
+    fail "failed to write $f (partial saved as $f.partial)"
+  fi
+}
+
 main() {
   local cmd="${1:-}"
   if [ $# -lt 1 ]; then
@@ -1711,6 +1966,7 @@ main() {
     stats) cmd_stats "$@" ;;
     rollup) cmd_rollup "$@" ;;
     frontier) cmd_frontier "$@" ;;
+    update) cmd_update "$@" ;;
     help | -h | --help) help_and_exit ;;
     *) fail "unknown command '$cmd' (see --help)" ;;
   esac
