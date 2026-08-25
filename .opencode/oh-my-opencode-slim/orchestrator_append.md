@@ -414,15 +414,16 @@ A1-A6 above are untouched.
 ### R1 - Ticket-ID Token in Dispatch/Resume Prompts (DIA-063 gate)
 
 every dispatch AND every resume prompt MUST contain the literal ticket ID
-(e.g. "DIA-174"). **HARD RULE: every `task()` call MUST include
-`ticket_id: "DIA-NNN"` in the task args** -- not just in the dispatch
-text. The DIA-217 universal gate blocks any `task()` dispatch missing the
-`ticket_id` arg field; the DIA-063 section-10 gate additionally enforces
+(e.g. "DIA-174"). **HARD RULE: every `task()` description or prompt MUST
+label its governing ID as `campaign ticket DIA-NNN` (or the datetime DIA
+form).** OpenCode's native `task` schema does not expose project extension
+fields, so the DIA-217 hook materializes that tagged ID as `ticket_id` before
+validation. The DIA-063 section-10 gate additionally enforces
 text-level correlation for config-work lanes (ai-specialist or
 config-work-hint): an explicit DIA-id that resolves to no OPEN ticket
 hard-blocks; a prompt with no DIA-id passes via a session-owned or
 keyword-correlated open ticket or warns-and-allows (weak correlation).
-Missing both the arg field AND a DIA-id in text is a DIA-214 violation.
+Missing an unambiguous governing ID in text is a DIA-214 violation.
 
 ### R2 - Architector Design Persistence
 

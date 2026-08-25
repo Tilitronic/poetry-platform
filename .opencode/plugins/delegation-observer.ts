@@ -2778,18 +2778,22 @@ const delegationObserver: Plugin = async (ctx) => {
       }
 
       // === DIA-217: Universal ticket gate (juxtacrine) ===
-      // Every task() dispatch must carry a valid ticket_id field. This is the
-      // hard synchronous gate that enforces ticket-attribution at the plugin
-      // level, replacing the soft text-based correlation for non-config-work
-      // lanes. Biological equivalent: juxtacrine signaling -- direct contact
-      // between dispatching cell (orchestrator) and target cell (agent).
+      // Every task() dispatch must resolve to a valid ticket_id. OpenCode's
+      // native task schema does not expose that project extension, so the hook
+      // materializes a tagged governing ticket (or one unambiguous literal
+      // DIA ID) from the dispatch text before applying the hard synchronous
+      // gate. Biological equivalent:
+      // juxtacrine signaling -- direct contact between dispatching cell
+      // (orchestrator) and target cell (agent).
       //
       // Check order:
       //   1. ticket_id field present in task args -> validate format + file
-      //   2. ticket_id missing -> block (gate_blocked)
-      //   3. ticket_id present but invalid format -> block (gate_blocked)
-      //   4. ticket_id present, format valid, file not found -> warn (gate.warn)
-      //   5. ticket_id present, format valid, file found -> proceed
+      //   2. field missing + one tagged governing ticket -> materialize it
+      //   3. field missing + one literal DIA ID in text -> materialize it
+      //   4. field missing + no unambiguous governing ID -> block
+      //   5. ticket_id present but invalid format -> block (gate_blocked)
+      //   6. ticket_id present, format valid, file not found -> warn (gate.warn)
+      //   7. ticket_id present, format valid, file found -> proceed
       //
       // Fail-soft on scan errors: a missing/unreadable tickets directory is
       // treated as "ticket not found" (warn, not block) -- a broken gate is
@@ -2825,11 +2829,41 @@ const delegationObserver: Plugin = async (ctx) => {
           }
         }
 
-        // FIX 2: reuse already-extracted args from the top of the hook
-        const ticketId =
+        // DIA-260824-p3hf: the native task tool schema cannot carry project
+        // extension fields. Prefer an explicit governing-ticket marker so
+        // policy references cannot make an otherwise attributable call
+        // ambiguous; fall back to one unique literal ID.
+        let ticketId =
           typeof taskArgRecord.ticket_id === "string"
             ? taskArgRecord.ticket_id
             : ""
+        if (!ticketId) {
+          const dispatchText = `${typeof taskArgRecord.description === "string" ? taskArgRecord.description : ""}\n${typeof taskArgRecord.prompt === "string" ? taskArgRecord.prompt : ""}`
+          const markedTicketIds = [
+            ...new Set(
+              [...dispatchText.matchAll(
+                /\b(?:(?:campaign|governing)\s+ticket|ticket_id)\s*[:=]?\s*(DIA-(?:\d{6}-[a-z0-9]{4}|\d+))\b/gi
+              )].map((match) => `DIA-${match[1].slice(4)}`)
+            ),
+          ]
+          const literalTicketIds = [
+            ...new Set(
+              dispatchText.match(
+                /\bDIA-(?:\d{6}-[a-z0-9]{4}|\d+)\b/g
+              ) ?? []
+            ),
+          ]
+          const inferredTicketId =
+            markedTicketIds.length === 1
+              ? markedTicketIds[0]
+              : literalTicketIds.length === 1
+                ? literalTicketIds[0]
+                : ""
+          if (inferredTicketId) {
+            ticketId = inferredTicketId
+            taskArgRecord.ticket_id = ticketId
+          }
+        }
         const agentType = taskSubagent ?? ""
 
         if (!ticketId) {
@@ -2838,13 +2872,13 @@ const delegationObserver: Plugin = async (ctx) => {
             session_id: input.sessionID,
             subagent_type: agentType,
             dispatch_state: "gate_blocked",
-            detail: "task() dispatch missing required ticket_id field",
+            detail: "task() dispatch has no unambiguous governing ticket ID in task text",
             writer: "plugin",
           })
           rollbackAdaptiveDispatch(input.callID)
           throw new Error(
-            "DIA-217 GATE: task() dispatch requires a ticket_id field (DIA-NNN format).\n" +
-              "Action: add ticket_id to the task() args."
+            "DIA-217 GATE: task() dispatch requires an unambiguous governing DIA ticket ID in its description or prompt.\n" +
+              "Action: include 'campaign ticket DIA-NNN' or 'campaign ticket DIA-YYMMDD-XXXX' in the task text."
           )
         }
 

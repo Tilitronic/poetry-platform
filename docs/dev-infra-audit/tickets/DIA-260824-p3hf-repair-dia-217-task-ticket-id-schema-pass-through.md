@@ -36,17 +36,44 @@ evidence: []
 
 ## Description
 
-<To be filled at creation time: what is wrong / what to build, with exact
-files and line references where known.>
+OpenCode 1.18.20 exposes the native `task` tool with `command`, `description`,
+`prompt`, `subagent_type`, and `task_id`, but no project-specific `ticket_id`
+field. The DIA-217 observer gate nevertheless required that missing field.
+Strict schema-following models therefore could not dispatch any subagent.
+
+Runtime evidence from the `cebula-ox-alpha` preset shows four consecutive
+lane-0 dispatches rejected despite a prompt containing the campaign ticket;
+the orchestrator eventually used capability-token bypasses. Bridge the native
+schema to the project policy in `tool.execute.before`: materialize a tagged
+`campaign ticket DIA-...` from task text, with a one-unique-literal fallback,
+then run the existing format and ticket-file checks unchanged.
 
 ## Verification
 
-<Acceptance criteria as checkboxes - how to prove the ticket is done.>
+- [x] A task with one literal DIA ID and no schema field is attributed.
+- [x] A `campaign ticket DIA-...` marker wins over policy/reference DIA IDs.
+- [x] A task with no unambiguous governing ID remains hard-blocked.
+- [x] Existing explicit `ticket_id` calls remain compatible.
+- [x] Full observer and config suites pass.
+- [ ] OpenCode is restarted and a task dispatch succeeds without a capability.
 
 ## Fix
 
-> To be filled at fix time.
+The DIA-217 hook now prefers a unique `campaign ticket`/`governing ticket`
+marker, falls back to one unique literal DIA ID, and writes the resolved value
+into the task args before the existing gate validates it. Orchestrator prompts,
+the canonical append, and AGENTS.md now describe the real native-schema
+contract instead of asking models to invent an unavailable argument.
 
 ## Re-verify
 
-> To be filled at re-verify time.
+- RED 1: schema-omitted literal-ID dispatch was blocked (6 pass, 1 fail).
+- GREEN 1: literal-ID bridge passed (7 pass, 0 fail).
+- RED 2: the real multi-reference lane-0 shape was ambiguous and blocked (7
+  pass, 1 fail).
+- GREEN 2: campaign-ticket disambiguation passed (8 pass, 0 fail, 31
+  assertions).
+- Regression: complete observer suite passed (102 pass, 0 fail, 316
+  assertions).
+- Config gate: `make test-config` passed (exit 0); Prettier passed for all
+  changed source, prompt, and policy files.

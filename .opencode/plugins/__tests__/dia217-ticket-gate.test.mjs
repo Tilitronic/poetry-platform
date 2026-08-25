@@ -2,11 +2,12 @@
  * DIA-217 test harness (test-author lane, DIA-175 instance separation).
  *
  * Seam under test: the universal ticket gate in the delegation-observer
- * plugin's tool.execute.before hook. Every task() dispatch must carry a
- * valid ticket_id field (DIA-\d+ format). Three scenarios:
- *   1. Missing ticket_id -> blocked (gate_blocked event, error thrown)
- *   2. ticket_id present, ticket found -> proceeds (no error)
- *   3. ticket_id present, ticket not found -> warn (gate_warn event, no error)
+ * plugin's tool.execute.before hook. Every task() dispatch must resolve to a
+ * valid ticket_id (DIA-\d+ format). Four scenarios:
+ *   1. No field and no literal DIA ID -> blocked
+ *   2. No field and one literal DIA ID -> materialized and proceeds
+ *   3. ticket_id present, ticket found -> proceeds
+ *   4. ticket_id present, ticket not found -> warns and proceeds
  *
  * The tests invoke the REAL plugin (dynamic import) and drive its
  * tool.execute.before path via mocked hook inputs, exactly like the
@@ -155,7 +156,7 @@ test("DIA-217: dispatch without ticket_id -> blocked (gate_blocked + error)", as
   // Must throw an error blocking the dispatch.
   expect(error).not.toBeNull()
   expect(error.message).toContain("DIA-217 GATE:")
-  expect(error.message).toContain("requires a ticket_id field")
+  expect(error.message).toContain("requires an unambiguous governing DIA ticket ID")
 
   // Registry must carry a gate_blocked row.
   const blocked = registryRows.find((r) => r.event === "gate_blocked")
@@ -163,6 +164,42 @@ test("DIA-217: dispatch without ticket_id -> blocked (gate_blocked + error)", as
   expect(blocked.dispatch_state).toBe("gate_blocked")
   expect(blocked.session_id).toBe("ses_dia217_test")
   expect(blocked.subagent_type).toBe("coder")
+})
+
+test("DIA-260824-p3hf: literal DIA ID is materialized when native task schema omits ticket_id", async () => {
+  const { hooks, ctx } = await makeHarness()
+  const ticketsDir = join(ctx.directory, "docs/dev-infra-audit/tickets")
+  mkdirSync(ticketsDir, { recursive: true })
+  writeFileSync(
+    join(ticketsDir, "DIA-260824-p3hf-schema-pass-through.md"),
+    "---\nid: DIA-260824-p3hf\ntitle: Schema pass-through\nstatus: OPEN\n---\n"
+  )
+  const taskArgs = {
+    subagent_type: "coder",
+    prompt: "DIA-260824-p3hf. Verify the lane-0 checksum only.",
+    description: "Lane-0 checksum verification",
+  }
+
+  const { error, registryRows } = await runTaskDispatch(hooks, ctx, taskArgs)
+
+  expect(error).toBeNull()
+  expect(taskArgs.ticket_id).toBe("DIA-260824-p3hf")
+  expect(registryRows.find((row) => row.event === "gate_blocked")).toBeUndefined()
+})
+
+test("DIA-260824-p3hf: campaign ticket marker disambiguates reference DIA IDs", async () => {
+  const { hooks, ctx } = await makeHarness()
+  const taskArgs = {
+    subagent_type: "coder",
+    prompt:
+      "LANE-0 CHECKSUM VERIFICATION (DIA-093 / DIA-120 / DIA-061) - campaign ticket DIA-260824-p3hf.",
+    description: "Lane-0 checksum verification",
+  }
+
+  const { error } = await runTaskDispatch(hooks, ctx, taskArgs)
+
+  expect(error).toBeNull()
+  expect(taskArgs.ticket_id).toBe("DIA-260824-p3hf")
 })
 
 test("DIA-217: dispatch with invalid ticket_id format -> blocked", async () => {
@@ -271,7 +308,7 @@ test("DIA-260825-lro1: rejected preflight does not poison corrected retry", asyn
     "call_missing_ticket"
   )
   expect(rejected).not.toBeNull()
-  expect(rejected.message).toContain("requires a ticket_id field")
+  expect(rejected.message).toContain("requires an unambiguous governing DIA ticket ID")
 
   const corrected = await runTaskDispatchWithCallID(
     hooks,
