@@ -827,7 +827,13 @@
         ],
         "mcps": [
           "websearch"
-        ]
+        ],
+        "options": {
+          "reasoningEffort": "max",
+          "thinking": {
+            "type": "enabled"
+          }
+        }
       },
       "ai-auditor": {
         "model": ["opencode-go/ox-alpha-free", "openai/gpt-5.6-sol"],

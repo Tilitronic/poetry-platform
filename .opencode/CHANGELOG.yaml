@@ -2014,3 +2014,29 @@
     ai-auditor review: PASS WITH RESIDUAL RISK - live model invocation remains
     UNVERIFIED until an OpenCode restart applies the new preset; restart not
     performed by the agent. ASCII-only (DIA-079).
+- date: "2026-08-25"
+  ticket: "DIA-260824-1c3e"
+  area: "opencode-config"
+  status: "REGISTERED"
+  scope: "micro-fix: cebula-ox-alpha ai-specialist lane got the missing options block (reasoningEffort max + thinking enabled), matching sibling lanes architector / analyzer-escalated / ai-auditor from commit 01ea8d7 which missed this one entry"
+  files:
+    - ".opencode/oh-my-opencode-slim.jsonc (cebula-ox-alpha preset, ai-specialist entry only: added options.reasoningEffort=max and options.thinking.type=enabled; no other key or preset touched)"
+  summary: >
+    Change: DIA-260824-1c3e (opencode-config) follow-up micro-fix committed
+    2026-08-25. In .opencode/oh-my-opencode-slim.jsonc, active preset
+    cebula-ox-alpha, the ai-specialist entry had model
+    [opencode-go/ox-alpha-free, github-copilot/gpt-5.3-codex,
+    opencode/big-pickle] with variant high but no options block, while sibling
+    lanes architector / analyzer-escalated / ai-auditor received
+    reasoningEffort max plus thinking enabled in commit 01ea8d7; ai-specialist
+    was missed. Added exactly "options": { "reasoningEffort": "max",
+    "thinking": { "type": "enabled" } } to that single entry. No other key,
+    entry, or preset was modified (git diff shows one hunk, 6 added lines).
+    Reason: developer-approved parity fix so the high-variant ai-specialist
+    lane reasons at max effort like its siblings.
+  verification: >
+    make test-config inside poetry-dev container exit 0 (host has no make):
+    batch-d-infra 57 pass / 0 fail, including validate-opencode-config.sh
+    (JSONC parse of oh-my-opencode-slim.jsonc clean) and validate-changelog.sh
+    (this entry schema-valid). git diff confirms only the ai-specialist options
+    block changed. ASCII-only (DIA-079).
