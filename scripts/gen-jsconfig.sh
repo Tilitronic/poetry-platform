@@ -28,8 +28,9 @@
 # apps/api-server and packages/analytics-pipeline) and non-@poetry-scoped
 # names (apps/author-studio) are SKIPPED with a note on stderr, not failed:
 # pnpm itself does not treat them as workspace packages, and a package with no
-# entry point (apps/publishing-platform, a placeholder with deps only) cannot
-# contribute a path mapping. The strict failures above are reserved for drift
+# entry point cannot contribute a path mapping (historical example:
+# apps/publishing-platform, a deps-only placeholder -- deleted 2026-08-25,
+# re-scaffold when W1 lands). The strict failures above are reserved for drift
 # that should stop CI.
 set -euo pipefail
 

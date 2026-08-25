@@ -2,9 +2,10 @@
 
 The main editor application. Quasar 2 + Vue 3 SPA (Vite 8, TypeScript strict) that hosts
 the CodeMirror 6 editor, real-time phonetic analysis via Web Workers, and 2D/3D
-visualizations. Consumes five workspace packages: `@poetry/editor-engine`,
-`@poetry/phonetics-core`, `@poetry/visualizer-2d`,
-`@poetry/visualizer-3d`, `@poetry/data-contracts`.
+visualizations. Consumes three workspace packages: `@poetry/editor-engine`,
+`@poetry/visualizer-2d`, `@poetry/visualizer-3d`. (`@poetry/phonetics-core`
+and `@poetry/data-contracts` return as dependencies when the W2 worker wiring
+and the schema seam land - see "Dependencies That Matter".)
 
 This is the only package in the monorepo with a `dev` script. It is the primary
 integration surface where workspace packages meet the browser.
@@ -35,7 +36,7 @@ src/
 ├── workers/
 │   ├── bootstrap.ts         # MessageChannel init, port1 → W1, port2 → W2
 │   ├── w1-stress.ts         # Future W1 wrapper (target pkg deleted, see below)
-│   └── w2-phonetics.ts      # Thin wrapper around @poetry/phonetics-core
+│   └── w2-phonetics.ts      # Future W2 wrapper (target dep returns when W2 wiring lands)
 ├── stores/                  # Pinia (createPinia in index.ts)
 ├── router/                  # Hash mode (quasar.config.ts:47)
 ├── boot/                    # i18n.ts (vue-i18n 11, composition API)
@@ -136,14 +137,14 @@ gap before implementing.
 
 ## Dependencies That Matter
 
-| Workspace package          | Role in this app                                     |
-| -------------------------- | ---------------------------------------------------- |
-| `@poetry/editor-engine`    | CM6 editor, Lezer parser, Orchestrator, Signia atoms |
+| Workspace package          | Role in this app                                                                                                           |
+| -------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `@poetry/editor-engine`    | CM6 editor, Lezer parser, Orchestrator, Signia atoms                                                                       |
 | `@poetry/stress-lang-core` | DELETED (throwing stub, DIA-260825-aapj). Re-scaffold is deliberate when W1 lands; `architecture.md` is the seam of record |
-| `@poetry/phonetics-core`   | W2 worker logic (IPA + ring buffer + metrics)        |
-| `@poetry/visualizer-2d`    | D3 SVG interactive + SSR template renderer           |
-| `@poetry/visualizer-3d`    | TresJS/Three.js, loaded via dynamic `import()`       |
-| `@poetry/data-contracts`   | PoetryDataContract protobuf schema (Canonical JSON)  |
+| `@poetry/phonetics-core`   | W2 worker logic (IPA + ring buffer + metrics)                                                                              |
+| `@poetry/visualizer-2d`    | D3 SVG interactive + SSR template renderer                                                                                 |
+| `@poetry/visualizer-3d`    | TresJS/Three.js, loaded via dynamic `import()`                                                                             |
+| `@poetry/data-contracts`   | PoetryDataContract protobuf schema (Canonical JSON)                                                                        |
 
 ## Known Gaps
 
