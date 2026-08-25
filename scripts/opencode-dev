@@ -67,8 +67,23 @@ export COMPOSE_FILE="$compose_list"
 # resolved relative to THIS script so a non-repo-root CWD yields a real
 # ownership verdict instead of command-not-found; ./secrets itself stays
 # CWD-relative like the compose files.
+#
+# Skip only when BOTH ./secrets and the CWD are foreign to the invoking user:
+# under rootless userns remapping (bind-mounted /workspace inside the dev
+# container) EVERY host file presents as a foreign uid, so that signature
+# means the check cannot observe true host ownership -- enforcing would
+# false-fail the documented `make opencode` flow. Any invoker-owned anchor
+# (fixture secrets dir, invoker-owned CWD, plain host run) keeps full
+# enforcement.
 launcher_dir="$(dirname "${BASH_SOURCE[0]}")"
-"$launcher_dir/check-secrets-ownership.sh"
+uid="$(id -u)"
+secrets_owner="$(stat -c %u ./secrets 2>/dev/null || echo "$uid")"
+cwd_owner="$(stat -c %u .)"
+if [ "$secrets_owner" = "$uid" ] || [ "$cwd_owner" = "$uid" ]; then
+  "$launcher_dir/check-secrets-ownership.sh"
+else
+  echo "[opencode-dev] secrets ownership preflight skipped: ./secrets and CWD both foreign to uid $uid (container/userns bind mount); run scripts/check-secrets-ownership.sh on the host for a real verdict"
+fi
 
 # Pre-flight: validate the merged override set. Also records the selected
 # override files for the launcher contract tests (the mock records every call).
