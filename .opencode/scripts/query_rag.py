@@ -235,7 +235,8 @@ def _load_kb_cache(*, ignore_ttl: bool = False) -> dict | None:
 
 def _save_kb_cache(kbs: list[dict[str, str]]) -> None:
     """
-    Write KB cache atomically: write to .tmp file, then rename.
+    Write KB cache atomically: write to same-directory .tmp file, then
+    os.replace() (atomic overwrite, no unlink/rename race window).
     Prevents corruption from crashes mid-write.
     """
     _CACHE_DIR.mkdir(parents=True, exist_ok=True)
@@ -250,9 +251,7 @@ def _save_kb_cache(kbs: list[dict[str, str]]) -> None:
     try:
         content = _serialize_cache(data)
         tmp_path.write_text(content, encoding="utf-8")
-        if _CACHE_PATH.exists():
-            _CACHE_PATH.unlink()
-        tmp_path.rename(_CACHE_PATH)
+        os.replace(tmp_path, _CACHE_PATH)
         log.info("KB cache updated — %d KBs cached to %s",
                  len(kbs), _CACHE_PATH.name)
     except Exception:
