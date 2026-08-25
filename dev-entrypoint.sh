@@ -69,7 +69,16 @@ fi
 # fall back to runuser/su (still non-root); only if no drop tool exists do we
 # warn and continue as root (degraded, never silent).
 if [ "$(id -u)" -eq 0 ]; then
-  chown -R dev:dev /home/dev/.local/share/opencode 2>/dev/null || true
+  # Ownership migration (DIA-260821-m7vk): the bind-mounted .git/ is owned by
+  # the host user, and the named volumes (pnpm_store -> node_modules, dev_state
+  # -> .local/share, dev_cache -> .cache) can be root-owned after a volume
+  # re-init. If the container UID != host UID, lint-staged cannot write
+  # .git/index (EACCES) and the pre-commit gate fails. Chown the writable
+  # paths to dev:dev at boot. `|| true` so a single failure never blocks boot.
+  chown -R dev:dev /workspace/.git 2>/dev/null || true
+  chown -R dev:dev /workspace/node_modules 2>/dev/null || true
+  chown -R dev:dev /home/dev/.local/share 2>/dev/null || true
+  chown -R dev:dev /home/dev/.cache 2>/dev/null || true
   if command -v gosu >/dev/null 2>&1; then
     exec gosu dev "$@"
   elif command -v runuser >/dev/null 2>&1; then

@@ -30,6 +30,12 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.dev
+      # UID/GID alignment (DIA-260821-m7vk): forward host UID/GID into the image
+      # so the `dev` user matches the host user and the bind-mounted .git/ is
+      # writable. Fallback 1000 preserves the prior behavior for hosts on 1000.
+      args:
+        USER_UID: ${USER_UID:-1000}
+        USER_GID: ${USER_GID:-1000}
     image: poetry-platform-dev:latest
     container_name: poetry-dev
     hostname: poetry-dev

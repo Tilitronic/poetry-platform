@@ -96,3 +96,26 @@ browser automation under a virtual X display (Xvfb).
 - To run opencode interactively inside the container: `make opencode`.
 - For a full end-to-end stack in one shot (author-studio + opencode), use two
   terminals: `make dev` in one, `make opencode` in the other.
+
+## Troubleshooting
+
+### `lint-staged` fails with "could not write index" on commit (DIA-260821-m7vk)
+
+- **Symptom:** committing from the dev container, the pre-commit hook
+  (`lint-staged`) aborts with `could not write index` / `EACCES`, and the
+  commit is blocked by the hard pre-commit gate (DIA-094).
+- **Cause:** UID mismatch at the bind-mount boundary. `.git/` is owned by the
+  host user, but the container's `dev` user runs as a hardcoded UID 1000. When
+  your host UID != 1000, `dev` cannot write to `.git/index`. `git config
+--system safe.directory` (DIA-185) bypasses git's ownership _check_ but not
+  the write _permission_.
+- **Fix:** align the container UID with the host UID.
+  1. Run `id -u` and `id -g` on the host.
+  2. Add `USER_UID=<your-uid>` and `USER_GID=<your-gid>` to `.env`
+     (see `.env.example`).
+  3. Rebuild the image so the `dev` user is created with your UID/GID, and the
+     entrypoint migrates ownership of `.git/` + the named volumes at boot:
+     `make clean && make up`.
+- **Warning:** `make clean` wipes the named volumes — including PostgreSQL data
+  (`pgdata`) and the pnpm store. Back up first if you need to keep them. This
+  is the only supported rollback if the permission migration goes wrong.
