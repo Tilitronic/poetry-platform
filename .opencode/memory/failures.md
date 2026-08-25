@@ -389,3 +389,17 @@ Failed-loop lessons & preventive actions
     3. Double-block escalation: when BOTH the test-author lane AND its diagnostic analyzer fail, no automated path forward exists — escalate to owner rather than looping either lane.
   - Why irrecoverable: the empty-twice RED result, the analyzer endpoint-outage + unconfirmed-revive sequence, and the resulting double-block are runtime/session behavior; the partial-result artifacts are gitignored session state, not reconstructible from git diffs or commits.
   - Cross-reference: ana034 RED/GREEN empty recovery (lessons.md line 2029); L20260810-001 empty-return escalation (lessons.md line 281, now partially superseded for RED by DIA-175 separation); failures.md line 260 empty-result ambiguity; failures.md line 321 errored-session non-resumable; L20260816-006 endpoint-outage routing; DIA-099 3-failure cap; DIA-175 RED/GREEN separation.
+
+- Failure mode (2026-08-25, DIA-260825-nts7): task revive by task_id failed 4x with "current generation is already owned by another lifecycle operation" - even for board-reusable sessions
+  - Symptom: reviving completed background tasks by task_id repeatedly rejected with the lifecycle-ownership error; the board marked sessions reusable but revive still failed.
+  - Fallback that worked: FRESH dispatch with the full unabbreviated brief (do not abbreviate the re-dispatch payload to "continue previous work" - the fresh instance has no prior context).
+  - Preventive action: after 1-2 revive ownership failures, stop retrying and re-dispatch fresh with complete context; apply DIA-099-style caps to revive attempts.
+  - Why irrecoverable: plugin lifecycle-lock error text and the successful fallback are runtime/session behavior, not in code or git history.
+  - Cross-reference: failures.md "revive stopped unconfirmed" entry (DIA-260824-a3mk); DIA-099 3-failure cap.
+
+- Failure mode (2026-08-25, DIA-260825-q7bu): killed mid-hang test runs leak per-call nsbin mktemp dirs (/var/tmp/poetry-nsbin.*) because teardown rm -rf never executes
+  - Symptom: /var/tmp/poetry-nsbin.* directories accumulate after a stalled/killed bats run.
+  - Classification: SYMPTOM, not cause - the leak means the suite was killed mid-test (e.g. an interactive-stdin hang); do not chase the leak itself when diagnosing stalls, use it as evidence that a kill happened and find the hang.
+  - Preventive action: when diagnosing test-suite stalls, check for nsbin leaks first as a marker of prior killed runs; fix the underlying hang (see L20260825-005).
+  - Why irrecoverable: the leak-as-diagnostic-signal interpretation is session observation; git shows only the final fixed code.
+  - Cross-reference: L20260825-005, DIA-260825-q7bu, commit 77ae58d.

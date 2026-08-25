@@ -2071,3 +2071,60 @@ recorded here). Irrecoverable process lessons:
 - Lesson: when dispatching @coder for dev-infra work that touches config-shaped files or uses config vocabulary, EXPLICITLY classify the work as section-2.4 in the dispatch payload (state "section-2.4 dev-infra, not section-10 config") and, if a DIA ticket is required, reference the correct dev-infra ticket id. Do not rely on the gate inferring intent from the lane name alone.
 - Why irrecoverable: the keyword-matching behavior of the gate and the "clears after ai-specialist research" interaction are runtime plugin behavior not reconstructible from git diffs or AGENTS.md prose.
 - Cross-reference: DIA-063 section-10 gate (delegation-observer.ts); lessons.md DIA-063 entries (lines 104, 1200-1213); DIA-260821-m7vk; DIA-260824-a3mk.
+
+## L20260825-003 - parity micro-fixes across preset sibling agents drift silently (DIA-260824-1c3e / DIA-260825-nts7 session, 2026-08-25)
+
+- Symptom: adding an options block (reasoningEffort max + thinking) to N sibling agent entries in the cebula-ox-alpha preset missed ai-specialist at commit 01ea8d7; discovered only by a developer question 2 sessions later (fixed 107ef1f).
+- Lesson: when applying a parity change to multiple sibling config entries, diff ALL sibling entries afterward in the same change - do not trust per-entry application. A missed sibling produces no error, test failure, or gate signal.
+- Why irrecoverable: the drift was silent runtime/config behavior caught by conversation, not by any gate; commits show only the fix, not the detection gap.
+- Cross-reference: commit 01ea8d7 (origin), 107ef1f (fix); external-patterns/2026-08-24-dia-260824-1c3e-cebula-ox-alpha-preset-findings.md.
+
+## L20260825-004 - flag-position deny patterns need the bare/argument-less form too (DIA-260825-nts7, 2026-08-25)
+
+- Symptom: destructive-git deny patterns were written only for flag-with-argument forms; the bare/argument-less forms slipped through TWICE in one day (bare `git branch -D` form, then bare `git commit -n` missed again by the O3 residual batch).
+- Lesson/checklist item for permission-change reviews: for every denied flag, also deny the argument-less form of the same command. Add this check to reviewer/ai-auditor permission review checklists.
+- Why irrecoverable: the twice-repeated miss is review-process behavior; surviving commits (fe6ffd7, cc517c6, 11d3cba) contain only the final fixed patterns.
+- Cross-reference: learnings/external-patterns/2026-08-25-git-deny-pattern-precedence.md; lessons.md line ~137 (deny-shadowing anti-pattern).
+
+## L20260825-005 - bats run() inherits stdin; redirect at the shared helper seam, not per-test (DIA-260825-q7bu, 2026-08-25)
+
+- Symptom: interactive `make test-shell` hung at case 166/527 (the no-arg dev-entrypoint default-command test, which execs bare interactive bash via `set -- bash`, dev-entrypoint.sh:59-61). CI and agent runs never saw it because their stdin is already /dev/null.
+- Root cause: bats `run()` passes the caller's stdin through to the command under test; a live TTY made the exec'd interactive bash block on read.
+- Fix pattern: redirect stdin (`< /dev/null`) ONCE at the shared helper seam (both run_entrypoint_ns and run_entrypoint_xvfb_ns in test-helper.bash), not per-test. Commit 77ae58d.
+- Reproduction tip: to simulate a TTY in non-interactive runs, pipe a delay into bats: `sleep 30 | bats ...` - any case that hangs under this is stdin-leaking. Interactive-only hangs are invisible to CI/agent runs by construction.
+- Why irrecoverable: the hang was TTY-only (never reproduced in agent/CI environments) and the "fix at the shared seam + sleep-pipe reproduction" technique is session knowledge, not encoded in tests or commits.
+- Cross-reference: DIA-260825-q7bu, commit 77ae58d, scripts/__tests__/test-helper.bash:503/:526.
+
+## L20260825-006 - architecture.md-reserved seams live in the document, not in stub files; cross-check architecture.md before deleting packages (DIA-260825-wprb, 2026-08-25)
+
+- Lesson: empty placeholder files reserve nothing - a stub file alone does not make a seam real. But the inverse also holds: a package that looks "dead" (no imports) can be a documented seam with gate wiring. @poetry/data-contracts looked deletable in the ana001 over-engineering audit, yet architecture.md declares it a single-source-of-truth seam with real content (schemas/contract.json) and dev-infra tsconfig paths wire it into gates.
+- Rule: before deleting any workspace package or module flagged as dead code, grep architecture.md / .sdd/ for its declared role and check tsconfig paths / gate wiring. Deletion decisions on documented seams need developer sign-off plus a PONYTAIL-DEBT ledger update when they override prior dispositions (here: DIA-169/ana021).
+- Why irrecoverable: this is a review-process pattern; git shows only the final delete-or-keep outcome, never the cross-check discipline that produced it.
+- Cross-reference: DIA-260825-wprb, knowledge/ana001-repo-overengineering-audit/ana001-repo-overengineering-audit-report.md, DIA-169, ana021, docs/PONYTAIL-DEBT.md.
+
+## L20260825-007 - fresh worktrees lack gitignored .opencode/package.json; untracked .opencode/.gitignore is the root cause (DIA-260825-wprb, 2026-08-25)
+
+- Symptom: `make test-config` fails in a freshly created worktree with an ESM misparse of jsonc-parse.js - the worktree has no .opencode/package.json and no node_modules symlink, because both are gitignored.
+- Root cause: `.opencode/.gitignore` itself is UNTRACKED, so the ignore rules that hide package.json/node_modules only exist in the original checkout; new worktrees never get them, yet git still applies no rules there either way - the bootstrap files are simply absent.
+- Fix candidate: track `.opencode/.gitignore` in git so every worktree bootstraps identically.
+- Why irrecoverable: the failure mode is environment-state-dependent (fresh worktree) and the root cause is an untracked file's interaction with clone semantics; no test encodes it.
+- Cross-reference: DIA-260825-wprb merge lane on DIA-260822-medh-red.
+
+## L20260825-008 - rootless userns remap presents ALL host files as uid 0; secrets preflight needs skip-only-when-BOTH-foreign (DIA-260825-wprb j0s4, 2026-08-25)
+
+- Symptom: the check-secrets-ownership.sh preflight false-fails inside the container under userns remap because every host-mounted file appears as uid 0 regardless of real host ownership.
+- Resolution pattern: fail/skip only when BOTH the observed uid AND the expected uid are foreign to the current namespace context (skip-only-when-BOTH-foreign); spec amended accordingly (dia-260821-x5nj T7.0a lineage).
+- Why irrecoverable: uid-mapping presentation behavior of userns remap plus the both-foreign heuristic are runtime environment knowledge, not encoded in any surviving diff comment or test.
+- Cross-reference: res040 (rootless Docker/Podman UID mapping), DIA-260825-j0s4.
+
+## L20260825-009 - deleting a placeholder can break the package entry point; always repoint package.json entries (DIA-260825-wprb merge fixes 9495160, 2026-08-25)
+
+- Lesson: a "dead placeholder" file was still the phonetics-core package entry point; its deletion broke the build until package.json was repointed. When deleting ANY file, grep package.json exports/main/entries for it first. Separate finding from the same merge: turbo was blocked by host-owned /workspace/.turbo under userns remap (pre-existing env issue, chown or run outside remap).
+- Why irrecoverable: the regression was caught by gates during merge integration; the commit shows the fix, not the general rule.
+- Cross-reference: commit 9495160, DIA-260825-wprb.
+
+## L20260825-010 - pnpm lockfile refresh must run on HOST under userns remap (DIA-260825-wprb, 2026-08-25)
+
+- Lesson: running pnpm install/lockfile refresh inside the container fails with EACCES on workspace-root temp files when the host uses userns remap (container uid cannot write root-owned temp paths). Run the refresh on the host instead.
+- Why irrecoverable: environment-specific workaround tied to this workstation's userns setup; not reproducible or documented in CI where no remap exists.
+- Cross-reference: res040, L20260825-008, DIA-260825-wprb.

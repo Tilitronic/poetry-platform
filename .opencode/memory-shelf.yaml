@@ -740,6 +740,12 @@ shelf:
     path: "knowledge/ana001-current-state-delivery-audit/ana001-current-state-delivery-audit-report.md"
     created: 2026-08-24
     task_ref: DIA-260824-a3mk
+  - id: ana001
+    name: Repo-wide ponytail over-engineering audit (DIA-260825-wprb)
+    description: "Repo-wide over-engineering audit with delete/stdlib/native/yagni/shrink findings; ~671 net lines removable. Four-lane review consensus executed via 6 tickets, all merged to DIA-260822-medh-red; stress-lang-core + publishing-platform deleted. Developer disposition: @poetry/data-contracts KEPT (architecture.md-declared single-source-of-truth seam)."
+    path: knowledge/ana001-repo-overengineering-audit/ana001-repo-overengineering-audit-report.md
+    created: 2026-08-25
+    task_ref: DIA-260825-wprb
   adrs:
   - name: Memory Storage Strategy
     description: 'Evaluation of Claude-Mem, Honcho, and current hand-written memory

@@ -1761,3 +1761,63 @@ operation matches the dispatched task.
 - Created: 2026-08-20
 - Related: DIA-260820-jlu0, DIA-217, .opencode/plugins/delegation-observer.ts,
   .sdd/capability-authorization/architecture.md, lessons L20260820-001..004
+
+### ADR: ana001 repo-wide ponytail over-engineering audit - four-lane review consensus (DIA-260825-wprb)
+
+#### Context
+
+ana001 (knowledge/ana001-repo-overengineering-audit/) proposed ~671 net removable
+lines including workspace package deletions. Four-lane review: architector (arc-1),
+reviewer (rev-1), ai-auditor (ai--1), ai-specialist (ai--2).
+
+#### Decision
+
+CONSENSUS (all four lanes; caveats became execution requirements): findings 1, 2,
+5 (gated on plugin-loader feasibility check), 6, 7 (needs developer sign-off +
+PONYTAIL-DEBT ledger update - overrides DIA-169/ana021 dispositions), 8,
+9 (coordinated: gen-jsconfig.bats assertion + author-studio dep + docs),
+10 (+context7-docs list), 11, 12 (+capability-tokens.test.mjs sync), 13,
+14 (+author-studio/AGENTS.md W2 doc sync), 15, 16.
+
+VARIANT CONSENSUS - finding 3: WIRE check-secrets-ownership.sh into the
+opencode-dev preflight, do NOT delete (open spec dia-260821-x5nj T7.0a mandates it).
+
+NO CONSENSUS - finding 4 (delete packages/data-contracts/): architector DISAGREE -
+architecture.md-declared single-source-of-truth seam with real content
+(schemas/contract.json) plus gate wiring in dev-infra tsconfig paths; other three
+agreed-with-caveats. AWAITING DEVELOPER DISPOSITION.
+
+Execution split into tickets: DIA-260825-n5x4 (plugin dead code + base64url),
+DIA-260825-oyh (shared lib gated), DIA-260825-b80t (editor-engine dead code),
+DIA-260825-aapj (scaffold workspaces coordinated), DIA-260825-f1o7 (misc + doc
+sync), DIA-260825-j0s4 (wire secrets script).
+
+#### Consequences
+
+- Finding 4 stays unexecuted until the developer disposes the architector objection.
+- Findings 5 and 7 carry preconditions (feasibility check; sign-off + ledger update).
+- Coordinated findings must land together with their listed sync artifacts.
+
+#### Metadata
+
+- Created: 2026-08-25
+- Related: DIA-260825-wprb, ana001 report, lessons.md L20260825-006,
+  DIA-169, ana021, dia-260821-x5nj T7.0a, docs/PONYTAIL-DEBT.md
+
+#### UPDATE - Outcome (2026-08-25, final persistence pass)
+
+All 6 cleanup tickets executed and merged to DIA-260822-medh-red. Commits:
+15338aa (n5x4 plugin dead code + native base64url), a9a2842 (b80t editor-engine),
+f4362d9 (aapj scaffold workspaces), 69aa970 (f1o7 misc), 9115bb5 (j0s4 secrets
+preflight wiring), 9495160 (merge integration fixes), a25be98 (oyh shared
+lib/errors.ts, gate PASS), d65102a (review fix-all), d9418d3 (re-review residual
+closure). Re-review cycle 1/2: 5/6 verified-closed + 1 partial closed by d9418d3;
+0 still-open.
+
+Developer dispositions recorded: finding 4 data-contracts KEPT
+(architecture.md seam); finding 7 example-store KEPT (developer sign-off,
+recorded in aapj ticket UPDATE block).
+
+Operational lessons captured as L20260825-007..010 (worktree bootstrap gap,
+userns both-foreign preflight pattern, package-entry-point repoint rule,
+host-side lockfile refresh).
