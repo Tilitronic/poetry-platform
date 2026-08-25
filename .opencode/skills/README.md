@@ -23,11 +23,11 @@ repo.
 
 ## Which skills live where (post-DIA-084)
 
-### Project-pinned skills (23)
+### Project-pinned skills (22)
 
 These resolve in this repo regardless of where the repo is cloned or run. Five
-skills (`tdd-craftsman`, `teaching`, `mermaid-diagramming`, `console-charting`,
-`simplify`) were **pinned at project level** from the global tree on 2026-08-11
+skills (`tdd-craftsman`, `teaching`, `mermaid-diagramming`, `console-charting`)
+were **pinned at project level** from the global tree on 2026-08-11
 so they load in CI / containers / other machines without this user's home
 directory. Four overlapping skills (`book-rag`, `debugging-workflow`,
 `git-diff`, `playwright-browser`) keep **project copies only** — the global
@@ -41,11 +41,11 @@ debugging-workflow, domain-grilling, git-diff, git-permissions,
 mermaid-diagramming, openspec-apply-change, openspec-archive-change,
 openspec-explore, openspec-propose, openspec-sync-specs,
 openspec-update-change, playwright-browser, research-pipeline,
-resolving-merge-conflicts, review-re-verify, simplify, tdd-craftsman,
+resolving-merge-conflicts, review-re-verify, tdd-craftsman,
 teaching, to-tickets
 ```
 
-### Global-only skills (8, accepted as non-load-bearing)
+### Global-only skills (9, accepted as non-load-bearing)
 
 These are user-specific workflow tools that intentionally stay in
 `~/.config/opencode/skills/`. They are NOT required by this repo's build, CI,
@@ -53,8 +53,22 @@ or agent contracts, so they are accepted as non-load-bearing:
 
 ```
 clonedeps, codemap, deepwork, oh-my-opencode-slim, reflect,
-release-smoke-test, verification-planning, worktrees
+release-smoke-test, simplify, verification-planning, worktrees
 ```
+
+> **`simplify` ownership note (DIA-260823-v9di):** `simplify` was removed from
+> the project-pinned list; the global OMO tree
+> (`~/.config/opencode/skills/simplify/`) is its single canonical source and the
+> project copy was deleted as stale drift. It remains non-load-bearing for this
+> repo (per DIA-084). If a future workflow makes it load-bearing, pin it at
+> project level in the same change that adds the dependency.
+>
+> **Current state vs latent risk:** before deletion, `validate-skills.sh` emitted
+> a SOFT warn-only near-duplicate (`warn: near-duplicate skill 'simplify'`, exit
+> 0) — no current hard failure. The latent hazard was Tier-1 HARD: if the two
+> copies ever became byte-identical, `make test-config` would fail (exit 1).
+> Deleting the project copy removes it entirely, so neither the soft warn nor
+> the latent hard risk can recur.
 
 ## Resolution order and the precedence ruling
 
@@ -81,14 +95,14 @@ Convention going forward:
 
 ## Risk outside this user home
 
-Because the 8 global-only skills exist only in `~/.config/opencode/skills/`,
+Because the 9 global-only skills exist only in `~/.config/opencode/skills/`,
 an OpenCode runtime **outside this home directory** (CI container, dev
 container without the home mount, another developer's machine) will NOT
 resolve them. Mitigation per DIA-084 disposition:
 
 - All skills the repo actually needs for builds / tests / agent contracts are
-  now **project-pinned** (23 above) and resolve anywhere.
-- The 8 global-only skills are deliberately non-load-bearing: if a future
+  now **project-pinned** (22 above) and resolve anywhere.
+- The 9 global-only skills are deliberately non-load-bearing: if a future
   workflow makes one of them load-bearing, pin it at project level (copy in +
   delete the global copy) in the same change that adds the dependency.
 - `make test-config` must stay green; it is the gate that catches accidental
