@@ -6,7 +6,7 @@ id: DIA-260825-nts7
 title: "permission: extend coder bash allow-list - 300s watchdog auto-rejected unmatched git/make/pnpm calls"
 area: agent-config
 severity: Medium
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: ""
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
@@ -100,3 +100,30 @@ Audit-fix (2026-08-25), implements the binding ai-specialist gate findings:
 ## Re-verify
 
 > To be filled at re-verify time (ai-auditor targeted re-review, cycle 1/2).
+
+## UPDATE - 2026-08-25: re-audit cycle 1/2 PASS WITH RESIDUAL RISK; residual deny batch applied; CLOSED
+
+ai-auditor targeted re-review (cycle 1/2): **PASS WITH RESIDUAL RISK** -
+4/4 prior findings verified-closed.
+
+Developer disposition:
+
+- O1 (long-form branch delete) fix ACCEPTED.
+- O3 (short-form no-verify alias) fix ACCEPTED.
+- O2 accepted AS BY-DESIGN RESIDUAL (no code change).
+
+This commit applies the accepted O1+O3 fixes: appended to the
+DIA-260825-nts7 deny block in BOTH coder and coder-escalated bash maps of
+.opencode/opencode.jsonc (same style, WHY comments):
+
+- O1: "git branch --delete --force \*", "git branch --delete --force"
+  (long-form equivalent of denied -D).
+- O3: "git commit -n _", "git commit _ -n _", "git commit _ -n"
+  (short-form no-verify alias; skips husky pre-commit like --no-verify).
+
+Verification: `make test-config` exit 0 in poetry-dev container; JSONC
+parses cleanly; all 5 new entries confirmed present with value "deny" in
+both maps.
+
+Status flipped OPEN -> CLOSED. Restart-verify stays recorded as PENDING
+until next OpenCode restart confirms the config loads without warnings.

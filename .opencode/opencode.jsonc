@@ -365,7 +365,17 @@
           "git clean -f*": "deny",
           "git clean -fdx": "deny",
           "git clean -fd": "deny",
-          "git clean -f": "deny"
+          "git clean -f": "deny",
+          // DIA-260825-nts7 re-audit residual batch (developer-approved):
+          // O1 - long-form branch delete, exact equivalent of denied -D
+          // (same trailing-space gotcha: bare form paired with starred form).
+          "git branch --delete --force *": "deny",
+          "git branch --delete --force": "deny",
+          // O3 - short-form no-verify alias; skips husky pre-commit docker
+          // gate (DIA-094/DIA-096) exactly like --no-verify above.
+          "git commit -n *": "deny",
+          "git commit * -n *": "deny",
+          "git commit * -n": "deny"
         }
       }
     },
@@ -434,7 +444,14 @@
           "git clean -f*": "deny",
           "git clean -fdx": "deny",
           "git clean -fd": "deny",
-          "git clean -f": "deny"
+          "git clean -f": "deny",
+          // DIA-260825-nts7 re-audit residual batch (O1+O3): identical to the
+          // base coder additions - see comment there for WHY.
+          "git branch --delete --force *": "deny",
+          "git branch --delete --force": "deny",
+          "git commit -n *": "deny",
+          "git commit * -n *": "deny",
+          "git commit * -n": "deny"
         },
         "task": "deny"
       },
