@@ -1666,10 +1666,15 @@ recorded here). Irrecoverable process lessons:
 
 - Observation: DIA-197 initially chose V2 (keep DCP in plugin array, disable
   autonomous pruning via manualMode + deny + strategies-off). On further
-  evaluation, the developer chose V1 (full removal, 7 touchpoints, commit
-  69dcdaf). The V2 intermediate state created config complexity with zero
-  benefit: DCP was disabled since Aug 16, had zero manual usage, and its
-  zero-cache-preserving property meant even the disabled state was pointless.
+  evaluation, the developer chose V1 (full removal). CORRECTION (2026-08-21,
+  DIA-260821-8kpc): the claim "DCP was disabled since Aug 16" is FALSE. DCP
+  was ENABLED globally (in /app/.config/opencode/: opencode.json plugin array,
+  tui.json, dcp.jsonc) until 2026-08-21, when DIA-260821-8kpc removed it from
+  both project and global config. The Aug 16 "disabled" belief was
+  misinformation that caused repeated re-investigation. The general lesson
+  (full removal cleaner than keep-but-disable when no re-enable scenario) still
+  holds for the project-config removal; the global-config removal completed
+  2026-08-21.
 - Lesson: when evaluating plugin removal, the keep-but-disable intermediate
   state is only valuable when there is a plausible future re-enable scenario.
   If the plugin has no cache-preserving mode, zero usage, and no future use
@@ -1999,3 +2004,70 @@ recorded here). Irrecoverable process lessons:
   evaluated or why they were rejected.
 - Cross-reference: DIA-260820-jlu0, capability-authorization architecture,
   ponytail skill.
+
+## L20260821-001 - DCP fully removed 2026-08-21; "enabled:false" belief was misinformation (DIA-260821-8kpc, 2026-08-21)
+
+- Observation: the dual-compaction-pipeline (DCP) plugin was fully removed from
+  BOTH project and global config on 2026-08-21 as part of DIA-260821-8kpc. The
+  prior belief that DCP was "disabled since Aug 16" / global dcp.jsonc was
+  "enabled:false" was FALSE. DCP was in fact ENABLED globally (in
+  /app/.config/opencode/: opencode.json plugin array, tui.json, dcp.jsonc)
+  until the 2026-08-21 removal. DIA-197 (2026-08-17) had only removed the
+  PROJECT config.
+- Lesson: when a memory claim about config state contradicts another memory
+  claim, treat it as a red flag and verify against the actual config files
+  rather than re-investigating from scratch. The "enabled:false" / "disabled
+  since Aug 16" misinformation caused repeated re-investigation across multiple
+  sessions; record the verified timeline once and stop re-deriving it.
+- Why irrecoverable: the true removal date (2026-08-21) and the fact that the
+  global config stayed enabled until then are operational facts not recoverable
+  from the Aug 17 commit alone; the false "disabled" belief lived only in
+  memory files, not in any commit.
+- Cross-reference: DIA-260821-8kpc, repo.md DCP removal timeline (CORRECTED
+  2026-08-21), adr.md "Full DCP removal" Correction (2026-08-21).
+
+- empty-green-same-session-recovery-rule (DIA-260821-x5nj, ana034): When a GREEN coder dispatch returns an empty result (no file edits / no code landed), the DIA-175 same-session fix-loop rule does NOT apply - that rule only governs sessions that actually wrote code (resume the implementer's context). Before re-dispatching, verify ground truth (files on disk + git status) that nothing landed; then a fresh GREEN instance is permitted. RED/GREEN instance separation (DIA-175) must still be preserved: the fresh GREEN session must differ from the RED test-author session. Reusing the exhausted empty session guarantees a second empty result. Recovery pattern: spawn a fresh GREEN session for a single vertical slice (e.g. the two engine-override compose files only), defer script modification to a separate dispatch to avoid context exhaustion. Irrecoverable: this behavioral nuance (same-session rule waived on empty, ground-truth-verify-then-fresh) is not reconstructible from git diffs or the AGENTS.md prose alone; recorded from the ana034 recovery analysis.
+
+## L20260824-001 - make test-config can be absent in this environment; run the documented Makefile recipe manually as equivalent evidence (DIA-260824-1c3e, 2026-08-24)
+
+- Observation: in this environment `make` is not installed, so the literal `make test-config` gate returns exit 127 (BLOCKED). The Makefile `test-config` target is a thin wrapper that runs a fixed sequence of validation steps (validate-opencode-config / JSONC, validate-agent-names, validate-output-contracts, validate-reviewer-sections, validate-decision-variants, validate-grilling-gate, check-orchestrator-prompt-drift, validate-handoff, test-ticket-gate, validate-memory-shelf, validate-changelog, validate-dia-mentions, audit-agent-tool-coverage, docker compose config --quiet, node scripts/__tests__/batch-d-infra.test.mjs).
+- Lesson / mitigation: when `make test-config` is unavailable (exit 127), do NOT treat the gate as failed. Run the documented recipe steps manually (the exact commands the Makefile target invokes) and capture full output to disk; passing every step with exit 0 is supplemental EQUIVALENT evidence for the config gate. This is a recurring environment characteristic, not a per-ticket fact - any future opencode-config change validated here hits the same make-absence.
+- Why irrecoverable: the make-absence is environment state, not in any commit; a fresh agent would waste a cycle discovering `make` is missing and might wrongly report the gate as failed. The recipe-equivalence fallback is a workflow decision not reconstructible from git.
+- Cross-reference: DIA-260824-1c3e, AGENTS.md section 6 (make test-config host gate), CHANGELOG.yaml/md DIA-260824-1c3e verification block.
+
+## L20260824-002 - verify live provider model IDs before configuration; invalid IDs cause mechanical fallback (DIA-260824-1c3e, 2026-08-24)
+
+- Durable lesson: before committing any model assignment in opencode config, verify the provider model ID against the live provider catalog (e.g. OpenCode Go model catalog + official docs) or vendor model card. Do not rely on developer confirmation or memory claims about availability unless a verification date and source are recorded. Invalid/phantom model IDs do not error at config load; they trigger mechanical fallback at routing time, silently degrading the intended lane.
+- Corrected fact (supersedes the original "unverified" note): on 2026-08-24 an ai-specialist diagnostic against the live OpenCode Go model catalog and official OpenCode docs verified that the ONLY existing Ox Alpha model ID is `opencode-go/ox-alpha-free`. The earlier strings `opencode-go/ox-alpha` and `opencode-go/ox-alpha-max` are PHANTOM IDs that do not exist and were corrected to `opencode-go/ox-alpha-free` across all eight preset references. Availability is therefore VERIFIED, not assumed.
+- Why irrecoverable: the "verify-before-configure + phantom-ID fallback" rule is a generalizable operational lesson not reconstructible from the preset config alone (a fresh agent reading the config would see only the corrected ID and miss the why). Recorded so the lesson survives beyond the per-ticket artifacts.
+- Cross-reference: DIA-260824, learnings/external-patterns/2026-08-24-dia-260824-1c3e-cebula-ox-alpha-preset-findings.md, CHANGELOG.yaml/md DIA-260824-1c3e.
+
+## L20260824-003 - root-owned OpenCode log recurrence: root launch paths bypass the dev-entrypoint privilege drop (DIA-260824-a3mk, 2026-08-24)
+
+- Durable root-cause lesson: the recurring `PermissionDenied opening /home/dev/.local/share/opencode/log/opencode.log` (root-owned log) is caused by OpenCode being launched as root via paths that bypass the dev-entrypoint privilege drop. The self-healing fix (Dockerfile.dev USER removal + gosu + HEALTHCHECK-as-dev; dev-entrypoint.sh chown+gosu drop; Makefile `--user dev`; scripts/opencode-dev entrypoint routing; scripts/dev-stack.sh `--user dev`) is implemented but UNCOMMITTED as of the audit, so it is not recoverable from git. The behavioral why (root launch paths skip the entrypoint's chown/gosu step, leaving the log owned by root) is not present in any committed source or test.
+- Preventive rule: any launch path for OpenCode in this repo (make opencode, scripts/opencode-dev, dev-stack.sh, compose HEALTHCHECK) MUST route through the dev-entrypoint privilege drop (chown + gosu dev) or run as `--user dev`; never launch opencode directly as root. After any entrypoint/Dockerfile change, verify the running container's opencode.log is owned by dev:dev, not root.
+- Why irrecoverable: the fix is uncommitted working-tree state and the root-cause reasoning is operational knowledge not encoded in source/tests; a fresh agent would re-encounter the root-owned-log failure without this lesson.
+- Cross-reference: DIA-260824-a3mk, knowledge/ana001-current-state-delivery-audit/ana001-current-state-delivery-audit-report.md.
+
+## L20260824-004 - distinguish lane/handoff CLAIMS from independently VERIFIED evidence after truncated/empty results (DIA-260824-a3mk, 2026-08-24)
+
+- Durable audit-discipline lesson: when a subagent/lane report is truncated, empty, or cancelled, its assertions are CLAIMS ([C]), not verified evidence ([E]). Do not let a lane's self-reported "done/verified/passing" stand as evidence. Independently re-verify the specific claim with a reproducible command (git status/diff, docker inspect, direct test run) before recording it as fact in any audit, ticket, or ledger.
+- Concrete trigger from the audit: the a3mk commit lane returned two truncated reports (asserting "rebuilt image verified" / "shell suite passes") and one EMPTY result (asserting "commit attempted"); independent verification found the image was an intermediate build lacking the gosu HEALTHCHECK and NO a3mk commit existed on any ref. The truncated claims were unusable as verification.
+- Complements (does not duplicate) the existing "verification-evidence capture" lesson (2026-08-10, line 82): that lesson is about persisting full untruncated OUTPUT; this lesson is about the epistemic step of separating a lane's CLAIM from independently VERIFIED evidence when the lane result is incomplete.
+- Why irrecoverable: this is a verification-discipline pattern not present in git/tests/source; without it, audits silently inherit false-positive "verified" claims from truncated lanes.
+  - Cross-reference: DIA-260824-a3mk, knowledge/ana001-current-state-delivery-audit/ana001-current-state-delivery-audit-report.md (Claim-vs-Evidence Register, section 10).
+
+## L20260825-001 - lint-staged re-stages the WHOLE file on partial-hunk commits, leaking unrelated unstaged changes (DIA-260824-a3mk commit lane, 2026-08-25)
+
+- Symptom: committing only some hunks of a file that also had unrelated unstaged changes (the a3mk lane had DIA-260821-m7vk edits sitting unstaged in delegation-observer.ts alongside the a3mk hunks) caused lint-staged's auto-restage step to re-stage the ENTIRE file, not just the staged hunks. The commit then leaked the unrelated m7vk changes (intermediate commit bb6d7c1; later amended to 58b97f3).
+- Root cause: lint-staged restores unstaged changes by re-staging the whole file after the hook runs, so a partial-hunk commit silently absorbs unrelated working-tree edits. Distinct from the conflict variant at lessons.md line 71-73 (which ABORTS the commit); this variant SUCCEEDS but leaks.
+- Mitigation: when committing a subset of hunks from a file with unrelated unstaged edits, isolate the commit - either `git stash push -- <unrelated paths>` (or `git checkout -- <file>` to match the index) before committing, then restore; or commit that file in isolation. Always verify with `git show --stat` that only intended paths/hunks landed.
+- Why irrecoverable: the leaking intermediate commit (bb6d7c1) was amended away (58b97f3) and is not in current history; the leakage mechanism and its mitigation are operational knowledge not in any surviving commit or test.
+- Cross-reference: lessons.md line 71-73 (partial-staging conflict variant); DIA-260824-a3mk; DIA-260821-m7vk (the leaked edits).
+
+## L20260825-002 - config-work KEYWORDS in a @coder dev-infra dispatch trip the DIA-063 section-10 gate; classify explicitly (DIA-260821-m7vk / DIA-260824-a3mk, 2026-08-25)
+
+- Observation: a @coder dispatch for genuine section-2.4 dev-infra work (scripts/, Docker, Makefile) can still trigger the DIA-063 section-10 ticket gate if its payload mentions config-work keywords such as "lint-staged config" or "git config". The gate treats the keyword match as a section-10 (.opencode/ config) signal even though the work is dev-infra. The gate clears only after the @ai-specialist gate research runs (the section-10 research path is what satisfies the keyword trigger).
+- Lesson: when dispatching @coder for dev-infra work that touches config-shaped files or uses config vocabulary, EXPLICITLY classify the work as section-2.4 in the dispatch payload (state "section-2.4 dev-infra, not section-10 config") and, if a DIA ticket is required, reference the correct dev-infra ticket id. Do not rely on the gate inferring intent from the lane name alone.
+- Why irrecoverable: the keyword-matching behavior of the gate and the "clears after ai-specialist research" interaction are runtime plugin behavior not reconstructible from git diffs or AGENTS.md prose.
+- Cross-reference: DIA-063 section-10 gate (delegation-observer.ts); lessons.md DIA-063 entries (lines 104, 1200-1213); DIA-260821-m7vk; DIA-260824-a3mk.

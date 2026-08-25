@@ -362,6 +362,43 @@ shelf:
       infrastructure.'
     path: knowledge/res035-capability-authorization/res035-capability-authorization-conspect.md
     created: '2026-08-20'
+  - name: res036 - DCP vs Headroom comparison
+    description: 'DCP vs Headroom comparison; verdict: DCP already removed from active config; Headroom NOT a cache-friendlier replacement - its cache-mode drifts the frozen prefix on the opencode-go/DeepSeek path per DIA-183 B1 spike.'
+    path: knowledge/res036-dcp-vs-headroom/res036-dcp-vs-headroom-conspect.md
+    created: '2026-08-21'
+  - name: res037 - Headroom review and video validation
+    description: 'Community review of Headroom is 5/6 accurate; the 60-95% figure is JSON-data-scoped not coding-agent; two YouTube videos engage token-compression axis only, neither confirm nor contradict the cache-drift finding.'
+    path: knowledge/res037-headroom-review-video-validation/res037-headroom-review-video-validation-conspect.md
+    created: '2026-08-21'
+  - name: res038 - Caveman output-token economy
+    description: 'Caveman terse-output persona: JetBrains measured 8.5% not 65% on agentic coding; no quality loss; redundant with the project already-active ponytail level:full; do NOT adopt as separate plugin.'
+    path: knowledge/res038-caveman-output-token-economy/res038-caveman-output-token-economy-conspect.md
+    created: '2026-08-21'
+  - name: OpenCode Runtime Config Introspection (res039)
+    description: 'Conspect synthesizing LLM-free OpenCode runtime config introspection for a make test-runtime-config target: opencode debug config/agent/paths primitives, clean-HOME + OPENCODE_CONFIG* overrides, effective preset/model/plugin proof, verified-local vs docs-only distinction (session-analytics.sh guard pattern, opencode-docker README, Makefile), version/schema caveats, and excluded archived sources.'
+    path: knowledge/res039-opencode-runtime-config-introspection/res039-opencode-runtime-config-introspection-conspect.md
+    created: '2026-08-21'
+  - name: Context Thresholds, Auto-Compaction, and Session Handoff Strategy for Orchestrator Model Choices (res1)
+    description: Research conspect synthesizing 14 archived sources on context rot mechanics, auto-compaction thresholds across coding agents (Gemini ~50%, Roo 86-92%, Claude Code ~89%, Codex ~90%, OpenCode 96-99%), compaction failure modes, session-handoff strategy, and orchestrator model-choice implications (reasoning vs loop-driving; Chinese-model context landscape). Local audit operational findings (DIA-260822-medh, recorded as facts not policy). (1) A fixed 15% forced self-rerun lacks external support and conflicts with native auto-compaction mechanics. (2) Semantic handoffs retain value for milestones, degradation, crises, and manual stops. (3) The documented 50/80/95 context-pressure mechanism is currently nonfunctional because getContextPressure returns zero.
+    path: knowledge/res1-context-handoff-orchestration-strategy/res1-context-handoff-orchestration-strategy-conspect.md
+    created: 2026-08-22
+  - name: Rootless Docker vs Podman UID Mapping Blocker and Portable Remediation (res040)
+    description: 'Research conspect synthesizing 11 archived sources (3 Phase A capture
+      failures substituted) on the rootless Docker vs Podman UID-mapping blocker
+      for portable dev workflows. Verified blocker: rootless Docker maps container
+      UID 0 to the invoking host UID and UID n>=1 to subuid+(n-1), so host-owned
+      bind mounts appear root-owned inside the container and non-root container
+      processes cannot write them; rootful userns-remap is not a substitute (no
+      keep-id semantics). Podman keep-id maps host UID:GID to identical in-container
+      values, preserving non-root Git writes and secret readability. Portable remediation:
+      Docker rejects keep-id as a --userns value, so set PODMAN_USERNS=keep-id (Docker
+      ignores it, Podman honors it) for a single no-op-on-Docker config; Docker-only
+      fix is user: "${UID:-1000}:${GID:-1000}". Caveats: keep-id breaks images with
+      no USER set and root container users; named volumes translate ownership that
+      bind mounts lack on Linux; macOS Docker Desktop fakes ownership so always run
+      --user to match Linux/CI.'
+    path: knowledge/res040-docker-rootless-uid-compatibility/res040-docker-rootless-uid-compatibility-conspect.md
+    created: 2026-08-22
 
   analyses:
   - name: Agent Alignment Audit
@@ -661,6 +698,48 @@ shelf:
     path: knowledge/ana030-ticket-system-comparison/ana030-ticket-system-comparison-report.md
     created: 2026-08-19
     task_ref: DIA-260819-mq4h
+  - name: Container functionality and overlap analysis (poetry-dev vs opencode-docker)
+    description: "MECE inventory and functional-overlap matrix of the two application-facing images. 21 capability rows (12 shared, 5 dev-only, 4 opencode-only). Duplicated: Node/pnpm/bun/mise/uv/OpenSpec/DCP (since removed)/snip, Docker CLI (different packaging + compose versions 5.4.0 vs v2.39.1), Playwright/crawl4ai (different dependency closure), OpenCode (drifted 1.18.18 vs 1.18.4), secrets loaders (empty-file semantic mismatch between dev-entrypoint.sh and bootstrap.py). Unique to poetry-dev: Rust/wasm32, LSPs, trafilatura, pnpm_store volume, Postgres network, app ports. Unique to opencode-docker: host container socket, SSH-agent forwarding, read-only rootfs + dropped capabilities, OpenSpec auto-init. Recommendation: keep two runtime images, consolidate version sources + shared installer logic, enforce parity with a config test."
+    path: knowledge/ana023-container-functionality-overlap/ana023-container-functionality-overlap-report.md
+    created: 2026-08-16
+  - name: Two-container dev infrastructure friction analysis
+    description: "Friction/failure-mode analysis of the split. Critical: socket + SELinux chain (DIA-145 saga, label=disable). High: poetry-dev hard dependency for pre-commit (DIA-094 hard-fail vs pre-push warn-and-pass asymmetry), duplicated image tooling + version drift (Docker CLI both, opencode 1.18.18 vs 1.18.4), SSH agent lifecycle (second host-socket, warn-and-continue then delayed publickey failure). Medium: env gaps discovered at gate time (rust-analyzer 1.83 vs 1.97.1, global skills dir absent), resource overhead (4GB/4CPU/1GB shm + second image). 6 unique incident threads among 8 tickets (DIA-164 is a duplicate of DIA-145); 6 maintained config/version loci; estimated 18-30h split-specific maintenance; recovery multiplier = relaunch (session ends on relaunch)."
+    path: knowledge/ana024-container-infrastructure-friction/ana024-container-infrastructure-friction-report.md
+    created: 2026-08-16
+  - name: Container consolidation options EBDV (poetry-dev + opencode-docker)
+    description: "Evidence-backed decision variants for merging the two containers. Variant 0 status quo (0-2 days), Variant A merge into opencode-docker (8-15 days, high risk: hook recursion, secrets, SELinux, socket privilege amplification, postgres reachability - REJECT), Variant B merge into poetry-dev (5-10 days, medium-high: weakens security boundary, root 0:0 service gains socket+SSH - REJECT), Variant C hybrid deduplicated (2-5 days, low-medium risk - RECOMMENDED): keep both runtime boundaries, consolidate version/config pins (extend check-pin-sync.sh), finish DIA-188 restart-verify, make hook seam explicit, remove only safe duplication. 5-step migration roadmap + rollback. Decision record: Variant C selected because it removes low-value duplication while preserving the writable/networked app boundary and hardened interactive OpenCode boundary."
+    path: knowledge/ana025-container-consolidation-options/ana025-container-consolidation-options-report.md
+    created: 2026-08-16
+  - name: Repository Risk Prioritization and Remediation Ranking (ana031)
+    description: "Reconciles current repository source state against prior analysis reports (ana026-ana030) to produce a ranked top-10 remediation list. Current source/runtime evidence takes priority over older report claims. Three stale claims from ana028/ana029 are explicitly marked and excluded from the ranked list. The repository has 199 tickets (23 OPEN, 6 Blocker, 15 Critical), 25 OpenSpec changes with significant task/status drift, and no committed GPT/ChatGPT repository-state report. Ranked list: (1) restart-verify DIA-222/224/225 plugin changes live, (2) DIA-206 ai-specialist systemic empty-return failure, (3) DIA-213 orchestrator scope limitation, (4) DIA-234 datetime-based ticket IDs, (5) DIA-189 terminal session identity, (6) DIA-207 WSL memory/CPU cap exhaustion, (7) DIA-208 cebula preset model swap, (8) DIA-260820-jlu0 DIA-217 ticket gate chicken-and-egg, (9) OpenSpec task/status drift (6 changes 0% completion), (10) DIA-260820-y268 enforce ticket-status queries via scripts."
+    path: knowledge/ana031-repository-risk-prioritization/ana031-repository-risk-prioritization-report.md
+    created: 2026-08-21
+    task_ref: DIA-260821-bqy7
+  - name: "August 2026 Ticket-OpenSpec Reconciliation Audit (ana032)"
+    description: "August 2026 ticket-OpenSpec reconciliation audit (DIA-260821-bqy7). Reconciles 167 August tickets (created 2026-08-*) against OpenSpec changes and prior analysis ana026. Triage: 19 CLOSE candidates (already CLOSED with populated Fix/Re-verify), 4 UPDATE candidates (partial/stale evidence: DIA-098/099/126/127), 24 KEEP OPEN (actionable unstarted work), 0 OBSOLETE. Reverse-drift table flags 4 CLOSED tickets with placeholder Fix/Re-verify (DIA-126/127 full reverse-drift, DIA-131/132 partial). ana026 gaps: 6 P0/P1 findings (socket security, plugin duplicates, hermetic test-config/shell, image contract drift, runtime merge detection) have no corresponding OPEN ticket - recommends new tickets. Caveats: tests not run (make unavailable in audit env); scope limited to 2026-08 tickets; no ticket/OpenSpec/source modifications."
+    path: knowledge/ana032-august-ticket-openspec-reconciliation/ana032-august-ticket-openspec-reconciliation-report.md
+    created: 2026-08-21
+    task_ref: DIA-260821-bqy7
+  - name: "Next-10 Remediation Bugs (ana033)"
+    description: "Next-10 remediation ranking after ana031 Top-10. Draws from 15 remaining OPEN tickets, 6 ana026 no-ticket P0/P1 gaps, and 4 ana032 reverse-drift CLOSED tickets. Flags two un-ticketed P0 ana026 gaps (container socket security, runtime plugin duplicates), two FULL REVERSE-DRIFT CLOSED tickets (DIA-126, DIA-127) with placeholder Fix/Re-verify, two fresh Major tickets (DIA-260821-mzk7 preset routing mismatch, DIA-260821-cku1 scripts/tickets update capability), and P1 two-image OPENCODE_VERSION drift (1.18.18 vs 1.18.4). Read-only: no ticket statuses changed, no tickets created."
+    path: "knowledge/ana033-next-remediation-bugs/ana033-next-remediation-bugs-report.md"
+    created: 2026-08-21
+    task_ref: DIA-260821-bqy7
+  - name: "Engine-Specific GREEN Lane Failure & Recovery (ana034-engine-green-lane-recovery)"
+    description: "Forensic recovery analysis of two consecutive empty-result GREEN dispatches in coder session ses_fd1c5a349ffeD5fldZwf8iOLZb (DIA-260821-x5nj). Root cause: context exhaustion after RED test scope expansion; no production code landed. Durable lesson: the DIA-175 same-session fix-loop rule does NOT apply when the coder wrote no code (empty result) - there is no implementer context to resume. Before re-dispatch, verify ground truth (files on disk / git status) that nothing landed; then a fresh GREEN instance is permitted, while RED/GREEN instance separation (DIA-175) is still preserved (fresh GREEN must differ from the RED author). Recovery: spawn a fresh GREEN session implementing only the two engine-override compose files (vertical slice), defer script modification to a separate dispatch."
+    path: "knowledge/ana034-engine-green-lane-recovery/ana034-engine-green-lane-recovery-report.md"
+    created: 2026-08-23
+    task_ref: DIA-260821-x5nj
+  - name: "Unified dev-runtime gap and migration analysis (ana035-unified-dev-runtime-gap-migration)"
+    description: "Unified dev-runtime gap analysis for DIA-260821-x5nj (collapse poetry-dev + opencode-docker into one OpenCode dev container). Feasibility: one unified container is achievable, but the current tasks.md omits the core architectural inversion - the container must own the git commit/push process end-to-end (hook execution model inversion), eliminating host-delegated hooks that create split-brain. Unified base should be Dockerfile.dev (full toolchain + postgres), not opencode-docker. Eight blocking conclusions: (1) rootless Docker UID/entrypoint mismatch - engine-specific compose overrides (Podman keep-id vs Docker user 0:0) need contract tests; entrypoint unification (bash vs python init) is a deferred decision. (2) SSH-agent launch support - compose cannot express conditional socket mounts, so the launcher must handle forwarding; Dockerfile.dev must gain openssh-client. (3) engine socket + --test boundary - whether the unified container needs the Docker socket is an open decision (unneeded if hooks run in-container); command modes are non-blocking. (4) git identity/commit-push contract - container needs a git identity strategy (mount host ~/.gitconfig ro or env vars) decided before Slice 0. (5) preset/auth runtime validation - preset/auth/key loading seam must merge; secret whitelist drifts if entrypoints stay split. (6) secret preflight wiring + narrow credential exposure - file-based secrets avoid docker-inspect leakage; preflight ownership check is a new seam. (7) engine detection - launcher does engine+OS auto-detect + override selection; UID contract needs verification. (8) legacy lifecycle migration - 7-day retirement, no --legacy wrapper, delete tools/opencode-docker/ + dead fedora compose file. Root cause of the two-runtime split: incremental security evolution without a unification plan."
+    path: "knowledge/ana035-unified-dev-runtime-gap-migration/ana035-unified-dev-runtime-gap-migration-report.md"
+    created: 2026-08-24
+    task_ref: DIA-260821-x5nj
+  - name: "Current-State Delivery Audit (ana001-current-state-delivery-audit, DIA-260824-a3mk)"
+    description: "Current-state delivery audit for DIA-260824-a3mk (OpenCode log PermissionDenied on root-owned /home/dev/.local/share/opencode/log/opencode.log). Verdict: the a3mk self-healing root->dev privilege-drop fix is implemented and behaviorally verified live against the running container, but entirely uncommitted; its regression tests are partially stale (3 failing bats assertions); the ticket/OpenSpec checklists are not updated to match reality; commit lanes failed twice (truncated) plus once (empty result) and a final rebuild/verify/commit dispatch was cancelled. Durable findings persisted to lessons.md: (1) root-owned OpenCode log recurrence is caused by root launch paths bypassing the dev-entrypoint privilege drop; (2) lane/handoff claims ([C]) must be distinguished from independently verified evidence ([E]) after truncated/empty results. Read-only audit; no source/test modifications."
+    path: "knowledge/ana001-current-state-delivery-audit/ana001-current-state-delivery-audit-report.md"
+    created: 2026-08-24
+    task_ref: DIA-260824-a3mk
   adrs:
   - name: Memory Storage Strategy
     description: 'Evaluation of Claude-Mem, Honcho, and current hand-written memory
@@ -751,7 +830,7 @@ shelf:
       \ fallback). Narrows @ai-specialist. Adds NEXT-RUN.md \xA72 COUNCIL-BUDGET-GUARD:\
       \ council only at C1\u2013C5 crisis, Copilot-credit 75% warn 1125 / 90% hard-stop\
       \ 1350 of 1500. Gate rulings folded in: D1 CLASH dropped (issue #197 monitored),\
-      \ D5 dcp.jsonc is compaction-limits only (no skill alignment), D6 openspec-plan\
+      \ D5 dcp.jsonc (since removed) is compaction-limits only (no skill alignment), D6 openspec-plan\
       \ skip-mode already implemented (OMO line 531 \u2014 no model swap)."
     path: openspec/changes/archive/2026-08-06-ai-self-improvement-auditor-and-cleanup/
     created: 2026-08-06
@@ -996,6 +1075,12 @@ shelf:
     created: 2026-08-15
     task_ref: DIA-085
     status: proposed
+  - name: adaptive-session-compaction
+    description: "OpenSpec change (DIA-260822-medh, scope opencode-config): adaptive session-compaction policy adding an advisory layer over native OpenCode auto-compaction (96-99%). Restores working context measurement via context_usage.usage_fraction (the prior getContextPressure() returned 0, making the 50/80/95 logic inoperative). Progressive policy: 60% readiness warning (context-warning-60, rate-limited), 85% proactive compaction request (context-compact-85, manual /compact, no forced API), post-first-compaction handoff (context-new-session-post-compact) on next 85% crossing. State: in-memory Map<string, ContextPolicyState> seeded from registry.jsonl at boot (fail-soft; registry.jsonl is canonical semantic event store per ana007/DIA-136). Compaction detected via experimental.compaction.autocontinue (NOT a polling proxy). Direct context_usage measurement requires an async plugin hook + shared async helper, NOT synchronous tool.execute.before. No forced compaction API exists. Documented risks: hook overhead, native compaction race, velocity-event duplication, post-compact timing. Implementation in delegation-observer.ts (no new modules/APIs). Resolves the prior openspec-plan permission denial - openspec-plan is practice-protected/spec-authoring-only and must not register shelf entries; @memory-manager owns this registration (AGENTS.md section 2.3 step 6 / 2.5 Phase 6)."
+    path: openspec/changes/adaptive-session-compaction/
+    created: 2026-08-22
+    task_ref: DIA-260822-medh
+    status: validated
   architectures:
   - name: dia-redispatch-cycle
     description: "Design-authority seed for the dev-infra campaign protocol (CRISIS-DETECTION, PROGNOSIS-DISCIPLINE, cycle-budget management): 5 ADRs (ADR-001 prognosis in HANDOFF.md only, ADR-002 C1-C5 OR-combined triggers, ADR-003 fresh-session independence, ADR-004 max-cycles=3 budget default, ADR-005 soft exhaustion) that the redispatch rule texts must not contradict. Seeded 2026-08-03 from interview Q5."

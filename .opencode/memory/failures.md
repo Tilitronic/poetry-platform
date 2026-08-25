@@ -270,15 +270,20 @@ Failed-loop lessons & preventive actions
     DIA-103-interview-batch-completeness CLOSED, CHANGELOG committed, push drift
     0/0. The empty result was a reporting artifact, NOT missing work.
   - Lesson: an empty subagent result is AMBIGUOUS - it can be either (a) a silent
-    failure where nothing was written (DIA-130, 2026-08-13 variant), or (b) a
-    reporting artifact where the work fully landed (cod-8, this session). The
-    correct move is ALWAYS the same: verify the actual state against the repo
-    and artifacts (commit present, ticket status, changelog, push drift) via a
-    READ-ONLY inspection lane BEFORE deciding whether to re-dispatch. Do not
-    re-dispatch the writer on an empty result (risk of double-apply/clobber a
-    partial write) and do not assume failure - absence of evidence is not
-    evidence of absence. This confirms the same pattern as DIA-132/DIA-098: the
-    verify-first ordering, applied to the two possible empty-result outcomes.
+    failure where nothing was written (DIA-130, 2026-08-13 variant), (b) a
+    reporting artifact where the work fully landed (cod-8, this session), or
+    (c) a PARTIAL landing where the lane prepared edits in the working tree AND
+    index but did NOT commit (e.g. DIA-260825-lro1 closure returned an empty
+    report yet had staged + uncommitted edits on disk). The correct move is
+    ALWAYS the same: verify the actual state against the repo and artifacts
+    (commit present, ticket status, changelog, push drift, AND `git status` for
+    staged/uncommitted edits) via a READ-ONLY inspection lane BEFORE deciding
+    whether to re-dispatch. For (c), RESUME the same lane and complete ONLY the
+    missing commit - do NOT re-apply the edits (they are already present) and do
+    NOT spawn a fresh writer (risk of double-apply/clobber). Do not assume
+    failure - absence of evidence is not evidence of absence. This confirms the
+    same pattern as DIA-132/DIA-098: the verify-first ordering, applied to the
+    empty-result outcomes.
   - Cross-reference: DIA-130 (silent-failure variant, 2026-08-13); DIA-098;
     failures.md 2026-08-06 reviewer empty-result resume; 2026-08-10 cod-4
     silent-empty result; commits 442b17e / 3322fdb / 43c0f7a.
@@ -372,3 +377,15 @@ Failed-loop lessons & preventive actions
     runtime/session behavior, not reconstructible from commits.
   - Cross-reference: DIA-191, L20260816-006, L20260817-004, DIA-099 (3-failure
     cap), adr.md DIA-189 model-array fallback.
+
+- Failure mode (2026-08-25, DIA-260824-a3mk): RED test-author empty TWICE + diagnostic analyzer failed (provider endpoint unavailable, then revive stopped unconfirmed) — double-block before test remediation
+  - Symptom: the RED-only coder task (ses_fc8309c69ffe5vKhGnuVKtFWdY, agent=coder, original_task_ref "DIA-260824-a3mk RED-only stale launcher test correction and bounded ENOSPC remediation") returned an EMPTY result (status "empty", result_length 0) TWICE. A diagnostic analyzer (ses_fc82ea1e7ffeMHp5bA8f10quWB, agent=analyzer, original_task_ref "DIA-260824-a3mk diagnose repeated empty stale-launcher-test lane") was dispatched to investigate; it first failed with "provider endpoint unavailable" and a single revive "stopped without a terminal result or completed text" (status "partial", result_length 109). Both the test-authoring lane and its diagnostic lane were blocked before any test remediation could start. Partial-result artifacts (gitignored session state, the only record): .opencode/session/partial-results/ses_fc8309c69ffe5vKhGnuVKtFWdY.json and .opencode/session/partial-results/ses_fc82ea1e7ffeMHp5bA8f10quWB.json.
+  - Root cause / classification (two gaps NOT covered by existing entries):
+    1. RED test-author empty (x2): a DIA-175-separated RED coder (test-author) produced no result and no test files. This is the RED counterpart of the GREEN-empty recovery rule (ana034, lessons.md line 2029) but had NO explicit recovery rule of its own. Critically, the legacy "re-route implementation to code-executor" fallback (L20260810-001, lessons.md line 281) is now UNSAFE post-DIA-175 because it would collapse RED test-authoring into the GREEN implementer, violating strict RED/GREEN instance separation.
+    2. Analyzer revive stopped unconfirmed: a revive (resume) was attempted but the session stopped WITHOUT a confirmed terminal result — distinct from (a) empty-result (session completed, returned empty — failures.md line 260) and (b) errored-session (job-board marks non-reusable — failures.md line 321). "Stopped unconfirmed" is an UNCONFIRMED state: we cannot tell if it completed, partially completed, or silently died.
+  - Preventive action / recovery:
+    1. RED test-author empty (esp. repeated): verify ground truth (no test files landed) then spawn a FRESH RED test-author instance — do NOT reuse the exhausted empty session (reuse guarantees a second empty, per ana034) and do NOT let the GREEN implementer author the tests (preserves DIA-175 separation). The remediation gate cannot proceed (no tests) until a RED test-author lands.
+    2. Revive stopped unconfirmed: treat as unconfirmed, NOT success and NOT a clean failure. Verify ground truth (for a write-less analyzer there is no disk artifact to check, so the diagnostic conclusion is simply lost) and apply the per-lane 3-failure cap (DIA-099); do not loop revives blindly. Because the analyzer failure was a provider-endpoint outage, route the diagnostic around the dead endpoint via @coder (L20260816-006) rather than re-attempting the analyzer.
+    3. Double-block escalation: when BOTH the test-author lane AND its diagnostic analyzer fail, no automated path forward exists — escalate to owner rather than looping either lane.
+  - Why irrecoverable: the empty-twice RED result, the analyzer endpoint-outage + unconfirmed-revive sequence, and the resulting double-block are runtime/session behavior; the partial-result artifacts are gitignored session state, not reconstructible from git diffs or commits.
+  - Cross-reference: ana034 RED/GREEN empty recovery (lessons.md line 2029); L20260810-001 empty-return escalation (lessons.md line 281, now partially superseded for RED by DIA-175 separation); failures.md line 260 empty-result ambiguity; failures.md line 321 errored-session non-resumable; L20260816-006 endpoint-outage routing; DIA-099 3-failure cap; DIA-175 RED/GREEN separation.

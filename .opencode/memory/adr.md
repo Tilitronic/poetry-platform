@@ -1237,6 +1237,18 @@ Rationale: DCP was disabled since Aug 16, zero manual usage, dead weight.
   Docker references).
 - Future DCP-related work would require re-adding from scratch.
 
+### Correction (2026-08-21, DIA-260821-8kpc)
+
+The claims in this ADR that DCP was "removed from plugin arrays (project +
+global)" on 2026-08-17 and "disabled since Aug 16" with "no remaining DCP
+config surface" are FALSE. Reality: DIA-197 (2026-08-17) removed DCP from the
+PROJECT config only. The GLOBAL config (in /app/.config/opencode/: opencode.json
+plugin array, tui.json, dcp.jsonc) kept DCP ENABLED until 2026-08-21, when
+DIA-260821-8kpc removed it from both project and global config. As of
+2026-08-21 DCP is fully removed from project + global config. The "disabled
+since Aug 16 / enabled:false" belief was misinformation that caused repeated
+re-investigation.
+
 ### Metadata
 
 - Created: 2026-08-17 (supersedes V2 entry from 2026-08-16)

@@ -265,13 +265,14 @@ Note: These are navigational facts to help future humans find the infra/test art
   json-stringify-detection.md. Recorded because ID allocation is a one-time
   allocation event not always visible in the active ticket index.
 
-- DCP fully removed from codebase (DIA-197, commit 69dcdaf, 2026-08-17):
-  the dual-compaction-pipeline plugin is fully removed. Seven touchpoints
-  edited in one commit: removed from plugin arrays (project + global),
-  deleted dcp.jsonc, removed from config validator, removed from Dockerfiles
-  (Dockerfile.dev + Dockerfile), and removed runtime deps. No remaining DCP
-  config surface. The earlier V2 keep-but-disable ADR is superseded by this
-  V1 full removal.
+- DCP removal timeline (CORRECTED 2026-08-21, DIA-260821-8kpc): the
+  dual-compaction-pipeline (DCP) plugin was NOT fully removed on 2026-08-17.
+  DIA-197 (commit 69dcdaf, 2026-08-17) removed DCP from the PROJECT config
+  only. The GLOBAL config (in /app/.config/opencode/: opencode.json plugin
+  array, tui.json, dcp.jsonc) kept DCP ENABLED until 2026-08-21, when
+  DIA-260821-8kpc removed it from both project and global config. As of
+  2026-08-21 DCP is fully removed from project + global config. The earlier
+  "fully removed Aug 17" claim was false and caused repeated re-investigation.
 
 - OMO slim upgraded to 2.2.15 (DIA-187, 2026-08-17): oh-my-opencode-slim
   upgraded from 2.2.14 to 2.2.15 in global config. Two files changed:
@@ -302,15 +303,14 @@ Note: These are navigational facts to help future humans find the infra/test art
   line 243 (documents the DIA-085 legacy fallback path). The three presets were
   confirmed byte-identical after restructure.
 
-- DCP plugin config surface (DIA-260819-9oxi, 2026-08-19): the DCP plugin
-  (dual-compaction-pipeline) was fully removed from the codebase in DIA-197
-  (commit 69dcdaf, 7 touchpoints: plugin arrays, dcp.jsonc, config validator,
-  Dockerfiles, runtime deps). The earlier V2 keep-but-disable ADR is superseded.
-  Global config at ~/.config/opencode/dcp.jsonc is set to `enabled: false` as
-  a clean disable path if DCP is ever re-added. Project config at
-  .opencode/dcp.jsonc does NOT exist (was never created during DIA-197 V2).
-  Record: DCP config loss pattern -- if a config file is created in one session
-  but not committed/verified, it can be lost. See adr.md DIA-260819-9oxi ADR.
+- DCP plugin config surface (CORRECTED 2026-08-21, DIA-260821-8kpc): the
+  earlier DIA-260819-9oxi entry claimed global ~/.config/opencode/dcp.jsonc
+  was set to `enabled: false`. That was FALSE. DCP was ENABLED globally (in
+  /app/.config/opencode/opencode.json plugin array, tui.json, and dcp.jsonc)
+  until removed 2026-08-21 as part of DIA-260821-8kpc. As of 2026-08-21 DCP
+  is fully removed from both project and global config; no dcp.jsonc remains
+  anywhere. The "enabled:false" belief was misinformation that caused repeated
+  re-investigation. See adr.md DIA-260821-8kpc ADR.
 
 - Todowrite discipline surfaces (DIA-260819-880v, 2026-08-19): todowrite tool
   guidance was added to 3 surfaces in the same change:

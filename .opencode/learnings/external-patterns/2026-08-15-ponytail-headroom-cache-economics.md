@@ -8,14 +8,14 @@ status: active
 
 # Prompt-cache economics for context compression (DIA-183 Phase 1 gate findings; headroom cache-mode preservation claim SUPERSEDED - measured drift, NOT-RECOMMENDED 2026-08-16)
 
-## 1. FACT: the current DCP configuration ALREADY degrades the prompt cache
+## 1. FACT (SUPERSEDED 2026-08-21 - DCP fully removed via DIA-260821-8kpc): the DCP configuration degraded the prompt cache
 
 DCP (opencode-dynamic-context-pruning, @tarquinen/opencode-dcp@3.1.14 in the project
 plugin array) documents its own cache impact: "cache hit rates approximately 85% with
 DCP vs 90% without". The author has moved development to Sleev. So the ticket's central
 concern ("compression busts the cache prefix and could cost more than it saves") is
-ALREADY partially true under the current config - a documented ~5% cache-hit degradation
-is being eaten today with no upside.
+ALREADY partially true under that config (DCP removed 2026-08-21 via DIA-260821-8kpc) - a documented ~5% cache-hit degradation
+was being eaten then with no upside.
 
 ## 2. FACT: cache miss is catastrophically expensive on DeepSeek V4 Flash
 
@@ -91,6 +91,6 @@ is NOT recommended - it accepts a documented 5% cache degradation with no upside
   passthrough control stable (proves compression path, not proxying). Net
   cost delta estimated strongly negative (50x miss multiplier on a large
   busted cached region vs -25% compression on the small delta). headroom
-  stays OFF; DCP manual mode (dcp.jsonc, DIA-197) stays as-is. Full evidence:
+  stays OFF; DCP manual mode (dcp.jsonc, DIA-197) is moot - DCP fully removed 2026-08-21 via DIA-260821-8kpc. Full evidence:
   DIA-183 ticket UPDATE 2026-08-16. (Supersedes the "spike NOT run" text
   below; keep the earlier pricing/cache facts - they remain valid references.)
