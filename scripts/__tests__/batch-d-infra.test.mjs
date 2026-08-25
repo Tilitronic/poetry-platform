@@ -633,3 +633,24 @@ describe('S6 DIA-184: host-aware root defaults', () => {
     );
   });
 });
+
+// ============================================================================
+// S7 DIA-260821-5r03 - local observer plugins are auto-discovered by OpenCode.
+// Explicitly listing the same files in the project plugin array initializes a
+// second copy of every hook and duplicates lifecycle side effects.
+// ============================================================================
+describe('S7 DIA-260821-5r03: project observer plugins have one registration source', () => {
+  it('does not explicitly register auto-discovered .opencode/plugins files', () => {
+    const configuredPlugins = opencodeConfig.plugin ?? [];
+    for (const pluginPath of [
+      './.opencode/plugins/delegation-observer.ts',
+      './.opencode/plugins/needs-input-observer.ts',
+    ]) {
+      assert.equal(
+        configuredPlugins.includes(pluginPath),
+        false,
+        `${pluginPath} is auto-discovered and must not also appear in the plugin array`,
+      );
+    }
+  });
+});

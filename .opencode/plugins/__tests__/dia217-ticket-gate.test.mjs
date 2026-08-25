@@ -122,6 +122,23 @@ async function runTaskDispatch(hooks, ctx, taskArgs) {
   return { error, registryRows: newRows }
 }
 
+async function runTaskDispatchWithCallID(hooks, ctx, taskArgs, callID) {
+  let error = null
+  try {
+    await hooks["tool.execute.before"](
+      {
+        tool: "task",
+        sessionID: "ses_dia217_retry",
+        callID,
+      },
+      { args: taskArgs }
+    )
+  } catch (err) {
+    error = err instanceof Error ? err : new Error(String(err))
+  }
+  return error
+}
+
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
@@ -237,4 +254,39 @@ test("DIA-217: ticket_id is case-insensitive for file lookup", async () => {
   })
 
   expect(error).toBeNull()
+})
+
+test("DIA-260825-lro1: rejected preflight does not poison corrected retry", async () => {
+  const { hooks, ctx } = await makeHarness()
+  const dispatch = {
+    subagent_type: "coder",
+    prompt: "implement one bounded slice",
+    description: "retry after corrected task arguments",
+  }
+
+  const rejected = await runTaskDispatchWithCallID(
+    hooks,
+    ctx,
+    dispatch,
+    "call_missing_ticket"
+  )
+  expect(rejected).not.toBeNull()
+  expect(rejected.message).toContain("requires a ticket_id field")
+
+  const corrected = await runTaskDispatchWithCallID(
+    hooks,
+    ctx,
+    { ...dispatch, ticket_id: "DIA-260825-lro1" },
+    "call_corrected_retry"
+  )
+  expect(corrected).toBeNull()
+
+  const duplicate = await runTaskDispatchWithCallID(
+    hooks,
+    ctx,
+    { ...dispatch, ticket_id: "DIA-260825-lro1" },
+    "call_true_duplicate"
+  )
+  expect(duplicate).not.toBeNull()
+  expect(duplicate.message).toContain("Idempotent duplicate dispatch blocked")
 })

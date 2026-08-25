@@ -892,11 +892,14 @@ const delegationObserver: Plugin = async (ctx) => {
   const FAILURE_CAP_THRESHOLD = 3
   const FAILURE_CAP_COOLDOWN_MS = 600_000 // 10 minutes
 
-  // DIA-211 Phase 3b: pending adaptive-dispatch tracking (callId -> {agentId, start}).
-  // Populated in tool.execute.before, consumed in tool.execute.after.
+  // DIA-211 Phase 3b: pending adaptive-dispatch tracking
+  // (callId -> {agentId, start, idempotencyHash}).
+  // Populated in tool.execute.before, consumed in tool.execute.after. The hash
+  // lets a later preflight gate roll back a reservation for a call that never
+  // reached the task runtime.
   const pendingAdaptiveDispatches = new Map<
     string,
-    { agentId: string; start: number }
+    { agentId: string; start: number; idempotencyHash: string }
   >()
 
   // Seed the gated-session set from existing registry rows (RR-2: the
@@ -1812,6 +1815,13 @@ const delegationObserver: Plugin = async (ctx) => {
     return false
   }
 
+  function rollbackAdaptiveDispatch(callId: string): void {
+    const pending = pendingAdaptiveDispatches.get(callId)
+    if (!pending) return
+    idempotencyCache.delete(pending.idempotencyHash)
+    pendingAdaptiveDispatches.delete(callId)
+  }
+
   // Critical-health gate: block dispatches to OPEN agents unless probe cooldown
   // has elapsed (then allow ONE probe by transitioning to HALF_OPEN).
   function criticalHealthGate(agentType: string): void {
@@ -1879,6 +1889,7 @@ const delegationObserver: Plugin = async (ctx) => {
           writer: "plugin",
         })
       } else {
+        idempotencyCache.delete(hash)
         throw gateErr
       }
     }
@@ -1887,6 +1898,7 @@ const delegationObserver: Plugin = async (ctx) => {
     pendingAdaptiveDispatches.set(callId, {
       agentId: dispatch.subagentType,
       start: Date.now(),
+      idempotencyHash: hash,
     })
   }
 
@@ -2593,6 +2605,7 @@ const delegationObserver: Plugin = async (ctx) => {
             )
             return // Bypass the DIA-217 gate
           } else {
+            rollbackAdaptiveDispatch(input.callID)
             throw new Error(
               `§10 TICKET GATE: Capability token invalid (${result.error}). Mint a new one and try again.`
             )
@@ -2615,6 +2628,7 @@ const delegationObserver: Plugin = async (ctx) => {
             detail: "task() dispatch missing required ticket_id field",
             writer: "plugin",
           })
+          rollbackAdaptiveDispatch(input.callID)
           throw new Error(
             "DIA-217 GATE: task() dispatch requires a ticket_id field (DIA-NNN format).\n" +
               "Action: add ticket_id to the task() args."
@@ -2633,6 +2647,7 @@ const delegationObserver: Plugin = async (ctx) => {
             detail: `invalid ticket_id format: ${ticketId}`,
             writer: "plugin",
           })
+          rollbackAdaptiveDispatch(input.callID)
           throw new Error(
             `DIA-217 GATE: invalid ticket_id format '${ticketId}'. Expected DIA-NNN or DIA-YYMMDD-XXXX.`
           )
@@ -2901,6 +2916,7 @@ const delegationObserver: Plugin = async (ctx) => {
                   },
                   input.sessionID
                 )
+                rollbackAdaptiveDispatch(input.callID)
                 throw new Error(
                   "ROUTING GATE: @coder dispatched on config-work without prior @ai-specialist gate review.\n" +
                   "AGENTS.md section 2.5 requires:\n" +
@@ -3005,6 +3021,7 @@ const delegationObserver: Plugin = async (ctx) => {
             description: description.slice(0, 300),
             writer: "plugin",
           })
+          rollbackAdaptiveDispatch(input.callID)
           throw new Error(
             "§10 TICKET GATE: No correlating DIA ticket found for this §10 work.\n" +
               "Before §10 engineering work begins, a DIA ticket must exist in " +
