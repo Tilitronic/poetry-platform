@@ -13,11 +13,6 @@ export class OpusState {
     return this.lines.get(id);
   }
 
-  getLineAt(index: number): LineAtom | undefined {
-    const id = this.order.value[index];
-    return id ? this.lines.get(id) : undefined;
-  }
-
   addLine(id: string, text = '', index?: number): LineAtom {
     const atom_ = new LineAtom(id, text);
     this.lines.set(id, atom_);
@@ -34,11 +29,5 @@ export class OpusState {
   removeLine(id: string): void {
     this.lines.delete(id);
     this.order.set(this.order.value.filter((lid) => lid !== id));
-  }
-
-  moveLine(id: string, toIndex: number): void {
-    const order = this.order.value.filter((lid) => lid !== id);
-    order.splice(toIndex, 0, id);
-    this.order.set(order);
   }
 }
