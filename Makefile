@@ -42,16 +42,16 @@ up:
 	docker compose up -d
 
 shell:
-	docker compose exec dev bash
+	docker compose exec --user dev dev bash
 
 opencode:
-	docker compose exec -it dev opencode
+	docker compose exec -it --user root dev /usr/local/bin/dev-entrypoint.sh opencode
 
 dev:
-	docker compose exec -it dev pnpm dev
+	docker compose exec -it --user dev dev pnpm dev
 
 install:
-	docker compose exec -it dev pnpm install
+	docker compose exec -it --user dev dev pnpm install
 
 db-psql:
 	docker compose exec postgres psql -U $${POSTGRES_USER:-poetry} -d $${POSTGRES_DB:-poetry}
@@ -149,10 +149,10 @@ test-infra: gen-jsconfig test-shell test-harness
 # externally-managed, so deps go into a project-local venv (.venv) bootstrapped
 # on demand via uv — never the system site-packages. Re-runs reuse the venv.
 test-python:
-	docker compose exec -T dev bash -c 'cd /workspace/apps/api-server && { test -x .venv/bin/python || uv venv .venv; } && uv pip install --python .venv/bin/python -e ".[dev]"'
-	docker compose exec -T dev bash -c 'cd /workspace/apps/api-server && .venv/bin/python -m pytest'
-	docker compose exec -T dev bash -c 'cd /workspace/packages/analytics-pipeline && { test -x .venv/bin/python || uv venv .venv; } && uv pip install --python .venv/bin/python -e ".[dev]"'
-	docker compose exec -T dev bash -c 'cd /workspace/packages/analytics-pipeline && .venv/bin/python -m pytest'
+	docker compose exec -T --user dev dev bash -c 'cd /workspace/apps/api-server && { test -x .venv/bin/python || uv venv .venv; } && uv pip install --python .venv/bin/python -e ".[dev]"'
+	docker compose exec -T --user dev dev bash -c 'cd /workspace/apps/api-server && .venv/bin/python -m pytest'
+	docker compose exec -T --user dev dev bash -c 'cd /workspace/packages/analytics-pipeline && { test -x .venv/bin/python || uv venv .venv; } && uv pip install --python .venv/bin/python -e ".[dev]"'
+	docker compose exec -T --user dev dev bash -c 'cd /workspace/packages/analytics-pipeline && .venv/bin/python -m pytest'
 
 # Interview-first spec-authoring enforcement (scripts/test-interview-enforcement.sh,
 # 5 grep/python checks). DIA-009: the script was orphaned — the CHANGELOG claimed
@@ -297,7 +297,7 @@ session-analytics:
 # C1-C4 contracts. Both must pass for the target to exit 0.
 test-harness:
 	bash scripts/__tests__/bats-wrapper.sh --filter harness-scenario-replay
-	docker compose exec -T dev bash -lc 'cd /workspace/.opencode/plugins/__tests__ && bun test'
+	docker compose exec -T --user dev dev bash -lc 'cd /workspace/.opencode/plugins/__tests__ && bun test'
 
 # Post-merge worktree GC: delete merged feature/* branches + sweep orphaned
 # dirs in .worktrees/ + prune stale git worktree admin files. The documented

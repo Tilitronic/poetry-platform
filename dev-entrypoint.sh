@@ -53,8 +53,32 @@ if command -v Xvfb >/dev/null 2>&1; then
   export DISPLAY=:99.0
 fi
 
-# --- Exec the requested command ---
+# --- Default command ---
+# Set before the privilege drop so gosu/runuser receive a concrete command
+# (gosu requires one); the non-root fallback path execs the same "$@".
 if [ "$#" -eq 0 ]; then
   set -- bash
 fi
+
+# --- Root preflight: repair OpenCode state dir ownership (DIA-260824-a3mk) ---
+# The dev_state volume overlays /home/dev/.local/share; Docker/Podman volume
+# init can leave the opencode dir root-owned, so the runtime dev user cannot
+# create log/ and OpenCode aborts with PermissionDenied. The entrypoint now
+# starts as root (USER directive removed from Dockerfile.dev), so chown the
+# narrow state dir, then drop to dev for the workload. If gosu is missing,
+# fall back to runuser/su (still non-root); only if no drop tool exists do we
+# warn and continue as root (degraded, never silent).
+if [ "$(id -u)" -eq 0 ]; then
+  chown -R dev:dev /home/dev/.local/share/opencode 2>/dev/null || true
+  if command -v gosu >/dev/null 2>&1; then
+    exec gosu dev "$@"
+  elif command -v runuser >/dev/null 2>&1; then
+    exec runuser -u dev -- "$@"
+  elif command -v su >/dev/null 2>&1; then
+    # ponytail: su fallback re-parses "$*" which breaks quoted args; only reached if gosu+runuser both missing
+    exec su dev -s /bin/bash -c "exec $*"
+  fi
+  echo "[dev-entrypoint] [warn] no gosu/runuser/su available; running workload as root" >&2
+fi
+
 exec "$@"

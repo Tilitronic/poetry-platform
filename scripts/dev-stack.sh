@@ -33,11 +33,11 @@ docker compose up -d --build
 # node_modules lives in a named volume; turbo binary only exists after install.
 # test -x, not -d: node_modules/.bin/turbo is a file (pnpm shim), and -d is
 # always false for it — which made this branch always re-run pnpm install.
-if docker compose exec -T dev test -x node_modules/.bin/turbo; then
+if docker compose exec -T --user dev dev test -x node_modules/.bin/turbo; then
   echo "ok: dependencies already installed"
 else
   echo "-> installing dependencies (pnpm install)..."
-  docker compose exec -T dev pnpm install
+  docker compose exec -T --user dev dev pnpm install
 fi
 
 # --- 4. Start author-studio via turbo ----------------------------------------
@@ -50,4 +50,4 @@ echo "-> starting author-studio via turbo (pnpm dev)..."
 echo "   author-studio : http://localhost:9000"
 echo "   (api-server and publishing-platform are NOT started by turbo;"
 echo "    start them separately — see docs/docker-dev.md)"
-docker compose exec -it dev pnpm dev
+docker compose exec -it --user dev dev pnpm dev

@@ -81,8 +81,11 @@ make up   # or: docker compose up -d
 
 Built from `Dockerfile.dev` (Debian 13 slim, pinned + SHA256-verified
 installers). It is intentionally **not** distroless and not read-only — dev
-must write (pnpm install, WASM builds, dev-server caches). It runs as
-non-root user `dev` (UID/GID 1000). Playwright + crawl4ai are pre-installed for
+must write (pnpm install, WASM builds, dev-server caches). The entrypoint starts
+as root only to repair the OpenCode state-dir ownership, then drops to the `dev`
+user (UID/GID 1000) via gosu. A bare `docker compose exec dev bash` bypasses the
+entrypoint and runs as root, so use `make opencode` / `scripts/opencode-dev` for
+the self-healing drop to dev. Playwright + crawl4ai are pre-installed for
 browser automation under a virtual X display (Xvfb).
 
 ## Notes

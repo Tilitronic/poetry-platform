@@ -14,7 +14,7 @@
 #
 # This is intentionally NOT distroless and NOT --read-only: dev must be able to
 # write (pnpm install, WASM builds, dev-server caches). Security posture is still
-# strong: pinned versions, SHA256-verified installers, non-root user.
+# strong: pinned versions, SHA256-verified installers; entrypoint starts as root only to repair state-dir ownership, then drops to dev via gosu.
 
 FROM debian:13-slim@sha256:4e401d95de7083948053197a9c3913343cd06b706bf15eb6a0c3ccd26f436a0e
 
@@ -70,6 +70,7 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
     jq \
     make \
     dbus \
+    gosu \
     && rm -rf /var/lib/apt/lists/*
 
 # === Docker CLI + compose plugin (client only; no daemon) ===
@@ -337,12 +338,14 @@ RUN mkdir -p /home/dev/.cache/opencode && \
     rm -rf /tmp/npm-build-cache && \
     chown -R ${USER_UID}:${USER_GID} /home/dev/.cache/opencode
 
-USER ${USER_UID}:${USER_GID}
-
+# USER directive removed (DIA-260824-a3mk): the entrypoint must start as root to
+# chown the OpenCode state dir, then drops to dev via gosu. Do NOT re-add a USER
+# here or via compose `services.dev.user` -- that would make PID1 non-root and
+# defeat the chown (ai-specialist validated the model).
 RUN git config --global --add safe.directory /workspace
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-    CMD opencode --version >/dev/null 2>&1 || exit 1
+    CMD gosu dev opencode --version >/dev/null 2>&1 || exit 1
 
 # tini as PID 1: reaps orphaned children (playwright/crawl4ai spawn short-lived
 # processes) and forwards signals to the entrypoint's children (M9).
