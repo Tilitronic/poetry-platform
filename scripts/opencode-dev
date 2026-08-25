@@ -60,6 +60,16 @@ if [ -n "$os_file" ]; then
 fi
 export COMPOSE_FILE="$compose_list"
 
+# Secrets ownership preflight (T7.0b, design.md Seam 5): refuse to start the
+# container unless ./secrets/ is owned by the invoking user with every secret
+# file mode 0600. The check prints actionable chown/chmod diagnostics itself
+# and never remediates; set -e aborts here on its non-zero exit. The helper is
+# resolved relative to THIS script so a non-repo-root CWD yields a real
+# ownership verdict instead of command-not-found; ./secrets itself stays
+# CWD-relative like the compose files.
+launcher_dir="$(dirname "${BASH_SOURCE[0]}")"
+"$launcher_dir/check-secrets-ownership.sh"
+
 # Pre-flight: validate the merged override set. Also records the selected
 # override files for the launcher contract tests (the mock records every call).
 config_flags="-f docker-compose.yml -f $engine_file"

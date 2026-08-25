@@ -16,11 +16,9 @@
 #   - SSH agent forwarding is ORTHOGONAL: the preflight must not read, forward,
 #     or fail on `SSH_AUTH_SOCK` / `ssh-agent`
 #
-# These tests are RED by design: scripts/check-secrets-ownership.sh does NOT
-# exist yet (T7.0a is implemented by a SEPARATE GREEN coder). Every test below
-# fails on an assertion (missing file / wrong status / missing diagnostic), not
-# on a syntax or compile error. The GREEN coder creates the script to satisfy
-# the contract encoded here.
+# GREEN state: scripts/check-secrets-ownership.sh exists (T7.0a) and is wired
+# into scripts/opencode-dev ahead of 'compose up' (T7.0b); these tests pin the
+# standalone contract the launcher relies on.
 #
 # Seam under test (design.md "Seam 5"):
 #   check-secrets-ownership.sh [SECRETS_DIR]   # default: secrets
