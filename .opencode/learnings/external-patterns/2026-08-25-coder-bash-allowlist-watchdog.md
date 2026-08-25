@@ -2,7 +2,7 @@
 # Coder bash allow-list vs 300s permission watchdog (external pattern registration)
 
 - Date: 2026-08-25
-- Ticket: see new permission ticket created this change (cross-ref DIA-260825-e9ou)
+- Ticket: DIA-260825-nts7 'permission: extend coder bash allow-list' (earlier drafts mis-referenced DIA-260825-e9ou; corrected in the DIA-260825-nts7 audit-fix)
 - Source: ai-specialist gate ses_fc6f516efffeO0DdLJ4kEH4r2J + code-navigator diagnosis ses_fc67272a4ffenGwNAgE19b7ZZA
 
 ## Finding

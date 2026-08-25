@@ -339,7 +339,33 @@
           "jq *": "allow",
           "sha256sum *": "allow",
           "python3 *": "allow",
-          "scripts/*": "allow"
+          "scripts/*": "allow",
+          // DIA-260825-nts7 audit-fix (ai-auditor CRITICAL/HIGH): the broad
+          // allows above admit destructive git forms. Deny beats allow by
+          // longest-pattern-wins regardless of position; placed after allows
+          // for readability. --no-verify would bypass the husky pre-commit
+          // docker gate (DIA-094/DIA-096). Bare forms paired with starred
+          // forms: "git branch -D *" does not match argument-less
+          // "git branch -D" (trailing-space gotcha).
+          "git commit --no-verify *": "deny",
+          "git commit * --no-verify *": "deny",
+          "git commit * --no-verify": "deny",
+          "git commit --no-verify": "deny",
+          "git checkout -- *": "deny",
+          "git checkout --": "deny",
+          "git checkout .": "deny",
+          "git checkout .*": "deny",
+          "git branch -D *": "deny",
+          "git branch -D": "deny",
+          // Re-stated from the global baseline for local clarity: this
+          // agent-level map does NOT inherit global denies (no "*" catch-all
+          // here), so destructive forms must be denied in-map.
+          "git reset --hard *": "deny",
+          "git reset --hard": "deny",
+          "git clean -f*": "deny",
+          "git clean -fdx": "deny",
+          "git clean -fd": "deny",
+          "git clean -f": "deny"
         }
       }
     },
@@ -389,7 +415,26 @@
           "jq *": "allow",
           "sha256sum *": "allow",
           "python3 *": "allow",
-          "scripts/*": "allow"
+          "scripts/*": "allow",
+          // DIA-260825-nts7 audit-fix: identical deny set to the base coder
+          // map (see comment there). Kept in lockstep - this block is
+          // documented as an exact clone of base coder plus task: "deny".
+          "git commit --no-verify *": "deny",
+          "git commit * --no-verify *": "deny",
+          "git commit * --no-verify": "deny",
+          "git commit --no-verify": "deny",
+          "git checkout -- *": "deny",
+          "git checkout --": "deny",
+          "git checkout .": "deny",
+          "git checkout .*": "deny",
+          "git branch -D *": "deny",
+          "git branch -D": "deny",
+          "git reset --hard *": "deny",
+          "git reset --hard": "deny",
+          "git clean -f*": "deny",
+          "git clean -fdx": "deny",
+          "git clean -fd": "deny",
+          "git clean -f": "deny"
         },
         "task": "deny"
       },
