@@ -201,7 +201,11 @@
 | DIA-260824-ifcf | persistent developer Git identity and config propagation for unified poetry-dev workstation | git-hooks | Medium | OPEN | [DIA-260824-ifcf-persistent-developer-git-identity-and-config-propagation-for-unified-poetry-dev-workstation.md](DIA-260824-ifcf-persistent-developer-git-identity-and-config-propagation-for-unified-poetry-dev-workstation.md) |
 | DIA-260824-iirx | Analysis of gaps and migration plan for one unified OpenCode dev container for Fedora and WSL Ubuntu/Debian replacing legacy dual containers | docker | Major | OPEN | [DIA-260824-iirx-analysis-of-gaps-and-migration-plan-for-one-unified-opencode-dev-container-for-fedora-and-wsl-ubuntu-debian-replacing-legacy-dual-containers.md](DIA-260824-iirx-analysis-of-gaps-and-migration-plan-for-one-unified-opencode-dev-container-for-fedora-and-wsl-ubuntu-debian-replacing-legacy-dual-containers.md) |
 | DIA-260824-p3hf | Repair DIA-217 task ticket ID schema pass-through | scripts | Medium | OPEN | [DIA-260824-p3hf-repair-dia-217-task-ticket-id-schema-pass-through.md](DIA-260824-p3hf-repair-dia-217-task-ticket-id-schema-pass-through.md) |
+| DIA-260825-e9ou | test-shell: 17 host failures - dev-entrypoint runuser userns, jsonl-cross-check locale decimals, dev-stack turbo detection | scripts | Medium | OPEN | [DIA-260825-e9ou-test-shell-17-host-failures-dev-entrypoint-runuser-userns-jsonl-cross-check-locale-decimals-dev-stack-turbo-detection.md](DIA-260825-e9ou-test-shell-17-host-failures-dev-entrypoint-runuser-userns-jsonl-cross-check-locale-decimals-dev-stack-turbo-detection.md) |
 | DIA-260825-lro1 | Release task idempotency reservation after failed dispatch | opencode-config | Blocker | OPEN | [DIA-260825-lro1-release-task-idempotency-reservation-after-failed-dispatch.md](DIA-260825-lro1-release-task-idempotency-reservation-after-failed-dispatch.md) |
+| DIA-260825-nts7 | permission: extend coder bash allow-list - 300s watchdog auto-rejected unmatched git/make/pnpm calls | scripts | Medium | OPEN | [DIA-260825-nts7-permission-extend-coder-bash-allow-list-300s-watchdog-auto-rejected-unmatched-git-make-pnpm-calls.md](DIA-260825-nts7-permission-extend-coder-bash-allow-list-300s-watchdog-auto-rejected-unmatched-git-make-pnpm-calls.md) |
+| DIA-260825-q7bu | test-shell hangs on interactive stdin at dev-entrypoint default-command case | scripts | Medium | OPEN | [DIA-260825-q7bu-test-shell-hangs-on-interactive-stdin-at-dev-entrypoint-default-command-case.md](DIA-260825-q7bu-test-shell-hangs-on-interactive-stdin-at-dev-entrypoint-default-command-case.md) |
+| DIA-260825-wprb | repo-wide ponytail over-engineering audit | scripts | Medium | OPEN | [DIA-260825-wprb-repo-wide-ponytail-over-engineering-audit.md](DIA-260825-wprb-repo-wide-ponytail-over-engineering-audit.md) |
 
 ## Status summary
 
@@ -210,7 +214,7 @@
 | Blocker  | 9     |
 | Critical | 10    |
 | Major    | 61    |
-| Medium   | 98    |
+| Medium   | 102   |
 | Minor    | 0     |
 | Low      | 20    |
 | Info     | 1     |
@@ -218,7 +222,7 @@
 
 | Status      | Count |
 | ----------- | ----- |
-| OPEN        | 41    |
+| OPEN        | 43    |
 | DONE        | 11    |
 | VALIDATE    | 0     |
 | E2E         | 0     |
@@ -227,7 +231,7 @@
 | FIXED       | 1     |
 | IMPLEMENTED | 2     |
 | VERIFIED    | 28    |
-| CLOSED      | 114   |
+| CLOSED      | 116   |
 | BLOCKED     | 0     |
 | DISPATCHED  | 0     |
 | RUNNING     | 0     |

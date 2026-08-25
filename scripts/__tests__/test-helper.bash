@@ -497,7 +497,10 @@ run_entrypoint_ns() {
   _build_ns_script "$ns" 0
   local nsbin
   nsbin="$(install_fake_priv_drop)"
-  PATH="$nsbin:$PATH" run unshare -r -m bash "$ns" bash "$REPO_ROOT/dev-entrypoint.sh" "$@"
+  # stdin=/dev/null: bats run() inherits stdin, and the entrypoint's
+  # no-arg default command is a bare interactive bash (DIA-260825-q7bu) -
+  # with a live TTY on stdin that bash blocks forever, hanging the suite.
+  PATH="$nsbin:$PATH" run unshare -r -m bash "$ns" bash "$REPO_ROOT/dev-entrypoint.sh" "$@" < /dev/null
   # teardown (DIA-260825-nts7 F3): the shim dir is per-call; remove it as soon
   # as the run captured, so repeated suite runs cannot accumulate dirs in
   # /var/tmp. Only a SIGKILL mid-test can leak one — acceptable ceiling.
@@ -517,7 +520,8 @@ run_entrypoint_xvfb_ns() {
   _build_ns_script "$ns" 1
   local nsbin
   nsbin="$(install_fake_priv_drop)"
-  PATH="$nsbin:$PATH" run unshare -r -m bash "$ns" bash "$REPO_ROOT/dev-entrypoint.sh" "$@"
+  # stdin=/dev/null: same hang guard as run_entrypoint_ns (DIA-260825-q7bu)
+  PATH="$nsbin:$PATH" run unshare -r -m bash "$ns" bash "$REPO_ROOT/dev-entrypoint.sh" "$@" < /dev/null
   # teardown: same per-call cleanup as run_entrypoint_ns (DIA-260825-nts7 F3)
   rm -rf "$nsbin"
 }
