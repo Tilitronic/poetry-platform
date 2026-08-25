@@ -59,6 +59,10 @@ import {
 } from "node:fs"
 import { basename, join } from "node:path"
 import type { Hooks, Plugin } from "@opencode-ai/plugin"
+// Shared error helpers consolidated from delegation-observer.ts + this file
+// (DIA-260825-oyh). Explicit .ts extension: plugins load via
+// node --experimental-strip-types as individual files (no bundler).
+import { errorMessage } from "./lib/errors.ts"
 
 // ---------------------------------------------------------------------------
 // DIA-189 word-pair naming: deterministically maps a session_id to a
@@ -182,78 +186,6 @@ interface PermissionAskRecord {
   permission_id: string
   timestamp: string
   patterns?: string[]
-}
-
-/**
- * Best-effort extraction of a human-readable message from an error value.
- *
- * DIA-098 R1: same root cause as the delegation-observer fix — the runtime
- * error payloads (ProviderAuthError / UnknownError / ...) are
- * { name, data: { message } } shapes, so the old String(err) fallback
- * produced "[object Object]" in the ticker error bucket. Resolution order:
- * string -> top-level .message -> SDK data.message -> circular-safe JSON
- * dump -> typed fallback that can never be "[object Object]". DIA-098
- * ai-auditor finding 2: the chain ALWAYS terminates in a string for any
- * non-null error value (undumpable objects fall through to the typed
- * fallback, never undefined); undefined/null input still returns undefined.
- */
-function errorMessage(err: unknown): string | undefined {
-  if (err === undefined || err === null) return undefined
-  if (typeof err === "string") return err
-  if (typeof err === "object") {
-    // JS Error / any object carrying a top-level string .message.
-    if (
-      "message" in err &&
-      typeof (err as { message?: unknown }).message === "string"
-    ) {
-      return (err as { message: string }).message
-    }
-    // SDK error shapes (ProviderAuthError & co): { name, data: { message } }.
-    const data = (err as { data?: unknown }).data
-    if (
-      typeof data === "object" &&
-      data !== null &&
-      "message" in data &&
-      typeof (data as { message?: unknown }).message === "string"
-    ) {
-      return (data as { message: string }).message
-    }
-    const dumped = safeJsonStringify(err)
-    if (dumped !== undefined) return dumped
-    // DIA-098 ai-auditor finding 2: stringify failed — terminate in the
-    // typed fallback, never undefined, never "[object Object]".
-    const name = (err as { name?: unknown }).name
-    return `[unserializable ${typeof name === "string" && name ? name : "object"}]`
-  }
-  return `[unserializable ${typeof err}]`
-}
-
-/**
- * Circular-safe JSON.stringify for error dumps (DIA-098 R1, mirrored from
- * delegation-observer.ts). Nested Error instances collapse to
- * {name, message, stack}; cycles/shared references degrade to the literal
- * "[Circular]" marker instead of throwing.
- */
-function safeJsonStringify(value: unknown): string | undefined {
-  const seen = new WeakSet<object>()
-  function replacer(_key: string, v: unknown): unknown {
-    if (typeof v === "object" && v !== null) {
-      if (seen.has(v)) return "[Circular]"
-      seen.add(v)
-      if (v instanceof Error) {
-        return { name: v.name, message: v.message, stack: v.stack }
-      }
-    }
-    if (typeof v === "function") {
-      return `[Function ${(v as { name?: string }).name ?? "anonymous"}]`
-    }
-    return v
-  }
-  try {
-    return JSON.stringify(value, replacer)
-  } catch {
-    return undefined
-  }
 }
 
 /**
