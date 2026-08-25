@@ -443,6 +443,23 @@ function stallThresholdMinutes(envName: string, fallback: number): number {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback
 }
 const STALL_SWEEP_INTERVAL_MS = 60_000
+
+// DIA-260822-oldn: stall-sweep interval singleton key. Stored on globalThis
+// (not module scope) so in-process plugin reloads replace the prior interval
+// instead of stacking duplicate timers (F1 in DIA-260822-m035 forensics).
+const STALL_SWEEP_KEY = Symbol.for("delegation-observer.stallSweepInterval")
+// Symbol-keyed globalThis access needs an explicit record view: TS rejects
+// indexing globalThis with a runtime Symbol without a declaration. The cast
+// keeps the SAME globalThis reference at runtime (so the test reads it), only
+// retypes it for the compiler.
+type StallSweepHandle = ReturnType<typeof setInterval>
+const stallSweepStore = globalThis as unknown as Record<symbol, StallSweepHandle | undefined>
+
+// DIA-260822-oldn: process-scoped boot identity flag. In-process plugin reload
+// (module re-evaluation) suppresses boot evidence; a full process restart always
+// emits a new boot. Stored on globalThis so it survives module re-evaluation.
+const BOOT_EMITTED_KEY = Symbol.for("delegation-observer.bootEmitted")
+const bootFlagStore = globalThis as unknown as Record<symbol, boolean | undefined>
 const stallSubagentMinutes = stallThresholdMinutes("STALL_SUBAGENT_MINUTES", 10)
 const stallOrchestratorMinutes = stallThresholdMinutes("STALL_ORCHESTRATOR_MINUTES", 20)
 const stallDeadMinutes = stallThresholdMinutes("STALL_DEAD_MINUTES", 60)
@@ -859,6 +876,18 @@ const delegationObserver: Plugin = async (ctx) => {
   // sessionDelegationCount/sessionMessageCount (the orchestrator's own session).
   const lastContextUsage = new Map<string, number>()
 
+  // DIA-260822-medh: adaptive session-compaction policy state. Reuses
+  // lastContextUsage (above) for the previous usage_fraction rather than
+  // duplicating usage state; the remaining fields are minimal flags. Seeded
+  // from registry.jsonl at boot (session.compacted) so `compacted` survives
+  // plugin restarts.
+  interface ContextPolicyState {
+    warned60: boolean
+    compacted: boolean
+    warned85PostCompact: boolean
+  }
+  const contextPolicyState = new Map<string, ContextPolicyState>()
+
   // Child session id (task_id) -> agent name captured at dispatch. Enriches
   // completion/failure messages rows with the actual delegated agent.
   const childSessionAgent = new Map<string, string>()
@@ -927,6 +956,34 @@ const delegationObserver: Plugin = async (ctx) => {
     }
   }
 
+  // DIA-260822-medh: seed adaptive session-compaction policy state from
+  // registry.jsonl so `compacted` survives plugin restarts. Mirrors the
+  // gatedSessions boot scan (fail-soft on malformed JSON / missing file).
+  if (existsSync(registryPath)) {
+    for (const line of readFileSync(registryPath, "utf-8").trim().split("\n")) {
+      if (!line) continue
+      try {
+        const row = JSON.parse(line) as RegistryRow
+        if (
+          row.event === "session.compacted" &&
+          typeof row.session_id === "string"
+        ) {
+          const st =
+            contextPolicyState.get(row.session_id) ??
+            ({ warned60: false, compacted: false, warned85PostCompact: false } as ContextPolicyState)
+          st.compacted = true
+          st.warned85PostCompact = false
+          contextPolicyState.set(row.session_id, st)
+        }
+      } catch {
+        // Malformed line — skip (same policy as readRegistryRows).
+      }
+    }
+  }
+
+  // DIA-260822-oldn: boot emission below is gated by the process-scoped
+  // BOOT_EMITTED_KEY flag (module scope) — see the emission guard.
+
   // ===== DIA-123: deterministic boot evidence (emitted at plugin load) =====
   // The plugin body top-level runs once per process start — the ONLY point
   // where a boot event can fire before any session activity. Two artifacts,
@@ -949,24 +1006,33 @@ const delegationObserver: Plugin = async (ctx) => {
   // version getter, so we fall back to the OPENCODE_VERSION env var when the
   // runtime sets it; the field is omitted when unavailable.
   const opencodeVersion = process.env.OPENCODE_VERSION
-  const bootId = randomUUID()
-  const configSignal = captureConfigLoadSignal()
-  // Registry seq for the current write; set by appendRow from the CURRENT
-  // file state (MAX+1 — DIA-098 ai-auditor finding 1), never from a cached
-  // counter. bootSeq below captures the session_boot row's value.
+  // `seq` lives in factory scope: appendRow (defined below) assigns to it for
+  // ANY row written during this factory run, not only the boot row.
   let seq = 0
-  appendRow({
-    event: "session_boot",
-    boot_id: bootId,
-    process_started_at: processStartedAt,
-    ...(opencodeVersion ? { opencode_version: opencodeVersion } : {}),
-    config_load_signal: configSignal,
-    writer: "plugin",
-  })
-  // seq is set by appendRow to the session_boot row's value (recomputed from
-  // the current file state at write time — DIA-098 ai-auditor finding 1).
-  const bootSeq = seq
-  atomicWriteBootMarker({ bootId, bootSeq, configSignal })
+  // DIA-260822-oldn: suppress boot evidence only on in-process reload — when the
+  // process-scoped boot flag is already set. On first boot (flag unset) emit and
+  // arm the flag; a full process restart clears globalThis so a new boot emits.
+  // boot.json remains the DIA-123 audit marker (written here, preserved on reload).
+  if (!bootFlagStore[BOOT_EMITTED_KEY]) {
+    const bootId = randomUUID()
+    const configSignal = captureConfigLoadSignal()
+    appendRow({
+      event: "session_boot",
+      boot_id: bootId,
+      process_started_at: processStartedAt,
+      ...(opencodeVersion ? { opencode_version: opencodeVersion } : {}),
+      config_load_signal: configSignal,
+      writer: "plugin",
+    })
+    // seq is set by appendRow to the session_boot row's value (recomputed from
+    // the current file state at write time — DIA-098 ai-auditor finding 1).
+    const bootSeq = seq
+    atomicWriteBootMarker({ bootId, bootSeq, configSignal })
+    // Arm the process-scoped boot flag so a subsequent in-process reload
+    // suppresses boot evidence; a full process restart resets globalThis and
+    // emits a fresh boot (DIA-260822-oldn, design.md D1/D3).
+    bootFlagStore[BOOT_EMITTED_KEY] = true
+  }
 
   // Capture the config files' mtimes AT LOAD as the "config load signal":
   // this is the config state the process actually saw at boot. A verifier
@@ -2418,7 +2484,11 @@ const delegationObserver: Plugin = async (ctx) => {
   // so the dispose hook (hooks cleanup) can clear it on plugin unload. A
   // throwing tick is caught and warned, never crashes the plugin (same
   // fail-soft policy as the registry writes).
-  const stallSweepInterval = setInterval(() => {
+  // DIA-260822-oldn: replace any prior stall-sweep interval (in-process reload)
+  // before arming a new one; store the handle on globalThis so dispose clears it.
+  const priorSweep = stallSweepStore[STALL_SWEEP_KEY]
+  if (priorSweep !== undefined) clearInterval(priorSweep)
+  stallSweepStore[STALL_SWEEP_KEY] = setInterval(() => {
     try {
       sweepStalledSessions()
     } catch (err) {
@@ -2427,6 +2497,149 @@ const delegationObserver: Plugin = async (ctx) => {
       )
     }
   }, STALL_SWEEP_INTERVAL_MS)
+
+  // DIA-260822-medh: token-accurate context measurement, shared by the
+  // context_usage tool AND the adaptive session-compaction policy so both
+  // report the SAME usage_fraction (same computation as the TUI). Direct
+  // live read of the last assistant message's tokens / model context limit.
+  // Returns undefined when no token-accurate signal exists (fresh session);
+  // throws on client-call failure so callers can fail-soft.
+  async function measureUsageFraction(
+    sessionID: string
+  ): Promise<number | undefined> {
+    const messagesRes = await ctx.client.session.messages({
+      path: { id: sessionID },
+    })
+    const messages = messagesRes.data
+    let directTokens: number | undefined
+    let contextWindow = 1_000_000
+    if (messages && messages.length > 0) {
+      for (let i = messages.length - 1; i >= 0; i--) {
+        const info = messages[i].info
+        if (info.role !== "assistant") continue
+        const t = info.tokens as
+          | Partial<{
+              input: number
+              output: number
+              reasoning: number
+              cache: Partial<{ read: number; write: number }>
+            }>
+          | undefined
+        const total =
+          (typeof t?.input === "number" ? t.input : 0) +
+          (typeof t?.output === "number" ? t.output : 0) +
+          (typeof t?.reasoning === "number" ? t.reasoning : 0) +
+          (typeof t?.cache?.read === "number" ? t.cache.read : 0) +
+          (typeof t?.cache?.write === "number" ? t.cache.write : 0)
+        if (total > 0) {
+          directTokens = total
+          try {
+            const provRes = await ctx.client.provider.list()
+            const provider = provRes.data?.all.find(
+              (p) => p.id === info.providerID
+            )
+            const limit = provider?.models[info.modelID]?.limit?.context
+            if (typeof limit === "number" && limit > 0) {
+              contextWindow = limit
+            }
+          } catch {
+            // provider.list() failure -> keep the 1M fallback.
+          }
+          break
+        }
+      }
+    }
+    if (directTokens === undefined) return undefined
+    return Math.min(directTokens / contextWindow, 1)
+  }
+
+  // DIA-260822-medh: adaptive session-compaction policy. Driven by the
+  // session.status lifecycle event. Measures token-accurately, then emits
+  // advisory events + user messages at 60% (rate-limited), first 85%
+  // (/compact), and post-first-compaction 85% (new-session handoff).
+  // Fail-soft: a measurement error emits context-policy-error and never
+  // blocks the session. Reuses lastContextUsage for the previous fraction.
+  async function runContextPolicy(sessionID: string): Promise<void> {
+    if (!sessionID) return
+    let state = contextPolicyState.get(sessionID)
+    if (!state) {
+      state = { warned60: false, compacted: false, warned85PostCompact: false }
+      contextPolicyState.set(sessionID, state)
+    }
+
+    let currentUsage: number
+    try {
+      const measured = await measureUsageFraction(sessionID)
+      if (measured === undefined) return // no token-accurate signal; skip
+      currentUsage = measured
+    } catch {
+      // Fail-soft: measurement error must not block the session.
+      tuiSafeWarn(
+        `[delegation-observer] context policy measurement failed for ${sessionID}`,
+        { row: { event: "context-policy-error", session_id: sessionID } }
+      )
+      return
+    }
+
+    const prevUsage = lastContextUsage.get(sessionID)
+
+    // 60% readiness warning (rate-limited via warned60 flag).
+    if (currentUsage > 0.6) {
+      if (!state.warned60) {
+        state.warned60 = true
+        tuiSafeWarn(
+          `[delegation-observer] CONTEXT 60%: session ${sessionID} at ${Math.round(
+            currentUsage * 100
+          )}% - consider wrapping up the current turn; a /compact may be near.`,
+          {
+            row: {
+              event: "context-warning-60",
+              session_id: sessionID,
+              usage_pct: Math.round(currentUsage * 100),
+            },
+          }
+        )
+      }
+    } else {
+      state.warned60 = false // dropped below 60% -> reset rate limit
+    }
+
+    // 85% proactive compaction (first crossing) or post-compaction handoff.
+    if (currentUsage > 0.85 && (prevUsage === undefined || prevUsage <= 0.85)) {
+      if (state.compacted) {
+        if (!state.warned85PostCompact) {
+          state.warned85PostCompact = true
+          tuiSafeWarn(
+            `[delegation-observer] CONTEXT 85% (post-compaction): session ${sessionID} at ${Math.round(
+              currentUsage * 100
+            )}% - start a new session; carry forward via handoff.`,
+            {
+              row: {
+                event: "context-new-session-post-compact",
+                session_id: sessionID,
+                usage_pct: Math.round(currentUsage * 100),
+              },
+            }
+          )
+        }
+      } else {
+        tuiSafeWarn(
+          `[delegation-observer] CONTEXT 85%: session ${sessionID} at ${Math.round(
+            currentUsage * 100
+          )}% - run /compact to reclaim context before it degrades.`,
+          {
+            row: {
+              event: "context-compact-85",
+              session_id: sessionID,
+              usage_pct: Math.round(currentUsage * 100),
+            },
+          }
+        )
+      }
+    }
+
+    lastContextUsage.set(sessionID, currentUsage)
+  }
 
   const hooks: Hooks = {
     // A1: warn on task() calls sharing a message when the parallel task()
@@ -3446,6 +3659,25 @@ const delegationObserver: Plugin = async (ctx) => {
     // These hooks affect the entire system state.
     // Biological equivalent: hormones via bloodstream.
     //
+    // DIA-260822-medh: detect ACTUAL compaction via the native auto-continue
+    // hook and mark the session compacted, so the next 85% crossing triggers a
+    // post-compaction handoff instead of a second /compact. Writes a
+    // session.compacted registry row so the state survives restart (boot-
+    // seeded above). Fail-soft: never throws.
+    "experimental.compaction.autocontinue": async (input: {
+      sessionID?: string
+    }) => {
+      const sessionID = input?.sessionID
+      if (!sessionID) return
+      const st =
+        contextPolicyState.get(sessionID) ??
+        ({ warned60: false, compacted: false, warned85PostCompact: false } as ContextPolicyState)
+      st.compacted = true
+      st.warned85PostCompact = false
+      contextPolicyState.set(sessionID, st)
+      appendRow({ event: "session.compacted", session_id: sessionID, writer: "plugin" })
+    },
+
     // C1: session lifecycle events arrive via the generic `event` catch-all —
     // session.created / session.idle / session.error are NOT named hooks.
     event: async (input) => {
@@ -3459,6 +3691,22 @@ const delegationObserver: Plugin = async (ctx) => {
       }
 
       switch (event.type) {
+        case "session.status": {
+          // DIA-260822-medh: drive the adaptive session-compaction policy on
+          // each session status update. Fail-soft: a policy error must never
+          // break the session lifecycle hook.
+          const policySessionID =
+            event.properties?.sessionID ?? event.properties?.info?.id
+          if (policySessionID) {
+            try {
+              await runContextPolicy(policySessionID)
+            } catch {
+              // Policy must never break the session lifecycle hook.
+            }
+          }
+          return
+        }
+
         case "session.created": {
           const info = event.properties?.info
           if (!info?.id) return
@@ -4454,56 +4702,14 @@ const delegationObserver: Plugin = async (ctx) => {
           let directTokens: number | undefined
 
           try {
-            const messagesRes = await ctx.client.session.messages({
-              path: { id: callingSession },
-            })
-            const messages = messagesRes.data
-            if (messages && messages.length > 0) {
-              for (let i = messages.length - 1; i >= 0; i--) {
-                const info = messages[i].info
-                if (info.role !== "assistant") continue
-                // DIA-191 FIX-1 (ai-auditor): defensive per-row token read.
-                // The SDK type declares the full tokens shape, but a runtime
-                // row may lack nested fields (e.g. cache) — a bare
-                // t.cache.read would throw and abort the WHOLE direct-read
-                // attempt, dropping to the proxy fallback even when an older
-                // valid assistant row exists. Missing fields count as 0, so a
-                // malformed row yields total 0 and the scan CONTINUES to
-                // older rows instead of aborting.
-                const t = info.tokens as
-                  | Partial<{
-                      input: number
-                      output: number
-                      reasoning: number
-                      cache: Partial<{ read: number; write: number }>
-                    }>
-                  | undefined
-                const total =
-                  (typeof t?.input === "number" ? t.input : 0) +
-                  (typeof t?.output === "number" ? t.output : 0) +
-                  (typeof t?.reasoning === "number" ? t.reasoning : 0) +
-                  (typeof t?.cache?.read === "number" ? t.cache.read : 0) +
-                  (typeof t?.cache?.write === "number" ? t.cache.write : 0)
-                if (total > 0) {
-                  directTokens = total
-                  try {
-                    const provRes = await ctx.client.provider.list()
-                    const provider = provRes.data?.all.find(
-                      (p) => p.id === info.providerID
-                    )
-                    const limit = provider?.models[info.modelID]?.limit?.context
-                    if (typeof limit === "number" && limit > 0) {
-                      contextWindow = limit
-                    }
-                  } catch {
-                    // provider.list() failure -> keep the 1M fallback.
-                  }
-                  break
-                }
-              }
-            }
+            const measured = await measureUsageFraction(callingSession)
+            if (measured === undefined) throw new Error("no direct token signal")
+            // Reconstruct the raw token count from the fraction so the
+            // downstream direct-path branch (estimatedTokens / usageFraction)
+            // is unchanged.
+            directTokens = Math.round(measured * contextWindow)
           } catch {
-            // session.messages failure -> fall through to the proxy formula.
+            directTokens = undefined
           }
 
           if (directTokens !== undefined) {
@@ -4647,7 +4853,11 @@ const delegationObserver: Plugin = async (ctx) => {
     // DIA-098 R2: hooks cleanup — stop the periodic stall sweep when the
     // plugin is unloaded so no orphaned interval keeps scanning the registry.
     dispose: async () => {
-      clearInterval(stallSweepInterval)
+      // DIA-260822-oldn: clear the stall-sweep singleton (replaces the prior
+      // local clearInterval(stallSweepInterval)) so reloads don't orphan timers.
+      const sweep = stallSweepStore[STALL_SWEEP_KEY]
+      if (sweep !== undefined) clearInterval(sweep)
+      stallSweepStore[STALL_SWEEP_KEY] = undefined
       // DIA-211 fix #6: flush any pending debounced write before clearing
       // the timer — losing <1s of state on dispose is unnecessary.
       if (routingWriteTimer) {
