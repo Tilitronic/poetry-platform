@@ -6,7 +6,8 @@
  *
  * The plugin's base64url/mint/verify functions are not exported, so these
  * tests replicate the algorithm to verify the contract. The implementation
- * in delegation-observer.ts must match this spec exactly.
+ * in delegation-observer.ts must match this spec exactly (base64url is the
+ * native Node codec since 15.7.0; output never contains "+", "/" or "=").
  *
  * RUN (host, no Docker needed):
  *   node --test .opencode/plugins/__tests__/capability-tokens.test.mjs
@@ -29,11 +30,7 @@ const CAPABILITY_SECRET = randomBytes(32)
 
 function base64url(buf) {
   const b = typeof buf === "string" ? Buffer.from(buf) : buf
-  return b
-    .toString("base64")
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=+$/, "")
+  return b.toString("base64url")
 }
 
 function mintCapabilityToken(scope, reason) {
@@ -71,8 +68,9 @@ function verifyCapabilityToken(token) {
     return { valid: false, error: "invalid signature" }
   }
   try {
-    const b64 = payloadB64.replace(/-/g, "+").replace(/_/g, "/")
-    const payload = JSON.parse(Buffer.from(b64, "base64").toString())
+    const payload = JSON.parse(
+      Buffer.from(payloadB64, "base64url").toString()
+    )
     if (Date.now() > payload.exp)
       return { valid: false, error: "token expired" }
     return { valid: true, payload }

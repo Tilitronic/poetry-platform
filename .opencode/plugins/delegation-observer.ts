@@ -76,14 +76,15 @@ interface CapabilityPayload {
   exp: number
 }
 
-/** Encode a Buffer or string as base64url (no padding). */
+/**
+ * Encode a Buffer or string as base64url (no padding).
+ * Native codec (Node >= 15.7.0) -- output is URL-safe by contract:
+ * never contains "+", "/" or "=".
+ */
 function base64url(buf: Buffer | string): string {
-  const b = typeof buf === "string" ? Buffer.from(buf) : buf
-  return b
-    .toString("base64")
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=+$/, "")
+  return (typeof buf === "string" ? Buffer.from(buf) : buf).toString(
+    "base64url"
+  )
 }
 
 /**
@@ -133,12 +134,8 @@ function verifyCapabilityToken(
     return { valid: false, error: "invalid signature" }
   }
   try {
-    // S1: convert base64url back to base64 before decoding -- standard
-    // base64 decoding silently drops `-` and `_` which are valid base64url
-    // characters, causing valid tokens to be rejected.
-    const b64 = payloadB64.replace(/-/g, "+").replace(/_/g, "/")
     const payload = JSON.parse(
-      Buffer.from(b64, "base64").toString()
+      Buffer.from(payloadB64, "base64url").toString()
     ) as CapabilityPayload
     if (Date.now() > payload.exp)
       return { valid: false, error: "token expired" }
@@ -817,14 +814,6 @@ const delegationObserver: Plugin = async (ctx) => {
   // .opencode/session/active.json (NOT handoffs/active.json — that is the
   // handoff pointer, a different file).
   const ACTIVE_JSON_PATH = join(handoffDir, "active.json")
-
-  // DIA-211 Phase 3a: Idempotency cache — prevents duplicate work by hashing
-  // prompt + file state. Same hash within 5 minutes = blocked dispatch.
-  const _IDEMPOTENCY_CACHE_PATH = join(handoffDir, "idempotency-cache.json")
-
-  // DIA-211 Phase 3a: Agent health state — critical-health gate uses this
-  // to track per-agent score (0-100) and decide whether to block dispatch.
-  const HEALTH_PATH = join(handoffDir, "health.json")
 
   // DIA-123 boot marker paths — a dedicated boot marker file under
   // .opencode/session/ (NOT ticker.json, which needs-input-observer owns).
@@ -1659,7 +1648,7 @@ const delegationObserver: Plugin = async (ctx) => {
     renameSync(tmpPath, filePath)
   }
 
-  // === DIA-211 Phase 3a: Idempotency & Health helpers ===
+  // === DIA-211 Phase 3a: Idempotency helper ===
 
   /**
    * Compute a short hash of subagentType + prompt to detect duplicate dispatches.
@@ -1676,50 +1665,6 @@ const delegationObserver: Plugin = async (ctx) => {
       .slice(0, 16)
   }
 
-  /** Per-agent health state for the critical-health gate. */
-  interface AgentHealth {
-    score: number // 0-100
-    last_updated: string
-    failure_count: number
-    success_count: number
-    last_probe?: string // ISO timestamp of last recovery probe
-  }
-
-  /** Map of agent type -> health state. Single global file, keyed per agent. */
-  interface HealthStore {
-    [agentType: string]: AgentHealth
-  }
-
-  function readHealth(): HealthStore {
-    try {
-      return JSON.parse(readFileSync(HEALTH_PATH, "utf-8"))
-    } catch {
-      return {}
-    }
-  }
-
-  function writeHealth(store: HealthStore): void {
-    atomicWriteJson(HEALTH_PATH, store)
-  }
-
-  function _getAgentHealth(agentType: string): AgentHealth {
-    const store = readHealth()
-    return (
-      store[agentType] ?? {
-        score: 100,
-        last_updated: new Date().toISOString(),
-        failure_count: 0,
-        success_count: 0,
-      }
-    )
-  }
-
-  function _setAgentHealth(agentType: string, health: AgentHealth): void {
-    const store = readHealth()
-    store[agentType] = health
-    writeHealth(store)
-  }
-
   // ============================================================
   // ADAPTIVE ROUTING MODULE (Phase 3b)
   // Pattern inspired by adaptive performance routing
@@ -1729,7 +1674,6 @@ const delegationObserver: Plugin = async (ctx) => {
   const ADAPTIVE_ROUTING_BACKUP_PATH = join(handoffDir, "adaptive-routing-state.json.bak")
   const WRITE_DEBOUNCE_MS = 1000
   const GIT_CACHE_TTL_MS = 5000
-  const EXPLORATION_RATE = 0.1
   const EMA_ALPHA = 0.2
   const RECOVERY_THRESHOLD = 3
   const PROBE_COOLDOWN_MS = 300000 // 5 minutes
@@ -1822,26 +1766,6 @@ const delegationObserver: Plugin = async (ctx) => {
       gitCache.updated = Date.now()
     }
     return gitCache.hash
-  }
-
-  // Active performance-based selection: 90% exploit (lowest EMA), 10% explore (fix #7)
-  // Pattern inspired by adaptive performance routing
-  // Available for future wiring when user-message hook is implemented.
-  // Currently dispatch uses requested subagentType directly.
-  function _selectAgentByPerformance(candidates: string[]): string {
-    if (candidates.length === 0) return "coder"
-    const healthy = candidates.filter(
-      (c) => getAgentRouting(c).status !== "OPEN"
-    )
-    if (healthy.length === 0) return candidates[0] // All isolated, pick first
-    if (Math.random() < EXPLORATION_RATE) {
-      return healthy[Math.floor(Math.random() * healthy.length)]
-    }
-    return healthy.reduce((best, a) => {
-      const aEma = getAgentRouting(a).ema || 5000
-      const bEma = getAgentRouting(best).ema || 5000
-      return aEma < bEma ? a : best
-    })
   }
 
   // Scope exemption: ticket-creation, checksum-verification, and valid
