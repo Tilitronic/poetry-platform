@@ -51,3 +51,14 @@ asserts they are NOT in the configured plugin array.
 - **Coverage gap (noted, non-blocking):** the critical-health-gate release path
   has no dedicated unit test; it is exercised only indirectly. Recommend a
   focused test if the gate logic is later extended.
+
+## Outcome
+
+- **Status:** implemented + committed (03a25e8) + smoke test passed.
+- **ai-auditor verdict:** PASS WITH RESIDUAL RISK.
+- **Residual risks (accepted 2026-08-25):** (1) scope discipline - a3mk
+  ticket-ledger nits folded into lro1 commit per developer approval; (2)
+  test coverage - 4 of 5 rollback paths lack dedicated behavioral regressions
+  (shared rollback function, suite-wide 100 pass).
+- **Phase 5:** runtime coder-dispatch smoke test PASSED; ticket checkbox 5
+  closed.

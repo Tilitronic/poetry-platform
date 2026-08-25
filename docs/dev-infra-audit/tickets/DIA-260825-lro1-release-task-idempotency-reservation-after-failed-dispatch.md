@@ -53,7 +53,7 @@ remain blocked after an accepted retry.
 - [x] The same dispatch succeeds after adding a valid `ticket_id`.
 - [x] A subsequent identical accepted dispatch is still blocked as a duplicate.
 - [x] The complete delegation-observer Bun test suite passes.
-- [ ] Restart OpenCode and complete a fresh runtime coder dispatch smoke test.
+- [x] Restart OpenCode and complete a fresh runtime coder dispatch smoke test. (DONE 2026-08-25: plugin auto-reloaded post-commit 03a25e8; single registration confirmed via `opencode debug config`; live coder dispatch processed with no errors/reservation leaks; `make test-config` exit 0; observer suite 100 pass / 311 assertions. Phase 5 closed.)
 
 ## Fix
 
@@ -76,3 +76,15 @@ failure also releases its reservation before propagating the error.
 - Runtime config load: `opencode debug config` in the active OpenCodeDocker
   container exits 0 and resolves each auto-discovered local observer exactly
   once in the effective plugin array.
+
+## Closure (2026-08-25)
+
+- Scope discipline: a3mk ticket-ledger nits (Outstanding annotation + updated
+  field) folded into lro1 commit 03a25e8 per developer approval 2026-08-25;
+  ai-auditor scope-discipline finding accepted, risk recorded.
+- Test-coverage residual risk: 4 of 5 rollback paths lack dedicated behavioral
+  regressions; accepted per developer approval 2026-08-25 (shared rollback
+  function, suite-wide coverage 100 pass).
+- ai-auditor verdict: PASS WITH RESIDUAL RISK. Developer dispositions: scope
+  finding ACCEPT + RECORD; Phase 5 smoke test PASSED; test-coverage residual
+  risk ACCEPTED.

@@ -1900,3 +1900,18 @@
     - '.opencode/opencode.jsonc'
   summary: 'memory-manager scoped write permission for learnings directory -- Added .opencode/learnings/external-patterns/*: allow to memory-manager edit permission block. Eliminates bash-fallback token waste when writing learnings files. Follows established scoped-write pattern used by 6 other agents. Review: ai-auditor approve-with-notes (documentation fidelity note in learnings file, not safety concern).'
   verification: 'make test-config passed (56 tests, 0 failures)'
+
+- date: "2026-08-25"
+  ticket: DIA-260825-lro1
+  area: opencode-config
+  scope: "release task idempotency reservation after failed dispatch - transactional rollbackAdaptiveDispatch releases idempotency hash + pending call on 5 rejection paths; single-registration guard for auto-discovered local observers"
+  files:
+    - .opencode/plugins/delegation-observer.ts
+    - .opencode/opencode.jsonc
+    - .opencode/plugins/__tests__/dia217-ticket-gate.test.mjs
+    - scripts/__tests__/batch-d-infra.test.mjs
+    - docs/dev-infra-audit/tickets/DIA-260825-lro1-release-task-idempotency-reservation-after-failed-dispatch.md
+    - docs/dev-infra-audit/tickets/DIA-260824-a3mk-make-opencode-fails-permissiondenied-opening-home-dev-local-share-opencode-log-opencode-log.md
+    - .opencode/learnings/external-patterns/2026-08-25-dia-260825-lro1-gate-findings.md
+  summary: "Make the adaptive-dispatch idempotency reservation transactional: rollbackAdaptiveDispatch(callId) releases both the idempotency hash and the pending-call record on all five local preflight rejection paths (invalid capability token, missing/malformed ticket_id, config routing-order violation, unmatched config-work ticket) plus the critical-health gate. Removed duplicate explicit local-observer plugin registrations from opencode.jsonc (auto-discovered); added single-registration guard test and focused regression."
+  verification: "make test-config exit 0 (57 pass); focused regression dia217-ticket-gate.test.mjs 6 pass / 26 expect; full observer suite 100 pass / 311 expect; opencode debug config confirms each local observer exactly once; live runtime coder-dispatch smoke test PASS (Phase 5 closed); ai-auditor PASS WITH RESIDUAL RISK, residual risks accepted (scope discipline + 4-of-5 rollback paths lack dedicated regression)"
