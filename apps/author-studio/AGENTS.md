@@ -2,8 +2,8 @@
 
 The main editor application. Quasar 2 + Vue 3 SPA (Vite 8, TypeScript strict) that hosts
 the CodeMirror 6 editor, real-time phonetic analysis via Web Workers, and 2D/3D
-visualizations. Consumes six workspace packages: `@poetry/editor-engine`,
-`@poetry/stress-lang-core`, `@poetry/phonetics-core`, `@poetry/visualizer-2d`,
+visualizations. Consumes five workspace packages: `@poetry/editor-engine`,
+`@poetry/phonetics-core`, `@poetry/visualizer-2d`,
 `@poetry/visualizer-3d`, `@poetry/data-contracts`.
 
 This is the only package in the monorepo with a `dev` script. It is the primary
@@ -34,7 +34,7 @@ src/
 │   └── VisualizerContainer/ # 2D tab (D3 SVG, immediate) + 3D tab (TresJS, dynamic import)
 ├── workers/
 │   ├── bootstrap.ts         # MessageChannel init, port1 → W1, port2 → W2
-│   ├── w1-stress.ts         # Thin wrapper around @poetry/stress-lang-core
+│   ├── w1-stress.ts         # Future W1 wrapper (target pkg deleted, see below)
 │   └── w2-phonetics.ts      # Thin wrapper around @poetry/phonetics-core
 ├── stores/                  # Pinia (createPinia in index.ts)
 ├── router/                  # Hash mode (quasar.config.ts:47)
@@ -71,7 +71,8 @@ sync is the exact bug class this architecture eliminates.
 ### 4. Worker boundaries are thin wrappers
 
 Files in `src/workers/` are thin adapter layers. The actual logic lives in workspace
-packages (`@poetry/stress-lang-core`, `@poetry/phonetics-core`). Do not add business
+packages (`@poetry/phonetics-core`; the W1 package `@poetry/stress-lang-core` was
+deleted as a throwing stub — DIA-260825-aapj). Do not add business
 logic to the worker wrapper files. W1 and W2 communicate directly via MessageChannel —
 the main thread is **not** a relay between them.
 [architecture.md:589-599]
@@ -138,7 +139,7 @@ gap before implementing.
 | Workspace package          | Role in this app                                     |
 | -------------------------- | ---------------------------------------------------- |
 | `@poetry/editor-engine`    | CM6 editor, Lezer parser, Orchestrator, Signia atoms |
-| `@poetry/stress-lang-core` | W1 worker logic (lang detection + WASM stress)       |
+| `@poetry/stress-lang-core` | DELETED (throwing stub, DIA-260825-aapj). Re-scaffold is deliberate when W1 lands; `architecture.md` is the seam of record |
 | `@poetry/phonetics-core`   | W2 worker logic (IPA + ring buffer + metrics)        |
 | `@poetry/visualizer-2d`    | D3 SVG interactive + SSR template renderer           |
 | `@poetry/visualizer-3d`    | TresJS/Three.js, loaded via dynamic `import()`       |
@@ -152,6 +153,12 @@ gap before implementing.
   only `export {};`. Worker integration is not yet wired up.
 - **IndexedDB schema versioning** — no migration path defined yet for `LineAtomData`
   shape changes. See `architecture.md` §1 open question.
-- **Shared component contract** — `visualizer-2d`/`visualizer-3d` are consumed by both
-  this app and the publishing platform, but no semver/change-set discipline exists for
+- **Shared component contract** — `visualizer-2d`/`visualizer-3d` were designed for
+  consumption by this app and a future publishing platform (the empty scaffold was
+  deleted, DIA-260825-aapj), but no semver/change-set discipline exists for
   shared UI components yet. See `architecture.md` §7 open question.
+- **Empty placeholder modules deleted** — `packages/stress-lang-core` (throwing
+  stub) and `apps/publishing-platform` (empty scaffold) were removed in
+  DIA-260825-aapj. Re-scaffolding either is deliberate when the W1 worker and
+  the publishing platform milestones land; `architecture.md` remains the seam
+  of record.

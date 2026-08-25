@@ -29,14 +29,14 @@ GEN_SCRIPT="$SCRIPTS_DIR/gen-jsconfig.sh"
 @test "gen-jsconfig: maps every current @poetry package" {
   run --separate-stderr bash "$GEN_SCRIPT"
   assert_status 0
-  # Workspace inventory (verified 2026-08-01): these six @poetry-scoped
+  # Workspace inventory (verified 2026-08-25): these five @poetry-scoped
   # packages declare an entry point that exists on disk. If a new package is
   # added without an entry point, this test fails — catching the drift the
-  # generator was designed to prevent.
+  # generator was designed to prevent. (@poetry/stress-lang-core removed
+  # DIA-260825-aapj; re-scaffold deliberate when W1 lands.)
   assert_output_contains '"@poetry/data-contracts"'
   assert_output_contains '"@poetry/editor-engine"'
   assert_output_contains '"@poetry/phonetics-core"'
-  assert_output_contains '"@poetry/stress-lang-core"'
   assert_output_contains '"@poetry/visualizer-2d"'
   assert_output_contains '"@poetry/visualizer-3d"'
 }

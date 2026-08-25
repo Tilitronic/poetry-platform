@@ -24,7 +24,6 @@
     "vue-router": "^5.0.3",
     "signia": "^0.1.0",
     "@poetry/editor-engine": "workspace:*",
-    "@poetry/stress-lang-core": "workspace:*",
     "@poetry/phonetics-core": "workspace:*",
     "@poetry/visualizer-2d": "workspace:*",
     "@poetry/visualizer-3d": "workspace:*",
