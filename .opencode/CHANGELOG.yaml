@@ -1978,3 +1978,39 @@
     - .opencode/learnings/external-patterns/2026-08-25-dia-260825-lro1-gate-findings.md
   summary: "Make the adaptive-dispatch idempotency reservation transactional: rollbackAdaptiveDispatch(callId) releases both the idempotency hash and the pending-call record on all five local preflight rejection paths (invalid capability token, missing/malformed ticket_id, config routing-order violation, unmatched config-work ticket) plus the critical-health gate. Removed duplicate explicit local-observer plugin registrations from opencode.jsonc (auto-discovered); added single-registration guard test and focused regression."
   verification: "make test-config exit 0 (57 pass); focused regression dia217-ticket-gate.test.mjs 6 pass / 26 expect; full observer suite 100 pass / 311 expect; opencode debug config confirms each local observer exactly once; live runtime coder-dispatch smoke test PASS (Phase 5 closed); ai-auditor PASS WITH RESIDUAL RISK, residual risks accepted (scope discipline + 4-of-5 rollback paths lack dedicated regression)"
+
+- date: '2026-08-25'
+  ticket: 'DIA-260824-1c3e'
+  area: opencode-config
+  scope: 'model mapping: cebula-ox-alpha preset migrated to ox-alpha-free primary on all specialist lanes; reasoning tiers max (architector/analyzer-escalated/ai-auditor) and high (reviewer/analyzer) per developer spec; big-pickle nowhere primary (developer never-default rule); observer+designer ox-primary are recorded developer overrides of gate findings'
+  files:
+    - .opencode/oh-my-opencode-slim.jsonc
+    - .opencode/learnings/external-patterns/2026-08-25-dia260824-1c3e-oxalpha-mapping.md
+  summary: >
+    Change: DIA-260824-1c3e (opencode-config) model mapping committed 2026-08-25
+    as 01ea8d7. Preset cebula-ox-alpha migrated so opencode-go/ox-alpha-free is
+    the primary model on every specialist lane except orchestrator (already
+    ox-alpha-free), openspec-plan (already ox-alpha-free), and coder-escalated
+    (kimi-k3 quota lane, untouched by design). reasoningEffort max applied to
+    architector / analyzer-escalated / ai-auditor; high + thinking to reviewer /
+    analyzer; variant medium coder; low memory-manager / code-navigator /
+    resource-manager; default researcher / conspecter. big-pickle survives only
+    as a fallback, never primary (developer never-default rule). Developer
+    overrides of gate findings recorded deliberately: (1) observer set
+    ox-alpha-free PRIMARY despite a MEDIUM vision-capability finding - kimi-k2.7-
+    code kept as first fallback (vision-capable) for failover; (2) designer set
+    ox-alpha-free PRIMARY despite a LOW modality note. Lesson: model-ID
+    verification != capability verification; modality claims need their own
+    diagnostic before lanes with hard modality requirements adopt a model.
+  verification: >
+    validate-opencode-config.sh exit 0 (both opencode.jsonc and
+    oh-my-opencode-slim.jsonc valid JSONC); full test-config command sequence
+    green (test-interview, test-skills, docker compose config, validate-
+    opencode-config, validate-agent-names, validate-output-contracts,
+    validate-reviewer-sections, validate-decision-variants, validate-grilling-
+    gate, check-orchestrator-prompt-drift, validate-handoff, test-ticket-gate,
+    validate-memory-shelf, validate-changelog, validate-dia-mentions, audit-
+    agent-tool-coverage x2, batch-d-infra 57 pass / 0 fail). Independent
+    ai-auditor review: PASS WITH RESIDUAL RISK - live model invocation remains
+    UNVERIFIED until an OpenCode restart applies the new preset; restart not
+    performed by the agent. ASCII-only (DIA-079).

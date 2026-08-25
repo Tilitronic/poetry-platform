@@ -27,5 +27,5 @@ Silent-degradation risk accepted by developer for observer/designer failover.
 
 ## Outcome
 
-Committed under DIA-260824-1c3e; make test-config green; restart required for live effect.
+Committed 01ea8d7 (DIA-260824-1c3e); ai-auditor PASS WITH RESIDUAL RISK (live model invocation unverified until OpenCode restart); test-config sequence green; restart still required for live effect.
 ---
