@@ -38,8 +38,9 @@ coexists with `"git push --force *": "deny"` etc., and the deny wins by rule
 Applied under DIA-260825-nts7: deny entries appended after the allows in both
 coder and coder-escalated bash maps (--no-verify quartet, checkout-destructive
 quartet, branch -D pair, plus re-stated global destructive denies since an
-agent-level map does not inherit the global baseline). make test-config exit 0;
-ai-auditor re-audit pending; ticket stays OPEN until re-audit passes.
+agent-level map does not inherit the global baseline). make test-config exit 0.
+ai-auditor re-audit cycle 1/2: PASS WITH RESIDUAL RISK; residual batch O1/O3
+applied in cc517c6, O2 accepted by-design residual. Ticket CLOSED 2026-08-25.
 
 ## Tags
 

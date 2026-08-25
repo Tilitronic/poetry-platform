@@ -375,7 +375,13 @@
           // gate (DIA-094/DIA-096) exactly like --no-verify above.
           "git commit -n *": "deny",
           "git commit * -n *": "deny",
-          "git commit * -n": "deny"
+          "git commit * -n": "deny",
+          // DIA-260825-nts7 fix-all batch F1 (reviewer Critical): the O3 trio
+          // above misses the argument-less editor form "git commit -n" (same
+          // trailing-space gotcha documented at this block's header) - it
+          // would open the commit editor and skip the husky pre-commit docker
+          // gate via -n. Bare form paired with the starred forms.
+          "git commit -n": "deny"
         }
       }
     },
@@ -451,7 +457,10 @@
           "git branch --delete --force": "deny",
           "git commit -n *": "deny",
           "git commit * -n *": "deny",
-          "git commit * -n": "deny"
+          "git commit * -n": "deny",
+          // DIA-260825-nts7 fix-all batch F1: bare editor form, lockstep with
+          // base coder (see comment there).
+          "git commit -n": "deny"
         },
         "task": "deny"
       },

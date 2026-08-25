@@ -6,7 +6,7 @@ id: DIA-260825-e9ou
 title: "test-shell: 17 host failures - dev-entrypoint runuser userns, jsonl-cross-check locale decimals, dev-stack turbo detection"
 area: scripts
 severity: Medium
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: ""
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
@@ -28,9 +28,13 @@ model: ""
 parent_session_id: ""
 attempts: 0
 lease_expires_at: "" # ISO-8601; set on DISPATCHED, cleared on COMPLETE
-files_touched: []
-artifacts: []
-evidence: []
+files_touched:
+
+- scripts/**tests**/test-helper.bash
+- .opencode/scripts/jsonl-cross-check.sh
+- scripts/**tests**/ssh-agent-forward.bats
+  artifacts: []
+  evidence: []
 
 ---
 
@@ -71,7 +75,17 @@ missing-turbo branch is never reached and the negative-path assertion fails.
 
 ## Verification
 
-<Acceptance criteria as checkboxes - how to prove the ticket is done.>
+All gates green at commit 3628fdc (branch DIA-260822-medh-red), full
+`make test-shell` target chain run on the host (host has no `make` binary, so
+the exact Makefile command sequence was executed directly):
+
+- [x] check-pin-sync: 4 ok / 0 fail (node 24.18.0, pnpm 10.33.0 parity both Dockerfiles)
+- [x] check-host-jq: 1 ok / 0 fail (jq 1.7 functional)
+- [x] check-host-lsp: 1 ok / 0 fail, 3 warn (rust-analyzer via poetry-dev container; ts/yaml/pyright host warns are documented dev-container-provided tools)
+- [x] check-opencode-docker: static integrity passed
+- [x] bats-wrapper.sh: 527 ok / 0 fail / 1 skip (pre-existing "real Xvfb on PATH" skip in dev-entrypoint test 7)
+- [x] Full suite completes (prior fix attempts aborted at test 299/527 with ENOSPC from the opencode-docker config copy filling the 512M /tmp tmpfs)
+- [x] No new Xvfb zombie processes after the dev-entrypoint suite (21 before = 21 after)
 
 ## Fix
 

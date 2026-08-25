@@ -432,8 +432,11 @@ install_fake_priv_drop() {
   # — including a shim placed there — so the entrypoint's privilege-drop lookup
   # would miss it and fall through to the real `su` (which fails with "user dev
   # does not exist"). /var/tmp is never shadowed by the test namespaces.
+  # Fallback stays OUTSIDE /tmp for the same reason (DIA-260825-nts7 F3): a
+  # $BATS_TEST_TMPDIR fallback would silently hide the shims exactly when the
+  # xvfb variant runs; a fixed /var/tmp dir fails loud instead.
   local dir
-  dir="$(mktemp -d /var/tmp/poetry-nsbin.XXXXXX 2>/dev/null)" || dir="$BATS_TEST_TMPDIR/nsbin"
+  dir="$(mktemp -d /var/tmp/poetry-nsbin.XXXXXX 2>/dev/null)" || dir="/var/tmp/poetry-nsbin.$$"
   mkdir -p "$dir"
   cat > "$dir/runuser" <<'RU'
 #!/usr/bin/env bash
@@ -495,6 +498,10 @@ run_entrypoint_ns() {
   local nsbin
   nsbin="$(install_fake_priv_drop)"
   PATH="$nsbin:$PATH" run unshare -r -m bash "$ns" bash "$REPO_ROOT/dev-entrypoint.sh" "$@"
+  # teardown (DIA-260825-nts7 F3): the shim dir is per-call; remove it as soon
+  # as the run captured, so repeated suite runs cannot accumulate dirs in
+  # /var/tmp. Only a SIGKILL mid-test can leak one — acceptable ceiling.
+  rm -rf "$nsbin"
 }
 
 # run_entrypoint_xvfb_ns: Xvfb-branch variant — ALSO mounts tmpfs over /tmp
@@ -511,4 +518,6 @@ run_entrypoint_xvfb_ns() {
   local nsbin
   nsbin="$(install_fake_priv_drop)"
   PATH="$nsbin:$PATH" run unshare -r -m bash "$ns" bash "$REPO_ROOT/dev-entrypoint.sh" "$@"
+  # teardown: same per-call cleanup as run_entrypoint_ns (DIA-260825-nts7 F3)
+  rm -rf "$nsbin"
 }

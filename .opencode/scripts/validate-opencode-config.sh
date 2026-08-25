@@ -5,11 +5,14 @@
 # JSON.parse rejects all three, so we strip comments and trailing commas with a
 # small char-level tokenizer that respects string literals — naive regex
 # stripping would corrupt URLs such as https://... inside the config.
+# The tokenizer lives in lib/jsonc-parse.js, shared with the coder/coder-
+# escalated permission lockstep check below (DIA-260825-nts7 fix-all F2).
 #
 # Exit codes: 0 all valid, 1 validation failure, 2 node unavailable.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+LIB="$ROOT/.opencode/scripts/lib/jsonc-parse.js"
 
 FILES=(
   "$ROOT/.opencode/opencode.jsonc"
@@ -32,56 +35,22 @@ for file in "${FILES[@]}"; do
     failures=$((failures + 1))
     continue
   fi
-  if node - "$file" <<'NODE'
-const fs = require('fs');
-
-const src = fs.readFileSync(process.argv[2], 'utf8');
-let out = '';
-let inString = null;     // quote char (' or ") when inside a string literal
-let inLineComment = false;
-let inBlockComment = false;
-
-for (let i = 0; i < src.length; i++) {
-  const c = src[i];
-  const n = src[i + 1];
-
-  if (inLineComment) {
-    if (c === '\n') { inLineComment = false; out += c; }
-    continue;
-  }
-  if (inBlockComment) {
-    if (c === '*' && n === '/') { inBlockComment = false; i++; }
-    continue;
-  }
-  if (inString) {
-    if (c === '\\') { out += c + (n || ''); i++; continue; }
-    out += c;
-    if (c === inString) inString = null;
-    continue;
-  }
-  if (c === '"' || c === "'") { inString = c; out += c; continue; }
-  if (c === '/' && n === '/') { inLineComment = true; i++; continue; }
-  if (c === '/' && n === '*') { inBlockComment = true; i++; continue; }
-  // trailing comma: drop ',' when the next non-whitespace char is } or ]
-  if (c === ',') {
-    let j = i + 1;
-    while (j < src.length && /\s/.test(src[j])) j++;
-    if (src[j] === '}' || src[j] === ']') continue;
-    out += c;
-    continue;
-  }
-  out += c;
-}
-
-JSON.parse(out);
-NODE
-  then
+  if node "$LIB" "$file"; then
     echo "ok: $file"
   else
     echo "FAIL  invalid JSONC: $file"
     failures=$((failures + 1))
   fi
 done
+
+# --- coder / coder-escalated permission lockstep (DIA-260825-nts7 F2) --------
+# coder-escalated is documented in opencode.jsonc as an exact clone of the
+# base coder permission map plus task-related keys. Nothing enforced that and
+# the maps drifted (reviewer finding). Fail test-config on any drift so the
+# next clone edit cannot silently diverge.
+if ! node "$LIB" --lockstep "$ROOT/.opencode/opencode.jsonc"; then
+  failures=$((failures + 1))
+fi
 
 if [ "$failures" -gt 0 ]; then
   echo "error: $failures config file(s) failed validation." >&2
