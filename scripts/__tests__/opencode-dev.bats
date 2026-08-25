@@ -12,11 +12,10 @@
 #   - default action + mode dispatch (--run-opencode / --test) unchanged
 #
 # Docker/Podman are MOCKED (recording fakes on PATH) so no real container is
-# started. The production script currently implements the OBSOLETE OS-only
-# design (--platform=fedora|wsl -> docker-compose.fedora.yml /
-# docker-compose.wsl.yml) and does NOT implement engine detection, so every
-# engine-based test below is RED: the script either rejects --engine or never
-# references the engine-specific override file.
+# started. Tests run from a scratch CWD seeded with a safe secrets/ fixture:
+# the launcher's secrets-ownership preflight (T7.0b, design.md Seam 5) resolves
+# ./secrets/ from the CWD like the compose files, so each test controls its own
+# fixture instead of depending on the developer's live tree.
 #
 # Seam under test (design.md "Unified Launch Command"):
 #   opencode-dev [--engine=podman|docker] [--os=wsl|native]
@@ -100,6 +99,14 @@ GREP
 setup() {
   FAKE_DOCKER_SERVICES=""
   mock_docker
+  # Preflight wiring (T7.0b): the launcher runs scripts/check-secrets-ownership.sh
+  # against ./secrets/ (CWD-relative, same contract as the compose files) before
+  # 'compose up'. Seed a SAFE fixture so flow tests exercise the full launch;
+  # the dedicated wiring tests below flip it unsafe.
+  cd "$BATS_TEST_TMPDIR"
+  mkdir -p secrets
+  : > secrets/api.key
+  chmod 600 secrets/api.key
 }
 
 # --- RED trigger -------------------------------------------------------------
@@ -196,4 +203,28 @@ setup() {
   run bash "$SCRIPT" --test
   assert_status 0
   assert_file_contains "$FAKE_DOCKER_LOG" "compose exec -T --user dev dev make test-infra"
+}
+
+# --- secrets ownership preflight wiring (T7.0b, design.md Seam 5) ------------
+
+@test "preflight wiring: missing secrets dir aborts with diagnostic BEFORE 'compose up'" {
+  rm -rf "$BATS_TEST_TMPDIR/secrets"
+  run bash "$SCRIPT"
+  assert_status 1
+  assert_output_contains "UNSAFE"
+  if grep -qF "compose up" "$FAKE_DOCKER_LOG"; then
+    echo "launcher must not start the container when the preflight fails" >&2
+    return 1
+  fi
+}
+
+@test "preflight wiring: group-readable secret file aborts with chmod fix BEFORE 'compose up'" {
+  chmod 644 secrets/api.key
+  run bash "$SCRIPT"
+  assert_status 1
+  assert_output_contains "chmod 0600"
+  if grep -qF "compose up" "$FAKE_DOCKER_LOG"; then
+    echo "launcher must not start the container when the preflight fails" >&2
+    return 1
+  fi
 }
