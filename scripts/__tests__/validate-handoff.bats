@@ -392,3 +392,71 @@ setup() {
   assert_output_contains "FAIL: handoff slot is not valid JSON: $hd/ses_corrupt.json"
   assert_output_not_contains "missing required heading"
 }
+
+# ---------------------------------------------------------------------------
+# --checksum-only quick-check mode (DIA-260825-k8mc): four-outcome contract,
+# one stdout line, exit 1 ONLY on mismatch. Fixtures reuse write_json_handoff
+# / write_slot / valid_handoff above; the real session state is never touched.
+# ---------------------------------------------------------------------------
+
+@test "checksum-only: slot via -s with matching checksum -> match, exit 0" {
+  local hd="$FIXTURES/checksum-only-match"
+  mkdir -p "$hd"
+  write_slot "$hd" "ses_qc1"
+
+  HANDOFF_TEMPLATE="$TPL" HANDOFFS_DIR="$hd" \
+    run bash "$HANDOFF_SCRIPT" --checksum-only -s ses_qc1
+
+  assert_status 0
+  assert_output_contains "match"
+  assert_output_not_contains "mismatch"
+  assert_output_not_contains "missing-checksum"
+  # Schema checks are skipped in this mode.
+  assert_output_not_contains "ok: session_summary"
+}
+
+@test "checksum-only: tampered prognosis -> mismatch stored=/computed=, exit 1" {
+  local f="$FIXTURES/checksum-only-tampered.json"
+  write_json_handoff "$f" "session_summary"
+
+  run bash "$HANDOFF_SCRIPT" --checksum-only "$f"
+
+  assert_status 1
+  assert_output_contains "mismatch stored="
+  assert_output_contains "computed="
+}
+
+@test "checksum-only: missing checksum field -> missing-checksum computed=, exit 0" {
+  local f="$FIXTURES/checksum-only-missing.json"
+  write_json_handoff "$f"
+  jq 'del(.checksum)' "$f" > "$f.tmp" && mv "$f.tmp" "$f"
+
+  run bash "$HANDOFF_SCRIPT" --checksum-only "$f"
+
+  assert_status 0
+  assert_output_contains "missing-checksum computed="
+}
+
+@test "checksum-only: non-JSON target -> no-handoff, exit 0" {
+  local f="$FIXTURES/checksum-only-markdown.md"
+  valid_handoff "$f"
+
+  run bash "$HANDOFF_SCRIPT" --checksum-only "$f"
+
+  assert_status 0
+  assert_output_contains "no-handoff"
+}
+
+@test "checksum-only: corrupt (non-JSON) slot -> corrupt-handoff, exit 1" {
+  # F1 fix: corrupt state takes the escalate path, never silent absence.
+  local hd="$FIXTURES/checksum-only-corrupt"
+  mkdir -p "$hd"
+  printf '{ not json' > "$hd/ses_corrupt.json"
+
+  HANDOFF_TEMPLATE="$TPL" HANDOFFS_DIR="$hd" \
+    run bash "$HANDOFF_SCRIPT" --checksum-only -s ses_corrupt
+
+  assert_status 1
+  assert_output_contains "corrupt-handoff"
+  assert_output_not_contains "no-handoff"
+}

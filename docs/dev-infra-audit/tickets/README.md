@@ -205,22 +205,30 @@
 | DIA-260825-b80t | cleanup editor-engine dead code ChankManager OpusState methods revisionComputed | scripts | Medium | OPEN | [DIA-260825-b80t-cleanup-editor-engine-dead-code-chankmanager-opusstate-methods-revisioncomputed.md](DIA-260825-b80t-cleanup-editor-engine-dead-code-chankmanager-opusstate-methods-revisioncomputed.md) |
 | DIA-260825-e9ou | test-shell: 17 host failures - dev-entrypoint runuser userns, jsonl-cross-check locale decimals, dev-stack turbo detection | scripts | Medium | OPEN | [DIA-260825-e9ou-test-shell-17-host-failures-dev-entrypoint-runuser-userns-jsonl-cross-check-locale-decimals-dev-stack-turbo-detection.md](DIA-260825-e9ou-test-shell-17-host-failures-dev-entrypoint-runuser-userns-jsonl-cross-check-locale-decimals-dev-stack-turbo-detection.md) |
 | DIA-260825-f1o7 | misc cleanup run_phase_a v1 os.replace kb-cache phonetics empty placeholders plus doc sync | scripts | Medium | OPEN | [DIA-260825-f1o7-misc-cleanup-run-phase-a-v1-os-replace-kb-cache-phonetics-empty-placeholders-plus-doc-sync.md](DIA-260825-f1o7-misc-cleanup-run-phase-a-v1-os-replace-kb-cache-phonetics-empty-placeholders-plus-doc-sync.md) |
+| DIA-260825-fjnc | auto-clear stale pending-flag gate files in delegation-observer | opencode-config | Medium | CLOSED | [DIA-260825-fjnc-auto-clear-stale-pending-flag-gate-files-in-delegation-observer.md](DIA-260825-fjnc-auto-clear-stale-pending-flag-gate-files-in-delegation-observer.md) |
 | DIA-260825-j0s4 | wire check-secrets-ownership into opencode-dev preflight per DIA-260821-x5nj T7.0a | scripts | Medium | OPEN | [DIA-260825-j0s4-wire-check-secrets-ownership-into-opencode-dev-preflight-per-dia-260821-x5nj-t7-0a.md](DIA-260825-j0s4-wire-check-secrets-ownership-into-opencode-dev-preflight-per-dia-260821-x5nj-t7-0a.md) |
+| DIA-260825-k8mc | reflect batch: frontier command, handoff-check, lane-resume, changelog-add | dev-infra | Medium | CLOSED | [DIA-260825-k8mc-reflect-batch-frontier-command-handoff-check-lane-resume-changelog-add.md](DIA-260825-k8mc-reflect-batch-frontier-command-handoff-check-lane-resume-changelog-add.md) |
 | DIA-260825-lro1 | Release task idempotency reservation after failed dispatch | opencode-config | Blocker | OPEN | [DIA-260825-lro1-release-task-idempotency-reservation-after-failed-dispatch.md](DIA-260825-lro1-release-task-idempotency-reservation-after-failed-dispatch.md) |
 | DIA-260825-n5x4 | cleanup plugin dead code and native base64url codec in delegation-observer | scripts | Medium | OPEN | [DIA-260825-n5x4-cleanup-plugin-dead-code-and-native-base64url-codec-in-delegation-observer.md](DIA-260825-n5x4-cleanup-plugin-dead-code-and-native-base64url-codec-in-delegation-observer.md) |
 | DIA-260825-nts7 | permission: extend coder bash allow-list - 300s watchdog auto-rejected unmatched git/make/pnpm calls | scripts | Medium | OPEN | [DIA-260825-nts7-permission-extend-coder-bash-allow-list-300s-watchdog-auto-rejected-unmatched-git-make-pnpm-calls.md](DIA-260825-nts7-permission-extend-coder-bash-allow-list-300s-watchdog-auto-rejected-unmatched-git-make-pnpm-calls.md) |
 | DIA-260825-oyh | extract shared plugin lib for errorMessage safeJsonStringify behind loader feasibility gate | scripts | Medium | OPEN | [DIA-260825-oyh-extract-shared-plugin-lib-for-errormessage-safejsonstringify-behind-loader-feasibility-gate.md](DIA-260825-oyh-extract-shared-plugin-lib-for-errormessage-safejsonstringify-behind-loader-feasibility-gate.md) |
 | DIA-260825-q7bu | test-shell hangs on interactive stdin at dev-entrypoint default-command case | scripts | Medium | OPEN | [DIA-260825-q7bu-test-shell-hangs-on-interactive-stdin-at-dev-entrypoint-default-command-case.md](DIA-260825-q7bu-test-shell-hangs-on-interactive-stdin-at-dev-entrypoint-default-command-case.md) |
 | DIA-260825-wprb | repo-wide ponytail over-engineering audit | scripts | Medium | OPEN | [DIA-260825-wprb-repo-wide-ponytail-over-engineering-audit.md](DIA-260825-wprb-repo-wide-ponytail-over-engineering-audit.md) |
+| DIA-260826-766f | fix UID/GID wiring mismatch Makefile vs compose (H8) | dev-infra | Major | OPEN | [DIA-260826-766f-fix-uid-gid-wiring-mismatch-makefile-vs-compose-h8.md](DIA-260826-766f-fix-uid-gid-wiring-mismatch-makefile-vs-compose-h8.md) |
+| DIA-260826-jcte | remove plugin autonomous force worktree removal (C3) | delegation-observer | Critical | OPEN | [DIA-260826-jcte-remove-plugin-autonomous-force-worktree-removal-c3.md](DIA-260826-jcte-remove-plugin-autonomous-force-worktree-removal-c3.md) |
+| DIA-260826-pjm | fix datetime ticket ID parsing in observer gates (C1) | delegation-observer | Critical | VALIDATE | [DIA-260826-pjm-fix-datetime-ticket-id-parsing-in-observer-gates-c1.md](DIA-260826-pjm-fix-datetime-ticket-id-parsing-in-observer-gates-c1.md) |
+| DIA-260826-u27h | make shell runs non-login bash so secrets profile hook never fires (H5 refined) | dev-infra | Major | OPEN | [DIA-260826-u27h-make-shell-runs-non-login-bash-so-secrets-profile-hook-never-fires-h5-refined.md](DIA-260826-u27h-make-shell-runs-non-login-bash-so-secrets-profile-hook-never-fires-h5-refined.md) |
+| DIA-260826-uozv | sync OMO pin in opencode-docker config to project version (H4) | opencode-config | Major | OPEN | [DIA-260826-uozv-sync-omo-pin-in-opencode-docker-config-to-project-version-h4.md](DIA-260826-uozv-sync-omo-pin-in-opencode-docker-config-to-project-version-h4.md) |
+| DIA-260826-zvu4 | exempt verification-only coder dispatches from SILENT_FAILURE detection (H1) | delegation-observer | Major | OPEN | [DIA-260826-zvu4-exempt-verification-only-coder-dispatches-from-silent-failure-detection-h1.md](DIA-260826-zvu4-exempt-verification-only-coder-dispatches-from-silent-failure-detection-h1.md) |
 
 ## Status summary
 
 | Severity | Count |
 | -------- | ----- |
 | Blocker  | 9     |
-| Critical | 10    |
-| Major    | 61    |
-| Medium   | 108   |
+| Critical | 12    |
+| Major    | 65    |
+| Medium   | 110   |
 | Minor    | 0     |
 | Low      | 20    |
 | Info     | 1     |
@@ -228,16 +236,16 @@
 
 | Status      | Count |
 | ----------- | ----- |
-| OPEN        | 49    |
+| OPEN        | 54    |
 | DONE        | 11    |
-| VALIDATE    | 0     |
+| VALIDATE    | 1     |
 | E2E         | 0     |
 | DEFERRED    | 1     |
 | MONITOR     | 1     |
 | FIXED       | 1     |
 | IMPLEMENTED | 2     |
 | VERIFIED    | 28    |
-| CLOSED      | 116   |
+| CLOSED      | 118   |
 | BLOCKED     | 0     |
 | DISPATCHED  | 0     |
 | RUNNING     | 0     |

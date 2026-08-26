@@ -96,7 +96,10 @@ After the developer disposes review findings (accept/reject per practice-protect
   6. **Independent review** — `@ai-auditor` reviews the implemented change against best practices + AIHero patterns. ai-auditor is THE independent reviewer for config changes.
   7. **Register** — append the changelog entry to `.opencode/CHANGELOG.yaml`
      (the YAML ledger is the source of truth; `.opencode/CHANGELOG.md` is the
-     derived view). Append via a text edit adding one schema-valid entry (see
+     derived view). One-call path: `scripts/changelog-add --ticket DIA-NNN --summary "..." [--scope s] [--area a] [--files f1,f2]`
+     appends via PyYAML, then validates and renders automatically. Manual
+     fallback: a text
+     edit adding one schema-valid entry (see
      `scripts/schemas/changelog.schema.json`; the settled YAML stack is
      PyYAML — yq is rejected by DIA-137 and not installed), then validate with
      `scripts/validate-changelog.sh`, regenerate the derived MD with
@@ -219,16 +222,17 @@ When querying ticket status, **use `scripts/tickets` subcommands**. **Do NOT** r
 
 The `README.md` rollup in the tickets directory is a static snapshot that can drift from actual state. Scripts provide live, filtered, structured output on demand.
 
-| Query                                          | Command                              |
-| ---------------------------------------------- | ------------------------------------ |
-| Tickets with no blockers (what can I work on?) | `scripts/tickets frontier`           |
-| Ticket count by status                         | `scripts/tickets stats`              |
-| List tickets by status                         | `scripts/tickets list --status OPEN` |
-| Show single ticket                             | `scripts/tickets show <id>`          |
-| Create new ticket                              | `scripts/tickets new --title "..."`  |
-| Search tickets by keyword                      | `scripts/tickets search <query>`     |
-| Recompute README rollup                        | `scripts/tickets rollup`             |
-| Show help/usage                                | `scripts/tickets help`               |
+| Query                                          | Command                                                                        |
+| ---------------------------------------------- | ------------------------------------------------------------------------------ |
+| Tickets with no blockers (what can I work on?) | `scripts/tickets frontier`                                                     |
+| Conversational frontier view                   | `/frontier` (runs `scripts/tickets frontier`, summarizes ID + slug + severity) |
+| Ticket count by status                         | `scripts/tickets stats`                                                        |
+| List tickets by status                         | `scripts/tickets list --status OPEN`                                           |
+| Show single ticket                             | `scripts/tickets show <id>`                                                    |
+| Create new ticket                              | `scripts/tickets new --title "..."`                                            |
+| Search tickets by keyword                      | `scripts/tickets search <query>`                                               |
+| Recompute README rollup                        | `scripts/tickets rollup`                                                       |
+| Show help/usage                                | `scripts/tickets help`                                                         |
 
 ### Edit-time formatting (DIA-105)
 

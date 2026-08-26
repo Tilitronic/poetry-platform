@@ -374,7 +374,10 @@ to record, NOT a blocker; the gate proceeds per the normal flow.
    RESOLVED SLOT (path from the step-0 chain - the slot
    `.opencode/session/handoffs/<session-id>.json`, NOT the legacy file unless the chain
    fell back to it):
-   `jq -c '.prognosis | to_entries | sort_by(.key) | from_entries' .opencode/session/handoffs/<session-id>.json | tr -d '\n' | sha256sum`
+   `scripts/validate-handoff.sh --checksum-only <resolved-slot-path>`
+   (prints one line: `match` | `mismatch stored=<hex> computed=<hex>` |
+   `missing-checksum computed=<hex>` | `no-handoff`; exit 1 only on mismatch;
+   the script RE-READS the stored checksum fresh after computing, DIA-120).
    The lane computes the canonical value for VERIFICATION ONLY — it MUST NOT write or edit
    the handoff file (the file is written SOLELY by the delegation-observer plugin via
    `log_decision(handoff, ..., JSON.stringify(prognosis))`; the plugin computes and stores

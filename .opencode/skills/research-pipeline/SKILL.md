@@ -71,6 +71,7 @@ Wait for conspecter to complete. Verify:
 Analysis is BLOCKED until the conspect is verified. When the conspecter completes, the delegation-observer plugin drops `.opencode/session/analysis-pending.json` with `{ "status": "pending_verification" }`. Before dispatching `@analyzer`:
 1. Verify the conspect artifacts (sources/, conspect file, memory-shelf entry) via a delegated read lane
 2. Edit `.opencode/session/analysis-pending.json` to `{ "status": "verified" }` to clear the gate
+   (or delete it via `scripts/pending-gate-clear analysis-pending`, DIA-260825-fjnc)
 3. Only then dispatch `@analyzer` — analysis consumes the conspect, NOT raw findings
 
 The developer can explicitly skip analysis by setting `status: "skipped"`.

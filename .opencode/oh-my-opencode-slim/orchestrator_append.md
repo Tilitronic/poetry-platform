@@ -73,7 +73,8 @@ When `@researcher` returns findings with `PERSISTENCE_RECOMMENDED: true`:
    `PERSISTENCE_RECOMMENDED: true`. At session start and after each researcher
    completion, check for this file. If present: load the `research-pipeline` skill,
    auto-proceed through Phases 3-4 (conspect synthesis is automatic), and after
-   pipeline completion DELETE the flag file.
+   pipeline completion DELETE the flag file via
+   `scripts/pending-gate-clear conspect-pending` (verified clear; DIA-260825-fjnc).
 5. **Missing flag fallback:** If the researcher's output does not include
    `PERSISTENCE_RECOMMENDED`, apply the research-pipeline skill's Phase 2 criteria
    table before closing the lane.
@@ -344,7 +345,9 @@ result and do NOT loop on re-dispatches.
    state. The orchestrator is the writer (the plugin cannot see the
    subagent's final result text directly, DIA-099 gap G2).
 
-3. **RESUME** - dispatch a resume lane and load the `resume-truncated-lane`
+3. **RESUME** - run `scripts/lane-resume <task_id>` first (via @coder dispatch
+   or developer; orchestrator has bash deny) to triage fresh-required vs
+   resume-recommended, then dispatch a resume lane and load the `resume-truncated-lane`
    skill. Provide the FULL original task spec (unabbreviated) + the partial
    output + the detection signal. The resume lane MUST verify-first
    READ-ONLY (git log --oneline -5, target file existence/content, ticket

@@ -41,6 +41,30 @@
 # reference template, the handoffs directory, and the legacy fallback file
 # elsewhere (defaults to the repo layout under .opencode/session/) - bats
 # meta-tests use them to validate temp fixture trees hermetically.
+#
+# --checksum-only (DIA-260825-k8mc, ai-specialist gate verdict 4): quick-check
+# mode. Resolves the handoff through the same chain / -s / positional entry
+# points, computes the DIA-061 canonical checksum, RE-READS the stored
+# `checksum` field fresh AFTER computing (DIA-120: never compare against a
+# value memorized from an earlier read), prints exactly ONE stdout line and
+# exits:
+#   match                                   exit 0
+#   mismatch stored=<hex> computed=<hex>    exit 1 (only failure outcome)
+#   missing-checksum computed=<hex>         exit 0 (NEXT-RUN.md 7.3 step 7b:
+#                                           missing does not block; the next
+#                                           terminal log_decision populates it)
+#   no-handoff                              exit 0 (nothing resolvable, or the
+#                                           resolved target carries no
+#                                           prognosis object)
+#   corrupt-handoff                         exit 1 (resolved slot/legacy file
+#                                           is not valid JSON - corrupt state
+#                                           takes the escalate path per
+#                                           NEXT-RUN.md 7.3, never silent
+#                                           absence)
+# All markdown/schema checks are skipped in this mode.
+#
+# Permission model (DIA-126a): orchestrator has bash deny - run via @coder
+# dispatch (scripts/* allow) or the developer.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -49,10 +73,23 @@ HANDOFFS_DIR="${HANDOFFS_DIR:-$ROOT/.opencode/session/handoffs}"
 LEGACY_HANDOFF="${LEGACY_HANDOFF:-$ROOT/.opencode/session/current-handoff.json}"
 
 # ---------------------------------------------------------------------------
-# Argument parsing (DIA-085 T3.1): three mutually exclusive entry points.
+# Argument parsing (DIA-085 T3.1): three mutually exclusive entry points,
+# plus the mode-agnostic --checksum-only flag which is stripped before the
+# entry-point parsing so it composes with -s / positional / default chain.
 # `-s <session-id>` wins over a positional path; no argument triggers the
 # design-section-3 resolution chain (see `default` case below).
 # ---------------------------------------------------------------------------
+checksum_only=0
+entry_args=()
+for arg in "$@"; do
+  if [ "$arg" = "--checksum-only" ]; then
+    checksum_only=1
+  else
+    entry_args+=("$arg")
+  fi
+done
+set -- "${entry_args[@]}"
+
 mode="default"
 target_is_slot=0
 
@@ -150,6 +187,59 @@ case "$mode" in
     fi
     ;;
 esac
+
+# ---------------------------------------------------------------------------
+# Canonical DIA-061 checksum of the prognosis object (sorted keys, compact
+# JSON, sha256 hex). SINGLE copy in this script (S1, re-review cycle 1/2):
+# both the --checksum-only quick-check and the full-gate checksum block call
+# this. Prints the digest on stdout; returns nonzero when the prognosis
+# cannot be extracted (caller decides how to report that).
+# ---------------------------------------------------------------------------
+compute_canonical_checksum() {
+  local canonical
+  canonical="$(jq -c '.prognosis | to_entries | sort_by(.key) | from_entries' "$1" 2>/dev/null)" || return 1
+  printf '%s' "$canonical" | sha256sum | cut -d' ' -f1
+}
+
+# ---------------------------------------------------------------------------
+# Quick-check mode (--checksum-only): the five-outcome contract documented in
+# the header. Runs INSTEAD of the markdown/schema + full checksum gate below.
+# ---------------------------------------------------------------------------
+if [ "$checksum_only" -eq 1 ]; then
+  if [ ! -f "$HANDOFF" ]; then
+    echo "no-handoff"
+    exit 0
+  fi
+  # A resolved slot/legacy file that is not valid JSON is CORRUPT state -
+  # escalate (exit 1), never report it as absent. The reference-template
+  # fallback is legitimately non-JSON: that stays no-handoff.
+  if ! jq -e . "$HANDOFF" >/dev/null 2>&1; then
+    if [ "$target_is_slot" -eq 1 ] || [ "$HANDOFF" = "$LEGACY_HANDOFF" ]; then
+      echo "corrupt-handoff"
+      exit 1
+    fi
+    echo "no-handoff"
+    exit 0
+  fi
+  if ! jq -e '.prognosis' "$HANDOFF" >/dev/null 2>&1; then
+    echo "no-handoff"
+    exit 0
+  fi
+  computed_checksum="$(compute_canonical_checksum "$HANDOFF")" || { echo "no-handoff"; exit 0; }
+  # DIA-120: RE-READ the stored checksum fresh AFTER computing - the file may
+  # have been rewritten between an earlier read and now.
+  stored_checksum="$(jq -r '.checksum // empty' "$HANDOFF")"
+  if [ -z "$stored_checksum" ]; then
+    echo "missing-checksum computed=$computed_checksum"
+    exit 0
+  fi
+  if [ "$stored_checksum" = "$computed_checksum" ]; then
+    echo "match"
+    exit 0
+  fi
+  echo "mismatch stored=$stored_checksum computed=$computed_checksum"
+  exit 1
+fi
 
 # Slots are always JSON (design section 1: identical schema to
 # current-handoff.json). A non-JSON slot is corrupt state - fail loudly with
@@ -259,9 +349,7 @@ if [ "$json_handoff" -eq 1 ]; then
     echo "FAIL: 'checksum' is a placeholder (all-same-char): $checksum_field" >&2
     failed=$((failed + 1))
   else
-    prognosis_canonical="$(jq -c '.prognosis | to_entries | sort_by(.key) | from_entries' "$HANDOFF" 2>/dev/null || true)"
-    if [ -n "$prognosis_canonical" ]; then
-      computed_checksum="$(printf '%s' "$prognosis_canonical" | sha256sum | cut -d' ' -f1)"
+    if computed_checksum="$(compute_canonical_checksum "$HANDOFF")"; then
       if [ "$computed_checksum" != "$checksum_field" ]; then
         echo "FAIL: checksum mismatch (computed=$computed_checksum, stored=$checksum_field)" >&2
         failed=$((failed + 1))
