@@ -836,6 +836,15 @@ const delegationObserver: Plugin = async (ctx) => {
   // that completed with no file edits (empty result signal D1/D2/D5).
   const sessionEditCount = new Map<string, number>()
 
+  // DIA-260826-zvu4: child sessions dispatched with a verification-only
+  // marker phrase ("verification-only", "read-only verification",
+  // "verify-only") in the task() description/prompt. Zero file edits is the
+  // EXPECTED outcome for these lanes, so they are exempt from DIA-224
+  // SILENT_FAILURE detection. Entry removed when the child completes.
+  // Fail-open by design: a false-positive marker costs at most one missed
+  // heuristic signal, backstopped by orchestrator review of child output.
+  const verificationOnlySessions = new Set<string>()
+
   // DIA-225: per-lane failure counter for consecutive empty results.
   // Keyed by session_id (child session that completed with zero edits).
   // On each SILENT_FAILURE detection, the counter increments. At 3
@@ -3341,6 +3350,19 @@ const delegationObserver: Plugin = async (ctx) => {
             : "task() delegation"
         ).slice(0, 300)
       if (taskId) childSessionAgent.set(taskId, agentName)
+      // DIA-260826-zvu4: capture verification-only marker at dispatch time.
+      // The trailing \b after "verif" needs \w* because the phrase is
+      // usually "read-only verification" (word continues past "verif").
+      if (taskId) {
+        const dispatchText = `${taskArgs.description ?? ""}\n${taskArgs.prompt ?? ""}`
+        if (
+          /\b(verification.only|read.only.verif\w*|verify.only)\b/i.test(
+            dispatchText
+          )
+        ) {
+          verificationOnlySessions.add(taskId)
+        }
+      }
       // DIA-220: track worktree for this child session (apoptosis cleanup).
       // The WORKTREE assertion was captured in tool.execute.before and
       // stored in turnToolCalls; propagate to sessionWorktrees now that
@@ -3865,7 +3887,12 @@ const delegationObserver: Plugin = async (ctx) => {
           const edits = sessionEditCount.get(sessionID) ?? 0
           const agentName = childSessionAgent.get(sessionID) ?? "subagent"
           const isReadOnly = READ_ONLY_LANES.has(agentName)
-          if (edits === 0 && !isReadOnly) {
+          // DIA-260826-zvu4: verification-only lanes expect zero edits.
+          if (
+            edits === 0 &&
+            !isReadOnly &&
+            !verificationOnlySessions.has(sessionID)
+          ) {
             appendRow({
               event: "empty_result_detected",
               session_id: sessionID,
@@ -3927,6 +3954,8 @@ const delegationObserver: Plugin = async (ctx) => {
           }
           // Clean up edit counter for completed sessions.
           sessionEditCount.delete(sessionID)
+          // DIA-260826-zvu4: exemption is per-dispatch, not permanent.
+          verificationOnlySessions.delete(sessionID)
           return
         }
 
@@ -4000,6 +4029,8 @@ const delegationObserver: Plugin = async (ctx) => {
           logStallResolutionIfStalled(sessionID, "resolved_by_error")
           // DIA-224: clean up edit counter for errored sessions.
           sessionEditCount.delete(sessionID)
+          // DIA-260826-zvu4: errored sessions must not keep the exemption.
+          verificationOnlySessions.delete(sessionID)
 
           // === DIA-220 APOPTOSIS: dual-key graceful shutdown ===
           // If the circuit breaker is OPEN for this session AND session.error

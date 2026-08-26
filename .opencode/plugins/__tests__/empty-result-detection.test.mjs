@@ -8,6 +8,11 @@
  * Covers DIA-099 detection signals D1 (empty result), D2 (no file edits),
  * D5 (no meaningful output).
  *
+ * DIA-260826-zvu4 extends coverage: coder lanes dispatched with a
+ * verification-only marker phrase in the prompt must NOT trip SILENT_FAILURE
+ * on zero edits (RED phase -- these tests fail against current code until a
+ * separate implementer adds the verificationOnlySessions exemption).
+ *
  * Hermetic: every harness gets a fresh mkdtemp workspace. No real project
  * files are touched.
  *
@@ -233,4 +238,319 @@ describe("DIA-225 C3: empty-result detection", () => {
     )
     expect(warningMsg).toBeUndefined()
   })
+})
+
+// ---------------------------------------------------------------------------
+// DIA-260826-zvu4: verification-only coder exemption (RED phase tests)
+// ---------------------------------------------------------------------------
+
+/**
+ * Drive a task() dispatch through tool.execute.after: registers the child
+ * lane in childSessionAgent and links the child session id parsed from the
+ * task output. Mirrors the proven driveTaskAfter pattern from
+ * dia220-apoptosis-paracrine.test.mjs.
+ */
+async function driveTaskDispatch(hooks, { parentID, childID, agent, prompt }) {
+  await hooks["tool.execute.after"](
+    {
+      tool: "task",
+      sessionID: parentID,
+      callID: "call_dispatch_" + childID,
+      args: { subagent_type: agent, prompt },
+    },
+    { output: `<task id="${childID}"><state>completed</state></task>` }
+  )
+}
+
+function findSilentRow(rows) {
+  return rows.find(
+    (r) =>
+      r.event === "empty_result_detected" &&
+      r.dispatch_state === "SILENT_FAILURE"
+  )
+}
+
+describe("DIA-260826-zvu4: verification-only coder exemption", () => {
+  test("coder dispatch with 'verification-only' marker + zero edits -> NO SILENT_FAILURE", async () => {
+    const { hooks, ctx } = await makeHarness()
+    const parentID = "ses_zvu4_parent_1"
+    const childID = "ses_zvu4_verif_1"
+
+    // Register child session via session.created.
+    await driveEvent(hooks, {
+      event: {
+        type: "session.created",
+        properties: {
+          info: { id: childID, parentID, title: "verification-only recon" },
+        },
+      },
+    })
+
+    // Dispatch a coder with the marker phrase in the prompt.
+    await driveTaskDispatch(hooks, {
+      parentID,
+      childID,
+      agent: "coder",
+      prompt:
+        "campaign ticket DIA-260826-zvu4 - verification-only: confirm writability, report findings. Do NOT modify implementation code.",
+    })
+
+    const rowsBefore = countRows(ctx)
+    const msgsBefore = countMessages(ctx)
+
+    // Fire session.idle -- zero edits, but marker exempts the session.
+    await driveEvent(hooks, {
+      event: {
+        type: "session.idle",
+        properties: { sessionID: childID },
+      },
+    })
+
+    const newRows = readNewRows(ctx, rowsBefore)
+    expect(findSilentRow(newRows)).toBeUndefined()
+
+    const newMsgs = readNewMessages(ctx, msgsBefore)
+    const crisisMsg = newMsgs.find(
+      (m) => m["gen_ai.operation.name"] === "empty_result_detected"
+    )
+    expect(crisisMsg).toBeUndefined()
+  })
+
+  test("coder dispatch WITHOUT marker + zero edits -> SILENT_FAILURE preserved", async () => {
+    const { hooks, ctx } = await makeHarness()
+    const parentID = "ses_zvu4_parent_2"
+    const childID = "ses_zvu4_impl_1"
+
+    await driveEvent(hooks, {
+      event: {
+        type: "session.created",
+        properties: {
+          info: { id: childID, parentID, title: "implementation" },
+        },
+      },
+    })
+
+    // Dispatch a coder WITHOUT any marker phrase.
+    await driveTaskDispatch(hooks, {
+      parentID,
+      childID,
+      agent: "coder",
+      prompt: "implement feature X against tasks.md",
+    })
+
+    const rowsBefore = countRows(ctx)
+    const msgsBefore = countMessages(ctx)
+
+    await driveEvent(hooks, {
+      event: {
+        type: "session.idle",
+        properties: { sessionID: childID },
+      },
+    })
+
+    // Existing behavior must be preserved: zero-edit coder -> SILENT_FAILURE.
+    const newRows = readNewRows(ctx, rowsBefore)
+    const silentRow = findSilentRow(newRows)
+    expect(silentRow).toBeDefined()
+    expect(silentRow.session_id).toBe(childID)
+    expect(silentRow.file_edit_count).toBe(0)
+
+    const newMsgs = readNewMessages(ctx, msgsBefore)
+    const crisisMsg = newMsgs.find(
+      (m) =>
+        m["gen_ai.operation.name"] === "empty_result_detected" &&
+        m["gen_ai.agent.id"] === childID
+    )
+    expect(crisisMsg).toBeDefined()
+  })
+
+  test("coder dispatch with marker + file edits -> NO SILENT_FAILURE", async () => {
+    const { hooks, ctx } = await makeHarness()
+    const parentID = "ses_zvu4_parent_3"
+    const childID = "ses_zvu4_verif_edits_1"
+
+    await driveEvent(hooks, {
+      event: {
+        type: "session.created",
+        properties: {
+          info: { id: childID, parentID, title: "verification-only + edits" },
+        },
+      },
+    })
+
+    await driveTaskDispatch(hooks, {
+      parentID,
+      childID,
+      agent: "coder",
+      prompt: "verification-only: extend the test file, run bun test",
+    })
+
+    // The session DID produce edits (test files are edits too).
+    await driveToolEdit(hooks, ctx, { sessionID: childID })
+
+    const rowsBefore = countRows(ctx)
+
+    await driveEvent(hooks, {
+      event: {
+        type: "session.idle",
+        properties: { sessionID: childID },
+      },
+    })
+
+    const newRows = readNewRows(ctx, rowsBefore)
+    expect(findSilentRow(newRows)).toBeUndefined()
+  })
+
+  test("marker variants 'read-only verification' and 'verify-only' are exempt", async () => {
+    for (const [label, prompt] of [
+      [
+        "read-only verification",
+        "read-only verification of the plugin behavior, report only",
+      ],
+      ["verify-only", "verify-only: run the suite and summarize results"],
+    ]) {
+      const { hooks, ctx } = await makeHarness()
+      const parentID = "ses_zvu4_parent_v_" + label.replace(/[^a-z]+/g, "_")
+      const childID = "ses_zvu4_variant_" + label.replace(/[^a-z]+/g, "_")
+
+      await driveEvent(hooks, {
+        event: {
+          type: "session.created",
+          properties: {
+            info: { id: childID, parentID, title: label },
+          },
+        },
+      })
+
+      await driveTaskDispatch(hooks, {
+        parentID,
+        childID,
+        agent: "coder",
+        prompt,
+      })
+
+      const rowsBefore = countRows(ctx)
+      const msgsBefore = countMessages(ctx)
+
+      await driveEvent(hooks, {
+        event: {
+          type: "session.idle",
+          properties: { sessionID: childID },
+        },
+      })
+
+      const newRows = readNewRows(ctx, rowsBefore)
+      expect(findSilentRow(newRows)).toBeUndefined()
+
+      const newMsgs = readNewMessages(ctx, msgsBefore)
+      const crisisMsg = newMsgs.find(
+        (m) => m["gen_ai.operation.name"] === "empty_result_detected"
+      )
+      expect(crisisMsg).toBeUndefined()
+    }
+  })
+
+  test("uppercase 'VERIFICATION-ONLY' marker is exempt (case-insensitive match)", async () => {
+    const { hooks, ctx } = await makeHarness()
+    const parentID = "ses_zvu4_parent_upper"
+    const childID = "ses_zvu4_verif_upper"
+
+    await driveEvent(hooks, {
+      event: {
+        type: "session.created",
+        properties: {
+          info: { id: childID, parentID, title: "UPPERCASE marker" },
+        },
+      },
+    })
+
+    await driveTaskDispatch(hooks, {
+      parentID,
+      childID,
+      agent: "coder",
+      prompt: "VERIFICATION-ONLY: confirm writability, report findings.",
+    })
+
+    const rowsBefore = countRows(ctx)
+    const msgsBefore = countMessages(ctx)
+
+    await driveEvent(hooks, {
+      event: { type: "session.idle", properties: { sessionID: childID } },
+    })
+
+    const newRows = readNewRows(ctx, rowsBefore)
+    expect(findSilentRow(newRows)).toBeUndefined()
+
+    const newMsgs = readNewMessages(ctx, msgsBefore)
+    const crisisMsg = newMsgs.find(
+      (m) => m["gen_ai.operation.name"] === "empty_result_detected"
+    )
+    expect(crisisMsg).toBeUndefined()
+  })
+
+  test("marker in args.description (not prompt) is exempt", async () => {
+    const { hooks, ctx } = await makeHarness()
+    const parentID = "ses_zvu4_parent_desc"
+    const childID = "ses_zvu4_verif_desc"
+
+    await driveEvent(hooks, {
+      event: {
+        type: "session.created",
+        properties: {
+          info: { id: childID, parentID, title: "marker via description" },
+        },
+      },
+    })
+
+    // Marker lives ONLY in the description channel; prompt is marker-free.
+    // Mirrors driveTaskDispatch but passes description instead of prompt.
+    await hooks["tool.execute.after"](
+      {
+        tool: "task",
+        sessionID: parentID,
+        callID: "call_dispatch_" + childID,
+        args: {
+          subagent_type: "coder",
+          description: "verification-only recon",
+          prompt: "implement feature X against tasks.md",
+        },
+      },
+      { output: `<task id="${childID}"><state>completed</state></task>` }
+    )
+
+    const rowsBefore = countRows(ctx)
+    const msgsBefore = countMessages(ctx)
+
+    await driveEvent(hooks, {
+      event: { type: "session.idle", properties: { sessionID: childID } },
+    })
+
+    const newRows = readNewRows(ctx, rowsBefore)
+    expect(findSilentRow(newRows)).toBeUndefined()
+
+    const newMsgs = readNewMessages(ctx, msgsBefore)
+    const crisisMsg = newMsgs.find(
+      (m) => m["gen_ai.operation.name"] === "empty_result_detected"
+    )
+    expect(crisisMsg).toBeUndefined()
+  })
+
+  // Cleanup-on-completion (Set entry removed when the session completes):
+  // SKIPPED -- not observable through the public hook surface.
+  //
+  // Why the harness cannot simulate session reuse: firing session.idle twice
+  // for the same child hits the S2 forward-only transition guard
+  // (delegation-observer.ts ~3713-3724): after the first idle writes the
+  // terminal `completed` row, the second idle short-circuits with an
+  // anomaly_backward_transition row and RETURNS before reaching the
+  // empty-result check. So a stale Set entry can never change observable
+  // behavior via re-idle, and the plugin currently exports no set-inspection
+  // hook to assert cleanup directly.
+  //
+  // Revisit IF the implementer exposes one (e.g. export
+  // verificationOnlySessions or a __getVerificationOnlySessions() test hook):
+  // then dispatch with marker, idle once, and assert the session id is no
+  // longer in the set. Until then this stays skipped rather than testing an
+  // internal that has no observable effect.
+  test.skip("cleanup-on-completion removes the exemption entry (needs exported set-inspection hook)", () => {})
 })
