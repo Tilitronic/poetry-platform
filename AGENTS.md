@@ -234,6 +234,8 @@ The `README.md` rollup in the tickets directory is a static snapshot that can dr
 | Recompute README rollup                        | `scripts/tickets rollup`                                                       |
 | Show help/usage                                | `scripts/tickets help`                                                         |
 
+`make session-analytics` - per-agent cost/token/tool usage analytics over opencode stats/db (DIA-182).
+
 ### Edit-time formatting (DIA-105)
 
 - The delegation-observer plugin runs prettier (local, --no-install) on

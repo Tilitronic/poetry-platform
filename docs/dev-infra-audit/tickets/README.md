@@ -214,10 +214,13 @@
 | DIA-260825-oyh | extract shared plugin lib for errorMessage safeJsonStringify behind loader feasibility gate | scripts | Medium | OPEN | [DIA-260825-oyh-extract-shared-plugin-lib-for-errormessage-safejsonstringify-behind-loader-feasibility-gate.md](DIA-260825-oyh-extract-shared-plugin-lib-for-errormessage-safejsonstringify-behind-loader-feasibility-gate.md) |
 | DIA-260825-q7bu | test-shell hangs on interactive stdin at dev-entrypoint default-command case | scripts | Medium | OPEN | [DIA-260825-q7bu-test-shell-hangs-on-interactive-stdin-at-dev-entrypoint-default-command-case.md](DIA-260825-q7bu-test-shell-hangs-on-interactive-stdin-at-dev-entrypoint-default-command-case.md) |
 | DIA-260825-wprb | repo-wide ponytail over-engineering audit | scripts | Medium | OPEN | [DIA-260825-wprb-repo-wide-ponytail-over-engineering-audit.md](DIA-260825-wprb-repo-wide-ponytail-over-engineering-audit.md) |
+| DIA-260826-6mhy | measure data-reducer effectiveness after wiring into analyzer conspecter prompts | opencode-config | Low | OPEN | [DIA-260826-6mhy-measure-data-reducer-effectiveness-after-wiring-into-analyzer-conspecter-prompts.md](DIA-260826-6mhy-measure-data-reducer-effectiveness-after-wiring-into-analyzer-conspecter-prompts.md) |
 | DIA-260826-766f | fix UID/GID wiring mismatch Makefile vs compose (H8) | dev-infra | Major | OPEN | [DIA-260826-766f-fix-uid-gid-wiring-mismatch-makefile-vs-compose-h8.md](DIA-260826-766f-fix-uid-gid-wiring-mismatch-makefile-vs-compose-h8.md) |
+| DIA-260826-ft3q | audit prompt injection vectors and plugin trust boundaries | opencode-config | Major | OPEN | [DIA-260826-ft3q-audit-prompt-injection-vectors-and-plugin-trust-boundaries.md](DIA-260826-ft3q-audit-prompt-injection-vectors-and-plugin-trust-boundaries.md) |
 | DIA-260826-jcte | remove plugin autonomous force worktree removal (C3) | delegation-observer | Critical | OPEN | [DIA-260826-jcte-remove-plugin-autonomous-force-worktree-removal-c3.md](DIA-260826-jcte-remove-plugin-autonomous-force-worktree-removal-c3.md) |
 | DIA-260826-pjm | fix datetime ticket ID parsing in observer gates (C1) | delegation-observer | Critical | VALIDATE | [DIA-260826-pjm-fix-datetime-ticket-id-parsing-in-observer-gates-c1.md](DIA-260826-pjm-fix-datetime-ticket-id-parsing-in-observer-gates-c1.md) |
 | DIA-260826-u27h | make shell runs non-login bash so secrets profile hook never fires (H5 refined) | dev-infra | Major | OPEN | [DIA-260826-u27h-make-shell-runs-non-login-bash-so-secrets-profile-hook-never-fires-h5-refined.md](DIA-260826-u27h-make-shell-runs-non-login-bash-so-secrets-profile-hook-never-fires-h5-refined.md) |
+| DIA-260826-uovr | audit MCP server security permissions and usage in opencode setup | opencode-config | Major | OPEN | [DIA-260826-uovr-audit-mcp-server-security-permissions-and-usage-in-opencode-setup.md](DIA-260826-uovr-audit-mcp-server-security-permissions-and-usage-in-opencode-setup.md) |
 | DIA-260826-uozv | sync OMO pin in opencode-docker config to project version (H4) | opencode-config | Major | OPEN | [DIA-260826-uozv-sync-omo-pin-in-opencode-docker-config-to-project-version-h4.md](DIA-260826-uozv-sync-omo-pin-in-opencode-docker-config-to-project-version-h4.md) |
 | DIA-260826-zvu4 | exempt verification-only coder dispatches from SILENT_FAILURE detection (H1) | delegation-observer | Major | OPEN | [DIA-260826-zvu4-exempt-verification-only-coder-dispatches-from-silent-failure-detection-h1.md](DIA-260826-zvu4-exempt-verification-only-coder-dispatches-from-silent-failure-detection-h1.md) |
 
@@ -227,16 +230,16 @@
 | -------- | ----- |
 | Blocker  | 9     |
 | Critical | 12    |
-| Major    | 65    |
+| Major    | 67    |
 | Medium   | 110   |
 | Minor    | 0     |
-| Low      | 20    |
+| Low      | 21    |
 | Info     | 1     |
 | High     | 1     |
 
 | Status      | Count |
 | ----------- | ----- |
-| OPEN        | 54    |
+| OPEN        | 57    |
 | DONE        | 11    |
 | VALIDATE    | 1     |
 | E2E         | 0     |
