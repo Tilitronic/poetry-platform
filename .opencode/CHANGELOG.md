@@ -904,3 +904,10 @@
 
 - **Files:** .opencode/opencode.jsonc (coder + coder-escalated bash maps: added bare-form deny "git commit -n" - the O3 trio missed the argument-less editor form via the trailing-space gotcha) - .opencode/scripts/lib/jsonc-parse.js (new: shared JSONC tokenizer extracted from the validator, plus --lockstep comparison mode) - .opencode/scripts/validate-opencode-config.sh (F2: fails test-config when coder and coder-escalated permission maps drift, task-related keys ignored) - scripts/__tests__/test-helper.bash (F3: per-call rm -rf of /var/tmp/poetry-nsbin.* shim dirs; BATS_TEST_TMPDIR fallback replaced with a /var/tmp path that no xvfb tmpfs mount can hide) - .opencode/learnings/external-patterns/2026-08-25-git-deny-pattern-precedence.md (Outcome line updated: re-audit cycle 1/2 PASS WITH RESIDUAL RISK, O1/O3 applied, O2 accepted residual, ticket CLOSED) - docs/dev-infra-audit/tickets/DIA-260825-e9ou-test-shell-17-host-failures-dev-entrypoint-runuser-userns-jsonl-cross-check-locale-decimals-dev-stack-turbo-detection.md (related-ticket edit only: Verification evidence filled, files_touched populated, status OPEN -> CLOSED)
 - **Verification:** make test-config inside poetry-dev container exit 0 (host has no make), including validate-opencode-config.sh with the new line "ok: coder/coder-escalated permission lockstep (N keys compared, task-related ignored)"; lockstep checker negative-tested on a synthetic drift copy (exit 1 with key-level diff message). make test-shell chain on host exit 0: bats-wrapper 527 ok / 0 fail / 1 skip at commit 3628fdc baseline; dev-entrypoint suite leaves zero /var/tmp/poetry-nsbin.* residue after the F3 teardown. All four config files parse as valid JSONC. ASCII-only (DIA-079).
+
+
+## 2026-08-26 - DIA-260826-pjm: opencode-config
+
+- **Change:** datetime-first ticket ID parsing: shared const regexes fix C1 truncation + Path-1 case normalization; 122/122 plugin tests
+- **Files:** .opencode/plugins/delegation-observer.ts - .opencode/plugins/__tests__/dia-ticket-id-parser.test.mjs - .opencode/plugins/__tests__/dia217-ticket-gate.test.mjs
+- **Verification:** manual

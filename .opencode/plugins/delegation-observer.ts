@@ -508,6 +508,21 @@ const READ_ONLY_LANES = new Set([
 ])
 const WRITER_LANES = new Set(["analyzer", "conspecter", "memory-manager"])
 
+// DIA-234 / DIA-260826-pjm: single source of truth for DIA ticket-ID parsing.
+// Alternation is ORDERED and datetime-first: \d+ would greedily match the
+// 6-digit date prefix of DIA-YYMMDD-XXXX and truncate the id, so the datetime
+// branch must be tried BEFORE \d+. Suffix is [a-z0-9]+ (not the nominal {4}
+// of the DIA-234 generator): real ledger ids include 3-char suffixes
+// (DIA-260826-pjm, DIA-260825-oyh) and a gate must not reject its own
+// campaign ticket. Lowercase-only (generator emits lowercase; no /i flag).
+export const TICKET_ID_RE = /^DIA-(\d{6}-[a-z0-9]+|\d+)$/
+export const TICKET_ID_FIND_RE = /\bDIA-(\d{6}-[a-z0-9]+|\d+)\b/g
+export const TICKET_ID_FILENAME_RE = /^DIA-(\d{6}-[a-z0-9]+|\d+)/
+// DIA-260826-pjm F4: TICKET_ID_FIND_RE carries the /g flag - consume it ONLY
+// via String.prototype.match/matchAll (both reset lastIndex) or .source
+// interpolation into a fresh RegExp. Never .test()/.exec() directly: a shared
+// global regex keeps lastIndex across calls and silently skips matches.
+
 /**
  * DIA-144/DIA-172: classify a parallel task() batch (the task() calls in one
  * assistant turn, each carrying its agent and optional WORKTREE assertion) as
@@ -1162,9 +1177,13 @@ const delegationObserver: Plugin = async (ctx) => {
       const fm = parseFrontmatterFields(readFileSync(ticketPath, "utf-8"))
       // DIA-234: accept both sequential (DIA-NNN) and datetime (DIA-YYMMDD-XXXX) formats.
       // Lowercase-only enforcement: generator produces lowercase suffixes, no /i flag.
-      const idMatch = /^DIA-(\d+|\d{6}-[a-z0-9]{4})/.exec(entry)
+      const idMatch = TICKET_ID_FILENAME_RE.exec(entry)
       tickets.push({
-        id: idMatch ? `DIA-${idMatch[1]}` : "",
+        // DIA-260826-pjm F1: normalize to uppercase at construction - Path-1
+        // correlation (:diaIds.includes(t.id)) receives diaIds uppercased from
+        // the free-text scan, so raw filename case would hard-block every
+        // letter-suffix datetime citation. t.id has no other consumer.
+        id: idMatch ? idMatch[0].toUpperCase() : "",
         status: (fm.status ?? "").trim().toUpperCase(),
         sessionId: (fm.session_id ?? "").trim(),
         discoveredMs: parseTicketDate((fm.discovered ?? "").trim()),
@@ -2690,15 +2709,18 @@ const delegationObserver: Plugin = async (ctx) => {
           const markedTicketIds = [
             ...new Set(
               [...dispatchText.matchAll(
-                /\b(?:(?:campaign|governing)\s+ticket|ticket_id)\s*[:=]?\s*(DIA-(?:\d{6}-[a-z0-9]{4}|\d+))\b/gi
+                // DIA-260826-pjm: ID grammar from TICKET_ID_FIND_RE.source;
+                // group 1 still captures the full "DIA-..." id.
+                new RegExp(
+                  `\\b(?:(?:campaign|governing)\\s+ticket|ticket_id)\\s*[:=]?\\s*(${TICKET_ID_FIND_RE.source})\\b`,
+                  "gi"
+                )
               )].map((match) => `DIA-${match[1].slice(4)}`)
             ),
           ]
           const literalTicketIds = [
             ...new Set(
-              dispatchText.match(
-                /\bDIA-(?:\d{6}-[a-z0-9]{4}|\d+)\b/g
-              ) ?? []
+              dispatchText.match(TICKET_ID_FIND_RE) ?? []
             ),
           ]
           const inferredTicketId =
@@ -2732,7 +2754,7 @@ const delegationObserver: Plugin = async (ctx) => {
 
         // DIA-234: accept both sequential (DIA-NNN) and datetime (DIA-YYMMDD-XXXX) formats.
         // Lowercase-only enforcement: generator produces lowercase suffixes, no /i flag.
-        if (!/^DIA-(\d+|\d{6}-[a-z0-9]{4})$/.test(ticketId)) {
+        if (!TICKET_ID_RE.test(ticketId)) {
           appendRow({
             event: "gate_blocked",
             session_id: input.sessionID,
@@ -2757,7 +2779,7 @@ const delegationObserver: Plugin = async (ctx) => {
             ticketExists = readdirSync(ticketsDir).some((f) => {
               // DIA-234: accept both sequential (DIA-NNN) and datetime (DIA-YYMMDD-XXXX) formats.
               // Lowercase-only enforcement: generator produces lowercase suffixes, no /i flag.
-              const match = /^DIA-(\d+|\d{6}-[a-z0-9]{4})/.exec(f)
+              const match = TICKET_ID_FILENAME_RE.exec(f)
               return match && match[0].toUpperCase() === normalizedId
             })
           }
@@ -3076,7 +3098,7 @@ const delegationObserver: Plugin = async (ctx) => {
           const diaIds =
             // DIA-234: accept both sequential (DIA-NNN) and datetime (DIA-YYMMDD-XXXX) formats.
             // Lowercase-only enforcement: generator produces lowercase suffixes, no /gi flag.
-            dispatchText.match(/DIA-(?:\d+|\d{6}-[a-z0-9]{4})/g)?.map((s) => s.toUpperCase()) ?? []
+            dispatchText.match(TICKET_ID_FIND_RE)?.map((s) => s.toUpperCase()) ?? []
           const tickets = scanTickets(ticketsDir)
           const hasValidTicket = evaluateTicketCorrelation(
             tickets,

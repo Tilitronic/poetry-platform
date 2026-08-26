@@ -327,3 +327,70 @@ test("DIA-260825-lro1: rejected preflight does not poison corrected retry", asyn
   expect(duplicate).not.toBeNull()
   expect(duplicate.message).toContain("Idempotent duplicate dispatch blocked")
 })
+
+test("DIA-260826-pjm: datetime-format ticket file is recognized by the gate with its FULL id (no warn-and-allow truncation)", async () => {
+  const { hooks, ctx } = await makeHarness()
+
+  // Datetime-format ticket (DIA-234): DIA-YYMMDD-lowercase-suffix. The gate
+  // must resolve the FULL id against this file - truncating to DIA-260825
+  // would miss the file and degrade to the weak-correlation warn path.
+  const ticketsDir = join(ctx.directory, "docs/dev-infra-audit/tickets")
+  mkdirSync(ticketsDir, { recursive: true })
+  writeFileSync(
+    join(ticketsDir, "DIA-260825-test-datetime-gate-recognition.md"),
+    "---\nid: DIA-260825-test\ntitle: Datetime gate recognition\nstatus: OPEN\n---\n"
+  )
+
+  const taskArgs = {
+    subagent_type: "coder",
+    prompt: "campaign ticket DIA-260825-test. Implement one bounded slice.",
+    description: "Datetime-format gate recognition",
+  }
+
+  const { error, registryRows } = await runTaskDispatch(hooks, ctx, taskArgs)
+
+  expect(error).toBeNull()
+  // Materialized id must be the FULL datetime id, never DIA-260825.
+  expect(taskArgs.ticket_id).toBe("DIA-260825-test")
+  expect(registryRows.find((row) => row.event === "gate_blocked")).toBeUndefined()
+  expect(registryRows.find((row) => row.event === "gate_warn")).toBeUndefined()
+})
+
+test("DIA-260826-pjm F1: datetime ticket correlates through section-10 Path 1 regardless of citation case (no hard block)", async () => {
+  const { hooks, ctx } = await makeHarness()
+
+  // Lowercase-suffix datetime ticket file (generator emits lowercase).
+  const ticketsDir = join(ctx.directory, "docs/dev-infra-audit/tickets")
+  mkdirSync(ticketsDir, { recursive: true })
+  writeFileSync(
+    join(ticketsDir, "DIA-260825-abcd-case-correlation.md"),
+    "---\nid: DIA-260825-abcd\ntitle: Case correlation\nstatus: OPEN\n---\n"
+  )
+
+  // subagent_type ai-specialist arms the section-10 scope gate; text avoids
+  // checksum phrases (exemption) and config paths (routing gate). The
+  // dispatch cites the ticket in BOTH cases: canonical lowercase, plus an
+  // uppercased variant (diaIds arrive UPPERCASED from the free-text scan at
+  // the correlation site). Pre-fix this hard-blocked: diaIds were uppercased
+  // while ScannedTicket.id kept raw filename case, so Path-1 includes()
+  // missed every letter-suffix datetime citation. The uppercase variant
+  // itself degrades to its digit prefix in extraction (pinned in
+  // dia-ticket-id-parser.test.mjs F5a) - correlation must succeed via the
+  // canonical lowercase citation either way.
+  const taskArgs = {
+    subagent_type: "ai-specialist",
+    prompt:
+      "Research gate options. Canonical ref: campaign ticket DIA-260825-abcd (uppercased in ledgers as DIA-260825-ABCD).",
+    description: "Section-10 Path-1 case correlation",
+    ticket_id: "DIA-260825-abcd",
+  }
+
+  const { error, registryRows } = await runTaskDispatch(hooks, ctx, taskArgs)
+
+  // Unfixed behavior was a hard throw ("§10 TICKET GATE: No correlating DIA
+  // ticket found") plus a ticket_gate_blocked row. Fixed: silent pass.
+  expect(error).toBeNull()
+  expect(registryRows.find((r) => r.event === "ticket_gate_blocked")).toBeUndefined()
+  expect(registryRows.find((r) => r.event === "gate_blocked")).toBeUndefined()
+  expect(registryRows.find((r) => r.event === "gate_warn")).toBeUndefined()
+})
