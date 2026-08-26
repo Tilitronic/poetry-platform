@@ -32,6 +32,7 @@ files_touched: []
 artifacts: []
 evidence:
 
+- commit: aef48498fdaeb811a5498f20fdd97b422b4af770
 - re-review cycle 2/2: all 4 delta findings verified-closed
 - pending-gate-clear.bats 14/14 ok; make test-shell exit 0 (563 ok); make test-config exit 0
 
