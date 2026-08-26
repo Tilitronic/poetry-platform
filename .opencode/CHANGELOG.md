@@ -911,3 +911,15 @@
 - **Change:** datetime-first ticket ID parsing: shared const regexes fix C1 truncation + Path-1 case normalization; 122/122 plugin tests
 - **Files:** .opencode/plugins/delegation-observer.ts - .opencode/plugins/__tests__/dia-ticket-id-parser.test.mjs - .opencode/plugins/__tests__/dia217-ticket-gate.test.mjs
 - **Verification:** manual
+
+## 2026-08-26 - DIA-260826-zvu4: opencode-config
+
+- **Change:** verification-only coder exemption: marker-phrase Set kills false SILENT_FAILURE crises on zero-edit verification lanes
+- **Files:** .opencode/plugins/delegation-observer.ts - .opencode/plugins/__tests__/empty-result-detection.test.mjs - .opencode/oh-my-opencode-slim/orchestrator_append.md
+- **Verification:** bun test empty-result-detection.test.mjs exit 0 (8 pass / 1 skip / 0 fail); full plugin suite bun test exit 0 (128 pass / 1 skip / 0 fail, 14 files); make test-config exit 0 (57 pass / 0 fail); husky pre-commit PASS on commit 201e2da (no --no-verify); ASCII-only (DIA-079) verified on added lines. Review: ai-auditor re-review cycle 1/2 APPROVE (5/5 verified-closed). Restart-verify PENDING next opencode launch (plugin change loads on boot).
+
+## 2026-08-26 - DIA-260826-6mhy: opencode-config
+
+- **Change:** wire data-reducer skill into analyzer/analyzer-escalated skills arrays (8 presets) + analyzer prompt mandate (DIA-195)
+- **Files:** .opencode/oh-my-opencode-slim.jsonc
+- **Verification:** make test-config exit 0 + grep assertion 8/8 analyzer skills arrays contain data-reducer (2026-08-26)
