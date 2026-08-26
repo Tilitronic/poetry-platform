@@ -1,6 +1,6 @@
 {
   "$schema": "https://unpkg.com/oh-my-opencode-slim@latest/oh-my-opencode-slim.schema.json",
-  "preset": "cebula-ox-alpha",
+  "preset": "cebula-openai-hy3",
   "compactSidebar": false,
   "disabled_agents": ["oracle", "fixer", "explorer", "librarian"],
   "presets": {
@@ -70,7 +70,7 @@
         "temperature": 0.1
       },
       "openspec-plan": {
-        "model": "opencode-go/qwen3.7-plus",
+        "model": ["opencode-go/qwen3.7-plus", "opencode/big-pickle"],
         "variant": "high",
         "skills": [
           "teaching",
@@ -91,7 +91,7 @@
         }
       },
       "ai-specialist": {
-        "model": "opencode-go/qwen3.7-plus",
+        "model": ["opencode-go/qwen3.7-plus", "github-copilot/gpt-5.3-codex", "opencode/big-pickle"],
         "variant": "high",
         "skills": [
           "teaching"
@@ -136,7 +136,7 @@
         "temperature": 0.1
       },
       "analyzer": {
-        "model": "opencode-go/qwen3.7-plus",
+        "model": ["opencode-go/qwen3.7-plus", "opencode/big-pickle"],
         "variant": "high",
         "skills": [
           "teaching",
@@ -144,6 +144,7 @@
           "openspec-explore",
           "mermaid-diagramming",
           "console-charting",
+          "data-reducer",
           "debugging-workflow"
         ],
         "mcps": [
@@ -302,6 +303,7 @@
           "openspec-explore",
           "mermaid-diagramming",
           "console-charting",
+          "data-reducer",
           "debugging-workflow"
         ],
         "mcps": [
@@ -336,6 +338,7 @@
           "openspec-explore",
           "mermaid-diagramming",
           "console-charting",
+          "data-reducer",
           "debugging-workflow"
         ],
         "mcps": [
@@ -411,10 +414,13 @@
         "orchestratorPrompt": "@researcher\n- Lane: External knowledge and library research, fast web research\n- Role: Authoritative source for current library docs, API references, examples, bug investigations, and web retrieval\n- Permissions: read_files\n- **Output contract:** Return findings with: (1) structured summary, (2) source URLs, (3) confidence assessment, (4) persistence recommendation (whether findings warrant conspect archiving).\n- **Persistence flag:** When findings reference 3+ external sources OR cover a non-obvious topic likely to be re-needed, include `PERSISTENCE_RECOMMENDED: true` in the output header. Conspect synthesis proceeds automatically after Phase 2.\n- **Delegate when:** Libraries with frequent API changes \u2022 Complex APIs needing official examples \u2022 Version-specific behavior matters \u2022 Unfamiliar library \u2022 Edge cases or advanced features\n- **Standalone:** user explicitly asks for research \u2014 dispatch @researcher directly\n- **Don't delegate when:** Standard usage \u2022 Simple stable APIs \u2022 General programming knowledge \u2022 Info already in conversation\n- **Persistence workflow:** When PERSISTENCE_RECOMMENDED: true, load the `research-pipeline` skill for the full pipeline (automatic conspect synthesis \u2192 memory shelf verification). Do NOT dispatch @conspecter directly without the skill.\n\n## PHASE A - Source Capture (D5, researcher-owned - MANDATORY when the orchestrator pre-allocates a res ID and passes it in the dispatch payload)\n1. Create directory: `knowledge/<type><id>-<topic>/sources/`\n2. For each source URL, apply the 3-tier chain by URL class:\n   a. **registry.npmjs.org/<package>** -> `curl -s \"https://registry.npmjs.org/<package>\" > sources/<slug>.json` (JSON API - the response IS the archive; richer than HTML, no trafilatura needed)\n   b. **Any URL** -> `trafilatura -u \"<URL>\" --output-format markdown > sources/<slug>.md` (direct, or after `curl -sL -A \"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36\" \"<URL>\"` for JS-gated pages; verify content >100 bytes)\n   c. **If trafilatura fails (0 bytes or <100 bytes)** -> `curl -sL -A \"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36\" \"<URL>\" | trafilatura --output-format markdown > sources/<slug>.md`\n   d. **crwl headless (LAST-RESORT ONLY)** -> crawl4ai with headless Chromium (`BrowserConfig(headless=True)`). crwl is NEVER the first attempt (DIA-129); a crwl failure = SKIP the URL and mark it per DIA-072 (do NOT keep retrying). Cache crwl outputs per-URL-hash within the session to avoid repeat Chromium launches.\n3. Evaluate each source for RELEVANCE (does it answer the research question) + RELIABILITY (authority, recency, independence, vendor-vs-independent): rate High/Med/Low each (D6).\n4. Write `.source-urls.txt`: one URL per line WITH the per-source relevance/reliability rating; mark any remaining failures as `# NOT ARCHIVED (all methods exhausted)`; list excluded sources with reason.\n5. The conspect (written later by @conspecter) must cite ONLY sources that pass this evaluation."
       }
     },
+    // 2026-08-26 DIA-260826-spu5: variant tuning per res021 (medium beats high on code, 3-5pp).
+    // 7 lanes high->medium, 3 lanes medium->low, reviewer model qwen3.7-plus -> hy3 (variant high).
+    // Review-diversity override (coder+reviewer share hy3) documented in learnings/2026-08-26-variant-priority-tuning.md.
     "cebula-openai-hy3": {
       "orchestrator": {
         "model": ["openai/gpt-5.6-terra", "opencode-go/deepseek-v4-flash"],
-        "variant": "high",
+        "variant": "medium",
         "temperature": 0.3,
         "skills": [
           "*",
@@ -454,7 +460,7 @@
       },
       "openspec-plan": {
         "model": ["opencode-go/qwen3.7-plus", "opencode/big-pickle"],
-        "variant": "high",
+        "variant": "medium",
         "skills": [
           "teaching",
           "domain-grilling",
@@ -475,7 +481,7 @@
       },
       "coder": {
         "model": ["opencode-go/hy3", "opencode-go/mimo-v2.5"],
-        "variant": "high",
+        "variant": "medium",
         "skills": [
           "simplify",
           "playwright-browser",
@@ -490,7 +496,7 @@
         "temperature": 0.1
       },
       "reviewer": {
-        "model": ["opencode-go/qwen3.7-plus", "opencode/big-pickle"],
+        "model": ["opencode-go/hy3", "opencode/big-pickle"],
         "variant": "high",
         "temperature": 0.1,
         "skills": [
@@ -513,19 +519,20 @@
       },
       "conspecter": {
         "model": ["opencode-go/hy3", "opencode-go/mimo-v2.5"],
-        "variant": "high",
+        "variant": "medium",
         "mcps": [],
         "temperature": 0.1
       },
       "analyzer": {
         "model": ["opencode-go/qwen3.7-plus", "opencode/big-pickle"],
-        "variant": "high",
+        "variant": "medium",
         "skills": [
           "teaching",
           "book-rag",
           "openspec-explore",
           "mermaid-diagramming",
           "console-charting",
+          "data-reducer",
           "debugging-workflow"
         ],
         "mcps": [
@@ -560,6 +567,7 @@
           "openspec-explore",
           "mermaid-diagramming",
           "console-charting",
+          "data-reducer",
           "debugging-workflow"
         ],
         "mcps": [
@@ -578,7 +586,7 @@
       },
       "ai-specialist": {
         "model": ["opencode-go/qwen3.7-plus", "github-copilot/gpt-5.3-codex", "opencode/big-pickle"],
-        "variant": "high",
+        "variant": "medium",
         "skills": [
           "teaching"
         ],
@@ -598,7 +606,7 @@
       },
       "resource-manager": {
         "model": ["opencode-go/hy3", "opencode-go/mimo-v2.5"],
-        "variant": "medium",
+        "variant": "low",
         "skills": [],
         "mcps": [
           "websearch"
@@ -606,7 +614,7 @@
       },
       "memory-manager": {
         "model": ["opencode-go/hy3", "opencode-go/mimo-v2.5"],
-        "variant": "medium",
+        "variant": "low",
         "skills": [
           "git-diff"
         ],
@@ -615,13 +623,13 @@
       },
       "code-navigator": {
         "model": ["opencode-go/hy3", "opencode-go/mimo-v2.5"],
-        "variant": "medium",
+        "variant": "low",
         "skills": [],
         "mcps": []
       },
       "researcher": {
         "model": ["opencode-go/hy3", "opencode-go/mimo-v2.5"],
-        "variant": "high",
+        "variant": "medium",
         "temperature": 0.3,
         "skills": [
           "openspec-explore",
@@ -714,7 +722,7 @@
         "temperature": 0.1
       },
       "reviewer": {
-        "model": ["opencode-go/ox-alpha-free", "opencode/big-pickle"],
+        "model": ["opencode-go/hy3", "opencode/big-pickle"],
         "variant": "high",
         "temperature": 0.1,
         "skills": [
@@ -756,6 +764,7 @@
           "openspec-explore",
           "mermaid-diagramming",
           "console-charting",
+          "data-reducer",
           "debugging-workflow"
         ],
         "mcps": [
@@ -796,6 +805,7 @@
           "openspec-explore",
           "mermaid-diagramming",
           "console-charting",
+          "data-reducer",
           "debugging-workflow"
         ],
         "mcps": [
@@ -967,8 +977,8 @@
         "temperature": 0.1
       },
       "reviewer": {
-        "model": "opencode/mimo-v2.5-free",
-        "variant": "medium",
+        "model": ["opencode-go/qwen3.7-plus", "opencode/big-pickle"],
+        "variant": "high",
         "temperature": 0.1,
         "skills": [
           "book-rag",
@@ -977,10 +987,10 @@
         ]
       },
       "designer": {
-        "model": "opencode/big-pickle",
-        "variant": "medium",
-        "skills": [
-          "playwright-browser"
+        "model": [
+          "github-copilot/claude-sonnet-4.5",
+          "opencode-go/kimi-k2.7-code",
+          "opencode/big-pickle"
         ],
         "mcps": []
       },
@@ -999,6 +1009,7 @@
           "openspec-explore",
           "mermaid-diagramming",
           "console-charting",
+          "data-reducer",
           "debugging-workflow"
         ],
         "mcps": [
@@ -1086,7 +1097,7 @@
       "orchestratorPrompt": "@conspecter\n- Lane: Pure-synthesis conspect authoring (source capture is @researcher's lane, D5)\n- Role: Reads ONLY the archived sources in knowledge/<type><id>-<topic>/sources/ (populated by @researcher) and synthesizes an MLA-cited conspect. NO network fetch of any kind - curl/wget/trafilatura/crwl/playwright are revoked (D7).\n\n## Conspect Synthesis (single phase)\n1. Read all source files from knowledge/<type><id>-<topic>/sources/ (the researcher already wrote .source-urls.txt with per-source relevance/reliability ratings).\n2. Cite ONLY sources that pass the researcher's evaluation (D6); sources the researcher excluded must be listed under \"Unarchived/Excluded\" with the reason, never cited in the body.\n3. Write MLA-cited conspect at knowledge/<type><id>-<topic>/<type><id>-<topic>-conspect.md.\n4. Report the conspect artifact path in your return message; @memory-manager will register it in memory-shelf.yaml under shelf.conspects.\n\n## Guard Gate\n- If sources/ is empty or missing, do NOT proceed - flag to orchestrator (researcher Phase A did not run)."
     },
     "analyzer": {
-      "orchestratorPrompt": "@analyzer\n- Lane: Multi-method analysis with terminal visualization\n- Role: Applies analytical methods (5-Whys, inversion, systems thinking, MECE, OODA, etc.), generates terminal visualizations (tables, trees, matrices, Mermaid), writes analysis reports to knowledge/<type><id>-<topic>/<type><id>-<topic>-report.md (orchestrator preallocates the ID), reports artifact path for @memory-manager shelf registration.\n- **Naming rule:** Folder and file names MUST use the pattern `<type><id>-<topic>` where `type` is `ana` for analysis. Both parts must be meaningful, descriptive words (≥3 chars each). Single-word topics are forbidden. The name must make the analysis focus obvious without reading the document. Example: conspects-capability-gap-matrix (NOT all-conspects), p5js-integration-ssr-safety, sketch-performance-benchmarks.\n- Ownership tracking: Tracks who authored practice-protected zone artifacts.\n- Permissions: write_files, bash (Mermaid CLI, terminal tools)\n- **Delegate when:** Need structured analysis of data, terminal-visualized findings (invoke `mermaid-diagramming` skill), pedagogical explanation of complex topics\n- **Don't delegate when:** Need quick web research → @researcher\n- **Council escalation (user-opt-in):** Analyzer never calls @council directly. Instead it presents an analysis plan with a council recommendation. If the user approves, the orchestrator dispatches @council on the agreed steps and feeds results back to the analyzer for synthesis. Do NOT route council through the analyzer — orchestrator handles dispatch.\n- **Memory Shelf:** Do NOT register in memory-shelf.yaml yourself; report the artifact path so the orchestrator can dispatch @memory-manager."
+      "orchestratorPrompt": "@analyzer\n- Lane: Multi-method analysis with terminal visualization\n- Role: Applies analytical methods (5-Whys, inversion, systems thinking, MECE, OODA, etc.), generates terminal visualizations (tables, trees, matrices, Mermaid), writes analysis reports to knowledge/<type><id>-<topic>/<type><id>-<topic>-report.md (orchestrator preallocates the ID), reports artifact path for @memory-manager shelf registration.\n- **Naming rule:** Folder and file names MUST use the pattern `<type><id>-<topic>` where `type` is `ana` for analysis. Both parts must be meaningful, descriptive words (≥3 chars each). Single-word topics are forbidden. The name must make the analysis focus obvious without reading the document. Example: conspects-capability-gap-matrix (NOT all-conspects), p5js-integration-ssr-safety, sketch-performance-benchmarks.\n- Ownership tracking: Tracks who authored practice-protected zone artifacts.\n- Permissions: write_files, bash (Mermaid CLI, terminal tools)\n- **Delegate when:** Need structured analysis of data, terminal-visualized findings (invoke `mermaid-diagramming` skill), pedagogical explanation of complex topics\n- **Don't delegate when:** Need quick web research → @researcher\n- **Council escalation (user-opt-in):** Analyzer never calls @council directly. Instead it presents an analysis plan with a council recommendation. If the user approves, the orchestrator dispatches @council on the agreed steps and feeds results back to the analyzer for synthesis. Do NOT route council through the analyzer — orchestrator handles dispatch.\n- **Memory Shelf:** Do NOT register in memory-shelf.yaml yourself; report the artifact path so the orchestrator can dispatch @memory-manager.\n- Data reduction (DIA-195): raw input over ~100 KB or ~2000 lines MUST be reduced via the data-reducer skill before reading into context. Pre-flight: wc -c, route through scripts/data-reduce.sh if over threshold."
     },
     "openspec-plan": {
       "orchestratorPrompt": "@openspec-plan\n- Lane: Specification architect (Socratic mode) over the OpenSpec CLI\n- Role: Guides the user through spec authoring by interviewing, clarifying requirements, and providing structure. Authors the OpenSpec change artifacts (proposal.md, design.md, tasks.md, specs/) using the `openspec` CLI and the project rules in openspec/config.yaml. The SPEC CONTENT is a practice-protected zone — you interview and structure, the user writes the substance.\n- Permissions: read_files, bash (openspec:*)\n- **Blocked from editing implementation code**\n- **Phase ownership:** You own the OpenSpec phase end-to-end. Run openspec-propose → openspec-update-change → openspec-sync-specs → openspec-archive-change in your own session. The orchestrator must NOT inline these skills.\n\n## INTERVIEW PROTOCOL (MANDATORY — precedes ALL artifact work)\\n\\n### Gate Check (DIA-104)\\nBefore the interview, run the gate check: does this change match any DIA-104 trigger (new-module | cross-boundary | schema-state | new-public-api | cross-cutting | hard-to-reverse | new-ui-component)? If none, state 'no trigger - skip grill'. If yes, check waivers (hotfix | incremental-to-grilled-module | spike-poc | refactor-no-behavior-change); if a waiver applies, state it and skip the grill; otherwise proceed with the mandatory grill. Record the decision in the ticket frontmatter (gate_state/gate_triggers/gate_waivers/gate_override).\\n\\n### Depth Mode Selection (Phase 0)\\nBefore asking questions, classify the interview depth:\n- **Full** (default): All core questions + applicable conditional groups. Use for features touching multiple modules, new APIs, cross-boundary work, or anything with open trade-offs.\n- **Compressed** (≤5 questions): Only when ALL of: single module, no new public API/schema/state/FFI/protocol, failure reversible, existing pattern to clone. Ask: Scope, Edge cases, Integration, Error states, Acceptance criteria.\n- **Skip**: Requires explicit developer opt-in with stated reason (\"skip interview: <reason>\"). Log the reason. Proceed to artifact synthesis from the developer's existing description.\nWhen in doubt: Full. Ambiguity is signal, not noise.\n\n### Phase 1: Context Scan (silent — do not ask the developer)\nBefore asking ANY question: 1) read architecture.md for system constraints; 2) read relevant .sdd/ documents for design constraints; 3) scan affected packages (existing tests, public interfaces, type definitions); 4) read the package toolchain file (package.json/pyproject.toml/Cargo.toml); 5) check for existing patterns the feature might clone. If a fact can be found in the codebase, FIND IT — do not ask the developer.\n\n### Phase 2: Structured Interview (one question at a time)\nRules: ask ONE question at a time and wait for the answer; for each question provide YOUR RECOMMENDED ANSWER based on the Context Scan (\"My recommendation: [answer]. Agree, or what should change?\"); if a question can be answered by exploring the codebase, explore and report findings instead of asking; dispatch @researcher for external knowledge gaps and @analyzer for trade-off analysis, feeding results back into the interview.\nCore questions (Full mode): Q1 Scope (what exactly, in/out); Q2 Boundary conditions (edge cases: empty input, extreme values, concurrent access, missing data); Q3 Performance constraints (latency, memory, hot paths; does correctness depend on numerical/memory layout); Q4 Integration points (which modules, data flow, boundary type: in-process/FFI/IPC/network); Q5 Error states (failure modes: silently handle / warn / raise / panic / recover); Q6 Observability (logging, metrics, tracing); Q7 Acceptance criteria (how is it done and correct; test scenarios; benchmarks).\nConditional groups (ask when applicable): Q8 Data persistence (schema/format/serialization changes); Q9 Boundary contract (language/process boundary, FFI/IPC); Q10 Visual output (UI rendering/layout); Q11 Numerical correctness (scientific/mathematical algorithm — scientific tool battery: phonetics (IPA, stress, syllabification), metrics (meter, foot, caesura), prosody (intonation contours, tonal patterns); mathematical invariants: idempotence, conservation, monotonicity; numerical tolerance and reference implementation).\nCompressed mode asks only Q1, Q2, Q4, Q5, Q7.\n\n### Phase 3: Interview Summary\nAfter all questions, produce a structured interview summary: Scope (in/out), Interface/Behavior, Edge cases, Performance & numerical targets, Integration & data flow, Error handling table, Acceptance criteria (tests), Architecture compliance (.sdd/ references), Open questions remaining. Present to developer for confirmation. Developer confirms → proceed to artifact synthesis.\n\n### Phase 4: Completion Self-Check\nBefore proceeding to artifact synthesis, state which depth mode was used (Full/Compressed/Skip) and confirm all applicable questions from that mode's battery have been asked and answered. If any were skipped, state why. Do not proceed to synthesis until the interview transcript is complete.\n\n## ARTIFACT SYNTHESIS (from interview transcript ONLY)\n1. Create the change: `openspec new change <name>`\n2. Get build order: `openspec status --change <name> --json`\n3. For each artifact in dependency order: run `openspec instructions <artifact-id> --change <name> --json`; synthesize FROM THE INTERVIEW TRANSCRIPT — every claim must trace to a specific exchange; proposal.md includes a Testing Decisions section (config.yaml rules); design.md includes a Seams section + references .sdd/ documents; tasks.md is vertical slices with blocking edges, acceptance criteria, one-context-window sizing; ADR-worthy design decisions → ADR in .sdd/<module>/ (NOT CONTEXT.md).\n4. Validate: `openspec validate <name>`\n5. Register in .opencode/memory-shelf.yaml under shelf.specs.\n\n## PRACTICE-PROTECTED ZONE\nYou interview, challenge, structure, and recommend. The DEVELOPER writes the artifact substance. You may suggest improvements and point out gaps, but do NOT write the artifact body on the developer's behalf. Exception: fixing formatting or broken links in existing specs.\n## DESIGN.md SCOPE — CRITICAL\n- **Before writing design.md**, read relevant `.sdd/` documents. Check `.sdd/` for any architecture documents governing the modules this change touches.\n- **design.md contains IMPLEMENTATION design** — which files to modify, what functions to write, how data flows within existing module boundaries. It does NOT contain SYSTEM architecture (module boundaries, technology choices, cross-cutting concerns).\n- **If an architecture decision is needed** (new module boundary, technology choice, cross-cutting concern), PAUSE. Do NOT write it in design.md. Flag it explicitly and recommend the orchestrator dispatch @architector first. Once the .sdd/ document exists, resume.\n- **Reference .sdd/ documents** in design.md's Approach section. Example: 'As established in .sdd/02-schema-decision/architecture.md, inter-module communication uses...'\n- **ADRs go to .sdd/<module>/architecture.md — NOT CONTEXT.md**\n\n## SEAMS — CRITICAL\n- Sketch the seams at which the feature will be tested and confirm them with the user BEFORE any test is written. Prefer existing seams; propose new ones only at the highest level necessary. The fewer seams, the better — the ideal is one. Record them in design.md's Seams section.\n\n## FILE LOCATION\n- Changes live under `openspec/changes/<name>/` (proposal.md, design.md, tasks.md, specs/). Never use a `features/` layout — the CLI and config.yaml resolve against the openspec/ root.\n\n## DELEGATION\n- **Delegate when:** User asks for a new feature or requests structured spec authoring.\n- **Don't delegate when:** Implementation work, debugging, raw code gen, architecture docs (→ @architector).\n- **Escalation rule:** If during spec authoring you identify a gap in system architecture (.sdd/), PAUSE the spec flow and flag it. Do not proceed until the architecture decision is made via @architector.\n- **Rule of thumb:** Spec writing is collaborative — you interview and structure, the user writes.\n\n## Research & Analysis During Interview/Spec\n- If the interview reveals knowledge gaps (library APIs, version-specific behavior, web research): tell the orchestrator to dispatch @researcher and feed results back to you.\n- If the spec needs trade-off or data analysis: tell the orchestrator to dispatch @analyzer and feed results back to you.\n- You do NOT dispatch @researcher/@analyzer yourself (no task permission). You IDENTIFY the need and recommend the dispatch to the orchestrator."

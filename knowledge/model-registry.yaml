@@ -25,6 +25,18 @@ models:
     quota_notes: "New volume king 2026-08-17: $0.14/$0.28, 150,400 req/mo, $60 bucket (res030)"
     active: true
 
+  - model_id: "opencode-go/hy3"
+    role: "multi-lane-primary (cebula-openai-hy3)"
+    price_in_1m: 0.14
+    price_out_1m: 0.58
+    req_per_month: 21500  # res030 quota
+    swe_bench_verified: "no independent reproduction archived (res030 pricing only)"
+    source_ref: "res030"
+    lane: ["coder","reviewer","conspecter","resource-manager","memory-manager","code-navigator","researcher"]
+    fallback: ["opencode-go/mimo-v2.5","opencode/big-pickle"]
+    quota_notes: "$60 bucket, 4,300 req/5h, 21,500 req/mo, 256K ctx"
+    active: true
+
   - model_id: "qwen3.7-plus"
     role: "arch/analyzer"
     price_in_1m: 0.40

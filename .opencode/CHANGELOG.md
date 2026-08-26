@@ -923,3 +923,9 @@
 - **Change:** wire data-reducer skill into analyzer/analyzer-escalated skills arrays (8 presets) + analyzer prompt mandate (DIA-195)
 - **Files:** .opencode/oh-my-opencode-slim.jsonc
 - **Verification:** make test-config exit 0 + grep assertion 8/8 analyzer skills arrays contain data-reducer (2026-08-26)
+
+## 2026-08-26 - DIA-260826-spu5: config
+
+- **Change:** cebula-openai-hy3 preset variant-priority tuning: 7 lanes high->medium (orchestrator, openspec-plan, coder, conspecter, analyzer, ai-specialist, researcher), 3 lanes medium->low (resource-manager, memory-manager, code-navigator), reviewer model qwen3.7-plus->hy3 (variant high); analyzer-escalated unchanged; hy3 added to model-registry.yaml; review-diversity override documented (coder+reviewer share hy3, higher reasoning effort accepted)
+- **Files:** .opencode/oh-my-opencode-slim.jsonc - knowledge/model-registry.yaml
+- **Verification:** manual
