@@ -6,7 +6,7 @@ id: DIA-260827-at5o
 title: "jcte double dispatch.completed signal on error+OPEN"
 area: delegation-observer
 severity: Info
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: ""
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
@@ -30,7 +30,10 @@ attempts: 0
 lease_expires_at: "" # ISO-8601; set on DISPATCHED, cleared on COMPLETE
 files_touched: []
 artifacts: []
-evidence: []
+evidence:
+
+- commit:22944c6
+- re-review-observation-fix:double-signal-removed
 
 ---
 
