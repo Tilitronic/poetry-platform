@@ -17,7 +17,7 @@ id: DIA-208
 title: "cebula preset model swap: deepseek-v4-flash -> mimo-v2.5"
 area: opencode-config
 severity: Major # critical priority per developer 2026-08-17
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: "" # optional DIA-NNN parent epic ticket (DIA-125 keep-local extension; scripts/tickets emits this field always)
 
@@ -41,7 +41,7 @@ discovered: fix-lane
 source: developer-directive
 date: 2026-08-17
 created: 2026-08-17
-updated: 2026-08-22
+updated: 2026-08-27
 
 # --- Session Attribution (v2 schema, optional - GRANDFATHERED for DIA-001..049) ---
 
@@ -101,29 +101,7 @@ evidence: [] # list of evidence URIs (messages.md#row, registry.jsonl#seq)
 
 ## Fix
 
-- Commit 1baee98f133e9ea84934ae23443f6fc9505e52d5 (DIA-208): cebula preset
-  swap deepseek-v4-flash -> opencode-go/mimo-v2.5 across all 7 lanes
-  (orchestrator, coder, conspecter, resource-manager, memory-manager,
-  code-navigator, researcher) in `.opencode/oh-my-opencode-slim.jsonc`, plus
-  knowledge/model-registry.yaml update: deepseek-v4-flash corrected to
-  0.22/0.66 and 18,900 req/mo with $15 bucket (promo removed); NEW
-  mimo-v2.5 entry added (0.14/0.28, 150,400 req/mo, $60 bucket);
-  deepseek-v4-pro price corrected 0.66/1.98 (transcription collision with
-  mimo-v2.5-pro per res030 conspect section 7); routing Rung0/Rung1 ->
-  mimo-v2.5.
-- Commit bedfaddb8688e83e65911f6de5ac53a17e567fd5 (ai-auditor nits): the 7
-  lanes now use valid fallback ["opencode-go/mimo-v2.5",
-  "opencode/mimo-v2.5-free"]; deepseek-v4-flash registry role updated to
-  "coder-volume-fallback".
-- Commit a7b9c21 (CHANGELOG registration, 99 entries).
-- Verification: `make test-config` exit 0 (56/56) after both commits;
-  ai-auditor APPROVE-WITH-NITS (4 PASS, 2 nits, both fixed); pre-commit
-  hooks passed via container delegate.
-- Evidence: research res030 (triple-source 2026-08-17: Flash $0.22/$0.66
-  off-peak / $0.44/$1.32 peak, 18,900 req/mo (-88%), $15 bucket, 2x promo
-  removed; mimo-v2.5 $0.14/$0.28, 150,400 req/mo, $60 bucket).
-- EBDV: developer chose Variant A (full swap) over B (mimo-v2.5-pro),
-  C (hybrid), D (abort).
+obsolete: cebula preset model swap deepseek-v4-flash -> mimo-v2.5 no longer needed
 
 ## Re-verify
 
