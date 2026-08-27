@@ -6,7 +6,7 @@ id: DIA-260820-jlu0
 title: "DIA-217 ticket gate creates chicken-and-egg for meta-tasks and procedural authorizations"
 area: dev-infra
 severity: Major
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: ""
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
@@ -17,7 +17,7 @@ discovered: 2026-08-20
 source: baseline
 date: 2026-08-20
 created: 2026-08-20
-updated: 2026-08-20
+updated: 2026-08-27
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -30,7 +30,9 @@ attempts: 0
 lease_expires_at: "" # ISO-8601; set on DISPATCHED, cleared on COMPLETE
 files_touched: []
 artifacts: []
-evidence: []
+evidence:
+
+- commits c08c553 (impl), ed743d4 (fix r1), f6ceefc (fix r2); re-review cycles 1/2 + 2/2 all findings verified-closed; follow-up DIA-260827-s4s1 tracks weak-substring marker
 
 ---
 
