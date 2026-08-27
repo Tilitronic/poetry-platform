@@ -74,3 +74,5 @@ capture.
 Worker lanes: **coder / analyzer / code-navigator / researcher**. The
 reduction runs IN the worker (the orchestrator has bash denied) and only the
 small result returns to the orchestrator.
+
+Currently wired: analyzer / analyzer-escalated only (DIA-260826-6mhy).

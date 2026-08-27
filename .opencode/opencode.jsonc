@@ -264,17 +264,17 @@
     },
     // analyzer-escalated — escalated analysis lane (DIA-111/DIA-108, 2026-08-12).
     // Dispatched ONLY by the orchestrator when the base analyzer reports
-    // 'cannot comprehend domain' / abort-on-complexity. GPT-5.6 Luna expert
-    // analysis. hidden: true keeps it out of @autocomplete; task() dispatch
+    // 'cannot comprehend domain' / abort-on-complexity. The active preset
+    // selects the escalated analysis model. hidden: true keeps it out of
+    // @autocomplete; task() dispatch
     // still works (S2 orchestrator allow-list includes it). Permissions are an
     // exact clone of the base analyzer (edit scoped to knowledge/* only,
     // shelf registration delegated to @memory-manager (DIA-162 sole-writer
     // invariant), bash allow, task deny). After producing output, routes back
     // to the base analyzer/reviewer for normal flow.
     "analyzer-escalated": {
-      "description": "Escalated analysis lane (GPT-5.6 Luna) for 'cannot comprehend domain' cases. Orchestrator-only, hidden from @autocomplete, one-shot no-retry.",
+      "description": "Escalated analysis lane for 'cannot comprehend domain' cases. The active preset selects its model. Orchestrator-only, hidden from @autocomplete, one-shot no-retry.",
       "mode": "subagent",
-      "model": "opencode-go/gpt-5.6-luna",
       "color": "#14B8A6",
       "hidden": true,
       "permission": {
@@ -556,7 +556,6 @@
     "openspec-plan": {
       "description": "Specification architect (Socratic mode) over the OpenSpec CLI. Guides the user through spec authoring by interviewing, clarifying requirements, and providing structure. Practice-protected zone — user writes the substance.",
       "mode": "subagent",
-      "model": "opencode-go/qwen3.7-plus",
       "color": "#F59E0B",
       "permission": {
         "edit": {
