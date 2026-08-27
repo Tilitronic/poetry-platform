@@ -205,6 +205,13 @@ beforeEach(() => {
   virtualNow = 1756000000000
   Date.now = () => (virtualNow += 3000)
   console.warn = (...a) => warns.push(a.map(String).join(" "))
+  // DIA-260821-5r03: clear the plugin's process-scoped globalThis guards so
+  // each test's factory instance starts from a clean process state (the plugin
+  // now keeps toast-dedupe / boot / ticker flags on globalThis).
+  globalThis[Symbol.for("needs-input-observer.permissionTimers")] = undefined
+  globalThis[Symbol.for("needs-input-observer.titleSuffixBootDone")] = undefined
+  globalThis[Symbol.for("needs-input-observer.notifiedAsks")] = undefined
+  globalThis[Symbol.for("needs-input-observer.tickerBootSeeded")] = undefined
 })
 
 afterEach(() => {

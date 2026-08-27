@@ -104,10 +104,26 @@
  *   real runtime defaults; A1a/A1b/P1a/P1b/P2a/P2b/P2c/F5/F6a/G1 are RED
  *   against the old guard and flip GREEN with the fix (G2 stays a guard).
  */
-import { mock, test, expect } from "bun:test"
+import { mock, test, expect, beforeEach } from "bun:test"
 import { mkdtempSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
+
+// DIA-260821-5r03: the plugin now keeps process-scoped singleton guards on
+// globalThis (toast-dedupe Set, title-boot flag, ticker-boot flag, permission
+// timer Map). bun shares globalThis across tests in one file, so clear them
+// before each test to preserve per-test factory isolation (same pattern as
+// delegation-observer.reload-dedup.test.mjs).
+const NI_PERM_TIMERS_KEY = Symbol.for("needs-input-observer.permissionTimers")
+const NI_TITLE_BOOT_KEY = Symbol.for("needs-input-observer.titleSuffixBootDone")
+const NI_TOAST_KEY = Symbol.for("needs-input-observer.notifiedAsks")
+const NI_TICKER_BOOT_KEY = Symbol.for("needs-input-observer.tickerBootSeeded")
+beforeEach(() => {
+  globalThis[NI_PERM_TIMERS_KEY] = undefined
+  globalThis[NI_TITLE_BOOT_KEY] = undefined
+  globalThis[NI_TOAST_KEY] = undefined
+  globalThis[NI_TICKER_BOOT_KEY] = undefined
+})
 
 // ---- powershell.exe spawn interception (A3 desktop-toast path) ----
 // The plugin imports `spawn` from node:child_process at module top, so the

@@ -232,18 +232,24 @@
 | DIA-260827-48iw | Python phonetics-core atlas loader has no test or lint gate | tests | Major | OPEN | [DIA-260827-48iw-python-phonetics-core-atlas-loader-has-no-test-or-lint-gate.md](DIA-260827-48iw-python-phonetics-core-atlas-loader-has-no-test-or-lint-gate.md) |
 | DIA-260827-4aqb | Agent routing bypasses tdd-craftsman RED-GREEN workflow | opencode-config | Major | OPEN | [DIA-260827-4aqb-agent-routing-bypasses-tdd-craftsman-red-green-workflow.md](DIA-260827-4aqb-agent-routing-bypasses-tdd-craftsman-red-green-workflow.md) |
 | DIA-260827-4q3h | [HIGH] Reviewer cannot acquire its required diff (bash denied) | opencode-config | Major | OPEN | [DIA-260827-4q3h-high-reviewer-cannot-acquire-its-required-diff-bash-denied.md](DIA-260827-4q3h-high-reviewer-cannot-acquire-its-required-diff-bash-denied.md) |
+| DIA-260827-5blh | [MEDIUM] Handoff identity permits path traversal | opencode-config | Medium | OPEN | [DIA-260827-5blh-medium-handoff-identity-permits-path-traversal.md](DIA-260827-5blh-medium-handoff-identity-permits-path-traversal.md) |
 | DIA-260827-5lvx | Shell test execution not runner-reproducible across machines | scripts | Medium | OPEN | [DIA-260827-5lvx-shell-test-execution-not-runner-reproducible-across-machines.md](DIA-260827-5lvx-shell-test-execution-not-runner-reproducible-across-machines.md) |
 | DIA-260827-6g6r | OpenSpec CLI commands unreachable from skills and agents | opencode-config | Major | OPEN | [DIA-260827-6g6r-openspec-cli-commands-unreachable-from-skills-and-agents.md](DIA-260827-6g6r-openspec-cli-commands-unreachable-from-skills-and-agents.md) |
 | DIA-260827-6mhp | Docs overstate pnpm test as all tests | docs | Low | OPEN | [DIA-260827-6mhp-docs-overstate-pnpm-test-as-all-tests.md](DIA-260827-6mhp-docs-overstate-pnpm-test-as-all-tests.md) |
 | DIA-260827-6wvm | Embedded OMO suite excluded from root tests hides orchestrator alias regression | tests | Major | OPEN | [DIA-260827-6wvm-embedded-omo-suite-excluded-from-root-tests-hides-orchestrator-alias-regression.md](DIA-260827-6wvm-embedded-omo-suite-excluded-from-root-tests-hides-orchestrator-alias-regression.md) |
 | DIA-260827-7mtr | Product test coverage concentrated in two narrow modules | tests | Medium | OPEN | [DIA-260827-7mtr-product-test-coverage-concentrated-in-two-narrow-modules.md](DIA-260827-7mtr-product-test-coverage-concentrated-in-two-narrow-modules.md) |
 | DIA-260827-8la4 | [MEDIUM] Model routing sources disagree (registry vs prompt vs runtime) | opencode-config | Medium | OPEN | [DIA-260827-8la4-medium-model-routing-sources-disagree-registry-vs-prompt-vs-runtime.md](DIA-260827-8la4-medium-model-routing-sources-disagree-registry-vs-prompt-vs-runtime.md) |
+| DIA-260827-95fv | [BUG] task() returns 'Task cancelled' while background session is live or stopped-without-result (return-channel false state) | opencode-config | Major | OPEN | [DIA-260827-95fv-bug-task-returns-task-cancelled-while-background-session-is-live-or-stopped-without-result-return-channel-false-state.md](DIA-260827-95fv-bug-task-returns-task-cancelled-while-background-session-is-live-or-stopped-without-result-return-channel-false-state.md) |
 | DIA-260827-aa5i | make test-config fails on memory-shelf schema error | tests-infra | Major | OPEN | [DIA-260827-aa5i-make-test-config-fails-on-memory-shelf-schema-error.md](DIA-260827-aa5i-make-test-config-fails-on-memory-shelf-schema-error.md) |
 | DIA-260827-bry9 | OMO version and model-routing drift from baseline | opencode-config | Major | OPEN | [DIA-260827-bry9-omo-version-and-model-routing-drift-from-baseline.md](DIA-260827-bry9-omo-version-and-model-routing-drift-from-baseline.md) |
+| DIA-260827-ce63 | [MEDIUM] Mechanical idle rows masquerade as handoffs | opencode-config | Medium | OPEN | [DIA-260827-ce63-medium-mechanical-idle-rows-masquerade-as-handoffs.md](DIA-260827-ce63-medium-mechanical-idle-rows-masquerade-as-handoffs.md) |
 | DIA-260827-ft3z | [HIGH] Shell permissions bypass write scopes via curl/wget redirection | opencode-config | Major | OPEN | [DIA-260827-ft3z-high-shell-permissions-bypass-write-scopes-via-curl-wget-redirection.md](DIA-260827-ft3z-high-shell-permissions-bypass-write-scopes-via-curl-wget-redirection.md) |
 | DIA-260827-gnrr | Several gates assert source text instead of behavior | tests | Medium | OPEN | [DIA-260827-gnrr-several-gates-assert-source-text-instead-of-behavior.md](DIA-260827-gnrr-several-gates-assert-source-text-instead-of-behavior.md) |
+| DIA-260827-gnsv | [MEDIUM] Concurrent permission asks lose ticker visibility | opencode-config | Medium | OPEN | [DIA-260827-gnsv-medium-concurrent-permission-asks-lose-ticker-visibility.md](DIA-260827-gnsv-medium-concurrent-permission-asks-lose-ticker-visibility.md) |
 | DIA-260827-gt8l | No enforced CI and pre-push gate fails open | config | Major | OPEN | [DIA-260827-gt8l-no-enforced-ci-and-pre-push-gate-fails-open.md](DIA-260827-gt8l-no-enforced-ci-and-pre-push-gate-fails-open.md) |
+| DIA-260827-ic3r | [MEDIUM] Resource-manager can delegate any lane (task allow unrestricted) | opencode-config | Medium | OPEN | [DIA-260827-ic3r-medium-resource-manager-can-delegate-any-lane-task-allow-unrestricted.md](DIA-260827-ic3r-medium-resource-manager-can-delegate-any-lane-task-allow-unrestricted.md) |
 | DIA-260827-jtvl | Reviewer and playwright-browser skill contracts broken | opencode-config | Major | OPEN | [DIA-260827-jtvl-reviewer-and-playwright-browser-skill-contracts-broken.md](DIA-260827-jtvl-reviewer-and-playwright-browser-skill-contracts-broken.md) |
+| DIA-260827-ld2l | [MEDIUM] Memory-manager and designer over-granted permissions | opencode-config | Medium | OPEN | [DIA-260827-ld2l-medium-memory-manager-and-designer-over-granted-permissions.md](DIA-260827-ld2l-medium-memory-manager-and-designer-over-granted-permissions.md) |
 | DIA-260827-mgfv | [HIGH] Universal ticket gate allows nonexistent and closed tickets | opencode-config | Major | OPEN | [DIA-260827-mgfv-high-universal-ticket-gate-allows-nonexistent-and-closed-tickets.md](DIA-260827-mgfv-high-universal-ticket-gate-allows-nonexistent-and-closed-tickets.md) |
 | DIA-260827-nkvf | Exposed MCP credential in OpenCode config plaintext | secrets | Critical | OPEN | [DIA-260827-nkvf-exposed-mcp-credential-in-opencode-config-plaintext.md](DIA-260827-nkvf-exposed-mcp-credential-in-opencode-config-plaintext.md) |
 | DIA-260827-nza6 | OpenCode query-script tests outside every gate with weak assertions | tests | Medium | OPEN | [DIA-260827-nza6-opencode-query-script-tests-outside-every-gate-with-weak-assertions.md](DIA-260827-nza6-opencode-query-script-tests-outside-every-gate-with-weak-assertions.md) |
@@ -261,8 +267,8 @@
 | -------- | ----- |
 | Blocker  | 9     |
 | Critical | 15    |
-| Major    | 83    |
-| Medium   | 121   |
+| Major    | 84    |
+| Medium   | 126   |
 | Minor    | 0     |
 | Low      | 22    |
 | Info     | 1     |
@@ -270,7 +276,7 @@
 
 | Status      | Count |
 | ----------- | ----- |
-| OPEN        | 82    |
+| OPEN        | 88    |
 | DONE        | 11    |
 | VALIDATE    | 2     |
 | E2E         | 0     |

@@ -422,6 +422,13 @@ const stallSweepStore = globalThis as unknown as Record<symbol, StallSweepHandle
 // emits a new boot. Stored on globalThis so it survives module re-evaluation.
 const BOOT_EMITTED_KEY = Symbol.for("delegation-observer.bootEmitted")
 const bootFlagStore = globalThis as unknown as Record<symbol, boolean | undefined>
+
+// DIA-260821-5r03 (task 4.1): routing-state debounced-write timer singleton
+// key. Stored on globalThis (not module scope) so an in-process plugin reload
+// clears the prior timer before arming a new one instead of stacking a stray
+// write from the dead instance (the same reload-safe pattern as STALL_SWEEP_KEY).
+const ROUTING_WRITE_KEY = Symbol.for("delegation-observer.routingWriteTimer")
+const routingWriteStore = globalThis as unknown as Record<symbol, ReturnType<typeof setTimeout> | undefined>
 const stallSubagentMinutes = stallThresholdMinutes("STALL_SUBAGENT_MINUTES", 10)
 const stallOrchestratorMinutes = stallThresholdMinutes("STALL_ORCHESTRATOR_MINUTES", 20)
 const stallDeadMinutes = stallThresholdMinutes("STALL_DEAD_MINUTES", 60)
@@ -1861,7 +1868,10 @@ const delegationObserver: Plugin = async (ctx) => {
 
   // In-memory state + debounced write (lose <1s on crash -- acceptable)
   let routingState: RoutingState = { agents: {}, activeTasks: {} }
-  let routingWriteTimer: ReturnType<typeof setTimeout> | null = null
+  // DIA-260821-5r03: the debounced-write timer handle lives on globalThis so a
+  // reload reuses/clears the prior handle instead of stacking a stray write.
+  let routingWriteTimer: ReturnType<typeof setTimeout> | null =
+    routingWriteStore[ROUTING_WRITE_KEY] ?? null
 
   function loadRoutingState(): void {
     try {
@@ -1881,6 +1891,10 @@ const delegationObserver: Plugin = async (ctx) => {
 
   function saveRoutingState(): void {
     if (routingWriteTimer) clearTimeout(routingWriteTimer)
+    // DIA-260821-5r03: clear any prior globalThis handle before arming a new
+    // one so a reload does not stack a stray write from the dead instance.
+    const priorRoutingTimer = routingWriteStore[ROUTING_WRITE_KEY]
+    if (priorRoutingTimer !== undefined) clearTimeout(priorRoutingTimer)
     routingWriteTimer = setTimeout(() => {
       try {
         // DIA-211 fix #9: write backup before primary so a corrupted primary
@@ -1898,6 +1912,9 @@ const delegationObserver: Plugin = async (ctx) => {
         )
       }
     }, WRITE_DEBOUNCE_MS)
+    // DIA-260821-5r03: publish the handle on globalThis so dispose/reload can
+    // clear it (mirrors stall-sweep singleton handling).
+    routingWriteStore[ROUTING_WRITE_KEY] = routingWriteTimer
   }
 
   function getAgentRouting(agentType: string): AgentRoutingState {
@@ -4929,6 +4946,9 @@ const delegationObserver: Plugin = async (ctx) => {
       if (routingWriteTimer) {
         clearTimeout(routingWriteTimer)
         routingWriteTimer = null
+        // DIA-260821-5r03: also clear the globalThis singleton handle so a
+        // reload does not orphan the timer.
+        routingWriteStore[ROUTING_WRITE_KEY] = undefined
         try {
           writeFileSync(
             ADAPTIVE_ROUTING_STATE_PATH,

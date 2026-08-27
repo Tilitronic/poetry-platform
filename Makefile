@@ -213,6 +213,11 @@ test-config: test-interview test-skills
 	# files only, so a fresh clone must be able to run it. Regenerate the suite
 	# when the plugin/config invariants it asserts evolve.
 	node scripts/__tests__/batch-d-infra.test.mjs
+	# DIA-260821-5r03: observer duplicate-registration dedupe gate. Enforces
+	# single-source-of-truth (observers load via auto-discovery of
+	# .opencode/plugins/; no explicit plugin-array entry for an auto-discovered
+	# observer in any config layer).
+	bash scripts/validate-observer-dedupe.sh
 
 # Python dependency vulnerability audit via pip-audit (DIA-028). Exports the
 # locked runtime dependency set per package with uv (exact pins + hashes) and

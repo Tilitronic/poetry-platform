@@ -229,6 +229,23 @@ function canUsePowershellToast(): boolean {
   return process.platform === "win32" || isWSL()
 }
 
+// DIA-260821-5r03: process-scoped singleton guards. Observers load exactly once
+// via auto-discovery of .opencode/plugins/; on an in-process plugin reload
+// (module re-evaluation without dispose) these globalThis-backed stores survive
+// so singleton side-effects (permission timers, title-suffix boot pass, TUI
+// toasts, ticker boot-seed) are not re-fired. A full process restart clears
+// globalThis, so the side-effects re-run (correct). Symbol-keyed globalThis
+// access needs an explicit record view: TS rejects indexing globalThis with a
+// runtime Symbol without a declaration, so we retype it (same runtime ref).
+const NEEDS_INPUT_PERM_TIMERS_KEY = Symbol.for("needs-input-observer.permissionTimers")
+const permTimersStore = globalThis as unknown as Record<symbol, Map<string, ReturnType<typeof setTimeout>> | undefined>
+const NEEDS_INPUT_TITLE_BOOT_KEY = Symbol.for("needs-input-observer.titleSuffixBootDone")
+const titleBootStore = globalThis as unknown as Record<symbol, boolean | undefined>
+const NEEDS_INPUT_TOAST_KEY = Symbol.for("needs-input-observer.notifiedAsks")
+const notifiedAsksStore = globalThis as unknown as Record<symbol, Set<string> | undefined>
+const NEEDS_INPUT_TICKER_BOOT_KEY = Symbol.for("needs-input-observer.tickerBootSeeded")
+const tickerBootStore = globalThis as unknown as Record<symbol, boolean | undefined>
+
 const needsInputObserver: Plugin = async (ctx) => {
   const tickerDir = join(ctx.directory, ".opencode/session")
   const tickerPath = join(tickerDir, "ticker.json")
@@ -274,7 +291,17 @@ const needsInputObserver: Plugin = async (ctx) => {
   // timer + ticker CLEAR; expiry -> auto-reject via the SDK permissions
   // endpoint + registry row + ticker CLEAR(reason) + messages decision row.
   const permissionAsks = new Map<string, PermissionAskRecord>()
-  const pendingPermissionTimers = new Map<string, ReturnType<typeof setTimeout>>()
+  // DIA-260821-5r03 guard 1: the watchdog timer Map lives on globalThis so an
+  // in-process reload reuses the SAME handles instead of stacking new ones.
+  // armPermissionTimer's has(key) check then dedupes by permission key.
+  const pendingPermissionTimers =
+    permTimersStore[NEEDS_INPUT_PERM_TIMERS_KEY] ??
+    new Map<string, ReturnType<typeof setTimeout>>()
+  permTimersStore[NEEDS_INPUT_PERM_TIMERS_KEY] = pendingPermissionTimers
+  // DIA-260821-5r03 guard 3: the set of (session_id:reason) already toasted in
+  // this process, so a reload does not re-toast a persisted pending ask.
+  const notifiedAsks = notifiedAsksStore[NEEDS_INPUT_TOAST_KEY] ?? new Set<string>()
+  notifiedAsksStore[NEEDS_INPUT_TOAST_KEY] = notifiedAsks
 
   // DIA-098 R3: PERMISSION_STALL_TIMEOUT (ana016 section 6.3), env-
   // configurable via PERMISSION_STALL_TIMEOUT_MINUTES, default 5 minutes.
@@ -644,6 +671,7 @@ const needsInputObserver: Plugin = async (ctx) => {
       // already replied while the plugin was down eventually times out and
       // the reject POST fails with a 404 — fail-soft, and the stale
       // CLEAR keeps the ticker honest.
+      const permRecords: PermissionAskRecord[] = []
       for (const e of Array.isArray(doc.permissions) ? doc.permissions : []) {
         if (
           !e ||
@@ -667,11 +695,24 @@ const needsInputObserver: Plugin = async (ctx) => {
           permissionKey(record.session_id, record.permission_id),
           record
         )
-        armPermissionTimer(
-          record.session_id,
-          record.permission_id,
-          record.timestamp
-        )
+        permRecords.push(record)
+      }
+      // DIA-260821-5r03 guard 4: re-arm watchdog timers at most once per
+      // process. The globalThis-backed pendingPermissionTimers Map (guard 1)
+      // already dedupes by key, but we also gate the re-arm on the ticker-boot
+      // flag so an in-process reload does not re-walk the permission list and
+      // double-seed timers. permissionAsks is always re-populated above (it is
+      // per-instance and required for correctness across reloads). The flag
+      // itself is armed by the factory after seedFromDisk() returns (so it is
+      // set even when ticker.json is absent), see the call site.
+      if (!tickerBootStore[NEEDS_INPUT_TICKER_BOOT_KEY]) {
+        for (const record of permRecords) {
+          armPermissionTimer(
+            record.session_id,
+            record.permission_id,
+            record.timestamp
+          )
+        }
       }
     } catch (err) {
       console.warn(
@@ -802,6 +843,13 @@ const needsInputObserver: Plugin = async (ctx) => {
     if (now < notifyDebounceUntil) return
     notifyDebounceUntil = now + NOTIFY_DEBOUNCE_MS
 
+    // DIA-260821-5r03 guard 3: do not re-toast an ask already notified in this
+    // process. On an in-process reload, enter() re-fires for persisted waiting
+    // sessions; the globalThis-backed notifiedAsks Set survives the reload so
+    // the duplicate toast is suppressed (the audit log above still records it).
+    const toastKey = `${entry.session_id}:${entry.reason}`
+    if (notifiedAsks.has(toastKey)) return
+
     const title = entry.title || (await resolveTitle(entry.session_id)) || "Agent needs input"
     // DIA-189 A2: notification attribution. Pin the same " [<word-pair>]"
     // suffix that A1 wrote into the terminal label so a toast names the
@@ -815,6 +863,8 @@ const needsInputObserver: Plugin = async (ctx) => {
       : `${title} [${wordPair}]`
     const message = `${entry.reason}: ${entry.detail}`.slice(0, 200)
 
+    // Record before firing so a concurrent/duplicate path cannot double-toast.
+    notifiedAsks.add(toastKey)
     try {
       await ctx.client.tui.showToast({
         body: {
@@ -1010,10 +1060,23 @@ const needsInputObserver: Plugin = async (ctx) => {
 
   seedFromDisk()
 
+  // DIA-260821-5r03 guard 4: mark the ticker as boot-seeded this process so an
+  // in-process reload does not re-walk the permission list / double-seed
+  // timers. Set here (not inside seedFromDisk) so it is armed even when
+  // ticker.json is absent on a fresh directory.
+  tickerBootStore[NEEDS_INPUT_TICKER_BOOT_KEY] = true
+
   // DIA-189b A2b: fire the boot retro pass without blocking instantiation.
   // The factory returns the hooks synchronously; the pass completes in
   // microtasks after the awaited list/update calls resolve.
-  void bootRetroPass()
+  // DIA-260821-5r03 guard 2: run the title-suffix retro pass at most once per
+  // process. On an in-process reload the pass is skipped (titles are already
+  // suffixed from the first run); a full process restart clears globalThis so
+  // it re-runs.
+  if (!titleBootStore[NEEDS_INPUT_TITLE_BOOT_KEY]) {
+    void bootRetroPass()
+    titleBootStore[NEEDS_INPUT_TITLE_BOOT_KEY] = true
+  }
 
   const hooks: Hooks = {
     // Belt-and-suspenders ENTER trigger: the wait_for_user tool path is
@@ -1330,6 +1393,13 @@ const needsInputObserver: Plugin = async (ctx) => {
         clearTimeout(timer)
       }
       pendingPermissionTimers.clear()
+      // DIA-260821-5r03: clear all globalThis-backed singleton state so a
+      // later reload starts clean (mirrors delegation-observer dispose).
+      permTimersStore[NEEDS_INPUT_PERM_TIMERS_KEY] = undefined
+      notifiedAsks.clear()
+      notifiedAsksStore[NEEDS_INPUT_TOAST_KEY] = undefined
+      titleBootStore[NEEDS_INPUT_TITLE_BOOT_KEY] = undefined
+      tickerBootStore[NEEDS_INPUT_TICKER_BOOT_KEY] = undefined
     },
   }
 
