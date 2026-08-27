@@ -244,6 +244,7 @@
 | DIA-260827-bry9 | OMO version and model-routing drift from baseline | opencode-config | Major | OPEN | [DIA-260827-bry9-omo-version-and-model-routing-drift-from-baseline.md](DIA-260827-bry9-omo-version-and-model-routing-drift-from-baseline.md) |
 | DIA-260827-ce63 | [MEDIUM] Mechanical idle rows masquerade as handoffs | opencode-config | Medium | OPEN | [DIA-260827-ce63-medium-mechanical-idle-rows-masquerade-as-handoffs.md](DIA-260827-ce63-medium-mechanical-idle-rows-masquerade-as-handoffs.md) |
 | DIA-260827-ft3z | [HIGH] Shell permissions bypass write scopes via curl/wget redirection | opencode-config | Major | OPEN | [DIA-260827-ft3z-high-shell-permissions-bypass-write-scopes-via-curl-wget-redirection.md](DIA-260827-ft3z-high-shell-permissions-bypass-write-scopes-via-curl-wget-redirection.md) |
+| DIA-260827-glya | Consolidate dya2608223M commits into omoslim and push to remote | scripts | Medium | OPEN | [DIA-260827-glya-consolidate-dya2608223m-commits-into-omoslim-and-push-to-remote.md](DIA-260827-glya-consolidate-dya2608223m-commits-into-omoslim-and-push-to-remote.md) |
 | DIA-260827-gnrr | Several gates assert source text instead of behavior | tests | Medium | OPEN | [DIA-260827-gnrr-several-gates-assert-source-text-instead-of-behavior.md](DIA-260827-gnrr-several-gates-assert-source-text-instead-of-behavior.md) |
 | DIA-260827-gnsv | [MEDIUM] Concurrent permission asks lose ticker visibility | opencode-config | Medium | OPEN | [DIA-260827-gnsv-medium-concurrent-permission-asks-lose-ticker-visibility.md](DIA-260827-gnsv-medium-concurrent-permission-asks-lose-ticker-visibility.md) |
 | DIA-260827-gt8l | No enforced CI and pre-push gate fails open | config | Major | OPEN | [DIA-260827-gt8l-no-enforced-ci-and-pre-push-gate-fails-open.md](DIA-260827-gt8l-no-enforced-ci-and-pre-push-gate-fails-open.md) |
@@ -268,7 +269,7 @@
 | Blocker  | 9     |
 | Critical | 15    |
 | Major    | 84    |
-| Medium   | 126   |
+| Medium   | 127   |
 | Minor    | 0     |
 | Low      | 22    |
 | Info     | 1     |
@@ -276,7 +277,7 @@
 
 | Status      | Count |
 | ----------- | ----- |
-| OPEN        | 88    |
+| OPEN        | 89    |
 | DONE        | 11    |
 | VALIDATE    | 2     |
 | E2E         | 0     |
