@@ -174,13 +174,13 @@
 | DIA-260819-qibv | research pipeline bug: conspect should be mandatory, not optional | opencode-config | Medium | OPEN | [DIA-260819-qibv-research-pipeline-bug-conspect-should-be-mandatory-not-optional.md](DIA-260819-qibv-research-pipeline-bug-conspect-should-be-mandatory-not-optional.md) |
 | DIA-260819-sl22 | ticket navigation scripts: search, filter, statistics, tool registration | dev-infra | Medium | CLOSED | [DIA-260819-sl22-ticket-navigation-scripts-search-filter-statistics-tool-registration.md](DIA-260819-sl22-ticket-navigation-scripts-search-filter-statistics-tool-registration.md) |
 | DIA-260820-dr0g | researcher agent deviates from 3-tier fetch chain, uses WebFetch/context7 instead of trafilatura/crawl4ai | dev-infra | Medium | OPEN | [DIA-260820-dr0g-researcher-agent-deviates-from-3-tier-fetch-chain-uses-webfetch-context7-instead-of-trafilatura-crawl4ai.md](DIA-260820-dr0g-researcher-agent-deviates-from-3-tier-fetch-chain-uses-webfetch-context7-instead-of-trafilatura-crawl4ai.md) |
-| DIA-260820-jlu0 | DIA-217 ticket gate creates chicken-and-egg for meta-tasks and procedural authorizations | dev-infra | Major | OPEN | [DIA-260820-jlu0-dia-217-ticket-gate-creates-chicken-and-egg-for-meta-tasks-and-procedural-authorizations.md](DIA-260820-jlu0-dia-217-ticket-gate-creates-chicken-and-egg-for-meta-tasks-and-procedural-authorizations.md) |
+| DIA-260820-jlu0 | DIA-217 ticket gate creates chicken-and-egg for meta-tasks and procedural authorizations | dev-infra | Major | CLOSED | [DIA-260820-jlu0-dia-217-ticket-gate-creates-chicken-and-egg-for-meta-tasks-and-procedural-authorizations.md](DIA-260820-jlu0-dia-217-ticket-gate-creates-chicken-and-egg-for-meta-tasks-and-procedural-authorizations.md) |
 | DIA-260820-y268 | enforce ticket-status queries via scripts, deprecate README rollup | dev-infra | Medium | OPEN | [DIA-260820-y268-enforce-ticket-status-queries-via-scripts-deprecate-readme-rollup.md](DIA-260820-y268-enforce-ticket-status-queries-via-scripts-deprecate-readme-rollup.md) |
 | DIA-260821-3blw | remove persistent OpenCode input-area banner: powershell.exe toast spawn failed | opencode-config | Low | OPEN | [DIA-260821-3blw-remove-persistent-opencode-input-area-banner-powershell-exe-toast-spawn-failed.md](DIA-260821-3blw-remove-persistent-opencode-input-area-banner-powershell-exe-toast-spawn-failed.md) |
 | DIA-260821-4cx5 | Expose opencode serve over Tailscale for remote Android access | docker | Medium | OPEN | [DIA-260821-4cx5-expose-opencode-serve-over-tailscale-for-remote-android-access.md](DIA-260821-4cx5-expose-opencode-serve-over-tailscale-for-remote-android-access.md) |
 | DIA-260821-5r03 | runtime observer plugin duplicate-registration audit and hardening | opencode-config | Major | OPEN | [DIA-260821-5r03-runtime-observer-plugin-duplicate-registration-audit-and-hardening.md](DIA-260821-5r03-runtime-observer-plugin-duplicate-registration-audit-and-hardening.md) |
 | DIA-260821-8kpc | Disable DCP plugin (context/cache concerns) | scripts | Medium | OPEN | [DIA-260821-8kpc-disable-dcp-plugin-context-cache-concerns.md](DIA-260821-8kpc-disable-dcp-plugin-context-cache-concerns.md) |
-| DIA-260821-aoag | container engine socket security hardening: add default-off --with-engine opt-in flag | docker | Major | OPEN | [DIA-260821-aoag-container-engine-socket-security-hardening-add-default-off-with-engine-opt-in-flag.md](DIA-260821-aoag-container-engine-socket-security-hardening-add-default-off-with-engine-opt-in-flag.md) |
+| DIA-260821-aoag | container engine socket security hardening: add default-off --with-engine opt-in flag | docker | Major | CLOSED | [DIA-260821-aoag-container-engine-socket-security-hardening-add-default-off-with-engine-opt-in-flag.md](DIA-260821-aoag-container-engine-socket-security-hardening-add-default-off-with-engine-opt-in-flag.md) |
 | DIA-260821-bqy7 | audit repository risks and prioritize unresolved remediation | dev-infra | Major | OPEN | [DIA-260821-bqy7-audit-repository-risks-and-prioritize-unresolved-remediation.md](DIA-260821-bqy7-audit-repository-risks-and-prioritize-unresolved-remediation.md) |
 | DIA-260821-cku1 | Add minimal controlled scripts/tickets update capability for status and Fix/Re-verify evidence | dev-infra | Major | OPEN | [DIA-260821-cku1-add-minimal-controlled-scripts-tickets-update-capability-for-status-and-fix-re-verify-evidence.md](DIA-260821-cku1-add-minimal-controlled-scripts-tickets-update-capability-for-status-and-fix-re-verify-evidence.md) |
 | DIA-260821-m7vk | Repair in-container lint-staged Git index failure blocking pre-commit | dev-infra | Major | OPEN | [DIA-260821-m7vk-repair-in-container-lint-staged-git-index-failure-blocking-pre-commit.md](DIA-260821-m7vk-repair-in-container-lint-staged-git-index-failure-blocking-pre-commit.md) |
@@ -227,24 +227,50 @@
 | DIA-260826-uozv | sync OMO pin in opencode-docker config to project version (H4) | opencode-config | Major | OPEN | [DIA-260826-uozv-sync-omo-pin-in-opencode-docker-config-to-project-version-h4.md](DIA-260826-uozv-sync-omo-pin-in-opencode-docker-config-to-project-version-h4.md) |
 | DIA-260826-xu8o | Add explicit Ox Alpha Free provider catalog overlay | opencode-config | Major | CLOSED | [DIA-260826-xu8o-add-explicit-ox-alpha-free-provider-catalog-overlay.md](DIA-260826-xu8o-add-explicit-ox-alpha-free-provider-catalog-overlay.md) |
 | DIA-260826-zvu4 | exempt verification-only coder dispatches from SILENT_FAILURE detection (H1) | delegation-observer | Major | VALIDATE | [DIA-260826-zvu4-exempt-verification-only-coder-dispatches-from-silent-failure-detection-h1.md](DIA-260826-zvu4-exempt-verification-only-coder-dispatches-from-silent-failure-detection-h1.md) |
+| DIA-260827-15xv | Full ponytail whole-repo over-engineering audit via analyzer-escalated | scripts | Medium | OPEN | [DIA-260827-15xv-full-ponytail-whole-repo-over-engineering-audit-via-analyzer-escalated.md](DIA-260827-15xv-full-ponytail-whole-repo-over-engineering-audit-via-analyzer-escalated.md) |
+| DIA-260827-36ht | Plugin behavioral gate is red and missing from pre-push | plugins | Major | OPEN | [DIA-260827-36ht-plugin-behavioral-gate-is-red-and-missing-from-pre-push.md](DIA-260827-36ht-plugin-behavioral-gate-is-red-and-missing-from-pre-push.md) |
+| DIA-260827-48iw | Python phonetics-core atlas loader has no test or lint gate | tests | Major | OPEN | [DIA-260827-48iw-python-phonetics-core-atlas-loader-has-no-test-or-lint-gate.md](DIA-260827-48iw-python-phonetics-core-atlas-loader-has-no-test-or-lint-gate.md) |
+| DIA-260827-4aqb | Agent routing bypasses tdd-craftsman RED-GREEN workflow | opencode-config | Major | OPEN | [DIA-260827-4aqb-agent-routing-bypasses-tdd-craftsman-red-green-workflow.md](DIA-260827-4aqb-agent-routing-bypasses-tdd-craftsman-red-green-workflow.md) |
+| DIA-260827-4q3h | [HIGH] Reviewer cannot acquire its required diff (bash denied) | opencode-config | Major | OPEN | [DIA-260827-4q3h-high-reviewer-cannot-acquire-its-required-diff-bash-denied.md](DIA-260827-4q3h-high-reviewer-cannot-acquire-its-required-diff-bash-denied.md) |
+| DIA-260827-5lvx | Shell test execution not runner-reproducible across machines | scripts | Medium | OPEN | [DIA-260827-5lvx-shell-test-execution-not-runner-reproducible-across-machines.md](DIA-260827-5lvx-shell-test-execution-not-runner-reproducible-across-machines.md) |
+| DIA-260827-6g6r | OpenSpec CLI commands unreachable from skills and agents | opencode-config | Major | OPEN | [DIA-260827-6g6r-openspec-cli-commands-unreachable-from-skills-and-agents.md](DIA-260827-6g6r-openspec-cli-commands-unreachable-from-skills-and-agents.md) |
+| DIA-260827-6mhp | Docs overstate pnpm test as all tests | docs | Low | OPEN | [DIA-260827-6mhp-docs-overstate-pnpm-test-as-all-tests.md](DIA-260827-6mhp-docs-overstate-pnpm-test-as-all-tests.md) |
+| DIA-260827-6wvm | Embedded OMO suite excluded from root tests hides orchestrator alias regression | tests | Major | OPEN | [DIA-260827-6wvm-embedded-omo-suite-excluded-from-root-tests-hides-orchestrator-alias-regression.md](DIA-260827-6wvm-embedded-omo-suite-excluded-from-root-tests-hides-orchestrator-alias-regression.md) |
+| DIA-260827-7mtr | Product test coverage concentrated in two narrow modules | tests | Medium | OPEN | [DIA-260827-7mtr-product-test-coverage-concentrated-in-two-narrow-modules.md](DIA-260827-7mtr-product-test-coverage-concentrated-in-two-narrow-modules.md) |
+| DIA-260827-8la4 | [MEDIUM] Model routing sources disagree (registry vs prompt vs runtime) | opencode-config | Medium | OPEN | [DIA-260827-8la4-medium-model-routing-sources-disagree-registry-vs-prompt-vs-runtime.md](DIA-260827-8la4-medium-model-routing-sources-disagree-registry-vs-prompt-vs-runtime.md) |
+| DIA-260827-aa5i | make test-config fails on memory-shelf schema error | tests-infra | Major | OPEN | [DIA-260827-aa5i-make-test-config-fails-on-memory-shelf-schema-error.md](DIA-260827-aa5i-make-test-config-fails-on-memory-shelf-schema-error.md) |
+| DIA-260827-bry9 | OMO version and model-routing drift from baseline | opencode-config | Major | OPEN | [DIA-260827-bry9-omo-version-and-model-routing-drift-from-baseline.md](DIA-260827-bry9-omo-version-and-model-routing-drift-from-baseline.md) |
+| DIA-260827-ft3z | [HIGH] Shell permissions bypass write scopes via curl/wget redirection | opencode-config | Major | OPEN | [DIA-260827-ft3z-high-shell-permissions-bypass-write-scopes-via-curl-wget-redirection.md](DIA-260827-ft3z-high-shell-permissions-bypass-write-scopes-via-curl-wget-redirection.md) |
+| DIA-260827-gnrr | Several gates assert source text instead of behavior | tests | Medium | OPEN | [DIA-260827-gnrr-several-gates-assert-source-text-instead-of-behavior.md](DIA-260827-gnrr-several-gates-assert-source-text-instead-of-behavior.md) |
+| DIA-260827-gt8l | No enforced CI and pre-push gate fails open | config | Major | OPEN | [DIA-260827-gt8l-no-enforced-ci-and-pre-push-gate-fails-open.md](DIA-260827-gt8l-no-enforced-ci-and-pre-push-gate-fails-open.md) |
+| DIA-260827-jtvl | Reviewer and playwright-browser skill contracts broken | opencode-config | Major | OPEN | [DIA-260827-jtvl-reviewer-and-playwright-browser-skill-contracts-broken.md](DIA-260827-jtvl-reviewer-and-playwright-browser-skill-contracts-broken.md) |
+| DIA-260827-mgfv | [HIGH] Universal ticket gate allows nonexistent and closed tickets | opencode-config | Major | OPEN | [DIA-260827-mgfv-high-universal-ticket-gate-allows-nonexistent-and-closed-tickets.md](DIA-260827-mgfv-high-universal-ticket-gate-allows-nonexistent-and-closed-tickets.md) |
+| DIA-260827-nkvf | Exposed MCP credential in OpenCode config plaintext | secrets | Critical | OPEN | [DIA-260827-nkvf-exposed-mcp-credential-in-opencode-config-plaintext.md](DIA-260827-nkvf-exposed-mcp-credential-in-opencode-config-plaintext.md) |
+| DIA-260827-nza6 | OpenCode query-script tests outside every gate with weak assertions | tests | Medium | OPEN | [DIA-260827-nza6-opencode-query-script-tests-outside-every-gate-with-weak-assertions.md](DIA-260827-nza6-opencode-query-script-tests-outside-every-gate-with-weak-assertions.md) |
 | DIA-260827-qc59 | add OpenAI-free cebula HY3 preset with role-based reasoning | opencode-config | Medium | OPEN | [DIA-260827-qc59-add-openai-free-cebula-hy3-preset-with-role-based-reasoning.md](DIA-260827-qc59-add-openai-free-cebula-hy3-preset-with-role-based-reasoning.md) |
+| DIA-260827-txq2 | Inherited obsolete and duplicate plugins from base OMO config | opencode-config | Major | OPEN | [DIA-260827-txq2-inherited-obsolete-and-duplicate-plugins-from-base-omo-config.md](DIA-260827-txq2-inherited-obsolete-and-duplicate-plugins-from-base-omo-config.md) |
+| DIA-260827-uqw0 | [CRITICAL] Cross-session handoff corruption via process-global parentSessionId | opencode-config | Critical | OPEN | [DIA-260827-uqw0-critical-cross-session-handoff-corruption-via-process-global-parentsessionid.md](DIA-260827-uqw0-critical-cross-session-handoff-corruption-via-process-global-parentsessionid.md) |
+| DIA-260827-uv | Routing-order regression suite copies logic and is orphaned | scripts | Major | OPEN | [DIA-260827-uv-routing-order-regression-suite-copies-logic-and-is-orphaned.md](DIA-260827-uv-routing-order-regression-suite-copies-logic-and-is-orphaned.md) |
+| DIA-260827-wawy | Heavy infra cleanup not guaranteed after test failure | docker | Medium | OPEN | [DIA-260827-wawy-heavy-infra-cleanup-not-guaranteed-after-test-failure.md](DIA-260827-wawy-heavy-infra-cleanup-not-guaranteed-after-test-failure.md) |
+| DIA-260827-wfcx | full repository four-lane audit tests agents code skills plugins | opencode-config | Major | OPEN | [DIA-260827-wfcx-full-repository-four-lane-audit-tests-agents-code-skills-plugins.md](DIA-260827-wfcx-full-repository-four-lane-audit-tests-agents-code-skills-plugins.md) |
+| DIA-260827-y9n9 | [CRITICAL] Cross-session handoff corruption via process-global parentSessionId | opencode-config | Critical | OPEN | [DIA-260827-y9n9-critical-cross-session-handoff-corruption-via-process-global-parentsessionid.md](DIA-260827-y9n9-critical-cross-session-handoff-corruption-via-process-global-parentsessionid.md) |
 
 ## Status summary
 
 | Severity | Count |
 | -------- | ----- |
 | Blocker  | 9     |
-| Critical | 12    |
-| Major    | 68    |
-| Medium   | 114   |
+| Critical | 15    |
+| Major    | 83    |
+| Medium   | 121   |
 | Minor    | 0     |
-| Low      | 21    |
+| Low      | 22    |
 | Info     | 1     |
 | High     | 1     |
 
 | Status      | Count |
 | ----------- | ----- |
-| OPEN        | 60    |
+| OPEN        | 82    |
 | DONE        | 11    |
 | VALIDATE    | 2     |
 | E2E         | 0     |
@@ -253,7 +279,7 @@
 | FIXED       | 1     |
 | IMPLEMENTED | 2     |
 | VERIFIED    | 28    |
-| CLOSED      | 119   |
+| CLOSED      | 123   |
 | BLOCKED     | 0     |
 | DISPATCHED  | 0     |
 | RUNNING     | 0     |
