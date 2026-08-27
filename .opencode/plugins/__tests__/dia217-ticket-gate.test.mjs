@@ -519,6 +519,27 @@ test("DIA-260820-jlu0 F2: carve-out continues to DIA-230 routing gate (coder+con
   expect(registryRows.find((r) => r.event === "ROUTING_VIOLATION")).toBeDefined()
 })
 
+test("DIA-260820-jlu0 Obs-4: carve-out still reaches DIA-063 §10 gate (ai-specialist referencing unresolved ticket is hard-blocked)", async () => {
+  const { hooks, ctx } = await makeHarness()
+  // The §10 gate fails-SOFT (warn + allow) on a MISSING tickets directory, so
+  // create an empty one to force the hard-block path: dir exists, referenced
+  // ticket not found -> §10 TICKET GATE throw. This proves the carve-out did
+  // NOT skip the §10 gate (it only skips DIA-217 resolution).
+  const ticketsDir = join(ctx.directory, "docs/dev-infra-audit/tickets")
+  mkdirSync(ticketsDir, { recursive: true })
+  const taskArgs = {
+    subagent_type: "ai-specialist",
+    prompt: "[META-TASK] review config; see DIA-260820-jlu0 for context.",
+    description: "meta-task config review",
+  }
+  const { error, registryRows } = await runTaskDispatch(hooks, ctx, taskArgs)
+  expect(error).not.toBeNull()
+  expect(error.message).toContain("§10 TICKET GATE")
+  // Carve-out audit row fired, AND the hook continued to §10 which hard-blocked.
+  expect(registryRows.find((r) => r.event === "meta_task_bypass")).toBeDefined()
+  expect(registryRows.find((r) => r.event === "ticket_gate_blocked")).toBeDefined()
+})
+
 // ---------------------------------------------------------------------------
 // DIA-260820-jlu0 B1: capability-token scope tightening (REAL hook path)
 // ---------------------------------------------------------------------------

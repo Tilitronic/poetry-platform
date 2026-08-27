@@ -69,9 +69,11 @@ const TICKETS_DIR_REL = "docs/dev-infra-audit/tickets"
  * Ephemeral secret for HMAC capability tokens. Random per process start;
  * tokens are short-lived (5 min) so process-restart invalidation is acceptable.
  */
-// Exported for the test harness (DIA-260820-jlu0 F3) so it can mint a
-// validly-signed token WITHOUT a scope and drive the REAL gate to assert the
-// scope-leak rejection. Ephemeral per process; tokens are short-lived.
+// @internal test-only seam (DIA-260820-jlu0 F3): exported so the plugin test
+// harness can mint a validly-signed token WITHOUT a scope and drive the REAL
+// gate to assert the scope-leak rejection. NOT a security control -- the
+// secret is per-process randomBytes(32); plugins are trusted code, so this
+// export only widens forgeability within the already-trusted plugin boundary.
 export const CAPABILITY_SECRET = randomBytes(32)
 
 // ── Capability token utilities (DIA-260820-jlu0) ────────────────────────────
@@ -99,8 +101,9 @@ function base64url(buf: Buffer | string): string {
  * The token carries a JSON payload (id, scope, reason, exp) signed with
  * CAPABILITY_SECRET so it cannot be forged outside this plugin process.
  */
-// Exported for the test harness (DIA-260820-jlu0 F3) to mint a real token and
-// drive the REAL gate (bypass path).
+// @internal test-only seam (DIA-260820-jlu0 F3): exported so the plugin test
+// harness can mint a real token and drive the REAL gate (bypass path). Not a
+// security control; plugins are trusted code within the same process boundary.
 export function mintCapabilityToken(scope: string, reason: string): string {
   const payload = {
     id: randomUUID(),
@@ -120,7 +123,9 @@ export function mintCapabilityToken(scope: string, reason: string): string {
  * Verify a capability token: check HMAC signature, then expiry.
  * Returns { valid, payload } on success, { valid: false, error } on failure.
  */
-// Exported for the test harness (DIA-260820-jlu0 F3) to drive the REAL gate.
+// @internal test-only seam (DIA-260820-jlu0 F3): exported so the plugin test
+// harness can drive the REAL gate (scope-leak rejection path). Not a security
+// control; plugins are trusted code within the same process boundary.
 export function verifyCapabilityToken(
   token: string
 ): { valid: boolean; payload?: CapabilityPayload; error?: string } {
@@ -2972,7 +2977,7 @@ const delegationObserver: Plugin = async (ctx) => {
             ? taskArgRecord.ticket_id
             : ""
         if (!ticketId) {
-          const dispatchText = `${typeof taskArgRecord.description === "string" ? taskArgRecord.description : ""}\n${typeof taskArgRecord.prompt === "string" ? taskArgRecord.prompt : ""}`
+          const dispatchText = buildDispatchText(taskArgRecord)
           const markedTicketIds = [
             ...new Set(
               [...dispatchText.matchAll(

@@ -155,7 +155,22 @@ follow-up doc edit - tracked in tasks). The `mint_capability` tool and
 
 **Code seam:** the new block lives inside the existing
 `if (input.tool === "task") { ... }` gate at delegation-observer.ts:2776, reusing
-`dispatchText` assembly, `appendRow`, and `tuiSafeWarn`. No new exported symbols.
+`buildDispatchText()` (extracted helper, S-02), `appendRow`, and `tuiSafeWarn`.
+
+**Exported test seam (constrained, post-review correction of the original
+"No new exported symbols" claim):** to drive the REAL hook path in the plugin
+test harness (F3 / Obs-4), three symbols are exported from the plugin and
+marked `@internal test-only seam`: `mintCapabilityToken`, `verifyCapabilityToken`,
+and `CAPABILITY_SECRET`. These are NOT a security control and do NOT change the
+gate's runtime behavior — the gate logic is unchanged. Trust-boundary rationale:
+the capability secret is `randomBytes(32)` generated PER PROCESS at plugin load,
+tokens are short-lived (5-min TTL), and plugins are TRUSTED code running inside
+the same process as the hook. Exporting these symbols therefore only widens
+token forgeability within the already-trusted plugin boundary (a test can mint a
+validly-signed no-scope token to assert the scope-leak rejection); it does not
+expose the secret outside the process or to untrusted callers. The
+`[CAPABILITY: ...]` marker contract and the `mint_capability` tool remain the
+public, orchestrator-only minting path.
 
 ## Risks / Trade-offs
 
