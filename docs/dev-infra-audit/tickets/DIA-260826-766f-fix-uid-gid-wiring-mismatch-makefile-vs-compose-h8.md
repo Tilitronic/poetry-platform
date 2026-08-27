@@ -6,7 +6,7 @@ id: DIA-260826-766f
 title: "fix UID/GID wiring mismatch Makefile vs compose (H8)"
 area: dev-infra
 severity: Major
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: DIA-260825-wprb
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
@@ -17,7 +17,7 @@ discovered: 2026-08-26
 source: inventory
 date: 2026-08-26
 created: 2026-08-26
-updated: 2026-08-26
+updated: 2026-08-27
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -60,18 +60,7 @@ host-runnable and does not need it).
 
 ## Fix
 
-Warning added in commit 07623ee8eae7a2b4c7ba41624840ad3c7a363532.
-
-scripts/compose-env.sh: in the engine-detection block, when a docker CLI is
-detected that is NOT a podman shim (readlink -f resolved path does not contain
-"podman") and COMPOSE_ENGINE is unset, print a stderr WARNING mentioning
-COMPOSE_ENGINE and default to docker. The helper stays docker-free: the probe
-uses only command -v + readlink -f, never invoking the daemon.
-
-This fixes the Fedora divergence: scripts/opencode-dev's `docker version` grep
-sees a Podman server behind a docker CLI, but the helper's readlink-only probe
-cannot, so it now warns (instead of silently defaulting) and the operator sets
-COMPOSE_ENGINE=podman explicitly.
+R-O4 applied (.env.example export comment); S-02 duplicated detection accepted as documented trade-off in design.md; S-03 global export optional/skipped; R-O1 tasks.md 4.2 verified; R-O2/R-O3 optional/skipped; SP-03 make test-config verified at runtime (Fedora Podman smoke 57/57). Feature complete.
 
 ## Re-verify
 
