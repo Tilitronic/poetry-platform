@@ -6,7 +6,7 @@ id: DIA-260825-lro1
 title: "Release task idempotency reservation after failed dispatch"
 area: opencode-config
 severity: Blocker
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: DIA-211
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
@@ -17,7 +17,7 @@ discovered: 2026-08-25
 source: fix-lane
 date: 2026-08-25
 created: 2026-08-25
-updated: 2026-08-25
+updated: 2026-08-27
 
 # --- Session Attribution (v2 schema, optional) ---
 
