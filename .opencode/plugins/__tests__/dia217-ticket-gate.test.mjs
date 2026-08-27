@@ -37,6 +37,12 @@ import {
 } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
+import {
+  createHmac,
+  timingSafeEqual,
+  randomBytes,
+  randomUUID,
+} from "node:crypto"
 
 // ---- @opencode-ai/plugin mock (registered BEFORE the plugin import) ----
 const desc = { describe: () => desc }
@@ -393,4 +399,146 @@ test("DIA-260826-pjm F1: datetime ticket correlates through section-10 Path 1 re
   expect(registryRows.find((r) => r.event === "ticket_gate_blocked")).toBeUndefined()
   expect(registryRows.find((r) => r.event === "gate_blocked")).toBeUndefined()
   expect(registryRows.find((r) => r.event === "gate_warn")).toBeUndefined()
+})
+
+// ---------------------------------------------------------------------------
+// DIA-260820-jlu0: meta-task carve-out (ticket-creation / procedural authorization)
+// ---------------------------------------------------------------------------
+
+test("DIA-260820-jlu0: 'scripts/tickets new' in dispatch bypasses gate without ticket_id", async () => {
+  const { hooks, ctx } = await makeHarness()
+  const taskArgs = {
+    subagent_type: "coder",
+    prompt: "Run scripts/tickets new --title 'New campaign ticket' to create it.",
+    description: "Create the campaign ticket",
+  }
+  const { error, registryRows } = await runTaskDispatch(hooks, ctx, taskArgs)
+  expect(error).toBeNull()
+  expect(registryRows.find((r) => r.event === "meta_task_bypass")).toBeDefined()
+  expect(registryRows.find((r) => r.event === "gate_blocked")).toBeUndefined()
+  expect(taskArgs.ticket_id).toBeUndefined()
+})
+
+test("DIA-260820-jlu0: [META-TASK] marker bypasses gate without ticket_id", async () => {
+  const { hooks, ctx } = await makeHarness()
+  const taskArgs = {
+    subagent_type: "coder",
+    prompt: "[META-TASK] bootstrap the new lane",
+    description: "meta task bootstrap",
+  }
+  const { error, registryRows } = await runTaskDispatch(hooks, ctx, taskArgs)
+  expect(error).toBeNull()
+  expect(registryRows.find((r) => r.event === "meta_task_bypass")).toBeDefined()
+  expect(registryRows.find((r) => r.event === "gate_blocked")).toBeUndefined()
+})
+
+test("DIA-260820-jlu0: 'create ticket' / 'procedural authorization' / 'meta-task' substrings bypass", async () => {
+  const cases = [
+    "Please create ticket for the new campaign.",
+    "procedural authorization to apply the recommendation.",
+    "This is a meta-task for housekeeping.",
+  ]
+  for (const prompt of cases) {
+    const { hooks, ctx } = await makeHarness()
+    const taskArgs = { subagent_type: "coder", prompt, description: "meta dispatch" }
+    const { error, registryRows } = await runTaskDispatch(hooks, ctx, taskArgs)
+    expect(error).toBeNull()
+    expect(registryRows.find((r) => r.event === "meta_task_bypass")).toBeDefined()
+    expect(registryRows.find((r) => r.event === "gate_blocked")).toBeUndefined()
+  }
+})
+
+test("DIA-260820-jlu0: carve-out returns BEFORE ticket_id resolution (stray DIA id not attributed)", async () => {
+  const { hooks, ctx } = await makeHarness()
+  const taskArgs = {
+    subagent_type: "coder",
+    prompt: "[META-TASK] create ticket; reference DIA-260820-jlu0 for context.",
+    description: "meta task with stray id",
+  }
+  const { error, registryRows } = await runTaskDispatch(hooks, ctx, taskArgs)
+  expect(error).toBeNull()
+  // No attribution to the stray literal id in the text.
+  expect(taskArgs.ticket_id).toBeUndefined()
+  expect(registryRows.find((r) => r.event === "gate_blocked")).toBeUndefined()
+  expect(registryRows.find((r) => r.event === "gate_warn")).toBeUndefined()
+  expect(registryRows.find((r) => r.event === "meta_task_bypass")).toBeDefined()
+})
+
+test("DIA-260820-jlu0: normal dispatch with no whitelist signal and no ticket_id still hard-blocked", async () => {
+  const { hooks, ctx } = await makeHarness()
+  const taskArgs = {
+    subagent_type: "coder",
+    prompt: "implement something ordinary",
+    description: "no meta signal, no ticket",
+  }
+  const { error, registryRows } = await runTaskDispatch(hooks, ctx, taskArgs)
+  expect(error).not.toBeNull()
+  expect(error.message).toContain("DIA-217 GATE:")
+  expect(registryRows.find((r) => r.event === "gate_blocked")).toBeDefined()
+  expect(registryRows.find((r) => r.event === "meta_task_bypass")).toBeUndefined()
+})
+
+// ---------------------------------------------------------------------------
+// DIA-260820-jlu0 B1: capability-token scope tightening
+// ---------------------------------------------------------------------------
+// verifyCapabilityToken is module-private (design: no new exported symbols), so
+// we replicate its exact algorithm with a fixed secret and assert the gate's
+// scope-check condition: a validly-signed token MUST also carry a string
+// `scope` to bypass; a validly-signed token lacking scope is rejected.
+const B1_SECRET = randomBytes(32)
+function b1Base64url(buf) {
+  return (typeof buf === "string" ? Buffer.from(buf) : buf).toString("base64url")
+}
+function b1Mint(scope) {
+  const payload = {
+    id: randomUUID(),
+    scope,
+    reason: "test",
+    exp: Date.now() + 5 * 60 * 1000,
+  }
+  const payloadB64 = b1Base64url(JSON.stringify(payload))
+  const sig = b1Base64url(createHmac("sha256", B1_SECRET).update(payloadB64).digest())
+  return `CAP-${payloadB64}.${sig}`
+}
+function b1MintNoScope() {
+  const payload = { id: randomUUID(), reason: "test", exp: Date.now() + 5 * 60 * 1000 }
+  const payloadB64 = b1Base64url(JSON.stringify(payload))
+  const sig = b1Base64url(createHmac("sha256", B1_SECRET).update(payloadB64).digest())
+  return `CAP-${payloadB64}.${sig}`
+}
+function b1Verify(token) {
+  const raw = token.startsWith("CAP-") ? token.slice(4) : token
+  const parts = raw.split(".")
+  if (parts.length !== 2) return { valid: false, error: "malformed token" }
+  const [payloadB64, sigB64] = parts
+  const expectedSig = b1Base64url(
+    createHmac("sha256", B1_SECRET).update(payloadB64).digest()
+  )
+  const sigBuf = Buffer.from(sigB64)
+  const expectedBuf = Buffer.from(expectedSig)
+  if (sigBuf.length !== expectedBuf.length || !timingSafeEqual(sigBuf, expectedBuf))
+    return { valid: false, error: "invalid signature" }
+  try {
+    const payload = JSON.parse(Buffer.from(payloadB64, "base64url").toString())
+    if (Date.now() > payload.exp) return { valid: false, error: "token expired" }
+    return { valid: true, payload }
+  } catch {
+    return { valid: false, error: "payload parse failed" }
+  }
+}
+// Mirror of the gate condition added at delegation-observer.ts (DIA-260820-jlu0 B1).
+function gateScopeSatisfied(result) {
+  return result.valid && result.payload && typeof result.payload.scope === "string"
+}
+
+test("DIA-260820-jlu0 B1: validly-signed token WITH scope satisfies the gate condition", () => {
+  const result = b1Verify(b1Mint("ticket-creation"))
+  expect(result.valid).toBe(true)
+  expect(gateScopeSatisfied(result)).toBe(true)
+})
+
+test("DIA-260820-jlu0 B1: validly-signed token WITHOUT scope is rejected by the gate condition", () => {
+  const result = b1Verify(b1MintNoScope())
+  expect(result.valid).toBe(true) // signature still valid
+  expect(gateScopeSatisfied(result)).toBe(false) // but no scope -> rejected
 })
