@@ -648,7 +648,7 @@
     "cebula-hy3": {
       "orchestrator": {
         "model": [
-          { "id": "opencode/hy3-free", "variant": "medium" },
+          { "id": "opencode-go/hy3", "variant": "medium" },
           { "id": "opencode-go/hy3", "variant": "high" },
           { "id": "opencode-go/deepseek-v4-flash", "variant": "high" }
         ],
@@ -683,7 +683,7 @@
       },
       "openspec-plan": {
         "model": [
-          { "id": "opencode/hy3-free", "variant": "high" },
+          { "id": "opencode-go/hy3", "variant": "high" },
           "opencode-go/qwen3.7-plus",
           "opencode/big-pickle"
         ],
@@ -702,7 +702,7 @@
       },
       "coder": {
         "model": [
-          { "id": "opencode/hy3-free", "variant": "medium" },
+          { "id": "opencode-go/hy3", "variant": "medium" },
           { "id": "opencode-go/hy3", "variant": "high" },
           "opencode/mimo-v2.5-free"
         ],
@@ -743,11 +743,11 @@
       },
       "conspecter": {
         "model": [
-          { "id": "opencode/hy3-free", "variant": "low" },
+          { "id": "opencode-go/hy3", "variant": "medium" },
           { "id": "opencode-go/hy3", "variant": "low" },
           "opencode/mimo-v2.5-free"
         ],
-        "variant": "low",
+        "variant": "medium",
         "mcps": [],
         "temperature": 0.1
       },
@@ -841,11 +841,11 @@
       },
       "resource-manager": {
         "model": [
-          { "id": "opencode/hy3-free", "variant": "low" },
+          { "id": "opencode/mimo-v2.5-free", "variant": "medium" },
           { "id": "opencode-go/hy3", "variant": "low" },
           "opencode/mimo-v2.5-free"
         ],
-        "variant": "low",
+        "variant": "medium",
         "skills": [],
         "mcps": [
           "websearch"
@@ -853,11 +853,11 @@
       },
       "memory-manager": {
         "model": [
-          { "id": "opencode/hy3-free", "variant": "low" },
+          { "id": "opencode/mimo-v2.5-free", "variant": "medium" },
           { "id": "opencode-go/hy3", "variant": "low" },
           "opencode/mimo-v2.5-free"
         ],
-        "variant": "low",
+        "variant": "medium",
         "skills": [
           "git-diff"
         ],
@@ -866,17 +866,17 @@
       },
       "code-navigator": {
         "model": [
-          { "id": "opencode/hy3-free", "variant": "low" },
+          { "id": "opencode/mimo-v2.5-free", "variant": "medium" },
           { "id": "opencode-go/hy3", "variant": "low" },
           "opencode/mimo-v2.5-free"
         ],
-        "variant": "low",
+        "variant": "medium",
         "skills": [],
         "mcps": []
       },
       "researcher": {
         "model": [
-          { "id": "opencode/hy3-free", "variant": "medium" },
+          { "id": "opencode-go/hy3", "variant": "medium" },
           "opencode-go/qwen3.7-plus",
           "opencode/big-pickle"
         ],
