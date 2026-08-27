@@ -759,7 +759,6 @@ shelf:
     path: knowledge/ana001-ponytail-repo-over-engineering-audit/ana001-ponytail-repo-over-engineering-audit-report.md
     created: 2026-08-27
     task_ref: DIA-260827-15xv
-    lane: analyzer-escalated
   - name: Artifact-Format EBDV (DIA-194)
     description: "DIA-115-compliant EBDV re-articulation of ana026 focused on the single flagship conversion candidate (CHANGELOG.md -> YAML ledger + derived MD view): consumer impact, Deliverable-A infrastructure reuse, token-economy evidence, rollback/committability constraints. Developer disposition binding: analysis first, then decision - EBDV matrix only, no conversion applied. Read-only analysis."
     path: knowledge/ana024-artifact-format-ebdv/ana024-artifact-format-ebdv-report.md
