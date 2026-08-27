@@ -56,7 +56,15 @@ if is_in_dev_container; then
   echo "== poetry-platform pre-commit: running inside dev container =="
 else
   if ! container_running; then
-    echo "!! dev container not running — start with 'make up', then commit again." >&2
+    # DIA-260821-aoag: distinguish "inside opencode-docker without the engine
+    # socket" (developer forgot --with-engine) from "on the host with the stack
+    # down". Both make `docker compose ps` fail, but the remediation differs.
+    # The OPENCODE_DOCKER sentinel is exported by the launcher for every run.
+    if [ "${OPENCODE_DOCKER:-}" = "1" ]; then
+      echo "!! Container engine socket not mounted. Relaunch opencode-docker with --with-engine to enable in-container git hooks / docker compose." >&2
+    else
+      echo "!! dev container not running — start with 'make up', then commit again." >&2
+    fi
     exit 1
   fi
   echo "== poetry-platform pre-commit: delegating to dev container =="

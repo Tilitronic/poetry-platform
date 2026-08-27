@@ -10,6 +10,7 @@
 #   -m, --memory        Set memory limit (default: 4g, e.g., -m 8g)
 #   -c, --cpus          Set CPU count (default: 4, e.g., -c 8)
 #   -S, --serve         Run `opencode serve` instead of the TUI, publishing 127.0.0.1:4096
+#   -E, --with-engine   Mount the host container engine socket read-only into the container (opt-in, default off)
 
 set -e
 
@@ -67,6 +68,12 @@ EXTRA_ENV=()
 MEMORY_LIMIT="${MEMORY_LIMIT:-4g}"
 CPU_LIMIT="${CPU_LIMIT:-4}"
 SERVE_MODE=0
+WITH_ENGINE=0
+# Sentinel: always exported so in-container hooks (e.g. verify-pre-commit.sh)
+# can tell "inside opencode-docker" from "on the host" — both make
+# `docker compose ps` fail when the engine socket is absent, but the remediation
+# differs (relaunch with --with-engine vs `make up`). DIA-260821-aoag.
+EXTRA_ENV+=("-e" "OPENCODE_DOCKER=1")
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -93,6 +100,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         -S|--serve)
             SERVE_MODE=1
+            shift
+            ;;
+        -E|--with-engine)
+            WITH_ENGINE=1
             shift
             ;;
         *)
@@ -138,8 +149,12 @@ fi
 # inside the container (pre-commit hook delegation, DIA-121). Rootless podman
 # socket = the host user's own containers only, NOT host root. Mount target
 # pre-exists in the image (Dockerfile touch) because podman cannot create a
-# mountpoint on a --read-only rootfs. No socket -> warn but still launch
-# (opencode itself works without docker; only commit hooks need it).
+# mountpoint on a --read-only rootfs.
+# SECURITY (DIA-260821-aoag): the socket is mounted OPT-IN only — default OFF.
+# An always-mounted engine socket is a least-privilege violation: any code
+# running inside opencode-docker gains API authority over the host's
+# containers. Pass -E/--with-engine to mount it. No socket -> warn but still
+# launch (opencode itself works without docker; only commit hooks need it).
 # SELinux enforcing hosts: ':z' alone is insufficient - podman relabels the
 # socket to container_file_t:s0 (fixes stat) but container_t still lacks
 # connectto on a container_file_t SOCKET, so docker API calls fail with
@@ -148,19 +163,23 @@ fi
 # (runs the container without SELinux confinement; acceptable trade-off:
 # non-root uid 1000, read-only rootfs, --cap-drop ALL, no added privileges).
 SOCKET_MOUNT=()
-for sock in \
-    "${XDG_RUNTIME_DIR:-}/podman/podman.sock" \
-    "/run/user/$(id -u)/podman/podman.sock" \
-    "/var/run/docker.sock"
-do
-    if [ -S "$sock" ]; then
-        SOCKET_MOUNT=(-v "$sock:/var/run/docker.sock:ro")
-        EXTRA_ENV+=("-e" "DOCKER_HOST=unix:///var/run/docker.sock")
-        break
-    fi
-done
-if [ ${#SOCKET_MOUNT[@]} -eq 0 ]; then
-    echo "Warning: container socket not found - pre-commit hooks delegating to dev container will not work; start podman/docker and relaunch" >&2
+if [ "$WITH_ENGINE" = 1 ]; then
+  for sock in \
+      "${XDG_RUNTIME_DIR:-}/podman/podman.sock" \
+      "/run/user/$(id -u)/podman/podman.sock" \
+      "/var/run/docker.sock"
+  do
+      if [ -S "$sock" ]; then
+          SOCKET_MOUNT=(-v "$sock:/var/run/docker.sock:ro")
+          EXTRA_ENV+=("-e" "DOCKER_HOST=unix:///var/run/docker.sock")
+          break
+      fi
+  done
+  if [ ${#SOCKET_MOUNT[@]} -eq 0 ]; then
+      echo "Warning: --with-engine set but no container engine socket found - start podman/docker and relaunch" >&2
+  fi
+else
+  echo "Warning: container engine socket NOT mounted (default-off). In-container 'docker compose' and git pre-commit hooks that delegate to the dev container require it - relaunch opencode-docker with --with-engine to enable." >&2
 fi
 
 # Forward the host SSH agent socket read-only so `git push` to SSH remotes

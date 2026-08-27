@@ -325,15 +325,56 @@ teardown() {
   assert_run_not_contains "gcr/ssh:/tmp/ssh-agent.sock"
 }
 
-@test "ssh-agent-forward: 10 no regression - docker socket SOCKET_MOUNT intact" {
-  # the existing docker-socket loop (DIA-121) must keep working unchanged:
-  # the SSH_MOUNT addition must not touch it
+@test "ssh-agent-forward: 10 no regression - docker socket SOCKET_MOUNT intact (with --with-engine)" {
+  # the existing docker-socket loop (DIA-121) must keep working unchanged WHEN
+  # the opt-in flag is passed (DIA-260821-aoag made the mount default-off).
+  local docker_sock="$XDG_RUNTIME_DIR/podman/podman.sock"
+  require_fake_socket "$docker_sock"
+
+  run bash "$WRAPPER" --with-engine
+
+  assert_status 0
+  assert_run_contains "-v $docker_sock:/var/run/docker.sock:ro"
+  assert_run_contains "-e DOCKER_HOST=unix:///var/run/docker.sock"
+}
+
+# ---------------------------------------------------------------------------
+# DIA-260821-aoag: engine socket is OPT-IN (default off). These cases prove the
+# launcher mounts the socket ONLY with --with-engine and always exports the
+# OPENCODE_DOCKER=1 sentinel so in-container hooks can tell contexts apart.
+# ---------------------------------------------------------------------------
+
+@test "socket-opt-in: default-off - engine socket NOT mounted without --with-engine" {
+  # a real socket exists, but the launcher must NOT mount it unless opted in
   local docker_sock="$XDG_RUNTIME_DIR/podman/podman.sock"
   require_fake_socket "$docker_sock"
 
   run bash "$WRAPPER"
 
   assert_status 0
+  assert_run_not_contains "/var/run/docker.sock:ro"
+  assert_run_not_contains "DOCKER_HOST=unix:///var/run/docker.sock"
+  # the startup warning must point the developer at the opt-in flag
+  assert_output_contains "--with-engine"
+}
+
+@test "socket-opt-in: --with-engine mounts the engine socket read-only + sets DOCKER_HOST" {
+  local docker_sock="$XDG_RUNTIME_DIR/podman/podman.sock"
+  require_fake_socket "$docker_sock"
+
+  run bash "$WRAPPER" --with-engine
+
+  assert_status 0
   assert_run_contains "-v $docker_sock:/var/run/docker.sock:ro"
   assert_run_contains "-e DOCKER_HOST=unix:///var/run/docker.sock"
+}
+
+@test "socket-opt-in: sentinel OPENCODE_DOCKER=1 always exported (both modes)" {
+  run bash "$WRAPPER"
+  assert_status 0
+  assert_run_contains "-e OPENCODE_DOCKER=1"
+
+  run bash "$WRAPPER" --with-engine
+  assert_status 0
+  assert_run_contains "-e OPENCODE_DOCKER=1"
 }

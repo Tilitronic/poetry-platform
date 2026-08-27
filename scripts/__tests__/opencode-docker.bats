@@ -149,3 +149,14 @@ setup_isolated() {
     return 1
   fi
 }
+
+@test "opencode-docker wrapper: --with-engine opt-in flag and OPENCODE_DOCKER sentinel present (DIA-260821-aoag)" {
+  # Static-grep assertion (Q7 convention — no docker run): the engine socket
+  # mount is opt-in (default off). The wrapper MUST expose the -E/--with-engine
+  # flag and always export the OPENCODE_DOCKER=1 sentinel so in-container hooks
+  # can distinguish "inside opencode-docker" from "on the host". Behavioral
+  # gating is covered in ssh-agent-forward.bats; this guards the contract text.
+  local wrapper="$REPO_ROOT/tools/opencode-docker/bin/opencode-docker"
+  assert_file_contains "$wrapper" "--with-engine"
+  assert_file_contains "$wrapper" "OPENCODE_DOCKER=1"
+}

@@ -144,3 +144,31 @@ FAKELS
   run grep -F 'guard_no_home_qualt()' "$SCRIPTS_DIR/verify-pre-commit.sh"
   assert_status 1
 }
+
+# ---------------------------------------------------------------------------
+# DIA-260821-aoag: when the engine socket is absent INSIDE opencode-docker the
+# hook must fail with --with-engine guidance (not the misleading "make up"
+# message). The OPENCODE_DOCKER=1 sentinel (exported by the launcher) is the
+# signal; the host-down path (no sentinel) keeps the original message.
+# ---------------------------------------------------------------------------
+
+@test "verify-pre-commit: inside opencode-docker without engine socket fails with --with-engine guidance" {
+  export OPENCODE_DOCKER=1
+  # FAKE_DOCKER_SERVICES empty -> container_running false (socket unreachable)
+
+  run bash "$SCRIPTS_DIR/verify-pre-commit.sh"
+
+  assert_status 1
+  assert_output_contains "--with-engine"
+}
+
+@test "verify-pre-commit: host-down path unchanged (no sentinel -> make up guidance, no --with-engine)" {
+  # no OPENCODE_DOCKER sentinel; container down -> original message only
+  export FAKE_DOCKER_SERVICES="postgres"
+
+  run bash "$SCRIPTS_DIR/verify-pre-commit.sh"
+
+  assert_status 1
+  assert_output_contains "dev container not running"
+  assert_output_not_contains "--with-engine"
+}

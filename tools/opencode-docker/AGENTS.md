@@ -24,6 +24,14 @@ Optional: `ssh-add -c` (confirmation-per-use) makes the host agent prompt for a 
 
 Note: `poetry-dev` does NOT need SSH agent forwarding (its delegated gates are make/pnpm only).
 
+## Host Container Socket Access (opt-in, `--with-engine`)
+
+The wrapper mounts the host's container engine socket read-only into the container ONLY when launched with `-E` / `--with-engine` (DIA-260821-aoag). Default is OFF: an always-mounted engine socket is a least-privilege violation — any code inside opencode-docker would gain API authority over the host's containers. With `--with-engine` the socket is mounted `:ro` at `/var/run/docker.sock` and `DOCKER_HOST` is set, so in-container `docker compose` (e.g. the poetry-platform pre-commit hook delegating to its dev container) works. Without it, the wrapper launches without the socket and warns that in-container `docker compose` / git hooks need `--with-engine`.
+
+The launcher always exports `OPENCODE_DOCKER=1` into the container (independent of the socket flag) so in-container hooks can tell "inside opencode-docker" from "on the host": when the engine socket is absent inside opencode-docker, the pre-commit hook fails with the exact remediation ("relaunch opencode-docker with --with-engine") instead of the misleading "dev container not running — start with 'make up'".
+
+Security model (unchanged when mounted): the socket is `:ro` with no added capabilities; the container runs with `--security-opt label=disable` so the socket is functional on SELinux enforcing hosts (the `:z` relabel alone is insufficient — podman relabels the socket to `container_file_t:s0` but `container_t` still lacks connectto on it). label=disable is an accepted trade-off mitigated by non-root UID 1000, read-only rootfs, and `--cap-drop ALL`. Rootless Podman = the host user's own containers only, NOT host root; this wrapper only auto-mounts the user-level socket (a rootful Docker socket would be host-root-equivalent).
+
 ## Debian 13 slim runtime
 
 Final image is `debian:13-slim` with **Playwright (chromium)** and **crawl4ai**:
