@@ -29,6 +29,15 @@ container_running() {
   docker compose -f "$ROOT/docker-compose.yml" ps --services --status running 2>/dev/null | grep -qx "dev"
 }
 
+# engine_socket_reachable: probe the container engine directly. `docker info`
+# exits non-zero when no socket is reachable (engine down / socket not mounted)
+# and succeeds when a socket exists even if no services are running. Used by the
+# pre-commit guard to distinguish "engine socket unavailable" from "compose
+# stack is down" (DIA-260821-aoag) so the remediation message is precise.
+engine_socket_reachable() {
+  docker info >/dev/null 2>&1
+}
+
 # run_workspace <command string>: executes <command> from the workspace root in
 # the right context — directly inside the container, or delegated on the host.
 run_workspace() {
@@ -56,12 +65,15 @@ if is_in_dev_container; then
   echo "== poetry-platform pre-commit: running inside dev container =="
 else
   if ! container_running; then
-    # DIA-260821-aoag: distinguish "inside opencode-docker without the engine
-    # socket" (developer forgot --with-engine) from "on the host with the stack
-    # down". Both make `docker compose ps` fail, but the remediation differs.
-    # The OPENCODE_DOCKER sentinel is exported by the launcher for every run.
-    if [ "${OPENCODE_DOCKER:-}" = "1" ]; then
-      echo "!! Container engine socket not mounted. Relaunch opencode-docker with --with-engine to enable in-container git hooks / docker compose." >&2
+    # DIA-260821-aoag: separate "engine socket unavailable" from "compose stack
+    # is down" so the remediation is precise. Inside opencode-docker the engine
+    # socket may be absent (developer forgot --with-engine); on the host the
+    # stack may simply be down. Probe the engine directly: `docker info` fails
+    # when no socket is reachable, succeeds when a socket exists even if no
+    # services are running. The OPENCODE_DOCKER sentinel is exported by the
+    # launcher for every run.
+    if [ "${OPENCODE_DOCKER:-}" = "1" ] && ! engine_socket_reachable; then
+      echo "!! Container engine socket not mounted. Relaunch opencode-docker with --with-engine (or start the container engine) to enable in-container git hooks / docker compose." >&2
     else
       echo "!! dev container not running — start with 'make up', then commit again." >&2
     fi

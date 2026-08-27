@@ -154,7 +154,9 @@ FAKELS
 
 @test "verify-pre-commit: inside opencode-docker without engine socket fails with --with-engine guidance" {
   export OPENCODE_DOCKER=1
-  # FAKE_DOCKER_SERVICES empty -> container_running false (socket unreachable)
+  # FAKE_DOCKER_DAEMON_UP=no -> `docker info` fails (engine socket unreachable),
+  # so engine_socket_reachable is false -> --with-engine remediation.
+  export FAKE_DOCKER_DAEMON_UP=no
 
   run bash "$SCRIPTS_DIR/verify-pre-commit.sh"
 
@@ -164,6 +166,20 @@ FAKELS
 
 @test "verify-pre-commit: host-down path unchanged (no sentinel -> make up guidance, no --with-engine)" {
   # no OPENCODE_DOCKER sentinel; container down -> original message only
+  export FAKE_DOCKER_SERVICES="postgres"
+
+  run bash "$SCRIPTS_DIR/verify-pre-commit.sh"
+
+  assert_status 1
+  assert_output_contains "dev container not running"
+  assert_output_not_contains "--with-engine"
+}
+
+@test "verify-pre-commit: inside opencode-docker with engine socket but dev service down -> make up guidance" {
+  export OPENCODE_DOCKER=1
+  # FAKE_DOCKER_DAEMON_UP default yes -> `docker info` succeeds (socket
+  # reachable); FAKE_DOCKER_SERVICES=postgres -> dev service not running. The
+  # socket IS available, so the remedy is `make up`, NOT --with-engine.
   export FAKE_DOCKER_SERVICES="postgres"
 
   run bash "$SCRIPTS_DIR/verify-pre-commit.sh"

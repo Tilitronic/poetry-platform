@@ -91,8 +91,20 @@ Governing constraints:
    - Test seam: reuse `mock_docker` + fake hostname; set `OPENCODE_DOCKER=1` and make `docker compose ps` fail -> assert exit 1 + message contains `--with-engine`. Host-down path (no sentinel) asserts unchanged `make up` message.
 
 3. **Test files** (reused harness, no new harness):
-   - `scripts/__tests__/opencode-docker.bats`: new launcher-gating cases (mocked podman, mocked sockets).
+   - `scripts/__tests__/opencode-docker.bats`: static contract assertion that the wrapper exposes `--with-engine` and exports `OPENCODE_DOCKER=1` (fits this file's static-integrity style).
    - `scripts/__tests__/verify-pre-commit.bats`: new hook-guard cases (mocked docker, sentinel set).
+
+   **Test-placement deviation (accepted, DIA-260821-aoag review F5):** the
+   behavioral launcher-gating cases (default-off no mount, `--with-engine`
+   mounts `:ro` + `DOCKER_HOST`, sentinel always exported) live in
+   `scripts/__tests__/ssh-agent-forward.bats`, NOT `opencode-docker.bats` as
+   tasks.md 3.1 literally named. Rationale: `opencode-docker.bats` tests
+   `check-opencode-docker.sh`, not the wrapper; the wrapper-testing infra
+   (`mock_podman`, `run_line`, `assert_run_contains`) already lives in
+   `ssh-agent-forward.bats`. Placing the cases there reuses the existing helper
+   (ponytail ladder rung 2 — reuse before writing) instead of duplicating the
+   mock. `ssh-agent-forward.bats` test 10 was also updated to pass
+   `--with-engine` because it asserted the old unconditional-mount contract.
 
 **Test seams summary:** mocked `podman`/`docker` + mocked socket files in temp dirs; host-runnable; wired into `make test-shell` (already covers these bats files). No new test infrastructure in `tools/opencode-docker` (its Makefile only builds the image).
 

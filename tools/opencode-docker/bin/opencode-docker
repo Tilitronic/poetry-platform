@@ -12,7 +12,7 @@
 #   -S, --serve         Run `opencode serve` instead of the TUI, publishing 127.0.0.1:4096
 #   -E, --with-engine   Mount the host container engine socket read-only into the container (opt-in, default off)
 
-set -e
+set -euo pipefail
 
 # Pre-flight checks — fail fast before touching filesystem
 if ! command -v podman &>/dev/null; then

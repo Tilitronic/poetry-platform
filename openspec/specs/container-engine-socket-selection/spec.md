@@ -36,12 +36,31 @@ The first socket found SHALL be used for all container engine operations.
 - **THEN** launcher uses system Docker socket for container engine operations
 - **AND** launcher emits warning: "System Docker socket provides full API access to all containers in the system. Please migrate to rootless Podman."
 
-#### Scenario: No socket found
+#### Scenario: --with-engine requested but no socket found
 
-- **WHEN** no rootless Podman socket is found
+- **WHEN** `--with-engine` flag is passed
+- **AND** no rootless Podman socket is found
 - **AND** no system Docker socket is found
-- **THEN** launcher emits warning: "No container engine socket found. In-container git operations will not work."
-- **AND** launcher continues execution (git operations will fail)
+- **THEN** launcher emits warning that the engine socket was requested but is unavailable (e.g. "Container engine socket not mounted (default-off). In-container 'docker compose' and git pre-commit hooks that delegate to the dev container require it - relaunch opencode-docker with --with-engine to enable.")
+- **AND** launcher continues execution (opencode works without docker; only commit hooks need it)
+
+### Requirement: Engine socket opt-in (default off)
+
+The launcher SHALL NOT mount the host container engine socket unless the `-E` / `--with-engine` flag is passed. Engine access is deliberately disabled by default (this is not an error condition) to enforce least privilege: an always-mounted engine socket would let any code inside opencode-docker gain API authority over the host's containers.
+
+#### Scenario: No --with-engine flag (default)
+
+- **WHEN** `--with-engine` flag is NOT passed
+- **THEN** launcher does NOT probe for any container engine socket
+- **AND** launcher emits a warning that engine access is deliberately disabled (not an error) and that in-container `docker compose` / git pre-commit hooks require `--with-engine`
+- **AND** launcher continues execution
+
+#### Scenario: --with-engine requested, socket found
+
+- **WHEN** `--with-engine` flag is passed
+- **AND** a rootless Podman or system Docker socket is found (per the probe order above)
+- **THEN** launcher mounts the socket read-only and sets `DOCKER_HOST` (existing probe-order behavior preserved)
+- **AND** launcher always exports the `OPENCODE_DOCKER=1` sentinel so in-container hooks can distinguish opencode-docker from the host
 
 ### Requirement: Podman socket failure handling
 
