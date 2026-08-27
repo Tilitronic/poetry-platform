@@ -57,6 +57,7 @@ fi
 
 python3 - "${SHELF_FILE}" "${SCHEMA_FILE}" <<'PYEOF'
 import datetime
+import os
 import re
 import sys
 
@@ -185,6 +186,35 @@ except Exception as exc:  # yaml.ScannerError, IOError, ...
     print("FAIL: YAML parse error in %s: %s" % (shelf_path, " ".join(str(exc).split())))
     print("0 passed, 1 failed")
     sys.exit(1)
+
+# Soft staleness warning (DIA-260826-7qmt): a knowledge/ artifact directory
+# on disk that no shelf entry references degrades discovery but is not a
+# shape violation, so it only warns - the exit code stays 0.
+registered = []
+
+
+def collect_paths(value):
+    if isinstance(value, dict):
+        for key, v in value.items():
+            if key == "path" and isinstance(v, str):
+                registered.append(v)
+            else:
+                collect_paths(v)
+    elif isinstance(value, list):
+        for v in value:
+            collect_paths(v)
+
+
+collect_paths(doc)
+knowledge_dir = os.path.join(os.path.dirname(os.path.abspath(shelf_path)), "..", "knowledge")
+if os.path.isdir(knowledge_dir):
+    # ponytail: substring match of dir name against registered path strings;
+    # upgrade to normalized exact-prefix matching if false negatives appear.
+    for entry in sorted(os.listdir(knowledge_dir)):
+        if entry == "archive" or not os.path.isdir(os.path.join(knowledge_dir, entry)):
+            continue
+        if not any(entry in path for path in registered):
+            print("warn: disk artifact not registered in shelf: knowledge/%s" % entry)
 
 try:
     import jsonschema  # noqa: F401

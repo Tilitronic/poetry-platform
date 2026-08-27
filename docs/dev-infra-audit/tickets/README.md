@@ -216,13 +216,18 @@
 | DIA-260825-wprb | repo-wide ponytail over-engineering audit | scripts | Medium | OPEN | [DIA-260825-wprb-repo-wide-ponytail-over-engineering-audit.md](DIA-260825-wprb-repo-wide-ponytail-over-engineering-audit.md) |
 | DIA-260826-6mhy | measure data-reducer effectiveness after wiring into analyzer conspecter prompts | opencode-config | Low | OPEN | [DIA-260826-6mhy-measure-data-reducer-effectiveness-after-wiring-into-analyzer-conspecter-prompts.md](DIA-260826-6mhy-measure-data-reducer-effectiveness-after-wiring-into-analyzer-conspecter-prompts.md) |
 | DIA-260826-766f | fix UID/GID wiring mismatch Makefile vs compose (H8) | dev-infra | Major | OPEN | [DIA-260826-766f-fix-uid-gid-wiring-mismatch-makefile-vs-compose-h8.md](DIA-260826-766f-fix-uid-gid-wiring-mismatch-makefile-vs-compose-h8.md) |
+| DIA-260826-7qmt | memory shelf staleness audit - review outdated lessons memories analyses for cleanup | scripts | Medium | OPEN | [DIA-260826-7qmt-memory-shelf-staleness-audit-review-outdated-lessons-memories-analyses-for-cleanup.md](DIA-260826-7qmt-memory-shelf-staleness-audit-review-outdated-lessons-memories-analyses-for-cleanup.md) |
+| DIA-260826-ex7w | permanent skills-array reference validator for oh-my-opencode-slim presets | opencode-config | Medium | OPEN | [DIA-260826-ex7w-permanent-skills-array-reference-validator-for-oh-my-opencode-slim-presets.md](DIA-260826-ex7w-permanent-skills-array-reference-validator-for-oh-my-opencode-slim-presets.md) |
 | DIA-260826-ft3q | audit prompt injection vectors and plugin trust boundaries | opencode-config | Major | OPEN | [DIA-260826-ft3q-audit-prompt-injection-vectors-and-plugin-trust-boundaries.md](DIA-260826-ft3q-audit-prompt-injection-vectors-and-plugin-trust-boundaries.md) |
 | DIA-260826-jcte | remove plugin autonomous force worktree removal (C3) | delegation-observer | Critical | OPEN | [DIA-260826-jcte-remove-plugin-autonomous-force-worktree-removal-c3.md](DIA-260826-jcte-remove-plugin-autonomous-force-worktree-removal-c3.md) |
 | DIA-260826-pjm | fix datetime ticket ID parsing in observer gates (C1) | delegation-observer | Critical | VALIDATE | [DIA-260826-pjm-fix-datetime-ticket-id-parsing-in-observer-gates-c1.md](DIA-260826-pjm-fix-datetime-ticket-id-parsing-in-observer-gates-c1.md) |
+| DIA-260826-spu5 | cebula-openai-hy3 preset variant-priority tuning (12 lanes; reviewer to hy3 high) | opencode-config | Medium | OPEN | [DIA-260826-spu5-cebula-openai-hy3-preset-variant-priority-tuning-12-lanes-reviewer-to-hy3-high.md](DIA-260826-spu5-cebula-openai-hy3-preset-variant-priority-tuning-12-lanes-reviewer-to-hy3-high.md) |
 | DIA-260826-u27h | make shell runs non-login bash so secrets profile hook never fires (H5 refined) | dev-infra | Major | OPEN | [DIA-260826-u27h-make-shell-runs-non-login-bash-so-secrets-profile-hook-never-fires-h5-refined.md](DIA-260826-u27h-make-shell-runs-non-login-bash-so-secrets-profile-hook-never-fires-h5-refined.md) |
 | DIA-260826-uovr | audit MCP server security permissions and usage in opencode setup | opencode-config | Major | OPEN | [DIA-260826-uovr-audit-mcp-server-security-permissions-and-usage-in-opencode-setup.md](DIA-260826-uovr-audit-mcp-server-security-permissions-and-usage-in-opencode-setup.md) |
 | DIA-260826-uozv | sync OMO pin in opencode-docker config to project version (H4) | opencode-config | Major | OPEN | [DIA-260826-uozv-sync-omo-pin-in-opencode-docker-config-to-project-version-h4.md](DIA-260826-uozv-sync-omo-pin-in-opencode-docker-config-to-project-version-h4.md) |
-| DIA-260826-zvu4 | exempt verification-only coder dispatches from SILENT_FAILURE detection (H1) | delegation-observer | Major | OPEN | [DIA-260826-zvu4-exempt-verification-only-coder-dispatches-from-silent-failure-detection-h1.md](DIA-260826-zvu4-exempt-verification-only-coder-dispatches-from-silent-failure-detection-h1.md) |
+| DIA-260826-xu8o | Add explicit Ox Alpha Free provider catalog overlay | opencode-config | Major | CLOSED | [DIA-260826-xu8o-add-explicit-ox-alpha-free-provider-catalog-overlay.md](DIA-260826-xu8o-add-explicit-ox-alpha-free-provider-catalog-overlay.md) |
+| DIA-260826-zvu4 | exempt verification-only coder dispatches from SILENT_FAILURE detection (H1) | delegation-observer | Major | VALIDATE | [DIA-260826-zvu4-exempt-verification-only-coder-dispatches-from-silent-failure-detection-h1.md](DIA-260826-zvu4-exempt-verification-only-coder-dispatches-from-silent-failure-detection-h1.md) |
+| DIA-260827-qc59 | add OpenAI-free cebula HY3 preset with role-based reasoning | opencode-config | Medium | OPEN | [DIA-260827-qc59-add-openai-free-cebula-hy3-preset-with-role-based-reasoning.md](DIA-260827-qc59-add-openai-free-cebula-hy3-preset-with-role-based-reasoning.md) |
 
 ## Status summary
 
@@ -230,8 +235,8 @@
 | -------- | ----- |
 | Blocker  | 9     |
 | Critical | 12    |
-| Major    | 67    |
-| Medium   | 110   |
+| Major    | 68    |
+| Medium   | 114   |
 | Minor    | 0     |
 | Low      | 21    |
 | Info     | 1     |
@@ -239,16 +244,16 @@
 
 | Status      | Count |
 | ----------- | ----- |
-| OPEN        | 57    |
+| OPEN        | 60    |
 | DONE        | 11    |
-| VALIDATE    | 1     |
+| VALIDATE    | 2     |
 | E2E         | 0     |
 | DEFERRED    | 1     |
 | MONITOR     | 1     |
 | FIXED       | 1     |
 | IMPLEMENTED | 2     |
 | VERIFIED    | 28    |
-| CLOSED      | 118   |
+| CLOSED      | 119   |
 | BLOCKED     | 0     |
 | DISPATCHED  | 0     |
 | RUNNING     | 0     |

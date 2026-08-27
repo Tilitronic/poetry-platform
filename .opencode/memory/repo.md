@@ -16,7 +16,13 @@ Note: These are navigational facts to help future humans find the infra/test art
 
 - Model context-window authoritative source (2026-08-03): do NOT rely on NEXT-RUN.md's static table as a primary source for model context windows. During the "dia-redispatch-cycle" campaign we discovered that the NEXT-RUN.md lookup listed `deepseek-v4-flash` as 64,000 tokens (this was the V3 value). The correct, upstream context window for deepseek-v4-flash is 1,000,000 tokens (verified via models.dev, DeepSeek official docs, HF model card, and arXiv:2606.19348). Models.dev should be consulted as the authoritative catalog for model context limits when making operational handoff/threshold decisions. Record: the repository's docs table is a convenience copy and can silently drift from live model metadata.
 
-- Permission model fact (DIA-055, 2026-08-08): opencode.jsonc now includes per-agent `token_*": "deny"` entries for a total of 13 token_* deny records (7 pre-existing + 6 newly-added for coder, code-navigator, researcher, designer, observer, memory-manager). This per-agent deny model is the owner-approved permission-hardening approach; record this count here because cumulative permission surface is not always reconstructible from a single commit diff across layered configs. Also: DIA-066 was opened as a follow-up ticket to implement a tool-coverage audit script.
+- Permission model fact (DIA-055, 2026-08-08; SUPERSEDED 2026-08-26): opencode.jsonc
+  previously included per-agent `token_*": "deny"` entries for a total of 13 token_*
+  deny records (7 pre-existing + 6 newly-added). The token_* tools were removed with
+  the telemetry plugin stack (opencode-telemetry / opencode-token-monitor no longer in
+  the project plugin array); the deny model is moot and current opencode.jsonc has zero
+  token_* keys. See adr.md DIA-055 supersession note. Historical record: DIA-066 was
+  opened as a follow-up ticket to implement a tool-coverage audit script.
 
 - Debug-agent permission surface & tool-registry facts (res003 / DIA-066 context):
   - Key facts:
@@ -157,14 +163,13 @@ Note: These are navigational facts to help future humans find the infra/test art
     pointer is recorded because a fresh clone's default checkout may suggest `main`,
     which is not where the active work lives.
 
-- Parallel-handoff-slots mechanism (DIA-085, 2026-08-15): the feature is MERGED
-  (commit c966b8d) but NOT yet live - the `.opencode/session/handoffs/` directory is
-  absent, so no per-session handoff archive has been written. The legacy
-  `current-handoff.json` remains authoritative until the first atomicWriteHandoff
-  fires after restart. This merge-not-live state is a session-time repo fact: a fresh
-  clone shows the merged code but not whether the handoffs/ dir has been activated
-  yet. Also records the DIA-085 review falsifications (see failures.md F-1/F-3) still
-  needing disposition BEFORE the mechanism goes live.
+- Parallel-handoff-slots mechanism (DIA-085, 2026-08-15; ACTIVATED as of 2026-08-26):
+  the mechanism is MERGED (commit c966b8d) and is now ACTIVATED and MANDATORY -
+  AGENTS.md DIA-124 requires the per-session handoff slot
+  (.opencode/session/handoffs/<session-id>.json) plus the active.json pointer to be
+  written via log_decision(handoff) BEFORE the final session summary. The legacy
+  current-handoff.json survives only as a boot-gate fallback. The DIA-085 review
+  falsifications F-1/F-3 are FIXED (see failures.md RESOLUTION NOTEs, 2026-08-26).
 
 - origin/omo-slim-changes HEAD (2026-08-15): origin/omo-slim-changes advanced from
   3364518 (at session start) to 80a148b. Local omo-slim-changes is in sync with

@@ -306,15 +306,17 @@ Failed-loop lessons & preventive actions
   - Current state: NOT yet live - the handoffs/ directory is absent (legacy current-handoff.json authoritative) - so there is still time to fix before activation.
   - Preventive action: needs developer disposition (interactive review gate). Candidate fix: disambiguate archiveName with a monotonic counter or UUID suffix, or use write-if-absent (O_EXCL) semantics instead of rename-overwrite.
   - Why irrecoverable: the review result is the ONLY record of this finding - it is not yet in any ticket or commit. The delegation-observer.ts source shows the rename logic but not the review's falsification verdict against the design/proposal claims.
-  - Cross-reference: DIA-085 (commit c966b8d), .opencode/plugins/delegation-observer.ts, repo.md parallel-handoff-slots-not-live entry.
+   - Cross-reference: DIA-085 (commit c966b8d), .opencode/plugins/delegation-observer.ts, repo.md parallel-handoff-slots-not-live entry.
+  - RESOLUTION NOTE (2026-08-26): F-1 is FIXED. Closed via UUID-suffixed archive names in delegation-observer.ts (atomicWriteHandoff no longer collides on same-millisecond same-session writes); regression test at plugins/__tests__/handoff-archive-collision.test.mjs. The "NOT yet live" state above is historical - see repo.md parallel-handoff-slots entry (mechanism now ACTIVATED).
 
 - Failure mode (2026-08-15, DIA-085 review falsification F-3 CRITICAL): slot identity `parentSessionId ?? lane_id ?? "unknown"` collapses parallel resumed-orchestrator sessions firing a terminal handoff before any task() dispatch into the same handoffs/unknown.json (last-writer-wins clobber - the exact class DIA-085 claims to eliminate).
   - Symptom: for a freshly resumed parallel orchestrator session that fires a terminal handoff BEFORE any task() dispatch, both parentSessionId and lane_id are unset/undefined, so the slot identity falls through to the literal "unknown". Two such sessions write the same handoffs/unknown.json; the second silently clobbers the first.
   - Root cause: the slot-identity fallback chain collapses distinct sessions onto a shared "unknown" key precisely when session context is minimal (pre-first-dispatch), which is a realistic state for resumed parallel orchestrators.
   - Current state: NOT yet live - handoffs/ dir absent; legacy current-handoff.json authoritative - still time to fix before activation.
   - Preventive action: needs developer disposition (interactive review gate). Candidate fix: use the actual sessionId as the last resort (or a per-write unique id) so two sessions never collide on "unknown".
-  - Why irrecoverable: review result is the ONLY record; the design's claim to eliminate last-writer-wins clobber is falsified by this case and the finding is not yet in any ticket/commit.
-  - Cross-reference: DIA-085 (commit c966b8d), .opencode/plugins/delegation-observer.ts slot-identity logic.
+   - Why irrecoverable: review result is the ONLY record; the design's claim to eliminate last-writer-wins clobber is falsified by this case and the finding is not yet in any ticket/commit.
+   - Cross-reference: DIA-085 (commit c966b8d), .opencode/plugins/delegation-observer.ts slot-identity logic.
+  - RESOLUTION NOTE (2026-08-26): F-3 is FIXED. Closed via DIA-222 (slot-identity fallback no longer collapses distinct sessions onto handoffs/unknown.json); regression test at plugins/__tests__/handoff-slot-identity.test.mjs. The "NOT yet live" state above is historical - see repo.md parallel-handoff-slots entry (mechanism now ACTIVATED).
 
 - Failure mode (2026-08-15, DIA-085 review falsification F-2 MAJOR): scripts/validate-handoff.sh:122 uses GNU-only `find -printf` in a HOST-documented gate - make test-config runs on host per AGENTS.md section 6 - so it is silently dead on BSD/macOS hosts.
   - Symptom: the DIA-085 review flagged validate-handoff.sh line 122 using `find -printf` (GNU find), which is not available on BSD/macOS find. Since make test-config is documented to run on the HOST (AGENTS.md section 6), a BSD/macOS host would silently skip/fail that check.
@@ -403,3 +405,10 @@ Failed-loop lessons & preventive actions
   - Preventive action: when diagnosing test-suite stalls, check for nsbin leaks first as a marker of prior killed runs; fix the underlying hang (see L20260825-005).
   - Why irrecoverable: the leak-as-diagnostic-signal interpretation is session observation; git shows only the final fixed code.
   - Cross-reference: L20260825-005, DIA-260825-q7bu, commit 77ae58d.
+
+- Failure mode (2026-08-26, DIA-260826-pjm): initial T1 fix cycle went GREEN on all gates yet shipped an F1 Blocker invisible to the test suite
+  - Symptom: parser/format-level tests passed, but section-10 evaluateTicketCorrelation still hard-blocked every datetime citation due to case-normalization asymmetry (scan uppercased, ledger raw-case); no test exercised that code path and the integration test covered only the task-tool gate.
+  - Root cause: gate fixes validated only at format level; per-gate-path coverage was missing.
+  - Preventive action: gate fixes need per-gate-path regression tests, not just format-level tests - enumerate each gate path a fix touches and add one test per path.
+  - Why irrecoverable: the gap between test coverage and gate-path reality is session/analysis knowledge, not visible in any diff or passing suite.
+  - Cross-reference: lessons.md L20260826-001, DIA-063 ticket gate, DIA-234 ticket-ID formats.

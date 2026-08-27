@@ -259,7 +259,10 @@ Decision rationale:
 
 ### Status
 
-Accepted — 2026-08-08
+Accepted — 2026-08-08. SUPERSEDED (2026-08-26): the token_* tools were removed with
+the telemetry plugin stack (opencode-telemetry / opencode-token-monitor are no longer
+in the project plugin array), so the deny model is moot. The current opencode.jsonc
+has zero token_* keys. This ADR is retained for decision history only.
 
 ### Decision
 
@@ -1821,3 +1824,33 @@ recorded in aapj ticket UPDATE block).
 Operational lessons captured as L20260825-007..010 (worktree bootstrap gap,
 userns both-foreign preflight pattern, package-entry-point repoint rule,
 host-side lockfile refresh).
+
+## ADR: Knowledge Retention Policy - Two States, One Directory (DIA-260826-7qmt)
+
+Status: Accepted 2026-08-26
+
+Decision: knowledge/ is live, knowledge/archive/ is tombstoned. Two states,
+one directory tree. Mechanical junk is deleted outright; git history is the
+real delete. Nothing else is removed.
+
+Death test - archive a knowledge/ artifact when ANY of these holds:
+1. Its subject is grep-absent from the repo (no ticket, config, or code
+   reference remains).
+2. A newer artifact explicitly supersedes or reverses it.
+3. It is a point-in-time audit that is fully implemented or fully ticketed.
+
+Never prune: sources/, .source-urls.txt, model-registry.yaml, artifacts cited
+by OPEN tickets, and .sdd/.
+
+Mechanics: `git mv <dir> knowledge/archive/<dir>` + set the shelf row
+`path` to the archive/ location and `status: archived`. The gate
+scripts/validate-memory-shelf.sh must pass afterwards; its drift warning
+(DIA-260826-7qmt) counts unregistered disk artifacts under knowledge/.
+
+Trigger: run a retention sweep when the drift warning fires, or every 25th
+shelf registration, whichever comes first. Owner: @memory-manager.
+
+ID hygiene: new knowledge/ directories take datetime-style IDs
+(DIA-YYMMDD-XXXX class) or pass a uniqueness precheck against existing IDs -
+the sequential ana/res space has known collisions (res020/021/026/029 and
+ana001/ana015-ana027 are each used by multiple distinct artifacts).

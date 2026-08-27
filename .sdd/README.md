@@ -32,9 +32,11 @@ These are **not** feature specs — those live in `openspec/changes/`.
 
 ## Index
 
-One module-level `.sdd/` document has been authored so far:
-`dia-redispatch-cycle/architecture.md` (a 5-ADR seed for the cycle-management
-protocol, produced as part of a dev-infra campaign — see row below). The system
+Five documents are indexed here: four authored module-level `.sdd/`
+documents — `dia-redispatch-cycle/architecture.md` (a 5-ADR seed for the
+cycle-management protocol), `dev-infra/architecture.md`,
+`opencode-config/architecture.md`, and
+`capability-authorization/architecture.md` — plus this index. The system
 architecture authority remains the root `architecture.md` (system boundaries,
 schema decision framework, and open questions live there). When `@architector`
 produces further module architecture documents, they are indexed here using the
@@ -46,11 +48,12 @@ produces further module architecture documents, they are indexed here using the
 > `openspec/changes/` naming instead of the `NN-<topic>/` convention, and that is
 > acceptable. Numbered names remain the default for system-architecture modules.
 
-| Document                               | Summary                                                                                                                        |
-| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| `01-system-overview/architecture.md`   | System boundaries, guiding principles, data-flow overview (planned — not yet authored)                                         |
-| `02-schema-decision/architecture.md`   | Why three schema technologies (FlatBuffers, Protobuf, native TS); decision framework for new boundaries (planned)              |
-| `03-open-questions/architecture.md`    | Tracked blind spots and their resolution status (planned)                                                                      |
-| `dia-redispatch-cycle/architecture.md` | 5-ADR seed for the cycle-management protocol (dev-infra campaign)                                                              |
-| `dev-infra/architecture.md`            | Parallel dev model (worktrees), branch conventions, and safe/destructive operations (DIA-100)                                  |
-| `opencode-config/architecture.md`      | Two ADRs for opencode-config batch patterns: parallel coders (Batch D, worktree-gated) and singleton-batch exemption (DIA-172) |
+| Document                                   | Summary                                                                                                                           |
+| ------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------- |
+| `01-system-overview/architecture.md`       | System boundaries, guiding principles, data-flow overview (planned — not yet authored)                                            |
+| `02-schema-decision/architecture.md`       | Why three schema technologies (FlatBuffers, Protobuf, native TS); decision framework for new boundaries (planned)                 |
+| `03-open-questions/architecture.md`        | Tracked blind spots and their resolution status (planned)                                                                         |
+| `dia-redispatch-cycle/architecture.md`     | 5-ADR seed for the cycle-management protocol (dev-infra campaign)                                                                 |
+| `dev-infra/architecture.md`                | Parallel dev model (worktrees), branch conventions, and safe/destructive operations (DIA-100)                                     |
+| `opencode-config/architecture.md`          | Two ADRs for opencode-config batch patterns: parallel coders (Batch D, worktree-gated) and singleton-batch exemption (DIA-172)    |
+| `capability-authorization/architecture.md` | Capability-token system for ticket-gate bypass: HMAC-signed, 5-minute TTL, scope-limited dispatch authorization (DIA-260820-jlu0) |
