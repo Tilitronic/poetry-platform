@@ -204,6 +204,31 @@ const NOTIFY_DEBOUNCE_MS = 2000
 const DESKTOP_TOAST_DEBOUNCE_MS = 2000
 const COMPACTION_SUPPRESS_TTL_MS = 30000
 
+// DIA-260821-3blw: powershell.exe WinRT toast only exists on win32 or WSL
+// interop; on pure Linux every spawn is a guaranteed ENOENT warn. The
+// platform gate skips silently; a missing binary additionally latches the
+// channel off with ONE warn (non-ENOENT failures keep warning per event).
+// The latch FLAG itself lives inside the plugin factory (per-instance):
+// module-level state would leak an ENOENT latch across plugin instances,
+// which the platform-gate suite's fresh-harness guard cases forbid.
+
+/** WSL interop detection (node-notifier / is-wsl idiom). */
+function isWSL(): boolean {
+  if (process.platform !== "linux") return false
+  if (existsSync("/mnt/wslg")) return true
+  if (process.env.WSL_DISTRO_NAME) return true
+  try {
+    return /microsoft/i.test(readFileSync("/proc/version", "utf-8"))
+  } catch {
+    return false
+  }
+}
+
+/** Desktop toast channel availability: native Windows or WSL interop. */
+function canUsePowershellToast(): boolean {
+  return process.platform === "win32" || isWSL()
+}
+
 const needsInputObserver: Plugin = async (ctx) => {
   const tickerDir = join(ctx.directory, ".opencode/session")
   const tickerPath = join(tickerDir, "ticker.json")
@@ -499,6 +524,33 @@ const needsInputObserver: Plugin = async (ctx) => {
   let notifyDebounceUntil = 0
   let lastDesktopToastAt = 0
 
+  // DIA-260821-3blw: warn-once latch for the desktop toast channel. Per
+  // plugin INSTANCE (not module-level) so a latched instance never leaks
+  // into another - the platform-gate suite's fresh-harness guards depend on
+  // that isolation.
+  let desktopToastDisabled = false
+
+  /**
+   * DIA-260821-3blw: ENOENT / "Executable not found" means powershell.exe
+   * does not exist on this host - warn ONCE, latch the channel off, and
+   * tell the caller to stop (true). Any other failure returns false so the
+   * caller keeps its existing per-event warn.
+   */
+  function disableDesktopToastOnMissingBinary(err: unknown): boolean {
+    const msg = errorMessage(err) ?? ""
+    const missing =
+      (err as { code?: string } | null)?.code === "ENOENT" ||
+      /executable not found/i.test(msg)
+    if (!missing) return false
+    if (!desktopToastDisabled) {
+      console.warn(
+        "[needs-input-observer] desktop toast disabled (powershell.exe not found)"
+      )
+      desktopToastDisabled = true
+    }
+    return true
+  }
+
   /**
    * Generalized atomic JSON write: temp file -> fsync -> atomic rename ->
    * fsync directory (copied from delegation-observer's atomicWriteHandoff).
@@ -682,6 +734,10 @@ const needsInputObserver: Plugin = async (ctx) => {
    * STDOUT/STDERR discarded (res007 TUI corruption rule).
    */
   function fireDesktopToast(title: string, body: string): void {
+    // DIA-260821-3blw: platform gate (skip silently on pure Linux) then the
+    // missing-binary latch (warn-once already emitted; stay silent after).
+    if (!canUsePowershellToast()) return
+    if (desktopToastDisabled) return
     const now = Date.now()
     if (now - lastDesktopToastAt < DESKTOP_TOAST_DEBOUNCE_MS) return
     lastDesktopToastAt = now
@@ -711,11 +767,13 @@ const needsInputObserver: Plugin = async (ctx) => {
       // Never let a late spawn error (ENOENT, exec failure) become an
       // unhandled 'error' event - the plugin must not crash the session.
       child.on("error", (err) => {
+        if (disableDesktopToastOnMissingBinary(err)) return
         console.warn(
           `[needs-input-observer] powershell.exe toast spawn failed: ${errorMessage(err)}`
         )
       })
     } catch (err) {
+      if (disableDesktopToastOnMissingBinary(err)) return
       console.warn(
         `[needs-input-observer] powershell.exe toast failed: ${errorMessage(err)}`
       )
