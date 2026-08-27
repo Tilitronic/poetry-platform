@@ -4,6 +4,7 @@
 # overrides or auto-detection. Bash-3 compatible (ADR 8).
 set -euo pipefail
 
+launcher_dir="$(dirname "${BASH_SOURCE[0]}")"
 engine=""
 os=""
 mode="bash"
@@ -24,7 +25,9 @@ done
 # Auto-detect engine: Podman if the version output reports Podman, else Docker.
 # Uses `docker version` (not `--version`) because the launcher's mock answers
 # the bare `version` subcommand; Podman's version output still contains
-# "Podman", so the detection intent is unchanged.
+# "Podman", so the detection intent is unchanged. (The Makefile path uses the
+# docker-free readlink probe in scripts/compose-env.sh; this launcher keeps the
+# `docker version` probe because its own bats suite mocks that contract.)
 if [ -z "$engine" ]; then
   ver="$(docker version 2>/dev/null || true)"
   case "$ver" in
@@ -42,23 +45,14 @@ if [ -z "$os" ]; then
   fi
 fi
 
-case "$engine" in
-  podman) engine_file="docker-compose.podman.yml" ;;
-  docker) engine_file="docker-compose.rootless-docker.yml" ;;
-esac
-os_file=""
-if [ "$os" = "wsl" ]; then
-  os_file="docker-compose.wsl.yml"
-fi
-
-# Apply the override set via COMPOSE_FILE so `up`/`exec` stay free of -f flags
-# (the launcher contract records clean `compose up -d dev` / `compose exec dev
-# ...` lines). ponytail: env-var override, not a wrapper script.
-compose_list="docker-compose.yml:${engine_file}"
-if [ -n "$os_file" ]; then
-  compose_list="${compose_list}:${os_file}"
-fi
-export COMPOSE_FILE="$compose_list"
+# Delegate the merged-set assembly to the shared helper (single source of truth
+# for the engine/OS -> COMPOSE_FILE mapping, design.md D1/D3). Feed the detected
+# engine/OS as COMPOSE_ENGINE/COMPOSE_OS so the helper's own docker-free probe
+# is bypassed here (this launcher already ran `docker version`); the Makefile
+# path lets the helper self-detect. ponytail: env-var override, not a wrapper.
+export COMPOSE_ENGINE="$engine"
+export COMPOSE_OS="$os"
+export COMPOSE_FILE="$("$launcher_dir/compose-env.sh")"
 
 # Secrets ownership preflight (T7.0b, design.md Seam 5): refuse to start the
 # container unless ./secrets/ is owned by the invoking user with every secret
@@ -75,7 +69,6 @@ export COMPOSE_FILE="$compose_list"
 # false-fail the documented `make opencode` flow. Any invoker-owned anchor
 # (fixture secrets dir, invoker-owned CWD, plain host run) keeps full
 # enforcement.
-launcher_dir="$(dirname "${BASH_SOURCE[0]}")"
 uid="$(id -u)"
 secrets_owner="$(stat -c %u ./secrets 2>/dev/null || echo "$uid")"
 cwd_owner="$(stat -c %u .)"
@@ -85,8 +78,11 @@ else
   echo "[opencode-dev] secrets ownership preflight skipped: ./secrets and CWD both foreign to uid $uid (container/userns bind mount); run scripts/check-secrets-ownership.sh on the host for a real verdict"
 fi
 
-# Pre-flight: validate the merged override set. Also records the selected
-# override files for the launcher contract tests (the mock records every call).
+# Pre-flight: validate the merged override set. The -f flags are derived from
+# COMPOSE_FILE (the helper's merge) so the launcher contract — the mock records
+# every -f override file — is preserved. ponytail: derive, don't re-declare.
+engine_file="$(printf '%s' "$COMPOSE_FILE" | cut -d: -f2)"
+os_file="$(printf '%s' "$COMPOSE_FILE" | cut -d: -f3)"
 config_flags="-f docker-compose.yml -f $engine_file"
 if [ -n "$os_file" ]; then
   config_flags="$config_flags -f $os_file"

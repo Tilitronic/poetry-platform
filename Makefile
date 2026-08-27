@@ -27,16 +27,16 @@
 
 .PHONY: build up shell opencode dev stack install db-psql logs down clean check-pin-sync check-tools check-host-jq check-host-lsp gen-jsconfig test-shell test-opencode-docker test-python test-infra test-config test-interview test-skills eval-lite audit-python context7-docs jsonl-stats session-log-render jsonl-cross-check session-query session-analytics test-harness worktree-gc
 
+# Engine-aware compose stack (DIA-260826-766f): every bare `docker compose`
+# target below inherits this COMPOSE_FILE. Computed docker-free at parse time by
+# scripts/compose-env.sh (no daemon call), so `make` stays host-runnable.
+export COMPOSE_FILE := $(shell scripts/compose-env.sh)
+
 stack:
 	bash scripts/dev-stack.sh
 
 build:
 	docker compose build dev
-
-UID := $(shell id -u)
-GID := $(shell id -g)
-export UID
-export GID
 
 up:
 	docker compose up -d
