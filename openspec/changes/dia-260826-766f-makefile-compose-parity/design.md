@@ -8,9 +8,11 @@
   `make test-shell` (Docker mocked) on the host; no running dev container required for the primary gate.
 - ADR 8 (bash-3 compatibility) — `scripts/opencode-dev` and the new helper MUST be bash-3 compatible.
 - `DIA-260826-766f` — fix UID/GID wiring mismatch Makefile vs compose.
-- No `.sdd/` documents exist (glob empty); `architecture.md` is app-domain only and does not govern
-  dev-infra compose wiring. No governing constraint is violated. The canonical source of truth is
-  `scripts/opencode-dev` (Tier-1).
+- `.sdd/dev-infra/architecture.md` (168 lines) DOES exist and governs dev-infra compose wiring; it is
+  the authoritative source for the engine-aware stack, not merely `scripts/opencode-dev`. `architecture.md`
+  (app-domain) does not govern dev-infra, but `.sdd/dev-infra/architecture.md` does. No governing constraint
+  is violated. The canonical source of truth is `scripts/opencode-dev` (Tier-1) for the launcher flow, with
+  `.sdd/dev-infra/architecture.md` as the design authority for the compose wiring.
 
 ## Context
 
@@ -74,8 +76,12 @@ for `COMPOSE_FILE` and keeps its existing preflights (config validation + secret
 
 - **R1 Detection differs from current `scripts/opencode-dev` (uses `docker version` grep).** →
   Mitigation: helper uses `readlink -f` podman probe instead of `docker version` so it is docker-free;
-  the mapping result is identical for the real cases (podman shim vs docker). `COMPOSE_ENGINE` override
-  covers any mis-detection. Unit test asserts equivalence.
+  BUT the two methods DIVERGE on Fedora: `scripts/opencode-dev`'s `docker version` grep detects a Podman
+  server behind a docker CLI, while the helper's readlink-only probe cannot see the Podman API and
+  defaults to docker. The fix: operators on a Podman host set `COMPOSE_ENGINE=podman` explicitly, and the
+  helper now prints a stderr WARNING (mentioning `COMPOSE_ENGINE`) on ambiguous autodetection so the
+  divergence is never silent. `COMPOSE_ENGINE` override covers the Fedora mis-detection. Unit tests
+  (compose-env.bats 9/10) assert the warning + override behavior.
 - **R2 `make test-shell` accidentally gains a docker dependency.** → Mitigation: helper never calls
   docker (D2); on a docker-less host it defaults to `docker` and emits a harmless unused string.
   Verified by the unit test asserting no `docker`/`podman` execution.

@@ -39,6 +39,8 @@
 
 load test-helper
 
+bats_require_minimum_version 1.5.0
+
 REPO_ROOT="$(cd "$(dirname "$BATS_TEST_FILENAME")/../.." && pwd)"
 HELPER="$REPO_ROOT/scripts/compose-env.sh"
 MAKEFILE="$REPO_ROOT/Makefile"
@@ -162,7 +164,7 @@ FAKEPODMAN
 
 @test "default docker client native OS emits docker-compose.yml:docker-compose.rootless-docker.yml" {
   setup_engine_mocks 1 "/usr/bin/docker" native
-  run bash "$HELPER"
+  run --separate-stderr bash "$HELPER"
   [ "$output" = "$DEFAULT_EXPECTED" ] || {
     echo "expected COMPOSE_FILE=[$DEFAULT_EXPECTED]" >&2
     echo "got=[$output]" >&2
@@ -188,7 +190,7 @@ FAKEPODMAN
 
 @test "wsl overlay emits docker-compose.yml:docker-compose.rootless-docker.yml:docker-compose.wsl.yml" {
   setup_engine_mocks 1 "/usr/bin/docker" wsl
-  run bash "$HELPER"
+  run --separate-stderr bash "$HELPER"
   [ "$output" = "$WSL_EXPECTED" ] || {
     echo "expected COMPOSE_FILE=[$WSL_EXPECTED]" >&2
     echo "got=[$output]" >&2
@@ -233,6 +235,83 @@ FAKEPODMAN
   assert_status 0
   [ -n "$output" ] || { echo "helper produced no COMPOSE_FILE" >&2; return 1; }
   assert_docker_free
+}
+
+# --- Fedora engine-detection blocker (DIA-260826-766f, test-author slice) ----
+# These 3 tests pin the Fedora regression: on a Fedora host where
+# /usr/bin/docker is a SEPARATE docker-cli (NOT a podman shim) connected to the
+# Podman API, the helper must NOT silently pick docker when COMPOSE_ENGINE is
+# set, and on ambiguous autodetection it MUST warn (to stderr, mentioning
+# COMPOSE_ENGINE) and default to docker. The helper stays docker-free
+# (readlink only); Fedora sets COMPOSE_ENGINE=podman explicitly.
+
+@test "FEDORA REGRESSION: separate docker CLI (not podman shim) + COMPOSE_ENGINE=podman -> podman override" {
+  export COMPOSE_ENGINE="podman"
+  setup_engine_mocks 1 "/usr/bin/docker" native
+  run bash "$HELPER"
+  [ "$output" = "$PODMAN_EXPECTED" ] || {
+    echo "expected COMPOSE_FILE=[$PODMAN_EXPECTED]" >&2
+    echo "got=[$output]" >&2
+    return 1
+  }
+  assert_docker_free
+}
+
+@test "AMBIGUOUS autodetection warns to stderr mentioning COMPOSE_ENGINE and defaults to docker" {
+  unset COMPOSE_ENGINE
+  setup_engine_mocks 1 "/usr/bin/docker" native
+  run --separate-stderr bash "$HELPER"
+  [ "$output" = "$DEFAULT_EXPECTED" ] || {
+    echo "expected COMPOSE_FILE=[$DEFAULT_EXPECTED]" >&2
+    echo "got=[$output]" >&2
+    return 1
+  }
+  [ -n "$stderr" ] || { echo "expected a warning on stderr, got none" >&2; return 1; }
+  if ! printf '%s' "$stderr" | grep -q "COMPOSE_ENGINE"; then
+    echo "stderr did not mention COMPOSE_ENGINE: [$stderr]" >&2
+    return 1
+  fi
+  assert_docker_free
+}
+
+@test "PARITY: ambiguous docker (podman-backed) diverges without COMPOSE_ENGINE, agrees with it" {
+  setup_engine_mocks 1 "/usr/bin/docker" native
+  # Fedora env: a real docker-cli fronting the Podman API. `docker version`
+  # reports a Podman server, but the helper is docker-free and cannot see it.
+  local bindir="$BATS_TEST_TMPDIR/engbin"
+  cat > "$bindir/docker" <<'FAKEDOCKER'
+#!/usr/bin/env bash
+if [ "$1" = "version" ]; then
+  printf 'Server: Podman Engine\n'
+  exit 0
+fi
+printf '%s\n' "DOCKER_INVOKED: $*" >> "${MOCK_DOCKER_INVOKE_LOG:?}"
+exit 1
+FAKEDOCKER
+  chmod +x "$bindir/docker"
+
+  # (a) ambiguous autodetection, no override -> warns + defaults to docker.
+  unset COMPOSE_ENGINE
+  run --separate-stderr bash "$HELPER"
+  [ "$output" = "$DEFAULT_EXPECTED" ] || {
+    echo "expected COMPOSE_FILE=[$DEFAULT_EXPECTED]" >&2
+    echo "got=[$output]" >&2
+    return 1
+  }
+  [ -n "$stderr" ] || { echo "expected a warning on stderr, got none" >&2; return 1; }
+  if ! printf '%s' "$stderr" | grep -q "COMPOSE_ENGINE"; then
+    echo "stderr did not mention COMPOSE_ENGINE: [$stderr]" >&2
+    return 1
+  fi
+
+  # (b) explicit override -> podman, same as opencode-dev would resolve.
+  export COMPOSE_ENGINE="podman"
+  run bash "$HELPER"
+  [ "$output" = "$PODMAN_EXPECTED" ] || {
+    echo "expected COMPOSE_FILE=[$PODMAN_EXPECTED]" >&2
+    echo "got=[$output]" >&2
+    return 1
+  }
 }
 
 # --- Static Makefile parity assertions (design.md D4, tasks.md T2.1) ----------

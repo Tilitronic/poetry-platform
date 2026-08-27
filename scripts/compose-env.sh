@@ -24,7 +24,15 @@ if [ -z "$engine" ]; then
     docker_path="$(readlink -f "$(command -v docker)" 2>/dev/null || true)"
     case "$docker_path" in
       *podman*) engine="podman" ;;
-      *)       engine="docker" ;;
+      *)
+        engine="docker"
+        # Ambiguous autodetection: a docker CLI that is NOT a podman shim was
+        # found, but COMPOSE_ENGINE is unset. We default to docker (docker-free,
+        # readlink-only probe cannot see a podman-backed docker API). Warn so a
+        # Fedora/Podman host operator knows to set COMPOSE_ENGINE=podman.
+        printf '%s\n' \
+          "compose-env: WARNING: docker CLI detected is not a podman shim; defaulting to docker engine. Set COMPOSE_ENGINE=podman explicitly if this host uses Podman (e.g. Fedora)." >&2
+        ;;
     esac
   else
     engine="docker"
