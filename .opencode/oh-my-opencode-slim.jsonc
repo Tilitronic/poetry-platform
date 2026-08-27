@@ -1,6 +1,6 @@
 {
   "$schema": "https://unpkg.com/oh-my-opencode-slim@latest/oh-my-opencode-slim.schema.json",
-  "preset": "cebula-openai-hy3",
+  "preset": "cebula-hy3",
   "compactSidebar": false,
   "disabled_agents": ["oracle", "fixer", "explorer", "librarian"],
   "presets": {
@@ -629,6 +629,257 @@
       },
       "researcher": {
         "model": ["opencode-go/hy3", "opencode-go/mimo-v2.5"],
+        "variant": "medium",
+        "temperature": 0.3,
+        "skills": [
+          "openspec-explore",
+          "mermaid-diagramming"
+        ],
+        "mcps": [
+          "websearch",
+          "context7",
+          "gh_grep"
+        ],
+        "orchestratorPrompt": "@researcher\n- Lane: External knowledge and library research, fast web research\n- Role: Authoritative source for current library docs, API references, examples, bug investigations, and web retrieval\n- Permissions: read_files\n- **Output contract:** Return findings with: (1) structured summary, (2) source URLs, (3) confidence assessment, (4) persistence recommendation (whether findings warrant conspect archiving).\n- **Persistence flag:** When findings reference 3+ external sources OR cover a non-obvious topic likely to be re-needed, include `PERSISTENCE_RECOMMENDED: true` in the output header. Conspect synthesis proceeds automatically after Phase 2.\n- **Delegate when:** Libraries with frequent API changes \u2022 Complex APIs needing official examples \u2022 Version-specific behavior matters \u2022 Unfamiliar library \u2022 Edge cases or advanced features\n- **Standalone:** user explicitly asks for research \u2014 dispatch @researcher directly\n- **Don't delegate when:** Standard usage \u2022 Simple stable APIs \u2022 General programming knowledge \u2022 Info already in conversation\n- **Persistence workflow:** When PERSISTENCE_RECOMMENDED: true, load the `research-pipeline` skill for the full pipeline (automatic conspect synthesis \u2192 memory shelf verification). Do NOT dispatch @conspecter directly without the skill.\n\n## PHASE A - Source Capture (D5, researcher-owned - MANDATORY when the orchestrator pre-allocates a res ID and passes it in the dispatch payload)\n1. Create directory: `knowledge/<type><id>-<topic>/sources/`\n2. For each source URL, apply the 3-tier chain by URL class:\n   a. **registry.npmjs.org/<package>** -> `curl -s \"https://registry.npmjs.org/<package>\" > sources/<slug>.json` (JSON API - the response IS the archive; richer than HTML, no trafilatura needed)\n   b. **Any URL** -> `trafilatura -u \"<URL>\" --output-format markdown > sources/<slug>.md` (direct, or after `curl -sL -A \"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36\" \"<URL>\"` for JS-gated pages; verify content >100 bytes)\n   c. **If trafilatura fails (0 bytes or <100 bytes)** -> `curl -sL -A \"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36\" \"<URL>\" | trafilatura --output-format markdown > sources/<slug>.md`\n   d. **crwl headless (LAST-RESORT ONLY)** -> crawl4ai with headless Chromium (`BrowserConfig(headless=True)`). crwl is NEVER the first attempt (DIA-129); a crwl failure = SKIP the URL and mark it per DIA-072 (do NOT keep retrying). Cache crwl outputs per-URL-hash within the session to avoid repeat Chromium launches.\n3. Evaluate each source for RELEVANCE (does it answer the research question) + RELIABILITY (authority, recency, independence, vendor-vs-independent): rate High/Med/Low each (D6).\n4. Write `.source-urls.txt`: one URL per line WITH the per-source relevance/reliability rating; mark any remaining failures as `# NOT ARCHIVED (all methods exhausted)`; list excluded sources with reason.\n5. The conspect (written later by @conspecter) must cite ONLY sources that pass this evaluation."
+      }
+    },
+    // 2026-08-27 DIA-260827-qc59: OpenAI-free HY3 preset with provider-valid per-model reasoning variants.
+    // Primary scalar variants intentionally duplicate inline metadata until OMO propagates inline variants to subagents.
+    "cebula-hy3": {
+      "orchestrator": {
+        "model": [
+          { "id": "opencode/hy3-free", "variant": "medium" },
+          { "id": "opencode-go/hy3", "variant": "high" },
+          { "id": "opencode-go/deepseek-v4-flash", "variant": "high" }
+        ],
+        "variant": "medium",
+        "temperature": 0.3,
+        "skills": [
+          "*",
+          "!openspec-propose"
+        ],
+        "mcps": [
+          "*",
+          "!context7"
+        ],
+        "prompt": "## MANDATORY RULES (top, one rule per paragraph)\n\n1. **batch-approval gate**: at session start, resolve handoff via DIA-085 chain (active.json -> handoffs/<id>.json -> mtime-scan -> legacy fallback); if prognosis present, present batch approval to developer BEFORE any delegation; log via log_decision; lane-0 checksum delegation automatic after approval (VERIFICATION ONLY, never write handoff file).\n\n2. **ticket gate**: no engineering work without an OPEN DIA ticket; every task() description or prompt MUST include 'campaign ticket DIA-NNN' (or a datetime DIA ID); the native task schema has no ticket_id field, so the gate materializes the tagged ID (DIA-174 R1); create tickets ONLY via `scripts/tickets new` (never manual write - DIA-229).\n\n3. **learnings registration**: before any @coder config-work dispatch, register ai-specialist findings in .opencode/learnings/external-patterns/ (AGENTS.md section 2.5 step 1).\n\n4. **lane-error surfacing**: explicitly surface lane errors in session summaries.\n\n## CORE OPERATING CONSTRAINTS\n\n- **delegation-only**: you are a workflow manager; no direct engineering, no file edits, no research, no analysis\n- **no bash tool**: bash: deny by design; delegate all verification to specialist lanes\n- **READ-SCOPE**: read allow-list (DIA-126a): .opencode/session/*, docs/dev-infra-audit/NEXT-RUN.md, docs/dev-infra-audit/tickets/*, docs/dev-infra-audit/tickets/archive/*, .opencode/practice-protected.md, AGENTS.md, knowledge/*, .opencode/learnings/*, .opencode/plugins/*, scripts/*, docs/*, .sdd/*, openspec/*, .opencode/skills/*, .opencode/memory-shelf.yaml, .opencode/oh-my-opencode-slim.jsonc, architecture.md, CONTEXT.md\n- **edit scope**: .opencode/session/* only\n- **PURE-DISPATCH A1**: task() is the sole tool call in its message EXCEPT for approved conflict-free parallel batches (A: read-only fan-out, B: single-writer + readers, C: post-fix review, D: parallel coders with separate worktrees)\n- **BATCH-DISPATCH rule**: NEVER batch: two analyzers, coder+reviewer (reviewer needs fixed point), or any pair that both write memory-shelf.yaml.\n- **INSTANCE-SEPARATION DIA-175**: RED test-writing and GREEN implementation for the same slice go to DIFFERENT coder instances\n- **SAME-SESSION FIXES DIA-175**: fix-loop dispatches MUST resume the SAME coder session (session_id), never a fresh instance\n- **TODOWRITE DIA-260819-880v**: use todowrite for >=3-step work; exactly ONE in_progress at a time; mid-stream plan changes MUST update todowrite (cancel old, add new); all items must reach terminal state (completed/cancelled) before session end.\n- **ID ALLOCATION**: before dispatching @analyzer or @conspecter, scan knowledge/ for the highest existing <type><nnn> and assign the next integer in the dispatch payload; never let the agent self-allocate\n- **AI-AUDITOR advisory**: @ai-auditor's read-only verdict on agent-config changes is advisory-not-binding; council remains restricted to C1-C5 crisis states\n- **DIA-133 model-registry**: consult knowledge/model-registry.yaml for dispatch routing rules and quota-guard policy (warn 80% / hard-stop at cap / SILENT_FAILURE check) before escalated dispatch\n- **EBDV DIA-115**: when presenting decision variants for policy-class choices, give >=2 genuine options each carrying evidence (Tier-1 pointer or Tier-2 dated URL; [INFERENCE] never the sole basis), always include an abort/status-quo variant, state a recommendation with a because-justification, and record the chosen variant\n- **ANALYSIS GATE**: if .opencode/session/analysis-pending.json exists, analysis dispatch is BLOCKED; verify the conspect artifacts (sources/, conspect file, memory-shelf entry) via read, then edit the JSON to { \"status\": \"verified\" } to clear the gate before dispatching @analyzer\n- **threshold 15% (primary) / 25% (safety-net)**: self-rerun handoff at >=15% context per docs/dev-infra-audit/NEXT-RUN.md\n\n## WORKFLOW PROTOCOLS\n\n- **section-2.5 config-change chain**: gate @ai-specialist -> register learnings -> @coder implement -> make test-config + restart-verify -> @ai-auditor review -> CHANGELOG.yaml + learnings outcome\n- **tickets**: use `scripts/tickets new` (never manual write)\n- **ID allocation**: scan knowledge/ for highest <type><nnn>, assign next integer\n\n## DISPATCH RULES\n\n- **A1-A6**: see orchestrator_append.md for full details\n- **Batch rules**: A (read-only fan-out), B (single-writer + readers), C (post-fix review), D (parallel coders with separate worktrees + disjoint file sets)\n\n## DELEGATION DIRECTORY\n\n- @openspec-plan: spec-interview (Socratic mode) -> proposal/design/tasks\n- @coder: bounded implementation (config-work requires prior @ai-specialist gate)\n- @reviewer: two-axis review (Standards + Spec fidelity)\n- @architector: architecture & strategy (.sdd/<module>/architecture.md)\n- @analyzer: analysis reports + terminal visualization\n- @researcher: external knowledge + library research\n- @conspecter: research conspect authoring (pure synthesis, no network fetch)\n- @ai-specialist: OpenCode system research & config (read-only)\n- @ai-auditor: independent config/skill surface auditor (read-only, advisory)\n- @memory-manager: knowledge persistence (ADRs, lessons, repo facts, failures)\n- @resource-manager: knowledge-source curation (ai-assist-sources.yaml, Tier-1 caching)\n- @designer: UI/UX design\n- @observer: visual/media analysis\n- @code-navigator: fast codebase recon\n- @council: multi-model consensus"
+      },
+      "architector": {
+        "model": [
+          "opencode-go/qwen3.7-plus",
+          { "id": "opencode-go/deepseek-v4-pro", "variant": "high" },
+          "opencode/big-pickle"
+        ],
+        "temperature": 0.1,
+        "skills": [
+          "teaching",
+          "simplify",
+          "book-rag",
+          "mermaid-diagramming",
+          "console-charting",
+          "domain-grilling"
+        ],
+        "mcps": []
+      },
+      "openspec-plan": {
+        "model": [
+          { "id": "opencode/hy3-free", "variant": "high" },
+          "opencode-go/qwen3.7-plus",
+          "opencode/big-pickle"
+        ],
+        "variant": "high",
+        "skills": [
+          "teaching",
+          "domain-grilling",
+          "to-tickets",
+          "openspec-explore",
+          "openspec-propose",
+          "openspec-update-change",
+          "openspec-sync-specs",
+          "openspec-archive-change"
+        ],
+        "mcps": []
+      },
+      "coder": {
+        "model": [
+          { "id": "opencode/hy3-free", "variant": "medium" },
+          { "id": "opencode-go/hy3", "variant": "high" },
+          "opencode/mimo-v2.5-free"
+        ],
+        "variant": "medium",
+        "skills": [
+          "simplify",
+          "playwright-browser",
+          "debugging-workflow",
+          "tdd-craftsman",
+          "git-diff",
+          "to-tickets",
+          "resolving-merge-conflicts",
+          "openspec-apply-change"
+        ],
+        "mcps": [],
+        "temperature": 0.1
+      },
+      "reviewer": {
+        "model": [
+          { "id": "opencode-go/deepseek-v4-flash", "variant": "high" },
+          "opencode-go/qwen3.7-plus",
+          "opencode/big-pickle"
+        ],
+        "variant": "high",
+        "temperature": 0.1,
+        "skills": [
+          "book-rag",
+          "code-review-fowler",
+          "review-re-verify"
+        ]
+      },
+      "designer": {
+        "model": ["opencode-go/kimi-k2.7-code", "opencode/big-pickle"],
+        "skills": [
+          "playwright-browser"
+        ],
+        "mcps": []
+      },
+      "conspecter": {
+        "model": [
+          { "id": "opencode/hy3-free", "variant": "low" },
+          { "id": "opencode-go/hy3", "variant": "low" },
+          "opencode/mimo-v2.5-free"
+        ],
+        "variant": "low",
+        "mcps": [],
+        "temperature": 0.1
+      },
+      "analyzer": {
+        "model": ["opencode-go/qwen3.7-plus", "opencode/big-pickle"],
+        "skills": [
+          "teaching",
+          "book-rag",
+          "openspec-explore",
+          "mermaid-diagramming",
+          "console-charting",
+          "data-reducer",
+          "debugging-workflow"
+        ],
+        "mcps": [
+          "websearch"
+        ]
+      },
+      // Escalated lanes (DIA-111/DIA-108, 2026-08-12). Orchestrator-only dispatch,
+      // hidden agents, one-shot no-retry. Skill arrays CLONED in full from the
+      // base coder / base analyzer entries; same temperature/variant as bases.
+      "coder-escalated": {
+        "model": [
+          { "id": "opencode-go/kimi-k3", "variant": "max" },
+          { "id": "opencode-go/deepseek-v4-pro", "variant": "max" }
+        ],
+        "variant": "max",
+        "temperature": 0.1,
+        "skills": [
+          "simplify",
+          "playwright-browser",
+          "debugging-workflow",
+          "tdd-craftsman",
+          "git-diff",
+          "to-tickets",
+          "resolving-merge-conflicts",
+          "openspec-apply-change"
+        ],
+        "mcps": []
+      },
+      "analyzer-escalated": {
+        "model": [
+          { "id": "opencode-go/deepseek-v4-pro", "variant": "max" },
+          "opencode-go/qwen3.7-plus"
+        ],
+        "variant": "max",
+        "skills": [
+          "teaching",
+          "book-rag",
+          "openspec-explore",
+          "mermaid-diagramming",
+          "console-charting",
+          "data-reducer",
+          "debugging-workflow"
+        ],
+        "mcps": [
+          "websearch"
+        ]
+      },
+      "observer": {
+        "model": ["opencode-go/kimi-k2.7-code", "opencode/big-pickle"],
+        "skills": [],
+        "mcps": []
+      },
+      "ai-specialist": {
+        "model": [
+          "opencode-go/qwen3.7-plus",
+          { "id": "opencode-go/deepseek-v4-pro", "variant": "high" },
+          "opencode/big-pickle"
+        ],
+        "skills": [
+          "teaching"
+        ],
+        "mcps": [
+          "websearch"
+        ]
+      },
+      "ai-auditor": {
+        "model": [
+          { "id": "opencode-go/deepseek-v4-pro", "variant": "high" },
+          "opencode-go/qwen3.7-plus",
+          "opencode/big-pickle"
+        ],
+        "variant": "high",
+        "skills": [
+          "teaching"
+        ],
+        "mcps": [
+          "websearch"
+        ]
+      },
+      "resource-manager": {
+        "model": [
+          { "id": "opencode/hy3-free", "variant": "low" },
+          { "id": "opencode-go/hy3", "variant": "low" },
+          "opencode/mimo-v2.5-free"
+        ],
+        "variant": "low",
+        "skills": [],
+        "mcps": [
+          "websearch"
+        ]
+      },
+      "memory-manager": {
+        "model": [
+          { "id": "opencode/hy3-free", "variant": "low" },
+          { "id": "opencode-go/hy3", "variant": "low" },
+          "opencode/mimo-v2.5-free"
+        ],
+        "variant": "low",
+        "skills": [
+          "git-diff"
+        ],
+        "mcps": [],
+        "temperature": 0.1
+      },
+      "code-navigator": {
+        "model": [
+          { "id": "opencode/hy3-free", "variant": "low" },
+          { "id": "opencode-go/hy3", "variant": "low" },
+          "opencode/mimo-v2.5-free"
+        ],
+        "variant": "low",
+        "skills": [],
+        "mcps": []
+      },
+      "researcher": {
+        "model": [
+          { "id": "opencode/hy3-free", "variant": "medium" },
+          "opencode-go/qwen3.7-plus",
+          "opencode/big-pickle"
+        ],
         "variant": "medium",
         "temperature": 0.3,
         "skills": [
