@@ -1192,8 +1192,8 @@ const delegationObserver: Plugin = async (ctx) => {
    *
    * Contract:
    *   1. Directory missing -> `git worktree prune` (stale admin metadata).
-   *   2. Dirty tree (`git -C <path> status --porcelain
-   *      --untracked-files=no` non-empty) -> tuiSafeWarn +
+   *   2. Dirty tree (`git -C <path> status --porcelain` non-empty, including
+   *      untracked files — the most common coder output) -> tuiSafeWarn +
    *      apoptosis_worktree_dirty registry row, NO removal: the developer
    *      decides (dirty trees persist by design; apoptosis is last-resort,
    *      not a data-destruction pass).
@@ -1224,7 +1224,7 @@ const delegationObserver: Plugin = async (ctx) => {
     try {
       probe = spawnSync(
         "git",
-        ["-C", wtPath, "status", "--porcelain", "--untracked-files=no"],
+        ["-C", wtPath, "status", "--porcelain"],
         { cwd, encoding: "utf-8", timeout: 5_000 }
       )
     } catch (err) {
@@ -1264,11 +1264,101 @@ const delegationObserver: Plugin = async (ctx) => {
           `[delegation-observer] apoptosis worktree remove failed for ${wtPath}: ${result.stderr || "exit " + result.status}`
         )
       }
+      } catch (err) {
+        tuiSafeWarn(
+          `[delegation-observer] apoptosis worktree remove error for ${wtPath}: ${errorMessage(err)}`
+        )
+      }
+  }
+
+  // DIA-260826-jcte (rev-1 fix 1): shared apoptosis orchestration for the
+  // idle and error dual-key paths. The two call sites were ~90% identical
+  // blocks that had already diverged (the idle path skipped
+  // logStallResolutionIfStalled, the paracrine signal, and the stall
+  // resolution). Consolidated into one helper so both paths run the identical
+  // sequence; only the handoff trigger/note, the stall-resolution reason, and
+  // the optional error field differ by mode. No external behavior changed
+  // beyond removing that divergence (idle now also emits the paracrine signal
+  // + stall resolution, matching error).
+  function runApoptosis(
+    sessionID: string,
+    role: string,
+    mode: "idle" | "error",
+    errMsg?: string
+  ): void {
+    const trigger = mode === "idle" ? "apoptosis_idle" : "apoptosis"
+    const note =
+      mode === "idle"
+        ? "apoptosis triggered: circuit.open + session.idle dual-key fatal state"
+        : "apoptosis triggered: circuit.open + session.error dual-key fatal state"
+    const resume =
+      mode === "idle"
+        ? "Session terminated by apoptosis (idle with open circuit). Investigate root cause of circuit breaker trip before re-dispatching."
+        : "Session terminated by apoptosis. Investigate root cause of circuit breaker trip + session error before re-dispatching."
+
+    // Step 1: handoff with apoptosis context.
+    try {
+      const handoffContent = {
+        status: "apoptosis",
+        session_id: sessionID,
+        timestamp: new Date().toISOString(),
+        checksum: computeChecksum({
+          trigger,
+          session_id: sessionID,
+          ...(errMsg ? { error: errMsg } : {}),
+        }),
+        prognosis: {
+          session_summary: {
+            note,
+            session_id: sessionID,
+            role,
+            ...(errMsg ? { error: errMsg } : {}),
+          },
+          fixes_applied: [],
+          open_tickets: [],
+          verification_request: [],
+          resume_instructions: resume,
+        },
+      }
+      const apoptosisSessionId = parentSessionId ?? sessionID ?? "unidentified-session"
+      atomicWriteHandoff(handoffContent, apoptosisSessionId)
     } catch (err) {
-      tuiSafeWarn(
-        `[delegation-observer] apoptosis worktree remove error for ${wtPath}: ${errorMessage(err)}`
-      )
+      tuiSafeWarn(`[delegation-observer] apoptosis handoff write failed: ${errorMessage(err)}`)
     }
+
+    // Step 2: safe worktree cleanup (prune if missing, skip dirty, remove clean).
+    const worktrees = sessionWorktrees.get(sessionID)
+    if (worktrees && worktrees.size > 0) {
+      for (const wtPath of worktrees) {
+        safeRemoveWorktree(wtPath, ctx.directory)
+      }
+      sessionWorktrees.delete(sessionID)
+    }
+
+    // Step 3: apoptosis_complete registry row + mark session dead.
+    appendRow({
+      event: "apoptosis_complete",
+      session_id: sessionID,
+      role,
+      status: "APOPTOSIS",
+      note,
+      finished_at: new Date().toISOString(),
+      writer: "plugin",
+    })
+    apoptosisSessions.add(sessionID)
+
+    // Step 4: paracrine signal (both paths — previously idle skipped this).
+    emitStateSignal(sessionID, "dispatch.completed", {
+      agent: childSessionAgent.get(sessionID) ?? role,
+      result: "apoptosis",
+      note: `dual-key shutdown: circuit.open + session.${mode}`,
+    })
+
+    // Step 5: record how a previously stalled delegation ended (both paths).
+    logStallResolutionIfStalled(
+      sessionID,
+      mode === "idle" ? "resolved_by_idle_apoptosis" : "resolved_by_error"
+    )
   }
 
   /**
@@ -3838,6 +3928,17 @@ const delegationObserver: Plugin = async (ctx) => {
             return
           }
 
+          // DIA-260826-jcte (rev-1 fix 3 / FALSIFICATION-1): the idle-apoptosis
+          // dual-key check runs BEFORE the S2 forward-only guard. A session
+          // that errored while the circuit was closed carries a terminal
+          // "failed" row; if the guard ran first it would return early and the
+          // stuck-failed session could never reach apoptosis on a later idle.
+          // Reordering lets the fatal check win for stuck-failed sessions.
+          if (toolCircuitBreaker.getState(sessionID) === "OPEN") {
+            runApoptosis(sessionID, "subagent", "idle")
+            return
+          }
+
           // S2 (C3): forward-only transition guard — targets child-session
           // rows. (Repeated idles of the orchestrator's own session are
           // handled above and are not anomalies.) If the last row for this
@@ -3853,68 +3954,6 @@ const delegationObserver: Plugin = async (ctx) => {
               note: "session.idle observed after a terminal row (multi-idle child session)",
               writer: "plugin",
             })
-            return
-          }
-
-          // DIA-220 FIX 2: apoptosis check for session.idle. The spec
-          // requires both session.error AND session.idle to trigger apoptosis
-          // when circuit.open is true. An idle with an open circuit means the
-          // session is stuck in a failed state — treat it as fatal.
-          if (toolCircuitBreaker.getState(sessionID) === "OPEN") {
-            // Write handoff with apoptosis context.
-            try {
-              const handoffContent = {
-                status: "apoptosis",
-                session_id: sessionID,
-                timestamp: new Date().toISOString(),
-                checksum: computeChecksum({
-                  trigger: "apoptosis_idle",
-                  session_id: sessionID,
-                }),
-                prognosis: {
-                  session_summary: {
-                    note: "apoptosis triggered: circuit.open + session.idle dual-key fatal state",
-                    session_id: sessionID,
-                    role: "subagent",
-                  },
-                  fixes_applied: [],
-                  open_tickets: [],
-                  verification_request: [],
-                  resume_instructions:
-                    "Session terminated by apoptosis (idle with open circuit). Investigate root cause of circuit breaker trip before re-dispatching.",
-                },
-              }
-              const apoptosisSessionId =
-                parentSessionId ?? sessionID ?? "unidentified-session"
-              atomicWriteHandoff(handoffContent, apoptosisSessionId)
-            } catch (err) {
-              tuiSafeWarn(
-                `[delegation-observer] apoptosis idle handoff write failed: ${errorMessage(err)}`
-              )
-            }
-
-            // Remove active worktrees for this session (DIA-260826-jcte:
-            // safeRemoveWorktree — prune if missing, skip dirty, remove
-            // clean trees without --force).
-            const worktrees = sessionWorktrees.get(sessionID)
-            if (worktrees && worktrees.size > 0) {
-              for (const wtPath of worktrees) {
-                safeRemoveWorktree(wtPath, ctx.directory)
-              }
-              sessionWorktrees.delete(sessionID)
-            }
-
-            // Emit apoptosis_complete registry row + mark session dead.
-            appendRow({
-              event: "apoptosis_complete",
-              session_id: sessionID,
-              role: "subagent",
-              status: "APOPTOSIS",
-              note: "dual-key fatal state: circuit.open + session.idle",
-              finished_at: new Date().toISOString(),
-              writer: "plugin",
-            })
-            apoptosisSessions.add(sessionID)
             return
           }
 
@@ -4135,69 +4174,8 @@ const delegationObserver: Plugin = async (ctx) => {
           // worktrees, emit apoptosis_complete, exit cleanly.
           // No orchestrator intervention needed.
           if (toolCircuitBreaker.getState(sessionID) === "OPEN") {
-            // Step 1: Write handoff with apoptosis context.
-            try {
-              const handoffContent = {
-                status: "apoptosis",
-                session_id: sessionID,
-                timestamp: new Date().toISOString(),
-                checksum: computeChecksum({
-                  trigger: "apoptosis",
-                  session_id: sessionID,
-                  error: errorMessage(event.properties?.error),
-                }),
-                prognosis: {
-                  session_summary: {
-                    note: "apoptosis triggered: circuit.open + session.error dual-key fatal state",
-                    session_id: sessionID,
-                    role,
-                    error: errorMessage(event.properties?.error),
-                  },
-                  fixes_applied: [],
-                  open_tickets: [],
-                  verification_request: [],
-                  resume_instructions:
-                    "Session terminated by apoptosis. Investigate root cause of circuit breaker trip + session error before re-dispatching.",
-                },
-              }
-              const apoptosisSessionId =
-                parentSessionId ?? sessionID ?? "unidentified-session"
-              atomicWriteHandoff(handoffContent, apoptosisSessionId)
-            } catch (err) {
-              tuiSafeWarn(
-                `[delegation-observer] apoptosis handoff write failed: ${errorMessage(err)}`
-              )
-            }
-
-            // Step 2: Remove active worktrees for this session
-            // (DIA-260826-jcte: safeRemoveWorktree — prune if missing, skip
-            // dirty, remove clean trees without --force).
-            const worktrees = sessionWorktrees.get(sessionID)
-            if (worktrees && worktrees.size > 0) {
-              for (const wtPath of worktrees) {
-                safeRemoveWorktree(wtPath, ctx.directory)
-              }
-              sessionWorktrees.delete(sessionID)
-            }
-
-            // Step 3: Emit apoptosis_complete registry row + mark session dead.
-            appendRow({
-              event: "apoptosis_complete",
-              session_id: sessionID,
-              role,
-              status: "APOPTOSIS",
-              note: "dual-key fatal state: circuit.open + session.error",
-              finished_at: new Date().toISOString(),
-              writer: "plugin",
-            })
-            apoptosisSessions.add(sessionID)
-
-            // Step 4: Emit apoptosis paracrine signal.
-            emitStateSignal(sessionID, "dispatch.completed", {
-              agent: childSessionAgent.get(sessionID) ?? role,
-              result: "apoptosis",
-              note: "dual-key shutdown: circuit.open + session.error",
-            })
+            // DIA-260826-jcte (rev-1 fix 1): shared apoptosis orchestration.
+            runApoptosis(sessionID, role, "error", errorMessage(event.properties?.error))
           }
 
           return

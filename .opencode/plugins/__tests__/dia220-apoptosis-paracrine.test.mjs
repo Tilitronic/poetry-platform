@@ -40,7 +40,7 @@ const toolFn = (def) => def
 toolFn.schema = schema
 mock.module("@opencode-ai/plugin", () => ({ tool: toolFn }))
 
-// ---- node:child_process mock (DIA-260826-jcte RED phase) ------------------
+// ---- node:child_process mock (DIA-260826-jcte) ----------------------------
 // delegation-observer.ts imports { spawnSync } from "node:child_process".
 // The spy records every git invocation so the safeRemoveWorktree contract
 // tests can assert on remove/prune/status-probe args without real
@@ -301,11 +301,14 @@ describe("DIA-220 Apoptosis (dual-key shutdown)", () => {
       },
     })
 
-    // Simulate task completion to populate sessionWorktrees.
+    // Simulate task completion to populate sessionWorktrees. The task id MUST
+    // match this session's id (ses_apop_test_3) so the worktree is tracked
+    // under the same key the apoptosis loop reads — otherwise the loop is
+    // never exercised (vacuous test, DIA-260826-jcte rev-1 fix 2).
     await driveTaskAfter(hooks, ctx, {
       sessionID,
       callID: "call_wt",
-      output: '<task id="ses_child_wt"><state>completed</state></task>',
+      output: '<task id="ses_apop_test_3"><state>completed</state></task>',
       args: {
         subagent_type: "coder",
         prompt: "test WORKTREE: " + worktreePath,
@@ -318,6 +321,11 @@ describe("DIA-220 Apoptosis (dual-key shutdown)", () => {
     await driveToolAfter(hooks, ctx, { tool: "bash", sessionID, output: "" })
 
     const rowsBefore = countRows(ctx)
+
+    // Reset the git-spawn spy and use a clean-tree probe so the worktree
+    // removal path is taken (not the dirty-skip path).
+    spawnCalls.length = 0
+    porcelainProbeStdout = ""
 
     // Fire session.error to trigger apoptosis.
     await driveEvent(hooks, {
@@ -334,6 +342,13 @@ describe("DIA-220 Apoptosis (dual-key shutdown)", () => {
     const apoptosisRow = newRows.find((r) => r.event === "apoptosis_complete")
     expect(apoptosisRow).toBeDefined()
     expect(apoptosisRow.session_id).toBe(sessionID)
+
+    // FALSIFICATION guard (rev-1 fix 2): the tracked worktree must have been
+    // passed to `git worktree remove`. If the worktree loop were deleted or
+    // keyed wrong, this assertion fails.
+    const removes = worktreeSubcommandCalls("remove")
+    expect(removes.length).toBe(1)
+    expect(removes[0].args).toContain(worktreePath)
   })
 
   test("session.idle + circuit.open triggers apoptosis (idle dual-key)", async () => {
@@ -421,36 +436,28 @@ describe("DIA-220 Apoptosis (dual-key shutdown)", () => {
 })
 
 // ---------------------------------------------------------------------------
-// DIA-260826-jcte RED phase: safeRemoveWorktree contract (learning T2)
+// DIA-260826-jcte: safeRemoveWorktree contract (GREEN phase)
 // ---------------------------------------------------------------------------
 //
-// Planned fix: both apoptosis worktree-removal call sites route through
-// safeRemoveWorktree(wtPath, cwd):
+// Both apoptosis worktree-removal call sites route through
+// safeRemoveWorktree(wtPath, cwd) (consolidated via runApoptosis in
+// delegation-observer.ts, rev-1 fix 1):
 //   1. directory missing -> git worktree prune, no remove attempt
-//   2. dirty tree (git -C <path> status --porcelain --untracked-files=no
-//      non-empty) -> NO removal, tuiSafeWarn + registry row
-//      {event: "apoptosis_worktree_dirty", worktree, writer: "plugin"}
+//   2. dirty tree (git -C <path> status --porcelain non-empty, INCLUDING
+//      untracked files per rev-1 fix 4 / FALSIFICATION-2) -> NO removal,
+//      tuiSafeWarn + registry row {event: "apoptosis_worktree_dirty",
+//      worktree, writer: "plugin"}
 //   3. clean -> git worktree remove WITHOUT --force
 //
-// Current code spawns `git worktree remove --force <path>` unconditionally,
-// so every case below FAILS against it = RED signal. GREEN phase (different
-// coder instance, DIA-175) implements the helper in delegation-observer.ts;
-// these tests must NOT be edited to pass.
+// These tests PASS against current code (GREEN). Both fatal triggers are
+// exercised (session.error AND session.idle) because the two call sites are
+// separate code blocks reached via the shared helper: a half-fix that fails
+// to route a site through safeRemoveWorktree must stay RED.
 //
-// Both fatal triggers are exercised (session.error AND session.idle) because
-// the two call sites are separate code blocks: a half-fix that routes only
-// one site through the helper must stay RED.
-//
-// DISCOVERED PRECONDITION (RED-phase finding, 2026-08-26): the cases fail
-// today with removes.length === 0 -- deeper than --force alone. Root cause:
-// tool.execute.after DELETES turnToolCalls[sessionID] at entry (line ~3197,
-// DIA-218 message-boundary reset) BEFORE the DIA-220 propagation block
-// (line ~3371) reads it, so sessionWorktrees is never populated and the
-// apoptosis worktree loop is currently unreachable dead code. Minimal GREEN
-// precondition: capture the WORKTREE marker without depending on the
-// pre-deleted turn list (e.g. read input.args in the after hook, or move the
-// reset below the propagation block). Without that fix, safeRemoveWorktree
-// would guard a path that can never run.
+// The GREEN precondition (capture the WORKTREE marker from input.args, not
+// the pre-deleted turn list) is already implemented in delegation-observer.ts
+// (DIA-260826-jcte PART 1), so sessionWorktrees is populated and the
+// apoptosis worktree loop is reachable.
 
 async function driveApoptosisWithTrackedWorktree(hooks, ctx, sessionID, worktreePath, trigger) {
   // The idle path recognizes only registered subagents (see the DIA-220
@@ -517,7 +524,7 @@ function worktreeSubcommandCalls(subcommand) {
   )
 }
 
-describe("DIA-260826-jcte safeRemoveWorktree contract (RED phase)", () => {
+describe("DIA-260826-jcte safeRemoveWorktree contract (GREEN phase)", () => {
   for (const trigger of ["error", "idle"]) {
     test(`clean worktree on apoptosis (${trigger}): remove invoked WITHOUT --force`, async () => {
       const { hooks, ctx } = await makeHarness()
@@ -542,7 +549,12 @@ describe("DIA-260826-jcte safeRemoveWorktree contract (RED phase)", () => {
       const wtPath = join(ctx.directory, ".scratch", "srw-dirty-wt")
       mkdirSync(wtPath, { recursive: true })
 
-      porcelainProbeStdout = " M src/broken.ts\n" // non-empty = dirty
+      // Untracked-only worktree (the most common coder output). rev-1 fix 4
+      // (FALSIFICATION-2): the probe is now `git status --porcelain` (no
+      // --untracked-files=no), so untracked files are retained and emit
+      // apoptosis_worktree_dirty. Against the OLD probe this would be
+      // misclassified CLEAN and the tree removed -> test fails.
+      porcelainProbeStdout = "?? src/newfile.ts\n" // untracked-only = dirty
       spawnCalls.length = 0
       const rowsBefore = countRows(ctx)
 

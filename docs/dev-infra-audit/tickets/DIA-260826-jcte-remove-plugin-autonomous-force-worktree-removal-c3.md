@@ -45,8 +45,74 @@ files and line references where known.>
 
 ## Fix
 
-> To be filled at fix time.
+DIA-260826-jcte (rev-1) applied 5 fixes to the delegation-observer apoptosis
+path and its paracrine test. All are committed in ea06ecd1
+("DIA-260826-jcte: remove plugin autonomous force worktree removal").
+
+1. Consolidated shared apoptosis orchestration (rev-1 fix 1).
+   The idle (~3859-3941) and error (~4129-4180) dual-key paths were ~90%
+   identical blocks that had diverged: the idle path skipped
+   logStallResolutionIfStalled, the paracrine signal, and the stall
+   resolution. Both now call one helper `runApoptosis(sessionID, role, mode,
+errMsg?)` (delegation-observer.ts:1284) with a `mode: "idle" | "error"`
+   flag. Only the handoff trigger/note, resume text, stall-resolution reason,
+   and the optional error field differ by mode. Idle now also emits the
+   paracrine signal + stall resolution, matching error. No external behavior
+   changed beyond removing that divergence.
+
+2. Fixed vacuous test 3 (rev-1 fix 2).
+   dia220-apoptosis-paracrine.test.mjs "apoptosis attempts worktree cleanup
+   for tracked worktrees" now tracks the worktree under the SAME session id
+   (ses_apop_test_3) used for the session.error event (lines 285/308/334),
+   so the worktree loop is genuinely exercised. Assertion (lines 349-351)
+   verifies `git worktree remove` was called with the tracked path.
+
+3. FALSIFICATION-1: stuck-failed sessions can still reach idle-apoptosis
+   (rev-1 fix 3). The idle-apoptosis dual-key check (circuit OPEN) now runs
+   BEFORE the S2 forward-only transition guard (delegation-observer.ts:3932-
+   3941). Previously the guard returned early for a session that had errored
+   while the circuit was closed, so a later idle could never trigger
+   apoptosis. Reordering lets the fatal check win for stuck-failed sessions.
+
+4. FALSIFICATION-2: dirty probe now sees untracked coder output (rev-1 fix 4).
+   safeRemoveWorktree probe changed from `git status --porcelain
+--untracked-files=no` to `git status --porcelain`
+   (delegation-observer.ts:1227). Untracked files (the common coder output)
+   are now dirty and emit `apoptosis_worktree_dirty`; safe-removal is
+   preserved (git refuses --force, developer decides). Test
+   "dirty worktree on apoptosis" (lines 546+) asserts the dirty row.
+
+5. Stale RED-phase comments removed; role-resolution change documented.
+   The role-resolution logic now uses lifecycle registration
+   (session.created parentID) which outranks the sticky first-task
+   inference, at both the idle path (delegation-observer.ts:3862-3868) and the
+   error path (delegation-observer.ts:4101-4103):
+   `meta?.role ?? (sessionID === parentSessionId ? "orchestrator" : "unknown")`.
+   This prevents registered children that dispatch nested task() calls from
+   being misclassified as "orchestrator" (which previously routed their idle
+   event into the a5 branch, skipping apoptosis). No stale RED-phase comments
+   remain in the test file.
 
 ## Re-verify
 
-> To be filled at re-verify time.
+Re-verify the 5 fixes for DIA-260826-jcte (committed in ea06ecd1):
+
+- [x] `make test-shell` ? dia220-apoptosis-paracrine.test.mjs green
+      (consolidated helper exercised by both idle + error paths; test 3
+      asserts git worktree remove called with tracked path; dirty-worktree
+      test asserts apoptosis_worktree_dirty row).
+- [x] `make test-config` ? config validation passes (no agent-name /
+      schema drift introduced by the change).
+- [x] FALSIFICATION-1: a session that errored with circuit CLOSED, then
+      receives a later session.idle with circuit OPEN, reaches apoptosis
+      (idle-apoptosis check precedes the S2 forward-only guard).
+- [x] FALSIFICATION-2: a worktree with untracked coder output is treated as
+      dirty by `git status --porcelain` (no --untracked-files=no) and emits
+      apoptosis_worktree_dirty; no --force removal is ever issued.
+- [x] Role-resolution: registered children (session.created parentID) are
+      classified "subagent" via meta?.role, not misrouted to the a5 branch.
+- [x] No stale RED-phase comments remain in the test file.
+
+Acceptance: the plugin no longer performs autonomous force worktree removal;
+dirty trees persist by design and the developer decides. Apoptosis remains a
+last-resort dual-key (circuit.open + session.error/idle) graceful shutdown.
