@@ -7,9 +7,9 @@
       assembly). Test it against a whitelist array of literal substrings:
       `scripts/tickets new`, `create ticket`, `procedural authorization`,
       `meta-task`, `[META-TASK]`. On match: `appendRow({ event:
-    "meta_task_bypass", session_id, detail, writer: "plugin" })`,
+"meta_task_bypass", session_id, detail, writer: "plugin" })`,
       `tuiSafeWarn("[meta-task] bypassing ticket gate for ticket-creation /
-    procedural-authorization dispatch")`, then `return` (allow, no ticket ID
+procedural-authorization dispatch")`, then `return` (allow, no ticket ID
       required). **Acceptance:** a `task()` dispatch whose prompt contains
       `scripts/tickets new` is allowed (no throw) and a `meta_task_bypass` row is
       written; a dispatch containing the `[META-TASK]` marker is allowed; a
@@ -48,7 +48,7 @@
 
 - [ ] 3.2 Run the plugin test suite and `openspec validate` for this change.
       **Acceptance:** the bats suite exits 0; `openspec validate
-    dia-260820-jlu0-chicken-egg-ticket-gate` exits 0.
+dia-260820-jlu0-chicken-egg-ticket-gate` exits 0.
 
 ## 4. Documentation follow-up (gate contract)
 
