@@ -69,7 +69,10 @@ const TICKETS_DIR_REL = "docs/dev-infra-audit/tickets"
  * Ephemeral secret for HMAC capability tokens. Random per process start;
  * tokens are short-lived (5 min) so process-restart invalidation is acceptable.
  */
-const CAPABILITY_SECRET = randomBytes(32)
+// Exported for the test harness (DIA-260820-jlu0 F3) so it can mint a
+// validly-signed token WITHOUT a scope and drive the REAL gate to assert the
+// scope-leak rejection. Ephemeral per process; tokens are short-lived.
+export const CAPABILITY_SECRET = randomBytes(32)
 
 // ── Capability token utilities (DIA-260820-jlu0) ────────────────────────────
 
@@ -96,7 +99,9 @@ function base64url(buf: Buffer | string): string {
  * The token carries a JSON payload (id, scope, reason, exp) signed with
  * CAPABILITY_SECRET so it cannot be forged outside this plugin process.
  */
-function mintCapabilityToken(scope: string, reason: string): string {
+// Exported for the test harness (DIA-260820-jlu0 F3) to mint a real token and
+// drive the REAL gate (bypass path).
+export function mintCapabilityToken(scope: string, reason: string): string {
   const payload = {
     id: randomUUID(),
     scope,
@@ -115,7 +120,8 @@ function mintCapabilityToken(scope: string, reason: string): string {
  * Verify a capability token: check HMAC signature, then expiry.
  * Returns { valid, payload } on success, { valid: false, error } on failure.
  */
-function verifyCapabilityToken(
+// Exported for the test harness (DIA-260820-jlu0 F3) to drive the REAL gate.
+export function verifyCapabilityToken(
   token: string
 ): { valid: boolean; payload?: CapabilityPayload; error?: string } {
   // Strip the "CAP-" prefix before splitting: the mint format is
@@ -183,6 +189,18 @@ function extractWorktreeMarker(
     ...`${description}\n${prompt}`.matchAll(/WORKTREE:\s*(\S+)/gi),
   ]
   return markers.length === 1 ? markers[0][1] : undefined
+}
+
+/**
+ * Assemble the dispatch text (description + "\n" + prompt) used by the DIA-217
+ * ticket gate, capability-token check, and meta-task carve-out. DIA-260820-jlu0
+ * F4: extracted to remove the triplicate inline assembly (no behavior change).
+ */
+function buildDispatchText(args: Record<string, unknown>): string {
+  const description =
+    typeof args.description === "string" ? args.description : ""
+  const prompt = typeof args.prompt === "string" ? args.prompt : ""
+  return `${description}\n${prompt}`
 }
 
 /**
@@ -2870,7 +2888,7 @@ const delegationObserver: Plugin = async (ctx) => {
         // blast radius. Checked BEFORE the ticket_id field check so a
         // minted token fully replaces the ticket requirement.
         const capMatch = /\[CAPABILITY:\s*(CAP-[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+)\]/.exec(
-          `${typeof taskArgRecord.description === "string" ? taskArgRecord.description : ""}\n${typeof taskArgRecord.prompt === "string" ? taskArgRecord.prompt : ""}`
+          buildDispatchText(taskArgRecord)
         )
         if (capMatch) {
           const result = verifyCapabilityToken(capMatch[1])
@@ -2908,12 +2926,18 @@ const delegationObserver: Plugin = async (ctx) => {
         // that creates the ticket cannot cite its own future ID. The weak-
         // correlation path requires citing a known (but absent) ID, which is
         // impossible for a fresh ticket. This carve-out lets such meta-tasks
-        // bypass the gate WITHOUT a ticket ID, emitting an audit row + TUI warn.
-        // Placed BEFORE ticket_id resolution so a meta-task never infers/
-        // attributes a stray DIA id from its own text. The whitelist is the
-        // explicit intent signal (audit-literal); `[META-TASK]` is the strict
-        // opt-in, the rest cover natural orchestrator phrasing.
-        const metaTaskText = `${typeof taskArgRecord.description === "string" ? taskArgRecord.description : ""}\n${typeof taskArgRecord.prompt === "string" ? taskArgRecord.prompt : ""}`
+        // bypass the DIA-217 ticket_id resolution/hard-block WITHOUT a ticket
+        // ID, emitting an audit row + TUI warn.
+        // F2: it sets `metaTaskBypass` and does NOT early-return from the whole
+        // hook -- so the dispatch still flows through the §10 TICKET GATE
+        // (DIA-063, ~line 3156) and the DIA-230 routing-order gate (~line 3193),
+        // which are separate `if (input.tool === "task")` blocks after this one.
+        // Only the DIA-217 resolution block below is skipped.
+        // F1: case-insensitive -- lowercase both sides so "Create Ticket" /
+        // "CREATE TICKET" still match. The whitelist is the explicit intent
+        // signal (audit-literal); `[META-TASK]` is the strict opt-in, the rest
+        // cover natural orchestrator phrasing.
+        const metaTaskText = buildDispatchText(taskArgRecord).toLowerCase()
         const META_TASK_WHITELIST = [
           "scripts/tickets new",
           "create ticket",
@@ -2921,6 +2945,7 @@ const delegationObserver: Plugin = async (ctx) => {
           "meta-task",
           "[META-TASK]",
         ]
+        let metaTaskBypass = false
         if (META_TASK_WHITELIST.some((sig) => metaTaskText.includes(sig))) {
           appendRow({
             event: "meta_task_bypass",
@@ -2932,13 +2957,16 @@ const delegationObserver: Plugin = async (ctx) => {
           tuiSafeWarn(
             "[meta-task] bypassing ticket gate for ticket-creation / procedural-authorization dispatch"
           )
-          return // Allow without a ticket ID
+          metaTaskBypass = true // skip DIA-217 resolution; CONTINUE to §10/DIA-230
         }
 
         // DIA-260824-p3hf: the native task tool schema cannot carry project
         // extension fields. Prefer an explicit governing-ticket marker so
         // policy references cannot make an otherwise attributable call
         // ambiguous; fall back to one unique literal ID.
+        // F2: skip the entire DIA-217 resolution/hard-block when the meta-task
+        // carve-out fired; the dispatch then continues to §10/DIA-230 below.
+        if (!metaTaskBypass) {
         let ticketId =
           typeof taskArgRecord.ticket_id === "string"
             ? taskArgRecord.ticket_id
@@ -3045,6 +3073,7 @@ const delegationObserver: Plugin = async (ctx) => {
           tuiSafeWarn(
             `[DIA-217] ticket gate: ticket_id '${ticketId}' not found in tickets dir - allowing (weak correlation)`
           )
+        }
         }
       }
 
