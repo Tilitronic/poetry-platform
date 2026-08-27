@@ -6,7 +6,7 @@ id: DIA-260821-aoag
 title: "container engine socket security hardening: add default-off --with-engine opt-in flag"
 area: docker
 severity: Major
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: DIA-260821-bqy7
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
@@ -17,7 +17,7 @@ discovered: 2026-08-21
 source: inventory
 date: 2026-08-21
 created: 2026-08-21
-updated: 2026-08-21
+updated: 2026-08-27
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -30,7 +30,9 @@ attempts: 0
 lease_expires_at: "" # ISO-8601; set on DISPATCHED, cleared on COMPLETE
 files_touched: []
 artifacts: []
-evidence: []
+evidence:
+
+- commits d57fb78 (impl), 99eecc0 (fix r1); re-review cycle 1/2 all 6 findings verified-closed; residual spec test-file ref drift noted minor/non-blocking
 
 ---
 
