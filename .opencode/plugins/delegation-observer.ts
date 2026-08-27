@@ -4101,6 +4101,19 @@ const delegationObserver: Plugin = async (ctx) => {
           const role =
             meta?.role ?? (sessionID === parentSessionId ? "orchestrator" : "unknown")
 
+          // DIA-260827-xsah: apoptosis dual-key check runs BEFORE the S2
+          // forward-only guard. A session that errored while the circuit was
+          // CLOSED carries a terminal "failed" row; on a LATER error with the
+          // circuit OPEN, the S2 guard would return early (terminal row seen)
+          // and the stuck-failed session could never reach apoptosis.
+          // Reordering lets the fatal check win for stuck-failed sessions
+          // (mirrors the idle-path fix at ~:3937).
+          if (toolCircuitBreaker.getState(sessionID) === "OPEN") {
+            // DIA-260826-jcte (rev-1 fix 1): shared apoptosis orchestration.
+            runApoptosis(sessionID, role, "error", errorMessage(event.properties?.error))
+            return
+          }
+
           // S2 guard targets child-session rows; orchestrator/unknown
           // sessions may error transiently without violating forward-only
           // transitions, so no anomaly is logged for them.
@@ -4150,12 +4163,13 @@ const delegationObserver: Plugin = async (ctx) => {
               ? sessionMeta.get(sessionID)?.parentID
               : sessionID
           )
-          // DIA-220 paracrine: emit dispatch.completed with error result.
-          emitStateSignal(sessionID, "dispatch.completed", {
-            agent: childSessionAgent.get(sessionID) ?? role,
-            result: "error",
-            error: errorMessage(event.properties?.error),
-          })
+          // DIA-260827-at5o: standalone dispatch.completed emission removed.
+          // The OPEN-circuit case returns early via runApoptosis above, which
+          // owns the single dispatch.completed signal (result "apoptosis");
+          // the CLOSED-circuit case intentionally emits no dispatch.completed
+          // here so a session never emits two. (Idle-path normal completion
+          // keeps its success emission at ~:3991; error-path normal completion
+          // has no paracrine signal by design.)
           checkSilentFailures()
           // DIA-098 R2: the session errored out -- record how a previously
           // stalled delegation ended (the next sweep drops it automatically).
@@ -4164,19 +4178,6 @@ const delegationObserver: Plugin = async (ctx) => {
           sessionEditCount.delete(sessionID)
           // DIA-260826-zvu4: errored sessions must not keep the exemption.
           verificationOnlySessions.delete(sessionID)
-
-          // === DIA-220 APOPTOSIS: dual-key graceful shutdown ===
-          // If the circuit breaker is OPEN for this session AND session.error
-          // fires, this is a dual-key fatal state. The session has both:
-          //   (1) accumulated enough tool errors to trip the circuit breaker
-          //   (2) received a terminal error event
-          // Autonomous response: dump context to handoff, remove active
-          // worktrees, emit apoptosis_complete, exit cleanly.
-          // No orchestrator intervention needed.
-          if (toolCircuitBreaker.getState(sessionID) === "OPEN") {
-            // DIA-260826-jcte (rev-1 fix 1): shared apoptosis orchestration.
-            runApoptosis(sessionID, role, "error", errorMessage(event.properties?.error))
-          }
 
           return
         }

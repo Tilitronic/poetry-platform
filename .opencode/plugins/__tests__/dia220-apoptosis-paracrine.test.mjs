@@ -396,6 +396,69 @@ describe("DIA-220 Apoptosis (dual-key shutdown)", () => {
     expect(apoptosisRow.status).toBe("APOPTOSIS")
   })
 
+  test("stuck-failed scenario: errored (CLOSED) then idle (OPEN) triggers apoptosis", async () => {
+    const { hooks, ctx } = await makeHarness()
+    const sessionID = "ses_apop_stuck_1"
+
+    // Register as a subagent so the idle handler reaches the apoptosis check.
+    await driveEvent(hooks, {
+      event: {
+        type: "session.created",
+        properties: {
+          info: { id: sessionID, parentID: "ses_parent", title: "test" },
+        },
+      },
+    })
+
+    // Fire session.error while the circuit is CLOSED: writes a terminal
+    // "failed" row but does NOT trigger apoptosis (circuit not open yet).
+    await driveEvent(hooks, {
+      event: {
+        type: "session.error",
+        properties: {
+          sessionID,
+          error: new Error("first error, circuit closed"),
+        },
+      },
+    })
+
+    // Verify the terminal failed row was written and no apoptosis ran yet.
+    const rowsAfterError = readNewRows(ctx, 0)
+    expect(rowsAfterError.find((r) => r.event === "session_failed")).toBeDefined()
+    expect(
+      rowsAfterError.find((r) => r.event === "apoptosis_complete")
+    ).toBeUndefined()
+
+    // Trip the circuit breaker (3 errors in 5 calls) -> OPEN.
+    await driveToolAfter(hooks, ctx, { tool: "bash", sessionID, output: "" })
+    await driveToolAfter(hooks, ctx, { tool: "bash", sessionID, output: "" })
+    await driveToolAfter(hooks, ctx, { tool: "bash", sessionID, output: "" })
+
+    const rowsBeforeIdle = countRows(ctx)
+
+    // A LATER idle with the circuit OPEN must trigger apoptosis for the
+    // stuck-failed session (idle-path dual-key check precedes the S2 guard).
+    await driveEvent(hooks, {
+      event: {
+        type: "session.idle",
+        properties: { sessionID },
+      },
+    })
+
+    const newRows = readNewRows(ctx, rowsBeforeIdle)
+    const apoptosisRow = newRows.find((r) => r.event === "apoptosis_complete")
+    expect(apoptosisRow).toBeDefined()
+    expect(apoptosisRow.session_id).toBe(sessionID)
+    expect(apoptosisRow.status).toBe("APOPTOSIS")
+
+    // Handoff file written by apoptosis.
+    const handoffsDir = join(ctx.directory, ".opencode/session/handoffs")
+    const handoffFiles = readdirSync(handoffsDir).filter(
+      (f) => f.endsWith(".json") && !f.startsWith(".")
+    )
+    expect(handoffFiles.length).toBeGreaterThan(0)
+  })
+
   test("after apoptosis, tool.execute.before throws on any tool call", async () => {
     const { hooks, ctx } = await makeHarness()
     const sessionID = "ses_apop_kill_1"
@@ -710,7 +773,7 @@ describe("DIA-220 Paracrine (state signals)", () => {
     expect(reviewComplete.result).toBe("success")
   })
 
-  test("dispatch.completed signal emitted with error on session.error", async () => {
+  test("dispatch.completed emitted exactly once (apoptosis) on session.error+OPEN, no double", async () => {
     const { hooks, ctx } = await makeHarness()
     const sessionID = "ses_para_test_4"
     const childID = "ses_child_4"
@@ -733,9 +796,14 @@ describe("DIA-220 Paracrine (state signals)", () => {
       args: { subagent_type: "coder", prompt: "test" },
     })
 
+    // Trip the circuit breaker (3 errors in 5 calls) so the error is fatal.
+    await driveToolAfter(hooks, ctx, { tool: "bash", sessionID: childID, output: "" })
+    await driveToolAfter(hooks, ctx, { tool: "bash", sessionID: childID, output: "" })
+    await driveToolAfter(hooks, ctx, { tool: "bash", sessionID: childID, output: "" })
+
     const messagesBefore = countMessages(ctx)
 
-    // Fire session.error.
+    // Fire session.error with circuit OPEN -> apoptosis (single signal).
     await driveEvent(hooks, {
       event: {
         type: "session.error",
@@ -746,14 +814,15 @@ describe("DIA-220 Paracrine (state signals)", () => {
       },
     })
 
-    // Verify dispatch.completed signal with error result.
+    // Verify exactly ONE dispatch.completed signal, result "apoptosis"
+    // (runApoptosis owns it; the old standalone error emission is gone).
     const newMessages = readNewMessages(ctx, messagesBefore)
-    const dispatchCompleted = newMessages.find(
+    const completed = newMessages.filter(
       (r) =>
         r.signal_type === "dispatch.completed" &&
         r["gen_ai.agent.id"] === childID
     )
-    expect(dispatchCompleted).toBeDefined()
-    expect(dispatchCompleted.result).toBe("error")
+    expect(completed.length).toBe(1)
+    expect(completed[0].result).toBe("apoptosis")
   })
 })
