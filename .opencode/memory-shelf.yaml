@@ -1094,6 +1094,36 @@ shelf:
     created: 2026-08-22
     task_ref: DIA-260822-medh
     status: validated
+  - name: dia-260820-jlu0-chicken-egg-ticket-gate
+    description: "OpenSpec change (ticket DIA-260820-jlu0): resolves the chicken-and-egg between the section-10 ticket gate and the spec-authoring lane that cannot open its own ticket. Validated, not implemented."
+    path: openspec/changes/dia-260820-jlu0-chicken-egg-ticket-gate/
+    created: 2026-08-27
+    task_ref: DIA-260820-jlu0
+    status: validated
+  - name: dia-260821-aoag-socket-mount-opt-in
+    description: "OpenSpec change (ticket DIA-260821-aoag): makes the observer socket mount opt-in rather than default-on. Validated, not implemented."
+    path: openspec/changes/dia-260821-aoag-socket-mount-opt-in/
+    created: 2026-08-27
+    task_ref: DIA-260821-aoag
+    status: validated
+  - name: dia-260821-5r03-observer-registration-dedupe
+    description: "OpenSpec change (ticket DIA-260821-5r03): de-duplicates observer registration to prevent double registration. Validated, not implemented."
+    path: openspec/changes/dia-260821-5r03-observer-registration-dedupe/
+    created: 2026-08-27
+    task_ref: DIA-260821-5r03
+    status: validated
+  - name: dia-206-empty-return-recovery
+    description: "OpenSpec change (ticket DIA-206): recovery protocol for empty subagent return values. Validated, not implemented."
+    path: openspec/changes/dia-206-empty-return-recovery/
+    created: 2026-08-27
+    task_ref: DIA-206
+    status: validated
+  - name: dia-234-ticket-human-readable-mention-enforcement
+    description: "OpenSpec change (ticket DIA-234, left OPEN): enforces human-readable ticket mentions (ID + slug) in user-facing output. Validated, not implemented."
+    path: openspec/changes/dia-234-ticket-human-readable-mention-enforcement/
+    created: 2026-08-27
+    task_ref: DIA-234
+    status: validated
   architectures:
   - name: dia-redispatch-cycle
     description: "Design-authority seed for the dev-infra campaign protocol (CRISIS-DETECTION, PROGNOSIS-DISCIPLINE, cycle-budget management): 5 ADRs (ADR-001 prognosis in HANDOFF.md only, ADR-002 C1-C5 OR-combined triggers, ADR-003 fresh-session independence, ADR-004 max-cycles=3 budget default, ADR-005 soft exhaustion) that the redispatch rule texts must not contradict. Seeded 2026-08-03 from interview Q5."
