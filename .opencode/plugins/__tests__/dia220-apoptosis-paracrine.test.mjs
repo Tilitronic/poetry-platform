@@ -40,6 +40,28 @@ const toolFn = (def) => def
 toolFn.schema = schema
 mock.module("@opencode-ai/plugin", () => ({ tool: toolFn }))
 
+// ---- node:child_process mock (DIA-260826-jcte RED phase) ------------------
+// delegation-observer.ts imports { spawnSync } from "node:child_process".
+// The spy records every git invocation so the safeRemoveWorktree contract
+// tests can assert on remove/prune/status-probe args without real
+// subprocesses. Status probes (git -C <path> status ...) return the
+// configurable porcelain buffer; everything else returns success.
+// Both exports are stubbed because bun 1.3.14 mock.module leaks across
+// files in one run (same pattern as needs-input-observer.dia189.test.mjs).
+const spawnCalls = []
+let porcelainProbeStdout = ""
+mock.module("node:child_process", () => ({
+  spawn: () => ({ on: () => {} }),
+  spawnSync: (cmd, args, opts) => {
+    spawnCalls.push({ cmd, args, opts })
+    // Dirty-tree probe shape: git -C <path> status --porcelain ...
+    if (Array.isArray(args) && args[0] === "-C" && args.includes("status")) {
+      return { status: 0, stdout: porcelainProbeStdout, stderr: "" }
+    }
+    return { status: 0, stdout: "", stderr: "" }
+  },
+}))
+
 // Dynamic import AFTER mock.module registration (defeats ESM hoisting).
 const { default: createDelegationObserver } = await import(
   "../delegation-observer.ts"
@@ -396,6 +418,170 @@ describe("DIA-220 Apoptosis (dual-key shutdown)", () => {
     // Different sessionID -- should NOT be blocked.
     expect(err2).toBeNull()
   })
+})
+
+// ---------------------------------------------------------------------------
+// DIA-260826-jcte RED phase: safeRemoveWorktree contract (learning T2)
+// ---------------------------------------------------------------------------
+//
+// Planned fix: both apoptosis worktree-removal call sites route through
+// safeRemoveWorktree(wtPath, cwd):
+//   1. directory missing -> git worktree prune, no remove attempt
+//   2. dirty tree (git -C <path> status --porcelain --untracked-files=no
+//      non-empty) -> NO removal, tuiSafeWarn + registry row
+//      {event: "apoptosis_worktree_dirty", worktree, writer: "plugin"}
+//   3. clean -> git worktree remove WITHOUT --force
+//
+// Current code spawns `git worktree remove --force <path>` unconditionally,
+// so every case below FAILS against it = RED signal. GREEN phase (different
+// coder instance, DIA-175) implements the helper in delegation-observer.ts;
+// these tests must NOT be edited to pass.
+//
+// Both fatal triggers are exercised (session.error AND session.idle) because
+// the two call sites are separate code blocks: a half-fix that routes only
+// one site through the helper must stay RED.
+//
+// DISCOVERED PRECONDITION (RED-phase finding, 2026-08-26): the cases fail
+// today with removes.length === 0 -- deeper than --force alone. Root cause:
+// tool.execute.after DELETES turnToolCalls[sessionID] at entry (line ~3197,
+// DIA-218 message-boundary reset) BEFORE the DIA-220 propagation block
+// (line ~3371) reads it, so sessionWorktrees is never populated and the
+// apoptosis worktree loop is currently unreachable dead code. Minimal GREEN
+// precondition: capture the WORKTREE marker without depending on the
+// pre-deleted turn list (e.g. read input.args in the after hook, or move the
+// reset below the propagation block). Without that fix, safeRemoveWorktree
+// would guard a path that can never run.
+
+async function driveApoptosisWithTrackedWorktree(hooks, ctx, sessionID, worktreePath, trigger) {
+  // The idle path recognizes only registered subagents (see the DIA-220
+  // idle dual-key test above).
+  if (trigger === "idle") {
+    await driveEvent(hooks, {
+      event: {
+        type: "session.created",
+        properties: {
+          info: { id: sessionID, parentID: "ses_parent", title: "test" },
+        },
+      },
+    })
+  }
+
+  // Track the worktree on THIS session id: task.before captures the single
+  // WORKTREE marker; task.after propagates it keyed by <task id="...">.
+  await driveTaskBefore(hooks, ctx, {
+    sessionID,
+    callID: "call_srw",
+    args: {
+      subagent_type: "coder",
+      prompt: "test WORKTREE: " + worktreePath,
+      ticket_id: "DIA-260826-jcte",
+    },
+  })
+  await driveTaskAfter(hooks, ctx, {
+    sessionID,
+    callID: "call_srw",
+    output: `<task id="${sessionID}"><state>completed</state></task>`,
+    args: {
+      subagent_type: "coder",
+      prompt: "test WORKTREE: " + worktreePath,
+    },
+  })
+
+  // Trip the circuit breaker (3 errors in 5 calls).
+  await driveToolAfter(hooks, ctx, { tool: "bash", sessionID, output: "" })
+  await driveToolAfter(hooks, ctx, { tool: "bash", sessionID, output: "" })
+  await driveToolAfter(hooks, ctx, { tool: "bash", sessionID, output: "" })
+
+  // Fire the second fatal key.
+  if (trigger === "idle") {
+    await driveEvent(hooks, {
+      event: { type: "session.idle", properties: { sessionID } },
+    })
+  } else {
+    await driveEvent(hooks, {
+      event: {
+        type: "session.error",
+        properties: {
+          sessionID,
+          error: new Error("safeRemoveWorktree RED probe"),
+        },
+      },
+    })
+  }
+}
+
+function worktreeSubcommandCalls(subcommand) {
+  return spawnCalls.filter(
+    (c) =>
+      Array.isArray(c.args) && c.args[0] === "worktree" && c.args[1] === subcommand
+  )
+}
+
+describe("DIA-260826-jcte safeRemoveWorktree contract (RED phase)", () => {
+  for (const trigger of ["error", "idle"]) {
+    test(`clean worktree on apoptosis (${trigger}): remove invoked WITHOUT --force`, async () => {
+      const { hooks, ctx } = await makeHarness()
+      const sessionID = "ses_srw_clean_" + trigger
+      const wtPath = join(ctx.directory, ".scratch", "srw-clean-wt")
+      mkdirSync(wtPath, { recursive: true })
+
+      porcelainProbeStdout = "" // clean tree
+      spawnCalls.length = 0
+
+      await driveApoptosisWithTrackedWorktree(hooks, ctx, sessionID, wtPath, trigger)
+
+      const removes = worktreeSubcommandCalls("remove")
+      expect(removes.length).toBe(1)
+      expect(removes[0].args).toContain(wtPath)
+      expect(removes[0].args).not.toContain("--force")
+    })
+
+    test(`dirty worktree on apoptosis (${trigger}): no removal + apoptosis_worktree_dirty row`, async () => {
+      const { hooks, ctx } = await makeHarness()
+      const sessionID = "ses_srw_dirty_" + trigger
+      const wtPath = join(ctx.directory, ".scratch", "srw-dirty-wt")
+      mkdirSync(wtPath, { recursive: true })
+
+      porcelainProbeStdout = " M src/broken.ts\n" // non-empty = dirty
+      spawnCalls.length = 0
+      const rowsBefore = countRows(ctx)
+
+      await driveApoptosisWithTrackedWorktree(hooks, ctx, sessionID, wtPath, trigger)
+
+      expect(worktreeSubcommandCalls("remove").length).toBe(0)
+
+      const newRows = readNewRows(ctx, rowsBefore)
+      const dirtyRow = newRows.find((r) => r.event === "apoptosis_worktree_dirty")
+      expect(dirtyRow).toBeDefined()
+      expect(dirtyRow.worktree).toBe(wtPath)
+      expect(dirtyRow.writer).toBe("plugin")
+
+      // Apoptosis itself still completes even though the dirty tree is kept.
+      const apoptosisRow = newRows.find((r) => r.event === "apoptosis_complete")
+      expect(apoptosisRow).toBeDefined()
+    })
+
+    test(`missing worktree dir on apoptosis (${trigger}): prune instead of remove, no throw`, async () => {
+      const { hooks, ctx } = await makeHarness()
+      const sessionID = "ses_srw_missing_" + trigger
+      const wtPath = join(ctx.directory, ".scratch", "srw-missing-wt")
+      // Deliberately NOT created: exercises the prune branch.
+
+      porcelainProbeStdout = ""
+      spawnCalls.length = 0
+      const rowsBefore = countRows(ctx)
+
+      await driveApoptosisWithTrackedWorktree(hooks, ctx, sessionID, wtPath, trigger)
+
+      expect(worktreeSubcommandCalls("prune").length).toBe(1)
+      expect(worktreeSubcommandCalls("remove").length).toBe(0)
+
+      // Apoptosis flow completed cleanly despite the missing directory.
+      const newRows = readNewRows(ctx, rowsBefore)
+      const apoptosisRow = newRows.find((r) => r.event === "apoptosis_complete")
+      expect(apoptosisRow).toBeDefined()
+    })
+  }
 })
 
 // ---------------------------------------------------------------------------

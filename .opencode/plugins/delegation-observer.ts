@@ -168,6 +168,24 @@ function parseTaskIdFromTaskOutput(output: string): string | undefined {
 }
 
 /**
+ * Extract the WORKTREE assertion from a task() payload (description + prompt).
+ * Exactly ONE marker is the contract; zero or multiple markers yield
+ * undefined (malformed -> batch D fails loud for that coder, design D2).
+ * Shared by tool.execute.before (DIA-172 batch classification) and
+ * tool.execute.after (DIA-220 apoptosis propagation) so the contract lives
+ * in exactly one regex.
+ */
+function extractWorktreeMarker(
+  description: string,
+  prompt: string
+): string | undefined {
+  const markers = [
+    ...`${description}\n${prompt}`.matchAll(/WORKTREE:\s*(\S+)/gi),
+  ]
+  return markers.length === 1 ? markers[0][1] : undefined
+}
+
+/**
  * Minimal YAML-frontmatter field extractor (ticket-gate scan, DIA-063).
  * Supports the constrained YAML subset the ticket schema uses
  * (docs/dev-infra-audit/tickets/_TEMPLATE.md): `key: value` pairs only — no
@@ -1164,6 +1182,92 @@ const delegationObserver: Plugin = async (ctx) => {
     })
     if (options?.row) {
       appendRow({ ...options.row, writer: "plugin" })
+    }
+  }
+
+  /**
+   * DIA-260826-jcte (learning T2): safe worktree removal for apoptosis.
+   * Replaces the unconditional `git worktree remove --force` that bypassed
+   * the WORKTREES_FORCE guard, DIA-117 deny scope, and dirty-tree detection.
+   *
+   * Contract:
+   *   1. Directory missing -> `git worktree prune` (stale admin metadata).
+   *   2. Dirty tree (`git -C <path> status --porcelain
+   *      --untracked-files=no` non-empty) -> tuiSafeWarn +
+   *      apoptosis_worktree_dirty registry row, NO removal: the developer
+   *      decides (dirty trees persist by design; apoptosis is last-resort,
+   *      not a data-destruction pass).
+   *   3. Clean -> `git worktree remove` WITHOUT --force. --force never
+   *      appears in plugin code.
+   * Spawn failures are fail-safe: log + skip removal, never throw.
+   */
+  function safeRemoveWorktree(wtPath: string, cwd: string): void {
+    // Case 1: directory already gone -> prune stale worktree metadata.
+    if (!existsSync(wtPath)) {
+      try {
+        spawnSync("git", ["worktree", "prune"], {
+          cwd,
+          encoding: "utf-8",
+          timeout: 5_000,
+        })
+      } catch (err) {
+        tuiSafeWarn(
+          `[delegation-observer] worktree prune failed for ${wtPath}: ${errorMessage(err)}`
+        )
+      }
+      return
+    }
+
+    // Case 2: dirty-tree probe. Probe failure is treated as dirty (fail-safe:
+    // when unsure, keep the tree).
+    let probe: ReturnType<typeof spawnSync>
+    try {
+      probe = spawnSync(
+        "git",
+        ["-C", wtPath, "status", "--porcelain", "--untracked-files=no"],
+        { cwd, encoding: "utf-8", timeout: 5_000 }
+      )
+    } catch (err) {
+      tuiSafeWarn(
+        `[delegation-observer] worktree status probe failed for ${wtPath}, keeping tree: ${errorMessage(err)}`
+      )
+      return
+    }
+    if (probe.error || probe.status !== 0) {
+      tuiSafeWarn(
+        `[delegation-observer] worktree status probe errored for ${wtPath}, keeping tree: ${probe.stderr || "exit " + probe.status}`
+      )
+      return
+    }
+    if ((probe.stdout ?? "").trim().length > 0) {
+      tuiSafeWarn(
+        `[delegation-observer] apoptosis kept DIRTY worktree ${wtPath} (developer decides)`,
+        {
+          row: {
+            event: "apoptosis_worktree_dirty",
+            worktree: wtPath,
+          },
+        }
+      )
+      return
+    }
+
+    // Case 3: clean -> remove WITHOUT --force.
+    try {
+      const result = spawnSync("git", ["worktree", "remove", wtPath], {
+        cwd,
+        encoding: "utf-8",
+        timeout: 10_000,
+      })
+      if (result.status !== 0) {
+        tuiSafeWarn(
+          `[delegation-observer] apoptosis worktree remove failed for ${wtPath}: ${result.stderr || "exit " + result.status}`
+        )
+      }
+    } catch (err) {
+      tuiSafeWarn(
+        `[delegation-observer] apoptosis worktree remove error for ${wtPath}: ${errorMessage(err)}`
+      )
     }
   }
 
@@ -2555,9 +2659,7 @@ const delegationObserver: Plugin = async (ctx) => {
           ? taskArgRecord.subagent_type
           : undefined
       // DIA-172 batch D: extract the WORKTREE assertion from the task payload
-      // (description + prompt). Exactly ONE marker is the contract; zero or
-      // multiple markers yield undefined (malformed -> batch D fails loud for
-      // that coder, design D2). Only task() calls carry a meaningful value.
+      // via the shared extractor (single-marker contract, see function doc).
       let worktree: string | undefined
       if (input.tool === "task") {
         const description =
@@ -2566,10 +2668,7 @@ const delegationObserver: Plugin = async (ctx) => {
             : ""
         const prompt =
           typeof taskArgRecord.prompt === "string" ? taskArgRecord.prompt : ""
-        const markers = [
-          ...`${description}\n${prompt}`.matchAll(/WORKTREE:\s*(\S+)/gi),
-        ]
-        worktree = markers.length === 1 ? markers[0][1] : undefined
+        worktree = extractWorktreeMarker(description, prompt)
       }
       calls.push({ tool: input.tool, subagent_type: taskSubagent, worktree })
       turnToolCalls.set(input.sessionID, calls)
@@ -3364,19 +3463,31 @@ const delegationObserver: Plugin = async (ctx) => {
         }
       }
       // DIA-220: track worktree for this child session (apoptosis cleanup).
-      // The WORKTREE assertion was captured in tool.execute.before and
-      // stored in turnToolCalls; propagate to sessionWorktrees now that
-      // we know the child session id (taskId).
+      // DIA-260826-jcte PART 1: read the WORKTREE marker directly from
+      // input.args instead of turnToolCalls. The DIA-218 message-boundary
+      // reset deletes turnToolCalls[sessionID] at hook ENTRY, before this
+      // block runs, so the old turn-list read always saw an empty list and
+      // sessionWorktrees was never populated (the apoptosis worktree loop
+      // was unreachable dead code). Reordering the reset below this block
+      // was rejected as riskier: the log_decision / edit / non-task early
+      // returns between entry and here would then skip the reset and change
+      // DIA-218 semantics. input.args carries the identical task payload.
       if (taskId) {
-        const turnCalls = turnToolCalls.get(input.sessionID) ?? []
-        const lastTask = [...turnCalls].reverse().find((c) => c.tool === "task")
-        if (lastTask?.worktree) {
+        const dispatchDescription =
+          typeof taskArgs.description === "string" ? taskArgs.description : ""
+        const dispatchPrompt =
+          typeof taskArgs.prompt === "string" ? taskArgs.prompt : ""
+        const dispatchWorktree = extractWorktreeMarker(
+          dispatchDescription,
+          dispatchPrompt
+        )
+        if (dispatchWorktree) {
           let wtSet = sessionWorktrees.get(taskId)
           if (!wtSet) {
             wtSet = new Set()
             sessionWorktrees.set(taskId, wtSet)
           }
-          wtSet.add(lastTask.worktree)
+          wtSet.add(dispatchWorktree)
         }
         // DIA-220 paracrine: emit dispatch.started signal so the orchestrator
         // can watch for new delegations without reading the full chat log.
@@ -3657,13 +3768,13 @@ const delegationObserver: Plugin = async (ctx) => {
           const sessionID = event.properties?.sessionID
           if (!sessionID) return
           const meta = sessionMeta.get(sessionID)
-          // S6: the orchestrator's own session (parent_session matches — the
-          // session known to call task() — or no parent) gets an
-          // a5_quality_gate row instead of a COMPLETE row.
+          // Role resolution: lifecycle registration (session.created parentID)
+          // outranks the sticky first-task inference. parentSessionId alone
+          // misclassifies registered children that dispatch nested task()
+          // calls as "orchestrator" (DIA-260826-jcte: that misclassification
+          // routed their idle event into the a5 branch, skipping apoptosis).
           const role =
-            sessionID === parentSessionId
-              ? "orchestrator"
-              : (meta?.role ?? "unknown")
+            meta?.role ?? (sessionID === parentSessionId ? "orchestrator" : "unknown")
 
           // S6 (A5 gate): the orchestrator's own session (root / no parent —
           // also the "parent_session matches" case) gets an a5_quality_gate
@@ -3782,30 +3893,13 @@ const delegationObserver: Plugin = async (ctx) => {
               )
             }
 
-            // Remove active worktrees for this session.
+            // Remove active worktrees for this session (DIA-260826-jcte:
+            // safeRemoveWorktree — prune if missing, skip dirty, remove
+            // clean trees without --force).
             const worktrees = sessionWorktrees.get(sessionID)
             if (worktrees && worktrees.size > 0) {
               for (const wtPath of worktrees) {
-                try {
-                  const result = spawnSync(
-                    "git",
-                    ["worktree", "remove", "--force", wtPath],
-                    {
-                      cwd: ctx.directory,
-                      encoding: "utf-8",
-                      timeout: 10_000,
-                    }
-                  )
-                  if (result.status !== 0) {
-                    tuiSafeWarn(
-                      `[delegation-observer] apoptosis worktree remove failed for ${wtPath}: ${result.stderr || "exit " + result.status}`
-                    )
-                  }
-                } catch (err) {
-                  tuiSafeWarn(
-                    `[delegation-observer] apoptosis worktree remove error for ${wtPath}: ${errorMessage(err)}`
-                  )
-                }
+                safeRemoveWorktree(wtPath, ctx.directory)
               }
               sessionWorktrees.delete(sessionID)
             }
@@ -3963,10 +4057,10 @@ const delegationObserver: Plugin = async (ctx) => {
           const sessionID = event.properties?.sessionID
           if (!sessionID) return
           const meta = sessionMeta.get(sessionID)
+          // Same precedence as the idle handler: lifecycle registration
+          // outranks the sticky first-task inference (DIA-260826-jcte).
           const role =
-            sessionID === parentSessionId
-              ? "orchestrator"
-              : (meta?.role ?? "unknown")
+            meta?.role ?? (sessionID === parentSessionId ? "orchestrator" : "unknown")
 
           // S2 guard targets child-session rows; orchestrator/unknown
           // sessions may error transiently without violating forward-only
@@ -4075,30 +4169,13 @@ const delegationObserver: Plugin = async (ctx) => {
               )
             }
 
-            // Step 2: Remove active worktrees for this session.
+            // Step 2: Remove active worktrees for this session
+            // (DIA-260826-jcte: safeRemoveWorktree — prune if missing, skip
+            // dirty, remove clean trees without --force).
             const worktrees = sessionWorktrees.get(sessionID)
             if (worktrees && worktrees.size > 0) {
               for (const wtPath of worktrees) {
-                try {
-                  const result = spawnSync(
-                    "git",
-                    ["worktree", "remove", "--force", wtPath],
-                    {
-                      cwd: ctx.directory,
-                      encoding: "utf-8",
-                      timeout: 10_000,
-                    }
-                  )
-                  if (result.status !== 0) {
-                    tuiSafeWarn(
-                      `[delegation-observer] apoptosis worktree remove failed for ${wtPath}: ${result.stderr || "exit " + result.status}`
-                    )
-                  }
-                } catch (err) {
-                  tuiSafeWarn(
-                    `[delegation-observer] apoptosis worktree remove error for ${wtPath}: ${errorMessage(err)}`
-                  )
-                }
+                safeRemoveWorktree(wtPath, ctx.directory)
               }
               sessionWorktrees.delete(sessionID)
             }
