@@ -31,7 +31,6 @@
         "temperature": 0.1,
         "skills": [
           "teaching",
-          "simplify",
           "book-rag",
           "mermaid-diagramming",
           "console-charting",
@@ -57,7 +56,6 @@
         "model": "opencode-go/deepseek-v4-flash",
         "variant": "medium",
         "skills": [
-          "simplify",
           "playwright-browser",
           "debugging-workflow",
           "tdd-craftsman",
@@ -215,7 +213,6 @@
         "temperature": 0.1,
         "skills": [
           "teaching",
-          "simplify",
           "book-rag",
           "mermaid-diagramming",
           "console-charting",
@@ -254,7 +251,6 @@
         "model": ["opencode-go/mimo-v2.5", "opencode/mimo-v2.5-free"],
         "variant": "medium",
         "skills": [
-          "simplify",
           "playwright-browser",
           "debugging-workflow",
           "tdd-craftsman",
@@ -318,7 +314,6 @@
         "variant": "medium",
         "temperature": 0.1,
         "skills": [
-          "simplify",
           "playwright-browser",
           "debugging-workflow",
           "tdd-craftsman",
@@ -444,7 +439,6 @@
         "temperature": 0.1,
         "skills": [
           "teaching",
-          "simplify",
           "book-rag",
           "mermaid-diagramming",
           "console-charting",
@@ -483,7 +477,6 @@
         "model": ["opencode-go/hy3", "opencode-go/mimo-v2.5"],
         "variant": "medium",
         "skills": [
-          "simplify",
           "playwright-browser",
           "debugging-workflow",
           "tdd-craftsman",
@@ -547,7 +540,6 @@
         "variant": "medium",
         "temperature": 0.1,
         "skills": [
-          "simplify",
           "playwright-browser",
           "debugging-workflow",
           "tdd-craftsman",
@@ -673,7 +665,6 @@
         "temperature": 0.1,
         "skills": [
           "teaching",
-          "simplify",
           "book-rag",
           "mermaid-diagramming",
           "console-charting",
@@ -712,7 +703,6 @@
         ],
         "variant": "medium",
         "skills": [
-          "simplify",
           "playwright-browser",
           "debugging-workflow",
           "tdd-craftsman",
@@ -787,7 +777,6 @@
         "variant": "max",
         "temperature": 0.1,
         "skills": [
-          "simplify",
           "playwright-browser",
           "debugging-workflow",
           "tdd-craftsman",
@@ -931,7 +920,6 @@
         "temperature": 0.1,
         "skills": [
           "teaching",
-          "simplify",
           "book-rag",
           "mermaid-diagramming",
           "console-charting",
@@ -970,7 +958,6 @@
         "model": ["opencode-go/ox-alpha-free", "opencode-go/mimo-v2.5"],
         "variant": "medium",
         "skills": [
-          "simplify",
           "playwright-browser",
           "debugging-workflow",
           "tdd-craftsman",
@@ -1046,7 +1033,6 @@
         "variant": "medium",
         "temperature": 0.1,
         "skills": [
-          "simplify",
           "playwright-browser",
           "debugging-workflow",
           "tdd-craftsman",
@@ -1192,7 +1178,6 @@
         "temperature": 0.1,
         "skills": [
           "teaching",
-          "simplify",
           "book-rag",
           "mermaid-diagramming",
           "console-charting",
@@ -1231,7 +1216,6 @@
         ],
         "variant": "medium",
         "skills": [
-          "simplify",
           "playwright-browser",
           "debugging-workflow",
           "tdd-craftsman",
@@ -1309,7 +1293,6 @@
         "variant": "max",
         "temperature": 0.1,
         "skills": [
-          "simplify",
           "playwright-browser",
           "debugging-workflow",
           "tdd-craftsman",
@@ -1463,7 +1446,6 @@
         "temperature": 0.1,
         "skills": [
           "teaching",
-          "simplify",
           "book-rag",
           "mermaid-diagramming",
           "console-charting",
@@ -1503,7 +1485,6 @@
         "skills": [
           "playwright-browser",
           "debugging-workflow",
-          "simplify",
           "tdd-craftsman",
           "git-diff",
           "to-tickets",
