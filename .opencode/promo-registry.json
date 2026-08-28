@@ -1,0 +1,53 @@
+{
+  "version": 1,
+  "last_reviewed": "2026-08-28",
+  "next_review": "2026-09-11",
+  "promoted_preset": "promo",
+  "history": [
+    {
+      "date": "2026-08-28",
+      "action": "create",
+      "preset": "promo",
+      "ticket": "DIA-260828-qtsi",
+      "note": "ADMITTED 2026-08-28 DIA-260828-qtsi - primary for 6 lanes, Hy3 fallback, privacy cleared (no sensitive traffic)."
+    }
+  ],
+  "promos": [
+    {
+      "model_id": "opencode-go/muse-spark-1.2-contributor",
+      "promo_price_in": 0.10,
+      "promo_price_out": 0.20,
+      "standard_price_in": null,
+      "standard_price_out": null,
+      "req_per_month": 226600,
+      "privacy_tradeoff": "meta-training on prompts/completions (Meta Contributor tier)",
+      "region_restricted": true,
+      "expiry": null,
+      "notes": "ADMITTED 2026-08-28 DIA-260828-qtsi - primary for 6 lanes, Hy3 fallback, privacy cleared (no sensitive traffic)."
+    },
+    {
+      "model_id": "tencent/hy3-paid",
+      "promo_price_in": 0.14,
+      "promo_price_out": 0.58,
+      "standard_price_in": null,
+      "standard_price_out": null,
+      "req_per_month": 21500,
+      "privacy_tradeoff": "none known (open weights Apache 2.0, 0-day retention)",
+      "region_restricted": false,
+      "expiry": null,
+      "notes": "Hy3 already active preset primary (21.5K req/mo). Used as reviewer/analyzer/openspec-plan primary in promo preset."
+    },
+    {
+      "model_id": "xiaomi/mimo-v2-5",
+      "promo_price_in": 0.14,
+      "promo_price_out": 0.28,
+      "standard_price_in": 0.80,
+      "standard_price_out": 4.00,
+      "req_per_month": 150400,
+      "privacy_tradeoff": "none known (open weights MIT, 0-day retention)",
+      "region_restricted": false,
+      "expiry": null,
+      "notes": "Promo -98% off (list $0.80/$4.00 -> $0.14/$0.28). Cheapest clean model; 150K req/mo. Primary for coder/researcher/conspecter in promo preset."
+    }
+  ]
+}
