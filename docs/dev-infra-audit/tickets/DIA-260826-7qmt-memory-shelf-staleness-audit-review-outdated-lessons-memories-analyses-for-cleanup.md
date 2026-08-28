@@ -6,7 +6,7 @@ id: DIA-260826-7qmt
 title: "memory shelf staleness audit - review outdated lessons memories analyses for cleanup"
 area: scripts
 severity: Medium
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: ""
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
@@ -17,7 +17,7 @@ discovered: 2026-08-26
 source: inventory
 date: 2026-08-26
 created: 2026-08-26
-updated: 2026-08-26
+updated: 2026-08-28
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -30,7 +30,9 @@ attempts: 0
 lease_expires_at: "" # ISO-8601; set on DISPATCHED, cleared on COMPLETE
 files_touched: []
 artifacts: []
-evidence: []
+evidence:
+
+- AFK cycle: memory-shelf staleness audit delivered (ana001 report). 82 current, 9 stale-refresh, 7 orphan path-mismatches, 12 unregistered archive dirs. No data loss. Cleanup follow-up dispatched to memory-manager.
 
 ---
 

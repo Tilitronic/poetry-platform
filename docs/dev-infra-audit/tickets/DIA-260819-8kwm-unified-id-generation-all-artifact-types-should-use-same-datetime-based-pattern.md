@@ -6,7 +6,7 @@ id: DIA-260819-8kwm
 title: "unified ID generation: all artifact types should use same datetime-based pattern"
 area: dev-infra
 severity: Medium
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: ""
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
@@ -17,7 +17,7 @@ discovered: 2026-08-19
 source: inventory
 date: 2026-08-19
 created: 2026-08-19
-updated: 2026-08-19
+updated: 2026-08-28
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -30,7 +30,9 @@ attempts: 0
 lease_expires_at: "" # ISO-8601; set on DISPATCHED, cleared on COMPLETE
 files_touched: []
 artifacts: []
-evidence: []
+evidence:
+
+- AFK cycle re-verify: allocate-id emits <type>-YYMMDD-<rand4>-<slug> for res/ana/tch/DIA (datetime pattern confirmed)
 
 ---
 

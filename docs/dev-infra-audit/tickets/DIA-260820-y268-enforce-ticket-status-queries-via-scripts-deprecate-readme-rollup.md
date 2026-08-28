@@ -6,7 +6,7 @@ id: DIA-260820-y268
 title: "enforce ticket-status queries via scripts, deprecate README rollup"
 area: dev-infra
 severity: Medium
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: ""
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
@@ -17,7 +17,7 @@ discovered: 2026-08-20
 source: baseline
 date: 2026-08-20
 created: 2026-08-20
-updated: 2026-08-20
+updated: 2026-08-28
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -30,7 +30,9 @@ attempts: 0
 lease_expires_at: "" # ISO-8601; set on DISPATCHED, cleared on COMPLETE
 files_touched: []
 artifacts: []
-evidence: []
+evidence:
+
+- AFK cycle re-verify: AGENTS.md section 6 contains Ticket queries via scripts (DIA-260820-y268) rule; README rollup deprecated
 
 ---
 
