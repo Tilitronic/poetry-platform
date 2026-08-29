@@ -166,16 +166,16 @@
 | DIA-213 | Orchestrator scope limitation: delegation + workflow decisions only, content decisions to specialized agents | opencode-config | High | OPEN | [DIA-213-orchestrator-scope-limitation.md](DIA-213-orchestrator-scope-limitation.md) |
 | DIA-235 | Orchestrator bugs analysis and fix | opencode-config | Critical | CLOSED | [DIA-235-orchestrator-bugs-analysis.md](DIA-235-orchestrator-bugs-analysis.md) |
 | DIA-260819-880v | Orchestrator not using todowrite for planned items | opencode-config | Low | CLOSED | [DIA-260819-880v-orchestrator-not-using-todowrite-for-planned-items.md](DIA-260819-880v-orchestrator-not-using-todowrite-for-planned-items.md) |
-| DIA-260819-8kwm | unified ID generation: all artifact types should use same datetime-based pattern | dev-infra | Medium | OPEN | [DIA-260819-8kwm-unified-id-generation-all-artifact-types-should-use-same-datetime-based-pattern.md](DIA-260819-8kwm-unified-id-generation-all-artifact-types-should-use-same-datetime-based-pattern.md) |
+| DIA-260819-8kwm | unified ID generation: all artifact types should use same datetime-based pattern | dev-infra | Medium | CLOSED | [DIA-260819-8kwm-unified-id-generation-all-artifact-types-should-use-same-datetime-based-pattern.md](DIA-260819-8kwm-unified-id-generation-all-artifact-types-should-use-same-datetime-based-pattern.md) |
 | DIA-260819-97fg | memory-manager permission: scoped write access for learnings directory | opencode-config | Low | OPEN | [DIA-260819-97fg-memory-manager-permission-scoped-write-access-for-learnings-directory.md](DIA-260819-97fg-memory-manager-permission-scoped-write-access-for-learnings-directory.md) |
 | DIA-260819-mh6p | Agentic workflow compliance analysis and fixes | opencode-config | Critical | COMPLETE | [DIA-260819-mh6p-agentic-workflow-compliance-analysis-and-fixes.md](DIA-260819-mh6p-agentic-workflow-compliance-analysis-and-fixes.md) |
 | DIA-260819-9oxi | DCP plugin still injecting system-reminders despite DIA-197 V2 config | opencode-config | Medium | CLOSED | [DIA-260819-9oxi-dcp-plugin-still-injecting-system-reminders-despite-dia-197-v2-config.md](DIA-260819-9oxi-dcp-plugin-still-injecting-system-reminders-despite-dia-197-v2-config.md) |
 | DIA-260819-mq4h | ticket system comparison: custom bash vs proven solutions | dev-infra | Medium | CLOSED | [DIA-260819-mq4h-ticket-system-comparison-custom-bash-vs-proven-solutions.md](DIA-260819-mq4h-ticket-system-comparison-custom-bash-vs-proven-solutions.md) |
-| DIA-260819-qibv | research pipeline bug: conspect should be mandatory, not optional | opencode-config | Medium | OPEN | [DIA-260819-qibv-research-pipeline-bug-conspect-should-be-mandatory-not-optional.md](DIA-260819-qibv-research-pipeline-bug-conspect-should-be-mandatory-not-optional.md) |
+| DIA-260819-qibv | research pipeline bug: conspect should be mandatory, not optional | opencode-config | Medium | CLOSED | [DIA-260819-qibv-research-pipeline-bug-conspect-should-be-mandatory-not-optional.md](DIA-260819-qibv-research-pipeline-bug-conspect-should-be-mandatory-not-optional.md) |
 | DIA-260819-sl22 | ticket navigation scripts: search, filter, statistics, tool registration | dev-infra | Medium | CLOSED | [DIA-260819-sl22-ticket-navigation-scripts-search-filter-statistics-tool-registration.md](DIA-260819-sl22-ticket-navigation-scripts-search-filter-statistics-tool-registration.md) |
 | DIA-260820-dr0g | researcher agent deviates from 3-tier fetch chain, uses WebFetch/context7 instead of trafilatura/crawl4ai | dev-infra | Medium | OPEN | [DIA-260820-dr0g-researcher-agent-deviates-from-3-tier-fetch-chain-uses-webfetch-context7-instead-of-trafilatura-crawl4ai.md](DIA-260820-dr0g-researcher-agent-deviates-from-3-tier-fetch-chain-uses-webfetch-context7-instead-of-trafilatura-crawl4ai.md) |
 | DIA-260820-jlu0 | DIA-217 ticket gate creates chicken-and-egg for meta-tasks and procedural authorizations | dev-infra | Major | CLOSED | [DIA-260820-jlu0-dia-217-ticket-gate-creates-chicken-and-egg-for-meta-tasks-and-procedural-authorizations.md](DIA-260820-jlu0-dia-217-ticket-gate-creates-chicken-and-egg-for-meta-tasks-and-procedural-authorizations.md) |
-| DIA-260820-y268 | enforce ticket-status queries via scripts, deprecate README rollup | dev-infra | Medium | OPEN | [DIA-260820-y268-enforce-ticket-status-queries-via-scripts-deprecate-readme-rollup.md](DIA-260820-y268-enforce-ticket-status-queries-via-scripts-deprecate-readme-rollup.md) |
+| DIA-260820-y268 | enforce ticket-status queries via scripts, deprecate README rollup | dev-infra | Medium | CLOSED | [DIA-260820-y268-enforce-ticket-status-queries-via-scripts-deprecate-readme-rollup.md](DIA-260820-y268-enforce-ticket-status-queries-via-scripts-deprecate-readme-rollup.md) |
 | DIA-260821-3blw | remove persistent OpenCode input-area banner: powershell.exe toast spawn failed | opencode-config | Low | OPEN | [DIA-260821-3blw-remove-persistent-opencode-input-area-banner-powershell-exe-toast-spawn-failed.md](DIA-260821-3blw-remove-persistent-opencode-input-area-banner-powershell-exe-toast-spawn-failed.md) |
 | DIA-260821-4cx5 | Expose opencode serve over Tailscale for remote Android access | docker | Medium | OPEN | [DIA-260821-4cx5-expose-opencode-serve-over-tailscale-for-remote-android-access.md](DIA-260821-4cx5-expose-opencode-serve-over-tailscale-for-remote-android-access.md) |
 | DIA-260821-5r03 | runtime observer plugin duplicate-registration audit and hardening | opencode-config | Major | OPEN | [DIA-260821-5r03-runtime-observer-plugin-duplicate-registration-audit-and-hardening.md](DIA-260821-5r03-runtime-observer-plugin-duplicate-registration-audit-and-hardening.md) |
@@ -186,7 +186,7 @@
 | DIA-260821-m7vk | Repair in-container lint-staged Git index failure blocking pre-commit | dev-infra | Major | OPEN | [DIA-260821-m7vk-repair-in-container-lint-staged-git-index-failure-blocking-pre-commit.md](DIA-260821-m7vk-repair-in-container-lint-staged-git-index-failure-blocking-pre-commit.md) |
 | DIA-260821-mzk7 | diagnose active OpenCode preset routing mismatch after restart | opencode-config | Major | OPEN | [DIA-260821-mzk7-diagnose-active-opencode-preset-routing-mismatch-after-restart.md](DIA-260821-mzk7-diagnose-active-opencode-preset-routing-mismatch-after-restart.md) |
 | DIA-260821-n8sq | Add runtime config test (make test-runtime-config in clean HOME) | scripts | Medium | OPEN | [DIA-260821-n8sq-add-runtime-config-test-make-test-runtime-config-in-clean-home.md](DIA-260821-n8sq-add-runtime-config-test-make-test-runtime-config-in-clean-home.md) |
-| DIA-260821-qw29 | Verify opencode-go Hy3 x8 promo and whether to swap from mimo-v2.5 in the cebula preset | opencode-config | Info | OPEN | [DIA-260821-qw29-verify-opencode-go-hy3-x8-promo-and-whether-to-swap-from-mimo-v2-5-in-the-cebula-preset.md](DIA-260821-qw29-verify-opencode-go-hy3-x8-promo-and-whether-to-swap-from-mimo-v2-5-in-the-cebula-preset.md) |
+| DIA-260821-qw29 | Verify opencode-go Hy3 x8 promo and whether to swap from mimo-v2.5 in the cebula preset | opencode-config | Info | CLOSED | [DIA-260821-qw29-verify-opencode-go-hy3-x8-promo-and-whether-to-swap-from-mimo-v2-5-in-the-cebula-preset.md](DIA-260821-qw29-verify-opencode-go-hy3-x8-promo-and-whether-to-swap-from-mimo-v2-5-in-the-cebula-preset.md) |
 | DIA-260821-x5nj | unified Docker development runtime plan for Fedora Linux and WSL developers | docker | Medium | OPEN | [DIA-260821-x5nj-unified-docker-development-runtime-plan-for-fedora-linux-and-wsl-developers.md](DIA-260821-x5nj-unified-docker-development-runtime-plan-for-fedora-linux-and-wsl-developers.md) |
 | DIA-260822-fksf | Stale stall-sweep startup protection - suppress already-stale boot-time emissions | opencode-config | Major | OPEN | [DIA-260822-fksf-stale-stall-sweep-startup-protection-suppress-already-stale-boot-time-emissions.md](DIA-260822-fksf-stale-stall-sweep-startup-protection-suppress-already-stale-boot-time-emissions.md) |
 | DIA-260822-m035 | Investigate OpenCode restart crash-storm alerts | scripts | Medium | OPEN | [DIA-260822-m035-investigate-opencode-restart-crash-storm-alerts.md](DIA-260822-m035-investigate-opencode-restart-crash-storm-alerts.md) |
@@ -216,7 +216,7 @@
 | DIA-260825-wprb | repo-wide ponytail over-engineering audit | scripts | Medium | OPEN | [DIA-260825-wprb-repo-wide-ponytail-over-engineering-audit.md](DIA-260825-wprb-repo-wide-ponytail-over-engineering-audit.md) |
 | DIA-260826-6mhy | measure data-reducer effectiveness after wiring into analyzer conspecter prompts | opencode-config | Low | OPEN | [DIA-260826-6mhy-measure-data-reducer-effectiveness-after-wiring-into-analyzer-conspecter-prompts.md](DIA-260826-6mhy-measure-data-reducer-effectiveness-after-wiring-into-analyzer-conspecter-prompts.md) |
 | DIA-260826-766f | fix UID/GID wiring mismatch Makefile vs compose (H8) | dev-infra | Major | OPEN | [DIA-260826-766f-fix-uid-gid-wiring-mismatch-makefile-vs-compose-h8.md](DIA-260826-766f-fix-uid-gid-wiring-mismatch-makefile-vs-compose-h8.md) |
-| DIA-260826-7qmt | memory shelf staleness audit - review outdated lessons memories analyses for cleanup | scripts | Medium | OPEN | [DIA-260826-7qmt-memory-shelf-staleness-audit-review-outdated-lessons-memories-analyses-for-cleanup.md](DIA-260826-7qmt-memory-shelf-staleness-audit-review-outdated-lessons-memories-analyses-for-cleanup.md) |
+| DIA-260826-7qmt | memory shelf staleness audit - review outdated lessons memories analyses for cleanup | scripts | Medium | CLOSED | [DIA-260826-7qmt-memory-shelf-staleness-audit-review-outdated-lessons-memories-analyses-for-cleanup.md](DIA-260826-7qmt-memory-shelf-staleness-audit-review-outdated-lessons-memories-analyses-for-cleanup.md) |
 | DIA-260826-ex7w | permanent skills-array reference validator for oh-my-opencode-slim presets | opencode-config | Medium | OPEN | [DIA-260826-ex7w-permanent-skills-array-reference-validator-for-oh-my-opencode-slim-presets.md](DIA-260826-ex7w-permanent-skills-array-reference-validator-for-oh-my-opencode-slim-presets.md) |
 | DIA-260826-ft3q | audit prompt injection vectors and plugin trust boundaries | opencode-config | Major | OPEN | [DIA-260826-ft3q-audit-prompt-injection-vectors-and-plugin-trust-boundaries.md](DIA-260826-ft3q-audit-prompt-injection-vectors-and-plugin-trust-boundaries.md) |
 | DIA-260826-jcte | remove plugin autonomous force worktree removal (C3) | delegation-observer | Critical | OPEN | [DIA-260826-jcte-remove-plugin-autonomous-force-worktree-removal-c3.md](DIA-260826-jcte-remove-plugin-autonomous-force-worktree-removal-c3.md) |
@@ -261,6 +261,8 @@
 | DIA-260827-wawy | Heavy infra cleanup not guaranteed after test failure | docker | Medium | OPEN | [DIA-260827-wawy-heavy-infra-cleanup-not-guaranteed-after-test-failure.md](DIA-260827-wawy-heavy-infra-cleanup-not-guaranteed-after-test-failure.md) |
 | DIA-260827-wfcx | full repository four-lane audit tests agents code skills plugins | opencode-config | Major | OPEN | [DIA-260827-wfcx-full-repository-four-lane-audit-tests-agents-code-skills-plugins.md](DIA-260827-wfcx-full-repository-four-lane-audit-tests-agents-code-skills-plugins.md) |
 | DIA-260827-y9n9 | [CRITICAL] Cross-session handoff corruption via process-global parentSessionId | opencode-config | Critical | OPEN | [DIA-260827-y9n9-critical-cross-session-handoff-corruption-via-process-global-parentsessionid.md](DIA-260827-y9n9-critical-cross-session-handoff-corruption-via-process-global-parentsessionid.md) |
+| DIA-260828-qtsi | promo preset infrastructure: opencode-go promotion-optimized preset with json patch + skill (2-week review, weekend coding) | opencode-config | Major | OPEN | [DIA-260828-qtsi-promo-preset-infrastructure-opencode-go-promotion-optimized-preset-with-json-patch-skill-2-week-review-weekend-coding.md](DIA-260828-qtsi-promo-preset-infrastructure-opencode-go-promotion-optimized-preset-with-json-patch-skill-2-week-review-weekend-coding.md) |
+| DIA-260829-kxqu | log_decision tool unavailable to orchestrator -- delegation-observer plugin tool not exposed to orchestrator agent | scripts | Medium | OPEN | [DIA-260829-kxqu-log-decision-tool-unavailable-to-orchestrator-delegation-observer-plugin-tool-not-exposed-to-orchestrator-agent.md](DIA-260829-kxqu-log-decision-tool-unavailable-to-orchestrator-delegation-observer-plugin-tool-not-exposed-to-orchestrator-agent.md) |
 
 ## Status summary
 
@@ -268,8 +270,8 @@
 | -------- | ----- |
 | Blocker  | 9     |
 | Critical | 15    |
-| Major    | 84    |
-| Medium   | 127   |
+| Major    | 85    |
+| Medium   | 128   |
 | Minor    | 0     |
 | Low      | 22    |
 | Info     | 1     |
@@ -277,7 +279,7 @@
 
 | Status      | Count |
 | ----------- | ----- |
-| OPEN        | 89    |
+| OPEN        | 86    |
 | DONE        | 11    |
 | VALIDATE    | 2     |
 | E2E         | 0     |
@@ -286,7 +288,7 @@
 | FIXED       | 1     |
 | IMPLEMENTED | 2     |
 | VERIFIED    | 28    |
-| CLOSED      | 123   |
+| CLOSED      | 128   |
 | BLOCKED     | 0     |
 | DISPATCHED  | 0     |
 | RUNNING     | 0     |

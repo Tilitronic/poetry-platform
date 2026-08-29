@@ -2153,3 +2153,28 @@ recorded here). Irrecoverable process lessons:
   - Finding: research into a WeezEngine integration found NO public OpenCode tool/plugin/MCP exists for it. Conclusion: YAGNI - do not add a dependency or wrapper now.
   - Why stored: future-reference only - prevents re-researching "is there an OpenCode tool for WeezEngine" if the topic recurs. No code, no ticket state, no spec content (all recoverable elsewhere).
   - Cross-reference: DIA-260827-wez1.
+
+## L20260828-001 - ID-allocation scan must be recursive (DIA-260826-7qmt, 2026-08-28)
+
+- **Symptom:** the memory-shelf ID-allocation scan (highest existing `<type><nnn>` before allocating a new ID) was non-recursive -- it only scanned `knowledge/` root, not `knowledge/archive/`. This caused a 4-way ana001 collision: three pre-existing `ana001-*` dirs in `knowledge/` plus this audit (ana001-memory-shelf-staleness) all claimed the same numeric slot.
+- **Why irrecoverable:** the scan logic is an agent convention (scan knowledge/ for highest existing ID), not code. The recursion gap is a process-level oversight not visible in git diffs or config files.
+- **Preventive rule:** the ID-allocation scan MUST be recursive across `knowledge/` AND `knowledge/archive/` (and any other subdirectories). Before allocating `<type><nnn>`, the allocator must `find knowledge/ -maxdepth 2 -type d -name '<type>*'` or equivalent recursive scan to find the true highest existing ID. This extends L20260812-003 / DIA-178 (scan-before-allocate) with the recursion requirement.
+- Cross-reference: L20260812-003, DIA-178, DIA-260826-7qmt, ana001-memory-shelf-staleness-report.md.
+
+## L20260828-001 - promo-review stable/volatile split: Hy3 8x inversion, Muse privacy, ROUTING-INVERSION guard (DIA-260828-qtsi, 2026-08-28)
+
+- **Context:** promo-review skill rewritten 85->157 lines, auditor PASS, sessions: ai-specialist ses_fb7ed8294ffeTMXVmlTLxwLXTf, coder ses_fb7461351ffen4qXzaoFM2Fbg3 (test-config 0), auditor ses_fb74464ecffeUJafBakf198bq3 PASS, changelog cod-5 ses_fb7410bb6ffenXM4Jj65YYGgGq.
+
+- **Lesson 1 - Hy3 8x promo inverts the preset premise (>2x ROUTING-INVERSION):**
+  Live fetch confirmed Hy3 8x usage multiplier: effective price ~$0.02/$0.07 (list $0.14/$0.58 / 8). This is ~7x cheaper than mimo-v2.5 ($0.14/$0.28). The promo preset was originally designed around mimo-v2.5 as the cheapest option; Hy3 x8 inverts this. Operational rule: do NOT activate the promo preset as-is when a ROUTING-INVERSION flag fires. The preset's routing table must be updated by @coder before activation. The >2x threshold prevents false-positive flags on minor price differences.
+
+- **Lesson 2 - Muse Spark: cheapest model, excluded for privacy, NEVER skip silently:**
+  Muse Spark 1.2 Contributor is the CHEAPEST input ($0.10), HIGHEST Intelligence (56.8), largest context (1.05M) of the three tracked models. It is NOT worse than Hy3 or MiMo. Exclusion is PRIVACY only: Meta Contributor tier trains on prompts/completions, rate limit 100 RPM vs 3000 RPM Standard, region-limited. The skill MUST include an explicit Muse row in every report (benchmarks + exclusion reason + admission path). Status: `active: false`, `promo-excluded-pending-privacy-review` (ana036 R7). Never skip silently; never activate without privacy review clearing Meta Contributor training-on-data.
+
+- **Lesson 3 - Stable/volatile data classification as a reusable control pattern:**
+  The root cause of the prior bug (fetching `docs/go` alone missed all promo tiers) was mixing STABLE facts (benchmarks, params, architecture) with VOLATILE facts (promos, multipliers, caps). The fix: cache STABLE on the memory shelf (res041 conspect), never re-fetch from web; fetch VOLATILE LIVE from ALL THREE sources every review (landing page + tracker + aggregator). This split is a reusable control pattern for any skill that mixes cached reference data with time-sensitive live data. Cross-reference: `.opencode/skills/promo-review/SKILL.md` (the canonical artifact), ADR L1875-1935.
+
+- **Lesson 4 - Shelf-gap fallback: if STABLE cache is missing, route to @memory-manager:**
+  If the res041 conspect (or newer superseding conspect) is missing from the memory shelf, do NOT guess benchmarks. Flag SHELF-GAP and route to @memory-manager to re-persist. While the shelf exists, never load STABLE twice in one review. Cross-reference: res041-opencode-go-promo-benchmarks on the memory shelf.
+
+- Cross-reference: ADR L1875-1935 (promo-system architecture), `.opencode/skills/promo-review/SKILL.md`, `knowledge/res041-opencode-go-promo-benchmarks/`, DIA-260828-qtsi.

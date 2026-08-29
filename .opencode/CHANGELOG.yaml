@@ -4358,3 +4358,49 @@
     hy3, higher reasoning effort accepted)'
   verification: manual
   area: opencode-config
+- date: '2026-08-28'
+  ticket: DIA-260828-qtsi
+  scope: opencode-config
+  files:
+  - .opencode/promo-registry.json
+  - scripts/promo-preset-apply
+  - .opencode/oh-my-opencode-slim.jsonc
+  - knowledge/model-registry.yaml
+  - .opencode/skills/promo-review/SKILL.md
+  summary: 'Add promo preset infrastructure: sidecar promo-registry.json, scripts/promo-preset-apply
+    (idempotent, comment-preserving), generated ''promo'' preset cloned from cebula-hy3
+    with ana036 routing, muse-spark entry in model-registry.yaml, promo-review skill.
+    Variant A (sidecar+script+skill).'
+  verification: make test-config exit 0; promo-registry.json valid JSON; oh-my-opencode-slim.jsonc
+    valid JSONC; model-registry.yaml valid YAML; promo-review SKILL.md frontmatter
+    passes validate-skills.sh (26 passed, 0 failed); promo preset idempotent via re-run
+  area: promo-preset
+- date: '2026-08-28'
+  ticket: DIA-260828-qtsi
+  severity: Major
+  status: REGISTERED
+  scope: opencode-skills
+  area: promo-review
+  files:
+  - .opencode/skills/promo-review/SKILL.md
+  - .opencode/learnings/external-patterns/2026-08-28-promo-review-stable-volatile-split.md
+  summary: 'promo-review skill: stable-vs-volatile split, landing-page+tracker promo
+    capture, >2x ROUTING-INVERSION, Muse Spark explicit comparison'
+  verification: ai-specialist gate PASS (ses_fb7ed8294ffeTMXVmlTLxwLXTf); coder make
+    test-config exit 0 (ses_fb7461351ffen4qXzaoFM2Fbg3); ai-auditor PASS 0 blockers
+    6 minors (ses_fb74464ecffeUJafBakf198bq3); ASCII-only (DIA-079).
+- date: '2026-08-28'
+  ticket: DIA-260828-qtsi
+  scope: opencode-config
+  files:
+  - .opencode/oh-my-opencode-slim.jsonc
+  - knowledge/model-registry.yaml
+  - scripts/promo-preset-apply
+  - .opencode/skills/promo-review/SKILL.md
+  - .opencode/promo-registry.json
+  summary: Revert Copilot 4 lanes to cebula mapping (architector->gemini-3.1-pro,
+    designer->claude-sonnet-4.5, ai-specialist->gpt-5.3-codex, ai-auditor->gpt-5.3-codex+gemini,
+    observer kept kimi-k2.7-code for image). Admit Muse Spark (active:true, 6 lanes
+    primary, Hy3 fallback, privacy cleared no sensitive traffic, 8x Hy3 promo context).
+  verification: manual
+  area: presets

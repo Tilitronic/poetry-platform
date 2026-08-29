@@ -6,7 +6,7 @@ id: DIA-260821-qw29
 title: "Verify opencode-go Hy3 x8 promo and whether to swap from mimo-v2.5 in the cebula preset"
 area: opencode-config
 severity: Info
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: ""
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
@@ -17,7 +17,7 @@ discovered: 2026-08-21
 source: inventory
 date: 2026-08-21
 created: 2026-08-21
-updated: 2026-08-28
+updated: 2026-08-29
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -32,6 +32,7 @@ files_touched: []
 artifacts: []
 evidence:
 
+- Verified: Hy3 8x promo live (res041). Decision: keep cebula-hy3, no swap from mimo-v2.5; routing inversion accepted non-blocking. Resolved.
 - "opencode.ai/go (landing page, Hy3 8x usage)"
 - "julien.cloud (tracker, Hy3 8x usage 2026-07-06 active)"
 - "knowledge/res041-opencode-go-promo-benchmarks/"

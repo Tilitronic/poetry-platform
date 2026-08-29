@@ -929,3 +929,21 @@
 - **Change:** cebula-openai-hy3 preset variant-priority tuning: 7 lanes high->medium (orchestrator, openspec-plan, coder, conspecter, analyzer, ai-specialist, researcher), 3 lanes medium->low (resource-manager, memory-manager, code-navigator), reviewer model qwen3.7-plus->hy3 (variant high); analyzer-escalated unchanged; hy3 added to model-registry.yaml; review-diversity override documented (coder+reviewer share hy3, higher reasoning effort accepted)
 - **Files:** .opencode/oh-my-opencode-slim.jsonc - knowledge/model-registry.yaml
 - **Verification:** manual
+
+## 2026-08-28 - DIA-260828-qtsi: opencode-config
+
+- **Change:** Add promo preset infrastructure: sidecar promo-registry.json, scripts/promo-preset-apply (idempotent, comment-preserving), generated 'promo' preset cloned from cebula-hy3 with ana036 routing, muse-spark entry in model-registry.yaml, promo-review skill. Variant A (sidecar+script+skill).
+- **Files:** .opencode/promo-registry.json - scripts/promo-preset-apply - .opencode/oh-my-opencode-slim.jsonc - knowledge/model-registry.yaml - .opencode/skills/promo-review/SKILL.md
+- **Verification:** make test-config exit 0; promo-registry.json valid JSON; oh-my-opencode-slim.jsonc valid JSONC; model-registry.yaml valid YAML; promo-review SKILL.md frontmatter passes validate-skills.sh (26 passed, 0 failed); promo preset idempotent via re-run
+
+## 2026-08-28 - DIA-260828-qtsi (REGISTERED): opencode-skills
+
+- **Change:** promo-review skill: stable-vs-volatile split, landing-page+tracker promo capture, >2x ROUTING-INVERSION, Muse Spark explicit comparison
+- **Files:** .opencode/skills/promo-review/SKILL.md - .opencode/learnings/external-patterns/2026-08-28-promo-review-stable-volatile-split.md
+- **Verification:** ai-specialist gate PASS (ses_fb7ed8294ffeTMXVmlTLxwLXTf); coder make test-config exit 0 (ses_fb7461351ffen4qXzaoFM2Fbg3); ai-auditor PASS 0 blockers 6 minors (ses_fb74464ecffeUJafBakf198bq3); ASCII-only (DIA-079).
+
+## 2026-08-28 - DIA-260828-qtsi: opencode-config
+
+- **Change:** Revert Copilot 4 lanes to cebula mapping (architector->gemini-3.1-pro, designer->claude-sonnet-4.5, ai-specialist->gpt-5.3-codex, ai-auditor->gpt-5.3-codex+gemini, observer kept kimi-k2.7-code for image). Admit Muse Spark (active:true, 6 lanes primary, Hy3 fallback, privacy cleared no sensitive traffic, 8x Hy3 promo context).
+- **Files:** .opencode/oh-my-opencode-slim.jsonc - knowledge/model-registry.yaml - scripts/promo-preset-apply - .opencode/skills/promo-review/SKILL.md - .opencode/promo-registry.json
+- **Verification:** manual

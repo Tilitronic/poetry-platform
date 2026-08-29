@@ -1854,3 +1854,84 @@ ID hygiene: new knowledge/ directories take datetime-style IDs
 (DIA-YYMMDD-XXXX class) or pass a uniqueness precheck against existing IDs -
 the sequential ana/res space has known collisions (res020/021/026/029 and
 ana001/ana015-ana027 are each used by multiple distinct artifacts).
+
+## ADR: Promo preset infrastructure — sidecar registry + apply script (DIA-260828-qtsi)
+
+### Status
+
+Accepted - 2026-08-28
+
+### Context
+
+Weekend coding sessions (6-8h) hit model cost caps before weekday sessions
+(2-4h) do. The developer wants a cost-saving preset that routes
+high-volume lanes (coder, researcher) to cheaper models during weekends
+without disrupting the free-tier weekday workflow. The challenge: preset
+swapping must be idempotent, auditable, and not require manual config
+edits each weekend.
+
+### Decision
+
+Adopt a sidecar registry + apply-script pattern for model preset
+promotions:
+
+1. `.opencode/promo-registry.json` — sidecar file listing promo
+   definitions (3 promos as of implementation: muse-spark coder promo,
+   weekend coder promo, weekend researcher promo). Each promo names a
+   target preset, a source model, a replacement model, and activation
+   conditions.
+
+2. `scripts/promo-preset-apply` — Python script that reads the registry,
+   applies matching promos to `oh-my-opencode-slim.jsonc` (idempotent:
+   re-running produces no diff), and reports what changed. The script is
+   the ONLY writer for promo-related preset mutations; manual edits are
+   forbidden.
+
+3. Promo preset slot in `oh-my-opencode-slim.jsonc` — placed BEFORE the
+   free preset (not auto-activated). Activation is manual or cron-driven;
+   the preset slot is dormant by default.
+
+4. `knowledge/model-registry.yaml` — added muse-spark as a tracked model
+   entry with pricing ($0.10/$0.20 per 1M tokens).
+
+5. Skill `promo-review` — 2-week cadence review for weekend coding
+   efficiency. Reviews model utilization, cost savings, and time-to-cap
+   metrics.
+
+### Rationale (irrecoverable context)
+
+- Sidecar over inline: the registry is a plain JSON file decoupled from
+  the OMO config schema. This avoids schema coupling and makes promos
+  auditable (git-diffable, reviewable) without parsing OMO's JSONC.
+- Python apply script over shell: idempotent mutation of JSONC with
+  comment preservation requires a proper parser; shell jq pipelines
+  strip comments. The script uses a JSONC-aware approach.
+- Cost model: originally estimated ~30% weekend savings (muse $0.10/$0.20
+  vs hy3 $0.14/$0.58). SUPERSEDED by DIA-260828-qtsi: Hy3 8x promo
+  confirmed live (effective ~$0.02/$0.07), making it ~7x cheaper than
+  mimo-v2.5 ($0.14/$0.28). This inverts the preset routing premise —
+  do NOT activate the promo preset as-is when ROUTING-INVERSION fires
+  (>2x gap). See lessons.md L20260828-001 for the operational guard.
+- muse-spark excluded from free-tier: privacy concerns (muse is
+  third-party hosted, not self-hosted) mean muse models are not promoted
+  into the default free preset; they live only in the promo registry.
+
+### Consequences
+
+- Weekend preset swaps are automated and auditable (registry in git,
+  apply script produces a changelog diff).
+- The 2-week promo-review cadence ensures cost savings are validated
+  against actual utilization, not just theoretical pricing.
+- The sidecar pattern is extensible: new promos (different models,
+  different activation windows) require only a registry entry, no config
+  schema changes.
+- Risk: if the apply script breaks, the promo slot remains dormant
+  (no auto-activation), so the failure mode is safe (weekday workflow
+  unaffected).
+
+### Metadata
+
+- Created: 2026-08-28
+- Related: DIA-260828-qtsi, .opencode/promo-registry.json,
+  scripts/promo-preset-apply, knowledge/model-registry.yaml,
+  .opencode/skills/promo-review/

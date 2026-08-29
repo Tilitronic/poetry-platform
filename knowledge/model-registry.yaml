@@ -37,6 +37,20 @@ models:
     quota_notes: "$60 bucket, 4,300 req/5h, 21,500 req/mo, 256K ctx"
     active: true
 
+  - model_id: "opencode-go/muse-spark-1.2-contributor"
+    role: "multi-lane-primary"
+    price_in_1m: 0.10
+    price_out_1m: 0.20
+    req_per_month: 226600
+    swe_bench_verified: null
+    source_ref: "res041"
+    lane: ["coder", "reviewer", "analyzer", "researcher", "conspecter", "openspec-plan"]
+    fallback: ["opencode-go/hy3", "opencode-go/mimo-v2.5"]
+    quota_notes: "Cheapest input ($0.10) + highest Intelligence (56.8) of promo trio, 1.05M ctx; 100 RPM = 144k/day vs workload 120 dispatches/day max (ana036); ADMITTED per DIA-260828-qtsi (privacy cleared by developer: no sensitive traffic)"
+    privacy_notes: "Meta Contributor tier trains on prompts/completions; developer cleared (no sensitive traffic) per DIA-260828-qtsi; region-limited availability"
+    variant_support: true
+    active: true
+
   - model_id: "qwen3.7-plus"
     role: "arch/analyzer"
     price_in_1m: 0.40

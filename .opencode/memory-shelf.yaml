@@ -414,7 +414,10 @@ shelf:
       --user to match Linux/CI.'
     path: knowledge/res040-docker-rootless-uid-compatibility/res040-docker-rootless-uid-compatibility-conspect.md
     created: 2026-08-22
-
+  - name: OpenCode Go Promo Benchmarks (res041)
+    description: 'Conspect on the OpenCode Go promo structure (the 6x multiplier) and usage caps, a cheapest-model comparison across the promo trio, and the Muse Spark privacy tradeoff (meta-training on prompts/completions, region-limited). Informs the promo preset routing in DIA-260828-qtsi; Muse Spark is excluded from the promo preset pending privacy review.'
+    path: knowledge/res041-opencode-go-promo-benchmarks/res041-opencode-go-promo-benchmarks-conspect.md
+    created: 2026-08-28
   analyses:
   - name: Agent Alignment Audit
     description: "MECE inventory of all agent definitions across OMO Slim, native\
@@ -519,15 +522,15 @@ shelf:
     created: 2026-08-08
   - name: "Post-Cherry-Pick Audit (ana019-post-cherry-pick-audit)"
     description: "10-point audit of the omo-slim-changes branch after cherry-pick. 7 PASS, 2 WARN, 2 FAIL. Critical issues: openspec-plan edit permission is flat deny (should scope to openspec/), pnpm-lock.yaml stale (typescript-eslint@^8.67.0 missing). Warnings: validate-agent-names.sh script missing, delegation-observer plugin path double-resolves."
-    path: "knowledge/ana019-post-cherry-pick-audit/ana019-post-cherry-pick-audit-report.md"
+    path: "knowledge/archive/ana019-post-cherry-pick-audit/ana019-post-cherry-pick-audit-report.md"
     created: 2026-08-11
   - name: "Post-Rebase Comprehensive Audit (ana020-post-rebase-audit)"
     description: "19-point audit after rebase onto origin/omo-slim-changes (56cc42b). 6 rebased commits d026a52..f87df23. 13 PASS, 3 WARN, 3 FAIL. HIGH: memory-shelf.yaml YAML parse error (line 154 indentation break), 3 dangling skill refs (teaching, mermaid-diagramming, console-charting), dangling shelf path (ai-self-improvement-auditor-and-cleanup dir missing). MEDIUM: explore/general in opencode.jsonc but not disabled anywhere despite AGENTS.md saying disabled. LOW: finishing-a-development-branch skill duplicate, conspecter missing explicit task deny. Rebase itself clean (no conflict markers, validate-agent-names.sh 22/22, OMO dist up-to-date, pnpm-lock has typescript-eslint@8.67.0)."
-    path: "knowledge/ana020-post-rebase-audit/ana020-post-rebase-audit-report.md"
+    path: "knowledge/archive/ana020-post-rebase-audit/ana020-post-rebase-audit-report.md"
     created: 2026-08-11
   - name: "Artifacts Folder Audit (DIA-084)"
     description: "Full audit of all artifact folders (knowledge/, memory-shelf, learnings/, session/, openspec/, .sdd/, .tss/). Finds 3 naming violations (ana-post-*, context7-docs), 1 dangling shelf ref (ai-self-improvement archived path), 4 status mismatches (shelf vs proposal.md), 10 unregistered openspec changes, 1 orphan directory (res003-tui-corruption-stdout), 1 committed-but-ignored source file, 1 empty change scaffold (dia-071). Skill-location risk: 13 global-only skills would fail outside this user home. 5 safe-to-apply + 9 needs-developer-decision recommendations."
-    path: "knowledge/ana010-artifacts-folder-audit/ana010-artifacts-folder-audit-report.md"
+    path: "knowledge/archive/ana010-artifacts-folder-audit/ana010-artifacts-folder-audit-report.md"
     created: 2026-08-11
   - name: "Parallel Orchestrator Sessions Coordination (DIA-085)"
     description: "Coordination model for 2+ parallel orchestrator sessions on top of DIA-073 worktree isolation. File-based claim + heartbeat protocol: claims live in .opencode/session/claims/<ticket>.claim.json (atomic write via rename), heartbeat every 5 min, stale threshold 15 min, dead threshold 60 min. Conflict detection via pre-claim scan of active claims (same ticket, overlapping files_touched, branch collision). Resume-after-stop procedure: liveness verify via registry.jsonl -> inspect dead worktree -> rescue uncommitted changes via git stash -> supersede stale claim in claims/history/ -> write new claim. Worked example walks two sessions (A alive, B stops at T+11 via DIA-098 class C3, A reclaims at T+66). Do-now: ~14h of shell helpers (claim-ticket.sh, heartbeat.sh, list-claims.sh, reclaim-ticket.sh), zero new dependencies. Rejected: lock server, shared SQLite DB, supervisor process, distributed consensus (overhead-disproportionate per DIA-086 SCOPE GUARD). Cross-references DIA-073/098/100/061/086."
@@ -535,11 +538,11 @@ shelf:
     created: 2026-08-11
   - name: "Scientific-Workflow Proposal (DIA-086)"
     description: "Internal mapping pass of the 50-source scientific-methodology survey (res012 conspect) onto existing project mechanisms. Gap analysis: 6 of 10 survey practices already mapped (novelty checks via research-pipeline + DIA-072, experiment logs via delegation-observer, independent reviewer via two-axis @reviewer, provenance via DIA-072 Archive-Before-Claim, test-driven via tdd-craftsman, uncertainty via researcher confidence). 2 structural gaps confirmed: (A) falsification/'break your own claim' not present as distinct step (review-re-verify only verifies prior findings), (B) competing-hypothesis comparison not present in analysis reports. 5 mandatory lightweight additions proposed (<12h total): M1 claim/evidence/confidence template for lane reports, M2 experiment-log header convention, M3 'break your claim' section in @reviewer two-axis, M4 explicit hypothesis line in openspec-plan Socratic interviews, M5 frozen lite eval set (20-50 tasks) via make eval-lite. 6 optional/rejected per SCOPE GUARD: full autonomous research pipelines (AI Scientist/AutoSci/DASES), POPPER statistical machinery, dogmatic enforced TDD on exploratory code, full novelty checks, failure-mode ledger, competing-hypothesis matrix. Before/after comparison table for interview-spec-implement-review-persist-eval stages. All proposals MLA-cited to archived sources in knowledge/res012-scientific-methodology/sources/."
-    path: "knowledge/ana012-scientific-workflow-proposal/ana012-scientific-workflow-proposal-report.md"
+    path: "knowledge/archive/ana012-scientific-workflow-proposal/ana012-scientific-workflow-proposal-report.md"
     created: 2026-08-11
   - name: "DIA-097..105 Parallel Dev-Infra Batch Triage"
     description: 'Structured triage of 9 OPEN tickets (DIA-097..DIA-105) from the 2026-08-11 parallel dev-infra batch. Classification: 1 AUTONOMOUS-FIXABLE (DIA-100 worktrees), 6 DECISION-NEEDED (097 orchestrator role, 098 stall detection, 102 spec workflow, 103 interview completeness, 104 grilling gate, 105 formatter hooks), 2 DEFER (099 blocked by 098, 101 blocked by 097+100). Effort/impact ranking across all 9, dependency graph (Mermaid), 17 deferred developer decisions enumerated (3 practice-protected, 14 Section-10 policy). Highest-risk cluster: 097->100->101 triangle. Highest-ROI near-autonomous work: 104 (S effort, builds on ana004) and 105 (bounded, clear precedent). Report only -- no implementation.'
-    path: "knowledge/ana013-dia097-105-triage/ana013-dia097-105-triage-report.md"
+    path: "knowledge/archive/ana013-dia097-105-triage/ana013-dia097-105-triage-report.md"
     created: 2026-08-12
   - name: "DIA-116 Rung-3 Live Benchmark Protocol"
     description: 'Benchmark protocol comparing three Rung-3 candidates (kimi-k3, deepseek-v4-pro, mimo-v2.5-pro) on three real in-repo tasks: (1) implement debounce utility in phonetics-core, (2) implement ring-buffer data structure in phonetics-core, (3) add timeout support to eval-lite.sh. Each task has prepared test files with clear pass/fail criteria. Execution via dedicated temporary benchmark agent variants (bench-kimi-k3, bench-deepseek-v4-pro, bench-mimo-v25-pro) with git worktree isolation. Request budget: 120 requests estimated for kimi-k3 (75% headroom within 490 req/mo cap). Verdict criteria: pass rate primary, qualitative score and efficiency tiebreakers. Includes full test specifications (Appendices A/B/C) and execution checklist. - approach CANCELLED by developer directive 2026-08-12 (no self-benchmarking); superseded by res017 authoritative evidence'
@@ -579,7 +582,7 @@ shelf:
       lanes. 8 numbered conclusions suitable for verbatim quoting from the DIA-135
       ticket. Cross-references res013/res016/res017/res019/res024, in-conversation
       ai-specialist gate (2026-08-13).'
-    path: "knowledge/ana018-research-lane-optimization/ana018-research-lane-optimization-report.md"
+    path: "knowledge/archive/ana018-research-lane-optimization/ana018-research-lane-optimization-report.md"
     created: 2026-08-13
     status: archived
   - name: "Agent Instruction Files Audit (DIA-157)"
@@ -618,7 +621,7 @@ shelf:
     name: verify-pre-push recursion fork-bomb root-cause analysis (DIA-161 regression)
     title: verify-pre-push recursion fork-bomb root-cause analysis - DIA-161 regression
     description: "Root-cause analysis of the recursion fork-bomb regression in scripts/verify-pre-push.sh. Introduced by commit 49d587a (DIA-161) wiring `make test-shell` into the pre-push script; root cause is absence of a re-entrancy guard in the script itself (hostname==poetry-dev branch re-enters the suite). Test-side hostname shim (commit bb18099, DIA-071) is necessary-but-not-sufficient defense (covers bats only, not manual/husky invocations). ~18s cycle, 6+ levels deep, dozens of /tmp/bats-run-* dirs, live chains 1.5h. Recommends minimal env-flag propagation guard (VERIFY_PRE_PUSH_RUNNING) with a one-line test-side unset to preserve the direct-run test. 5 lines added, zero tests broken."
-    path: "knowledge/ana015-recursion-fork-bomb/ana015-recursion-fork-bomb-report.md"
+    path: "knowledge/archive/ana015-recursion-fork-bomb/ana015-recursion-fork-bomb-report.md"
     created: 2026-08-12
     date: 2026-08-12
     task_ref: DIA-165
@@ -764,6 +767,31 @@ shelf:
     path: knowledge/ana024-artifact-format-ebdv/ana024-artifact-format-ebdv-report.md
     created: 2026-08-15
     task_ref: DIA-194
+  - name: "Memory-Shelf Staleness Audit (DIA-260826-7qmt)"
+    description: "Exhaustive path-existence check + content cross-reference of memory-shelf.yaml
+      and all referenced knowledge/ artifacts. Finds 82 CURRENT, 9 STALE-REFRESH,
+      7 ORPHAN paths (path-prefix mismatch after archival), 12 unregistered archive
+      dirs, 5 ID collisions. Structurally sound but carries significant hygiene debt.
+      Read-only audit; no modifications."
+    path: knowledge/ana001-memory-shelf-staleness/ana001-memory-shelf-staleness-report.md
+    created: 2026-08-28
+    task_ref: DIA-260826-7qmt
+  - name: ana036 - Weekend Coding Preset Efficiency Analysis
+    description: 'Analysis of poetry-platform workload dispatch distribution (coder-dominated at 28 percent / 1023 events; reviewer, analyzer, researcher distant seconds) and model-cost efficiency for weekend marathon coding. Confirms cebula-hy3 already routes the highest-volume lane (coder) to promo-priced hy3, but flags analyzer, architector, and reviewer lanes still on non-promo models draining the $60/mo cap. Drives the promo preset routing in DIA-260828-qtsi. Confidence: Medium.'
+    path: knowledge/ana036-weekend-coding-preset-efficiency/ana036-weekend-coding-preset-efficiency-report.md
+    created: 2026-08-28
+  - name: Docker WSL Remake Plan — Global opencode Isolation
+    description: "Container remake feasibility analysis for DIA-260821-x5nj. Verdict:\
+      \ safe to remake — host opencode (v1.18.25, ~/.opencode/bin/opencode, ~/.local/share/opencode)\
+      \ and container opencode (v1.18.18, /usr/local/bin/opencode, /home/dev/.local/share)\
+      \ are completely isolated (different binaries, state dirs, filesystems). Container\
+      \ is stale (built before c19ed6b UID/GID alignment and 37a3df4 USER directive\
+      \ removal); full image rebuild required. Remake via make down (keep volumes)\
+      \ not make clean; 10-20 min; zero risk to host opencode. Change inventory:\
+      \ 9 recent Docker-touching commits enumerated with cache impact and risk."
+    path: knowledge/ana037-docker-wsl-remake-plan/ana037-docker-wsl-remake-plan-report.md
+    created: 2026-08-28
+    task_ref: DIA-260821-x5nj
   adrs:
   - name: Memory Storage Strategy
     description: 'Evaluation of Claude-Mem, Honcho, and current hand-written memory

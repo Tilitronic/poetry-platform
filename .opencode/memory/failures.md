@@ -399,6 +399,14 @@ Failed-loop lessons & preventive actions
   - Why irrecoverable: plugin lifecycle-lock error text and the successful fallback are runtime/session behavior, not in code or git history.
   - Cross-reference: failures.md "revive stopped unconfirmed" entry (DIA-260824-a3mk); DIA-099 3-failure cap.
 
+- Failure mode (2026-08-28, DIA-260828-qtsi B1 HIGH defect fix): cod-8 session errored on task_revive (abort unknown) during B1 HIGH defect fix
+  - Symptom: cod-8 (session ses_fb8447ff4ffeMdIEONSEKNX60s) errored on task_revive with an unknown abort reason while attempting a B1 HIGH defect fix. The session was not resumable after the error.
+  - Recovery: a fresh cod-9 dispatch recovered the work. cod-9 fixed header accumulation (find_promo_region), applied the free indent fix, updated learnings outcome, and completed shelf registrations. Verification: make test-config exit 0, header count 1 across re-runs, free indent 4-space, B1/B2/B7/B9 verified-closed by ai-auditor re-review cycle 1/2.
+  - Root cause: unknown abort — the task_revive mechanism rejected the resume with no diagnosable error. Distinct from the "lifecycle ownership" error (failures.md line 395) and the "stopped unconfirmed" variant (DIA-260824-a3mk).
+  - Preventive action: treat task_revive abort-unknown as non-resumable (same as errored-session per DIA-260825-nts7). Dispatch a fresh lane with full context rather than retrying the revive. The fresh-dispatch path (cod-9) proved reliable.
+  - Why irrecoverable: the abort-unknown error text and the fresh-dispatch recovery are runtime/session behavior; the fix commits show the outcome but not the revive failure and recovery path.
+  - Cross-reference: failures.md line 395 (revive lifecycle-ownership error), DIA-260824-a3mk (stopped unconfirmed), DIA-260825-nts7 (revive ownership failure), DIA-099 (3-failure cap).
+
 - Failure mode (2026-08-25, DIA-260825-q7bu): killed mid-hang test runs leak per-call nsbin mktemp dirs (/var/tmp/poetry-nsbin.*) because teardown rm -rf never executes
   - Symptom: /var/tmp/poetry-nsbin.* directories accumulate after a stalled/killed bats run.
   - Classification: SYMPTOM, not cause - the leak means the suite was killed mid-test (e.g. an interactive-stdin hang); do not chase the leak itself when diagnosing stalls, use it as evidence that a kill happened and find the hang.
