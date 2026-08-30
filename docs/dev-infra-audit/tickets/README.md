@@ -263,6 +263,8 @@
 | DIA-260827-y9n9 | [CRITICAL] Cross-session handoff corruption via process-global parentSessionId | opencode-config | Critical | OPEN | [DIA-260827-y9n9-critical-cross-session-handoff-corruption-via-process-global-parentsessionid.md](DIA-260827-y9n9-critical-cross-session-handoff-corruption-via-process-global-parentsessionid.md) |
 | DIA-260828-qtsi | promo preset infrastructure: opencode-go promotion-optimized preset with json patch + skill (2-week review, weekend coding) | opencode-config | Major | OPEN | [DIA-260828-qtsi-promo-preset-infrastructure-opencode-go-promotion-optimized-preset-with-json-patch-skill-2-week-review-weekend-coding.md](DIA-260828-qtsi-promo-preset-infrastructure-opencode-go-promotion-optimized-preset-with-json-patch-skill-2-week-review-weekend-coding.md) |
 | DIA-260829-kxqu | log_decision tool unavailable to orchestrator -- delegation-observer plugin tool not exposed to orchestrator agent | scripts | Medium | OPEN | [DIA-260829-kxqu-log-decision-tool-unavailable-to-orchestrator-delegation-observer-plugin-tool-not-exposed-to-orchestrator-agent.md](DIA-260829-kxqu-log-decision-tool-unavailable-to-orchestrator-delegation-observer-plugin-tool-not-exposed-to-orchestrator-agent.md) |
+| DIA-260830-3q7e | Change session name format: drop 'New session -' prefix, show [short-id] first | opencode-config | Minor | OPEN | [DIA-260830-3q7e-change-session-name-format-drop-new-session-prefix-show-short-id-first.md](DIA-260830-3q7e-change-session-name-format-drop-new-session-prefix-show-short-id-first.md) |
+| DIA-260830-i9d | Evaluate and apply oh-my-opencode-slim 2.217 update if worthwhile | opencode-config | Info | OPEN | [DIA-260830-i9d-evaluate-and-apply-oh-my-opencode-slim-2-217-update-if-worthwhile.md](DIA-260830-i9d-evaluate-and-apply-oh-my-opencode-slim-2-217-update-if-worthwhile.md) |
 
 ## Status summary
 
@@ -272,14 +274,14 @@
 | Critical | 15    |
 | Major    | 85    |
 | Medium   | 128   |
-| Minor    | 0     |
+| Minor    | 1     |
 | Low      | 22    |
-| Info     | 1     |
+| Info     | 2     |
 | High     | 1     |
 
 | Status      | Count |
 | ----------- | ----- |
-| OPEN        | 86    |
+| OPEN        | 88    |
 | DONE        | 11    |
 | VALIDATE    | 2     |
 | E2E         | 0     |

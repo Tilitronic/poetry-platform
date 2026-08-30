@@ -858,9 +858,9 @@ const needsInputObserver: Plugin = async (ctx) => {
     // never double-append when the title already carries the suffix.
     // DIA-189: word-pair suffix replaces the old hex short-id.
     const wordPair = sessionWordPair(entry.session_id)
-    const attributedTitle = title.endsWith(` [${wordPair}]`)
+    const attributedTitle = title.startsWith(`[${wordPair}]`)
       ? title
-      : `${title} [${wordPair}]`
+      : `[${wordPair}] ${title}`
     const message = `${entry.reason}: ${entry.detail}`.slice(0, 200)
 
     // Record before firing so a concurrent/duplicate path cannot double-toast.
@@ -967,13 +967,14 @@ const needsInputObserver: Plugin = async (ctx) => {
     // 1.18.18 defaults ("New session - <ISO>" / "Terminal N"), so the rename
     // silently never ran (0 of 1,742 sessions ever suffixed). Empty title
     // still falls back to the "opencode <cwd>" base before appending.
-    const alreadySuffixed = / \[[a-z]+-[a-z]+\]$/.test(createdTitle)
+    const alreadySuffixed = /^\[[a-z]+-[a-z]+\]/.test(createdTitle)
     if (alreadySuffixed) return
+    const DEFAULT_SESSION_RE = /^New session - \d{4}-\d{2}-\d{2}T/
     const baseTitle =
-      createdTitle !== ""
+      createdTitle !== "" && !DEFAULT_SESSION_RE.test(createdTitle)
         ? createdTitle
         : `opencode ${basename(ctx.directory)}`
-    const derivedTitle = `${baseTitle} [${sessionWordPair(id)}]`
+    const derivedTitle = `[${sessionWordPair(id)}] ${baseTitle}`
     // DIA-189 F3: skip an identical rename already issued within the TTL
     // (dedupes pty.created + pty.updated converging on the same title).
     if (isRecentRename(surface, id, derivedTitle)) return
@@ -1161,13 +1162,14 @@ const needsInputObserver: Plugin = async (ctx) => {
           const createdTitle = typeof info.title === "string" ? info.title : ""
           // DIA-189 fix: the dedupe guard is the only gate (same rationale
           // as renameDefaultTitle) - any unsuffixed title is renamed.
-          const alreadySuffixed = / \[[a-z]+-[a-z]+\]$/.test(createdTitle)
+          const alreadySuffixed = /^\[[a-z]+-[a-z]+\]/.test(createdTitle)
           if (!alreadySuffixed) {
+            const DEFAULT_SESSION_RE = /^New session - \d{4}-\d{2}-\d{2}T/
             const baseTitle =
-              createdTitle !== ""
+              createdTitle !== "" && !DEFAULT_SESSION_RE.test(createdTitle)
                 ? createdTitle
                 : `opencode ${basename(ctx.directory)}`
-            const derivedTitle = `${baseTitle} [${sessionWordPair(info.id)}]`
+            const derivedTitle = `[${sessionWordPair(info.id)}] ${baseTitle}`
             try {
               const res = await ctx.client.session.update({
                 path: { id: info.id },

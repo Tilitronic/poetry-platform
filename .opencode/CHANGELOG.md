@@ -947,3 +947,15 @@
 - **Change:** Revert Copilot 4 lanes to cebula mapping (architector->gemini-3.1-pro, designer->claude-sonnet-4.5, ai-specialist->gpt-5.3-codex, ai-auditor->gpt-5.3-codex+gemini, observer kept kimi-k2.7-code for image). Admit Muse Spark (active:true, 6 lanes primary, Hy3 fallback, privacy cleared no sensitive traffic, 8x Hy3 promo context).
 - **Files:** .opencode/oh-my-opencode-slim.jsonc - knowledge/model-registry.yaml - scripts/promo-preset-apply - .opencode/skills/promo-review/SKILL.md - .opencode/promo-registry.json
 - **Verification:** manual
+
+## 2026-08-30 - DIA-260830-3q7e: plugins
+
+- **Change:** Session title format: drop 'New session -' prefix, lead with [word-pair] short-id in needs-input-observer.ts (4 sites + tests updated)
+- **Files:** .opencode/plugins/needs-input-observer.ts
+- **Verification:** manual
+
+## 2026-08-30 - DIA-260830-i9d: config
+
+- **Change:** Bump oh-my-opencode-slim plugin pin 2.2.15 -> 2.2.17 (low-risk patch; task-lifecycle fixes for delegation orchestrator)
+- **Files:** .opencode/opencode.jsonc
+- **Verification:** manual
