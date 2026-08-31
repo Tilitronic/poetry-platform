@@ -959,3 +959,9 @@
 - **Change:** Bump oh-my-opencode-slim plugin pin 2.2.15 -> 2.2.17 (low-risk patch; task-lifecycle fixes for delegation orchestrator)
 - **Files:** .opencode/opencode.jsonc
 - **Verification:** manual
+
+## 2026-08-30 - DIA-260829-kxqu: plugins
+
+- **Change:** Fix delegation-observer.ts Bun-parseable so log_decision tool loads (export-shape shims for CAPABILITY_SECRET + regex objects)
+- **Files:** .opencode/plugins/delegation-observer.ts
+- **Verification:** manual

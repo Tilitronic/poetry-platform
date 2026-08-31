@@ -4422,3 +4422,12 @@
     fixes for delegation orchestrator)
   verification: manual
   area: opencode-config
+- date: '2026-08-30'
+  ticket: DIA-260829-kxqu
+  scope: plugins
+  files:
+  - .opencode/plugins/delegation-observer.ts
+  summary: Fix delegation-observer.ts Bun-parseable so log_decision tool loads (export-shape
+    shims for CAPABILITY_SECRET + regex objects)
+  verification: manual
+  area: opencode-config

@@ -32,9 +32,17 @@ esac
 DATE=$(date +%y%m%d)
 
 # Generate random 4-char suffix (alphanumeric lowercase).
-# 64 bytes gives ~9 alphanumeric chars on average (36/256 per byte);
-# || true swallows SIGPIPE from head -c4 closing the pipe early under pipefail.
-RAND=$(head -c64 /dev/urandom | tr -dc 'a-z0-9' | head -c4 || true)
+# WHY: 64 bytes gave ~9 alphanumerics on avg but could still yield <4 chars
+# (SIGPIPE-truncated), violating DIA-YYMMDD-XXXX. Mixing nanoseconds + PID
+# makes rapid bursts (same ms) extremely unlikely to collide while keeping
+# exactly 4 [a-z0-9] chars for downstream parsers.
+# Loop guarantees length==4; 256 bytes + date +%N makes short reads virtually impossible.
+RAND=""
+while [ "${#RAND}" -lt 4 ]; do
+  CHUNK=$( (head -c256 /dev/urandom 2>/dev/null; printf '%s' "$(date +%N 2>/dev/null)$$${BASHPID:-}") | tr -dc 'a-z0-9' | tr -d '\n' || true)
+  RAND="${RAND}${CHUNK}"
+done
+RAND=$(printf '%s' "$RAND" | head -c4)
 
 # Output: <type>-YYMMDD-<random4>-<slug>
 echo "${TYPE}-${DATE}-${RAND}-${SLUG}"
