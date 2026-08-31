@@ -4431,3 +4431,15 @@
     shims for CAPABILITY_SECRET + regex objects)
   verification: manual
   area: opencode-config
+- date: '2026-08-31'
+  ticket: DIA-260831-9zq6
+  scope: opencode-config
+  files:
+  - .opencode/oh-my-opencode-slim.jsonc
+  - .opencode/oh-my-opencode-slim/orchestrator_append.md
+  - .opencode/skills/research-pipeline/SKILL.md
+  summary: Wire orchestrator ID ALLOCATION rule to scripts/allocate-id (drop sequential
+    scan) across 9 locations; closes the DIA-260819-8kwm drift where the unified-ID
+    script existed but was never called for ana/tch/res.
+  verification: manual
+  area: opencode-config

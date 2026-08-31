@@ -965,3 +965,9 @@
 - **Change:** Fix delegation-observer.ts Bun-parseable so log_decision tool loads (export-shape shims for CAPABILITY_SECRET + regex objects)
 - **Files:** .opencode/plugins/delegation-observer.ts
 - **Verification:** manual
+
+## 2026-08-31 - DIA-260831-9zq6: opencode-config
+
+- **Change:** Wire orchestrator ID ALLOCATION rule to scripts/allocate-id (drop sequential scan) across 9 locations; closes the DIA-260819-8kwm drift where the unified-ID script existed but was never called for ana/tch/res.
+- **Files:** .opencode/oh-my-opencode-slim.jsonc - .opencode/oh-my-opencode-slim/orchestrator_append.md - .opencode/skills/research-pipeline/SKILL.md
+- **Verification:** manual

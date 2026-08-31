@@ -11,7 +11,7 @@ The orchestrator uses this skill when standalone research should produce persist
 ## Workflow Phases
 
 ### Phase 1: ID Pre-Allocation
-Before dispatching `@researcher`, the orchestrator scans `knowledge/` for the highest existing `res<id>` and pre-allocates the next integer. Pass the allocated ID explicitly in the dispatch payload: "Write to knowledge/res<NN>-<topic>/sources/". Never let the researcher or conspecter self-allocate.
+Before dispatching `@researcher`, run `scripts/allocate-id res <slug>` to obtain a collision-resistant datetime ID (format: res-YYMMDD-<rand4>-<slug>). Pass the returned ID in the dispatch payload: "Write to knowledge/<returned-id>-<topic>/sources/". Never let the researcher or conspecter self-allocate. Never scan knowledge/ for highest existing IDs — that pattern is retired (DIA-260831-9zq6).
 
 ### Phase 2: Research + Phase A Source Capture (researcher-owned, D5/D6)
 Dispatch `@researcher` with a specific question, scope, the pre-allocated `res<id>`, and output format requirements. The researcher OWNS Phase A source capture: it fetches every source URL ONCE into `knowledge/res<id>-<topic>/sources/` using the 3-tier fallback chain, evaluates each source, and returns structured findings. This single-fetch ownership structurally eliminates the double-fetch defect (no second trafilatura pass by a conspecter).

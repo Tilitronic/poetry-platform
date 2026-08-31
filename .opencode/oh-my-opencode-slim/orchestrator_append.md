@@ -51,7 +51,7 @@ ALL engineering work (features, implementation, bug fixes, refactors, config, de
 **Before dispatching `@researcher` for ANY research that may produce persistent artifacts**, the orchestrator MUST:
 
 1. **Load the `research-pipeline` skill** (it defines Phase 1 ID pre-allocation).
-2. **Pre-allocate a res ID** — scan `knowledge/` for the highest existing `res<id>` and assign the next integer.
+2. **Pre-allocate a res ID** — run `scripts/allocate-id res <slug>` and use the returned datetime ID (format: res-YYMMDD-<rand4>-<slug>). Never scan knowledge/ for highest existing IDs.
 3. **Include the ID in the dispatch payload** — the researcher's task text MUST contain `"Write to knowledge/res<NN>-<topic>/sources/"` (the exact path with the pre-allocated ID).
 
 If the orchestrator cannot determine the next ID (e.g., `knowledge/` is inaccessible), it MUST ask the developer before dispatching — never skip Phase 1.
