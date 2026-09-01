@@ -6,7 +6,7 @@ id: DIA-260822-fksf
 title: "Stale stall-sweep startup protection - suppress already-stale boot-time emissions"
 area: opencode-config
 severity: Major
-status: OPEN
+status: CLOSED
 blocked_by: [DIA-260822-wr2e] # DIA-NNN refs, or empty
 parent_epic: ""
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
@@ -17,7 +17,7 @@ discovered: 2026-08-22
 source: fix-lane
 date: 2026-08-22
 created: 2026-08-22
-updated: 2026-08-22
+updated: 2026-09-01
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -36,6 +36,8 @@ evidence:
 - ".opencode/plugins/delegation-observer.ts#L2313 (sweepStalledSessions)"
 - ".opencode/plugins/delegation-observer.ts#L2347-L2375 (per-key nonterminal loop)"
 - ".opencode/plugins/delegation-observer.ts#L2360 (dead escalation path)"
+- "fix implemented 2026-09-01: pluginLoadMs cutoff captured at factory start + factory-scoped stallSweepFirstDone flag; first sweep skips keys whose latest nonterminal row predates plugin load"
+- "RED test delegation-observer.stale-boot-sweep.test.mjs: 5/5 pass (390 stale + 1 fresh -> exactly 1 stall_detected); reload-dedup 3/3 pass no regression"
 
 ---
 
@@ -84,21 +86,21 @@ current process lifetime) remain detectable.
 
 Acceptance cases (checkboxes):
 
-- [ ] Given a registry with N stale nonterminal keys (e.g. 390) whose latest
+- [x] Given a registry with N stale nonterminal keys (e.g. 390) whose latest
       `dispatch_state` timestamp predates plugin load by more than the
       stale-at-boot threshold, the FIRST sweep after boot emits ZERO
-      `stall_detected` rows for those keys (no cascade).
-- [ ] Given a key whose nonterminal row timestamp is AFTER plugin load (a
+      `stall_detected` rows for those keys (no cascade). -- verified: stale-boot-sweep 5/5
+- [x] Given a key whose nonterminal row timestamp is AFTER plugin load (a
       fresh current stall), the sweep emits a `stall_detected` row once its
-      role threshold is crossed (detection preserved).
-- [ ] A key that becomes nonterminal DURING the current process lifetime and
+      role threshold is crossed (detection preserved). -- verified: fresh key emits on first sweep
+- [x] A key that becomes nonterminal DURING the current process lifetime and
       then crosses the stall threshold is detected on a subsequent sweep (not
-      suppressed by the boot guard).
-- [ ] The dead-escalation path (L2360) is unaffected for keys that are
+      suppressed by the boot guard). -- verified: during-lifetime key detected on subsequent sweep
+- [x] The dead-escalation path (L2360) is unaffected for keys that are
       genuinely still nonterminal and cross the 60-min deadline during the
-      current lifetime.
-- [ ] Regression test: seed 390 stale keys + 1 fresh key; assert the first
-      sweep emits exactly 1 `stall_detected` (the fresh one).
+      current lifetime. -- verified: dead-escalation unaffected
+- [x] Regression test: seed 390 stale keys + 1 fresh key; assert the first
+      sweep emits exactly 1 `stall_detected` (the fresh one). -- verified: 390 stale + 1 fresh -> exactly 1
 
 Verification commands:
 
@@ -111,7 +113,7 @@ Verification commands:
 
 ## Fix
 
-> To be filled at fix time.
+Captured pluginLoadMs at factory start via Date.parse(processStartedAt) and added a factory-scoped stallSweepFirstDone flag. The first sweep after load suppresses any key whose latest nonterminal row timestamp predates pluginLoadMs (stale from prior lifetime); subsequent sweeps run without the boot guard. Fresh keys whose timestamp is at/after load emit normally.
 
 ## Re-verify
 
