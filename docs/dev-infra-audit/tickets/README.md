@@ -305,7 +305,7 @@
 
 | Status      | Count |
 | ----------- | ----- |
-| OPEN        | 84    |
+| OPEN        | 83    |
 | DONE        | 11    |
 | VALIDATE    | 0     |
 | E2E         | 0     |
@@ -314,7 +314,7 @@
 | FIXED       | 1     |
 | IMPLEMENTED | 2     |
 | VERIFIED    | 28    |
-| CLOSED      | 158   |
+| CLOSED      | 159   |
 | BLOCKED     | 0     |
 | DISPATCHED  | 0     |
 | RUNNING     | 0     |
