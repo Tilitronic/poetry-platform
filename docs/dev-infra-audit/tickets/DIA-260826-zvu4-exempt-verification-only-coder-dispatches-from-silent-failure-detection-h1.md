@@ -6,7 +6,7 @@ id: DIA-260826-zvu4
 title: "exempt verification-only coder dispatches from SILENT_FAILURE detection (H1)"
 area: delegation-observer
 severity: Major
-status: VALIDATE
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: DIA-260825-wprb
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
@@ -17,7 +17,7 @@ discovered: 2026-08-26
 source: inventory
 date: 2026-08-26
 created: 2026-08-26
-updated: 2026-08-26
+updated: 2026-09-01
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -60,4 +60,9 @@ empty_result_detected row in the live registry.
 
 ## Re-verify
 
-> To be filled at re-verify time.
+Re-verify VALIDATE -> CLOSED (2026-09-01): fix commits 201e2da + 45a5743 verified.
+
+- 201e2da "fix(observer): exempt verification-only coder dispatches from SILENT_FAILURE detection (DIA-260826-zvu4)" - verificationOnlySessions Set at dispatch via marker-phrase regex on description+prompt, exemption in empty-result check, dual terminal-path cleanup, convention documented in oh-my-opencode-slim/orchestrator_append.md, 8 parser tests incl case-insensitivity and description-channel.
+- 45a5743 "chore(changelog): register DIA-260826-zvu4 verification-only coder exemption + ticket VALIDATE" - section-2.5 step 7 CHANGELOG entry with gate evidence.
+- Review: ai-auditor re-review cycle 1/2 APPROVE (5/5 verified-closed).
+- Developer-approved procedural closure.

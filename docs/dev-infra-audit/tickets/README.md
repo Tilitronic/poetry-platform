@@ -220,13 +220,13 @@
 | DIA-260826-ex7w | permanent skills-array reference validator for oh-my-opencode-slim presets | opencode-config | Medium | OPEN | [DIA-260826-ex7w-permanent-skills-array-reference-validator-for-oh-my-opencode-slim-presets.md](DIA-260826-ex7w-permanent-skills-array-reference-validator-for-oh-my-opencode-slim-presets.md) |
 | DIA-260826-ft3q | audit prompt injection vectors and plugin trust boundaries | opencode-config | Major | OPEN | [DIA-260826-ft3q-audit-prompt-injection-vectors-and-plugin-trust-boundaries.md](DIA-260826-ft3q-audit-prompt-injection-vectors-and-plugin-trust-boundaries.md) |
 | DIA-260826-jcte | remove plugin autonomous force worktree removal (C3) | delegation-observer | Critical | CLOSED | [DIA-260826-jcte-remove-plugin-autonomous-force-worktree-removal-c3.md](DIA-260826-jcte-remove-plugin-autonomous-force-worktree-removal-c3.md) |
-| DIA-260826-pjm | fix datetime ticket ID parsing in observer gates (C1) | delegation-observer | Critical | VALIDATE | [DIA-260826-pjm-fix-datetime-ticket-id-parsing-in-observer-gates-c1.md](DIA-260826-pjm-fix-datetime-ticket-id-parsing-in-observer-gates-c1.md) |
+| DIA-260826-pjm | fix datetime ticket ID parsing in observer gates (C1) | delegation-observer | Critical | CLOSED | [DIA-260826-pjm-fix-datetime-ticket-id-parsing-in-observer-gates-c1.md](DIA-260826-pjm-fix-datetime-ticket-id-parsing-in-observer-gates-c1.md) |
 | DIA-260826-spu5 | cebula-openai-hy3 preset variant-priority tuning (12 lanes; reviewer to hy3 high) | opencode-config | Medium | OPEN | [DIA-260826-spu5-cebula-openai-hy3-preset-variant-priority-tuning-12-lanes-reviewer-to-hy3-high.md](DIA-260826-spu5-cebula-openai-hy3-preset-variant-priority-tuning-12-lanes-reviewer-to-hy3-high.md) |
 | DIA-260826-u27h | make shell runs non-login bash so secrets profile hook never fires (H5 refined) | dev-infra | Major | CLOSED | [DIA-260826-u27h-make-shell-runs-non-login-bash-so-secrets-profile-hook-never-fires-h5-refined.md](DIA-260826-u27h-make-shell-runs-non-login-bash-so-secrets-profile-hook-never-fires-h5-refined.md) |
 | DIA-260826-uovr | audit MCP server security permissions and usage in opencode setup | opencode-config | Major | OPEN | [DIA-260826-uovr-audit-mcp-server-security-permissions-and-usage-in-opencode-setup.md](DIA-260826-uovr-audit-mcp-server-security-permissions-and-usage-in-opencode-setup.md) |
 | DIA-260826-uozv | sync OMO pin in opencode-docker config to project version (H4) | opencode-config | High | OPEN | [DIA-260826-uozv-sync-omo-pin-in-opencode-docker-config-to-project-version-h4.md](DIA-260826-uozv-sync-omo-pin-in-opencode-docker-config-to-project-version-h4.md) |
 | DIA-260826-xu8o | Add explicit Ox Alpha Free provider catalog overlay | opencode-config | Major | CLOSED | [DIA-260826-xu8o-add-explicit-ox-alpha-free-provider-catalog-overlay.md](DIA-260826-xu8o-add-explicit-ox-alpha-free-provider-catalog-overlay.md) |
-| DIA-260826-zvu4 | exempt verification-only coder dispatches from SILENT_FAILURE detection (H1) | delegation-observer | Major | VALIDATE | [DIA-260826-zvu4-exempt-verification-only-coder-dispatches-from-silent-failure-detection-h1.md](DIA-260826-zvu4-exempt-verification-only-coder-dispatches-from-silent-failure-detection-h1.md) |
+| DIA-260826-zvu4 | exempt verification-only coder dispatches from SILENT_FAILURE detection (H1) | delegation-observer | Major | CLOSED | [DIA-260826-zvu4-exempt-verification-only-coder-dispatches-from-silent-failure-detection-h1.md](DIA-260826-zvu4-exempt-verification-only-coder-dispatches-from-silent-failure-detection-h1.md) |
 | DIA-260827-15xv | Full ponytail whole-repo over-engineering audit via analyzer-escalated | scripts | Medium | OPEN | [DIA-260827-15xv-full-ponytail-whole-repo-over-engineering-audit-via-analyzer-escalated.md](DIA-260827-15xv-full-ponytail-whole-repo-over-engineering-audit-via-analyzer-escalated.md) |
 | DIA-260827-36ht | Plugin behavioral gate is red and missing from pre-push | plugins | High | OPEN | [DIA-260827-36ht-plugin-behavioral-gate-is-red-and-missing-from-pre-push.md](DIA-260827-36ht-plugin-behavioral-gate-is-red-and-missing-from-pre-push.md) |
 | DIA-260827-48iw | Python phonetics-core atlas loader has no test or lint gate | tests | High | OPEN | [DIA-260827-48iw-python-phonetics-core-atlas-loader-has-no-test-or-lint-gate.md](DIA-260827-48iw-python-phonetics-core-atlas-loader-has-no-test-or-lint-gate.md) |
@@ -307,14 +307,14 @@
 | ----------- | ----- |
 | OPEN        | 85    |
 | DONE        | 11    |
-| VALIDATE    | 2     |
+| VALIDATE    | 0     |
 | E2E         | 0     |
 | DEFERRED    | 1     |
 | MONITOR     | 1     |
 | FIXED       | 1     |
 | IMPLEMENTED | 2     |
 | VERIFIED    | 28    |
-| CLOSED      | 155   |
+| CLOSED      | 157   |
 | BLOCKED     | 0     |
 | DISPATCHED  | 0     |
 | RUNNING     | 0     |
