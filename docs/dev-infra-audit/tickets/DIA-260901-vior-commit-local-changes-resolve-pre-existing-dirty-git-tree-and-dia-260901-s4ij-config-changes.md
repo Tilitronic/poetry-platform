@@ -6,7 +6,7 @@ id: DIA-260901-vior
 title: "Commit local changes - resolve pre-existing dirty git tree and DIA-260901-s4ij config changes"
 area: scripts
 severity: Medium
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: ""
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
@@ -49,4 +49,4 @@ files and line references where known.>
 
 ## Re-verify
 
-> To be filled at re-verify time.
+Re-verify: DIA-260901-vior closed. Commit ca31c04babb0884266217f5494b167eac992df4a ("chore: commit dirty tree - ticket closures, ledger sync, memory updates (DIA-260901-vior)") landed with 28 files committed, pre-commit hook exit 0 (lint-staged prettier autofix via scripts/verify-pre-commit.sh), working tree clean after. Updated date 2026-09-01. This lane closes the ticket and commits the resulting ledger delta (ticket file + README rollup) so the tree stays clean.
