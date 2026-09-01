@@ -2200,6 +2200,18 @@ recorded here). Irrecoverable process lessons:
 - Why irrecoverable: the BLOCK/FAIL error text ("Idempotent duplicate dispatch blocked", "relaunch lease unavailable") and the distinction between board-routed reuse vs manual task_id resume are runtime/plugin behavior not stated in any committed file. A fresh agent reading the board's "reusable" label would misinterpret it as a resume instruction.
 - Cross-reference: lessons.md line 55 (exact-instance resume SUCCESS pattern, adjacent distinct), lessons.md line 839 (DIA-175 same-session fixes, fix-loop scope), failures.md line 395 (DIA-260825-nts7 revive lifecycle-ownership error, same error class but different trigger).
 
+## L20260901-004 - Pre-push host delegation must use --user dev; chmod-000 permission tests are NOT host/container-runnable (DIA-260831 permission test regression, 2026-09-01)
+
+- Gate defect pattern: the pre-push hook's host delegation ran `docker compose exec` WITHOUT `--user dev`, so OMO tests executed as root inside the container. Tests that assert EACCES after `chmod 000` silently pass as root because root bypasses Unix permission checks — making them vacuous. A fourth test wrote to a fixed `/tmp/outside.txt` (root-owned in container), also passing vacuously.
+- Root cause: chmod-000-based permission tests assume a non-root caller. When the host delegation omits `--user dev`, the container process runs as uid 0 and the permission assertion becomes a no-op. The test "passes" but does not actually verify the intended EACCES behavior.
+- Correct patterns for permission tests that must work regardless of caller privilege:
+  1. **Inject/mock the file error**: use `jest.spyOn(fs, 'readFile')` (or equivalent) to make the exact code path throw EACCES, then assert the error handling. This is privilege-independent.
+  2. **Root-independent filesystem conflict**: create an ENOTDIR collision (a file where a directory is expected) so the OS returns an error that does NOT depend on caller privilege.
+  3. Avoid: tests that rely on `chmod 000` + non-root caller for EACCES; they break silently when the execution context changes.
+- Operational rule: any pre-push host delegation that runs tests in a container MUST pass `--user dev` (or equivalent non-root user) so permission-dependent tests are not vacuously satisfied. Verify by checking `docker compose exec` invocations in gate scripts for the `--user` flag.
+- Why irrecoverable: the fix commits show the corrected `--user dev` flag and the new mock-based tests, but the generalizable pattern ("chmod-000 tests are vacuous under root; use mock or root-independent conflicts instead") is guidance for future test authors not stated in any committed file. The PATTERN guidance is the irrecoverable part; the specific fix is in git.
+- Cross-reference: L20260824-003 (root-owned OpenCode logs, `--user dev` for launch paths — adjacent but different concern: log ownership vs test validity).
+
 ## L20260901-003 - Context-aware commit-lane Docker gates + single-source-of-truth for pre-commit verification (DIA-260901-vior, 2026-09-01)
 
 - Observation: a commit-lane dispatch (cod-5) included a Docker gate requiring /var/run/docker.sock + docker info + docker compose ps. The dispatch ran inside the dev container (hostname "poetry-dev") which intentionally has NO Docker engine socket. The gate HARD-BLOCKED the legitimate in-container commit. A corrected dispatch (cod-6) succeeded by simply running git commit, which triggered the canonical pre-commit hook (lint-staged prettier autofix, exit 0).
