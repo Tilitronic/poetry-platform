@@ -803,6 +803,11 @@ const delegationObserver: Plugin = async (ctx) => {
   // row-write time. The registry row's auto `timestamp` field is the write
   // time; `process_started_at` is the deterministic process-start signal.
   const processStartedAt = new Date().toISOString()
+  // DIA-260822-fksf: stale-at-boot cutoff for the stall sweep. The first sweep
+  // after plugin load suppresses keys whose latest nonterminal row predates
+  // this process's load (prior lifetime). ponytail: load-time cutoff, first-sweep only.
+  const pluginLoadMs = Date.parse(processStartedAt)
+  let stallSweepFirstDone = false
   // Resolve the registry from PluginInput.directory (preferred over
   // process.cwd() — survives invocations started from other directories).
   const registryPath = join(ctx.directory, ".opencode/session/registry.jsonl")
@@ -2566,7 +2571,10 @@ const delegationObserver: Plugin = async (ctx) => {
         latestByKey.set(key, r)
       }
     }
-    if (latestByKey.size === 0) return
+    if (latestByKey.size === 0) {
+      stallSweepFirstDone = true
+      return
+    }
 
     // Dedup windows from existing stall_detected rows (section 6.4 d):
     // per-key latest detection per tier (plain stall vs dead escalation).
@@ -2584,12 +2592,17 @@ const delegationObserver: Plugin = async (ctx) => {
     }
 
     const now = Date.now()
+    const isFirstSweep = !stallSweepFirstDone
     for (const [key, row] of latestByKey) {
       if (TERMINAL_STATES.has(row.dispatch_state ?? "")) continue
       if (row.event === "silent_failure_alert") continue
       if (!NON_TERMINAL_STATES.has(row.dispatch_state ?? "")) continue
       const ts = Date.parse(row.timestamp ?? "")
       if (Number.isNaN(ts)) continue
+      // DIA-260822-fksf: startup protection - on the FIRST sweep after plugin
+      // load, suppress keys whose latest nonterminal row predates this process.
+      // Those are stale from a prior lifetime and must not cascade.
+      if (isFirstSweep && ts < pluginLoadMs) continue
       const ageSec = Math.max(0, Math.floor((now - ts) / 1000))
       const role = sessionRoleFromRows(key, rows)
       const thresholdMin =
@@ -2613,6 +2626,7 @@ const delegationObserver: Plugin = async (ctx) => {
       }
       emitStall(key, row, ageSec, thresholdMin, undefined)
     }
+    stallSweepFirstDone = true
   }
 
   /**
