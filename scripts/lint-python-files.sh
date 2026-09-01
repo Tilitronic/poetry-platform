@@ -19,11 +19,21 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # out of scope and skipped.
 api_files=()
 pipeline_files=()
+phonetics_files=()
 
 for f in "$@"; do
-  case "$f" in
-    apps/api-server/*) api_files+=("${f#apps/api-server/}") ;;
-    packages/analytics-pipeline/*) pipeline_files+=("${f#packages/analytics-pipeline/}") ;;
+  # Normalize absolute paths (worktree or lint-staged may pass absolute)
+  rel="$f"
+  case "$rel" in
+    "$ROOT"/*) rel="${rel#$ROOT/}" ;;
+    */apps/api-server/*) rel="apps/api-server/${rel#*apps/api-server/}" ;;
+    */packages/analytics-pipeline/*) rel="packages/analytics-pipeline/${rel#*packages/analytics-pipeline/}" ;;
+    */packages/phonetics-core/*) rel="packages/phonetics-core/${rel#*packages/phonetics-core/}" ;;
+  esac
+  case "$rel" in
+    apps/api-server/*) api_files+=("${rel#apps/api-server/}") ;;
+    packages/analytics-pipeline/*) pipeline_files+=("${rel#packages/analytics-pipeline/}") ;;
+    packages/phonetics-core/*) phonetics_files+=("${rel#packages/phonetics-core/}") ;;
     *) echo "lint-python-files: skipping out-of-scope path: $f" >&2 ;;
   esac
 done
@@ -32,6 +42,9 @@ done
 # it on first run. `uv pip install -e ".[dev]"` is idempotent — a no-op when
 # ruff (a [dev] extra) is already present. Only api-server owns a venv; the
 # pipeline package reuses its ruff binary.
+# DIA-260827-48iw: handle uv cache permission (root-owned /home/dev/.cache/uv)
+export UV_CACHE_DIR="${UV_CACHE_DIR:-/tmp/uv-cache}"
+mkdir -p "$UV_CACHE_DIR" 2>/dev/null || true
 API_VENV="$ROOT/apps/api-server/.venv"
 if [ ! -x "$API_VENV/bin/python" ]; then
   (cd "$ROOT/apps/api-server" && uv venv .venv) >/dev/null
@@ -53,3 +66,4 @@ run_ruff() {
 # with no paths would lint-and-fix the entire package from that cwd.
 run_ruff apps/api-server "${api_files[@]}"
 run_ruff packages/analytics-pipeline "${pipeline_files[@]}"
+run_ruff packages/phonetics-core "${phonetics_files[@]}"

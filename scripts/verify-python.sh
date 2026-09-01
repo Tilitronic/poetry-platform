@@ -17,6 +17,9 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# DIA-260827-48iw: handle uv cache permission (root-owned /home/dev/.cache/uv)
+export UV_CACHE_DIR="${UV_CACHE_DIR:-/tmp/uv-cache}"
+mkdir -p "$UV_CACHE_DIR" 2>/dev/null || true
 
 # verify_package <relative-package-dir>: bootstrap the project-local venv,
 # install the dev extra, lint + format-check with ruff, then run pytest.
@@ -36,3 +39,4 @@ verify_package() {
 
 verify_package "apps/api-server"
 verify_package "packages/analytics-pipeline"
+verify_package "packages/phonetics-core"

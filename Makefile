@@ -145,7 +145,8 @@ test-infra: gen-jsconfig test-shell test-harness
 	docker compose down
 
 # Unit tests for the Python packages (pytest): apps/api-server + the
-# analytics-pipeline (DIA-013 — it was previously outside all Python gates).
+# analytics-pipeline (DIA-013 — it was previously outside all Python gates)
+# + phonetics-core (DIA-260827-48iw).
 # Runs inside the dev container. Debian's system python3 is PEP 668
 # externally-managed, so deps go into a project-local venv (.venv) bootstrapped
 # on demand via uv — never the system site-packages. Re-runs reuse the venv.
@@ -154,6 +155,8 @@ test-python:
 	docker compose exec -T --user dev dev bash -c 'cd /workspace/apps/api-server && .venv/bin/python -m pytest'
 	docker compose exec -T --user dev dev bash -c 'cd /workspace/packages/analytics-pipeline && { test -x .venv/bin/python || uv venv .venv; } && uv pip install --python .venv/bin/python -e ".[dev]"'
 	docker compose exec -T --user dev dev bash -c 'cd /workspace/packages/analytics-pipeline && .venv/bin/python -m pytest'
+	docker compose exec -T --user dev dev bash -c 'cd /workspace/packages/phonetics-core && { test -x .venv/bin/python || uv venv .venv; } && uv pip install --python .venv/bin/python -e ".[dev]"'
+	docker compose exec -T --user dev dev bash -c 'cd /workspace/packages/phonetics-core && .venv/bin/python -m pytest'
 
 # Interview-first spec-authoring enforcement (scripts/test-interview-enforcement.sh,
 # 5 grep/python checks). DIA-009: the script was orphaned — the CHANGELOG claimed

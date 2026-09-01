@@ -49,6 +49,9 @@
     "packages/analytics-pipeline/**/*.py": [
       "scripts/lint-python-files.sh"
     ],
+    "packages/phonetics-core/**/*.py": [
+      "scripts/lint-python-files.sh"
+    ],
     "*.sh": "scripts/__tests__/bats-wrapper.sh --quick"
   },
   "packageManager": "pnpm@10.33.0",
