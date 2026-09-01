@@ -6,7 +6,7 @@ id: DIA-260822-unsn
 title: "Ticker expiry - purge invalid and stale waiting/error entries during seed/persist"
 area: opencode-config
 severity: Major
-status: OPEN
+status: CLOSED
 blocked_by: [DIA-260822-wr2e] # DIA-NNN refs, or empty
 parent_epic: ""
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
@@ -17,7 +17,7 @@ discovered: 2026-08-22
 source: fix-lane
 date: 2026-08-22
 created: 2026-08-22
-updated: 2026-08-22
+updated: 2026-09-01
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -37,6 +37,8 @@ evidence:
 - ".opencode/plugins/needs-input-observer.ts#L631 (seedFromDisk)"
 - ".opencode/plugins/needs-input-observer.ts#L121 (WaitingEntry: reason question|permission|idle, since)"
 - ".opencode/plugins/needs-input-observer.ts#L130 (TickerErrorEntry: since, error)"
+- "fix implemented 2026-09-01: shared purge helper pair isExpired(entry,nowMs) + purgeExpired(nowMs) (WAITING_TTL_MS 24h question/permission, 4h idle, ERROR_TTL_MS 48h) invoked from BOTH persist() and seedFromDisk(); invalid since purged via Date.parse check"
+- "RED test needs-input-observer.ticker-expiry.test.mjs: 8/8 pass; dia189 25 pass 6 pre-existing platform-gated failures unchanged"
 
 ---
 
@@ -77,16 +79,18 @@ entries older than 4h, and `errors` older than 48h.
 
 Acceptance cases (checkboxes):
 
-- [ ] An entry with an invalid/unparseable `since` is dropped on seed and on
-      persist.
-- [ ] A `question`/`permission` waiting entry older than 24h is purged; one
-      younger is retained.
-- [ ] An `idle` waiting entry older than 4h is purged; one younger is
-      retained.
-- [ ] An `errors` entry older than 48h is purged; one younger is retained.
-- [ ] A freshly seeded ticker with mixed valid/invalid/stale entries yields
-      only valid, in-window entries after seed/persist.
-- [ ] No regression: valid current entries survive a persist round-trip.
+- [x] An entry with an invalid/unparseable `since` is dropped on seed and on
+      persist. (verified: AC1a/AC1b/AC1c in ticker-expiry test)
+- [x] A `question`/`permission` waiting entry older than 24h is purged; one
+      younger is retained. (verified: AC2 - 30h purged, 1h retained)
+- [x] An `idle` waiting entry older than 4h is purged; one younger is
+      retained. (verified: AC3 - 5h purged, 1h retained)
+- [x] An `errors` entry older than 48h is purged; one younger is retained.
+      (verified: AC4 - 50h purged, 1h retained)
+- [x] A freshly seeded ticker with mixed valid/invalid/stale entries yields
+      only valid, in-window entries after seed/persist. (verified: AC5)
+- [x] No regression: valid current entries survive a persist round-trip.
+      (verified: AC6; dia189 25 pass unchanged)
 
 Verification commands:
 
@@ -101,7 +105,14 @@ Verification commands:
 
 ## Fix
 
-> To be filled at fix time.
+Shared expiry helpers `isExpired(entry,nowMs)` and `purgeExpired(nowMs)` in
+`needs-input-observer.ts` keep seed/persist in agreement. `isExpired` returns
+true for unparseable `since` (via `Date.parse`), otherwise compares age
+`nowMs - since` against per-reason TTLs: 24h for `question`/`permission`, 4h
+for `idle`, 48h for `errors`; future timestamps (negative age) are retained.
+`purgeExpired` iterates `waiting` and `errors` Maps and deletes expired entries,
+invoked at the top of `persist()` and after loading `waiting`/`errors` in
+`seedFromDisk()` before watchdog re-arm.
 
 ## Re-verify
 
