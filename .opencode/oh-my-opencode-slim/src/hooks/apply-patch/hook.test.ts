@@ -695,14 +695,12 @@ garbage
 
   test('passes through sibling-directory targets outside root/worktree before native execution', async () => {
     const root = await createTempDir('apply-patch-hook-');
-    // Use createTempDir atomically for unique suffix, then place file as sibling of root
-    const tmp = await createTempDir('hook-outside-');
-    const outside = path.join(path.dirname(root), `${path.basename(tmp)}.txt`);
-    await rm(tmp, { recursive: true, force: true });
+    const siblingDir = await createTempDir('hook-outside-');
+    const outside = path.join(siblingDir, 'outside.txt');
     await writeFile(outside, 'outside\n', 'utf-8');
     const hook = createHook();
     const patchText = `*** Begin Patch
-*** Update File: ../${path.basename(outside)}
+*** Update File: ../${path.basename(siblingDir)}/outside.txt
 @@
 -outside
 +changed
