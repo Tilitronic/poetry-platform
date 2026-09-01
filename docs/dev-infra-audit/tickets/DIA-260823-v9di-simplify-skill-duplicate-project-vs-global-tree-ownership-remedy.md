@@ -6,7 +6,7 @@ id: DIA-260823-v9di
 title: "simplify skill duplicate: project vs global tree ownership/remedy"
 area: opencode-config
 severity: Medium
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: ""
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
@@ -17,7 +17,7 @@ discovered: 2026-08-23
 source: inventory
 date: 2026-08-23
 created: 2026-08-23
-updated: 2026-08-24
+updated: 2026-09-01
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -30,7 +30,9 @@ attempts: 0
 lease_expires_at: "" # ISO-8601; set on DISPATCHED, cleared on COMPLETE
 files_touched: []
 artifacts: []
-evidence: []
+evidence:
+
+- "fix applied 2026-08-24: project .opencode/skills/simplify/ deleted (OpenSpec change simplify-skill-ownership-remedy); docs updated (.opencode/skills/README.md, docs/onboarding.md); commit 931ad37a chore: remove duplicate project-pinned simplify skill (global-only now); verification: make test-config passes (no simplify near-duplicate warn), latent Tier-1 HARD risk removed; global OMO canonical"
 
 ---
 
@@ -103,15 +105,15 @@ global tree (`~/.config/opencode/skills/simplify/SKILL.md`, resolves here to
 - [ ] Observed evidence captured: `diff` of the two SKILL.md files + full
       `validate-skills.sh` and `test-interview-enforcement.sh` output (exit 0)
       recorded above.
-- [ ] Ownership decision documented: project copy is canonical / global is
-      canonical / both intentional, with rationale.
-- [ ] Remedy specified (delete project copy | symlink | align content |
+- [x] Ownership decision documented: project copy is canonical / global is
+      canonical / both intentional, with rationale. Evidence: global OMO canonical; project copy was stale drift (DIA-084 pin), deleted 2026-08-24 commit 931ad37a.
+- [x] Remedy specified (delete project copy | symlink | align content |
       accept+document warn-only), with the exact file/line change identified
-      but NOT applied.
-- [ ] Acceptance gate: `make test-config` gets past this duplicate-skill check
+      but NOT applied. Evidence: remedy applied - delete project .opencode/skills/simplify/ (commit 931ad37a); docs updated (.opencode/skills/README.md, docs/onboarding.md).
+- [x] Acceptance gate: `make test-config` gets past this duplicate-skill check
       (no spurious failure from the `simplify` near-duplicate). Currently it
       already passes (exit 0, warn-only); the fix must preserve that and remove
-      the latent Tier-1 HARD risk if the copies ever align.
+      the latent Tier-1 HARD risk if the copies ever align. Evidence: project copy deleted; validate-skills no longer emits simplify near-duplicate warn; make test-config passes exit 0.
 
 ## Fix
 

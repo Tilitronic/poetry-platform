@@ -194,7 +194,7 @@
 | DIA-260822-oldn | Plugin reload boot/sweep dedup - 30s persisted dedup and disposal-safe single ticker | opencode-config | Major | OPEN | [DIA-260822-oldn-plugin-reload-boot-sweep-dedup-30s-persisted-dedup-and-disposal-safe-single-ticker.md](DIA-260822-oldn-plugin-reload-boot-sweep-dedup-30s-persisted-dedup-and-disposal-safe-single-ticker.md) |
 | DIA-260822-unsn | Ticker expiry - purge invalid and stale waiting/error entries during seed/persist | opencode-config | Major | OPEN | [DIA-260822-unsn-ticker-expiry-purge-invalid-and-stale-waiting-error-entries-during-seed-persist.md](DIA-260822-unsn-ticker-expiry-purge-invalid-and-stale-waiting-error-entries-during-seed-persist.md) |
 | DIA-260822-wr2e | Evidence-based audit of five proposed delegation-observer plugin fixes | opencode | Major | OPEN | [DIA-260822-wr2e-evidence-based-audit-of-five-proposed-delegation-observer-plugin-fixes.md](DIA-260822-wr2e-evidence-based-audit-of-five-proposed-delegation-observer-plugin-fixes.md) |
-| DIA-260823-v9di | simplify skill duplicate: project vs global tree ownership/remedy | opencode-config | Medium | OPEN | [DIA-260823-v9di-simplify-skill-duplicate-project-vs-global-tree-ownership-remedy.md](DIA-260823-v9di-simplify-skill-duplicate-project-vs-global-tree-ownership-remedy.md) |
+| DIA-260823-v9di | simplify skill duplicate: project vs global tree ownership/remedy | opencode-config | Medium | CLOSED | [DIA-260823-v9di-simplify-skill-duplicate-project-vs-global-tree-ownership-remedy.md](DIA-260823-v9di-simplify-skill-duplicate-project-vs-global-tree-ownership-remedy.md) |
 | DIA-260824-1c3e | Add cebula-ox-alpha OpenCode preset | opencode-config | Medium | OPEN | [DIA-260824-1c3e-add-cebula-ox-alpha-opencode-preset.md](DIA-260824-1c3e-add-cebula-ox-alpha-opencode-preset.md) |
 | DIA-260824-8k62 | retire legacy tools/opencode-docker only after unified-runtime acceptance | docker | Medium | OPEN | [DIA-260824-8k62-retire-legacy-tools-opencode-docker-only-after-unified-runtime-acceptance.md](DIA-260824-8k62-retire-legacy-tools-opencode-docker-only-after-unified-runtime-acceptance.md) |
 | DIA-260824-a3mk | make opencode fails: PermissionDenied opening /home/dev/.local/share/opencode/log/opencode.log | docker | Blocker | CLOSED | [DIA-260824-a3mk-make-opencode-fails-permissiondenied-opening-home-dev-local-share-opencode-log-opencode-log.md](DIA-260824-a3mk-make-opencode-fails-permissiondenied-opening-home-dev-local-share-opencode-log-opencode-log.md) |
@@ -285,6 +285,7 @@
 | DIA-260831-v1w2 | Atlas codegen fail-open scatters generated artifacts | python-tooling | Medium | OPEN | [DIA-260831-v1w2-atlas-codegen-fail-open-scatters-generated-artifacts.md](DIA-260831-v1w2-atlas-codegen-fail-open-scatters-generated-artifacts.md) |
 | DIA-260831-x3y4 | Visualizer modules shallow lifecycle ownership | js-tooling | Medium | OPEN | [DIA-260831-x3y4-visualizer-modules-shallow-lifecycle-ownership.md](DIA-260831-x3y4-visualizer-modules-shallow-lifecycle-ownership.md) |
 | DIA-260831-z5a6 | Author Studio demo scaffold unreachable residue | js-tooling | Medium | OPEN | [DIA-260831-z5a6-author-studio-demo-scaffold-unreachable-residue.md](DIA-260831-z5a6-author-studio-demo-scaffold-unreachable-residue.md) |
+| DIA-260901-e4nk | Verify 23 committed ticket closures (post-commit verification sweep) | dev-infra | Medium | OPEN | [DIA-260901-e4nk-verify-23-committed-ticket-closures-post-commit-verification-sweep.md](DIA-260901-e4nk-verify-23-committed-ticket-closures-post-commit-verification-sweep.md) |
 | DIA-260901-r0hx | Replace QN3.7 Plus with QN3.8 Flash in all presets | presets | Medium | CLOSED | [DIA-260901-r0hx-replace-qn3-7-plus-with-qn3-8-flash-in-all-presets.md](DIA-260901-r0hx-replace-qn3-7-plus-with-qn3-8-flash-in-all-presets.md) |
 | DIA-260901-s4ij | Replace hy3 with Deepseek v4 flash in all presets | scripts | Medium | CLOSED | [DIA-260901-s4ij-replace-hy3-with-deepseek-v4-flash-in-all-presets.md](DIA-260901-s4ij-replace-hy3-with-deepseek-v4-flash-in-all-presets.md) |
 | DIA-260901-vior | Commit local changes - resolve pre-existing dirty git tree and DIA-260901-s4ij config changes | scripts | Medium | CLOSED | [DIA-260901-vior-commit-local-changes-resolve-pre-existing-dirty-git-tree-and-dia-260901-s4ij-config-changes.md](DIA-260901-vior-commit-local-changes-resolve-pre-existing-dirty-git-tree-and-dia-260901-s4ij-config-changes.md) |
@@ -296,7 +297,7 @@
 | Blocker  | 9     |
 | Critical | 15    |
 | Major    | 71    |
-| Medium   | 143   |
+| Medium   | 144   |
 | Minor    | 1     |
 | Low      | 25    |
 | Info     | 2     |
@@ -313,7 +314,7 @@
 | FIXED       | 1     |
 | IMPLEMENTED | 2     |
 | VERIFIED    | 28    |
-| CLOSED      | 151   |
+| CLOSED      | 152   |
 | BLOCKED     | 0     |
 | DISPATCHED  | 0     |
 | RUNNING     | 0     |
