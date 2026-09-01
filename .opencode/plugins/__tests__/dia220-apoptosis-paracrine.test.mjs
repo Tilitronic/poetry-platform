@@ -28,6 +28,7 @@ import {
   readFileSync,
   readdirSync,
   rmSync,
+  writeFileSync,
 } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
@@ -193,6 +194,15 @@ function countMessages(ctx) {
   return readFileSync(messagesPath, "utf-8").trim().split("\n").filter(Boolean).length
 }
 
+function ensureOpenTicket(ctx, ticketId) {
+  const ticketsDir = join(ctx.directory, "docs/dev-infra-audit/tickets")
+  mkdirSync(ticketsDir, { recursive: true })
+  writeFileSync(
+    join(ticketsDir, `${ticketId}-open.md`),
+    `---\nid: ${ticketId}\ntitle: Test ${ticketId}\nstatus: OPEN\n---\n`
+  )
+}
+
 // ---------------------------------------------------------------------------
 // Apoptosis tests
 // ---------------------------------------------------------------------------
@@ -201,6 +211,7 @@ describe("DIA-220 Apoptosis (dual-key shutdown)", () => {
   test("circuit.open + session.error triggers apoptosis: worktree removed + handoff written", async () => {
     const { hooks, ctx } = await makeHarness()
     const sessionID = "ses_apop_test_1"
+    ensureOpenTicket(ctx, "DIA-220")
 
     // Step 1: Trip the circuit breaker (3 errors in 5 calls).
     await driveToolAfter(hooks, ctx, { tool: "bash", sessionID, output: "" })
@@ -283,6 +294,7 @@ describe("DIA-220 Apoptosis (dual-key shutdown)", () => {
   test("apoptosis attempts worktree cleanup for tracked worktrees", async () => {
     const { hooks, ctx } = await makeHarness()
     const sessionID = "ses_apop_test_3"
+    ensureOpenTicket(ctx, "DIA-220")
 
     // Create a fake worktree directory. We cannot test actual git worktree
     // removal in a temp dir (git worktree remove requires a real worktree),
@@ -354,6 +366,7 @@ describe("DIA-220 Apoptosis (dual-key shutdown)", () => {
   test("session.idle + circuit.open triggers apoptosis (idle dual-key)", async () => {
     const { hooks, ctx } = await makeHarness()
     const sessionID = "ses_apop_idle_1"
+    ensureOpenTicket(ctx, "DIA-220")
 
     // Register as a subagent so it's recognized in session.idle handling.
     await driveEvent(hooks, {
@@ -462,6 +475,7 @@ describe("DIA-220 Apoptosis (dual-key shutdown)", () => {
   test("after apoptosis, tool.execute.before throws on any tool call", async () => {
     const { hooks, ctx } = await makeHarness()
     const sessionID = "ses_apop_kill_1"
+    ensureOpenTicket(ctx, "DIA-220")
 
     // Trip the circuit breaker.
     await driveToolAfter(hooks, ctx, { tool: "bash", sessionID, output: "" })
@@ -523,6 +537,7 @@ describe("DIA-220 Apoptosis (dual-key shutdown)", () => {
 // apoptosis worktree loop is reachable.
 
 async function driveApoptosisWithTrackedWorktree(hooks, ctx, sessionID, worktreePath, trigger) {
+  ensureOpenTicket(ctx, "DIA-260826-jcte")
   // The idle path recognizes only registered subagents (see the DIA-220
   // idle dual-key test above).
   if (trigger === "idle") {

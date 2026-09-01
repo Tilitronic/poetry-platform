@@ -26,6 +26,7 @@ import {
   mkdtempSync,
   readFileSync,
   rmSync,
+  writeFileSync,
 } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
@@ -124,6 +125,15 @@ function countRows(ctx) {
   return readFileSync(registryPath, "utf-8").trim().split("\n").filter(Boolean).length
 }
 
+function ensureOpenTicket(ctx, ticketId) {
+  const ticketsDir = join(ctx.directory, "docs/dev-infra-audit/tickets")
+  mkdirSync(ticketsDir, { recursive: true })
+  writeFileSync(
+    join(ticketsDir, `${ticketId}-open.md`),
+    `---\nid: ${ticketId}\ntitle: Test ${ticketId}\nstatus: OPEN\n---\n`
+  )
+}
+
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
@@ -132,12 +142,14 @@ describe("DIA-218 Circuit Breaker", () => {
   test("starts in CLOSED state - tool errors are tracked but circuit stays closed", async () => {
     const { hooks, ctx } = await makeHarness()
     const sessionID = "ses_cb_test_1"
+    ensureOpenTicket(ctx, "DIA-218")
 
     // 2 errors (below threshold of 3) - circuit should stay CLOSED.
     await driveToolAfter(hooks, ctx, { tool: "bash", sessionID, output: "" })
     await driveToolAfter(hooks, ctx, { tool: "bash", sessionID, output: "" })
 
-    // Dispatching should still work (no block).
+    // Dispatching should still work (no block) - gate passes with OPEN ticket,
+    // circuit stays CLOSED.
     const error = await driveToolBefore(hooks, ctx, {
       tool: "task",
       sessionID,
@@ -205,6 +217,7 @@ describe("DIA-218 Circuit Breaker", () => {
     // is correct -- a fresh session with the same pattern stays closed.
     const { hooks: hooks2, ctx: ctx2 } = await makeHarness()
     const sessionID2 = "ses_cb_test_3c"
+    ensureOpenTicket(ctx2, "DIA-218")
     await driveToolAfter(hooks2, ctx2, { tool: "bash", sessionID: sessionID2, output: "" })
     await driveToolAfter(hooks2, ctx2, { tool: "bash", sessionID: sessionID2, output: "" })
     await driveToolAfter(hooks2, ctx2, { tool: "bash", sessionID: sessionID2, output: "ok" })
@@ -241,13 +254,14 @@ describe("DIA-218 Circuit Breaker", () => {
     const { hooks, ctx } = await makeHarness()
     const sessionA = "ses_cb_session_a"
     const sessionB = "ses_cb_session_b"
+    ensureOpenTicket(ctx, "DIA-218")
 
     // Trip circuit for session A only.
     await driveToolAfter(hooks, ctx, { tool: "bash", sessionID: sessionA, output: "" })
     await driveToolAfter(hooks, ctx, { tool: "bash", sessionID: sessionA, output: "" })
     await driveToolAfter(hooks, ctx, { tool: "bash", sessionID: sessionA, output: "" })
 
-    // Session B should still be CLOSED.
+    // Session B should still be CLOSED (gate passes with OPEN ticket).
     const error = await driveToolBefore(hooks, ctx, {
       tool: "task",
       sessionID: sessionB,
@@ -259,6 +273,7 @@ describe("DIA-218 Circuit Breaker", () => {
   test("sliding window keeps only last 5 calls", async () => {
     const { hooks, ctx } = await makeHarness()
     const sessionID = "ses_cb_test_5"
+    ensureOpenTicket(ctx, "DIA-218")
 
     // 2 errors + 1 success (3 calls) - circuit should be CLOSED.
     await driveToolAfter(hooks, ctx, { tool: "bash", sessionID, output: "" })
@@ -270,7 +285,7 @@ describe("DIA-218 Circuit Breaker", () => {
     await driveToolAfter(hooks, ctx, { tool: "bash", sessionID, output: "ok" })
 
     // Now add 2 more errors (7 calls total, window = last 5: ok, ok, ok, err, err = 2 errors).
-    // Circuit should stay CLOSED.
+    // Circuit should stay CLOSED (gate passes with OPEN ticket).
     await driveToolAfter(hooks, ctx, { tool: "bash", sessionID, output: "" })
     await driveToolAfter(hooks, ctx, { tool: "bash", sessionID, output: "" })
 
@@ -286,13 +301,14 @@ describe("DIA-218 Circuit Breaker", () => {
     const { hooks, ctx } = await makeHarness()
     const sessionID = "ses_cb_test_recovery"
     const now = Date.now()
+    ensureOpenTicket(ctx, "DIA-218")
 
     // Trip the circuit with 3 errors.
     await driveToolAfter(hooks, ctx, { tool: "bash", sessionID, output: "" })
     await driveToolAfter(hooks, ctx, { tool: "bash", sessionID, output: "" })
     await driveToolAfter(hooks, ctx, { tool: "bash", sessionID, output: "" })
 
-    // Circuit is OPEN -- dispatch blocked.
+    // Circuit is OPEN -- dispatch blocked (gate would also block but circuit wins).
     const err1 = await driveToolBefore(hooks, ctx, {
       tool: "task",
       sessionID,
@@ -312,7 +328,7 @@ describe("DIA-218 Circuit Breaker", () => {
       sessionID,
       args: { subagent_type: "coder", prompt: "test after cooldown", ticket_id: "DIA-218" },
     })
-    // tryPass returns false in HALF_OPEN (allows the test call).
+    // tryPass returns false in HALF_OPEN (allows the test call) - gate passes with OPEN ticket.
     expect(err2).toBeNull()
 
     // Record a success for the test call.
@@ -334,6 +350,7 @@ describe("DIA-218 Circuit Breaker", () => {
     const { hooks, ctx } = await makeHarness()
     const sessionID = "ses_cb_test_halfopen_fail"
     const now = Date.now()
+    ensureOpenTicket(ctx, "DIA-218")
 
     // Trip the circuit.
     await driveToolAfter(hooks, ctx, { tool: "bash", sessionID, output: "" })
@@ -344,7 +361,7 @@ describe("DIA-218 Circuit Breaker", () => {
     const realDateNow = Date.now
     Date.now = () => now + 300_000 + 1
 
-    // Allow the test call (HALF_OPEN).
+    // Allow the test call (HALF_OPEN) - gate passes with OPEN ticket.
     const err1 = await driveToolBefore(hooks, ctx, {
       tool: "task",
       sessionID,
@@ -372,6 +389,7 @@ describe("DIA-218 Circuit Breaker", () => {
     const { hooks, ctx } = await makeHarness()
     const sessionID = "ses_cb_test_halfopen_parallel"
     const now = Date.now()
+    ensureOpenTicket(ctx, "DIA-218")
 
     // Trip the circuit.
     await driveToolAfter(hooks, ctx, { tool: "bash", sessionID, output: "" })
@@ -382,7 +400,7 @@ describe("DIA-218 Circuit Breaker", () => {
     const realDateNow = Date.now
     Date.now = () => now + 300_000 + 1
 
-    // First dispatch: HALF_OPEN, test call allowed.
+    // First dispatch: HALF_OPEN, test call allowed (gate passes with OPEN ticket).
     const err1 = await driveToolBefore(hooks, ctx, {
       tool: "task",
       sessionID,

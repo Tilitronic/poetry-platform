@@ -86,8 +86,11 @@ async function makeHarness() {
 }
 
 async function runLogDecision(hooks, args) {
+  // DIA-260827-y9n9: slot identity now comes from trusted context.sessionID,
+  // falling back to lane_id. Use lane_id so each lane's slot is distinct and
+  // matches the test's slotPath expectations (ses_c1, ses_c1_diff, etc.).
   return hooks.tool.log_decision.execute(args, {
-    sessionID: "ses_harness",
+    sessionID: args.lane_id ?? "ses_harness",
   })
 }
 
