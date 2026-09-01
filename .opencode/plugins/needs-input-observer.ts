@@ -606,6 +606,41 @@ const needsInputObserver: Plugin = async (ctx) => {
     }
   }
 
+  // DIA-260822-unsn: ticker expiry - purge invalid and stale entries during
+  // seed/persist. Single shared helper so seed and persist agree. Invalid
+  // since (unparseable) always purged; waiting TTL 24h for question/permission
+  // and 4h for idle; errors TTL 48h. Future timestamps kept (age < 0).
+  const WAITING_TTL_MS: Record<WaitingReason, number> = {
+    question: 24 * 3600 * 1000,
+    permission: 24 * 3600 * 1000,
+    idle: 4 * 3600 * 1000,
+  }
+  const ERROR_TTL_MS = 48 * 3600 * 1000
+
+  function isExpired(
+    entry: { since: string; reason?: WaitingReason },
+    nowMs: number
+  ): boolean {
+    const ts = Date.parse(entry.since)
+    if (!Number.isFinite(ts)) return true
+    const age = nowMs - ts
+    if (age < 0) return false
+    if (entry.reason !== undefined) {
+      const ttl = WAITING_TTL_MS[entry.reason] ?? WAITING_TTL_MS.question
+      return age > ttl
+    }
+    return age > ERROR_TTL_MS
+  }
+
+  function purgeExpired(nowMs = Date.now()): void {
+    for (const [id, e] of [...waiting.entries()]) {
+      if (isExpired(e, nowMs)) waiting.delete(id)
+    }
+    for (const [id, e] of [...errors.entries()]) {
+      if (isExpired(e, nowMs)) errors.delete(id)
+    }
+  }
+
   /**
    * Persist the full ticker state. Fail-soft: never crash the plugin - on
    * write error console.warn (stderr only) and continue. A stale ticker is
@@ -613,6 +648,7 @@ const needsInputObserver: Plugin = async (ctx) => {
    */
   function persist(): void {
     try {
+      purgeExpired(Date.now())
       mkdirSync(tickerDir, { recursive: true })
       const doc: TickerDoc = {
         version: 1,
@@ -697,6 +733,10 @@ const needsInputObserver: Plugin = async (ctx) => {
         )
         permRecords.push(record)
       }
+      // DIA-260822-unsn: purge invalid/stale waiting/error entries so a stale
+      // ticker does not survive a restart or a persist round-trip. Shared helper
+      // with persist() (single purge path).
+      purgeExpired(Date.now())
       // DIA-260821-5r03 guard 4: re-arm watchdog timers at most once per
       // process. The globalThis-backed pendingPermissionTimers Map (guard 1)
       // already dedupes by key, but we also gate the re-arm on the ticker-boot
