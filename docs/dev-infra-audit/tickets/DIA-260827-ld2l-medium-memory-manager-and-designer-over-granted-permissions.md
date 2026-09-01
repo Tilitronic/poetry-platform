@@ -38,12 +38,11 @@ evidence:
 
 ## Description
 
-<To be filled at creation time: what is wrong / what to build, with exact
-files and line references where known.>
+Reaudit (DIA-260827-wfcx, 2026-08-31; W-M2) confirms designer has no permission block (opencode.jsonc:503-506); memory-manager restricts only edit (:518-528) and inherits global capabilities. Impact: artifact boundaries are prompt-only and shell can bypass edit scoping. Correct fix: explicit deny-first permission blocks for both roles.
 
 ## Verification
 
-<Acceptance criteria as checkboxes - how to prove the ticket is done.>
+designer and memory-manager have explicit deny-first blocks; neither can write outside its ownership.
 
 ## Fix
 

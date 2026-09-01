@@ -5,7 +5,7 @@
 id: DIA-260827-txq2
 title: "Inherited obsolete and duplicate plugins from base OMO config"
 area: opencode-config
-severity: Major
+severity: High
 status: OPEN
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: DIA-260827-wfcx
@@ -38,16 +38,15 @@ evidence:
 
 ## Description
 
-<To be filled at creation time: what is wrong / what to build, with exact
-files and line references where known.>
+Reaudit (DIA-260827-wfcx, 2026-08-31; S-H1) confirms /home/mimic/.config/opencode/opencode.jsonc:4 enables opencode-snip@latest, @tarquinen/opencode-dcp@latest, and a local Ponytail; the project separately enables Ponytail at .opencode/opencode.jsonc:713-718; opencode debug shows 'snip binary not found'; stale DCP config remains in ~/.config/opencode/dcp.jsonc. Impact: a DCP thought removed is active, Ponytail hooks/skills duplicate, and 'latest' creates supply-chain drift. Correct fix: remove global snip/DCP/local Ponytail and the stale DCP config; keep one project-pinned Ponytail.
 
 ## Verification
 
-<Acceptance criteria as checkboxes - how to prove the ticket is done.>
+opencode debug shows no global snip/DCP/local Ponytail loaded; only the project-pinned Ponytail is active; ~/.config/opencode/dcp.jsonc removed.
 
 ## Fix
 
-> To be filled at fix time.
+Remove the global snip, DCP, and local Ponytail plugins and the stale dcp.jsonc from the global user config; keep a single project-pinned Ponytail. Resolve the merged runtime to the intended project preset.
 
 ## Re-verify
 

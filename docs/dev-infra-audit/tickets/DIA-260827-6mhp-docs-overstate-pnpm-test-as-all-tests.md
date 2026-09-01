@@ -38,13 +38,15 @@ evidence: []
 
 docs/onboarding.md:43-50 and 290-299 call pnpm test "all tests". It runs only four workspace test tasks, omitting shell/config/Python/plugin/embedded OMO suites.
 
+Reaudit (DIA-260827-wfcx, 2026-08-31) confirms: docs/onboarding.md:43-50,290-299 calls pnpm test 'all tests'. Impact: a developer sees exit 0 while OMO/plugins are red and Python does not run. Correct fix: rename the command 'workspace JS tests' and document one canonical aggregate gate.
+
 ## Verification
 
 Rename to "workspace JS tests"; document one canonical all-suite command.
 
 ## Fix
 
-> To be filled at fix time.
+Rename the command to 'workspace JS tests' and document one canonical aggregate gate that spans workspace JS, OMO, plugins, shell/config, and Python.
 
 ## Re-verify
 

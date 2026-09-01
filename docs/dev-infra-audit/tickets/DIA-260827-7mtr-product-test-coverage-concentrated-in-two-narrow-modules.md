@@ -38,13 +38,15 @@ evidence: []
 
 apps/api-server/tests/test_auth.py:4-9 and packages/analytics-pipeline/tests/test_smoke.py:4-11 test scaffold imports only; apps/author-studio/src/stores/example-store.test.ts:1-3 warns it is template coverage. Editor tests omit CommandBus scheduling/error (command-bus.ts:16-40), tokenizer Unicode (tokenizer.ts:102-117), editor/view integration (OpusEditorView.ts:56-108), decoration dispatch (opusDecorator.ts:12-45), state duplicate/index (PoetryState.ts:16-31). Visualizer packages have DOM/WebGL lifecycle code but no test scripts (visualizer-2d/package.json:16-19, visualizer-3d/package.json:8-11).
 
+Reaudit (DIA-260827-wfcx, 2026-08-31) confirms: apps/author-studio/src/stores/example-store.test.ts:1-3, apps/api-server/tests/test_auth.py:4-24, packages/analytics-pipeline/tests/test_smoke.py:4-27; visualizer packages have no test scripts. Impact: scheduling/error recovery, Unicode tokenizer behavior, editor lifecycle, mounted UI, and visualizer teardown have no signal. Correct fix: add behavior tests on real seams rather than a blanket line-coverage target.
+
 ## Verification
 
 Tests added for command ordering, tokenizer Unicode/property, view lifecycle, visualizer destroy/unmount, and one mounted author-studio integration test.
 
 ## Fix
 
-> To be filled at fix time.
+Add behavior tests on real seams (command ordering, tokenizer Unicode/property, view lifecycle, visualizer destroy/unmount, one mounted author-studio integration test); avoid a blanket line-coverage target.
 
 ## Re-verify
 

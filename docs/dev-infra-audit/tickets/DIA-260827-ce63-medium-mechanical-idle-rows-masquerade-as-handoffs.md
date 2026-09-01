@@ -38,12 +38,11 @@ evidence:
 
 ## Description
 
-<To be filled at creation time: what is wrong / what to build, with exact
-files and line references where known.>
+Reaudit (DIA-260827-wfcx, 2026-08-31; W-M5) confirms delegation-observer.ts:4012-4030 writes event_type: handoff with no prognosis/slot; scripts/session-log:67-79 shows it as a handoff. Impact: recovery consumers cannot tell batch completion from a terminal prognosis. Correct fix: a separate delegation_batch_complete; reserve handoff for slot-producing terminal events.
 
 ## Verification
 
-<Acceptance criteria as checkboxes - how to prove the ticket is done.>
+Idle rows emit delegation_batch_complete, not handoff; handoff rows always carry a slot/prognosis.
 
 ## Fix
 

@@ -5,7 +5,7 @@
 id: DIA-260827-gt8l
 title: "No enforced CI and pre-push gate fails open"
 area: config
-severity: Major
+severity: High
 status: OPEN
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: DIA-260827-wfcx
@@ -38,13 +38,15 @@ evidence: []
 
 .github/workflows is absent. scripts/verify-pre-push.sh:79-81 exits 0 when the dev container is unavailable. Impact: a contributor can push without any tests by stopping the container; remote branches have no independent verification.
 
+Reaudit (DIA-260827-wfcx, 2026-08-31) confirms: .github/workflows/ is absent and scripts/verify-pre-push.sh:79-81 returns success when the dev container is down. Impact: stopping Docker lets a push pass with no workspace, OMO, plugin, or Python gate; there is no remote replacement. Correct fix: add a required CI covering workspace TS, OMO, plugins, shell/config, and Python; keep local fail-open only as a UX compromise.
+
 ## Verification
 
 CI added for root JS, embedded OMO, plugin, shell/config, and Python suites; local fail-open retained only as developer convenience, never the sole merge gate.
 
 ## Fix
 
-> To be filled at fix time.
+Add a required CI covering workspace TS, embedded OMO, plugins, shell/config, and Python suites; retain local fail-open only as a developer convenience, never the sole merge gate.
 
 ## Re-verify
 

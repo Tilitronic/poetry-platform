@@ -5,7 +5,7 @@
 id: DIA-260827-bry9
 title: "OMO version and model-routing drift from baseline"
 area: opencode-config
-severity: Major
+severity: High
 status: OPEN
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: DIA-260827-wfcx
@@ -38,16 +38,15 @@ evidence:
 
 ## Description
 
-<To be filled at creation time: what is wrong / what to build, with exact
-files and line references where known.>
+Reaudit (DIA-260827-wfcx, 2026-08-31; S-H3) confirms the global config sets a root model and overlapping agents; runtime resolves orchestrator/reviewer to the global DeepSeek V4 Pro instead of promo Hy3/Muse (oh-my-opencode-slim.jsonc:1154-1160,1230-1235); legacy architect/tester/writer are also present. Impact: the verified cost/quota/model-diversity and role contracts are not the actual runtime. Correct fix: remove global profiles from the project runtime or drop overlapping agent/model blocks; add a mandatory resolved-config test.
 
 ## Verification
 
-<Acceptance criteria as checkboxes - how to prove the ticket is done.>
+opencode agent list / opencode debug shows orchestrator and reviewer resolve to promo Hy3/Muse, not the global DeepSeek V4 Pro; legacy architect/tester/writer absent.
 
 ## Fix
 
-> To be filled at fix time.
+Remove the global root model and overlapping agent/model blocks from the project runtime, or eliminate overlapping definitions; add a resolved-config test that asserts the active preset's agents/models.
 
 ## Re-verify
 

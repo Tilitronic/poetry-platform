@@ -38,13 +38,15 @@ evidence: []
 
 P1: There is no runtime config test. The merge gate does not catch preset mismatch, plugin duplicates, or version drift before launch. Action: add a make test-runtime-config target that validates the effective runtime config in a clean HOME (fresh OPENCODE_CONFIG / empty config dir), so preset mismatch, duplicate plugin registration, and plugin version drift are caught before launch. This complements the existing make test-config (static validation) with a runtime/clean-HOME check.
 
+Reaudit (DIA-260827-wfcx, 2026-08-31; W-M7) confirms the target from openspec/changes/runtime-config-test/tasks.md:81-95 is still unimplemented; Makefile:194-220 lacks it and make test-runtime-config exits 2. Impact: static tests cannot see the global merge, plugin duplication, model shadowing, or built-in agents. Correct fix: complete the T1/T2 slices with clean-home and real-home fixtures and run them in container CI.
+
 ## Verification
 
-<Acceptance criteria as checkboxes - how to prove the ticket is done.>
+make test-runtime-config exits 0 against a clean HOME and a real HOME; it reports preset mismatch, duplicate plugin registration, and version drift.
 
 ## Fix
 
-> To be filled at fix time.
+Complete the T1/T2 slices of the runtime-config-test change; add a make test-runtime-config target that validates the effective runtime config in a clean HOME and a real HOME, catching preset mismatch, duplicate plugin registration, and version drift before launch. Wire into container CI.
 
 ## Re-verify
 

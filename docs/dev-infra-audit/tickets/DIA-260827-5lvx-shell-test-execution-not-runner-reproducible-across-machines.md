@@ -38,13 +38,15 @@ evidence: []
 
 scripts/**tests**/bats-wrapper.sh:81-90 warns and continues on vendored runner mismatch. Current tree uses Bats 1.11.0 while the wrapper pins 1.14.0. Impact: different machines run the same 587 tests under different runner semantics.
 
+Reaudit (DIA-260827-wfcx, 2026-08-31) confirms: scripts/**tests**/bats-wrapper.sh:81-90,138-153; vendored 1.11.0 vs pinned 1.14.0, mismatch only warns, and an arbitrary system bats takes priority without a version check. Impact: 585 green tests can have different semantics on two machines. Correct fix: enforce the exact version or always use the immutable vendored/container runner.
+
 ## Verification
 
 Fail with a precise bootstrap command, or execute an immutable vendored/containerized runner version.
 
 ## Fix
 
-> To be filled at fix time.
+Enforce the exact Bats version (or always use the immutable vendored/container runner); fail when the system bats does not match the pin.
 
 ## Re-verify
 

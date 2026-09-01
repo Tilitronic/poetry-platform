@@ -5,7 +5,7 @@
 id: DIA-260827-4aqb
 title: "Agent routing bypasses tdd-craftsman RED-GREEN workflow"
 area: opencode-config
-severity: Major
+severity: High
 status: OPEN
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: DIA-260827-wfcx
@@ -38,16 +38,15 @@ evidence:
 
 ## Description
 
-<To be filled at creation time: what is wrong / what to build, with exact
-files and line references where known.>
+Reaudit (DIA-260827-wfcx, 2026-08-31; S-H2) confirms .opencode/opencode.jsonc:760-764 directly runs a single coder, and the template performs both RED and GREEN; AGENTS.md and the promo prompt require different coder instances. Impact: the test author implements against its own tests and bypasses the DIA-175 independence gate. Correct fix: command owner is the orchestrator; separate RED and GREEN dispatches under a campaign ticket.
 
 ## Verification
 
-<Acceptance criteria as checkboxes - how to prove the ticket is done.>
+A /tdd-cycle dispatch yields two distinct coder instances (RED then GREEN) with separate session ids; no single coder runs both phases.
 
 ## Fix
 
-> To be filled at fix time.
+Make the command owner the orchestrator; issue separate RED and GREEN dispatches with a campaign ticket so different coder instances own test authoring and implementation (DIA-175).
 
 ## Re-verify
 

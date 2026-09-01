@@ -6,7 +6,7 @@ id: DIA-260827-uqw0
 title: "[CRITICAL] Cross-session handoff corruption via process-global parentSessionId"
 area: opencode-config
 severity: Critical
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: ""
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
@@ -36,8 +36,7 @@ evidence: []
 
 ## Description
 
-<To be filled at creation time: what is wrong / what to build, with exact
-files and line references where known.>
+DUPLICATE of DIA-260827-y9n9 (same root cause: cross-session handoff corruption via process-global parentSessionId). Consolidated into y9n9, the canonical ticket referenced by the reaudit (DIA-260827-wfcx, W-C1). Closed 2026-08-31 to avoid split effort; all work tracks in DIA-260827-y9n9.
 
 ## Verification
 

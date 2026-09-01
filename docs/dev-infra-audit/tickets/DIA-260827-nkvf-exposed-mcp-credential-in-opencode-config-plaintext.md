@@ -38,16 +38,17 @@ evidence:
 
 ## Description
 
-<To be filled at creation time: what is wrong / what to build, with exact
-files and line references where known.>
+Global user-state incident (not a committed project secret). Reaudit (DIA-260827-wfcx, 2026-08-31; S-C1) confirms /home/mimic/.config/opencode/opencode.jsonc:10 contains a non-empty literal Context7 credential, not {env:...}. Project config already uses safe env substitution at .opencode/opencode.jsonc:739-744. Impact: a config dump, backup, support log, or read access can exfiltrate the key. Correct fix: revoke/rotate immediately, replace the literal with {env:CONTEXT7_API_KEY}, and audit logs/backups.
 
 ## Verification
 
-<Acceptance criteria as checkboxes - how to prove the ticket is done.>
+grep the global config for the literal credential returns nothing; opencode debug shows the credential resolved from env; rotate the key in the provider console.
 
 ## Fix
 
-> To be filled at fix time.
+Revoke and rotate the exposed Context7 credential immediately. Replace the literal in /home/mimic/.config/opencode/opencode.jsonc:10 with {env:CONTEXT7_API_KEY}. Audit config dumps, backups, and support logs for the leaked value. Project config already uses safe env/file substitution, not plaintext.
+
+Progress 2026-08-31: user rotated the key at the provider. Remaining step is blocked on agent tooling - the global config lives outside the repo at /home/mimic/.config/opencode/opencode.jsonc and is not writable by agent tools. User must: (1) export CONTEXT7_API_KEY in the OpenCode launch environment, (2) replace the literal on line 10 with {env:CONTEXT7_API_KEY}. Re-verify: opencode debug shows the credential resolved from env and grep of the global config finds no literal key.
 
 ## Re-verify
 

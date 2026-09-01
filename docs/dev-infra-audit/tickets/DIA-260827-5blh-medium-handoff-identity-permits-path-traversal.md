@@ -38,12 +38,11 @@ evidence:
 
 ## Description
 
-<To be filled at creation time: what is wrong / what to build, with exact
-files and line references where known.>
+Reaudit (DIA-260827-wfcx, 2026-08-31; W-M4) confirms raw identity enters join() at delegation-observer.ts:1709,1729-1731,1765; caller-provided lane_id precedes trusted context at :4475-4476. Impact: ../ can overwrite session state outside handoffs/. Correct fix: only runtime session id; anchored safe-id grammar; resolved-path containment.
 
 ## Verification
 
-<Acceptance criteria as checkboxes - how to prove the ticket is done.>
+A lane_id of '../active' cannot escape the handoffs directory; resolved path containment enforced.
 
 ## Fix
 

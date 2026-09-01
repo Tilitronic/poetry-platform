@@ -5,7 +5,7 @@
 id: DIA-260827-jtvl
 title: "Reviewer and playwright-browser skill contracts broken"
 area: opencode-config
-severity: Major
+severity: High
 status: OPEN
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: DIA-260827-wfcx
@@ -38,16 +38,15 @@ evidence:
 
 ## Description
 
-<To be filled at creation time: what is wrong / what to build, with exact
-files and line references where known.>
+Reaudit (DIA-260827-wfcx, 2026-08-31; S-H7/S-H8/S-M1) confirms three broken contracts: (1) promo gives reviewer book-rag (oh-my-opencode-slim.jsonc:1237-1241) while reviewer bash is denied (opencode.jsonc:292-297) and the skill requires script/command execution (book-rag/SKILL.md:38-43,172-174) - the mandatory grounding contract is impossible. (2) teaching requires Python RAG (teaching/SKILL.md:38-47) and describes writes (:123-134) but is assigned to architector/openspec-plan/ai-specialist/ai-auditor, which deny bash/edit or allow only openspec \*. (3) playwright-browser/SKILL.md:34-36,58-72 recommends 'playwright-cli', which does not exist in the container; npx --no-install @playwright/cli fails, though the fallback 'playwright cli' works. Impact: reviewer cannot perform mandatory grounding and may fabricate it; teaching's mandatory Step 0 is impossible and its persistence contradicts lane ownership; playwright primary recipes fail on the first command. Correct fix: remove mandatory RAG or provide a dedicated read-only retrieval tool; split teaching's read-only pedagogy from persistence or grant a narrow RAG tool only to eligible roles; standardize all playwright examples on the actually provisioned CLI.
 
 ## Verification
 
-<Acceptance criteria as checkboxes - how to prove the ticket is done.>
+reviewer can perform grounding via a read-only retrieval tool without bash; teaching runs Step 0 on eligible roles only; playwright examples run on the first command in the container.
 
 ## Fix
 
-> To be filled at fix time.
+For book-rag and teaching: remove the mandatory RAG/persistence that needs bash, or provide a dedicated read-only retrieval tool and a narrow RAG tool only for roles that allow it. For playwright: standardize every example on the provisioned CLI (e.g. 'playwright cli' / 'npx playwright cli') rather than the nonexistent 'playwright-cli'.
 
 ## Re-verify
 

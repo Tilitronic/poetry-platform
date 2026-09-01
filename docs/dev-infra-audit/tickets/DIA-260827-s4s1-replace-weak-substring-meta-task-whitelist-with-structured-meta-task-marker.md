@@ -5,7 +5,7 @@
 id: DIA-260827-s4s1
 title: "Replace weak substring meta-task whitelist with structured [META-TASK] marker"
 area: dev-infra
-severity: Minor
+severity: High
 status: OPEN
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: ""
@@ -36,16 +36,15 @@ evidence: []
 
 ## Description
 
-<To be filled at creation time: what is wrong / what to build, with exact
-files and line references where known.>
+Reaudit (DIA-260827-wfcx, 2026-08-31; W-H3) confirms .opencode/plugins/delegation-observer.ts:2974-2995 matches substrings 'create ticket', 'procedural authorization', 'meta-task', etc. Impact: a normal prompt such as 'do not create ticket' or injected text bypasses DIA-217 resolution. Correct fix: keep only the exact [META-TASK] marker, validate the target lane and the allowed operation, and remove the natural-language substring matches.
 
 ## Verification
 
-<Acceptance criteria as checkboxes - how to prove the ticket is done.>
+Unit test: a prompt containing 'do not create ticket' does NOT bypass the ticket gate; only an exact [META-TASK] marker with a valid lane/operation does.
 
 ## Fix
 
-> To be filled at fix time.
+Replace the substring whitelist with a single exact [META-TASK] marker check that validates target lane and allowed operation; remove natural-language substrings (DIA-217 meta-task carve-out uses the structural marker, not substrings).
 
 ## Re-verify
 

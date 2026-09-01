@@ -38,13 +38,15 @@ evidence: []
 
 71 query-script tests in .opencode/scripts/test_query_web.py are outside all gates; Python gates cover only two product packages (Makefile:151-155, verify-python.sh:37-38). Weak assertions: test_query_web.py:495-524 accepts either exit 0 or 1 for three CLI cases; 501-505 contradict the test name; 464-465 accept mutually different encoding behavior. Impact: query CLI regressions and known response-shape bugs do not block any gate.
 
+Reaudit (DIA-260827-wfcx, 2026-08-31) confirms: .opencode/scripts/test_query_web.py:464-465,495-524 accept either exit 0 or 1 and mutually different payload encodings; direct pytest fails for a missing module. Impact: exit-code, escaping, and request regressions pass unnoticed. Correct fix: a dedicated pytest environment with a mocked HTTP/subprocess seam, exact exits and payloads, wired into CI.
+
 ## Verification
 
 A dedicated pytest environment/target created; the subprocess HTTP seam mocked; exact exit codes and payloads required; wired into pre-push/CI.
 
 ## Fix
 
-> To be filled at fix time.
+Stand up a dedicated pytest environment/target, mock the subprocess/HTTP seam, require exact exit codes and payloads, and wire it into pre-push/CI.
 
 ## Re-verify
 

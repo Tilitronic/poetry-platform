@@ -38,12 +38,11 @@ evidence:
 
 ## Description
 
-<To be filled at creation time: what is wrong / what to build, with exact
-files and line references where known.>
+Reaudit (DIA-260827-wfcx, 2026-08-31; W-M1) confirms the active promo preset (oh-my-opencode-slim.jsonc:3) routes analyzer-escalated to DeepSeek (:1306-1314), while AGENTS.md and knowledge/model-registry.yaml:167-171 name GPT-5.6 Luna; the reviewer preset and registry also diverge. Impact: quota/cost/capability policy does not match runtime. Correct fix: one generated routing source plus an effective-runtime validation.
 
 ## Verification
 
-<Acceptance criteria as checkboxes - how to prove the ticket is done.>
+Resolved runtime routing matches a single generated source; a validation gate fails on divergence.
 
 ## Fix
 

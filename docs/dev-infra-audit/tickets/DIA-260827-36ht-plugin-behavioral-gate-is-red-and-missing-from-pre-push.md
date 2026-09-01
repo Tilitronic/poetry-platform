@@ -5,7 +5,7 @@
 id: DIA-260827-36ht
 title: "Plugin behavioral gate is red and missing from pre-push"
 area: plugins
-severity: Major
+severity: High
 status: OPEN
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: DIA-260827-wfcx
@@ -38,13 +38,15 @@ evidence: []
 
 needs-input-observer.dia189.test.mjs:412-503 has six desktop-toast tests requiring a captured PowerShell spawn; production now skips that channel on pure Linux at needs-input-observer.ts:736-740, but the old harness never opens the WSL/Windows gate. Direct plugin suite exits 1 (145 pass, 6 fail, 1 skip). Plugin tests run only via test-harness at Makefile:298-300; pre-push runs config/Python/shell at scripts/verify-pre-push.sh:97-103, not test-harness. Impact: make test-infra is predictably red on pure Linux and ordinary pushes skip the plugin state-machine suite.
 
+Reaudit (DIA-260827-wfcx, 2026-08-31) confirms: direct plugin run is 150 pass / 6 fail / 1 skip; failures at .opencode/plugins/**tests**/needs-input-observer.dia189.test.mjs:422-505; scripts/verify-pre-push.sh:97-103 does not run the full fast plugin suite. Impact: lifecycle, notification, and state-machine regressions do not block push, and test-infra is red on Linux. Correct fix: inject Windows/WSL availability instead of assuming powershell.exe; remove the skip; add a fast plugin target to pre-push/CI.
+
 ## Verification
 
 Desktop-toast tests get the injected WSL marker used by needs-input-observer.platform-gate.test.mjs:89-105; a fast plugin-bun target added to pre-push/test-config; the skipped cleanup test at empty-result-detection.test.mjs:555 resolved; plugin suite green on Linux.
 
 ## Fix
 
-> To be filled at fix time.
+Inject the Windows/WSL availability flag into the desktop-toast tests instead of assuming powershell.exe exists; remove the intentional skip; add a fast plugin-bun target to pre-push/CI so the lifecycle/notification/state-machine suite runs on Linux.
 
 ## Re-verify
 

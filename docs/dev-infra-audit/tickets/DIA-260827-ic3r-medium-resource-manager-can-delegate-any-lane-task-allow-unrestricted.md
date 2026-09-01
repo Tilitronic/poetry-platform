@@ -38,12 +38,11 @@ evidence:
 
 ## Description
 
-<To be filled at creation time: what is wrong / what to build, with exact
-files and line references where known.>
+Reaudit (DIA-260827-wfcx, 2026-08-31; W-M2) confirms resource-manager has unrestricted task: allow (opencode.jsonc:586-602). Impact: a narrow role can delegate an arbitrary writer or write outside ownership via shell. Correct fix: explicit deny-first blocks; resource-manager task map limited to researcher/conspecter.
 
 ## Verification
 
-<Acceptance criteria as checkboxes - how to prove the ticket is done.>
+resource-manager cannot delegate lanes other than researcher/conspecter; deny-first blocks present.
 
 ## Fix
 

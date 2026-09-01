@@ -38,12 +38,11 @@ evidence:
 
 ## Description
 
-<To be filled at creation time: what is wrong / what to build, with exact
-files and line references where known.>
+Reaudit (DIA-260827-wfcx, 2026-08-31; W-C1) confirms the root cause. Evidence: .opencode/plugins/delegation-observer.ts:1131,3591-3593,4475-4476 stores the first task-calling session in a process-global parentSessionId, and the terminal handoff picks it ahead of context.sessionID. The test .opencode/plugins/**tests**/parallel-handoff.test.mjs:596-625 actually pins this unsafe precedence. Impact: session A calls task first; session B later writes the terminal handoff and overwrites A's slot and pointer with the wrong identity. Duplicate ticket DIA-260827-uqw0 tracks the same root cause; consider closing one to avoid split effort.
 
 ## Verification
 
-<Acceptance criteria as checkboxes - how to prove the ticket is done.>
+Add a parallel-session regression where B's terminal handoff writes B's slot/identity; assert context.sessionID is the sole source of handoff identity; grep that parentSessionId no longer drives slot selection.
 
 ## Fix
 

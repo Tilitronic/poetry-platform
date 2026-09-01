@@ -5,7 +5,7 @@
 id: DIA-260827-mgfv
 title: "[HIGH] Universal ticket gate allows nonexistent and closed tickets"
 area: opencode-config
-severity: Major
+severity: High
 status: OPEN
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: ""
@@ -38,12 +38,11 @@ evidence:
 
 ## Description
 
-<To be filled at creation time: what is wrong / what to build, with exact
-files and line references where known.>
+Reaudit (DIA-260827-wfcx, 2026-08-31; W-H1) confirms the gate at .opencode/plugins/delegation-observer.ts:3074-3109 checks only filename existence; a not-found id emits a warning and proceeds, and status is never read. Impact: a fabricated DIA id or a CLOSED ticket becomes formal 'authorization' for engineering work. Correct fix: exact lookup through a single ticket scanner, require OPEN status, fail closed on scan failure or not found.
 
 ## Verification
 
-<Acceptance criteria as checkboxes - how to prove the ticket is done.>
+Unit test: a fabricated id and a CLOSED ticket both fail closed; a valid OPEN ticket passes; scan failure fails closed.
 
 ## Fix
 

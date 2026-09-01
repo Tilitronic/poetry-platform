@@ -5,7 +5,7 @@
 id: DIA-260827-wvev
 title: "dev container healthcheck unhealthy: gosu not in dev PATH, use opencode --version directly"
 area: dev-infra
-severity: Minor
+severity: Medium
 status: OPEN
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: ""
@@ -36,16 +36,15 @@ evidence: []
 
 ## Description
 
-<To be filled at creation time: what is wrong / what to build, with exact
-files and line references where known.>
+Reaudit (DIA-260827-wfcx, 2026-08-31; W-M8) confirms Dockerfile.dev:349-350 runs 'gosu dev opencode --version'; the running container has Config.User=1000:1000, so gosu fails 'operation not permitted'; direct opencode --version returns 1.18.18. Real root cause: a repeated privilege drop (gosu) under an already-unprivileged user 1000:1000, not just a PATH issue. Impact: automation and developers read a healthy OpenCode as a broken stack. Correct fix: run the healthcheck directly as the configured user; after rebuild verify on Fedora Podman and WSL Docker.
 
 ## Verification
 
-<Acceptance criteria as checkboxes - how to prove the ticket is done.>
+docker inspect shows Config.User 1000:1000; container health becomes healthy; direct 'opencode --version' returns exit 0.
 
 ## Fix
 
-> To be filled at fix time.
+Run the healthcheck as the already-unprivileged configured user (drop the redundant gosu dev wrapper); after rebuild verify on Fedora Podman and WSL Docker.
 
 ## Re-verify
 

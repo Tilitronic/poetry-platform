@@ -38,13 +38,15 @@ evidence: []
 
 Makefile:141-144 runs smoke, Python, then docker compose down as the final recipe command. If smoke or Python fails after the leave-up path, Make aborts before teardown, leaving changed service state and increasing cross-run flakiness.
 
+Reaudit (DIA-260827-wfcx, 2026-08-31) confirms: Makefile:141-144 runs a sequential recipe without an enclosing trap; smoke can leave the stack up. Impact: a failure changes the state of later tests. Correct fix: one-shell recipe with an EXIT trap that preserves the original exit code.
+
 ## Verification
 
 Bring-up/test/teardown wrapped in one shell with an EXIT trap; original failure status preserved.
 
 ## Fix
 
-> To be filled at fix time.
+Wrap bring-up/test/teardown in one shell with an EXIT trap that preserves the original failure exit code so the stack is always torn down.
 
 ## Re-verify
 

@@ -5,7 +5,7 @@
 id: DIA-260827-4q3h
 title: "[HIGH] Reviewer cannot acquire its required diff (bash denied)"
 area: opencode-config
-severity: Major
+severity: High
 status: OPEN
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: ""
@@ -38,12 +38,11 @@ evidence:
 
 ## Description
 
-<To be filled at creation time: what is wrong / what to build, with exact
-files and line references where known.>
+Reaudit (DIA-260827-wfcx, 2026-08-31; W-H4) confirms opencode.jsonc:292-298 forbids reviewer bash, while the prompt (oh-my-opencode-slim.jsonc:1634-1635) requires git diff, git log, and ref resolution. Impact: reviewer may inspect current files instead of the fixed-point delta and miss a regression. Correct fix: a narrow read-only git-diff/log tool, or a mandatory immutable diff artifact in the dispatch.
 
 ## Verification
 
-<Acceptance criteria as checkboxes - how to prove the ticket is done.>
+Reviewer obtains the exact fixed-point diff without bash; assertion that diff matches the dispatched ref.
 
 ## Fix
 

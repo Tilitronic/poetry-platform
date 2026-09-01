@@ -5,7 +5,7 @@
 id: DIA-260827-ft3z
 title: "[HIGH] Shell permissions bypass write scopes via curl/wget redirection"
 area: opencode-config
-severity: Major
+severity: High
 status: OPEN
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: ""
@@ -38,12 +38,11 @@ evidence:
 
 ## Description
 
-<To be filled at creation time: what is wrong / what to build, with exact
-files and line references where known.>
+Reaudit (DIA-260827-wfcx, 2026-08-31; W-H2) confirms researcher/resource-manager can curl -o, wget -O, and redirect (opencode.jsonc:493-500,595-601); coder has node _, bun _, python3 _ (:337-342); the section-2.5 edit gate does not intercept bash (delegation-observer.ts:3114-3124). Impact: a lane with edit: knowledge/_ can write anywhere; coder can change .opencode/ and bypass the AI-specialist gate. Correct fix: path-validating fetch/write adapters, a protected-path shell gate, and removal of broad interpreters where unneeded.
 
 ## Verification
 
-<Acceptance criteria as checkboxes - how to prove the ticket is done.>
+Verify a narrow edit-scoped lane cannot write outside its directory via curl/wget/redirection; coder loses broad interpreters unless required.
 
 ## Fix
 

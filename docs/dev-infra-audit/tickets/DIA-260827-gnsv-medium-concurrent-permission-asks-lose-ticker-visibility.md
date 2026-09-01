@@ -38,12 +38,11 @@ evidence:
 
 ## Description
 
-<To be filled at creation time: what is wrong / what to build, with exact
-files and line references where known.>
+Reaudit (DIA-260827-wfcx, 2026-08-31; W-M3) confirms a waiting entry keyed by session (needs-input-observer.ts:282); any single reply calls clear(sessionID) (:1307-1321); the renderer does not show persisted permissions (scripts/ticker-render.sh:41-49). Impact: a second unclosed permission disappears from the ticker/compaction view. Correct fix: key by request id, or clear the session only when the pending set is empty; render pending permissions.
 
 ## Verification
 
-<Acceptance criteria as checkboxes - how to prove the ticket is done.>
+Two concurrent permission asks both remain visible until each is resolved; pending permissions render in the ticker.
 
 ## Fix
 
