@@ -6,7 +6,7 @@ id: DIA-260822-oldn
 title: "Plugin reload boot/sweep dedup - 30s persisted dedup and disposal-safe single ticker"
 area: opencode-config
 severity: Major
-status: OPEN
+status: CLOSED
 blocked_by: [DIA-260822-wr2e] # DIA-NNN refs, or empty
 parent_epic: ""
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
@@ -17,7 +17,7 @@ discovered: 2026-08-22
 source: fix-lane
 date: 2026-08-22
 created: 2026-08-22
-updated: 2026-08-23
+updated: 2026-09-01
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -37,6 +37,8 @@ evidence:
 - ".opencode/plugins/delegation-observer.ts#L966 (atomicWriteBootMarker boot.json)"
 - ".opencode/plugins/delegation-observer.ts#L2409 (stallSweepInterval = setInterval 60s)"
 - ".opencode/plugins/delegation-observer.ts#L4632 (dispose clearInterval)"
+- "fix landed 2026-08-25 in 62dbd06f (bootFlagStore guard L1046, stallSweepStore singleton L2651, dispose L5002); companion test commit 330d9375"
+- "RED re-verification 2026-09-01: delegation-observer.reload-dedup.test.mjs passes 3/3 against unmodified source (defect already fixed)"
 
 ---
 
@@ -81,18 +83,20 @@ DIA-123 boot determinism relies on.
 
 Acceptance criteria (checkboxes):
 
-- [ ] A forced in-process reload (simulated by re-invoking the plugin body
+- [x] A forced in-process reload (simulated by re-invoking the plugin body
       without `dispose`) emits exactly ONE `session_boot` row within any 30s
       window (verified via registry row count keyed by `boot_id`).
-- [ ] A forced in-process reload results in exactly ONE active
+- [x] A forced in-process reload results in exactly ONE active
       `stallSweepInterval` (no concurrent intervals); a unit test asserts the
       interval handle is reused/cleared, not stacked.
-- [ ] `boot.json` marker is not overwritten with a new `boot_id` within 30s of
+- [x] `boot.json` marker is not overwritten with a new `boot_id` within 30s of
       an existing marker; the prior `boot_id` is preserved.
-- [ ] Full process restart (fresh `boot.json` older than 30s) still emits a
+- [x] Full process restart (fresh `boot.json` older than 30s) still emits a
       new `session_boot` row + new `boot_id` (no regression of legitimate boot
       detection).
-- [ ] `dispose()` still clears the single interval (no orphaned timer).
+- [x] `dispose()` still clears the single interval (no orphaned timer).
+
+Note: all criteria covered by delegation-observer.reload-dedup.test.mjs (3/3 pass 2026-09-01); test encodes Variant A semantics (globalThis boot identity) per the Decision-variants block.
 
 Verification commands:
 
@@ -106,7 +110,7 @@ Verification commands:
 
 ## Fix
 
-> To be filled at fix time.
+ALREADY FIXED - implemented in 62dbd06f (2026-08-25) as part of DIA-260822-oldn,medh work; Variant A (process-scoped globalThis boot identity) confirmed in source; RED re-verification 2026-09-01 passes.
 
 ## Re-verify
 

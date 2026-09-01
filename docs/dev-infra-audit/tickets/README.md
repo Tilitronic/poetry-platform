@@ -191,7 +191,7 @@
 | DIA-260822-fksf | Stale stall-sweep startup protection - suppress already-stale boot-time emissions | opencode-config | Major | OPEN | [DIA-260822-fksf-stale-stall-sweep-startup-protection-suppress-already-stale-boot-time-emissions.md](DIA-260822-fksf-stale-stall-sweep-startup-protection-suppress-already-stale-boot-time-emissions.md) |
 | DIA-260822-m035 | Investigate OpenCode restart crash-storm alerts | scripts | Medium | OPEN | [DIA-260822-m035-investigate-opencode-restart-crash-storm-alerts.md](DIA-260822-m035-investigate-opencode-restart-crash-storm-alerts.md) |
 | DIA-260822-medh | Research and advisory audit: session handoffs, context thresholds, auto-compaction, orchestrator-model choices | opencode-config | Major | OPEN | [DIA-260822-medh-research-and-advisory-audit-session-handoffs-context-thresholds-auto-compaction-orchestrator-model-choices.md](DIA-260822-medh-research-and-advisory-audit-session-handoffs-context-thresholds-auto-compaction-orchestrator-model-choices.md) |
-| DIA-260822-oldn | Plugin reload boot/sweep dedup - 30s persisted dedup and disposal-safe single ticker | opencode-config | Major | OPEN | [DIA-260822-oldn-plugin-reload-boot-sweep-dedup-30s-persisted-dedup-and-disposal-safe-single-ticker.md](DIA-260822-oldn-plugin-reload-boot-sweep-dedup-30s-persisted-dedup-and-disposal-safe-single-ticker.md) |
+| DIA-260822-oldn | Plugin reload boot/sweep dedup - 30s persisted dedup and disposal-safe single ticker | opencode-config | Major | CLOSED | [DIA-260822-oldn-plugin-reload-boot-sweep-dedup-30s-persisted-dedup-and-disposal-safe-single-ticker.md](DIA-260822-oldn-plugin-reload-boot-sweep-dedup-30s-persisted-dedup-and-disposal-safe-single-ticker.md) |
 | DIA-260822-unsn | Ticker expiry - purge invalid and stale waiting/error entries during seed/persist | opencode-config | Major | OPEN | [DIA-260822-unsn-ticker-expiry-purge-invalid-and-stale-waiting-error-entries-during-seed-persist.md](DIA-260822-unsn-ticker-expiry-purge-invalid-and-stale-waiting-error-entries-during-seed-persist.md) |
 | DIA-260822-wr2e | Evidence-based audit of five proposed delegation-observer plugin fixes | opencode | Major | OPEN | [DIA-260822-wr2e-evidence-based-audit-of-five-proposed-delegation-observer-plugin-fixes.md](DIA-260822-wr2e-evidence-based-audit-of-five-proposed-delegation-observer-plugin-fixes.md) |
 | DIA-260823-v9di | simplify skill duplicate: project vs global tree ownership/remedy | opencode-config | Medium | CLOSED | [DIA-260823-v9di-simplify-skill-duplicate-project-vs-global-tree-ownership-remedy.md](DIA-260823-v9di-simplify-skill-duplicate-project-vs-global-tree-ownership-remedy.md) |
@@ -305,7 +305,7 @@
 
 | Status      | Count |
 | ----------- | ----- |
-| OPEN        | 86    |
+| OPEN        | 85    |
 | DONE        | 11    |
 | VALIDATE    | 2     |
 | E2E         | 0     |
@@ -314,7 +314,7 @@
 | FIXED       | 1     |
 | IMPLEMENTED | 2     |
 | VERIFIED    | 28    |
-| CLOSED      | 154   |
+| CLOSED      | 155   |
 | BLOCKED     | 0     |
 | DISPATCHED  | 0     |
 | RUNNING     | 0     |
