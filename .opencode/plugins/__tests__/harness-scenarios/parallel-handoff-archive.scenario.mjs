@@ -79,7 +79,7 @@ async function writeTerminalHandoff(laneId, prognosis) {
       cycle_id: `c-${laneId}`,
       prognosis: JSON.stringify(prognosis),
     },
-    { sessionID: "ses_harness" }
+    { sessionID: laneId }
   )
 }
 

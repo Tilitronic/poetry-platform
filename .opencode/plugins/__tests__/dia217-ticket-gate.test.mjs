@@ -192,6 +192,12 @@ test("DIA-260824-p3hf: literal DIA ID is materialized when native task schema om
 
 test("DIA-260824-p3hf: campaign ticket marker disambiguates reference DIA IDs", async () => {
   const { hooks, ctx } = await makeHarness()
+  const ticketsDir = join(ctx.directory, "docs/dev-infra-audit/tickets")
+  mkdirSync(ticketsDir, { recursive: true })
+  writeFileSync(
+    join(ticketsDir, "DIA-260824-p3hf-campaign-marker.md"),
+    "---\nid: DIA-260824-p3hf\ntitle: Campaign marker\nstatus: OPEN\n---\n"
+  )
   const taskArgs = {
     subagent_type: "coder",
     prompt:
@@ -253,7 +259,7 @@ test("DIA-217: dispatch with valid ticket_id, ticket found -> proceeds (no error
   expect(warned).toBeUndefined()
 })
 
-test("DIA-217: dispatch with valid ticket_id, ticket not found -> warn (no error)", async () => {
+test("DIA-260827-mgfv: dispatch with valid ticket_id, ticket not found -> FAIL CLOSED (blocked)", async () => {
   const { hooks, ctx } = await makeHarness()
 
   // No ticket file exists for DIA-888.
@@ -264,14 +270,38 @@ test("DIA-217: dispatch with valid ticket_id, ticket not found -> warn (no error
     ticket_id: "DIA-888",
   })
 
-  // Must NOT throw (warn only).
-  expect(error).toBeNull()
+  // Fabricated id must hard-block the dispatch (no warn-and-allow).
+  expect(error).not.toBeNull()
+  expect(error.message).toContain("DIA-217 GATE:")
+  const blocked = registryRows.find((r) => r.event === "gate_blocked")
+  expect(blocked).toBeDefined()
+  expect(blocked.ticket_id).toBe("DIA-888")
+  expect(registryRows.find((r) => r.event === "gate_warn")).toBeUndefined()
+})
 
-  // Registry must carry a gate_warn row.
-  const warned = registryRows.find((r) => r.event === "gate_warn")
-  expect(warned).toBeDefined()
-  expect(warned.ticket_id).toBe("DIA-888")
-  expect(warned.session_id).toBe("ses_dia217_test")
+test("DIA-260827-mgfv: dispatch referencing a CLOSED ticket -> FAIL CLOSED (blocked)", async () => {
+  const { hooks, ctx } = await makeHarness()
+
+  const ticketsDir = join(ctx.directory, "docs/dev-infra-audit/tickets")
+  mkdirSync(ticketsDir, { recursive: true })
+  writeFileSync(
+    join(ticketsDir, "DIA-888-closed-ticket.md"),
+    "---\nid: DIA-888\ntitle: Closed ticket\nstatus: CLOSED\n---\n"
+  )
+
+  const { error, registryRows } = await runTaskDispatch(hooks, ctx, {
+    subagent_type: "coder",
+    prompt: "implement something",
+    description: "test dispatch with closed ticket",
+    ticket_id: "DIA-888",
+  })
+
+  // Non-OPEN ticket must hard-block the dispatch.
+  expect(error).not.toBeNull()
+  expect(error.message).toContain("DIA-217 GATE:")
+  const blocked = registryRows.find((r) => r.event === "gate_blocked")
+  expect(blocked).toBeDefined()
+  expect(blocked.ticket_id).toBe("DIA-888")
 })
 
 test("DIA-217: ticket_id is case-insensitive for file lookup", async () => {
@@ -298,6 +328,12 @@ test("DIA-217: ticket_id is case-insensitive for file lookup", async () => {
 
 test("DIA-260825-lro1: rejected preflight does not poison corrected retry", async () => {
   const { hooks, ctx } = await makeHarness()
+  const ticketsDir = join(ctx.directory, "docs/dev-infra-audit/tickets")
+  mkdirSync(ticketsDir, { recursive: true })
+  writeFileSync(
+    join(ticketsDir, "DIA-260825-lro1-retry.md"),
+    "---\nid: DIA-260825-lro1\ntitle: Retry slice\nstatus: OPEN\n---\n"
+  )
   const dispatch = {
     subagent_type: "coder",
     prompt: "implement one bounded slice",

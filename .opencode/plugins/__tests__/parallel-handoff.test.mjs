@@ -139,10 +139,14 @@ async function makeHarness() {
  * pointer-write failures through tuiSafeWarn - design.md section 5; the benign
  * archive event itself moved to the TUI-safe app.log channel, DIA-204).
  */
-async function runLogDecision(hooks, args, logs) {
+async function runLogDecision(hooks, args, logs, sessionID) {
   const beforeCount = logs.length
+  // DIA-260827-y9n9: the slot identity now comes from the TRUSTED per-request
+  // context.sessionID, so a test that writes "for session X" must present X as
+  // the calling session. Default: the lane under test (each lane in these
+  // tests models one orchestrator session), else the neutral harness session.
   const result = await hooks.tool.log_decision.execute(args, {
-    sessionID: "ses_harness",
+    sessionID: sessionID ?? args.lane_id ?? "ses_harness",
   })
   const newLogs = logs.slice(beforeCount)
   return { result, warnings: newLogs.map((l) => l?.body?.message ?? "") }
@@ -593,34 +597,88 @@ test("S1 reserved-path guard: session id 'active' cannot clobber active.json", a
   expect(rows[rows.length - 1].lane_id).toBe("active")
 })
 
-test("S1 design s2: parentSessionId (task() capture) wins over lane_id for slot identity", async () => {
-  const { hooks, paths, logs } = await makeHarness()
-
-  // Simulate the orchestrator's first task() dispatch: tool.execute.after
-  // captures input.sessionID as the sticky parentSessionId (the source of
-  // truth for the slot, design.md section 2).
+/** Simulate a session's first task() dispatch (the root-session capture). */
+async function driveTaskDispatch(hooks, sessionID, callID = "call_1") {
   await hooks["tool.execute.after"](
     {
       tool: "task",
-      sessionID: "ses_parent",
-      callID: "call_1",
+      sessionID,
+      callID,
       args: {
         subagent_type: "coder",
-        task_id: "ses_child",
+        task_id: `${sessionID}_child`,
         description: "DIA-085 test dispatch",
       },
     },
-    { output: "task_id: ses_child" }
+    { output: `task_id: ${sessionID}_child` }
+  )
+}
+
+test("DIA-260827-y9n9: trusted context.sessionID wins over the task()-captured session and over lane_id", async () => {
+  const { hooks, paths, logs } = await makeHarness()
+
+  // Session A dispatches first: the plugin registers it as a root session.
+  // Before the fix this capture was a process-global that OUTRANKED the
+  // trusted per-request identity, so any later session's handoff was filed
+  // under A.
+  await driveTaskDispatch(hooks, "ses_parent")
+
+  // Session B (the trusted context.sessionID) writes a terminal handoff and
+  // supplies yet another lane_id. Slot identity must be B - not the captured
+  // ses_parent, not the model-supplied lane_id.
+  await runLogDecision(
+    hooks,
+    terminalHandoffArgs("ses_lane", prognosisA()),
+    logs,
+    "ses_B"
   )
 
-  // Terminal handoff carrying a DIFFERENT lane_id: the slot must be named by
-  // the parent orchestrator session, not the lane_id.
-  await writeTerminalHandoff(hooks, "ses_lane", prognosisA(), logs)
-
-  expect(existsSync(paths.slotPath("ses_parent"))).toBe(true)
+  expect(existsSync(paths.slotPath("ses_B"))).toBe(true)
+  expect(existsSync(paths.slotPath("ses_parent"))).toBe(false)
   expect(existsSync(paths.slotPath("ses_lane"))).toBe(false)
-  const slot = readJson(paths.slotPath("ses_parent"))
-  expect(slot.session_id).toBe("ses_parent")
+  const slot = readJson(paths.slotPath("ses_B"))
+  expect(slot.session_id).toBe("ses_B")
   const pointer = readJson(paths.pointerPath)
-  expect(pointer.active_session_id).toBe("ses_parent")
+  expect(pointer.active_session_id).toBe("ses_B")
+})
+
+test("DIA-260827-y9n9: a second parallel session's terminal handoff does not clobber the first session's slot or pointer", async () => {
+  const { hooks, paths, logs } = await makeHarness()
+
+  // Session A dispatches first (root capture), then writes its own handoff.
+  await driveTaskDispatch(hooks, "ses_A")
+  await runLogDecision(
+    hooks,
+    terminalHandoffArgs("ses_A", prognosisA()),
+    logs,
+    "ses_A"
+  )
+  const slotABefore = readFileSync(paths.slotPath("ses_A"), "utf-8")
+  expect(readJson(paths.pointerPath).active_session_id).toBe("ses_A")
+
+  // Session B (parallel orchestrator in the SAME plugin process) writes its
+  // terminal handoff. Before the fix this wrote into ses_A.json, archived A's
+  // valid handoff, and left active.json naming ses_A while carrying B's
+  // prognosis.
+  await driveTaskDispatch(hooks, "ses_B", "call_2")
+  await runLogDecision(
+    hooks,
+    terminalHandoffArgs("ses_B", prognosisB()),
+    logs,
+    "ses_B"
+  )
+
+  // A's slot is byte-identical and was never archived.
+  expect(readFileSync(paths.slotPath("ses_A"), "utf-8")).toBe(slotABefore)
+  expect(readdirSync(paths.archiveDir)).toHaveLength(0)
+
+  // B got its OWN slot with its own prognosis and checksum.
+  const slotB = readJson(paths.slotPath("ses_B"))
+  expect(slotB.session_id).toBe("ses_B")
+  expect(slotB.prognosis).toEqual(prognosisB())
+  expect(slotB.checksum).toBe(canonicalChecksum(prognosisB()))
+
+  // The pointer names the ACTUAL writer (B), so a successor session reads B's
+  // prognosis under B's identity - no cross-session misattribution.
+  expect(readJson(paths.pointerPath).active_session_id).toBe("ses_B")
 })

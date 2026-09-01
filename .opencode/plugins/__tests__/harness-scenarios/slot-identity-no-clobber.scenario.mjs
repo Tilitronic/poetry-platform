@@ -78,7 +78,9 @@ async function writeTerminalHandoff(laneId, prognosis) {
       cycle_id: `c-${laneId}`,
       prognosis: JSON.stringify(prognosis),
     },
-    { sessionID: "ses_harness" }
+    // DIA-260827-y9n9: slot identity comes from the trusted per-request
+    // context.sessionID, so each lane presents itself as the calling session.
+    { sessionID: laneId }
   )
 }
 
@@ -98,8 +100,8 @@ const prognosisB = {
   session_summary: { note: "session B summary", completed: ["T4.1"] },
 }
 
-// Write handoffs for two different sessions (no parentSessionId capture,
-// so identity falls back to lane_id).
+// Write handoffs for two different sessions (distinct context.sessionID per
+// write, so each lands in its own slot).
 await writeTerminalHandoff("ses_pre_A", prognosisA)
 await writeTerminalHandoff("ses_pre_B", prognosisB)
 

@@ -8,7 +8,8 @@
  * pre-dispatch sessions to collapse onto a single "unknown.json" slot.
  *
  * After the fix:
- *   - log_decision handoff path: parentSessionId ?? lane_id ?? context?.sessionID ?? "unidentified-session"
+ *   - log_decision handoff path (precedence as of DIA-260827-y9n9):
+ *     context?.sessionID ?? lane_id ?? "unidentified-session"
  *   - The literal "unknown" is never used as a slot key
  *
  * RUN COMMAND (bun in poetry-dev container):

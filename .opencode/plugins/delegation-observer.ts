@@ -110,7 +110,23 @@ function base64url(buf: Buffer | string): string {
 // @internal test-only seam (DIA-260820-jlu0 F3): exported so the plugin test
 // harness can mint a real token and drive the REAL gate (bypass path). Not a
 // security control; plugins are trusted code within the same process boundary.
+// Loader guard (DIA-260829-kxqu): legacy loader iterates Object.values(mod) and
+// calls every exported function as plugin factory with PluginInput. This helper
+// is NOT a factory - when misused as one, return empty Hooks object so the
+// loader does not push a string into hooks (which would later crash
+// hook.config) and does not throw.
 export function mintCapabilityToken(scope: string, reason: string): string {
+  if (typeof scope !== "string" || typeof reason !== "string") {
+    const maybeInput = scope as unknown
+    if (
+      maybeInput &&
+      typeof maybeInput === "object" &&
+      ("directory" in (maybeInput as Record<string, unknown>) ||
+        "client" in (maybeInput as Record<string, unknown>))
+    ) {
+      return {} as unknown as string
+    }
+  }
   const payload = {
     id: randomUUID(),
     scope,
@@ -132,9 +148,26 @@ export function mintCapabilityToken(scope: string, reason: string): string {
 // @internal test-only seam (DIA-260820-jlu0 F3): exported so the plugin test
 // harness can drive the REAL gate (scope-leak rejection path). Not a security
 // control; plugins are trusted code within the same process boundary.
+// Loader guard (DIA-260829-kxqu): legacy loader iterates Object.values(mod) and
+// calls every exported function as plugin factory with PluginInput. This helper
+// is NOT a factory - when misused as one, return empty Hooks object so the
+// loader does not throw "token.startsWith is not a function" and does not
+// poison the hooks array.
 export function verifyCapabilityToken(
   token: string
 ): { valid: boolean; payload?: CapabilityPayload; error?: string } {
+  if (typeof token !== "string") {
+    const maybeInput = token as unknown
+    if (
+      maybeInput &&
+      typeof maybeInput === "object" &&
+      ("directory" in (maybeInput as Record<string, unknown>) ||
+        "client" in (maybeInput as Record<string, unknown>))
+    ) {
+      return {} as unknown as { valid: boolean; payload?: CapabilityPayload; error?: string }
+    }
+    return { valid: false, error: "invalid token type" }
+  }
   // Strip the "CAP-" prefix before splitting: the mint format is
   // "CAP-{payloadB64}.{sigB64}" but HMAC covers only the raw payload bytes.
   const raw = token.startsWith("CAP-") ? token.slice(4) : token
@@ -1123,12 +1156,17 @@ const delegationObserver: Plugin = async (ctx) => {
     { parentID?: string; role: "orchestrator" | "subagent" }
   >()
 
-  // Orchestrator session id, derived at runtime: the session that calls task()
-  // IS the orchestrator (get-my-session-id tool results are not visible to
-  // plugins, so this is the authoritative source). Used by S6 to recognize the
+  // Orchestrator session ids, derived at runtime: a session that calls task()
+  // IS an orchestrator (get-my-session-id tool results are not visible to
+  // plugins, so this is the authoritative source). Used by S6 to recognize an
   // orchestrator's own session even when it has a parentID (resumed/child
   // orchestrator scenario).
-  let parentSessionId: string | undefined
+  // DIA-260827-y9n9: per-session SET, not a single sticky process-global id.
+  // The old `let parentSessionId` captured the FIRST task-calling session for
+  // the whole process, so with parallel orchestrator sessions every later
+  // session resolved its role - and worse, wrote its handoff slot - under the
+  // first session's identity (clobbering that session's slot and pointer).
+  const rootSessionIds = new Set<string>()
 
   function readRegistryRows(): RegistryRow[] {
     if (!existsSync(registryPath)) return []
@@ -1362,8 +1400,11 @@ const delegationObserver: Plugin = async (ctx) => {
           resume_instructions: resume,
         },
       }
-      const apoptosisSessionId = parentSessionId ?? sessionID ?? "unidentified-session"
-      atomicWriteHandoff(handoffContent, apoptosisSessionId)
+      // DIA-260827-y9n9: the slot MUST be keyed by the apoptosing session
+      // itself - handoffContent.session_id is `sessionID`, so keying the slot
+      // by a process-global orchestrator id wrote this session's handoff into
+      // ANOTHER session's slot (archiving that session's valid handoff).
+      atomicWriteHandoff(handoffContent, sessionID)
     } catch (err) {
       tuiSafeWarn(`[delegation-observer] apoptosis handoff write failed: ${errorMessage(err)}`)
     }
@@ -1562,14 +1603,13 @@ const delegationObserver: Plugin = async (ctx) => {
     // Keyed by the session that triggers the row - callers pass the CURRENT
     // session id (input.sessionID for task() dispatch, context.sessionID for
     // log_decision, the lifecycle sessionID or its parent orchestrator for
-    // idle/error rows). NOT the sticky parentSessionId: that single
-    // process-level capture would attribute every row of a
-    // multi-orchestrator-session process to the FIRST orchestrator, making
-    // context_usage report the wrong session (DIA-080 review nit). Fallbacks:
-    // parentSessionId (best effort before tool context). At least one of
-    // sessionID/parentSessionId is always set when appendMessageRow is called;
-    // the cast is safe and avoids "unknown" key collisions.
-    const writerSession = (sessionID ?? parentSessionId) as string
+    // idle/error rows). NEVER a process-global orchestrator id: that single
+    // capture would attribute every row of a multi-orchestrator-session
+    // process to the FIRST orchestrator, making context_usage report the wrong
+    // session (DIA-080 review nit; DIA-260827-y9n9 removed the last such
+    // fallback). Callers without a session id bucket under the neutral
+    // "unidentified-session" key instead of another session's counter.
+    const writerSession = sessionID ?? "unidentified-session"
     sessionMessageCount.set(
       writerSession,
       (sessionMessageCount.get(writerSession) ?? 0) + 1
@@ -2415,10 +2455,10 @@ const delegationObserver: Plugin = async (ctx) => {
   /**
    * DIA-098 R2 identity heuristic: is a delegation key the orchestrator's own
    * session or a subagent child? Mirrors the lifecycle handlers' role
-   * attribution (sessionMeta role + parentSessionId match) PLUS persistent
+   * attribution (sessionMeta role + known-root match) PLUS persistent
    * row-level identity (role / parent_session fields) so sessions spawned in
    * a previous process — where sessionMeta is empty — resolve the same way.
-   * Resolution order: parentSessionId match wins (resumed/child orchestrator
+   * Resolution order: known-root match wins (resumed/child orchestrator
    * scenario), then any row carrying role:"orchestrator", then any subagent
    * signal (role:"subagent" or a parent_session on a spawn row).
    * Unidentifiable keys resolve "unknown" — the sweep treats them with the
@@ -2429,7 +2469,7 @@ const delegationObserver: Plugin = async (ctx) => {
     key: string,
     rows: RegistryRow[]
   ): "subagent" | "orchestrator" | "unknown" {
-    if (key === parentSessionId) return "orchestrator"
+    if (rootSessionIds.has(key)) return "orchestrator"
     const meta = sessionMeta.get(key)
     if (meta?.role === "orchestrator") return "orchestrator"
     let sawSubagent = false
@@ -3071,21 +3111,19 @@ const delegationObserver: Plugin = async (ctx) => {
           )
         }
 
-        // FIX 1: exact ID match via regex (prevents DIA-21 matching DIA-217).
+        // DIA-260827-mgfv: exact lookup through the single ticket scanner
+        // (scanTickets is the source of truth the §10 gate also uses), then
+        // require the resolved ticket to be OPEN. FAIL CLOSED: not found, not
+        // OPEN, or scan/read error all hard-block the dispatch.
         const ticketsDir = join(ctx.directory, TICKETS_DIR_REL)
         const normalizedId = ticketId.toUpperCase()
-        let ticketExists = false
+        let ticketStatus: string | null = null
         try {
-          if (existsSync(ticketsDir)) {
-            ticketExists = readdirSync(ticketsDir).some((f) => {
-              // DIA-234: accept both sequential (DIA-NNN) and datetime (DIA-YYMMDD-XXXX) formats.
-              // Lowercase-only enforcement: generator produces lowercase suffixes, no /i flag.
-              const match = TICKET_ID_FILENAME_RE.exec(f)
-              return match && match[0].toUpperCase() === normalizedId
-            })
-          }
+          const scanned = scanTickets(ticketsDir)
+          const hit = scanned.find((t) => t.id === normalizedId)
+          ticketStatus = hit ? hit.status : null
         } catch (err) {
-          // FIX 4: log scan errors instead of silently swallowing.
+          // scanTickets throws on missing dir / read error -> fail closed.
           appendRow({
             event: "gate_scan_failed",
             session_id: input.sessionID,
@@ -3095,17 +3133,23 @@ const delegationObserver: Plugin = async (ctx) => {
           })
         }
 
-        if (!ticketExists) {
+        if (ticketStatus !== "OPEN") {
           appendRow({
-            event: "gate_warn",
+            event: "gate_blocked",
             session_id: input.sessionID,
             subagent_type: agentType,
             ticket_id: ticketId,
-            detail: `ticket_id '${ticketId}' not found in tickets directory`,
+            dispatch_state: "gate_blocked",
+            detail:
+              ticketStatus === null
+                ? `ticket_id '${ticketId}' not found or unreadable in tickets directory`
+                : `ticket_id '${ticketId}' is not OPEN (status: ${ticketStatus})`,
             writer: "plugin",
           })
-          tuiSafeWarn(
-            `[DIA-217] ticket gate: ticket_id '${ticketId}' not found in tickets dir - allowing (weak correlation)`
+          rollbackAdaptiveDispatch(input.callID)
+          throw new Error(
+            `DIA-217 GATE: ticket_id '${ticketId}' ${ticketStatus === null ? "not found in" : "is not OPEN in"} tickets directory. ` +
+              `Engineering work requires an existing OPEN DIA ticket.`
           )
         }
         }
@@ -3588,9 +3632,10 @@ const delegationObserver: Plugin = async (ctx) => {
 
       if (input.tool !== "task") return
 
-      // The session that calls task() is the orchestrator (runtime source for
-      // S6's "parent_session matches" recognition).
-      parentSessionId ??= input.sessionID
+      // The session that calls task() is an orchestrator (runtime source for
+      // S6's "parent_session matches" recognition). Registered per session
+      // (DIA-260827-y9n9) so parallel orchestrators each keep their identity.
+      rootSessionIds.add(input.sessionID)
 
       const text = typeof output?.output === "string" ? output.output : ""
       const taskId = parseTaskIdFromTaskOutput(text)
@@ -3699,7 +3744,7 @@ const delegationObserver: Plugin = async (ctx) => {
       )
       // DIA-080: per-session delegation counter for the context_usage
       // estimate. input.sessionID is the session that calls task() - the
-      // orchestrator session (parentSessionId is captured from it above).
+      // orchestrator session (registered in rootSessionIds above).
       sessionDelegationCount.set(
         input.sessionID,
         (sessionDelegationCount.get(input.sessionID) ?? 0) + 1
@@ -3963,12 +4008,12 @@ const delegationObserver: Plugin = async (ctx) => {
           if (!sessionID) return
           const meta = sessionMeta.get(sessionID)
           // Role resolution: lifecycle registration (session.created parentID)
-          // outranks the sticky first-task inference. parentSessionId alone
+          // outranks the task-caller inference. The task-caller signal alone
           // misclassifies registered children that dispatch nested task()
           // calls as "orchestrator" (DIA-260826-jcte: that misclassification
           // routed their idle event into the a5 branch, skipping apoptosis).
           const role =
-            meta?.role ?? (sessionID === parentSessionId ? "orchestrator" : "unknown")
+            meta?.role ?? (rootSessionIds.has(sessionID) ? "orchestrator" : "unknown")
 
           // S6 (A5 gate): the orchestrator's own session (root / no parent —
           // also the "parent_session matches" case) gets an a5_quality_gate
@@ -4074,8 +4119,8 @@ const delegationObserver: Plugin = async (ctx) => {
           // gen_ai.agent.name is enriched from the dispatch capture
           // (childSessionAgent) when available. Message counter key: the
           // child's parent orchestrator (the session that spawned it), so the
-          // row counts under the orchestrator that triggered it, not the
-          // sticky first-captured parentSessionId.
+          // row counts under the orchestrator that triggered it, not a
+          // process-global first-captured orchestrator id.
           appendMessageRow(
             {
               "gen_ai.operation.name": "invoke_agent",
@@ -4201,9 +4246,9 @@ const delegationObserver: Plugin = async (ctx) => {
           if (!sessionID) return
           const meta = sessionMeta.get(sessionID)
           // Same precedence as the idle handler: lifecycle registration
-          // outranks the sticky first-task inference (DIA-260826-jcte).
+          // outranks the task-caller inference (DIA-260826-jcte).
           const role =
-            meta?.role ?? (sessionID === parentSessionId ? "orchestrator" : "unknown")
+            meta?.role ?? (rootSessionIds.has(sessionID) ? "orchestrator" : "unknown")
 
           // DIA-260827-xsah: apoptosis dual-key check runs BEFORE the S2
           // forward-only guard. A session that errored while the circuit was
@@ -4251,8 +4296,8 @@ const delegationObserver: Plugin = async (ctx) => {
           // failure is a crisis-level event in the orchestrator-level log.
           // Message counter key: the parent orchestrator for subagent rows
           // (the session that spawned the child), the session itself for
-          // orchestrator rows — never the sticky first-captured
-          // parentSessionId.
+          // orchestrator rows - never a process-global first-captured
+          // orchestrator id.
           appendMessageRow(
             {
               "gen_ai.operation.name": "invoke_agent",
@@ -4465,15 +4510,19 @@ const delegationObserver: Plugin = async (ctx) => {
               const status =
                 statusMap[args.resolution_status] ?? "manual-halt"
               const checksum = computeChecksum(prognosis)
-              // DIA-085: the session identity becomes the SLOT identity -
-              // parentSessionId ?? lane_id ?? context?.sessionID, now passed
-              // to atomicWriteHandoff as the slot selector so parallel
+              // DIA-085: the session identity becomes the SLOT identity,
+              // passed to atomicWriteHandoff as the slot selector so parallel
               // orchestrator sessions never clobber each other's handoff file.
-              // DIA-222 F-3: replaced "unknown" sentinel with
-              // context?.sessionID then "unidentified-session" to prevent
-              // parallel pre-dispatch sessions from collapsing.
+              // DIA-260827-y9n9: the TRUSTED per-request identity
+              // (context.sessionID) is the sole primary source. The former
+              // first-place process-global orchestrator capture made a second
+              // parallel session write - and archive - the FIRST session's
+              // slot, and pointed active.json at the wrong identity.
+              // args.lane_id stays as a model-supplied fallback only for calls
+              // that arrive without tool context; "unidentified-session" is
+              // the last resort (DIA-222 F-3: never the "unknown" sentinel).
               const handoffSessionId =
-                parentSessionId ?? args.lane_id ?? context?.sessionID ?? "unidentified-session"
+                context?.sessionID ?? args.lane_id ?? "unidentified-session"
               writeResult = atomicWriteHandoff(
                 {
                   status,
@@ -4625,8 +4674,8 @@ const delegationObserver: Plugin = async (ctx) => {
               ...(args.next_action ? { next_action: args.next_action } : {}),
             },
             // context.sessionID is the CURRENT session invoking the tool (the
-            // orchestrator), so the row counts under that session - not the
-            // sticky first-captured parentSessionId (DIA-080 review nit).
+            // orchestrator), so the row counts under that session - not a
+            // process-global first-captured orchestrator id (DIA-080 nit).
             context?.sessionID
           )
           return `Logged: ${args.event_type} — ${args.task_ref.slice(0, 60)}`
@@ -4669,16 +4718,16 @@ const delegationObserver: Plugin = async (ctx) => {
           // row since project start (which summed all sessions and always
           // read ~100%). The counters are keyed by the orchestrator session -
           // the CURRENT calling session comes from the tool invocation
-          // context (ToolContext.sessionID), NOT the sticky parentSessionId
-          // captured at the first task() dispatch: with multiple orchestrator
-          // sessions in one process, the sticky capture would report the
-          // FIRST orchestrator's counts (DIA-080 review nit). parentSessionId
-          // remains as a pre-context fallback, then "unidentified-session"
-          // for pre-session calls. The council scope keeps the file-derived
-          // path: agent attribution lives only in the logs / childSessionAgent,
-          // so it cannot come from counters.
+          // context (ToolContext.sessionID), NEVER a process-global capture of
+          // the first task() dispatcher: with multiple orchestrator sessions in
+          // one process that capture would report the FIRST orchestrator's
+          // counts (DIA-080 review nit; the fallback itself removed by
+          // DIA-260827-y9n9). "unidentified-session" covers pre-session calls.
+          // The council scope keeps the file-derived path: agent attribution
+          // lives only in the logs / childSessionAgent, so it cannot come from
+          // counters.
           const callingSession =
-            context?.sessionID ?? parentSessionId ?? "unidentified-session"
+            context?.sessionID ?? "unidentified-session"
 
           let delegationCount: number
           let messageCount = 0
