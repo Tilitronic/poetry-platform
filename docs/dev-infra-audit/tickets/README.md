@@ -285,7 +285,7 @@
 | DIA-260831-v1w2 | Atlas codegen fail-open scatters generated artifacts | python-tooling | Medium | OPEN | [DIA-260831-v1w2-atlas-codegen-fail-open-scatters-generated-artifacts.md](DIA-260831-v1w2-atlas-codegen-fail-open-scatters-generated-artifacts.md) |
 | DIA-260831-x3y4 | Visualizer modules shallow lifecycle ownership | js-tooling | Medium | OPEN | [DIA-260831-x3y4-visualizer-modules-shallow-lifecycle-ownership.md](DIA-260831-x3y4-visualizer-modules-shallow-lifecycle-ownership.md) |
 | DIA-260831-z5a6 | Author Studio demo scaffold unreachable residue | js-tooling | Medium | OPEN | [DIA-260831-z5a6-author-studio-demo-scaffold-unreachable-residue.md](DIA-260831-z5a6-author-studio-demo-scaffold-unreachable-residue.md) |
-| DIA-260901-e4nk | Verify 23 committed ticket closures (post-commit verification sweep) | dev-infra | Medium | OPEN | [DIA-260901-e4nk-verify-23-committed-ticket-closures-post-commit-verification-sweep.md](DIA-260901-e4nk-verify-23-committed-ticket-closures-post-commit-verification-sweep.md) |
+| DIA-260901-e4nk | Verify 23 committed ticket closures (post-commit verification sweep) | dev-infra | Medium | CLOSED | [DIA-260901-e4nk-verify-23-committed-ticket-closures-post-commit-verification-sweep.md](DIA-260901-e4nk-verify-23-committed-ticket-closures-post-commit-verification-sweep.md) |
 | DIA-260901-r0hx | Replace QN3.7 Plus with QN3.8 Flash in all presets | presets | Medium | CLOSED | [DIA-260901-r0hx-replace-qn3-7-plus-with-qn3-8-flash-in-all-presets.md](DIA-260901-r0hx-replace-qn3-7-plus-with-qn3-8-flash-in-all-presets.md) |
 | DIA-260901-s4ij | Replace hy3 with Deepseek v4 flash in all presets | scripts | Medium | CLOSED | [DIA-260901-s4ij-replace-hy3-with-deepseek-v4-flash-in-all-presets.md](DIA-260901-s4ij-replace-hy3-with-deepseek-v4-flash-in-all-presets.md) |
 | DIA-260901-vior | Commit local changes - resolve pre-existing dirty git tree and DIA-260901-s4ij config changes | scripts | Medium | CLOSED | [DIA-260901-vior-commit-local-changes-resolve-pre-existing-dirty-git-tree-and-dia-260901-s4ij-config-changes.md](DIA-260901-vior-commit-local-changes-resolve-pre-existing-dirty-git-tree-and-dia-260901-s4ij-config-changes.md) |
@@ -305,7 +305,7 @@
 
 | Status      | Count |
 | ----------- | ----- |
-| OPEN        | 87    |
+| OPEN        | 86    |
 | DONE        | 11    |
 | VALIDATE    | 2     |
 | E2E         | 0     |
@@ -314,7 +314,7 @@
 | FIXED       | 1     |
 | IMPLEMENTED | 2     |
 | VERIFIED    | 28    |
-| CLOSED      | 153   |
+| CLOSED      | 154   |
 | BLOCKED     | 0     |
 | DISPATCHED  | 0     |
 | RUNNING     | 0     |

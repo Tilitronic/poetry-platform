@@ -6,7 +6,7 @@ id: DIA-260901-e4nk
 title: "Verify 23 committed ticket closures (post-commit verification sweep)"
 area: dev-infra
 severity: Medium
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: ""
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
@@ -54,4 +54,4 @@ Tickets swept: 23 CLOSED tickets (20 in bulk close + DIA-260901-y9n9 + DIA-26090
 
 ## Re-verify
 
-> To be filled at re-verify time.
+Re-verify (2026-09-01): verification sweep 23/23 verified. All 23 swept tickets show status CLOSED in ledger and are committed at HEAD (bulk commit ca31c04 + 9195f28 for DIA-260901-vior). Fixes present in working tree. Test suites green: make test-config exit 0 (57 pass), bun suites green - dia217 22 pass, parallel-handoff 12 pass, capability-tokens 10 pass, apoptosis 16 pass, platform-gate 5 pass, plugin-load-smoke 7 pass; bats 585 ok / 0 fail / 2 skipped. All 23 tickets CLOSED + committed at HEAD (ca31c04/9195f28). Purpose fulfilled - closing DIA-260901-e4nk.
