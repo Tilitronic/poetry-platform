@@ -18,8 +18,9 @@ load test-helper
 setup_python_tree() {
   TREE="$BATS_TEST_TMPDIR/tree"
   # Mirror verify-python.sh's package list (DIA-013: apps/api-server +
-  # packages/analytics-pipeline) so the second package's `cd` does not fail.
-  # Fakes are planted in BOTH venvs; tests delete a venv's binaries to drive
+  # packages/analytics-pipeline; DIA-260827-48iw: + packages/phonetics-core) so
+  # the third package's `cd` does not fail.
+  # Fakes are planted in ALL venvs; tests delete a venv's binaries to drive
   # the bootstrap path for that package.
   mkdir -p "$TREE/scripts" "$BATS_TEST_TMPDIR/bin"
   for pkg in apps/api-server packages/analytics-pipeline packages/phonetics-core; do

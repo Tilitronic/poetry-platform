@@ -1,29 +1,13 @@
-import { describe, expect, mock, test } from 'bun:test';
+import { describe, expect, spyOn, test } from 'bun:test';
 import { mkdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-
-let shouldFailStat = false;
-mock.module('node:fs/promises', () => {
-  const actual = require('node:fs/promises');
-  return {
-    ...actual,
-    stat: async (...args: unknown[]) => {
-      const p = String((args[0] as string) ?? '');
-      if (shouldFailStat && p.includes('locked/child.txt')) {
-        const err = Object.assign(new Error('EACCES: permission denied, stat'), {
-          code: 'EACCES',
-        });
-        throw err;
-      }
-      return (actual.stat as (...a: unknown[]) => Promise<unknown>)(...args);
-    },
-  };
-});
 
 import { parsePatch } from './codec';
 import { createApplyPatchHook } from './index';
 import { applyPreparedChanges, preparePatchChanges } from './operations';
 import { createTempDir, DEFAULT_OPTIONS, writeFixture } from './test-helpers';
+
+import * as fsPromises from 'node:fs/promises';
 
 function createHook() {
   return createApplyPatchHook({
@@ -484,8 +468,22 @@ garbage
 +fresh
 *** End Patch`;
     const output = { args: { patchText } };
-
-    shouldFailStat = true;
+    const target = path.join(root, 'locked/child.txt');
+    const originalStat = fsPromises.stat;
+    const statSpy = spyOn(fsPromises, 'stat').mockImplementation(
+      (async (p: unknown, ...rest: unknown[]) => {
+        if (String(p) === target) {
+          const err = Object.assign(new Error('EACCES: permission denied, stat'), {
+            code: 'EACCES',
+          });
+          throw err;
+        }
+        return (originalStat as (...a: unknown[]) => Promise<unknown>)(
+          p as string,
+          ...(rest as []),
+        );
+      }) as typeof fsPromises.stat,
+    );
     try {
       await expect(
         hook['tool.execute.before'](
@@ -496,7 +494,7 @@ garbage
 
       expect(output.args.patchText).toBe(patchText);
     } finally {
-      shouldFailStat = false;
+      statSpy.mockRestore();
     }
   });
 
@@ -697,10 +695,10 @@ garbage
 
   test('passes through sibling-directory targets outside root/worktree before native execution', async () => {
     const root = await createTempDir('apply-patch-hook-');
-    const outside = path.join(
-      path.dirname(root),
-      `outside-${Date.now()}-${Math.random().toString(36).slice(2)}.txt`,
-    );
+    // Use createTempDir atomically for unique suffix, then place file as sibling of root
+    const tmp = await createTempDir('hook-outside-');
+    const outside = path.join(path.dirname(root), `${path.basename(tmp)}.txt`);
+    await rm(tmp, { recursive: true, force: true });
     await writeFile(outside, 'outside\n', 'utf-8');
     const hook = createHook();
     const patchText = `*** Begin Patch
