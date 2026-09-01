@@ -6,7 +6,7 @@ id: DIA-260827-6wvm
 title: "Embedded OMO suite excluded from root tests hides orchestrator alias regression"
 area: tests
 severity: High
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: DIA-260827-wfcx
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
@@ -17,7 +17,7 @@ discovered: 2026-08-27
 source: baseline
 date: 2026-08-27
 created: 2026-08-27
-updated: 2026-08-27
+updated: 2026-09-01
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -50,4 +50,15 @@ Repair the visible alias cloning (remove hidden:true on the visible alias, keep 
 
 ## Re-verify
 
-> To be filled at re-verify time.
+Merged to omo-slim-changes at f36490b fix(omo): visible orchestrator alias hidden regression + wire OMO suite into gate (DIA-260827-6wvm).
+
+Fix: repaired visible alias cloning in src/agents/index.ts (removed hidden:true on visible alias, kept only on internal key) and wired embedded OMO suite into aggregate gate/CI.
+
+Re-verify evidence (2026-09-01):
+
+- merge commit: f36490b (parent 427f131) on branch omo-slim-changes, verified via git cat-file -p
+- embedded OMO bun suite: 1367 pass (was 1366 pass / 1 fail; display-name.test.ts now passes)
+- make test-omo: exit 0
+- pnpm test (root): exit 0
+- pnpm typecheck (OMO): exit 0
+  Status: developer-approved completion, CLOSED 2026-09-01.

@@ -6,7 +6,7 @@ id: DIA-260827-48iw
 title: "Python phonetics-core atlas loader has no test or lint gate"
 area: tests
 severity: High
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: DIA-260827-wfcx
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
@@ -17,7 +17,7 @@ discovered: 2026-08-27
 source: baseline
 date: 2026-08-27
 created: 2026-08-27
-updated: 2026-08-27
+updated: 2026-09-01
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -50,4 +50,15 @@ Package the Python atlas loader as an installable artifact; add import/load/corr
 
 ## Re-verify
 
-> To be filled at re-verify time.
+Merged to omo-slim-changes at 0fa1342 fix(tests): add Python atlas loader gate (DIA-260827-48iw).
+
+Fix: packaged python atlas loader as installable artifact; added import/load/corruption fixtures and cross-language parity test to Python/CI gate.
+
+Re-verify evidence (2026-09-01):
+
+- merge commit: 0fa1342 (parent f36490b) on branch omo-slim-changes, verified via git cat-file -p
+- phonetics-core Python tests: 26 pass / 1 skip (pytest packages/phonetics-core)
+- scripts/verify-python.sh: exit 0
+- ruff check: clean
+- TS/Python parity asserted via committed atlas and corruption fixtures
+  Status: developer-approved completion, CLOSED 2026-09-01.

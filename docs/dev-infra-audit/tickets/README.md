@@ -229,14 +229,14 @@
 | DIA-260826-zvu4 | exempt verification-only coder dispatches from SILENT_FAILURE detection (H1) | delegation-observer | Major | CLOSED | [DIA-260826-zvu4-exempt-verification-only-coder-dispatches-from-silent-failure-detection-h1.md](DIA-260826-zvu4-exempt-verification-only-coder-dispatches-from-silent-failure-detection-h1.md) |
 | DIA-260827-15xv | Full ponytail whole-repo over-engineering audit via analyzer-escalated | scripts | Medium | OPEN | [DIA-260827-15xv-full-ponytail-whole-repo-over-engineering-audit-via-analyzer-escalated.md](DIA-260827-15xv-full-ponytail-whole-repo-over-engineering-audit-via-analyzer-escalated.md) |
 | DIA-260827-36ht | Plugin behavioral gate is red and missing from pre-push | plugins | High | OPEN | [DIA-260827-36ht-plugin-behavioral-gate-is-red-and-missing-from-pre-push.md](DIA-260827-36ht-plugin-behavioral-gate-is-red-and-missing-from-pre-push.md) |
-| DIA-260827-48iw | Python phonetics-core atlas loader has no test or lint gate | tests | High | OPEN | [DIA-260827-48iw-python-phonetics-core-atlas-loader-has-no-test-or-lint-gate.md](DIA-260827-48iw-python-phonetics-core-atlas-loader-has-no-test-or-lint-gate.md) |
+| DIA-260827-48iw | Python phonetics-core atlas loader has no test or lint gate | tests | High | CLOSED | [DIA-260827-48iw-python-phonetics-core-atlas-loader-has-no-test-or-lint-gate.md](DIA-260827-48iw-python-phonetics-core-atlas-loader-has-no-test-or-lint-gate.md) |
 | DIA-260827-4aqb | Agent routing bypasses tdd-craftsman RED-GREEN workflow | opencode-config | High | OPEN | [DIA-260827-4aqb-agent-routing-bypasses-tdd-craftsman-red-green-workflow.md](DIA-260827-4aqb-agent-routing-bypasses-tdd-craftsman-red-green-workflow.md) |
 | DIA-260827-4q3h | [HIGH] Reviewer cannot acquire its required diff (bash denied) | opencode-config | High | OPEN | [DIA-260827-4q3h-high-reviewer-cannot-acquire-its-required-diff-bash-denied.md](DIA-260827-4q3h-high-reviewer-cannot-acquire-its-required-diff-bash-denied.md) |
 | DIA-260827-5blh | [MEDIUM] Handoff identity permits path traversal | opencode-config | Medium | OPEN | [DIA-260827-5blh-medium-handoff-identity-permits-path-traversal.md](DIA-260827-5blh-medium-handoff-identity-permits-path-traversal.md) |
 | DIA-260827-5lvx | Shell test execution not runner-reproducible across machines | scripts | Medium | OPEN | [DIA-260827-5lvx-shell-test-execution-not-runner-reproducible-across-machines.md](DIA-260827-5lvx-shell-test-execution-not-runner-reproducible-across-machines.md) |
 | DIA-260827-6g6r | OpenSpec CLI commands unreachable from skills and agents | opencode-config | High | OPEN | [DIA-260827-6g6r-openspec-cli-commands-unreachable-from-skills-and-agents.md](DIA-260827-6g6r-openspec-cli-commands-unreachable-from-skills-and-agents.md) |
 | DIA-260827-6mhp | Docs overstate pnpm test as all tests | docs | Low | OPEN | [DIA-260827-6mhp-docs-overstate-pnpm-test-as-all-tests.md](DIA-260827-6mhp-docs-overstate-pnpm-test-as-all-tests.md) |
-| DIA-260827-6wvm | Embedded OMO suite excluded from root tests hides orchestrator alias regression | tests | High | OPEN | [DIA-260827-6wvm-embedded-omo-suite-excluded-from-root-tests-hides-orchestrator-alias-regression.md](DIA-260827-6wvm-embedded-omo-suite-excluded-from-root-tests-hides-orchestrator-alias-regression.md) |
+| DIA-260827-6wvm | Embedded OMO suite excluded from root tests hides orchestrator alias regression | tests | High | CLOSED | [DIA-260827-6wvm-embedded-omo-suite-excluded-from-root-tests-hides-orchestrator-alias-regression.md](DIA-260827-6wvm-embedded-omo-suite-excluded-from-root-tests-hides-orchestrator-alias-regression.md) |
 | DIA-260827-7mtr | Product test coverage concentrated in two narrow modules | tests | Medium | OPEN | [DIA-260827-7mtr-product-test-coverage-concentrated-in-two-narrow-modules.md](DIA-260827-7mtr-product-test-coverage-concentrated-in-two-narrow-modules.md) |
 | DIA-260827-8la4 | [MEDIUM] Model routing sources disagree (registry vs prompt vs runtime) | opencode-config | Medium | OPEN | [DIA-260827-8la4-medium-model-routing-sources-disagree-registry-vs-prompt-vs-runtime.md](DIA-260827-8la4-medium-model-routing-sources-disagree-registry-vs-prompt-vs-runtime.md) |
 | DIA-260827-95fv | [BUG] task() returns 'Task cancelled' while background session is live or stopped-without-result (return-channel false state) | opencode-config | Major | OPEN | [DIA-260827-95fv-bug-task-returns-task-cancelled-while-background-session-is-live-or-stopped-without-result-return-channel-false-state.md](DIA-260827-95fv-bug-task-returns-task-cancelled-while-background-session-is-live-or-stopped-without-result-return-channel-false-state.md) |
@@ -273,13 +273,13 @@
 | DIA-260831-f1g2 | Editor redundant paths debug machinery | js-tooling | Low | OPEN | [DIA-260831-f1g2-editor-redundant-paths-debug-machinery.md](DIA-260831-f1g2-editor-redundant-paths-debug-machinery.md) |
 | DIA-260831-g7h8 | Plugin load validator hardcodes foreign checkout path | scripts | Medium | OPEN | [DIA-260831-g7h8-plugin-load-validator-hardcodes-foreign-checkout-path.md](DIA-260831-g7h8-plugin-load-validator-hardcodes-foreign-checkout-path.md) |
 | DIA-260831-h3i4 | Built-in build plan write-capable bypass of orchestrator rules | opencode-config | High | OPEN | [DIA-260831-h3i4-built-in-build-plan-write-capable-bypass-of-orchestrator-rules.md](DIA-260831-h3i4-built-in-build-plan-write-capable-bypass-of-orchestrator-rules.md) |
-| DIA-260831-i9j0 | Opus formatting filter destroys CodeMirror transaction semantics | js-tooling | High | OPEN | [DIA-260831-i9j0-opus-formatting-filter-destroys-codemirror-transaction-semantics.md](DIA-260831-i9j0-opus-formatting-filter-destroys-codemirror-transaction-semantics.md) |
+| DIA-260831-i9j0 | Opus formatting filter destroys CodeMirror transaction semantics | js-tooling | High | CLOSED | [DIA-260831-i9j0-opus-formatting-filter-destroys-codemirror-transaction-semantics.md](DIA-260831-i9j0-opus-formatting-filter-destroys-codemirror-transaction-semantics.md) |
 | DIA-260831-j5k6 | Skill validator checks form not capability compatibility | opencode-config | Medium | OPEN | [DIA-260831-j5k6-skill-validator-checks-form-not-capability-compatibility.md](DIA-260831-j5k6-skill-validator-checks-form-not-capability-compatibility.md) |
 | DIA-260831-k1l2 | Editor orchestrator equal-revision overwrite breaks user priority | js-tooling | High | OPEN | [DIA-260831-k1l2-editor-orchestrator-equal-revision-overwrite-breaks-user-priority.md](DIA-260831-k1l2-editor-orchestrator-equal-revision-overwrite-breaks-user-priority.md) |
 | DIA-260831-l7m8 | Orchestrator wildcard all skills including implementation | opencode-config | Medium | OPEN | [DIA-260831-l7m8-orchestrator-wildcard-all-skills-including-implementation.md](DIA-260831-l7m8-orchestrator-wildcard-all-skills-including-implementation.md) |
 | DIA-260831-m3n4 | PoetryDataContract types schema not payload instance | js-tooling | High | OPEN | [DIA-260831-m3n4-poetrydatacontract-types-schema-not-payload-instance.md](DIA-260831-m3n4-poetrydatacontract-types-schema-not-payload-instance.md) |
 | DIA-260831-n9o0 | Book-rag skill references at-rag instead of rag | skills | Low | OPEN | [DIA-260831-n9o0-book-rag-skill-references-at-rag-instead-of-rag.md](DIA-260831-n9o0-book-rag-skill-references-at-rag-instead-of-rag.md) |
-| DIA-260831-p5q6 | PoetryState duplicate line ids corrupt map order invariant | js-tooling | High | OPEN | [DIA-260831-p5q6-poetrystate-duplicate-line-ids-corrupt-map-order-invariant.md](DIA-260831-p5q6-poetrystate-duplicate-line-ids-corrupt-map-order-invariant.md) |
+| DIA-260831-p5q6 | PoetryState duplicate line ids corrupt map order invariant | js-tooling | High | CLOSED | [DIA-260831-p5q6-poetrystate-duplicate-line-ids-corrupt-map-order-invariant.md](DIA-260831-p5q6-poetrystate-duplicate-line-ids-corrupt-map-order-invariant.md) |
 | DIA-260831-r7s8 | Python atlas adapter unimportable from fresh checkout | python-tooling | Medium | OPEN | [DIA-260831-r7s8-python-atlas-adapter-unimportable-from-fresh-checkout.md](DIA-260831-r7s8-python-atlas-adapter-unimportable-from-fresh-checkout.md) |
 | DIA-260831-t9u0 | Atlas sha256 sidecar not raw binary digest | python-tooling | Medium | OPEN | [DIA-260831-t9u0-atlas-sha256-sidecar-not-raw-binary-digest.md](DIA-260831-t9u0-atlas-sha256-sidecar-not-raw-binary-digest.md) |
 | DIA-260831-v1w2 | Atlas codegen fail-open scatters generated artifacts | python-tooling | Medium | OPEN | [DIA-260831-v1w2-atlas-codegen-fail-open-scatters-generated-artifacts.md](DIA-260831-v1w2-atlas-codegen-fail-open-scatters-generated-artifacts.md) |
@@ -305,7 +305,7 @@
 
 | Status      | Count |
 | ----------- | ----- |
-| OPEN        | 83    |
+| OPEN        | 79    |
 | DONE        | 11    |
 | VALIDATE    | 0     |
 | E2E         | 0     |
@@ -314,7 +314,7 @@
 | FIXED       | 1     |
 | IMPLEMENTED | 2     |
 | VERIFIED    | 28    |
-| CLOSED      | 159   |
+| CLOSED      | 163   |
 | BLOCKED     | 0     |
 | DISPATCHED  | 0     |
 | RUNNING     | 0     |

@@ -6,7 +6,7 @@ id: DIA-260831-i9j0
 title: "Opus formatting filter destroys CodeMirror transaction semantics"
 area: js-tooling
 severity: High
-status: OPEN
+status: CLOSED
 blocked_by: []
 parent_epic: DIA-260827-wfcx
 gate_state: "skipped"
@@ -17,7 +17,7 @@ discovered: 2026-08-31
 source: inventory
 date: 2026-08-31
 created: 2026-08-31
-updated: 2026-08-31
+updated: 2026-09-01
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -48,4 +48,14 @@ Rewrite opusFormattingFilter to map every selection range through the final Chan
 
 ## Re-verify
 
-> To be filled at re-verify time.
+Merged to omo-slim-changes at 427f131 fix(editor-engine): preserve transaction semantics in opusFormattingFilter (DIA-260831-i9j0).
+
+Fix: opusFormattingFilter now maps all selection ranges through final ChangeSet and preserves StateEffects, annotations, userEvent, and scrollIntoView.
+
+Re-verify evidence (2026-09-01):
+
+- merge commit: 427f131 (parent e2037d3) on branch omo-slim-changes, verified via git cat-file -p
+- editor-engine tests: 99 pass including 3 new regression tests for multi-cursor, effects/scroll preservation
+- typecheck: exit 0 (pnpm --filter editor-engine typecheck)
+- lint: exit 0
+  Status: developer-approved completion, CLOSED 2026-09-01.
