@@ -1,6 +1,24 @@
-import { describe, expect, test } from 'bun:test';
-import { chmod, mkdir, readFile, stat, writeFile } from 'node:fs/promises';
+import { describe, expect, mock, test } from 'bun:test';
+import { mkdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+
+let shouldFailStat = false;
+mock.module('node:fs/promises', () => {
+  const actual = require('node:fs/promises');
+  return {
+    ...actual,
+    stat: async (...args: unknown[]) => {
+      const p = String((args[0] as string) ?? '');
+      if (shouldFailStat && p.includes('locked/child.txt')) {
+        const err = Object.assign(new Error('EACCES: permission denied, stat'), {
+          code: 'EACCES',
+        });
+        throw err;
+      }
+      return (actual.stat as (...a: unknown[]) => Promise<unknown>)(...args);
+    },
+  };
+});
 
 import { parsePatch } from './codec';
 import { createApplyPatchHook } from './index';
@@ -460,9 +478,6 @@ garbage
 
   test('blocks internal guard errors before native execution', async () => {
     const root = await createTempDir('apply-patch-hook-');
-    const lockedDir = path.join(root, 'locked');
-    await mkdir(lockedDir, { recursive: true });
-    await chmod(lockedDir, 0o000);
     const hook = createHook();
     const patchText = `*** Begin Patch
 *** Add File: locked/child.txt
@@ -470,6 +485,7 @@ garbage
 *** End Patch`;
     const output = { args: { patchText } };
 
+    shouldFailStat = true;
     try {
       await expect(
         hook['tool.execute.before'](
@@ -480,7 +496,7 @@ garbage
 
       expect(output.args.patchText).toBe(patchText);
     } finally {
-      await chmod(lockedDir, 0o755);
+      shouldFailStat = false;
     }
   });
 
@@ -681,26 +697,33 @@ garbage
 
   test('passes through sibling-directory targets outside root/worktree before native execution', async () => {
     const root = await createTempDir('apply-patch-hook-');
-    const outside = path.join(path.dirname(root), 'outside.txt');
+    const outside = path.join(
+      path.dirname(root),
+      `outside-${Date.now()}-${Math.random().toString(36).slice(2)}.txt`,
+    );
     await writeFile(outside, 'outside\n', 'utf-8');
     const hook = createHook();
     const patchText = `*** Begin Patch
-*** Update File: ../outside.txt
+*** Update File: ../${path.basename(outside)}
 @@
 -outside
 +changed
 *** End Patch`;
     const output = { args: { patchText } };
 
-    await expect(
-      hook['tool.execute.before'](
-        { tool: 'apply_patch', directory: root },
-        output,
-      ),
-    ).resolves.toBeUndefined();
+    try {
+      await expect(
+        hook['tool.execute.before'](
+          { tool: 'apply_patch', directory: root },
+          output,
+        ),
+      ).resolves.toBeUndefined();
 
-    expect(output.args.patchText).toBe(patchText);
-    expect(await readFile(outside, 'utf-8')).toBe('outside\n');
+      expect(output.args.patchText).toBe(patchText);
+      expect(await readFile(outside, 'utf-8')).toBe('outside\n');
+    } finally {
+      await rm(outside, { force: true });
+    }
   });
 
   test('normalizes an absolute path inside worktree even when it is outside root', async () => {

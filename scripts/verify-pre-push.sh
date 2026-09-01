@@ -58,7 +58,7 @@ run_workspace() {
     # delegated gate hermetic; the in-container branch above needs no redirect
     # (stdin is a terminal there).
     # DESIGN: run_workspace never forwards stdin; pipe data via files or args.
-    docker compose -f "$ROOT/docker-compose.yml" exec -T dev bash -lc "cd \"${WORKSPACE}\" && ${cmd}" < /dev/null
+    docker compose -f "$ROOT/docker-compose.yml" exec -T --user dev dev bash -lc "cd \"${WORKSPACE}\" && ${cmd}" < /dev/null
   fi
 }
 

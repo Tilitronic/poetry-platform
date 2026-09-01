@@ -232,6 +232,23 @@ EOF
   assert_status 1
 }
 
+@test "verify-pre-push: delegation uses --user dev (not root) on host" {
+  export FAKE_DOCKER_SERVICES="dev"
+
+  run bash "$SCRIPTS_DIR/verify-pre-push.sh"
+
+  assert_status 0
+  # host delegation must run every step as dev, not root (DIA-260901-m4xq)
+  assert_file_contains "$FAKE_DOCKER_LOG" "--user dev"
+  # static guard: the exec line in the script itself must contain --user dev
+  run grep -F 'exec -T --user dev dev' "$SCRIPTS_DIR/verify-pre-push.sh"
+  assert_status 0
+  # no bare `exec -T dev` without --user remains for host delegation
+  run grep -Eq 'exec -T dev( |$)' "$SCRIPTS_DIR/verify-pre-push.sh"
+  # grep exits 1 when no bare pattern found -> desired
+  [ "$status" -ne 0 ]
+}
+
 @test "verify-pre-push: aborts (exit 1) when the sourced guard finds a literal /home/qualt" {
   export FAKE_DOCKER_SERVICES="dev"
   local commands_dir="$BATS_TEST_TMPDIR/commands-dirty"

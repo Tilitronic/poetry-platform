@@ -4,6 +4,7 @@ import * as os from 'node:os';
 import * as path from 'node:path';
 
 let shouldFailRename = false;
+let shouldFailBadSkillCopy = false;
 
 mock.module('node:fs', () => {
   const actualFs = require('node:fs');
@@ -14,6 +15,16 @@ mock.module('node:fs', () => {
         throw new Error('Mocked rename failure');
       }
       return actualFs.renameSync(src, dest);
+    },
+    readdirSync: (...args: unknown[]) => {
+      const p = String((args as string[])[0] ?? '');
+      if (shouldFailBadSkillCopy && p.includes('bad-skill')) {
+        const err = Object.assign(new Error('EACCES: permission denied'), {
+          code: 'EACCES',
+        });
+        throw err;
+      }
+      return (actualFs.readdirSync as (...a: unknown[]) => unknown)(...args);
     },
   };
 });
@@ -167,14 +178,17 @@ describe('syncBundledSkillsFromPackage', () => {
     fs.mkdirSync(badSrcDir, { recursive: true });
     fs.writeFileSync(path.join(badSrcDir, 'SKILL.md'), '# Bad');
 
-    // We lock a nested file/dir or create a file inside staging with chmod 000
-    // Actually, making a nested directory unreadable inside badSrcDir will cause copyDirRecursive to fail
-    const unreadableDir = path.join(badSrcDir, 'locked-subdir');
-    fs.mkdirSync(unreadableDir, { recursive: true });
-    fs.writeFileSync(path.join(unreadableDir, 'secret.txt'), 'top secret');
-    fs.chmodSync(unreadableDir, 0o000);
-
-    const result = await syncBundledSkillsFromPackage(fakePackageRoot);
+    // Root-independent failure: mock readdirSync to throw EACCES for bad-skill
+    const lockedSubdir = path.join(badSrcDir, 'locked-subdir');
+    fs.mkdirSync(lockedSubdir, { recursive: true });
+    fs.writeFileSync(path.join(lockedSubdir, 'secret.txt'), 'top secret');
+    shouldFailBadSkillCopy = true;
+    let result: Awaited<ReturnType<typeof syncBundledSkillsFromPackage>>;
+    try {
+      result = await syncBundledSkillsFromPackage(fakePackageRoot);
+    } finally {
+      shouldFailBadSkillCopy = false;
+    }
 
     expect(result.installed).toContain(goodSkill);
     expect(result.failed).toContain(badSkill);
@@ -1660,18 +1674,19 @@ describe('syncBundledSkillsFromPackage', () => {
       JSON.stringify({ version: '1.2.3' }),
     );
 
-    // Make fs mkdirSync throw on stagedSkillDir or hijack mkdirSync via mock module if possible and cleaner, OR lock it!
-    // Locking stagedParent updates directory
+    // Root-independent ENOTDIR: create a file where stagedParent directory is expected
     const stagedParent = path.dirname(stagedSkillDir);
-    fs.mkdirSync(stagedParent, { recursive: true });
-    fs.chmodSync(stagedParent, 0o000);
+    fs.mkdirSync(path.dirname(stagedParent), { recursive: true });
+    fs.writeFileSync(stagedParent, 'blocking file');
 
-    const result = await syncBundledSkillsFromPackage(fakePackageRoot);
+    let result: Awaited<ReturnType<typeof syncBundledSkillsFromPackage>>;
+    try {
+      result = await syncBundledSkillsFromPackage(fakePackageRoot);
+    } finally {
+      fs.rmSync(stagedParent, { force: true });
+    }
 
     expect(result.failed).toContain(skillName);
     expect(result.skippedExisting).not.toContain(skillName);
-
-    // Reset permissions so afterEach cleanup succeeds
-    fs.chmodSync(stagedParent, 0o777);
   });
 });

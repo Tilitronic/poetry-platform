@@ -22,7 +22,7 @@ setup_python_tree() {
   # Fakes are planted in BOTH venvs; tests delete a venv's binaries to drive
   # the bootstrap path for that package.
   mkdir -p "$TREE/scripts" "$BATS_TEST_TMPDIR/bin"
-  for pkg in apps/api-server packages/analytics-pipeline; do
+  for pkg in apps/api-server packages/analytics-pipeline packages/phonetics-core; do
     mkdir -p "$TREE/$pkg/.venv/bin"
     cat > "$TREE/$pkg/.venv/bin/ruff" <<'FAKERUFF'
 #!/usr/bin/env bash
