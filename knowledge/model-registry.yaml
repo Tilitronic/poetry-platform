@@ -2,15 +2,15 @@
 schema_version: "1.0"
 models:
   - model_id: "deepseek-v4-flash"
-    role: "coder-volume-fallback"
+    role: "multi-lane-primary"
     price_in_1m: 0.22
     price_out_1m: 0.66
     req_per_month: 18900  # ESTIMATE (per res024 sec 3.3)
     swe_bench_verified: 73.7
     source_ref: "res013, res030"
-    lane: "coder"
-    fallback: []
-    quota_notes: "Volume default NO LONGER - price rose +57-371%, budget -88% (res030 2026-08-17); peak $0.44/$1.32 01:00-04:00+06:00-10:00 UTC"
+    lane: ["coder", "reviewer", "analyzer", "researcher", "conspecter", "openspec-plan", "orchestrator", "memory-manager", "code-navigator"]
+    fallback: ["opencode/mimo-v2.5-free", "opencode/big-pickle"]
+    quota_notes: "Promo primary for orchestrator + fallback for coder/reviewer/analyzer/researcher/conspecter/openspec-plan/memory-manager/code-navigator (DIA-260901-s4ij); peak $0.44/$1.32 01:00-04:00+06:00-10:00 UTC"
     active: true
 
   - model_id: "mimo-v2.5"
@@ -26,7 +26,7 @@ models:
     active: true
 
   - model_id: "opencode-go/hy3"
-    role: "multi-lane-primary (cebula-openai-hy3)"
+    role: "retired (was multi-lane-primary)"
     price_in_1m: 0.14
     price_out_1m: 0.58
     req_per_month: 21500  # res030 quota
@@ -34,8 +34,8 @@ models:
     source_ref: "res030"
     lane: ["coder","reviewer","conspecter","resource-manager","memory-manager","code-navigator","researcher"]
     fallback: ["opencode-go/mimo-v2.5","opencode/big-pickle"]
-    quota_notes: "$60 bucket, 4,300 req/5h, 21,500 req/mo, 256K ctx"
-    active: true
+    quota_notes: "$60 bucket, 4,300 req/5h, 21,500 req/mo, 256K ctx - retired DIA-260901-s4ij, replaced by opencode-go/deepseek-v4-flash"
+    active: false
 
   - model_id: "opencode-go/muse-spark-1.2-contributor"
     role: "multi-lane-primary"
@@ -45,22 +45,22 @@ models:
     swe_bench_verified: null
     source_ref: "res041"
     lane: ["coder", "reviewer", "analyzer", "researcher", "conspecter", "openspec-plan"]
-    fallback: ["opencode-go/hy3", "opencode-go/mimo-v2.5"]
+    fallback: ["opencode-go/deepseek-v4-flash", "opencode-go/mimo-v2.5"]
     quota_notes: "Cheapest input ($0.10) + highest Intelligence (56.8) of promo trio, 1.05M ctx; 100 RPM = 144k/day vs workload 120 dispatches/day max (ana036); ADMITTED per DIA-260828-qtsi (privacy cleared by developer: no sensitive traffic)"
     privacy_notes: "Meta Contributor tier trains on prompts/completions; developer cleared (no sensitive traffic) per DIA-260828-qtsi; region-limited availability"
     variant_support: true
     active: true
 
-  - model_id: "qwen3.7-plus"
+  - model_id: "qwen3.8-flash"
     role: "arch/analyzer"
-    price_in_1m: 0.40
-    price_out_1m: 1.60
-    req_per_month: 21600  # ESTIMATE (per res024 sec 3.3)
-    swe_bench_verified: 77.7
+    price_in_1m: 0.15
+    price_out_1m: 0.47
+    req_per_month: 27000
+    swe_bench_verified: null  # no archived benchmark yet - benchmark conspect pending (separate ticket)
     source_ref: "res016"
     lane: "analyzer"
     fallback: []
-    quota_notes: "Strong reasoning, 21.6K req/mo"
+    quota_notes: "$30 bucket, 27K req/mo, pricing $0.15/$0.47 per 1M; benchmark conspect pending (separate ticket)"
     active: true
 
   - model_id: "kimi-k3"
@@ -137,7 +137,7 @@ routing_table:
   - rung: "Rung2"
     signal: "Verify-fail #2"
     lane: "coder"
-    model: "qwen3.7-plus"
+    model: "qwen3.8-flash"
     quota_guarded: false
   - rung: "Rung3"
     signal: "2x failed re-review loops OR Critical severity"
@@ -162,7 +162,7 @@ routing_table:
   - rung: "Analyzer"
     signal: "Default analysis"
     lane: "analyzer"
-    model: "qwen3.7-plus"
+    model: "qwen3.8-flash"
     quota_guarded: false
   - rung: "Analyzer-escalated"
     signal: "cannot comprehend domain OR abort-on-complexity"
@@ -172,5 +172,5 @@ routing_table:
   - rung: "Analyzer-route-back"
     signal: "After escalated pass"
     lane: "analyzer"
-    model: "qwen3.7-plus"
+    model: "qwen3.8-flash"
     quota_guarded: false

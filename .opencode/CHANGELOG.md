@@ -971,3 +971,15 @@
 - **Change:** Wire orchestrator ID ALLOCATION rule to scripts/allocate-id (drop sequential scan) across 9 locations; closes the DIA-260819-8kwm drift where the unified-ID script existed but was never called for ana/tch/res.
 - **Files:** .opencode/oh-my-opencode-slim.jsonc - .opencode/oh-my-opencode-slim/orchestrator_append.md - .opencode/skills/research-pipeline/SKILL.md
 - **Verification:** manual
+
+## 2026-09-01 - DIA-260901-r0hx: config
+
+- **Change:** Replace model QN3.7 Plus with QN3.8 Flash across all presets: 20 mechanical replacements in 3 files (.opencode/oh-my-opencode-slim.jsonc, .opencode/opencode.jsonc, knowledge/model-registry.yaml); coupled council seat key + permission allow-list key rename; model-registry pricing updated to qwen3.8-flash figures; benchmark score null pending conspect
+- **Files:** .opencode/oh-my-opencode-slim.jsonc - .opencode/opencode.jsonc - knowledge/model-registry.yaml
+- **Verification:** manual
+
+## 2026-09-01 - DIA-260901-s4ij: config
+
+- **Change:** Replace opencode-go/hy3 with opencode-go/deepseek-v4-flash across promo preset (script-regenerated), model-registry, and promo-review skill; restore 2-tier orchestrator fallback [flash, mimo-v2.5-free]; retire dangling tencent/hy3-paid promo entry
+- **Files:** scripts/promo-preset-apply - knowledge/model-registry.yaml - .opencode/oh-my-opencode-slim.jsonc - .opencode/skills/promo-review/SKILL.md - .opencode/promo-registry.json
+- **Verification:** manual

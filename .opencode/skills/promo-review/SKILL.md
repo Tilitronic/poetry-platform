@@ -12,7 +12,7 @@ metadata:
 Activated by the orchestrator when: (a) the user explicitly asks to review
 promotions / model pricing, or (b) 14 days have passed since `last_reviewed`
 in `.opencode/promo-registry.json`. The promo preset is a pointer-swap clone
-of `cebula-hy3` (see `scripts/promo-preset-apply`); this skill checks whether
+of the active preset with DeepSeek V4 Flash promo routing (see `scripts/promo-preset-apply`); this skill checks whether
 the underlying promo economics still justify it.
 
 ## Data classification (P1)
@@ -113,7 +113,7 @@ ADMISSION (DIA-260828-qtsi, 2026-08-28): developer cleared privacy - no
 sensitive traffic confirmed, so the Meta Contributor training-on-data
 condition is accepted for NON-SENSITIVE traffic. muse-spark is now ADMITTED:
 `active: true`, status `promo-admitted`, primary for 6 lanes
-[coder, reviewer, analyzer, researcher, conspecter, openspec-plan] with Hy3
+[coder, reviewer, analyzer, researcher, conspecter, openspec-plan] with DeepSeek V4 Flash
 fallback. The skill MUST NEVER silently skip Muse. Every report includes an
 explicit Muse row: benchmarks (from STABLE), the privacy exclusion rationale
 (retained for audit), and the admission condition (non-sensitive traffic
@@ -155,6 +155,6 @@ Return a report with these sections:
 ## Constraints
 - ASCII-only output (DIA-079). No em-dashes, smart quotes, or non-ASCII punctuation.
 - Never set the promo preset active from here; activation is a developer decision.
-- muse-spark ADMITTED 2026-08-28 for non-sensitive traffic (privacy cleared DIA-260828-qtsi, no sensitive traffic confirmed) - primary for 6 lanes [coder,reviewer,analyzer,researcher,conspecter,openspec-plan] with Hy3 fallback; still document exclusion rationale + admission condition.
+- muse-spark ADMITTED 2026-08-28 for non-sensitive traffic (privacy cleared DIA-260828-qtsi, no sensitive traffic confirmed) - primary for 6 lanes [coder,reviewer,analyzer,researcher,conspecter,openspec-plan] with DeepSeek V4 Flash fallback; still document exclusion rationale + admission condition.
 - Skill writes ONLY `last_reviewed` / `next_review` timestamps. Pricing/routing
   changes route via @ai-specialist -> @coder.

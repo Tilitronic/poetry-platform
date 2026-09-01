@@ -224,7 +224,7 @@
           "councillor-deepseek": "allow",
           "councillor-gemini-3.1-pro": "allow",
           "councillor-gpt-5.3-codex": "allow",
-          "councillor-qwen3.7-plus": "allow"
+          "councillor-qwen3.8-flash": "allow"
         },
         "cancel_task": "allow",
         "log_decision": "allow",
@@ -604,7 +604,7 @@
     "ai-specialist": {
       "description": "Read-only researcher of agent/skill/config best practices for OpenCode itself. Findings routed through orchestrator for persistence. Scope: documentation + config review only; no runtime dispatch authority; no implementation.",
       "mode": "subagent",
-      "model": "opencode-go/qwen3.7-plus",
+      "model": "opencode-go/qwen3.8-flash",
       "temperature": 0.3,
       "color": "info",
       "permission": {

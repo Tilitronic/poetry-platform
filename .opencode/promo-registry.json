@@ -26,18 +26,6 @@
       "notes": "ADMITTED 2026-08-28 DIA-260828-qtsi - primary for 6 lanes, Hy3 fallback, privacy cleared (no sensitive traffic)."
     },
     {
-      "model_id": "tencent/hy3-paid",
-      "promo_price_in": 0.14,
-      "promo_price_out": 0.58,
-      "standard_price_in": null,
-      "standard_price_out": null,
-      "req_per_month": 21500,
-      "privacy_tradeoff": "none known (open weights Apache 2.0, 0-day retention)",
-      "region_restricted": false,
-      "expiry": null,
-      "notes": "Hy3 already active preset primary (21.5K req/mo). Used as reviewer/analyzer/openspec-plan primary in promo preset."
-    },
-    {
       "model_id": "xiaomi/mimo-v2-5",
       "promo_price_in": 0.14,
       "promo_price_out": 0.28,
