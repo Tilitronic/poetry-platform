@@ -12,7 +12,7 @@
  *       session_boot row, sets the process-scoped boot flag, and preserves the
  *       first boot.json marker (Boot Dedup Guard, tasks 1.1-1.4 / D1 / D3).
  *   (2) clearing ONLY the process-scoped boot flag simulates a full new process
- *       and emits a NEW session_boot even when boot.json remains fresh — the
+ *   and emits a NEW session_boot even when boot.json remains fresh -- the
  *       exact failure the 30s policy had (a restart within the window wrongly
  *       suppressed the new boot). This is the RED anchor vs the current
  *       time/mtime implementation, which reads boot.json mtime and would skip.
@@ -155,7 +155,7 @@ describe("DIA-260822-oldn: plugin-reload boot-sweep dedup (process-scoped, RED)"
     expect(afterSecond).toBe(afterFirst)
     // (1e) Flag still set (not cleared by the suppressed reload).
     expect(globalThis[BOOT_EMITTED_KEY]).toBe(true)
-    // (1f) First marker preserved — boot_id is unchanged, not overwritten with
+    // (1f) First marker preserved -- boot_id is unchanged, not overwritten with
     //      a fresh randomUUID.
     expect(bootSecond).not.toBeNull()
     expect(bootSecond.boot_id).toBe(firstBootId)
@@ -175,7 +175,7 @@ describe("DIA-260822-oldn: plugin-reload boot-sweep dedup (process-scoped, RED)"
     const firstBootId = bootFirst.boot_id
 
     // Simulate a FULL process restart: ONLY the process-scoped flag is cleared.
-    // boot.json is left exactly as the first process wrote it — fresh and
+    // boot.json is left exactly as the first process wrote it -- fresh and
     // recent. The 30s time/mtime policy would wrongly treat this as a reload
     // and skip; the process-scoped design must treat it as a new boot.
     globalThis[BOOT_EMITTED_KEY] = false
