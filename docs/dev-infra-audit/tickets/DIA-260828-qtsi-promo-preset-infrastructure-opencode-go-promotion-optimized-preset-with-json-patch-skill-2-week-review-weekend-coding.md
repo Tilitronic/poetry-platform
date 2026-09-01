@@ -6,7 +6,7 @@ id: DIA-260828-qtsi
 title: "promo preset infrastructure: opencode-go promotion-optimized preset with json patch + skill (2-week review, weekend coding)"
 area: opencode-config
 severity: Major
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: ""
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
@@ -17,7 +17,7 @@ discovered: 2026-08-28
 source: inventory
 date: 2026-08-28
 created: 2026-08-28
-updated: 2026-08-28
+updated: 2026-09-01
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -60,4 +60,6 @@ Skill landed at .opencode/skills/promo-review/SKILL.md (157 lines, 6 controls + 
 
 ## Re-verify
 
-> To be filled at re-verify time.
+Commits: 762ce8c, 62088c1
+Tests: make test-config exit 0 (57 pass)
+Confirm: promo preset infrastructure + promo-review skill landed.

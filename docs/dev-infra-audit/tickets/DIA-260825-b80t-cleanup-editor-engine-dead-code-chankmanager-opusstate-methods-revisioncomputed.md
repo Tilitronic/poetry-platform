@@ -6,7 +6,7 @@ id: DIA-260825-b80t
 title: "cleanup editor-engine dead code ChankManager OpusState methods revisionComputed"
 area: scripts
 severity: Medium
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: ""
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
@@ -17,7 +17,7 @@ discovered: 2026-08-25
 source: inventory
 date: 2026-08-25
 created: 2026-08-25
-updated: 2026-08-25
+updated: 2026-09-01
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -45,8 +45,10 @@ files and line references where known.>
 
 ## Fix
 
-> To be filled at fix time.
+Delete editor-engine dead code ChankManager (101 lines), OpusState.getLineAt/moveLine, LineAtom.revisionComputed (a9a2842).
 
 ## Re-verify
 
-> To be filled at re-verify time.
+Commits: a9a2842
+Tests: make test-config exit 0; bats-wrapper exit 0
+Confirm: editor-engine dead code deleted, tsc/vitest green at commit time.

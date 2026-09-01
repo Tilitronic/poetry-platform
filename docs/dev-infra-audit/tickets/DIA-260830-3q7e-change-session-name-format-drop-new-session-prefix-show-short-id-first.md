@@ -6,7 +6,7 @@ id: DIA-260830-3q7e
 title: "Change session name format: drop 'New session -' prefix, show [short-id] first"
 area: opencode-config
 severity: Minor
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: ""
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
@@ -17,7 +17,7 @@ discovered: 2026-08-30
 source: inventory
 date: 2026-08-30
 created: 2026-08-30
-updated: 2026-08-30
+updated: 2026-09-01
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -45,8 +45,10 @@ files and line references where known.>
 
 ## Fix
 
-> To be filled at fix time.
+Change session name format: drop 'New session -' prefix, show [short-id] first (f7ffb14).
 
 ## Re-verify
 
-> To be filled at re-verify time.
+Commits: f7ffb14
+Tests: make test-config exit 0; bun test needs-input-observer.dia189.test.mjs 25 pass (6 desktop-toast fails are platform-gated Linux divergence, title-format A1/P1 pass)
+Confirm: session title format shows [short-id] first, no New session prefix.

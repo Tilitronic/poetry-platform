@@ -6,7 +6,7 @@ id: DIA-260827-s4s1
 title: "Replace weak substring meta-task whitelist with structured [META-TASK] marker"
 area: dev-infra
 severity: High
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: ""
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
@@ -17,7 +17,7 @@ discovered: 2026-08-27
 source: inventory
 date: 2026-08-27
 created: 2026-08-27
-updated: 2026-08-27
+updated: 2026-09-01
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -48,4 +48,6 @@ Replace the substring whitelist with a single exact [META-TASK] marker check tha
 
 ## Re-verify
 
-> To be filled at re-verify time.
+Commits: ed743d4, f6ceefc
+Tests: make test-config exit 0; bun test dia217-ticket-gate.test.mjs 22 pass
+Confirm: strict [META-TASK] marker replaces weak whitelist.

@@ -6,7 +6,7 @@ id: DIA-260827-qc59
 title: "add OpenAI-free cebula HY3 preset with role-based reasoning"
 area: opencode-config
 severity: Medium
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: ""
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
@@ -17,7 +17,7 @@ discovered: 2026-08-27
 source: inventory
 date: 2026-08-27
 created: 2026-08-27
-updated: 2026-08-27
+updated: 2026-09-01
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -78,8 +78,10 @@ API `429 insufficient_quota`, and unsupported scalar variants remain. Evidence:
 
 ## Fix
 
-> To be filled at fix time.
+Add OpenAI-free cebula HY3 preset with role-based reasoning (2e081b6).
 
 ## Re-verify
 
-> To be filled at re-verify time.
+Commits: 2e081b6
+Tests: make test-config exit 0
+Confirm: cebula HY3 OpenAI-free preset landed.

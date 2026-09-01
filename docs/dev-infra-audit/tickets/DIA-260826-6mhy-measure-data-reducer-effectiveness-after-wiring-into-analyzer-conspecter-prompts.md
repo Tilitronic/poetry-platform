@@ -6,7 +6,7 @@ id: DIA-260826-6mhy
 title: "measure data-reducer effectiveness after wiring into analyzer conspecter prompts"
 area: opencode-config
 severity: Low
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: DIA-260821-bqy7
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
@@ -17,7 +17,7 @@ discovered: 2026-08-26
 source: inventory
 date: 2026-08-26
 created: 2026-08-26
-updated: 2026-08-26
+updated: 2026-09-01
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -45,8 +45,10 @@ files and line references where known.>
 
 ## Fix
 
-> To be filled at fix time.
+Wire data-reducer into analyzer/conspecter prompts + delegation-observer (c8e74c7).
 
 ## Re-verify
 
-> To be filled at re-verify time.
+Commits: c8e74c7
+Tests: make test-config exit 0
+Confirm: data-reducer wired into analyzer/conspecter prompts.

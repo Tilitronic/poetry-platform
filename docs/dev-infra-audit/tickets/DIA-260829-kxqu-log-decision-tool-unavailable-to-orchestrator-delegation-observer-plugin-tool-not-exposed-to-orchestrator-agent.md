@@ -6,7 +6,7 @@ id: DIA-260829-kxqu
 title: "log_decision tool unavailable to orchestrator -- delegation-observer plugin tool not exposed to orchestrator agent"
 area: scripts
 severity: Medium
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: ""
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
@@ -17,7 +17,7 @@ discovered: 2026-08-29
 source: inventory
 date: 2026-08-29
 created: 2026-08-29
-updated: 2026-08-29
+updated: 2026-09-01
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -45,8 +45,10 @@ files and line references where known.>
 
 ## Fix
 
-> To be filled at fix time.
+Make delegation-observer Bun-parseable and expose log_decision tool (b42a1a7, 54e2dc1, ddcb2a2); harden handoff/ticket gates.
 
 ## Re-verify
 
-> To be filled at re-verify time.
+Commits: b42a1a7, 54e2dc1, ddcb2a2
+Tests: make test-config exit 0; bun test plugin-load-smoke.test.mjs 7 pass; validate-plugin-loads script path-hardcoded (bun smoke green)
+Confirm: delegation-observer Bun-parseable, log_decision exposed, gates hardened.

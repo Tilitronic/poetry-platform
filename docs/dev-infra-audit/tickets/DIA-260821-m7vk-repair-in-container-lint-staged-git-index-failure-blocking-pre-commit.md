@@ -6,7 +6,7 @@ id: DIA-260821-m7vk
 title: "Repair in-container lint-staged Git index failure blocking pre-commit"
 area: dev-infra
 severity: Major
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: ""
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
@@ -17,7 +17,7 @@ discovered: 2026-08-21
 source: inventory
 date: 2026-08-21
 created: 2026-08-21
-updated: 2026-08-21
+updated: 2026-09-01
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -45,8 +45,10 @@ files and line references where known.>
 
 ## Fix
 
-> To be filled at fix time.
+Align container UID/GID + migrate .git ownership at boot to fix lint-staged index (c19ed6b).
 
 ## Re-verify
 
-> To be filled at re-verify time.
+Commits: c19ed6b
+Tests: make test-config exit 0; bats-wrapper exit 0; verify-pre-commit-uid-mismatch.bats pass
+Confirm: UID/GID alignment + .git ownership migration verified.

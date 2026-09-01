@@ -6,7 +6,7 @@ id: DIA-260827-x99j
 title: "replace opencode/hy3-free with opencode-go/hy3 in cebula-hy3 preset"
 area: opencode-config
 severity: Minor
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: ""
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
@@ -17,7 +17,7 @@ discovered: 2026-08-27
 source: inventory
 date: 2026-08-27
 created: 2026-08-27
-updated: 2026-08-27
+updated: 2026-09-01
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -45,8 +45,10 @@ files and line references where known.>
 
 ## Fix
 
-> To be filled at fix time.
+Replace opencode/hy3-free with opencode-go/hy3 in cebula-hy3 preset (7ac48a5, shared with z9hq).
 
 ## Re-verify
 
-> To be filled at re-verify time.
+Commits: 7ac48a5
+Tests: make test-config exit 0
+Confirm: cebula-hy3 preset hy3-free -> hy3 verified.

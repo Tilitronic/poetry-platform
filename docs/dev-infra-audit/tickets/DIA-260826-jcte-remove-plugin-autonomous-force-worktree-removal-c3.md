@@ -6,7 +6,7 @@ id: DIA-260826-jcte
 title: "remove plugin autonomous force worktree removal (C3)"
 area: delegation-observer
 severity: Critical
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: DIA-260825-wprb
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
@@ -17,7 +17,7 @@ discovered: 2026-08-26
 source: inventory
 date: 2026-08-26
 created: 2026-08-26
-updated: 2026-08-26
+updated: 2026-09-01
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -95,24 +95,6 @@ errMsg?)` (delegation-observer.ts:1284) with a `mode: "idle" | "error"`
 
 ## Re-verify
 
-Re-verify the 5 fixes for DIA-260826-jcte (committed in ea06ecd1):
-
-- [x] `make test-shell` ? dia220-apoptosis-paracrine.test.mjs green
-      (consolidated helper exercised by both idle + error paths; test 3
-      asserts git worktree remove called with tracked path; dirty-worktree
-      test asserts apoptosis_worktree_dirty row).
-- [x] `make test-config` ? config validation passes (no agent-name /
-      schema drift introduced by the change).
-- [x] FALSIFICATION-1: a session that errored with circuit CLOSED, then
-      receives a later session.idle with circuit OPEN, reaches apoptosis
-      (idle-apoptosis check precedes the S2 forward-only guard).
-- [x] FALSIFICATION-2: a worktree with untracked coder output is treated as
-      dirty by `git status --porcelain` (no --untracked-files=no) and emits
-      apoptosis_worktree_dirty; no --force removal is ever issued.
-- [x] Role-resolution: registered children (session.created parentID) are
-      classified "subagent" via meta?.role, not misrouted to the a5 branch.
-- [x] No stale RED-phase comments remain in the test file.
-
-Acceptance: the plugin no longer performs autonomous force worktree removal;
-dirty trees persist by design and the developer decides. Apoptosis remains a
-last-resort dual-key (circuit.open + session.error/idle) graceful shutdown.
+Commits: ea06ecd1
+Tests: make test-config exit 0; bun test dia220-apoptosis-paracrine.test.mjs pass (53 across 4-file suite)
+Confirm: autonomous force worktree removal removed; apoptosis helper consolidated.

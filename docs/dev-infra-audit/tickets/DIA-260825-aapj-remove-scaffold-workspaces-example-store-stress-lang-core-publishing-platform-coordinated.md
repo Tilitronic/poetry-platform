@@ -6,7 +6,7 @@ id: DIA-260825-aapj
 title: "remove scaffold workspaces example-store stress-lang-core publishing-platform coordinated"
 area: scripts
 severity: Medium
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: ""
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
@@ -17,7 +17,7 @@ discovered: 2026-08-25
 source: inventory
 date: 2026-08-25
 created: 2026-08-25
-updated: 2026-08-25
+updated: 2026-09-01
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -45,11 +45,13 @@ files and line references where known.>
 
 ## Fix
 
-> To be filled at fix time.
+Delete scaffold workspaces stress-lang-core + publishing-platform (f4362d9); remove dead dep, update pnpm-lock, keep example-store per disposition.
 
 ## Re-verify
 
-> To be filled at re-verify time.
+Commits: f4362d9
+Tests: make test-config exit 0; bats-wrapper exit 0
+Confirm: scaffold workspaces deleted, gen-jsconfig assertion updated.
 
 ## UPDATE (2026-08-25, DIA-260825-wprb fix-all disposition)
 

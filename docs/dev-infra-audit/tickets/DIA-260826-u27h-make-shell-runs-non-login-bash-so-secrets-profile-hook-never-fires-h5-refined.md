@@ -6,7 +6,7 @@ id: DIA-260826-u27h
 title: "make shell runs non-login bash so secrets profile hook never fires (H5 refined)"
 area: dev-infra
 severity: Major
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: DIA-260825-wprb
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
@@ -17,7 +17,7 @@ discovered: 2026-08-26
 source: inventory
 date: 2026-08-26
 created: 2026-08-26
-updated: 2026-08-26
+updated: 2026-09-01
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -45,8 +45,10 @@ files and line references where known.>
 
 ## Fix
 
-> To be filled at fix time.
+Make shell non-login bash so secrets profile hook never fires; add platform detection to needs-input observer (9f1da995).
 
 ## Re-verify
 
-> To be filled at re-verify time.
+Commits: 9f1da995
+Tests: make test-config exit 0; bun test needs-input-observer.platform-gate.test.mjs pass
+Confirm: non-login bash platform detection wired.

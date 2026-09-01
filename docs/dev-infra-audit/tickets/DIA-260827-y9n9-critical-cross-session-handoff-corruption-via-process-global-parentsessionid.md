@@ -6,7 +6,7 @@ id: DIA-260827-y9n9
 title: "[CRITICAL] Cross-session handoff corruption via process-global parentSessionId"
 area: opencode-config
 severity: Critical
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: ""
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
@@ -17,7 +17,7 @@ discovered: 2026-08-27
 source: inventory
 date: 2026-08-27
 created: 2026-08-27
-updated: 2026-08-27
+updated: 2026-09-01
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -52,4 +52,17 @@ Fix: require current runtime session ID for handoff identity; validate any fallb
 
 ## Re-verify
 
-> To be filled at re-verify time.
+Re-verify 2026-09-01 - CLOSED.
+
+Fix commits: 54e2dc1 (handoff slot identity now derives solely from trusted context.sessionID; process-global parentSessionId capture removed).
+
+Test gate:
+
+- Command: bun test --cwd .opencode/plugins/**tests** parallel-handoff.test.mjs
+- Exit code: 0 (12 pass / 0 fail / 86 expect calls)
+- Relevant passing assertions:
+  - DIA-260827-y9n9: trusted context.sessionID wins over the task()-captured session and over lane_id
+  - DIA-260827-y9n9: a second parallel session's terminal handoff does not clobber the first session's slot or pointer
+- Additional host gate: bun test --cwd .opencode/plugins/**tests** dia217-ticket-gate.test.mjs -> 22 pass / 0 fail (no regression).
+
+One-line confirmation: handoff slot identity is now solely the current runtime session id (context.sessionID); parallel sessions no longer overwrite each other's slot or active.json.

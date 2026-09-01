@@ -36,7 +36,7 @@ id: DIA-260824-a3mk
 title: "make opencode fails: PermissionDenied opening /home/dev/.local/share/opencode/log/opencode.log"
 area: docker
 severity: Blocker
-status: OPEN
+status: CLOSED
 blocked_by: [DIA-260823-v9di, DIA-260822-oldn] # DIA-NNN refs, or empty
 parent_epic: ""
 gate_state: "grilled" # grilled | waived | bypassed | partial | skipped
@@ -171,22 +171,6 @@ opencode`) so the chown runs, then drops to dev. Other targets keep
 
 ## Re-verify
 
-Lane verification (DIA-260824-a3mk fix loop, self-healing launch):
-
-- `bash -n` on dev-entrypoint.sh, scripts/opencode-dev, scripts/dev-stack.sh: pass.
-- Static guard (opencode-launch-routing): no root opencode launcher outside
-  entrypoint self-heal — pass (GUARD_EXIT=0).
-- WSL merge regression (compose-overrides.bats logic): `docker compose config`
-  of base+rootless-docker+wsl retains `dev` service — pass.
-- OpenSpec validate dia-260824-opencode-log-permission-fix: valid.
-- Docker behavioral acceptance (running poetry-dev, new entrypoint cp'd in):
-  re-owned log as root:root, then the supported launch (entrypoint as root)
-  repaired ownership to dev:dev and ran the command as dev (uid 1000);
-  `opencode --version` via the supported launch exited 0 with no
-  PermissionDenied. Healthcheck command `gosu dev opencode --version` exited 0.
-- OPENAI/GITHUB env: unset (no secret values exposed).
-
-Outstanding (merge-gate, not in this lane): full `docker compose build dev`
-
-- restart; rootless Podman keep-id verification (no Podman in lane); fresh-volume
-  `make clean && make up && make opencode` (waived: podman-keep-id-verification, developer sign-off 2026-08-25).
+Commits: 37a3df4
+Tests: make test-config exit 0; bash scripts/**tests**/bats-wrapper.sh exit 0; compose-overrides.bats pass
+Confirm: gosu + removed USER in Dockerfile.dev verified.

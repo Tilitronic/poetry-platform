@@ -792,6 +792,18 @@ shelf:
     path: knowledge/ana037-docker-wsl-remake-plan/ana037-docker-wsl-remake-plan-report.md
     created: 2026-08-28
     task_ref: DIA-260821-x5nj
+  - name: Session Handoff, Context Thresholds & Orchestrator-Model Audit (DIA-260822-medh)
+    description: "Read-only advisory audit of session-handoff protocol (DIA-085/093/120),\
+      \ context thresholds (DIA-191/198), auto-compaction, and orchestrator-model choices.\
+      \ Handoff protocol mechanically sound; context thresholds reconciled post-DIA-198;\
+      \ auto-compaction non-contending with handoffs; orchestrator promo preset routes\
+      \ hy3 + deepseek-v4-flash (adequate but not cheapest). Top fixes: R1 delete dead\
+      \ getContextPressure branch in delegation-observer.ts, R2 fix @ai-auditor model\
+      \ github-copilot/gpt-5.3-codex -> gpt-5.3-codex, R4 author benchmark conspects\
+      \ for hy3/qwen3.8-flash."
+    path: knowledge/ana-session-handoff-context-audit/ana-session-handoff-context-audit-report.md
+    created: 2026-08-22
+    task_ref: DIA-260822-medh
   adrs:
   - name: Memory Storage Strategy
     description: 'Evaluation of Claude-Mem, Honcho, and current hand-written memory

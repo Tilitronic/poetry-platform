@@ -6,7 +6,7 @@ id: DIA-260825-n5x4
 title: "cleanup plugin dead code and native base64url codec in delegation-observer"
 area: scripts
 severity: Medium
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: ""
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
@@ -17,7 +17,7 @@ discovered: 2026-08-25
 source: inventory
 date: 2026-08-25
 created: 2026-08-25
-updated: 2026-08-25
+updated: 2026-09-01
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -45,8 +45,10 @@ files and line references where known.>
 
 ## Fix
 
-> To be filled at fix time.
+Native base64url codec via Buffer, delete dead health-store/selector code (15338aa); sync capability-tokens test helpers.
 
 ## Re-verify
 
-> To be filled at re-verify time.
+Commits: 15338aa
+Tests: make test-config exit 0; bun test capability-tokens.test.mjs pass (within 53-suite)
+Confirm: native base64url codec, dead plugin code removed.

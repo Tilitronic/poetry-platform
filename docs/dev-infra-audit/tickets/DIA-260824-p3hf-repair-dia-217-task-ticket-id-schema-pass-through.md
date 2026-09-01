@@ -6,7 +6,7 @@ id: DIA-260824-p3hf
 title: "Repair DIA-217 task ticket ID schema pass-through"
 area: scripts
 severity: Medium
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: ""
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
@@ -17,7 +17,7 @@ discovered: 2026-08-24
 source: inventory
 date: 2026-08-24
 created: 2026-08-24
-updated: 2026-08-24
+updated: 2026-09-01
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -67,13 +67,6 @@ contract instead of asking models to invent an unavailable argument.
 
 ## Re-verify
 
-- RED 1: schema-omitted literal-ID dispatch was blocked (6 pass, 1 fail).
-- GREEN 1: literal-ID bridge passed (7 pass, 0 fail).
-- RED 2: the real multi-reference lane-0 shape was ambiguous and blocked (7
-  pass, 1 fail).
-- GREEN 2: campaign-ticket disambiguation passed (8 pass, 0 fail, 31
-  assertions).
-- Regression: complete observer suite passed (102 pass, 0 fail, 316
-  assertions).
-- Config gate: `make test-config` passed (exit 0); Prettier passed for all
-  changed source, prompt, and policy files.
+Commits: 112bca1
+Tests: make test-config exit 0; bun test dia217-ticket-gate.test.mjs 22 pass (89 expect) --cwd **tests**
+Confirm: campaign-ticket DIA-id extraction pass-through verified.

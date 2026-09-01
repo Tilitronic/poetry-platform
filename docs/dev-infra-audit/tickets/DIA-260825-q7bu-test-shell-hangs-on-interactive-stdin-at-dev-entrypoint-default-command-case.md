@@ -6,7 +6,7 @@ id: DIA-260825-q7bu
 title: "test-shell hangs on interactive stdin at dev-entrypoint default-command case"
 area: scripts
 severity: Medium
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: ""
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
@@ -17,7 +17,7 @@ discovered: 2026-08-25
 source: inventory
 date: 2026-08-25
 created: 2026-08-25
-updated: 2026-08-25
+updated: 2026-09-01
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -65,4 +65,6 @@ via the shared helper; it was not "fixed".
 
 ## Re-verify
 
-> To be filled at re-verify time.
+Commits: 77ae58d, 99c5d94
+Tests: make test-config exit 0 (57 pass); bash scripts/**tests**/bats-wrapper.sh exit 0 (585 ok); dev-entrypoint.bats includes stdin=/dev/null guard
+Confirm: Fix present in working tree; test-shell hang resolved with /dev/null guard.

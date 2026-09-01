@@ -6,7 +6,7 @@ id: DIA-260825-f1o7
 title: "misc cleanup run_phase_a v1 os.replace kb-cache phonetics empty placeholders plus doc sync"
 area: scripts
 severity: Medium
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: ""
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
@@ -17,7 +17,7 @@ discovered: 2026-08-25
 source: inventory
 date: 2026-08-25
 created: 2026-08-25
-updated: 2026-08-25
+updated: 2026-09-01
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -45,8 +45,10 @@ files and line references where known.>
 
 ## Fix
 
-> To be filled at fix time.
+Misc cleanup: os.replace in query_rag, delete run_phase_a.sh + 4 empty phonetics-core placeholders, doc sync (69aa970).
 
 ## Re-verify
 
-> To be filled at re-verify time.
+Commits: 69aa970
+Tests: make test-config exit 0; bats-wrapper exit 0
+Confirm: misc cleanup applied, os.replace atomicity verified.

@@ -6,7 +6,7 @@ id: DIA-260831-9zq6
 title: "Wire orchestrator ID ALLOCATION rule to scripts/allocate-id (drop sequential scan)"
 area: opencode-config
 severity: Major
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: ""
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
@@ -17,7 +17,7 @@ discovered: 2026-08-31
 source: inventory
 date: 2026-08-31
 created: 2026-08-31
-updated: 2026-08-31
+updated: 2026-09-01
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -54,8 +54,10 @@ evidence: []
 
 ## Fix
 
-> To be filled at fix time.
+Wire ID ALLOCATION rule to scripts/allocate-id datetime IDs across 7 presets (646e861, 12229d0).
 
 ## Re-verify
 
-> To be filled at re-verify time.
+Commits: 646e861, 12229d0
+Tests: make test-config exit 0
+Confirm: ID ALLOCATION wired to scripts/allocate-id (datetime IDs).
