@@ -17,6 +17,7 @@
 #   make check-tools  host-runnable tool integrity check (mise vs node/pnpm pins)
 #   make test-infra   test-shell + full Docker compose smoke test (heavy)
 #   make test-config  validate OpenCode JSONC config syntax + interview + skills gate + docker-compose.yml
+#   make test-omo      bun test + typecheck for embedded OMO suite (.opencode/oh-my-opencode-slim, DIA-260827-6wvm)
 #   make test-interview  run scripts/test-interview-enforcement.sh (5 checks)
 #   make test-skills  validate .opencode/skills/*/SKILL.md frontmatter (DIA-037)
 #   make audit-python  pip-audit both Python packages (requires uv + committed uv.lock)
@@ -25,7 +26,7 @@
 #   make session-analytics  canned analytics over native OpenCode telemetry (opencode stats/db; ARGS pass-through)
 #   make test-harness  C5 scenario replay (bats) + bun plugin tests (requires Docker)
 
-.PHONY: build up shell opencode dev stack install db-psql logs down clean check-pin-sync check-tools check-host-jq check-host-lsp gen-jsconfig test-shell test-opencode-docker test-python test-infra test-config test-interview test-skills eval-lite audit-python context7-docs jsonl-stats session-log-render jsonl-cross-check session-query session-analytics test-harness worktree-gc
+.PHONY: build up shell opencode dev stack install db-psql logs down clean check-pin-sync check-tools check-host-jq check-host-lsp gen-jsconfig test-shell test-opencode-docker test-python test-infra test-config test-omo test-interview test-skills eval-lite audit-python context7-docs jsonl-stats session-log-render jsonl-cross-check session-query session-analytics test-harness worktree-gc
 
 # Engine-aware compose stack (DIA-260826-766f): every bare `docker compose`
 # target below inherits this COMPOSE_FILE. Computed docker-free at parse time by
@@ -303,6 +304,12 @@ session-analytics:
 test-harness:
 	bash scripts/__tests__/bats-wrapper.sh --filter harness-scenario-replay
 	docker compose exec -T --user dev dev bash -lc 'cd /workspace/.opencode/plugins/__tests__ && bun test'
+
+# Embedded OMO suite gate (DIA-260827-6wvm): bun test + typecheck for
+# .opencode/oh-my-opencode-slim (excluded from pnpm-workspace, so pnpm test
+# does not cover it). Host- and container-runnable.
+test-omo:
+	bash scripts/test-omo.sh
 
 # Post-merge worktree GC: delete merged feature/* branches + sweep orphaned
 # dirs in .worktrees/ + prune stale git worktree admin files. The documented

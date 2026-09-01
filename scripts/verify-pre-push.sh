@@ -99,6 +99,7 @@ run_workspace "pnpm verify:format"
 run_workspace "pnpm verify:js"
 run_workspace "pnpm verify:js-tests"
 run_workspace "make test-config"
+run_workspace "make test-omo"
 run_workspace "pnpm verify:python"
 run_workspace "make test-shell"
 

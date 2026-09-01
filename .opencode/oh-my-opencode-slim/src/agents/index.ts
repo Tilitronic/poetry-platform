@@ -674,7 +674,9 @@ export function getAgentConfigs(
       : undefined;
 
     if (normalizedDisplayName && !isInternalOnly(a.name)) {
-      entries.push([normalizedDisplayName, sdkConfig]);
+      const visibleConfig = { ...sdkConfig };
+      delete (visibleConfig as { hidden?: boolean }).hidden;
+      entries.push([normalizedDisplayName, visibleConfig]);
       entries.push([a.name, { ...sdkConfig, hidden: true }]);
       continue;
     }
