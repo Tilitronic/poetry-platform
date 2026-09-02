@@ -2222,3 +2222,30 @@ recorded here). Irrecoverable process lessons:
   3. The canonical pre-commit hook (husky + lint-staged) runs automatically on every git commit. Do not add redundant verification steps that duplicate what the hook already does; they waste a dispatch and risk conflicting with the canonical path.
 - Why irrecoverable: the hostname context detection and the "don't duplicate gate logic in dispatch prompts" rule are runtime/session knowledge not present in any committed file or ticket. A fresh agent reading the repo would see scripts/verify-pre-commit.sh as the canonical gate but would not know that a dispatch-level duplicate gate was the cause of the cod-5 block.
 - Cross-reference: scripts/verify-pre-commit.sh (the single source of truth), DIA-260901-vior, failures.md "pre-commit hook blocks local commits" entry (related: different failure mode but same gate infrastructure).
+
+## L20260901-005 - Uncommitted work recovery via git dangling blob after fixture clobber (DIA-260902-eqgg, 2026-09-01)
+
+- Observation: after a bats fixture clobbered an uncommitted refactored file (the 4233-line post-fix version of delegation-observer.ts), the pre-clobber content was recovered from a git dangling blob (git fsck --lost-found / git cat-file blob <sha>). The recovery procedure was:
+  1. Preserve the clobbered fixture to a temp incident file (for later analysis).
+  2. Materialize the blob to a temp file via `git cat-file blob <sha>`.
+  3. Verify line count + SHA-256 of the materialized blob against the expected pre-clobber state.
+  4. Replace only the target file (not the whole working tree).
+  5. Parse-check the restored file (syntax validation).
+  6. Do NOT run git gc/prune/checkout/restore/reset (these can destroy dangling blobs).
+- Key fact: the EXACT 4233-line post-fix version was NOT found as a dangling blob. Only the 4236-line S11 base version existed. The implementer reapplied the small delta (3 lines) manually after restoring the base.
+- Lesson: when uncommitted work is clobbered by a test fixture or lane, check for dangling blobs BEFORE any git cleanup operation. Dangling blobs are the last-resort recovery for uncommitted content. The recovery order is: (1) check git fsck --lost-found, (2) verify blob content matches expected state, (3) restore only the affected file, (4) reapply any small delta if the exact version is not found. Never run git gc/prune/checkout/restore/reset before checking for dangling blobs -- those operations can destroy the recovery path.
+- Why irrecoverable: the dangling blob recovery procedure and the "exact version not found, reapply delta" observation are session-state recovery knowledge not stated in any commit or test; git shows only the final restored file, not the recovery path.
+- Cross-reference: delegation-observer SRP refactor (DIA-260902-eqgg), git dangling blob recovery, failures.md bats fixture clobber entry.
+
+## L20260901-006 - Temporary operational model override lifecycle: targeted single-line swap, not whole-file overwrite (DIA-260901-nm7j, 2026-09-01)
+
+- Observation: a temporary uncommitted config override (ai-auditor model) was applied and later restored. The restore must use a TARGETED single-line swap (e.g. sed or jq to change only the model field), NOT `git show HEAD:file > file` which overwrites the entire file and can clobber concurrent edits. The override was applied to enable a re-audit gate (ai-auditor model override), kept active until the gate completed, then restored via targeted swap. Verification: `git diff -- <file>` being empty confirms restoration.
+- Lifecycle rules:
+  1. Apply the override via a targeted single-line edit (sed/jq), not a whole-file overwrite.
+  2. Keep the override active until the dependent gate (re-audit) completes.
+  3. Restore only AFTER the gate completes, via the same targeted single-line swap.
+  4. Verify restoration with `git diff -- <file>` being empty.
+  5. Never commit the override or its restoration -- these are uncommitted operational state.
+  6. Never use `git show HEAD:file > file` for restoration -- this is a whole-file overwrite that destroys concurrent edits.
+- Why irrecoverable: the override lifecycle (apply-gate-complete-restore-verify) and the "targeted swap not whole-file overwrite" pattern are operational session knowledge not stated in any committed file; the config diff shows only the final state, not the temporary override and its restoration procedure.
+- Cross-reference: DIA-260901-nm7j (permanent routing decision for ai-auditor model), DIA-260902-eqgg (the re-audit gate that required the override).

@@ -983,3 +983,9 @@
 - **Change:** Replace opencode-go/hy3 with opencode-go/deepseek-v4-flash across promo preset (script-regenerated), model-registry, and promo-review skill; restore 2-tier orchestrator fallback [flash, mimo-v2.5-free]; retire dangling tencent/hy3-paid promo entry
 - **Files:** scripts/promo-preset-apply - knowledge/model-registry.yaml - .opencode/oh-my-opencode-slim.jsonc - .opencode/skills/promo-review/SKILL.md - .opencode/promo-registry.json
 - **Verification:** manual
+
+## 2026-09-02 - DIA-260902-eqgg: config
+
+- **Change:** Extract delegation-observer responsibilities into seven production-wired seam modules
+- **Files:** .opencode/plugins/delegation-observer.ts - .opencode/plugins/lib/capability.ts - .opencode/plugins/lib/ticket-gate.ts - .opencode/plugins/lib/handoff.ts - .opencode/plugins/lib/registry.ts - .opencode/plugins/lib/stall-sweep.ts - .opencode/plugins/lib/formatter.ts - .opencode/plugins/lib/circuit-breaker.ts - scripts/validate-plugin-structure.sh - scripts/__tests__/validate-plugin-structure.bats
+- **Verification:** make test-config exit 0 (57 tests, incl. validate-plugin-structure Gate A/B/C 10/10, validate-plugin-loads Node+Bun Wy-compat PASS, validate-observer-dedupe PASS); bats 10/10 lib 270/270 integration 12/12 harness parity 3/3 perf p95 0.247ms shell 4093 lines; ai-auditor APPROVE cycle 2/2 O1-O3 verified-closed; temporary ai-auditor override ACTIVE (developer KEEP decision, uncommitted); implementation commit recorded at closure; learnings outcome: ai-auditor independent review APPROVE (cycle 2/2); cod-3 Bats fixture clobber root cause (restore_plugin after assert_status) fixed via BATS_TEST_TMPDIR isolation + checksum regression; shell recovered from dangling blob ec487dc3

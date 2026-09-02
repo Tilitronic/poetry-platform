@@ -399,6 +399,23 @@ Failed-loop lessons & preventive actions
   - Why irrecoverable: plugin lifecycle-lock error text and the successful fallback are runtime/session behavior, not in code or git history.
   - Cross-reference: failures.md "revive stopped unconfirmed" entry (DIA-260824-a3mk); DIA-099 3-failure cap.
 
+- Failure mode (2026-09-01, DIA-260902-eqgg cod-3): bats fixture clobbered the real plugin -- restore_plugin was called only AFTER assert_status, so on an expected RED failure the assertion aborts the test body and restore_plugin never ran, leaving the real plugin replaced by the fixture
+  - Symptom: a bats negative-RED test (expected FAILURE) called assert_status which aborted the test body on the expected non-zero exit. The fixture restore (restore_plugin) was placed AFTER the assert. Because bats aborts the test body on a failed `run`+`assert` when the assertion condition is met (expected failure, got failure = PASS), the restore never executed. The real plugin remained replaced by the fixture for all subsequent tests in the suite.
+  - Root cause: teardown/restore must not depend on post-assert execution. In bats, an `assert_status` that FAILS (or a `run` whose exit code doesn't match the assertion) aborts the current test function body. Any cleanup after the assert is unreachable on the failure path.
+  - Fix pattern (reusable for any bats suite that mutates repo files):
+    1. Negative fixtures operate under BATS_TEST_TMPDIR (never REPO_ROOT). Copy only validator inputs into the fixture tree; the validator accepts an explicit fixture root.
+    2. Teardown restoration is a SECONDARY safeguard, not the primary isolation mechanism.
+    3. Add a regression assertion that the real plugin checksum is unchanged before/after the full Bats suite (post-suite verification of file integrity).
+  - Why irrecoverable: the abort-on-assert behavioral interaction and the fix pattern are bats-runtime knowledge not stated in any committed test file; the test diff shows the fixture but not why the restore was unreachable.
+  - Cross-reference: delegation-observer SRP refactor (DIA-260902-eqgg), bats testing patterns.
+
+- Failure mode (2026-09-01, DIA-260902-eqgg cod-2/cod-4/cod-18): 3 lanes returned empty results from the SAME shared environmental cause (permission_auto_rejected after 300s no-human-response timeout), not three independent implementation failures
+  - Symptom: three separate coder lanes (cod-2, cod-4, cod-18) all returned empty results during the same campaign window. Each appeared to be an independent implementation failure. Investigation revealed all three hit the identical root cause: permission_auto_rejected after a 300-second timeout with no human response to the TUI permission prompt.
+  - Root cause: the permission prompts stalled unattended lanes. The 300s timeout expired, the permission was auto-rejected, and the lane returned empty because it could not proceed without the granted permission. This is a shared environmental cause (developer not present to answer prompts), not three independent failures.
+  - Preventive action / diagnostic pattern: when multiple lanes die identically within the same time window, CHECK FOR A SHARED ENVIRONMENTAL CAUSE (permission timeout, endpoint outage, container down) BEFORE treating them as independent failures. The fix is developer presence to answer prompts, not re-dispatch loops. Re-dispatching without addressing the shared cause produces the same empty result repeatedly.
+  - Why irrecoverable: the three-lane-same-cause diagnostic pattern and the "check shared cause before re-dispatch" rule are operational knowledge not stated in any commit; git shows only the empty results, not the shared environmental trigger.
+  - Cross-reference: failures.md empty-result ambiguity (2026-08-14 line 260); DIA-099 3-failure cap; L20260817-008 systemic empty-return pattern.
+
 - Failure mode (2026-08-28, DIA-260828-qtsi B1 HIGH defect fix): cod-8 session errored on task_revive (abort unknown) during B1 HIGH defect fix
   - Symptom: cod-8 (session ses_fb8447ff4ffeMdIEONSEKNX60s) errored on task_revive with an unknown abort reason while attempting a B1 HIGH defect fix. The session was not resumable after the error.
   - Recovery: a fresh cod-9 dispatch recovered the work. cod-9 fixed header accumulation (find_promo_region), applied the free indent fix, updated learnings outcome, and completed shelf registrations. Verification: make test-config exit 0, header count 1 across re-runs, free indent 4-space, B1/B2/B7/B9 verified-closed by ai-auditor re-review cycle 1/2.

@@ -39,165 +39,72 @@
  * C3 forward-only status transitions (S2 guard), DIA-105 edit-time format
  * (non-fatal, ignore-set-scoped, deterministic local prettier).
  */
-import { createHash, createHmac, randomBytes, randomUUID, timingSafeEqual } from "node:crypto"
+import { createHash, randomUUID } from "node:crypto"
 import { spawnSync } from "node:child_process"
 import {
-  appendFileSync,
   closeSync,
   existsSync,
   fsyncSync,
   mkdirSync,
   openSync,
   readFileSync,
-  readdirSync,
   renameSync,
-  statSync,
   unlinkSync,
   writeFileSync,
 } from "node:fs"
-import { dirname, extname, isAbsolute, join, relative, resolve } from "node:path"
+import { dirname, isAbsolute, join, relative, resolve } from "node:path"
 import { tool, type Hooks, type Plugin } from "@opencode-ai/plugin"
 // Shared error helpers consolidated from this file + needs-input-observer
 // (DIA-260825-oyh). Explicit .ts extension: plugins load via
 // node --experimental-strip-types as individual files (no bundler).
 import { errorMessage } from "./lib/errors.ts"
+// A1 verbatim re-exports — same object identity as lib (reference-identity dedup)
+// .server guards travel via lib (no local re-attach); single shared TICKET_ID_FIND_RE per A3
+import {
+  CAPABILITY_SECRET,
+  mintCapabilityToken,
+  verifyCapabilityToken,
+} from "./lib/capability.ts"
+import {
+  TICKET_ID_RE,
+  TICKET_ID_FIND_RE,
+  TICKET_ID_FILENAME_RE,
+  scanTickets,
+  evaluateTicketCorrelation,
+  isMetaTaskBypass,
+} from "./lib/ticket-gate.ts"
+import {
+  computeChecksum as libComputeChecksum,
+  atomicWriteHandoff as libAtomicWriteHandoff,
+} from "./lib/handoff.ts"
+import {
+  createRegistry,
+} from "./lib/registry.ts"
+import {
+  stallThresholdMinutes,
+  createStallSweep,
+} from "./lib/stall-sweep.ts"
+import {
+  runEditTimeFormatter,
+} from "./lib/formatter.ts"
+import {
+  CB_WINDOW_SIZE,
+  CB_ERROR_THRESHOLD,
+  ToolCircuitBreaker,
+} from "./lib/circuit-breaker.ts"
+export { CAPABILITY_SECRET, mintCapabilityToken, verifyCapabilityToken }
+export { TICKET_ID_RE, TICKET_ID_FIND_RE, TICKET_ID_FILENAME_RE }
 
 /** Relative path to the tickets directory (workspace-root-relative). */
 const TICKETS_DIR_REL = "docs/dev-infra-audit/tickets"
 
-/**
- * Ephemeral secret for HMAC capability tokens. Random per process start;
- * tokens are short-lived (5 min) so process-restart invalidation is acceptable.
- */
-// @internal test-only seam (DIA-260820-jlu0 F3): exported so the plugin test
-// harness can mint a validly-signed token WITHOUT a scope and drive the REAL
-// gate to assert the scope-leak rejection. NOT a security control -- the
-// secret is per-process randomBytes(32); plugins are trusted code, so this
-// export only widens forgeability within the already-trusted plugin boundary.
-export const CAPABILITY_SECRET = randomBytes(32)
-// DIA-260829-kxqu: OpenCode's Bun plugin loader (Wy) iterates Object.values(mod)
-// and throws "Plugin export is not a function" if ANY export is non-function.
-// CAPABILITY_SECRET is a Buffer (object) so it triggers the throw. Attach a
-// dummy `server` property so Gy() treats it as a plugin object (object with
-// server:function) and Wy succeeds. The value remains a Buffer for HMAC use.
-;(CAPABILITY_SECRET as unknown as Record<string, unknown>).server = async () => ({})
+const BOOT_EMITTED_KEY = Symbol.for("delegation-observer.bootEmitted")
+const ROUTING_WRITE_KEY = Symbol.for("delegation-observer.routingWriteTimer")
 
 // ── Capability token utilities (DIA-260820-jlu0) ────────────────────────────
 
-interface CapabilityPayload {
-  id: string
-  scope: string
-  reason: string
-  exp: number
-}
 
-/**
- * Encode a Buffer or string as base64url (no padding).
- * Native codec (Node >= 15.7.0) -- output is URL-safe by contract:
- * never contains "+", "/" or "=".
- */
-function base64url(buf: Buffer | string): string {
-  return (typeof buf === "string" ? Buffer.from(buf) : buf).toString(
-    "base64url"
-  )
-}
-
-/**
- * Mint a short-lived HMAC-signed capability token (5 min TTL).
- * The token carries a JSON payload (id, scope, reason, exp) signed with
- * CAPABILITY_SECRET so it cannot be forged outside this plugin process.
- */
-// @internal test-only seam (DIA-260820-jlu0 F3): exported so the plugin test
-// harness can mint a real token and drive the REAL gate (bypass path). Not a
-// security control; plugins are trusted code within the same process boundary.
-// Loader guard (DIA-260829-kxqu): legacy loader iterates Object.values(mod) and
-// calls every exported function as plugin factory with PluginInput. This helper
-// is NOT a factory - when misused as one, return empty Hooks object so the
-// loader does not push a string into hooks (which would later crash
-// hook.config) and does not throw.
-export function mintCapabilityToken(scope: string, reason: string): string {
-  if (typeof scope !== "string" || typeof reason !== "string") {
-    const maybeInput = scope as unknown
-    if (
-      maybeInput &&
-      typeof maybeInput === "object" &&
-      ("directory" in (maybeInput as Record<string, unknown>) ||
-        "client" in (maybeInput as Record<string, unknown>))
-    ) {
-      return {} as unknown as string
-    }
-  }
-  const payload = {
-    id: randomUUID(),
-    scope,
-    reason,
-    exp: Date.now() + 5 * 60 * 1000, // 5 minutes
-  }
-  const payloadB64 = base64url(JSON.stringify(payload))
-  const hmac = createHmac("sha256", CAPABILITY_SECRET)
-    .update(payloadB64)
-    .digest()
-  const sigB64 = base64url(hmac)
-  return `CAP-${payloadB64}.${sigB64}`
-}
-
-/**
- * Verify a capability token: check HMAC signature, then expiry.
- * Returns { valid, payload } on success, { valid: false, error } on failure.
- */
-// @internal test-only seam (DIA-260820-jlu0 F3): exported so the plugin test
-// harness can drive the REAL gate (scope-leak rejection path). Not a security
-// control; plugins are trusted code within the same process boundary.
-// Loader guard (DIA-260829-kxqu): legacy loader iterates Object.values(mod) and
-// calls every exported function as plugin factory with PluginInput. This helper
-// is NOT a factory - when misused as one, return empty Hooks object so the
-// loader does not throw "token.startsWith is not a function" and does not
-// poison the hooks array.
-export function verifyCapabilityToken(
-  token: string
-): { valid: boolean; payload?: CapabilityPayload; error?: string } {
-  if (typeof token !== "string") {
-    const maybeInput = token as unknown
-    if (
-      maybeInput &&
-      typeof maybeInput === "object" &&
-      ("directory" in (maybeInput as Record<string, unknown>) ||
-        "client" in (maybeInput as Record<string, unknown>))
-    ) {
-      return {} as unknown as { valid: boolean; payload?: CapabilityPayload; error?: string }
-    }
-    return { valid: false, error: "invalid token type" }
-  }
-  // Strip the "CAP-" prefix before splitting: the mint format is
-  // "CAP-{payloadB64}.{sigB64}" but HMAC covers only the raw payload bytes.
-  const raw = token.startsWith("CAP-") ? token.slice(4) : token
-  const parts = raw.split(".")
-  if (parts.length !== 2) return { valid: false, error: "malformed token" }
-  const [payloadB64, sigB64] = parts
-  const expectedHmac = createHmac("sha256", CAPABILITY_SECRET)
-    .update(payloadB64)
-    .digest()
-  const expectedSig = base64url(expectedHmac)
-  // S3: timing-safe comparison to prevent timing side-channel attacks.
-  const sigBuf = Buffer.from(sigB64)
-  const expectedBuf = Buffer.from(expectedSig)
-  if (
-    sigBuf.length !== expectedBuf.length ||
-    !timingSafeEqual(sigBuf, expectedBuf)
-  ) {
-    return { valid: false, error: "invalid signature" }
-  }
-  try {
-    const payload = JSON.parse(
-      Buffer.from(payloadB64, "base64url").toString()
-    ) as CapabilityPayload
-    if (Date.now() > payload.exp)
-      return { valid: false, error: "token expired" }
-    return { valid: true, payload }
-  } catch {
-    return { valid: false, error: "payload parse failed" }
-  }
-}
+// Capability token logic now lives in lib/capability.ts — shell re-exports above (A1)
 
 /**
  * Parse a task() tool result to recover the child session id.
@@ -248,114 +155,15 @@ function buildDispatchText(args: Record<string, unknown>): string {
 }
 
 /**
- * Minimal YAML-frontmatter field extractor (ticket-gate scan, DIA-063).
- * Supports the constrained YAML subset the ticket schema uses
- * (docs/dev-infra-audit/tickets/_TEMPLATE.md): `key: value` pairs only — no
- * lists/maps/multi-line values. Robustness rules (finding E):
- *  - Locates the FIRST `---` delimiter line anywhere in the file (tickets
- *    carry an HTML comment header before the frontmatter, e.g. DIA-071) and
- *    parses until the next `---` delimiter.
- *  - Lines starting with `#` are comments and ignored (e.g. the
- *    "# --- Session Attribution" divider in every ticket).
- *  - Values may be single- or double-quoted; surrounding quotes are stripped.
- *    Quoted values may carry an inline ` # comment` suffix (as in _TEMPLATE.md)
- *    — the comment is dropped.
- *  - Unknown fields are ignored — the gate only reads status, session_id,
- *    discovered, title.
- * Returns {} when the file has no frontmatter block.
- */
-function parseFrontmatterFields(raw: string): Record<string, string> {
-  const fields: Record<string, string> = {}
-  const lines = raw.split(/\r?\n/)
-  let start = -1
-  for (let i = 0; i < lines.length; i++) {
-    if (lines[i].trim() === "---") {
-      start = i
-      break
-    }
-  }
-  if (start === -1) return fields
-  for (let i = start + 1; i < lines.length; i++) {
-    const line = lines[i]
-    if (line.trim() === "---") break
-    const trimmed = line.trim()
-    if (!trimmed || trimmed.startsWith("#")) continue
-    const m = /^([A-Za-z_][A-Za-z0-9_-]*)\s*:\s*(.*)$/.exec(trimmed)
-    if (!m) continue
-    let value = m[2].trim()
-    if (value.startsWith('"') || value.startsWith("'")) {
-      const quote = value[0]
-      const close = value.indexOf(quote, 1)
-      if (close !== -1) value = value.slice(1, close).trim()
-    }
-    fields[m[1]] = value
-  }
-  return fields
-}
-
-/**
- * Robust ticket-date parsing (DIA-063 finding C): accepts date-only
- * (`YYYY-MM-DD`, anchored at LOCAL midnight — a date means "that day") and
- * full ISO timestamps (values containing `T` or `Z`, parsed verbatim via
- * Date.parse). Unparseable input returns null — callers treat null as "does
- * NOT satisfy the recency check", never as a throw.
- */
-function parseTicketDate(raw: string): number | null {
-  const value = raw.trim()
-  if (!value) return null
-  const ts = /[TZ]/.test(value)
-    ? Date.parse(value)
-    : Date.parse(`${value}T00:00:00`)
-  return Number.isFinite(ts) ? ts : null
-}
-
-/** Flat ticket model built by scanTickets (DIA-063). */
-interface ScannedTicket {
-  id: string
-  status: string
-  sessionId: string
-  discoveredMs: number | null
-  title: string
-  filename: string
-}
-
-/**
  * Statuses the ticket gate accepts as "work in progress" (DIA-063). Compared
  * case-insensitively (scanTickets upper-cases the frontmatter value first).
  */
-const OPEN_TICKET_STATUSES = new Set([
-  "OPEN",
-  "IN-PROGRESS",
-  "DISPATCHED",
-])
 
 /**
  * Stopwords excluded from ticket-title keyword correlation (DIA-063 finding B
  * fallback). Deliberately small — the correlation is a conservative
  * best-effort signal, not NLP.
  */
-const TICKET_KEYWORD_STOPWORDS = new Set([
-  "the", "a", "an", "for", "with", "and", "or", "of", "to", "in", "on",
-  "by", "from", "at", "this", "that", "these", "those", "it", "is", "are",
-  "ticket", "dia", "work", "create", "new", "implement", "dispatch",
-  "please", "gate", "phase", "fix", "research", "add", "update",
-])
-
-/**
- * Loose keyword overlap between the dispatch text and a ticket title
- * (DIA-063 finding B path-3): true when any significant word from the
- * dispatch text appears in the title. Ambiguity (no overlap) returns false —
- * the caller then BLOCKS (the whole point is to force a ticket). The
- * latest-session escape hatch was removed in the cycle-2 rework.
- */
-function keywordsCorrelate(dispatchText: string, title: string): boolean {
-  if (!title) return false
-  const titleLower = title.toLowerCase()
-  const words = dispatchText.toLowerCase().match(/[a-z0-9][a-z0-9-]{2,}/g) ?? []
-  return words.some(
-    (w) => !TICKET_KEYWORD_STOPWORDS.has(w) && titleLower.includes(w)
-  )
-}
 
 /**
  * Highest numeric row number in messages.md (the pre-derivation human log).
@@ -365,18 +173,6 @@ function keywordsCorrelate(dispatchText: string, title: string): boolean {
  * messages.md is derived from messages.jsonl and this fallback is inert.
  * Returns 0 when the file is absent or has no numbered rows.
  */
-function lastMessagesMdRowNumber(mdPath: string): number {
-  if (!existsSync(mdPath)) return 0
-  let max = 0
-  for (const line of readFileSync(mdPath, "utf-8").split("\n")) {
-    const m = /^\|\s*(\d+)\s*\|/.exec(line)
-    if (m) {
-      const n = Number.parseInt(m[1], 10)
-      if (n > max) max = n
-    }
-  }
-  return max
-}
 
 /**
  * Highest row_id present in an existing messages.jsonl (plugin-written rows).
@@ -386,22 +182,6 @@ function lastMessagesMdRowNumber(mdPath: string): number {
  * row_id allocation comment at the top of the plugin body).
  * Malformed lines are skipped (same policy as the registry boot scan).
  */
-function maxRowIdInJsonl(jsonlPath: string): number {
-  if (!existsSync(jsonlPath)) return 0
-  let max = 0
-  for (const line of readFileSync(jsonlPath, "utf-8").split("\n")) {
-    if (!line) continue
-    try {
-      const row = JSON.parse(line) as { row_id?: number }
-      if (typeof row.row_id === "number" && row.row_id > max) {
-        max = row.row_id
-      }
-    } catch {
-      // Malformed line — skip during the boot scan too.
-    }
-  }
-  return max
-}
 
 interface RegistryRow {
   seq?: number
@@ -431,24 +211,9 @@ interface RegistryRow {
 const TERMINAL_STATES = new Set(["completed", "failed"])
 const NON_TERMINAL_STATES = new Set(["invoked", "running"])
 
-// === DIA-098 R2: proactive stall detection thresholds ===
-// Env-configurable stall thresholds (minutes) for the 60s sweep; values come
-// from the ana016 section 4.2 table + section 6.4 pseudocode. The ana011
-// claim-staleness protocol (15-min stale, 60-min dead) aligns with the
-// 60-min dead deadline. Fall back to the analysis defaults when the env var
-// is absent or unparseable (never let a bad env value disable detection).
-function stallThresholdMinutes(envName: string, fallback: number): number {
-  const raw = process.env[envName]
-  if (!raw) return fallback
-  const parsed = Number.parseInt(raw, 10)
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback
-}
-const STALL_SWEEP_INTERVAL_MS = 60_000
-
 // DIA-260822-oldn: stall-sweep interval singleton key. Stored on globalThis
 // (not module scope) so in-process plugin reloads replace the prior interval
 // instead of stacking duplicate timers (F1 in DIA-260822-m035 forensics).
-const STALL_SWEEP_KEY = Symbol.for("delegation-observer.stallSweepInterval")
 // Symbol-keyed globalThis access needs an explicit record view: TS rejects
 // indexing globalThis with a runtime Symbol without a declaration. The cast
 // keeps the SAME globalThis reference at runtime (so the test reads it), only
@@ -459,14 +224,12 @@ const stallSweepStore = globalThis as unknown as Record<symbol, StallSweepHandle
 // DIA-260822-oldn: process-scoped boot identity flag. In-process plugin reload
 // (module re-evaluation) suppresses boot evidence; a full process restart always
 // emits a new boot. Stored on globalThis so it survives module re-evaluation.
-const BOOT_EMITTED_KEY = Symbol.for("delegation-observer.bootEmitted")
 const bootFlagStore = globalThis as unknown as Record<symbol, boolean | undefined>
 
 // DIA-260821-5r03 (task 4.1): routing-state debounced-write timer singleton
 // key. Stored on globalThis (not module scope) so an in-process plugin reload
 // clears the prior timer before arming a new one instead of stacking a stray
 // write from the dead instance (the same reload-safe pattern as STALL_SWEEP_KEY).
-const ROUTING_WRITE_KEY = Symbol.for("delegation-observer.routingWriteTimer")
 const routingWriteStore = globalThis as unknown as Record<symbol, ReturnType<typeof setTimeout> | undefined>
 const stallSubagentMinutes = stallThresholdMinutes("STALL_SUBAGENT_MINUTES", 10)
 const stallOrchestratorMinutes = stallThresholdMinutes("STALL_ORCHESTRATOR_MINUTES", 20)
@@ -514,69 +277,6 @@ const TASK_NO_ID_GROUP_KEY = "__task_no_id__"
 //    generated blobs are never worth reformatting).
 //  - Scope: only files the agent ACTUALLY touched (edit/write filePath,
 //    apply_patch paths extracted from the patch). No whole-tree passes.
-const FORMATTER_EXTENSIONS = new Set([
-  ".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs", ".vue",
-  ".css", ".scss", ".html", ".md", ".json", ".jsonc", ".yaml", ".yml",
-])
-const FORMATTER_IGNORE_PREFIXES = [
-  ".opencode/session/",
-  "knowledge/",
-  "docs/dev-infra-audit/tickets/",
-  "openspec/changes/archive/",
-]
-const FORMATTER_MAX_BYTES = 1024 * 1024 // 1 MiB — bigger = generated/binary
-const FORMATTER_TIMEOUT_MS = 30_000 // prettier on one file is <1s; 30s is generous
-
-/**
- * True when `filePath` (absolute or relative) is under a no-format prefix.
- * Resolves against `workspaceRoot` (caller passes ctx.directory — the plugin
- * directory discipline prefers PluginInput.directory over process.cwd() so the
- * check survives invocations started from other directories).
- */
-function isFormatterIgnoredPath(
-  filePath: string,
-  workspaceRoot: string
-): boolean {
-  const absolute = isAbsolute(filePath)
-    ? filePath
-    : resolve(workspaceRoot, filePath)
-  const rel = relative(workspaceRoot, absolute)
-  return FORMATTER_IGNORE_PREFIXES.some(
-    (prefix) => rel === prefix.slice(0, -1) || rel.startsWith(prefix)
-  )
-}
-
-/**
- * Extract EVERY touched path from an apply_patch payload (DIA-105 formatter
- * hook). Mirrors the §10 gate marker scan (DIA-059 hardening — Index: /
- * diff --git / +++ b/ / *** Add File: / *** Update File: / *** Delete File:
- * / *** Move to: markers, including the omo rewritePatch forms) but returns
- * ALL matched paths, not just the first protected one: the formatter must
- * consider every file the patch touched. Deleted files are filtered
- * downstream by the existsSync scope check in runEditTimeFormatter.
- */
-function extractPatchPaths(patchText: string): string[] {
-  const paths: string[] = []
-  for (const line of patchText.split(/\r?\n/)) {
-    const indexMatch = /^Index:\s*(\S+)/i.exec(line)
-    const diffMatch = /^diff\s+--git\s+a\/\S+\s+b\/(\S+)/.exec(line)
-    const plusPlusMatch = /^\+\+\+\s+b\/(\S+)/.exec(line)
-    const addFileMatch = /^\*\*\*\s+Add File:\s*(.+)/.exec(line)
-    const updateFileMatch = /^\*\*\*\s+Update File:\s*(.+)/.exec(line)
-    const deleteFileMatch = /^\*\*\*\s+Delete File:\s*(.+)/.exec(line)
-    const moveToMatch = /^\*\*\*\s+Move to:\s*(.+)/.exec(line)
-    const matchedPath =
-      indexMatch?.[1] ??
-      diffMatch?.[1] ??
-      plusPlusMatch?.[1] ??
-      addFileMatch?.[1]?.trim() ??
-      updateFileMatch?.[1]?.trim() ??
-      deleteFileMatch?.[1]?.trim() ??
-      moveToMatch?.[1]?.trim()
-    if (matchedPath && !paths.includes(matchedPath)) paths.push(matchedPath)
-  }
-  return paths
-}
 
 // DIA-144/DIA-172: approved conflict-free parallel task() batch patterns
 // (mirror of the BATCH-DISPATCH rule in oh-my-opencode-slim.jsonc).
@@ -595,26 +295,7 @@ const READ_ONLY_LANES = new Set([
 ])
 const WRITER_LANES = new Set(["analyzer", "conspecter", "memory-manager"])
 
-// DIA-234 / DIA-260826-pjm: single source of truth for DIA ticket-ID parsing.
-// Alternation is ORDERED and datetime-first: \d+ would greedily match the
-// 6-digit date prefix of DIA-YYMMDD-XXXX and truncate the id, so the datetime
-// branch must be tried BEFORE \d+. Suffix is [a-z0-9]+ (not the nominal {4}
-// of the DIA-234 generator): real ledger ids include 3-char suffixes
-// (DIA-260826-pjm, DIA-260825-oyh) and a gate must not reject its own
-// campaign ticket. Lowercase-only (generator emits lowercase; no /i flag).
-export const TICKET_ID_RE = /^DIA-(\d{6}-[a-z0-9]+|\d+)$/
-export const TICKET_ID_FIND_RE = /\bDIA-(\d{6}-[a-z0-9]+|\d+)\b/g
-export const TICKET_ID_FILENAME_RE = /^DIA-(\d{6}-[a-z0-9]+|\d+)/
-// DIA-260829-kxqu: same Wy fix as CAPABILITY_SECRET — these RegExps are objects
-// so Wy would throw. Attach dummy `server` so Gy() returns the function and
-// Wy succeeds; regex behavior (.test/.exec/.source) is unchanged.
-;(TICKET_ID_RE as unknown as Record<string, unknown>).server = async () => ({})
-;(TICKET_ID_FIND_RE as unknown as Record<string, unknown>).server = async () => ({})
-;(TICKET_ID_FILENAME_RE as unknown as Record<string, unknown>).server = async () => ({})
-// DIA-260826-pjm F4: TICKET_ID_FIND_RE carries the /g flag - consume it ONLY
-// via String.prototype.match/matchAll (both reset lastIndex) or .source
-// interpolation into a fresh RegExp. Never .test()/.exec() directly: a shared
-// global regex keeps lastIndex across calls and silently skips matches.
+// TICKET_ID_* regexes now live in lib/ticket-gate.ts — shell re-exports above (A1, A3 one shared instance)
 
 /**
  * DIA-144/DIA-172: classify a parallel task() batch (the task() calls in one
@@ -687,116 +368,6 @@ function isSafeTaskBatch(
 // Phase 3b) which tracks task-level completion. This breaker tracks
 // per-tool execution errors at a finer granularity.
 
-const CB_WINDOW_SIZE = 5
-const CB_ERROR_THRESHOLD = 3
-const CB_COOLDOWN_MS = 5 * 60 * 1000 // 5 minutes
-
-type CircuitState = "CLOSED" | "OPEN" | "HALF_OPEN"
-
-interface CircuitBreakerEntry {
-  state: CircuitState
-  /** Sliding window of booleans: true = error, false = success. */
-  window: boolean[]
-  /** Timestamp when the circuit tripped to OPEN (for cooldown). */
-  openedAt: number
-  /** True when a test call has been allowed in HALF_OPEN (only 1 allowed). */
-  testCallMade: boolean
-}
-
-class ToolCircuitBreaker {
-  /** Per-session circuit state, keyed by session_id. */
-  private circuits = new Map<string, CircuitBreakerEntry>()
-
-  private getEntry(sessionId: string): CircuitBreakerEntry {
-    let entry = this.circuits.get(sessionId)
-    if (!entry) {
-      entry = { state: "CLOSED", window: [], openedAt: 0, testCallMade: false }
-      this.circuits.set(sessionId, entry)
-    }
-    return entry
-  }
-
-  /**
-   * Record a tool execution result. Returns the new state.
-   * On error: appends true to the window; on success: appends false.
-   * Trips to OPEN when CB_ERROR_THRESHOLD errors appear in the last
-   * CB_WINDOW_SIZE calls.
-   */
-  record(sessionId: string, isError: boolean): CircuitState {
-    const entry = this.getEntry(sessionId)
-
-    // If currently OPEN, check cooldown.
-    if (entry.state === "OPEN") {
-      if (Date.now() - entry.openedAt >= CB_COOLDOWN_MS) {
-        entry.state = "HALF_OPEN"
-        entry.testCallMade = false
-        // Allow exactly 1 test call -- don't add to window yet.
-      } else {
-        return entry.state
-      }
-    }
-
-    // HALF_OPEN: this is the test call. Record result and decide.
-    if (entry.state === "HALF_OPEN") {
-      entry.testCallMade = false
-      if (isError) {
-        // Test call failed -> back to OPEN, reset cooldown.
-        entry.state = "OPEN"
-        entry.openedAt = Date.now()
-        entry.window.push(true)
-        if (entry.window.length > CB_WINDOW_SIZE) entry.window.shift()
-      } else {
-        // Test call succeeded -> back to CLOSED.
-        entry.state = "CLOSED"
-        entry.window = []
-      }
-      return entry.state
-    }
-
-    // CLOSED: record and check threshold.
-    entry.window.push(isError)
-    if (entry.window.length > CB_WINDOW_SIZE) entry.window.shift()
-
-    const errorCount = entry.window.filter(Boolean).length
-    if (errorCount >= CB_ERROR_THRESHOLD) {
-      entry.state = "OPEN"
-      entry.openedAt = Date.now()
-    }
-
-    return entry.state
-  }
-
-  /**
-   * Try to pass through the circuit breaker. Returns true if the dispatch
-   * should be BLOCKED (circuit is OPEN and not yet in HALF_OPEN test-call
-   * slot), false if allowed. Side effect: transitions OPEN -> HALF_OPEN
-   * and marks testCallMade so only ONE test call gets through.
-   */
-  tryPass(sessionId: string): boolean {
-    const entry = this.circuits.get(sessionId)
-    if (!entry) return false
-    // Check cooldown expiry.
-    if (entry.state === "OPEN" && Date.now() - entry.openedAt >= CB_COOLDOWN_MS) {
-      entry.state = "HALF_OPEN"
-      entry.testCallMade = false
-    }
-    // BLOCK if OPEN (cooldown not expired) or if HALF_OPEN test call already used.
-    if (entry.state === "OPEN") return true
-    if (entry.state === "HALF_OPEN" && entry.testCallMade) return true
-    if (entry.state === "HALF_OPEN") {
-      entry.testCallMade = true
-      return false
-    }
-    return false
-  }
-
-  /** Get the current state of a session's circuit. */
-  getState(sessionId: string): CircuitState {
-    const entry = this.circuits.get(sessionId)
-    return entry?.state ?? "CLOSED"
-  }
-}
-
 const delegationObserver: Plugin = async (ctx) => {
   // DIA-123: capture the process-start timestamp FIRST — before any file I/O —
   // so the boot event carries the plugin-load (≈ process start) time, not the
@@ -807,7 +378,6 @@ const delegationObserver: Plugin = async (ctx) => {
   // after plugin load suppresses keys whose latest nonterminal row predates
   // this process's load (prior lifetime). ponytail: load-time cutoff, first-sweep only.
   const pluginLoadMs = Date.parse(processStartedAt)
-  let stallSweepFirstDone = false
   // Resolve the registry from PluginInput.directory (preferred over
   // process.cwd() — survives invocations started from other directories).
   const registryPath = join(ctx.directory, ".opencode/session/registry.jsonl")
@@ -844,6 +414,8 @@ const delegationObserver: Plugin = async (ctx) => {
   const handoffPointerPath = join(handoffSlotsDir, "active.json")
   const handoffReconciledPath = join(handoffSlotsDir, ".reconciled")
 
+
+
   // DIA-211 Phase 2: stigmergic active.json — tracks the current workflow
   // state so the orchestrator can read it on wake and route to the next agent.
   // Written ONLY on terminal handoff events with a next_action; the file is
@@ -861,6 +433,49 @@ const delegationObserver: Plugin = async (ctx) => {
   // guishable from a periodic rewrite).
   const bootPath = join(handoffDir, "boot.json")
   const bootTmpPath = join(handoffDir, ".boot.json.tmp")
+
+  // S9-full: lib instances (DI wiring, shell owns when, libs own how)
+  const registry = createRegistry({
+    directory: ctx.directory,
+    registryPath,
+    messagesPath,
+    messagesMdPath,
+    bootPath,
+    bootTmpPath,
+    handoffDir,
+    processStartedAt,
+  })
+  const stallSweepInst = createStallSweep({
+    handleStore: stallSweepStore as unknown as Record<symbol, unknown>,
+    now: () => Date.now(),
+    readRegistryRows: () => readRegistryRows(),
+    getRootSessionIds: () => rootSessionIds,
+    getSessionMeta: (key: string) => sessionMeta.get(key),
+    emitStall: (key: string, row: Record<string, unknown>, ageSec: number, thresholdMin: number, escalation?: "dead") => {
+      registry.appendRow({
+        event: "stall_detected",
+        session_id: row.session_id as string | undefined,
+        task_id: row.task_id as string | undefined,
+        stall_duration_seconds: ageSec,
+        last_status: row.status as string | undefined,
+        detected_at: new Date().toISOString(),
+        ...(escalation === "dead" ? { escalation: "dead", note: "assumed dead - still non-terminal past STALL_DEAD_MINUTES (ana011 claim-staleness protocol)" } : {}),
+        writer: "plugin",
+      })
+      registry.appendMessageRow({
+        "gen_ai.operation.name": "invoke_workflow",
+        from: "orchestrator",
+        event_type: "crisis",
+        task_ref: key,
+        resolution_status: "in-flight",
+        content_ref: escalation === "dead" ? "session_assumed_dead_after_60_min" : `stall_detected_after_${thresholdMin}_min`,
+        next_action: "investigate and re-dispatch",
+      }, key)
+    },
+    pluginLoadMs,
+    thresholds: { subagent: stallSubagentMinutes, orchestrator: stallOrchestratorMinutes, dead: stallDeadMinutes },
+  })
+
 
   /** Paths (relative to workspace root) that require @ai-specialist gate review. */
   const protectedPaths = [".opencode/", "AGENTS.md"]
@@ -894,7 +509,7 @@ const delegationObserver: Plugin = async (ctx) => {
   // the counters, and the estimate is a proxy signal anyway (not
   // token-accurate).
   const sessionDelegationCount = new Map<string, number>()
-  const sessionMessageCount = new Map<string, number>()
+  const sessionMessageCount = (registry as unknown as { sessionMessageCount: Map<string, number> }).sessionMessageCount as Map<string, number>
 
   // DIA-219: per-session context growth velocity tracking. Stores the last
   // usage_fraction reported for each session so the next context_usage call
@@ -1041,17 +656,14 @@ const delegationObserver: Plugin = async (ctx) => {
   // version getter, so we fall back to the OPENCODE_VERSION env var when the
   // runtime sets it; the field is omitted when unavailable.
   const opencodeVersion = process.env.OPENCODE_VERSION
-  // `seq` lives in factory scope: appendRow (defined below) assigns to it for
-  // ANY row written during this factory run, not only the boot row.
-  let seq = 0
   // DIA-260822-oldn: suppress boot evidence only on in-process reload — when the
   // process-scoped boot flag is already set. On first boot (flag unset) emit and
   // arm the flag; a full process restart clears globalThis so a new boot emits.
   // boot.json remains the DIA-123 audit marker (written here, preserved on reload).
   if (!bootFlagStore[BOOT_EMITTED_KEY]) {
     const bootId = randomUUID()
-    const configSignal = captureConfigLoadSignal()
-    appendRow({
+    const configSignal = registry.captureConfigLoadSignal()
+    const bootSeq = registry.appendRow({
       event: "session_boot",
       boot_id: bootId,
       process_started_at: processStartedAt,
@@ -1059,10 +671,7 @@ const delegationObserver: Plugin = async (ctx) => {
       config_load_signal: configSignal,
       writer: "plugin",
     })
-    // seq is set by appendRow to the session_boot row's value (recomputed from
-    // the current file state at write time — DIA-098 ai-auditor finding 1).
-    const bootSeq = seq
-    atomicWriteBootMarker({ bootId, bootSeq, configSignal })
+    registry.atomicWriteBootMarker({ bootId, bootSeq, configSignal })
     // Arm the process-scoped boot flag so a subsequent in-process reload
     // suppresses boot evidence; a full process restart resets globalThis and
     // emits a fresh boot (DIA-260822-oldn, design.md D1/D3).
@@ -1075,21 +684,6 @@ const delegationObserver: Plugin = async (ctx) => {
   // mtime is NEWER than the recorded one, the config was written AFTER boot
   // and a restart is required. Combined with process_started_at, this proves
   // "booted after config write T0" iff process_started_at >= recorded mtime.
-  function captureConfigLoadSignal(): Record<string, string | null> {
-    const mtime = (p: string): string | null => {
-      try {
-        return existsSync(p) ? new Date(statSync(p).mtimeMs).toISOString() : null
-      } catch {
-        return null // unreadable config — signal absent, never a crash
-      }
-    }
-    return {
-      opencode_jsonc_mtime: mtime(join(ctx.directory, ".opencode/opencode.jsonc")),
-      omo_jsonc_mtime: mtime(
-        join(ctx.directory, ".opencode/oh-my-opencode-slim.jsonc")
-      ),
-    }
-  }
 
   /**
    * Atomic write of the boot marker (.opencode/session/boot.json). Same
@@ -1098,45 +692,6 @@ const delegationObserver: Plugin = async (ctx) => {
    * the plugin; the registry `session_boot` row remains the canonical boot
    * evidence.
    */
-  function atomicWriteBootMarker(marker: {
-    bootId: string
-    bootSeq: number
-    configSignal: Record<string, string | null>
-  }): void {
-    try {
-      mkdirSync(handoffDir, { recursive: true })
-      const content = {
-        version: 1,
-        event: "session_boot",
-        boot_id: marker.bootId,
-        seq: marker.bootSeq,
-        process_started_at: processStartedAt,
-        timestamp: new Date().toISOString(),
-        ...(opencodeVersion ? { opencode_version: opencodeVersion } : {}),
-        config_load_signal: marker.configSignal,
-        writer: "plugin",
-      }
-      const json = JSON.stringify(content, null, 2) + "\n"
-      writeFileSync(bootTmpPath, json)
-      const tmpFd = openSync(bootTmpPath, "r+")
-      fsyncSync(tmpFd)
-      closeSync(tmpFd)
-      renameSync(bootTmpPath, bootPath)
-      const dirFd = openSync(handoffDir, "r")
-      fsyncSync(dirFd)
-      closeSync(dirFd)
-    } catch (err) {
-      // Best-effort cleanup: unlink tmp if it still exists (rename failed).
-      try {
-        if (existsSync(bootTmpPath)) unlinkSync(bootTmpPath)
-      } catch {
-        // Secondary failure — nothing more we can do.
-      }
-      tuiSafeWarn(
-        `[delegation-observer] boot.json write failed: ${errorMessage(err)}`
-      )
-    }
-  }
 
   // sessionID -> tool calls executed in the current assistant turn (A1
   // heuristic). There is no message_id in the hook input, so we group by
@@ -1199,55 +754,7 @@ const delegationObserver: Plugin = async (ctx) => {
    * the observed volume (registry ~4K rows, writes per session are few);
    * needs-input-observer already scans per write with the same cost.
    */
-  function maxRegistrySeq(): number {
-    if (!existsSync(registryPath)) return 0
-    let maxSeq = 0
-    let lineCount = 0
-    for (const line of readFileSync(registryPath, "utf-8").split("\n")) {
-      if (!line) continue
-      lineCount++
-      try {
-        const row = JSON.parse(line) as RegistryRow
-        if (typeof row.seq === "number" && row.seq > maxSeq) maxSeq = row.seq
-      } catch {
-        // Malformed line — skip (same policy as readRegistryRows).
-      }
-    }
-    return Math.max(maxSeq, lineCount)
-  }
 
-  function appendRow(row: Record<string, unknown>): void {
-    // DIA-098 ai-auditor finding 1 (Critical): seq is recomputed from the
-    // CURRENT file state (MAX over existing seq AND line count, +1) — never
-    // from a cached in-memory counter. Both registry writers (this plugin
-    // and needs-input-observer) share one server process and append
-    // synchronously (appendFileSync), so read-compute-append is atomic in
-    // the JS thread: no write can interleave between another writer's read
-    // and its append, and MAX+1 is therefore provably collision-free under
-    // mixed-plugin interleaving.
-    seq = maxRegistrySeq() + 1
-    const entry: Record<string, unknown> = {
-      seq,
-      timestamp: new Date().toISOString(),
-      ...row,
-    }
-    // Synthetic group keys are resolved here: seq is assigned in this
-    // function, so callers cannot reference the final seq (RR-5a).
-    if (entry.group_key === TASK_NO_ID_GROUP_KEY) {
-      entry.group_key = `${TASK_NO_ID_GROUP_KEY}${seq}`
-    }
-    // Failure policy (mirrors appendMessageRow): never crash the plugin — on
-    // write error tuiSafeWarn and continue. A lost registry row is preferable
-    // to a crashed orchestrator (appendFileSync is atomic; the last row is
-    // lost, never corrupted).
-    try {
-      appendFileSync(registryPath, JSON.stringify(entry) + "\n")
-    } catch (err) {
-      tuiSafeWarn(
-        `[delegation-observer] registry.jsonl write failed (seq=${seq}): ${errorMessage(err)}`
-      )
-    }
-  }
 
   /**
    * TUI-safe warning: writes to app.log, never console.warn.
@@ -1266,7 +773,7 @@ const delegationObserver: Plugin = async (ctx) => {
       body: { service: "delegation-observer", level, message },
     })
     if (options?.row) {
-      appendRow({ ...options.row, writer: "plugin" })
+      registry.appendRow({ ...options.row, writer: "plugin" })
     }
   }
 
@@ -1387,7 +894,7 @@ const delegationObserver: Plugin = async (ctx) => {
         status: "apoptosis",
         session_id: sessionID,
         timestamp: new Date().toISOString(),
-        checksum: computeChecksum({
+        checksum: libComputeChecksum({
           trigger,
           session_id: sessionID,
           ...(errMsg ? { error: errMsg } : {}),
@@ -1409,7 +916,7 @@ const delegationObserver: Plugin = async (ctx) => {
       // itself - handoffContent.session_id is `sessionID`, so keying the slot
       // by a process-global orchestrator id wrote this session's handoff into
       // ANOTHER session's slot (archiving that session's valid handoff).
-      atomicWriteHandoff(handoffContent, sessionID)
+      libAtomicWriteHandoff({ slotsDir: handoffSlotsDir, archiveDir: handoffArchiveDir, pointerPath: handoffPointerPath, legacyPath: handoffLegacyPath, reconciledPath: handoffReconciledPath }, sessionID, handoffContent)
     } catch (err) {
       tuiSafeWarn(`[delegation-observer] apoptosis handoff write failed: ${errorMessage(err)}`)
     }
@@ -1424,7 +931,7 @@ const delegationObserver: Plugin = async (ctx) => {
     }
 
     // Step 3: apoptosis_complete registry row + mark session dead.
-    appendRow({
+    registry.appendRow({
       event: "apoptosis_complete",
       session_id: sessionID,
       role,
@@ -1455,35 +962,6 @@ const delegationObserver: Plugin = async (ctx) => {
    * fail-soft wrapper treats them as "broken gate → warn + allow + scan-failed
    * row" rather than "no valid ticket → block".
    */
-  function scanTickets(ticketsDir: string): ScannedTicket[] {
-    if (!existsSync(ticketsDir)) {
-      throw new Error(`tickets directory missing: ${ticketsDir}`)
-    }
-    const tickets: ScannedTicket[] = []
-    for (const entry of readdirSync(ticketsDir)) {
-      if (!entry.endsWith(".md")) continue
-      if (entry === "README.md" || entry === "_TEMPLATE.md") continue
-      const ticketPath = join(ticketsDir, entry)
-      if (!statSync(ticketPath).isFile()) continue
-      const fm = parseFrontmatterFields(readFileSync(ticketPath, "utf-8"))
-      // DIA-234: accept both sequential (DIA-NNN) and datetime (DIA-YYMMDD-XXXX) formats.
-      // Lowercase-only enforcement: generator produces lowercase suffixes, no /i flag.
-      const idMatch = TICKET_ID_FILENAME_RE.exec(entry)
-      tickets.push({
-        // DIA-260826-pjm F1: normalize to uppercase at construction - Path-1
-        // correlation (:diaIds.includes(t.id)) receives diaIds uppercased from
-        // the free-text scan, so raw filename case would hard-block every
-        // letter-suffix datetime citation. t.id has no other consumer.
-        id: idMatch ? idMatch[0].toUpperCase() : "",
-        status: (fm.status ?? "").trim().toUpperCase(),
-        sessionId: (fm.session_id ?? "").trim(),
-        discoveredMs: parseTicketDate((fm.discovered ?? "").trim()),
-        title: (fm.title ?? "").trim(),
-        filename: entry,
-      })
-    }
-    return tickets
-  }
 
   /**
    * Work-to-ticket correlation (DIA-063 finding B). Returns true when the
@@ -1504,52 +982,6 @@ const delegationObserver: Plugin = async (ctx) => {
    *   Otherwise → return false → caller BLOCKS (the whole point is to force a
    *   ticket).
    */
-  function evaluateTicketCorrelation(
-    tickets: ScannedTicket[],
-    sessionID: string,
-    dispatchText: string,
-    diaIds: string[]
-  ): boolean {
-    const open = tickets.filter((t) => OPEN_TICKET_STATUSES.has(t.status))
-    const now = Date.now()
-    const dayMs = 24 * 60 * 60 * 1000
-    const isRecent = (t: ScannedTicket): boolean =>
-      t.discoveredMs !== null &&
-      t.discoveredMs <= now &&
-      now - t.discoveredMs <= dayMs
-    const isSessionOwned = (t: ScannedTicket): boolean =>
-      t.sessionId === sessionID
-
-    // Path 1 — explicit DIA-id correlation (STRICT tri-state, DIA-076 C1).
-    // OPEN ticket is the STRONGEST correlation signal — an explicit DIA-id
-    // matching an OPEN ticket suffices on its own, no recency/session-
-    // ownership requirement. The old guard protected a hypothetical
-    // stale-ticket-abuse scenario never observed in practice, and its
-    // time-dependence (date-only `discovered` parses to LOCAL midnight →
-    // sharp 24h cliff in parseTicketDate) made the gate non-deterministic
-    // across the same nominal dispatch. Tri-state: when an explicit DIA-id is
-    // present, resolution happens ONLY against it — referenced ids matching
-    // NO open ticket FAIL here; Path-2/Path-3 are reached only when NO
-    // explicit DIA-id is present.
-    if (diaIds.length > 0) {
-      const mentioned = open.filter((t) => diaIds.includes(t.id))
-      // Tri-state (C1, DIA-076): when an explicit DIA-id is present, resolve
-      // ONLY against it — any referenced id matching an OPEN ticket passes;
-      // referenced ids matching NO open ticket FAIL here (never fall through
-      // to Path-2/Path-3, which would mask an explicit citation that does not
-      // resolve to live work). Path-2/3 are only for dispatches with NO
-      // explicit DIA-id.
-      return mentioned.length > 0
-    }
-
-    // Path 2 — session-owned open ticket (recency irrelevant).
-    if (open.some(isSessionOwned)) return true
-
-    // Path 3 — genuinely-new-work fallback: a recent open ticket whose title
-    // keyword-correlates with the dispatch. No latest-session escape hatch.
-    const recentOpen = open.filter(isRecent)
-    return recentOpen.some((t) => keywordsCorrelate(dispatchText, t.title))
-  }
 
   /**
    * messages.jsonl writer — ONE JSON object + "\n", silent appendFileSync
@@ -1570,56 +1002,6 @@ const delegationObserver: Plugin = async (ctx) => {
    * crashed orchestrator (appendFileSync is atomic; the last row is lost,
    * never corrupted).
    */
-  function appendMessageRow(
-    row: Record<string, unknown>,
-    sessionID?: string
-  ): void {
-    // DIA-098 ai-auditor finding 1: row_id is recomputed from the CURRENT
-    // file state at write time (MAX over messages.jsonl row_id and the
-    // legacy messages.md floor, +1) — never from a cached counter. Same
-    // collision-freedom argument as appendRow: synchronous appends in one
-    // process make read-compute-append atomic, so MAX+1 is unique across
-    // this plugin AND needs-input-observer's messages rows.
-    const rowId =
-      Math.max(
-        maxRowIdInJsonl(messagesPath),
-        lastMessagesMdRowNumber(messagesMdPath)
-      ) + 1
-    const entry: Record<string, unknown> = {
-      row_id: rowId,
-      event_uuid: randomUUID(),
-      timestamp: new Date().toISOString(),
-      // Best-effort provider default — the project's orchestrator provider
-      // is opencode-go (observed in every legacy row). Callers can override
-      // via the row spread. gen_ai.request.model is NOT set here: plugin
-      // hooks do not expose the model id, so writing one would be a lie.
-      "gen_ai.provider.name": "opencode-go",
-      writer: "plugin",
-      ...row,
-    }
-    try {
-      appendFileSync(messagesPath, JSON.stringify(entry) + "\n")
-    } catch (err) {
-      tuiSafeWarn(
-        `[delegation-observer] messages.jsonl write failed (row_id=${rowId}): ${errorMessage(err)}`
-      )
-    }
-    // DIA-080: per-session message counter for the context_usage estimate.
-    // Keyed by the session that triggers the row - callers pass the CURRENT
-    // session id (input.sessionID for task() dispatch, context.sessionID for
-    // log_decision, the lifecycle sessionID or its parent orchestrator for
-    // idle/error rows). NEVER a process-global orchestrator id: that single
-    // capture would attribute every row of a multi-orchestrator-session
-    // process to the FIRST orchestrator, making context_usage report the wrong
-    // session (DIA-080 review nit; DIA-260827-y9n9 removed the last such
-    // fallback). Callers without a session id bucket under the neutral
-    // "unidentified-session" key instead of another session's counter.
-    const writerSession = sessionID ?? "unidentified-session"
-    sessionMessageCount.set(
-      writerSession,
-      (sessionMessageCount.get(writerSession) ?? 0) + 1
-    )
-  }
 
   // === DIA-220: Paracrine state signals ===
   // Discrete state events emitted into messages.jsonl so the orchestrator
@@ -1645,7 +1027,7 @@ const delegationObserver: Plugin = async (ctx) => {
     signalType: ParacrineSignal,
     data: Record<string, unknown>
   ): void {
-    appendMessageRow(
+    registry.appendMessageRow(
       {
         "gen_ai.operation.name": "state_signal",
         event_type: "paracrine",
@@ -1692,22 +1074,6 @@ const delegationObserver: Plugin = async (ctx) => {
    * the prognosis, not the wrapper fields — this way integrity verification is
    * independent of status/timestamp/session_id changes.
    */
-  function computeChecksum(prognosis: object): string {
-    // Canonical serialization MUST stay byte-identical with
-    // scripts/validate-handoff.sh (jq -c '.prognosis | to_entries |
-    // sort_by(.key) | from_entries' via printf '%s' — no trailing newline).
-    // Top-level keys are byte-sorted (Object.keys().sort() == jq's sort_by(.key)
-    // for ASCII keys); nested objects keep their existing insertion order
-    // (matches jq's parse order). JSON.stringify emits compact JSON with no
-    // trailing newline — byte-identical to the validator's pipeline.
-    const canonical: Record<string, unknown> = {}
-    for (const key of Object.keys(prognosis).sort()) {
-      canonical[key] = (prognosis as Record<string, unknown>)[key]
-    }
-    return createHash("sha256")
-      .update(JSON.stringify(canonical))
-      .digest("hex")
-  }
 
   /**
    * DIA-085 (parallel-handoff-slots): atomic per-session handoff write.
@@ -1739,131 +1105,6 @@ const delegationObserver: Plugin = async (ctx) => {
    * filesystems including the Docker volume - the reader sees either the old
    * file or the new file, never a partial write).
    */
-  function atomicWriteHandoff(
-    content: Record<string, unknown>,
-    sessionId: string
-  ): { archived_prior: string | null } {
-    // mkdir -p semantics for handoffs/ + handoffs/archive/ (idempotent). A
-    // failed directory creation must NOT proceed silently - every later write
-    // would fail opaquely. mkdirSync throws; the log_decision caller catches,
-    // warns, and still writes the audit row (design.md section 4: the log row
-    // is the non-negotiable audit trail).
-    mkdirSync(handoffSlotsDir, { recursive: true })
-    mkdirSync(handoffArchiveDir, { recursive: true })
-
-    const slotPath = join(handoffSlotsDir, `${sessionId}.json`)
-    // Layout invariants (DIA-085): a slot write must never target the legacy
-    // single-slot fallback, the pointer, or the reconciliation sidecar. The
-    // pointer check is REAL - a session literally id'd "active" would clobber
-    // active.json; the legacy/reconciled checks pin the "never write them"
-    // invariant structurally so an accidental re-wiring fails loudly.
-    if (
-      slotPath === handoffLegacyPath ||
-      slotPath === handoffPointerPath ||
-      slotPath === handoffReconciledPath
-    ) {
-      throw new Error(
-        `[delegation-observer] slot path collision: '${slotPath}' is a reserved handoff path`
-      )
-    }
-
-    // Step 1 - archive prior slot (best-effort, never blocks the write).
-    let archivedPrior: string | null = null
-    if (existsSync(slotPath)) {
-      const iso = new Date().toISOString().replace(/:/g, "-")
-      const archiveName = `${sessionId}.${iso}.${randomUUID()}.json`
-      try {
-        renameSync(slotPath, join(handoffArchiveDir, archiveName))
-        archivedPrior = `archive/${archiveName}`
-        // DIA-204: routine archive telemetry demoted from tuiSafeWarn (which
-        // OpenCode surfaces in the TUI chat stream) to the TUI-safe SDK app
-        // log at info level - DIA-193 pattern. Message text unchanged (tests
-        // assert on it).
-        ctx.client.app.log({
-          body: {
-            service: "delegation-observer",
-            level: "info",
-            message: `[delegation-observer] handoff archived: ${sessionId} prior slot -> archive/${archiveName}`,
-          },
-        })
-      } catch (err) {
-        // Best-effort archive (design.md section 4): a failed archive must
-        // not lose the new write. The prior slot stays in place and is
-        // atomically overwritten by the slot rename below.
-        // DIA-204: demoted from tuiSafeWarn (leaks into TUI chat stream) to
-        // the TUI-safe SDK app log at warn level - same pattern as the
-        // archive-success path above.
-        ctx.client.app.log({
-          body: {
-            service: "delegation-observer",
-            level: "warn",
-            message: `[delegation-observer] handoff archive failed for ${sessionId}: ${errorMessage(err)}`,
-          },
-        })
-      }
-    }
-
-    // Step 2 - write the slot (source of truth). POSIX-atomic pattern:
-    // temp -> fsync -> rename -> fsync dir. On failure, unlink the tmp (if
-    // rename did not happen) and rethrow so the caller's audit row still
-    // lands and the pointer is never updated for a slot that did not land.
-    const slotTmpPath = join(handoffSlotsDir, `.${sessionId}.json.tmp`)
-    try {
-      const json = JSON.stringify(content, null, 2) + "\n"
-      writeFileSync(slotTmpPath, json)
-      const tmpFd = openSync(slotTmpPath, "r+")
-      fsyncSync(tmpFd)
-      closeSync(tmpFd)
-      renameSync(slotTmpPath, slotPath)
-      const dirFd = openSync(handoffSlotsDir, "r")
-      fsyncSync(dirFd)
-      closeSync(dirFd)
-    } catch (err) {
-      // Best-effort cleanup: unlink tmp if it still exists (rename failed).
-      try {
-        if (existsSync(slotTmpPath)) unlinkSync(slotTmpPath)
-      } catch {
-        // Secondary failure - nothing more we can do.
-      }
-      throw err
-    }
-
-    // Step 3 - write the pointer (dispensable optimization; design.md
-    // section 4: "pointer is optimization, slot is source of truth"). Written
-    // AFTER the slot; on failure warn and continue - the slot is valid and
-    // the boot gate falls back to the mtime scan (stale pointer recovery).
-    const pointerContent = {
-      active_session_id: sessionId,
-      timestamp: new Date().toISOString(),
-      pointer_version: 1,
-    }
-    const pointerTmpPath = join(handoffSlotsDir, ".active.json.tmp")
-    try {
-      const json = JSON.stringify(pointerContent, null, 2) + "\n"
-      writeFileSync(pointerTmpPath, json)
-      const tmpFd = openSync(pointerTmpPath, "r+")
-      fsyncSync(tmpFd)
-      closeSync(tmpFd)
-      renameSync(pointerTmpPath, handoffPointerPath)
-      const dirFd = openSync(handoffSlotsDir, "r")
-      fsyncSync(dirFd)
-      closeSync(dirFd)
-    } catch (err) {
-      try {
-        if (existsSync(pointerTmpPath)) unlinkSync(pointerTmpPath)
-      } catch {
-        // Secondary failure - nothing more we can do.
-      }
-      tuiSafeWarn(
-        `[delegation-observer] handoff pointer write failed for ${sessionId}: ${errorMessage(err)}`
-      )
-    }
-
-    // Step 4 - surface the archive result for the caller's registry row
-    // enrichment (design.md section 2 step 4). null when no prior slot
-    // existed (the field is then omitted from the row - backward-compatible).
-    return { archived_prior: archivedPrior }
-  }
 
   /**
    * DIA-211: atomic write for JSON files (active.json). Simpler than
@@ -2114,7 +1355,7 @@ const delegationObserver: Plugin = async (ctx) => {
         tuiSafeWarn(
           `[delegation-observer] all agents isolated — allowing degraded dispatch of ${dispatch.subagentType}`
         )
-        appendRow({
+        registry.appendRow({
           event: "health_gate_all_isolated_override",
           session_id: pendingAdaptiveDispatches.get(callId)?.agentId ?? dispatch.subagentType,
           agent: dispatch.subagentType,
@@ -2306,104 +1547,6 @@ const delegationObserver: Plugin = async (ctx) => {
    * timestamp; the row carries event/status/session_id + writer provenance.
    * file_path is stored relative to the workspace root for readability.
    */
-  function runEditTimeFormatter(input: {
-    tool: string
-    sessionID: string
-    args?: unknown
-  }): void {
-    const args = (input.args ?? {}) as Record<string, unknown>
-
-    // Step 1 — resolve the paths the edit touched.
-    let touchedPaths: string[] = []
-    if (input.tool === "edit" || input.tool === "write") {
-      if (typeof args.filePath === "string" && args.filePath) {
-        touchedPaths = [args.filePath]
-      }
-    } else if (input.tool === "apply_patch") {
-      touchedPaths = extractPatchPaths(
-        typeof args.patchText === "string" ? args.patchText : ""
-      )
-    }
-    if (touchedPaths.length === 0) return
-
-    for (const rawPath of touchedPaths) {
-      const absPath = isAbsolute(rawPath)
-        ? rawPath
-        : resolve(ctx.directory, rawPath)
-      const relPath = relative(ctx.directory, absPath)
-
-      // Step 2 — ignore set (silent: expected scope exclusion, not a failure).
-      if (isFormatterIgnoredPath(absPath, ctx.directory)) continue
-
-      // Step 3 — extension allow-list (silent; prettier cannot parse the rest).
-      if (!FORMATTER_EXTENSIONS.has(extname(absPath).toLowerCase())) continue
-
-      // Step 4 — perf guard: missing file (e.g. patch-deleted) or too large.
-      try {
-        if (!existsSync(absPath)) continue
-        if (statSync(absPath).size > FORMATTER_MAX_BYTES) continue
-      } catch {
-        continue
-      }
-
-      // Step 5-6 — deterministic formatter invocation.
-      let result
-      try {
-        result = spawnSync(
-          "npx",
-          ["--no-install", "prettier", "--write", absPath],
-          {
-            cwd: ctx.directory,
-            encoding: "utf-8",
-            timeout: FORMATTER_TIMEOUT_MS,
-          }
-        )
-      } catch (err) {
-        appendRow({
-          event: "format_warn",
-          session_id: input.sessionID,
-          tool: input.tool,
-          file_path: relPath,
-          status: "WARN",
-          note: `prettier spawn failed: ${errorMessage(err)}`,
-          writer: "plugin",
-        })
-        tuiSafeWarn(
-          `[DIA-105] formatter spawn failed for ${relPath}: ${errorMessage(err)}`
-        )
-        continue
-      }
-
-      if (result.error || result.status !== 0) {
-        const why = result.error
-          ? (errorMessage(result.error) ?? "spawn error")
-          : `prettier exit ${result.status}${
-              result.signal ? ` (${result.signal})` : ""
-            }`
-        appendRow({
-          event: "format_warn",
-          session_id: input.sessionID,
-          tool: input.tool,
-          file_path: relPath,
-          status: "WARN",
-          note: why,
-          writer: "plugin",
-        })
-        tuiSafeWarn(`[DIA-105] formatter failed for ${relPath}: ${why}`)
-        continue
-      }
-
-      appendRow({
-        event: "format_applied",
-        session_id: input.sessionID,
-        tool: input.tool,
-        file_path: relPath,
-        status: "FORMATTED",
-        formatter: "prettier",
-        writer: "plugin",
-      })
-    }
-  }
 
   /**
    * S1 (A3): retroactive consistency check. After a terminal event, scan the
@@ -2445,7 +1588,7 @@ const delegationObserver: Plugin = async (ctx) => {
       if (terminal.has(key)) continue
       if (alreadyAlerted.has(key)) continue
       const states = keyRows.map((r) => r.dispatch_state).join("/")
-      appendRow({
+      registry.appendRow({
         event: "silent_failure_alert",
         session_id: keyRows[0].session_id,
         task_id: keyRows[0].task_id,
@@ -2470,22 +1613,6 @@ const delegationObserver: Plugin = async (ctx) => {
    * subagent threshold (safe default: an earlier alert costs a re-check, a
    * missed stall costs a session).
    */
-  function sessionRoleFromRows(
-    key: string,
-    rows: RegistryRow[]
-  ): "subagent" | "orchestrator" | "unknown" {
-    if (rootSessionIds.has(key)) return "orchestrator"
-    const meta = sessionMeta.get(key)
-    if (meta?.role === "orchestrator") return "orchestrator"
-    let sawSubagent = false
-    for (const r of rows) {
-      if ((r.session_id ?? r.task_id) !== key) continue
-      if (r.role === "orchestrator") return "orchestrator"
-      if (r.role === "subagent") sawSubagent = true
-      if (r.parent_session && r.parent_session !== r.session_id) sawSubagent = true
-    }
-    return sawSubagent ? "subagent" : "unknown"
-  }
 
   /**
    * DIA-098 R2: emit one stall_detected registry row + one crisis messages
@@ -2495,44 +1622,6 @@ const delegationObserver: Plugin = async (ctx) => {
    * auto-resume (ana016 section 6.5 fail-fast): the crisis row is the
    * orchestrator's prompt to investigate and re-dispatch.
    */
-  function emitStall(
-    key: string,
-    row: RegistryRow,
-    ageSec: number,
-    thresholdMin: number,
-    escalation: "dead" | undefined
-  ): void {
-    appendRow({
-      event: "stall_detected",
-      session_id: row.session_id,
-      task_id: row.task_id,
-      stall_duration_seconds: ageSec,
-      last_status: row.status,
-      detected_at: new Date().toISOString(),
-      ...(escalation === "dead"
-        ? {
-            escalation: "dead",
-            note: "assumed dead - still non-terminal past STALL_DEAD_MINUTES (ana011 claim-staleness protocol)",
-          }
-        : {}),
-      writer: "plugin",
-    })
-    appendMessageRow(
-      {
-        "gen_ai.operation.name": "invoke_workflow",
-        from: "orchestrator",
-        event_type: "crisis",
-        task_ref: key,
-        resolution_status: "in-flight",
-        content_ref:
-          escalation === "dead"
-            ? "session_assumed_dead_after_60_min"
-            : `stall_detected_after_${thresholdMin}_min`,
-        next_action: "investigate and re-dispatch",
-      },
-      key
-    )
-  }
 
   /**
    * DIA-098 R2: proactive stall sweep (ana016 section 4.2 primary signal +
@@ -2555,79 +1644,6 @@ const delegationObserver: Plugin = async (ctx) => {
    * protocol) and gets a second stall_detected row with escalation:"dead".
    * Fail-fast by design (section 6.5): never auto-resumes.
    */
-  function sweepStalledSessions(): void {
-    const rows = readRegistryRows()
-    // Latest dispatch_state-carrying row per delegation key. Rows without a
-    // dispatch_state (a1_violation, format_applied, gate rows) share the
-    // session_id namespace but are not delegations — excluded (RR-3 pattern,
-    // same as checkSilentFailures).
-    const latestByKey = new Map<string, RegistryRow>()
-    for (const r of rows) {
-      if (typeof r.dispatch_state !== "string") continue
-      const key = r.session_id ?? r.task_id
-      if (!key) continue
-      const prev = latestByKey.get(key)
-      if (!prev || (r.timestamp ?? "") >= (prev.timestamp ?? "")) {
-        latestByKey.set(key, r)
-      }
-    }
-    if (latestByKey.size === 0) {
-      stallSweepFirstDone = true
-      return
-    }
-
-    // Dedup windows from existing stall_detected rows (section 6.4 d):
-    // per-key latest detection per tier (plain stall vs dead escalation).
-    const lastStallByKey = new Map<string, number>()
-    const lastDeadByKey = new Map<string, number>()
-    for (const r of rows) {
-      if (r.event !== "stall_detected") continue
-      const key = r.session_id ?? r.task_id
-      if (!key) continue
-      const ts = Date.parse(r.timestamp ?? "")
-      if (Number.isNaN(ts)) continue
-      const tier = r.escalation === "dead" ? lastDeadByKey : lastStallByKey
-      const prev = tier.get(key)
-      if (prev === undefined || ts > prev) tier.set(key, ts)
-    }
-
-    const now = Date.now()
-    const isFirstSweep = !stallSweepFirstDone
-    for (const [key, row] of latestByKey) {
-      if (TERMINAL_STATES.has(row.dispatch_state ?? "")) continue
-      if (row.event === "silent_failure_alert") continue
-      if (!NON_TERMINAL_STATES.has(row.dispatch_state ?? "")) continue
-      const ts = Date.parse(row.timestamp ?? "")
-      if (Number.isNaN(ts)) continue
-      // DIA-260822-fksf: startup protection - on the FIRST sweep after plugin
-      // load, suppress keys whose latest nonterminal row predates this process.
-      // Those are stale from a prior lifetime and must not cascade.
-      if (isFirstSweep && ts < pluginLoadMs) continue
-      const ageSec = Math.max(0, Math.floor((now - ts) / 1000))
-      const role = sessionRoleFromRows(key, rows)
-      const thresholdMin =
-        role === "orchestrator" ? stallOrchestratorMinutes : stallSubagentMinutes
-
-      // Dead escalation: ANY session still non-terminal past the 60-min
-      // deadline is assumed dead regardless of role (ana011 protocol).
-      if (ageSec >= stallDeadMinutes * 60) {
-        const lastDead = lastDeadByKey.get(key)
-        if (lastDead !== undefined && now - lastDead < stallDeadMinutes * 60_000) {
-          continue
-        }
-        emitStall(key, row, ageSec, stallDeadMinutes, "dead")
-        continue
-      }
-      // Level-1 stall: role threshold crossed.
-      if (ageSec < thresholdMin * 60) continue
-      const lastStall = lastStallByKey.get(key)
-      if (lastStall !== undefined && now - lastStall < thresholdMin * 60_000) {
-        continue
-      }
-      emitStall(key, row, ageSec, thresholdMin, undefined)
-    }
-    stallSweepFirstDone = true
-  }
 
   /**
    * DIA-098 R2: terminal-event resolution bookkeeping. The sweep derives its
@@ -2647,7 +1663,7 @@ const delegationObserver: Plugin = async (ctx) => {
         r.event === "stall_detected" && (r.session_id ?? r.task_id) === sessionID
     )
     if (!stalled) return
-    appendRow({
+    registry.appendRow({
       event: "stall_resolved",
       session_id: sessionID,
       resolution,
@@ -2662,17 +1678,7 @@ const delegationObserver: Plugin = async (ctx) => {
   // fail-soft policy as the registry writes).
   // DIA-260822-oldn: replace any prior stall-sweep interval (in-process reload)
   // before arming a new one; store the handle on globalThis so dispose clears it.
-  const priorSweep = stallSweepStore[STALL_SWEEP_KEY]
-  if (priorSweep !== undefined) clearInterval(priorSweep)
-  stallSweepStore[STALL_SWEEP_KEY] = setInterval(() => {
-    try {
-      sweepStalledSessions()
-    } catch (err) {
-      tuiSafeWarn(
-        `[delegation-observer] stall sweep failed: ${errorMessage(err)}`
-      )
-    }
-  }, STALL_SWEEP_INTERVAL_MS)
+  stallSweepInst.start()
 
   // DIA-260822-medh: token-accurate context measurement, shared by the
   // context_usage tool AND the adaptive session-compaction policy so both
@@ -2827,7 +1833,7 @@ const delegationObserver: Plugin = async (ctx) => {
       // undergone apoptosis (circuit.open + session.error/idle), block all
       // further dispatches. The session is effectively dead.
       if (apoptosisSessions.has(input.sessionID)) {
-        appendRow({
+        registry.appendRow({
           event: "apoptosis_session_killed",
           session_id: input.sessionID,
           tool: input.tool,
@@ -2889,7 +1895,7 @@ const delegationObserver: Plugin = async (ctx) => {
               message: `[delegation-observer] A1 VIOLATION: task() called alongside ${calls.length - 1} other tool(s) in session ${input.sessionID}`,
             },
           })
-          appendRow({
+          registry.appendRow({
             event: "a1_violation",
             session_id: input.sessionID,
             call_id: input.callID,
@@ -2911,7 +1917,7 @@ const delegationObserver: Plugin = async (ctx) => {
         // the last 5 tool calls (sliding window) and stays open for a
         // 5-minute cooldown before allowing a single test call.
         if (toolCircuitBreaker.tryPass(input.sessionID)) {
-          appendRow({
+          registry.appendRow({
             event: "circuit_blocked",
             session_id: input.sessionID,
             subagent_type: taskSubagent ?? "",
@@ -2989,7 +1995,7 @@ const delegationObserver: Plugin = async (ctx) => {
             result.payload &&
             typeof result.payload.scope === "string"
           ) {
-            appendRow({
+            registry.appendRow({
               event: "capability_used",
               session_id: input.sessionID,
               scope: result.payload!.scope,
@@ -3025,17 +2031,9 @@ const delegationObserver: Plugin = async (ctx) => {
         // "CREATE TICKET" still match. The whitelist is the explicit intent
         // signal (audit-literal); `[META-TASK]` is the strict opt-in, the rest
         // cover natural orchestrator phrasing.
-        const metaTaskText = buildDispatchText(taskArgRecord).toLowerCase()
-        const META_TASK_WHITELIST = [
-          "scripts/tickets new",
-          "create ticket",
-          "procedural authorization",
-          "meta-task",
-          "[META-TASK]",
-        ]
-        let metaTaskBypass = false
-        if (META_TASK_WHITELIST.some((sig) => metaTaskText.includes(sig))) {
-          appendRow({
+        const metaTaskBypass = isMetaTaskBypass(buildDispatchText(taskArgRecord))
+        if (metaTaskBypass) {
+          registry.appendRow({
             event: "meta_task_bypass",
             session_id: input.sessionID,
             detail:
@@ -3045,7 +2043,6 @@ const delegationObserver: Plugin = async (ctx) => {
           tuiSafeWarn(
             "[meta-task] bypassing ticket gate for ticket-creation / procedural-authorization dispatch"
           )
-          metaTaskBypass = true // skip DIA-217 resolution; CONTINUE to §10/DIA-230
         }
 
         // DIA-260824-p3hf: the native task tool schema cannot carry project
@@ -3092,7 +2089,7 @@ const delegationObserver: Plugin = async (ctx) => {
         const agentType = taskSubagent ?? ""
 
         if (!ticketId) {
-          appendRow({
+          registry.appendRow({
             event: "gate_blocked",
             session_id: input.sessionID,
             subagent_type: agentType,
@@ -3110,7 +2107,7 @@ const delegationObserver: Plugin = async (ctx) => {
         // DIA-234: accept both sequential (DIA-NNN) and datetime (DIA-YYMMDD-XXXX) formats.
         // Lowercase-only enforcement: generator produces lowercase suffixes, no /i flag.
         if (!TICKET_ID_RE.test(ticketId)) {
-          appendRow({
+          registry.appendRow({
             event: "gate_blocked",
             session_id: input.sessionID,
             subagent_type: agentType,
@@ -3138,7 +2135,7 @@ const delegationObserver: Plugin = async (ctx) => {
           ticketStatus = hit ? hit.status : null
         } catch (err) {
           // scanTickets throws on missing dir / read error -> fail closed.
-          appendRow({
+          registry.appendRow({
             event: "gate_scan_failed",
             session_id: input.sessionID,
             ticket_id: ticketId,
@@ -3148,7 +2145,7 @@ const delegationObserver: Plugin = async (ctx) => {
         }
 
         if (ticketStatus !== "OPEN") {
-          appendRow({
+          registry.appendRow({
             event: "gate_blocked",
             session_id: input.sessionID,
             subagent_type: agentType,
@@ -3300,7 +2297,7 @@ const delegationObserver: Plugin = async (ctx) => {
           if (subagentType === "researcher" && prompt) {
             const hasResId = /res\d+/.test(prompt)
             if (!hasResId) {
-              appendRow({
+              registry.appendRow({
                 event: "autocrine_gate_warn",
                 session_id: input.sessionID,
                 tool: input.tool,
@@ -3363,7 +2360,7 @@ const delegationObserver: Plugin = async (ctx) => {
                 // Fail-closed: scan error -> hasAiSpecialist=false -> hard block (ROUTING_VIOLATION)
               }
               if (!hasAiSpecialist) {
-                appendRow({
+                registry.appendRow({
                   event: "ROUTING_VIOLATION",
                   dispatch_state: "BLOCKED",
                   session_id: input.sessionID,
@@ -3377,7 +2374,7 @@ const delegationObserver: Plugin = async (ctx) => {
                   )?.join(", "),
                   writer: "plugin",
                 })
-                appendMessageRow(
+                registry.appendMessageRow(
                   {
                     "gen_ai.operation.name": "routing_violation",
                     "gen_ai.agent.name": subagentType,
@@ -3474,7 +2471,7 @@ const delegationObserver: Plugin = async (ctx) => {
             // Path-3-only failure (no DIA-id mentioned anywhere): keyword
             // correlation is weak by nature — blocking on it produced false
             // positives. Warn + allow + log a registry row; do NOT throw.
-            appendRow({
+            registry.appendRow({
               event: "ticket_gate_weak_correlation",
               session_id: input.sessionID,
               subagent_type: subagentType,
@@ -3491,7 +2488,7 @@ const delegationObserver: Plugin = async (ctx) => {
           // citation that does not resolve to live work is a clear §10
           // violation — keep the hard throw (registry row follows the
           // appendRow pattern).
-          appendRow({
+          registry.appendRow({
             event: "ticket_gate_blocked",
             session_id: input.sessionID,
             subagent_type: subagentType,
@@ -3523,7 +2520,7 @@ const delegationObserver: Plugin = async (ctx) => {
           tuiSafeWarn(
             `[DIA-063] ticket-gate scan failed, allowing dispatch: ${errorMessage(err)}`
           )
-          appendRow({
+          registry.appendRow({
             event: "ticket_gate_scan_failed",
             session_id: input.sessionID,
             subagent_type: subagentType,
@@ -3569,7 +2566,7 @@ const delegationObserver: Plugin = async (ctx) => {
         const newState = toolCircuitBreaker.record(input.sessionID, isError)
         if (newState === "OPEN") {
           // Emit a circuit_open registry row so the event is traceable.
-          appendRow({
+          registry.appendRow({
             event: "circuit_open",
             session_id: input.sessionID,
             tool: input.tool,
@@ -3633,7 +2630,7 @@ const delegationObserver: Plugin = async (ctx) => {
           (sessionEditCount.get(input.sessionID) ?? 0) + 1
         )
         try {
-          runEditTimeFormatter(input)
+          runEditTimeFormatter(input, { spawnSync, workspaceRoot: ctx.directory } as any)
         } catch (err) {
           // Absolute last resort — never let a formatter defect reach the
           // tool result / session. warn + continue is the DIA-105 contract.
@@ -3654,7 +2651,7 @@ const delegationObserver: Plugin = async (ctx) => {
       const text = typeof output?.output === "string" ? output.output : ""
       const taskId = parseTaskIdFromTaskOutput(text)
       if (taskId) {
-        appendRow({
+        registry.appendRow({
           event: "task_success",
           task_id: taskId,
           dispatch_state: "invoked",
@@ -3668,7 +2665,7 @@ const delegationObserver: Plugin = async (ctx) => {
         // (resolved to __task_no_id__<seq> in appendRow) so jsonl-stats can
         // exclude the expected path from dangling/orphan noise while still
         // catching genuinely untrackable dispatches (RR-5a).
-        appendRow({
+        registry.appendRow({
           event: "task_no_id",
           dispatch_state: "invoked",
           status: "PENDING",
@@ -3763,7 +2760,7 @@ const delegationObserver: Plugin = async (ctx) => {
         input.sessionID,
         (sessionDelegationCount.get(input.sessionID) ?? 0) + 1
       )
-      appendMessageRow(
+      registry.appendMessageRow(
         {
           "gen_ai.operation.name": "invoke_agent",
           "gen_ai.agent.name": agentName,
@@ -3965,7 +2962,7 @@ const delegationObserver: Plugin = async (ctx) => {
       st.compacted = true
       st.warned85PostCompact = false
       contextPolicyState.set(sessionID, st)
-      appendRow({ event: "session.compacted", session_id: sessionID, writer: "plugin" })
+      registry.appendRow({ event: "session.compacted", session_id: sessionID, writer: "plugin" })
     },
 
     // C1: session lifecycle events arrive via the generic `event` catch-all —
@@ -4005,7 +3002,7 @@ const delegationObserver: Plugin = async (ctx) => {
           // RUNNING transition: only child spawns are delegations. The root
           // orchestrator session is recorded for role attribution only.
           if (info.parentID) {
-            appendRow({
+            registry.appendRow({
               event: "session_spawn",
               session_id: info.id,
               parent_session: info.parentID,
@@ -4044,7 +3041,7 @@ const delegationObserver: Plugin = async (ctx) => {
             // enforced by the messages-log discipline in NEXT-RUN.md §2).
             if (!gatedSessions.has(sessionID)) {
               gatedSessions.add(sessionID)
-              appendRow({
+              registry.appendRow({
                 event: "a5_quality_gate",
                 session_id: sessionID,
                 role,
@@ -4076,7 +3073,7 @@ const delegationObserver: Plugin = async (ctx) => {
             const pending = delegationsSinceHandoff.get(sessionID) ?? 0
             if (pending > 0) {
               delegationsSinceHandoff.set(sessionID, 0)
-              appendMessageRow(
+              registry.appendMessageRow(
                 {
                   "gen_ai.operation.name": "invoke_workflow",
                   from: "orchestrator",
@@ -4109,7 +3106,7 @@ const delegationObserver: Plugin = async (ctx) => {
           // anomaly instead of silently writing another terminal row.
           const last = lastRowForSession(sessionID)
           if (last && TERMINAL_STATES.has(last.dispatch_state ?? "")) {
-            appendRow({
+            registry.appendRow({
               event: "anomaly_backward_transition",
               session_id: sessionID,
               from_state: last.dispatch_state,
@@ -4120,7 +3117,7 @@ const delegationObserver: Plugin = async (ctx) => {
             return
           }
 
-          appendRow({
+          registry.appendRow({
             event: "session_complete",
             session_id: sessionID,
             role: "subagent",
@@ -4135,7 +3132,7 @@ const delegationObserver: Plugin = async (ctx) => {
           // child's parent orchestrator (the session that spawned it), so the
           // row counts under the orchestrator that triggered it, not a
           // process-global first-captured orchestrator id.
-          appendMessageRow(
+          registry.appendMessageRow(
             {
               "gen_ai.operation.name": "invoke_agent",
               "gen_ai.agent.name": childSessionAgent.get(sessionID) ?? "subagent",
@@ -4189,7 +3186,7 @@ const delegationObserver: Plugin = async (ctx) => {
             !isReadOnly &&
             !verificationOnlySessions.has(sessionID)
           ) {
-            appendRow({
+            registry.appendRow({
               event: "empty_result_detected",
               session_id: sessionID,
               dispatch_state: "SILENT_FAILURE",
@@ -4200,7 +3197,7 @@ const delegationObserver: Plugin = async (ctx) => {
                 "child session completed with zero file edits (DIA-224 D3 empty-result detection)",
               writer: "plugin",
             })
-            appendMessageRow(
+            registry.appendMessageRow(
               {
                 "gen_ai.operation.name": "empty_result_detected",
                 "gen_ai.agent.name": childSessionAgent.get(sessionID) ?? "subagent",
@@ -4230,7 +3227,7 @@ const delegationObserver: Plugin = async (ctx) => {
             failureCap.set(sessionID, entry)
 
             if (entry.count >= FAILURE_CAP_THRESHOLD) {
-              appendMessageRow(
+              registry.appendMessageRow(
                 {
                   "gen_ai.operation.name": "failure_cap_reached",
                   "gen_ai.agent.name":
@@ -4283,7 +3280,7 @@ const delegationObserver: Plugin = async (ctx) => {
           if (role === "subagent") {
             const last = lastRowForSession(sessionID)
             if (last && TERMINAL_STATES.has(last.dispatch_state ?? "")) {
-              appendRow({
+              registry.appendRow({
                 event: "anomaly_backward_transition",
                 session_id: sessionID,
                 from_state: last.dispatch_state,
@@ -4295,7 +3292,7 @@ const delegationObserver: Plugin = async (ctx) => {
             }
           }
 
-          appendRow({
+          registry.appendRow({
             event: "session_failed",
             session_id: sessionID,
             role,
@@ -4312,7 +3309,7 @@ const delegationObserver: Plugin = async (ctx) => {
           // (the session that spawned the child), the session itself for
           // orchestrator rows - never a process-global first-captured
           // orchestrator id.
-          appendMessageRow(
+          registry.appendMessageRow(
             {
               "gen_ai.operation.name": "invoke_agent",
               "gen_ai.agent.name": childSessionAgent.get(sessionID) ?? role,
@@ -4523,7 +3520,7 @@ const delegationObserver: Plugin = async (ctx) => {
               }
               const status =
                 statusMap[args.resolution_status] ?? "manual-halt"
-              const checksum = computeChecksum(prognosis)
+              const checksum = libComputeChecksum(prognosis)
               // DIA-085: the session identity becomes the SLOT identity,
               // passed to atomicWriteHandoff as the slot selector so parallel
               // orchestrator sessions never clobber each other's handoff file.
@@ -4537,17 +3534,11 @@ const delegationObserver: Plugin = async (ctx) => {
               // the last resort (DIA-222 F-3: never the "unknown" sentinel).
               const handoffSessionId =
                 context?.sessionID ?? args.lane_id ?? "unidentified-session"
-              writeResult = atomicWriteHandoff(
-                {
-                  status,
-                  session_id: handoffSessionId,
-                  cycle_id: args.cycle_id ?? null,
-                  timestamp: new Date().toISOString(),
+              writeResult = libAtomicWriteHandoff({ slotsDir: handoffSlotsDir, archiveDir: handoffArchiveDir, pointerPath: handoffPointerPath, legacyPath: handoffLegacyPath, reconciledPath: handoffReconciledPath }, handoffSessionId, {
+                  status, session_id: handoffSessionId, cycle_id: args.cycle_id ?? null, timestamp: new Date().toISOString(),
                   checksum,
                   prognosis,
-                },
-                handoffSessionId
-              )
+                })
 
               // DIA-211 Phase 2: stigmergic active.json -- on terminal handoff
               // events with a next_action, update the workflow state file so
@@ -4667,7 +3658,7 @@ const delegationObserver: Plugin = async (ctx) => {
             })
           }
 
-          appendMessageRow(
+          registry.appendMessageRow(
             {
               "gen_ai.operation.name": "invoke_workflow",
               from: "orchestrator",
@@ -4919,7 +3910,7 @@ const delegationObserver: Plugin = async (ctx) => {
           // (>25%/cycle). Emitted via tuiSafeWarn + registry row so the
           // orchestrator sees them without blocking the tool response.
           if (velocityPercent > 25) {
-            appendRow({
+            registry.appendRow({
               event: "context_emergency",
               session_id: callingSession,
               velocity_pct: velocityPercent,
@@ -4930,7 +3921,7 @@ const delegationObserver: Plugin = async (ctx) => {
               `[delegation-observer] CONTEXT EMERGENCY: session ${callingSession} velocity ${velocityPercent}% (threshold 25%)`
             )
           } else if (velocityPercent > 15) {
-            appendRow({
+            registry.appendRow({
               event: "context_crisis",
               session_id: callingSession,
               velocity_pct: velocityPercent,
@@ -4993,7 +3984,7 @@ const delegationObserver: Plugin = async (ctx) => {
         },
         async execute(args, ctx) {
           const token = mintCapabilityToken(args.scope, args.reason)
-          appendRow({
+          registry.appendRow({
             event: "capability_minted",
             session_id: ctx.sessionID,
             scope: args.scope,
@@ -5013,9 +4004,7 @@ const delegationObserver: Plugin = async (ctx) => {
     dispose: async () => {
       // DIA-260822-oldn: clear the stall-sweep singleton (replaces the prior
       // local clearInterval(stallSweepInterval)) so reloads don't orphan timers.
-      const sweep = stallSweepStore[STALL_SWEEP_KEY]
-      if (sweep !== undefined) clearInterval(sweep)
-      stallSweepStore[STALL_SWEEP_KEY] = undefined
+      try { stallSweepInst.dispose() } catch { /* noop */ }
       // DIA-211 fix #6: flush any pending debounced write before clearing
       // the timer — losing <1s of state on dispose is unnecessary.
       if (routingWriteTimer) {

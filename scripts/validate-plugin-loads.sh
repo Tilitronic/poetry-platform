@@ -13,11 +13,13 @@ elif [ -x "/tmp/bun-1.3.14" ]; then
   BUN_BIN="/tmp/bun-1.3.14"
 else
   echo "bun not found; running node fallback check"
-  node --experimental-strip-types -e "import('/home/qualt/Projects/poetry-platform/.opencode/plugins/delegation-observer.ts').then(m=>{if(typeof m.default!=='function'){console.error('FAIL');process.exit(1)};console.log('OK (node)')})"
+  node --experimental-strip-types -e "import('$(pwd)/.opencode/plugins/delegation-observer.ts').then(m=>{if(typeof m.default!=='function'){console.error('FAIL');process.exit(1)};console.log('OK (node)')})"
   exit 0
 fi
+# resolve plugin path relative to repo root for both host and container
+PLUGIN_PATH="$(pwd)/.opencode/plugins/delegation-observer.ts"
 "$BUN_BIN" -e "
-import('/home/qualt/Projects/poetry-platform/.opencode/plugins/delegation-observer.ts').then(m=>{
+import('$PLUGIN_PATH').then(m=>{
   if(typeof m.default!=='function'){console.error('FAIL: default not a function under Bun');process.exit(1)}
   // Wy check: every export must be function or {server:function}
   function isFn(v){return typeof v==='function'}

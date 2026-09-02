@@ -1170,6 +1170,12 @@ shelf:
     created: 2026-08-27
     task_ref: DIA-234
     status: validated
+  - name: dia-260902-eqgg-delegation-observer-srp
+    description: "OpenSpec change (ticket DIA-260902-eqgg, DIA-260901-3y39 F1): SRP refactor of .opencode/plugins/delegation-observer.ts (4,985 lines) into 7 lib modules (capability, ticket-gate, handoff, registry writer, stall-sweep, formatter, circuit-breaker) with shell reduced to ~4.1K lines (composition/lifecycle only). Full interview (Q1 Full, Q2 7 seams, Q3 perf <5ms p95, Q4 shell-owns-globalThis, Q5 fail-loud/fail-soft, Q6 preserve-all, Q7 corrected 6-gate, Q8 libs-own-how, Q9 corrected DAG, D1 per-hook sync/async, D2 30s/1MiB, D3 5/3/5min, D4 B) + 5 corrections. skip_specs:true. Validated."
+    path: openspec/changes/dia-260902-eqgg-delegation-observer-srp/
+    created: 2026-09-02
+    task_ref: DIA-260902-eqgg
+    status: validated
   architectures:
   - name: dia-redispatch-cycle
     description: "Design-authority seed for the dev-infra campaign protocol (CRISIS-DETECTION, PROGNOSIS-DISCIPLINE, cycle-budget management): 5 ADRs (ADR-001 prognosis in HANDOFF.md only, ADR-002 C1-C5 OR-combined triggers, ADR-003 fresh-session independence, ADR-004 max-cycles=3 budget default, ADR-005 soft exhaustion) that the redispatch rule texts must not contradict. Seeded 2026-08-03 from interview Q5."

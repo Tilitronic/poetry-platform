@@ -1,424 +1,621 @@
 /**
- * DIA-218 test harness (test-author lane, DIA-175 instance separation).
+ * RED test-author lane for Slice 7 — lib/circuit-breaker.ts (DIA-260902-eqgg).
  *
- * Seam under test: the ToolCircuitBreaker module in delegation-observer.
- * Tests the 3-state circuit breaker (CLOSED/OPEN/HALF_OPEN) that stops
- * infinite agent error loops by tracking tool.execute.error events.
+ * Source of truth: .opencode/plugins/delegation-observer.ts circuit-breaker seam
+ *   CB_WINDOW_SIZE=5, CB_ERROR_THRESHOLD=3, CB_COOLDOWN_MS=5min (D3 verbatim)
+ *   type CircuitState = "CLOSED" | "OPEN" | "HALF_OPEN"
+ *   interface CircuitBreakerEntry { state, window, openedAt, testCallMade }
+ *   class ToolCircuitBreaker { record(sessionId,isError): CircuitState; tryPass(sessionId): boolean; getState(sessionId): CircuitState }
+ *     private circuits = Map<string, CircuitBreakerEntry>
+ *     getEntry(sessionId) -> { state: CLOSED, window: [], openedAt: 0, testCallMade: false }
+ *     record: CLOSED push isError / shift if >5, count >=3 -> OPEN (openedAt=now)
+ *             OPEN: if now-openedAt>=5min -> HALF_OPEN (testCallMade false) then fall through
+ *             HALF_OPEN: testCallMade false; if isError -> OPEN (openedAt=now, push true) else CLOSED (window=[])
+ *             tryPass: no entry -> false; OPEN && cooldown expired -> HALF_OPEN; OPEN -> true (block)
+ *                      HALF_OPEN && testCallMade -> true (block); HALF_OPEN -> testCallMade=true, false (allow)
+ *                      CLOSED -> false
+ *     getState: entry?.state ?? CLOSED
  *
- * The tests invoke the REAL plugin (dynamic import) and drive its
- * tool.execute.after path via mocked hook inputs, following the
- * DIA-085/DIA-189/DIA-217 harness pattern.
+ * Learnings: .opencode/learnings/external-patterns/2026-09-02-opencode-plugin-loader-contract.md
+ *   lib is pure/DI'd (inject clock fakes), no ctx capture, no shell import; D3 constants verbatim;
+ *   D1 sync; pure in-memory, no FS.
  *
- * Hermetic: every harness gets a fresh mkdtemp workspace. No real
- * project files are touched.
+ * ASSUMED LIB SIGNATURE (GREEN implementer must match; note per task dispatch):
  *
- * DIA-079: this file is ASCII-only (no em-dashes, no smart quotes).
+ *   .opencode/plugins/lib/circuit-breaker.ts  (pure in-memory, no FS, clock injected)
  *
- * RUN COMMAND (verified on bun in the poetry-dev container):
- *   docker compose exec dev bash -lc \
- *     'cd /workspace/.opencode/plugins/__tests__ && \
- *      bun test circuit-breaker.test.mjs'
+ *     export const CB_WINDOW_SIZE = 5
+ *     export const CB_ERROR_THRESHOLD = 3
+ *     export const CB_COOLDOWN_MS = 5 * 60 * 1000  // 300_000
+ *
+ *     export type CircuitState = "CLOSED" | "OPEN" | "HALF_OPEN"
+ *     // CircuitBreakerEntry is internal — not required as public export
+ *
+ *     export class ToolCircuitBreaker {
+ *       constructor(deps?: { now?: () => number; clock?: () => number } | (() => number))
+ *       // deps may be { now }, { clock }, { nowFn }, or bare function; GREEN should support at least { now }.
+ *       record(sessionId: string, isError: boolean): CircuitState  // new state
+ *       tryPass(sessionId: string): boolean  // true = BLOCK dispatch, false = allow
+ *       getState(sessionId: string): CircuitState  // "CLOSED" default for unknown session
+ *     }
+ *
+ *     // Factory alternative (probed first; plain class fallback if absent):
+ *     export function createCircuitBreaker(deps?: { now?: () => number }): ToolCircuitBreaker
+ *     // aliases probed: createToolCircuitBreaker, createBreaker, create
+ *
+ *   DI seam (design.md): lib is pure/DI'd. GREEN must inject clock so tests can fake time
+ *   without monkey-patching global Date.now. Tests handle BOTH shapes:
+ *     - if factory exists, they inject fakes via factory
+ *     - otherwise they try `new ToolCircuitBreaker({ now: fake })`
+ *     - fallback: plain `new ToolCircuitBreaker()` (then monkey-patch Date.now per test)
+ *
+ * RUN (like other plugin tests):
+ *   node --test .opencode/plugins/__tests__/circuit-breaker.test.mjs
+ *   # with strip-types for .ts lib:
+ *   node --experimental-strip-types --test .opencode/plugins/__tests__/circuit-breaker.test.mjs
+ *   bun test .opencode/plugins/__tests__/circuit-breaker.test.mjs
+ *
+ * EXPECTED RED: all tests FAIL against the S0 stub (export {}) because
+ *   CB_* constants / ToolCircuitBreaker / createCircuitBreaker are undefined.
  */
-import { mock, test, expect, describe } from "bun:test"
-import {
-  existsSync,
-  mkdirSync,
-  mkdtempSync,
-  readFileSync,
-  rmSync,
-  writeFileSync,
-} from "node:fs"
-import { tmpdir } from "node:os"
-import { join } from "node:path"
 
-// ---- @opencode-ai/plugin mock (registered BEFORE the plugin import) ----
-const desc = { describe: () => desc }
-const withOptional = { optional: () => desc }
-const schema = { enum: () => withOptional, string: () => withOptional }
-const toolFn = (def) => def
-toolFn.schema = schema
-mock.module("@opencode-ai/plugin", () => ({ tool: toolFn }))
-
-// Dynamic import AFTER mock.module registration (defeats ESM hoisting).
-const { default: createDelegationObserver } = await import(
-  "../delegation-observer.ts"
-)
+import { describe, it } from "node:test"
+import assert from "node:assert/strict"
 
 // ---------------------------------------------------------------------------
-// Harness plumbing
+// Import the lib under test (stub in RED phase).
+// ---------------------------------------------------------------------------
+let mod = {}
+let importErr = null
+try {
+  mod = await import("../lib/circuit-breaker.ts")
+} catch (e) {
+  importErr = e
+  mod = { _importError: e }
+}
+
+// ---------------------------------------------------------------------------
+// Helpers to resolve DI seam if GREEN exposes a factory or DI'd constructor.
 // ---------------------------------------------------------------------------
 
-const tempDirs = []
-process.on("exit", () => {
-  for (const dir of tempDirs) {
+function makeBreaker(clock) {
+  // clock: { now: () => number } or bare function or number holder
+  // Normalize to { now }
+  const nowFn = typeof clock === "function" ? clock : clock?.now ?? clock?.clock ?? null
+  const deps = nowFn ? { now: nowFn } : {}
+  // Also support deps clock alias
+  const depsWithClock = nowFn ? { now: nowFn, clock: nowFn } : {}
+
+  // 1) Try factory exports
+  const factories = [
+    mod.createCircuitBreaker,
+    mod.createToolCircuitBreaker,
+    mod.createBreaker,
+    mod.create,
+    mod.default,
+  ]
+  for (const f of factories) {
+    if (typeof f !== "function") continue
+    // Factory probe: call with deps; expect object with record/tryPass/getState
     try {
-      rmSync(dir, { recursive: true, force: true })
-    } catch {
-      // Best-effort cleanup.
+      const inst = Object.keys(deps).length ? f(deps) : f()
+      if (inst && typeof inst.record === "function" && typeof inst.tryPass === "function") return inst
+    } catch { /* try next shape */ }
+    try {
+      const inst2 = Object.keys(depsWithClock).length ? f(depsWithClock) : f()
+      if (inst2 && typeof inst2.record === "function") return inst2
+    } catch { /* ignore */ }
+    // Bare function clock
+    if (nowFn) {
+      try {
+        const inst3 = f(nowFn)
+        if (inst3 && typeof inst3.record === "function") return inst3
+      } catch { /* ignore */ }
     }
   }
+
+  // 2) Try class with DI
+  const Cls = mod.ToolCircuitBreaker ?? mod.CircuitBreaker ?? mod.Breaker
+  if (typeof Cls === "function") {
+    // Try constructor with deps
+    if (Object.keys(deps).length) {
+      try {
+        const inst = new Cls(deps)
+        if (inst && typeof inst.record === "function") return inst
+      } catch { /* ignore */ }
+      try {
+        const inst = new Cls(depsWithClock)
+        if (inst && typeof inst.record === "function") return inst
+      } catch { /* ignore */ }
+      try {
+        const inst = new Cls(nowFn)
+        if (inst && typeof inst.record === "function") return inst
+      } catch { /* ignore */ }
+    }
+    try {
+      const inst = new Cls()
+      if (inst && typeof inst.record === "function") return inst
+    } catch { /* ignore */ }
+  }
+
+  // 3) Fallback: mod itself might be the breaker instance (factory returned bare mod)
+  if (typeof mod.record === "function" && typeof mod.tryPass === "function") return mod
+
+  return null
+}
+
+function requireBreaker(clock) {
+  if (importErr) throw new Error(`RED scaffold: cannot import ../lib/circuit-breaker.ts (${importErr.message})`)
+  const b = makeBreaker(clock)
+  if (!b) throw new Error("RED scaffold: lib/circuit-breaker.ts does not export ToolCircuitBreaker / createCircuitBreaker — GREEN must add it")
+  return b
+}
+
+function requireConst(name, expected) {
+  if (importErr) throw new Error(`RED scaffold: cannot import lib/circuit-breaker.ts (${importErr.message})`)
+  const v = mod[name]
+  if (v === undefined) throw new Error(`RED scaffold: lib/circuit-breaker.ts missing export '${name}' (expected ${expected}) — GREEN must add it`)
+  return v
+}
+
+// Fake clock helper: returns { now: () => number, advance: (ms)=>void, set:(ms)=>void }
+function fakeClock(startMs = 1_000_000) {
+  let t = startMs
+  return {
+    now: () => t,
+    advance: (ms) => { t += ms },
+    set: (ms) => { t = ms },
+    get: () => t,
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 1. Constants verbatim D3
+// ---------------------------------------------------------------------------
+describe("lib/circuit-breaker — constants (D3 verbatim)", () => {
+  it("CB_WINDOW_SIZE=5 exists and equals 5", () => {
+    const v = requireConst("CB_WINDOW_SIZE", 5)
+    assert.equal(v, 5, `CB_WINDOW_SIZE must be 5, got ${v}`)
+  })
+
+  it("CB_ERROR_THRESHOLD=3 exists and equals 3", () => {
+    const v = requireConst("CB_ERROR_THRESHOLD", 3)
+    assert.equal(v, 3)
+  })
+
+  it("CB_COOLDOWN_MS=5min (300000) exists and equals 300000", () => {
+    const v = requireConst("CB_COOLDOWN_MS", 300000)
+    assert.equal(v, 5 * 60 * 1000)
+    assert.equal(v, 300_000)
+  })
+
+  it("constants are numbers (not strings)", () => {
+    assert.equal(typeof requireConst("CB_WINDOW_SIZE", 5), "number")
+    assert.equal(typeof requireConst("CB_ERROR_THRESHOLD", 3), "number")
+    assert.equal(typeof requireConst("CB_COOLDOWN_MS", 300000), "number")
+  })
 })
 
-function freshCtx() {
-  const directory = mkdtempSync(join(tmpdir(), "dia218-cb-"))
-  tempDirs.push(directory)
-  mkdirSync(join(directory, ".opencode", "session"), { recursive: true })
-  return {
-    directory,
-    client: { app: { log: async () => {} } },
-  }
-}
+// ---------------------------------------------------------------------------
+// 2. ToolCircuitBreaker exists and basic shape
+// ---------------------------------------------------------------------------
+describe("lib/circuit-breaker — ToolCircuitBreaker shape", () => {
+  it("ToolCircuitBreaker class or createCircuitBreaker factory is exported", () => {
+    if (importErr) assert.fail(`import failed: ${importErr.message}`)
+    const hasClass = typeof mod.ToolCircuitBreaker === "function" || typeof mod.CircuitBreaker === "function" || typeof mod.Breaker === "function"
+    const hasFactory = typeof mod.createCircuitBreaker === "function" || typeof mod.createToolCircuitBreaker === "function" || typeof mod.create === "function" || typeof mod.createBreaker === "function"
+    const hasInstance = typeof mod.record === "function"
+    assert.ok(hasClass || hasFactory || hasInstance, "must export ToolCircuitBreaker class or createCircuitBreaker factory or direct record/tryPass")
+  })
 
-async function makeHarness() {
-  const ctx = freshCtx()
-  const hooks = await createDelegationObserver(ctx)
-  return { hooks, ctx }
-}
+  it("breaker instance has record, tryPass, getState", () => {
+    const b = requireBreaker()
+    assert.equal(typeof b.record, "function", "record must be function")
+    assert.equal(typeof b.tryPass, "function", "tryPass must be function")
+    assert.equal(typeof b.getState, "function", "getState must be function")
+  })
 
-/**
- * Drive the real tool.execute.after hook with a tool call.
- * Simulates a tool error by passing empty output or error-like output.
- */
-async function driveToolAfter(hooks, ctx, { tool, sessionID, output, callID }) {
-  await hooks["tool.execute.after"](
-    { tool, sessionID, callID: callID ?? "call_test", args: {} },
-    { output: output ?? "" }
-  )
-}
+  it("getState returns CLOSED for unknown session", () => {
+    const b = requireBreaker()
+    assert.equal(b.getState("ses_unknown_" + Date.now()), "CLOSED")
+  })
 
-/**
- * Drive the real tool.execute.before hook to check if a dispatch is blocked.
- * Returns { error } - the thrown Error if the circuit blocked, null otherwise.
- */
-async function driveToolBefore(hooks, ctx, { tool, sessionID, callID, args }) {
-  let error = null
-  try {
-    await hooks["tool.execute.before"](
-      { tool, sessionID, callID: callID ?? "call_test" },
-      { args: args ?? {} }
-    )
-  } catch (err) {
-    error = err instanceof Error ? err : new Error(String(err))
-  }
-  return error
-}
-
-/**
- * Read registry rows appended during a test.
- */
-function readNewRows(ctx, rowsBefore) {
-  const registryPath = join(ctx.directory, ".opencode/session/registry.jsonl")
-  if (!existsSync(registryPath)) return []
-  const allLines = readFileSync(registryPath, "utf-8").trim().split("\n").filter(Boolean)
-  return allLines.slice(rowsBefore).map((line) => {
-    try {
-      return JSON.parse(line)
-    } catch {
-      return null
-    }
-  }).filter(Boolean)
-}
-
-function countRows(ctx) {
-  const registryPath = join(ctx.directory, ".opencode/session/registry.jsonl")
-  if (!existsSync(registryPath)) return 0
-  return readFileSync(registryPath, "utf-8").trim().split("\n").filter(Boolean).length
-}
-
-function ensureOpenTicket(ctx, ticketId) {
-  const ticketsDir = join(ctx.directory, "docs/dev-infra-audit/tickets")
-  mkdirSync(ticketsDir, { recursive: true })
-  writeFileSync(
-    join(ticketsDir, `${ticketId}-open.md`),
-    `---\nid: ${ticketId}\ntitle: Test ${ticketId}\nstatus: OPEN\n---\n`
-  )
-}
+  it("tryPass returns false for unknown session (no entry -> not blocked)", () => {
+    const b = requireBreaker()
+    assert.equal(b.tryPass("ses_unknown2_" + Math.random()), false)
+  })
+})
 
 // ---------------------------------------------------------------------------
-// Tests
+// 3. CLOSED->OPEN on >=3/5 errors (sliding window)
 // ---------------------------------------------------------------------------
-
-describe("DIA-218 Circuit Breaker", () => {
-  test("starts in CLOSED state - tool errors are tracked but circuit stays closed", async () => {
-    const { hooks, ctx } = await makeHarness()
-    const sessionID = "ses_cb_test_1"
-    ensureOpenTicket(ctx, "DIA-218")
-
-    // 2 errors (below threshold of 3) - circuit should stay CLOSED.
-    await driveToolAfter(hooks, ctx, { tool: "bash", sessionID, output: "" })
-    await driveToolAfter(hooks, ctx, { tool: "bash", sessionID, output: "" })
-
-    // Dispatching should still work (no block) - gate passes with OPEN ticket,
-    // circuit stays CLOSED.
-    const error = await driveToolBefore(hooks, ctx, {
-      tool: "task",
-      sessionID,
-      args: { subagent_type: "coder", prompt: "test", ticket_id: "DIA-218" },
-    })
-    expect(error).toBeNull()
+describe("lib/circuit-breaker — CLOSED->OPEN on >=3/5 errors", () => {
+  it("stays CLOSED with 2 errors in window", () => {
+    const clk = fakeClock()
+    const b = requireBreaker(clk)
+    const sid = "s_closed_2err"
+    b.record(sid, true)
+    b.record(sid, true)
+    assert.equal(b.getState(sid), "CLOSED", "2 errors must not trip")
+    assert.equal(b.tryPass(sid), false, "CLOSED must not block")
   })
 
-  test("3 errors in sliding window trips circuit to OPEN", async () => {
-    const { hooks, ctx } = await makeHarness()
-    const sessionID = "ses_cb_test_2"
-
-    // 3 errors should trip the circuit.
-    await driveToolAfter(hooks, ctx, { tool: "bash", sessionID, output: "" })
-    await driveToolAfter(hooks, ctx, { tool: "bash", sessionID, output: "" })
-    await driveToolAfter(hooks, ctx, { tool: "bash", sessionID, output: "" })
-
-    // Dispatching should be blocked (circuit OPEN).
-    const error = await driveToolBefore(hooks, ctx, {
-      tool: "task",
-      sessionID,
-      args: { subagent_type: "coder", prompt: "test", ticket_id: "DIA-218" },
-    })
-    expect(error).not.toBeNull()
-    expect(error.message).toContain("CIRCUIT_BREAKER")
+  it("trips to OPEN on 3 consecutive errors", () => {
+    const clk = fakeClock()
+    const b = requireBreaker(clk)
+    const sid = "s_trip_3"
+    b.record(sid, true)
+    b.record(sid, true)
+    const state = b.record(sid, true)
+    assert.equal(state, "OPEN", "3rd error must trip to OPEN")
+    assert.equal(b.getState(sid), "OPEN")
+    assert.equal(b.tryPass(sid), true, "OPEN must block")
   })
 
-  test("success resets error count in sliding window", async () => {
-    const { hooks, ctx } = await makeHarness()
-    const sessionID = "ses_cb_test_3"
-
-    // 2 errors + 1 success + 1 error = 3 errors in window -> trips OPEN.
-    // The success reduces the count but 3 errors still meet the threshold.
-    await driveToolAfter(hooks, ctx, { tool: "bash", sessionID, output: "" })
-    await driveToolAfter(hooks, ctx, { tool: "bash", sessionID, output: "" })
-    await driveToolAfter(hooks, ctx, { tool: "bash", sessionID, output: "ok" })
-    await driveToolAfter(hooks, ctx, { tool: "bash", sessionID, output: "" })
-
-    // Circuit should OPEN (3 errors in 4 calls).
-    const error = await driveToolBefore(hooks, ctx, {
-      tool: "task",
-      sessionID,
-      args: { subagent_type: "coder", prompt: "test", ticket_id: "DIA-218" },
-    })
-    expect(error).not.toBeNull()
-    expect(error.message).toContain("CIRCUIT_BREAKER")
+  it("trips with 3 errors in last 5 (non-consecutive, scattered)", () => {
+    const clk = fakeClock()
+    const b = requireBreaker(clk)
+    const sid = "s_scattered"
+    // pattern: err, ok, err, ok, err -> 3 errors in 5
+    b.record(sid, true)   // 1 err
+    b.record(sid, false)  // 1e 1
+    b.record(sid, true)   // 2e
+    b.record(sid, false)  // 2e
+    const s = b.record(sid, true) // 3e -> trip
+    assert.equal(s, "OPEN")
+    assert.equal(b.getState(sid), "OPEN")
   })
 
-  test("success after errors can keep circuit closed if below threshold", async () => {
-    const { hooks, ctx } = await makeHarness()
-    const sessionID = "ses_cb_test_3b"
-
-    // 2 errors + 1 success + 1 error = 3 errors -> trips OPEN.
-    // Then add 2 more successes -> window shifts, errors age out.
-    await driveToolAfter(hooks, ctx, { tool: "bash", sessionID, output: "" })
-    await driveToolAfter(hooks, ctx, { tool: "bash", sessionID, output: "" })
-    await driveToolAfter(hooks, ctx, { tool: "bash", sessionID, output: "ok" })
-    await driveToolAfter(hooks, ctx, { tool: "bash", sessionID, output: "" })
-    // Now add 2 successes to push errors out of the 5-call window.
-    await driveToolAfter(hooks, ctx, { tool: "bash", sessionID, output: "ok" })
-    await driveToolAfter(hooks, ctx, { tool: "bash", sessionID, output: "ok" })
-    // Window is now [false, true, false, false, false] = 1 error.
-    // But we already tripped OPEN on call 4. The circuit stays OPEN
-    // until cooldown expires. This test verifies the window counting
-    // is correct -- a fresh session with the same pattern stays closed.
-    const { hooks: hooks2, ctx: ctx2 } = await makeHarness()
-    const sessionID2 = "ses_cb_test_3c"
-    ensureOpenTicket(ctx2, "DIA-218")
-    await driveToolAfter(hooks2, ctx2, { tool: "bash", sessionID: sessionID2, output: "" })
-    await driveToolAfter(hooks2, ctx2, { tool: "bash", sessionID: sessionID2, output: "" })
-    await driveToolAfter(hooks2, ctx2, { tool: "bash", sessionID: sessionID2, output: "ok" })
-    await driveToolAfter(hooks2, ctx2, { tool: "bash", sessionID: sessionID2, output: "ok" })
-    await driveToolAfter(hooks2, ctx2, { tool: "bash", sessionID: sessionID2, output: "ok" })
-    // Window: [true, true, false, false, false] = 2 errors < threshold.
-    const err2 = await driveToolBefore(hooks2, ctx2, {
-      tool: "task",
-      sessionID: sessionID2,
-      args: { subagent_type: "coder", prompt: "test", ticket_id: "DIA-218" },
-    })
-    expect(err2).toBeNull()
+  it("does NOT trip with 2 errors in last 5 after successes dilute", () => {
+    const clk = fakeClock()
+    const b = requireBreaker(clk)
+    const sid = "s_diluted"
+    b.record(sid, true)
+    b.record(sid, true)
+    b.record(sid, false)
+    b.record(sid, false)
+    b.record(sid, false)
+    assert.equal(b.getState(sid), "CLOSED", "2/5 must not trip")
   })
 
-  test("OPEN state emits circuit.open registry row", async () => {
-    const { hooks, ctx } = await makeHarness()
-    const sessionID = "ses_cb_test_4"
-    const rowsBefore = countRows(ctx)
-
-    // Trip the circuit.
-    await driveToolAfter(hooks, ctx, { tool: "bash", sessionID, output: "" })
-    await driveToolAfter(hooks, ctx, { tool: "bash", sessionID, output: "" })
-    await driveToolAfter(hooks, ctx, { tool: "bash", sessionID, output: "" })
-
-    // Check registry for circuit.open event.
-    const newRows = readNewRows(ctx, rowsBefore)
-    const circuitOpen = newRows.find((r) => r.event === "circuit_open")
-    expect(circuitOpen).toBeDefined()
-    expect(circuitOpen.session_id).toBe(sessionID)
-    expect(circuitOpen.status).toBe("OPEN")
+  it("sliding window keeps only last 5 — 7 calls window = last 5", () => {
+    const clk = fakeClock()
+    const b = requireBreaker(clk)
+    const sid = "s_window_last5"
+    // first 2 errors, then 3 oks => window after 5 = [T,T,F,F,F] = 2 errors CLOSED
+    b.record(sid, true)
+    b.record(sid, true)
+    b.record(sid, false)
+    b.record(sid, false)
+    b.record(sid, false) // 5 calls, 2 errors
+    assert.equal(b.getState(sid), "CLOSED")
+    // add 2 more errors => window after 7 total = last 5 = [F,F,F,T,T] = 2 errors still
+    b.record(sid, true)
+    b.record(sid, true)
+    assert.equal(b.getState(sid), "CLOSED", "after sliding, still 2/5 -> CLOSED")
+    // add 1 more error => window = [F,F,T,T,T] = 3 errors -> trip
+    const s = b.record(sid, true)
+    assert.equal(s, "OPEN", "slid window 3/5 must trip")
   })
 
-  test("errors are tracked per session - different sessions are independent", async () => {
-    const { hooks, ctx } = await makeHarness()
-    const sessionA = "ses_cb_session_a"
-    const sessionB = "ses_cb_session_b"
-    ensureOpenTicket(ctx, "DIA-218")
+  it("record returns new state (CLOSED until trip)", () => {
+    const clk = fakeClock()
+    const b = requireBreaker(clk)
+    const sid = "s_record_returns"
+    assert.equal(b.record(sid, false), "CLOSED")
+    assert.equal(b.record(sid, false), "CLOSED")
+    assert.equal(b.record(sid, true), "CLOSED")
+    assert.equal(b.record(sid, true), "CLOSED")
+    assert.equal(b.record(sid, true), "OPEN")
+  })
+})
 
-    // Trip circuit for session A only.
-    await driveToolAfter(hooks, ctx, { tool: "bash", sessionID: sessionA, output: "" })
-    await driveToolAfter(hooks, ctx, { tool: "bash", sessionID: sessionA, output: "" })
-    await driveToolAfter(hooks, ctx, { tool: "bash", sessionID: sessionA, output: "" })
-
-    // Session B should still be CLOSED (gate passes with OPEN ticket).
-    const error = await driveToolBefore(hooks, ctx, {
-      tool: "task",
-      sessionID: sessionB,
-      args: { subagent_type: "coder", prompt: "test", ticket_id: "DIA-218" },
-    })
-    expect(error).toBeNull()
+// ---------------------------------------------------------------------------
+// 4. OPEN->HALF_OPEN after 5min (clock injected)
+// ---------------------------------------------------------------------------
+describe("lib/circuit-breaker — OPEN->HALF_OPEN after 5min", () => {
+  it("stays OPEN before cooldown expires (tryPass blocks)", () => {
+    const clk = fakeClock(1_000_000)
+    const b = requireBreaker(clk)
+    const sid = "s_open_before"
+    b.record(sid, true); b.record(sid, true); b.record(sid, true)
+    assert.equal(b.getState(sid), "OPEN")
+    clk.advance(4 * 60 * 1000) // 4 min
+    assert.equal(b.tryPass(sid), true, "before 5min must still block")
+    assert.equal(b.getState(sid), "OPEN", "state must remain OPEN before cooldown")
+    // record while OPEN before cooldown should stay OPEN and not grow window beyond
+    const s = b.record(sid, false)
+    assert.equal(s, "OPEN", "record while OPEN before cooldown must stay OPEN")
   })
 
-  test("sliding window keeps only last 5 calls", async () => {
-    const { hooks, ctx } = await makeHarness()
-    const sessionID = "ses_cb_test_5"
-    ensureOpenTicket(ctx, "DIA-218")
-
-    // 2 errors + 1 success (3 calls) - circuit should be CLOSED.
-    await driveToolAfter(hooks, ctx, { tool: "bash", sessionID, output: "" })
-    await driveToolAfter(hooks, ctx, { tool: "bash", sessionID, output: "" })
-    await driveToolAfter(hooks, ctx, { tool: "bash", sessionID, output: "ok" })
-
-    // Add 2 more successes (5 calls total, only 2 errors).
-    await driveToolAfter(hooks, ctx, { tool: "bash", sessionID, output: "ok" })
-    await driveToolAfter(hooks, ctx, { tool: "bash", sessionID, output: "ok" })
-
-    // Now add 2 more errors (7 calls total, window = last 5: ok, ok, ok, err, err = 2 errors).
-    // Circuit should stay CLOSED (gate passes with OPEN ticket).
-    await driveToolAfter(hooks, ctx, { tool: "bash", sessionID, output: "" })
-    await driveToolAfter(hooks, ctx, { tool: "bash", sessionID, output: "" })
-
-    const error = await driveToolBefore(hooks, ctx, {
-      tool: "task",
-      sessionID,
-      args: { subagent_type: "coder", prompt: "test", ticket_id: "DIA-218" },
-    })
-    expect(error).toBeNull()
+  it("transitions OPEN->HALF_OPEN after 5min via tryPass", () => {
+    const clk = fakeClock(2_000_000)
+    const b = requireBreaker(clk)
+    const sid = "s_half_open_try"
+    b.record(sid, true); b.record(sid, true); b.record(sid, true)
+    assert.equal(b.getState(sid), "OPEN")
+    clk.advance(5 * 60 * 1000 + 1)
+    // tryPass should transition to HALF_OPEN and allow the test call (false = not blocked)
+    const blocked = b.tryPass(sid)
+    assert.equal(blocked, false, "HALF_OPEN first call must be allowed (not blocked)")
+    assert.equal(b.getState(sid), "HALF_OPEN", "after cooldown tryPass must move to HALF_OPEN")
   })
 
-  test("HALF_OPEN -> CLOSED: cooldown expires, test call succeeds, circuit closes", async () => {
-    const { hooks, ctx } = await makeHarness()
-    const sessionID = "ses_cb_test_recovery"
-    const now = Date.now()
-    ensureOpenTicket(ctx, "DIA-218")
-
-    // Trip the circuit with 3 errors.
-    await driveToolAfter(hooks, ctx, { tool: "bash", sessionID, output: "" })
-    await driveToolAfter(hooks, ctx, { tool: "bash", sessionID, output: "" })
-    await driveToolAfter(hooks, ctx, { tool: "bash", sessionID, output: "" })
-
-    // Circuit is OPEN -- dispatch blocked (gate would also block but circuit wins).
-    const err1 = await driveToolBefore(hooks, ctx, {
-      tool: "task",
-      sessionID,
-      args: { subagent_type: "coder", prompt: "test", ticket_id: "DIA-218" },
-    })
-    expect(err1).not.toBeNull()
-    expect(err1.message).toContain("CIRCUIT_BREAKER")
-
-    // Mock Date.now to advance past the 5-minute cooldown.
-    const realDateNow = Date.now
-    Date.now = () => now + 300_000 + 1
-
-    // After cooldown, isBlocking should return false (HALF_OPEN).
-    // driveToolBefore calls tryPass which transitions OPEN -> HALF_OPEN.
-    const err2 = await driveToolBefore(hooks, ctx, {
-      tool: "task",
-      sessionID,
-      args: { subagent_type: "coder", prompt: "test after cooldown", ticket_id: "DIA-218" },
-    })
-    // tryPass returns false in HALF_OPEN (allows the test call) - gate passes with OPEN ticket.
-    expect(err2).toBeNull()
-
-    // Record a success for the test call.
-    await driveToolAfter(hooks, ctx, { tool: "bash", sessionID, output: "ok" })
-
-    // Circuit should now be CLOSED -- dispatch allowed.
-    const err3 = await driveToolBefore(hooks, ctx, {
-      tool: "task",
-      sessionID,
-      args: { subagent_type: "coder", prompt: "test after recovery", ticket_id: "DIA-218" },
-    })
-    expect(err3).toBeNull()
-
-    // Restore real Date.now.
-    Date.now = realDateNow
+  it("transitions OPEN->HALF_OPEN after 5min via record (record drives transition too)", () => {
+    const clk = fakeClock(3_000_000)
+    const b = requireBreaker(clk)
+    const sid = "s_half_open_record"
+    b.record(sid, true); b.record(sid, true); b.record(sid, true)
+    clk.advance(300_000 + 1)
+    // record after cooldown should first move to HALF_OPEN then process this record as test call
+    // If we record success, it should go to CLOSED
+    const s = b.record(sid, false)
+    assert.equal(s, "CLOSED", "record after cooldown with success must transition via HALF_OPEN -> CLOSED")
+    assert.equal(b.getState(sid), "CLOSED")
   })
 
-  test("HALF_OPEN -> OPEN: test call fails, circuit reopens", async () => {
-    const { hooks, ctx } = await makeHarness()
-    const sessionID = "ses_cb_test_halfopen_fail"
-    const now = Date.now()
-    ensureOpenTicket(ctx, "DIA-218")
-
-    // Trip the circuit.
-    await driveToolAfter(hooks, ctx, { tool: "bash", sessionID, output: "" })
-    await driveToolAfter(hooks, ctx, { tool: "bash", sessionID, output: "" })
-    await driveToolAfter(hooks, ctx, { tool: "bash", sessionID, output: "" })
-
-    // Advance past cooldown.
-    const realDateNow = Date.now
-    Date.now = () => now + 300_000 + 1
-
-    // Allow the test call (HALF_OPEN) - gate passes with OPEN ticket.
-    const err1 = await driveToolBefore(hooks, ctx, {
-      tool: "task",
-      sessionID,
-      args: { subagent_type: "coder", prompt: "test", ticket_id: "DIA-218" },
-    })
-    expect(err1).toBeNull()
-
-    // Record a failure for the test call.
-    await driveToolAfter(hooks, ctx, { tool: "bash", sessionID, output: "" })
-
-    // Circuit should be back to OPEN -- dispatch blocked.
-    // Still within the mocked cooldown window.
-    const err2 = await driveToolBefore(hooks, ctx, {
-      tool: "task",
-      sessionID,
-      args: { subagent_type: "coder", prompt: "test", ticket_id: "DIA-218" },
-    })
-    expect(err2).not.toBeNull()
-    expect(err2.message).toContain("CIRCUIT_BREAKER")
-
-    Date.now = realDateNow
+  it("cooldown boundary: exactly 5min (300000) allows HALF_OPEN", () => {
+    const clk = fakeClock(4_000_000)
+    const b = requireBreaker(clk)
+    const sid = "s_exact_5min"
+    b.record(sid, true); b.record(sid, true); b.record(sid, true)
+    clk.advance(300_000) // exact
+    assert.equal(b.tryPass(sid), false, "exact 5min must allow HALF_OPEN")
+    assert.equal(b.getState(sid), "HALF_OPEN")
   })
 
-  test("HALF_OPEN parallel dispatches: only one test call allowed", async () => {
-    const { hooks, ctx } = await makeHarness()
-    const sessionID = "ses_cb_test_halfopen_parallel"
-    const now = Date.now()
-    ensureOpenTicket(ctx, "DIA-218")
+  it("just before boundary (299999) stays OPEN", () => {
+    const clk = fakeClock(5_000_000)
+    const b = requireBreaker(clk)
+    const sid = "s_just_before"
+    b.record(sid, true); b.record(sid, true); b.record(sid, true)
+    clk.advance(299_999)
+    assert.equal(b.tryPass(sid), true, "299999ms must still block")
+    assert.equal(b.getState(sid), "OPEN")
+  })
+})
 
-    // Trip the circuit.
-    await driveToolAfter(hooks, ctx, { tool: "bash", sessionID, output: "" })
-    await driveToolAfter(hooks, ctx, { tool: "bash", sessionID, output: "" })
-    await driveToolAfter(hooks, ctx, { tool: "bash", sessionID, output: "" })
+// ---------------------------------------------------------------------------
+// 5. HALF_OPEN->CLOSED on test success / ->OPEN on fail
+// ---------------------------------------------------------------------------
+describe("lib/circuit-breaker — HALF_OPEN transitions", () => {
+  it("HALF_OPEN->CLOSED on test success (record false)", () => {
+    const clk = fakeClock(10_000_000)
+    const b = requireBreaker(clk)
+    const sid = "s_half_to_closed"
+    b.record(sid, true); b.record(sid, true); b.record(sid, true)
+    clk.advance(300_001)
+    b.tryPass(sid) // -> HALF_OPEN, consumes probe slot
+    assert.equal(b.getState(sid), "HALF_OPEN")
+    const s = b.record(sid, false) // success
+    assert.equal(s, "CLOSED", "success in HALF_OPEN must close")
+    assert.equal(b.getState(sid), "CLOSED")
+    // window must be cleared so next errors start fresh
+    assert.equal(b.tryPass(sid), false, "CLOSED after recovery must not block")
+    // verify window cleared: 2 new errors should not trip (needs 3)
+    // Use same breaker but check that after CLOSED window is empty: add 2 errors still CLOSED
+    b.record(sid, true); b.record(sid, true)
+    assert.equal(b.getState(sid), "CLOSED", "after HALF_OPEN->CLOSED window cleared, 2 errors must stay CLOSED")
+  })
 
-    // Advance past cooldown.
-    const realDateNow = Date.now
-    Date.now = () => now + 300_000 + 1
+  it("HALF_OPEN->OPEN on test failure (record true)", () => {
+    const clk = fakeClock(11_000_000)
+    const b = requireBreaker(clk)
+    const sid = "s_half_to_open"
+    b.record(sid, true); b.record(sid, true); b.record(sid, true)
+    clk.advance(300_001)
+    b.tryPass(sid) // HALF_OPEN
+    const s = b.record(sid, true) // fail
+    assert.equal(s, "OPEN", "failure in HALF_OPEN must reopen")
+    assert.equal(b.getState(sid), "OPEN")
+    assert.equal(b.tryPass(sid), true, "reopened must block")
+    // openedAt reset: should need another full cooldown before next HALF_OPEN
+    clk.advance(299_999)
+    assert.equal(b.tryPass(sid), true, "after fail-reopen, just before next cooldown must still block")
+  })
 
-    // First dispatch: HALF_OPEN, test call allowed (gate passes with OPEN ticket).
-    const err1 = await driveToolBefore(hooks, ctx, {
-      tool: "task",
-      sessionID,
-      callID: "call_1",
-      args: { subagent_type: "coder", prompt: "first", ticket_id: "DIA-218" },
+  it("failure in HALF_OPEN resets cooldown (needs another 5min)", () => {
+    const clk = fakeClock(12_000_000)
+    const b = requireBreaker(clk)
+    const sid = "s_reset_cd"
+    b.record(sid, true); b.record(sid, true); b.record(sid, true)
+    clk.advance(300_001)
+    b.tryPass(sid)
+    b.record(sid, true) // -> OPEN, openedAt = now (12_300_001)
+    clk.advance(300_000) // to 12_600_001
+    assert.equal(b.tryPass(sid), false, "after reset exactly 5min must allow again")
+    assert.equal(b.getState(sid), "HALF_OPEN")
+  })
+
+  it("record after cooldown without prior tryPass also drives HALF_OPEN->CLOSED/OPEN", () => {
+    const clk = fakeClock(13_000_000)
+    const b = requireBreaker(clk)
+    const sid = "s_record_drives"
+    b.record(sid, true); b.record(sid, true); b.record(sid, true)
+    clk.advance(300_001)
+    // no tryPass, direct record false -> should go HALF_OPEN then CLOSED
+    const s = b.record(sid, false)
+    assert.equal(s, "CLOSED")
+  })
+})
+
+// ---------------------------------------------------------------------------
+// 6. tryPass blocks only OPEN or second HALF_OPEN call
+// ---------------------------------------------------------------------------
+describe("lib/circuit-breaker — tryPass blocks only OPEN or second HALF_OPEN call", () => {
+  it("CLOSED: tryPass never blocks (multiple calls)", () => {
+    const b = requireBreaker()
+    const sid = "s_try_closed"
+    b.record(sid, true) // 1 error still closed
+    assert.equal(b.tryPass(sid), false)
+    assert.equal(b.tryPass(sid), false)
+    assert.equal(b.tryPass(sid), false)
+    assert.equal(b.getState(sid), "CLOSED", "repeated tryPass must not change CLOSED")
+  })
+
+  it("OPEN: tryPass blocks (true)", () => {
+    const clk = fakeClock()
+    const b = requireBreaker(clk)
+    const sid = "s_try_open"
+    b.record(sid, true); b.record(sid, true); b.record(sid, true)
+    assert.equal(b.tryPass(sid), true)
+    assert.equal(b.tryPass(sid), true, "second OPEN tryPass must still block")
+    assert.equal(b.getState(sid), "OPEN")
+  })
+
+  it("HALF_OPEN first tryPass allows (false), second blocks (true)", () => {
+    const clk = fakeClock(20_000_000)
+    const b = requireBreaker(clk)
+    const sid = "s_half_try"
+    b.record(sid, true); b.record(sid, true); b.record(sid, true)
+    clk.advance(300_001)
+    assert.equal(b.tryPass(sid), false, "first HALF_OPEN call must be allowed")
+    assert.equal(b.getState(sid), "HALF_OPEN", "first call must stay HALF_OPEN")
+    assert.equal(b.tryPass(sid), true, "second HALF_OPEN call must be blocked")
+    assert.equal(b.tryPass(sid), true, "third HALF_OPEN call must also be blocked")
+    assert.equal(b.getState(sid), "HALF_OPEN")
+  })
+
+  it("HALF_OPEN second call blocked, but after record success window resets and tryPass allows again", () => {
+    const clk = fakeClock(21_000_000)
+    const b = requireBreaker(clk)
+    const sid = "s_half_block_then_recover"
+    b.record(sid, true); b.record(sid, true); b.record(sid, true)
+    clk.advance(300_001)
+    b.tryPass(sid) // first allows
+    assert.equal(b.tryPass(sid), true, "second must block")
+    // Now the test call actually executes and succeeds
+    const s = b.record(sid, false)
+    assert.equal(s, "CLOSED")
+    assert.equal(b.tryPass(sid), false, "after CLOSED recovered must allow")
+  })
+
+  it("OPEN tryPass after cooldown allows exactly one then blocks again until record", () => {
+    const clk = fakeClock(22_000_000)
+    const b = requireBreaker(clk)
+    const sid = "s_one_shot"
+    b.record(sid, true); b.record(sid, true); b.record(sid, true)
+    clk.advance(300_001)
+    assert.equal(b.tryPass(sid), false)
+    assert.equal(b.tryPass(sid), true)
+    // record failure -> back to OPEN then tryPass must still block before next cooldown
+    b.record(sid, true)
+    assert.equal(b.getState(sid), "OPEN")
+    assert.equal(b.tryPass(sid), true)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// 7. record transitions (comprehensive)
+// ---------------------------------------------------------------------------
+describe("lib/circuit-breaker — record transitions", () => {
+  it("record true/false appends to window and shifts at >5", () => {
+    const clk = fakeClock()
+    const b = requireBreaker(clk)
+    const sid = "s_window_shift"
+    // Fill 5 with mixed
+    b.record(sid, false)
+    b.record(sid, false)
+    b.record(sid, false)
+    b.record(sid, false)
+    b.record(sid, false)
+    assert.equal(b.getState(sid), "CLOSED")
+    // Next 3 errors should trip (last 5 = F,F,T,T,T? wait we shifted)
+    // Window after 5 Fs, then T -> [F,F,F,F,T] 1 err
+    b.record(sid, true)  // [F,F,F,T]?? Actually after 5Fs, push T shift => [F,F,F,F,T]
+    assert.equal(b.getState(sid), "CLOSED")
+    b.record(sid, true)  // [F,F,F,T,T] 2 errs
+    assert.equal(b.getState(sid), "CLOSED")
+    b.record(sid, true)  // [F,F,T,T,T] 3 errs -> OPEN
+    assert.equal(b.getState(sid), "OPEN")
+  })
+
+  it("record while OPEN before cooldown stays OPEN (no state change)", () => {
+    const clk = fakeClock()
+    const b = requireBreaker(clk)
+    const sid = "s_rec_open"
+    b.record(sid, true); b.record(sid, true); b.record(sid, true)
+    clk.advance(60_000)
+    assert.equal(b.record(sid, true), "OPEN")
+    assert.equal(b.record(sid, false), "OPEN", "even success while OPEN before cooldown must stay OPEN (circuit blocks recording)")
+    assert.equal(b.getState(sid), "OPEN")
+  })
+
+  it("per-session isolation: record on A does not affect B", () => {
+    const clk = fakeClock()
+    const b = requireBreaker(clk)
+    b.record("sess_A", true); b.record("sess_A", true); b.record("sess_A", true)
+    assert.equal(b.getState("sess_A"), "OPEN")
+    assert.equal(b.getState("sess_B"), "CLOSED", "other session must be CLOSED")
+    assert.equal(b.tryPass("sess_B"), false, "other session tryPass must not block")
+    b.record("sess_B", true)
+    assert.equal(b.getState("sess_B"), "CLOSED", "1 error on B must stay CLOSED")
+    assert.equal(b.getState("sess_A"), "OPEN", "A must remain OPEN")
+  })
+
+  it("never throws for any transition (fail-soft fortress)", () => {
+    const b = requireBreaker()
+    assert.doesNotThrow(() => b.record("s_never_throw", true))
+    assert.doesNotThrow(() => b.record("s_never_throw", false))
+    assert.doesNotThrow(() => b.tryPass("s_never_throw"))
+    assert.doesNotThrow(() => b.getState("s_never_throw"))
+    // Also with clock
+    const clk = fakeClock()
+    const b2 = requireBreaker(clk)
+    assert.doesNotThrow(() => b2.record("x", true))
+    assert.doesNotThrow(() => b2.tryPass("x"))
+  })
+})
+
+// ---------------------------------------------------------------------------
+// 8. Inject clock fakes (DI)
+// ---------------------------------------------------------------------------
+describe("lib/circuit-breaker — clock injection", () => {
+  it("accepts injected clock via deps ({ now }) and respects it for cooldown", () => {
+    const clk = fakeClock(100_000)
+    const b = requireBreaker(clk)
+    const sid = "s_injected_clk"
+    b.record(sid, true); b.record(sid, true); b.record(sid, true)
+    assert.equal(b.getState(sid), "OPEN")
+    // Without advancing fake clock, still OPEN
+    assert.equal(b.tryPass(sid), true)
+    clk.advance(300_001)
+    assert.equal(b.tryPass(sid), false, "injected clock advance must trigger HALF_OPEN")
+  })
+
+  it("two breakers with independent clocks have independent cooldowns", () => {
+    const clk1 = fakeClock(500_000)
+    const clk2 = fakeClock(500_000)
+    const b1 = requireBreaker(clk1)
+    const b2 = requireBreaker(clk2)
+    const sid = "s_independent"
+    b1.record(sid, true); b1.record(sid, true); b1.record(sid, true)
+    b2.record(sid, true); b2.record(sid, true); b2.record(sid, true)
+    clk1.advance(300_001)
+    // clk2 not advanced
+    assert.equal(b1.tryPass(sid), false, "b1 with advanced clock must be HALF_OPEN")
+    assert.equal(b2.tryPass(sid), true, "b2 with same start but not advanced must still be OPEN")
+  })
+
+  it("works without injected clock (falls back to real Date.now) — no throw", () => {
+    const b = requireBreaker() // no clock
+    const sid = "s_real_clock_" + Math.random()
+    assert.doesNotThrow(() => {
+      b.record(sid, true)
+      b.tryPass(sid)
+      b.getState(sid)
     })
-    expect(err1).toBeNull()
+  })
 
-    // Second dispatch in same HALF_OPEN: should be BLOCKED (testCallMade = true).
-    const err2 = await driveToolBefore(hooks, ctx, {
-      tool: "task",
-      sessionID,
-      callID: "call_2",
-      args: { subagent_type: "coder", prompt: "second", ticket_id: "DIA-218" },
-    })
-    expect(err2).not.toBeNull()
-    expect(err2.message).toContain("CIRCUIT_BREAKER")
-
-    Date.now = realDateNow
+  it("clock injection does not leak between sessions — per-entry openedAt uses injected now at trip time", () => {
+    const clk = fakeClock(1_000_000)
+    const b = requireBreaker(clk)
+    b.record("sess_1", true); b.record("sess_1", true); b.record("sess_1", true) // openedAt 1_000_000
+    clk.advance(100_000) // now 1_100_000
+    b.record("sess_2", true); b.record("sess_2", true); b.record("sess_2", true) // openedAt 1_100_000
+    clk.advance(250_000) // now 1_350_000
+    // sess_1 has had 350s -> HALF_OPEN, sess_2 has had 250s -> still OPEN
+    assert.equal(b.tryPass("sess_1"), false, "sess_1 cooldown elapsed (350s)")
+    assert.equal(b.tryPass("sess_2"), true, "sess_2 cooldown not yet elapsed (250s)")
   })
 })

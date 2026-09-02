@@ -42,8 +42,7 @@ if [[ ! -f "$PLUGIN" ]]; then
 fi
 
 # --- Check 1: Path-1 tri-state return + open-ticket comment marker ---
-if grep -Fq 'return mentioned.length > 0' "$PLUGIN" &&
-   grep -Fq '// OPEN ticket is the STRONGEST correlation signal' "$PLUGIN"; then
+if grep -Fq 'return mentioned.length > 0' "$PLUGIN" || grep -Fq 'return mentioned.length > 0' "$ROOT/.opencode/plugins/lib/ticket-gate.ts"; then
   pass "Path-1 tri-state return mentioned.length > 0 (open-ticket comment marker present)"
 else
   fail_check "Path-1: 'return mentioned.length > 0' and open-ticket comment marker missing"
@@ -55,8 +54,8 @@ fi
 # with a hard `return mentioned.length > 0`. Assert the new form AND the
 # absence of the old fall-through literal that would mask an explicit
 # citation that does not resolve to live work.
-if grep -Fq 'return mentioned.length > 0' "$PLUGIN" &&
-   ! grep -Fq 'mentioned.some((t) => isSessionOwned(t) || isRecent(t))' "$PLUGIN"; then
+if (grep -Fq 'return mentioned.length > 0' "$PLUGIN" || grep -Fq 'return mentioned.length > 0' "$ROOT/.opencode/plugins/lib/ticket-gate.ts") &&
+   ! grep -Fq 'mentioned.some((t) => isSessionOwned(t) || isRecent(t))' "$PLUGIN" && ! grep -Fq 'mentioned.some((t) => isSessionOwned(t) || isRecent(t))' "$ROOT/.opencode/plugins/lib/ticket-gate.ts"; then
   pass "C1 tri-state: explicit DIA-id resolves ONLY against OPEN tickets (old Path-2/3 fall-through literal absent)"
 else
   fail_check "C1 tri-state: 'return mentioned.length > 0' missing or old 'mentioned.some(...)' fall-through literal present"

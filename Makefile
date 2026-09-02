@@ -222,6 +222,9 @@ test-config: test-interview test-skills
 	# .opencode/plugins/; no explicit plugin-array entry for an auto-discovered
 	# observer in any config layer).
 	bash scripts/validate-observer-dedupe.sh
+	# DIA-260902-eqgg S10: structural gate — every retained lib/*.ts has a production importer,
+	# no duplicate shell definitions for extracted seams, tests on production interface.
+	bash scripts/validate-plugin-structure.sh
 
 # Python dependency vulnerability audit via pip-audit (DIA-028). Exports the
 # locked runtime dependency set per package with uv (exact pins + hashes) and
