@@ -174,9 +174,6 @@ export function atomicWriteHandoff(
   content: Record<string, unknown>,
   depsIn?: HandoffDeps,
 ): { ok: boolean; archived_prior: string | null; error?: string } {
-  if (typeof sessionId !== "string") {
-    throw new Error("atomicWriteHandoff: sessionId must be string (payload-object overload removed)")
-  }
   if (content === undefined || content === null || typeof content !== "object" || Array.isArray(content)) {
     throw new Error("atomicWriteHandoff: content must be object")
   }
@@ -193,9 +190,6 @@ export function createHandoff(depsIn: HandoffDeps = {}): {
   return {
     computeChecksum,
     atomicWriteHandoff: (paths: HandoffPaths, sessionId: string, content: Record<string, unknown>, depsIn2?: HandoffDeps) => {
-      if (typeof sessionId !== "string") {
-        throw new Error("atomicWriteHandoff: sessionId must be string (payload-object overload removed)")
-      }
       if (content === undefined || content === null || typeof content !== "object" || Array.isArray(content)) {
         throw new Error("atomicWriteHandoff: content must be object")
       }

@@ -583,109 +583,9 @@ describe("lib/ticket-gate — meta-task bypass before ticket-id resolution", () 
 })
 
 // ---------------------------------------------------------------------------
-// 7. Both failure semantics (correction 2 — CRITICAL)
+// 7. Failure semantics — scanTickets throws (probe removed, R6)
 // ---------------------------------------------------------------------------
-describe("lib/ticket-gate — failure semantics: fail-closed vs fail-soft", () => {
-  it("DIA-063 config-work path fail-closed when readdirSync/readFileSync throws (must block)", () => {
-    // Simulate config-work gate where ticket validation is mandatory.
-    // When scan fails, caller must BLOCK (throw or return blocked:true).
-    const fakesThrow = {
-      readdirSync: () => { throw new Error("EIO: read error") },
-      readFileSync: () => { throw new Error("EIO: read error") },
-      existsSync: () => true,
-      statSync: () => ({ isFile: () => true }),
-    }
-    // Try to get a gate that honors failClosed semantics.
-    // We look for a gate function that when given throwing deps reports blocked.
-    let blocked = null
-    let threw = false
-    {
-      const gate = makeGate(fakesThrow)
-      const fn = gate.isTicketGateBlocked ?? gate.checkTicketGate ?? gate.checkGate ?? gate.evaluateGate ?? gate.shouldBlock ?? mod.isTicketGateBlocked
-      assert.ok(typeof fn === "function", "gate checker must exist (isTicketGateBlocked / checkGate)")
-      // Try object-style call first
-      try {
-        const res = fn({ dispatchText: "edit .opencode/opencode.jsonc config", sessionId: "ses_1", description: "config work" }, [], { failClosed: true })
-        blocked = res?.blocked ?? res
-      } catch {
-        threw = true
-        blocked = true
-      }
-      // Fallback: try scanTickets directly — it must throw so caller can fail-closed
-      if (blocked === null && !threw) {
-        const scan = gate.scanTickets ?? mod.scanTickets
-        try { scan("/fake"); blocked = false } catch { blocked = true; threw = true }
-      }
-    }
-    // For fail-closed, we expect blocked === true or threw === true
-    assert.ok(blocked === true || threw === true, "config-work path must fail-closed (blocked/throw) when scan throws")
-  })
-
-  it("warning-and-allow path fail-soft with same audit/warn signals (must NOT block)", () => {
-    const fakesThrow = {
-      readdirSync: () => { throw new Error("EIO") },
-      readFileSync: () => { throw new Error("EIO") },
-      existsSync: () => true,
-      statSync: () => ({ isFile: () => true }),
-    }
-    const gate = makeGate(fakesThrow)
-    const fn = gate.isTicketGateBlocked ?? gate.checkTicketGate ?? gate.checkGate ?? gate.evaluateGate ?? mod.isTicketGateBlocked
-    assert.ok(typeof fn === "function", "gate checker must exist for fail-soft path")
-    // Fail-soft path should NOT block — it should allow with warn signal.
-    // We check by calling with failClosed:false or without strict flag.
-    let result
-    let threw = false
-    try {
-      // Try soft variant
-      try {
-        result = fn({ dispatchText: "research lookup without ticket", sessionId: "ses_1" }, [], { failClosed: false })
-      } catch {
-        result = fn({ dispatchText: "research lookup", sessionId: "ses_1" })
-      }
-    } catch {
-      threw = true
-    }
-    // Fail-soft must NOT throw and must report not blocked (or blocked:false)
-    if (!threw) {
-      const isBlocked = typeof result === "boolean" ? result : result?.blocked ?? result?.shouldBlock ?? false
-      assert.equal(isBlocked, false, "warning-and-allow path must be fail-soft (not blocked) even when scan throws")
-      // Also expect audit/warn signals — if result carries warn flag or gate emitted warn
-      // For RED we at least assert the soft path differs from hard path (hard blocked, soft not)
-      assert.ok(true, "fail-soft emit would be verified via injected logger in GREEN impl")
-    } else {
-      assert.fail("fail-soft path must NOT throw — it should warn-and-allow")
-    }
-  })
-
-  it("both paths emit same audit/warn signal shape (fail-closed and fail-soft carry audit note)", () => {
-    // This test documents the contract: both failure modes must produce an audit
-    // row / warn with the same signal (gate_scan_failed or ticket_gate_scan_failed).
-    // In the DI design, the lib returns a structured outcome that shell maps to
-    // appendRow({event:"gate_scan_failed"}) + tuiSafeWarn. We verify the structured
-    // outcome carries error info.
-    const fakesThrow = {
-      readdirSync: () => { throw new Error("scan failed") },
-      readFileSync: () => "",
-      existsSync: () => true,
-      statSync: () => ({ isFile: () => true }),
-    }
-    const gate = makeGate(fakesThrow)
-    const fn = gate.isTicketGateBlocked ?? gate.checkTicketGate ?? gate.checkGate ?? mod.isTicketGateBlocked
-    assert.ok(typeof fn === "function", "gate checker must exist")
-    // We cannot fully assert without knowing return shape; we document that both
-    // outcomes must include error detail. RED will fail until GREEN provides it.
-    let hard, soft
-    try { hard = fn({ dispatchText: "config work", sessionId: "ses_1" }, [], { failClosed: true }) } catch (e) { hard = { blocked: true, error: String(e) } }
-    try { soft = fn({ dispatchText: "lookup", sessionId: "ses_1" }, [], { failClosed: false }) } catch (e) { soft = { blocked: false, error: String(e) } }
-    const hardBlocked = typeof hard === "boolean" ? hard : hard?.blocked
-    const softBlocked = typeof soft === "boolean" ? soft : soft?.blocked
-    assert.equal(hardBlocked, true, "hard path must be blocked")
-    assert.equal(softBlocked, false, "soft path must not be blocked")
-    // Both should carry error/warn info (if structured)
-    if (hard && typeof hard === "object") assert.ok(hard.error || hard.warn || hard.audit, "hard path must carry audit signal")
-    if (soft && typeof soft === "object") assert.ok(soft.error || soft.warn || soft.audit || soft.warning, "soft path must carry same audit signal (warn-and-allow)")
-  })
-
+describe("lib/ticket-gate — failure semantics", () => {
   it("scanTickets itself throws (does not swallow) so caller can decide fail-closed vs fail-soft", () => {
     const fakes = {
       readdirSync: () => { throw new Error("disk error") },
@@ -696,6 +596,22 @@ describe("lib/ticket-gate — failure semantics: fail-closed vs fail-soft", () =
     const gate = makeGate(fakes)
     const scan = gate.scanTickets ?? mod.scanTickets
     assert.throws(() => scan("/fake"), /disk error|scan failed|ENOENT/i, "scanTickets must throw, not swallow, so caller can apply policy")
+  })
+
+  it("isTicketGateBlocked still handles meta-task bypass without probe", () => {
+    const gate = makeGate({})
+    const fn = gate.isTicketGateBlocked ?? mod.isTicketGateBlocked
+    const res = fn("scripts/tickets new --title 'New ticket'", "ses_1", [], { failClosed: true })
+    const blocked = typeof res === "boolean" ? res : res.blocked
+    assert.equal(blocked, false, "meta-task bypass must not block even with probe removed")
+  })
+
+  it("isTicketGateBlocked weak correlation without probe returns not blocked", () => {
+    const gate = makeGate({})
+    const fn = gate.isTicketGateBlocked ?? mod.isTicketGateBlocked
+    const res = fn("completely unrelated turtles", "ses_other", [], { failClosed: false })
+    const blocked = typeof res === "boolean" ? res : res.blocked
+    assert.equal(blocked, false)
   })
 })
 

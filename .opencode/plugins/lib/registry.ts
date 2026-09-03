@@ -42,16 +42,13 @@ type PathDeps = {
   dirname(p: string): string
 }
 
-type ClockDeps =
-  | { now(): number; isoNow(): string }
-  | { Date_now(): number; isoNow(): string }
-  | { now?: () => number; isoNow?: () => string }
+type ClockDeps = { now?: () => number; isoNow?: () => string }
 
 type RegistryDeps = {
   fs?: FsDeps
   path?: PathDeps
   randomUUID?: () => string
-  clock?: ClockDeps & Record<string, unknown>
+  clock?: ClockDeps
   directory?: string
   registryPath?: string
   messagesPath?: string
@@ -61,15 +58,8 @@ type RegistryDeps = {
   handoffDir?: string
   processStartedAt?: string
   opencodeVersion?: string
-  // warning injection for fail-soft (RED test probes onWarn/warn/tuiSafeWarn/log)
   onWarn?: (msg: string, opts?: unknown) => void
-  warn?: (msg: string, opts?: unknown) => void
-  tuiSafeWarn?: (msg: string, opts?: unknown) => void
-  log?: (msg: string, opts?: unknown) => void
-  // per-session message count tracking (RED test probes sessionMessageCount/messageCountMap/counters)
   sessionMessageCount?: Map<string, number>
-  messageCountMap?: Map<string, number>
-  counters?: Map<string, number>
 }
 
 function resolveFs(deps: RegistryDeps): FsDeps {
@@ -100,11 +90,10 @@ function resolveRandomUUID(deps: RegistryDeps): () => string {
 }
 
 function isoNow(deps: RegistryDeps): string {
-  const c = deps.clock as Record<string, unknown> | undefined
+  const c = deps.clock
   if (c) {
-    if (typeof c.isoNow === "function") return (c.isoNow as () => string)()
-    if (typeof (c as { now?: unknown }).now === "function") return new Date((c as { now: () => number }).now()).toISOString()
-    if (typeof (c as { Date_now?: unknown }).Date_now === "function") return new Date((c as { Date_now: () => number }).Date_now()).toISOString()
+    if (typeof c.isoNow === "function") return c.isoNow()
+    if (typeof c.now === "function") return new Date(c.now()).toISOString()
   }
   return new Date().toISOString()
 }
@@ -149,16 +138,11 @@ function resolveProcessStartedAt(deps: RegistryDeps): string {
 
 function resolveWarn(deps: RegistryDeps): ((msg: string, opts?: unknown) => void) | undefined {
   if (typeof deps.onWarn === "function") return deps.onWarn
-  if (typeof deps.warn === "function") return deps.warn
-  if (typeof deps.tuiSafeWarn === "function") return deps.tuiSafeWarn
-  if (typeof deps.log === "function") return deps.log
   return undefined
 }
 
 function resolveSessionMessageCount(deps: RegistryDeps): Map<string, number> {
   if (deps.sessionMessageCount instanceof Map) return deps.sessionMessageCount
-  if (deps.messageCountMap instanceof Map) return deps.messageCountMap
-  if (deps.counters instanceof Map) return deps.counters
   return new Map<string, number>()
 }
 

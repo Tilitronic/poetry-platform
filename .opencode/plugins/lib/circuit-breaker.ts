@@ -21,19 +21,11 @@ interface CircuitBreakerEntry {
   testCallMade: boolean
 }
 
-type ClockDeps =
-  | { now?: () => number; clock?: () => number; nowFn?: () => number }
-  | (() => number)
-  | undefined
+type ClockDeps = { now?: () => number } | (() => number) | undefined
 
 function resolveNow(deps: ClockDeps): () => number {
   if (typeof deps === "function") return deps
-  if (deps && typeof deps === "object") {
-    const d = deps as Record<string, unknown>
-    if (typeof d.now === "function") return d.now as () => number
-    if (typeof d.clock === "function") return d.clock as () => number
-    if (typeof d.nowFn === "function") return d.nowFn as () => number
-  }
+  if (deps && typeof deps === "object" && typeof deps.now === "function") return deps.now
   return () => Date.now()
 }
 
@@ -136,8 +128,8 @@ export class ToolCircuitBreaker {
   }
 }
 
-export function createCircuitBreaker(deps?: { now?: () => number; clock?: () => number } | (() => number)): ToolCircuitBreaker {
-  return new ToolCircuitBreaker(deps as ClockDeps)
+export function createCircuitBreaker(deps?: { now?: () => number } | (() => number)): ToolCircuitBreaker {
+  return new ToolCircuitBreaker(deps)
 }
 
 // Aliases probed by RED tests — all point to the same factory.

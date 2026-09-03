@@ -225,81 +225,16 @@ export type GateBlockedResult = {
   audit?: string
 }
 
-function normalizeGateArgs(
-  a: unknown,
-  b: unknown,
-  c: unknown
-): { dispatchText: string; sessionId: string; tickets: ScannedTicket[]; opts: Record<string, unknown> } {
-  const aRec = (a ?? {}) as Record<string, unknown>
-  const dispatchText =
-    (typeof aRec.dispatchText === "string" ? aRec.dispatchText : undefined) ??
-    (typeof aRec.description === "string" ? aRec.description : undefined) ??
-    (typeof aRec.prompt === "string" ? aRec.prompt : "") ??
-    (typeof a === "string" ? a : "")
-  const sessionId =
-    (typeof aRec.sessionId === "string" ? aRec.sessionId : undefined) ??
-    (typeof aRec.sessionID === "string" ? aRec.sessionID : "") ??
-    ""
-  let tickets: ScannedTicket[] = []
-  let opts: Record<string, unknown> = {}
-
-  if (Array.isArray(b)) {
-    tickets = b as ScannedTicket[]
-    if (c && typeof c === "object") opts = c as Record<string, unknown>
-    else if (typeof c === "boolean") opts = { failClosed: c }
-  } else if (b && typeof b === "object" && ("failClosed" in (b as Record<string, unknown>) || "fail_closed" in (b as Record<string, unknown>))) {
-    tickets = []
-    opts = b as Record<string, unknown>
-  } else if (b === undefined || b === null) {
-    tickets = []
-    if (c && typeof c === "object") opts = c as Record<string, unknown>
-  } else {
-    // b is unexpected, treat as opts
-    tickets = []
-    if (typeof b === "object") opts = b as Record<string, unknown>
-  }
-
-  // also allow failClosed inside first arg
-  if (aRec.failClosed !== undefined && opts.failClosed === undefined) {
-    opts.failClosed = aRec.failClosed
-  }
-  if (aRec.fail_closed !== undefined && opts.failClosed === undefined) {
-    opts.failClosed = aRec.fail_closed
-  }
-
-  return { dispatchText: String(dispatchText ?? ""), sessionId: String(sessionId ?? ""), tickets, opts }
-}
-
 function isTicketGateBlockedCore(
-  a: unknown,
-  b: unknown,
-  c: unknown,
-  deps: FsDeps
+  dispatchText: string,
+  sessionId: string,
+  tickets: ScannedTicket[],
+  _opts: { failClosed?: boolean } = {},
+  _deps?: FsDeps
 ): GateBlockedResult | boolean {
-  const { dispatchText, sessionId, tickets, opts } = normalizeGateArgs(a, b, c)
-  const failClosed = (opts.failClosed as boolean) ?? (opts.fail_closed as boolean) ?? false
-
   // meta-task bypass BEFORE ticket-id resolution
   if (isMetaTaskBypass(dispatchText)) {
     return { blocked: false, warn: "meta_task_bypass", warning: "meta_task_bypass", audit: "meta_task_bypass" }
-  }
-
-  // Probe scan failure via injected deps — use "." (exists on real fs) so default deps don't throw.
-  // Injected fakesThrow will throw even on ".".
-  let scanError: string | null = null
-  try {
-    // Probe with a benign path; readdirSync(".") should succeed on real fs.
-    deps.readdirSync(".")
-  } catch (err) {
-    scanError = String((err as Error).message ?? String(err))
-  }
-
-  if (scanError) {
-    if (failClosed) {
-      return { blocked: true, error: scanError, warn: scanError, warning: scanError, audit: "gate_scan_failed" }
-    } else {
-      return { blocked: false, error: scanError, warn: scanError, warning: scanError, audit: "gate_scan_failed" }
-    }
   }
 
   // No scan error — evaluate correlation if tickets supplied
@@ -332,9 +267,13 @@ function isTicketGateBlockedCore(
   return { blocked: true, error: "ticket_gate_blocked", warn: "ticket_gate_blocked", warning: "ticket_gate_blocked", audit: "ticket_gate_blocked" }
 }
 
-export function isTicketGateBlocked(a: unknown, b?: unknown, c?: unknown): GateBlockedResult | boolean {
-  const deps = resolveDeps()
-  return isTicketGateBlockedCore(a, b, c, deps)
+export function isTicketGateBlocked(
+  dispatchText: string,
+  sessionId: string,
+  tickets: ScannedTicket[] = [],
+  opts: { failClosed?: boolean } = {}
+): GateBlockedResult | boolean {
+  return isTicketGateBlockedCore(dispatchText, sessionId, tickets, opts)
 }
 
 // aliases for test probing
@@ -360,7 +299,12 @@ export function createTicketGate(depsIn: Partial<FsDeps>) {
     },
     evaluateTicketCorrelation,
     isMetaTaskBypass,
-    isTicketGateBlocked: (a: unknown, b?: unknown, c?: unknown) => isTicketGateBlockedCore(a, b, c, deps),
+    isTicketGateBlocked: (
+      dispatchText: string,
+      sessionId: string,
+      tickets: ScannedTicket[] = [],
+      opts: { failClosed?: boolean } = {}
+    ) => isTicketGateBlockedCore(dispatchText, sessionId, tickets, opts),
   }
 }
 
