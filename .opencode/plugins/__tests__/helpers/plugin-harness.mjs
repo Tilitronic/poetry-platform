@@ -51,3 +51,8 @@ export function mockOpencodePlugin() {
   toolFn.schema = schema
   _mock.module("@opencode-ai/plugin", () => ({ tool: toolFn }))
 }
+
+export async function createHarness(directory) {
+  const { default: createDelegationObserver } = await import("../../delegation-observer.ts")
+  return createDelegationObserver({ directory, client: { app: { log: async () => {} } } })
+}

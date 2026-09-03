@@ -18,25 +18,19 @@ import {
   readFileSync,
 } from "node:fs"
 import { join } from "node:path"
-import { createTempWorkspace, mockOpencodePlugin } from "../helpers/plugin-harness.mjs"
+import { createTempWorkspace, mockOpencodePlugin, createHarness } from "../helpers/plugin-harness.mjs"
 
 // ---- @opencode-ai/plugin mock (registered BEFORE the plugin import) ----
 mockOpencodePlugin()
 
 // Dynamic import AFTER mock.module registration (defeats ESM hoisting).
-const { default: createDelegationObserver } = await import(
-  "../../delegation-observer.ts"
-)
 
 // ---- Harness ----
 const { directory, cleanup } = createTempWorkspace("c5-s2-")
 try {
 
 
-const hooks = await createDelegationObserver({
-  directory,
-  client: { app: { log: async () => {} } },
-})
+const hooks = await createHarness(directory)
 
 const sessionDir = join(directory, ".opencode/session")
 const handoffsDir = join(sessionDir, "handoffs")

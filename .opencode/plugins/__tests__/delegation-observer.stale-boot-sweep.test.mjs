@@ -23,7 +23,7 @@
 import { test, expect, describe, afterEach } from "bun:test"
 import { appendFileSync, existsSync, readFileSync } from "node:fs"
 import { join } from "node:path"
-import { createTempWorkspace, mockOpencodePlugin } from "./helpers/plugin-harness.mjs"
+import { createTempWorkspace, mockOpencodePlugin, createHarness } from "./helpers/plugin-harness.mjs"
 
 const workspaceCleanups = []
 afterEach(() => {
@@ -47,9 +47,6 @@ afterEach(() => {
 // ---- @opencode-ai/plugin mock (registered BEFORE the plugin import) ----
 mockOpencodePlugin()
 
-const { default: createDelegationObserver } = await import(
-  "../delegation-observer.ts"
-)
 
 // ---------------------------------------------------------------------------
 // Harness plumbing
@@ -137,7 +134,7 @@ async function makeHarnessWithSweep(bootTimeMs) { const dateMock = mockDateNow(b
   // Isolate boot flag: clear so each test gets a fresh boot emission.
   const prevBootFlag = globalThis[BOOT_EMITTED_KEY]
   globalThis[BOOT_EMITTED_KEY] = false
-  const hooks = await createDelegationObserver(ctx)
+  const hooks = await createHarness(ctx.directory)
   const sweepFn = sweepCapture.get()
   return { ctx,
     hooks,
@@ -170,7 +167,7 @@ describe("DIA-260822-fksf stale stall-sweep startup protection (RED)", () => { t
     const prevBootFlag = globalThis[BOOT_EMITTED_KEY]
     globalThis[BOOT_EMITTED_KEY] = false
     const ctx = { directory, client: { app: { log: async () => {} } } }
-    const hooks = await createDelegationObserver(ctx)
+    const hooks = await createHarness(ctx.directory)
     const sweepFn = sweepCapture.get()
     expect(sweepFn).not.toBeNull()
 
@@ -258,7 +255,7 @@ describe("DIA-260822-fksf stale stall-sweep startup protection (RED)", () => { t
     const prevBootFlag = globalThis[BOOT_EMITTED_KEY]
     globalThis[BOOT_EMITTED_KEY] = false
     const ctx = { directory, client: { app: { log: async () => {} } } }
-    const hooks = await createDelegationObserver(ctx)
+    const hooks = await createHarness(ctx.directory)
     const sweepFn = sweepCapture.get()
     expect(sweepFn).not.toBeNull()
 

@@ -26,7 +26,7 @@
 import { test, expect, describe, afterEach } from "bun:test"
 import { existsSync, readFileSync } from "node:fs"
 import { join } from "node:path"
-import { createTempWorkspace, mockOpencodePlugin } from "./helpers/plugin-harness.mjs"
+import { createTempWorkspace, mockOpencodePlugin, createHarness } from "./helpers/plugin-harness.mjs"
 
 const workspaceCleanups = []
 afterEach(() => {
@@ -51,9 +51,6 @@ afterEach(() => {
 mockOpencodePlugin()
 
 // Dynamic import AFTER mock.module registration (defeats ESM hoisting).
-const { default: createDelegationObserver } = await import(
-  "../delegation-observer.ts"
-)
 
 // ---------------------------------------------------------------------------
 // Harness plumbing
@@ -66,7 +63,7 @@ function freshCtx() { const { directory, cleanup } = createTempWorkspace("dia225
     client: { app: { log: async () => {} } }, } }
 
 async function makeHarness() { const ctx = freshCtx()
-  const hooks = await createDelegationObserver(ctx)
+  const hooks = await createHarness(ctx.directory)
   return { hooks, ctx } }
 
 /**

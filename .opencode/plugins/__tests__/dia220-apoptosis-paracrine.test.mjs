@@ -23,7 +23,7 @@
 import { mock, test, expect, describe, afterEach } from "bun:test"
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
-import { createTempWorkspace, mockOpencodePlugin } from "./helpers/plugin-harness.mjs"
+import { createTempWorkspace, mockOpencodePlugin, createHarness } from "./helpers/plugin-harness.mjs"
 
 const workspaceCleanups = []
 afterEach(() => {
@@ -70,9 +70,6 @@ mock.module("node:child_process", () => ({
 }))
 
 // Dynamic import AFTER mock.module registration (defeats ESM hoisting).
-const { default: createDelegationObserver } = await import(
-  "../delegation-observer.ts"
-)
 
 // ---------------------------------------------------------------------------
 // Harness plumbing
@@ -93,7 +90,7 @@ function freshCtx() {
 
 async function makeHarness() {
   const ctx = freshCtx()
-  const hooks = await createDelegationObserver(ctx)
+  const hooks = await createHarness(ctx.directory)
   return { hooks, ctx }
 }
 

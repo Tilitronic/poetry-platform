@@ -30,7 +30,7 @@ import { test, expect, afterEach } from "bun:test"
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import { createHmac, randomUUID } from "node:crypto"
-import { createTempWorkspace, mockOpencodePlugin } from "./helpers/plugin-harness.mjs"
+import { createTempWorkspace, mockOpencodePlugin, createHarness } from "./helpers/plugin-harness.mjs"
 
 const workspaceCleanups = []
 afterEach(() => {
@@ -56,7 +56,6 @@ mockOpencodePlugin()
 
 // Dynamic import AFTER mock.module registration (defeats ESM hoisting).
 const {
-  default: createDelegationObserver,
   mintCapabilityToken,
   CAPABILITY_SECRET,
 } = await import("../delegation-observer.ts")
@@ -77,7 +76,7 @@ function freshCtx() {
 
 async function makeHarness() {
   const ctx = freshCtx()
-  const hooks = await createDelegationObserver(ctx)
+  const hooks = await createHarness(ctx.directory)
   return { hooks, ctx }
 }
 

@@ -32,7 +32,7 @@
 import { test, expect, describe, afterEach } from "bun:test"
 import { existsSync, readFileSync } from "node:fs"
 import { join } from "node:path"
-import { createTempWorkspace, mockOpencodePlugin } from "./helpers/plugin-harness.mjs"
+import { createTempWorkspace, mockOpencodePlugin, createHarness } from "./helpers/plugin-harness.mjs"
 
 const workspaceCleanups = []
 afterEach(() => {
@@ -59,9 +59,6 @@ afterEach(() => {
 mockOpencodePlugin()
 
 // Dynamic import AFTER mock.module registration (defeats ESM hoisting).
-const { default: createDelegationObserver } = await import(
-  "../delegation-observer.ts"
-)
 
 // ---------------------------------------------------------------------------
 // Harness plumbing
@@ -108,7 +105,7 @@ describe("DIA-260822-oldn: plugin-reload boot-sweep dedup (process-scoped, RED)"
     const before = countSessionBootRows(ctx.directory)
 
     // First invocation in this process.
-    await createDelegationObserver(ctx)
+    await createHarness(ctx.directory)
     const afterFirst = countSessionBootRows(ctx.directory)
     const bootFirst = readBootJson(ctx.directory)
 
@@ -124,7 +121,7 @@ describe("DIA-260822-oldn: plugin-reload boot-sweep dedup (process-scoped, RED)"
     expect(typeof firstBootId).toBe("string")
 
     // Second invocation in the SAME process (in-process reload).
-    await createDelegationObserver(ctx)
+    await createHarness(ctx.directory)
     const afterSecond = countSessionBootRows(ctx.directory)
     const bootSecond = readBootJson(ctx.directory)
 
@@ -142,7 +139,7 @@ describe("DIA-260822-oldn: plugin-reload boot-sweep dedup (process-scoped, RED)"
     globalThis[BOOT_EMITTED_KEY] = false
 
     // First (real) process boot.
-    await createDelegationObserver(ctx)
+    await createHarness(ctx.directory)
     const afterFirst = countSessionBootRows(ctx.directory)
     const bootFirst = readBootJson(ctx.directory)
     expect(afterFirst).toBeGreaterThan(0)
@@ -156,7 +153,7 @@ describe("DIA-260822-oldn: plugin-reload boot-sweep dedup (process-scoped, RED)"
     globalThis[BOOT_EMITTED_KEY] = false
 
     const beforeSecond = countSessionBootRows(ctx.directory)
-    await createDelegationObserver(ctx)
+    await createHarness(ctx.directory)
     const afterSecond = countSessionBootRows(ctx.directory)
     const bootSecond = readBootJson(ctx.directory)
 
@@ -173,9 +170,9 @@ describe("DIA-260822-oldn: plugin-reload boot-sweep dedup (process-scoped, RED)"
   test("factory re-invocation replaces stall-sweep singleton; dispose clears it", async () => { const ctx1 = freshCtx()
     const ctx2 = freshCtx()
 
-    const h1 = await createDelegationObserver(ctx1)
+    const h1 = await createHarness(ctx1.directory)
     const handle1 = globalThis[STALL_SWEEP_KEY]
-    const h2 = await createDelegationObserver(ctx2)
+    const h2 = await createHarness(ctx2.directory)
     const handle2 = globalThis[STALL_SWEEP_KEY]
 
     try { // (3a) Each factory invocation must register its stall-sweep interval
