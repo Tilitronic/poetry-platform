@@ -29,10 +29,10 @@
  *      bun test delegation-observer.reload-dedup.test.mjs'
  */
 
-import { mock, test, expect, describe, afterEach } from "bun:test"
+import { test, expect, describe, afterEach } from "bun:test"
 import { existsSync, readFileSync } from "node:fs"
 import { join } from "node:path"
-import { createTempWorkspace } from "./helpers/plugin-harness.mjs"
+import { createTempWorkspace, mockOpencodePlugin } from "./helpers/plugin-harness.mjs"
 
 const workspaceCleanups = []
 afterEach(() => {
@@ -56,12 +56,7 @@ afterEach(() => {
 // ---- @opencode-ai/plugin mock (registered BEFORE the plugin import) ----
 // Chain must satisfy tool.schema.enum([...]).optional().describe(...) used by
 // the plugin's tool definitions (see failure-cap.test.mjs for the same shape).
-const desc = { describe: () => desc }
-const withOptional = { optional: () => desc }
-const schema = { enum: () => withOptional, string: () => withOptional }
-const toolFn = (def) => def
-toolFn.schema = schema
-mock.module("@opencode-ai/plugin", () => ({ tool: toolFn }))
+mockOpencodePlugin()
 
 // Dynamic import AFTER mock.module registration (defeats ESM hoisting).
 const { default: createDelegationObserver } = await import(

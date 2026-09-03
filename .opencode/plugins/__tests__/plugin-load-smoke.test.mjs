@@ -20,7 +20,7 @@
 
 import { describe, it } from "node:test"
 import assert from "node:assert/strict"
-import { createTempWorkspace } from "./helpers/plugin-harness.mjs"
+import { createTempWorkspace, mockOpencodePlugin } from "./helpers/plugin-harness.mjs"
 
 // Try to mock @opencode-ai/plugin for bun; for node the real module is fine.
 // We attempt bun's mock.module if available, otherwise skip.
@@ -28,12 +28,7 @@ let mocked = false
 try {
   const { mock } = await import("bun:test")
   if (mock && typeof mock.module === "function") {
-    const desc = { describe: () => desc }
-    const withOptional = { optional: () => desc }
-    const schema = { enum: () => withOptional, string: () => withOptional }
-    const toolFn = (def) => def
-    toolFn.schema = schema
-    mock.module("@opencode-ai/plugin", () => ({ tool: toolFn }))
+    mockOpencodePlugin()
     mocked = true
   }
 } catch {

@@ -2,6 +2,13 @@ import { mkdirSync, mkdtempSync, rmSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 
+let _mock
+try {
+  _mock = (await import("bun:test")).mock
+} catch {
+  // bun:test not available (node run) - no-op
+}
+
 const registry = new Set()
 let exitHandlerRegistered = false
 
@@ -33,4 +40,14 @@ export function createTempWorkspace(prefix) {
     }
   }
   return { directory, cleanup }
+}
+
+export function mockOpencodePlugin() {
+  if (!_mock?.module) return
+  const desc = { describe: () => desc }
+  const withOptional = { optional: () => desc }
+  const schema = { enum: () => withOptional, string: () => withOptional }
+  const toolFn = (def) => def
+  toolFn.schema = schema
+  _mock.module("@opencode-ai/plugin", () => ({ tool: toolFn }))
 }

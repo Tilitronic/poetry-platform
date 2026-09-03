@@ -23,7 +23,7 @@
 import { mock, test, expect, describe, afterEach } from "bun:test"
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
-import { createTempWorkspace } from "./helpers/plugin-harness.mjs"
+import { createTempWorkspace, mockOpencodePlugin } from "./helpers/plugin-harness.mjs"
 
 const workspaceCleanups = []
 afterEach(() => {
@@ -45,12 +45,7 @@ afterEach(() => {
 
 
 // ---- @opencode-ai/plugin mock (registered BEFORE the plugin import) ----
-const desc = { describe: () => desc }
-const withOptional = { optional: () => desc }
-const schema = { enum: () => withOptional, string: () => withOptional }
-const toolFn = (def) => def
-toolFn.schema = schema
-mock.module("@opencode-ai/plugin", () => ({ tool: toolFn }))
+mockOpencodePlugin()
 
 // ---- node:child_process mock (DIA-260826-jcte) ----------------------------
 // delegation-observer.ts imports { spawnSync } from "node:child_process".

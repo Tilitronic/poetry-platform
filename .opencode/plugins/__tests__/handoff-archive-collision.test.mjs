@@ -13,11 +13,11 @@
  *     'cd /workspace/.opencode/plugins/__tests__ && \
  *      bun test handoff-archive-collision.test.mjs'
  */
-import { mock, test, expect, afterEach } from "bun:test"
+import { test, expect, afterEach } from "bun:test"
 import { createHash } from "node:crypto"
 import { existsSync, readdirSync, readFileSync } from "node:fs"
 import { join } from "node:path"
-import { createTempWorkspace } from "./helpers/plugin-harness.mjs"
+import { createTempWorkspace, mockOpencodePlugin } from "./helpers/plugin-harness.mjs"
 
 const workspaceCleanups = []
 afterEach(() => {
@@ -39,12 +39,7 @@ afterEach(() => {
 
 
 // ---- @opencode-ai/plugin mock (registered BEFORE the plugin import) ----
-const desc = { describe: () => desc }
-const withOptional = { optional: () => desc }
-const schema = { enum: () => withOptional, string: () => withOptional }
-const toolFn = (def) => def
-toolFn.schema = schema
-mock.module("@opencode-ai/plugin", () => ({ tool: toolFn }))
+mockOpencodePlugin()
 
 // Dynamic import AFTER mock.module registration.
 const { default: createDelegationObserver } = await import(

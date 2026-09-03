@@ -28,17 +28,13 @@
  *   cd /workspace/.opencode/plugins/__tests__ && \
  *   bun test dia-ticket-id-parser.test.mjs
  */
-import { mock, test, expect } from "bun:test"
+import { test, expect } from "bun:test"
+import { mockOpencodePlugin } from "./helpers/plugin-harness.mjs"
 
 // ---- @opencode-ai/plugin mock (registered BEFORE the plugin import) ----
 // Same mock shape as dia217-ticket-gate.test.mjs: the plugin module imports
 // the tool helper at load time; resolution must not depend on node_modules.
-const desc = { describe: () => desc }
-const withOptional = { optional: () => desc }
-const schema = { enum: () => withOptional, string: () => withOptional }
-const toolFn = (def) => def
-toolFn.schema = schema
-mock.module("@opencode-ai/plugin", () => ({ tool: toolFn }))
+mockOpencodePlugin()
 
 // Dynamic import AFTER mock.module registration (defeats ESM hoisting).
 // Wrapped so a hard import failure still yields per-test clear messages.
