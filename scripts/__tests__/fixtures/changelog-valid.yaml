@@ -1,0 +1,26 @@
+- date: '2026-08-16'
+  ticket: 'DIA-183'
+  status: 'CLOSED'
+  scope: 'ponytail-half closure (Variant B, doc-only)'
+  route: 'section-10'
+  files:
+    - 'AGENTS.md'
+    - 'docs/PONYTAIL-DEBT.md'
+    - 'docs/dev-infra-audit/tickets/DIA-183-ponytail-headroom-context-compression.md'
+  summary: >
+    Change: DIA-183 (ponytail half) closed via developer-approved Variant B.
+    Reason: ponytail half was gate-verified at merge 47064d0.
+  verification: >
+    make test-config exit 0. Review: developer-approved Variant B.
+- date: '2026-08-15'
+  ticket: 'DIA-190/192/193'
+  severity: 'Medium'
+  scope: 'delegation-observer TUI-safe notification downgrades'
+  files:
+    - '.opencode/plugins/delegation-observer.ts'
+    - '.opencode/CHANGELOG.yaml'
+  summary: >
+    Change: three section-2.5 config changes implemented.
+    Reason: doc-config drift misled the res028 persistence flow.
+  verification: >
+    make test-config exit 0. Review: ai-specialist gate research.

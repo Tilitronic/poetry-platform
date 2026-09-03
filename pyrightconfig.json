@@ -1,0 +1,6 @@
+{
+  "include": ["apps/api-server", "packages/analytics-pipeline", "packages/phonetics-core"],
+  "exclude": ["**/node_modules", "**/__pycache__", "**/.venv"],
+  "pythonVersion": "3.13",
+  "typeCheckingMode": "basic"
+}

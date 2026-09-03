@@ -1,0 +1,157 @@
+# DIA-056 — @ai-auditor subagent token-tool stacking loop (session error, cancelled, not reusable)
+
+<!-- Owner-reported + orchestrator-observed recurring subagent failure pattern.
+     Backlog-only ticket: documents the defect + fix candidates. NO code/config
+     change is made by this ticket; implementation is out of scope and awaits
+     owner scheduling. Config/plugin-level fixes (candidates b/c/d) touch
+     .opencode/ config → route through §10 (AI Devtools Modernization Workflow)
+     when scheduled. Brief-level mitigation (candidate a) is orchestrator
+     discipline and needs no §10 routing. -->
+<!-- CLOSED 2026-08-09: root cause eliminated by the plugin-removal campaign
+     (commits 4216406/0af6b6e/58cddc6) — the plugins opencode-telemetry +
+     opencode-token-monitor were removed from the configuration per developer
+     decision following the usage audit (res006-telemetry-plugin-alternatives).
+     The token tools no longer exist. Status CLOSED. -->
+
+---
+
+id: DIA-056
+title: "@ai-auditor subagent token-tool stacking loop (session error, cancelled, not reusable)"
+area: opencode-config
+severity: Medium
+status: CLOSED
+blocked_by: []
+discovered: 2026-08-06
+source: owner-reported + orchestrator-observed
+date: 2026-08-06
+created: 2026-08-06
+updated: 2026-08-09
+
+# --- Session Attribution (v2 schema, optional — GRANDFATHERED for DIA-001..049) ---
+
+session_id: "ses_029a5b8d3ffeVYsI24BrVQmCmK"
+lane_id: "docs-1"
+agent: "coder"
+model: ""
+parent_session_id: ""
+attempts: 0
+lease_expires_at: ""
+files_touched: ["docs/dev-infra-audit/tickets/DIA-056-ai-auditor-token-tool-loop.md", "docs/dev-infra-audit/tickets/README.md"]
+artifacts: []
+evidence: ["messages.md#494", "messages.md#504"]
+
+---
+
+## Description
+
+**Summary:** @ai-auditor subagent sessions STACK — session errors, is cancelled,
+not reusable — when the subagent invokes OpenCode token tools
+(`token_history` / `token_stats` / `token_export`) inside smoke/verification
+lanes. The subagent loops repeated token-tool invocations and then the session
+errors. Two occurrences observed 2026-08-06 (session ledger rows 494/504).
+
+**Occurrence 1** (2026-08-06 ~09:50Z, `ai--2` ground-truth smoke lane, session
+`ses_02a4c6a05ffeaRzfeBpv2Kmxuy`, ledger row 494): owner reported "subagent
+stacked".
+
+**Occurrence 2** (2026-08-06 ~11:40Z, §10 Phase-5 re-smoke lane — fresh session
+after restart with `token_export: "deny"` live at opencode.jsonc:231, session
+`ses_029d32574ffed4f1gClKj6Bh3r`, ledger row 504): owner observed repeated
+`token_stats [compact=true, scope=all]` / `token_history [scope=all]` calls
+followed by a `token_export` attempt, then session error → cancelled. This
+occurrence's pattern (repeated reads → write attempt → stack) is the documented
+failure signature.
+
+**Secondary impact:** the §10 Phase-5 re-smoke's RUNTIME proof of the
+`token_export` deny remains UNCONFIRMED — the stacking prevented observing the
+permission outcome. The deny exists at the config level (opencode.jsonc:231 in
+the @ai-auditor block, opencode.jsonc:220-251) but was never observed in a live
+invocation because the session died first.
+
+**Related:** DIA-055 (OPEN, backlog) documents the systemic `token_export`
+write-capable exposure for all subagents + the unlisted-tools-default-allow
+permission model; DIA-055 S2 tracks orchestrator `token_export` exposure. If the
+stacking root cause is tool-exposure related, this ticket's fix folds into
+DIA-055 S-series hardening (fix candidate d).
+
+## Verification
+
+1. Reproduce the pattern: dispatch @ai-auditor in a smoke/verification lane whose
+   brief permits/encourages token-tool use; observe repeated
+   `token_history`/`token_stats` ⚙ calls, then a session error → cancelled
+   (stacked, session not reusable).
+2. Confirm the loop signature in the session ledger: repeated token-tool
+   invocations immediately before the session error (rows 494, 504).
+3. Post-fix (when scheduled): run 2 consecutive smoke lanes with token-tool
+   briefs — each must complete with clean per-part outcomes, NO stacking, and a
+   reusable @ai-auditor session (see Re-verify for the gate definition).
+
+## Fix
+
+**Applied 2026-08-07 (§10 cycle)** — resolved by fold-in into DIA-055
+(candidate c/d): ai-auditor verifies `token_*: deny` via config-block inspection
+(opencode.jsonc L249), NEVER invokes token\_\* at runtime → stacking trigger
+eliminated.
+
+**Fix candidates (backlog, not now):**
+
+1. **(a) Brief-level guard (immediate mitigation, in use):** smoke/verification
+   lanes instruct agents to invoke each token tool EXACTLY ONCE and report the
+   first outcome — no loops. Orchestrator discipline, no config change, no §10
+   routing. Already being applied to the re-smoke re-dispatch.
+2. **(b) Root-cause investigation — recursive telemetry/re-entrancy hypothesis:**
+   `token_history` / `token_stats` read the same telemetry DB the session
+   recorder writes; `token_export` writes a file (opencode-token-monitor@0.5.0,
+   per DIA-055). Hypothesis to document: invoking these tools from a subagent
+   triggers re-entrant telemetry capture on the very session being measured,
+   which can recurse/loop and eventually error the session. Needs a controlled
+   repro + plugin-level inspection before any fix.
+3. **(c) Config-level verification alternative:** verify `token_history` /
+   `token_stats` allowance and `token_export` deny at the PERMISSION-CONFIG
+   level (inspect the @ai-auditor block, opencode.jsonc:214-251) instead of
+   runtime invocation — reduces smoke-lane token-tool usage and avoids the
+   stacking trigger.
+4. **(d) Fold into DIA-055 S-series hardening** if the root cause proves
+   tool-exposure related (e.g. unlisted-tools-default-allow applies to
+   `token_history`/`token_stats` for @ai-auditor — neither is listed in the
+   block, so both are default-allow at runtime).
+
+**§10 routing note (MANDATORY for b/c/d):** any config/plugin-level fix touches
+`.opencode/` → when implemented it MUST route through §10 (AI Devtools
+Modernization Workflow): @ai-specialist gate → design → @coder → @ai-specialist
+independent review → restart + smoke. Verification gates when implemented:
+`make test-config` exit 0, JSONC parse, restart-verify per §10 Phase 5.
+Candidate (a) is orchestrator discipline only — no §10 routing needed.
+
+**Out of scope:** no code/config change in this ticket; backlog item awaiting
+owner scheduling.
+
+## Re-verify
+
+**VERIFIED 2026-08-08 (stacking smoke, post-restart):**
+
+- **2 clean @ai-auditor lanes** — no stacking, no session error; lanes
+  completed with clean per-part outcomes.
+- **token\_\*: deny confirmed at config level** — opencode.jsonc:268
+  (ai-auditor block L257-289).
+- **Deny meaningful:** token tools still globally registered (unlisted-tools
+  default-allow model intact) — the deny entries are the operative gate.
+- **Zero runtime invocations** of token\_\* during the smoke lanes — stacking
+  trigger not exercised.
+- **Session reuse proven:** lane 2 resumed lane 1's session cleanly.
+- **No contradictory token overrides** found in any agent block.
+
+Status: IMPLEMENTED → VERIFIED.
+
+> **Open sub-item:** DIA-056(b) — recursive telemetry/re-entrancy root-cause
+> investigation — remains a SEPARATE open upstream-research item; not resolved
+> by this fold-in.
+
+**DIA-056(b) COMPLETE 2026-08-08:** recursive telemetry/re-entrancy root-cause
+sub-audit (open_ticket from the last handoff) completed — report at
+`knowledge/ana009-telemetry-reentrancy-audit/ana009-telemetry-reentrancy-audit-report.md`
+(shelf entry "Telemetry Re-Entrancy Audit"). Findings: NO active infinite loops
+(MEDIUM-HIGH confidence normal-operation safe); residual P1-P4 guard gaps
+ticketized as DIA-070 (OPEN, opencode-config, Medium). Main status unchanged
+(VERIFIED) — no (b) status field exists in this ticket's frontmatter; this
+sub-audit close-out is a note only.

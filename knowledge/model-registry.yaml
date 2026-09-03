@@ -1,0 +1,176 @@
+# DIA-133 dispatch routing registry (ADR-DIA-133, approved 2026-08-13). Evidence: res013/016/017 (source_ref per score). No self-benchmark figures (ana014). Registry owner: ai-specialist research -> coder edit (developer decision 2026-08-13).
+schema_version: "1.0"
+models:
+  - model_id: "deepseek-v4-flash"
+    role: "multi-lane-primary"
+    price_in_1m: 0.22
+    price_out_1m: 0.66
+    req_per_month: 18900  # ESTIMATE (per res024 sec 3.3)
+    swe_bench_verified: 73.7
+    source_ref: "res013, res030"
+    lane: ["coder", "reviewer", "analyzer", "researcher", "conspecter", "openspec-plan", "orchestrator", "memory-manager", "code-navigator"]
+    fallback: ["opencode/mimo-v2.5-free", "opencode/big-pickle"]
+    quota_notes: "Promo primary for orchestrator + fallback for coder/reviewer/analyzer/researcher/conspecter/openspec-plan/memory-manager/code-navigator (DIA-260901-s4ij); peak $0.44/$1.32 01:00-04:00+06:00-10:00 UTC"
+    active: true
+
+  - model_id: "mimo-v2.5"
+    role: "coder-default-volume"
+    price_in_1m: 0.14
+    price_out_1m: 0.28
+    req_per_month: 150400  # ESTIMATE (per res024 sec 3.3)
+    swe_bench_verified: null  # vendor-only, benchmark gap per res017
+    source_ref: "res030"
+    lane: "coder"
+    fallback: []
+    quota_notes: "New volume king 2026-08-17: $0.14/$0.28, 150,400 req/mo, $60 bucket (res030)"
+    active: true
+
+  - model_id: "opencode-go/hy3"
+    role: "retired (was multi-lane-primary)"
+    price_in_1m: 0.14
+    price_out_1m: 0.58
+    req_per_month: 21500  # res030 quota
+    swe_bench_verified: "no independent reproduction archived (res030 pricing only)"
+    source_ref: "res030"
+    lane: ["coder","reviewer","conspecter","resource-manager","memory-manager","code-navigator","researcher"]
+    fallback: ["opencode-go/mimo-v2.5","opencode/big-pickle"]
+    quota_notes: "$60 bucket, 4,300 req/5h, 21,500 req/mo, 256K ctx - retired DIA-260901-s4ij, replaced by opencode-go/deepseek-v4-flash"
+    active: false
+
+  - model_id: "opencode-go/muse-spark-1.2-contributor"
+    role: "multi-lane-primary"
+    price_in_1m: 0.10
+    price_out_1m: 0.20
+    req_per_month: 226600
+    swe_bench_verified: null
+    source_ref: "res041"
+    lane: ["coder", "reviewer", "analyzer", "researcher", "conspecter", "openspec-plan"]
+    fallback: ["opencode-go/deepseek-v4-flash", "opencode-go/mimo-v2.5"]
+    quota_notes: "Cheapest input ($0.10) + highest Intelligence (56.8) of promo trio, 1.05M ctx; 100 RPM = 144k/day vs workload 120 dispatches/day max (ana036); ADMITTED per DIA-260828-qtsi (privacy cleared by developer: no sensitive traffic)"
+    privacy_notes: "Meta Contributor tier trains on prompts/completions; developer cleared (no sensitive traffic) per DIA-260828-qtsi; region-limited availability"
+    variant_support: true
+    active: true
+
+  - model_id: "qwen3.8-flash"
+    role: "arch/analyzer"
+    price_in_1m: 0.15
+    price_out_1m: 0.47
+    req_per_month: 27000
+    swe_bench_verified: null  # no archived benchmark yet - benchmark conspect pending (separate ticket)
+    source_ref: "res016"
+    lane: "analyzer"
+    fallback: []
+    quota_notes: "$30 bucket, 27K req/mo, pricing $0.15/$0.47 per 1M; benchmark conspect pending (separate ticket)"
+    active: true
+
+  - model_id: "kimi-k3"
+    role: "coder-escalated"
+    price_in_1m: 3.00
+    price_out_1m: 15.00
+    req_per_month: 490  # ESTIMATE (per res024 sec 3.3)
+    swe_bench_verified: 93.40
+    source_ref: "res016"
+    lane: "coder-escalated"
+    fallback: ["deepseek-v4-pro", "mimo-v2.5-pro"]
+    quota_notes: "Binding cap 490 req/mo"
+    active: true
+
+  - model_id: "gpt-5.6-luna"
+    role: "analyzer-escalated"
+    price_in_1m: 0.20
+    price_out_1m: 1.20
+    req_per_month: 10250  # ESTIMATE (per res024 sec 3.3)
+    swe_bench_verified: null
+    source_ref: "res016"
+    lane: "analyzer-escalated"
+    fallback: []
+    quota_notes: "Subagent-weak caveat"
+    active: true
+
+  - model_id: "deepseek-v4-pro"
+    role: "fallback"
+    price_in_1m: 0.66
+    price_out_1m: 1.98
+    req_per_month: 5200  # ESTIMATE (per res024 sec 3.3)
+    swe_bench_verified: 74.0
+    source_ref: "res017, res030"
+    lane: "coder-escalated"
+    fallback: []
+    quota_notes: "Independent CAISI evidence; price corrected 2026-08-17 (res030 sec 7: res013's $0.435/$0.87 was a transcription collision with mimo-v2.5-pro; fresh $0.66/$1.98 off-peak / $1.32/$3.96 peak)"
+    active: true
+
+  - model_id: "mimo-v2.5-pro"
+    role: "fallback-2"
+    price_in_1m: 0.435
+    price_out_1m: 0.87
+    req_per_month: 16300  # ESTIMATE (per res024 sec 3.3)
+    swe_bench_verified: null
+    source_ref: "res017"
+    lane: "coder-escalated"
+    fallback: []
+    quota_notes: "Vendor-only benchmark; benchmark-gap OPEN"
+    active: true
+
+  - model_id: "gpt-5.3-codex"
+    role: "reviewer"
+    price_in_1m: 1.75
+    price_out_1m: 14.00
+    req_per_month: null  # ESTIMATE (per res024 sec 3.3)
+    swe_bench_verified: 85.0
+    source_ref: "res013"
+    lane: "reviewer"
+    fallback: []
+    quota_notes: "Copilot credits - skip guard"
+    active: true
+
+routing_table:
+  - rung: "Rung0"
+    signal: "Start / routine work"
+    lane: "coder"
+    model: "mimo-v2.5"
+    quota_guarded: false
+  - rung: "Rung1"
+    signal: "Verify-fail #1 / Minor finding"
+    lane: "coder"
+    model: "mimo-v2.5"
+    quota_guarded: false
+  - rung: "Rung2"
+    signal: "Verify-fail #2"
+    lane: "coder"
+    model: "qwen3.8-flash"
+    quota_guarded: false
+  - rung: "Rung3"
+    signal: "2x failed re-review loops OR Critical severity"
+    lane: "coder-escalated"
+    model: "kimi-k3"
+    quota_guarded: true
+  - rung: "Rung3-fallback"
+    signal: "kimi-k3 quota exhausted or SILENT_FAILURE"
+    lane: "coder-escalated"
+    model: "deepseek-v4-pro"
+    quota_guarded: true
+  - rung: "Rung3-fallback-2"
+    signal: "deepseek-v4-pro quota exhausted or SILENT_FAILURE"
+    lane: "coder-escalated"
+    model: "mimo-v2.5-pro"
+    quota_guarded: true
+  - rung: "Rung4"
+    signal: "Re-review after fixes"
+    lane: "reviewer"
+    model: "gpt-5.3-codex"
+    quota_guarded: false
+  - rung: "Analyzer"
+    signal: "Default analysis"
+    lane: "analyzer"
+    model: "qwen3.8-flash"
+    quota_guarded: false
+  - rung: "Analyzer-escalated"
+    signal: "cannot comprehend domain OR abort-on-complexity"
+    lane: "analyzer-escalated"
+    model: "gpt-5.6-luna"
+    quota_guarded: true
+  - rung: "Analyzer-route-back"
+    signal: "After escalated pass"
+    lane: "analyzer"
+    model: "qwen3.8-flash"
+    quota_guarded: false

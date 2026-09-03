@@ -1,0 +1,357 @@
+# Poetry Platform — Dev Workstation Container
+#
+# ONE container that holds everything for development:
+#   - opencode + OMO slim plugins
+#   - Node 24, pnpm, bun, uv, mise, snip
+#   - Python 3 + uv for the FastAPI api-server
+#   - Rust toolchain (kept for the future W1 re-scaffold: stress-lang-core was
+#     deleted 2026-08-25 as a throwing stub; architecture.md is the seam of
+#     record, so the toolchain layer stays pinned for its WASM builds)
+#   - Playwright (chromium) + crawl4ai for browser automation
+#
+# The monorepo is mounted at /workspace. App services (author-studio,
+# api-server, publishing-platform) run INSIDE this container via `pnpm dev`
+# (turbo). Only stateful/infrastructure services get their own containers
+# (see docker-compose.yml: postgres).
+#
+# This is intentionally NOT distroless and NOT --read-only: dev must be able to
+# write (pnpm install, WASM builds, dev-server caches). Security posture is still
+# strong: pinned versions, SHA256-verified installers; entrypoint starts as root only to repair state-dir ownership, then drops to dev via gosu.
+
+FROM debian:13-slim@sha256:4e401d95de7083948053197a9c3913343cd06b706bf15eb6a0c3ccd26f436a0e
+
+ARG USER_UID=1000
+ARG USER_GID=1000
+ARG NODE_VERSION=24.18.0
+# DIA-188 (DD1): 1.18.18 = newest stable (res028), matches the host version
+# (eliminates host/container drift); OMO 2.2.14 compatibility floor is
+# @opencode-ai/plugin@1.18.13, satisfied with headroom.
+ARG OPENCODE_VERSION=1.18.18
+# DIA-188 (DD3): OMO plugin pinned for the bake step; must stay in lockstep
+# with the .opencode/opencode.jsonc + .opencode/tui.json project entries.
+ARG OMO_VERSION=2.2.14
+ARG PNPM_VERSION=10.33.0
+ARG BUN_VERSION=1.3.14
+ARG SNIP_VERSION=0.22.0
+ARG OPENSPEC_VERSION=1.7.0
+ARG UV_VERSION=0.11.29
+ARG RUST_VERSION=1.83.0
+# tini: minimal init for PID 1 zombie reaping (see M9); pinned and
+# SHA256-verified like snip/uv below.
+ARG TINI_VERSION=0.19.0
+# Language server versions (pinned; see openspec/changes/dev-infra-language-servers)
+# keep in sync with scripts/lsp-versions.env — the single source of truth for host + container LS versions; T7-T10
+ARG TYPESCRIPT_LS_VERSION=5.3.0
+ARG TYPESCRIPT_VERSION=5.9.3
+ARG PYRIGHT_VERSION=1.1.411
+# yaml-language-server is pinned in scripts/lsp-versions.env (host) and
+# mirrored here as YAML_LS_VERSION (container) — the npm global install
+# pattern is identical to typescript-language-server (DIA-180 A1).
+ARG YAML_LS_VERSION=1.24.0
+# rust-analyzer is pinned independently of the compiler toolchain (RUST_VERSION):
+# the LSP gate (scripts/check-host-lsp.sh) resolves it through the dev
+# container, and it is provisioned on its own rustup toolchain below so
+# rustc/cargo stay on RUST_VERSION for stress-lang-core WASM builds.
+ARG RUST_ANALYZER_VERSION=1.97.1
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+# === Base system packages ===
+RUN apt-get update && apt-get install --no-install-recommends -y \
+    ca-certificates \
+    curl \
+    wget \
+    git \
+    python3 \
+    python3-pip \
+    python3-venv \
+    xvfb \
+    xclip \
+    wl-clipboard \
+    ripgrep \
+    jq \
+    make \
+    dbus \
+    gosu \
+    && rm -rf /var/lib/apt/lists/*
+
+# === Docker CLI + compose plugin (client only; no daemon) ===
+# The pre-push hook (scripts/verify-pre-push.sh) delegates `make test-config`
+# into this container via `docker compose exec -T dev`, and the Makefile
+# test-config target runs `docker compose config --quiet` — client-side
+# compose-file validation that needs the docker binary but NO docker socket or
+# daemon (docker-compose.yml mounts no socket for the dev service, and none is
+# needed for `compose config`). Without the CLI the delegated gate fails:
+# "make: docker: No such file or directory" (DIA-131).
+# Apt-repo install from download.docker.com, Debian suite "trixie" (matches the
+# debian:13-slim base; the suite ships docker-ce-cli + docker-compose-plugin,
+# verified via the repo Packages listing 2026-08-13). Versions pinned to the
+# exact pool versions (docker-ce-cli=5:29.7.2-1~debian.13~trixie,
+# docker-compose-plugin=5.4.0-1~debian.13~trixie) — floating apt versions
+# contradict the image's pinned-version posture (line 17); --no-install-
+# recommends matches the base-packages RUN and drops only recommendations
+# (buildx/containerd/runc are not needed — client-only, no daemon).
+# TLS-failure caveat (DIA-121, tools/opencode-docker): apt-get update against
+# download.docker.com failed TLS cert verification in the host network there,
+# while curl to the same domain succeeded; the `|| echo` below names such a
+# failure in the build log, and the DIA-131 ticket Fix section documents the
+# static-bundle fallback (same shape as tools/opencode-docker/Dockerfile).
+RUN install -m 0755 -d /etc/apt/keyrings && \
+    curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc && \
+    chmod a+r /etc/apt/keyrings/docker.asc && \
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian trixie stable" > /etc/apt/sources.list.d/docker.list && \
+    (apt-get update && apt-get install --no-install-recommends -y \
+        docker-ce-cli=5:29.7.2-1~debian.13~trixie \
+        docker-compose-plugin=5.4.0-1~debian.13~trixie) || \
+        { echo "DIA-131: apt install of docker CLI failed (TLS vs download.docker.com?) - see DIA-131 ticket Fix for static-bundle fallback" >&2; exit 1; } && \
+    rm -rf /var/lib/apt/lists/* && \
+    docker --version && docker compose version
+
+# === tini — PID 1 init for zombie reaping ===
+# Docker's default PID 1 does not reap orphaned children; playwright/crawl4ai
+# spawn short-lived processes that would accumulate as zombies. tini-static is
+# glibc-independent (no version drift on debian:13) and matches the project's
+# pinned + SHA256-verified binary-install pattern (snip/uv). The release
+# publishes a per-binary .sha256sum file; grep|sed|sha256sum -c - verifies the
+# exact artifact we downloaded (same shape as the uv install below).
+RUN TINI_ARCH=$(case "${TARGETARCH:-$(uname -m)}" in x86_64|amd64) echo "amd64" ;; aarch64|arm64) echo "arm64" ;; esac) && \
+    curl -fsSL "https://github.com/krallin/tini/releases/download/v${TINI_VERSION}/tini-static-${TINI_ARCH}" -o "/tmp/tini-static-${TINI_ARCH}" && \
+    curl -fsSL "https://github.com/krallin/tini/releases/download/v${TINI_VERSION}/tini-static-${TINI_ARCH}.sha256sum" -o /tmp/tini.sha256 && \
+    grep "tini-static-${TINI_ARCH}" /tmp/tini.sha256 | sed "s|tini-static-${TINI_ARCH}|/tmp/tini-static-${TINI_ARCH}|" | sha256sum -c - && \
+    install -m 0755 "/tmp/tini-static-${TINI_ARCH}" /usr/local/bin/tini && \
+    rm -f "/tmp/tini-static-${TINI_ARCH}" /tmp/tini.sha256 && \
+    tini --version
+
+# === Node.js (pinned binary from nodejs.org, not apt repo) ===
+# SHA256 digests pinned from the official nodejs.org SHASUMS256.txt for
+# v24.18.0 (SEC-DOCKER-001): the tarball is verified before extraction, so a
+# tampered mirror or MITM'd download fails the build instead of shipping.
+RUN NODE_ARCH=$(case "${TARGETARCH:-$(uname -m)}" in x86_64|amd64) echo "x64" ;; aarch64|arm64) echo "arm64" ;; esac) && \
+    curl -fsSL "https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-${NODE_ARCH}.tar.gz" -o /tmp/node.tar.gz && \
+    case "${NODE_ARCH}" in \
+      x64)   echo "783130984963db7ba9cbd01089eaf2c2efb055c7c1693c943174b967b3050cb8  /tmp/node.tar.gz" | sha256sum -c - ;; \
+      arm64) echo "6b4484c2190274175df9aa8f28e2d758a819cb1c1fe6ab481e2f95b463ab8508  /tmp/node.tar.gz" | sha256sum -c - ;; \
+    esac && \
+    tar xzf /tmp/node.tar.gz -C /usr/local/ --strip-components=1 && \
+    rm -f /tmp/node.tar.gz && \
+    node --version && npm --version
+
+# === OpenCode CLI (pinned binary from GitHub release, SHA256-verified) ===
+# DIA-188 (DD2): replaces the install-script pattern. The script at
+# opencode.ai/install lives on a mutable dev branch (anomalyco/opencode
+# refs/heads/dev/install) and performs NO sha256 verification of the binary it
+# downloads - pinning the script's own digest (the old fc3c1b2... pattern) was
+# stale/unstable. Direct binary download + digest verification matches the
+# node/snip/uv/mise pattern used elsewhere in this file. Repo relocated
+# sst/opencode -> anomalyco/opencode (res028). Digests pinned from the v1.18.18
+# GitHub release assets at implementation time (2026-08-15).
+RUN OC_ARCH=$(case "${TARGETARCH:-$(uname -m)}" in x86_64|amd64) echo "linux-x64" ;; aarch64|arm64) echo "linux-arm64" ;; esac) && \
+    curl -fsSL "https://github.com/anomalyco/opencode/releases/download/v${OPENCODE_VERSION}/opencode-${OC_ARCH}.tar.gz" -o /tmp/opencode.tar.gz && \
+    case "${OC_ARCH}" in \
+      linux-x64)   echo "0cddc222418b8553669905a8980c0cda7088f00da24d83d6ac76b01c9fdb2aaf  /tmp/opencode.tar.gz" | sha256sum -c - ;; \
+      linux-arm64) echo "dcb1b5ec5687b43f87749560021f9203f3809e0ce5ae44ff9be8ae17083fe4ba  /tmp/opencode.tar.gz" | sha256sum -c - ;; \
+    esac && \
+    tar xzf /tmp/opencode.tar.gz -C /usr/local/bin/ && \
+    rm -f /tmp/opencode.tar.gz && \
+    opencode --version
+
+# === Global npm packages: pnpm, bun, OpenSpec, language servers ===
+# typescript-language-server + typescript + pyright give LSP intelligence in
+# the dev container; versions are pinned in the ARG block above.
+# versions are pinned in scripts/lsp-versions.env (host) and mirrored in the ARG block above (container); see T7-T10
+RUN npm install -g pnpm@${PNPM_VERSION} bun@${BUN_VERSION} \
+    @fission-ai/openspec@${OPENSPEC_VERSION} \
+    typescript-language-server@${TYPESCRIPT_LS_VERSION} \
+    typescript@${TYPESCRIPT_VERSION} \
+    pyright@${PYRIGHT_VERSION} \
+    yaml-language-server@${YAML_LS_VERSION}
+
+# === snip — command runner (checksum-verified) ===
+RUN SNIP_ARCH=$(case "${TARGETARCH:-$(uname -m)}" in x86_64|amd64) echo "amd64" ;; aarch64|arm64) echo "arm64" ;; esac) && \
+    curl -fsSL "https://github.com/edouard-claude/snip/releases/download/v${SNIP_VERSION}/snip_${SNIP_VERSION}_linux_${SNIP_ARCH}.tar.gz" -o /tmp/snip.tar.gz && \
+    curl -fsSL "https://github.com/edouard-claude/snip/releases/download/v${SNIP_VERSION}/checksums.txt" -o /tmp/checksums.txt && \
+    grep "snip_${SNIP_VERSION}_linux_${SNIP_ARCH}.tar.gz" /tmp/checksums.txt | sed "s|snip_${SNIP_VERSION}_linux_${SNIP_ARCH}.tar.gz|/tmp/snip.tar.gz|" | sha256sum -c - && \
+    tar xzf /tmp/snip.tar.gz -C /usr/local/bin/ snip && \
+    rm -f /tmp/snip.tar.gz /tmp/checksums.txt && \
+    snip --version
+
+# === mise — JS tool manager (replaces Volta; DIA-030 closure) ===
+# SEC-DOCKER-001: restored — the mise release publishes a SHASUMS256.txt
+# manifest alongside every release. MISE_VERSION is pinned in concert with the
+# manifest, which is fetched from the same release and verified before
+# extraction (same grep|sed|sha256sum -c - shape as the snip/uv installs).
+# Resolved at implementation time (design flag b): v2026.8.0 — x64
+# 64183603854f319b78658305c545aacae935e0959a3a894b77a0f9416eab047b, arm64
+# 6d888ba3d0b5d78f676771a84846885b7f685fb4d1533f2927079eb9b75633a8.
+# No mise shims are installed: the tarball ships only the `mise` binary
+# (mise/bin/mise), and the repo-root .mise.toml (bind-mounted at /workspace)
+# is the tool-pin source; `mise install` inside the container resolves it.
+# MISE_VERSION carries NO leading "v" (repo convention — the URLs below add
+# it: v${MISE_VERSION} → v2026.8.0).
+ARG MISE_VERSION=2026.8.0
+RUN MISE_ARCH=$(case "${TARGETARCH:-$(uname -m)}" in x86_64|amd64) echo "x64" ;; aarch64|arm64) echo "arm64" ;; esac) && \
+    curl -fsSL "https://github.com/jdx/mise/releases/download/v${MISE_VERSION}/mise-v${MISE_VERSION}-linux-${MISE_ARCH}.tar.gz" -o /tmp/mise.tar.gz && \
+    curl -fsSL "https://github.com/jdx/mise/releases/download/v${MISE_VERSION}/SHASUMS256.txt" -o /tmp/mise.sha256 && \
+    grep "mise-v${MISE_VERSION}-linux-${MISE_ARCH}.tar.gz" /tmp/mise.sha256 | sed "s|\./mise-v${MISE_VERSION}-linux-${MISE_ARCH}.tar.gz|/tmp/mise.tar.gz|" | sha256sum -c - && \
+    tar xzf /tmp/mise.tar.gz -C /usr/local/bin/ --strip-components=2 mise/bin/mise && \
+    rm -f /tmp/mise.tar.gz /tmp/mise.sha256 && \
+    mise --version
+
+# === uv — fast Python package manager ===
+RUN UV_ARCH=$(case "${TARGETARCH:-$(uname -m)}" in x86_64|amd64) echo "x86_64" ;; aarch64|arm64) echo "aarch64" ;; esac) && \
+    curl -fsSL "https://github.com/astral-sh/uv/releases/download/${UV_VERSION}/uv-${UV_ARCH}-unknown-linux-gnu.tar.gz" -o /tmp/uv.tar.gz && \
+    curl -fsSL "https://github.com/astral-sh/uv/releases/download/${UV_VERSION}/sha256.sum" -o /tmp/uv.sha256 && \
+    grep "uv-${UV_ARCH}-unknown-linux-gnu.tar.gz" /tmp/uv.sha256 | sed "s|uv-${UV_ARCH}-unknown-linux-gnu.tar.gz|/tmp/uv.tar.gz|" | sha256sum -c - && \
+    tar xzf /tmp/uv.tar.gz -C /usr/local/bin/ --strip-components=1 "uv-${UV_ARCH}-unknown-linux-gnu/uv" && \
+    rm -f /tmp/uv.tar.gz /tmp/uv.sha256 && \
+    uv --version
+
+# === trafilatura — source-capture CLI for @conspecter Phase A (DIA-067) ===
+# Version pinned via ARG for deterministic builds (same pattern as UV_VERSION,
+# RUST_VERSION, MISE_VERSION, SNIP_VERSION).
+# FALLBACK APPLIED (2026-08-08): Option C (`uv tool install` + ENV
+# UV_TOOL_BIN_DIR=/usr/local/bin) proved broken at runtime — the launcher
+# symlink landed in /usr/local/bin but the tool environment stayed under
+# /root/.local/share/uv/tools/ (build-time ENV HOME=/root), and /root is
+# drwx------ so the non-root `dev` user could not read the symlink target
+# (`trafilatura --version` → Permission denied; T1 verification failed).
+# Switched to Option A (design.md §Risk 1 / §Migration Plan fallback):
+# `uv pip install --system --break-system-packages` — the playwright/crawl4ai
+# pattern — installs the console script to /usr/local/bin and packages into
+# system site-packages, both readable/executable by all users.
+ARG TRAFILATURA_VERSION=2.2.0
+RUN uv pip install --system --break-system-packages trafilatura==${TRAFILATURA_VERSION} && \
+    trafilatura --version
+
+# === Rust toolchain (future W1: stress-lang-core deleted 2026-08-25, layer kept so the re-scaffold needs no image change) ===
+# Installed into /opt/rust (not /root/.cargo) so the non-root `dev` user can
+# access it at runtime. CARGO_HOME/RUSTUP_HOME keep everything in one tree.
+# SEC-DOCKER-001: rustup-init is downloaded directly and verified against the
+# official sha256 published alongside it at static.rust-lang.org
+# (rustup/dist/<target>/rustup-init.sha256) — the same distribution channel
+# sh.rustup.rs uses, now with a digest check instead of a curl|sh pipe.
+# `--no-modify-path` is used because PATH is set via ENV below (CARGO_HOME/bin),
+# so the installer must not rewrite /etc/profile.d for root.
+ENV RUSTUP_HOME=/opt/rust/rustup \
+    CARGO_HOME=/opt/rust/cargo \
+    # /usr/local/bin precedes the rustup shim dir so the pinned rust-analyzer
+    # wrapper (see rust section below) shadows the RUST_VERSION toolchain's
+    # rustup shim; rustc/cargo still resolve through /opt/rust/cargo/bin.
+    PATH="/usr/local/bin:/opt/rust/cargo/bin:${PATH}"
+RUN RUSTUP_ARCH=$(case "${TARGETARCH:-$(uname -m)}" in x86_64|amd64) echo "x86_64-unknown-linux-gnu" ;; aarch64|arm64) echo "aarch64-unknown-linux-gnu" ;; esac) && \
+    curl -fsSL "https://static.rust-lang.org/rustup/dist/${RUSTUP_ARCH}/rustup-init" -o /tmp/rustup-init && \
+    case "${RUSTUP_ARCH}" in \
+      x86_64-unknown-linux-gnu) echo "4acc9acc76d5079515b46346a485974457b5a79893cfb01112423c89aeb5aa10  /tmp/rustup-init" | sha256sum -c - ;; \
+      aarch64-unknown-linux-gnu) echo "9732d6c5e2a098d3521fca8145d826ae0aaa067ef2385ead08e6feac88fa5792  /tmp/rustup-init" | sha256sum -c - ;; \
+    esac && \
+    chmod +x /tmp/rustup-init && \
+    /tmp/rustup-init -y --profile minimal --default-toolchain "${RUST_VERSION}" --no-modify-path && \
+    rm -f /tmp/rustup-init && \
+    rustup target add wasm32-unknown-unknown && \
+    # rust-analyzer is bound to RUST_ANALYZER_VERSION (mirrored from
+    # scripts/lsp-versions.env), NOT to the default compiler toolchain: it is
+    # installed on its own toolchain so rustc/cargo stay on RUST_VERSION for
+    # stress-lang-core WASM builds while the LSP gate resolves the pinned
+    # version. The wrapper in /usr/local/bin (PATH-first, see ENV above)
+    # shadows the rustup shim for RUST_VERSION's rust-analyzer. It invokes
+    # rustup by ABSOLUTE path because `bash -lc` login shells (how the LSP
+    # gate probes the container) reset PATH to the Debian default and would
+    # not find the bare `rustup` (only /usr/local/bin survives).
+    rustup toolchain install "${RUST_ANALYZER_VERSION}" --profile minimal --component rust-analyzer && \
+    printf '#!/usr/bin/env bash\nexec /opt/rust/cargo/bin/rustup run %s rust-analyzer "$@"\n' "${RUST_ANALYZER_VERSION}" > /usr/local/bin/rust-analyzer && \
+    chmod +x /usr/local/bin/rust-analyzer && \
+    rustc --version && cargo --version
+
+# === Playwright (chromium) + crawl4ai for browser automation ===
+# PLAYWRIGHT_BROWSERS_PATH must be declared BEFORE the install step: playwright
+# resolves the browser cache dir from ENV at install time. Previously the ENV
+# was set after install, so chromium landed in the default
+# /root/.cache/ms-playwright as root — unreachable by the non-root `dev` user —
+# and the system libraries were never installed, so chromium could not launch
+# even when found. Mirrors the Rust toolchain pattern above: ENV set before
+# install, dedicated /opt dir, chowned to the non-root user. install-deps
+# chromium pulls the system libs (libglib-2.0, libnss3, libatk, libgtk,
+# libgbm, ...) via apt.
+ENV PLAYWRIGHT_BROWSERS_PATH=/opt/ms-playwright
+RUN mkdir -p /opt/ms-playwright
+RUN uv pip install --system --break-system-packages playwright crawl4ai && \
+    python3 -m playwright install-deps chromium && \
+    python3 -m playwright install chromium && \
+    rm -rf /root/.cache/uv
+# Playwright writes the browser tree as root; hand it to the non-root `dev`
+# user (numeric UID/GID — the user is created in the next block) so chromium
+# is reachable at runtime.
+RUN chown -R ${USER_UID}:${USER_GID} /opt/ms-playwright
+
+# === Non-root user ===
+RUN groupadd --gid ${USER_GID} dev && \
+    useradd --uid ${USER_UID} --gid ${USER_GID} -m -s /bin/bash dev && \
+    mkdir -p /home/dev/.local/share/opencode \
+             /home/dev/.config/opencode \
+             /home/dev/.local/state \
+             /home/dev/.cache \
+             /workspace \
+             /workspace/node_modules \
+             /run/secrets && \
+    chown -R ${USER_UID}:${USER_GID} /home/dev /workspace /opt/rust
+
+ENV HOME=/home/dev \
+    XDG_CONFIG_HOME=/home/dev/.config \
+    XDG_DATA_HOME=/home/dev/.local/share \
+    XDG_STATE_HOME=/home/dev/.local/state \
+    XDG_CACHE_HOME=/home/dev/.cache \
+    OPENCODE_CONFIG_DIR=/home/dev/.config/opencode \
+    DISPLAY=:99.0 \
+    PIP_BREAK_SYSTEM_PACKAGES=1 \
+    MISE_TRUSTED_CONFIG_PATHS=/workspace
+
+WORKDIR /workspace
+
+COPY --chmod=0755 dev-entrypoint.sh /usr/local/bin/dev-entrypoint.sh
+# Interactive-shell secrets passthrough (H5): `docker compose exec` spawns a
+# fresh process that does not inherit the env vars dev-entrypoint.sh exports,
+# so this hook re-loads /run/secrets for interactive bash login shells. The
+# script lives in the repo (scripts/dev-secrets-profile.sh) so bats can test
+# it; the whitelist must stay in sync with dev-entrypoint.sh ALLOWED_SECRETS.
+COPY --chmod=0644 scripts/dev-secrets-profile.sh /etc/profile.d/secrets.sh
+COPY --chmod=0644 scripts/dev-git-turbo-profile.sh /etc/profile.d/git-turbo.sh
+
+# System-level safe.directory (DIA-185): baked into /etc/gitconfig so the
+# setting survives HOME swaps AND container recreation. Supersedes the cod-7
+# runtime /etc/gitconfig workaround, which was lost on every recreate.
+# The --get assertion makes the build fail if the entry does not land.
+RUN git config --system --add safe.directory /workspace && git config --system --get safe.directory /workspace
+
+# === OMO plugin cache pre-population (DIA-188 DD3) ===
+# Pre-install oh-my-opencode-slim into OpenCode's plugin cache
+# (~/.cache/opencode/node_modules) so the image starts offline-capable: OpenCode
+# resolves npm plugins from this cache at startup (Bun installs any missing
+# entry at runtime, but pre-populating removes the network dependency). The
+# OMO package exact-pins @opencode-ai/plugin@1.18.13 + @opencode-ai/sdk@1.18.13,
+# which resolve as transitive deps into the same tree. Must run BEFORE the USER
+# switch so the whole cache can be chowned to the dev user. npm's own cache is
+# redirected to /tmp and discarded: running as root with HOME=/home/dev would
+# otherwise leave a root-owned ~/.npm that blocks the dev user's later npm
+# writes (the cache dir itself is chowned below).
+RUN mkdir -p /home/dev/.cache/opencode && \
+    cd /home/dev/.cache/opencode && \
+    npm init -y --silent 2>/dev/null && \
+    npm install --cache /tmp/npm-build-cache oh-my-opencode-slim@${OMO_VERSION} && \
+    rm -rf /tmp/npm-build-cache && \
+    chown -R ${USER_UID}:${USER_GID} /home/dev/.cache/opencode
+
+# USER directive removed (DIA-260824-a3mk): the entrypoint must start as root to
+# chown the OpenCode state dir, then drops to dev via gosu. Do NOT re-add a USER
+# here or via compose `services.dev.user` -- that would make PID1 non-root and
+# defeat the chown (ai-specialist validated the model).
+RUN git config --global --add safe.directory /workspace
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD gosu dev opencode --version >/dev/null 2>&1 || exit 1
+
+# tini as PID 1: reaps orphaned children (playwright/crawl4ai spawn short-lived
+# processes) and forwards signals to the entrypoint's children (M9).
+ENTRYPOINT ["tini", "--", "/usr/local/bin/dev-entrypoint.sh"]
+
+# Default: drop into an interactive shell (override with compose command).
+CMD ["/bin/bash"]

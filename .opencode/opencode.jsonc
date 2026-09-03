@@ -1,33 +1,119 @@
 {
   "$schema": "https://opencode.ai/config.json",
+
   // ---------------------------------------------------------------------------
   // Project-level opencode config for poetry-platform-monorepo.
   // Duplicated from global config for team sharing — each evolves independently.
   // All files in .opencode/ and prompts/ are version-controlled for team sharing.
   // ---------------------------------------------------------------------------
 
-  // Auto-load architecture.md into every session's system context.
-  "instructions": [
-    "architecture.md"
-  ],
+  // Instructions loaded via orchestrator_append.md — no global spam.
 
-  // Start every session in build agent mode.
-  "default_agent": "build",
+  "instructions": [],
+
+  // Start every session in orchestrator agent mode (OMO Slim orchestrator).
+  "default_agent": "orchestrator",
 
   // Prevent context overflow during long sessions.
   "compaction": {
     "auto": true,
     "prune": true,
-    "reserved": 10000
+    "reserved": 16000
   },
 
   // Global permission baseline — the project overrides for team consistency.
   "permission": {
     "edit": "allow",
     "bash": {
-      "git push": "ask",
+      "*": "allow",
+      "git push *": "allow",
+
+      "sudo *": "deny",
+
+      "git remote set-url *": "deny",
+      "git remote add *": "deny",
+      "git remote remove *": "deny",
+      "git remote prune *": "deny",
+      "git remote rename *": "deny",
+
+      "git reset --hard *": "deny",
+      "git reset --hard": "deny",
+      "git clean -fdx *": "deny",
+      "git clean -fdx": "deny",
+      "git clean -fd *": "deny",
+      "git clean -fd": "deny",
+      "git clean -f *": "deny",
+      "git clean -f": "deny",
+      "git checkout -- .": "deny",
+      "git restore .": "deny",
+      "git restore --staged .": "deny",
+      "git branch -D *": "deny",
+      "git filter-branch *": "deny",
+      "git filter-repo *": "deny",
+      "git tag -d *": "deny",
+
+      // DIA-117: worktree force-remove is semantically equivalent to git clean -f*
+      // / git branch -D (discards uncommitted work). Defense-in-depth alongside
+      // the script-side WORKTREES_FORCE=1 env barrier (scripts/worktrees.sh:246).
+      // The deny gates agent tool calls only - the developer's terminal and the
+      // script's internal subprocess are unaffected.
+      "git worktree remove --force *": "deny",
+      "git worktree remove --force": "deny",
+      "git worktree remove -f *": "deny",
+      "git worktree remove -f": "deny",
+      "git worktree remove * --force *": "deny",
+      "git worktree remove * --force": "deny",
+      "git worktree remove * -f *": "deny",
+      "git worktree remove * -f": "deny",
+
+      "git push --force-with-lease *": "deny",
+      "git push --force-with-lease": "deny",
+      "git push --force *": "deny",
+      "git push --force": "deny",
+      "git push -f *": "deny",
+      "git push -f": "deny",
+      "git push * --force-with-lease *": "deny",
+      "git push * --force-with-lease": "deny",
+      "git push * --force *": "deny",
+      "git push * --force": "deny",
+      "git push * -f *": "deny",
+      "git push * -f": "deny",
+
+      "git push origin main": "deny",
+      "git push origin main:*": "deny",
+      "git push * origin main": "deny",
+      "git push * origin main:*": "deny",
+      "git push origin HEAD:main": "deny",
+      "git push * HEAD:main": "deny",
+      "git push --all *": "deny",
+      "git push --all": "deny",
+      "git push --mirror *": "deny",
+      "git push --mirror": "deny",
+      // Remote-first option-order variants (DIA-096 follow-up): --all/--mirror
+      // must stay denied regardless of argument order (e.g. `git push origin --all`).
+      // Without these, the project-scoped "git push *": "allow" above would let
+      // remote-first forms bypass the flag-first denies.
+      "git push * --all *": "deny",
+      "git push * --all": "deny",
+      "git push origin --all": "deny",
+      "git push * --mirror *": "deny",
+      "git push * --mirror": "deny",
+      "git push origin --mirror": "deny",
+      "git push origin +*:main": "deny",
+      "git push * +*:main": "deny",
+      "git push origin :main": "deny",
+      "git push * :main": "deny",
+
+      "git push --delete *": "deny",
+      "git push --delete": "deny",
+      "git push origin --delete *": "deny",
+      "git push * --delete *": "deny",
+
       "rm -rf *": "ask",
-      "*": "allow"
+      "rm *": "ask",
+      "rmdir *": "ask",
+      "chmod *": "ask",
+      "chown *": "ask"
     }
   },
 
@@ -38,47 +124,450 @@
   // Agent Definitions
   // ---------------------------------------------------------------------------
   "agent": {
-    // --- Primary: Fast, pragmatic coder ---
-    "build": {
-      "description": "Blazing fast routine coding, autocompletion, and boilerplate. Zero talking, maximum execution.",
-      "mode": "primary",
-      "model": "opencode-go/deepseek-v4-flash",
-      "temperature": 0.1,
-      "color": "accent",
-      "prompt": "You are a pragmatist. Write clean, self-documenting code with inline native comments (JSDoc/Docstrings) explaining the 'WHY'. No conversational filler. If the user mentions tests, invoke the 'tdd-craftsman' skill immediately via your skill tool.",
-      "permission": {
-        "task": {
-          // Verified 2026-07-13: oracle and openspec-plan are present
-          "oracle": "allow",
-          "openspec-plan": "allow",
-          "code-executor": "allow",
-          "gigabuild": "allow",
-          "gigaplan": "allow"
-        }
-      }
-    },
-    // --- Primary: Read-only codebase navigation and design review ---
-    "plan": {
-      "description": "Fast read-only codebase navigation and logic explanations.",
-      "mode": "primary",
-      "model": "opencode-go/deepseek-v4-flash",
-      "temperature": 0.1,
-      "color": "info",
-      "permission": {
-        "edit": "deny",
-        "task": {
-          "*": "deny",
-          "gigaplan": "allow"
-        }
-      },
-      "prompt": "You are a technical mentor. Explain code fragments cleanly to help the user grow. You are strictly read-only."
-    },
     // Disable built-in OpenCode subagents (we use OMO Slim managed ones)
     "explore": {
       "disable": true
     },
     "general": {
       "disable": true
+    },
+    // Agent modes/colors + permissions (merged from the old opencode.json)
+    // The orchestrator is the plugin's real delegating agent (oh-my-opencode-slim@2.2.17
+    // registers it as `orchestrator`). It must NEVER perform engineering work itself:
+    // bash/apply_patch/ast_grep_replace/webfetch/envsitter are denied so delegation
+    // is mechanically enforced. DIA-036 + DIA-060: read is path-scoped to the session dir
+    // + boot/rules files + ticket ledger (the orchestrator knows NOTHING about the
+    // codebase except what delegation results report); edit is path-scoped to
+    // .opencode/session/*
+    // (covers write+apply_patch per OpenCode docs — flat `write` key removed).
+    "orchestrator": {
+      "color": "#6366F1",
+      "permission": {
+        "bash": "deny",
+        "apply_patch": "deny",
+        "ast_grep_replace": "deny",
+        "webfetch": "deny",
+        "envsitter_set": "deny",
+        "envsitter_add": "deny",
+        "envsitter_delete": "deny",
+        "envsitter_unset": "deny",
+        "envsitter_annotate": "deny",
+        "envsitter_format": "deny",
+        "envsitter_reorder": "deny",
+        "envsitter_copy": "deny",
+        "read": {
+          "*": "deny",
+          ".opencode/session/*": "allow",
+          "docs/dev-infra-audit/NEXT-RUN.md": "allow",
+          "docs/dev-infra-audit/tickets/*": "allow",
+          "docs/dev-infra-audit/tickets/archive/*": "allow",
+          ".opencode/practice-protected.md": "allow",
+          "AGENTS.md": "allow",
+          // DIA-126(a) overnight-read expansion (developer-approved 2026-08-13)
+          // Single-star patterns: the OpenCode Wildcard matcher turns * into
+          // .* with the s flag, so one star crosses path separators (nested
+          // reads included) - same convention as the existing knowledge/*
+          // and tickets/* entries. Verified against the Wildcard source and
+          // the installed binary (2026-08-13, STEP 0 of the DIA-126(a) lane).
+          "knowledge/*": "allow",
+          ".opencode/learnings/*": "allow",
+          ".opencode/plugins/*": "allow",
+          "scripts/*": "allow",
+          "docs/*": "allow",
+          ".sdd/*": "allow",
+          "openspec/*": "allow",
+          ".opencode/skills/*": "allow",
+          ".opencode/memory-shelf.yaml": "allow",
+          ".opencode/oh-my-opencode-slim.jsonc": "allow",
+          "architecture.md": "allow",
+          "CONTEXT.md": "allow"
+        },
+        "edit": {
+          "*": "deny",
+          ".opencode/session/*": "allow"
+        },
+        "glob": {
+          "*": "deny",
+          ".opencode/session/*": "allow",
+          "docs/dev-infra-audit/tickets/*": "allow",
+          "docs/dev-infra-audit/tickets/archive/*": "allow",
+          // DIA-126(a) overnight-read expansion (developer-approved 2026-08-13)
+          "knowledge/*": "allow",
+          ".opencode/learnings/*": "allow",
+          "docs/*": "allow",
+          ".sdd/*": "allow",
+          "openspec/*": "allow",
+          ".opencode/skills/*": "allow"
+        },
+        "grep": "deny",
+        "task": {
+          "*": "deny",
+          "coder": "allow",
+          "coder-escalated": "allow",
+          "architector": "allow",
+          "analyzer": "allow",
+          "analyzer-escalated": "allow",
+          "reviewer": "allow",
+          "designer": "allow",
+          "code-navigator": "allow",
+          "researcher": "allow",
+          "observer": "allow",
+          "memory-manager": "allow",
+          "resource-manager": "allow",
+          "ai-specialist": "allow",
+          "ai-auditor": "allow",
+          "conspecter": "allow",
+          "openspec-plan": "allow",
+          "council": "allow",
+          "councillor": "allow",
+          "councillor-claude-sonnet-4.5": "allow",
+          "councillor-deepseek": "allow",
+          "councillor-gemini-3.1-pro": "allow",
+          "councillor-gpt-5.3-codex": "allow",
+          "councillor-qwen3.8-flash": "allow"
+        },
+        "cancel_task": "allow",
+        "log_decision": "allow",
+        "mint_capability": "allow",
+        "list": "allow",
+        "lsp": "allow",
+        "question": "allow",
+        "wait_for_user": "allow",
+        "todowrite": "allow",
+        "skill": "allow",
+        "websearch": "deny"
+      }
+    },
+    "architector": {
+      "color": "#8B5CF6",
+      "permission": {
+        "edit": "deny",
+        "bash": "deny",
+        "task": "deny"
+      }
+    },
+    // analyzer — artifact-producer tier (DIA-057/F3 fix).
+    // Writes analysis reports to knowledge/<type><id>-<topic>/
+    // shelf registration delegated to @memory-manager (DIA-143). Bash allowed for
+    // Mermaid CLI + analysis tooling; edit scoped to output dirs only.
+    "analyzer": {
+      "mode": "subagent",
+      "color": "#14B8A6",
+      "permission": {
+        "edit": {
+          "*": "deny",
+          "knowledge/*": "allow"
+        },
+        "bash": "allow",
+        "task": "deny"
+      }
+    },
+    // analyzer-escalated — escalated analysis lane (DIA-111/DIA-108, 2026-08-12).
+    // Dispatched ONLY by the orchestrator when the base analyzer reports
+    // 'cannot comprehend domain' / abort-on-complexity. The active preset
+    // selects the escalated analysis model. hidden: true keeps it out of
+    // @autocomplete; task() dispatch
+    // still works (S2 orchestrator allow-list includes it). Permissions are an
+    // exact clone of the base analyzer (edit scoped to knowledge/* only,
+    // shelf registration delegated to @memory-manager (DIA-162 sole-writer
+    // invariant), bash allow, task deny). After producing output, routes back
+    // to the base analyzer/reviewer for normal flow.
+    "analyzer-escalated": {
+      "description": "Escalated analysis lane for 'cannot comprehend domain' cases. The active preset selects its model. Orchestrator-only, hidden from @autocomplete, one-shot no-retry.",
+      "mode": "subagent",
+      "color": "#14B8A6",
+      "hidden": true,
+      "permission": {
+        "edit": {
+          "*": "deny",
+          "knowledge/*": "allow"
+        },
+        "bash": "allow",
+        "task": "deny"
+      },
+      // steps cap (DIA-132): max agentic iterations before forcing text-only response.
+      // Only native execution limit in AgentConfig (research res020). Start at 50.
+      "steps": 50
+    },
+    "reviewer": {
+      "color": "#F59E0B",
+      "permission": {
+        "edit": "deny",
+        "bash": "deny",
+        "task": "deny"
+      }
+    },
+    // coder deliberately has minimal permission restrictions (unlike architector/analyzer/
+    // reviewer). It is the implementer: it must edit files, run bash (dev build, lint,
+    // tests) and dispatch subagents. Denying any of these breaks its core function.
+    // Two restrictions (DIA-078, 2026-08-10): "doom_loop": "deny" is a mechanical halt on
+    // 3x-identical calls to break the snip-prefix repeat loop; bash snip deny (DIA-078,
+    // ai--1 §10 gate) forbids the snip wrapper entirely — it is a display-trimming TUI
+    // helper with zero legitimate agent use (fork/exec + SyntaxError breaks workflows).
+    // M2 decision (2026-08-01): document intent instead of restricting.
+    // DORMANT post-snip-removal (2026-08-11): rules kept as zero-cost hallucination guardrail per council 5/5; plugin opencode-snip@1.6.1 removed from global plugin array - do NOT remove these rules.
+    "coder": {
+      "mode": "subagent",
+      "color": "#3B82F6",
+      "permission": {
+        "doom_loop": "deny",
+        "bash": {
+          "snip": "deny",
+          "snip *": "deny",
+          "yq *": "allow",
+          "npx *": "allow",
+          "turbo *": "allow",
+          "docker exec *": "allow",
+          "docker logs *": "allow",
+          "git log *": "allow",
+          "git status *": "allow",
+          "git diff *": "allow",
+          "git add *": "allow",
+          "git commit *": "allow",
+          "git show *": "allow",
+          "git branch *": "allow",
+          "git checkout *": "allow",
+          "git merge *": "allow",
+          "git rebase *": "allow",
+          "git fetch *": "allow",
+          "git pull *": "allow",
+          "make *": "allow",
+          "pnpm *": "allow",
+          "npm *": "allow",
+          "node *": "allow",
+          "bun *": "allow",
+          "jq *": "allow",
+          "sha256sum *": "allow",
+          "python3 *": "allow",
+          "scripts/*": "allow",
+          // DIA-260825-nts7 audit-fix (ai-auditor CRITICAL/HIGH): the broad
+          // allows above admit destructive git forms. Deny beats allow by
+          // longest-pattern-wins regardless of position; placed after allows
+          // for readability. --no-verify would bypass the husky pre-commit
+          // docker gate (DIA-094/DIA-096). Bare forms paired with starred
+          // forms: "git branch -D *" does not match argument-less
+          // "git branch -D" (trailing-space gotcha).
+          "git commit --no-verify *": "deny",
+          "git commit * --no-verify *": "deny",
+          "git commit * --no-verify": "deny",
+          "git commit --no-verify": "deny",
+          "git checkout -- *": "deny",
+          "git checkout --": "deny",
+          "git checkout .": "deny",
+          "git checkout .*": "deny",
+          "git branch -D *": "deny",
+          "git branch -D": "deny",
+          // Re-stated from the global baseline for local clarity: this
+          // agent-level map does NOT inherit global denies (no "*" catch-all
+          // here), so destructive forms must be denied in-map.
+          "git reset --hard *": "deny",
+          "git reset --hard": "deny",
+          "git clean -f*": "deny",
+          "git clean -fdx": "deny",
+          "git clean -fd": "deny",
+          "git clean -f": "deny",
+          // DIA-260825-nts7 re-audit residual batch (developer-approved):
+          // O1 - long-form branch delete, exact equivalent of denied -D
+          // (same trailing-space gotcha: bare form paired with starred form).
+          "git branch --delete --force *": "deny",
+          "git branch --delete --force": "deny",
+          // O3 - short-form no-verify alias; skips husky pre-commit docker
+          // gate (DIA-094/DIA-096) exactly like --no-verify above.
+          "git commit -n *": "deny",
+          "git commit * -n *": "deny",
+          "git commit * -n": "deny",
+          // DIA-260825-nts7 fix-all batch F1 (reviewer Critical): the O3 trio
+          // above misses the argument-less editor form "git commit -n" (same
+          // trailing-space gotcha documented at this block's header) - it
+          // would open the commit editor and skip the husky pre-commit docker
+          // gate via -n. Bare form paired with the starred forms.
+          "git commit -n": "deny"
+        }
+      }
+    },
+    // coder-escalated — escalated implementation lane (DIA-111/DIA-108, 2026-08-12).
+    // Dispatched ONLY by the orchestrator on trigger: 2 consecutive failed
+    // re-review loops OR reviewer Critical severity findings. Kimi K3 model
+    // (opencode-go/kimi-k3). ONE-SHOT no-retry rule — Kimi K3 has a 490 req/mo
+    // cap; on cap exhaustion the orchestrator asks the developer via
+    // wait_for_user BEFORE falling back to deepseek-v4-pro/mimo-v2.5-pro.
+    // hidden: true keeps it out of @autocomplete; task() dispatch still works
+    // (S2 orchestrator allow-list includes it). Permissions are an exact clone
+    // of the base coder PLUS task: "deny" for quota protection (escalated lane
+    // must never delegate further).
+    "coder-escalated": {
+      "description": "Escalated implementation lane (Kimi K3) for complex problem-fix tasks. Orchestrator-only, hidden from @autocomplete, one-shot no-retry.",
+      "mode": "subagent",
+      "model": "opencode-go/kimi-k3",
+      "color": "#3B82F6",
+      "hidden": true,
+      "permission": {
+        "doom_loop": "deny",
+        "bash": {
+          "snip": "deny",
+          "snip *": "deny",
+          "yq *": "allow",
+          "npx *": "allow",
+          "turbo *": "allow",
+          "docker exec *": "allow",
+          "docker logs *": "allow",
+          "git log *": "allow",
+          "git status *": "allow",
+          "git diff *": "allow",
+          "git add *": "allow",
+          "git commit *": "allow",
+          "git show *": "allow",
+          "git branch *": "allow",
+          "git checkout *": "allow",
+          "git merge *": "allow",
+          "git rebase *": "allow",
+          "git fetch *": "allow",
+          "git pull *": "allow",
+          "make *": "allow",
+          "pnpm *": "allow",
+          "npm *": "allow",
+          "node *": "allow",
+          "bun *": "allow",
+          "jq *": "allow",
+          "sha256sum *": "allow",
+          "python3 *": "allow",
+          "scripts/*": "allow",
+          // DIA-260825-nts7 audit-fix: identical deny set to the base coder
+          // map (see comment there). Kept in lockstep - this block is
+          // documented as an exact clone of base coder plus task: "deny".
+          "git commit --no-verify *": "deny",
+          "git commit * --no-verify *": "deny",
+          "git commit * --no-verify": "deny",
+          "git commit --no-verify": "deny",
+          "git checkout -- *": "deny",
+          "git checkout --": "deny",
+          "git checkout .": "deny",
+          "git checkout .*": "deny",
+          "git branch -D *": "deny",
+          "git branch -D": "deny",
+          "git reset --hard *": "deny",
+          "git reset --hard": "deny",
+          "git clean -f*": "deny",
+          "git clean -fdx": "deny",
+          "git clean -fd": "deny",
+          "git clean -f": "deny",
+          // DIA-260825-nts7 re-audit residual batch (O1+O3): identical to the
+          // base coder additions - see comment there for WHY.
+          "git branch --delete --force *": "deny",
+          "git branch --delete --force": "deny",
+          "git commit -n *": "deny",
+          "git commit * -n *": "deny",
+          "git commit * -n": "deny",
+          // DIA-260825-nts7 fix-all batch F1: bare editor form, lockstep with
+          // base coder (see comment there).
+          "git commit -n": "deny"
+        },
+        "task": "deny"
+      },
+      // steps cap (DIA-132): max agentic iterations before forcing text-only response.
+      // Only native execution limit in AgentConfig (research res020). Start at 50.
+      "steps": 50
+    },
+    "code-navigator": {
+      "mode": "subagent",
+      "color": "#06B6D4",
+      "permission": {
+        "edit": "deny",
+        "bash": "deny"
+      }
+    },
+    // researcher — external research + Phase A source capture (DIA-135 D5/D6).
+    // Owns the 3-tier fetch chain (registry JSON API -> trafilatura -> crwl
+    // LAST-RESORT only) into knowledge/<resid>-<topic>/sources/ plus the
+    // per-source relevance/reliability manifest (.source-urls.txt). Bash
+    // allow-list (deny-first per DIA-126 findLast pattern, matching conspecter's
+    // former map); edit scoped to knowledge/*. Task denied (read-only lane).
+    "researcher": {
+      "mode": "subagent",
+      "color": "#84CC16",
+      "permission": {
+        "edit": {
+          "*": "deny",
+          "knowledge/*": "allow"
+        },
+        "bash": {
+          "*": "deny",
+          "curl *": "allow",
+          "wget *": "allow",
+          "trafilatura *": "allow",
+          "crwl *": "allow"
+        },
+        "task": "deny"
+      }
+    },
+    "designer": {
+      "mode": "subagent",
+      "color": "#EC4899"
+    },
+    "observer": {
+      "mode": "subagent",
+      "color": "#A855F7",
+      "permission": {
+        "edit": "deny",
+        "bash": "deny"
+      }
+    },
+    // DIA-199 (2026-08-16): trailing * glob required - OpenCode edit-permission
+    // matcher does not resolve exact-file patterns (reproduced PermissionDenied);
+    // glob form works. DIA-143 sole-writer: memory-manager ONLY.
+    "memory-manager": {
+      "mode": "subagent",
+      "color": "#F472B6",
+      "permission": {
+        "edit": {
+          "*": "deny",
+          ".opencode/memory/*": "allow",
+          ".opencode/memory-shelf.yaml*": "allow",
+          ".opencode/learnings/external-patterns/*": "allow"
+        }
+      }
+    },
+    // conspecter - pure-synthesis conspect authoring (DIA-135 D7).
+    // Artifact-producer tier (practice-protected.md sec 6): reads ONLY the
+    // sources @researcher archived under knowledge/ (D5), writes the MLA-cited
+    // conspect, and reports the artifact path. Shelf registration is DELEGATED
+    // to @memory-manager - the SOLE memory-shelf writer (DIA-143 invariant);
+    // the conspecter never writes .opencode/memory-shelf.yaml (edit =
+    // knowledge/* only). All network fetch tooling revoked: bash flat deny (no
+    // curl/wget/trafilatura/crwl), webfetch deny. Never modifies source files
+    // beyond the conspect.
+    "conspecter": {
+      "mode": "subagent",
+      "color": "#8B5CF6",
+      "permission": {
+        "edit": {
+          "*": "deny",
+          "knowledge/*": "allow"
+        },
+        "bash": "deny",
+        "webfetch": "deny",
+        "task": "deny"
+      }
+    },
+    // openspec-plan — spec authoring (Socratic interview over OpenSpec CLI).
+    // Practice-protected: agent guides/interviews, user writes substance.
+    // Permissions: read_files (default), bash scoped to openspec commands only,
+    // edit denied (blocked from editing implementation code).
+    "openspec-plan": {
+      "description": "Specification architect (Socratic mode) over the OpenSpec CLI. Guides the user through spec authoring by interviewing, clarifying requirements, and providing structure. Practice-protected zone — user writes the substance.",
+      "mode": "subagent",
+      "color": "#F59E0B",
+      "permission": {
+        "edit": {
+          "*": "deny",
+          "openspec/*": "allow"
+        },
+        "bash": {
+          "*": "deny",
+          "openspec *": "allow"
+        },
+        "task": "deny"
+      }
     },
     // Council subagents — read-only
     "council": {
@@ -89,20 +578,77 @@
         }
       }
     },
-    "councillor": {
+    // resource-manager — knowledge-source curation lane (DIA-007 split).
+    // Artifact-producer tier (practice-protected.md §5): edit scoped to the OMO
+    // knowledge/ dir ONLY; bash limited to curl/wget/trafilatura for Tier-1
+    // Markdown caching + Tier-2 re-fetch. May dispatch @researcher/@conspecter
+    // (task: allow) to gather curation evidence (star counts, pricing, terms).
+    "resource-manager": {
+      "description": "Curates ai-assist-sources.yaml and Tier-1 knowledge caches (Markdown), re-fetches Tier-2 volatile sources, and evaluates awesome-opencode tools by star count (<100 experimental, 100-500 reasonable, 500+ established). Artifact-producer — edit scoped to knowledge/ only.",
+      "mode": "subagent",
+      "color": "#0891B2",
       "permission": {
-        "edit": "deny",
+        "edit": {
+          "*": "deny",
+          ".opencode/oh-my-opencode-slim/knowledge/*": "allow"
+        },
         "bash": {
-          "*": "deny"
-        }
+          "*": "deny",
+          "curl *": "allow",
+          "wget *": "allow",
+          "trafilatura *": "allow"
+        },
+        "task": "allow"
       }
     },
-    // Analyzer can dispatch council
-    "analyzer": {
+    "ai-specialist": {
+      "description": "Read-only researcher of agent/skill/config best practices for OpenCode itself. Findings routed through orchestrator for persistence. Scope: documentation + config review only; no runtime dispatch authority; no implementation.",
+      "mode": "subagent",
+      "model": "opencode-go/qwen3.8-flash",
+      "temperature": 0.3,
+      "color": "info",
       "permission": {
-        "task": {
-          "council": "allow"
-        }
+        "edit": "deny",
+        "bash": "deny",
+        "task": "deny"
+      }
+    },
+    // ai-auditor — independent read-only reviewer for section 2.5 config changes
+    // (DIA-053). Pure-analyst tier: findings routed via orchestrator for
+    // persistence. Orchestrator brief SUPERSEDES design.md §2: bash FULLY
+    // denied (no curl/wget — the auditor has no network need). envsitter keys
+    // enumerate the envsitter-guard plugin's actual tool names (the brief's
+    // envsitter_read/envsitter_edit map to these individual names).
+    "ai-auditor": {
+      "description": "Independent read-only reviewer for section 2.5 config changes. Pure-analyst tier — findings routed via orchestrator for persistence.",
+      "mode": "subagent",
+      "color": "#10B981",
+      "permission": {
+        "edit": "deny",
+        "bash": "deny",
+        "apply_patch": "deny",
+        "ast_grep_replace": "deny",
+        "webfetch": "deny",
+        "task": "deny",
+        "envsitter_set": "deny",
+        "envsitter_add": "deny",
+        "envsitter_delete": "deny",
+        "envsitter_unset": "deny",
+        "envsitter_annotate": "deny",
+        "envsitter_format": "deny",
+        "envsitter_reorder": "deny",
+        "envsitter_copy": "deny",
+        "envsitter_keys": "deny",
+        "envsitter_scan": "deny",
+        "envsitter_match": "deny",
+        "envsitter_match_by_key": "deny",
+        "envsitter_fingerprint": "deny",
+        "envsitter_validate": "deny",
+        "envsitter_help": "deny",
+        "read": "allow",
+        "glob": "allow",
+        "grep": "allow",
+        "list": "allow"
       }
     }
   },
@@ -143,39 +689,6 @@
           ]
         }
       }
-    },
-    "github-models": {
-      "npm": "@ai-sdk/openai-compatible",
-      "name": "GitHub Models (Copilot Pro)",
-      "options": {
-        "baseURL": "https://models.inference.ai.azure.com",
-        "apiKey": "{env:GITHUB_TOKEN}"
-      },
-      "models": {
-        "gpt-4o-mini": {
-          "name": "GPT-4o Mini — fast pragmatic work",
-          "roles": [
-            "chat",
-            "edit",
-            "apply"
-          ]
-        },
-        "gemini-2.5-pro-001-05": {
-          "name": "Gemini 2.5 Pro — Google's strongest reasoning",
-          "roles": [
-            "chat",
-            "edit"
-          ]
-        },
-        "gemini-3.0-flash-001": {
-          "name": "Gemini 3.0 Flash — Google's latest fast model",
-          "roles": [
-            "chat",
-            "edit",
-            "apply"
-          ]
-        }
-      }
     }
   },
 
@@ -184,7 +697,7 @@
   // ---------------------------------------------------------------------------
   "references": {
     "shelf": {
-      "path": ".opencode",
+      "path": ".opencode/memory-shelf.yaml",
       "description": "Memory Shelf, agent config, and opencode project settings. Read .opencode/memory-shelf.yaml first — it's the central index of all RAG knowledge bases, research conspects, specs, and analyses."
     }
   },
@@ -193,13 +706,29 @@
   // Plugins — loaded by OpenCode for this project
   // ---------------------------------------------------------------------------
   "plugin": [
-    "envsitter-guard",
-    "opencode-subagent-output",
-    "opencode-snip",
-    "opencode-dynamic-context-pruning",
-    "opencode-telemetry",
-    "oh-my-opencode-slim"
+    // DIA-188: project-level OMO declaration (self-sufficiency). Pinned to
+    // 2.2.17 matching the global config which moved to 2.2.17; this is the
+    // single declaration source after Phase 2.
+    "oh-my-opencode-slim@2.2.17",
+    // DIA-183 (Variant D): ponytail ruleset injection (YAGNI 7-rung ladder).
+    // Zero cache interaction, benchmarked -20% cost; installed via Bun at
+    // startup from the plugin-array entry (NOT the root pnpm tree). Resolves
+    // the 7 dangling `ponytail:` comment sites (harvested by /ponytail-debt).
+    "@dietrichgebert/ponytail",
+    "envsitter-guard@0.0.4"
   ],
+
+  // ---------------------------------------------------------------------------
+  // Skills — dynamic loading from remote sources
+  // ---------------------------------------------------------------------------
+  // Skills in .opencode/skills/ are always loaded locally.
+  // skills.urls allows pulling additional skills from GitHub or other URLs at startup.
+  // Format: URL to a tar.gz archive containing SKILL.md directories.
+  // Example: "https://github.com/org/poetry-skills/archive/main.tar.gz#path=skills/"
+  // Currently empty — enable by publishing custom skills to a remote archive.
+  "skills": {
+    "urls": []
+  },
 
   // ---------------------------------------------------------------------------
   // MCP Servers — live external tool access
@@ -208,45 +737,45 @@
     "context7": {
       "type": "remote",
       "url": "https://mcp.context7.com/mcp",
+      "oauth": false,
+      "timeout": 15000,
+      "headers": {
+        "Authorization": "Bearer {env:CONTEXT7_API_KEY}"
+      },
+      "enabled": true,
       "description": "Search library documentation (Node.js, Python, NumPy, etc.)"
     },
     "gh_grep": {
       "type": "remote",
       "url": "https://mcp.grep.app",
       "description": "Search GitHub for reference code patterns"
-    },
-    "console-ninja": {
-      "type": "local",
-      "command": [
-        "node",
-        "C:\\Users\\qualt\\.console-ninja\\mcp\\"
-      ]
     }
   },
+
 
   // ---------------------------------------------------------------------------
   // Custom Commands — reusable multi-step workflows via Ctrl+K
   // ---------------------------------------------------------------------------
   "command": {
     "tdd-cycle": {
-      "template": "Execute a full TDD cycle for $ARGUMENTS:\n1. Invoke 'feature-interviewer' skill to gather specifications\n2. RED: write failing test (invoke 'test-architect' skill)\n3. GREEN: implement minimum code to pass\n4. REFACTOR: optimize for hot-path performance + clarity\n5. Run verification gates: vitest run && tsc --noEmit && eslint .",
-      "description": "Full feature TDD cycle with pre-build interview (e.g. /tdd-cycle implement stress detection for Ukrainian)",
-      "agent": "build"
+      "template": "Execute a full TDD cycle for $ARGUMENTS:\n1. If a spec is not yet captured, dispatch @openspec-plan for interview-first spec authoring (Socratic interview → artifact synthesis → openspec validate). Do NOT invoke the openspec-propose skill directly.\n2. For each task (a vertical slice): RED — write a failing test at a pre-agreed seam (invoke tdd-craftsman)\n3. GREEN — implement the minimum code to pass that one test, one slice at a time\n4. Run verification gates after each task: turbo run typecheck lint test --filter=<affected package>\n5. When all slices are green, dispatch @reviewer for the two-axis review (Standards + Spec)",
+      "description": "Full feature TDD cycle — spec → vertical-slice test-first implementation → two-axis review (e.g. /tdd-cycle implement stress detection for Ukrainian)",
+      "agent": "coder"
     },
     "test-package": {
-      "template": "Run the full test suite for @poetry/$ARGUMENTS with vitest run --reporter=verbose. If any tests fail, analyze the errors and suggest fixes.",
-      "description": "Run tests with verbose output for a specific package (e.g. /test-package editor-engine)",
-      "agent": "build"
+      "template": "Run the test suite for @poetry/$ARGUMENTS with turbo run test --filter=@poetry/$ARGUMENTS. If any tests fail, analyze the errors and suggest fixes.",
+      "description": "Run tests for a specific package (e.g. /test-package editor-engine)",
+      "agent": "coder"
     },
     "arch-check": {
       "template": "Review the architecture of the code at $ARGUMENTS against architecture.md and SOLID principles. Check for: single responsibility violations, missing DI, state mutation outside Orchestrator, worker boundary leaks, OCC version check omissions. Report any violations with specific line references.",
       "description": "Audit code against architectural standards (e.g. /arch-check packages/editor-engine/src)",
-      "agent": "plan"
+      "agent": "architector"
     },
     "code-ownership": {
       "template": "Analyze the code at $ARGUMENTS for maintainability and ownership:\n1. Are public APIs documented with JSDoc explaining WHY?\n2. Are modules single-responsibility?\n3. Is there dead code or speculative generality?\n4. Are tests present and meaningful?\n5. Are there architectural pattern violations?\nProduce a maintainability score (1-10) and specific improvement recommendations.",
       "description": "Evaluate code ownership quality and maintainability (e.g. /code-ownership packages/phonetics-core)",
-      "agent": "plan"
+      "agent": "architector"
     }
   }
 }

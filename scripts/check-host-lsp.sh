@@ -1,0 +1,158 @@
+#!/usr/bin/env bash
+# check-host-lsp.sh — host-runnable language-server integrity probe (Gate B).
+#
+# WHY: mirrors scripts/check-tools.sh (ok:/fail:/skip: line shape) for the
+# four language servers that scripts/install-host-lsp.sh installs on the host
+# (typescript-language-server, yaml-language-server, pyright via npm global;
+# rust-analyzer via rustup). It is wired into `make test-shell` as a
+# prerequisite so host-tool drift fails loudly BEFORE any bats run. Aggregate
+# probe: all tools are probed and all failures reported before any exit — one
+# run gives the complete picture. Exit 0 if all pass (SKIP_RUST=1 is neutral);
+# exit 1 if any fail. Every exit-1 is preceded by per-failure remediation
+# pointers (no bare exit 1). Requires bash 4+; runs from any cwd
+# (lsp-versions.env resolved relative to this script). The probe is
+# install-method-agnostic: it checks the binary on PATH and its --version, not
+# how it was installed (rustup or apt).
+#
+# TOLERANT GATE (DIA-071): the dev container (poetry-dev, Dockerfile.dev)
+# provides all four language servers, so a host WITHOUT them is an unconfigured
+# host, not a broken repo. A MISSING host tool therefore emits `warn:` and
+# does not fail the gate — `make test-shell` / `make test-infra` exit 0 on
+# fresh hosts. Version DRIFT (a tool present at a version differing from the
+# pin) still fails: that is the gate's drift-detection purpose, and the
+# container-first rust-analyzer host fallback keeps its designed drift fail
+# (DIA-106). Set CHECK_HOST_LSP_STRICT=1 to restore the old hard-fail on
+# missing tools (hosts that must have full LSP parity, e.g. CI).
+#
+# rust-analyzer is CONTAINER-FIRST (DIA-106): the primary probe execs
+# rust-analyzer THROUGH the dev container (`docker compose exec`), matching the
+# pre-commit/pre-push delegation pattern (DIA-094), and compares against the
+# lsp-versions.env pin. When the dev container is unavailable (down, daemon
+# off, docker absent), it falls back to the host PATH probe so the gate never
+# hard-fails solely because the container is down. DESIGNED drift-detection:
+# the host rustup default stays 1.83.0, so the host fallback reports fail:
+# against the 1.97.1 pin while the container is down — that fail is the gate's
+# drift signal, not a bug (the primary container path is what must pass).
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ENV_FILE="${SCRIPT_DIR}/lsp-versions.env"
+
+# --- Guard: the pin source of truth must exist and define all keys -----------
+if [ ! -f "${ENV_FILE}" ]; then
+  echo "error: ${ENV_FILE} not found. scripts/lsp-versions.env is the single source of truth for host LS versions; restore it (git checkout scripts/lsp-versions.env) and re-run. See docs/dev-infra/host-lsp-setup.md." >&2
+  exit 1
+fi
+source "${ENV_FILE}"
+for key in TYPESCRIPT_LANGUAGE_SERVER_VERSION YAML_LANGUAGE_SERVER_VERSION PYRIGHT_VERSION RUST_ANALYZER_VERSION; do
+  if [ -z "${!key:-}" ]; then
+    echo "error: ${key} is not set in ${ENV_FILE}. Restore the key (single source of truth) and re-run. See docs/dev-infra/host-lsp-setup.md." >&2
+    exit 1
+  fi
+done
+
+SKIP_RUST="${SKIP_RUST:-0}"
+# CHECK_HOST_LSP_STRICT=1 restores the pre-DIA-071 hard gate: a missing host
+# tool is a fail, not a warn (see header comment "TOLERANT GATE (DIA-071)").
+STRICT="${CHECK_HOST_LSP_STRICT:-0}"
+
+ok=0
+fail=0
+skip=0
+warn=0
+status=0
+
+# extract_version <raw_output>: prints the first dotted-number token from a
+# tool's --version output, or nothing. WHY: shared by the host PATH probe
+# (probe_tool) and the container probe (probe_rust_analyzer_container) so the
+# version-extraction regex lives in ONE place; both probe paths must
+# normalize --version output identically. Works across output shapes: TS LS
+# and yaml-language-server print a bare version ("5.3.0" / "1.24.0"), pyright
+# prints "pyright 1.1.411", rust-analyzer prints "rust-analyzer 1.97.1 (hash
+# 2026-01-01)".
+extract_version() {
+  printf '%s\n' "${1:-}" | grep -oE '[0-9]+(\.[0-9]+)+' | head -n1 || true
+}
+
+# probe_tool <tool> <pinned>: emits ok:/warn:/fail: for one tool and aggregates.
+# Default (tolerant, DIA-071): a missing host tool is a warn — the dev
+# container provides it (container-first rust-analyzer is the DIA-106 precedent)
+# and the host copy only serves host-mode editors. Version drift on a PRESENT
+# tool still fails (drift detection is the gate's purpose). CHECK_HOST_LSP_STRICT=1
+# downgrades missing to a fail, restoring the pre-DIA-071 hard gate.
+probe_tool() {
+  local tool="$1"
+  local pinned="$2"
+
+  if ! command -v "${tool}" >/dev/null 2>&1; then
+    if [ "${STRICT}" = "1" ]; then
+      echo "fail: ${tool} — not found on PATH. Run scripts/install-host-lsp.sh (see docs/dev-infra/host-lsp-setup.md)" >&2
+      fail=$((fail + 1))
+      status=1
+    else
+      echo "warn: ${tool} — not found on host PATH. The dev container provides it; install on the host only for host-mode editors: scripts/install-host-lsp.sh (see docs/dev-infra/host-lsp-setup.md)" >&2
+      warn=$((warn + 1))
+    fi
+    return
+  fi
+
+  # Normalize --version output via extract_version (shared regex, see above).
+  local raw actual
+  raw="$("${tool}" --version 2>/dev/null || true)"
+  actual="$(extract_version "${raw}")"
+  if [ "${actual}" != "${pinned}" ]; then
+    echo "fail: ${tool} — ${actual:-<unknown>} on PATH, expected ${pinned}. Run scripts/install-host-lsp.sh" >&2
+    fail=$((fail + 1))
+    status=1
+    return
+  fi
+
+  echo "ok: ${tool} ${pinned} (host, version matches scripts/lsp-versions.env)"
+  ok=$((ok + 1))
+}
+
+# probe_rust_analyzer_container <pinned>: verifies rust-analyzer THROUGH the
+# dev container (container-first; DIA-106). The repo compose file is referenced
+# explicitly so the probe works from any cwd. Emits ok:/fail: for the container
+# path and returns 0 when the container path decided the verdict; returns 1
+# when the dev container is unavailable so the caller falls back to the host
+# PATH probe (see DESIGNED drift comment in the header).
+probe_rust_analyzer_container() {
+  local pinned="$1"
+  local compose_file="${SCRIPT_DIR}/../docker-compose.yml"
+  local version_output actual
+
+  if ! version_output="$(docker compose -f "${compose_file}" exec -T dev bash -lc 'rust-analyzer --version' 2>/dev/null)"; then
+    # Dev container unavailable — caller falls back to the host PATH probe.
+    return 1
+  fi
+
+  actual="$(extract_version "${version_output}")"
+  if [ "${actual}" != "${pinned}" ]; then
+    echo "fail: rust-analyzer - ${actual:-<unknown>} in dev container, expected ${pinned} (scripts/lsp-versions.env). Rebuild: docker compose build dev && docker compose up -d dev" >&2
+    fail=$((fail + 1))
+    status=1
+    return 0
+  fi
+
+  echo "ok: rust-analyzer ${pinned} (container poetry-dev, version matches scripts/lsp-versions.env)"
+  ok=$((ok + 1))
+  return 0
+}
+
+probe_tool typescript-language-server "${TYPESCRIPT_LANGUAGE_SERVER_VERSION}"
+probe_tool yaml-language-server "${YAML_LANGUAGE_SERVER_VERSION}"
+probe_tool pyright "${PYRIGHT_VERSION}"
+if [ "${SKIP_RUST}" = "1" ]; then
+  echo "skip: rust-analyzer (SKIP_RUST=1 set; not required for TS/Python LSP work)"
+  skip=$((skip + 1))
+elif ! probe_rust_analyzer_container "${RUST_ANALYZER_VERSION}"; then
+  probe_tool rust-analyzer "${RUST_ANALYZER_VERSION}"
+fi
+
+if [ "${fail}" -gt 0 ]; then
+  echo "summary: ${ok} ok, ${fail} fail, ${warn} warn, ${skip} skip — see above"
+else
+  echo "summary: ${ok} ok, ${fail} fail, ${warn} warn, ${skip} skip"
+fi
+exit "${status}"

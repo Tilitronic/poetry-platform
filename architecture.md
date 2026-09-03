@@ -1,5 +1,9 @@
 # Architecture
 
+> **CONTEXT.md role:** This file serves as the project's CONTEXT.md — the domain
+> vocabulary, ADRs, and seam map. Test names and interface design should use the
+> vocabulary defined here; test at the seams (public boundaries) described by it.
+
 ```
 flowchart TB
     A>Raw Poem Input] --> ED
@@ -249,13 +253,13 @@ poetry-platform-monorepo/
 │   │   │   │   └── idb.ts           # IndexedDB: delta sync and static snapshot
 │   │   │   ├── workers/             # Wrappers for background computations
 │   │   │   │   ├── bootstrap.ts     # MessageChannel initialization and port passing (port1 -> W1, port2 -> W2)
-│   │   │   │   ├── w1-stress.ts     # Native Worker for @poetry/stress-lang-core
+│   │   │   │   ├── w1-stress.ts     # Native Worker for @poetry/stress-lang-core (pkg deleted 2026-08-25, re-scaffold when W1 lands)
 │   │   │   │   └── w2-phonetics.ts  # Native Worker for @poetry/phonetics-core
 │   │   │   └── App.vue              # Main root Vue 3 component
 │   │   ├── quasar.config.ts         # Quasar configuration core (Bundler: Vite, Plugins, Chunk splitting)
-│   │   └── package.json             # Dependencies: quasar, vue, signia + workspace packages
+│   │   └── package.json             # Dependencies: quasar, vue + workspace packages
 │   │
-│   ├── publishing-platform/         # PLATFORM: 7. Publishing Platform (Nuxt 3)
+│   ├── publishing-platform/         # PLATFORM: 7. Publishing Platform (Nuxt 3) — DELETED 2026-08-25 (empty scaffold), re-scaffold when the publishing milestone lands
 │   │   ├── src/
 │   │   │   ├── pages/               # Nuxt 3 SSR pages for poem and profile
 │   │   │   └── components/          # Shared components with author-studio (via links)
@@ -287,7 +291,7 @@ poetry-platform-monorepo/
 │   │   │       └── command-bus.ts   # Command Pattern: Single Write, revision_id comparison
 │   │   └── package.json
 │   │
-│   ├── stress-lang-core/            # WORKERS: W1 — Stress and Lang Worker
+│   ├── stress-lang-core/            # WORKERS: W1 — Stress and Lang Worker — DELETED 2026-08-25 (throwing stub), re-scaffold when W1 lands
 │   │   ├── src/
 │   │   │   ├── detector/            # JS Lang Detector (eld/tinyld)
 │   │   │   ├── wasm-orchestrator/   # WASM Stress Orchestrator
@@ -916,6 +920,7 @@ that knows the byte offsets. This code is produced once by the `flatc`
 compiler from the `.fbs` schema — separately for each target language.
 
 **One schema for all languages:**
+
 ```
 phonetic_atlas.fbs  (IDL — Interface Definition Language)
 ```
@@ -935,6 +940,7 @@ flatc --cpp    → dist/cpp/phonetic_atlas_generated.h   (header-only)
 > `extern "C"` functions — the struct layout is identical.
 
 Each generated file contains:
+
 - A class/struct for every `table` and `struct` in the schema
 - Accessor methods like `.voi()`, `.Ipa()`, `.Phonemes(i)` — which
   internally execute `readUint8(bb_pos + N)` — a single arithmetic

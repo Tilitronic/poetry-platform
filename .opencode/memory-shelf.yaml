@@ -1,17 +1,1194 @@
-# Memory Shelf — Central Knowledge Registry
-# Last updated: 2026-07-13
-
 shelf:
   conspects:
-    - name: "OpenSpec, SDD/TSS, and code_architect Reconciliation"
-      description: "Analysis of the three parallel design documentation approaches (OpenSpec .openspec/, .sdd/.tss directories, and code_architect architecture documents), their overlap, and a recommended reconciliation into a three-layer model."
-      path: "knowledge/res001-openspec-sdd-reconciliation/res001-openspec-sdd-reconciliation-conspect.md"
-      created: 2026-07-13
+  - name: OpenSpec, SDD/TSS, and code_architect Reconciliation
+    description: Analysis of the three parallel design documentation approaches (OpenSpec
+      openspec/, .sdd/.tss directories, and code_architect architecture documents),
+      their overlap, and a recommended reconciliation into a three-layer model.
+    path: knowledge/archive/res001-openspec-sdd-reconciliation/res001-openspec-sdd-reconciliation-conspect.md
+    status: archived
+    created: 2026-07-13
+  - name: Silent Session Logging
+    description: 'Conspect gathering canonical sources and operational guidance to
+      make orchestrator session logging silent: plugin-driven NDJSON canonical store,
+      derived Markdown views, and compact semantic tool calls.'
+    path: knowledge/res002-silent-session-logging/res002-silent-session-logging-conspect.md
+    created: 2026-08-06
+  - name: Telemetry re-entrancy guards
+    description: Conspect synthesizing guard-pattern taxonomy and OpenCode failure
+      classes for telemetry re-entrancy and suppression.
+    path: knowledge/archive/res003-telemetry-reentrancy-guards/res003-telemetry-reentrancy-guards-conspect.md
+    status: archived
+    created: 2026-08-08
+  - name: Tool enumeration in OpenCode
+    description: "Tool enumeration in OpenCode \u2014 CLI mechanisms, permission model,\
+      \ plugin registration"
+    path: knowledge/res004-tool-enumeration/res004-tool-enumeration-conspect.md
+    created: 2026-08-08
+  - name: opencode-telemetry upstream fix (DIA-069)
+    description: Conspect documenting root cause and upstream fix strategy for opencode-telemetry
+      command-template $HOME/absolute-path pollution.
+    path: knowledge/archive/res005-opencode-telemetry-upstream-fix/res005-opencode-telemetry-upstream-fix-conspect.md
+    status: archived
+    created: 2026-08-08
+  - name: Telemetry plugin alternatives
+    description: Conspect comparing opencode-telemetry, opencode-token-monitor, Tokenscope,
+      opencode-plugin-otel, Context-Analysis, and native OpenCode capabilities; notes
+      on operational issues and archival gaps.
+    path: knowledge/archive/res006-telemetry-plugin-alternatives/res006-telemetry-plugin-alternatives-conspect.md
+    status: archived
+    created: 2026-08-09
+  - name: 'TUI corruption: stdout/stderr painted over TUI'
+    description: Conspect documenting TUI corruption root cause, local plugin that
+      writes to stdout, and mitigation guidance.
+    path: knowledge/archive/res007-tui-corruption-stdout/res007-tui-corruption-stdout-conspect.md
+    status: archived
+    created: 2026-08-09
+  - name: Source-archival fallback strategies (DIA-072)
+    description: Validated tiered archival strategy for npm registry and JS-heavy
+      pages (trafilatura, curl+UA, crawl4ai). Includes per-URL results for the DIA-072
+      acceptance list.
+    path: knowledge/res008-source-archival-fallbacks/res008-source-archival-fallbacks-conspect.md
+    created: '2026-08-09'
+  - name: snip jq filter truncation
+    description: Conspect summarizing snip configuration (filters, caps, tee), opencode-snip integration, pipe-splitting bug context, and practical guidance to preserve checksum integrity (disable jq filter or use tee). Correlates with DIA-075 investigation; tracking ticket DIA-076.
+    path: knowledge/archive/res009-snip-jq-filter-truncation/res009-snip-jq-filter-truncation-conspect.md
+    status: archived
+    created: 2026-08-10
+  - name: 'DIA-078 Loop hardening: doom_loop and snip-wrapper'
+    description: Conspect synthesizing `doom_loop` permission semantics, anti-loop detector patterns, and recommended remediation for DIA-078 (snip wrapper loop recurrence).
+    path: knowledge/archive/res010-dia078-loop-hardening/res010-dia078-loop-hardening-conspect.md
+    status: archived
+    created: 2026-08-10
+  - name: opencode-snip mechanical lock
+    description: Conspect documenting opencode-snip (plugin) + snip (binary) mechanics, permission-matching failures from command-prefix rewriting, upstream bug intersections, and a removal-risk assessment with native OpenCode mitigation guidance (DIA-092 cross-reference).
+    path: knowledge/archive/res011-opencode-snip-mechanical-lock/res011-opencode-snip-mechanical-lock-conspect.md
+    status: archived
+    created: 2026-08-11
+  - name: Scientific Methodology for AI-driven Research Agents
+    description: 'Conspect synthesizing best practices for machine-driven scientific workflows: structured hypotheses, novelty checks, experiment journals, falsification, verification, provenance, test-driven SWE agents, eval-driven development, failure modes, and solo-developer SCOPE GUARD guidance.'
+    path: knowledge/res012-scientific-methodology/res012-scientific-methodology-conspect.md
+    created: 2026-08-11
+  - name: OpenCode Model Pricing Audit (DIA-108)
+    description: 'Conspect synthesizing OpenCode Go pricing and usage limits (18 models, $5 first month then $10/mo, $12/5h, $30/wk, $60/mo caps), GitHub Copilot per-1M-token pricing and AI-credit plan allowances, SWE-bench Verified scores from BenchLM/Vals/official trackers, variant/mode notes, and key findings (Kimi K3 93.4% best Go model at 490 req/mo; Grok 4.5 86.6% at 600 req/mo; GPT 5.6 Luna cheap lightweight; DeepSeek V4 Flash volume king 158K req/mo at $0.14/$0.28; MiniMax M3 80.5%). Records the DIA-108 developer disposition: Claude Sonnet 5 recommendation REJECTED because that model is not in the actual Copilot Pro subscription model list - pricing-page availability does not imply subscription availability.'
+    path: knowledge/res013-opencode-model-pricing-audit/res013-opencode-model-pricing-audit-conspect.md
+    created: 2026-08-12
+  - name: Model Escalation Routing for Coder and Analyzer Agents (DIA-111)
+    description: 'Conspect synthesizing escalation/model-routing approaches for agentic coding workflows (8 archived sources): 6 routing patterns (LLM-classifier, stage router, escalation router from NVIDIA NeMo Switchyard; reflect/replan/escalate recovery routing from CodeRescue/ARCHER with Conformal Risk Control; trajectory-conditioned temporal routing from SWE-Router; C-A-F loop with memory from Agent-as-a-Router/ACRouter) plus supporting patterns (codified effort+escalation policy from AgentPatterns, production reliability failure taxonomy from Tanay Shah, unified (agent,tier) escalation ladder from nax ADR-025). Includes the coder escalation ladder Rung0-4 design (deepseek-v4-flash default -> recovery -> qwen3.7-plus -> deepseek-v4-pro OR mimo-v2.5-pro -> re-review), the analyzer-to-GPT-5.6-Luna escalation design with routing back to qwen3.7-plus, and the MiMo-V2.5-Pro vs DeepSeek-V4-Pro comparison (identical $0.435/$0.87 Go pricing and ~16-17K req/mo; DeepSeek V4 Pro has archived SWE-bench scores 73.6-80.6%, MiMo-V2.5-Pro has a benchmark gap tracked by DIA-087 R5). Benchmarks/pricing cross-referenced from res013 (no duplication).'
+    path: knowledge/res014-model-escalation-routing/res014-model-escalation-routing-conspect.md
+    created: 2026-08-12
+  - name: MiMo-V2.5-Pro Agentic Coding Evaluation (DIA-114)
+    description: 'Conspect closing the DIA-087 R5 MiMo benchmark gap (32 archived sources): MiMo-V2.5-Pro identity/lineage (1.02T/42B sparse MoE, hybrid SWA+GA 6:1, 3-layer MTP, 1M context, FP8, MIT, May 2025 cutoff, released 2026-04-22; V2 series deprecated 2026-06-30; MiMo Code = Xiaomi OpenCode fork). Benchmark table with per-score attribution: SWE-bench Verified 78.9%, SWE-bench Pro 57.2%, Terminal-Bench 2.0 68.4%, ClawEval 63.8% (~70K tokens/traj, 40-60% fewer than Opus 4.6/Gemini 3.1 Pro/GPT-5.4), GDPVal-AA Elo 1581, MiMo Coding Bench 73.7%, tau3-bench 72.9%, GPQA-Diamond 86.6/66.7, HLE 33.8-48.0; NO OSWorld score found. All headline scores vendor-reported (Xiaomi), not independently reproduced. Agentic integration: OpenAI-compatible tool_calls (OpenHands/SWE-agent/Cline/Aider), OpenCode handles reasoning_content correctly while Cursor/Roo/Codex/Copilot CLI/TRAE fail (DataCamp, Medium confidence); MiMo Code harness gain ~5pts self-reported. OpenCode/Go first-class: mimo-v2.5-pro at $0.435/$0.87, 16,300 req/mo, endpoint opencode.ai/zen/go/v1/chat/completions; Xiaomi official OpenCode doc; community configs (gajae-code critic role, fmflurry conductor, OmniRoute mimo-pro, CodeWhale, lobehub, gpt4free). Rung-3 verdict (DIA-111/res014): mimo-v2.5-pro recommended default (edges on Terminal-Bench/SWE-Pro/GDPVal + token efficiency + OpenCode-native), deepseek-v4-pro retains reasoning edge (GPQA 90.1, SWE Verified 80.6); both headline SWE numbers vendor-reported, live in-repo benchmark recommended before finalizing. Cross-references res013 (pricing) and res014 (escalation ladder).'
+    path: knowledge/archive/res015-mimo-v25-pro-evaluation/res015-mimo-v25-pro-evaluation-conspect.md
+    status: archived
+    created: 2026-08-12
+  - name: Coder-Escalated Model Evidence (DIA-111)
+    description: 'Conspect synthesizing Session 15 (DIA-111) evidence for the coder-escalated model lane (25 fresh archived sources + 5 cross-refs to res013/014/015): comparison of kimi-k3 / gpt-5.6-luna / qwen3.7-max / qwen3.7-plus / deepseek-v4-pro on SWE-bench Verified, Terminal-Bench, SWE-bench Pro, AA Coding Agent Index, Go pricing and req/mo. Kimi K3 (released 2026-07-16): 2.8T MoE 16/896 experts, 1M ctx, open weights; Vals independent SWE-bench Verified 93.40% (best open-weight, ahead of Opus 4.8 88.6/Grok 4.5 86.6); TB2.1 88.3 vendor/85 AA-independent; AA Intelligence 57 (4th overall, 1st open-weight); LMArena Frontend #1; 490 req/mo at $3/$15 on Go (binding cap). GPT-5.6 Luna: nano-tier, 1M ctx, full tool use, reasoning to max; AA Coding Agent Index 74.6 (OpenAI)/75 (AA); TB2.1 84.7; SWE-Pro 62.7; Vals split 96/92/86/67; Intelligence Index 51 at $0.21/task (Pareto frontier); 80% price cut 2026-07-30 to $0.20/$1.20; official "well-specified changes" lane (plan with Sol, implement with Luna); SUBAGENT-WEAK (Codex native subagent rejects it, v1 catalog filter, top-level-thread deployment; BenchLM Agentic #35 of 129). Qwen3.7-Max (closed text-only, SWE-V 80.4 vendor, TB2.0 69.7, $2.50/$7.50, 1,690 req/mo) and Qwen3.7-Plus (closed multimodal, SWE-V 77.7 BenchLM, Agentic #107 of 129 weak, $0.40/$1.60, 21,600 req/mo) NOT recommended as escalation tier. Corrections: C1 qwen3.7-pro does not exist (real names qwen3.7-max/plus, 4 sources); C2 luna agentic-capable but subagent-weak (orcarouter + BenchLM). VERDICT: kimi-k3 recommended for coder-escalated with cap-fallback to deepseek-v4-pro/mimo-v2.5-pro; luna for analyzer-escalated with subagent-weakness caveat. Cross-references res013 (Go pricing), res014 (Rung0-4 ladder), res015 (mimo-vs-deepseek).'
+    path: knowledge/res016-coder-escalated-model-evidence/res016-coder-escalated-model-evidence-conspect.md
+    created: 2026-08-12
+  - name: Rung-3 Coder-Escalation Benchmark Evidence (DIA-116)
+    description: 'Conspect closing the DIA-116 evidence gap with authoritative third-party benchmark evidence for the three Rung-3 coder-escalation candidates (21 fresh archived sources + 1 documented failure; cross-refs res013/014/015/016, ana014). Key independent reproductions: kimi-k3 SWE-bench Verified 93.40% (Vals AI mini-swe-agent bash-only harness, leaderboard updated 2026-08-08 - the DIA-114-flagged missing reproduction, strongest open-weight model); deepseek-v4-pro SWE-bench Verified 74% (NIST CAISI, U.S. government, Inspect ReAct, 2026-05-01, IRT Elo 800, "lags frontier ~8 months", vendor 80.6% flagged Unverified on evals.report); mimo-v2.5-pro has NO independent coding-benchmark reproduction (78.9% headline vendor-only, Xiaomi card/mimo.xiaomi.com; only independent datum is AA Intelligence Index composite 43). AA Intelligence Index: kimi-k3 57.11-60 vs deepseek-v4-pro 45 vs mimo 43. Terminal-Bench 2.1: kimi-k3 88.3 vendor (Kimi Code) / 85.0 AA (Terminus 2, II v4.1.1 component) / 80.9 Vals-harness; deepseek-v4-pro 72.1 (Vals leaderboard, preview row); mimo 57.3 (Vals). VERDICT: keep kimi-k3 coder-escalated default (only candidate with independent headline-benchmark reproduction; 490 req/mo cap at $3/$15 binding); Rung-3 fallback prefer deepseek-v4-pro over mimo-v2.5-pro (REVERSES DIA-114 provisional MiMo pick - deepseek has CAISI independent evidence, mimo has none, both $0.435/$0.87); cap note kimi-k3 ~13x pricier per token (~$2.31/M AA blended vs $0.18/M co-candidates). Correction C1: DIA-114 evidence gap RESOLVED (kimi-k3), PARTIAL (deepseek), OPEN (mimo); evidence basis is authoritative sources (no self-benchmarking per developer directive 2026-08-12; ana014 in-repo protocol cancelled). 1 unarchived source (llm-stats.com, anti-bot wall; TB 2.1 covered by benchmarklist/AA archives).'
+    path: knowledge/res017-rung3-benchmark-evidence/res017-rung3-benchmark-evidence-conspect.md
+    created: 2026-08-12
+  - name: OpenCode Agent Presets (models/temperature/reasoning effort) for Go + Copilot workflow
+    description: 'Conspect synthesizing optimal agent presets for the OpenCode Go + Copilot workflow from 19 archived sources: DeepSeek V4 Flash specs (284B/13B MoE, 1M ctx, 384K out, Non-think/High/Max modes, reasoning_effort low/high/xhigh/max -> low/high/high/max on Flash, temp inert in thinking mode, temp=0.0 for deterministic coding, agentic scores Terminal Bench 2.1 82.7 / DeepSWE 54.4 / Toolathlon 70.3); GPT 5.6 Luna (nano tier, 1M ctx, 128K out, reasoning.effort none..max, Coding Agent Index 74.6, $0.2/$1.2); Go 2x-usage promo tags (Flash $0.07/$0.14, Luna $0.10/$0.60 per tracker), request budgets (Flash 31,650/5h and 158,150/mo at $60 tier; Luna 2,050/5h and 10,250/mo at $15 tier), $12/5h $30/wk $60/mo caps, config id opencode-go/<model-id>; Copilot credit billing (1 credit = $0.01, Pro 1,500/mo), Copilot-only models (GPT-5.3-Codex, Sol/Terra, Claude Sonnet 4.x, Gemini 3.1 Pro; Grok 4.5 IS on Go - brief corrected), CLI BYOK + ACP; per-role temperature bands (code 0.0-0.3, review 0.0-0.2, architecture 0.2-0.4, spec 0.1-0.3, research 0.5-0.7); reasoning effort (medium beats high on code, high for architecture/debug/security); recommended preset delta (coder += Luna secondary, designer += Luna fallback, reviewer reasoningEffort=medium, temps unchanged) - RECOMMENDATION NOT APPLIED (developer declined 2026-08-12). Fills the temperature/reasoning gap vs res013 (pricing only).'
+    path: knowledge/res021-opencode-agent-presets/res021-opencode-agent-presets-conspect.md
+    created: 2026-08-12
+  - name: Ticket Management Automation (DIA-125)
+    description: 'Conspect for DIA-125 (OPEN research ticket): evaluate ready-made local
+      solutions (MCP/self-hosted) vs manual ledger for ticket creation and management
+      (22 archived sources). Candidate table across 16 candidates (github-mcp-server,
+      Linear MCP, plane-mcp-server, Plane, Vikunja, Focalboard, OpenProject, Redmine,
+      Taiga, Leantime, git-bug, steviee/git-issues, timonburkard/git-issue, dspinellis/git-issue,
+      OpenSpec tasks.md, opencode-ework). MCP maturity assessment: write-capable servers
+      exist for github/linear/plane/vikunja; local-first ones are linear-local-mcp
+      (read-only, macOS), linear-cache-mcp (Linear-bound), and self-hosted vikunja/plane
+      stdio servers; NO file/git-backed MCP exists - the gap a thin local writer fills.
+      Hybrid recommendation: keep git-backed markdown ledger; Tier 1 codify manual writer
+      (DIA-NNN+slug, frontmatter v2, README index, archive/); Tier 2 steviee/git-issues
+      experiment (structural twin: .issues/ markdown + YAML frontmatter, JSON agent
+      commands, worktree rules); Tier 3 Plane/Vikunja self-host at scale. Rejections:
+      Focalboard unmaintained, OpenProject heavy/no MCP, cloud-only GitHub/Linear violate
+      local-first (ana006). Taiga, dspinellis/git-issue, opencode-ework excluded per
+      DIA-072 (no archived sources).'
+    path: knowledge/archive/res018-ticket-management-automation/res018-ticket-management-automation-conspect.md
+    status: archived
+    created: 2026-08-13
+  - name: OMO Slim 2.2.13 Version-Gate Research (DIA-127)
+    description: 'Conspect persisting the DIA-127 version-gate research for the oh-my-opencode-slim
+      2.2.8 -> 2.2.13 plugin upgrade (10 archived sources + 2 documented NOT-ARCHIVED npmjs
+      SPA pages, DIA-072 exclusions). Release timeline: v2.2.11 is the substantive release
+      in the window (20 merged items; opencode2 dual-compat PR #979 - one package runs on
+      OpenCode v1 and v2 via {id, server, setup} default export + src/v2/ adapter, build:v2
+      dist/server.js via ./server subpath, 1697 tests, known v2 limitations: no per-prompt
+      model override / no session model-setter, v2 TUI default agent build not orchestrator,
+      no programmatic MCP registration); v2.2.9 removed the plugin websearch MCP (PR #936,
+      Exa/Tavily; built-in websearch via OPENCODE_ENABLE_EXA / OPENCODE_ENABLE_PARALLEL;
+      websearch permission key retained); v2.2.12 (10 Aug 21:58) and v2.2.13 (11 Aug 20:08)
+      are tag-only releases (no release notes, npm publish at tag time); compare v2.2.8...v2.2.13
+      shows 23 contributors (261 commits / 220 files NOT in archive - page render failure,
+      excluded per DIA-072); npm registry dist-tags.latest = 2.2.13 published 2026-08-11
+      (~2 days before the DIA-127 research date 2026-08-13); package.json v2.2.13 exact-pins
+      @opencode-ai/plugin 1.18.13 and @opencode-ai/sdk 1.18.13. Breaking-change signals
+      for the project config (3 presets opencode-go/cebula/free, DIA-126 conspecter hardening,
+      agent-name lockstep, dual runtime vendored + npm) audited in section 7. DIA-126 re-verify
+      PASS: all 12 curl/trafilatura archival commands ran without a single permission ask;
+      crwl chromium failure (DIA-129) expected and documented; webfetch never needed.'
+    path: knowledge/archive/res019-omo-slim-version-gate/res019-omo-slim-version-gate-conspect.md
+    status: archived
+    created: 2026-08-13
+  - name: OpenCode Agent Config Watchdog Research (DIA-132)
+    description: 'Conspect for DIA-132 (coder-escalated kimi-k3 ONE-SHOT silent failure on DIA-130): persist the ai-specialist hardening research on timeout/heartbeat/empty-result-detection mechanisms (3 archived sources, zero failures - live opencode.ai/config.json AgentConfig schema via raw curl, Agents + Plugins docs pages via trafilatura). AgentConfig surface: model, variant, temperature, top_p, prompt, tools (deprecated->permission), disable, description, mode (subagent/primary/all), hidden, options (provider pass-through), color, steps, maxSteps (deprecated->steps), permission (16 keys incl. doom_loop). "steps" = maximum agentic ITERATIONS before forcing text-only response (positive integer, NOT a wall-clock timeout; docs: on limit the agent receives a system prompt to summarize work + remaining tasks). Plugin API: session events (created/compacted/deleted/diff/error/idle/status/updated), tool.execute.before/after, experimental.session.compacting (fires before continuation-summary generation; output.prompt replaces the compaction prompt) - mapped to delegation-observer.ts usage (A1 pure-dispatch, A2 task_id capture, event-based lifecycle RUNNING/COMPLETE/FAILED + S1 A3 silent-failure scan, compaction snapshot injection). Absence findings: NO native per-agent timeout (only ProviderConfig options.timeout/headerTimeout/chunkTimeout and MCP server timeouts in the schema) and NO native empty-result handling (no AgentConfig field, no plugin event) in OpenCode v1.18.12 era - plugin-side session-event monitoring is the available native path for the ticket''s hardening candidates. ID corrected from res003 to res020 (res001..res019 already registered).'
+    path: knowledge/res020-opencode-agent-config-watchdog/res020-opencode-agent-config-watchdog-conspect.md
+    created: 2026-08-13
+  - name: Ticket Automation Landscape Evaluation (DIA-125 follow-on)
+    description: 'Conspect for DIA-125 follow-on (res-1): ticket-automation landscape
+      evaluation (13 archived sources, zero failures). Grounds the delegation-observer
+      ticket-gate mechanics in plugin source (scanTickets reads docs/dev-infra-audit/tickets/,
+      filename regex /^DIA-(\d+)/, dispatch regex /DIA-\d+/gi format-agnostic, strict
+      tri-state DIA-076 C1, ticket-creation + checksum exemptions, fail-soft on scan
+      errors) - any external tracker needs a file-mirror bridge or gate rework. Candidate
+      families: self-hosted web trackers (Plane Docker Compose/K8s, OpenProject CE
+      Rails, Redmine Rails, Gitea/Forgejo single-binary, Vikunja todo-semantics mismatch),
+      MCP servers (Plane MCP official MIT 100+ tools/20 categories stdio uvx; OpenProject
+      CE MCP jtauschl 14 stars 132 tools guarded writes context-frugal; mcp-redmine
+      232 stars; Vikunja community 100 stars; Forgejo MCP 46-result ecosystem; GitHub
+      MCP MIT but cloud/GHES-only local-first violation), local CLIs (git-bug GPLv3+
+      git-object offline-first no MCP; taskwarrior single binary todo semantics), keep-local
+      baseline (number allocator, template generator, README rollup updater, blocker-graph/frontier
+      renderer, bats-tested) + official Filesystem MCP server as optional agent-facing
+      layer. 3-constraint fit table (DIA-079 ASCII, gate compat, local-first WSL2/container).
+      Top-3 ranking: keep-local baseline (native fit) > git-bug (mirror bridge needed)
+      > OpenProject CE + jtauschl MCP (Tier-3 at scale). Preliminary keep-local recommendation
+      (developer decides). Star counts for goern/raohwork Forgejo MCP, Plane MCP 286,
+      GitHub MCP 32.2k, git-bug 10k, and the Gitea/Forgejo single-binary claim are
+      researcher-supplied, not confirmed in archive, excluded per DIA-072 (section
+      6). Cross-references res018 (DIA-125 first pass), ana006 (local-first decision),
+      res008 (DIA-072 archival).'
+    path: knowledge/archive/res021-ticket-mgmt-automation/res021-ticket-mgmt-automation-conspect.md
+    status: archived
+    created: 2026-08-13
+  - name: Evidence-Backed Decision Variants (DIA-115)
+    description: 'Conspect for DIA-115 (research-first, OPEN): EBDV presentation format
+      for policy-class decisions (10 archived sources, zero failures). Design: triggers
+      (section-10 policy changes, AGENTS.md/prompt changes, agent-policy, model/tool-selection
+      with >=2 candidates); per-variant field set (title, change-description, evidence-sources,
+      pros/cons, effort, section-10-flag, Y-statement summary); evidence tiers T1 (committed/archived-conspec),
+      T2 (web-fresh-cited URL+date), T3 ([INFERENCE] labeled, T3-alone insufficient);
+      minimum >=2 real variants + recommendation + always-available abort/status-quo;
+      chosen variant documented in ticket UPDATE block. Provenance: ADR/MADR/Y-statement
+      (Zimmermann: neglected alternatives, empirical evidence over pseudo-rationale),
+      InfoQ sustainable decisions, Claude Code show-evidence-not-assertion, Prisma
+      alternatives-at-end, ruvnet decision log, Meshtastic rejected-markers; Swift/Carbon
+      researcher-supplied not archived (DIA-072). Section-10 interaction: EBDV layers
+      ON TOP, section 10 remains the routing gate, EBDV is a presentation requirement
+      inside Phase 2 (Review & Decide) for policy-class only. Enforcement ranked
+      cheap->heavy per DIA-086: (1) validate-decision-variants.sh mechanical validator
+      in make test-config (mandatory), (2) OpenSpec template + Alternatives considered
+      (mandatory), (3) AGENTS.md prompt rule (optional soft), (4) practice-protected
+      + ai-auditor (deferred). Cross-refs res012-015 (evidence vocabulary) + ana015
+      G1/G2/G3 + ana004 (mechanical beats prompt).'
+    path: knowledge/res022-evidence-backed-decision-variants/res022-evidence-backed-decision-variants-conspect.md
+    created: 2026-08-13
+  - name: Dispatch Routing Registry Design (DIA-133)
+    description: 'Conspect for DIA-133 (data-driven dispatch routing, opencode-config,
+      OPEN): PARTIAL persistence per res-4 recommendation + developer KEEP decision
+      2026-08-13 (binary per DIA-135) - registry schema + routing design + NEW Tier-2
+      web-fresh quota-guard precedents NOT previously in the shelf (6 archived sources,
+      zero failures, all Tier-1 trafilatura direct 2026-08-13). Registry design
+      (Choice A1a): location knowledge/model-registry.yaml (evidence-co-located, ZERO
+      read-scope change - orchestrator read block already allows knowledge/* at
+      opencode.jsonc L172 read / L195 glob via DIA-126(a) expansion, verified 2026-08-13);
+      per-model fields model_id, role, price_in_1m, price_out_1m, req_per_month,
+      swe_bench_verified + source_ref, lane, fallback[], quota_notes, active. Model set:
+      deepseek-v4-flash coder default $0.14/$0.28 158K req/mo, qwen3.7-plus arch/analyzer,
+      kimi-k3 coder-escalated 490 req/mo binding cap SWE-V 93.40 Vals, gpt-5.6-luna
+      analyzer-escalated subagent-weak, deepseek-v4-pro Rung-3 fallback (res017 REVERSAL
+      of res015 MiMo pick - CAISI independent evidence), mimo-v2.5-pro fallback-2
+      benchmark-gap-OPEN vendor-only, gpt-5.3-codex reviewer Copilot-credits req_per_month
+      null. Routing: res014 Rung0-4 ladder codified (Rung0 coder/deepseek-v4-flash ->
+      Rung1 retry -> Rung2 qwen3.7-plus -> Rung3 coder-escalated/kimi-k3 quota-guarded
+      -> Rung4 reviewer/gpt-5.3-codex; analyzer qwen3.7-plus -> gpt-5.6-luna ->
+      route-back). Quota-guard (Choice C1): procedural clone of COUNCIL-BUDGET-GUARD,
+      count registry.jsonl event session_spawn per model filtered by YYYY-MM (registry.jsonl
+      over messages.jsonl - plugin sole-writer + dispatch_state; ana007 anti-pattern),
+      warn 80%, hard-stop count+1>cap -> fallback[] or wait_for_user, skip Copilot-credit
+      lanes, check SILENT_FAILURE before re-dispatch (DIA-132 lesson). Tier-2 precedents:
+      OhanaSec models+routingTable separation + benchScore-after-scored-run, Budibase
+      monthly counter (dry-run-then-commit, percentage triggers 1-100, USAGE_LIMIT_EXCEEDED,
+      getCurrentMonthString), Codex min_rate_limit_remaining_percent default 25,
+      Alibaba proactive throttle (rate-limit headers, backoff cap+jitter, threshold
+      wait-until-reset, idempotent reconcile), OmniRoute quota-aware strategies
+      headroom/reset-window/reset-aware (freeMonthlyQuota/costPerQuery field names
+      FLAGGED researcher-supplied-not-archived per DIA-072). Design-gate: Choices
+      A+B(+C) -> @architector; Choice D one-line literal allow entry if future
+      location change (DIA-126a wildcard lesson). Cross-refs res013/014/015/016/017,
+      ana014, res022 EBDV, res020 DIA-132, ana007, DIA-135.'
+    path: knowledge/res023-dispatch-routing-registry/res023-dispatch-routing-registry-conspect.md
+    created: 2026-08-13
+  - name: 'Research-Pipeline Optimization: Model/Variant + Fetch Tools (DIA-135)'
+    description: 'Conspect for DIA-135 (OPEN) D5/D8 research: model/variant optimization
+      for the researcher + conspecter lanes and AI-optimized source-fetch tooling
+      (21 archived sources, zero failures; one source required the crawl4ai/crwl
+      headless tier - platform.openai.com). Findings: (1) per-model pricing/context
+      table for deepseek-v4-flash ($0.14/$0.28 Go, 1M ctx, 158,150 est req/mo),
+      deepseek-v4-pro ($0.435/$0.87, 1M ctx), gpt-5-mini ($0.25/$2.00 OpenAI/GH
+      Copilot, 400K ctx, NOT on Go), qwen3.7-plus ($0.40/$1.60 <=256K, 1M ctx),
+      kimi-k3 ($3/$15 Go, 1M ctx, 490 est req/mo binding); DeepSeek concurrency
+      flash 2500 / pro 500; NO literal req/month quota published anywhere (Go caps
+      are dollar-valued $12/5h/$30/wk/$60/mo with ESTIMATED request counts; OpenAI
+      RPM/TPM + monthly $ tiers; Moonshot concepts only). (2) Lane-fit: flash keeps
+      both researcher (volume retrieval) and conspecter (long-context MLA synthesis)
+      defaults. (3) Fetch tools: trafilatura best static extractor (current official
+      benchmark F 0.920, 2026-08-04; historical precision 0.925) but fails JS/SPA;
+      crawl4ai/crwl only JS-capable tier (heavyweight, DIA-129 risk); curl+UA
+      transport-only (raw HTML still 0 bytes through trafilatura on platform.openai.com);
+      npm registry JSON API readme-as-JSON; recommended 3-tier chain by URL class
+      (npm JSON -> trafilatura -> curl+UA+trafilatura -> crwl). (4) ai-specialist
+      EBDV recommendation: researcher R2 (keep flash, temp 0.7->0.3, gain bash
+      curl/wget/trafilatura/crwl + edit knowledge/* - allow-list observed live in
+      this run) and conspecter C2 (keep flash, add variant low + temp 0.1, lose all
+      bash post-D7). Excluded per DIA-072: JS-rendered benchmark tables on OpenRouter
+      cards, Kimi platform price/limit tables. Cross-refs res008/013/014/016/017/019/022/023.'
+    path: knowledge/res024-model-variant-fetch-tools/res024-model-variant-fetch-tools-conspect.md
+    created: 2026-08-13
+  - name: OpenWebUI RAG Infrastructure Investigation (DIA-089 Phase A)
+    description: 'Conspect closing DIA-089 Phase A investigation (8 archived sources, all archived, zero failures - docs.openwebui.com captured via curl+trafilatura stdin pipeline since direct -u returned empty on the JS-heavy Docusaurus site; raw CHANGELOG.md captured via curl because trafilatura drops non-HTML). Documents the book-rag/OpenWebUI hybrid RAG infrastructure inventory with 3 config drifts: (1) STALE KB cache knowledge-bases.yaml cached_at 2026-07-13 with 12 UUIDs vs 1h TTL; (2) memory-shelf ai-self-improvement description says project skill copies deleted but CHANGELOG L103 shows GLOBAL copies deleted and project kept (global book-rag ABSENT, consistent with applied change, inconsistent with shelf text); (3) commands/rag.md present but NOT in opencode.jsonc command block (doc drift vs SKILL.md claim). Architecture: OPT-IN #rag/#tag -> SKILL.md redesign-route-execute -> query_rag.py (1328 lines; #tag re.search parse, difflib fuzzy UUID resolve, Tier1 GET /api/v1/knowledge/ + Tier2 webui.db SQLite discovery, auth OPENWEBUI_API_KEY or .key JWT mint or auto-setup, POST /api/v1/retrieval/query/collection {query, collection_names, k:6, hybrid:true}, === RETRIEVED KNOWLEDGE === format, [WARNING] top score < 0.30). Web-fresh v0.11.0 contract verified in archive: RAG_TEXT_SPLITTER=markdown_header REMOVED -> ENABLE_MARKDOWN_HEADER_TEXT_SPLITTER default on; ENABLE_RAG_HYBRID_SEARCH default False server-side (script sends hybrid=true); RAG_HYBRID_BM25_WEIGHT 0.5; CHUNK_SIZE 1000/OVERLAP 100/MIN_SIZE_TARGET 0; embedding-model change requires re-index; ENABLE_PERSISTENT_CONFIG=True DB-overrides-env; WEBUI_JWT_SECRET_KEY deprecated (DATA_DIR/WEBUI_SECRET_KEY blanket deprecation flagged researcher-supplied-not-fully-archived); Bearer sk-+JWT+x-api-key; file POST /api/v1/files/ process=true + poll /process/status before KB add (400 empty-content). OPENWEBUI_DATA_DIR is script-invented, NOT a server var (server uses DATA_DIR). Phase B/C verification plan B0-B4/C1-C5 ready to run once developer starts server + sets env vars. Blocked on developer: server not running, 3 env vars unset. .key secret value never read.'
+    path: knowledge/res025-openwebui-rag-infra/res025-openwebui-rag-infra-conspect.md
+    created: 2026-08-13
+  - name: JSON-DB + API Layer for Orchestrator Session Records (DIA-136)
+    description: 'Conspect for DIA-136 (Medium, OPEN, opencode-config): evaluate a JSON-DB + API layer (lowdb/json-server/nedb/@seald-io/nedb/nedb2/tinydb + alternatives) for orchestrator session records. 24 archived sources + 1 documented partial-failure (duckdb-stable redirect). Per-library findings: lowdb 7.0.1 whole-file rewrite O(N)+no cluster+no HTTP; json-server 1.0.0-beta.15 full HTTP server+beta; nedb 1.8.0 unmaintained; @seald-io/nedb 4.1.2 active fork but file/append-only+full-memory copy; nedb2 2018.12.30 abandoned; tinydb 4.9.0 Python-only (language mismatch); better-sqlite3 13.0.3 native binary dep; node:sqlite Node built-in zero-dep in-memory (preferred); DuckDB 1.5 current read_json over NDJSON (second). EBDV variants: V1 status-quo jq / V2 read-only query layer over JSONL (RECOMMENDED, node:sqlite preferred engine) / V3 embedded binary source of truth (REJECTED). Developer constraint 2026-08-14 binding: committable plain-text source of truth; sqlite binary NOT acceptable as source of truth; in-memory query-only acceptable; simplest committable path. JSONL stays canonical; V2 read-only layer only. D9 ticket-ledger analog (res018/res021).'
+    path: knowledge/res026-orchestrator-session-records-json-db/res026-orchestrator-session-records-json-db-conspect.md
+    created: 2026-08-14
+  - name: Orchestrator Routine-Work + Artifact-System Tools (DIA-137)
+    description: 'Conspect for DIA-137 (Medium, OPEN, opencode-config): evaluate lightweight
+      reliable tools to simplify orchestrator ROUTINE WORK and ARTIFACT SYSTEMS. 13 archived
+      sources (15 files across 12 candidate tools), zero failures. Honest verdict: status-quo
+      is correct - bash + jq + bats-core are the settled standards already wired into gates
+      (make test-shell, check-host-jq, vendored bats). Rejections: yq (zero-runtime-dep is
+      a feature, jq suffices for NDJSON), just (Makefile exists), duckdb-for-routine (jq
+      suffices; res026 owns the JSON-DB read-layer scope), todo.txt-cli (DIA ledger IS the
+      task store, DIA-125 settled keep-local), fx (human TUI, not an agent tool), watchexec
+      (heavier, same question as entr), inotify-tools (thin primitive), entr (CONDITIONAL/defer
+      - WSL inotify incomplete + background watch process). chokidar v5.0.0 flagged as the ONLY
+      design-worthy option (in-process, no new service) IF auto-regeneration of derived views
+      (messages.jsonl->messages.md, ticker.json->ticker.md) is ever wanted. EBDV: Variant A
+      status-quo (RECOMMENDED), B chokidar-in-plugin (conditional, section-10), C entr/watchexec
+      background (rejected - background processes forbidden). DIA-086 SCOPE GUARD applies: no
+      demonstrated stale-view consumption problem; on-demand render is deterministic and testable.
+      Cross-refs res026 (DIA-136 sibling, no re-litigation), res018/res021 (DIA-125 ticket ledger).'
+    path: knowledge/res027-orchestrator-routine-work-tools/res027-orchestrator-routine-work-tools-conspect.md
+    created: 2026-08-14
+  - name: OpenCode Version Pin + OMO 2.2.14 Compatibility Floor (DIA-188)
+    description: 'Conspect persisting the DIA-188 research (8 archived sources, zero failures):
+      newest stable opencode = 1.18.18 (2026-08-13), releases only in 1.18.x line, npm NOT a
+      version source (both @opencode-ai/opencode and opencode 404 archived); REPO RELOCATION
+      sst/opencode -> anomalyco/opencode (install script + release assets resolve from anomalyco;
+      198k-star figure researcher-supplied, not in archive); INSTALLER TRUTH opencode.ai/install
+      is a mutable dev-branch artifact with NO sha256 verification of the downloaded binary,
+      Dockerfile pinned hash fc3c1b2... verifies the script not the binary (stale) -> recommended
+      direct binary download + sha256sum -c against 0cddc222418b8553669905a8980c0cda7088f00da24d83d6ac76b01c9fdb2aaf
+      (opencode-linux-x64.tar.gz v1.18.18); OMO 2.2.14 floor exact-pins @opencode-ai/plugin+sdk
+      1.18.13 (unchanged from 2.2.13 per res019), 1.18.18 satisfies; NO breaking changes
+      1.18.4->1.18.18 for plugins/TUI-host/config-schema (v1.18.16 config parser more lenient).
+      Project implication: Dockerfile.dev pin OPENCODE_VERSION=1.18.18 + switch install block to
+      direct binary + sha256 verify + update sst/opencode refs. Extends res019.'
+    path: knowledge/res028-opencode-version-pin/res028-opencode-version-pin-conspect.md
+    created: 2026-08-15
+  - name: res020-ssh-add-confirmation
+    description: 'OpenSSH ssh-add -c confirmation-per-use on Fedora 44 + KDE Plasma + systemd user ssh-agent (socket-activated, /run/user/1000/ssh-agent.socket) with the agent socket forwarded into opencode-docker (DIA-173). Key facts: -c = per-operation host-side confirm via ssh-askpass (each git push = one host GUI prompt); SSH_ASKPASS + SSH_ASKPASS_REQUIRE=force must be in the AGENT OWN systemd Drop-in (~/.config/systemd/user/ssh-agent.service.d/override.conf) - the agent reads them from its own env at prompt time, no file fallback; KDE Wayland gotcha: ksshaskpass needs QT_QPA_PLATFORM=wayland + WAYLAND_DISPLAY=wayland-0 (else qt.qpa.xcb could not connect to display :0); ksshaskpass is a SEPARATE package (6.7.4-1.fc44) not default on KDE; ssh-add -l does NOT show confirm-on (no simple CLI check); agent restart clears keys + confirm flags (Drop-in first, then ssh-add -c); no container-side change needed for DIA-173 (confirm state is host-agent); recommended combo ssh-add -c -t 8h; YubiKey: hardware touch OR -c, not both.'
+    path: knowledge/res020-ssh-add-confirmation/res020-ssh-add-confirmation-conspect.md
+    created: 2026-08-13
+    status: registered
+  - name: Model Fallback Semantics (DIA-189)
+    description: 'Conspect establishing that OpenCode native AgentConfig.model is a
+      single model string (provider/model-id) with no array or fallback semantics;
+      model-array fallback is an oh-my-opencode-slim (OMO) runtime extension storing
+      ordered fallback chains with a foreground-fallback manager that auto-switches
+      on rate-limit/quota/error/session-status signals. Documents that retry_on_empty
+      is council-only, not global, so silent-empty-without-error may not trigger
+      fallback for non-council agents. Practical consequence: adding
+      github-copilot/gpt-5.3-codex as the second ai-specialist model-array entry
+      yields automatic fallback when qwen3.7-plus fails with error signals (the
+      2026-08-17 failures were session errors, DIA-099 signal D2).'
+    path: knowledge/res029-model-fallback-semantics/res029-model-fallback-semantics-conspect.md
+    created: 2026-08-17
+  - name: OpenCode Go usage-limits + model pricing refresh (DIA-208)
+    description: 'Conspect refreshing OpenCode Go usage limits and per-model pricing as of 2026-08-17 (5 archived sources, triple-source agreement: official docs opencode.ai/docs/go, models.dev API, julien.ai community tracker snapshot 10:08 UTC). KEY DELTAS vs res013/res021 (2026-08-12/13): deepseek-v4-flash price rose $0.14/$0.28 -> $0.22/$0.66 off-peak / $0.44/$1.32 peak (+57-371%), monthly request budget collapsed 158,150 -> 18,900 (-88%), usage bucket $60 -> $15, 2x promo REMOVED; mimo-v2.5 (non-pro) is the NEW volume king at $0.14/$0.28, 150,400 req/mo, $60 bucket (same price point as archived Flash, 8x budget); mimo-v2.5-pro UNCHANGED ($0.435/$0.87, 16,300 req/mo, $15 bucket); mimo-v2.5-free NOT on Go (Zen provider only); other candidates Qwen3.7 Plus $0.40/$1.60 21,600 / Hy3 $0.14/$0.58 21,500 / MiniMax M3 halved $0.30/$1.20 / GPT-5.6 Luna $0.20/$1.20 (2x promo) 10,250 / Kimi K2.7 Code $0.95/$4.00 6,750; nemotron NOT on Go; availability churn GLM-5.3 added, MiniMax-M2.5/Kimi K2.5/GLM-5 deprecated, DeepSeek V4 Pro price corrected (res013 transcription collision with mimo-v2.5-pro). Drove DIA-208: developer-approved Variant A full cebula swap to opencode-go/mimo-v2.5 (7 lanes) + model-registry.yaml refresh. Cross-references res013/021/024/029.'
+    path: knowledge/res030-opencode-go-usage-limits-mimo-v25/res030-opencode-go-usage-limits-mimo-v25-conspect.md
+    created: 2026-08-17
+  - name: Agent harness and workflow execution (tch001)
+    description: 'Teaching conspect (Ukrainian) explaining how the poetry-platform
+      agent harness executes workflows: 6-layer mental model (OpenCode runtime, OMO
+      orchestrator, plugins, gates, observability, process rules) + dispatch lifecycle.
+      Detailed DIA-063 section-10 ticket gate walkthrough (scope -> exempt -> Path
+      1/2/3 correlation -> hard-throw/warn-allow, strict tri-state explicit-id
+      precedence), other gates (section-10 edit-gate, DIA-094 docker gate, A5, S2,
+      merge-gate R3), observability (registry.jsonl, messages.jsonl, log_decision,
+      context_usage, handoff slots DIA-085/DIA-124), workflow chain (openspec-plan ->
+      coder RED/GREEN instance separation DIA-175 -> reviewer two-axis -> fix loop max
+      2 cycles -> memory-manager), practice-protected zones, ticket ledger. 4 mermaid
+      diagrams (architecture layers, ticket-gate decision tree, dispatch sequence,
+      workflow chain). Worked example: DIA-194 hard-block case + counterexample.'
+    path: knowledge/tch001-agent-harness/tch001-agent-harness-conspect.md
+    created: 2026-08-17
+  - name: Intercellular Communication (biological signal taxonomy + event-driven orchestration patterns)
+    description: Conspect on intercellular communication mechanisms and their mapping
+      to event-driven orchestration patterns in AI agent systems.
+    path: knowledge/archive/res031-intercellular-communication/res031-intercellular-communication-conspect.md
+    status: archived
+    created: 2026-08-17
+  - name: Bio-mechanisms Architecture Patterns (biological system mechanisms as software design principles)
+    description: Conspect on biological system mechanisms and their mapping to software
+      architecture patterns and design principles.
+    path: knowledge/archive/res032-bio-mechanisms-architecture-patterns/res032-bio-mechanisms-architecture-patterns-conspect.md
+    status: archived
+    created: 2026-08-17
+  - name: Agent Determinism (state machines, contracts, message passing, circuit breakers,
+      formal verification)
+    description: Conspect on agent determinism patterns including state machines, contracts,
+      message passing, circuit breakers, and formal verification.
+    path: knowledge/archive/res033-agent-determinism/res033-agent-determinism-conspect.md
+    status: archived
+    created: 2026-08-17
+  - name: Readable Session Identifiers (DIA-189)
+    description: 'Conspect evaluating human-readable session ID approaches for OpenCode
+      terminal naming (10 archived sources). Covers Docker adjective_surname (35K combos),
+      unique-names-generator (npm, 14K dependents, 0 deps, seed support, 50M+ combos
+      -- RECOMMENDED), humanhash (deterministic but uuid dependency), moniker (unmaintained),
+      didyoumean (not ID generator), random-word-slugs (no seed). EBDV: Variant A
+      unique-names-generator with seed (deterministic, storage-free, high namespace);
+      Variant B Docker-style custom wordlist (zero-dep but 35K collision risk); Variant
+      C datetime+random (stdlib, less readable); Variant D humanhash (rejected: dependency+length);
+      Variant E status quo hex (rejected: not memorable). Recommendation: adopt unique-names-generator
+      with seed for deterministic session labels like big-donkey, focused-turing.'
+    path: knowledge/res034-readable-session-ids/res034-readable-session-ids-conspect.md
+    created: '2026-08-20'
+  - name: Capability-Based Authorization for Multi-Agent Workflows
+    description: 'Conspect synthesizing capability-based authorization patterns to
+      solve chicken-and-egg problems in multi-agent ticket gates (16 archived sources
+      from 14 distinct origins). Covers: capability-based security fundamentals (Wikipedia
+      + academic papers), UCAN/decentralized capability tokens (specification + implementations),
+      stamp/endorsement patterns, bootstrap authorization, key-based access control,
+      event-driven authorization. Pattern catalog: 10 authorization patterns with pros/cons/comparison
+      matrix. Recommendation: Adopt HMAC Stateless Capability (Pattern 1) + TTL Auto-Expiry
+      (Pattern 8) -- pragmatic formalization of existing log_decision + session handoff
+      system. ~200 lines TypeScript, zero new dependencies. Skip UCAN/ASP (over-engineered
+      for single-system deployment). Implementation sketch maps to existing delegation-observer
+      infrastructure.'
+    path: knowledge/res035-capability-authorization/res035-capability-authorization-conspect.md
+    created: '2026-08-20'
+  - name: res036 - DCP vs Headroom comparison
+    description: 'DCP vs Headroom comparison; verdict: DCP already removed from active config; Headroom NOT a cache-friendlier replacement - its cache-mode drifts the frozen prefix on the opencode-go/DeepSeek path per DIA-183 B1 spike.'
+    path: knowledge/res036-dcp-vs-headroom/res036-dcp-vs-headroom-conspect.md
+    created: '2026-08-21'
+  - name: res037 - Headroom review and video validation
+    description: 'Community review of Headroom is 5/6 accurate; the 60-95% figure is JSON-data-scoped not coding-agent; two YouTube videos engage token-compression axis only, neither confirm nor contradict the cache-drift finding.'
+    path: knowledge/res037-headroom-review-video-validation/res037-headroom-review-video-validation-conspect.md
+    created: '2026-08-21'
+  - name: res038 - Caveman output-token economy
+    description: 'Caveman terse-output persona: JetBrains measured 8.5% not 65% on agentic coding; no quality loss; redundant with the project already-active ponytail level:full; do NOT adopt as separate plugin.'
+    path: knowledge/res038-caveman-output-token-economy/res038-caveman-output-token-economy-conspect.md
+    created: '2026-08-21'
+  - name: OpenCode Runtime Config Introspection (res039)
+    description: 'Conspect synthesizing LLM-free OpenCode runtime config introspection for a make test-runtime-config target: opencode debug config/agent/paths primitives, clean-HOME + OPENCODE_CONFIG* overrides, effective preset/model/plugin proof, verified-local vs docs-only distinction (session-analytics.sh guard pattern, opencode-docker README, Makefile), version/schema caveats, and excluded archived sources.'
+    path: knowledge/res039-opencode-runtime-config-introspection/res039-opencode-runtime-config-introspection-conspect.md
+    created: '2026-08-21'
+  - name: Context Thresholds, Auto-Compaction, and Session Handoff Strategy for Orchestrator Model Choices (res1)
+    description: Research conspect synthesizing 14 archived sources on context rot mechanics, auto-compaction thresholds across coding agents (Gemini ~50%, Roo 86-92%, Claude Code ~89%, Codex ~90%, OpenCode 96-99%), compaction failure modes, session-handoff strategy, and orchestrator model-choice implications (reasoning vs loop-driving; Chinese-model context landscape). Local audit operational findings (DIA-260822-medh, recorded as facts not policy). (1) A fixed 15% forced self-rerun lacks external support and conflicts with native auto-compaction mechanics. (2) Semantic handoffs retain value for milestones, degradation, crises, and manual stops. (3) The documented 50/80/95 context-pressure mechanism is currently nonfunctional because getContextPressure returns zero.
+    path: knowledge/res1-context-handoff-orchestration-strategy/res1-context-handoff-orchestration-strategy-conspect.md
+    created: 2026-08-22
+  - name: Rootless Docker vs Podman UID Mapping Blocker and Portable Remediation (res040)
+    description: 'Research conspect synthesizing 11 archived sources (3 Phase A capture
+      failures substituted) on the rootless Docker vs Podman UID-mapping blocker
+      for portable dev workflows. Verified blocker: rootless Docker maps container
+      UID 0 to the invoking host UID and UID n>=1 to subuid+(n-1), so host-owned
+      bind mounts appear root-owned inside the container and non-root container
+      processes cannot write them; rootful userns-remap is not a substitute (no
+      keep-id semantics). Podman keep-id maps host UID:GID to identical in-container
+      values, preserving non-root Git writes and secret readability. Portable remediation:
+      Docker rejects keep-id as a --userns value, so set PODMAN_USERNS=keep-id (Docker
+      ignores it, Podman honors it) for a single no-op-on-Docker config; Docker-only
+      fix is user: "${UID:-1000}:${GID:-1000}". Caveats: keep-id breaks images with
+      no USER set and root container users; named volumes translate ownership that
+      bind mounts lack on Linux; macOS Docker Desktop fakes ownership so always run
+      --user to match Linux/CI.'
+    path: knowledge/res040-docker-rootless-uid-compatibility/res040-docker-rootless-uid-compatibility-conspect.md
+    created: 2026-08-22
+  - name: OpenCode Go Promo Benchmarks (res041)
+    description: 'Conspect on the OpenCode Go promo structure (the 6x multiplier) and usage caps, a cheapest-model comparison across the promo trio, and the Muse Spark privacy tradeoff (meta-training on prompts/completions, region-limited). Informs the promo preset routing in DIA-260828-qtsi; Muse Spark is excluded from the promo preset pending privacy review.'
+    path: knowledge/res041-opencode-go-promo-benchmarks/res041-opencode-go-promo-benchmarks-conspect.md
+    created: 2026-08-28
   analyses:
-    - name: "OpenSpec Workflow Integration in AI Agent Pipelines"
-      description: "Analysis of the proposed @oracle → @openspec-plan → @fixer workflow split. Verdict: conceptually sound but needs 5 boundary fixes — design.md scope redefinition, .sdd/ creation with seed content, agent prompt updates, escalation path, and OpenSpec config.yaml."
-      path: "knowledge/ana001-openspec-workflow-analysis/ana001-openspec-workflow-analysis-report.md"
-      created: 2026-07-13
-  specs: []
-  architectures: []
+  - name: Agent Alignment Audit
+    description: "MECE inventory of all agent definitions across OMO Slim, native\
+      \ OpenCode, project config, and AGENTS.md. Finds 4 critical issues (dual dispatch\
+      \ hierarchy, 2 ghost agents, architector missing model, analyzer\u2194council\
+      \ contradiction), 5 major issues (naming mismatches, dual prompts, orphan agents),\
+      \ and 4 minor issues. 20 unique agents across all files, 2 ghosts, 4 orphans."
+    path: knowledge/archive/ana002-agent-alignment-audit/ana002-agent-alignment-audit-report.md
+    status: archived
+    created: 2026-07-17
+  - name: Spec Authoring Philosophy Audit
+    description: "Audit of whether the 'interview-first / grill-the-developer' spec\
+      \ authoring philosophy is durably embedded in OpenCode/OMO/OpenSpec config.\
+      \ Verdict: 52/100 \u2014 embedded as intent, not enforcement. 4 hard bypass\
+      \ paths (/opsx-propose, /opsx-new, /tdd-cycle, skills:['*']) outrank 4 soft\
+      \ ALIGNED layers (boss_append, @openspec-plan, practice-protected, AGENTS.md\
+      \ \xA72). Root cause: philosophy lives in prompt append + convention while hard\
+      \ paths bypass it; the boss.ts fork patch was written but never built. 3-phase\
+      \ remediation plan: Phase 1 kill one-shot defaults (~2h, score \u219275), Phase\
+      \ 2 structural gate via fork/build, Phase 3 port AIHero grill protocol into\
+      \ @openspec-plan."
+    path: knowledge/archive/ana004-spec-authoring-philosophy/ana004-spec-authoring-philosophy-report.md
+    status: archived
+    created: 2026-08-02
+  - name: False-Delegation Incidents & Tickets-System Connectivity Audit
+    description: "Forensic analysis of 2026-08-04 dev-environment audit campaign.\
+      \ 3 confirmed false-delegation incidents (ai--1, cod-4, cod-6) where orchestrator\
+      \ claimed dispatch but task() was dropped due to batching with edit() calls\
+      \ (11 dangling JSONL result_refs, 25.6% gap rate). Tickets-system audit: 4 Major\
+      \ connectivity gaps (no session_id/lane_id/files_touched/research_artifacts\
+      \ in ticket template). Recommendations: pure-task() messages, DISPATCHED\u2192\
+      RUNNING assertion, session_id + lane_id + files_touched fields."
+    path: knowledge/archive/ana005-false-delegation-ticket-audit/ana005-false-delegation-ticket-audit-report.md
+    status: archived
+    created: 2026-08-04
+  - name: "GitHub Issues vs Local DIA Ledger \u2014 Architecture Decision"
+    description: 'Comparative analysis of GitHub Issues integration vs local DIA ledger.
+      Verdict: local DIA ledger is architecturally correct (zero network dependency,
+      zero auth surface, native evidence citations, simple plugin architecture). GitHub
+      Issues would add 70-132h migration cost, broken evidence citations, network
+      dependency, and auth complexity for zero user-visible benefit. Read-only export
+      is the right move if web visibility is ever needed.'
+    path: knowledge/archive/ana006-issue-tracker-comparison/ana006-issue-tracker-comparison-report.md
+    status: archived
+    created: 2026-08-06
+  - name: Silent Session Logging
+    description: "Analysis of orchestrator session-log pollution (m0001). Verdict:\
+      \ Option E (hybrid \u2014 plugin jsonl + derived md + log_decision tool) scores\
+      \ 10/10. Re-grounded 2026-08-06 against conspect res002 (10 MLA-cited sources).\
+      \ Plugin fs writes proven silent (registry.jsonl 634 rows, 0 pollution); dual-maintained\
+      \ messages.md + messages.jsonl is an anti-pattern (drift rows 1-131, double\
+      \ token cost, 1,170 visible edit tool calls per 585-row session). Dual-write\
+      \ DROPPED (row 589): no second writer ever runs; Phase 5 validates completeness\
+      \ via messages.jsonl \u2194 registry.jsonl cross-check. Target: messages.jsonl\
+      \ canonical NDJSON, messages.md derived on-demand view, plugin sole writer,\
+      \ log_decision tool for semantic events, SQLite unchanged. 5-phase migration\
+      \ 44-68h; pollution reduction 100% \u2192 1%; Phases 1/3/4 require \xA710 routing.\
+      \ Option D (SQLite-only) rejected 3/10."
+    path: knowledge/ana007-session-log-silencing/ana007-session-log-silencing-report.md
+    created: 2026-08-06
+  - name: P5 jsonl-Cross-Check Readiness
+    description: "Analysis of why the P5 registry\u2194messages cross-check gate computed\
+      \ 3.35% on the 2026-08-06 corpus. Root cause: the universe was ALL registry\
+      \ task_success rows (209), of which 202 (96.7%) are pre-plugin legacy rows (seq\
+      \ 1-682, 08-04/05) written before the messages.jsonl plugin writer existed \u2014\
+      \ structurally unmatchable (no gen_ai.agent.id in their messages rows). Plugin\
+      \ itself healthy (7/7 smoke = 100%). Owner-verified correction: writer==plugin\
+      \ filter is a NO-OP (all 704 registry rows already carry writer:plugin); the\
+      \ only reliable discriminator is TIMESTAMP. Owner-approved fix: timestamp filter\
+      \ with --since default 2026-08-06T19:30:00Z (plugin messages-writer activation;\
+      \ first plugin row 19:30:20.746Z) + report-split diagnostic (legacy vs in-universe\
+      \ counts). Verified in implementing lane: real-data gate 8/8 = 100% PASS."
+    path: knowledge/archive/ana008-crosscheck-readiness/ana008-crosscheck-readiness-report.md
+    status: archived
+    created: 2026-08-06
+  - name: 'DIA-067 Container Strategy Analysis: trafilatura Availability'
+    description: "Multi-criteria decision analysis of 6 container strategies (bake\
+      \ into image, venv per run, uv tool install, dedicated tool container, mise\
+      \ Python, apt package) for trafilatura availability in the dev container. Decision:\
+      \ Option C (uv tool install) recommended \u2014 highest weighted score 9.0/10,\
+      \ zero per-run latency, deterministic version pinning via TRAFILATURA_VERSION\
+      \ ARG, no --break-system-packages needed, aligns with all 5 established patterns\
+      \ (build-time provisioning, uv for Python tooling, PEP668 handling, one-container\
+      \ architecture, test-infra gates). Option A (bake into dev image, 8.7/10) is\
+      \ the fallback. Ticket: DIA-067."
+    path: knowledge/archive/ana001-docker-trafilatura-strategy/ana001-docker-trafilatura-strategy-report.md
+    status: archived
+    created: 2026-08-08
+  - name: Telemetry Re-Entrancy Audit
+    description: 'Root-cause audit of opencode-telemetry@0.1.19 and opencode-token-monitor@0.5.0
+      for recursive telemetry and re-entrancy failure modes. Finds no active infinite
+      loops but identifies P1-P4 guard gaps: telemetry lacks P1/P2/P3 (has P4 message
+      dedup but loses state on restart); token-monitor lacks P2/P3/P4 (has P1 session-level
+      in-flight guard but no message dedup); both lack P2 context suppression. opencode-subagent-output
+      not loaded at runtime. Recommendations: (1) add P2 context suppression to both
+      plugins, (2) persist telemetry''s seenMessageIds to survive restarts, (3) add
+      message dedup to token-monitor, (4) isolate telemetry I/O in separate process,
+      (5) fix telemetry''s registerCommands path portability (DIA-068). Mermaid systems
+      map and P1-P4 classification table included.'
+    path: knowledge/archive/ana009-telemetry-reentrancy-audit/ana009-telemetry-reentrancy-audit-report.md
+    status: archived
+    created: 2026-08-08
+  - name: "Post-Cherry-Pick Audit (ana019-post-cherry-pick-audit)"
+    description: "10-point audit of the omo-slim-changes branch after cherry-pick. 7 PASS, 2 WARN, 2 FAIL. Critical issues: openspec-plan edit permission is flat deny (should scope to openspec/), pnpm-lock.yaml stale (typescript-eslint@^8.67.0 missing). Warnings: validate-agent-names.sh script missing, delegation-observer plugin path double-resolves."
+    path: "knowledge/archive/ana019-post-cherry-pick-audit/ana019-post-cherry-pick-audit-report.md"
+    created: 2026-08-11
+  - name: "Post-Rebase Comprehensive Audit (ana020-post-rebase-audit)"
+    description: "19-point audit after rebase onto origin/omo-slim-changes (56cc42b). 6 rebased commits d026a52..f87df23. 13 PASS, 3 WARN, 3 FAIL. HIGH: memory-shelf.yaml YAML parse error (line 154 indentation break), 3 dangling skill refs (teaching, mermaid-diagramming, console-charting), dangling shelf path (ai-self-improvement-auditor-and-cleanup dir missing). MEDIUM: explore/general in opencode.jsonc but not disabled anywhere despite AGENTS.md saying disabled. LOW: finishing-a-development-branch skill duplicate, conspecter missing explicit task deny. Rebase itself clean (no conflict markers, validate-agent-names.sh 22/22, OMO dist up-to-date, pnpm-lock has typescript-eslint@8.67.0)."
+    path: "knowledge/archive/ana020-post-rebase-audit/ana020-post-rebase-audit-report.md"
+    created: 2026-08-11
+  - name: "Artifacts Folder Audit (DIA-084)"
+    description: "Full audit of all artifact folders (knowledge/, memory-shelf, learnings/, session/, openspec/, .sdd/, .tss/). Finds 3 naming violations (ana-post-*, context7-docs), 1 dangling shelf ref (ai-self-improvement archived path), 4 status mismatches (shelf vs proposal.md), 10 unregistered openspec changes, 1 orphan directory (res003-tui-corruption-stdout), 1 committed-but-ignored source file, 1 empty change scaffold (dia-071). Skill-location risk: 13 global-only skills would fail outside this user home. 5 safe-to-apply + 9 needs-developer-decision recommendations."
+    path: "knowledge/archive/ana010-artifacts-folder-audit/ana010-artifacts-folder-audit-report.md"
+    created: 2026-08-11
+  - name: "Parallel Orchestrator Sessions Coordination (DIA-085)"
+    description: "Coordination model for 2+ parallel orchestrator sessions on top of DIA-073 worktree isolation. File-based claim + heartbeat protocol: claims live in .opencode/session/claims/<ticket>.claim.json (atomic write via rename), heartbeat every 5 min, stale threshold 15 min, dead threshold 60 min. Conflict detection via pre-claim scan of active claims (same ticket, overlapping files_touched, branch collision). Resume-after-stop procedure: liveness verify via registry.jsonl -> inspect dead worktree -> rescue uncommitted changes via git stash -> supersede stale claim in claims/history/ -> write new claim. Worked example walks two sessions (A alive, B stops at T+11 via DIA-098 class C3, A reclaims at T+66). Do-now: ~14h of shell helpers (claim-ticket.sh, heartbeat.sh, list-claims.sh, reclaim-ticket.sh), zero new dependencies. Rejected: lock server, shared SQLite DB, supervisor process, distributed consensus (overhead-disproportionate per DIA-086 SCOPE GUARD). Cross-references DIA-073/098/100/061/086."
+    path: "knowledge/ana011-parallel-sessions-coordination/ana011-parallel-sessions-coordination-report.md"
+    created: 2026-08-11
+  - name: "Scientific-Workflow Proposal (DIA-086)"
+    description: "Internal mapping pass of the 50-source scientific-methodology survey (res012 conspect) onto existing project mechanisms. Gap analysis: 6 of 10 survey practices already mapped (novelty checks via research-pipeline + DIA-072, experiment logs via delegation-observer, independent reviewer via two-axis @reviewer, provenance via DIA-072 Archive-Before-Claim, test-driven via tdd-craftsman, uncertainty via researcher confidence). 2 structural gaps confirmed: (A) falsification/'break your own claim' not present as distinct step (review-re-verify only verifies prior findings), (B) competing-hypothesis comparison not present in analysis reports. 5 mandatory lightweight additions proposed (<12h total): M1 claim/evidence/confidence template for lane reports, M2 experiment-log header convention, M3 'break your claim' section in @reviewer two-axis, M4 explicit hypothesis line in openspec-plan Socratic interviews, M5 frozen lite eval set (20-50 tasks) via make eval-lite. 6 optional/rejected per SCOPE GUARD: full autonomous research pipelines (AI Scientist/AutoSci/DASES), POPPER statistical machinery, dogmatic enforced TDD on exploratory code, full novelty checks, failure-mode ledger, competing-hypothesis matrix. Before/after comparison table for interview-spec-implement-review-persist-eval stages. All proposals MLA-cited to archived sources in knowledge/res012-scientific-methodology/sources/."
+    path: "knowledge/archive/ana012-scientific-workflow-proposal/ana012-scientific-workflow-proposal-report.md"
+    created: 2026-08-11
+  - name: "DIA-097..105 Parallel Dev-Infra Batch Triage"
+    description: 'Structured triage of 9 OPEN tickets (DIA-097..DIA-105) from the 2026-08-11 parallel dev-infra batch. Classification: 1 AUTONOMOUS-FIXABLE (DIA-100 worktrees), 6 DECISION-NEEDED (097 orchestrator role, 098 stall detection, 102 spec workflow, 103 interview completeness, 104 grilling gate, 105 formatter hooks), 2 DEFER (099 blocked by 098, 101 blocked by 097+100). Effort/impact ranking across all 9, dependency graph (Mermaid), 17 deferred developer decisions enumerated (3 practice-protected, 14 Section-10 policy). Highest-risk cluster: 097->100->101 triangle. Highest-ROI near-autonomous work: 104 (S effort, builds on ana004) and 105 (bounded, clear precedent). Report only -- no implementation.'
+    path: "knowledge/archive/ana013-dia097-105-triage/ana013-dia097-105-triage-report.md"
+    created: 2026-08-12
+  - name: "DIA-116 Rung-3 Live Benchmark Protocol"
+    description: 'Benchmark protocol comparing three Rung-3 candidates (kimi-k3, deepseek-v4-pro, mimo-v2.5-pro) on three real in-repo tasks: (1) implement debounce utility in phonetics-core, (2) implement ring-buffer data structure in phonetics-core, (3) add timeout support to eval-lite.sh. Each task has prepared test files with clear pass/fail criteria. Execution via dedicated temporary benchmark agent variants (bench-kimi-k3, bench-deepseek-v4-pro, bench-mimo-v25-pro) with git worktree isolation. Request budget: 120 requests estimated for kimi-k3 (75% headroom within 490 req/mo cap). Verdict criteria: pass rate primary, qualitative score and efficiency tiebreakers. Includes full test specifications (Appendices A/B/C) and execution checklist. - approach CANCELLED by developer directive 2026-08-12 (no self-benchmarking); superseded by res017 authoritative evidence'
+    path: "knowledge/archive/ana014-rung3-benchmark-protocol/ana014-rung3-benchmark-protocol-report.md"
+    created: 2026-08-12
+  - name: "DIA-113 Workflow-Adherence + Autonomy Audit (Analyzer Slice)"
+    description: "Analyzer-slice completion of DIA-113 (ai--1 covered #4 autonomy-config mapping C7/C8; this slice covers #1 workflow enumeration, #2 developer-as-owner audit, #3 verification-loop quantification, #6 gap matrix + recommendations). 12 workflows enumerated with adherence rating (7 STRONG, 2 WEAK, 2 MODERATE, 1 MISSING). Top 3 gaps: G1 reviewer-disposition silent bypass (81% of reviewer dispatches do not route through pending-owner), G2 re-verify evidence rate 51% on 45 CLOSED tickets (22% have empty placeholder), G3 interview-first gate bypass rate ~30% on implementation tickets without skip-spec justification. Verification-loop quantification: 45 CLOSED tickets audited, 100% have Re-verify section (template-enforced), 51% have concrete evidence (exit codes/PASS/FAIL), 27% weak, 22% empty placeholder; 2-cycle cap respected (0 violations); 93% of tickets closed after re-review. 7 prioritized recommendations, each traced to a best-practice source, with section-10 routing flag for config changes (R1, R4 are section-10-routable). Developer-ownership audit: 89 pending-owner events across 2861-event session log; practice-protected zones PP1/PP5/PP6/PP7 STRONG/MODERATE; PP2 (TDD edge-cases) and PP3 (@architector flags) WEAK/NOT ENFORCED. Cross-references ai--1 C7/C8 findings (no config drift, --auto canonical escape hatch)."
+    path: "knowledge/ana015-workflow-adherence-audit/ana015-workflow-adherence-audit-report.md"
+    created: 2026-08-13
+  - name: "DIA-098 Session Stop-Point Correlation and Stall-Detection Design"
+    description: "Read-only session-evidence analysis (3324 registry rows, 2867 message rows, 1108 unique sessions, 2026-08-04..13). 8 stop-point classes enumerated (SP1-SP8): normal completion (996), crash/cancellation (17), false-positive failed from multi-idle (3), silent failure alert (30), gate-blocked (30), true orphan (2), recovered fail (12), auxiliary-only (69). 7 failure-class taxonomy (F1-F7): permission-ask stall, silent-empty result, tool-error loop, gate-blocked, crash/cancellation, orphaned/dangling, normal completion. Key findings: F1 error field is [object Object] for all 51 session_failed (uninformative, plugin bug); F2 48.8% of failed sessions are false positives from multi-idle anomaly; F3 permission stalls are invisible in registry (tracked only in ticker.json). Stall-detection signal design: primary signal (b) in-flight dangling row with periodic sweep every 60s, threshold 10min subagent / 20min orchestrator; fallback signal (c) permission-ask timeout 5min via needs-input-observer ENTER/CLEAR + POST /session/:id/permissions/:id auto-reject. Complete-vs-interrupted classifier pseudocode with validation (1003/1108 sessions classified, 90.5% coverage). Auto-resume design: NO automatic resume recommended (fail-fast + re-route instead), exception is permission-stall auto-reject. 6 prioritized recommendations (R1-R6), 5 of 6 require section-10 routing (plugin edits). Integration points: needs-input-observer (permission hooks), delegation-observer (registry writer + checkSilentFailures). Cross-references DIA-099, DIA-126(b), ana011, ana015, DIA-130, dia-redispatch-cycle."
+    path: "knowledge/ana016-stop-point-stall-analysis/ana016-stop-point-stall-analysis-report.md"
+    created: 2026-08-13
+  - name: "DIA-102 Specification Workflow Reference Synthesis"
+    description: 'Synthesis of existing analyses (ana004 spec-authoring philosophy, res001 openspec/sdd reconciliation, ana010 artifacts folder audit) into a single spec-workflow reference. Maps 20 artifact types across 3 storage layers (L0 CONTEXT.md, L1 .sdd/, L3 openspec/). Enumerates 15 active openspec changes (10 unregistered in shelf), 2 .sdd/ docs (0 in shelf.architectures), 2 archived changes, empty openspec/specs/. Lifecycle state machines for feature specs (interview->propose->implement->archive), ADR documents (proposed->accepted->deprecated), and tickets (OPEN->CLOSED). Gap matrix: 12 gaps identified (3 HIGH: 10 unregistered changes, empty specs/, missing .openspec.yaml status fields; 5 MEDIUM: no commit->spec linkage, shelf.architectures empty, CONTEXT.md near-empty, 4 status mismatches, no spec-discovery script; 4 LOW: no ADR deprecation enforcement, .tss/ missing, dangling shelf ref, empty dia-071 scaffold). 12 prioritized recommendations (R1-R12, ~27h total). Cross-references ana004/ana010/res001/DIA-102.'
+    path: "knowledge/ana017-spec-workflow-reference/ana017-spec-workflow-reference-report.md"
+    created: 2026-08-13
+  - name: "DIA-135 Research-Lane Optimization (Model/Variant + Fetch-Tool Design)"
+    description: 'EBDV synthesis of the DIA-135 research conspect (res024) and the
+      ai-specialist section-10 gate variants for the researcher + conspecter lanes.
+      Researcher R2 recommended (KEEP deepseek-v4-flash, temp 0.7->0.3, GAIN bash
+      allow-list curl/wget/trafilatura/crwl + edit knowledge/*). Conspecter C2
+      recommended (KEEP deepseek-v4-flash, add variant low + temp 0.1, LOSE all bash
+      post-D7). Rejected R3 (qwen3.7-plus swap, 2.9x cost, reasoning uplift wasted
+      on retrieval lane) and C3 (gpt-5-mini swap, burns Copilot credits shared with
+      coder-escalated/reviewer/ai-auditor). Conflict resolution: researcher lane-fit
+      finding suggesting deepseek-v4-pro/qwen3.7-plus for conspecter EXPLICITLY
+      REJECTED in favor of C2 -- synthesis is citation-formatting (not reasoning),
+      flash 1M ctx is sufficient, temp 0.1 matches sibling artifact-producer pattern,
+      no model-family conflict exists here. Fetch-tool design: 3-tier chain by URL
+      class (npm JSON API -> trafilatura -> crwl headless as last-resort). DIA-129
+      crwl-fragility risk flagged as hard constraint (never first attempt, cache per
+      URL-hash within session). Finding: no provider publishes literal req/mo quota
+      (Go caps are dollar-valued); all req/mo figures in model registry must be
+      labeled ESTIMATE. Cross-lane cost check: 5 model families across 7 lanes
+      (DeepSeek, Codex, Qwen, Kimi, Luna); Copilot credits preserved for escalation
+      lanes. 8 numbered conclusions suitable for verbatim quoting from the DIA-135
+      ticket. Cross-references res013/res016/res017/res019/res024, in-conversation
+      ai-specialist gate (2026-08-13).'
+    path: "knowledge/archive/ana018-research-lane-optimization/ana018-research-lane-optimization-report.md"
+    created: 2026-08-13
+    status: archived
+  - name: "Agent Instruction Files Audit (DIA-157)"
+    description: "Cross-reference audit of 50 instruction-bearing files (AGENTS.md, .opencode/agents/*.md, .opencode/skills/*/SKILL.md, practice-protected.md, opencode.jsonc, oh-my-opencode-slim.jsonc, OMO *.md appendices, 11 TS agent factories, NEXT-RUN.md, HANDOFF.md template). 2 Critical findings: (F1) orchestrator preset prompt references non-existent HANDOFF.md in all 3 presets -- runtime file is .opencode/session/current-handoff.json; (F2) phantom AGENTS.md §10 referenced from orchestrator_append.md + NEXT-RUN.md + all 3 preset prompts but missing from actual AGENTS.md. 4 High: (F3) dead boss_append.md (80% duplicate of orchestrator_append.md); (F4) reviewer.ts factory prompt != reviewer.md two-axis intent; (F5) researcher.ts factory prompt lacks PERSISTENCE_RECOMMENDED flag the orchestrator depends on; (F6) byte-identical orchestrator/coder/researcher prompts duplicated across 3 presets (drift-guaranteed). 6 Medium: (F7) AGENTS.md §9 table readability for 6 disabled aliases; (F8) memory-manager.md emoji violates DIA-079; (F9) analyzer has 3 overlapping prompt sources; (F10) stale .tss/ placeholder in AGENTS.md; (F11) boss.ts AGENT_DESCRIPTIONS missing 14 agents undocumented; (F12) NEXT-RUN.md HANDOFF.md vs current-handoff.json name ambiguity; (F13) orchestrator_append.md ~80% overlaps AGENTS.md §2. 6 Low. Cross-reference matrix of 18 agents across 5 source categories. Remediation ~14h."
+    path: "knowledge/ana016-agent-instruction-audit/ana016-agent-instruction-audit-report.md"
+    created: 2026-08-12
+  - name: "Hook Test Coverage Audit (DIA-158)"
+
+    description: "Audit of pre-commit/pre-push hook test coverage. 3 CRITICAL findings:\
+      \ (C1) turbo.json `test` task `inputs` field masks source-code regressions (cached\
+      \ test result returned when only src/** changes, no test files touched — active\
+      \ misconfiguration); (C2) `make test-shell` (100+ bats tests for all shell dev-infra\
+      \ artifacts including the hook scripts themselves) is NOT wired into any hook; (C3)\
+      \ `make test-config` (8 OpenCode config validators) is NOT wired into any hook. 6 HIGH:\
+      \ (H1) no timeout on turbo invocations, hook can hang indefinitely; (H2) no test for\
+      \ pnpm verify:js multi-step failure chain; (H3) turbo lint/typecheck empty config means\
+      \ workspaces without lint scripts silently skip; (H4) docker-daemon-down path not in bats\
+      \ matrix; (H5) verify-python.bats missing 4 branches (pytest fail, 2nd package fail, uv\
+      \ missing, ruff-format --check fail); (H6) no test for lint-staged config validity. 7 MEDIUM,\
+      \ 5 LOW. Gate map: pre-commit runs lint-staged (eslint --fix + prettier + ruff + bash -n),\
+      \ pre-push runs pnpm verify:format + verify:js (turbo lint+typecheck) + verify:js-tests\
+      \ (turbo test) + verify:python (ruff+pytest x2). Bats coverage: 24 tests across 4 hook-related\
+      \ bats files (verify-pre-commit 7, verify-pre-push 7, verify-python 4, lint-python-files 6).\
+      \ Top-3 fixes ranked by impact/effort: C1 (5 min), C2 (2h), C3 (2h) = ~4h total to close\
+      \ the two largest coverage holes."
+    path: "knowledge/ana017-hook-test-coverage/ana017-hook-test-coverage-report.md"
+    created: 2026-08-12
+  - name: "Ponytail Test Suite Audit (ana003)"
+    description: "Ponytail audit of the full test suite across 30 test files: 37 findings
+      total - 3 errors, 6 repetition, 9 gaps, 4 extra code, 4 dangerous spots, 6 smells,
+      5 ponytail recommendations."
+    path: knowledge/archive/ana003-tests-ponytail-audit/ana003-tests-ponytail-audit-report.md
+    status: archived
+    created: 2026-08-12
+  - id: ana015
+    name: verify-pre-push recursion fork-bomb root-cause analysis (DIA-161 regression)
+    title: verify-pre-push recursion fork-bomb root-cause analysis - DIA-161 regression
+    description: "Root-cause analysis of the recursion fork-bomb regression in scripts/verify-pre-push.sh. Introduced by commit 49d587a (DIA-161) wiring `make test-shell` into the pre-push script; root cause is absence of a re-entrancy guard in the script itself (hostname==poetry-dev branch re-enters the suite). Test-side hostname shim (commit bb18099, DIA-071) is necessary-but-not-sufficient defense (covers bats only, not manual/husky invocations). ~18s cycle, 6+ levels deep, dozens of /tmp/bats-run-* dirs, live chains 1.5h. Recommends minimal env-flag propagation guard (VERIFY_PRE_PUSH_RUNNING) with a one-line test-side unset to preserve the direct-run test. 5 lines added, zero tests broken."
+    path: "knowledge/archive/ana015-recursion-fork-bomb/ana015-recursion-fork-bomb-report.md"
+    created: 2026-08-12
+    date: 2026-08-12
+    task_ref: DIA-165
+    status: completed
+  - name: Memory Shelf Hygiene Audit (DIA-178)
+    description: "Hygiene audit of the memory shelf and .opencode/memory/lessons.md. 54
+      entries audited; duplicate lesson ID L20260812-003 found and renumbered to -005; naming violations present
+      (ana01, ana-post-*); ana014-rung3-benchmark-protocol flagged as ARCHIVE candidate;
+      no DUP/MERGE candidates; 10 openspec dirs unregistered in shelf.specs."
+    path: knowledge/archive/ana018-memory-shelf-hygiene/ana018-memory-shelf-hygiene-report.md
+    status: archived
+    created: 2026-08-14
+    task_ref: DIA-178
+  - name: Full Test-Suite Audit (DIA-179)
+    description: "Full audit of every test artifact on the main working tree (excludes the 13 stale worktrees under .worktrees/, not part of any gate). Inventory: 409 tests total (240 bats in scripts/__tests__ wired to make test-shell at 24.6s, 43 node:test batch-d-infra in make test-config at 0.3s, 2+2+96+24 vitest across apps/author-studio + packages/data-contracts/editor-engine/phonetics-core wired to turbo test, 1+1 pytest in apps/api-server + packages/analytics-pipeline). Covers execution order, fast-to-fail, duplicates, stale tests, verification honesty, and DRY test helpers. Built on prior work (DIA-158/167/168/169/170) with no contradicting findings; several re-surface as still-open or partial where prior fixes introduced new asymmetries."
+    path: knowledge/archive/ana021-test-suite-audit/ana021-test-suite-audit-report.md
+    status: archived
+    created: 2026-08-14
+    task_ref: DIA-179
+  - name: Artifact Format Substrate Analysis (DIA-194 / DIA-180 Deliverable B)
+    description: "Analysis of YAML vs Markdown as the artifact-format substrate across
+      every agent-authored artifact in the poetry-platform dev-infra surface (DIA-194,
+      DIA-180 Deliverable B). Verdict: the repo already embodies a hybrid substrate
+      where format follows consumer and write pattern - machine-first structured stays
+      YAML (memory-shelf.yaml, ai-assist-sources.yaml, ticket frontmatter; JSON Schema
+      gate already enforces memory-shelf.yaml shape), machine-first append-only streams
+      (session/*.jsonl) are OUT OF SCOPE (belong to DIA-136), narrative/instructions/
+      human-rendered stays MD (openspec/, knowledge/, AGENTS.md, NEXT-RUN.md). FLAGSHIP
+      recommendation: convert .opencode/CHANGELOG.md (223,195 bytes, 730 lines, 87
+      sections) to a YAML ledger + derived MD view - quantified ~5x token-economy
+      reduction (~55.8K tokens READ today vs ~10.9K in YAML-ledger form) plus partial-read
+      capability. The CHANGELOG change is the ONLY concrete conversion recommendation;
+      everything else is stay-put with evidence. Method: MECE classification, inversion
+      analysis, cost-benefit/token-economy (4 chars/token heuristic LABELED as heuristic),
+      EBDV per DIA-115 (>=2 genuine variants per artifact class, abort/status-quo variant,
+      routing flag dev-infra vs section-10 vs N/A), precedent analysis (DIA-079/DIA-075/
+      DIA-191). Guardrail: read-only analysis, no conversions applied. Routing: CHANGELOG
+      conversion flagged section-10 (AGENTS.md section-10 routing applies); stays under
+      @architector/design before any follow-up ticket dispatch."
+    path: knowledge/ana026-artifact-format-substrate/ana026-artifact-format-substrate-report.md
+    created: 2026-08-15
+    task_ref: DIA-194
+  - name: Worktree/Branch/Merge Mechanism Analysis (DIA-200)
+    description: "Mechanism review of the parallel-worktree model (DIA-100/172/174/177/179) against the five known frictions. Verdict: mechanism fundamentally sound - squash-merge keeps main linear, cleanup (DIA-177) correctly answers the squash-merge/git branch -d refusal, batch D at 5 slices ran with zero cross-slice file-ownership violations. Frictions resolve to 1 inherent git limitation, 1 accepted-by-design operational gap, 3 genuine tooling gaps. Findings: M-1 [Medium] branch -d refuses squash-merged branches (inherent, mitigated by cleanup two-pass merge check; regular-merge alternative rejected in M-1a - keep squash; recommends make worktree-gc + post-push dry-run warning); M-2 [High] cleanup enumerates only branch-backed worktrees (worktrees.sh:576) so orphaned dirs are invisible to every tool - live state has 12 orphaned + 1 nested dir, zero branches, zero registration metadata, git worktree prune a no-op, manual rm -rf the only remedy (worst-case state); M-3 nested worktree - create derives target root from its own checkout (worktrees.sh:58-60), no guard exists, nested selfcheck worktree still on disk; M-4 shared test seam convention gap - ADR-level fix exists (adr.md:724) but not woven into the spec-authoring template. ana021 findings F-1/F-2 verified intact post-rebase. Codex/ClaudeCode client-parity explicitly out of scope (separate code-navigator lane)."
+    path: knowledge/ana022-worktree-mechanism-analysis/ana022-worktree-mechanism-analysis-report.md
+    created: 2026-08-14
+    task_ref: DIA-200
+  - name: Bio-Agent Determinism Links (biological mechanisms mapped to agent determinism patterns)
+    description: "Analysis mapping biological mechanisms to agent determinism patterns.
+      Explores parallels between cellular signaling, homeostasis, quorum sensing,
+      circadian rhythms, and evolutionary strategies with deterministic agent behaviors
+      such as state machines, contracts, message passing, circuit breakers, and formal
+      verification."
+    path: knowledge/archive/ana024-bio-agent-determinism-links/ana024-bio-agent-determinism-links-report.md
+    status: archived
+    created: 2026-08-17
+  - id: ana01
+    name: Agentic Workflow Compliance
+    description: "Systematic workflow compliance analysis identifying 20+ routing violations, 20+ empty result handling failures, and gating/verification gaps across 200+ sessions. Recommends hard plugin gates for P0 issues."
+    path: knowledge/archive/ana01-agentic-workflow-compliance/ana01-agentic-workflow-compliance-report.md
+    status: archived
+    created: 2026-08-19
+  - name: Ticket Navigation Implementation Plan
+    description: 'Implementation plan for extending scripts/tickets CLI with missing
+      subcommands (frontier --json, show, temporal filters, blocked-by chain resolution).
+      Prioritizes bash extensions over SQLite/DuckDB at current 190-ticket scale.
+      Estimates 5.5h for Phases 1-3 (210 loc code + tests).'
+    path: knowledge/archive/ana027-ticket-navigation-implementation/ana027-ticket-navigation-implementation-report.md
+    status: archived
+    created: 2026-08-19
+    task_ref: DIA-260819-sl22
+  - name: Ticket System Comparison (custom bash vs proven solutions)
+    description: 'Comparative analysis of 5 ticket management candidates (custom
+      scripts/tickets, git-bug, Plane, Linear, taskwarrior) across 6 dimensions (gate
+      compatibility, local-first, agent accessibility, migration cost, maintenance
+      burden, feature parity). Recommendation: keep custom solution (architecturally
+      correct, 0h migration vs 136-284h for alternatives). All proven systems fail
+      at least one hard constraint (delegation-observer gate compatibility or local-first
+      operation). Revisit at 500+ tickets or when web UI/notifications/assignees needs
+      emerge.'
+    path: knowledge/ana030-ticket-system-comparison/ana030-ticket-system-comparison-report.md
+    created: 2026-08-19
+    task_ref: DIA-260819-mq4h
+  - name: Container functionality and overlap analysis (poetry-dev vs opencode-docker)
+    description: "MECE inventory and functional-overlap matrix of the two application-facing images. 21 capability rows (12 shared, 5 dev-only, 4 opencode-only). Duplicated: Node/pnpm/bun/mise/uv/OpenSpec/DCP (since removed)/snip, Docker CLI (different packaging + compose versions 5.4.0 vs v2.39.1), Playwright/crawl4ai (different dependency closure), OpenCode (drifted 1.18.18 vs 1.18.4), secrets loaders (empty-file semantic mismatch between dev-entrypoint.sh and bootstrap.py). Unique to poetry-dev: Rust/wasm32, LSPs, trafilatura, pnpm_store volume, Postgres network, app ports. Unique to opencode-docker: host container socket, SSH-agent forwarding, read-only rootfs + dropped capabilities, OpenSpec auto-init. Recommendation: keep two runtime images, consolidate version sources + shared installer logic, enforce parity with a config test."
+    path: knowledge/archive/ana023-container-functionality-overlap/ana023-container-functionality-overlap-report.md
+    status: archived
+    created: 2026-08-16
+  - name: Two-container dev infrastructure friction analysis
+    description: "Friction/failure-mode analysis of the split. Critical: socket + SELinux chain (DIA-145 saga, label=disable). High: poetry-dev hard dependency for pre-commit (DIA-094 hard-fail vs pre-push warn-and-pass asymmetry), duplicated image tooling + version drift (Docker CLI both, opencode 1.18.18 vs 1.18.4), SSH agent lifecycle (second host-socket, warn-and-continue then delayed publickey failure). Medium: env gaps discovered at gate time (rust-analyzer 1.83 vs 1.97.1, global skills dir absent), resource overhead (4GB/4CPU/1GB shm + second image). 6 unique incident threads among 8 tickets (DIA-164 is a duplicate of DIA-145); 6 maintained config/version loci; estimated 18-30h split-specific maintenance; recovery multiplier = relaunch (session ends on relaunch)."
+    path: knowledge/archive/ana024-container-infrastructure-friction/ana024-container-infrastructure-friction-report.md
+    status: archived
+    created: 2026-08-16
+  - name: Container consolidation options EBDV (poetry-dev + opencode-docker)
+    description: "Evidence-backed decision variants for merging the two containers. Variant 0 status quo (0-2 days), Variant A merge into opencode-docker (8-15 days, high risk: hook recursion, secrets, SELinux, socket privilege amplification, postgres reachability - REJECT), Variant B merge into poetry-dev (5-10 days, medium-high: weakens security boundary, root 0:0 service gains socket+SSH - REJECT), Variant C hybrid deduplicated (2-5 days, low-medium risk - RECOMMENDED): keep both runtime boundaries, consolidate version/config pins (extend check-pin-sync.sh), finish DIA-188 restart-verify, make hook seam explicit, remove only safe duplication. 5-step migration roadmap + rollback. Decision record: Variant C selected because it removes low-value duplication while preserving the writable/networked app boundary and hardened interactive OpenCode boundary."
+    path: knowledge/archive/ana025-container-consolidation-options/ana025-container-consolidation-options-report.md
+    status: archived
+    created: 2026-08-16
+  - name: Repository Risk Prioritization and Remediation Ranking (ana031)
+    description: "Reconciles current repository source state against prior analysis reports (ana026-ana030) to produce a ranked top-10 remediation list. Current source/runtime evidence takes priority over older report claims. Three stale claims from ana028/ana029 are explicitly marked and excluded from the ranked list. The repository has 199 tickets (23 OPEN, 6 Blocker, 15 Critical), 25 OpenSpec changes with significant task/status drift, and no committed GPT/ChatGPT repository-state report. Ranked list: (1) restart-verify DIA-222/224/225 plugin changes live, (2) DIA-206 ai-specialist systemic empty-return failure, (3) DIA-213 orchestrator scope limitation, (4) DIA-234 datetime-based ticket IDs, (5) DIA-189 terminal session identity, (6) DIA-207 WSL memory/CPU cap exhaustion, (7) DIA-208 cebula preset model swap, (8) DIA-260820-jlu0 DIA-217 ticket gate chicken-and-egg, (9) OpenSpec task/status drift (6 changes 0% completion), (10) DIA-260820-y268 enforce ticket-status queries via scripts."
+    path: knowledge/ana031-repository-risk-prioritization/ana031-repository-risk-prioritization-report.md
+    created: 2026-08-21
+    task_ref: DIA-260821-bqy7
+  - name: "August 2026 Ticket-OpenSpec Reconciliation Audit (ana032)"
+    description: "August 2026 ticket-OpenSpec reconciliation audit (DIA-260821-bqy7). Reconciles 167 August tickets (created 2026-08-*) against OpenSpec changes and prior analysis ana026. Triage: 19 CLOSE candidates (already CLOSED with populated Fix/Re-verify), 4 UPDATE candidates (partial/stale evidence: DIA-098/099/126/127), 24 KEEP OPEN (actionable unstarted work), 0 OBSOLETE. Reverse-drift table flags 4 CLOSED tickets with placeholder Fix/Re-verify (DIA-126/127 full reverse-drift, DIA-131/132 partial). ana026 gaps: 6 P0/P1 findings (socket security, plugin duplicates, hermetic test-config/shell, image contract drift, runtime merge detection) have no corresponding OPEN ticket - recommends new tickets. Caveats: tests not run (make unavailable in audit env); scope limited to 2026-08 tickets; no ticket/OpenSpec/source modifications."
+    path: knowledge/ana032-august-ticket-openspec-reconciliation/ana032-august-ticket-openspec-reconciliation-report.md
+    created: 2026-08-21
+    task_ref: DIA-260821-bqy7
+  - name: "Next-10 Remediation Bugs (ana033)"
+    description: "Next-10 remediation ranking after ana031 Top-10. Draws from 15 remaining OPEN tickets, 6 ana026 no-ticket P0/P1 gaps, and 4 ana032 reverse-drift CLOSED tickets. Flags two un-ticketed P0 ana026 gaps (container socket security, runtime plugin duplicates), two FULL REVERSE-DRIFT CLOSED tickets (DIA-126, DIA-127) with placeholder Fix/Re-verify, two fresh Major tickets (DIA-260821-mzk7 preset routing mismatch, DIA-260821-cku1 scripts/tickets update capability), and P1 two-image OPENCODE_VERSION drift (1.18.18 vs 1.18.4). Read-only: no ticket statuses changed, no tickets created."
+    path: "knowledge/ana033-next-remediation-bugs/ana033-next-remediation-bugs-report.md"
+    created: 2026-08-21
+    task_ref: DIA-260821-bqy7
+  - name: "Engine-Specific GREEN Lane Failure & Recovery (ana034-engine-green-lane-recovery)"
+    description: "Forensic recovery analysis of two consecutive empty-result GREEN dispatches in coder session ses_fd1c5a349ffeD5fldZwf8iOLZb (DIA-260821-x5nj). Root cause: context exhaustion after RED test scope expansion; no production code landed. Durable lesson: the DIA-175 same-session fix-loop rule does NOT apply when the coder wrote no code (empty result) - there is no implementer context to resume. Before re-dispatch, verify ground truth (files on disk / git status) that nothing landed; then a fresh GREEN instance is permitted, while RED/GREEN instance separation (DIA-175) is still preserved (fresh GREEN must differ from the RED author). Recovery: spawn a fresh GREEN session implementing only the two engine-override compose files (vertical slice), defer script modification to a separate dispatch."
+    path: "knowledge/ana034-engine-green-lane-recovery/ana034-engine-green-lane-recovery-report.md"
+    created: 2026-08-23
+    task_ref: DIA-260821-x5nj
+  - name: "Unified dev-runtime gap and migration analysis (ana035-unified-dev-runtime-gap-migration)"
+    description: "Unified dev-runtime gap analysis for DIA-260821-x5nj (collapse poetry-dev + opencode-docker into one OpenCode dev container). Feasibility: one unified container is achievable, but the current tasks.md omits the core architectural inversion - the container must own the git commit/push process end-to-end (hook execution model inversion), eliminating host-delegated hooks that create split-brain. Unified base should be Dockerfile.dev (full toolchain + postgres), not opencode-docker. Eight blocking conclusions: (1) rootless Docker UID/entrypoint mismatch - engine-specific compose overrides (Podman keep-id vs Docker user 0:0) need contract tests; entrypoint unification (bash vs python init) is a deferred decision. (2) SSH-agent launch support - compose cannot express conditional socket mounts, so the launcher must handle forwarding; Dockerfile.dev must gain openssh-client. (3) engine socket + --test boundary - whether the unified container needs the Docker socket is an open decision (unneeded if hooks run in-container); command modes are non-blocking. (4) git identity/commit-push contract - container needs a git identity strategy (mount host ~/.gitconfig ro or env vars) decided before Slice 0. (5) preset/auth runtime validation - preset/auth/key loading seam must merge; secret whitelist drifts if entrypoints stay split. (6) secret preflight wiring + narrow credential exposure - file-based secrets avoid docker-inspect leakage; preflight ownership check is a new seam. (7) engine detection - launcher does engine+OS auto-detect + override selection; UID contract needs verification. (8) legacy lifecycle migration - 7-day retirement, no --legacy wrapper, delete tools/opencode-docker/ + dead fedora compose file. Root cause of the two-runtime split: incremental security evolution without a unification plan."
+    path: "knowledge/ana035-unified-dev-runtime-gap-migration/ana035-unified-dev-runtime-gap-migration-report.md"
+    created: 2026-08-24
+    task_ref: DIA-260821-x5nj
+  - name: "Current-State Delivery Audit (ana001-current-state-delivery-audit, DIA-260824-a3mk)"
+    description: "Current-state delivery audit for DIA-260824-a3mk (OpenCode log PermissionDenied on root-owned /home/dev/.local/share/opencode/log/opencode.log). Verdict: the a3mk self-healing root->dev privilege-drop fix is implemented and behaviorally verified live against the running container, but entirely uncommitted; its regression tests are partially stale (3 failing bats assertions); the ticket/OpenSpec checklists are not updated to match reality; commit lanes failed twice (truncated) plus once (empty result) and a final rebuild/verify/commit dispatch was cancelled. Durable findings persisted to lessons.md: (1) root-owned OpenCode log recurrence is caused by root launch paths bypassing the dev-entrypoint privilege drop; (2) lane/handoff claims ([C]) must be distinguished from independently verified evidence ([E]) after truncated/empty results. Read-only audit; no source/test modifications."
+    path: "knowledge/ana001-current-state-delivery-audit/ana001-current-state-delivery-audit-report.md"
+    created: 2026-08-24
+    task_ref: DIA-260824-a3mk
+  - id: ana001
+    name: Repo-wide ponytail over-engineering audit (DIA-260825-wprb)
+    description: "Repo-wide over-engineering audit with delete/stdlib/native/yagni/shrink findings; ~671 net lines removable. Four-lane review consensus executed via 6 tickets, all merged to DIA-260822-medh-red; stress-lang-core + publishing-platform deleted. Developer disposition: @poetry/data-contracts KEPT (architecture.md-declared single-source-of-truth seam)."
+    path: knowledge/ana001-repo-overengineering-audit/ana001-repo-overengineering-audit-report.md
+    created: 2026-08-25
+    task_ref: DIA-260825-wprb
+  - id: ana001-ponytail
+    name: "Whole-Repo Ponytail Over-Engineering Audit (escalated lane, FULL intensity, DIA-260827-15xv)"
+    description: "Full-intensity ponytail whole-repo over-engineering audit of /workspace (analyzer-escalated lane, gpt-5.6-luna). 15 ranked findings; ~3,150 lines + 312 KB binary + 2 npm deps removable now, ~4,000 lines including the gated F2 (tools/opencode-docker retirement, blocked on DIA-260824-8k62). Top deletions: dead phonetic-atlas loader chain (zero consumers), no-op CommandBus, unused tokenizer PUNCTUATION tables, vue-i18n stack localizing zero strings, Quasar demo residue, dead Orchestrator API + debug globals. Read-only, no fixes applied. Follow-on to DIA-260825-wprb (ana001) which found ~671 lines; this audits the current tree only."
+    path: knowledge/ana001-ponytail-repo-over-engineering-audit/ana001-ponytail-repo-over-engineering-audit-report.md
+    created: 2026-08-27
+    task_ref: DIA-260827-15xv
+  - name: Artifact-Format EBDV (DIA-194)
+    description: "DIA-115-compliant EBDV re-articulation of ana026 focused on the single flagship conversion candidate (CHANGELOG.md -> YAML ledger + derived MD view): consumer impact, Deliverable-A infrastructure reuse, token-economy evidence, rollback/committability constraints. Developer disposition binding: analysis first, then decision - EBDV matrix only, no conversion applied. Read-only analysis."
+    path: knowledge/ana024-artifact-format-ebdv/ana024-artifact-format-ebdv-report.md
+    created: 2026-08-15
+    task_ref: DIA-194
+  - name: "Memory-Shelf Staleness Audit (DIA-260826-7qmt)"
+    description: "Exhaustive path-existence check + content cross-reference of memory-shelf.yaml
+      and all referenced knowledge/ artifacts. Finds 82 CURRENT, 9 STALE-REFRESH,
+      7 ORPHAN paths (path-prefix mismatch after archival), 12 unregistered archive
+      dirs, 5 ID collisions. Structurally sound but carries significant hygiene debt.
+      Read-only audit; no modifications."
+    path: knowledge/ana001-memory-shelf-staleness/ana001-memory-shelf-staleness-report.md
+    created: 2026-08-28
+    task_ref: DIA-260826-7qmt
+  - name: ana036 - Weekend Coding Preset Efficiency Analysis
+    description: 'Analysis of poetry-platform workload dispatch distribution (coder-dominated at 28 percent / 1023 events; reviewer, analyzer, researcher distant seconds) and model-cost efficiency for weekend marathon coding. Confirms cebula-hy3 already routes the highest-volume lane (coder) to promo-priced hy3, but flags analyzer, architector, and reviewer lanes still on non-promo models draining the $60/mo cap. Drives the promo preset routing in DIA-260828-qtsi. Confidence: Medium.'
+    path: knowledge/ana036-weekend-coding-preset-efficiency/ana036-weekend-coding-preset-efficiency-report.md
+    created: 2026-08-28
+  - name: Docker WSL Remake Plan — Global opencode Isolation
+    description: "Container remake feasibility analysis for DIA-260821-x5nj. Verdict:\
+      \ safe to remake — host opencode (v1.18.25, ~/.opencode/bin/opencode, ~/.local/share/opencode)\
+      \ and container opencode (v1.18.18, /usr/local/bin/opencode, /home/dev/.local/share)\
+      \ are completely isolated (different binaries, state dirs, filesystems). Container\
+      \ is stale (built before c19ed6b UID/GID alignment and 37a3df4 USER directive\
+      \ removal); full image rebuild required. Remake via make down (keep volumes)\
+      \ not make clean; 10-20 min; zero risk to host opencode. Change inventory:\
+      \ 9 recent Docker-touching commits enumerated with cache impact and risk."
+    path: knowledge/ana037-docker-wsl-remake-plan/ana037-docker-wsl-remake-plan-report.md
+    created: 2026-08-28
+    task_ref: DIA-260821-x5nj
+  - name: Session Handoff, Context Thresholds & Orchestrator-Model Audit (DIA-260822-medh)
+    description: "Read-only advisory audit of session-handoff protocol (DIA-085/093/120),\
+      \ context thresholds (DIA-191/198), auto-compaction, and orchestrator-model choices.\
+      \ Handoff protocol mechanically sound; context thresholds reconciled post-DIA-198;\
+      \ auto-compaction non-contending with handoffs; orchestrator promo preset routes\
+      \ hy3 + deepseek-v4-flash (adequate but not cheapest). Top fixes: R1 delete dead\
+      \ getContextPressure branch in delegation-observer.ts, R2 fix @ai-auditor model\
+      \ github-copilot/gpt-5.3-codex -> gpt-5.3-codex, R4 author benchmark conspects\
+      \ for hy3/qwen3.8-flash."
+    path: knowledge/ana-session-handoff-context-audit/ana-session-handoff-context-audit-report.md
+    created: 2026-08-22
+    task_ref: DIA-260822-medh
+  adrs:
+  - name: Memory Storage Strategy
+    description: 'Evaluation of Claude-Mem, Honcho, and current hand-written memory
+      manager. Decision: keep current markdown-based approach. Neither external tool
+      improves architecture for our scale. Escalation path defined from Level 0 (current)
+      to Level 4 (API-based).'
+    path: .opencode/memory/adr.md
+    created: 2026-07-20
+  - name: Needs-input ticker as a SIBLING observer module (DIA-122)
+    description: 'Decision to build the multi-session needs-input ticker + notifications
+      as a new sibling observer plugin (.opencode/plugins/needs-input-observer.ts) rather
+      than extending delegation-observer.ts (~1715 lines) or adopting a community notification
+      package (none maintain a persistent multi-session ticker). Extends the silent-JSONL
+      + derived-view pattern (ticker.json + ticker-render.sh -> ticker.md). Records the
+      multi-session state machine (ENTER/CLEAR events, separate silent error bucket,
+      ENTER-only debounced notifications) and the corrected notification channel
+      (in-TUI toast + powershell.exe WinRT; freedesktop dbus requires a daemon absent
+      on WSL2 - full lesson in external-patterns 2026-08-12).'
+    path: .opencode/memory/adr.md
+    created: 2026-08-13
+  specs:
+  - name: context7-docs-pipeline
+    description: 'OpenSpec change: fetches Context7 library documentation for monorepo
+      workspace dependencies. Key-optional (dry-run without CONTEXT7_API_KEY), deduplicates
+      by package name (highest version wins, logs skew), stores as markdown in knowledge/context7-docs/.
+      Node ESM script in scripts/, bats tests with dry-run + mock mode. API contract:
+      context7.com/api/v2 (NOT api.context7.com). 3 vertical slices: scanner+dedup+inventory,
+      API client+mock+markdown, Makefile+gitignore wiring.'
+    path: openspec/changes/context7-docs-pipeline/
+    created: 2026-08-02
+    status: implemented
+  - name: dia-redispatch-cycle
+    description: "OpenSpec change: dev-infra campaign protocol for AI-assisted development\
+      \ cycle management. Three interlocking protocols: CRISIS-DETECTION (C1\u2013\
+      C5 binary OR triggers \u2014 same-task failure loop, re-plan churn, tool-call\
+      \ stagnation, context overflow, prognosis debt), PROGNOSIS-DISCIPLINE (HANDOFF.md\
+      \ with 5 folded subsections: session_summary/fixes_applied/open_tickets/verification_request/resume_instructions),\
+      \ and cycle-budget management (default max-cycles=3, override 2..10 clamped,\
+      \ 4 exit states: clean/crisis/exhausted/manual-halt). Includes: messages.md\
+      \ 8\u21929-column schema extension (nullable, backward-compatible, no migration),\
+      \ T5 row schema with cycle attribution, cycle-id format c-YYYYMMDD-HHMMss UTC,\
+      \ batch-approval boot protocol, clean-termination via fresh-session independent\
+      \ verification (no self-certification). Seeds .sdd/dia-redispatch-cycle/ with\
+      \ 5 ADRs. 6 vertical slices: spec-infra scaffold, messages schema fixture, crisis\
+      \ drills, budget edge cases, independence verification, integration end-to-end."
+    path: openspec/changes/dia-redispatch-cycle/
+    created: 2026-08-03
+    status: implemented
+  - name: volta-to-mise
+    description: "OpenSpec change: replace the unmaintained Volta JS tool manager\
+      \ with the SHA256-verifiable mise tool manager in the dev container. Closes\
+      \ DIA-030 (CLOSED 2026-08-03 with owner migration directive \u2014 Volta is\
+      \ officially unmaintained per issue #2080, v2.0.2 2024-12-05 stale, upstream\
+      \ recommends mise, no checksums ever coming). Dual-path contract: mise tarball\
+      \ installs (SHA256-verified in Dockerfile.dev + tools/opencode-docker/Dockerfile)\
+      \ + .mise.toml declares (repo root, [tools] only, no env/plugins/settings \u2014\
+      \ interview Q8). MISE_VERSION ARG + SHA256 resolved at implementation time via\
+      \ flag (b) fetch command (TODO \u2014 spec does not invent hashes). MISE_TRUSTED_CONFIG_PATHS=/workspace\
+      \ ENV so non-root dev user reads mounted .mise.toml. Seams S1 Dockerfile install\
+      \ block, S2 make check-tools + bats, S3 smoke-test runtime probes, S4 .mise.toml\
+      \ integrity. Removes both volta blocks (Dockerfile.dev lines 108-118 + tools/opencode-docker/Dockerfile\
+      \ lines 48-54) + both package.json volta blocks (root + apps/author-studio).\
+      \ Renames volta* \u2192 mise in collect-runtime-deps.sh whitelist. Adds make\
+      \ check-tools (host-runnable, NOT wired into test-shell/test-infra \u2014 requires\
+      \ mise on PATH). Adds 3 smoke probes (mise --version, mise install+mise which\
+      \ node, MISE_TRUSTED_CONFIG_PATHS set). 5 vertical slices: T1 .mise.toml+volta-removals+check-tools+bats\
+      \ (foundation), T2 Dockerfile.dev+S2 ENV+smoke probes (depends T1), T3 tools/opencode-docker\
+      \ Dockerfile swap+whitelist rename (depends T2 \u2014 copies FLAG_B pattern),\
+      \ T4 docs updates (depends T1, parallel with T2/T3), T5 full validation gate\
+      \ (depends T2/T3/T4). Rollback: git revert + make build && make test-infra.\
+      \ AC1-AC14 testable at seams. No .sdd/ module doc created (dev-infra within\
+      \ existing boundaries, no @architector dispatch)."
+    path: openspec/changes/volta-to-mise/
+    created: 2026-08-03
+    status: implemented
+  - name: ai-self-improvement-auditor-and-cleanup
+    description: "OpenSpec change (4-phase self-improvement campaign, \xA710 gate\
+      \ ai--1 2026-08-05/06): skill shadowing cleanup \u2014 delete 5 byte-exact duplicate\
+      \ skills from .opencode/skills/ (book-rag, mermaid-diagramming, console-charting,\
+      \ debugging-workflow, teaching); keep playwright-browser (4-line intentional\
+      \ diff \u2192 SOFT warn) and git-diff (project version better). validate-skills.sh\
+      \ (.opencode/scripts/, 296L, exit 0/1/2, wired via make test-skills) gains two-tier\
+      \ duplicate detection (byte-exact = hard error, near-dupe = SOFT warn). Registers\
+      \ @ai-auditor via 4-source containment contract (S1 AGENTS.md \xA79 row + S2\
+      \ opencode.jsonc read-only block + S3 OMO agents+3 presets + S4 .opencode/agents/ai-auditor.md;\
+      \ frontmatter mirrors memory-manager.md \u2014 permissions live in opencode.jsonc;\
+      \ models github-copilot/gpt-5.3-codex primary, github-copilot/gemini-3.1-pro-preview\
+      \ fallback). Narrows @ai-specialist. Adds NEXT-RUN.md \xA72 COUNCIL-BUDGET-GUARD:\
+      \ council only at C1\u2013C5 crisis, Copilot-credit 75% warn 1125 / 90% hard-stop\
+      \ 1350 of 1500. Gate rulings folded in: D1 CLASH dropped (issue #197 monitored),\
+      \ D5 dcp.jsonc (since removed) is compaction-limits only (no skill alignment), D6 openspec-plan\
+      \ skip-mode already implemented (OMO line 531 \u2014 no model swap)."
+    path: openspec/changes/archive/2026-08-06-ai-self-improvement-auditor-and-cleanup/
+    created: 2026-08-06
+    status: implemented
+  - name: dev-infra-pin-sync
+    description: "OpenSpec change: enforces the volta-to-mise \xA72.1 contract \u2014\
+      \ .mise.toml \u2194 Dockerfile pin parity for node/pnpm across BOTH Dockerfiles\
+      \ (Dockerfile.dev + tools/opencode-docker/Dockerfile; 4 comparisons total: 2\
+      \ pins \xD7 2 Dockerfiles). New standalone scripts/check-pin-sync.sh (~70-90L,\
+      \ bash-3 compatible, 4 functions: parse_reference/parse_dockerfile(file,label)/compare/aggregate;\
+      \ grep/awk-based parsing, no TOML library; parse_dockerfile invoked per source\
+      \ with label, results saved to per-source var pairs DOCKER_DEV_NODE/DOCKER_DEV_PNPM\
+      \ + DOCKER_OC_NODE/DOCKER_OC_PNPM; last-wins ARG semantics with duplicate-detection\
+      \ short-circuit; quote/CRLF/whitespace stripping; exit precedence 2>1>0 (INFRA>mismatch>match);\
+      \ report-ALL, not fail-fast; output contract: ok\u2192stdout, fail\u2192stderr,\
+      \ summary on both; ok/fail lines carry the source label; MISE_VERSION parity\
+      \ out of scope \u2014 OC Dockerfile is read-only). 13-scenario bats suite T1-T13\
+      \ (match across both Dockerfiles / single-mismatch in either Dockerfile / multi-mismatch\
+      \ report-ALL / missing source \xD73: .mise.toml + Dockerfile.dev + tools/opencode-docker/Dockerfile\
+      \ / duplicate key \xD73: [tools] + Dockerfile.dev ARG + OC Dockerfile ARG /\
+      \ quote-variations / CRLF / whitespace-variations) + S4 real-.mise.toml structural\
+      \ assertion. Shared fixture helpers (install_fakes/setup_tree pattern from check-tools.bats)\
+      \ promoted to test-helper.bash; setup_pin_sync_tree extended to 9-param signature\
+      \ (3 flags + 6 pins) planting all three source fixtures incl. tools/opencode-docker/Dockerfile.\
+      \ Makefile wiring: new check-pin-sync target + test-shell prereq chain (validator\
+      \ runs before any bats, fails fast on pin drift) + bats-wrapper.sh bash -n allowlist.\
+      \ Closes DIA-050 (OPEN since 2026-08-05, tracked the .mise.toml \u2194 Dockerfile\
+      \ parity gap from DIA-045 F15). 3 vertical slices: T1 core script, T2 bats suite\
+      \ + helper promotion, T3 Makefile wiring + DIA-050 close. No .sdd/ document\
+      \ (dev-infra within existing module boundaries \u2014 .sdd/ layer has only README.md\
+      \ today). No \xA710 routing (pure dev-infra artifact, not AI-tooling config).\
+      \ Rollback: file deletion / git checkout; no .mise.toml or Dockerfile edits."
+    path: openspec/changes/dev-infra-pin-sync/
+    created: 2026-08-07
+    status: implemented
+  - name: dia-066-tool-coverage-audit
+    description: "OpenSpec change: hybrid tool-coverage auditor script that surfaces\
+      \ unlisted default-allow tools in OpenCode permission configs. Enumeration strategy:\
+      \ one `opencode debug agent <canonical-agent>` runtime invocation (first alphabetical\
+      \ agent) for the complete tool universe (built-ins + plugin-registered + MCP)\
+      \ + static JSONC parse of each agent's permission block. Cross-reference computes\
+      \ effective coverage (global \u222A per-agent merge) and reports gaps = (tool\
+      \ universe \u2212 effective coverage) where default disposition is allow. Exit-code\
+      \ contract: 0 (no HARD gaps) / 1 (HARD gap found OR malformed JSONC) / 2 (INFRA:\
+      \ no opencode, no python3, no default model, v2 schema detected, missing config\
+      \ file). Output contract: FAIL:/WARN: to stderr, ok: to stdout, final summary\
+      \ `N agents audited, M gaps, K warnings` to stdout. Blanket-form detection as\
+      \ first-class WARN category (does not attempt per-tool enumeration against blanket).\
+      \ v1 schema assertion; snip v2 rejection (exit 2). Default-ask/deny tools as\
+      \ SOFT findings (hint column, no exit-code flip). Hermetic bats tests via AUDIT_TOOL_CENSUS_FILE\
+      \ env override (pre-recorded JSON file \u2014 tests do NOT require live opencode\
+      \ install). Makefile wiring: test-config invokes auditor for both .opencode/opencode.jsonc\
+      \ and tools/opencode-docker/config/opencode.json (separate passes). Script path:\
+      \ scripts/audit-agent-tool-coverage.sh. Test path: scripts/__tests__/audit-agent-tool-coverage.bats.\
+      \ skip_specs: true (dev-infra within existing boundaries, no spec-level behavior\
+      \ changes). Source ticket: DIA-066 (tool-coverage audit script \u2014 surface\
+      \ unlisted default-allow tools). 6 vertical slices: T1 script skeleton + argument\
+      \ parsing + exit-code contract, T2 static JSONC parse (agents + permission blocks),\
+      \ T3 runtime census integration (AUDIT_TOOL_CENSUS_FILE seam), T4 cross-reference\
+      \ logic + output formatting + gap detection, T5 blanket-form detection + v2\
+      \ schema detection, T6 Makefile wiring + integration test. No .sdd/ document\
+      \ (dev-infra within existing module boundaries \u2014 .sdd/ layer does not govern\
+      \ scripts/ surface)."
+    path: openspec/changes/dia-066-tool-coverage-audit/
+    created: 2026-08-08
+    status: implemented
+  - name: M1-M5 Scientific-Workflow Mandates (DIA-086)
+    description: 'Agent output contracts (M1/M2), reviewer Falsification axis (M3),
+      hypothesis question (M4), eval-lite harness (M5) - implemented per DIA-086,
+      archived 2026-08-11'
+    path: openspec/changes/archive/2026-08-11-dia-086-m1-m5-agent-contracts-eval-lite/
+    created: 2026-08-11
+    status: implemented
+  - name: dia-100-worktree-lifecycle
+    description: 'OpenSpec change (retrospective spec): worktree lifecycle CLI for the
+      worktrees-only parallel dev model (DIA-100, DIA-073 option d adopted 2026-08-09).
+      scripts/worktrees.sh (create/remove/list, bash-3 compatible, 273L), 16-case bats
+      suite (T1-T16, real isolated git repo fixture + FAKE-mock ls-remote),
+      worktree-conventions.md (branch naming per DIA-074, squash-merge workflow with
+      worked example, conflict escalation criteria, DIA-096 safe/destructive mapping,
+      .opencode/session isolation, orchestrator dispatch templates). skip_specs: true
+      (dev-infra, no system spec deltas). References DIA-100/073/074/096. Architecture
+      gap flagged: .sdd/dev-infra/architecture.md needed (drafted content provided in
+      spec report for manual creation).'
+    path: openspec/changes/dia-100-worktree-lifecycle/
+    created: 2026-08-12
+    status: implemented
+  - name: dev-infra-language-servers
+    description: "OpenSpec change: TypeScript/Python/Rust language servers for both container and host. Container scope (T1-T6): Dockerfile.dev LS installs (pinned ARGs), gen-jsconfig.sh jsconfig generator, pyrightconfig.json, .vscode config. Host scope (T7-T11): lsp-versions.env single source of pins, install-host-lsp.sh, check-host-lsp.sh aggregate probe (test-shell prereq), host-lsp-setup.md, 6-case check-host-lsp.bats. Closes the LSP gap for VSCode/opencode editors inside and outside the dev container."
+    path: openspec/changes/dev-infra-language-servers/
+    created: 2026-08-01
+    status: implemented
+  - name: pre-commit-autofix
+    description: "OpenSpec change: shift linting/formatting left via pre-commit auto-fix + expanded tooling coverage. .husky/pre-commit -> scripts/verify-pre-commit.sh (lint-staged inside dev container, fail-by-default when container down per resolved Q1), lint-staged config in root package.json (eslint --fix + prettier --write for js/ts/vue/css/html/md/json/yaml, scoped ruff for apps/api-server python, bash -n for shell), ruff added to apps/api-server pyproject.toml + ruff lint/format checks in verify-python.sh, pre-push extension. Implemented as part of the 2026-08-02 dev-infrastructure PR (DIA-035/DIA-094 lineage)."
+    path: openspec/changes/pre-commit-autofix/
+    created: 2026-08-02
+    status: implemented
+  - name: test-skills-gate
+    description: "OpenSpec change: validate structural integrity of every .opencode/skills/*/SKILL.md before OpenCode loads it. .opencode/scripts/validate-skills.sh (HARD: YAML frontmatter parses, name/description non-empty, name == parent dirname; SOFT: activation phrase, license presence), make test-skills wired into test-config, scripts/__tests__/validate-skills.bats meta-tests. Implemented under DIA-037 (commit b9c5ec3, 2026-08-03); later extended by ai-self-improvement-auditor-and-cleanup with two-tier duplicate detection."
+    path: openspec/changes/test-skills-gate/
+    created: 2026-08-03
+    status: implemented
+  - name: dev-infra-copilot-fixes
+    description: "OpenSpec change: 8 Copilot review fixes on PR #2 in two commits along the AGENTS.md routing boundary. Commit A (dev-infra, section 2.4): dev-stack.sh misleading output, 4 TARGETARCH fail-fast branches in tools/opencode-docker/Dockerfile, zero-byte secret skip in dev-entrypoint.sh + dev-secrets-profile.sh, secrets/README.md sync note, arch fail-fast bats test. Commit B (AI-tooling, section 10): $HOME:? guards in telemetry commands, committed book-rag knowledge-bases.yaml cache deleted + gitignored, failures.md duplicate bullet collapsed. Implemented commit 719db4e (2026-08-05)."
+    path: openspec/changes/dev-infra-copilot-fixes/
+    created: 2026-08-04
+    status: implemented
+  - name: dev-infra-config-validators
+    description: "OpenSpec change: deterministic hermetic validators closing DIA-045 audit gaps 1-3. scripts/validate-agent-names.sh enforces the 4-source agent-name containment contract (AGENTS.md section 9 / opencode.jsonc / oh-my-opencode-slim.jsonc / .opencode/agents/*.md); scripts/validate-handoff.sh asserts the HANDOFF.md Prognosis schema (5 required subsections); both wired into make test-config + DIA-050 tracking note. Implemented commit 1c88fd0 (2026-08-05, DIA-045)."
+    path: openspec/changes/dev-infra-config-validators/
+    created: 2026-08-05
+    status: implemented
+  - name: dev-infra-copilot-fixes-2
+    description: "OpenSpec change (companion to dev-infra-copilot-fixes): Copilot comments #10/#11 + observation C. Escaped-quoting fix for unquoted $WORKSPACE in the bash -lc delegation of verify-pre-push.sh:36 + verify-pre-commit.sh:36 (space-in-path cd failure), companion bats updates + new space-path @test per script, 1-line book-rag SKILL.md:346 absolute-vs-relative contradiction correction (section 10 N/A per owner ruling Q1.2). Implemented commit 4d3b2cc (2026-08-05)."
+    path: openspec/changes/dev-infra-copilot-fixes-2/
+    created: 2026-08-05
+    status: implemented
+  - name: dev-infra-jq-probe
+    description: "OpenSpec change: gated presence-and-functional jq probe for host-side dev (closes make test-infra + gen-jsconfig.bats host failures). scripts/check-host-jq.sh (command -v + jq -n '1+1' functional smoke, exit 0/1, no version pin), 3-case FAKE-mock check-host-jq.bats, make check-host-jq target + test-shell prereq, jq section folded into docs/dev-infra/host-lsp-setup.md. Implemented commit 34944c1 (2026-08-06, with language-servers T7-T11)."
+    path: openspec/changes/dev-infra-jq-probe/
+    created: 2026-08-06
+    status: implemented
+  - name: dia-067-docker-trafilatura
+    description: "OpenSpec change: make trafilatura available inside the dev container for the conspecter Phase A source-capture pipeline (DIA-067, surfaced 2026-08-08 by 0-byte source files). Dockerfile.dev ARG TRAFILATURA_VERSION=2.2.0 + uv tool install (ana001 Option C) with Option A fallback, trafilatura --version smoke probe in test-docker-smoke.sh. Implemented commit 3c5f2d6 (2026-08-08, Option A fallback used)."
+    path: openspec/changes/dia-067-docker-trafilatura/
+    created: 2026-08-08
+    status: implemented
+  - name: dia-071-host-lsp-tolerance
+    description: "OpenSpec change: EMPTY SCAFFOLD (only .openspec.yaml, no proposal/design/tasks). Host LSP tolerance for opencode host-mode editors; flagged by ana017 G12 with cleanup deferred to R11. Registered for index completeness only."
+    path: openspec/changes/dia-071-host-lsp-tolerance/
+    created: 2026-08-08
+    status: proposed
+  - name: batch-d-parallel-coders
+    description: 'OpenSpec change (DIA-172, "Parallel Coders (Batch D Expansion)", scope
+      opencode-config): extends the DIA-162/DIA-163 batch-dispatch rule (patterns A/B/C)
+      with Batch Pattern D (parallel @coder lanes allowed ONLY IF every non-coder lane
+      is read-only AND each coder asserts a distinct WORKTREE: <path>, validated by the
+      delegation-observer plugin via regex + Set-size check). Adds 5 quick-fixes (F1-F5):
+      F1 remove memory-shelf.yaml from analyzer-escalated write block (DIA-162 sole-writer
+      invariant), F2 add bash:deny to code-navigator + observer (strict read-only), F3
+      conspecter edit allow list = knowledge/* only, F4 singleton-batch semantics (<=1
+      task() call is safe), F5 add architector to READ_ONLY_LANES + batch A on all 5
+      lockstep surfaces. Authors new .sdd/opencode-config/architecture.md (2 ADRs, see
+      shelf.architectures). skip_specs: true (pure opencode-config/dev-infra, no Poetry
+      Platform behavior change). Implementation on 5 worktree branches off base a310465
+      (docs/plugin/prompts/append/drift), TDD RED-GREEN, two-axis reviews clean, ai-auditor
+      APPROVE (F1-F7 closed). MERGE COMPLETED 2026-08-14: 5 squash-merges d9db963..301780a
+      + close-out 1db22bb (ticket, shelf, changelog, learnings); status implemented/merged.'
+    path: openspec/changes/batch-d-parallel-coders/
+    created: 2026-08-13
+    status: implemented
+  - name: batch-d-infra-hardening
+    description: 'OpenSpec change (DIA-174, scope opencode-config/dev-infra): batch D
+      infra hardening, 6 items across 4 slices S1-S4. S1 worktrees.sh create now copies
+      .husky/_ shim from the main tree (fail-loud when absent), fixing the DIA-172
+      LESSON-1 worktree husky gap so new worktrees get pre-commit enforcement. S2 adds
+      a persistent behavioral suite scripts/__tests__/batch-d-infra.test.mjs (tracked
+      since DIA-176 F2 - the DD2 gitignore rationale is superseded) + Makefile wiring
+      (absence fails make test-config loudly) + dev-infra ADR 9/10.
+      S3 branch-ownership directive in coder_append.md. S4 hardening rules: ticket-ID
+      token rule, architector design persistence rule, merge-gate container evidence
+      rule (R1/R2/R3 in orchestrator_append.md + AGENTS.md). Merged 05c75fe (S1), aec1bd3
+      (S2), 6a35466 (S3), 510e60b (S4), close-out 0d80794 (ticket OPEN->DONE). One-shot
+      batch D run: 4 parallel coders (RED) reused for GREEN + fix loop. All reviews closed
+      (cycle 1/2), ai-auditor APPROVE, combined review MERGE-READY, post-merge gates green
+      (suite 43/43, bats 240 incl T17-T19, validate-opencode-config, validate-agent-names 24).'
+    path: openspec/changes/batch-d-infra-hardening/
+    created: 2026-08-14
+    status: implemented
+  - name: dev-infra-stack-hardening
+    description: 'OpenSpec change (scope dev-infra): hardens the dev stack
+      (Dockerfile.dev, Makefile, docker-compose.yml, dev-entrypoint.sh,
+      scripts/dev-secrets-profile.sh, .gitignore, docs). Implemented and verified
+      per implementation note 2026-08-02: 24/24 bats tests passing, docker build
+      success, live chromium launch, openspec validate pass. Post-implementation
+      review folded five spec-fidelity deviations plus one scope-creep addition
+      (T7 / H5) into the artifact. Status implemented.'
+    path: openspec/changes/dev-infra-stack-hardening/
+    created: 2026-08-02
+    status: implemented
+  - name: ssh-agent-forward-opencode-docker
+    description: 'OpenSpec change (DIA-173, scope dev-infra): forward the host SSH
+      agent socket into the opencode-docker container read-only at /tmp/ssh-agent.sock
+      so git push to SSH remotes works from inside the container. Detection loop probes
+      SSH_AUTH_SOCK, then ${XDG_RUNTIME_DIR:-}/keyring/ssh and /gcr/ssh, mounts the
+      first found socket read-only; warn-and-continue when none found. Optional
+      GIT_SSH_COMMAND accept-new for read-only known_hosts. Keys never leave the host:
+      no ~/.ssh mount, no key copy, only the agent socket is forwarded (security
+      profile mirrors the accepted DIA-164 docker.sock mount). TDD slices planned
+      (RED tests first), implementation pending.'
+    path: openspec/changes/ssh-agent-forward-opencode-docker/
+    created: 2026-08-13
+    status: proposed
+  - name: test-suite-audit-fixes
+    description: "OpenSpec change (DIA-179, scope dev-infra): six actionable\
+      \ findings from the ana021 full test-suite audit, implemented in 5 disjoint\
+      \ slices A/B/C/D/F (no E) under the batch D parallel-worktree model. F-1\
+      \ reorder scripts/verify-pre-push.sh (fast-to-fail first, slowest test-shell\
+      \ LAST, ~32s -> ~1.2s for a format/typecheck failure); F-2 flip turbo base\
+      \ test dependsOn from [build] to [] and drop the per-package override block;\
+      \ F-3 eliminate the duplicate docker compose up --build in make test-infra\
+      \ (smoke test leaves stack UP, ~30-60s saved); F-4 add a --quick tier to\
+      \ the bats runner for shell edits (~25s floor -> sub-5s); F-6 dedup the\
+      \ byte-identical /home/qualt guard into scripts/guards/home-qualt.sh (F-1+F-6\
+      \ share Slice A); F-7 consolidate the duplicated PEP 420 conftest.py bootstrap\
+      \ via pyproject pythonpath (Slice F). One coder per slice in its own worktree,\
+      \ TDD RED-GREEN with instance separation (DIA-175), same-session fix loops,\
+      \ same-session re-reviews. MERGE COMPLETED 2026-08-14: 5 squash-merges\
+      \ (8e5e565, 5820d4e, b4f8ed9, 8a1e152, 354a681) + merge-report 0b02f0f on\
+      \ omo-slim-changes; all reviews verified-closed, all gates exit 0. Slices B/C\
+      \ both extended scripts/__tests__/batch-d-infra.test.mjs (predictable squash\
+      \ conflict resolved keeping both describe blocks)."
+    path: openspec/changes/test-suite-audit-fixes/
+    created: 2026-08-14
+    task_ref: DIA-179
+    status: implemented
+  - name: omo-self-sufficiency
+    description: 'OpenSpec change (DIA-188, scope opencode-config/dev-infra): project-level
+      OMO plugin declaration + Docker cache pre-population + installer hardening. Adds
+      oh-my-opencode-slim@2.2.14 to project .opencode/opencode.jsonc plugin array, project
+      .opencode/tui.json (panel registration via createLegacyTuiPluginHost), and
+      tools/opencode-docker/config/opencode.json. Upgrades Dockerfile.dev OPENCODE_VERSION
+      1.18.4 -> 1.18.18 (newest stable per res028; repo relocation sst/opencode ->
+      anomalyco/opencode). Direct binary download + SHA256 (linux-x64 0cddc22...fdb2aaf;
+      arm64 at implementation time). Pre-populates ~/.cache/opencode/node_modules/ at
+      build (offline-capable; Variant B npm install -g fallback). Two-phase host global
+      removal with verification gate (DIA-123 second-boot pattern). skip_specs: true.
+      Out of scope: conspecter defect (DIA-190), Windows pin (follow-up). 6 task groups,
+      20 tasks.'
+    path: openspec/changes/omo-self-sufficiency/
+    created: 2026-08-15
+    task_ref: DIA-188
+    status: proposed
+  - name: parallel-handoff-slots
+    description: "OpenSpec change (DIA-085, scope dev-infra): replace the single-slot .opencode/session/current-handoff.json with per-session handoff slots to prevent last-writer-wins data loss when parallel orchestrator sessions both write terminal handoffs. Triggered by 2026-08-15 incident where ses_ffd538953ffeHi5JxeN4RF1aAp (DIA-174) and ses_ffb7ba1daffemGh05K4YUPlQe2 (DIA-189) wrote the same single slot within 65s, clobbering the DIA-174 prognosis. Layout: handoffs/<session-id>.json (per-session slot, identical schema to current-handoff.json including DIA-061 checksum), handoffs/active.json (pointer optimization, {active_session_id, timestamp, pointer_version:1}), handoffs/.reconciled (sidecar tracking batch-approved slots to prevent re-presentation), handoffs/archive/<session-id>.<iso-ts-hyphenated>.json (archive-on-overwrite for same-session rewrites). Boot-gate resolution chain: pointer -> mtime scan -> legacy current-handoff.json fallback. Writer flow: archive_prior -> write_slot (atomic temp+fsync+rename+fsync-dir) -> write_pointer (atomic). log_decision terminal-status filter (DIA-120 commit e15a876) preserved. Plugin TS changes in delegation-observer.ts (handoffPath constant line 571 -> dynamic per-session; atomicWriteHandoff line 1088 -> archive+slot+pointer flow; log_decision handler line 2448 passes session_id). Registry row gains optional archived_prior field. validate-handoff.sh extended with -s <session-id> flag + pointer auto-discovery + legacy fallback. New scripts/test-parallel-handoff.sh with 6 acceptance scenarios. Bun harness extended with parallel-handoff.test.mjs (S1 seam). NEXT-RUN.md section 1/2/7.3/7.8 + AGENTS.md section 6 DIA-124 reference updated. All under .gitignore:82 (.opencode/session/). No .sdd/ module doc (operates within .sdd/dev-infra/ and .sdd/dia-redispatch-cycle/ boundaries). 5 vertical slices: T1 plugin writer, T2 boot-gate docs, T3 validator extension, T4 tests (smoke + bun + bats), T5 ticket+docs reconciliation. skip_specs: true. Ana011 full claim+heartbeat protocol explicitly scoped out (separate follow-up change). Gate state: full-interview (triggers: new-module, schema-state, cross-cutting; waivers: none)."
+    path: openspec/changes/parallel-handoff-slots/
+    created: 2026-08-15
+    task_ref: DIA-085
+    status: proposed
+  - name: adaptive-session-compaction
+    description: "OpenSpec change (DIA-260822-medh, scope opencode-config): adaptive session-compaction policy adding an advisory layer over native OpenCode auto-compaction (96-99%). Restores working context measurement via context_usage.usage_fraction (the prior getContextPressure() returned 0, making the 50/80/95 logic inoperative). Progressive policy: 60% readiness warning (context-warning-60, rate-limited), 85% proactive compaction request (context-compact-85, manual /compact, no forced API), post-first-compaction handoff (context-new-session-post-compact) on next 85% crossing. State: in-memory Map<string, ContextPolicyState> seeded from registry.jsonl at boot (fail-soft; registry.jsonl is canonical semantic event store per ana007/DIA-136). Compaction detected via experimental.compaction.autocontinue (NOT a polling proxy). Direct context_usage measurement requires an async plugin hook + shared async helper, NOT synchronous tool.execute.before. No forced compaction API exists. Documented risks: hook overhead, native compaction race, velocity-event duplication, post-compact timing. Implementation in delegation-observer.ts (no new modules/APIs). Resolves the prior openspec-plan permission denial - openspec-plan is practice-protected/spec-authoring-only and must not register shelf entries; @memory-manager owns this registration (AGENTS.md section 2.3 step 6 / 2.5 Phase 6)."
+    path: openspec/changes/adaptive-session-compaction/
+    created: 2026-08-22
+    task_ref: DIA-260822-medh
+    status: validated
+  - name: dia-260820-jlu0-chicken-egg-ticket-gate
+    description: "OpenSpec change (ticket DIA-260820-jlu0): resolves the chicken-and-egg between the section-10 ticket gate and the spec-authoring lane that cannot open its own ticket. Validated, not implemented."
+    path: openspec/changes/dia-260820-jlu0-chicken-egg-ticket-gate/
+    created: 2026-08-27
+    task_ref: DIA-260820-jlu0
+    status: validated
+  - name: dia-260821-aoag-socket-mount-opt-in
+    description: "OpenSpec change (ticket DIA-260821-aoag): makes the observer socket mount opt-in rather than default-on. Validated, not implemented."
+    path: openspec/changes/dia-260821-aoag-socket-mount-opt-in/
+    created: 2026-08-27
+    task_ref: DIA-260821-aoag
+    status: validated
+  - name: dia-260821-5r03-observer-registration-dedupe
+    description: "OpenSpec change (ticket DIA-260821-5r03): de-duplicates observer registration to prevent double registration. Validated, not implemented."
+    path: openspec/changes/dia-260821-5r03-observer-registration-dedupe/
+    created: 2026-08-27
+    task_ref: DIA-260821-5r03
+    status: validated
+  - name: dia-206-empty-return-recovery
+    description: "OpenSpec change (ticket DIA-206): recovery protocol for empty subagent return values. Validated, not implemented."
+    path: openspec/changes/dia-206-empty-return-recovery/
+    created: 2026-08-27
+    task_ref: DIA-206
+    status: validated
+  - name: dia-234-ticket-human-readable-mention-enforcement
+    description: "OpenSpec change (ticket DIA-234, left OPEN): enforces human-readable ticket mentions (ID + slug) in user-facing output. Validated, not implemented."
+    path: openspec/changes/dia-234-ticket-human-readable-mention-enforcement/
+    created: 2026-08-27
+    task_ref: DIA-234
+    status: validated
+  architectures:
+  - name: dia-redispatch-cycle
+    description: "Design-authority seed for the dev-infra campaign protocol (CRISIS-DETECTION, PROGNOSIS-DISCIPLINE, cycle-budget management): 5 ADRs (ADR-001 prognosis in HANDOFF.md only, ADR-002 C1-C5 OR-combined triggers, ADR-003 fresh-session independence, ADR-004 max-cycles=3 budget default, ADR-005 soft exhaustion) that the redispatch rule texts must not contradict. Seeded 2026-08-03 from interview Q5."
+    path: .sdd/dia-redispatch-cycle/architecture.md
+    created: 2026-08-03
+  - name: dev-infra
+    description: "Retrospective architecture for the dev-infra module parallel dev model (implemented via DIA-100): 8 ADRs governing worktree-only parallel OpenCode lanes (worktrees-only model, DIA-074 branch naming, squash-merge integration, physical session isolation, DIA-096 safe/destructive enforcement, conflict escalation bounds, .worktrees/ location, bash-3 compat + bounded ls-remote). Decision sources: DIA-073/DIA-096, commits a387f72/44865c3/8cd270d."
+    path: .sdd/dev-infra/architecture.md
+    created: 2026-08-12
+  - name: opencode-config (DIA-172)
+    description: 'Module architecture for the opencode-config boundary (OpenCode configuration, agents, plugins, presets). First module doc in .sdd/opencode-config/. Two Accepted ADRs transcribed verbatim from the approved architector design (2026-08-13, DIA-172). ADR 1 "Batch Pattern D (Parallel Coders)": enable parallel @coder dispatches gated by a strict WORKTREE: <path> payload assertion; the delegation-observer plugin dynamically validates distinct worktree paths per parallel coder; orchestrator manages worktree lifecycles and serializes final squash-merges (parallelizing without worktrees rejected - git index lock/file contention risk). ADR 2 "Singleton-Batch Semantic Exemption": classify a batch safe immediately if it contains exactly one task() call, eliminating false-positive A1 warnings for single delegations that also fire semantic tools (e.g. log_decision); forcing log_decision into a separate orchestrator turn rejected (context/token waste). ADR 3 "Strict Instance Separation (RED test-author vs GREEN implementer)" + ADR 4 "Same-Session Fix Loops" added 2026-08-14 (DIA-176 F6) recording the DIA-175 policies: RED test-writing and GREEN implementation MUST use DIFFERENT coder instances (test-author never implements; role set by dispatch payload); fix-loop dispatches MUST resume the SAME coder session that wrote the code (resume by task_id/session_id), never a fresh instance.'
+    path: .sdd/opencode-config/architecture.md
+    created: 2026-08-13
+    status: Accepted
+  - name: capability-authorization (DIA-260826-7qmt)
+    description: "Module architecture for capability-based authorization of multi-agent ticket gates: HMAC Stateless Capability (Pattern 1) + TTL Auto-Expiry (Pattern 8) formalizing log_decision + session handoff, per res035. Implemented and tested."
+    path: .sdd/capability-authorization/architecture.md
+    created: 2026-08-26
+    status: Accepted
+
   rag_bases: []
+  

@@ -1,0 +1,41 @@
+# DIA-137 orchestrator routine-work + artifact systems: lightweight reliable tools - res027 source archive (2026-08-14)
+# One URL per line with per-source relevance/reliability rating. Failures marked: # NOT ARCHIVED (all methods exhausted)
+# STATUS: ARCHIVED (Phase A complete)
+
+# --- File-watching / change-triggered automation (category 4) ---
+https://raw.githubusercontent.com/watchexec/watchexec/main/README.md [watchexec-readme.md] REL: High REV: High (official repo, maintained, single Rust binary)
+https://raw.githubusercontent.com/eradman/entr/master/README.md [entr-readme.md] REL: High REV: High (official repo, POSIX C, inotify/kqueue)
+https://raw.githubusercontent.com/eradman/entr/master/entr.1 [entr-man.md] REL: Medium REV: High (man page: -c/-d/-r/-s semantics)
+https://raw.githubusercontent.com/inotify-tools/inotify-tools/master/README.md [inotify-tools-readme.md] REL: Medium REV: Medium (inotifywait; notes Rust port recommended over C)
+
+# --- Data processing / JSON-L / YAML (categories 4 + 5) ---
+https://raw.githubusercontent.com/jqlang/jq/master/README.md [jq-readme.md] REL: High REV: High (official; ALREADY in toolchain - baseline control)
+https://raw.githubusercontent.com/mikefarah/yq/master/README.md [yq-readme.md] REL: High REV: High (official yq README; YAML/JSON/INI/XML, jq-like)
+https://raw.githubusercontent.com/duckdb/duckdb/main/README.md [duckdb-readme.md] REL: Medium REV: High (official; SQL on CSV/Parquet, possible JSONL rollups)
+
+# --- Task runners / CLI ergonomics (category 5) ---
+https://raw.githubusercontent.com/casey/just/master/README.md [just-readme.md] REL: High REV: High (official just README; project-specific command runner, pairs with watchexec)
+https://raw.githubusercontent.com/jdx/mise/main/README.md [mise-readme.md] REL: Medium REV: High (official; dev tools/env/tasks in one CLI - ALREADY in toolchain as version manager)
+
+# --- Shell testing (category 5 - already adopted) ---
+https://raw.githubusercontent.com/bats-core/bats-core/master/README.md [bats-readme.md] REL: High REV: High (official; TAP-compliant; ALREADY vendored + wired into test-shell)
+
+# --- Task tracking / todo (category 3) ---
+https://raw.githubusercontent.com/todotxt/todo.txt-cli/master/README.md [todotxt-readme.md] REL: Medium REV: Medium (todo.txt CLI; file-based todo)
+
+# --- JSON interactive viewers / registry inspection (category 2 adjunct) ---
+https://raw.githubusercontent.com/antonmedv/fx/master/README.md [fx-readme.md] REL: Low REV: Medium (minimal README; interactive JSON viewer)
+https://registry.npmjs.org/fx [fx-npm.json] REL: Medium REV: High (npm registry JSON; dist-tags latest 39.2.0, MIT)
+
+# --- File-watching in-process Node (category 4; plugin in-process fit) ---
+https://raw.githubusercontent.com/paulmillr/chokidar/master/README.md [chokidar-readme.md] REL: High REV: High (official; cross-platform Node fs watcher, atomic writes)
+https://registry.npmjs.org/chokidar [chokidar-npm.json] REL: Medium REV: High (npm registry JSON; dist-tags latest 5.0.0, MIT)
+
+# --- Reference only (project-internal, NOT external sources) ---
+# .opencode/plugins/delegation-observer.ts (in-process Node plugin; current writer)
+# scripts/session-log (jq-based derived-view renderer; status-quo baseline)
+# scripts/tickets (bash-only, zero-runtime-dep ticket ledger CLI; status-quo baseline)
+# scripts/ticker-render.sh (jq-based derived-view renderer)
+# Makefile test-shell (vendored bats + check-host-jq gate) - bats+jq already adopted
+# knowledge/res018 + res021 (DIA-125 ticket-automation) - do NOT duplicate; new ground only
+# knowledge/res026 (DIA-136 sibling; lowdb/json-server/nedb/tinydb) - reference, do NOT re-evaluate

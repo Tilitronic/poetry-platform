@@ -35,7 +35,7 @@ BGE-Reranker-v2-m3 cross-encoder. Supports two trigger modes:
 - **`#tag`** — query a specific knowledge base directly
 - **`#rag`** — auto-select relevant KB(s) based on topic analysis
 
-The backing script (`~/.config/opencode/scripts/query_rag.py`) discovers
+The backing script (`.opencode/scripts/query_rag.py`) discovers
 knowledge bases **dynamically at runtime** — no hardcoded UUIDs needed.
 
 Prefer the `@rag` opencode command (registered in opencode.json) instead
@@ -104,8 +104,8 @@ Phase 2 → routes:
   Query B → #rust
 
 Phase 3 → execute:
-  python query_rag.py "#python Python exception handling try except best practices"
-  python query_rag.py "#rust Rust error handling Result Option propagation patterns"
+  python3 .opencode/scripts/query_rag.py "#python Python exception handling try except best practices"
+  python3 .opencode/scripts/query_rag.py "#rust Rust error handling Result Option propagation patterns"
 ```
 
 Finally, **synthesize** results from all KBs — group related facts,
@@ -170,7 +170,7 @@ Knowledge bases are discovered **dynamically at runtime** from OpenWebUI
 and cached locally. Run this for the current list:
 
 ```bash
-python C:\Users\qualt\.config\opencode\scripts\query_rag.py --list
+python3 .opencode/scripts/query_rag.py --list
 ```
 
 **Cache source** (not hardcoded — always verify with `--list`):
@@ -196,9 +196,9 @@ python C:\Users\qualt\.config\opencode\scripts\query_rag.py --list
 ### Listing books within a KB
 
 ```bash
-python C:\Users\qualt\.config\opencode\scripts\query_rag.py --books #csc      # books in one KB
-python C:\Users\qualt\.config\opencode\scripts\query_rag.py --books-all         # books in ALL KBs
-python C:\Users\qualt\.config\opencode\scripts\query_rag.py --stats             # file counts per KB
+python3 .opencode/scripts/query_rag.py --books #csc      # books in one KB
+python3 .opencode/scripts/query_rag.py --books-all         # books in ALL KBs
+python3 .opencode/scripts/query_rag.py --stats             # file counts per KB
 ```
 
 ---
@@ -343,16 +343,17 @@ User query received with #rag or #tag
 
 ## Platform & Auth Notes
 
-- **Windows (this setup):** Always use the **absolute path**:
-  ```powershell
-  python C:\Users\qualt\.config\opencode\scripts\query_rag.py "#csc OOP"
+- **Any OS — use repo-root-relative path:** Always run from the repo root:
+  ```bash
+  python3 .opencode/scripts/query_rag.py "#csc OOP"
   ```
 - **Linux / macOS:** Use `python3` and the relative path from the skill base:
   ```bash
   python3 ../../scripts/query_rag.py "#csc OOP"
   ```
-- **Authentication:** `OPENWEBUI_API_KEY` is set as a user env var. The script
-  also supports JWT auto-minting from OpenWebUI's `.key` file (requires PyJWT).
+- **Authentication:** The script supports two auth methods:
+  1. **API key:** Set `OPENWEBUI_API_KEY` env var (not currently configured — developer must set this).
+  2. **JWT auto-minting:** Reads OpenWebUI's `.key` file to forge an admin token (requires PyJWT).
   > ⚠ **Security:** JWT auto-minting reads the OpenWebUI signing key and
   > forges an admin token. Never use on multi-user or internet-exposed instances.
 

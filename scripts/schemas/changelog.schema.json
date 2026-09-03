@@ -1,0 +1,30 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Changelog Ledger",
+  "description": "Shape contract for .opencode/CHANGELOG.yaml - the machine-first changelog ledger that replaced the prose .opencode/CHANGELOG.md (DIA-194 Variant B, per ana024 EBDV). Validated by scripts/validate-changelog.sh at `make test-config`; the script's embedded structural checks mirror this schema so hosts without the jsonschema pip package still get gate coverage. The ledger is written by agents (new entries appended on every register step), so the contract is deliberately strict: unknown keys and malformed dates fail the gate instead of silently degrading the derived MD view rendered by scripts/changelog-render.",
+  "type": "array",
+  "items": { "$ref": "#/definitions/changelogEntry" },
+  "definitions": {
+    "changelogEntry": {
+      "type": "object",
+      "description": "One changelog entry. date/ticket/scope/files/summary/verification are required (the render script's header and bullets read exactly these); severity/status/area/route are the optional extras observed in the legacy prose sections (DIA-194 inventory 2026-08-16). date must be an ISO-8601 date (YYYY-MM-DD); the validator normalizes PyYAML's native datetime.date objects to ISO strings before validation so both quoted and unquoted spellings pass.",
+      "required": ["date", "ticket", "scope", "files", "summary", "verification"],
+      "additionalProperties": false,
+      "properties": {
+        "date": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$" },
+        "ticket": { "type": "string", "minLength": 1 },
+        "severity": { "type": "string" },
+        "status": { "type": "string" },
+        "area": { "type": "string" },
+        "scope": { "type": "string", "minLength": 1 },
+        "route": { "type": "string" },
+        "files": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "summary": { "type": "string", "minLength": 1 },
+        "verification": { "type": "string", "minLength": 1 }
+      }
+    }
+  }
+}

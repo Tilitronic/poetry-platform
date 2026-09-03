@@ -1,10 +1,6 @@
 {
   "$schema": "https://turbo.build/schema.json",
   "tasks": {
-    "compile:lezer": {
-      "inputs": ["src/markup-dsl/*.grammar"],
-      "outputs": ["src/markup-dsl/*.js"]
-    },
     "generate:phonetic-atlas": {
       "inputs": [
         "src/atlas/phonetic_atlas.fbs",
@@ -16,20 +12,18 @@
     "codegen": {
       "dependsOn": ["generate:phonetic-atlas"],
       "inputs": ["src/atlas/phonetic_atlas.fbs"],
-      "outputs": [
-        "dist/ts/**",
-        "dist/python/**",
-        "dist/rust/**",
-        "dist/cpp/**"
-      ]
+      "outputs": ["dist/ts/**", "dist/python/**", "dist/rust/**", "dist/cpp/**"]
     },
     "build": {
-      "dependsOn": ["compile:lezer", "^build"],
+      "dependsOn": ["^build"],
       "outputs": ["dist/**", ".quasar/**", "dist/spa/**"]
     },
     "test": {
-      "dependsOn": ["build"],
-      "inputs": ["src/**/*.test.ts", "src/**/*.spec.ts", "src/**/*.test.py"],
+      // DIA-179 F-2: base `test` no longer depends on build, so new
+      // packages get fast tests by default. Packages whose tests consume
+      // build output must opt in with their own dependsOn: ["build"].
+      "dependsOn": [],
+      "inputs": ["src/**"],
       "outputs": []
     },
     "dev": {

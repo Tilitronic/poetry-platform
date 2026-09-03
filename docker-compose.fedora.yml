@@ -1,0 +1,13 @@
+# Poetry Platform — Fedora / rootless Podman compose override (DIA-260821-x5nj, Slice 2).
+#
+# Layers ONLY the two approved Fedora-specific runtime flags onto
+# services.dev. Base docker-compose.yml remains the single source of truth
+# for volumes/ports/environment/secrets — this file adds no such keys.
+#
+# - userns_mode: keep-id  -> rootless Podman UID/GID mapping (DIA-164)
+# - security_opt: label=disable -> SELinux connectto denial workaround
+services:
+  dev:
+    userns_mode: keep-id
+    security_opt:
+      - label=disable

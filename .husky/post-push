@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+# Post-push advisory: warn about stale worktrees/branches (DIA-203).
+# Dry-run only -- never auto-deletes. The developer runs `make worktree-gc`
+# manually to actually clean up.
+output="$(bash scripts/worktrees.sh cleanup --dry-run 2>&1)" || true
+if [ -n "$output" ]; then
+  echo ""
+  echo "worktree-gc advisory: stale branches/worktrees detected after push."
+  echo "Run 'make worktree-gc' to clean up, or ignore if intentional."
+  echo ""
+  echo "$output"
+fi

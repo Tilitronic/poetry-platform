@@ -1,0 +1,107 @@
+#!/usr/bin/env bash
+# opencode-dev — unified Docker dev-runtime launcher (DIA-260821-x5nj).
+# Engine (podman|docker) + OS (wsl|native) selection via --engine/--os
+# overrides or auto-detection. Bash-3 compatible (ADR 8).
+set -euo pipefail
+
+launcher_dir="$(dirname "${BASH_SOURCE[0]}")"
+engine=""
+os=""
+mode="bash"
+
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --engine=podman)  engine="podman" ;;
+    --engine=docker)  engine="docker" ;;
+    --os=wsl)         os="wsl" ;;
+    --os=native)      os="native" ;;
+    --run-opencode)   mode="opencode" ;;
+    --test)           mode="test" ;;
+    *) echo "opencode-dev: unknown argument: $1" >&2; exit 2 ;;
+  esac
+  shift
+done
+
+# Auto-detect engine: Podman if the version output reports Podman, else Docker.
+# Uses `docker version` (not `--version`) because the launcher's mock answers
+# the bare `version` subcommand; Podman's version output still contains
+# "Podman", so the detection intent is unchanged. (The Makefile path uses the
+# docker-free readlink probe in scripts/compose-env.sh; this launcher keeps the
+# `docker version` probe because its own bats suite mocks that contract.)
+if [ -z "$engine" ]; then
+  ver="$(docker version 2>/dev/null || true)"
+  case "$ver" in
+    *Podman*) engine="podman" ;;
+    *)        engine="docker" ;;
+  esac
+fi
+
+# Auto-detect OS: WSL if /proc/version mentions Microsoft/WSL, else native.
+if [ -z "$os" ]; then
+  if grep -qiE 'microsoft|wsl' /proc/version 2>/dev/null; then
+    os="wsl"
+  else
+    os="native"
+  fi
+fi
+
+# Delegate the merged-set assembly to the shared helper (single source of truth
+# for the engine/OS -> COMPOSE_FILE mapping, design.md D1/D3). Feed the detected
+# engine/OS as COMPOSE_ENGINE/COMPOSE_OS so the helper's own docker-free probe
+# is bypassed here (this launcher already ran `docker version`); the Makefile
+# path lets the helper self-detect. ponytail: env-var override, not a wrapper.
+export COMPOSE_ENGINE="$engine"
+export COMPOSE_OS="$os"
+export COMPOSE_FILE="$("$launcher_dir/compose-env.sh")"
+
+# Secrets ownership preflight (T7.0b, design.md Seam 5): refuse to start the
+# container unless ./secrets/ is owned by the invoking user with every secret
+# file mode 0600. The check prints actionable chown/chmod diagnostics itself
+# and never remediates; set -e aborts here on its non-zero exit. The helper is
+# resolved relative to THIS script so a non-repo-root CWD yields a real
+# ownership verdict instead of command-not-found; ./secrets itself stays
+# CWD-relative like the compose files.
+#
+# Skip only when BOTH ./secrets and the CWD are foreign to the invoking user:
+# under rootless userns remapping (bind-mounted /workspace inside the dev
+# container) EVERY host file presents as a foreign uid, so that signature
+# means the check cannot observe true host ownership -- enforcing would
+# false-fail the documented `make opencode` flow. Any invoker-owned anchor
+# (fixture secrets dir, invoker-owned CWD, plain host run) keeps full
+# enforcement.
+uid="$(id -u)"
+secrets_owner="$(stat -c %u ./secrets 2>/dev/null || echo "$uid")"
+cwd_owner="$(stat -c %u .)"
+if [ "$secrets_owner" = "$uid" ] || [ "$cwd_owner" = "$uid" ]; then
+  "$launcher_dir/check-secrets-ownership.sh"
+else
+  echo "[opencode-dev] secrets ownership preflight skipped: ./secrets and CWD both foreign to uid $uid (container/userns bind mount); run scripts/check-secrets-ownership.sh on the host for a real verdict"
+fi
+
+# Pre-flight: validate the merged override set. The -f flags are derived from
+# COMPOSE_FILE (the helper's merge) so the launcher contract — the mock records
+# every -f override file — is preserved. ponytail: derive, don't re-declare.
+engine_file="$(printf '%s' "$COMPOSE_FILE" | cut -d: -f2)"
+os_file="$(printf '%s' "$COMPOSE_FILE" | cut -d: -f3)"
+config_flags="-f docker-compose.yml -f $engine_file"
+if [ -n "$os_file" ]; then
+  config_flags="$config_flags -f $os_file"
+fi
+docker compose $config_flags config >/dev/null
+
+docker compose up -d dev
+
+# Self-healing launch (DIA-260824-a3mk): opencode routes through the
+# entrypoint as root so the entrypoint repairs any root-owned log, then drops to
+# dev via gosu. Other modes run as dev directly (never as root).
+case "$mode" in
+  opencode)
+    docker compose exec -it --user root dev /usr/local/bin/dev-entrypoint.sh opencode
+    ;;
+  test)
+    docker compose exec -T --user dev dev make test-infra
+    ;;
+  *)
+    docker compose exec -it --user dev dev bash
+    ;;
+esac
