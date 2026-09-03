@@ -51,21 +51,13 @@ let capMod = {}
 try {
   capMod = await import("../lib/capability.ts")
 } catch (e) {
-  // If the stub cannot be imported at all, leave capMod empty — every test
-  // will fail with a descriptive assertion, giving RED evidence.
-  capMod._importError = e
+  void e
 }
 
 // Helpers to resolve DI seam if GREEN exposes a factory.
 function resolveCapabilityAPI(mod) {
-  // If mod has a factory, prefer it.
-  const factory =
-    mod.createCapability ?? mod.create ?? mod.default
+  const factory = mod.createCapability
   if (typeof factory === "function") {
-    // Heuristic: factory that returns an object with mint/verify when called
-    // with { randomUUID, now } or no args. We probe by calling with fake deps.
-    // If it looks like a plugin factory (returns hooks with tool/event keys)
-    // we treat it as the shell factory, not the capability factory.
     try {
       const probe = factory({ randomUUID: () => "probe-id-"+String(Date.now()), now: () => Date.now() })
       if (probe && typeof probe.mintCapabilityToken === "function") {
@@ -73,14 +65,6 @@ function resolveCapabilityAPI(mod) {
       }
     } catch {
       // probe failed — fall through to plain exports
-    }
-    try {
-      const probe2 = factory()
-      if (probe2 && typeof probe2.mintCapabilityToken === "function") {
-        return { api: probe2, isFactory: true }
-      }
-    } catch {
-      // ignore
     }
   }
   return { api: mod, isFactory: false }
@@ -348,7 +332,7 @@ describe("lib/capability — Wy .server guard", () => {
     }
     const bad = []
     for (const [k, v] of Object.entries(capMod)) {
-      if (k === "_importError" || k === "default") continue
+      if (k === "default") continue
       if (!gy(v)) bad.push(k)
     }
     assert.equal(bad.length, 0, `all capability exports must be Wy-compatible, bad: ${bad.join(", ")} — CAPABILITY_SECRET needs .server guard`)

@@ -88,24 +88,19 @@ try {
   mod = await import("../lib/registry.ts")
 } catch (e) {
   importErr = e
-  mod = { _importError: e }
+  mod = {}
 }
 
 // ---------------------------------------------------------------------------
 // Helpers to resolve DI seam
 // ---------------------------------------------------------------------------
 function tryFactory(deps) {
-  const factory = mod.createRegistry ?? mod.create ?? mod.createRegistryLib ?? mod.default
+  const factory = mod.createRegistry
   if (typeof factory !== "function") return null
-  // Heuristic: factory that when called with deps returns object with appendRow
   try {
     const inst = factory(deps)
     if (inst && (typeof inst.appendRow === "function" || typeof inst.appendMessageRow === "function")) return inst
-  } catch { /* probe failed — try no-arg */ }
-  try {
-    const inst2 = factory()
-    if (inst2 && typeof inst2.appendRow === "function") return inst2
-  } catch { /* ignore */ }
+  } catch { /* probe failed */ }
   return null
 }
 

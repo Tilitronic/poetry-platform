@@ -71,7 +71,7 @@ try {
   mod = await import("../lib/circuit-breaker.ts")
 } catch (e) {
   importErr = e
-  mod = { _importError: e }
+  mod = {}
 }
 
 // ---------------------------------------------------------------------------
@@ -79,56 +79,20 @@ try {
 // ---------------------------------------------------------------------------
 
 function makeBreaker(clock) {
-  // clock: { now: () => number } or bare function or number holder
-  // Normalize to { now }
-  const nowFn = typeof clock === "function" ? clock : clock?.now ?? clock?.clock ?? null
+  const nowFn = typeof clock === "function" ? clock : clock?.now ?? null
   const deps = nowFn ? { now: nowFn } : {}
-  // Also support deps clock alias
-  const depsWithClock = nowFn ? { now: nowFn, clock: nowFn } : {}
-
-  // 1) Try factory exports
-  const factories = [
-    mod.createCircuitBreaker,
-    mod.createToolCircuitBreaker,
-    mod.createBreaker,
-    mod.create,
-    mod.default,
-  ]
-  for (const f of factories) {
-    if (typeof f !== "function") continue
-    // Factory probe: call with deps; expect object with record/tryPass/getState
+  const factory = mod.createCircuitBreaker
+  if (typeof factory === "function") {
     try {
-      const inst = Object.keys(deps).length ? f(deps) : f()
-      if (inst && typeof inst.record === "function" && typeof inst.tryPass === "function") return inst
-    } catch { /* try next shape */ }
-    try {
-      const inst2 = Object.keys(depsWithClock).length ? f(depsWithClock) : f()
-      if (inst2 && typeof inst2.record === "function") return inst2
+      const inst = Object.keys(deps).length ? factory(deps) : factory()
+      if (inst && typeof inst.record === "function") return inst
     } catch { /* ignore */ }
-    // Bare function clock
-    if (nowFn) {
-      try {
-        const inst3 = f(nowFn)
-        if (inst3 && typeof inst3.record === "function") return inst3
-      } catch { /* ignore */ }
-    }
   }
-
-  // 2) Try class with DI
-  const Cls = mod.ToolCircuitBreaker ?? mod.CircuitBreaker ?? mod.Breaker
+  const Cls = mod.ToolCircuitBreaker
   if (typeof Cls === "function") {
-    // Try constructor with deps
     if (Object.keys(deps).length) {
       try {
         const inst = new Cls(deps)
-        if (inst && typeof inst.record === "function") return inst
-      } catch { /* ignore */ }
-      try {
-        const inst = new Cls(depsWithClock)
-        if (inst && typeof inst.record === "function") return inst
-      } catch { /* ignore */ }
-      try {
-        const inst = new Cls(nowFn)
         if (inst && typeof inst.record === "function") return inst
       } catch { /* ignore */ }
     }
@@ -137,10 +101,6 @@ function makeBreaker(clock) {
       if (inst && typeof inst.record === "function") return inst
     } catch { /* ignore */ }
   }
-
-  // 3) Fallback: mod itself might be the breaker instance (factory returned bare mod)
-  if (typeof mod.record === "function" && typeof mod.tryPass === "function") return mod
-
   return null
 }
 

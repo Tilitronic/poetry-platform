@@ -76,7 +76,8 @@ let mod = {}
 try {
   mod = await import("../lib/formatter.ts")
 } catch (e) {
-  mod = { _importError: e }
+  void e
+  mod = {}
 }
 
 // ---------------------------------------------------------------------------
@@ -84,8 +85,7 @@ try {
 // Per-test fakes are passed to this helper so each runEditTimeFormatter call is isolated.
 // ---------------------------------------------------------------------------
 function resolveFormatter(fakes = {}) {
-  const factory =
-    mod.createFormatter ?? mod.create ?? mod.default
+  const factory = mod.createFormatter
   if (typeof factory === "function") {
     try {
       const inst = factory(fakes)
@@ -94,13 +94,6 @@ function resolveFormatter(fakes = {}) {
       if (inst && typeof inst.runEditTimeFormatter === "function") return inst
     } catch {
       // probe failed — fall through to plain exports
-    }
-    try {
-      const inst2 = factory()
-      if (inst2 && typeof inst2.runEditTimeFormatter === "function") return inst2
-      if (inst2 && typeof inst2.extractPatchPaths === "function") return inst2
-    } catch {
-      // ignore
     }
   }
   return mod
@@ -117,11 +110,10 @@ function callRunEditTimeFormatter(input, fakes) {
   // Shape B: direct => fn(input, deps)
   // We detect by trying with 2 args; if factory shape is used, second arg is ignored but harmless.
   // To be robust, check if factory was used: if api !== mod, assume factory-bound single-arg.
-  const isFactory = api !== mod && typeof (mod.createFormatter ?? mod.create) === "function"
+  const isFactory = api !== mod && typeof mod.createFormatter === "function"
   if (isFactory) {
     return fn(input)
   }
-  // Direct shape: need deps as second arg; also handle workspaceRoot in fakes
   return fn(input, fakes)
 }
 

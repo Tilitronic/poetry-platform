@@ -56,47 +56,29 @@ import assert from "node:assert/strict"
 // Import the lib under test (stub in RED phase).
 // ---------------------------------------------------------------------------
 let mod = {}
-let importErr = null
 try {
   mod = await import("../lib/ticket-gate.ts")
 } catch (e) {
-  importErr = e
-  mod = { _importError: e }
+  void e
+  mod = {}
 }
 
 // Helpers to resolve DI seam if GREEN exposes a factory.
 // Per-test fakes are passed to this helper so each scanTickets call is isolated.
 function makeGate(fakes = {}) {
-  const factory =
-    mod.createTicketGate ?? mod.create ?? mod.default
+  const factory = mod.createTicketGate
   if (typeof factory === "function") {
-    // Try factory with fakes first
     try {
       const inst = factory(fakes)
       if (inst && typeof inst.scanTickets === "function") return inst
-      // if factory returns something with parseFrontmatterFields, that's also valid api
       if (inst && typeof inst.parseFrontmatterFields === "function") return inst
     } catch { /* probe failed */ }
-    try {
-      const inst2 = factory()
-      if (inst2 && typeof inst2.scanTickets === "function") return inst2
-      if (inst2 && typeof inst2.parseFrontmatterFields === "function") return inst2
-    } catch { /* ignore */ }
-    // Factory might itself BE the gate api (e.g., default returns plain mod)
   }
   return mod
 }
 
-// Quick accessor that fails with actionable RED message when export missing.
 function requireExport(name) {
-  if (importErr) {
-    throw new Error(`RED scaffold: cannot import ../lib/ticket-gate.ts (${importErr.message})`)
-  }
-  const v = mod[name]
-  if (v === undefined) {
-    throw new Error(`RED scaffold: lib/ticket-gate.ts does not export '${name}' yet — GREEN must add it`)
-  }
-  return v
+  return mod[name]
 }
 
 

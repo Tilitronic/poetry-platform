@@ -60,28 +60,9 @@ try {
   mod = {}
 }
 
-// Factory discovery: handle multiple possible GREEN shapes
 function resolveFactory(m) {
-  const candidates = [
-    m.createStallSweep,
-    m.createStallSweeper,
-    m.createSweep,
-    m.default,
-  ].filter(Boolean)
-  for (const fn of candidates) {
-    if (typeof fn === "function") {
-      try {
-        // probe: calling with empty deps should return object with start/dispose or sweep
-        const probe = fn({})
-        if (probe && (typeof probe.start === "function" || typeof probe.sweep === "function" || typeof probe.dispose === "function")) {
-          return fn
-        }
-      } catch {
-        // probe threw — still consider it the factory, caller will handle
-        return fn
-      }
-    }
-  }
+  const fn = m.createStallSweep
+  if (typeof fn === "function") return fn
   return null
 }
 const factory = resolveFactory(mod)

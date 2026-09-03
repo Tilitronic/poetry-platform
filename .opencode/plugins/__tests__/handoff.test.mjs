@@ -97,7 +97,8 @@ let mod = {}
 try {
   mod = await import("../lib/handoff.ts")
 } catch (e) {
-  mod = { _importError: e }
+  void e
+  mod = {}
 }
 
 // ---------------------------------------------------------------------------
@@ -106,18 +107,13 @@ try {
 
 
 function tryMakeHandoff(fakes) {
-  const factory = mod.createHandoff ?? mod.create ?? mod.default
+  const factory = mod.createHandoff
   if (typeof factory !== "function") return null
   try {
     const inst = factory(fakes)
     if (inst && typeof inst.computeChecksum === "function") return inst
     if (inst && typeof inst.atomicWriteHandoff === "function") return inst
   } catch { /* probe failed */ }
-  try {
-    const inst2 = factory()
-    if (inst2 && typeof inst2.computeChecksum === "function") return inst2
-    if (inst2 && typeof inst2.atomicWriteHandoff === "function") return inst2
-  } catch { /* ignore */ }
   return null
 }
 
