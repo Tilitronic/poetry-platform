@@ -6,7 +6,7 @@ id: DIA-260902-eqgg
 title: "Refactor delegation-observer plugin: extract 7 seam modules into lib modules (SRP, DIA-260901-3y39 F1)"
 area: opencode-config
 severity: Major
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: ""
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
@@ -17,7 +17,7 @@ discovered: 2026-09-02
 source: inventory
 date: 2026-09-02
 created: 2026-09-02
-updated: 2026-09-02
+updated: 2026-09-03
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -39,6 +39,7 @@ evidence: []
 SRP refactor of the delegation-observer plugin file (currently 1100+ lines, 7 seam modules in one file) -- finding F1 from DIA-260901-3y39 architecture-check.
 
 Extract each seam into separate lib modules under `.opencode/plugins/lib/` (or equivalent):
+
 1. capability-token mint/verify
 2. ticket-gate scan + keyword correlation
 3. handoff slots + active.json + boot.json lifecycle
@@ -58,7 +59,7 @@ Workflow: OpenSpec interview-first spec (proposal/design/tasks under openspec/ch
 ## Verification (corrected V-A structural criteria, developer approved 2026-09-02 before final wiring; LOC advisory)
 
 - [x] OpenSpec change proposal/design/tasks authored and approved (interview-first, user writes substance) — `openspec/changes/dia-260902-eqgg-delegation-observer-srp/` validated
-- [x] Each lib module extracted with unit tests (bats/pytest per artifact type) -- RED/GREEN with instance separation DIA-175 (7 libs: capability, ticket-gate, handoff, registry, stall-sweep, formatter, circuit-breaker; 270 lib tests) — *LOC is advisory (~3,700), binding is structural gate A/B/C, not grep LOC*
+- [x] Each lib module extracted with unit tests (bats/pytest per artifact type) -- RED/GREEN with instance separation DIA-175 (7 libs: capability, ticket-gate, handoff, registry, stall-sweep, formatter, circuit-breaker; 270 lib tests) — _LOC is advisory (~3,700), binding is structural gate A/B/C, not grep LOC_
 - [x] `make test-config` clean (57 tests) — JSONC validity, `validate-plugin-loads.sh` Node+Bun Wy-compat, `validate-observer-dedupe.sh`, `validate-plugin-structure.sh` Gate A/B/C PASS; no behavior change (hook parity verified via normalized harness traces)
 - [x] Harness parity 3/3 scenarios + boot-only implicit (boot-only, empty-result-silent-failure, parallel-handoff-archive, slot-identity-no-clobber) — normalized `registry/messages/boot` traces exact on stable fields per Q7 §3
 - [x] Perf smoke Q7 §5 — warm-up + multi-sample no-op `tool.execute.before/after` p95 <5ms (p50/p95 recorded)
@@ -71,6 +72,7 @@ Workflow: OpenSpec interview-first spec (proposal/design/tasks under openspec/ch
 ## Fix
 
 **S11 evidence (2026-09-02, DIA-175: RED≠GREEN, fixes via original S8/S9 lanes) — updated post F3/F6/O1-O3:**
+
 - shell: `wc -l .opencode/plugins/delegation-observer.ts` → **4093** (was 5048 HEAD, 4920 S8, 4686 S9, 4236 S11 recovered, 4104 after F3 stall-sweep wiring + F6 types.ts deletion, 4093 after O2 13-import pruning; advisory ~3,700 LOC, binding = structural gate A/B/C PASS per V-A correction 1).
 - shell_composition: **composition/lifecycle only** — static imports (8 libs), path construction (`join(ctx.directory, ...)`), `globalThis` singleton ownership (`STALL_SWEEP_KEY`, `BOOT_EMITTED_KEY`, `ROUTING_WRITE_KEY`), hook/tool registration (`tool.execute.before/after`, `event`, `experimental.session.compacting`, `tool` log_decision/mint_capability/context_usage), cross-seam orchestration. Subsystem algorithms + persistence serialization live in `lib/*.ts`.
 - per-hook contract (correction 1): **factory `async (ctx) =>`**, **`experimental.session.compacting` async**, **stall timer `setInterval(async () => { // sync body })`**, **formatter `spawnSync` sync**, **other hot hooks sync** (`tool.execute.before` `(input, output) =>`, `tool.execute.after` `(input, output) =>`, `event` `async (input) =>` contains `await runContextPolicy` but hot path is sync; `event` kept async for that await, other hot hooks sync). Verified via `grep -n "tool.execute"`.
@@ -84,6 +86,7 @@ Workflow: OpenSpec interview-first spec (proposal/design/tasks under openspec/ch
 ## Re-verify
 
 **Re-verify 2026-09-02 (final gates, this session):**
+
 - structural gate: `bash scripts/validate-plugin-structure.sh` PASS — Gate A 12/12, Gate B 25/25, Gate C 13/13
 - `make test-config` exit 0 — 57 tests, 0 fail (incl. validate-plugin-loads Node+Bun Wy-compat, validate-observer-dedupe, validate-plugin-structure)
 - `openspec validate dia-260902-eqgg-delegation-observer-srp` exit 0 — change valid
@@ -99,4 +102,4 @@ Workflow: OpenSpec interview-first spec (proposal/design/tasks under openspec/ch
 
 ## Closure
 
-Closure pending: implementation commit + final status flip after all gates green (this session). Docker gate not required for this commit (no container-dependent gates in the eqgg set; make test-config is host-side).
+Closed 2026-09-02: implementation commit b35229f8bd3ee6b06c794250c57d8c3004f31ea6 (amended from 04a4e65). All gates green per Re-verify section; ticket moved to CLOSED via scripts/tickets update + rollup. No behavior change -- SRP extraction only; Gates A/B/C PASS, 270 lib tests + 57 test-config PASS.
