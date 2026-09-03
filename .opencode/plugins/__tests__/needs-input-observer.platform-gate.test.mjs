@@ -53,7 +53,21 @@ import { mock, test, expect, beforeEach, afterEach } from "bun:test"
 import { createTempWorkspace } from "./helpers/plugin-harness.mjs"
 
 const workspaceCleanups = []
-afterEach(() => { while (workspaceCleanups.length) { try { workspaceCleanups.pop()() } catch { /* ignore */ } } })
+afterEach(() => {
+  while (workspaceCleanups.length) {
+    const fn = workspaceCleanups.pop()
+    try {
+      fn()
+    } catch (err) {
+      console.error(`[cleanup] temp workspace cleanup failed: ${err?.message ?? err}`)
+      try {
+        fn()
+      } catch (retryErr) {
+        console.error(`[cleanup] retry failed: ${retryErr?.message ?? retryErr}`)
+      }
+    }
+  }
+})
 
 
 // ---- powershell.exe spawn interception ----

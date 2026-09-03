@@ -35,7 +35,8 @@ const { default: createDelegationObserver } = await import(
 )
 
 // ---- Harness ----
-const { directory } = createTempWorkspace("c5-s2-")
+const { directory, cleanup } = createTempWorkspace("c5-s2-")
+try {
 
 
 const hooks = await createDelegationObserver({
@@ -94,6 +95,7 @@ const prognosis2 = {
 await writeTerminalHandoff("ses_c2", prognosis1)
 if (!existsSync(slotPath("ses_c2"))) {
   console.error("FAIL: first write did not create slot ses_c2.json")
+  try { cleanup() } catch (e) { console.error(`[cleanup] scenario cleanup failed: ${e?.message ?? e}`) }
   process.exit(1)
 }
 
@@ -109,6 +111,7 @@ if (archiveFiles.length !== 1) {
   console.error(
     `FAIL: expected 1 archive file, got ${archiveFiles.length}: ${archiveFiles.join(", ")}`
   )
+  try { cleanup() } catch (e) { console.error(`[cleanup] scenario cleanup failed: ${e?.message ?? e}`) }
   process.exit(1)
 }
 
@@ -117,6 +120,7 @@ const UUID_RE =
   /^ses_c2\.\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}\.\d{3}Z\.[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.json$/
 if (!UUID_RE.test(archiveFiles[0])) {
   console.error(`FAIL: archive name does not match UUID pattern: ${archiveFiles[0]}`)
+  try { cleanup() } catch (e) { console.error(`[cleanup] scenario cleanup failed: ${e?.message ?? e}`) }
   process.exit(1)
 }
 
@@ -127,14 +131,16 @@ for (const f of archiveFiles) {
     console.error(
       `FAIL: archived session_id=${archived.session_id}, expected ses_c2`
     )
-    process.exit(1)
+    try { cleanup() } catch (e) { console.error(`[cleanup] scenario cleanup failed: ${e?.message ?? e}`) }
+  process.exit(1)
   }
   const expectedChecksum = canonicalChecksum(archived.prognosis)
   if (archived.checksum !== expectedChecksum) {
     console.error(
       `FAIL: archived checksum mismatch in ${f}`
     )
-    process.exit(1)
+    try { cleanup() } catch (e) { console.error(`[cleanup] scenario cleanup failed: ${e?.message ?? e}`) }
+  process.exit(1)
   }
 }
 
@@ -144,11 +150,16 @@ if (slot.prognosis.resume_instructions !== "second write") {
   console.error(
     `FAIL: slot prognosis.resume_instructions=${slot.prognosis.resume_instructions}, expected "second write"`
   )
+  try { cleanup() } catch (e) { console.error(`[cleanup] scenario cleanup failed: ${e?.message ?? e}`) }
   process.exit(1)
 }
 if (slot.checksum !== canonicalChecksum(slot.prognosis)) {
   console.error("FAIL: slot checksum mismatch")
+  try { cleanup() } catch (e) { console.error(`[cleanup] scenario cleanup failed: ${e?.message ?? e}`) }
   process.exit(1)
 }
 
+} finally {
+  try { cleanup() } catch (e) { console.error(`[cleanup] scenario cleanup failed: ${e?.message ?? e}`) }
+}
 process.exit(0)

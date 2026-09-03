@@ -33,7 +33,22 @@ import { createHmac, randomUUID } from "node:crypto"
 import { createTempWorkspace } from "./helpers/plugin-harness.mjs"
 
 const workspaceCleanups = []
-afterEach(() => { while (workspaceCleanups.length) { try { workspaceCleanups.pop()() } catch { /* ignore */ } } })
+afterEach(() => {
+  while (workspaceCleanups.length) {
+    const fn = workspaceCleanups.pop()
+    try {
+      fn()
+    } catch (err) {
+      console.error(`[cleanup] temp workspace cleanup failed: ${err?.message ?? err}`)
+      // bounded retry: one immediate retry to surface ENOTEMPTY/EBUSY races without flaking
+      try {
+        fn()
+      } catch (retryErr) {
+        console.error(`[cleanup] retry failed: ${retryErr?.message ?? retryErr}`)
+      }
+    }
+  }
+})
 
 
 // ---- @opencode-ai/plugin mock (registered BEFORE the plugin import) ----

@@ -63,7 +63,7 @@
  * EXPECTED RED: all tests FAIL against the S0 stub (export {}) because symbols are undefined.
  */
 
-import { describe, it, after } from "node:test"
+import { describe, it, afterEach, after } from "node:test"
 import assert from "node:assert/strict"
 import { mkdirSync, writeFileSync, existsSync } from "node:fs"
 import { tmpdir } from "node:os"
@@ -131,9 +131,32 @@ function asSet(v) {
 // a mkdtempSync(tmpdir()) workspace, never under the tracked project source.
 // ---------------------------------------------------------------------------
 const workspaceCleanups = []
-after(() => { while (workspaceCleanups.length) { try { workspaceCleanups.pop()() } catch { /* ignore */ } } })
+// ponytail: per-test afterEach is node:test native; suite after() would batch cleanups to end-of-file and
+// leave workspaces alive across tests (exit-handler becomes primary if it() throws before push). Use afterEach
+// so each freshTmpWorkspace is torn down per test; keep after() as fail-safe for any stray push outside it().
+afterEach(() => {
+  while (workspaceCleanups.length) {
+    const fn = workspaceCleanups.pop()
+    try {
+      fn()
+    } catch (err) {
+      console.error(`[cleanup] formatter workspace cleanup failed: ${err?.message ?? err}`)
+    }
+  }
+})
+after(() => {
+  while (workspaceCleanups.length) {
+    const fn = workspaceCleanups.pop()
+    try {
+      fn()
+    } catch (err) {
+      console.error(`[cleanup] formatter suite cleanup failed: ${err?.message ?? err}`)
+    }
+  }
+})
 function freshTmpWorkspace() {
   const { directory: dir, cleanup } = createTempWorkspace("fmt-")
+  // unconditional registration before any subsequent throw in the caller it() body
   workspaceCleanups.push(cleanup)
   return dir
 }

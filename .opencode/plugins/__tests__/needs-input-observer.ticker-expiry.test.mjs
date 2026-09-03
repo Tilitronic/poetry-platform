@@ -24,7 +24,22 @@ import { join } from "node:path"
 import { createTempWorkspace } from "./helpers/plugin-harness.mjs"
 
 const workspaceCleanups = []
-afterEach(() => { while (workspaceCleanups.length) { try { workspaceCleanups.pop()() } catch { /* ignore */ } } })
+afterEach(() => {
+  while (workspaceCleanups.length) {
+    const fn = workspaceCleanups.pop()
+    try {
+      fn()
+    } catch (err) {
+      console.error(`[cleanup] temp workspace cleanup failed: ${err?.message ?? err}`)
+      // bounded retry: one immediate retry to surface ENOTEMPTY/EBUSY races without flaking
+      try {
+        fn()
+      } catch (retryErr) {
+        console.error(`[cleanup] retry failed: ${retryErr?.message ?? retryErr}`)
+      }
+    }
+  }
+})
 
 // DIA-260821-5r03 singleton guards - clear per test for isolation (same as dia189)
 const NI_PERM_TIMERS_KEY = Symbol.for("needs-input-observer.permissionTimers")

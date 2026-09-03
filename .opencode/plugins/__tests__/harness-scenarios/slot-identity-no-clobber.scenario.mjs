@@ -35,7 +35,8 @@ const { default: createDelegationObserver } = await import(
 )
 
 // ---- Harness ----
-const { directory } = createTempWorkspace("c5-s3-")
+const { directory, cleanup } = createTempWorkspace("c5-s3-")
+try {
 
 
 const hooks = await createDelegationObserver({
@@ -103,16 +104,19 @@ const unknownPath = join(handoffsDir, "unknown.json")
 
 if (!existsSync(slotAPath)) {
   console.error("FAIL: ses_pre_A.json does not exist")
+  try { cleanup() } catch (e) { console.error(`[cleanup] scenario cleanup failed: ${e?.message ?? e}`) }
   process.exit(1)
 }
 if (!existsSync(slotBPath)) {
   console.error("FAIL: ses_pre_B.json does not exist")
+  try { cleanup() } catch (e) { console.error(`[cleanup] scenario cleanup failed: ${e?.message ?? e}`) }
   process.exit(1)
 }
 if (existsSync(unknownPath)) {
   console.error(
     "FAIL: unknown.json exists -- slot identity fell back to 'unknown'"
   )
+  try { cleanup() } catch (e) { console.error(`[cleanup] scenario cleanup failed: ${e?.message ?? e}`) }
   process.exit(1)
 }
 
@@ -124,14 +128,17 @@ if (slotA.session_id !== "ses_pre_A") {
   console.error(
     `FAIL: ses_pre_A.json session_id=${slotA.session_id}, expected ses_pre_A`
   )
+  try { cleanup() } catch (e) { console.error(`[cleanup] scenario cleanup failed: ${e?.message ?? e}`) }
   process.exit(1)
 }
 if (slotA.prognosis.resume_instructions !== "resume from session A") {
   console.error("FAIL: ses_pre_A.json prognosis mismatch")
+  try { cleanup() } catch (e) { console.error(`[cleanup] scenario cleanup failed: ${e?.message ?? e}`) }
   process.exit(1)
 }
 if (slotA.checksum !== canonicalChecksum(slotA.prognosis)) {
   console.error("FAIL: ses_pre_A.json checksum mismatch")
+  try { cleanup() } catch (e) { console.error(`[cleanup] scenario cleanup failed: ${e?.message ?? e}`) }
   process.exit(1)
 }
 
@@ -139,14 +146,17 @@ if (slotB.session_id !== "ses_pre_B") {
   console.error(
     `FAIL: ses_pre_B.json session_id=${slotB.session_id}, expected ses_pre_B`
   )
+  try { cleanup() } catch (e) { console.error(`[cleanup] scenario cleanup failed: ${e?.message ?? e}`) }
   process.exit(1)
 }
 if (slotB.prognosis.resume_instructions !== "resume from session B") {
   console.error("FAIL: ses_pre_B.json prognosis mismatch")
+  try { cleanup() } catch (e) { console.error(`[cleanup] scenario cleanup failed: ${e?.message ?? e}`) }
   process.exit(1)
 }
 if (slotB.checksum !== canonicalChecksum(slotB.prognosis)) {
   console.error("FAIL: ses_pre_B.json checksum mismatch")
+  try { cleanup() } catch (e) { console.error(`[cleanup] scenario cleanup failed: ${e?.message ?? e}`) }
   process.exit(1)
 }
 
@@ -156,6 +166,7 @@ if (pointer.active_session_id !== "ses_pre_B") {
   console.error(
     `FAIL: active.json active_session_id=${pointer.active_session_id}, expected ses_pre_B`
   )
+  try { cleanup() } catch (e) { console.error(`[cleanup] scenario cleanup failed: ${e?.message ?? e}`) }
   process.exit(1)
 }
 
@@ -166,7 +177,11 @@ if (slotFiles.length !== 3) {
   console.error(
     `FAIL: expected 3 .json files in handoffs/, got ${slotFiles.length}: ${slotFiles.join(", ")}`
   )
+  try { cleanup() } catch (e) { console.error(`[cleanup] scenario cleanup failed: ${e?.message ?? e}`) }
   process.exit(1)
 }
 
+} finally {
+  try { cleanup() } catch (e) { console.error(`[cleanup] scenario cleanup failed: ${e?.message ?? e}`) }
+}
 process.exit(0)

@@ -32,7 +32,8 @@ const { default: createDelegationObserver } = await import(
 )
 
 // ---- Harness ----
-const { directory } = createTempWorkspace("c5-s1-")
+const { directory, cleanup } = createTempWorkspace("c5-s1-")
+try {
 
 
 const logs = []
@@ -81,19 +82,25 @@ const silentRow = rows.find(
 if (!silentRow) {
   console.error("FAIL: no SILENT_FAILURE row in registry after empty idle")
   console.error("rows:", JSON.stringify(rows, null, 2))
+  try { cleanup() } catch (e) { console.error(`[cleanup] scenario cleanup failed: ${e?.message ?? e}`) }
   process.exit(1)
 }
 if (silentRow.session_id !== sessionID) {
   console.error(
     `FAIL: SILENT_FAILURE session_id=${silentRow.session_id}, expected ${sessionID}`
   )
+  try { cleanup() } catch (e) { console.error(`[cleanup] scenario cleanup failed: ${e?.message ?? e}`) }
   process.exit(1)
 }
 if (silentRow.file_edit_count !== 0) {
   console.error(
     `FAIL: SILENT_FAILURE file_edit_count=${silentRow.file_edit_count}, expected 0`
   )
+  try { cleanup() } catch (e) { console.error(`[cleanup] scenario cleanup failed: ${e?.message ?? e}`) }
   process.exit(1)
 }
 
+} finally {
+  try { cleanup() } catch (e) { console.error(`[cleanup] scenario cleanup failed: ${e?.message ?? e}`) }
+}
 process.exit(0)
