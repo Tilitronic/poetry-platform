@@ -20,10 +20,10 @@
  *     'cd /workspace/.opencode/plugins/__tests__ && \
  *      bun test dia220-apoptosis-paracrine.test.mjs'
  */
-import { mock, test, expect, describe, afterEach } from "bun:test"
+import { test, expect, describe, afterEach } from "bun:test"
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
-import { createTempWorkspace, mockOpencodePlugin, createHarness } from "./helpers/plugin-harness.mjs"
+import { createTempWorkspace, mockOpencodePlugin, createHarness, mockChildProcess } from "./helpers/plugin-harness.mjs"
 
 const workspaceCleanups = []
 afterEach(() => {
@@ -55,19 +55,7 @@ mockOpencodePlugin()
 // configurable porcelain buffer; everything else returns success.
 // Both exports are stubbed because bun 1.3.14 mock.module leaks across
 // files in one run (same pattern as needs-input-observer.dia189.test.mjs).
-const spawnCalls = []
-let porcelainProbeStdout = ""
-mock.module("node:child_process", () => ({
-  spawn: () => ({ on: () => {} }),
-  spawnSync: (cmd, args, opts) => {
-    spawnCalls.push({ cmd, args, opts })
-    // Dirty-tree probe shape: git -C <path> status --porcelain ...
-    if (Array.isArray(args) && args[0] === "-C" && args.includes("status")) {
-      return { status: 0, stdout: porcelainProbeStdout, stderr: "" }
-    }
-    return { status: 0, stdout: "", stderr: "" }
-  },
-}))
+const { spawnCalls, setPorcelain } = mockChildProcess("porcelain")
 
 // Dynamic import AFTER mock.module registration (defeats ESM hoisting).
 
@@ -330,7 +318,7 @@ describe("DIA-220 Apoptosis (dual-key shutdown)", () => {
     // Reset the git-spawn spy and use a clean-tree probe so the worktree
     // removal path is taken (not the dirty-skip path).
     spawnCalls.length = 0
-    porcelainProbeStdout = ""
+    setPorcelain("")
 
     // Fire session.error to trigger apoptosis.
     await driveEvent(hooks, {
@@ -603,7 +591,7 @@ describe("DIA-260826-jcte safeRemoveWorktree contract (GREEN phase)", () => {
       const wtPath = join(ctx.directory, ".scratch", "srw-clean-wt")
       mkdirSync(wtPath, { recursive: true })
 
-      porcelainProbeStdout = "" // clean tree
+      setPorcelain("") // clean tree
       spawnCalls.length = 0
 
       await driveApoptosisWithTrackedWorktree(hooks, ctx, sessionID, wtPath, trigger)
@@ -625,7 +613,7 @@ describe("DIA-260826-jcte safeRemoveWorktree contract (GREEN phase)", () => {
       // --untracked-files=no), so untracked files are retained and emit
       // apoptosis_worktree_dirty. Against the OLD probe this would be
       // misclassified CLEAN and the tree removed -> test fails.
-      porcelainProbeStdout = "?? src/newfile.ts\n" // untracked-only = dirty
+      setPorcelain("?? src/newfile.ts\n") // untracked-only = dirty
       spawnCalls.length = 0
       const rowsBefore = countRows(ctx)
 
@@ -650,7 +638,7 @@ describe("DIA-260826-jcte safeRemoveWorktree contract (GREEN phase)", () => {
       const wtPath = join(ctx.directory, ".scratch", "srw-missing-wt")
       // Deliberately NOT created: exercises the prune branch.
 
-      porcelainProbeStdout = ""
+      setPorcelain("")
       spawnCalls.length = 0
       const rowsBefore = countRows(ctx)
 

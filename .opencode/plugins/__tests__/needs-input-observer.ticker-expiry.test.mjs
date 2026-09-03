@@ -18,10 +18,12 @@
  * per-test mkdtemp dir, globalThis singleton clear).
  */
 
-import { mock, test, expect, beforeEach, afterEach } from "bun:test"
+import { test, expect, beforeEach, afterEach } from "bun:test"
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
-import { createTempWorkspace } from "./helpers/plugin-harness.mjs"
+import { createTempWorkspace, mockOpencodePlugin, mockChildProcess } from "./helpers/plugin-harness.mjs"
+
+mockOpencodePlugin()
 
 const workspaceCleanups = []
 afterEach(() => {
@@ -53,14 +55,7 @@ beforeEach(() => {
   globalThis[NI_TICKER_BOOT_KEY] = undefined
 })
 
-const spawnCalls = []
-mock.module("node:child_process", () => ({
-  spawn: (cmd, args, opts) => {
-    spawnCalls.push({ cmd, args, opts })
-    return { on: () => {} }
-  },
-  spawnSync: () => { throw new Error("spawnSync not mocked in ticker-expiry test") },
-}))
+mockChildProcess("needs-input")
 
 const { default: createNeedsInputObserver } = await import("../needs-input-observer.ts")
 

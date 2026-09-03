@@ -29,7 +29,7 @@
  * the dia189 suite: guards stay green across the fix).
  *
  * Hermetic mechanics (proven patterns lifted from dia189/dia220 suites):
- *   - mock.module("node:child_process") BEFORE the dynamic plugin import;
+ *   - mock.module('node:child_process') BEFORE the dynamic plugin import;
  *     the spy records every spawn and returns a stub whose .on() REGISTERS
  *     listeners so a test can emit "error" synchronously (simulating ENOENT
  *     / EACCES without any real subprocess).
@@ -50,7 +50,9 @@
  *   cd .opencode/plugins/__tests__ && bun test needs-input-observer.platform-gate.test.mjs
  */
 import { mock, test, expect, beforeEach, afterEach } from "bun:test"
-import { createTempWorkspace } from "./helpers/plugin-harness.mjs"
+import { createTempWorkspace, mockOpencodePlugin, mockChildProcess } from "./helpers/plugin-harness.mjs"
+
+mockOpencodePlugin()
 
 const workspaceCleanups = []
 afterEach(() => {
@@ -74,33 +76,7 @@ afterEach(() => {
 // Registered BEFORE the plugin import (dynamic import below defeats ESM
 // hoisting). Each captured call carries emitError(err) so tests drive the
 // child.on("error") path synchronously - the ENOENT/EACCES simulation.
-const spawnCalls = []
-mock.module("node:child_process", () => ({
-  spawn: (cmd, args, opts) => {
-    const listeners = {}
-    const call = {
-      cmd,
-      args,
-      opts,
-      emitError: (err) => {
-        for (const cb of listeners.error ?? []) cb(err)
-      },
-    }
-    spawnCalls.push(call)
-    return {
-      on: (ev, cb) => {
-        ;(listeners[ev] ??= []).push(cb)
-      },
-    }
-  },
-  // ponytail: stub to prevent cross-file mock leakage from breaking
-  // delegation-observer.ts (which imports spawnSync) - same mitigation as
-  // the dia189 suite; bun 1.3.14 mock.module leak, upgrade trigger: bun
-  // test isolates mock.module per file.
-  spawnSync: () => {
-    throw new Error("spawnSync not mocked in platform-gate test")
-  },
-}))
+const { spawnCalls } = mockChildProcess("needs-input")
 
 // ---- node:fs mock: real fs + virtual WSL markers ----
 // Capture the REAL existsSync value before registering the mock so the

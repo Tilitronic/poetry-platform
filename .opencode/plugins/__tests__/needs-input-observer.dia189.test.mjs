@@ -31,7 +31,7 @@
  *
  * Hermetic: no filesystem writes outside a per-test mkdtemp dir (the plugin
  * writes its ticker.json under ctx.directory); powershell.exe spawn is
- * intercepted via bun mock.module("node:child_process", ...) so no real
+ * intercepted via bun mock.module('node:child_process', ...) so no real
  * subprocess ever runs; @opencode-ai/plugin is imported type-only by the
  * plugin (erased at transpile) so no node_modules resolution is needed.
  *
@@ -104,9 +104,11 @@
  *   real runtime defaults; A1a/A1b/P1a/P1b/P2a/P2b/P2c/F5/F6a/G1 are RED
  *   against the old guard and flip GREEN with the fix (G2 stays a guard).
  */
-import { mock, test, expect, beforeEach, afterEach } from "bun:test"
+import { test, expect, beforeEach, afterEach } from "bun:test"
 import { basename } from "node:path"
-import { createTempWorkspace } from "./helpers/plugin-harness.mjs"
+import { createTempWorkspace, mockOpencodePlugin, mockChildProcess } from "./helpers/plugin-harness.mjs"
+
+mockOpencodePlugin()
 
 const workspaceCleanups = []
 afterEach(() => {
@@ -148,19 +150,7 @@ beforeEach(() => {
 // mock must be registered BEFORE the plugin module is loaded -> dynamic
 // import below. The spy records (cmd, args, opts); args[2] is the
 // PowerShell -Command script carrying the sanitized title/body.
-const spawnCalls = []
-mock.module("node:child_process", () => ({
-  spawn: (cmd, args, opts) => {
-    spawnCalls.push({ cmd, args, opts })
-    // The plugin attaches child.on("error", cb) - return a stub with on().
-    return { on: () => {} }
-  },
-  // ponytail: stub to prevent cross-file mock leakage from breaking
-  // delegation-observer.ts (which imports spawnSync). The mock.module
-  // leak is a bun 1.3.14 limitation; upgrade trigger: check if bun test
-  // isolates mock.module per file in a future release.
-  spawnSync: () => { throw new Error("spawnSync not mocked in dia189 test") },
-}))
+const { spawnCalls } = mockChildProcess("needs-input")
 
 // Import AFTER mock.module registration (dynamic import defeats ESM hoisting).
 const { default: createNeedsInputObserver, sessionWordPair } = await import(
