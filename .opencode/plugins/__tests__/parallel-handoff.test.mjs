@@ -44,19 +44,15 @@
  *     'cd /workspace/.opencode/plugins/__tests__ && \
  *      bun test parallel-handoff.test.mjs'
  */
-import { mock, test, expect } from "bun:test"
+import { mock, test, expect, afterEach } from "bun:test"
 import { createHash } from "node:crypto"
-import {
-  existsSync,
-  mkdirSync,
-  mkdtempSync,
-  readdirSync,
-  readFileSync,
-  rmSync,
-  statSync,
-} from "node:fs"
-import { tmpdir } from "node:os"
+import { existsSync, mkdirSync, readdirSync, readFileSync, statSync } from "node:fs"
 import { join } from "node:path"
+import { createTempWorkspace } from "./helpers/plugin-harness.mjs"
+
+const workspaceCleanups = []
+afterEach(() => { while (workspaceCleanups.length) { try { workspaceCleanups.pop()() } catch { /* ignore */ } } })
+
 
 // ---- @opencode-ai/plugin mock (registered BEFORE the plugin import) ----
 // The plugin only uses `tool({...})` and `tool.schema.*` (args builders) at
@@ -79,20 +75,10 @@ const { default: createDelegationObserver } = await import(
 // Harness plumbing
 // ---------------------------------------------------------------------------
 
-const tempDirs = []
-process.on("exit", () => {
-  for (const dir of tempDirs) {
-    try {
-      rmSync(dir, { recursive: true, force: true })
-    } catch {
-      // Best-effort cleanup - a leaked temp dir must never fail the run.
-    }
-  }
-})
 
 function freshCtx() {
-  const directory = mkdtempSync(join(tmpdir(), "dia085-t42-"))
-  tempDirs.push(directory)
+  const { directory, cleanup } = createTempWorkspace("dia085-t42-")
+  workspaceCleanups.push(cleanup)
   // Mirror the real runtime: OpenCode pre-creates .opencode/session/ (the
   // plugin's registry.jsonl boot row lives there). Without it the boot-row
   // append fails ENOENT before atomicWriteBootMarker creates the dir - a

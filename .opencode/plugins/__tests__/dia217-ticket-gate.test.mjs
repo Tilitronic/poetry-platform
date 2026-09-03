@@ -26,18 +26,15 @@
  *     'cd /workspace/.opencode/plugins/__tests__ && \
  *      bun test dia217-ticket-gate.test.mjs'
  */
-import { mock, test, expect } from "bun:test"
-import {
-  existsSync,
-  mkdirSync,
-  mkdtempSync,
-  readFileSync,
-  rmSync,
-  writeFileSync,
-} from "node:fs"
-import { tmpdir } from "node:os"
+import { mock, test, expect, afterEach } from "bun:test"
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import { createHmac, randomUUID } from "node:crypto"
+import { createTempWorkspace } from "./helpers/plugin-harness.mjs"
+
+const workspaceCleanups = []
+afterEach(() => { while (workspaceCleanups.length) { try { workspaceCleanups.pop()() } catch { /* ignore */ } } })
+
 
 // ---- @opencode-ai/plugin mock (registered BEFORE the plugin import) ----
 const desc = { describe: () => desc }
@@ -58,21 +55,10 @@ const {
 // Harness plumbing
 // ---------------------------------------------------------------------------
 
-const tempDirs = []
-process.on("exit", () => {
-  for (const dir of tempDirs) {
-    try {
-      rmSync(dir, { recursive: true, force: true })
-    } catch {
-      // Best-effort cleanup.
-    }
-  }
-})
 
 function freshCtx() {
-  const directory = mkdtempSync(join(tmpdir(), "dia217-tg-"))
-  tempDirs.push(directory)
-  mkdirSync(join(directory, ".opencode", "session"), { recursive: true })
+  const { directory, cleanup } = createTempWorkspace("dia217-tg-")
+  workspaceCleanups.push(cleanup)
   return {
     directory,
     client: { app: { log: async () => {} } },

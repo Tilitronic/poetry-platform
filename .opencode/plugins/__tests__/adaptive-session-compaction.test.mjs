@@ -37,17 +37,14 @@
  *      bun test adaptive-session-compaction.test.mjs'
  */
 
-import { mock, test, expect, describe } from "bun:test"
-import {
-  existsSync,
-  mkdirSync,
-  mkdtempSync,
-  readFileSync,
-  rmSync,
-  writeFileSync,
-} from "node:fs"
-import { tmpdir } from "node:os"
+import { mock, test, expect, describe, afterEach } from "bun:test"
+import { existsSync, readFileSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
+import { createTempWorkspace } from "./helpers/plugin-harness.mjs"
+
+const workspaceCleanups = []
+afterEach(() => { while (workspaceCleanups.length) { try { workspaceCleanups.pop()() } catch { /* ignore */ } } })
+
 
 // ---- @opencode-ai/plugin mock (registered BEFORE the plugin import) ----
 const desc = { describe: () => desc }
@@ -66,16 +63,6 @@ const { default: createDelegationObserver } = await import(
 // Harness plumbing
 // ---------------------------------------------------------------------------
 
-const tempDirs = []
-process.on("exit", () => {
-  for (const dir of tempDirs) {
-    try {
-      rmSync(dir, { recursive: true, force: true })
-    } catch {
-      // Best-effort cleanup.
-    }
-  }
-})
 
 // Policy event names (contract from spec.md / proposal.md Data section).
 const POLICY_EVENTS = new Set([
@@ -85,151 +72,86 @@ const POLICY_EVENTS = new Set([
   "context-policy-error",
 ])
 
-function freshCtx() {
-  const directory = mkdtempSync(join(tmpdir(), "dia260822-asc-"))
-  tempDirs.push(directory)
-  mkdirSync(join(directory, ".opencode", "session"), { recursive: true })
+function freshCtx() { const { directory, cleanup } = createTempWorkspace("dia260822-asc-")
+  workspaceCleanups.push(cleanup)
   const logs = []
-  return {
-    directory,
+  return { directory,
     logs,
-    client: {
-      app: {
-        // TUI-safe recorder: captures every user-facing advisory message.
-        log: async (entry) => {
-          logs.push(entry)
-        },
-      },
-    },
-  }
-}
+    client: { app: { // TUI-safe recorder: captures every user-facing advisory message.
+        log: async (entry) => { logs.push(entry) }, }, }, } }
 
 /**
  * Build a mock session.messages response with a single assistant message
  * carrying the given token counts. provider.list() returns a provider with
  * a 1M context window, so usage_fraction = totalTokens / 1_000_000.
  */
-function mockSessionMessages(directTokens) {
-  return async () => ({
-    data: [
-      {
-        info: {
-          role: "assistant",
+function mockSessionMessages(directTokens) { return async () => ({ data: [
+      { info: { role: "assistant",
           providerID: "test-provider",
           modelID: "test-model",
-          tokens: {
-            input: directTokens.input ?? 0,
+          tokens: { input: directTokens.input ?? 0,
             output: directTokens.output ?? 0,
             reasoning: directTokens.reasoning ?? 0,
-            cache: {
-              read: directTokens.cacheRead ?? 0,
-              write: directTokens.cacheWrite ?? 0,
-            },
-          },
-        },
-      },
-    ],
-  })
-}
+            cache: { read: directTokens.cacheRead ?? 0,
+              write: directTokens.cacheWrite ?? 0, }, }, }, },
+    ], }) }
 
-function mockProviderList() {
-  return async () => ({
-    data: {
-      all: [
-        {
-          id: "test-provider",
-          models: {
-            "test-model": {
-              limit: { context: 1_000_000 },
-            },
-          },
-        },
-      ],
-    },
-  })
-}
+function mockProviderList() { return async () => ({ data: { all: [
+        { id: "test-provider",
+          models: { "test-model": { limit: { context: 1_000_000 }, }, }, },
+      ], }, }) }
 
-async function makeHarness(sessionMessagesMock, providerListMock, { seedRegistry } = {}) {
-  const ctx = freshCtx()
-  if (seedRegistry) {
-    // Pre-populate registry.jsonl so boot seeding can reconstruct state.
+async function makeHarness(sessionMessagesMock, providerListMock, { seedRegistry } = {}) { const ctx = freshCtx()
+  if (seedRegistry) { // Pre-populate registry.jsonl so boot seeding can reconstruct state.
     writeFileSync(
       join(ctx.directory, ".opencode/session/registry.jsonl"),
       seedRegistry.map((row) => JSON.stringify(row)).join("\n") + "\n"
-    )
-  }
+    ) }
   const hooks = await createDelegationObserver(ctx)
   // Wire up client mocks after plugin creation so the plugin's own boot-time
   // calls don't need them.
   ctx.client.session = { messages: sessionMessagesMock ?? (async () => ({ data: [] })) }
   ctx.client.provider = { list: providerListMock ?? mockProviderList() }
-  return { hooks, ctx }
-}
+  return { hooks, ctx } }
 
 /**
  * Drive the policy via the session lifecycle event. Resilient to the
  * session.status vs session.updated choice: fire session.status; if it
  * produces no policy event, fire session.updated instead. Never fires both.
  */
-async function drivePolicy(hooks, ctx, sessionID) {
-  const candidates = ["session.status", "session.updated"]
-  for (const type of candidates) {
-    const before = countPolicyRows(ctx)
-    await hooks.event({
-      event: {
-        type,
-        properties: { sessionID, info: { id: sessionID } },
-      },
-    })
-    if (countPolicyRows(ctx) > before) return type
-  }
-  return null
-}
+async function drivePolicy(hooks, ctx, sessionID) { const candidates = ["session.status", "session.updated"]
+  for (const type of candidates) { const before = countPolicyRows(ctx)
+    await hooks.event({ event: { type,
+        properties: { sessionID, info: { id: sessionID } }, }, })
+    if (countPolicyRows(ctx) > before) return type }
+  return null }
 
 /**
  * Read registry rows appended during a test.
  */
-function readNewRows(ctx, rowsBefore) {
-  const registryPath = join(ctx.directory, ".opencode/session/registry.jsonl")
+function readNewRows(ctx, rowsBefore) { const registryPath = join(ctx.directory, ".opencode/session/registry.jsonl")
   if (!existsSync(registryPath)) return []
   const allLines = readFileSync(registryPath, "utf-8").trim().split("\n").filter(Boolean)
-  return allLines.slice(rowsBefore).map((line) => {
-    try {
-      return JSON.parse(line)
-    } catch {
-      return null
-    }
-  }).filter(Boolean)
-}
+  return allLines.slice(rowsBefore).map((line) => { try { return JSON.parse(line) } catch { return null } }).filter(Boolean) }
 
-function countRows(ctx) {
-  const registryPath = join(ctx.directory, ".opencode/session/registry.jsonl")
+function countRows(ctx) { const registryPath = join(ctx.directory, ".opencode/session/registry.jsonl")
   if (!existsSync(registryPath)) return 0
-  return readFileSync(registryPath, "utf-8").trim().split("\n").filter(Boolean).length
-}
+  return readFileSync(registryPath, "utf-8").trim().split("\n").filter(Boolean).length }
 
-function countPolicyRows(ctx) {
-  return readNewRows(ctx, 0).filter((r) => POLICY_EVENTS.has(r.event)).length
-}
+function countPolicyRows(ctx) { return readNewRows(ctx, 0).filter((r) => POLICY_EVENTS.has(r.event)).length }
 
-function policyRows(ctx, rowsBefore) {
-  return readNewRows(ctx, rowsBefore).filter((r) => POLICY_EVENTS.has(r.event))
-}
+function policyRows(ctx, rowsBefore) { return readNewRows(ctx, rowsBefore).filter((r) => POLICY_EVENTS.has(r.event)) }
 
 // Token counts that produce a given usage fraction against a 1M window.
-function tokensForFraction(frac) {
-  const total = Math.round(frac * 1_000_000)
-  return { input: total, output: 0, reasoning: 0, cacheRead: 0, cacheWrite: 0 }
-}
+function tokensForFraction(frac) { const total = Math.round(frac * 1_000_000)
+  return { input: total, output: 0, reasoning: 0, cacheRead: 0, cacheWrite: 0 } }
 
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
 
-describe("DIA-260822-medh Adaptive Session Compaction Policy (RED)", () => {
-  // 1. Token-accurate shared async measurement path.
-  test("measures token-accurately via the context_usage path on session status update", async () => {
-    const sessionID = "ses_measure_shared"
+describe("DIA-260822-medh Adaptive Session Compaction Policy (RED)", () => { // 1. Token-accurate shared async measurement path.
+  test("measures token-accurately via the context_usage path on session status update", async () => { const sessionID = "ses_measure_shared"
     // 70% usage: 700K tokens / 1M window. If the policy used the broken
     // getContextPressure() (returns 0) this would NOT cross 60%.
     const msgs = mockSessionMessages(tokensForFraction(0.70))
@@ -252,12 +174,10 @@ describe("DIA-260822-medh Adaptive Session Compaction Policy (RED)", () => {
         { sessionID }
       )
     )
-    expect(Math.abs(toolResult.usage_fraction - 0.70)).toBeLessThan(0.01)
-  })
+    expect(Math.abs(toolResult.usage_fraction - 0.70)).toBeLessThan(0.01) })
 
   // 2. Rate-limited upward 60% warning.
-  test("60% warning is rate-limited: re-warns only after a drop and re-cross", async () => {
-    const sessionID = "ses_rate_limit_60"
+  test("60% warning is rate-limited: re-warns only after a drop and re-cross", async () => { const sessionID = "ses_rate_limit_60"
     const { hooks, ctx } = await makeHarness(mockSessionMessages(tokensForFraction(0.50)))
 
     const rowsBefore = countRows(ctx)
@@ -280,12 +200,10 @@ describe("DIA-260822-medh Adaptive Session Compaction Policy (RED)", () => {
     const warns = policyRows(ctx, rowsBefore).filter(
       (r) => r.event === "context-warning-60"
     )
-    expect(warns.length).toBe(2)
-  })
+    expect(warns.length).toBe(2) })
 
   // 3. Initial 85% manual /compact recommendation with continuation.
-  test("first 85% crossing recommends manual /compact (not a new session)", async () => {
-    const sessionID = "ses_initial_85"
+  test("first 85% crossing recommends manual /compact (not a new session)", async () => { const sessionID = "ses_initial_85"
     const { hooks, ctx } = await makeHarness(mockSessionMessages(tokensForFraction(0.50)))
 
     const rowsBefore = countRows(ctx)
@@ -302,21 +220,17 @@ describe("DIA-260822-medh Adaptive Session Compaction Policy (RED)", () => {
     )
     expect(handoffRow).toBeUndefined()
     // A user-facing advisory message was shown.
-    expect(ctx.logs.length).toBeGreaterThan(0)
-  })
+    expect(ctx.logs.length).toBeGreaterThan(0) })
 
   // 4. After observed first compaction, next 85% handoff/new-session
   //    recommendation instead of a second /compact.
-  test("after compaction, next 85% crossing recommends a new session (not second /compact)", async () => {
-    const sessionID = "ses_post_compact"
+  test("after compaction, next 85% crossing recommends a new session (not second /compact)", async () => { const sessionID = "ses_post_compact"
     // Boot seeding: a prior session.compacted event marks this session as
     // already compacted.
     const seed = [
-      {
-        event: "session.compacted",
+      { event: "session.compacted",
         session_id: sessionID,
-        writer: "plugin",
-      },
+        writer: "plugin", },
     ]
     const { hooks, ctx } = await makeHarness(
       mockSessionMessages(tokensForFraction(0.50)),
@@ -337,16 +251,12 @@ describe("DIA-260822-medh Adaptive Session Compaction Policy (RED)", () => {
     // The post-compaction path must NOT emit the initial-compaction event.
     const compactRow = rows.find((r) => r.event === "context-compact-85")
     expect(compactRow).toBeUndefined()
-    expect(ctx.logs.length).toBeGreaterThan(0)
-  })
+    expect(ctx.logs.length).toBeGreaterThan(0) })
 
   // 5. Fail-soft behavior.
-  test("measurement error fails soft: emits context-policy-error, continues, no threshold events", async () => {
-    const sessionID = "ses_fail_soft"
+  test("measurement error fails soft: emits context-policy-error, continues, no threshold events", async () => { const sessionID = "ses_fail_soft"
     // session.messages throws -> the policy's measurement must fail soft.
-    const throwingMessages = async () => {
-      throw new Error("simulated context_usage failure")
-    }
+    const throwingMessages = async () => { throw new Error("simulated context_usage failure") }
     const { hooks, ctx } = await makeHarness(throwingMessages)
 
     const rowsBefore = countRows(ctx)
@@ -363,6 +273,4 @@ describe("DIA-260822-medh Adaptive Session Compaction Policy (RED)", () => {
         r.event === "context-compact-85" ||
         r.event === "context-new-session-post-compact"
     )
-    expect(thresholdRows.length).toBe(0)
-  })
-})
+    expect(thresholdRows.length).toBe(0) }) })

@@ -13,13 +13,10 @@
 import { mock } from "bun:test"
 import {
   existsSync,
-  mkdirSync,
-  mkdtempSync,
   readFileSync,
-  rmSync,
 } from "node:fs"
-import { tmpdir } from "node:os"
 import { join } from "node:path"
+import { createTempWorkspace } from "../helpers/plugin-harness.mjs"
 
 // ---- @opencode-ai/plugin mock (registered BEFORE the plugin import) ----
 const desc = { describe: () => desc }
@@ -35,14 +32,8 @@ const { default: createDelegationObserver } = await import(
 )
 
 // ---- Harness ----
-const directory = mkdtempSync(join(tmpdir(), "c5-s1-"))
-mkdirSync(join(directory, ".opencode", "session"), { recursive: true })
+const { directory } = createTempWorkspace("c5-s1-")
 
-process.on("exit", () => {
-  try {
-    rmSync(directory, { recursive: true, force: true })
-  } catch { /* best-effort cleanup */ }
-})
 
 const logs = []
 const hooks = await createDelegationObserver({

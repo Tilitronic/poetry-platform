@@ -16,16 +16,14 @@
  *     'cd /workspace/.opencode/plugins/__tests__ && \
  *      bun test failure-cap.test.mjs'
  */
-import { mock, test, expect, describe } from "bun:test"
-import {
-  existsSync,
-  mkdirSync,
-  mkdtempSync,
-  readFileSync,
-  rmSync,
-} from "node:fs"
-import { tmpdir } from "node:os"
+import { mock, test, expect, describe, afterEach } from "bun:test"
+import { existsSync, readFileSync } from "node:fs"
 import { join } from "node:path"
+import { createTempWorkspace } from "./helpers/plugin-harness.mjs"
+
+const workspaceCleanups = []
+afterEach(() => { while (workspaceCleanups.length) { try { workspaceCleanups.pop()() } catch { /* ignore */ } } })
+
 
 // ---- @opencode-ai/plugin mock (registered BEFORE the plugin import) ----
 const desc = { describe: () => desc }
@@ -44,123 +42,68 @@ const { default: createDelegationObserver } = await import(
 // Harness plumbing
 // ---------------------------------------------------------------------------
 
-const tempDirs = []
-process.on("exit", () => {
-  for (const dir of tempDirs) {
-    try {
-      rmSync(dir, { recursive: true, force: true })
-    } catch {
-      // Best-effort cleanup.
-    }
-  }
-})
 
-function freshCtx() {
-  const directory = mkdtempSync(join(tmpdir(), "dia225-c4-"))
-  tempDirs.push(directory)
-  mkdirSync(join(directory, ".opencode", "session"), { recursive: true })
-  return {
-    directory,
-    client: { app: { log: async () => {} } },
-  }
-}
+function freshCtx() { const { directory, cleanup } = createTempWorkspace("dia225-c4-")
+  workspaceCleanups.push(cleanup)
+  return { directory,
+    client: { app: { log: async () => {} } }, } }
 
-async function makeHarness() {
-  const ctx = freshCtx()
+async function makeHarness() { const ctx = freshCtx()
   const hooks = await createDelegationObserver(ctx)
-  return { hooks, ctx }
-}
+  return { hooks, ctx } }
 
 /**
  * Drive the event hook (session lifecycle events).
  */
-async function driveEvent(hooks, { event }) {
-  await hooks.event({ event })
-}
+async function driveEvent(hooks, { event }) { await hooks.event({ event }) }
 
 /**
  * Drive tool.execute.after to register a file edit for a session.
  */
-async function driveToolEdit(hooks, ctx, { sessionID, tool, callID }) {
-  await hooks["tool.execute.after"](
-    {
-      tool: tool ?? "edit",
+async function driveToolEdit(hooks, ctx, { sessionID, tool, callID }) { await hooks["tool.execute.after"](
+    { tool: tool ?? "edit",
       sessionID,
       callID: callID ?? "call_edit",
-      args: {},
-    },
+      args: {}, },
     { output: "ok" }
-  )
-}
+  ) }
 
 /**
  * Read messages.jsonl rows appended after a given count.
  */
-function readNewMessages(ctx, rowsBefore) {
-  const messagesPath = join(ctx.directory, ".opencode/session/messages.jsonl")
+function readNewMessages(ctx, rowsBefore) { const messagesPath = join(ctx.directory, ".opencode/session/messages.jsonl")
   if (!existsSync(messagesPath)) return []
   const allLines = readFileSync(messagesPath, "utf-8").trim().split("\n").filter(Boolean)
-  return allLines.slice(rowsBefore).map((line) => {
-    try {
-      return JSON.parse(line)
-    } catch {
-      return null
-    }
-  }).filter(Boolean)
-}
+  return allLines.slice(rowsBefore).map((line) => { try { return JSON.parse(line) } catch { return null } }).filter(Boolean) }
 
-function countMessages(ctx) {
-  const messagesPath = join(ctx.directory, ".opencode/session/messages.jsonl")
+function countMessages(ctx) { const messagesPath = join(ctx.directory, ".opencode/session/messages.jsonl")
   if (!existsSync(messagesPath)) return 0
-  return readFileSync(messagesPath, "utf-8").trim().split("\n").filter(Boolean).length
-}
+  return readFileSync(messagesPath, "utf-8").trim().split("\n").filter(Boolean).length }
 
 /**
  * Register a child session via session.created.
  */
-async function registerChild(hooks, sessionID) {
-  await driveEvent(hooks, {
-    event: {
-      type: "session.created",
-      properties: {
-        info: { id: sessionID, parentID: "ses_parent", title: "test" },
-      },
-    },
-  })
-}
+async function registerChild(hooks, sessionID) { await driveEvent(hooks, { event: { type: "session.created",
+      properties: { info: { id: sessionID, parentID: "ses_parent", title: "test" }, }, }, }) }
 
 /**
  * Fire session.idle with zero file edits (empty result).
  */
-async function idleEmpty(hooks, sessionID) {
-  await driveEvent(hooks, {
-    event: {
-      type: "session.idle",
-      properties: { sessionID },
-    },
-  })
-}
+async function idleEmpty(hooks, sessionID) { await driveEvent(hooks, { event: { type: "session.idle",
+      properties: { sessionID }, }, }) }
 
 /**
  * Fire session.idle after a file edit was made (non-empty result).
  */
-async function idleWithEdit(hooks, ctx, sessionID) {
-  await driveToolEdit(hooks, ctx, { sessionID })
-  await driveEvent(hooks, {
-    event: {
-      type: "session.idle",
-      properties: { sessionID },
-    },
-  })
-}
+async function idleWithEdit(hooks, ctx, sessionID) { await driveToolEdit(hooks, ctx, { sessionID })
+  await driveEvent(hooks, { event: { type: "session.idle",
+      properties: { sessionID }, }, }) }
 
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
 
-describe("DIA-225 C4: failure cap", () => {
-  test("3 consecutive empty results within 10 min triggers failure_cap_reached", async () => {
-    // The failure cap is keyed by session_id. Verify the cap works with
+describe("DIA-225 C4: failure cap", () => { test("3 consecutive empty results within 10 min triggers failure_cap_reached", async () => { // The failure cap is keyed by session_id. Verify the cap works with
     // repeated idle on the SAME session_id (multi-idle edge case).
     const h2 = await makeHarness()
     const sid = "ses_c4_repeat"
@@ -180,11 +123,9 @@ describe("DIA-225 C4: failure cap", () => {
     )
     expect(capMsg).toBeDefined()
     expect(capMsg["gen_ai.agent.id"]).toBe(sid)
-    expect(capMsg.task_ref).toContain("failure cap reached")
-  })
+    expect(capMsg.task_ref).toContain("failure cap reached") })
 
-  test("non-empty result resets the counter (no cap after 2+1+2 pattern)", async () => {
-    const { hooks, ctx } = await makeHarness()
+  test("non-empty result resets the counter (no cap after 2+1+2 pattern)", async () => { const { hooks, ctx } = await makeHarness()
     const sid = "ses_c4_reset"
     await registerChild(hooks, sid)
 
@@ -206,11 +147,9 @@ describe("DIA-225 C4: failure cap", () => {
     const capMsg = newMsgs.find(
       (m) => m["gen_ai.operation.name"] === "failure_cap_reached"
     )
-    expect(capMsg).toBeUndefined()
-  })
+    expect(capMsg).toBeUndefined() })
 
-  test("cooldown expiry resets the counter (no cap after 11 min gap)", async () => {
-    const { hooks, ctx } = await makeHarness()
+  test("cooldown expiry resets the counter (no cap after 11 min gap)", async () => { const { hooks, ctx } = await makeHarness()
     const sid = "ses_c4_cooldown"
     await registerChild(hooks, sid)
 
@@ -225,18 +164,12 @@ describe("DIA-225 C4: failure cap", () => {
     const futureTime = realDateNow() + 11 * 60 * 1000
     Date.now = () => futureTime
 
-    try {
-      // 1 more empty result -- cooldown expired, counter reset, only 1
+    try { // 1 more empty result -- cooldown expired, counter reset, only 1
       // consecutive failure, below the 3 threshold.
-      await idleEmpty(hooks, sid)
-    } finally {
-      Date.now = realDateNow
-    }
+      await idleEmpty(hooks, sid) } finally { Date.now = realDateNow }
 
     const newMsgs = readNewMessages(ctx, msgsBefore)
     const capMsg = newMsgs.find(
       (m) => m["gen_ai.operation.name"] === "failure_cap_reached"
     )
-    expect(capMsg).toBeUndefined()
-  })
-})
+    expect(capMsg).toBeUndefined() }) })

@@ -20,18 +20,14 @@
  *     'cd /workspace/.opencode/plugins/__tests__ && \
  *      bun test dia220-apoptosis-paracrine.test.mjs'
  */
-import { mock, test, expect, describe } from "bun:test"
-import {
-  existsSync,
-  mkdirSync,
-  mkdtempSync,
-  readFileSync,
-  readdirSync,
-  rmSync,
-  writeFileSync,
-} from "node:fs"
-import { tmpdir } from "node:os"
+import { mock, test, expect, describe, afterEach } from "bun:test"
+import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
+import { createTempWorkspace } from "./helpers/plugin-harness.mjs"
+
+const workspaceCleanups = []
+afterEach(() => { while (workspaceCleanups.length) { try { workspaceCleanups.pop()() } catch { /* ignore */ } } })
+
 
 // ---- @opencode-ai/plugin mock (registered BEFORE the plugin import) ----
 const desc = { describe: () => desc }
@@ -72,20 +68,10 @@ const { default: createDelegationObserver } = await import(
 // Harness plumbing
 // ---------------------------------------------------------------------------
 
-const tempDirs = []
-process.on("exit", () => {
-  for (const dir of tempDirs) {
-    try {
-      rmSync(dir, { recursive: true, force: true })
-    } catch {
-      // Best-effort cleanup.
-    }
-  }
-})
 
 function freshCtx() {
-  const directory = mkdtempSync(join(tmpdir(), "dia220-apop-"))
-  tempDirs.push(directory)
+  const { directory, cleanup } = createTempWorkspace("dia220-apop-")
+  workspaceCleanups.push(cleanup)
   mkdirSync(join(directory, ".opencode", "session", "handoffs"), {
     recursive: true,
   })

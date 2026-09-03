@@ -104,10 +104,13 @@
  *   real runtime defaults; A1a/A1b/P1a/P1b/P2a/P2b/P2c/F5/F6a/G1 are RED
  *   against the old guard and flip GREEN with the fix (G2 stays a guard).
  */
-import { mock, test, expect, beforeEach } from "bun:test"
-import { mkdtempSync } from "node:fs"
-import { tmpdir } from "node:os"
-import { basename, join } from "node:path"
+import { mock, test, expect, beforeEach, afterEach } from "bun:test"
+import { basename } from "node:path"
+import { createTempWorkspace } from "./helpers/plugin-harness.mjs"
+
+const workspaceCleanups = []
+afterEach(() => { while (workspaceCleanups.length) { try { workspaceCleanups.pop()() } catch { /* ignore */ } } })
+
 
 // DIA-260821-5r03: the plugin now keeps process-scoped singleton guards on
 // globalThis (toast-dedupe Set, title-boot flag, ticker-boot flag, permission
@@ -175,7 +178,8 @@ if (!/^[a-z]+-[a-z]+$/.test(SESSION_WORD_PAIR)) throw new Error("SESSION_WORD_PA
 if (!/^[a-z]+-[a-z]+$/.test(PTY_WORD_PAIR)) throw new Error("PTY_WORD_PAIR format violated")
 
 function freshCtx() {
-  const directory = mkdtempSync(join(tmpdir(), "dia189-"))
+  const { directory, cleanup } = createTempWorkspace("dia189-")
+  workspaceCleanups.push(cleanup)
   const updateCalls = []
   const toastCalls = []
   const ptyUpdateCalls = []

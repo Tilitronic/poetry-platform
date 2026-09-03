@@ -17,18 +17,15 @@
  *     'cd /workspace/.opencode/plugins/__tests__ && \
  *      bun test handoff-slot-identity.test.mjs'
  */
-import { mock, test, expect } from "bun:test"
+import { mock, test, expect, afterEach } from "bun:test"
 import { createHash } from "node:crypto"
-import {
-  existsSync,
-  mkdirSync,
-  mkdtempSync,
-  readdirSync,
-  readFileSync,
-  rmSync,
-} from "node:fs"
-import { tmpdir } from "node:os"
+import { existsSync, readdirSync, readFileSync } from "node:fs"
 import { join } from "node:path"
+import { createTempWorkspace } from "./helpers/plugin-harness.mjs"
+
+const workspaceCleanups = []
+afterEach(() => { while (workspaceCleanups.length) { try { workspaceCleanups.pop()() } catch { /* ignore */ } } })
+
 
 // ---- @opencode-ai/plugin mock (registered BEFORE the plugin import) ----
 const desc = { describe: () => desc }
@@ -47,22 +44,10 @@ const { default: createDelegationObserver } = await import(
 // Harness plumbing (mirrors parallel-handoff.test.mjs)
 // ---------------------------------------------------------------------------
 
-const tempDirs = []
-process.on("exit", () => {
-  for (const dir of tempDirs) {
-    try {
-      rmSync(dir, { recursive: true, force: true })
-    } catch {
-      // Best-effort cleanup.
-    }
-  }
-})
 
 function freshCtx() {
-  const directory = mkdtempSync(join(tmpdir(), "dia223-c2-"))
-  tempDirs.push(directory)
-  const sessionDir = join(directory, ".opencode", "session")
-  mkdirSync(sessionDir, { recursive: true })
+  const { directory, cleanup } = createTempWorkspace("dia223-c2-")
+  workspaceCleanups.push(cleanup)
   const logs = []
   return {
     directory,

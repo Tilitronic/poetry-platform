@@ -50,9 +50,11 @@
  *   cd .opencode/plugins/__tests__ && bun test needs-input-observer.platform-gate.test.mjs
  */
 import { mock, test, expect, beforeEach, afterEach } from "bun:test"
-import { mkdtempSync } from "node:fs"
-import { tmpdir } from "node:os"
-import { join } from "node:path"
+import { createTempWorkspace } from "./helpers/plugin-harness.mjs"
+
+const workspaceCleanups = []
+afterEach(() => { while (workspaceCleanups.length) { try { workspaceCleanups.pop()() } catch { /* ignore */ } } })
+
 
 // ---- powershell.exe spawn interception ----
 // Registered BEFORE the plugin import (dynamic import below defeats ESM
@@ -110,7 +112,8 @@ const SESSION_ID = "ses_platform_gate_0001"
 function freshCtx() {
   // Same client shape the dia189 harness uses (proven sufficient for the
   // question.asked -> enter -> notify path plus the boot retro pass).
-  const directory = mkdtempSync(join(tmpdir(), "dia3blw-"))
+  const { directory, cleanup } = createTempWorkspace("dia3blw-")
+  workspaceCleanups.push(cleanup)
   const ctx = {
     directory,
     client: {

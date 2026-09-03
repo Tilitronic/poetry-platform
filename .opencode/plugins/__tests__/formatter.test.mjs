@@ -63,11 +63,12 @@
  * EXPECTED RED: all tests FAIL against the S0 stub (export {}) because symbols are undefined.
  */
 
-import { describe, it } from "node:test"
+import { describe, it, after } from "node:test"
 import assert from "node:assert/strict"
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync, existsSync } from "node:fs"
+import { mkdirSync, writeFileSync, existsSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join, resolve } from "node:path"
+import { createTempWorkspace } from "./helpers/plugin-harness.mjs"
 
 // ---------------------------------------------------------------------------
 // Import the lib under test (stub in RED phase).
@@ -129,16 +130,13 @@ function asSet(v) {
 // Isolated tmp fixture (Q7 §3): every file the formatter touches lives under
 // a mkdtempSync(tmpdir()) workspace, never under the tracked project source.
 // ---------------------------------------------------------------------------
-const tmpRoots = []
+const workspaceCleanups = []
+after(() => { while (workspaceCleanups.length) { try { workspaceCleanups.pop()() } catch { /* ignore */ } } })
 function freshTmpWorkspace() {
-  const dir = mkdtempSync(join(tmpdir(), "fmt-"))
-  tmpRoots.push(dir)
-  mkdirSync(join(dir, ".opencode", "session"), { recursive: true })
+  const { directory: dir, cleanup } = createTempWorkspace("fmt-")
+  workspaceCleanups.push(cleanup)
   return dir
 }
-process.on("exit", () => {
-  for (const d of tmpRoots) try { rmSync(d, { recursive: true, force: true }) } catch { /* noop */ }
-})
 
 // ---------------------------------------------------------------------------
 // 1. D2 constants verbatim

@@ -29,16 +29,14 @@
  *      bun test delegation-observer.reload-dedup.test.mjs'
  */
 
-import { mock, test, expect, describe } from "bun:test"
-import {
-  existsSync,
-  mkdirSync,
-  mkdtempSync,
-  readFileSync,
-  rmSync,
-} from "node:fs"
-import { tmpdir } from "node:os"
+import { mock, test, expect, describe, afterEach } from "bun:test"
+import { existsSync, readFileSync } from "node:fs"
 import { join } from "node:path"
+import { createTempWorkspace } from "./helpers/plugin-harness.mjs"
+
+const workspaceCleanups = []
+afterEach(() => { while (workspaceCleanups.length) { try { workspaceCleanups.pop()() } catch { /* ignore */ } } })
+
 
 // ---- @opencode-ai/plugin mock (registered BEFORE the plugin import) ----
 // Chain must satisfy tool.schema.enum([...]).optional().describe(...) used by
@@ -59,26 +57,11 @@ const { default: createDelegationObserver } = await import(
 // Harness plumbing
 // ---------------------------------------------------------------------------
 
-const tempDirs = []
-process.on("exit", () => {
-  for (const dir of tempDirs) {
-    try {
-      rmSync(dir, { recursive: true, force: true })
-    } catch {
-      // Best-effort cleanup.
-    }
-  }
-})
 
-function freshCtx() {
-  const directory = mkdtempSync(join(tmpdir(), "dia260822-oldn-"))
-  tempDirs.push(directory)
-  mkdirSync(join(directory, ".opencode", "session"), { recursive: true })
-  return {
-    directory,
-    client: { app: { log: async () => {} } },
-  }
-}
+function freshCtx() { const { directory, cleanup } = createTempWorkspace("dia260822-oldn-")
+  workspaceCleanups.push(cleanup)
+  return { directory,
+    client: { app: { log: async () => {} } }, } }
 
 // The well-known symbol the implementation must use as the stall-sweep
 // interval singleton key (tasks.md 2.1 / 2.4). Referenced directly so the
@@ -91,39 +74,23 @@ const STALL_SWEEP_KEY = Symbol.for("delegation-observer.stallSweepInterval")
 // implementation, which never sets or reads this flag.
 const BOOT_EMITTED_KEY = Symbol.for("delegation-observer.bootEmitted")
 
-function countSessionBootRows(directory) {
-  const registryPath = join(directory, ".opencode/session/registry.jsonl")
+function countSessionBootRows(directory) { const registryPath = join(directory, ".opencode/session/registry.jsonl")
   if (!existsSync(registryPath)) return 0
   return readFileSync(registryPath, "utf-8")
     .trim()
     .split("\n")
     .filter(Boolean)
-    .filter((line) => {
-      try {
-        return JSON.parse(line).event === "session_boot"
-      } catch {
-        return false
-      }
-    }).length
-}
+    .filter((line) => { try { return JSON.parse(line).event === "session_boot" } catch { return false } }).length }
 
-function readBootJson(directory) {
-  const bootPath = join(directory, ".opencode/session/boot.json")
+function readBootJson(directory) { const bootPath = join(directory, ".opencode/session/boot.json")
   if (!existsSync(bootPath)) return null
-  try {
-    return JSON.parse(readFileSync(bootPath, "utf-8"))
-  } catch {
-    return null
-  }
-}
+  try { return JSON.parse(readFileSync(bootPath, "utf-8")) } catch { return null } }
 
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
 
-describe("DIA-260822-oldn: plugin-reload boot-sweep dedup (process-scoped, RED)", () => {
-  test("factory invoked twice in one process emits one session_boot and preserves first marker", async () => {
-    const ctx = freshCtx()
+describe("DIA-260822-oldn: plugin-reload boot-sweep dedup (process-scoped, RED)", () => { test("factory invoked twice in one process emits one session_boot and preserves first marker", async () => { const ctx = freshCtx()
     // Isolate the process-scoped boot flag: bun shares globalThis across tests
     // in one file, so clear it so this test starts from a clean process state.
     globalThis[BOOT_EMITTED_KEY] = false
@@ -158,11 +125,9 @@ describe("DIA-260822-oldn: plugin-reload boot-sweep dedup (process-scoped, RED)"
     // (1f) First marker preserved -- boot_id is unchanged, not overwritten with
     //      a fresh randomUUID.
     expect(bootSecond).not.toBeNull()
-    expect(bootSecond.boot_id).toBe(firstBootId)
-  })
+    expect(bootSecond.boot_id).toBe(firstBootId) })
 
-  test("clearing only the process-scoped boot flag simulates full new process and emits a new session_boot even if boot.json remains fresh", async () => {
-    const ctx = freshCtx()
+  test("clearing only the process-scoped boot flag simulates full new process and emits a new session_boot even if boot.json remains fresh", async () => { const ctx = freshCtx()
     // Isolate the process-scoped boot flag (bun shares globalThis across tests).
     globalThis[BOOT_EMITTED_KEY] = false
 
@@ -193,11 +158,9 @@ describe("DIA-260822-oldn: plugin-reload boot-sweep dedup (process-scoped, RED)"
     expect(bootSecond).not.toBeNull()
     expect(bootSecond.boot_id).not.toBe(firstBootId)
     // (2c) Flag is re-armed for the new process.
-    expect(globalThis[BOOT_EMITTED_KEY]).toBe(true)
-  })
+    expect(globalThis[BOOT_EMITTED_KEY]).toBe(true) })
 
-  test("factory re-invocation replaces stall-sweep singleton; dispose clears it", async () => {
-    const ctx1 = freshCtx()
+  test("factory re-invocation replaces stall-sweep singleton; dispose clears it", async () => { const ctx1 = freshCtx()
     const ctx2 = freshCtx()
 
     const h1 = await createDelegationObserver(ctx1)
@@ -205,8 +168,7 @@ describe("DIA-260822-oldn: plugin-reload boot-sweep dedup (process-scoped, RED)"
     const h2 = await createDelegationObserver(ctx2)
     const handle2 = globalThis[STALL_SWEEP_KEY]
 
-    try {
-      // (3a) Each factory invocation must register its stall-sweep interval
+    try { // (3a) Each factory invocation must register its stall-sweep interval
       // under the globalThis singleton key, replacing any prior handle so
       // stacked intervals cannot accumulate across in-process reloads.
       expect(handle1).toBeDefined()
@@ -215,16 +177,7 @@ describe("DIA-260822-oldn: plugin-reload boot-sweep dedup (process-scoped, RED)"
 
       // (3b) dispose must clear the singleton so a later reload starts clean.
       await h2.dispose()
-      expect(globalThis[STALL_SWEEP_KEY]).toBeUndefined()
-    } finally {
-      // Best-effort cleanup of any intervals created during this RED run so
+      expect(globalThis[STALL_SWEEP_KEY]).toBeUndefined() } finally { // Best-effort cleanup of any intervals created during this RED run so
       // the test process does not hang on pending timers.
-      try {
-        await h1.dispose()
-      } catch { /* best-effort dispose; ignore */ }
-      try {
-        await h2.dispose()
-      } catch { /* best-effort dispose; ignore */ }
-    }
-  })
-})
+      try { await h1.dispose() } catch { /* best-effort dispose; ignore */ }
+      try { await h2.dispose() } catch { /* best-effort dispose; ignore */ } } }) })

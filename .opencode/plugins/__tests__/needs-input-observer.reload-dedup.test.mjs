@@ -21,10 +21,14 @@
  *   cd .opencode/plugins/__tests__ && \
  *     bun test needs-input-observer.reload-dedup.test.mjs
  */
-import { test, expect, describe, beforeEach } from "bun:test"
-import { mkdtempSync, writeFileSync, rmSync, mkdirSync } from "node:fs"
-import { tmpdir } from "node:os"
+import { test, expect, describe, beforeEach, afterEach } from "bun:test"
+import { writeFileSync, mkdirSync } from "node:fs"
 import { join } from "node:path"
+import { createTempWorkspace } from "./helpers/plugin-harness.mjs"
+
+const workspaceCleanups = []
+afterEach(() => { while (workspaceCleanups.length) { try { workspaceCleanups.pop()() } catch { /* ignore */ } } })
+
 
 // Well-known symbols the implementation MUST use (tasks.md 3.1-3.4). Referenced
 // directly so the tests fail deterministically until the implementation sets
@@ -40,16 +44,6 @@ const { default: createNeedsInputObserver } = await import(
   "../needs-input-observer.ts"
 )
 
-const tempDirs = []
-process.on("exit", () => {
-  for (const dir of tempDirs) {
-    try {
-      rmSync(dir, { recursive: true, force: true })
-    } catch {
-      // Best-effort cleanup.
-    }
-  }
-})
 
 // Shared spies so a simulated reload (two factory calls in one process) observes
 // suppression across the globalThis-backed guards.
@@ -58,8 +52,8 @@ const sessionListCalls = []
 const toasts = []
 
 function freshCtx() {
-  const directory = mkdtempSync(join(tmpdir(), "dia260821-5r03-"))
-  tempDirs.push(directory)
+  const { directory, cleanup } = createTempWorkspace("dia260821-5r03-")
+  workspaceCleanups.push(cleanup)
   const ctx = {
     directory,
     client: {

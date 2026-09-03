@@ -13,7 +13,7 @@ APPROVE the de-bloat plan as dispositioned. 4 corrections (C1-C4), 5 risks (R-A.
 - C1: ".ts adds strip-types runtime dependency" is FALSE under Bun (plugin .mjs tests already import .ts). True reason for .mjs helpers: repo-wide node-runnable test convention (scripts/__tests__ run under plain node) + surface consistency. Keep .mjs; fix the rationale in ticket text.
 - C2: helper file may import ONLY `mock` from bun:test - never `test`/`expect` - because harness-scenario files execute under `bun run`, not `bun test`.
 - C3: mockOpencodePlugin() must be idempotent and callable multiple times per file (plugin-load-smoke.test.mjs re-registers per test).
-- C4: createTempWorkspace should own ONE module-level temp-dir list + ONE process.on("exit") handler (21 files x 1 handler accumulates in one process under non-isolated bun test).
+- C4: createTempWorkspace should own ONE module-level temp-dir list + ONE process.on("exit") handler (21 files x 1 handler accumulates in one process under non-isolated bun test). Adjusted C4 (ticket Re-verify lines 74-81): keeps ONE registry + exactly ONE exit handler as FAIL-SAFE ONLY; returns explicit cleanup handle {directory, cleanup}; tests clean up in afterEach/finally and successful explicit cleanup removes path from registry; exit handler is NOT primary cleanup lifecycle.
 
 ## Risks (carry into implementation)
 - R-A: default bun test shares module registry process-wide; helpers MUST preserve per-file re-registration; do NOT register child_process mocks once globally (4 files use DIFFERENT spy shapes).

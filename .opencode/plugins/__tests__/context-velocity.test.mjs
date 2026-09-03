@@ -19,16 +19,14 @@
  *     'cd /workspace/.opencode/plugins/__tests__ && \
  *      bun test context-velocity.test.mjs'
  */
-import { mock, test, expect, describe } from "bun:test"
-import {
-  existsSync,
-  mkdirSync,
-  mkdtempSync,
-  readFileSync,
-  rmSync,
-} from "node:fs"
-import { tmpdir } from "node:os"
+import { mock, test, expect, describe, afterEach } from "bun:test"
+import { existsSync, readFileSync } from "node:fs"
 import { join } from "node:path"
+import { createTempWorkspace } from "./helpers/plugin-harness.mjs"
+
+const workspaceCleanups = []
+afterEach(() => { while (workspaceCleanups.length) { try { workspaceCleanups.pop()() } catch { /* ignore */ } } })
+
 
 // ---- @opencode-ai/plugin mock (registered BEFORE the plugin import) ----
 const desc = { describe: () => desc }
@@ -47,74 +45,34 @@ const { default: createDelegationObserver } = await import(
 // Harness plumbing
 // ---------------------------------------------------------------------------
 
-const tempDirs = []
-process.on("exit", () => {
-  for (const dir of tempDirs) {
-    try {
-      rmSync(dir, { recursive: true, force: true })
-    } catch {
-      // Best-effort cleanup.
-    }
-  }
-})
 
-function freshCtx() {
-  const directory = mkdtempSync(join(tmpdir(), "dia219-vel-"))
-  tempDirs.push(directory)
-  mkdirSync(join(directory, ".opencode", "session"), { recursive: true })
-  return {
-    directory,
-    client: { app: { log: async () => {} } },
-  }
-}
+function freshCtx() { const { directory, cleanup } = createTempWorkspace("dia219-vel-")
+  workspaceCleanups.push(cleanup)
+  return { directory,
+    client: { app: { log: async () => {} } }, } }
 
 /**
  * Build a mock session.messages response with a single assistant message
  * carrying the given token counts. provider.list() returns a provider with
  * a 1M context window.
  */
-function mockSessionMessages(directTokens) {
-  return async () => ({
-    data: [
-      {
-        info: {
-          role: "assistant",
+function mockSessionMessages(directTokens) { return async () => ({ data: [
+      { info: { role: "assistant",
           providerID: "test-provider",
           modelID: "test-model",
-          tokens: {
-            input: directTokens.input ?? 0,
+          tokens: { input: directTokens.input ?? 0,
             output: directTokens.output ?? 0,
             reasoning: directTokens.reasoning ?? 0,
-            cache: {
-              read: directTokens.cacheRead ?? 0,
-              write: directTokens.cacheWrite ?? 0,
-            },
-          },
-        },
-      },
-    ],
-  })
-}
+            cache: { read: directTokens.cacheRead ?? 0,
+              write: directTokens.cacheWrite ?? 0, }, }, }, },
+    ], }) }
 
-function mockProviderList() {
-  return async () => ({
-    data: {
-      all: [
-        {
-          id: "test-provider",
-          models: {
-            "test-model": {
-              limit: { context: 1_000_000 },
-            },
-          },
-        },
-      ],
-    },
-  })
-}
+function mockProviderList() { return async () => ({ data: { all: [
+        { id: "test-provider",
+          models: { "test-model": { limit: { context: 1_000_000 }, }, }, },
+      ], }, }) }
 
-async function makeHarness(sessionMessagesMock, providerListMock) {
-  const ctx = freshCtx()
+async function makeHarness(sessionMessagesMock, providerListMock) { const ctx = freshCtx()
   const hooks = await createDelegationObserver(ctx)
 
   // Wire up client mocks after plugin creation so the plugin's own
@@ -122,49 +80,34 @@ async function makeHarness(sessionMessagesMock, providerListMock) {
   ctx.client.session = { messages: sessionMessagesMock ?? (async () => ({ data: [] })) }
   ctx.client.provider = { list: providerListMock ?? mockProviderList() }
 
-  return { hooks, ctx }
-}
+  return { hooks, ctx } }
 
 /**
  * Drive the context_usage tool and return the parsed JSON result.
  */
-async function callContextUsage(hooks, { scope, sessionID }) {
-  const result = await hooks.tool.context_usage.execute(
+async function callContextUsage(hooks, { scope, sessionID }) { const result = await hooks.tool.context_usage.execute(
     { scope: scope ?? "session" },
     { sessionID: sessionID ?? "ses_velocity_test" }
   )
-  return JSON.parse(result)
-}
+  return JSON.parse(result) }
 
 /**
  * Read registry rows appended during a test.
  */
-function readNewRows(ctx, rowsBefore) {
-  const registryPath = join(ctx.directory, ".opencode/session/registry.jsonl")
+function readNewRows(ctx, rowsBefore) { const registryPath = join(ctx.directory, ".opencode/session/registry.jsonl")
   if (!existsSync(registryPath)) return []
   const allLines = readFileSync(registryPath, "utf-8").trim().split("\n").filter(Boolean)
-  return allLines.slice(rowsBefore).map((line) => {
-    try {
-      return JSON.parse(line)
-    } catch {
-      return null
-    }
-  }).filter(Boolean)
-}
+  return allLines.slice(rowsBefore).map((line) => { try { return JSON.parse(line) } catch { return null } }).filter(Boolean) }
 
-function countRows(ctx) {
-  const registryPath = join(ctx.directory, ".opencode/session/registry.jsonl")
+function countRows(ctx) { const registryPath = join(ctx.directory, ".opencode/session/registry.jsonl")
   if (!existsSync(registryPath)) return 0
-  return readFileSync(registryPath, "utf-8").trim().split("\n").filter(Boolean).length
-}
+  return readFileSync(registryPath, "utf-8").trim().split("\n").filter(Boolean).length }
 
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
 
-describe("DIA-219 Context Velocity Tracking", () => {
-  test("first call returns velocity_percent_per_cycle = 0 (no prior measurement)", async () => {
-    // Small token count -> low usage.
+describe("DIA-219 Context Velocity Tracking", () => { test("first call returns velocity_percent_per_cycle = 0 (no prior measurement)", async () => { // Small token count -> low usage.
     const msgs = mockSessionMessages({ input: 10000, output: 5000 })
     const { hooks } = await makeHarness(msgs)
 
@@ -172,11 +115,9 @@ describe("DIA-219 Context Velocity Tracking", () => {
 
     expect(result.velocity_percent_per_cycle).toBe(0)
     expect(result.velocity_crisis).toBe(false)
-    expect(result.velocity_emergency).toBe(false)
-  })
+    expect(result.velocity_emergency).toBe(false) })
 
-  test("small consecutive reads stay below crisis threshold", async () => {
-    const sessionID = "ses_vel_small"
+  test("small consecutive reads stay below crisis threshold", async () => { const sessionID = "ses_vel_small"
     // First call: 10K tokens -> 1% usage.
     const msgs1 = mockSessionMessages({ input: 10000, output: 0 })
     const { hooks, ctx } = await makeHarness(msgs1)
@@ -189,11 +130,9 @@ describe("DIA-219 Context Velocity Tracking", () => {
     const r2 = await callContextUsage(hooks, { sessionID })
     expect(r2.velocity_percent_per_cycle).toBe(1)
     expect(r2.velocity_crisis).toBe(false)
-    expect(r2.velocity_emergency).toBe(false)
-  })
+    expect(r2.velocity_emergency).toBe(false) })
 
-  test("large jump triggers crisis event (>15% per cycle)", async () => {
-    const sessionID = "ses_vel_crisis"
+  test("large jump triggers crisis event (>15% per cycle)", async () => { const sessionID = "ses_vel_crisis"
 
     // First call: 10K tokens -> 1% usage.
     const msgs1 = mockSessionMessages({ input: 10000, output: 0 })
@@ -215,11 +154,9 @@ describe("DIA-219 Context Velocity Tracking", () => {
     const crisisRow = newRows.find((r) => r.event === "context_crisis")
     expect(crisisRow).toBeDefined()
     expect(crisisRow.session_id).toBe(sessionID)
-    expect(crisisRow.velocity_pct).toBe(19)
-  })
+    expect(crisisRow.velocity_pct).toBe(19) })
 
-  test("massive jump triggers emergency event (>25% per cycle)", async () => {
-    const sessionID = "ses_vel_emergency"
+  test("massive jump triggers emergency event (>25% per cycle)", async () => { const sessionID = "ses_vel_emergency"
 
     // First call: 10K tokens -> 1% usage.
     const msgs1 = mockSessionMessages({ input: 10000, output: 0 })
@@ -241,11 +178,9 @@ describe("DIA-219 Context Velocity Tracking", () => {
     const emergencyRow = newRows.find((r) => r.event === "context_emergency")
     expect(emergencyRow).toBeDefined()
     expect(emergencyRow.session_id).toBe(sessionID)
-    expect(emergencyRow.velocity_pct).toBe(29)
-  })
+    expect(emergencyRow.velocity_pct).toBe(29) })
 
-  test("velocity is tracked per session - different sessions are independent", async () => {
-    const sessionA = "ses_vel_indep_a"
+  test("velocity is tracked per session - different sessions are independent", async () => { const sessionA = "ses_vel_indep_a"
     const sessionB = "ses_vel_indep_b"
 
     // First call for session A: 10K tokens.
@@ -267,11 +202,9 @@ describe("DIA-219 Context Velocity Tracking", () => {
     // Session B still independent - third call: 20K tokens -> small delta.
     ctx.client.session.messages = mockSessionMessages({ input: 20000, output: 0 })
     const rB2 = await callContextUsage(hooks, { sessionID: sessionB })
-    expect(rB2.velocity_crisis).toBe(false)
-  })
+    expect(rB2.velocity_crisis).toBe(false) })
 
-  test("velocity resets on plugin restart (non-persistent by design)", async () => {
-    const sessionID = "ses_vel_restart"
+  test("velocity resets on plugin restart (non-persistent by design)", async () => { const sessionID = "ses_vel_restart"
 
     // First plugin instance: build up some usage.
     const msgs1 = mockSessionMessages({ input: 200000, output: 0 })
@@ -284,6 +217,4 @@ describe("DIA-219 Context Velocity Tracking", () => {
     const r = await callContextUsage(hooks2, { sessionID })
 
     // First call on fresh plugin: velocity should be 0 (no prior measurement).
-    expect(r.velocity_percent_per_cycle).toBe(0)
-  })
-})
+    expect(r.velocity_percent_per_cycle).toBe(0) }) })

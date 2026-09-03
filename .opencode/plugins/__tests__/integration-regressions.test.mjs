@@ -5,10 +5,10 @@
  */
 import { describe, it } from "node:test"
 import assert from "node:assert/strict"
-import { mkdtempSync, readFileSync, rmSync, existsSync } from "node:fs"
-import { tmpdir } from "node:os"
+import { readFileSync, existsSync } from "node:fs"
 import { join } from "node:path"
 import { readFileSync as fsReadFileSync } from "node:fs"
+import { createTempWorkspace } from "./helpers/plugin-harness.mjs"
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -31,10 +31,7 @@ function clearStallFlag() {
 // ---------------------------------------------------------------------------
 describe("REGRESSION 1 — boot seq: boot.json and registry.jsonl share bootId AND seq", () => {
   it("real plugin init produces matching boot_id and seq in registry and boot.json", async () => {
-    const dir = mkdtempSync(join(tmpdir(), "boot-seq-"))
-    // ensure session dir exists so appendRow's appendFileSync does not ENOENT-swallow
-    const { mkdirSync } = await import("node:fs")
-    mkdirSync(join(dir, ".opencode/session"), { recursive: true })
+    const { directory: dir, cleanup } = createTempWorkspace("boot-seq-")
     clearBootFlag()
     clearStallFlag()
     let hooks
@@ -66,7 +63,7 @@ describe("REGRESSION 1 — boot seq: boot.json and registry.jsonl share bootId A
       try { if (hooks?.dispose) await hooks.dispose() } catch { /* noop */ }
       clearBootFlag()
       clearStallFlag()
-      rmSync(dir, { recursive: true, force: true })
+      try { cleanup() } catch { /* ignore */ }
     }
   })
 })
@@ -76,9 +73,7 @@ describe("REGRESSION 1 — boot seq: boot.json and registry.jsonl share bootId A
 // ---------------------------------------------------------------------------
 describe("REGRESSION 2 — sessionMessageCount: appendMessageRow updates calling-session count for context_usage fallback", () => {
   it("after N appendMessageRow calls for session X, context_usage fallback reflects N (others unaffected)", async () => {
-    const dir = mkdtempSync(join(tmpdir(), "msgcnt-"))
-    const { mkdirSync: mkSess } = await import("node:fs")
-    mkSess(join(dir, ".opencode/session"), { recursive: true })
+    const { directory: dir, cleanup: cleanup2 } = createTempWorkspace("msgcnt-")
     clearBootFlag()
     clearStallFlag()
     let hooks
@@ -126,7 +121,7 @@ describe("REGRESSION 2 — sessionMessageCount: appendMessageRow updates calling
       try { if (hooks?.dispose) await hooks.dispose() } catch { /* noop */ }
       clearBootFlag()
       clearStallFlag()
-      rmSync(dir, { recursive: true, force: true })
+      try { cleanup2() } catch { /* ignore */ }
     }
   })
 

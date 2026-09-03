@@ -18,10 +18,13 @@
  * per-test mkdtemp dir, globalThis singleton clear).
  */
 
-import { mock, test, expect, beforeEach } from "bun:test"
-import { existsSync, mkdirSync, readFileSync, writeFileSync, mkdtempSync } from "node:fs"
-import { tmpdir } from "node:os"
+import { mock, test, expect, beforeEach, afterEach } from "bun:test"
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
+import { createTempWorkspace } from "./helpers/plugin-harness.mjs"
+
+const workspaceCleanups = []
+afterEach(() => { while (workspaceCleanups.length) { try { workspaceCleanups.pop()() } catch { /* ignore */ } } })
 
 // DIA-260821-5r03 singleton guards - clear per test for isolation (same as dia189)
 const NI_PERM_TIMERS_KEY = Symbol.for("needs-input-observer.permissionTimers")
@@ -95,7 +98,8 @@ function questionAskedEvent(sessionID, detail = "need input") {
 // ---------------------------------------------------------------------------
 
 test("AC1a RED: invalid since waiting entry dropped on seed (compact snapshot excludes it)", async () => {
-  const dir = mkdtempSync(join(tmpdir(), "ticker-expiry-"))
+  const { directory: dir, cleanup } = createTempWorkspace("ticker-expiry-")
+  workspaceCleanups.push(cleanup)
   writeTicker(dir, {
     version: 1,
     updated_at: nowISO(),
@@ -115,7 +119,8 @@ test("AC1a RED: invalid since waiting entry dropped on seed (compact snapshot ex
 })
 
 test("AC1b RED: invalid since waiting entry dropped on persist (file after persist excludes it)", async () => {
-  const dir = mkdtempSync(join(tmpdir(), "ticker-expiry-"))
+  const { directory: dir, cleanup } = createTempWorkspace("ticker-expiry-")
+  workspaceCleanups.push(cleanup)
   writeTicker(dir, {
     version: 1,
     updated_at: nowISO(),
@@ -137,7 +142,8 @@ test("AC1b RED: invalid since waiting entry dropped on persist (file after persi
 })
 
 test("AC1c RED: invalid since error entry dropped on seed (errors bucket)", async () => {
-  const dir = mkdtempSync(join(tmpdir(), "ticker-expiry-"))
+  const { directory: dir, cleanup } = createTempWorkspace("ticker-expiry-")
+  workspaceCleanups.push(cleanup)
   writeTicker(dir, {
     version: 1,
     updated_at: nowISO(),
@@ -162,7 +168,8 @@ test("AC1c RED: invalid since error entry dropped on seed (errors bucket)", asyn
 // ---------------------------------------------------------------------------
 
 test("AC2 RED: question waiting >24h purged on seed, younger retained", async () => {
-  const dir = mkdtempSync(join(tmpdir(), "ticker-expiry-"))
+  const { directory: dir, cleanup } = createTempWorkspace("ticker-expiry-")
+  workspaceCleanups.push(cleanup)
   writeTicker(dir, {
     version: 1,
     updated_at: nowISO(),
@@ -189,7 +196,8 @@ test("AC2 RED: question waiting >24h purged on seed, younger retained", async ()
 // ---------------------------------------------------------------------------
 
 test("AC3 RED: idle waiting >4h purged on seed, younger retained", async () => {
-  const dir = mkdtempSync(join(tmpdir(), "ticker-expiry-"))
+  const { directory: dir, cleanup } = createTempWorkspace("ticker-expiry-")
+  workspaceCleanups.push(cleanup)
   writeTicker(dir, {
     version: 1,
     updated_at: nowISO(),
@@ -212,7 +220,8 @@ test("AC3 RED: idle waiting >4h purged on seed, younger retained", async () => {
 // ---------------------------------------------------------------------------
 
 test("AC4 RED: errors >48h purged on seed via persist, younger retained", async () => {
-  const dir = mkdtempSync(join(tmpdir(), "ticker-expiry-"))
+  const { directory: dir, cleanup } = createTempWorkspace("ticker-expiry-")
+  workspaceCleanups.push(cleanup)
   writeTicker(dir, {
     version: 1,
     updated_at: nowISO(),
@@ -237,7 +246,8 @@ test("AC4 RED: errors >48h purged on seed via persist, younger retained", async 
 // ---------------------------------------------------------------------------
 
 test("AC5 RED: mixed ticker with valid/invalid/stale entries yields only valid in-window after seed+persist", async () => {
-  const dir = mkdtempSync(join(tmpdir(), "ticker-expiry-"))
+  const { directory: dir, cleanup } = createTempWorkspace("ticker-expiry-")
+  workspaceCleanups.push(cleanup)
   writeTicker(dir, {
     version: 1,
     updated_at: nowISO(),
@@ -280,7 +290,8 @@ test("AC5 RED: mixed ticker with valid/invalid/stale entries yields only valid i
 // ---------------------------------------------------------------------------
 
 test("AC6 RED: valid current entries survive a persist round-trip", async () => {
-  const dir = mkdtempSync(join(tmpdir(), "ticker-expiry-"))
+  const { directory: dir, cleanup } = createTempWorkspace("ticker-expiry-")
+  workspaceCleanups.push(cleanup)
   // first plugin creates a valid entry via event (fresh since)
   const ctx1 = freshCtx(dir)
   const hooks1 = await createNeedsInputObserver(ctx1)

@@ -20,9 +20,7 @@
 
 import { describe, it } from "node:test"
 import assert from "node:assert/strict"
-import { mkdirSync, mkdtempSync, rmSync } from "node:fs"
-import { tmpdir } from "node:os"
-import { join } from "node:path"
+import { createTempWorkspace } from "./helpers/plugin-harness.mjs"
 
 // Try to mock @opencode-ai/plugin for bun; for node the real module is fine.
 // We attempt bun's mock.module if available, otherwise skip.
@@ -60,10 +58,10 @@ try {
 }
 
 function freshCtx() {
-  const directory = mkdtempSync(join(tmpdir(), "plugin-smoke-"))
-  mkdirSync(join(directory, ".opencode", "session"), { recursive: true })
+  const { directory, cleanup } = createTempWorkspace("plugin-smoke-")
   return {
     directory,
+    cleanup,
     client: {
       app: { log: async () => {} },
       session: { messages: async () => ({ data: [] }) },
@@ -86,7 +84,7 @@ describe("plugin-load smoke (DIA-260829-kxqu)", () => {
     } catch (err) {
       assert.fail(`default factory threw: ${err.message}\n${err.stack}`)
     } finally {
-      try { rmSync(ctx._tmpDir, { recursive: true, force: true }) } catch { /* ignore cleanup */ }
+      try { ctx.cleanup() } catch { /* ignore cleanup */ }
     }
     assert.ok(hooks && typeof hooks === "object", "factory must return hooks object")
     // Must contain at least one known hook; otherwise loader would have no effect
@@ -119,7 +117,7 @@ describe("plugin-load smoke (DIA-260829-kxqu)", () => {
     } catch (err) {
       threw = err
     } finally {
-      try { rmSync(ctx._tmpDir, { recursive: true, force: true }) } catch { /* ignore cleanup */ }
+      try { ctx.cleanup() } catch { /* ignore cleanup */ }
     }
     if (threw) {
       assert.fail(`verifyCapabilityToken threw when called with PluginInput: ${threw.message} - this is the DIA-260829-kxqu crash`)
@@ -140,7 +138,7 @@ describe("plugin-load smoke (DIA-260829-kxqu)", () => {
     } catch (err) {
       threw = err
     } finally {
-      try { rmSync(ctx._tmpDir, { recursive: true, force: true }) } catch { /* ignore cleanup */ }
+      try { ctx.cleanup() } catch { /* ignore cleanup */ }
     }
     if (threw) {
       assert.fail(`mintCapabilityToken threw when called as factory: ${threw.message}`)
@@ -179,7 +177,7 @@ describe("plugin-load smoke (DIA-260829-kxqu)", () => {
         }
       }
     }
-    try { rmSync(ctx._tmpDir, { recursive: true, force: true }) } catch { /* ignore cleanup */ }
+    try { ctx.cleanup() } catch { /* ignore cleanup */ }
     assert.equal(failures.length, 0, `loader simulation must not throw, failures: ${failures.join("; ")}`)
   })
 
