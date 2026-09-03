@@ -88,3 +88,14 @@ Slice A execution (2026-09-03):
 - Commit staged ONLY the removal + this ticket update; other working-tree changes left unstaged.
 
 ASCII-only per DIA-079 (no em-dashes, no smart quotes, no non-ASCII punctuation).
+
+## Re-verify -- Slice C ground truth correction (2026-09-03, commit 75e813f)
+
+Slice C ground truth correction (2026-09-03, commit 75e813f):
+
+- The 7 factory-probe helpers were EXERCISED, not dead (each has 1..many test call sites).
+- Only dead alias/fallback branches inside the helpers were removed (e.g. ?? mod.create ?? mod.default, createStallSweeper/createSweep/default aliases, clock alias deps, second no-arg factory() try).
+- Actual delta: -110 test LOC, not -120 (capability -16, registry -5, handoff -4, stall-sweep -19, ticket-gate -18, circuit-breaker -40, formatter -8; 5131 -> 5021).
+- Cumulative conservative test target adjusted by +10 LOC: 12,419 -> 12,429 (cumulative test reduction -395 net instead of -405).
+
+Commit 75e813f evidence: 7 files, +26/-136. Focused tests 270 pass / 0 fail exit 0. Full plugin suite 443 pass / 1 skip / 7 fail - verified PRE-EXISTING baseline (identical 443/7 before/after via git stash --keep-index round-trip; 6x needs-input-observer.dia189 powershell.exe spawn not captured + 1x parallel-handoff archived check). Pre-commit hook exit 0. Lane errors: none.
