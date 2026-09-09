@@ -6,7 +6,7 @@ id: DIA-260903-o7n0
 title: "read-only de-bloat audit: delegation-observer plugin test suite + binding budget for next phase"
 area: opencode-config
 severity: Major
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: ""
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
@@ -17,7 +17,7 @@ discovered: 2026-09-03
 source: inventory
 date: 2026-09-03
 created: 2026-09-03
-updated: 2026-09-03
+updated: 2026-09-09
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -571,3 +571,7 @@ Files: scripts/check-budget-gate.sh (usage text only),
 scripts/**tests**/budget-gate-range-exemption.bats (O-3 case), this ticket.
 
 ASCII-only per DIA-079 (no em-dashes, no smart quotes, no non-ASCII punctuation).
+
+## Close (2026-09-09)
+
+Closed: verified complete through 7fa7aae cycle; follow-ups: O-4 stale six-steps, retain-via-chains for tp5e/oj59/observer.

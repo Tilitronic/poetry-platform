@@ -290,7 +290,7 @@
 | DIA-260901-s4ij | Replace hy3 with Deepseek v4 flash in all presets | scripts | Medium | CLOSED | [DIA-260901-s4ij-replace-hy3-with-deepseek-v4-flash-in-all-presets.md](DIA-260901-s4ij-replace-hy3-with-deepseek-v4-flash-in-all-presets.md) |
 | DIA-260901-vior | Commit local changes - resolve pre-existing dirty git tree and DIA-260901-s4ij config changes | scripts | Medium | CLOSED | [DIA-260901-vior-commit-local-changes-resolve-pre-existing-dirty-git-tree-and-dia-260901-s4ij-config-changes.md](DIA-260901-vior-commit-local-changes-resolve-pre-existing-dirty-git-tree-and-dia-260901-s4ij-config-changes.md) |
 | DIA-260902-eqgg | Refactor delegation-observer plugin: extract 6 subsystems into lib modules (SRP, DIA-260901-3y39 F1) | opencode-config | Major | CLOSED | [DIA-260902-eqgg-refactor-delegation-observer-plugin-extract-6-subsystems-into-lib-modules-srp-dia-260901-3y39-f1.md](DIA-260902-eqgg-refactor-delegation-observer-plugin-extract-6-subsystems-into-lib-modules-srp-dia-260901-3y39-f1.md) |
-| DIA-260903-o7n0 | read-only de-bloat audit: delegation-observer plugin test suite + binding budget for next phase | opencode-config | Major | OPEN | [DIA-260903-o7n0-read-only-de-bloat-audit-delegation-observer-plugin-test-suite-binding-budget-for-next-phase.md](DIA-260903-o7n0-read-only-de-bloat-audit-delegation-observer-plugin-test-suite-binding-budget-for-next-phase.md) |
+| DIA-260903-o7n0 | read-only de-bloat audit: delegation-observer plugin test suite + binding budget for next phase | opencode-config | Major | CLOSED | [DIA-260903-o7n0-read-only-de-bloat-audit-delegation-observer-plugin-test-suite-binding-budget-for-next-phase.md](DIA-260903-o7n0-read-only-de-bloat-audit-delegation-observer-plugin-test-suite-binding-budget-for-next-phase.md) |
 | DIA-260903-oj59 | self-rerun thresholds: 60% primary / 75% safety-net (new default) | opencode-config | Medium | OPEN | [DIA-260903-oj59-self-rerun-thresholds-60-primary-75-safety-net-new-default.md](DIA-260903-oj59-self-rerun-thresholds-60-primary-75-safety-net-new-default.md) |
 | DIA-260909-tp5e | Add Muse Qwen balanced agent routing preset | opencode-config | Medium | OPEN | [DIA-260909-tp5e-add-muse-qwen-balanced-agent-routing-preset.md](DIA-260909-tp5e-add-muse-qwen-balanced-agent-routing-preset.md) |
 
@@ -309,7 +309,7 @@
 
 | Status      | Count |
 | ----------- | ----- |
-| OPEN        | 82    |
+| OPEN        | 81    |
 | DONE        | 11    |
 | VALIDATE    | 0     |
 | E2E         | 0     |
@@ -318,7 +318,7 @@
 | FIXED       | 1     |
 | IMPLEMENTED | 2     |
 | VERIFIED    | 28    |
-| CLOSED      | 164   |
+| CLOSED      | 165   |
 | BLOCKED     | 0     |
 | DISPATCHED  | 0     |
 | RUNNING     | 0     |
