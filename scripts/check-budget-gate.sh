@@ -11,7 +11,14 @@
 #   check-budget-gate.sh <message-file>   commit-msg hook mode ($1 is the file
 #                                         git passes to commit-msg hooks)
 #   check-budget-gate.sh --range <rev>     pre-push/CI mode: one evaluation per
-#                                         commit in the range, always blocking
+#                                         commit in the range, always blocking,
+#                                         with ONE narrow exception: a commit
+#                                         whose tree lacks
+#                                         scripts/budget-baselines.json is a
+#                                         pre-gate-history commit and is
+#                                         skipped with a warn line (never
+#                                         silently); any tree that HAS the
+#                                         manifest keeps fail-closed behavior
 # Env:
 #   BUDGET_MANIFEST    manifest path (default scripts/budget-baselines.json)
 #   TICKETS_DIR        ticket ledger dir (default docs/dev-infra-audit/tickets)

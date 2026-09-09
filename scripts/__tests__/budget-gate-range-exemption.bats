@@ -94,3 +94,47 @@ Budget-Scope: refactor"
   # the clean backed commit is really evaluated (not blanket-passed)
   assert_output_contains "backed"
 }
+
+# setup_malformed_repo: baseline WITHOUT a manifest (like the prehistory
+# setup), then a commit that ADDS a malformed manifest alongside a scoped
+# edit. The manifest is PRESENT in that commit's tree, so the obs1 exemption
+# must NOT fire: a broken manifest fails closed exactly like hook mode.
+# Echoes the tree root.
+setup_malformed_repo() {
+  local tree="$BATS_TEST_TMPDIR/malformed"
+  mkdir -p "$tree/plug/lib" "$BATS_TEST_TMPDIR/tickets" "$tree/scripts/guards"
+  cp "$REPO_ROOT/scripts/guards/home-qualt.sh" "$tree/scripts/guards/home-qualt.sh"
+  seq 1 10 > "$tree/plug/delegation-observer.ts"
+  seq 1 10 > "$tree/plug/lib/util.ts"
+  if ! git -C "$tree" init -q -b main 2>/dev/null; then
+    git -C "$tree" init -q
+    git -C "$tree" symbolic-ref HEAD refs/heads/main
+  fi
+  git -C "$tree" config user.email "bats@example.com"
+  git -C "$tree" config user.name "bats test"
+  git -C "$tree" add -A
+  git -C "$tree" commit -q -m init
+  seed_campaign_ticket
+  printf '{broken json\n' > "$tree/manifest.json"
+  seq 1 15 > "$tree/plug/lib/util.ts"
+  git -C "$tree" add manifest.json plug/lib/util.ts
+  git -C "$tree" commit -q -m "malformed manifest + growth
+
+Budget-Scope: refactor"
+  cp "$GATE" "$tree/gate-under-test.sh" 2>/dev/null || true
+  echo "$tree"
+}
+
+@test "range-exemption (obs1): manifest PRESENT but malformed in a range commit fails closed (no exemption)" {
+  tree="$(setup_malformed_repo)"
+  local root_sha
+  root_sha="$(git -C "$tree" rev-list --max-parents=0 HEAD)"
+
+  run env BUDGET_MANIFEST="manifest.json" TICKETS_DIR="$BATS_TEST_TMPDIR/tickets" BUDGET_PLUGIN_ROOT="$tree/plug" bash -c "cd '$tree' && exec bash '$tree/gate-under-test.sh' --range '$root_sha..HEAD'"
+
+  assert_status 1
+  # no pre-gate-history skip for a tree that HAS the manifest
+  assert_output_not_contains "pre-gate-history"
+  # fail-closed names the load failure
+  assert_output_contains "FAIL:"
+}

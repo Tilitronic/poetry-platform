@@ -506,15 +506,68 @@ Verification (repo workdir, ASCII-only per DIA-079):
 budget-gate.bats + budget-gate-range-exemption.bats: 35 pass / 0 fail,
 exit 0 (34 RED + 1 new exemption).
 verify-pre-push.bats + guards-home-qualt.bats: 17 pass / 0 fail, exit 0
-(13 + 2 new C1 pins + 2 guard).
+(13 in verify-pre-push.bats = 11 prior + 2 new C1 pins, plus 4
+guards-home-qualt = 17 total).
 make test-shell equivalent (full bats monolith): plan 1..633, 0 not ok.
 make test-config: exit 0 (structural gates PASS).
 bash -n on both touched .sh files: exit 0.
-prettier --check on this ticket file + the two new/modified bats files:
-exit 0 (below).
+prettier --check on this ticket file: exit 0 (.bats files have no prettier
+parser and no lint-staged rule - repo convention; they are validated by the
+bats runner itself).
 
 Files: scripts/check-budget-gate.sh, scripts/verify-pre-push.sh,
 scripts/**tests**/verify-pre-push.bats (C1 pins),
 scripts/**tests**/budget-gate-range-exemption.bats (new, GREEN-owned), this ticket.
+
+ASCII-only per DIA-079 (no em-dashes, no smart quotes, no non-ASCII punctuation).
+
+## Re-verify -- notes lane (2026-09-09, on top of 2b85757)
+
+Tiny docs/test scope; no gate behavior change except documented text.
+
+(O-3) New range-mode case in the GREEN-owned companion file
+scripts/**tests**/budget-gate-range-exemption.bats (budget-gate.bats
+untouched): a range commit whose tree HAS the manifest but MALFORMED
+(broken JSON committed alongside scoped growth) must NOT take the obs1
+exemption - it fails closed. Proves exit non-zero, no "pre-gate-history"
+skip, FAIL names the load failure. Passes on the current gate (2/2 in the
+companion file).
+(NOTE) check-budget-gate.sh usage block (header lines 13-21) now documents
+the narrow pre-gate-history exception in range mode (skip WITH warn only
+when the manifest is ABSENT from the commit tree; any present manifest keeps
+fail-closed behavior). Docs fidelity only.
+(O-1) Evidence breakdown corrected above in the cycle-2/2 block: 13 in
+verify-pre-push.bats = 11 prior + 2 new C1 pins; plus 4 guards-home-qualt =
+17 total.
+(O-2) Accepted residual risk under the obs1 ruling (skip vectors, both
+covered by the mandatory warn line, none silent): (a) a commit that DELETES
+scripts/budget-baselines.json is indistinguishable from pre-gate history -
+its tree lacks the manifest, so the exemption skips it with a warn instead
+of blocking the manifest-deleting commit; (b) an in-repo BUDGET_MANIFEST
+override pointing at a nonexistent path (e.g. BUDGET_MANIFEST=scripts/
+nonexistent.json) makes every range commit look manifest-absent, so range
+mode exempts the whole range with per-commit warns (hook mode still fails
+closed on the same override; an OUT-of-repo override path is exempt from the
+exemption and fails closed in both modes).
+(O-4) Trivial follow-up recorded (NO code fix per dispatch): the comment at
+scripts/verify-pre-push.sh:136 says "six steps" but the delegated ladder has
+run SEVEN commands since make test-omo was added (verify:format, verify:js,
+verify:js-tests, make test-config, make test-omo, verify:python, make
+test-shell). Fix the stale count/order text in a future trivial commit.
+
+Verification (repo workdir, ASCII-only per DIA-079):
+budget-gate-range-exemption.bats (GREEN-owned companion): 2 pass / 0 fail,
+exit 0 (existing exemption + new malformed-present case).
+budget-gate.bats (untouched RED battery): 34 pass / 0 fail, exit 0.
+verify-pre-push.bats + guards-home-qualt.bats: 17 pass / 0 fail, exit 0.
+make test-shell equivalent (full bats monolith): plan 1..634, 0 not ok.
+make test-config: exit 0 (structural gates PASS).
+bash -n on the touched .sh file: exit 0.
+prettier --check on this ticket file: exit 0 (the touched .bats file has no
+prettier parser / lint-staged rule; validated by the bats runner at test
+time - see the cycle-2/2 correction).
+
+Files: scripts/check-budget-gate.sh (usage text only),
+scripts/**tests**/budget-gate-range-exemption.bats (O-3 case), this ticket.
 
 ASCII-only per DIA-079 (no em-dashes, no smart quotes, no non-ASCII punctuation).
