@@ -6,7 +6,7 @@ id: DIA-260909-9c9x
 title: "whitespace polish for already-committed files"
 area: scripts
 severity: Low
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: ""
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
