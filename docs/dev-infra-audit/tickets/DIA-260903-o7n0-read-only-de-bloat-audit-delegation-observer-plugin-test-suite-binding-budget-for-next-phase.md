@@ -459,3 +459,62 @@ prettier --check on this ticket file: exit 0 (below).
 Files: scripts/check-budget-gate.sh, this ticket.
 
 ASCII-only per DIA-079 (no em-dashes, no smart quotes, no non-ASCII punctuation).
+
+## Re-verify -- GREEN fix cycle 2/2 (2026-09-09, on top of 6549060)
+
+Scope: developer-accepted items from the rev-2 re-review observations only.
+scripts/**tests**/budget-gate.bats NOT edited (RED-owned); the obs1
+regression test lives in a new GREEN-owned companion file instead.
+
+(1) [MAJOR obs1] range-mode pre-gate-history exemption: range_mode now skips
+WITH a mandatory warn line any commit whose tree lacks
+scripts/budget-baselines.json (manifest_absent_from_tree via git cat-file -e
+$EVAL_SHA:$MANIFEST_REL; guarded to in-repo manifest paths so an
+outside-repo override still fails closed). Commits whose tree HAS the
+manifest keep fail-closed behavior (missing/invalid still blocks per commit).
+New test scripts/**tests**/budget-gate-range-exemption.bats proves a range
+mixing a pre-manifest scoped refactor commit + a clean backed commit exits 0
+with the warn naming pre-gate-history (verified RED before the fix: the old
+code blocked the pre-manifest commit).
+(2) C1 ordering pins in scripts/**tests**/verify-pre-push.bats: static
+line-order pin (check-budget-gate invocation precedes the container-down
+skip message) + behavioral pin (copied hermetic hook tree, container-down
+fake docker, real violating fixture history pushed as ref lines -> exit 1
+"pre-push blocked", docker log untouched). Both proven meaningful: reverting
+the C1 move fails the behavioral pin (exit 0 skip) and the static pin.
+Latent bug found and fixed by the behavioral pin: the range read loop used
+"IFS= read", which stuffed all four ref fields into the first variable and
+skipped every pushed ref; now a bare split read (comment documents why).
+(3) scripts/verify-pre-push.sh header comment corrected (lines 9-12 area):
+offline pushes CAN be blocked by the host-local budget backstop; only the
+delegated verification steps warn-and-pass.
+(4) Ticket notes (this block): campaign-transition procedure (obs4) - a NEW
+campaign needs a new OPEN ticket first, then the manifest campaigns edit
+with a normal Budget-Scope refactor trailer (never a Budget-Exception
+bootstrap; M4 ledger binding makes the ticket resolvable before the edit
+lands). Evidence-count basis (obs6): the 630 figure is the full bats
+monolith under make test-shell (bats-wrapper default run over
+scripts/**tests**/\*.bats + .opencode/scripts suites); the 648 figure seen
+elsewhere additionally counts --quick and/or filtered invocations and the
+new files here (633 now) - always quote which runner/invocation a count
+comes from.
+(5) One-line comment in check-budget-gate.sh at TICKETS_DIR: the ledger is
+deliberately read from disk, never the evaluated tree (approvals are
+present-tense human state, not versioned history).
+
+Verification (repo workdir, ASCII-only per DIA-079):
+budget-gate.bats + budget-gate-range-exemption.bats: 35 pass / 0 fail,
+exit 0 (34 RED + 1 new exemption).
+verify-pre-push.bats + guards-home-qualt.bats: 17 pass / 0 fail, exit 0
+(13 + 2 new C1 pins + 2 guard).
+make test-shell equivalent (full bats monolith): plan 1..633, 0 not ok.
+make test-config: exit 0 (structural gates PASS).
+bash -n on both touched .sh files: exit 0.
+prettier --check on this ticket file + the two new/modified bats files:
+exit 0 (below).
+
+Files: scripts/check-budget-gate.sh, scripts/verify-pre-push.sh,
+scripts/**tests**/verify-pre-push.bats (C1 pins),
+scripts/**tests**/budget-gate-range-exemption.bats (new, GREEN-owned), this ticket.
+
+ASCII-only per DIA-079 (no em-dashes, no smart quotes, no non-ASCII punctuation).

@@ -6,10 +6,12 @@
 #   - inside the dev container -> run pnpm directly in /workspace
 #   - on the host              -> delegate each step via `docker compose exec dev`
 #
-# A push is never blocked by an offline dev stack: if the container is not
-# running the gate prints a warning and passes (start it with `make up`, then
-# push again). Each failing step aborts the script with a non-zero exit code,
-# which makes the hook block the push.
+# An offline dev stack never blocks the delegated verification steps: if the
+# container is not running those steps print a warning and pass (start it
+# with `make up`, then push again). EXCEPTION: the F budget-gate range
+# backstop below is host-local and always blocking, so an offline push that
+# carries a budget violation is still refused. Each failing step aborts the
+# script with a non-zero exit code, which makes the hook block the push.
 set -euo pipefail
 
 # Recursion guard (ana015): if this script is already running in the process
@@ -90,7 +92,11 @@ budget_range_failed=0
 if [ -t 0 ]; then
   : # manual run, no pushed refs to range-check
 else
-  while IFS= read -r push_local_ref push_local_sha push_remote_ref push_remote_sha; do
+  # Bare `read` (default IFS splitting) is REQUIRED here: the hook feeds four
+  # space-separated fields per line. `IFS= read` would stuff the whole line
+  # into the first variable, leaving the sha empty, so the guard below would
+  # skip every pushed ref and the backstop would never fire.
+  while read -r push_local_ref push_local_sha push_remote_ref push_remote_sha; do
     [ -n "${push_local_sha:-}" ] || continue
     case "$push_local_sha" in "$ZERO_SHA"*) continue ;; esac # branch deletion: nothing to check
     range_rev=""

@@ -266,3 +266,83 @@ EOF
   # while a dirty .opencode/commands file exists
   [ ! -s "$FAKE_DOCKER_LOG" ]
 }
+
+@test "verify-pre-push: budget range block precedes the container-down early exit (C1 static ordering pin)" {
+  # C1: the range backstop must execute even when the dev stack is offline.
+  # Pin the order statically (batch-D grep pattern, mirror of the home-qualt
+  # wiring test above): the range-gate invocation line must precede the
+  # container-down skip exit. Moving the block back below the exit fails
+  # this pin (and the behavioral pin below).
+  local range_line skip_line
+  range_line="$(grep -n 'check-budget-gate.sh' "$SCRIPTS_DIR/verify-pre-push.sh" | head -n 1 | cut -d: -f1)"
+  skip_line="$(grep -n "pre-push verification skipped" "$SCRIPTS_DIR/verify-pre-push.sh" | head -n 1 | cut -d: -f1)"
+  [ -n "$range_line" ] && [ -n "$skip_line" ]
+  [ "$range_line" -lt "$skip_line" ]
+}
+
+@test "verify-pre-push: container-down push carrying pushed refs still hits the budget range check (C1 behavioral pin)" {
+  export FAKE_DOCKER_SERVICES="postgres"
+  # Copy-based hermetic fixture (no PATH shims: shadowing `bash` deadlocks
+  # bats' inherited fds inside the script's $( ) substitutions). The copied
+  # hook derives $ROOT from its own location, so the REAL budget gate
+  # evaluates a REAL violating fixture history in default layout while the
+  # container is down. If the range block moved back below the container-down
+  # exit, this exits 0 (skip) instead of 1 (blocked).
+  local tree="$BATS_TEST_TMPDIR/c1range"
+  mkdir -p "$tree/scripts/guards" "$tree/.opencode/plugins/lib" "$tree/docs/dev-infra-audit/tickets"
+  cp "$SCRIPTS_DIR/verify-pre-push.sh" "$tree/scripts/verify-pre-push.sh"
+  cp "$SCRIPTS_DIR/check-budget-gate.sh" "$tree/scripts/check-budget-gate.sh"
+  cp "$SCRIPTS_DIR/guards/home-qualt.sh" "$tree/scripts/guards/home-qualt.sh"
+  seq 1 10 > "$tree/.opencode/plugins/delegation-observer.ts"
+  seq 1 10 > "$tree/.opencode/plugins/lib/util.ts"
+  cat > "$tree/scripts/budget-baselines.json" <<'EOF'
+{
+  "prod_ceiling": 20,
+  "shell_ceiling": 10,
+  "patterns": [],
+  "campaigns": [
+    { "ticket": "DIA-260903-o7n0", "scope": "refactor", "status": "approved" }
+  ],
+  "mode": "blocking"
+}
+EOF
+  cat > "$tree/docs/dev-infra-audit/tickets/DIA-260903-o7n0-zz-campaign.md" <<'EOF'
+---
+status: OPEN
+---
+# DIA-260903-o7n0 campaign fixture (C1 pin suite)
+EOF
+  if ! git -C "$tree" init -q -b main 2>/dev/null; then
+    git -C "$tree" init -q
+    git -C "$tree" symbolic-ref HEAD refs/heads/main
+  fi
+  git -C "$tree" config user.email "bats@example.com"
+  git -C "$tree" config user.name "bats test"
+  git -C "$tree" add -A
+  git -C "$tree" commit -q -m init
+  local init_sha viol_sha zero_sha ref_line
+  init_sha="$(git -C "$tree" rev-parse HEAD)"
+  # Violating commit: prod 25 vs ceiling 20, refactor-backed (real backing
+  # on disk), so the range check must refuse it.
+  seq 1 15 > "$tree/.opencode/plugins/lib/util.ts"
+  git -C "$tree" add .opencode/plugins/lib/util.ts
+  git -C "$tree" commit -q -m "violating refactor
+
+Budget-Scope: refactor"
+  viol_sha="$(git -C "$tree" rev-parse HEAD)"
+  zero_sha="0000000000000000000000000000000000000000"
+  ref_line="refs/heads/feature/c1-pin $viol_sha refs/heads/feature/c1-pin $init_sha"
+  # The copied hook resolves git state from its CWD, so run it from the
+  # fixture repo (last test-position effects are harmless: each bats file
+  # runs in its own process). Herestring, not a pipe: piping into `run`
+  # subshells it and loses $status/$output.
+  cd "$tree"
+  run bash "$tree/scripts/verify-pre-push.sh" <<< "$ref_line"
+
+  assert_status 1
+  assert_output_contains "pre-push blocked: budget gate range check failed"
+  # the violation was refused while the stack was offline: docker is never
+  # reached (P-3 pattern from the home-qualt test above; -s is missing-safe
+  # because a pre-container block leaves the log file uncreated)
+  [ ! -s "$FAKE_DOCKER_LOG" ]
+}

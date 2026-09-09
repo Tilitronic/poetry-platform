@@ -87,6 +87,7 @@ case "$MANIFEST" in /*) ;; *) MANIFEST="$ROOT/$MANIFEST" ;; esac
 # outside the gated repo there is no tree path, so tree_show fails and the
 # gate fails closed for scoped commits.
 case "$MANIFEST" in "$ROOT"/*) MANIFEST_REL="${MANIFEST#$ROOT/}" ;; *) MANIFEST_REL="$MANIFEST" ;; esac
+# Deliberate asymmetry (obs5): the ticket ledger is read from disk, never the evaluated tree, because approvals are present-tense human state, not versioned history.
 TICKETS_DIR="${TICKETS_DIR:-$ROOT/docs/dev-infra-audit/tickets}"
 # Absolutize exactly like _PR above (M1): a relative BUDGET_PLUGIN_ROOT
 # resolves against the caller's checkout via the already-computed _PR. Without
@@ -132,6 +133,16 @@ tree_show() {
   else
     git -C "$ROOT" show ":$1" 2>/dev/null
   fi
+}
+
+# manifest_absent_from_tree: true iff the manifest path is absent from the
+# commit under evaluation (EVAL_SHA). Range-mode only: an outside-repo
+# manifest override is never "absent" (it fails closed instead).
+manifest_absent_from_tree() {
+  case "$MANIFEST" in "$ROOT"/*) ;;
+    *) return 1 ;;
+  esac
+  ! git -C "$ROOT" cat-file -e "$EVAL_SHA:$MANIFEST_REL" 2>/dev/null
 }
 
 # tree_ls: NUL-delimited repo-relative paths of the tracked tree.
@@ -577,7 +588,16 @@ range_mode() {
     # commit's load failure; per-commit fail-closed lands in eval_commit.
     MANIFEST_OK=0
     if ! manifest_load; then
-      : # per-commit fail-closed below
+      # Pre-gate-history exemption (obs1): a commit whose tree predates the
+      # manifest holds no baselines to evaluate against, so skip it WITH a
+      # mandatory warn line (never silently). A tree that HAS the manifest
+      # keeps fail-closed behavior below: missing/invalid still blocks.
+      if manifest_absent_from_tree; then
+        warn_emit "budget gate: no manifest in commit ${sha:0:12} ($MANIFEST_REL absent from tree); skipping pre-gate-history commit"
+        ok_emit "$sha skipped (pre-gate-history: no manifest in tree)"
+        continue
+      fi
+      : # present-but-broken manifest: per-commit fail-closed below
     fi
     git -C "$ROOT" log -1 --format=%B "$sha" > "$tmp" 2>/dev/null
     MSGFILE="$tmp"
