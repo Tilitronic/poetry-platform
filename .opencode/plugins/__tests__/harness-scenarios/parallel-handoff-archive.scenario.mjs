@@ -24,7 +24,7 @@ import { runScenario } from "./scenario-runner.mjs"
 // ---- @opencode-ai/plugin mock (registered BEFORE the plugin import) ----
 mockOpencodePlugin()
 
-// Dynamic import AFTER mock.module registration (defeats ESM hoisting).
+// Plugin import happens inside createHarness, after the mock above.
 
 // ---- Harness: runScenario owns the temp workspace and single cleanup path ----
 await runScenario("c5-s2-", async ({ directory, fail }) => {

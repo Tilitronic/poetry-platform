@@ -24,7 +24,7 @@ import { runScenario } from "./scenario-runner.mjs"
 // ---- @opencode-ai/plugin mock (registered BEFORE the plugin import) ----
 mockOpencodePlugin()
 
-// Dynamic import AFTER mock.module registration (defeats ESM hoisting).
+// Plugin import happens inside createHarness, after the mock above.
 
 // ---- Harness: runScenario owns the temp workspace and single cleanup path ----
 await runScenario("c5-s3-", async ({ directory, fail }) => {
@@ -75,9 +75,8 @@ await runScenario("c5-s3-", async ({ directory, fail }) => {
     open_tickets: ["DIA-085"],
     fixes_applied: ["fix-b"],
     verification_request: ["bun test"],
-  session_summary: { note: "session B summary", completed: ["T4.1"] },
-}
-
+    session_summary: { note: "session B summary", completed: ["T4.1"] },
+  }
 
   // Write handoffs for two different sessions (distinct context.sessionID per
   // write, so each lands in its own slot).

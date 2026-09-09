@@ -128,7 +128,7 @@ fkiy extracts workspace-cleanup retry loops into `helpers/plugin-harness.mjs` (i
 ## 6. Budget-gate compliance (C7)
 
 - The 4 touched files sit under `.opencode/plugins/__tests__/` -> scoped, role `test`. `delegation-observer.ts` and `lib/*.ts` untouched -> production/shell totals unchanged.
-- Trailer: subject line names `DIA-260909-zeik`; body ends with `Budget-Scope: test-debloat`. `has_backing` resolves the approved `test-debloat` campaign (ticket DIA-260903-o7n0, OPEN, in `scripts/budget-baselines.json`) -> gate passes with no manifest edit (manifest untouched).
+- Trailer: subject line names `DIA-260909-zeik`; body ends with `Budget-Scope: test-debloat`. `has_backing` resolves the approved `test-debloat` campaign entry for OPEN ticket DIA-260909-zeik in `scripts/budget-baselines.json` (ruling-authorized one-line manifest addition; the o7n0 campaign entry is CLOSED) -> gate passes.
 - LOC verification: `git diff --stat` over the 4 files, net deletions target -45..-70 (ticket). Tension + ruling recorded in interview.md: scenarios must shed ~75-110 lines to net out after the runner's ~30-40; if the measured net falls outside the range, report the actual delta to the developer - do not pad or over-cut to fit.
 
 ## 7. Test strategy (AGENTS.md 2.4 requirement)

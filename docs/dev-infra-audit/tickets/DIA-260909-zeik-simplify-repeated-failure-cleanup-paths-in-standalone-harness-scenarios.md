@@ -48,11 +48,11 @@ Source: ponytail audit item 5, DIA-260903-o7n0 follow-up. Campaign ticket DIA-26
 
 ## Verification
 
-- [ ] Standalone harness scenarios no longer duplicate failure-cleanup paths (single cleanup path per scenario)
-- [ ] Cleanup helper or shared finally block covers all failure branches without losing error context
-- [ ] 7 extracted production modules, capability loader guards, checksum logic untouched
-- [ ] LOC delta -45..-70 verified via git diff --stat
-- [ ] Harness scenarios pass under `bun run`
+- [x] Standalone harness scenarios no longer duplicate failure-cleanup paths (single cleanup path per scenario)
+- [x] Cleanup helper or shared finally block covers all failure branches without losing error context
+- [x] 7 extracted production modules, capability loader guards, checksum logic untouched
+- [x] LOC delta -88 accepted as over-delivered de-bloat per developer disposition (no-pad rule: reported as-is, never padded to -45..-70)
+- [x] Harness scenarios pass under `bun run` (host bun 3/3 exit 0; container-down caveat recorded, `make test-shell` proposed post-merge)
 
 ## Fix
 
@@ -75,16 +75,19 @@ Implemented 2026-09-09 (coder lane, campaign ticket DIA-260909-zeik).
   exit 1, `FAIL:` line, no /tmp/c5-s1-_ left; (b) body throw ->
   `ERROR:` line + stack, exit 1, no /tmp/c5-s2-_ left. Re-ran green.
 - LOC delta actual: scenarios net -124 (s1 -23, s2 -42, s3 -59) plus
-  runner +36 = net about -88. Outside the -45..-70 estimate and the
-  gate-forecast -30..-45; reported as-is per no-pad rule, for developer
-  disposition. Lib 8-vs-7 count from gate risk 4 is moot (lib/ untouched).
+  runner +36 = net -88. Accepted as over-delivered de-bloat per developer
+  disposition (fix loop); reported as-is per no-pad rule, never padded to
+  fit -45..-70. Lib 8-vs-7 count from gate risk 4 is moot (lib/ untouched).
 - Guards: `plugin-harness.mjs` (4 exports), replay bats, lib/,
   delegation-observer.ts, budget-baselines.json all untouched;
   `mock.module("@opencode-ai/plugin"` literal only in plugin-harness.mjs;
   prettier + eslint clean on all 4 files; ASCII-only.
-- Budget: commit carries `Budget-Scope: test-debloat` trailer, backing
-  approved campaign DIA-260903-o7n0; `check-budget-gate.sh` ok line
-  captured at commit time.
+- Budget: commit carries `Budget-Scope: test-debloat` trailer, backed by
+  a ruling-authorized `test-debloat` entry for OPEN DIA-260909-zeik in
+  `scripts/budget-baselines.json` (developer ruling Backing zeik; the
+  o7n0 campaign entry was CLOSED at implementation time, so the spec's
+  original no-manifest-edit claim was corrected in proposal/design/tasks).
+  `check-budget-gate.sh` ok line captured at commit time.
 
 ## Re-verify
 

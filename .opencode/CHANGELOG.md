@@ -1005,5 +1005,5 @@
 ## 2026-09-09 - DIA-260909-zeik: test
 
 - **Change:** Dedupe standalone harness scenario cleanup paths into shared scenario-runner (24 sites to 1)
-- **Files:** .opencode/plugins/__tests__/harness-scenarios/scenario-runner.mjs - .opencode/plugins/__tests__/harness-scenarios/empty-result-silent-failure.scenario.mjs - .opencode/plugins/__tests__/harness-scenarios/parallel-handoff-archive.scenario.mjs - .opencode/plugins/__tests__/harness-scenarios/slot-identity-no-clobber.scenario.mjs
+- **Files:** .opencode/plugins/__tests__/harness-scenarios/scenario-runner.mjs - .opencode/plugins/__tests__/harness-scenarios/empty-result-silent-failure.scenario.mjs - .opencode/plugins/__tests__/harness-scenarios/parallel-handoff-archive.scenario.mjs - .opencode/plugins/__tests__/harness-scenarios/slot-identity-no-clobber.scenario.mjs - scripts/budget-baselines.json
 - **Verification:** manual

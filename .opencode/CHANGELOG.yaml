@@ -4530,6 +4530,7 @@
   - .opencode/plugins/__tests__/harness-scenarios/empty-result-silent-failure.scenario.mjs
   - .opencode/plugins/__tests__/harness-scenarios/parallel-handoff-archive.scenario.mjs
   - .opencode/plugins/__tests__/harness-scenarios/slot-identity-no-clobber.scenario.mjs
+  - scripts/budget-baselines.json
   summary: Dedupe standalone harness scenario cleanup paths into shared scenario-runner
     (24 sites to 1)
   verification: manual
