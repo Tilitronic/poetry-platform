@@ -292,7 +292,7 @@
 | DIA-260902-eqgg | Refactor delegation-observer plugin: extract 6 subsystems into lib modules (SRP, DIA-260901-3y39 F1) | opencode-config | Major | CLOSED | [DIA-260902-eqgg-refactor-delegation-observer-plugin-extract-6-subsystems-into-lib-modules-srp-dia-260901-3y39-f1.md](DIA-260902-eqgg-refactor-delegation-observer-plugin-extract-6-subsystems-into-lib-modules-srp-dia-260901-3y39-f1.md) |
 | DIA-260903-o7n0 | read-only de-bloat audit: delegation-observer plugin test suite + binding budget for next phase | opencode-config | Major | CLOSED | [DIA-260903-o7n0-read-only-de-bloat-audit-delegation-observer-plugin-test-suite-binding-budget-for-next-phase.md](DIA-260903-o7n0-read-only-de-bloat-audit-delegation-observer-plugin-test-suite-binding-budget-for-next-phase.md) |
 | DIA-260903-oj59 | self-rerun thresholds: 60% primary / 75% safety-net (new default) | opencode-config | Medium | OPEN | [DIA-260903-oj59-self-rerun-thresholds-60-primary-75-safety-net-new-default.md](DIA-260903-oj59-self-rerun-thresholds-60-primary-75-safety-net-new-default.md) |
-| DIA-260909-18f4 | Evaluate replacing Qwen3.8 Flash with OpenAI GPT-5.6 Terra High in agent routing | opencode-config | Medium | OPEN | [DIA-260909-18f4-evaluate-replacing-qwen3-8-flash-with-openai-gpt-5-6-terra-high-in-agent-routing.md](DIA-260909-18f4-evaluate-replacing-qwen3-8-flash-with-openai-gpt-5-6-terra-high-in-agent-routing.md) |
+| DIA-260909-18f4 | Evaluate replacing Qwen3.8 Flash with OpenAI GPT-5.6 Terra High in agent routing | opencode-config | Medium | CLOSED | [DIA-260909-18f4-evaluate-replacing-qwen3-8-flash-with-openai-gpt-5-6-terra-high-in-agent-routing.md](DIA-260909-18f4-evaluate-replacing-qwen3-8-flash-with-openai-gpt-5-6-terra-high-in-agent-routing.md) |
 | DIA-260909-9c9x | whitespace polish for already-committed files | scripts | Low | CLOSED | [DIA-260909-9c9x-whitespace-polish-for-already-committed-files.md](DIA-260909-9c9x-whitespace-polish-for-already-committed-files.md) |
 | DIA-260909-9i1o | consolidate duplicated budget-gate bats fixture setup | scripts | Medium | OPEN | [DIA-260909-9i1o-consolidate-duplicated-budget-gate-bats-fixture-setup.md](DIA-260909-9i1o-consolidate-duplicated-budget-gate-bats-fixture-setup.md) |
 | DIA-260909-csds | Activate Muse Qwen balanced preset and persist project default | opencode-config | Medium | OPEN | [DIA-260909-csds-activate-muse-qwen-balanced-preset-and-persist-project-default.md](DIA-260909-csds-activate-muse-qwen-balanced-preset-and-persist-project-default.md) |
@@ -316,7 +316,7 @@
 
 | Status      | Count |
 | ----------- | ----- |
-| OPEN        | 85    |
+| OPEN        | 84    |
 | DONE        | 11    |
 | VALIDATE    | 0     |
 | E2E         | 0     |
@@ -325,7 +325,7 @@
 | FIXED       | 1     |
 | IMPLEMENTED | 2     |
 | VERIFIED    | 28    |
-| CLOSED      | 168   |
+| CLOSED      | 169   |
 | BLOCKED     | 0     |
 | DISPATCHED  | 0     |
 | RUNNING     | 0     |

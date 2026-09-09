@@ -4535,3 +4535,13 @@
     (24 sites to 1)
   verification: manual
   area: opencode-config
+- date: '2026-09-09'
+  ticket: DIA-260909-18f4
+  scope: opencode-config
+  files:
+  - .opencode/oh-my-opencode-slim.jsonc
+  - .opencode/opencode.jsonc
+  - knowledge/model-registry.yaml
+  summary: Replace Qwen3.8 Flash with GPT-5.6 Terra High in muse-qwen-balanced routing
+  verification: manual
+  area: opencode-config

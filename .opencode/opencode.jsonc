@@ -604,7 +604,6 @@
     "ai-specialist": {
       "description": "Read-only researcher of agent/skill/config best practices for OpenCode itself. Findings routed through orchestrator for persistence. Scope: documentation + config review only; no runtime dispatch authority; no implementation.",
       "mode": "subagent",
-      "model": "opencode-go/qwen3.8-flash",
       "temperature": 0.3,
       "color": "info",
       "permission": {
