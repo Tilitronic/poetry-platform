@@ -140,3 +140,57 @@ Verification (repo workdir, ASCII-only per DIA-079):
 Files: scripts/**tests**/budget-gate-range-exemption.bats, this ticket.
 
 ASCII-only per DIA-079 (no em-dashes, no smart quotes, no non-ASCII punctuation).
+
+## UPDATE 2026-09-09 - GREEN lane (implementer): range-mode ticket lookup from the evaluated tree
+
+Implements the RED spec above (d15b36c): range mode resolves campaign-ticket
+backing (has_backing) and exception records (try_exception) from the
+EVALUATED COMMIT TREE at $EVAL_SHA, never from the current disk ledger.
+
+Change (scripts/check-budget-gate.sh only; no .bats files touched):
+
+- TICKETS_REL: repo-relative ledger path derived from TICKETS_DIR (same
+  absolutize-then-prefix-strip pattern as MANIFEST_REL). Empty when the
+  ledger lives outside the gated repo -> disk fallback in both modes
+  (obs1 fixtures keep the ledger outside the repo and stay green).
+- ticket_tree_first <id-prefix>: first sorted ticket path under TICKETS_REL
+  in the $EVAL_SHA tree whose basename matches "<prefix>"\*.md (same sorted
+  head -1 contract as the disk ls). Range-only.
+- ticket_text <ticket-ref>: content indirection so the validation body stays
+  mode-blind - tree_show at $EVAL_SHA in range mode with an in-repo ledger,
+  plain cat otherwise (disk paths in hook mode and outside-repo ledgers).
+- has_backing: range + in-repo ledger -> resolve via ticket_tree_first and
+  require '^status: \*OPEN' in the tree record (authoritative, no disk
+  fallback: CLOSED-at-commit cannot pass on today's OPEN). Hook mode and
+  outside-repo ledgers keep the disk OPEN requirement unchanged.
+- try_exception: same split for record resolution; all content checks
+  (status, Exception-Reason/Delta/Paths/Applicability, applicability parsing
+  incl. the range commit-sha check) now read through ticket_text, so range
+  mode validates the record exactly as committed at $EVAL_SHA.
+- obs5 comment rewritten to describe the mode split instead of the former
+  blanket "disk never tree" asymmetry.
+
+Semantics preserved: commit-msg hook mode is byte-for-byte the pre-fix disk
+ledger path (staged manifest + OPEN-today on disk); obs1 pre-manifest
+skip-with-warn unchanged; outside-repo ledger (TICKETS_REL empty) falls back
+to disk in range mode, keeping hermetic obs1 fixture behavior.
+
+Verification (inside poetry-dev container, exit codes captured):
+
+- budget-gate-range-exemption.bats: 4/4 pass (exit 0) - obs1 tests 1-2 plus
+  the two new RED-turned-GREEN ticket-status tests.
+- budget-gate.bats full RED battery: 34/34 pass (exit 0), 0 not ok.
+- make test-shell (bats-wrapper full suite): exit 0, 1..636 all ok.
+- make test-config: exit 0 (validate-opencode-config + agent-names +
+  output-contracts + reviewer-sections + decision-variants + grilling-gate +
+  plugin-structure all PASS).
+- bash -n scripts/check-budget-gate.sh: SYNTAX_OK.
+- bats-wrapper.sh --quick (the lint-staged gate for staged \*.sh): exit 0.
+- Pre-commit: run via git commit with hooks, no --no-verify (see below).
+
+Commit-msg hook on this commit: fast-path (no scoped plugin paths staged),
+expected pass; no --no-verify bypass anywhere.
+
+Files: scripts/check-budget-gate.sh, this ticket.
+
+ASCII-only per DIA-079 (no em-dashes, no smart quotes, no non-ASCII punctuation).

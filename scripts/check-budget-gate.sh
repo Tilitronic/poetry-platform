@@ -94,8 +94,20 @@ case "$MANIFEST" in /*) ;; *) MANIFEST="$ROOT/$MANIFEST" ;; esac
 # outside the gated repo there is no tree path, so tree_show fails and the
 # gate fails closed for scoped commits.
 case "$MANIFEST" in "$ROOT"/*) MANIFEST_REL="${MANIFEST#$ROOT/}" ;; *) MANIFEST_REL="$MANIFEST" ;; esac
-# Deliberate asymmetry (obs5): the ticket ledger is read from disk, never the evaluated tree, because approvals are present-tense human state, not versioned history.
+# Ledger resolution split (DIA-260901-91qy): hook mode reads the ticket
+# ledger from disk -- approvals are present-tense human state, and the hook
+# gates what is about to be committed. Range mode instead reads each record
+# from the evaluated commit tree ($EVAL_SHA, same git-show technique as the
+# M2 manifest), so a historical commit is judged by the ticket status it saw:
+# OPEN-then/CLOSED-today passes, CLOSED-already fails. A ledger outside the
+# gated repo has no tree path and falls back to disk in both modes.
 TICKETS_DIR="${TICKETS_DIR:-$ROOT/docs/dev-infra-audit/tickets}"
+# Repo-relative ledger path for range tree reads: only meaningful when the
+# ledger lives inside the gated repo (empty otherwise, meaning disk fallback).
+_TD_ABS="$TICKETS_DIR"
+case "$_TD_ABS" in */) _TD_ABS="${_TD_ABS%/}" ;; esac
+case "$_TD_ABS" in /*) ;; *) _TD_ABS="$ROOT/$_TD_ABS" ;; esac
+case "$_TD_ABS" in "$ROOT"/*) TICKETS_REL="${_TD_ABS#$ROOT/}" ;; *) TICKETS_REL="" ;; esac
 # Absolutize exactly like _PR above (M1): a relative BUDGET_PLUGIN_ROOT
 # resolves against the caller's checkout via the already-computed _PR. Without
 # this a relative override never prefix-matches the absolute staged paths, so
@@ -161,6 +173,34 @@ tree_ls() {
   fi
 }
 
+# ticket_text <ticket-ref>: approval-record bytes to stdout. In range mode
+# with an in-repo ledger <ticket-ref> is a repo-relative tree path (read via
+# tree_show at $EVAL_SHA); otherwise it is a disk path (read via cat).
+# Keeps the validation body below mode-blind.
+ticket_text() {
+  if [ "$EVAL_MODE" = "range" ] && [ -n "${TICKETS_REL:-}" ]; then
+    tree_show "$1" 2>/dev/null
+  else
+    cat "$1" 2>/dev/null
+  fi
+}
+
+# ticket_tree_first <id-prefix>: first sorted repo-relative ticket path in the
+# EVAL_SHA tree whose basename matches "<prefix>"*.md (same sorted head -1
+# contract as the disk ls). Prints nothing when the ledger lives outside the
+# gated repo (TICKETS_REL empty) or no record matches. Range-only helper.
+ticket_tree_first() {
+  [ -n "${TICKETS_REL:-}" ] || return 0
+  local prefix="$1" f base
+  git -C "$ROOT" ls-tree -r --name-only "$EVAL_SHA" -- "$TICKETS_REL" 2>/dev/null |
+    while IFS= read -r f; do
+      [ -n "$f" ] || continue
+      base="${f##*/}"
+      case "$base" in "$prefix"*.md) printf '%s\n' "$f" ;; esac
+    done | sort | head -n 1
+  return 0
+}
+
 # ---------------------------------------------------------------------------
 # Manifest (loaded once per process; fail-closed on any defect)
 # ---------------------------------------------------------------------------
@@ -217,13 +257,24 @@ manifest_load() {
 # backing, so the scope claim fails closed.
 has_backing() {
   [ -n "${1:-}" ] || return 1
-  local scope="$1" line c_scope c_status c_ticket tfile
+  local scope="$1" line c_scope c_status c_ticket tfile tpath
   while IFS= read -r line; do
     [ -n "$line" ] || continue
     c_scope="$(printf '%s' "$line" | cut -f1)"
     c_status="$(printf '%s' "$line" | cut -f2)"
     c_ticket="$(printf '%s' "$line" | cut -f3)"
     if [ "$c_scope" = "$scope" ] && [ "$c_status" = "approved" ]; then
+      # Range mode with an in-repo ledger reads the record from the evaluated
+      # commit tree (authoritative: no disk fallback, so CLOSED-at-commit
+      # cannot pass on today's OPEN). Hook mode and outside-repo ledgers
+      # keep the disk OPEN requirement.
+      if [ "$EVAL_MODE" = "range" ] && [ -n "${TICKETS_REL:-}" ]; then
+        tpath="$(ticket_tree_first "$c_ticket")"
+        if [ -n "${tpath:-}" ] && ticket_text "$tpath" | grep -q '^status: *OPEN'; then
+          return 0
+        fi
+        continue
+      fi
       tfile="$(ls -1 "$TICKETS_DIR/$c_ticket"*.md 2>/dev/null | sort | head -n 1)"
       if [ -n "${tfile:-}" ] && grep -q '^status: *OPEN' "$tfile" 2>/dev/null; then
         return 0
@@ -443,24 +494,33 @@ try_exception() {
     return 1
   fi
   local ticket
-  ticket="$(ls -1 "$TICKETS_DIR/$exc_id"*.md 2>/dev/null | sort | head -n 1)"
+  # Range mode with an in-repo ledger resolves the record in the evaluated
+  # commit tree (authoritative: no disk fallback, so CLOSED-at-commit cannot
+  # pass on today's OPEN). Hook mode and outside-repo ledgers keep the disk
+  # lookup. All content checks below read via ticket_text, so the validation
+  # body stays mode-blind.
+  if [ "$EVAL_MODE" = "range" ] && [ -n "${TICKETS_REL:-}" ]; then
+    ticket="$(ticket_tree_first "$exc_id")"
+  else
+    ticket="$(ls -1 "$TICKETS_DIR/$exc_id"*.md 2>/dev/null | sort | head -n 1)"
+  fi
   if [ -z "${ticket:-}" ]; then
     TRY_EXCEPTION_LINE="Budget-Exception $exc_id matches no ticket record in $TICKETS_DIR"
     return 1
   fi
-  if ! grep -q '^status: *OPEN' "$ticket" 2>/dev/null; then
+  if ! ticket_text "$ticket" | grep -q '^status: *OPEN'; then
     TRY_EXCEPTION_LINE="Budget-Exception $exc_id ticket is not OPEN: $ticket"
     return 1
   fi
   local field
   for field in Reason Delta Paths Applicability; do
-    if ! grep -q "^Exception-$field:" "$ticket" 2>/dev/null; then
+    if ! ticket_text "$ticket" | grep -q "^Exception-$field:"; then
       TRY_EXCEPTION_LINE="exception record $ticket missing Exception-$field: line"
       return 1
     fi
   done
   local app today
-  app="$(grep '^Exception-Applicability:' "$ticket" 2>/dev/null | tail -n 1 | sed -e 's/^Exception-Applicability: *//' -e 's/[[:space:]]*$//')"
+  app="$(ticket_text "$ticket" | grep '^Exception-Applicability:' | tail -n 1 | sed -e 's/^Exception-Applicability: *//' -e 's/[[:space:]]*$//')"
   case "$app" in
   expiry\ *)
     app="${app#expiry }"
@@ -500,7 +560,7 @@ try_exception() {
     return 1
     ;;
   esac
-  TRY_EXCEPTION_LINE="Exception-Reason: $(grep '^Exception-Reason:' "$ticket" 2>/dev/null | tail -n 1 | sed 's/^Exception-Reason: *//') [ticket $exc_id]"
+  TRY_EXCEPTION_LINE="Exception-Reason: $(ticket_text "$ticket" | grep '^Exception-Reason:' | tail -n 1 | sed 's/^Exception-Reason: *//') [ticket $exc_id]"
   return 0
 }
 
