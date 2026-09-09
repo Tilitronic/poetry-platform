@@ -93,3 +93,23 @@ test("second mockChildProcess registration replaces the first", async () => {
   expect(probe.stdout).toBe("SECOND\n")
   expect(first.spawnCalls.length).toBe(0)
 })
+
+test("unexpected async spawn() in porcelain mode throws (fail-loud)", async () => {
+  mockChildProcess("porcelain")
+  const { spawn } = await import("node:child_process")
+  expect(() => spawn("git", ["status"], {})).toThrow("spawn not mocked")
+})
+
+test("mock cleanup restores real module behavior (isolation contract)", async () => {
+  const handle = mockChildProcess("needs-input")
+  const mocked = await import("node:child_process")
+  expect(() => mocked.spawnSync("git", ["--version"], {})).toThrow("spawnSync not mocked")
+  handle.restore()
+  const real = await import("node:child_process")
+  const res = real.spawnSync("git", ["--version"], { encoding: "utf-8" })
+  expect(res.status).toBe(0)
+  expect(String(res.stdout)).toMatch(/git version/)
+  // Leave-no-trace: re-register the entry-state behavior so later files see
+  // a mock registration, exactly as before this test ran.
+  mockChildProcess("porcelain")
+})

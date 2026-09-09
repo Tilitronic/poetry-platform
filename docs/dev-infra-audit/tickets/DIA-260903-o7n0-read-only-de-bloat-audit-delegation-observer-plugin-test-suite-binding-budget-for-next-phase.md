@@ -169,3 +169,46 @@ test 12314 (+108 = +95 contract file, +13 helper hardening; new coverage,
 not duplication). Method: wc -l over plugin test mjs files.
 
 ASCII-only per DIA-079 (no em-dashes, no smart quotes, no non-ASCII punctuation).
+
+## Re-verify -- D4 fix lane fix-2 (2026-09-09, on top of 921394d)
+
+Scope: 2 auditor findings, both accepted as real defects by developer.
+Untouched: cleanup-block duplication, dia220:299 em-dash, B archive pairs,
+G wy-guards, 7 known environment failures.
+
+FAIL-1 mock.module isolation (plugin-harness.mjs): premise verified by probe
+(mock.restore() does NOT undo mock.module() in Bun 1.3.14 - registry kept
+returning the mock after restore). Strategy (A) implemented, smallest
+preserving current topology: pristine fn-ref snapshot ({...namespace},
+captured at helper load before any mock can exist) plus explicit restore()
+on the mock handle (no new helper exports; per-file mock re-registration
+preserved; no global child_process mock, no global shared spy). Snapshot
+must be spread refs, not the namespace: mock.module patches the live
+namespace in place, so only pre-mock refs restore real behavior (probe:
+re-registering the patched namespace kept the mock; re-registering the
+spread snapshot returned real git version 2.47.3, status 0).
+Regression test proves post-restore import runs real spawnSync
+(git --version, status 0) and leaves no trace (re-registers entry behavior).
+
+FAIL-2 loud spawn (plugin-harness.mjs): porcelain-mode async spawn() now
+throws "spawn not mocked in porcelain mode (production uses spawnSync)",
+mirroring the spawnSync fail-loud. Safe: delegation-observer.ts imports only
+spawnSync (never async spawn). Sync porcelain/spawnSync path unchanged.
+Focused test proves the throw is observable.
+
+Verification (workdir .opencode/plugins/**tests** unless noted):
+new contract file: 8 pass 0 fail exit 0
+focused (5 files): 62 pass 6 fail exit 1 (6 = known dia189 set)
+full suite (27 files): 450 pass 1 skip 7 fail exit 1
+fail-set identical to fix-1 baseline: 6x dia189 A2/A3/A3b/A3c/A3d/A3e
+("no powershell.exe spawn captured" WSL artifact) + 1x parallel-handoff
+S1 archive-on-overwrite
+harness replay (repo workdir): 3/3 exit 0
+structural Bats (repo workdir, make test-shell): exit 0, 614 ok, 0 not ok
+eslint on 2 touched js files: exit 0; prettier --check: exit 0
+
+Budget: prod 5814 unchanged (shell 4037 unchanged, acceptance gate holds);
+test 12352 (+38 = +20 contract tests, +18 helper isolation + fail-loud;
+new coverage, not duplication). Method: wc -l over plugin test mjs files.
+
+ASCII-only per DIA-079 (no em-dashes, no smart quotes, no non-ASCII punctuation).

@@ -9,6 +9,19 @@ try {
   // bun:test not available (node run) - no-op
 }
 
+// Pristine snapshot of node:child_process fn refs, captured at helper load
+// (before any mock.module call can exist: helper evaluates on first import,
+// which precedes all mockChildProcess calls). mock.restore() does NOT undo
+// mock.module() in Bun 1.3.14, so restore() re-registers this snapshot.
+// NOTE: spread (not the namespace) - mock.module patches the live namespace
+// in place, so only pre-mock fn refs restore real behavior.
+let _realChildProcess = null
+try {
+  _realChildProcess = { ...(await import("node:child_process")) }
+} catch {
+  // unavailable - restore becomes no-op
+}
+
 const registry = new Set()
 let exitHandlerRegistered = false
 
@@ -61,7 +74,7 @@ export function mockChildProcess(behavior) {
   if (behavior !== "porcelain" && behavior !== "needs-input") {
     throw new Error(`mockChildProcess: unknown behavior "${behavior}" (expected "porcelain" or "needs-input")`)
   }
-  if (!_mock?.module) return { spawnCalls: [], setPorcelain: () => {} }
+  if (!_mock?.module) return { spawnCalls: [], setPorcelain: () => {}, restore: () => {} }
   const spawnCalls = []
   let porcelainProbeStdout = ""
   const isPorcelain = behavior === "porcelain"
@@ -78,7 +91,9 @@ export function mockChildProcess(behavior) {
     args[3] === "--porcelain"
   _mock.module("node:child_process", () => ({
     spawn: isPorcelain
-      ? () => ({ on: () => {} })
+      ? () => {
+          throw new Error("spawn not mocked in porcelain mode (production uses spawnSync)")
+        }
       : (cmd, args, opts) => {
           const listeners = {}
           const call = {
@@ -111,6 +126,9 @@ export function mockChildProcess(behavior) {
     spawnCalls,
     setPorcelain: (v) => {
       porcelainProbeStdout = v
+    },
+    restore: () => {
+      if (_mock?.module && _realChildProcess) _mock.module("node:child_process", () => _realChildProcess)
     },
   }
 }
