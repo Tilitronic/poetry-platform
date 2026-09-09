@@ -995,3 +995,9 @@
 - **Change:** Add muse-qwen-balanced routing preset (inactive): Muse 1.3 volume lanes + Qwen reasoning lanes, reviewer family fix, privacy containment; gate findings registered; registry 1.3 entry
 - **Files:** .opencode/oh-my-opencode-slim.jsonc - knowledge/model-registry.yaml - .opencode/promo-registry.json - .opencode/learnings/external-patterns/2026-09-09-dia-260909-tp5e-muse-qwen-balanced-gate-findings.md - docs/dev-infra-audit/tickets/DIA-260909-tp5e-add-muse-qwen-balanced-agent-routing-preset.md
 - **Verification:** manual
+
+## 2026-09-09 - DIA-260909-9c9x: s
+
+- **Change:** whitespace polish: drop 3 whitespace-only lines, no behavior change
+- **Files:** .opencode/plugins/__tests__/capability.test.mjs - .opencode/plugins/lib/stall-sweep.ts - .opencode/plugins/lib/ticket-gate.ts
+- **Verification:** manual

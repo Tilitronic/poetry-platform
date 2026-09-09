@@ -338,3 +338,13 @@ Note: These are navigational facts to help future humans find the infra/test art
   gotcha (L20260820-001), test-first bug discovery (L20260820-002),
   chicken-and-egg solution (L20260820-003), HMAC over UCAN/JWT rationale
   (L20260820-004).
+
+- `.prettierignore` covers `.opencode/` (DIA-260909-9c9x, 2026-09-09): the
+  `.prettierignore` at the repo root excludes the entire `.opencode/` directory
+  from prettier formatting. Consequence: `prettier --write` on the repo will NOT
+  touch any files under `.opencode/plugins/`, `.opencode/agents/`, `.opencode/skills/`,
+  or any other `.opencode/` subtree. Whitespace or formatting fixes in `.opencode/`
+  plugin test/lib files require manual targeted edits. Do NOT run
+  `prettier --no-ignore` to fix these files -- that would reformat unrelated
+  `.opencode` sources and pollute the diff. Cross-reference: L20260909-001
+  (lessons.md), DIA-260909-9c9x learnings file.

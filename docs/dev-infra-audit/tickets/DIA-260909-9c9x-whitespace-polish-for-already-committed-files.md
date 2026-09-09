@@ -62,3 +62,9 @@ Campaign ticket DIA-260901-91qy. Item 1 already fixed at 420ce4f.
 ## Re-verify
 
 > To be filled at re-verify time.
+
+## Targets
+
+1. .opencode/plugins/**tests**/capability.test.mjs:1 - trailing whitespace / blank first line (delete line 1, file starts at /\*\*).
+2. .opencode/plugins/lib/stall-sweep.ts:263 - trailing whitespace (delete line 263, 8 spaces inside try block).
+3. .opencode/plugins/lib/ticket-gate.ts:310 - extra blank line at EOF (file ends }\n exactly).

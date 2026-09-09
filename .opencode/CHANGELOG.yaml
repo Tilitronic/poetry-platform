@@ -4512,3 +4512,13 @@
     registered; registry 1.3 entry'
   verification: manual
   area: opencode-config
+- date: '2026-09-09'
+  ticket: DIA-260909-9c9x
+  scope: s
+  files:
+  - .opencode/plugins/__tests__/capability.test.mjs
+  - .opencode/plugins/lib/stall-sweep.ts
+  - .opencode/plugins/lib/ticket-gate.ts
+  summary: 'whitespace polish: drop 3 whitespace-only lines, no behavior change'
+  verification: manual
+  area: plugins
