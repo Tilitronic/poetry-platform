@@ -292,7 +292,12 @@
 | DIA-260902-eqgg | Refactor delegation-observer plugin: extract 6 subsystems into lib modules (SRP, DIA-260901-3y39 F1) | opencode-config | Major | CLOSED | [DIA-260902-eqgg-refactor-delegation-observer-plugin-extract-6-subsystems-into-lib-modules-srp-dia-260901-3y39-f1.md](DIA-260902-eqgg-refactor-delegation-observer-plugin-extract-6-subsystems-into-lib-modules-srp-dia-260901-3y39-f1.md) |
 | DIA-260903-o7n0 | read-only de-bloat audit: delegation-observer plugin test suite + binding budget for next phase | opencode-config | Major | CLOSED | [DIA-260903-o7n0-read-only-de-bloat-audit-delegation-observer-plugin-test-suite-binding-budget-for-next-phase.md](DIA-260903-o7n0-read-only-de-bloat-audit-delegation-observer-plugin-test-suite-binding-budget-for-next-phase.md) |
 | DIA-260903-oj59 | self-rerun thresholds: 60% primary / 75% safety-net (new default) | opencode-config | Medium | OPEN | [DIA-260903-oj59-self-rerun-thresholds-60-primary-75-safety-net-new-default.md](DIA-260903-oj59-self-rerun-thresholds-60-primary-75-safety-net-new-default.md) |
+| DIA-260909-9c9x | whitespace polish for already-committed files | scripts | Low | OPEN | [DIA-260909-9c9x-whitespace-polish-for-already-committed-files.md](DIA-260909-9c9x-whitespace-polish-for-already-committed-files.md) |
+| DIA-260909-9i1o | consolidate duplicated budget-gate bats fixture setup | scripts | Medium | OPEN | [DIA-260909-9i1o-consolidate-duplicated-budget-gate-bats-fixture-setup.md](DIA-260909-9i1o-consolidate-duplicated-budget-gate-bats-fixture-setup.md) |
+| DIA-260909-fkiy | extract repeated workspace-cleanup retry loops into helpers plugin-harness | opencode-config | Medium | OPEN | [DIA-260909-fkiy-extract-repeated-workspace-cleanup-retry-loops-into-helpers-plugin-harness.md](DIA-260909-fkiy-extract-repeated-workspace-cleanup-retry-loops-into-helpers-plugin-harness.md) |
+| DIA-260909-sazr | remove RED-era factory and alias probes from observer-lib test suites | opencode-config | Medium | OPEN | [DIA-260909-sazr-remove-red-era-factory-and-alias-probes-from-observer-lib-test-suites.md](DIA-260909-sazr-remove-red-era-factory-and-alias-probes-from-observer-lib-test-suites.md) |
 | DIA-260909-tp5e | Add Muse Qwen balanced agent routing preset | opencode-config | Medium | OPEN | [DIA-260909-tp5e-add-muse-qwen-balanced-agent-routing-preset.md](DIA-260909-tp5e-add-muse-qwen-balanced-agent-routing-preset.md) |
+| DIA-260909-zeik | simplify repeated failure-cleanup paths in standalone harness scenarios | opencode-config | Medium | OPEN | [DIA-260909-zeik-simplify-repeated-failure-cleanup-paths-in-standalone-harness-scenarios.md](DIA-260909-zeik-simplify-repeated-failure-cleanup-paths-in-standalone-harness-scenarios.md) |
 
 ## Status summary
 
@@ -301,15 +306,15 @@
 | Blocker  | 9     |
 | Critical | 15    |
 | Major    | 73    |
-| Medium   | 146   |
+| Medium   | 150   |
 | Minor    | 1     |
-| Low      | 25    |
+| Low      | 26    |
 | Info     | 2     |
 | High     | 20    |
 
 | Status      | Count |
 | ----------- | ----- |
-| OPEN        | 81    |
+| OPEN        | 86    |
 | DONE        | 11    |
 | VALIDATE    | 0     |
 | E2E         | 0     |
