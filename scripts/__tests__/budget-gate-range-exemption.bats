@@ -100,8 +100,7 @@ Budget-Scope: refactor"
 # edit. The manifest is PRESENT in that commit's tree, so the obs1 exemption
 # must NOT fire: a broken manifest fails closed exactly like hook mode.
 # Echoes the tree root.
-setup_malformed_repo() {
-  local tree="$BATS_TEST_TMPDIR/malformed"
+setup_malformed_repo() {  local tree="$BATS_TEST_TMPDIR/malformed"
   mkdir -p "$tree/plug/lib" "$BATS_TEST_TMPDIR/tickets" "$tree/scripts/guards"
   cp "$REPO_ROOT/scripts/guards/home-qualt.sh" "$tree/scripts/guards/home-qualt.sh"
   seq 1 10 > "$tree/plug/delegation-observer.ts"
@@ -136,5 +135,95 @@ Budget-Scope: refactor"
   # no pre-gate-history skip for a tree that HAS the manifest
   assert_output_not_contains "pre-gate-history"
   # fail-closed names the load failure
+  assert_output_contains "FAIL:"
+}
+
+# ---------------------------------------------------------------------------
+# Range ticket-status rule (DIA-260901-91qy RED lane): range mode reads the
+# manifest campaign AND the ticket status from the EVALUATED commit tree
+# ($EVAL_SHA); commit-msg mode keeps the current staged-tree + OPEN-today
+# requirement. Real field case: historical refactor commit f9ec224 was
+# legitimate when created (manifest campaign approved, ticket OPEN then) but
+# fails range today because DIA-260903-o7n0 is CLOSED on current disk.
+#
+# Fixture seam: the ticket ledger lives INSIDE the fixture repo
+# ($tree/tickets, TICKETS_DIR pointed there), so each commit tree carries its
+# own ticket status and disk-today can differ from status-at-commit. (The
+# obs1 tests above keep the ledger outside the repo; that cannot model
+# per-commit status, hence the deliberate deviation here.)
+# ---------------------------------------------------------------------------
+
+# write_ticket_status <tree> <OPEN|CLOSED>
+write_ticket_status() {
+  local status="$2"
+  cat > "$1/tickets/DIA-260903-o7n0-zz-campaign.md" <<EOF
+---
+status: $status
+---
+# DIA-260903-o7n0 campaign fixture (range ticket-status suite)
+EOF
+}
+
+# setup_ticket_history_repo <tickets-at-H: OPEN|CLOSED> <tickets-today: OPEN|CLOSED>:
+# init (baseline prod 20/20 + manifest + tickets) -> clean backed refactor
+# commit H (scoped rewrite at ceilings, Budget-Scope: refactor) with the
+# ticket at the first status in H's tree -> ticket-only commit flipping to
+# the second status (committed, so disk-today reads it). Echoes "tree H-sha".
+setup_ticket_history_repo() {
+  local tree="$BATS_TEST_TMPDIR/tickethist"
+  mkdir -p "$tree/plug/lib" "$tree/tickets" "$tree/scripts/guards"
+  cp "$REPO_ROOT/scripts/guards/home-qualt.sh" "$tree/scripts/guards/home-qualt.sh"
+  seq 1 10 > "$tree/plug/delegation-observer.ts"
+  seq 1 10 > "$tree/plug/lib/util.ts"
+  write_manifest "$tree" 20 10 "$APPROVED_CAMPAIGNS"
+  write_ticket_status "$tree" "$1"
+  if ! git -C "$tree" init -q -b main 2>/dev/null; then
+    git -C "$tree" init -q
+    git -C "$tree" symbolic-ref HEAD refs/heads/main
+  fi
+  git -C "$tree" config user.email "bats@example.com"
+  git -C "$tree" config user.name "bats test"
+  git -C "$tree" add -A
+  git -C "$tree" commit -q -m init
+  # Commit H: clean backed refactor (prod stays 20/20, shell 10/10).
+  seq 1 10 | sed 's/^/\/\/ clean rewrite /' > "$tree/plug/lib/util.ts"
+  git -C "$tree" add plug/lib/util.ts
+  git -C "$tree" commit -q -m "historical refactor
+
+Budget-Scope: refactor"
+  local h_sha
+  h_sha="$(git -C "$tree" rev-parse HEAD)"
+  # Ledger moves on: flip the ticket record and commit, so disk-today reads
+  # the second status while H's tree keeps the first.
+  write_ticket_status "$tree" "$2"
+  git -C "$tree" add tickets/DIA-260903-o7n0-zz-campaign.md
+  git -C "$tree" commit -q -m "ledger moves on: ticket now $2"
+  cp "$GATE" "$tree/gate-under-test.sh" 2>/dev/null || true
+  printf '%s %s\n' "$tree" "$h_sha"
+}
+
+@test "range ticket-status (DIA-260901-91qy): OPEN at the historical commit, CLOSED today -> range PASSES" {
+  local tree h_sha
+  read -r tree h_sha <<< "$(setup_ticket_history_repo OPEN CLOSED)"
+
+  run env BUDGET_MANIFEST="manifest.json" TICKETS_DIR="$tree/tickets" BUDGET_PLUGIN_ROOT="$tree/plug" bash -c "cd '$tree' && exec bash '$tree/gate-under-test.sh' --range '$h_sha~1..$h_sha'"
+
+  # RED against current gate code (reads CLOSED from current disk ledger):
+  # exit 1 "no approved backing campaign". Post-fix (commit-tree status):
+  # the campaign was approved and the ticket OPEN at H, budgets clean.
+  assert_status 0
+  assert_output_contains "ok:"
+}
+
+@test "range ticket-status (DIA-260901-91qy): CLOSED already at the historical commit -> range FAILS" {
+  local tree h_sha
+  read -r tree h_sha <<< "$(setup_ticket_history_repo CLOSED OPEN)"
+
+  run env BUDGET_MANIFEST="manifest.json" TICKETS_DIR="$tree/tickets" BUDGET_PLUGIN_ROOT="$tree/plug" bash -c "cd '$tree' && exec bash '$tree/gate-under-test.sh' --range '$h_sha~1..$h_sha'"
+
+  # RED against current gate code (reads OPEN from current disk ledger):
+  # exit 0 "ok: scope refactor backed". Post-fix (commit-tree status):
+  # the ticket was already CLOSED at H, so the scope claim has no backing.
+  assert_status 1
   assert_output_contains "FAIL:"
 }

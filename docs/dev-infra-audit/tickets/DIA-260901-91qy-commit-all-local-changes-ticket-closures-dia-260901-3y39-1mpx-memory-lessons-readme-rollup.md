@@ -94,3 +94,49 @@ Repack: soft-reset to 7fa7aae, two thematic commits (DIA-260903-o7n0 memory / DI
 ## Re-verify
 
 > To be filled at re-verify time.
+
+## UPDATE 2026-09-09 - RED lane (test-author only): range ticket-status regression battery
+
+Real field bug (blocked push): range mode resolves the campaign ticket in the
+CURRENT disk ledger, so historical refactor commit f9ec224 (legitimate when
+created - manifest campaign approved, DIA-260903-o7n0 OPEN then) now FAILS
+--range because DIA-260903-o7n0 is CLOSED today. Correct rule under test:
+range mode reads manifest AND ticket status from the evaluated commit tree
+($EVAL_SHA); commit-msg mode keeps the current staged-tree + OPEN-today
+requirement. GREEN instance implements the gate change; this lane only adds
+the RED regression proof.
+
+Added 2 tests to scripts/**tests**/budget-gate-range-exemption.bats (the
+GREEN-owned range-behavior home; budget-gate.bats RED battery untouched):
+
+1. "range ticket-status (DIA-260901-91qy): OPEN at the historical commit,
+   CLOSED today -> range PASSES" - fixture history: ticket record flips to
+   CLOSED in a commit AFTER the historical refactor commit H; --range over H
+   alone must exit 0 (post-fix). Against current gate code it FAILS with
+   exit 1 "Budget-Scope refactor has no approved backing campaign in
+   manifest; failing closed (no backing)" (disk ledger CLOSED). RED proven.
+2. "range ticket-status (DIA-260901-91qy): CLOSED already at the historical
+   commit -> range FAILS" - ticket record is CLOSED in H's own tree, OPEN
+   today; --range over H must exit 1 (post-fix). Against current gate code
+   it PASSES with exit 0 "ok: scope refactor backed; prod 20/20 shell 10/10"
+   (disk ledger OPEN). RED proven.
+
+Fixture seam (deliberate deviation from the obs1 tests in the same file):
+the ticket ledger lives INSIDE the fixture repo ($tree/tickets, TICKETS_DIR
+pointed there) so each commit tree carries its own ticket status and
+disk-today can differ from status-at-commit; the obs1 fixtures keep the
+ledger outside the repo and cannot model per-commit status.
+
+Verification (repo workdir, ASCII-only per DIA-079):
+
+- budget-gate-range-exemption.bats: 2 pass / 2 fail, exit 1. Fail-set:
+  exactly the two new tests above (RED proof; both RED for the expected
+  direction: test 1 fails on a false block, test 2 fails on a false pass).
+  Existing obs1 tests (1-2) unaffected: 2/2 pass.
+- Commit-msg hook on the test commit: expected fast-path pass (no scoped
+  plugin paths, no manifest edit touched); any hook block on backing would
+  be reported verbatim, no --no-verify bypass.
+
+Files: scripts/**tests**/budget-gate-range-exemption.bats, this ticket.
+
+ASCII-only per DIA-079 (no em-dashes, no smart quotes, no non-ASCII punctuation).
