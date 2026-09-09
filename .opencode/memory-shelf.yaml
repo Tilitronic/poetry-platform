@@ -804,6 +804,18 @@ shelf:
     path: knowledge/ana-session-handoff-context-audit/ana-session-handoff-context-audit-report.md
     created: 2026-08-22
     task_ref: DIA-260822-medh
+  - name: Delegation-Observer Plugin Test-Suite De-bloat Audit (DIA-260903-o7n0)
+    description: "Read-only de-bloat audit of delegation-observer plugin test suite\
+      \ and binding budget for next phase. 7 findings: (1) duplicated scaffolds\
+      \ ~515 LOC in 14-21 files across 12 patterns; (2) 3 shared-helper candidates\
+      \ ~100 LOC replacing ~385; (3) RED-scaffold leftovers ~86 LOC; (4) deletion\
+      \ test 0 pass-through of 7 lib modules; (5) baseline traces raw+normalized\
+      \ both load-bearing (4 scenarios, ~30 files); (6) generated/ledger churn +\
+      \ ai--2.json tracked anomaly; (7) binding budget net LOC <= 0 baseline 5900\
+      \ = 4037 shell + 1863 lib."
+    path: knowledge/ana-260903-qh9y-plugin-test-debloat-audit/ana-260903-qh9y-plugin-test-debloat-audit-report.md
+    created: 2026-09-03
+    task_ref: DIA-260903-o7n0
   adrs:
   - name: Memory Storage Strategy
     description: 'Evaluation of Claude-Mem, Honcho, and current hand-written memory
