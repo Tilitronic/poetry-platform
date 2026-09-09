@@ -251,3 +251,19 @@ test 12416 (+64 restore adoption + cross-consumer test; new coverage, not
 duplication). Method: wc -l over plugin test mjs files.
 
 ASCII-only per DIA-079 (no em-dashes, no smart quotes, no non-ASCII punctuation).
+
+## Re-verify -- Auditor FAIL-1 close-out verdict (2026-09-09, docs-only lane)
+
+CLOSE-OUT VERDICT: CLOSED on commit a1fffb2. All four consumers consume
+childMock.restore() in afterEach (dia220:29-35,66-73; dia189:114-120,146-165;
+platform-gate:58-64,87-88,203-207; ticker-expiry:29-35,56-68 - ranges
+verified live against the committed tree). Cleanup re-registers the pristine
+snapshot (never mock.restore() alone). Cross-consumer regression proves
+A-mock / A-cleanup / B-real. Helper still 4 exports, no global surface.
+
+D4 chain (2350ee8 + 921394d + e3744fa + a1fffb2) is D4-review-verified,
+satisfying the F blocking-enable precondition for the developer decision
+(see "F budget gate promotion approval" block above: blocking may start only
+after D4 review is verified).
+
+ASCII-only per DIA-079 (no em-dashes, no smart quotes, no non-ASCII punctuation).
