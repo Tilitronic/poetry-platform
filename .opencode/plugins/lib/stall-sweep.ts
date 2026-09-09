@@ -260,7 +260,6 @@ export function createStallSweep(deps: StallSweepDeps = {}): StallSweepHandle {
       }
     }
     try {
-       
       delete (handleStore as Record<symbol, unknown>)[STALL_SWEEP_KEY]
       if ((handleStore as Record<symbol, unknown>)[STALL_SWEEP_KEY] !== undefined) {
         ;(handleStore as Record<symbol, unknown>)[STALL_SWEEP_KEY] = undefined as unknown as never

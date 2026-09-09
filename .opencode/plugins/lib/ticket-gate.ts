@@ -307,4 +307,3 @@ export function createTicketGate(depsIn: Partial<FsDeps>) {
     ) => isTicketGateBlockedCore(dispatchText, sessionId, tickets, opts),
   }
 }
-

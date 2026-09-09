@@ -1,4 +1,3 @@
- 
 /**
  * RED test-author lane for Slice 1 — lib/capability.ts (DIA-260902-eqgg).
  *
