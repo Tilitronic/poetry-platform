@@ -100,7 +100,8 @@ Budget-Scope: refactor"
 # edit. The manifest is PRESENT in that commit's tree, so the obs1 exemption
 # must NOT fire: a broken manifest fails closed exactly like hook mode.
 # Echoes the tree root.
-setup_malformed_repo() {  local tree="$BATS_TEST_TMPDIR/malformed"
+setup_malformed_repo() {
+  local tree="$BATS_TEST_TMPDIR/malformed"
   mkdir -p "$tree/plug/lib" "$BATS_TEST_TMPDIR/tickets" "$tree/scripts/guards"
   cp "$REPO_ROOT/scripts/guards/home-qualt.sh" "$tree/scripts/guards/home-qualt.sh"
   seq 1 10 > "$tree/plug/delegation-observer.ts"
