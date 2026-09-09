@@ -27,7 +27,7 @@ Vertical slices; each ends green under the design.md section 7 gate for that sli
 ## 4. Compliance gates (before commit)
 
 - [x] 4.1 LOC delta: `git diff --stat` across the 4 files; measured net -88 (scenarios -124 plus runner +36), accepted as over-delivered de-bloat per developer disposition; no-pad rule cited (never padded to fit the -45..-70 estimate).
-- [x] 4.2 Untouched-set check: `git status` / `git diff --name-only` shows no changes to `helpers/plugin-harness.mjs`, `harness-scenario-replay.bats`, `delegation-observer.ts`, `lib/*.ts`. Exactly 4 implementation files changed (C1); the one-line `scripts/budget-baselines.json` backing entry for OPEN DIA-260909-zeik is ruling-authorized (o7n0 campaign CLOSED).
+- [x] 4.2 Untouched-set check: `git status` / `git diff --name-only` shows no changes to `helpers/plugin-harness.mjs`, `harness-scenario-replay.bats`, `delegation-observer.ts`, `lib/*.ts`. Exactly 4 implementation files changed (C1); the one-line `scripts/budget-baselines.json` backing entry for OPEN DIA-260909-zeik is ruling-authorized (o7n0 ticket CLOSED so its entries provide no backing - gate fail-closed).
 - [x] 4.3 Budget-pattern + cap checks: the `mock.module("@opencode-ai/plugin"` literal appears only in `plugin-harness.mjs`; export counts: plugin-harness 4 (unchanged), scenario-runner 1.
 - [x] 4.4 Commit (single, atomic): subject names `DIA-260909-zeik`; trailer `Budget-Scope: test-debloat` (backing: ruling-authorized test-debloat entry for OPEN DIA-260909-zeik). commit-msg hook `scripts/check-budget-gate.sh` passes; capture the `ok:` line as evidence.
 

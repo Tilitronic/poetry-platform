@@ -130,7 +130,7 @@ fkiy extracts workspace-cleanup retry loops into `helpers/plugin-harness.mjs` (i
 ## 6. Budget-gate compliance (C7)
 
 - The 4 touched files sit under `.opencode/plugins/__tests__/` -> scoped, role `test`. `delegation-observer.ts` and `lib/*.ts` untouched -> production/shell totals unchanged.
-- Trailer: subject line names `DIA-260909-zeik`; body ends with `Budget-Scope: test-debloat`. `has_backing` resolves the approved `test-debloat` campaign entry for OPEN ticket DIA-260909-zeik in `scripts/budget-baselines.json` (ruling-authorized one-line manifest addition; the o7n0 campaign entry is CLOSED) -> gate passes.
+- Trailer: subject line names `DIA-260909-zeik`; body ends with `Budget-Scope: test-debloat`. `has_backing` resolves the approved `test-debloat` campaign entry for OPEN ticket DIA-260909-zeik in `scripts/budget-baselines.json` (ruling-authorized one-line manifest addition; the o7n0 ticket is CLOSED so its manifest entries provide no backing - gate fail-closed) -> gate passes.
 - LOC verification: `git diff --stat` over the 4 files, net deletions target -45..-70 (ticket). Tension + ruling recorded in interview.md: scenarios must shed ~75-110 lines to net out after the runner's ~30-40; if the measured net falls outside the range, report the actual delta to the developer - do not pad or over-cut to fit.
 
 ## 7. Test strategy (AGENTS.md 2.4 requirement)
@@ -141,7 +141,7 @@ No new test files exist (C1); the scenarios are the tests. Evidence plan, in ord
 2. **Per-slice green:** after each migration slice, re-run that scenario: exit 0.
 3. **Negative probes (throwaway, NOT committed):** (a) temporarily flip one assertion in scenario-1 -> expect exit 1, `FAIL:` line on stderr, temp dir removed (`ls /tmp | grep c5-s1-` empty); (b) temporarily throw inside a body -> expect `ERROR:` line, exit 1, temp dir removed; (c) the cleanup-failure branch is the current per-site `[cleanup]` line moved verbatim into the runner finally - verified by code-walk/diff, not injection (rmSync force:true makes natural failure hard to provoke). Outputs pasted into the ticket evidence.
 4. **Contract green:** `scripts/__tests__/harness-scenario-replay.bats` unedited, run via `make test-shell` from host with Docker available -> 3/3 pass.
-5. **Guard checks:** `git status` shows no diff for `plugin-harness.mjs`, the bats file, `delegation-observer.ts`, `lib/`; `scripts/budget-baselines.json` shows only the ruling-authorized one-line zeik entry (manifest:15; o7n0 CLOSED); grep confirms the `mock.module("@opencode-ai/plugin"` literal exists only in `plugin-harness.mjs`; export counts: plugin-harness 4, scenario-runner 1.
+5. **Guard checks:** `git status` shows no diff for `plugin-harness.mjs`, the bats file, `delegation-observer.ts`, `lib/`; `scripts/budget-baselines.json` shows only the ruling-authorized one-line zeik entry (manifest:15; o7n0 ticket CLOSED so its entries provide no backing - gate fail-closed); grep confirms the `mock.module("@opencode-ai/plugin"` literal exists only in `plugin-harness.mjs`; export counts: plugin-harness 4, scenario-runner 1.
 6. **Commit:** budget gate runs via commit-msg hook; `ok:` line captured.
 
 Bun test suites are NOT used: scenarios run under `bun run` (C2); the `bun:test` `mock` import already guarded inside `plugin-harness.mjs` with a try/catch no-op stays as-is.

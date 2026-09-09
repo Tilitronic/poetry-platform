@@ -74,9 +74,7 @@ Implemented 2026-09-09 (coder lane, campaign ticket DIA-260909-zeik).
 - Negative probes (throwaway, reverted): (a) flipped assertion ->
   exit 1, `FAIL:` line, no /tmp/c5-s1-_ left; (b) body throw ->
   `ERROR:` line + stack, exit 1, no /tmp/c5-s2-_ left. Re-ran green.
-- LOC delta actual: scenarios net -124 (s1 -23, s2 -42, s3 -60:
-  175 to 115) plus runner +36 = net -88 cumulative authoritative
-  (per-file figures per review; cumulative figure governs). Accepted as over-delivered de-bloat per developer
+- LOC delta actual: net -88 cumulative authoritative (`git diff` stat +227 -315 across the 4 files); per-file breakdown illustrative from the 428 baseline (s1 -23, s2 -42, s3 -60, runner +36; sums differ by baseline drift, cumulative governs). Accepted as over-delivered de-bloat per developer
   disposition (fix loop); reported as-is per no-pad rule, never padded to
   fit -45..-70. Lib 8-vs-7 count from gate risk 4 is moot (lib/ untouched).
 - Guards: `plugin-harness.mjs` (4 exports), replay bats, lib/,
