@@ -6,7 +6,7 @@ id: DIA-260827-6mhp
 title: "Docs overstate pnpm test as all tests"
 area: docs
 severity: Low
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: DIA-260827-wfcx
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
@@ -17,7 +17,7 @@ discovered: 2026-08-27
 source: baseline
 date: 2026-08-27
 created: 2026-08-27
-updated: 2026-08-27
+updated: 2026-09-09
 
 # --- Session Attribution (v2 schema, optional) ---
 
