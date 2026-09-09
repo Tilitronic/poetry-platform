@@ -73,18 +73,10 @@ source "$(git rev-parse --show-toplevel)/scripts/guards/home-qualt.sh"
 # host, so the regression is blocked at push time on the host.
 guard_no_home_qualt
 
-if is_in_dev_container; then
-  echo "== poetry-platform pre-push: running inside dev container =="
-else
-  if ! container_running; then
-    echo "!! pre-push verification skipped: dev container not running (start with 'make up')"
-    exit 0
-  fi
-  echo "== poetry-platform pre-push: delegating to dev container =="
-fi
-
 # F budget-gate range backstop (DIA-260903-o7n0): re-check every pushed commit
-# through the budget gate in always-blocking --range mode. Host-local
+# through the budget gate in always-blocking --range mode. Placed ABOVE the
+# container-down early exit (mirroring the home-qualt placement): the push
+# must hit this check even when the dev stack is offline. Host-local
 # (bash/git/jq only, never delegated to the container) so it also covers
 # pushes made with --no-verify; the gate itself ignores BUDGET_GATE_MODE in
 # range mode, so a local report-only setting cannot weaken the push check.
@@ -123,6 +115,16 @@ else
     echo "!! pre-push blocked: budget gate range check failed (see FAIL lines above)" >&2
     exit 1
   fi
+fi
+
+if is_in_dev_container; then
+  echo "== poetry-platform pre-push: running inside dev container =="
+else
+  if ! container_running; then
+    echo "!! pre-push verification skipped: dev container not running (start with 'make up')"
+    exit 0
+  fi
+  echo "== poetry-platform pre-push: delegating to dev container =="
 fi
 
 # Fast-to-fail step ladder (F-1, DIA-179): six steps in the order format, js,

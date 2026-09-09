@@ -305,3 +305,58 @@ Files: scripts/check-budget-gate.sh (new), scripts/budget-baselines.json
 scripts/worktrees.sh (hook copy entry).
 
 ASCII-only per DIA-079 (no em-dashes, no smart quotes, no non-ASCII punctuation).
+
+## Re-verify -- GREEN fix loop C1+M1-M5 (2026-09-09, on top of f9ec224)
+
+Scope: ONLY the 1 Critical + 5 Majors from the two-axis review of f9ec224.
+DEFERRED untouched (recorded as follow-ups, no code): ls-glob trailer
+validation, is_refactor_family predicate, dead no-op conditionals, ZERO_SHA
+copy, empty-then inversion, hook-mode commit-applicability warn, lazy
+manifest_load fast path, range real-PASS case.
+scripts/**tests**/budget-gate.bats NOT edited (RED contract owned by test
+lane; M4 behavior change reported below, not silently extended).
+
+Fixes:
+(C1) verify-pre-push.sh: budget range backstop moved ABOVE the
+container-down early exit (now runs right after the home-qualt guard), so
+offline pushes still hit the always-blocking range check.
+(M1) check-budget-gate.sh: PLUGIN_ROOT absolutized via the existing \_PR
+(CWD_ROOT-anchored, same as lines 70-73); hook mode always warn_emits when
+BUDGET_PLUGIN_ROOT is set (silent gate-off closed).
+(M2) manifest_load reads the evaluated tree only (hook: git show
+:MANIFEST_REL; range: git show $EVAL_SHA:MANIFEST_REL via per-commit reload
+inside the rev loop), never working-tree disk.
+(M3) B-detector suspends pipefail around the tree_show | normalize | grep -qF
+pipeline and branches on grep status alone (early-match SIGPIPE undercount
+closed).
+(M4) has_backing additionally resolves the manifest campaign ticket through
+the ledger (filename prefix + status OPEN minimum, same lookup as
+try_exception); self-asserted manifest approval no longer backs a scope.
+(M5) check-budget-gate.sh sets COMMANDS_DIR (POETRY_COMMANDS_DIR seam,
+mirroring siblings) and sources scripts/guards/home-qualt.sh; hook_mode
+calls guard_no_home_qualt before any budget evaluation. range_mode does not
+call it (history evaluation has no worktree meaning; the pre-push path is
+already guarded by verify-pre-push.sh). No waiver needed (not blocked).
+
+Verification (repo workdir unless noted):
+battery scripts/**tests**/budget-gate.bats: 24 pass / 2 fail, exit 1.
+fail-set identity vs f9ec224 baseline (26/26): exactly 2, both M4 backing
+behavior change, both FAIL "no approved backing campaign" (no ticket file in
+the hermetic TICKETS_DIR):
+
+- fixture-a (expects ceiling FAIL; got backing FAIL instead)
+- manifest-edit with refactor trailer (expects ok; got backing block)
+  RED follow-ups (report-first, bats NOT extended here): fixtures need campaign
+  ticket records in TICKETS_DIR (prefix DIA-260903-o7n0, status OPEN) for the
+  manifest-backed refactor paths; boundary/range/report/wiring tests unaffected.
+  verify-pre-push.bats + guards-home-qualt.bats: 15/15 pass, exit 0.
+  make test-shell (full): 620 pass / 2 fail (the same M4 pair), exit 1.
+  make test-config: exit 0 (structural gates PASS).
+  bash -n on both touched .sh files: exit 0.
+  prettier --check on this ticket file: exit 0 (.sh files have no prettier
+  parser; no JS touched so eslint/typecheck N/A).
+  M5 not blocked: implemented directly, no developer waiver recorded.
+
+Files: scripts/check-budget-gate.sh, scripts/verify-pre-push.sh, this ticket.
+
+ASCII-only per DIA-079 (no em-dashes, no smart quotes, no non-ASCII punctuation).

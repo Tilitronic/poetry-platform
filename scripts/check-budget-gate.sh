@@ -78,12 +78,34 @@ fi
 
 MANIFEST="${BUDGET_MANIFEST:-$ROOT/scripts/budget-baselines.json}"
 case "$MANIFEST" in /*) ;; *) MANIFEST="$ROOT/$MANIFEST" ;; esac
+# Repo-relative manifest path for tree reads (M2): when the override points
+# outside the gated repo there is no tree path, so tree_show fails and the
+# gate fails closed for scoped commits.
+case "$MANIFEST" in "$ROOT"/*) MANIFEST_REL="${MANIFEST#$ROOT/}" ;; *) MANIFEST_REL="$MANIFEST" ;; esac
 TICKETS_DIR="${TICKETS_DIR:-$ROOT/docs/dev-infra-audit/tickets}"
-PLUGIN_ROOT="${BUDGET_PLUGIN_ROOT:-$ROOT/.opencode/plugins}"
+# Absolutize exactly like _PR above (M1): a relative BUDGET_PLUGIN_ROOT
+# resolves against the caller's checkout via the already-computed _PR. Without
+# this a relative override never prefix-matches the absolute staged paths, so
+# the gate silently scopes nothing out. Unset keeps the default plugin tree.
+if [ -n "${BUDGET_PLUGIN_ROOT:-}" ]; then
+  PLUGIN_ROOT="$_PR"
+else
+  PLUGIN_ROOT="$ROOT/.opencode/plugins"
+fi
 case "$PLUGIN_ROOT" in */) PLUGIN_ROOT="${PLUGIN_ROOT%/}" ;; esac
 case "$MANIFEST" in */) MANIFEST="${MANIFEST%/}" ;; esac
 
 case "$PLUGIN_ROOT" in "$ROOT"/*) PLUGREL="${PLUGIN_ROOT#$ROOT/}" ;; *) PLUGREL="$PLUGIN_ROOT" ;; esac
+
+# /home/qualt regression guard (F-6, DIA-179, M5): the same shared definition
+# the sibling hooks source (verify-pre-commit.sh:58, verify-pre-push.sh:70).
+# .husky/commit-msg delegates to this script instead of sourcing the guard
+# itself, so the commit-msg path sources it here; COMMANDS_DIR mirrors the
+# sibling POETRY_COMMANDS_DIR seam so bats fixtures stay hermetic. CWD_ROOT is
+# already validated above, so the guard file always resolves in production.
+COMMANDS_DIR="${POETRY_COMMANDS_DIR:-$ROOT/.opencode/commands}"
+# shellcheck disable=SC1091
+source "$CWD_ROOT/scripts/guards/home-qualt.sh"
 
 ZERO_SHA="0000000000000000000000000000000000000000"
 
@@ -125,15 +147,22 @@ PATTERNS_TSV=""   # id \t canonical \t baseline_count \t authorized_site
 CAMPAIGNS_TSV=""  # scope \t status \t ticket
 
 manifest_load() {
+  MANIFEST_OK=0
   if ! command -v jq >/dev/null 2>&1; then
     MANIFEST_ERR="jq unavailable; cannot parse budget manifest"
     return 1
   fi
-  if [ ! -f "$MANIFEST" ]; then
-    MANIFEST_ERR="budget manifest not found: $MANIFEST"
+  # Read the manifest from the EVALUATED tree (M2: staged index in hook mode
+  # via "git show :path", commit tree in range mode via
+  # "git show $EVAL_SHA:path"), never from working-tree disk. Disk content is
+  # not what becomes history: unstaged drift must neither falsely block nor
+  # falsely pass, and a range check must see the baselines as committed.
+  local content
+  if ! content="$(tree_show "$MANIFEST_REL" 2>/dev/null)"; then
+    MANIFEST_ERR="budget manifest not found in evaluated tree: $MANIFEST"
     return 1
   fi
-  if ! jq -e '
+  if ! printf '%s' "$content" | jq -e '
     (.prod_ceiling | type == "number") and
     (.shell_ceiling | type == "number") and
     (.patterns | type == "array") and
@@ -143,23 +172,39 @@ manifest_load() {
       and (.authorized_site | type) == "string")] | all) and
     ([.campaigns[] | ((.ticket | type) == "string" and (.ticket | length > 0)
       and (.scope | type) == "string" and (.status | type) == "string")] | all)
-  ' "$MANIFEST" >/dev/null 2>&1; then
+  ' >/dev/null 2>&1; then
     MANIFEST_ERR="budget manifest invalid (not JSON or schema violation): $MANIFEST"
     return 1
   fi
-  PROD_CEIL="$(jq -r '.prod_ceiling' "$MANIFEST")"
-  SHELL_CEIL="$(jq -r '.shell_ceiling' "$MANIFEST")"
-  PATTERNS_TSV="$(jq -r '.patterns[] | [.id, .canonical, (.baseline_count | tostring), .authorized_site] | join("\t")' "$MANIFEST")"
-  CAMPAIGNS_TSV="$(jq -r '.campaigns[] | [.scope, .status, .ticket] | join("\t")' "$MANIFEST")"
+  PROD_CEIL="$(printf '%s' "$content" | jq -r '.prod_ceiling')"
+  SHELL_CEIL="$(printf '%s' "$content" | jq -r '.shell_ceiling')"
+  PATTERNS_TSV="$(printf '%s' "$content" | jq -r '.patterns[] | [.id, .canonical, (.baseline_count | tostring), .authorized_site] | join("\t")')"
+  CAMPAIGNS_TSV="$(printf '%s' "$content" | jq -r '.campaigns[] | [.scope, .status, .ticket] | join("\t")')"
   MANIFEST_OK=1
   return 0
 }
 
 # has_backing <scope>: an approved campaign entry for the declared scope
-# (exact field match on "scope \t approved \t ticket").
+# whose ticket resolves in the ledger (M4: same lookup as try_exception --
+# filename prefix plus status OPEN minimum). The manifest must not be able to
+# self-approve: a campaign entry naming a nonexistent or closed ticket is not
+# backing, so the scope claim fails closed.
 has_backing() {
   [ -n "${1:-}" ] || return 1
-  printf '%s\n' "$CAMPAIGNS_TSV" | awk -F '\t' -v s="$1" '$1 == s && $2 == "approved" { found = 1 } END { exit !found }'
+  local scope="$1" line c_scope c_status c_ticket tfile
+  while IFS= read -r line; do
+    [ -n "$line" ] || continue
+    c_scope="$(printf '%s' "$line" | cut -f1)"
+    c_status="$(printf '%s' "$line" | cut -f2)"
+    c_ticket="$(printf '%s' "$line" | cut -f3)"
+    if [ "$c_scope" = "$scope" ] && [ "$c_status" = "approved" ]; then
+      tfile="$(ls -1 "$TICKETS_DIR/$c_ticket"*.md 2>/dev/null | sort | head -n 1)"
+      if [ -n "${tfile:-}" ] && grep -q '^status: *OPEN' "$tfile" 2>/dev/null; then
+        return 0
+      fi
+    fi
+  done <<< "$CAMPAIGNS_TSV"
+  return 1
 }
 
 # ---------------------------------------------------------------------------
@@ -274,7 +319,7 @@ shell LOC $shell_total exceeds shell ceiling $SHELL_CEIL (scope $scope)"
   # --- Budget B: normalize-then-fixed-string over scoped test paths --------
   local b_violation=0
   if [ -n "$PATTERNS_TSV" ]; then
-    local pid pcanon pbase pauth ncanon count base
+    local pid pcanon pbase pauth ncanon count base _match_status
     while IFS= read -r line; do
       [ -n "$line" ] || continue
       pid="$(printf '%s' "$line" | cut -f1)"
@@ -289,7 +334,15 @@ shell LOC $shell_total exceeds shell ceiling $SHELL_CEIL (scope $scope)"
         case "$f" in *__tests__/*) ;; *) continue ;; esac
         base="$(basename "$f")"
         [ "$base" = "$pauth" ] && continue
-        if tree_show "$f" 2>/dev/null | budget_normalize | grep -qF -- "$ncanon"; then
+        # Suspend pipefail for the match pipeline (M3): grep -q exits on the
+        # first match, SIGPIPEing the upstream tr; under pipefail that
+        # non-zero tr status would mask grep's match and undercount files
+        # whose match sits early in the stream. Only grep's status decides.
+        set +o pipefail
+        tree_show "$f" 2>/dev/null | budget_normalize | grep -qF -- "$ncanon"
+        _match_status=$?
+        set -o pipefail
+        if [ "$_match_status" -eq 0 ]; then
           count=$((count + 1))
         fi
       done < <(tree_ls)
@@ -441,6 +494,19 @@ hook_mode() {
     fail_emit "budget gate usage: check-budget-gate.sh <message-file> | --range <rev>"
     exit 2
   fi
+  # Shared /home/qualt guard (sourced at top level per sibling convention):
+  # reject dirty files before any budget evaluation, exactly like the sibling
+  # hooks do at theirs. The command -v guard keeps hermetic fixture runs (no
+  # guard file under the fixture root) on the budget behavior alone.
+  if command -v guard_no_home_qualt >/dev/null 2>&1; then
+    guard_no_home_qualt
+  fi
+  # Close the silent gate-off (M1): an explicit plugin-root override relocates
+  # scoping, so hook mode always names it when set. Production runs leave it
+  # unset; hermetic fixtures set it to an isolated tree.
+  if [ -n "${BUDGET_PLUGIN_ROOT:-}" ]; then
+    warn_emit "BUDGET_PLUGIN_ROOT override active ($BUDGET_PLUGIN_ROOT): scoping to $PLUGIN_ROOT (fixture/test override; production runs leave it unset)"
+  fi
   CHANGED="$(git -C "$ROOT" diff --cached --name-only -z 2>/dev/null | tr '\0' '\n')"
 
   if ! manifest_load; then
@@ -481,14 +547,18 @@ range_mode() {
     fail_emit "budget gate: bad range spec: $rev"
     exit 1
   fi
-  if ! manifest_load; then
-    : # per-commit fail-closed below
-  fi
   EVAL_MODE="range"
   local failed=0 sha msg tmp
   tmp="$(mktemp)"
   for sha in $shas; do
     EVAL_SHA="$sha"
+    # Per-commit manifest (M2): the baselines as committed at $EVAL_SHA, never
+    # current disk. Reset first so a prior commit's success cannot mask this
+    # commit's load failure; per-commit fail-closed lands in eval_commit.
+    MANIFEST_OK=0
+    if ! manifest_load; then
+      : # per-commit fail-closed below
+    fi
     git -C "$ROOT" log -1 --format=%B "$sha" > "$tmp" 2>/dev/null
     MSGFILE="$tmp"
     CHANGED="$(git -C "$ROOT" diff-tree --no-commit-id --name-only -r --root "$sha" 2>/dev/null || true)"
