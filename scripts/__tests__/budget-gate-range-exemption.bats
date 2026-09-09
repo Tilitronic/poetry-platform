@@ -229,8 +229,7 @@ Budget-Scope: refactor"
   assert_output_contains "FAIL:"
 }
 
-@test "range exception expiry (F-01) and out-of-repo fallback warn (F-3): valid at H, expired today -> range PASSES" {
-  # Phase 1: expiry at commit time vs wall-clock today
+@test "range exception expiry (F-01): valid at H, expired today -> range PASSES" {
   local tree="$BATS_TEST_TMPDIR/expiry"
   rm -rf "$tree"
   mkdir -p "$tree/plug/lib" "$tree/tickets" "$tree/scripts/guards"
@@ -276,13 +275,15 @@ Budget-Exception: DIA-260903-o7n0"
   assert_status 0
   assert_output_contains "ok:"
   assert_output_contains "exception"
+}
 
-  # Phase 2: F-3 - out-of-repo TICKETS_DIR in range mode must emit fallback warn
+@test "range out-of-repo fallback (F-03): TICKETS_DIR outside gated repo emits warn" {
   local tree2
   tree2="$(setup_prehistory_repo)"
   local root_sha
   root_sha="$(git -C "$tree2" rev-list --max-parents=0 HEAD)"
   run env BUDGET_MANIFEST="manifest.json" TICKETS_DIR="$BATS_TEST_TMPDIR/tickets" BUDGET_PLUGIN_ROOT="$tree2/plug" bash -c "cd '$tree2' && exec bash '$tree2/gate-under-test.sh' --range '$root_sha..HEAD'"
+  assert_status 0
   assert_output_contains "warn:"
   assert_output_contains "outside gated repo"
   assert_output_contains "falling back to disk"

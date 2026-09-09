@@ -261,3 +261,7 @@ Verification (inside poetry-dev container, ASCII-only per DIA-079):
 Files: scripts/check-budget-gate.sh, scripts/**tests**/budget-gate-range-exemption.bats, this ticket.
 
 ASCII-only per DIA-079 (no em-dashes, no smart quotes, no non-ASCII punctuation).
+
+## UPDATE 2026-09-09 - test split fix (DIA-175 same-session): compound F-01/F-3 case -> two isolated tests, added missing assert_status
+
+Ponytail audit found compound test phase 2 missing assert_status caused false-pass risk; split into (A) F-01 expiry valid-at-H PASSES and (B) F-03 out-of-repo warn, each with own run + assert_status 0 + content asserts. Verified 6/6 pass, mutation checks fail-closed, make test-config 0, bash -n OK, no production code change.
