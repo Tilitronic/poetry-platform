@@ -9,6 +9,16 @@
 # asserted 0/1), and every wiring test MUST fail until the hook wiring
 # lands. That all-RED run is the RED proof, not a defect.
 #
+# RED extension (2026-09-09, same campaign): locks in the GREEN fix loop
+# (commit df4b55c) C1 + M1-M5 as regression cases plus the M4 campaign-ticket
+# fixtures: setup_budget_repo now seeds an OPEN DIA-260903-o7n0 campaign
+# record into the fixture TICKETS_DIR so every manifest-backed refactor path
+# (fixture-a, manifest-edit-with-refactor-pass, the range cases) resolves
+# real backing per has_backing (M4: filename prefix + status OPEN), never
+# through a phantom manifest self-approval. regression-5b is expected RED
+# (GATE-BUG, see its comment): an unresolvable BUDGET_PLUGIN_ROOT still
+# disables scoping instead of failing closed.
+#
 # Assumed contract (GREEN implements; design.md Seams + Test strategy):
 #   CLI:  check-budget-gate.sh <message-file>   (commit-msg hook mode)
 #         check-budget-gate.sh --range <rev>    (pre-push/CI mode, always blocking)
@@ -56,12 +66,38 @@ write_manifest() {
 EOF
 }
 
+# seed_campaign_ticket: M4 fixture. has_backing resolves an approved campaign
+# entry to a real ledger record (filename prefix + status OPEN), so a
+# manifest-backed refactor claim needs an OPEN DIA-260903-o7n0 file in
+# TICKETS_DIR. Without it every refactor-scope test fails on "no backing"
+# instead of reaching the budget under test (the M4 behavior change).
+# The "-zz" suffix is DELIBERATE: try_exception and has_backing both resolve
+# DIA-260903-o7n0* by sorted head -1, and exception-record fixtures are named
+# ...-test-exception.md; the campaign file must sort AFTER them so a real
+# exception record is always the one resolved when it exists.
+seed_campaign_ticket() {
+  local file="$BATS_TEST_TMPDIR/tickets/DIA-260903-o7n0-zz-campaign.md"
+  cat > "$file" <<'EOF'
+---
+status: OPEN
+---
+# DIA-260903-o7n0 campaign fixture (RED battery)
+EOF
+}
+
 # setup_budget_repo: baseline tree (observer 10 LOC + lib 10 LOC = prod 20,
 # shell 10; one grandfathered scaffold copy + one authorized-site copy).
-# Echoes the tree root.
+# Also seeds the M4 campaign ticket (OPEN DIA-260903-o7n0 record in the
+# fixture TICKETS_DIR) so manifest-backed refactor scope resolves real
+# ledger backing, and mirrors the shared home-qualt guard into the fixture
+# tree so CWD=repo invocations (relative-plugin-root tests) source it
+# cleanly. Echoes the tree root.
 setup_budget_repo() {
   local tree="$BATS_TEST_TMPDIR/repo"
   mkdir -p "$tree/plug/lib" "$tree/plug/__tests__" "$BATS_TEST_TMPDIR/tickets"
+  mkdir -p "$tree/scripts/guards"
+  cp "$REPO_ROOT/scripts/guards/home-qualt.sh" "$tree/scripts/guards/home-qualt.sh"
+  seed_campaign_ticket
   seq 1 10 > "$tree/plug/delegation-observer.ts"
   seq 1 10 > "$tree/plug/lib/util.ts"
   cat > "$tree/plug/__tests__/file1.mjs" <<'EOF'
@@ -102,6 +138,16 @@ run_gate() {
   local tree="$1" msg="$2"; shift 2
   local manifest="${BUDGET_MANIFEST_OVERRIDE:-$tree/manifest.json}"
   run env BUDGET_MANIFEST="$manifest" TICKETS_DIR="$BATS_TEST_TMPDIR/tickets" BUDGET_PLUGIN_ROOT="$tree/plug" "$@" bash "$tree/gate-under-test.sh" "$msg"
+}
+
+# run_gate_in_repo <tree> <msgfile> [extra env assignments...]: runs the gate
+# with CWD inside the fixture repo and a RELATIVE BUDGET_MANIFEST + relative
+# BUDGET_PLUGIN_ROOT, so CWD_ROOT and the override both resolve against the
+# fixture tree (M1: relative overrides must absolutize against the caller's
+# checkout and keep enforcing, not silently scope nothing).
+run_gate_in_repo() {
+  local tree="$1" msg="$2"; shift 2
+  run env BUDGET_MANIFEST="manifest.json" TICKETS_DIR="$BATS_TEST_TMPDIR/tickets" "$@" bash -c "cd '$tree' && exec bash '$tree/gate-under-test.sh' '$msg'"
 }
 
 # write_exception_ticket <name> <reason|SKIP> <delta|SKIP> <paths|SKIP> <applicability|SKIP>
@@ -440,6 +486,154 @@ Budget-Scope: refactor"
 
   assert_status 1
   assert_output_contains "FAIL:"
+}
+
+# ---------------------------------------------------------------------------
+# Regression battery (RED extension, DIA-260903-o7n0 fix loop C1+M1-M5)
+# ---------------------------------------------------------------------------
+
+@test "regression-1 (C1): container-down push range still blocks (gate never consults docker)" {
+  tree="$(setup_budget_repo)"
+  grow_lib "$tree"
+  git -C "$tree" commit -q -m "violating refactor
+
+Budget-Scope: refactor"
+  # Offline-host simulation: a recording fake docker that fails every probe
+  # ("container down"). The range evaluation is host-local and must block the
+  # budget-violating commit regardless of container state -- and must never
+  # invoke docker at all.
+  local bindir="$BATS_TEST_TMPDIR/bin"
+  mkdir -p "$bindir"
+  printf '#!/usr/bin/env bash\nprintf "%%s\\n" "$*" >> "%s/docker.log"\nexit 1\n' "$BATS_TEST_TMPDIR" > "$bindir/docker"
+  chmod +x "$bindir/docker"
+  : > "$BATS_TEST_TMPDIR/docker.log"
+
+  run env PATH="$bindir:$PATH" BUDGET_MANIFEST="$tree/manifest.json" TICKETS_DIR="$BATS_TEST_TMPDIR/tickets" BUDGET_PLUGIN_ROOT="$tree/plug" bash "$tree/gate-under-test.sh" --range HEAD~1..HEAD
+
+  assert_status 1
+  assert_output_contains "FAIL:"
+  assert_output_contains "exceeds prod ceiling"
+  [ ! -s "$BATS_TEST_TMPDIR/docker.log" ]
+}
+
+@test "regression-2: BUDGET_GATE_MODE=report does not weaken --range (no warn, still blocks)" {
+  tree="$(setup_budget_repo)"
+  grow_lib "$tree"
+  git -C "$tree" commit -q -m "violating refactor
+
+Budget-Scope: refactor"
+
+  run env BUDGET_MANIFEST="$tree/manifest.json" TICKETS_DIR="$BATS_TEST_TMPDIR/tickets" BUDGET_PLUGIN_ROOT="$tree/plug" BUDGET_GATE_MODE=report bash "$tree/gate-under-test.sh" --range HEAD~1..HEAD
+
+  assert_status 1
+  assert_output_contains "FAIL:"
+  assert_output_contains "exceeds prod ceiling"
+  # range mode ignores the kill-switch entirely: no report-only warn line
+  assert_output_not_contains "report active"
+}
+
+@test "regression-3 (M2): staged growth + loosened UNSTAGED disk manifest still blocks" {
+  tree="$(setup_budget_repo)"
+  grow_lib "$tree"
+  # loosen ONLY the working-tree manifest (ceiling 9999), never staged: the
+  # gate must read the manifest from the staged index, so the committed
+  # ceiling 20 still applies and the staged growth still blocks.
+  write_manifest "$tree" 9999 9999 0 "$APPROVED_CAMPAIGNS"
+  write_msg "$BATS_TEST_TMPDIR/msg" "refactor"
+
+  run_gate "$tree" "$BATS_TEST_TMPDIR/msg"
+
+  assert_status 1
+  assert_output_contains "FAIL:"
+  assert_output_contains "ceiling"
+  assert_output_contains "20"
+}
+
+@test "regression-3r (M2-range): disk manifest loosened after the commit does not weaken --range" {
+  tree="$(setup_budget_repo)"
+  grow_lib "$tree"
+  git -C "$tree" commit -q -m "violating refactor
+
+Budget-Scope: refactor"
+  # loosen the disk manifest AFTER the commit: a range check must evaluate
+  # the manifest as committed at each sha, not whatever sits on disk today.
+  write_manifest "$tree" 9999 9999 0 "$APPROVED_CAMPAIGNS"
+
+  run env BUDGET_MANIFEST="$tree/manifest.json" TICKETS_DIR="$BATS_TEST_TMPDIR/tickets" BUDGET_PLUGIN_ROOT="$tree/plug" bash "$tree/gate-under-test.sh" --range HEAD~1..HEAD
+
+  assert_status 1
+  assert_output_contains "exceeds prod ceiling"
+  assert_output_contains "20"
+}
+
+@test "regression-4 (M3): >64KB normalized file with pattern at top is still counted (no SIGPIPE undercount)" {
+  tree="$(setup_budget_repo)"
+  # Pattern on the FIRST line, then ~180KB of filler: grep -q exits on the
+  # first match while upstream tr still streams >64KB, SIGPIPEing it. Under
+  # pipefail the tr status would mask grep's match and undercount the file;
+  # only grep's status may decide (M3).
+  {
+    printf 'mock.module("@opencode-ai/plugin", () => ({}));\n'
+    seq 1 12000 | sed 's/^/\/\/ filler /'
+  } > "$tree/plug/__tests__/huge.mjs"
+  git -C "$tree" add plug/__tests__/huge.mjs
+  write_msg "$BATS_TEST_TMPDIR/msg" "feature"
+
+  run_gate "$tree" "$BATS_TEST_TMPDIR/msg"
+
+  assert_status 1
+  assert_output_contains "duplication pattern opencode-mock"
+  assert_output_contains "above baseline"
+}
+
+@test "regression-5a (M1): RELATIVE BUDGET_PLUGIN_ROOT resolves against the checkout and still enforces + warns" {
+  tree="$(setup_budget_repo)"
+  grow_lib "$tree"
+  write_msg "$BATS_TEST_TMPDIR/msg" "refactor"
+
+  run_gate_in_repo "$tree" "$BATS_TEST_TMPDIR/msg" "BUDGET_PLUGIN_ROOT=plug"
+
+  assert_status 1
+  assert_output_contains "FAIL:"
+  assert_output_contains "exceeds prod ceiling"
+  # M1: an explicit override is loud -- the warn names the switch
+  assert_output_contains "BUDGET_PLUGIN_ROOT override active"
+}
+
+@test "regression-5b (M1): UNRESOLVABLE BUDGET_PLUGIN_ROOT does not disable the gate (warn + still enforces)" {
+  # GATE-BUG (RED until GREEN fixes): the gate's own contract comment says an
+  # unresolvable override "falls back to the caller's checkout (fail-closed
+  # verdicts still apply per commit)", but PLUGIN_ROOT stays pinned to the
+  # unresolvable path, so no staged path is scoped, the fast path fires
+  # ("no scoped paths touched"), and the violating commit PASSES with only
+  # the M1 warn. Expected here: exit 1 + FAIL naming the ceiling + warn.
+  tree="$(setup_budget_repo)"
+  grow_lib "$tree"
+  write_msg "$BATS_TEST_TMPDIR/msg" "refactor"
+
+  run_gate_in_repo "$tree" "$BATS_TEST_TMPDIR/msg" "BUDGET_PLUGIN_ROOT=no-such-plug"
+
+  assert_status 1
+  assert_output_contains "BUDGET_PLUGIN_ROOT override active"
+  assert_output_contains "FAIL:"
+}
+
+@test "regression-6: a real valid range passes (--range over a clean refactor commit exits 0)" {
+  tree="$(setup_budget_repo)"
+  # clean refactor commit: touches a scoped path but stays exactly at the
+  # ceilings (prod 20/20, shell 10/10), backed by the seeded campaign ticket
+  seq 1 10 | sed 's/^/\/\/ rewritten /' > "$tree/plug/lib/util.ts"
+  git -C "$tree" add plug/lib/util.ts
+  git -C "$tree" commit -q -m "clean refactor
+
+Budget-Scope: refactor"
+
+  run env BUDGET_MANIFEST="$tree/manifest.json" TICKETS_DIR="$BATS_TEST_TMPDIR/tickets" BUDGET_PLUGIN_ROOT="$tree/plug" bash "$tree/gate-under-test.sh" --range HEAD~1..HEAD
+
+  assert_status 0
+  assert_output_contains "ok:"
+  assert_output_contains "scope refactor backed"
+  assert_output_contains "prod 20/20 shell 10/10"
 }
 
 # ---------------------------------------------------------------------------

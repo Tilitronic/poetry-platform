@@ -360,3 +360,69 @@ the hermetic TICKETS_DIR):
 Files: scripts/check-budget-gate.sh, scripts/verify-pre-push.sh, this ticket.
 
 ASCII-only per DIA-079 (no em-dashes, no smart quotes, no non-ASCII punctuation).
+
+## Re-verify -- RED extension battery: C1+M1-M5 regressions + M4 fixtures (2026-09-09, test-author lane)
+
+Scope: scripts/**tests**/budget-gate.bats ONLY (RED contract owned by this
+lane; gate script/manifest/hooks untouched). Locks the fix-loop df4b55c
+(C1+M1-M5) in as regression tests and closes the two M4 fixture gaps the
+fix loop reported (24/26 fail-set).
+
+M4 fixtures: setup_budget_repo now seeds an OPEN DIA-260903-o7n0 campaign
+record into the hermetic TICKETS_DIR (filename prefix + status OPEN, the
+exact has_backing lookup), so manifest-backed refactor paths resolve REAL
+ledger backing. File named ...-zz-campaign.md DELIBERATELY so it sorts
+AFTER the ...-test-exception.md exception-record fixtures: has_backing and
+try_exception both resolve DIA-260903-o7n0\* by sorted head -1, and a real
+exception record must win when present. Fixture also mirrors the shared
+home-qualt guard into the fixture tree so CWD=repo invocations source it
+cleanly. Result: fixture-a and manifest-edit-with-refactor now PASS for the
+intended reason (ceiling FAIL / backed ok), not the phantom no-backing block.
+
+New regression tests (each sub-gate both directions):
+
+- regression-1 (C1): container-down simulated by a recording fake docker on
+  PATH that fails every probe; budget-violating --range still exits 1 with
+  FAIL and the docker log stays empty (range eval never consults container
+  state).
+- regression-2: BUDGET_GATE_MODE=report does not weaken --range (exit 1,
+  FAIL, no "report active" warn line).
+- regression-3 (M2): staged growth + loosened UNSTAGED disk manifest
+  (ceiling 9999) still blocks on the STAGED ceiling 20.
+- regression-3r (M2-range): disk manifest loosened AFTER the violating
+  commit; --range still blocks on the committed ceiling 20.
+- regression-4 (M3): ~180KB normalized test file with the pattern on the
+  first line is still counted (grep -q early exit SIGPIPEs upstream tr past
+  the 64KB pipe buffer; only grep status may decide) -> blocked.
+- regression-5a (M1): RELATIVE BUDGET_PLUGIN_ROOT run from the fixture repo
+  CWD absolutizes against the checkout, still enforces (FAIL) and emits the
+  BUDGET_PLUGIN_ROOT override warn.
+- regression-6: real valid range over a clean backed refactor commit
+  (prod 20/20 shell 10/10) exits 0 with ok: scope refactor backed.
+
+Verification (repo workdir, ASCII-only per DIA-079):
+
+- budget-gate.bats: 33 pass / 1 fail, exit 1 (34 tests total).
+- make test-shell (full monolith): 1 fail only (the same regression-5b),
+  all other suites green.
+
+GATE-BUG (reported, RED until GREEN fixes; test left in battery):
+
+- regression-5b: UNRESOLVABLE BUDGET_PLUGIN_ROOT (nonexistent path or
+  non-git dir) still DISABLES the gate. Repro: repo with staged
+  plug/lib/util.ts growth (prod 25 vs committed ceiling 20) run with
+  BUDGET_PLUGIN_ROOT=no-such-plug + Budget-Scope: refactor message ->
+  actual exit 0 "ok: no scoped paths touched; budget gate skipped" (warn
+  only). The gate's own contract comment (check-budget-gate.sh, repo
+  discovery block) promises "Unresolvable override falls back to the
+  caller's checkout (fail-closed verdicts still apply per commit)", but
+  PLUGIN_ROOT stays pinned to the unresolvable path, so no staged path is
+  ever scoped and the fast path passes everything. Expected fix direction:
+  when the override does not resolve to a git tree, fall PLUGIN_ROOT back
+  to the default tree under the caller checkout (or fail closed); the M1
+  warn alone does not enforce. Per dispatch, no further cases extended past
+  this finding.
+
+Files: scripts/**tests**/budget-gate.bats, this ticket.
+
+ASCII-only per DIA-079 (no em-dashes, no smart quotes, no non-ASCII punctuation).
