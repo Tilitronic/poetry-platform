@@ -99,3 +99,73 @@ Slice C ground truth correction (2026-09-03, commit 75e813f):
 - Cumulative conservative test target adjusted by +10 LOC: 12,419 -> 12,429 (cumulative test reduction -395 net instead of -405).
 
 Commit 75e813f evidence: 7 files, +26/-136. Focused tests 270 pass / 0 fail exit 0. Full plugin suite 443 pass / 1 skip / 7 fail - verified PRE-EXISTING baseline (identical 443/7 before/after via git stash --keep-index round-trip; 6x needs-input-observer.dia189 powershell.exe spawn not captured + 1x parallel-handoff archived check). Pre-commit hook exit 0. Lane errors: none.
+
+## Re-verify -- F budget gate promotion approval (2026-09-09)
+
+F report-only PASS reconciled: prod 5814 (-86 from 5900 baseline), shell 4037 monotonic (unchanged, acceptance gate holds), no-dup PASS, test 12206 (-618 cumulative), R-B both-directions validated RED->GREEN.
+
+Promotion report-only -> blocking APPROVED IN PRINCIPLE for pure-refactor/test-debloat scope only (no feature work). Baselines/exceptions require explicit DIA ticket + developer approval.
+
+BLOCKING ENABLE DEFERRED: D4 review missing (D4 commit 2350ee8 exists, no D4 review verdict found). Blocking may start only after D4 review is verified. No scripts or CI enforcement created in this lane; status record only.
+
+ASCII-only per DIA-079 (no em-dashes, no smart quotes, no non-ASCII punctuation).
+
+## Re-verify -- D4 fix lane fix-1 (2026-09-09, on top of 2350ee8)
+
+Rev-1 verdict: PASS-WITH-FINDINGS (section 2.5 review GO-WITH-CONDITIONS).
+
+Developer disposition: ACCEPT 5 findings (items 1-5 below); DEFER dia220:299
+em-dash, cleanup-block duplication x4, B archive pairs, G wy-guards (untouched
+in this lane).
+
+Gate conditions obeyed: 4 helper exports max (no new exports); fail-loud
+behavior allowlist; predicate pinned to delegation-observer.ts:817-819;
+contract tests in test file not helper; ASCII-only per DIA-079; staged only
+fix files + this ticket update.
+
+(1) Evidence gap closed via worktree baseline (NO git stash):
+baseline = worktree at 2350ee8^ (77c4ca1), after = worktree at 2350ee8.
+Focused (4 files: dia220-apoptosis-paracrine, needs-input dia189,
+platform-gate, ticker-expiry):
+baseline: 54 pass 6 fail exit 1
+after: 54 pass 6 fail exit 1
+Full plugin suite (26 files):
+baseline: 442 pass 1 skip 7 fail exit 1
+after: 442 pass 1 skip 7 fail exit 1
+Fail-set identity (identical before/after, DO NOT FIX - pre-existing):
+6x dia189 powershell WSL artifact ("no powershell.exe spawn captured"):
+A2, A3, A3b, A3c, A3d, A3e; plus 1x parallel-handoff S1
+archive-on-overwrite (full suite only).
+Commands (run in .opencode/plugins/**tests** of each worktree):
+bun test dia220-apoptosis-paracrine.test.mjs
+needs-input-observer.dia189.test.mjs
+needs-input-observer.platform-gate.test.mjs
+needs-input-observer.ticker-expiry.test.mjs
+bun test
+Harness: 3/3 scenario files exit 0 (empty-result-silent-failure,
+parallel-handoff-archive, slot-identity-no-clobber).
+
+Fixes (2)-(5):
+(2) mockChildProcess throws on unknown behavior (allowlist "porcelain" /
+"needs-input"); valid/invalid cases tested in the new contract file.
+(3) getPorcelain deleted from live return and node stub; zero callers
+confirmed via repo search; suite rerun.
+(4) Porcelain predicate pinned to production shape
+spawnSync("git", ["-C", wtPath, "status", "--porcelain"]) (cmd "git",
+args.length 4, args[0] "-C", args[2] "status", args[3] "--porcelain");
+near-miss arg cases plus empty/whitespace-only/newline-only/real-output
+stdout cases tested.
+(5) Second-registration contract test added (second registration wins,
+first handle orphaned).
+
+Verification after fix (workdir .opencode/plugins/**tests**):
+new contract file: 6 pass 0 fail exit 0
+focused (5 files incl new): 60 pass 6 fail exit 1 (6 = known dia189 set)
+full suite (27 files): 448 pass 1 skip 7 fail exit 1 (same 7 pre-existing)
+harness: 3/3 exit 0
+
+Budget: prod 5814 unchanged (shell 4037 unchanged, acceptance gate holds);
+test 12314 (+108 = +95 contract file, +13 helper hardening; new coverage,
+not duplication). Method: wc -l over plugin test mjs files.
+
+ASCII-only per DIA-079 (no em-dashes, no smart quotes, no non-ASCII punctuation).

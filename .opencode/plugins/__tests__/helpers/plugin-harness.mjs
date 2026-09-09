@@ -58,10 +58,24 @@ export async function createHarness(directory) {
 }
 
 export function mockChildProcess(behavior) {
-  if (!_mock?.module) return { spawnCalls: [], setPorcelain: () => {}, getPorcelain: () => "" }
+  if (behavior !== "porcelain" && behavior !== "needs-input") {
+    throw new Error(`mockChildProcess: unknown behavior "${behavior}" (expected "porcelain" or "needs-input")`)
+  }
+  if (!_mock?.module) return { spawnCalls: [], setPorcelain: () => {} }
   const spawnCalls = []
   let porcelainProbeStdout = ""
   const isPorcelain = behavior === "porcelain"
+  // Pinned to the production dirty-tree probe shape at
+  // delegation-observer.ts:817-819:
+  // spawnSync("git", ["-C", wtPath, "status", "--porcelain"], ...).
+  // Near-miss arg shapes fall through to success-empty.
+  const isPorcelainProbe = (cmd, args) =>
+    cmd === "git" &&
+    Array.isArray(args) &&
+    args.length === 4 &&
+    args[0] === "-C" &&
+    args[2] === "status" &&
+    args[3] === "--porcelain"
   _mock.module("node:child_process", () => ({
     spawn: isPorcelain
       ? () => ({ on: () => {} })
@@ -85,7 +99,7 @@ export function mockChildProcess(behavior) {
     spawnSync: (cmd, args, opts) => {
       if (isPorcelain) {
         spawnCalls.push({ cmd, args, opts })
-        if (Array.isArray(args) && args[0] === "-C" && args.includes("status")) {
+        if (isPorcelainProbe(cmd, args)) {
           return { status: 0, stdout: porcelainProbeStdout, stderr: "" }
         }
         return { status: 0, stdout: "", stderr: "" }
@@ -98,6 +112,5 @@ export function mockChildProcess(behavior) {
     setPorcelain: (v) => {
       porcelainProbeStdout = v
     },
-    getPorcelain: () => porcelainProbeStdout,
   }
 }
