@@ -299,7 +299,7 @@
 | DIA-260909-fkiy | extract repeated workspace-cleanup retry loops into helpers plugin-harness | opencode-config | Medium | OPEN | [DIA-260909-fkiy-extract-repeated-workspace-cleanup-retry-loops-into-helpers-plugin-harness.md](DIA-260909-fkiy-extract-repeated-workspace-cleanup-retry-loops-into-helpers-plugin-harness.md) |
 | DIA-260909-sazr | remove RED-era factory and alias probes from observer-lib test suites | opencode-config | Medium | OPEN | [DIA-260909-sazr-remove-red-era-factory-and-alias-probes-from-observer-lib-test-suites.md](DIA-260909-sazr-remove-red-era-factory-and-alias-probes-from-observer-lib-test-suites.md) |
 | DIA-260909-tp5e | Add Muse Qwen balanced agent routing preset | opencode-config | Medium | CLOSED | [DIA-260909-tp5e-add-muse-qwen-balanced-agent-routing-preset.md](DIA-260909-tp5e-add-muse-qwen-balanced-agent-routing-preset.md) |
-| DIA-260909-zeik | simplify repeated failure-cleanup paths in standalone harness scenarios | opencode-config | Medium | OPEN | [DIA-260909-zeik-simplify-repeated-failure-cleanup-paths-in-standalone-harness-scenarios.md](DIA-260909-zeik-simplify-repeated-failure-cleanup-paths-in-standalone-harness-scenarios.md) |
+| DIA-260909-zeik | simplify repeated failure-cleanup paths in standalone harness scenarios | opencode-config | Medium | CLOSED | [DIA-260909-zeik-simplify-repeated-failure-cleanup-paths-in-standalone-harness-scenarios.md](DIA-260909-zeik-simplify-repeated-failure-cleanup-paths-in-standalone-harness-scenarios.md) |
 
 ## Status summary
 
@@ -316,7 +316,7 @@
 
 | Status      | Count |
 | ----------- | ----- |
-| OPEN        | 84    |
+| OPEN        | 83    |
 | DONE        | 11    |
 | VALIDATE    | 0     |
 | E2E         | 0     |
@@ -325,7 +325,7 @@
 | FIXED       | 1     |
 | IMPLEMENTED | 2     |
 | VERIFIED    | 28    |
-| CLOSED      | 169   |
+| CLOSED      | 170   |
 | BLOCKED     | 0     |
 | DISPATCHED  | 0     |
 | RUNNING     | 0     |

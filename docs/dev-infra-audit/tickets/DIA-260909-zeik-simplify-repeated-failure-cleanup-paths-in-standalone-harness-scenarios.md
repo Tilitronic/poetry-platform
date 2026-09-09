@@ -6,7 +6,7 @@ id: DIA-260909-zeik
 title: "simplify repeated failure-cleanup paths in standalone harness scenarios"
 area: opencode-config
 severity: Medium
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: "DIA-260903-o7n0"
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
@@ -52,7 +52,7 @@ Source: ponytail audit item 5, DIA-260903-o7n0 follow-up. Campaign ticket DIA-26
 - [x] Cleanup helper or shared finally block covers all failure branches without losing error context
 - [x] 7 extracted production modules, capability loader guards, checksum logic untouched
 - [x] LOC delta -88 accepted as over-delivered de-bloat per developer disposition (no-pad rule: reported as-is, never padded to -45..-70)
-- [x] Harness scenarios pass under `bun run` (host bun 3/3 exit 0; container-down caveat recorded, `make test-shell` proposed post-merge)
+- [x] Harness scenarios pass under `bun run` (host bun 1.3.14 3/3 exit 0, lane-confirmed) and in-container green on the developer-attested run (`env -u COMPOSE_ENGINE make test-shell` exit 0, 638 Bats, replay scenarios no regression)
 
 ## Fix
 
@@ -93,4 +93,22 @@ Implemented 2026-09-09 (coder lane, campaign ticket DIA-260909-zeik).
 
 ## Re-verify
 
-> To be filled at re-verify time.
+Re-verified 2026-09-09 (coder closure lane; ai-auditor CONDITIONAL
+solely on F5/F6 persistence, Finding C PASS with no drift).
+
+- In-container green (developer-attested): `env -u COMPOSE_ENGINE
+make test-shell` exit 0, 638 Bats tests, replay scenarios
+  (`harness-scenario-replay.bats` 3/3) with no regression in
+  scenario-runner. Lane env is daemon-less so this leg stands on the
+  attested run, plus lane host confirm (bun 1.3.14, 3x exit 0).
+- 3 earlier failures are a separate test-isolation issue
+  (COMPOSE_ENGINE=podman inherited in shell vs compose-env.bats
+  default-docker cases expecting the var absent; helper Podman
+  override correct as env has top priority; test does not clear
+  inherited env). Separate infra ticket to follow; not zeik scope.
+- Fixed point HEAD 05c0abe: zero drift in the zeik file set vs
+  2e93e43 (runner + 3 scenarios + manifest entry + spec/ticket;
+  CHANGELOG additive only from other lanes, zeik entry intact).
+- Cumulative LOC -88 authoritative; guards hold (harness 4 exports,
+  runner 1 export, zero cleanup/process.exit refs in scenarios,
+  mock.module literal confined, ASCII-only).
