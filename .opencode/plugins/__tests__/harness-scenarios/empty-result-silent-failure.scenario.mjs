@@ -15,7 +15,8 @@ import {
   readFileSync,
 } from "node:fs"
 import { join } from "node:path"
-import { createTempWorkspace, mockOpencodePlugin } from "../helpers/plugin-harness.mjs"
+import { mockOpencodePlugin } from "../helpers/plugin-harness.mjs"
+import { runScenario } from "./scenario-runner.mjs"
 
 // ---- @opencode-ai/plugin mock (registered BEFORE the plugin import) ----
 mockOpencodePlugin()
@@ -25,76 +26,52 @@ const { default: createDelegationObserver } = await import(
   "../../delegation-observer.ts"
 )
 
-// ---- Harness ----
-const { directory, cleanup } = createTempWorkspace("c5-s1-")
-try {
+// ---- Harness: runScenario owns the temp workspace and single cleanup path ----
+await runScenario("c5-s1-", async ({ directory, fail }) => {
+  const logs = []
+  const hooks = await createDelegationObserver({
+    directory,
+    client: { app: { log: async (entry) => logs.push(entry) } },
+  })
 
+  function readRegistry() {
+    const p = join(directory, ".opencode/session/registry.jsonl")
+    if (!existsSync(p)) return []
+    return readFileSync(p, "utf-8").trim().split("\n").filter(Boolean).map(
+      (l) => JSON.parse(l)
+    )
+  }
 
-const logs = []
-const hooks = await createDelegationObserver({
-  directory,
-  client: { app: { log: async (entry) => logs.push(entry) } },
-})
+  // ---- Scenario: empty-result SILENT_FAILURE ----
+  const sessionID = "ses_c5_empty_1"
+  const rowsBefore = readRegistry().length
 
-function readRegistry() {
-  const p = join(directory, ".opencode/session/registry.jsonl")
-  if (!existsSync(p)) return []
-  return readFileSync(p, "utf-8").trim().split("\n").filter(Boolean).map(
-    (l) => JSON.parse(l)
-  )
-}
-
-// ---- Scenario: empty-result SILENT_FAILURE ----
-const sessionID = "ses_c5_empty_1"
-const rowsBefore = readRegistry().length
-
-// Register child session.
-await hooks.event({
-  event: {
-    type: "session.created",
-    properties: {
-      info: { id: sessionID, parentID: "ses_parent", title: "test" },
+  // Register child session.
+  await hooks.event({
+    event: {
+      type: "session.created",
+      properties: {
+        info: { id: sessionID, parentID: "ses_parent", title: "test" },
+      },
     },
-  },
-})
+  })
 
-// Fire session.idle with NO file edits -> should detect empty result.
-await hooks.event({
-  event: {
-    type: "session.idle",
-    properties: { sessionID },
-  },
-})
+  // Fire session.idle with NO file edits -> should detect empty result.
+  await hooks.event({
+    event: {
+      type: "session.idle",
+      properties: { sessionID },
+    },
+  })
 
-const rows = readRegistry().slice(rowsBefore)
-const silentRow = rows.find(
-  (r) =>
-    r.event === "empty_result_detected" &&
-    r.dispatch_state === "SILENT_FAILURE"
-)
-
-if (!silentRow) {
-  console.error("FAIL: no SILENT_FAILURE row in registry after empty idle")
-  console.error("rows:", JSON.stringify(rows, null, 2))
-  try { cleanup() } catch (e) { console.error(`[cleanup] scenario cleanup failed: ${e?.message ?? e}`) }
-  process.exit(1)
-}
-if (silentRow.session_id !== sessionID) {
-  console.error(
-    `FAIL: SILENT_FAILURE session_id=${silentRow.session_id}, expected ${sessionID}`
+  const rows = readRegistry().slice(rowsBefore)
+  const silentRow = rows.find(
+    (r) =>
+      r.event === "empty_result_detected" &&
+      r.dispatch_state === "SILENT_FAILURE"
   )
-  try { cleanup() } catch (e) { console.error(`[cleanup] scenario cleanup failed: ${e?.message ?? e}`) }
-  process.exit(1)
-}
-if (silentRow.file_edit_count !== 0) {
-  console.error(
-    `FAIL: SILENT_FAILURE file_edit_count=${silentRow.file_edit_count}, expected 0`
-  )
-  try { cleanup() } catch (e) { console.error(`[cleanup] scenario cleanup failed: ${e?.message ?? e}`) }
-  process.exit(1)
-}
 
-} finally {
-  try { cleanup() } catch (e) { console.error(`[cleanup] scenario cleanup failed: ${e?.message ?? e}`) }
-}
-process.exit(0)
+  if (!silentRow) fail(`no SILENT_FAILURE row in registry after empty idle; rows: ${JSON.stringify(rows)}`)
+  if (silentRow.session_id !== sessionID) fail(`SILENT_FAILURE session_id=${silentRow.session_id}, expected ${sessionID}`)
+  if (silentRow.file_edit_count !== 0) fail(`SILENT_FAILURE file_edit_count=${silentRow.file_edit_count}, expected 0`)
+})

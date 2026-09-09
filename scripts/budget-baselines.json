@@ -11,7 +11,8 @@
   ],
   "campaigns": [
     { "ticket": "DIA-260903-o7n0", "scope": "refactor", "status": "approved" },
-    { "ticket": "DIA-260903-o7n0", "scope": "test-debloat", "status": "approved" }
+    { "ticket": "DIA-260903-o7n0", "scope": "test-debloat", "status": "approved" },
+    { "ticket": "DIA-260909-zeik", "scope": "test-debloat", "status": "approved" }
   ],
   "mode": "blocking"
 }

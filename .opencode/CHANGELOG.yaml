@@ -4522,3 +4522,15 @@
   summary: 'whitespace polish: drop 3 whitespace-only lines, no behavior change'
   verification: manual
   area: plugins
+- date: '2026-09-09'
+  ticket: DIA-260909-zeik
+  scope: test
+  files:
+  - .opencode/plugins/__tests__/harness-scenarios/scenario-runner.mjs
+  - .opencode/plugins/__tests__/harness-scenarios/empty-result-silent-failure.scenario.mjs
+  - .opencode/plugins/__tests__/harness-scenarios/parallel-handoff-archive.scenario.mjs
+  - .opencode/plugins/__tests__/harness-scenarios/slot-identity-no-clobber.scenario.mjs
+  summary: Dedupe standalone harness scenario cleanup paths into shared scenario-runner
+    (24 sites to 1)
+  verification: manual
+  area: opencode-config

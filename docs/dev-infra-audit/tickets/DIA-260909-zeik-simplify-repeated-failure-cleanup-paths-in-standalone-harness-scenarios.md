@@ -56,7 +56,35 @@ Source: ponytail audit item 5, DIA-260903-o7n0 follow-up. Campaign ticket DIA-26
 
 ## Fix
 
-> To be filled at fix time.
+Implemented 2026-09-09 (coder lane, campaign ticket DIA-260909-zeik).
+
+- New `.opencode/plugins/__tests__/harness-scenarios/scenario-runner.mjs`
+  (36 lines, 1 export `runScenario`): sole cleanup owner via one
+  try/finally; injected `fail(msg)` throws a module-private sentinel;
+  exit 0 pass / 1 fail; `[cleanup]` line verbatim in finally.
+- Migrated 3 scenarios to `runScenario(prefix, fn)`: 24 cleanup sites
+  (4+8+12) across 21 branches collapsed to 1; zero `cleanup()` /
+  `process.exit` refs remain in scenarios; `readRegistry` /
+  `canonicalChecksum` / `readJson` stay per-scenario; mock-before-import
+  stays per-file top-level.
+- Baseline green pre-change: `bun run` x3 exit 0 (host bun 1.3.14;
+  poetry-dev container down, docker daemon unavailable, so the bats
+  replay leg was covered by running the exact underlying
+  `bun run <name>.scenario.mjs` commands: 3/3 exit 0 post-change).
+- Negative probes (throwaway, reverted): (a) flipped assertion ->
+  exit 1, `FAIL:` line, no /tmp/c5-s1-_ left; (b) body throw ->
+  `ERROR:` line + stack, exit 1, no /tmp/c5-s2-_ left. Re-ran green.
+- LOC delta actual: scenarios net -124 (s1 -23, s2 -42, s3 -59) plus
+  runner +36 = net about -88. Outside the -45..-70 estimate and the
+  gate-forecast -30..-45; reported as-is per no-pad rule, for developer
+  disposition. Lib 8-vs-7 count from gate risk 4 is moot (lib/ untouched).
+- Guards: `plugin-harness.mjs` (4 exports), replay bats, lib/,
+  delegation-observer.ts, budget-baselines.json all untouched;
+  `mock.module("@opencode-ai/plugin"` literal only in plugin-harness.mjs;
+  prettier + eslint clean on all 4 files; ASCII-only.
+- Budget: commit carries `Budget-Scope: test-debloat` trailer, backing
+  approved campaign DIA-260903-o7n0; `check-budget-gate.sh` ok line
+  captured at commit time.
 
 ## Re-verify
 
