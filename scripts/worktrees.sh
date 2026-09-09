@@ -318,6 +318,15 @@ cmd_create() {
   if [ -L "$path/.husky/_" ] || [ ! -d "$path/.husky/_" ]; then
     fail "worktree created but .husky/_ is not a real directory; husky shim broken"
   fi
+  # Budget-gate propagation (DIA-260903-o7n0): a fresh worktree needs the
+  # .husky/commit-msg hook or the commit gate silently stops applying there.
+  # Best-effort copy: warn (never fail) when the main tree has no hook, so
+  # older checkouts keep working.
+  if [ -f "$ROOT/.husky/commit-msg" ]; then
+    cp "$ROOT/.husky/commit-msg" "$path/.husky/commit-msg"
+  else
+    echo "warn: .husky/commit-msg not present in the main tree; skipping budget-gate hook propagation"
+  fi
 
   # DIA-100 verification item (f): each worktree must have its own
   # .opencode/session/ dir (zero handoff coordination). Mechanism: git

@@ -267,3 +267,41 @@ satisfying the F blocking-enable precondition for the developer decision
 after D4 review is verified).
 
 ASCII-only per DIA-079 (no em-dashes, no smart quotes, no non-ASCII punctuation).
+
+## Re-verify -- GREEN gate-script lane cod-4 resume (2026-09-09, impl lane)
+
+Resume per DIA-099 (prior GREEN result empty D1 suspect). Verify-first:
+no GREEN commit landed after c130692 (RED battery commit); gate files
+present on disk uncommitted (prior instance work, reporting artifact only).
+Battery run against that tree: 17/26 pass, 9 fail, all "no scoped paths
+touched" skip -- root cause: gate derived the repo from cwd
+(git rev-parse --show-toplevel) while hermetic fixtures run from the caller
+checkout with BUDGET_PLUGIN_ROOT pointing into the isolated fixture repo,
+so staged fixture paths never matched the plugin root.
+
+Fix (this lane): gated-repo discovery follows an explicit
+BUDGET_PLUGIN_ROOT to its containing repo (unset = caller checkout,
+unchanged production behavior; unresolvable = fallback, still fail-closed).
+Plus: hoisted the verify-pre-push range backstop out of run_workspace() to
+run once at hook entry (stdin consumed exactly once; was per-step), and
+repaired the mangled comment lines.
+
+Verification (repo workdir, ASCII-only per DIA-079):
+budget-gate.bats: 26/26 pass exit 0 (fail-set identity: prior 9 fixed: 1-10
+minus boundary/staged-pass cases, 14-16, 18, 20-22)
+budget-gate + verify-pre-push targeted: 37/37 pass exit 0
+make test-shell: exit 0, 640 ok, 0 not ok
+make test-config: exit 0 (structural gates PASS)
+prettier --check scripts/budget-baselines.json: exit 0
+bats-wrapper --quick on both touched .sh files: exit 0
+bash -n on both touched .sh files: exit 0
+Baselines confirmed live: prod 5814 <= 5900, shell 4037 = 4037 (exact,
+-gt boundary passes), B pattern count 0 = baseline 0 (only
+helpers/plugin-harness.mjs holds the canonical, authorized site excluded).
+scripts/**tests**/budget-gate.bats NOT edited (RED contract owned by test lane).
+
+Files: scripts/check-budget-gate.sh (new), scripts/budget-baselines.json
+(new), .husky/commit-msg (new), scripts/verify-pre-push.sh (range wiring),
+scripts/worktrees.sh (hook copy entry).
+
+ASCII-only per DIA-079 (no em-dashes, no smart quotes, no non-ASCII punctuation).

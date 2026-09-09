@@ -1,0 +1,17 @@
+{
+  "prod_ceiling": 5900,
+  "shell_ceiling": 4037,
+  "patterns": [
+    {
+      "id": "opencode-mock",
+      "canonical": "mock.module(\"@opencode-ai/plugin\",",
+      "baseline_count": 0,
+      "authorized_site": "plugin-harness.mjs"
+    }
+  ],
+  "campaigns": [
+    { "ticket": "DIA-260903-o7n0", "scope": "refactor", "status": "approved" },
+    { "ticket": "DIA-260903-o7n0", "scope": "test-debloat", "status": "approved" }
+  ],
+  "mode": "blocking"
+}

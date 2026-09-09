@@ -83,6 +83,48 @@ else
   echo "== poetry-platform pre-push: delegating to dev container =="
 fi
 
+# F budget-gate range backstop (DIA-260903-o7n0): re-check every pushed commit
+# through the budget gate in always-blocking --range mode. Host-local
+# (bash/git/jq only, never delegated to the container) so it also covers
+# pushes made with --no-verify; the gate itself ignores BUDGET_GATE_MODE in
+# range mode, so a local report-only setting cannot weaken the push check.
+# Runs once here, never inside run_workspace: the hook feeds the pushed ref
+# lines on stdin and stdin can be consumed only once. Skipped silently when
+# the hook has no ref lines on stdin (manual runs) or when stdin is a
+# terminal. New-branch pushes (remote sha all zeros) range from the main
+# merge-base; branch deletions (local sha all zeros) carry nothing to check.
+ZERO_SHA="0000000000000000000000000000000000000000"
+budget_range_failed=0
+if [ -t 0 ]; then
+  : # manual run, no pushed refs to range-check
+else
+  while IFS= read -r push_local_ref push_local_sha push_remote_ref push_remote_sha; do
+    [ -n "${push_local_sha:-}" ] || continue
+    case "$push_local_sha" in "$ZERO_SHA"*) continue ;; esac # branch deletion: nothing to check
+    range_rev=""
+    case "${push_remote_sha:-}" in
+    "$ZERO_SHA"* | "")
+      push_base="$(git merge-base main "$push_local_sha" 2>/dev/null || true)"
+      if [ -n "$push_base" ]; then
+        range_rev="$push_base..$push_local_sha"
+      else
+        range_rev="$push_local_sha"
+      fi
+      ;;
+    *)
+      range_rev="$push_remote_sha..$push_local_sha"
+      ;;
+    esac
+    if ! bash "$ROOT/scripts/check-budget-gate.sh" --range "$range_rev"; then
+      budget_range_failed=1
+    fi
+  done
+  if [ "$budget_range_failed" -ne 0 ]; then
+    echo "!! pre-push blocked: budget gate range check failed (see FAIL lines above)" >&2
+    exit 1
+  fi
+fi
+
 # Fast-to-fail step ladder (F-1, DIA-179): six steps in the order format, js,
 # js-tests, test-config, python, test-shell LAST. The four fast pnpm gates and
 # the OpenCode config validator (make test-config: agent-name drift, JSONC,
