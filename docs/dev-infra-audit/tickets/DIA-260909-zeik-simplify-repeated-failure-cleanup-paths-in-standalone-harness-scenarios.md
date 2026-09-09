@@ -74,14 +74,18 @@ Implemented 2026-09-09 (coder lane, campaign ticket DIA-260909-zeik).
 - Negative probes (throwaway, reverted): (a) flipped assertion ->
   exit 1, `FAIL:` line, no /tmp/c5-s1-_ left; (b) body throw ->
   `ERROR:` line + stack, exit 1, no /tmp/c5-s2-_ left. Re-ran green.
-- LOC delta actual: scenarios net -124 (s1 -23, s2 -42, s3 -59) plus
-  runner +36 = net -88. Accepted as over-delivered de-bloat per developer
+- LOC delta actual: scenarios net -124 (s1 -23, s2 -42, s3 -60:
+  175 to 115) plus runner +36 = net -88 cumulative authoritative
+  (per-file figures per review; cumulative figure governs). Accepted as over-delivered de-bloat per developer
   disposition (fix loop); reported as-is per no-pad rule, never padded to
   fit -45..-70. Lib 8-vs-7 count from gate risk 4 is moot (lib/ untouched).
 - Guards: `plugin-harness.mjs` (4 exports), replay bats, lib/,
-  delegation-observer.ts, budget-baselines.json all untouched;
+  delegation-observer.ts all untouched (`scripts/budget-baselines.json`
+  carries only the ruling-authorized one-line zeik backing entry);
   `mock.module("@opencode-ai/plugin"` literal only in plugin-harness.mjs;
-  prettier + eslint clean on all 4 files; ASCII-only.
+  eslint clean on all 4 files, prettier N/A (ignored path
+  .prettierignore:26; `prettier --file-info` reports `ignored: true`);
+  ASCII-only.
 - Budget: commit carries `Budget-Scope: test-debloat` trailer, backed by
   a ruling-authorized `test-debloat` entry for OPEN DIA-260909-zeik in
   `scripts/budget-baselines.json` (developer ruling Backing zeik; the

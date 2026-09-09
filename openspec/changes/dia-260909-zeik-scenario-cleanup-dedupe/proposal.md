@@ -27,7 +27,7 @@ None. The scenario-replay contract (filenames, `bun run` runtime, exit codes) is
 - **Files (4, implementation):** `.opencode/plugins/__tests__/harness-scenarios/{scenario-runner.mjs (new), empty-result-silent-failure.scenario.mjs, parallel-handoff-archive.scenario.mjs, slot-identity-no-clobber.scenario.mjs}`.
 - **LOC:** scenarios 428 lines today; target net delta -45..-70 across the 4 files per ticket verification (runner adds ~30-40; scenarios must shed ~75-110). If the measured net lands outside the range, report to developer for disposition (see interview.md "Open tension").
 - **Gates:** `bun run` x3 inside `poetry-dev` (same command the bats suite issues), `scripts/__tests__/harness-scenario-replay.bats` 3/3 via `make test-shell`, commit-msg budget gate.
-- **Untouched (guards):** delegation-observer plugin and `lib/*.ts` production modules, capability-loader guards, independent checksum logic, `plugin-harness.mjs`, the bats file, `scripts/budget-baselines.json`.
+- **Untouched (guards):** delegation-observer plugin and `lib/*.ts` production modules, capability-loader guards, independent checksum logic, `plugin-harness.mjs`, the bats file. (`scripts/budget-baselines.json` carries the ruling-authorized one-line `test-debloat` entry for OPEN DIA-260909-zeik at manifest:15; the o7n0 entry is CLOSED.)
 - **Dependencies:** none new. Node builtins + existing helper imports only; no test-framework imports.
 
 ## Alternatives considered

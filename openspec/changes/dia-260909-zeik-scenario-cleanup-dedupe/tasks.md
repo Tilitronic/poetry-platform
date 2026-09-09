@@ -4,7 +4,7 @@ Vertical slices; each ends green under the design.md section 7 gate for that sli
 
 ## 0. Pre-flight (no file edits)
 
-- [x] 0.1 Container gate: `docker compose ps` shows `poetry-dev` Up; capture output as evidence (AGENTS.md 6 pre-work + merge-gate evidence convention).
+- [x] 0.1 Container gate: `docker compose ps` shows `poetry-dev` Up; capture output as evidence (AGENTS.md 6 pre-work + merge-gate evidence convention). Host-deviation recorded: docker daemon down, container leg impossible; host bun 1.3.14 used instead; `make test-shell` proposed post-merge.
 - [x] 0.2 Baseline green: inside the container, `bun run` all three scenarios in `.opencode/plugins/__tests__/harness-scenarios/`; each exits 0. Record results.
 - [x] 0.3 Confirm today's cleanup-site inventory matches the design (24 sites: 4 + 8 + 12) so the post-refactor grep diff in 4.3 has a baseline.
 
@@ -22,7 +22,7 @@ Vertical slices; each ends green under the design.md section 7 gate for that sli
 ## 3. Slice 3: scenario-3 migration
 
 - [x] 3.1 Migrate `slot-identity-no-clobber.scenario.mjs`: same pattern; 11 branches to `fail(...)`, 12 cleanup sites removed; per-scenario checksum/readJson helpers stay local (C8).
-- [x] 3.2 Verify: all three scenarios exit 0 under `bun run`; unedited replay suite green: `make test-shell` (or run `scripts/__tests__/harness-scenario-replay.bats` directly on the host with Docker available) -> 3/3 pass.
+- [x] 3.2 Verify: all three scenarios exit 0 under `bun run`; unedited replay suite green: `make test-shell` (or run `scripts/__tests__/harness-scenario-replay.bats` directly on the host with Docker available) -> 3/3 pass. Host-deviation recorded: bats binary absent + docker daemon down (replay skips by design); covered by the exact underlying `bun run` x3 on host bun 1.3.14, all exit 0.
 
 ## 4. Compliance gates (before commit)
 

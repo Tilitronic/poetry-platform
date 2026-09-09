@@ -63,6 +63,8 @@ Target size: <= 40 lines including this header comment (LOC budget, see section 
 
 The `[cleanup]` log line is byte-identical to the current per-site text, moved once into the finally.
 
+NOTE: the snippet above is illustrative; the committed runner adds the fail()-from-awaited-body-only header and follows the local double-quote no-semi file convention.
+
 ## 3. Error-state semantics (Q4 accepted)
 
 | State                                             | Behavior                                                                                       | Exit code |
@@ -139,18 +141,18 @@ No new test files exist (C1); the scenarios are the tests. Evidence plan, in ord
 2. **Per-slice green:** after each migration slice, re-run that scenario: exit 0.
 3. **Negative probes (throwaway, NOT committed):** (a) temporarily flip one assertion in scenario-1 -> expect exit 1, `FAIL:` line on stderr, temp dir removed (`ls /tmp | grep c5-s1-` empty); (b) temporarily throw inside a body -> expect `ERROR:` line, exit 1, temp dir removed; (c) the cleanup-failure branch is the current per-site `[cleanup]` line moved verbatim into the runner finally - verified by code-walk/diff, not injection (rmSync force:true makes natural failure hard to provoke). Outputs pasted into the ticket evidence.
 4. **Contract green:** `scripts/__tests__/harness-scenario-replay.bats` unedited, run via `make test-shell` from host with Docker available -> 3/3 pass.
-5. **Guard checks:** `git status` shows no diff for `plugin-harness.mjs`, the bats file, `delegation-observer.ts`, `lib/`, `budget-baselines.json`; grep confirms the `mock.module("@opencode-ai/plugin"` literal exists only in `plugin-harness.mjs`; export counts: plugin-harness 4, scenario-runner 1.
+5. **Guard checks:** `git status` shows no diff for `plugin-harness.mjs`, the bats file, `delegation-observer.ts`, `lib/`; `scripts/budget-baselines.json` shows only the ruling-authorized one-line zeik entry (manifest:15; o7n0 CLOSED); grep confirms the `mock.module("@opencode-ai/plugin"` literal exists only in `plugin-harness.mjs`; export counts: plugin-harness 4, scenario-runner 1.
 6. **Commit:** budget gate runs via commit-msg hook; `ok:` line captured.
 
 Bun test suites are NOT used: scenarios run under `bun run` (C2); the `bun:test` `mock` import already guarded inside `plugin-harness.mjs` with a try/catch no-op stays as-is.
 
 ## 7.1 Rollback plan (AGENTS.md 2.4 requirement)
 
-- Single atomic commit (scenarios import the runner; a partial revert breaks all three). No data, config, production, or manifest changes.
+- Single atomic commit (scenarios import the runner; a partial revert breaks all three). No data, config, or production changes (one-line manifest backing entry only).
 - Rollback = `git revert <sha>`: restores the 24-site boilerplate verbatim; the bats file was never touched, so no test-side change accompanies the revert.
 - Trigger to revert: any scenario exits nonzero post-merge for a cause traced to the runner (not to a real plugin regression - a genuine regression must NOT be reverted away).
 - Rebase interaction: none expected (disjoint file set from fkiy, section 5).
 
 ## 8. Out of scope
 
-- `plugin-harness.mjs` internals (fkiy), the 16 bun-test suites' cleanup retry loops (fkiy), any production module, the bats suite, the budget manifest, main-spec deltas (skip_specs), re-grilling the DIA-104 gate (C9).
+- `plugin-harness.mjs` internals (fkiy), the 16 bun-test suites' cleanup retry loops (fkiy), any production module, the bats suite, the budget manifest (beyond the ruling-authorized one-line zeik backing entry), main-spec deltas (skip_specs), re-grilling the DIA-104 gate (C9).
