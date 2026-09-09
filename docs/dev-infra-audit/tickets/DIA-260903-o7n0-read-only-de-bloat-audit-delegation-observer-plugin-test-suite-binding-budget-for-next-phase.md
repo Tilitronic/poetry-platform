@@ -426,3 +426,36 @@ GATE-BUG (reported, RED until GREEN fixes; test left in battery):
 Files: scripts/**tests**/budget-gate.bats, this ticket.
 
 ASCII-only per DIA-079 (no em-dashes, no smart quotes, no non-ASCII punctuation).
+
+## Re-verify -- GREEN regression-5b fix (2026-09-09, on top of df4b55c)
+
+Scope: ONE genuine GATE-BUG (regression-5b). scripts/**tests**/budget-gate.bats
+NOT edited (RED-owned). Relative-path handling (5a, green) untouched.
+
+Root cause: with BUDGET_PLUGIN_ROOT set but unresolvable, PLUGIN_ROOT stayed
+pinned to the nonexistent path, so no staged path ever scoped and the fast
+path passed everything ("no scoped paths touched") with only the M1 warn.
+
+Fix (fail-closed arm of the RED direction; fallback-to-default alone cannot
+enforce since a typo'd root still scopes nothing under the default tree):
+\_repo-discovery tracks \_PR_OK (1 only when the override resolves to a git
+tree); PLUGIN_ROOT uses \_PR only when resolved, else the default tree (keeps
+all downstream paths absolute and in-repo); eval_commit refuses BEFORE the
+fast path when the override is set-but-unresolvable ("BUDGET_PLUGIN_ROOT
+does not resolve to a git tree ... refusing to guess scope"). Hook report
+mode still softens to warn+allow per convention; range mode stays blocking.
+M1 warn line kept; unset-override and resolvable (absolute + relative)
+behavior unchanged.
+
+Verification (repo workdir, ASCII-only per DIA-079):
+battery scripts/**tests**/budget-gate.bats: 34 pass / 0 fail, exit 0
+(regression-5b now exits 1 + FAIL + warn; 5a still enforces + warns).
+verify-pre-push.bats + guards-home-qualt.bats: 15/15 pass, exit 0.
+make test-shell equivalent (full bats monolith): 630 tests, 0 not ok.
+make test-config: exit 0 (structural gates PASS).
+bash -n scripts/check-budget-gate.sh: exit 0.
+prettier --check on this ticket file: exit 0 (below).
+
+Files: scripts/check-budget-gate.sh, this ticket.
+
+ASCII-only per DIA-079 (no em-dashes, no smart quotes, no non-ASCII punctuation).

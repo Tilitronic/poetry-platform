@@ -18,7 +18,8 @@
 #   BUDGET_PLUGIN_ROOT plugin tree root (default .opencode/plugins); a staged
 #                      path is scoped iff it sits under this root, role by
 #                      layout: delegation-observer.ts = prod+shell, lib/ = prod,
-#                      __tests__/ = test
+#                      __tests__/ = test. A set-but-unresolvable value fails
+#                      closed (never a silent gate-off).
 #   BUDGET_GATE_MODE=report  hook mode only: never blocks, still measures and
 #                      prints every violation plus a warn: line; range mode
 #                      ignores it entirely
@@ -64,8 +65,11 @@ CWD_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)" || {
 # otherwise) relocates the gated repo to the repo containing it, so fixture
 # runs gate the fixture tree instead of the caller's checkout; unset means
 # the caller's checkout, exactly as before. Unresolvable override falls back
-# to the caller's checkout (fail-closed verdicts still apply per commit).
+# to the caller's checkout for manifest/ticket resolution, but scoping
+# REFUSES (regression-5b): _PR_OK stays 0 and eval_commit fails closed, so a
+# typo'd root can never silently scope nothing out.
 ROOT="$CWD_ROOT"
+_PR_OK=0
 if [ -n "${BUDGET_PLUGIN_ROOT:-}" ]; then
   case "$BUDGET_PLUGIN_ROOT" in
     /*) _PR="$BUDGET_PLUGIN_ROOT" ;;
@@ -73,6 +77,7 @@ if [ -n "${BUDGET_PLUGIN_ROOT:-}" ]; then
   esac
   if _RR="$(git -C "$_PR" rev-parse --show-toplevel 2>/dev/null)"; then
     ROOT="$_RR"
+    _PR_OK=1
   fi
 fi
 
@@ -87,7 +92,10 @@ TICKETS_DIR="${TICKETS_DIR:-$ROOT/docs/dev-infra-audit/tickets}"
 # resolves against the caller's checkout via the already-computed _PR. Without
 # this a relative override never prefix-matches the absolute staged paths, so
 # the gate silently scopes nothing out. Unset keeps the default plugin tree.
-if [ -n "${BUDGET_PLUGIN_ROOT:-}" ]; then
+# A SET-but-unresolvable override (_PR_OK=0) also falls back to the default
+# tree here; that path never enforces by itself (see the eval_commit refusal
+# below), it only keeps every downstream path absolute and inside the repo.
+if [ -n "${BUDGET_PLUGIN_ROOT:-}" ] && [ "$_PR_OK" -eq 1 ]; then
   PLUGIN_ROOT="$_PR"
 else
   PLUGIN_ROOT="$ROOT/.opencode/plugins"
@@ -223,6 +231,18 @@ eval_commit() {
   EVAL_OK=""
   local scoped=0 manifest_touched=0
   local p abs
+
+  # Unresolvable plugin-root override fails closed (regression-5b), BEFORE the
+  # fast path: with no resolvable tree the gate cannot scope anything, so
+  # "no scoped paths touched" would be a silent gate-off, not a verdict.
+  # Falling back to the default tree is NOT enough (a typo'd root still
+  # scopes nothing under the default), so refuse outright. Hook report mode
+  # still softens this to warn+allow per convention; range mode stays
+  # blocking.
+  if [ -n "${BUDGET_PLUGIN_ROOT:-}" ] && [ "$_PR_OK" -eq 0 ]; then
+    EVAL_FAILS="BUDGET_PLUGIN_ROOT does not resolve to a git tree ($BUDGET_PLUGIN_ROOT); refusing to guess scope (unset it or point it at the plugin tree)"
+    return 1
+  fi
 
   while IFS= read -r p; do
     [ -n "$p" ] || continue
