@@ -95,12 +95,15 @@ case "$MANIFEST" in /*) ;; *) MANIFEST="$ROOT/$MANIFEST" ;; esac
 # gate fails closed for scoped commits.
 case "$MANIFEST" in "$ROOT"/*) MANIFEST_REL="${MANIFEST#$ROOT/}" ;; *) MANIFEST_REL="$MANIFEST" ;; esac
 # Ledger resolution split (DIA-260901-91qy): hook mode reads the ticket
-# ledger from disk -- approvals are present-tense human state, and the hook
-# gates what is about to be committed. Range mode instead reads each record
-# from the evaluated commit tree ($EVAL_SHA, same git-show technique as the
-# M2 manifest), so a historical commit is judged by the ticket status it saw:
-# OPEN-then/CLOSED-today passes, CLOSED-already fails. A ledger outside the
-# gated repo has no tree path and falls back to disk in both modes.
+# ledger from disk and compares expiry against wall-clock today -- approvals
+# are present-tense human state, and the hook gates what is about to be
+# committed. Range mode instead reads each record from the evaluated commit
+# tree ($EVAL_SHA, same git-show technique as the M2 manifest), so a
+# historical commit is judged by the ticket status and expiry it saw:
+# OPEN-then/CLOSED-today passes, CLOSED-already fails, expiry after the
+# committer date at $EVAL_SHA passes even if expired today. A ledger outside
+# the gated repo has no tree path and falls back to disk in both modes;
+# range mode emits a one-time warn when taking that fallback.
 TICKETS_DIR="${TICKETS_DIR:-$ROOT/docs/dev-infra-audit/tickets}"
 # Repo-relative ledger path for range tree reads: only meaningful when the
 # ledger lives inside the gated repo (empty otherwise, meaning disk fallback).
@@ -186,9 +189,11 @@ ticket_text() {
 }
 
 # ticket_tree_first <id-prefix>: first sorted repo-relative ticket path in the
-# EVAL_SHA tree whose basename matches "<prefix>"*.md (same sorted head -1
-# contract as the disk ls). Prints nothing when the ledger lives outside the
-# gated repo (TICKETS_REL empty) or no record matches. Range-only helper.
+# EVAL_SHA tree whose basename matches "<prefix>"*.md. Mirrors the disk
+# fallback (ls -1 "$TICKETS_DIR/$prefix"*.md | sort | head -n 1) in sorted
+# head -1 selection but sources from git ls-tree, so only in-repo ledgers
+# apply. Prints nothing when the ledger lives outside the gated repo
+# (TICKETS_REL empty) or no record matches. Range-only helper.
 ticket_tree_first() {
   [ -n "${TICKETS_REL:-}" ] || return 0
   local prefix="$1" f base
@@ -505,7 +510,11 @@ try_exception() {
     ticket="$(ls -1 "$TICKETS_DIR/$exc_id"*.md 2>/dev/null | sort | head -n 1)"
   fi
   if [ -z "${ticket:-}" ]; then
-    TRY_EXCEPTION_LINE="Budget-Exception $exc_id matches no ticket record in $TICKETS_DIR"
+    if [ "$EVAL_MODE" = "range" ] && [ -n "${TICKETS_REL:-}" ]; then
+      TRY_EXCEPTION_LINE="Budget-Exception $exc_id matches no ticket record in tree $TICKETS_REL at $EVAL_SHA (ledger $TICKETS_DIR outside tree fallback would have searched disk)"
+    else
+      TRY_EXCEPTION_LINE="Budget-Exception $exc_id matches no ticket record in $TICKETS_DIR"
+    fi
     return 1
   fi
   if ! ticket_text "$ticket" | grep -q '^status: *OPEN'; then
@@ -519,7 +528,7 @@ try_exception() {
       return 1
     fi
   done
-  local app today
+  local app
   app="$(ticket_text "$ticket" | grep '^Exception-Applicability:' | tail -n 1 | sed -e 's/^Exception-Applicability: *//' -e 's/[[:space:]]*$//')"
   case "$app" in
   expiry\ *)
@@ -532,9 +541,15 @@ try_exception() {
       return 1
       ;;
     esac
-    today="$(date +%F)"
-    if [[ "$app" < "$today" ]]; then
-      TRY_EXCEPTION_LINE="Budget-Exception $exc_id expired on $app (expiry $app before $today)"
+    local eval_date
+    if [ "$EVAL_MODE" = "range" ]; then
+      eval_date="$(git -C "$ROOT" log -1 --format=%ci "$EVAL_SHA" 2>/dev/null | cut -d' ' -f1)"
+      case "$eval_date" in [0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]) ;; *) eval_date="$(date +%F)" ;; esac
+    else
+      eval_date="$(date +%F)"
+    fi
+    if [[ "$app" < "$eval_date" ]]; then
+      TRY_EXCEPTION_LINE="Budget-Exception $exc_id expired on $app (expiry $app before $eval_date)"
       return 1
     fi
     ;;
@@ -646,6 +661,9 @@ range_mode() {
     exit 1
   fi
   EVAL_MODE="range"
+  if [ -z "${TICKETS_REL:-}" ]; then
+    warn_emit "budget gate: TICKETS_DIR outside gated repo ($TICKETS_DIR); range mode falling back to disk ledger (historical ticket status not per-commit; no warn per commit)"
+  fi
   local failed=0 sha msg tmp
   tmp="$(mktemp)"
   for sha in $shas; do

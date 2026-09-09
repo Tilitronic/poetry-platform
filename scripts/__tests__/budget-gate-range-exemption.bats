@@ -228,3 +228,62 @@ Budget-Scope: refactor"
   assert_status 1
   assert_output_contains "FAIL:"
 }
+
+@test "range exception expiry (F-01) and out-of-repo fallback warn (F-3): valid at H, expired today -> range PASSES" {
+  # Phase 1: expiry at commit time vs wall-clock today
+  local tree="$BATS_TEST_TMPDIR/expiry"
+  rm -rf "$tree"
+  mkdir -p "$tree/plug/lib" "$tree/tickets" "$tree/scripts/guards"
+  cp "$REPO_ROOT/scripts/guards/home-qualt.sh" "$tree/scripts/guards/home-qualt.sh"
+  seq 1 10 > "$tree/plug/delegation-observer.ts"
+  seq 1 10 > "$tree/plug/lib/util.ts"
+  write_manifest "$tree" 20 10 "$APPROVED_CAMPAIGNS"
+  # Exception ticket valid at H (expiry 2026-02-01) but expired on wall-clock today (2026-09-09).
+  # H will be committed with date 2026-01-01, so expiry is after H and range should PASS
+  # even though expiry is before today. Pre-fix would compare against today and FAIL.
+  cat > "$tree/tickets/DIA-260903-o7n0-exception.md" <<'EOF'
+---
+status: OPEN
+---
+Exception-Reason: test reason
+Exception-Delta: A +5
+Exception-Paths: plug/lib/util.ts
+Exception-Applicability: expiry 2026-02-01
+EOF
+  if ! git -C "$tree" init -q -b main 2>/dev/null; then
+    git -C "$tree" init -q
+    git -C "$tree" symbolic-ref HEAD refs/heads/main
+  fi
+  git -C "$tree" config user.email "bats@example.com"
+  git -C "$tree" config user.name "bats test"
+  git -C "$tree" add -A
+  git -C "$tree" commit -q -m init
+  # Commit H: scoped growth that violates prod ceiling, rescued by the exception
+  # valid at H's committer date. Use a fixed past committer date so expiry is after H.
+  seq 1 15 > "$tree/plug/lib/util.ts"
+  git -C "$tree" add plug/lib/util.ts
+  GIT_AUTHOR_DATE="2026-01-01T12:00:00+00:00" GIT_COMMITTER_DATE="2026-01-01T12:00:00+00:00" \
+    git -C "$tree" commit -q -m "historical refactor with exception
+
+Budget-Scope: refactor
+Budget-Exception: DIA-260903-o7n0"
+  local h_sha
+  h_sha="$(git -C "$tree" rev-parse HEAD)"
+  cp "$GATE" "$tree/gate-under-test.sh" 2>/dev/null || true
+
+  run env BUDGET_MANIFEST="manifest.json" TICKETS_DIR="$tree/tickets" BUDGET_PLUGIN_ROOT="$tree/plug" bash -c "cd '$tree' && exec bash '$tree/gate-under-test.sh' --range '$h_sha~1..$h_sha'"
+
+  assert_status 0
+  assert_output_contains "ok:"
+  assert_output_contains "exception"
+
+  # Phase 2: F-3 - out-of-repo TICKETS_DIR in range mode must emit fallback warn
+  local tree2
+  tree2="$(setup_prehistory_repo)"
+  local root_sha
+  root_sha="$(git -C "$tree2" rev-list --max-parents=0 HEAD)"
+  run env BUDGET_MANIFEST="manifest.json" TICKETS_DIR="$BATS_TEST_TMPDIR/tickets" BUDGET_PLUGIN_ROOT="$tree2/plug" bash -c "cd '$tree2' && exec bash '$tree2/gate-under-test.sh' --range '$root_sha..HEAD'"
+  assert_output_contains "warn:"
+  assert_output_contains "outside gated repo"
+  assert_output_contains "falling back to disk"
+}

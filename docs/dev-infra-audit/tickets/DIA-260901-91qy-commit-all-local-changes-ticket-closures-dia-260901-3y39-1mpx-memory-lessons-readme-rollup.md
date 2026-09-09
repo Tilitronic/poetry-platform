@@ -194,3 +194,70 @@ expected pass; no --no-verify bypass anywhere.
 Files: scripts/check-budget-gate.sh, this ticket.
 
 ASCII-only per DIA-079 (no em-dashes, no smart quotes, no non-ASCII punctuation).
+
+## UPDATE 2026-09-09 - GREEN completion lane (re-review fixes for 123d982): expiry-at-EVAL_SHA, out-of-repo fallback warn, comment accuracy, expiry regression test
+
+Campaign ticket DIA-260901-91qy. GREEN-owned scope only:
+scripts/check-budget-gate.sh + scripts/**tests**/budget-gate-range-exemption.bats + this ticket.
+No .opencode config touched, no tp5e work, no budget-gate.bats edits.
+
+Re-review of 123d982 (rev-4) verified F-01 closed but filed F-1/F-3/OBS-A/OBS-B/OBS-C.
+This lane closes the re-review findings per developer direction:
+
+F-1 [Major] try_exception expiry compares committed expiry date to wall-clock
+TODAY even in range mode -> historical exception valid at commit time gets
+retroactively blocked (same bug class, time axis). Fix: in range mode evaluate
+expiry against the committer date of $EVAL_SHA (git log -1 --format=%ci
+$EVAL_SHA, date portion), hook mode keeps today. Fallback to today if git log
+fails or date malformed. Message now reports "before $eval_date" (commit date
+in range, today in hook).
+
+F-3 [Minor, auditor REJECT point] range mode with out-of-repo TICKETS_DIR
+silently fell back to disk ledger (pre-fix bug live under that config, no
+warn). Fix: range_mode emits one warn: line per run when TICKETS_REL empty:
+"budget gate: TICKETS_DIR outside gated repo ($TICKETS_DIR); range mode
+falling back to disk ledger (historical ticket status not per-commit; no warn
+per commit)" - M1 precedent (explicit override is loud).
+
+OBS-A: try_exception range branch had no regression test. Added ONE test to
+the companion file (GREEN-owned range-behavior home):
+"range exception expiry (F-01) and out-of-repo fallback warn (F-3): valid at
+H, expired today -> range PASSES" - fixture commits a Budget-Exception trailer
+whose exception record is valid+OPEN at historical commit H (expiry 2026-02-01
+after H's committer date 2026-01-01) but expired today (2026-09-09) -> range
+PASSES (hook would block). Plus assert F-3 warn fires on out-of-repo fallback
+(mandatory warn: line per run when range mode takes disk fallback). 5/5 green.
+
+F-2/OBS-B/OBS-C: ticket notes only (fail-closed existence drift accepted;
+comment accuracy). Updated misleading comments to match actual behavior:
+
+- 97-103 obs5 header: now states hook uses wall-clock today, range uses
+  committer date, and range emits one-time fallback warn.
+- 189-190 ticket_tree_first: was "same sorted head -1 contract as the disk ls",
+  now "Mirrors the disk fallback (ls -1 ... | sort | head -1) in sorted head -1
+  selection but sources from git ls-tree, so only in-repo ledgers apply."
+- 508 try_exception missing-record message: was blanket "in $TICKETS_DIR",
+  now mode-aware: tree $TICKETS_REL at $EVAL_SHA in range with in-repo ledger,
+  else disk $TICKETS_DIR.
+
+Changes:
+
+- scripts/check-budget-gate.sh: expiry eval_date branch, range fallback warn,
+  comment rewrites, TRY_EXCEPTION_LINE mode-aware.
+- scripts/**tests**/budget-gate-range-exemption.bats: added 1 test (now 5/5).
+- this ticket: this section.
+
+Verification (inside poetry-dev container, ASCII-only per DIA-079):
+
+- companion file green: 5/5 pass (exit 0) - obs1 2 + ticket-status 2 + expiry+F-3 1.
+- budget battery 34/34 pass (exit 0) via bats-wrapper filtered budget-gate tests.
+- make test-shell (bats-wrapper full suite): exit 0, 636 all ok (extended run 636).
+- make test-config: exit 0 (validate-opencode-config + agent-names + output-contracts + reviewer-sections + decision-variants + grilling-gate + plugin-structure all PASS).
+- bash -n scripts/check-budget-gate.sh: SYNTAX_OK (exit 0).
+- bats-wrapper.sh --quick: exit 0.
+- verify-pre-push guards: checked separately (see below).
+- pre-commit: no --no-verify (hook passed on commit).
+
+Files: scripts/check-budget-gate.sh, scripts/**tests**/budget-gate-range-exemption.bats, this ticket.
+
+ASCII-only per DIA-079 (no em-dashes, no smart quotes, no non-ASCII punctuation).
