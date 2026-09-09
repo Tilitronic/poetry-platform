@@ -921,7 +921,7 @@
 ## 2026-08-26 - DIA-260826-6mhy: opencode-config
 
 - **Change:** wire data-reducer skill into analyzer/analyzer-escalated skills arrays (8 presets) + analyzer prompt mandate (DIA-195)
-- **Files:** .opencode/opencode.jsonc - .opencode/oh-my-opencode-slim.jsonc
+- **Files:** .opencode/oh-my-opencode-slim.jsonc
 - **Verification:** make test-config exit 0 + grep assertion 8/8 analyzer skills arrays contain data-reducer (2026-08-26)
 
 ## 2026-08-26 - DIA-260826-spu5: config
@@ -989,3 +989,9 @@
 - **Change:** Extract delegation-observer responsibilities into seven production-wired seam modules
 - **Files:** .opencode/plugins/delegation-observer.ts - .opencode/plugins/lib/capability.ts - .opencode/plugins/lib/ticket-gate.ts - .opencode/plugins/lib/handoff.ts - .opencode/plugins/lib/registry.ts - .opencode/plugins/lib/stall-sweep.ts - .opencode/plugins/lib/formatter.ts - .opencode/plugins/lib/circuit-breaker.ts - scripts/validate-plugin-structure.sh - scripts/__tests__/validate-plugin-structure.bats
 - **Verification:** make test-config exit 0 (57 tests, incl. validate-plugin-structure Gate A/B/C 10/10, validate-plugin-loads Node+Bun Wy-compat PASS, validate-observer-dedupe PASS); bats 10/10 lib 270/270 integration 12/12 harness parity 3/3 perf p95 0.247ms shell 4093 lines; ai-auditor APPROVE cycle 2/2 O1-O3 verified-closed; temporary ai-auditor override ACTIVE (developer KEEP decision, uncommitted); implementation commit recorded at closure; learnings outcome: ai-auditor independent review APPROVE (cycle 2/2); cod-3 Bats fixture clobber root cause (restore_plugin after assert_status) fixed via BATS_TEST_TMPDIR isolation + checksum regression; shell recovered from dangling blob ec487dc3
+
+## 2026-09-09 - DIA-260909-tp5e: config
+
+- **Change:** Add muse-qwen-balanced routing preset (inactive): Muse 1.3 volume lanes + Qwen reasoning lanes, reviewer family fix, privacy containment; gate findings registered; registry 1.3 entry
+- **Files:** .opencode/oh-my-opencode-slim.jsonc - knowledge/model-registry.yaml - .opencode/promo-registry.json - .opencode/learnings/external-patterns/2026-09-09-dia-260909-tp5e-muse-qwen-balanced-gate-findings.md - docs/dev-infra-audit/tickets/DIA-260909-tp5e-add-muse-qwen-balanced-agent-routing-preset.md
+- **Verification:** manual

@@ -6,7 +6,7 @@ id: DIA-260909-tp5e
 title: "Add Muse Qwen balanced agent routing preset"
 area: opencode-config
 severity: Medium
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: ""
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
@@ -88,6 +88,7 @@ Files:
 - [ ] Privacy / lane-containment (7 acceptance criteria):
   1. Region smoke: provider pages 2026-09-09 confirm `muse-spark-1.3` region-limited availability; traffic limited to coder/researcher/conspecter + analyzer/openspec-plan fallback only.
   2. Lane-containment grep: `muse-spark-1.3-contributor` appears ONLY in `muse-qwen-balanced` on coder/researcher/conspecter primaries + analyzer/openspec-plan fallbacks; zero hits on orchestrator / ai-specialist / ai-auditor / coder-escalated / analyzer-escalated / council. Proof: `grep -n muse-spark-1.3 .opencode/oh-my-opencode-slim.jsonc` and `python3` JSONC lane check.
+     Proof 2026-09-09 (criterion 2 closure, ai-auditor note): orchestrator prompt byte-identity promo vs muse-qwen-balanced MATCH sha256 9fac033831404c8f928c68e0fcd711a0c6f46eb9c5605709d150c51f9d4c017a (5698 bytes, 15/25 text, no 60/75) via python3 jsonc-parse -- direct string extraction bypasses drift-checker exclusion and long-line truncation; drift checker remains 3-preset scope per oj59 holder.
   3. No-secrets rule for Muse lanes: coder/researcher/conspecter lanes flagged `privacy_notes: trains-on-data NOT-ZDR region-limited`; orchestrator/escalated/auditor lanes never route Muse.
   4. Registry honesty: `knowledge/model-registry.yaml` has `muse-spark-1.3-contributor` entry mirroring 1.2 fields + `swe_bench_verified: null` (benchmark-pending UNVERIFIED inherits 1.2 terms) + `privacy_notes: trains-on-data NOT-ZDR region-limited` + `source_ref: DIA-260909-tp5e 2026-09-09`; `.opencode/promo-registry.json` has `fetched_at: 2026-09-09` + `stale_at: 2026-09-16` (7-day volatile stamp).
   5. Inactive shipping: `git diff` shows new `muse-qwen-balanced` block added but `"preset": "promo"` unchanged; `jq .preset .opencode/oh-my-opencode-slim.jsonc` == `promo`.
@@ -96,7 +97,13 @@ Files:
 
 ## Fix
 
-> To be filled at fix time.
+Close 2026-09-09 DIA-260909-tp5e: variant A shipped INACTIVE at 918ff65 + finalize 2026-09-09 verification lane.
+
+- Preset muse-qwen-balanced added INACTIVE (preset pointer stays promo). All 17 agents, BYTE-IDENTICAL orchestrator prompt verified MATCH sha256 9fac033831404c8f928c68e0fcd711a0c6f46eb9c5605709d150c51f9d4c017a (5698 bytes, 15/25 text, no 60/75) via python3 jsonc-parse direct extraction (bypasses drift-checker exclusion and truncation).
+- ai-auditor APPROVE-WITH-NOTES: single note (indirect byte-identity proof via drift checker) CLOSED by this direct proof appended to Verification criterion 2.
+- Registry surfaces done: knowledge/model-registry.yaml 1.3 entry (mirror 1.2, benchmark-pending, privacy trains-on-data NOT-ZDR), .opencode/promo-registry.json fetched_at 2026-09-09 stale 2026-09-16, changelog entry added.
+- Activation preconditions remain in ticket Verification (region smoke, /models + restart smoke at activation time -- external user steps; they gate ACTIVATION, not shipping). No further code change needed for activation besides pointer-swap and live smoke.
+- Verification: make test-config exit 0, validate-agent-names exit 0, JSONC parse exit 0, check-orchestrator-prompt-drift exit 0, containment grep PASS, changelog schema PASS, pre-commit no bypass.
 
 ## Re-verify
 
