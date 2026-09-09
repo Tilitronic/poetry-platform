@@ -921,7 +921,7 @@
 ## 2026-08-26 - DIA-260826-6mhy: opencode-config
 
 - **Change:** wire data-reducer skill into analyzer/analyzer-escalated skills arrays (8 presets) + analyzer prompt mandate (DIA-195)
-- **Files:** .opencode/oh-my-opencode-slim.jsonc
+- **Files:** .opencode/opencode.jsonc - .opencode/oh-my-opencode-slim.jsonc
 - **Verification:** make test-config exit 0 + grep assertion 8/8 analyzer skills arrays contain data-reducer (2026-08-26)
 
 ## 2026-08-26 - DIA-260826-spu5: config

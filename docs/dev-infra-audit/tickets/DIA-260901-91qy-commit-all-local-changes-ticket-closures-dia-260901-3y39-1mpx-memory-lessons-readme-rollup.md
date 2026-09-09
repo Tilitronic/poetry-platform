@@ -60,6 +60,35 @@ Context: Follow-up to DIA-260901-3y39 and DIA-260901-1mpx closures. Commit is a 
 
 ## Fix
 
+## UPDATE 2026-09-09 - revert + repack of snapshot 9c1d365 (retain/revert manifest, recorded BEFORE history rewrite)
+
+Attribution: task_result on cod-12 ses_f79a1b58effesDYC0jXhsjnxkN was attempted and returned "does not belong to this session", so no verbatim lane content is available. The manifest below is the developer order as received in the dispatch payload.
+
+Context: branch omo-slim-changes is unpushed, history rewrite is declared safe, no push will occur. Soft-reset target 7fa7aae (9c1d365 parent). 1180470 content is rebuilt on top byte-identical.
+
+REVERT no-discussion (restore from 7fa7aae, drop from branch now):
+(a) .opencode/opencode.jsonc untagged coder-escalated removal (Kimi K3 model + comment replaced by preset-owned text) - full file restore.
+(b) slim untagged ai-auditor model swap (gpt-5.3-codex -> deepseek-v4-pro first fallback) - no conscious-permanent record exists - full file restore (every slim hunk is REVERT or HOLD, net parent state).
+
+HOLD (revert from branch now, re-apply ONLY via separate 2.5 chains):
+
+- slim tp5e preset flip (preset promo -> muse-qwen-balanced) + muse-qwen-balanced block.
+- slim oj59 60/75 threshold hunks (opencode-go/cebula/promo/free prompts 15/25 -> 60/75).
+- delegation-observer.ts threshold rename (threshold_15/25pct -> 60/75pct + description text).
+- NEXT-RUN.md threshold text (15% -> 60%, 25% -> 75% + added handoff-vs-compaction note).
+- drift scripts+bats: VERIFIED RED - new checker vs parent slim config FAILs (4 gaps, exit 1); parent checker vs parent config PASSes (3 presets, 0 gaps, exit 0). New scripts cannot live without new config, hold both.
+- tp5e CHANGELOG.md entry + CHANGELOG.yaml tp5e entry + 737-line reformatting churn - CHANGELOG.yaml full restore to parent; CHANGELOG.md keeps ONLY the 6mhy line.
+
+KEEP as thematic commits:
+
+- o7n0 memory: .opencode/memory-shelf.yaml + .opencode/memory/lessons.md + .opencode/memory/failures.md.
+- 6mhy 1-line Files fix in .opencode/CHANGELOG.md.
+- tickets README.md rows for existing OPEN tickets (o7n0/oj59/tp5e rows + counts).
+
+LEAVE AS-IS: 1180470 content (10 files, 1434 insertions) rebuilt on top byte-identical.
+
+Repack: soft-reset to 7fa7aae, two thematic commits (DIA-260903-o7n0 memory / DIA-260901-91qy ledger), rebuild 1180470, prove no content loss via tree diff vs original tip (only intended REVERT/HOLD files may differ).
+
 > To be filled at fix time.
 
 ## Re-verify
