@@ -46,7 +46,7 @@ cd poetry-platform-monorepo
 pnpm install
 pnpm dev          # starts all apps in dev mode
 pnpm build        # builds everything
-pnpm test         # runs all tests
+pnpm test         # runs workspace JS tests
 pnpm --filter @poetry/editor-engine test  # test a specific package
 ```
 
@@ -277,28 +277,34 @@ YOU: "Add heteronym resolution to the editor"
 | Package               | What it does                                      | Tests                                         |
 | --------------------- | ------------------------------------------------- | --------------------------------------------- |
 | `editor-engine`       | CodeMirror 6 editor + Signia state + orchestrator | ✅ 91 tests                                   |
-| `data-contracts`      | JSON Schema shared across all packages            | 🔲 Not yet                                    |
+| `data-contracts`      | JSON Schema shared across all packages            | ✅ vitest                                     |
 | `stress-lang-core`    | W1 worker: lang detection + WASM stress           | deleted 2026-08-25, re-scaffold when W1 lands |
-| `phonetics-core`      | W2 worker: IPA + metrics + ring buffer            | 🔲 Not yet                                    |
+| `phonetics-core`      | W2 worker: IPA + metrics + ring buffer            | ✅ vitest                                     |
 | `visualizer-2d`       | D3 SVG (interactive + SSR template)               | 🔲 Not yet                                    |
 | `visualizer-3d`       | TresJS/Three.js (lazy dynamic import)             | 🔲 Not yet                                    |
 | `analytics-pipeline`  | Python: offline analytics (NumPy, asyncpg)        | 🔲 Not yet                                    |
-| `author-studio`       | Quasar 2 + Vue 3 SPA (main editor app)            | 🔲 Not yet                                    |
+| `author-studio`       | Quasar 2 + Vue 3 SPA (main editor app)            | ✅ vitest                                     |
 | `publishing-platform` | Nuxt 3 SSR (public reader — stub)                 | deleted 2026-08-25, re-scaffold when W1 lands |
 | `api-server`          | FastAPI (Python — lives in `apps/api-server`)     | 🔲 Not yet                                    |
 
 ### Root Commands
 
-| Command                 | What it does               |
-| ----------------------- | -------------------------- |
-| `pnpm dev`              | Start all apps in dev mode |
-| `pnpm build`            | Build everything           |
-| `pnpm test`             | Run all tests (via turbo)  |
-| `pnpm lint`             | Lint all code              |
-| `pnpm typecheck`        | TypeScript type checking   |
-| `pnpm format`           | Prettier formatting        |
-| `opencode`              | Start AI assistant         |
-| `opencode agent create` | Create a new AI agent      |
+| Command                 | What it does                       |
+| ----------------------- | ---------------------------------- |
+| `pnpm dev`              | Start all apps in dev mode         |
+| `pnpm build`            | Build everything                   |
+| `pnpm test`             | Run workspace JS tests (via turbo) |
+| `pnpm lint`             | Lint all code                      |
+| `pnpm typecheck`        | TypeScript type checking           |
+| `pnpm format`           | Prettier formatting                |
+| `opencode`              | Start AI assistant                 |
+| `opencode agent create` | Create a new AI agent              |
+
+> Note: `pnpm test` covers only the workspace JS suites (vitest via turbo:
+> author-studio, data-contracts, editor-engine, phonetics-core). It does not
+> cover shell/config (`make test-shell`, `make test-config`), Python
+> (`make test-python`), plugins, or the embedded OMO suites (`make test-omo`).
+> For the full gate, run `pnpm test && make test-infra && make test-config && make test-omo`.
 
 ### OpenCode Custom Commands (Ctrl+K)
 
