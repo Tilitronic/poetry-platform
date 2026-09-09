@@ -112,6 +112,11 @@ mockOpencodePlugin()
 
 const workspaceCleanups = []
 afterEach(() => {
+  // FAIL-1 adoption: explicit mock teardown via the helper restore handle
+  // (re-registers the pristine snapshot; mock.restore() alone does NOT undo
+  // mock.module()). afterEach runs even when a test throws, so a failure
+  // cannot leak this file's mock into the next consumer.
+  childMock.restore()
   while (workspaceCleanups.length) {
     const fn = workspaceCleanups.pop()
     try {
@@ -139,6 +144,9 @@ const NI_TITLE_BOOT_KEY = Symbol.for("needs-input-observer.titleSuffixBootDone")
 const NI_TOAST_KEY = Symbol.for("needs-input-observer.notifiedAsks")
 const NI_TICKER_BOOT_KEY = Symbol.for("needs-input-observer.tickerBootSeeded")
 beforeEach(() => {
+  // FAIL-1 adoption: fresh mock per test (file-local handle, NOT global).
+  childMock = mockChildProcess("needs-input")
+  spawnCalls = childMock.spawnCalls
   globalThis[NI_PERM_TIMERS_KEY] = undefined
   globalThis[NI_TITLE_BOOT_KEY] = undefined
   globalThis[NI_TOAST_KEY] = undefined
@@ -150,7 +158,11 @@ beforeEach(() => {
 // mock must be registered BEFORE the plugin module is loaded -> dynamic
 // import below. The spy records (cmd, args, opts); args[2] is the
 // PowerShell -Command script carrying the sanitized title/body.
-const { spawnCalls } = mockChildProcess("needs-input")
+// File-local handle (NOT global): rebound in beforeEach so every test gets a
+// fresh spy, torn down in afterEach via restore(). Use sites below keep
+// referencing spawnCalls, which beforeEach keeps current.
+let childMock = mockChildProcess("needs-input")
+let spawnCalls = childMock.spawnCalls
 
 // Import AFTER mock.module registration (dynamic import defeats ESM hoisting).
 const { default: createNeedsInputObserver, sessionWordPair } = await import(

@@ -56,6 +56,11 @@ mockOpencodePlugin()
 
 const workspaceCleanups = []
 afterEach(() => {
+  // FAIL-1 adoption: explicit mock teardown via the helper restore handle
+  // (re-registers the pristine snapshot; mock.restore() alone does NOT undo
+  // mock.module()). afterEach runs even when a test throws, so a failure
+  // cannot leak this file's mock into the next consumer.
+  childMock.restore()
   while (workspaceCleanups.length) {
     const fn = workspaceCleanups.pop()
     try {
@@ -76,7 +81,11 @@ afterEach(() => {
 // Registered BEFORE the plugin import (dynamic import below defeats ESM
 // hoisting). Each captured call carries emitError(err) so tests drive the
 // child.on("error") path synchronously - the ENOENT/EACCES simulation.
-const { spawnCalls } = mockChildProcess("needs-input")
+// File-local handle (NOT global): rebound in beforeEach so every test gets a
+// fresh spy, torn down in afterEach via restore(). Use sites below keep
+// referencing spawnCalls, which beforeEach keeps current.
+let childMock = mockChildProcess("needs-input")
+let spawnCalls = childMock.spawnCalls
 
 // ---- node:fs mock: real fs + virtual WSL markers ----
 // Capture the REAL existsSync value before registering the mock so the
@@ -192,6 +201,9 @@ const realDateNow = Date.now.bind(Date)
 const realWarn = console.warn
 
 beforeEach(() => {
+  // FAIL-1 adoption: fresh mock per test (file-local handle, NOT global).
+  childMock = mockChildProcess("needs-input")
+  spawnCalls = childMock.spawnCalls
   spawnCalls.length = 0
   wslMarkers.clear()
   warns.length = 0
@@ -211,7 +223,6 @@ afterEach(() => {
   Date.now = realDateNow
   console.warn = realWarn
 })
-
 // ---------------------------------------------------------------------------
 // P1 RED: platform gate - pure linux, no WSL markers -> never spawn
 // ---------------------------------------------------------------------------

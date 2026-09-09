@@ -20,13 +20,18 @@
  *     'cd /workspace/.opencode/plugins/__tests__ && \
  *      bun test dia220-apoptosis-paracrine.test.mjs'
  */
-import { test, expect, describe, afterEach } from "bun:test"
+import { test, expect, describe, beforeEach, afterEach } from "bun:test"
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import { createTempWorkspace, mockOpencodePlugin, createHarness, mockChildProcess } from "./helpers/plugin-harness.mjs"
 
 const workspaceCleanups = []
 afterEach(() => {
+  // FAIL-1 adoption: explicit mock teardown via the helper restore handle
+  // (re-registers the pristine snapshot; mock.restore() alone does NOT undo
+  // mock.module()). afterEach runs even when a test throws, so a failure
+  // cannot leak this file's mock into the next consumer.
+  childMock.restore()
   while (workspaceCleanups.length) {
     const fn = workspaceCleanups.pop()
     try {
@@ -55,7 +60,17 @@ mockOpencodePlugin()
 // configurable porcelain buffer; everything else returns success.
 // Both exports are stubbed because bun 1.3.14 mock.module leaks across
 // files in one run (same pattern as needs-input-observer.dia189.test.mjs).
-const { spawnCalls, setPorcelain } = mockChildProcess("porcelain")
+// File-local handle (NOT global): rebound in beforeEach so every test gets a
+// fresh spy, torn down in afterEach via restore(). Use sites below keep
+// referencing spawnCalls/setPorcelain, which beforeEach keeps current.
+let childMock = mockChildProcess("porcelain")
+let spawnCalls = childMock.spawnCalls
+let setPorcelain = childMock.setPorcelain
+beforeEach(() => {
+  childMock = mockChildProcess("porcelain")
+  spawnCalls = childMock.spawnCalls
+  setPorcelain = childMock.setPorcelain
+})
 
 // Dynamic import AFTER mock.module registration (defeats ESM hoisting).
 

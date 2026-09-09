@@ -27,6 +27,11 @@ mockOpencodePlugin()
 
 const workspaceCleanups = []
 afterEach(() => {
+  // FAIL-1 adoption: explicit mock teardown via the helper restore handle
+  // (re-registers the pristine snapshot; mock.restore() alone does NOT undo
+  // mock.module()). afterEach runs even when a test throws, so a failure
+  // cannot leak this file's mock into the next consumer.
+  childMock.restore()
   while (workspaceCleanups.length) {
     const fn = workspaceCleanups.pop()
     try {
@@ -49,13 +54,18 @@ const NI_TITLE_BOOT_KEY = Symbol.for("needs-input-observer.titleSuffixBootDone")
 const NI_TOAST_KEY = Symbol.for("needs-input-observer.notifiedAsks")
 const NI_TICKER_BOOT_KEY = Symbol.for("needs-input-observer.tickerBootSeeded")
 beforeEach(() => {
+  // FAIL-1 adoption: fresh mock per test (file-local handle, NOT global).
+  childMock = mockChildProcess("needs-input")
   globalThis[NI_PERM_TIMERS_KEY] = undefined
   globalThis[NI_TITLE_BOOT_KEY] = undefined
   globalThis[NI_TOAST_KEY] = undefined
   globalThis[NI_TICKER_BOOT_KEY] = undefined
 })
 
-mockChildProcess("needs-input")
+// File-local handle (NOT global): rebound in beforeEach, torn down in
+// afterEach via restore(). The spy array is unused here; the registration
+// itself is what the plugin import below binds to.
+let childMock = mockChildProcess("needs-input")
 
 const { default: createNeedsInputObserver } = await import("../needs-input-observer.ts")
 

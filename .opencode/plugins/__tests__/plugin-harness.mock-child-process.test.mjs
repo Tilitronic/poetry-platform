@@ -82,6 +82,22 @@ test("probe stdout classifies per the production trim rule", async () => {
   }
 })
 
+test("consumer cleanup hands originals to the next consumer (cross-consumer contract)", async () => {
+  // Consumer A installs a module mock and observes mocked behavior.
+  const consumerA = mockChildProcess("needs-input")
+  const duringA = await import("node:child_process")
+  expect(() => duringA.spawnSync("git", ["--version"], {})).toThrow("spawnSync not mocked")
+  // Consumer A cleanup runs (the afterEach restore() adopted by consumers).
+  consumerA.restore()
+  // Consumer B subsequently observes original module behavior.
+  const consumerB = await import("node:child_process")
+  const res = consumerB.spawnSync("git", ["--version"], { encoding: "utf-8" })
+  expect(res.status).toBe(0)
+  expect(String(res.stdout)).toMatch(/git version/)
+  // Leave-no-trace: re-register the file end-state behavior.
+  mockChildProcess("porcelain")
+})
+
 test("second mockChildProcess registration replaces the first", async () => {
   const first = mockChildProcess("porcelain")
   first.setPorcelain("FIRST\n")

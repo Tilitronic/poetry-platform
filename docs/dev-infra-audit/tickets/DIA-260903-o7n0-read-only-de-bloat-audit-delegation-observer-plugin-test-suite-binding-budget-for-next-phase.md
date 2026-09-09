@@ -212,3 +212,42 @@ test 12352 (+38 = +20 contract tests, +18 helper isolation + fail-loud;
 new coverage, not duplication). Method: wc -l over plugin test mjs files.
 
 ASCII-only per DIA-079 (no em-dashes, no smart quotes, no non-ASCII punctuation).
+
+## Re-verify -- D4 close-out: FAIL-1 restore-handle adoption (2026-09-09, on top of e3744fa)
+
+Scope: auditor FAIL-1 restore-handle adoption ONLY. Untouched:
+cleanup-block duplication, dia220:299 em-dash, B archive pairs, G wy-guards,
+7 known environment failures, helper (no new options/exports, 4 max kept).
+
+Adoption (uniform file-local pattern, no global registry, no global
+child_process mock): each of the four consumers holds a file-local
+`childMock`, re-installs a fresh mock in beforeEach (rebinding the
+`spawnCalls`/`setPorcelain` lets use sites use), and calls
+`childMock.restore()` at the top of the existing afterEach - which runs
+even when a test throws, so a failure cannot leak a mock. Uses
+handle.restore() (pristine-snapshot re-registration), never mock.restore()
+alone. Files: dia220-apoptosis-paracrine (+beforeEach import),
+needs-input-observer.dia189, needs-input-observer.platform-gate,
+needs-input-observer.ticker-expiry (discarded handle now captured).
+Contract file: +1 cross-consumer regression (consumer A installs mock and
+observes mocked throw, A cleanup runs, consumer B observes real
+git --version status 0; ends with leave-no-trace re-registration).
+
+Verification (workdir .opencode/plugins/**tests** unless noted):
+new cross-consumer test file total: 9 pass 0 fail exit 0
+focused (4 consumers + contract): 63 pass 6 fail exit 1 (6 = known dia189)
+full suite (27 files): 451 pass 1 skip 7 fail exit 1
+fail-set identical to fix-2 baseline: 6x dia189 A2/A3/A3b/A3c/A3d/A3e
+("no powershell.exe spawn captured" WSL artifact) + 1x parallel-handoff
+S1 archive-on-overwrite
+harness replay (repo workdir): 3/3 exit 0
+structural Bats (repo workdir, make test-shell): exit 0, 614 ok, 0 not ok
+eslint on 5 touched test files: exit 0; prettier --check: exit 0
+added lines ASCII-only (pre-existing Cyrillic test data + deferred
+em-dash untouched)
+
+Budget: prod 5814 unchanged (shell 4037 unchanged, acceptance gate holds);
+test 12416 (+64 restore adoption + cross-consumer test; new coverage, not
+duplication). Method: wc -l over plugin test mjs files.
+
+ASCII-only per DIA-079 (no em-dashes, no smart quotes, no non-ASCII punctuation).
