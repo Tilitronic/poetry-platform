@@ -235,7 +235,7 @@
 | DIA-260827-5blh | [MEDIUM] Handoff identity permits path traversal | opencode-config | Medium | OPEN | [DIA-260827-5blh-medium-handoff-identity-permits-path-traversal.md](DIA-260827-5blh-medium-handoff-identity-permits-path-traversal.md) |
 | DIA-260827-5lvx | Shell test execution not runner-reproducible across machines | scripts | Medium | OPEN | [DIA-260827-5lvx-shell-test-execution-not-runner-reproducible-across-machines.md](DIA-260827-5lvx-shell-test-execution-not-runner-reproducible-across-machines.md) |
 | DIA-260827-6g6r | OpenSpec CLI commands unreachable from skills and agents | opencode-config | High | OPEN | [DIA-260827-6g6r-openspec-cli-commands-unreachable-from-skills-and-agents.md](DIA-260827-6g6r-openspec-cli-commands-unreachable-from-skills-and-agents.md) |
-| DIA-260827-6mhp | Docs overstate pnpm test as all tests | docs | Low | OPEN | [DIA-260827-6mhp-docs-overstate-pnpm-test-as-all-tests.md](DIA-260827-6mhp-docs-overstate-pnpm-test-as-all-tests.md) |
+| DIA-260827-6mhp | Docs overstate pnpm test as all tests | docs | Low | CLOSED | [DIA-260827-6mhp-docs-overstate-pnpm-test-as-all-tests.md](DIA-260827-6mhp-docs-overstate-pnpm-test-as-all-tests.md) |
 | DIA-260827-6wvm | Embedded OMO suite excluded from root tests hides orchestrator alias regression | tests | High | CLOSED | [DIA-260827-6wvm-embedded-omo-suite-excluded-from-root-tests-hides-orchestrator-alias-regression.md](DIA-260827-6wvm-embedded-omo-suite-excluded-from-root-tests-hides-orchestrator-alias-regression.md) |
 | DIA-260827-7mtr | Product test coverage concentrated in two narrow modules | tests | Medium | OPEN | [DIA-260827-7mtr-product-test-coverage-concentrated-in-two-narrow-modules.md](DIA-260827-7mtr-product-test-coverage-concentrated-in-two-narrow-modules.md) |
 | DIA-260827-8la4 | [MEDIUM] Model routing sources disagree (registry vs prompt vs runtime) | opencode-config | Medium | OPEN | [DIA-260827-8la4-medium-model-routing-sources-disagree-registry-vs-prompt-vs-runtime.md](DIA-260827-8la4-medium-model-routing-sources-disagree-registry-vs-prompt-vs-runtime.md) |
@@ -292,8 +292,10 @@
 | DIA-260902-eqgg | Refactor delegation-observer plugin: extract 6 subsystems into lib modules (SRP, DIA-260901-3y39 F1) | opencode-config | Major | CLOSED | [DIA-260902-eqgg-refactor-delegation-observer-plugin-extract-6-subsystems-into-lib-modules-srp-dia-260901-3y39-f1.md](DIA-260902-eqgg-refactor-delegation-observer-plugin-extract-6-subsystems-into-lib-modules-srp-dia-260901-3y39-f1.md) |
 | DIA-260903-o7n0 | read-only de-bloat audit: delegation-observer plugin test suite + binding budget for next phase | opencode-config | Major | CLOSED | [DIA-260903-o7n0-read-only-de-bloat-audit-delegation-observer-plugin-test-suite-binding-budget-for-next-phase.md](DIA-260903-o7n0-read-only-de-bloat-audit-delegation-observer-plugin-test-suite-binding-budget-for-next-phase.md) |
 | DIA-260903-oj59 | self-rerun thresholds: 60% primary / 75% safety-net (new default) | opencode-config | Medium | OPEN | [DIA-260903-oj59-self-rerun-thresholds-60-primary-75-safety-net-new-default.md](DIA-260903-oj59-self-rerun-thresholds-60-primary-75-safety-net-new-default.md) |
-| DIA-260909-9c9x | whitespace polish for already-committed files | scripts | Low | OPEN | [DIA-260909-9c9x-whitespace-polish-for-already-committed-files.md](DIA-260909-9c9x-whitespace-polish-for-already-committed-files.md) |
+| DIA-260909-18f4 | Evaluate replacing Qwen3.8 Flash with OpenAI GPT-5.6 Terra High in agent routing | opencode-config | Medium | OPEN | [DIA-260909-18f4-evaluate-replacing-qwen3-8-flash-with-openai-gpt-5-6-terra-high-in-agent-routing.md](DIA-260909-18f4-evaluate-replacing-qwen3-8-flash-with-openai-gpt-5-6-terra-high-in-agent-routing.md) |
+| DIA-260909-9c9x | whitespace polish for already-committed files | scripts | Low | CLOSED | [DIA-260909-9c9x-whitespace-polish-for-already-committed-files.md](DIA-260909-9c9x-whitespace-polish-for-already-committed-files.md) |
 | DIA-260909-9i1o | consolidate duplicated budget-gate bats fixture setup | scripts | Medium | OPEN | [DIA-260909-9i1o-consolidate-duplicated-budget-gate-bats-fixture-setup.md](DIA-260909-9i1o-consolidate-duplicated-budget-gate-bats-fixture-setup.md) |
+| DIA-260909-csds | Activate Muse Qwen balanced preset and persist project default | opencode-config | Medium | OPEN | [DIA-260909-csds-activate-muse-qwen-balanced-preset-and-persist-project-default.md](DIA-260909-csds-activate-muse-qwen-balanced-preset-and-persist-project-default.md) |
 | DIA-260909-fkiy | extract repeated workspace-cleanup retry loops into helpers plugin-harness | opencode-config | Medium | OPEN | [DIA-260909-fkiy-extract-repeated-workspace-cleanup-retry-loops-into-helpers-plugin-harness.md](DIA-260909-fkiy-extract-repeated-workspace-cleanup-retry-loops-into-helpers-plugin-harness.md) |
 | DIA-260909-sazr | remove RED-era factory and alias probes from observer-lib test suites | opencode-config | Medium | OPEN | [DIA-260909-sazr-remove-red-era-factory-and-alias-probes-from-observer-lib-test-suites.md](DIA-260909-sazr-remove-red-era-factory-and-alias-probes-from-observer-lib-test-suites.md) |
 | DIA-260909-tp5e | Add Muse Qwen balanced agent routing preset | opencode-config | Medium | CLOSED | [DIA-260909-tp5e-add-muse-qwen-balanced-agent-routing-preset.md](DIA-260909-tp5e-add-muse-qwen-balanced-agent-routing-preset.md) |
@@ -306,7 +308,7 @@
 | Blocker  | 9     |
 | Critical | 15    |
 | Major    | 73    |
-| Medium   | 150   |
+| Medium   | 152   |
 | Minor    | 1     |
 | Low      | 26    |
 | Info     | 2     |
@@ -323,7 +325,7 @@
 | FIXED       | 1     |
 | IMPLEMENTED | 2     |
 | VERIFIED    | 28    |
-| CLOSED      | 166   |
+| CLOSED      | 168   |
 | BLOCKED     | 0     |
 | DISPATCHED  | 0     |
 | RUNNING     | 0     |
