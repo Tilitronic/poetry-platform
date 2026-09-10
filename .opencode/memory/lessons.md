@@ -2413,6 +2413,22 @@ recorded here). Irrecoverable process lessons:
 - Why irrecoverable: the rollup side-effect (sazr CLOSED->OPEN flip) is a runtime observation about how the rollup script recomputes against live frontmatter, not a code defect. Future operators may be surprised by cross-ticket status flips during rollup.
 - Cross-reference: DIA-260909-9api, DIA-260909-sazr.
 
+## L20260909-9i1o-001 - GNU env last-wins override for shared fixture helpers (DIA-260909-9i1o, 2026-09-10)
+
+- Observation: the consolidated `budget_run_hook` and `budget_run_range` helpers in test-helper.bash set `TICKETS_DIR="$BATS_TEST_TMPDIR/tickets"` as a default in the `env` invocation. When callers pass extra env assignments (e.g. `TICKETS_DIR=<custom_dir>`) after the helper's built-in assignment, GNU coreutils `env` applies last-wins semantics: the caller's value silently overrides the helper's default.
+- Why this matters: the override is non-obvious. A reader seeing `budget_run_hook "$tree" "$msg" TICKETS_DIR="$custom"` would not know whether the helper's `TICKETS_DIR=...` or the caller's `TICKETS_DIR=...` wins without understanding GNU env's last-wins behavior. The override IS the intended design (callers who need a non-default tickets dir pass it explicitly), but the mechanism is not documented in the helper's interface.
+- Operational rule: when a helper function passes env assignments to `env VAR=val ... command`, document that caller-provided env assignments after the helper's defaults override via GNU env last-wins. Do not assume the helper's value is authoritative if the caller passes the same variable name. This is a GNU coreutils behavior, not POSIX-portable (BusyBox env may differ).
+- Why irrecoverable: the override mechanism is a runtime behavior of GNU env, not stated in the helper's comments or any test. A fresh agent reading the helper would not know that caller env assignments silently override the helper's defaults without understanding the `env` command's evaluation order.
+- Cross-reference: DIA-260909-9i1o, scripts/__tests__/test-helper.bash:418-437 (budget_run_hook/budget_run_range).
+
+## L20260909-9i1o-002 - Bulk-rename double-prefix pitfall when consolidating fixture helpers (DIA-260909-9i1o, 2026-09-10)
+
+- Observation: when extracting local fixture functions (e.g. `write_manifest`, `seed_campaign_ticket`) into shared helpers with a namespace prefix (e.g. `budget_write_manifest`, `budget_seed_campaign_ticket`), a naive find-and-replace can produce double-prefixed names like `budget_budget_write_manifest` if the rename is applied to text that already contains the prefix (e.g. a comment referencing the old name alongside the new name).
+- The specific miss: during DIA-260909-9i1o the reviewer's rev-1 Standards axis caught 3 call sites in the test files where the rename was incomplete or double-prefixed. The misses occurred because the bulk rename was applied per-file but the grep for remaining old-name references did not account for the new prefix already being present in some contexts.
+- Operational rule: when bulk-renaming fixture functions with a namespace prefix, (1) grep for the OLD name after the rename to catch remaining references, (2) grep for double-prefix patterns (e.g. `budget_budget_`) to catch over-renames, and (3) verify that every call site in the test files matches the new helper signature. Do not rely on a single pass of find-and-replace; the rename needs a two-pass verification (old-name-absent + no-double-prefix).
+- Why irrecoverable: the 3-test miss was caught by reviewer Standards inspection, not by any automated check. The final commit (89ce9fc) contains only the corrected names; the double-prefix misses and their detection are review-process behavior not visible in the diff.
+- Cross-reference: DIA-260909-9i1o, commit 89ce9fc, reviewer rev-1 Standards findings.
+
 ## L20260827-001 - DIA-175 same-session fix-loop fails when implementer session pruned from reusable list; fresh-session fallback with full-context prompt succeeded (DIA-260827-36ht, 2026-08-27)
 
 - Observation: the DIA-175 same-session fix-loop policy (resume the original coder session by task_id for fix loops) failed twice when attempting to revive the implementer session (cod-10). The session had been pruned from the reusable list (session no longer available for resume). Both revive attempts returned empty/error. The recovery was a fresh-session dispatch with the full context prompt embedded in the dispatch payload.

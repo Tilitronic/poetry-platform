@@ -4578,3 +4578,10 @@
   verification: 'make test-config EXIT=0 post-registry-fix (2026-09-10, F5): 61 PASS
     0 FAIL; decision-variants 337 passed; plugin-structure all gates PASS'
   area: config
+- date: '2026-09-10'
+  ticket: DIA-260909-9i1o
+  scope: plugins
+  files: []
+  summary: 'fixture dedup: resolve test flake via state cleanup'
+  verification: manual
+  area: test-infra

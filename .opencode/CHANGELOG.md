@@ -1031,3 +1031,9 @@
 - **Change:** ai-auditor Sol registry metadata fix: direct OpenAI pricing short 4/20 over-272K 8/30 per 1M, alias/variant note
 - **Files:** knowledge/model-registry.yaml
 - **Verification:** make test-config EXIT=0 post-registry-fix (2026-09-10, F5): 61 PASS 0 FAIL; decision-variants 337 passed; plugin-structure all gates PASS
+
+## 2026-09-10 - DIA-260909-9i1o: plugins
+
+- **Change:** fixture dedup: resolve test flake via state cleanup
+- **Files:** 
+- **Verification:** manual

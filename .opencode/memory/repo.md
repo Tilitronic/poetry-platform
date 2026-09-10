@@ -385,3 +385,18 @@ Note: These are navigational facts to help future humans find the infra/test art
   hitting identical hook-stage stash errors on staged content should check
   stash ref file ownership before retrying. Distinct from the root-owned
   ticket file pattern (failures.md line 345) but same ownership mechanism.
+
+- test-helper.bash budget-fixture boundary (DIA-260909-9i1o, 2026-09-10):
+  `scripts/__tests__/test-helper.bash` lines 367-444 is the canonical location
+  for shared budget-gate fixture primitives. The boundary (design D2): only
+  byte-equivalent setup lives here -- manifest writing with an explicit
+  baseline count (`budget_write_manifest`), campaign-ticket seeding
+  (`budget_seed_campaign_ticket`), git repo init (`budget_git_init`), and
+  hook/range invocation wrappers (`budget_run_hook`, `budget_run_hook_in_repo`,
+  `budget_run_range`, `budget_run_range_in_repo`). Tree shapes, commits,
+  scenario data, and assertions stay suite-local. Callers needing a non-default
+  tickets directory pass `TICKETS_DIR=<dir>` as an extra env assignment; GNU
+  env last-wins applies (see L20260909-9i1o-001). Falsification probes
+  F1 (TICKETS_DIR override), F2 (in-repo manifest), F3 (range scoping) all
+  confirmed with targeted bats evidence. Before/after parity: 40/40 tests,
+  full suite 638 ok, exit 0.

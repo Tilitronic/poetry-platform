@@ -6,7 +6,7 @@ id: DIA-260909-9i1o
 title: "consolidate duplicated budget-gate bats fixture setup"
 area: scripts
 severity: Medium
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: "DIA-260903-o7n0"
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
@@ -17,7 +17,7 @@ discovered: 2026-09-09
 source: inventory
 date: 2026-09-09
 created: 2026-09-09
-updated: 2026-09-09
+updated: 2026-09-10
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -30,7 +30,12 @@ attempts: 0
 lease_expires_at: "" # ISO-8601; set on DISPATCHED, cleared on COMPLETE
 files_touched: []
 artifacts: []
-evidence: []
+evidence:
+
+- commit:89ce9fc
+- rev-1-standards-0-spec-0
+- probes-F1-F3-CONFIRMED
+- make-test-shell-638-pass
 
 ---
 
@@ -59,7 +64,21 @@ Source: ponytail audit item 4, DIA-260903-o7n0 follow-up. Campaign ticket DIA-26
 
 ## Fix
 
-> To be filled at fix time.
+CLOSED per ticket closure campaign ticket DIA-260909-9i1o.
+
+Implementing commit 89ce9fc landed. Closure rationale and parity evidence:
+
+- Implementing commit: 89ce9fc (budget-gate bats fixture setup consolidated
+  into a single shared helper; all callers updated).
+- Spec validated against ticket Verification section: no duplicated setup
+  blocks remain (single definition confirmed), production modules / capability
+  loader guards / checksum logic untouched.
+- Review rev-1: Standards 0 findings, Spec 0 findings.
+- Probes F1-F3: CONFIRMED.
+- make test-shell (bats): 638 pass / 0 fail, exit 0.
+- Memory persisted (lessons/failures recorded).
+
+Ticket Verification checkboxes are satisfied by the above evidence; closing.
 
 ## Re-verify
 
