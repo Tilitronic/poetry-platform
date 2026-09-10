@@ -48,6 +48,7 @@ files and line references where known.>
 > To be filled at fix time.
 
 ## Re-verify
+
 CLOSED as OBSOLETE per triage verdict.
 Rationale: Ox Alpha model unavailable, so the cebula-ox-alpha preset is not actionable.
 No fix landed under this ticket; no re-verify run. Campaign ticket DIA-260824-1c3e.

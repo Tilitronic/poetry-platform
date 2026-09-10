@@ -48,6 +48,7 @@ files and line references where known.>
 > To be filled at fix time.
 
 ## Re-verify
+
 CLOSED as OUTDATED per triage verdict.
 Rationale: fix already landed; the persistent input-area banner issue is resolved.
 No further action under this ticket.

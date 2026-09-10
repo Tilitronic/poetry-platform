@@ -47,6 +47,7 @@ Run scripts/validate-plugin-loads.sh from an arbitrary checkout path; assert it 
 Derive the repo root from the script's own location instead of a hardcoded absolute path; use a canonical file URL; add a fixture that exercises two distinct checkout paths.
 
 ## Re-verify
+
 CLOSED as RESOLVED per triage verdict.
 Rationale: plugin load validator is portable already; no hardcoded-path failure remains.
 If a portability fixture is wanted, file it as a new separate Low ticket; out of scope here.

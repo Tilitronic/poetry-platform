@@ -90,6 +90,7 @@ unverified and accepted as a conscious decision.
   documenting the tuning.
 
 ## Re-verify
+
 CLOSED as SUPERSEDED per triage verdict.
 Rationale: superseded by DIA-260827-qc59 (OpenAI-free cebula HY3 preset with role-based reasoning) plus DIA-260827-x99j (hy3 model-id replacement).
 No separate fix under this ticket.

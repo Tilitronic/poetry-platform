@@ -48,6 +48,7 @@ files and line references where known.>
 > To be filled at fix time.
 
 ## Re-verify
+
 CLOSED as SUPERSEDED per triage verdict.
 Rationale: superseded by DIA-260909-uv53 (ai-auditor model swap to OpenAI GPT-5.6 Sol Medium), which covers the ai-auditor model-id correction.
 No separate fix under this ticket.
