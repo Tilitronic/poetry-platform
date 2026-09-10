@@ -78,8 +78,8 @@ Rules:
   decision recorded in DIA-260831-ezyv (newer Bun may fix it or may carry
   its own regressions -- the bump is a tracked change, not an ad-hoc edit).
 - When a bump IS approved: change both ARG lines to the same version,
-  rebuild both images, run `opencode --version` and the standard
-  pre-commit/config gates, and record the new version in the ticket.
+  rebuild both images, run `bun --version` in each rebuilt image plus the
+  standard pre-commit/config gates, and record the new version in the ticket.
 - Until then: 1.3.14 stays pinned. This runbook mitigates operationally
   around the pinned version.
 
@@ -87,6 +87,10 @@ Rules:
 
 - Each crash emits a `bun.report` URL. That URL is the upstream artifact:
   it opens the pre-filled Bun GitHub issue form (crash report included).
+  It is NOT a filed issue, only the pre-filled form input.
+- Upstream Bun report status: PENDING developer decision to file or not.
+  Internal tracking is DIA-260831-ezyv. Upstream issue URL: TBD (fill in
+  here once filed).
 - Ticket Verification requires: crash report reviewed + GitHub issue filed,
   OR a recorded decision not to file. Check DIA-260831-ezyv for current
   state before filing duplicates.
