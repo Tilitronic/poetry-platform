@@ -6,7 +6,7 @@ id: DIA-260910-dx8c
 title: "zeik missed docs persistence adr failures learning openspec"
 area: opencode-config
 severity: Low
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: ""
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
@@ -69,3 +69,14 @@ Commit by fresh coder lane for campaign ticket DIA-260910-dx8c; CLOSED DIA-26090
 ## Re-verify
 
 > To be filled at re-verify time.
+
+## Closure
+
+Commit a5ac9c532b856bc6e119ce1c3984a59713bca8dc landed 2026-09-10.
+Scope: 6 files, 292 insertions, zeik docs only (adr.md +101 ADR,
+failures.md +23 modes, zeik gate learning, dedupe .openspec.yaml +
+interview.md, this tracker). Excluded: csds learning file (unrelated
+lane), README rollup drift (not lane-owned). Hooks passed (pre-commit:
+lint-staged + verify-pre-commit; commit-msg: ticket-id). Session
+ses_f75a15b11ffeSB4CDbERyyaZk0 (cod-15). CLOSED DIA-260909-zeik stays
+CLOSED, untouched. Status -> CLOSED.
