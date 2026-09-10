@@ -23,7 +23,7 @@
       // packages get fast tests by default. Packages whose tests consume
       // build output must opt in with their own dependsOn: ["build"].
       "dependsOn": [],
-      "inputs": ["src/**"],
+      "inputs": ["src/**", "vitest.config.ts", "tsconfig*.json"],
       "outputs": []
     },
     "dev": {
