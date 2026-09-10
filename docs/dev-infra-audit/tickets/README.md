@@ -189,7 +189,7 @@
 | DIA-260821-qw29 | Verify opencode-go Hy3 x8 promo and whether to swap from mimo-v2.5 in the cebula preset | opencode-config | Info | CLOSED | [DIA-260821-qw29-verify-opencode-go-hy3-x8-promo-and-whether-to-swap-from-mimo-v2-5-in-the-cebula-preset.md](DIA-260821-qw29-verify-opencode-go-hy3-x8-promo-and-whether-to-swap-from-mimo-v2-5-in-the-cebula-preset.md) |
 | DIA-260821-x5nj | unified Docker development runtime plan for Fedora Linux and WSL developers | docker | Medium | OPEN | [DIA-260821-x5nj-unified-docker-development-runtime-plan-for-fedora-linux-and-wsl-developers.md](DIA-260821-x5nj-unified-docker-development-runtime-plan-for-fedora-linux-and-wsl-developers.md) |
 | DIA-260822-fksf | Stale stall-sweep startup protection - suppress already-stale boot-time emissions | opencode-config | Major | OPEN | [DIA-260822-fksf-stale-stall-sweep-startup-protection-suppress-already-stale-boot-time-emissions.md](DIA-260822-fksf-stale-stall-sweep-startup-protection-suppress-already-stale-boot-time-emissions.md) |
-| DIA-260822-m035 | Investigate OpenCode restart crash-storm alerts | scripts | Medium | OPEN | [DIA-260822-m035-investigate-opencode-restart-crash-storm-alerts.md](DIA-260822-m035-investigate-opencode-restart-crash-storm-alerts.md) |
+| DIA-260822-m035 | Investigate OpenCode restart crash-storm alerts | scripts | Medium | CLOSED | [DIA-260822-m035-investigate-opencode-restart-crash-storm-alerts.md](DIA-260822-m035-investigate-opencode-restart-crash-storm-alerts.md) |
 | DIA-260822-medh | Research and advisory audit: session handoffs, context thresholds, auto-compaction, orchestrator-model choices | opencode-config | Major | OPEN | [DIA-260822-medh-research-and-advisory-audit-session-handoffs-context-thresholds-auto-compaction-orchestrator-model-choices.md](DIA-260822-medh-research-and-advisory-audit-session-handoffs-context-thresholds-auto-compaction-orchestrator-model-choices.md) |
 | DIA-260822-oldn | Plugin reload boot/sweep dedup - 30s persisted dedup and disposal-safe single ticker | opencode-config | Major | CLOSED | [DIA-260822-oldn-plugin-reload-boot-sweep-dedup-30s-persisted-dedup-and-disposal-safe-single-ticker.md](DIA-260822-oldn-plugin-reload-boot-sweep-dedup-30s-persisted-dedup-and-disposal-safe-single-ticker.md) |
 | DIA-260822-unsn | Ticker expiry - purge invalid and stale waiting/error entries during seed/persist | opencode-config | Major | OPEN | [DIA-260822-unsn-ticker-expiry-purge-invalid-and-stale-waiting-error-entries-during-seed-persist.md](DIA-260822-unsn-ticker-expiry-purge-invalid-and-stale-waiting-error-entries-during-seed-persist.md) |
@@ -252,7 +252,7 @@
 | DIA-260827-jtvl | Reviewer and playwright-browser skill contracts broken | opencode-config | High | OPEN | [DIA-260827-jtvl-reviewer-and-playwright-browser-skill-contracts-broken.md](DIA-260827-jtvl-reviewer-and-playwright-browser-skill-contracts-broken.md) |
 | DIA-260827-ld2l | [MEDIUM] Memory-manager and designer over-granted permissions | opencode-config | Medium | OPEN | [DIA-260827-ld2l-medium-memory-manager-and-designer-over-granted-permissions.md](DIA-260827-ld2l-medium-memory-manager-and-designer-over-granted-permissions.md) |
 | DIA-260827-mgfv | [HIGH] Universal ticket gate allows nonexistent and closed tickets | opencode-config | High | CLOSED | [DIA-260827-mgfv-high-universal-ticket-gate-allows-nonexistent-and-closed-tickets.md](DIA-260827-mgfv-high-universal-ticket-gate-allows-nonexistent-and-closed-tickets.md) |
-| DIA-260827-nkvf | Exposed MCP credential in OpenCode config plaintext | secrets | Critical | OPEN | [DIA-260827-nkvf-exposed-mcp-credential-in-opencode-config-plaintext.md](DIA-260827-nkvf-exposed-mcp-credential-in-opencode-config-plaintext.md) |
+| DIA-260827-nkvf | Exposed MCP credential in OpenCode config plaintext | secrets | Critical | CLOSED | [DIA-260827-nkvf-exposed-mcp-credential-in-opencode-config-plaintext.md](DIA-260827-nkvf-exposed-mcp-credential-in-opencode-config-plaintext.md) |
 | DIA-260827-nza6 | OpenCode query-script tests outside every gate with weak assertions | tests | Medium | OPEN | [DIA-260827-nza6-opencode-query-script-tests-outside-every-gate-with-weak-assertions.md](DIA-260827-nza6-opencode-query-script-tests-outside-every-gate-with-weak-assertions.md) |
 | DIA-260827-qc59 | add OpenAI-free cebula HY3 preset with role-based reasoning | opencode-config | Medium | CLOSED | [DIA-260827-qc59-add-openai-free-cebula-hy3-preset-with-role-based-reasoning.md](DIA-260827-qc59-add-openai-free-cebula-hy3-preset-with-role-based-reasoning.md) |
 | DIA-260827-txq2 | Inherited obsolete and duplicate plugins from base OMO config | opencode-config | High | OPEN | [DIA-260827-txq2-inherited-obsolete-and-duplicate-plugins-from-base-omo-config.md](DIA-260827-txq2-inherited-obsolete-and-duplicate-plugins-from-base-omo-config.md) |
@@ -295,7 +295,7 @@
 | DIA-260909-18f4 | Evaluate replacing Qwen3.8 Flash with OpenAI GPT-5.6 Terra High in agent routing | opencode-config | Medium | CLOSED | [DIA-260909-18f4-evaluate-replacing-qwen3-8-flash-with-openai-gpt-5-6-terra-high-in-agent-routing.md](DIA-260909-18f4-evaluate-replacing-qwen3-8-flash-with-openai-gpt-5-6-terra-high-in-agent-routing.md) |
 | DIA-260909-9api | make compose-env.bats hermetic to inherited COMPOSE_ENGINE | scripts | Medium | CLOSED | [DIA-260909-9api-make-compose-env-bats-hermetic-to-inherited-compose-engine.md](DIA-260909-9api-make-compose-env-bats-hermetic-to-inherited-compose-engine.md) |
 | DIA-260909-9c9x | whitespace polish for already-committed files | scripts | Low | CLOSED | [DIA-260909-9c9x-whitespace-polish-for-already-committed-files.md](DIA-260909-9c9x-whitespace-polish-for-already-committed-files.md) |
-| DIA-260909-9i1o | consolidate duplicated budget-gate bats fixture setup | scripts | Medium | OPEN | [DIA-260909-9i1o-consolidate-duplicated-budget-gate-bats-fixture-setup.md](DIA-260909-9i1o-consolidate-duplicated-budget-gate-bats-fixture-setup.md) |
+| DIA-260909-9i1o | consolidate duplicated budget-gate bats fixture setup | scripts | Medium | CLOSED | [DIA-260909-9i1o-consolidate-duplicated-budget-gate-bats-fixture-setup.md](DIA-260909-9i1o-consolidate-duplicated-budget-gate-bats-fixture-setup.md) |
 | DIA-260909-csds | Activate Muse Qwen balanced preset and persist project default | opencode-config | Medium | OPEN | [DIA-260909-csds-activate-muse-qwen-balanced-preset-and-persist-project-default.md](DIA-260909-csds-activate-muse-qwen-balanced-preset-and-persist-project-default.md) |
 | DIA-260909-fkiy | extract repeated workspace-cleanup retry loops into helpers plugin-harness | opencode-config | Medium | OPEN | [DIA-260909-fkiy-extract-repeated-workspace-cleanup-retry-loops-into-helpers-plugin-harness.md](DIA-260909-fkiy-extract-repeated-workspace-cleanup-retry-loops-into-helpers-plugin-harness.md) |
 | DIA-260909-sazr | remove RED-era factory and alias probes from observer-lib test suites | opencode-config | Medium | CLOSED | [DIA-260909-sazr-remove-red-era-factory-and-alias-probes-from-observer-lib-test-suites.md](DIA-260909-sazr-remove-red-era-factory-and-alias-probes-from-observer-lib-test-suites.md) |
@@ -322,7 +322,7 @@
 
 | Status      | Count |
 | ----------- | ----- |
-| OPEN        | 79    |
+| OPEN        | 76    |
 | DONE        | 11    |
 | VALIDATE    | 0     |
 | E2E         | 0     |
@@ -331,7 +331,7 @@
 | FIXED       | 1     |
 | IMPLEMENTED | 2     |
 | VERIFIED    | 28    |
-| CLOSED      | 180   |
+| CLOSED      | 183   |
 | BLOCKED     | 0     |
 | DISPATCHED  | 0     |
 | RUNNING     | 0     |
