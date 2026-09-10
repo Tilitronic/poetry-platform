@@ -1,5 +1,5 @@
 /**
- * RED test-author lane for Slice 7 — lib/circuit-breaker.ts (DIA-260902-eqgg).
+ * lib/circuit-breaker.ts tests (DIA-260909-sazr; settled API, DI via dia-260902-eqgg).
  *
  * Source of truth: .opencode/plugins/delegation-observer.ts circuit-breaker seam
  *   CB_WINDOW_SIZE=5, CB_ERROR_THRESHOLD=3, CB_COOLDOWN_MS=5min (D3 verbatim)
@@ -20,102 +20,26 @@
  *   lib is pure/DI'd (inject clock fakes), no ctx capture, no shell import; D3 constants verbatim;
  *   D1 sync; pure in-memory, no FS.
  *
- * ASSUMED LIB SIGNATURE (GREEN implementer must match; note per task dispatch):
+ * Settled seam: new ToolCircuitBreaker({ now }) with injected clock fake;
+ * createCircuitBreaker(deps) factory wraps the same constructor.
+ * CB_WINDOW_SIZE = 5, CB_ERROR_THRESHOLD = 3, CB_COOLDOWN_MS = 300_000.
  *
- *   .opencode/plugins/lib/circuit-breaker.ts  (pure in-memory, no FS, clock injected)
- *
- *     export const CB_WINDOW_SIZE = 5
- *     export const CB_ERROR_THRESHOLD = 3
- *     export const CB_COOLDOWN_MS = 5 * 60 * 1000  // 300_000
- *
- *     export type CircuitState = "CLOSED" | "OPEN" | "HALF_OPEN"
- *     // CircuitBreakerEntry is internal — not required as public export
- *
- *     export class ToolCircuitBreaker {
- *       constructor(deps?: { now?: () => number; clock?: () => number } | (() => number))
- *       // deps may be { now }, { clock }, { nowFn }, or bare function; GREEN should support at least { now }.
- *       record(sessionId: string, isError: boolean): CircuitState  // new state
- *       tryPass(sessionId: string): boolean  // true = BLOCK dispatch, false = allow
- *       getState(sessionId: string): CircuitState  // "CLOSED" default for unknown session
- *     }
- *
- *     // Factory alternative (probed first; plain class fallback if absent):
- *     export function createCircuitBreaker(deps?: { now?: () => number }): ToolCircuitBreaker
- *     // aliases probed: createToolCircuitBreaker, createBreaker, create
- *
- *   DI seam (design.md): lib is pure/DI'd. GREEN must inject clock so tests can fake time
- *   without monkey-patching global Date.now. Tests handle BOTH shapes:
- *     - if factory exists, they inject fakes via factory
- *     - otherwise they try `new ToolCircuitBreaker({ now: fake })`
- *     - fallback: plain `new ToolCircuitBreaker()` (then monkey-patch Date.now per test)
- *
- * RUN (like other plugin tests):
- *   node --test .opencode/plugins/__tests__/circuit-breaker.test.mjs
- *   # with strip-types for .ts lib:
- *   node --experimental-strip-types --test .opencode/plugins/__tests__/circuit-breaker.test.mjs
- *   bun test .opencode/plugins/__tests__/circuit-breaker.test.mjs
- *
- * EXPECTED RED: all tests FAIL against the S0 stub (export {}) because
- *   CB_* constants / ToolCircuitBreaker / createCircuitBreaker are undefined.
+ * RUN: bun test .opencode/plugins/__tests__/circuit-breaker.test.mjs
  */
 
 import { describe, it } from "node:test"
 import assert from "node:assert/strict"
+import * as mod from "../lib/circuit-breaker.ts"
 
-// ---------------------------------------------------------------------------
-// Import the lib under test (stub in RED phase).
-// ---------------------------------------------------------------------------
-let mod = {}
-let importErr = null
-try {
-  mod = await import("../lib/circuit-breaker.ts")
-} catch (e) {
-  importErr = e
-  mod = {}
-}
-
-// ---------------------------------------------------------------------------
-// Helpers to resolve DI seam if GREEN exposes a factory or DI'd constructor.
-// ---------------------------------------------------------------------------
-
+// Settled DI seam: direct constructor with injected clock only.
+// Single clock form: a { now } object (fakeClock helper below).
 function makeBreaker(clock) {
-  const nowFn = typeof clock === "function" ? clock : clock?.now ?? null
-  const deps = nowFn ? { now: nowFn } : {}
-  const factory = mod.createCircuitBreaker
-  if (typeof factory === "function") {
-    try {
-      const inst = Object.keys(deps).length ? factory(deps) : factory()
-      if (inst && typeof inst.record === "function") return inst
-    } catch { /* ignore */ }
-  }
-  const Cls = mod.ToolCircuitBreaker
-  if (typeof Cls === "function") {
-    if (Object.keys(deps).length) {
-      try {
-        const inst = new Cls(deps)
-        if (inst && typeof inst.record === "function") return inst
-      } catch { /* ignore */ }
-    }
-    try {
-      const inst = new Cls()
-      if (inst && typeof inst.record === "function") return inst
-    } catch { /* ignore */ }
-  }
-  return null
+  if (clock?.now) return new mod.ToolCircuitBreaker({ now: clock.now })
+  return new mod.ToolCircuitBreaker()
 }
 
 function requireBreaker(clock) {
-  if (importErr) throw new Error(`RED scaffold: cannot import ../lib/circuit-breaker.ts (${importErr.message})`)
-  const b = makeBreaker(clock)
-  if (!b) throw new Error("RED scaffold: lib/circuit-breaker.ts does not export ToolCircuitBreaker / createCircuitBreaker — GREEN must add it")
-  return b
-}
-
-function requireConst(name, expected) {
-  if (importErr) throw new Error(`RED scaffold: cannot import lib/circuit-breaker.ts (${importErr.message})`)
-  const v = mod[name]
-  if (v === undefined) throw new Error(`RED scaffold: lib/circuit-breaker.ts missing export '${name}' (expected ${expected}) — GREEN must add it`)
-  return v
+  return makeBreaker(clock)
 }
 
 // Fake clock helper: returns { now: () => number, advance: (ms)=>void, set:(ms)=>void }
@@ -134,25 +58,22 @@ function fakeClock(startMs = 1_000_000) {
 // ---------------------------------------------------------------------------
 describe("lib/circuit-breaker — constants (D3 verbatim)", () => {
   it("CB_WINDOW_SIZE=5 exists and equals 5", () => {
-    const v = requireConst("CB_WINDOW_SIZE", 5)
-    assert.equal(v, 5, `CB_WINDOW_SIZE must be 5, got ${v}`)
+    assert.equal(mod.CB_WINDOW_SIZE, 5, `CB_WINDOW_SIZE must be 5, got ${mod.CB_WINDOW_SIZE}`)
   })
 
   it("CB_ERROR_THRESHOLD=3 exists and equals 3", () => {
-    const v = requireConst("CB_ERROR_THRESHOLD", 3)
-    assert.equal(v, 3)
+    assert.equal(mod.CB_ERROR_THRESHOLD, 3)
   })
 
   it("CB_COOLDOWN_MS=5min (300000) exists and equals 300000", () => {
-    const v = requireConst("CB_COOLDOWN_MS", 300000)
-    assert.equal(v, 5 * 60 * 1000)
-    assert.equal(v, 300_000)
+    assert.equal(mod.CB_COOLDOWN_MS, 5 * 60 * 1000)
+    assert.equal(mod.CB_COOLDOWN_MS, 300_000)
   })
 
   it("constants are numbers (not strings)", () => {
-    assert.equal(typeof requireConst("CB_WINDOW_SIZE", 5), "number")
-    assert.equal(typeof requireConst("CB_ERROR_THRESHOLD", 3), "number")
-    assert.equal(typeof requireConst("CB_COOLDOWN_MS", 300000), "number")
+    assert.equal(typeof mod.CB_WINDOW_SIZE, "number")
+    assert.equal(typeof mod.CB_ERROR_THRESHOLD, "number")
+    assert.equal(typeof mod.CB_COOLDOWN_MS, "number")
   })
 })
 
@@ -160,21 +81,6 @@ describe("lib/circuit-breaker — constants (D3 verbatim)", () => {
 // 2. ToolCircuitBreaker exists and basic shape
 // ---------------------------------------------------------------------------
 describe("lib/circuit-breaker — ToolCircuitBreaker shape", () => {
-  it("ToolCircuitBreaker class or createCircuitBreaker factory is exported", () => {
-    if (importErr) assert.fail(`import failed: ${importErr.message}`)
-    const hasClass = typeof mod.ToolCircuitBreaker === "function" || typeof mod.CircuitBreaker === "function" || typeof mod.Breaker === "function"
-    const hasFactory = typeof mod.createCircuitBreaker === "function" || typeof mod.createToolCircuitBreaker === "function" || typeof mod.create === "function" || typeof mod.createBreaker === "function"
-    const hasInstance = typeof mod.record === "function"
-    assert.ok(hasClass || hasFactory || hasInstance, "must export ToolCircuitBreaker class or createCircuitBreaker factory or direct record/tryPass")
-  })
-
-  it("breaker instance has record, tryPass, getState", () => {
-    const b = requireBreaker()
-    assert.equal(typeof b.record, "function", "record must be function")
-    assert.equal(typeof b.tryPass, "function", "tryPass must be function")
-    assert.equal(typeof b.getState, "function", "getState must be function")
-  })
-
   it("getState returns CLOSED for unknown session", () => {
     const b = requireBreaker()
     assert.equal(b.getState("ses_unknown_" + Date.now()), "CLOSED")
@@ -345,7 +251,7 @@ describe("lib/circuit-breaker — HALF_OPEN transitions", () => {
     const sid = "s_half_to_closed"
     b.record(sid, true); b.record(sid, true); b.record(sid, true)
     clk.advance(300_001)
-    b.tryPass(sid) // -> HALF_OPEN, consumes probe slot
+    b.tryPass(sid) // -> HALF_OPEN, consumes the single test-call slot
     assert.equal(b.getState(sid), "HALF_OPEN")
     const s = b.record(sid, false) // success
     assert.equal(s, "CLOSED", "success in HALF_OPEN must close")

@@ -1013,3 +1013,9 @@
 - **Change:** Replace Qwen3.8 Flash with GPT-5.6 Terra High in muse-qwen-balanced routing
 - **Files:** .opencode/oh-my-opencode-slim.jsonc - .opencode/opencode.jsonc - knowledge/model-registry.yaml
 - **Verification:** manual
+
+## 2026-09-09 - DIA-260909-sazr: test
+
+- **Change:** Remove RED-era factory/alias probes from 7 observer-lib test suites (test-only, net -751 LOC)
+- **Files:** .opencode/plugins/__tests__/capability.test.mjs - .opencode/plugins/__tests__/ticket-gate.test.mjs - .opencode/plugins/__tests__/handoff.test.mjs - .opencode/plugins/__tests__/registry.test.mjs - .opencode/plugins/__tests__/stall-sweep.test.mjs - .opencode/plugins/__tests__/formatter.test.mjs - .opencode/plugins/__tests__/circuit-breaker.test.mjs
+- **Verification:** manual

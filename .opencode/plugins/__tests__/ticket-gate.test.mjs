@@ -1,5 +1,5 @@
 /**
- * RED test-author lane for Slice 2 — lib/ticket-gate.ts (DIA-260902-eqgg).
+ * lib/ticket-gate.ts tests (DIA-260909-sazr; settled API, DI via dia-260902-eqgg).
  *
  * Source of truth: .opencode/plugins/delegation-observer.ts
  *   parseFrontmatterFields, parseTicketDate, ScannedTicket, OPEN_TICKET_STATUSES,
@@ -12,69 +12,33 @@
  *   TICKET_ID_* regexes (Wy loader); lib is pure/DI'd (inject readdirSync/readFileSync fakes),
  *   no ctx capture, no shell import.
  *
- * ASSUMED LIB SIGNATURE (GREEN implementer must match; note per task dispatch):
+ * Settled seam: createTicketGate({readdirSync, readFileSync, existsSync, statSync})
+ * plus plain named exports (parseFrontmatterFields, parseTicketDate,
+ * keywordsCorrelate, TICKET_ID_* regexes, scanTickets, evaluateTicketCorrelation,
+ * isMetaTaskBypass, isTicketGateBlocked).
  *
- *   .opencode/plugins/lib/ticket-gate.ts
- *     // constants (with .server guard for Wy — attach async () => ({}) )
- *     export const TICKET_ID_RE: RegExp            // /^DIA-(\d{6}-[a-z0-9]+|\d+)$/  no /i, datetime-first
- *     export const TICKET_ID_FIND_RE: RegExp       // /\bDIA-(\d{6}-[a-z0-9]+|\d+)\b/g  shared instance, no /i
- *     export const TICKET_ID_FILENAME_RE: RegExp   // /^DIA-(\d{6}-[a-z0-9]+|\d+)/    no /i
- *     export const OPEN_TICKET_STATUSES: Set<string> // {"OPEN","IN-PROGRESS","DISPATCHED"}
- *     export const TICKET_KEYWORD_STOPWORDS: Set<string>
+ *   parseFrontmatterFields(raw): first `---` anywhere, `#` skip, quoted
+ *     ` #` suffix stripped, unknown fields ignored.
+ *   parseTicketDate(raw): date-only `YYYY-MM-DD` => Date.parse(`${v}T00:00:00`),
+ *     else Date.parse verbatim if /[TZ]/, else null (never throws).
+ *   keywordsCorrelate(dispatchText, title): stopwords + min-3-char
+ *     ([a-z0-9][a-z0-9-]{2,}) word extraction, case-insensitive.
+ *   TICKET_ID_RE(/^DIA-(\d{6}-[a-z0-9]+|\d+)$/),
+ *     TICKET_ID_FIND_RE(/\bDIA-(\d{6}-[a-z0-9]+|\d+)\b/g, shared instance),
+ *     TICKET_ID_FILENAME_RE(/^DIA-(\d{6}-[a-z0-9]+|\d+)/) — no /i anywhere.
+ *   scanTickets(dir): filename ^DIA-..., status case-insensitive,
+ *     title/sessionId/discoveredMs; throws on missing dir.
  *
- *     export function parseFrontmatterFields(raw: string): Record<string,string>
- *       // first `---` anywhere, `#` skip, quoted ` #` suffix stripped, unknown fields ignored
- *     export function parseTicketDate(raw: string): number | null
- *       // date-only `YYYY-MM-DD` => local midnight (Date.parse(`${v}T00:00:00`)), else Date.parse verbatim if /[TZ]/
- *     export function keywordsCorrelate(dispatchText: string, title: string): boolean
- *       // stopwords + min-3-char ([a-z0-9][a-z0-9-]{2,}) word extraction, case-insensitive
- *     export function scanTickets(dir: string): ScannedTicket[] // or factory-injected variant
- *       // filename ^DIA-(\d{6}-[a-z0-9]+|\d+), status case-insensitive, title/sessionId/discoveredMs
- *
- *     // higher-level correlation + bypass (names may vary; tests probe alternatives):
- *     export function evaluateTicketCorrelation(tickets, sessionId, dispatchText, diaIds): boolean
- *     export function isMetaTaskBypass(dispatchText: string): boolean  // or metaTaskBypass / shouldBypass
- *     export function isTicketGateBlocked(args, tickets): {blocked:boolean}|boolean  // or checkGate
- *
- *   DI seam (design.md): lib is pure/DI'd. GREEN should expose a factory like
- *     export function createTicketGate(deps: {readdirSync, readFileSync, existsSync, statSync}) => api
- *   or accept deps as optional second arg to scanTickets. Tests handle BOTH shapes:
- *     - if factory exists, they inject fakes via factory
- *     - otherwise they fall back to plain exports (still RED until implemented)
- *
- * RUN (inside poetry-dev container, same as capability.test.mjs):
- *   node --test .opencode/plugins/__tests__/ticket-gate.test.mjs
- *   bun test .opencode/plugins/__tests__/ticket-gate.test.mjs
- *
- * EXPECTED RED: all tests FAIL against the S0 stub (export {}) because symbols are undefined.
+ * RUN: bun test .opencode/plugins/__tests__/ticket-gate.test.mjs
  */
 
 import { describe, it } from "node:test"
 import assert from "node:assert/strict"
+import * as mod from "../lib/ticket-gate.ts"
 
-// ---------------------------------------------------------------------------
-// Import the lib under test (stub in RED phase).
-// ---------------------------------------------------------------------------
-let mod = {}
-try {
-  mod = await import("../lib/ticket-gate.ts")
-} catch (e) {
-  void e
-  mod = {}
-}
-
-// Helpers to resolve DI seam if GREEN exposes a factory.
-// Per-test fakes are passed to this helper so each scanTickets call is isolated.
+// Settled DI seam: factory with per-test FS fakes; each scanTickets call is isolated.
 function makeGate(fakes = {}) {
-  const factory = mod.createTicketGate
-  if (typeof factory === "function") {
-    try {
-      const inst = factory(fakes)
-      if (inst && typeof inst.scanTickets === "function") return inst
-      if (inst && typeof inst.parseFrontmatterFields === "function") return inst
-    } catch { /* probe failed */ }
-  }
-  return mod
+  return mod.createTicketGate(fakes)
 }
 
 function requireExport(name) {
@@ -86,11 +50,6 @@ function requireExport(name) {
 // 1. parseFrontmatterFields
 // ---------------------------------------------------------------------------
 describe("lib/ticket-gate — parseFrontmatterFields", () => {
-  it("exists and is a function", () => {
-    const fn = mod.parseFrontmatterFields
-    assert.equal(typeof fn, "function")
-  })
-
   it("finds first --- anywhere (not necessarily line 0) — HTML comment header before frontmatter", () => {
     const fn = mod.parseFrontmatterFields
     const raw = "<!-- header -->\n# comment line\n---\nstatus: OPEN\ntitle: Hello\n---\nbody"
@@ -154,11 +113,6 @@ describe("lib/ticket-gate — parseFrontmatterFields", () => {
 // 2. parseTicketDate
 // ---------------------------------------------------------------------------
 describe("lib/ticket-gate — parseTicketDate", () => {
-  it("exists and is a function", () => {
-    const fn = mod.parseTicketDate
-    assert.equal(typeof fn, "function")
-  })
-
   it("date-only YYYY-MM-DD parses as midnight via T00:00:00 (not NaN)", () => {
     const fn = mod.parseTicketDate
     const ms = fn("2026-09-02")
@@ -309,7 +263,7 @@ describe("lib/ticket-gate — TICKET_ID_* regexes", () => {
       if (v === undefined) missing.push(name)
       else if (!gy(v)) bad.push(name)
     }
-    assert.equal(missing.length, 0, `missing regex exports (RED): ${missing.join(", ")}`)
+    assert.equal(missing.length, 0, `missing regex exports: ${missing.join(", ")}`)
     assert.equal(bad.length, 0, `Wy-incompatible regex exports: ${bad.join(", ")}`)
   })
 })
@@ -318,11 +272,6 @@ describe("lib/ticket-gate — TICKET_ID_* regexes", () => {
 // 4. keywordsCorrelate
 // ---------------------------------------------------------------------------
 describe("lib/ticket-gate — keywordsCorrelate", () => {
-  it("exists and is a function", () => {
-    const fn = mod.keywordsCorrelate
-    assert.equal(typeof fn, "function")
-  })
-
   it("returns false when title is empty (no correlation)", () => {
     const fn = mod.keywordsCorrelate
     assert.equal(fn("some dispatch text about delegation", ""), false)
@@ -380,11 +329,6 @@ describe("lib/ticket-gate — keywordsCorrelate", () => {
 // 5. scanTickets
 // ---------------------------------------------------------------------------
 describe("lib/ticket-gate — scanTickets", () => {
-  it("exists and is a function", () => {
-    const fn = mod.scanTickets
-    assert.equal(typeof fn, "function")
-  })
-
   it("parses filename ^DIA-... correctly for both sequential and datetime forms", () => {
     const fakeFiles = {
       "DIA-260902-eqgg-slice.md": "---\nstatus: OPEN\ntitle: Slice\n---\n",
@@ -403,12 +347,10 @@ describe("lib/ticket-gate — scanTickets", () => {
       statSync: () => ({ isFile: () => true }),
     }
     const gate = makeGate(fakes)
-    const scan = gate.scanTickets ?? gate.scan ?? mod.scanTickets
+    const scan = gate.scanTickets
     assert.ok(typeof scan === "function", "scanTickets must be found")
-    // Use factory instance directly for fakes isolation
-    const tickets = typeof gate.scanTickets === "function"
-      ? gate.scanTickets("/fake/tickets")
-      : scan("/fake/tickets")
+    // Factory instance carries the fakes; call it directly for isolation.
+    const tickets = gate.scanTickets("/fake/tickets")
     const ids = tickets.map(t => t.id)
     assert.ok(ids.includes("DIA-260902-EQGG") || ids.includes("DIA-260902-eqgg") || ids.some(id => id.toUpperCase() === "DIA-260902-EQGG"), "datetime id must be parsed")
     assert.ok(ids.some(id => id.toUpperCase() === "DIA-123"), "sequential id must be parsed")
@@ -433,7 +375,7 @@ describe("lib/ticket-gate — scanTickets", () => {
       statSync: () => ({ isFile: () => true }),
     }
     const gate = makeGate(fakes)
-    const scan = gate.scanTickets ?? mod.scanTickets
+    const scan = gate.scanTickets
     const tickets = scan("/fake")
     for (const t of tickets) {
       if (t.filename.startsWith("DIA-")) {
@@ -457,7 +399,7 @@ describe("lib/ticket-gate — scanTickets", () => {
       statSync: () => ({ isFile: () => true }),
     }
     const gate = makeGate(fakes)
-    const scan = gate.scanTickets ?? mod.scanTickets
+    const scan = gate.scanTickets
     const tickets = scan("/fake")
     assert.equal(tickets.length, 1)
     const t = tickets[0]
@@ -481,7 +423,7 @@ describe("lib/ticket-gate — scanTickets", () => {
       statSync: () => ({ isFile: () => true }),
     }
     const gate = makeGate(fakes)
-    const scan = gate.scanTickets ?? mod.scanTickets
+    const scan = gate.scanTickets
     const tickets = scan("/fake")
     for (const t of tickets) {
       assert.equal(t.discoveredMs, null, `discoveredMs must be null for ${t.filename}`)
@@ -497,7 +439,7 @@ describe("lib/ticket-gate — scanTickets", () => {
       statSync: () => ({ isFile: () => false }),
     }
     const gate = makeGate(fakes)
-    const scan = gate.scanTickets ?? mod.scanTickets
+    const scan = gate.scanTickets
     const tickets = scan("/fake")
     assert.equal(tickets.length, 0, "directory entries must be skipped")
   })
@@ -510,7 +452,7 @@ describe("lib/ticket-gate — scanTickets", () => {
       statSync: () => ({ isFile: () => true }),
     }
     const gate = makeGate(fakes)
-    const scan = gate.scanTickets ?? mod.scanTickets
+    const scan = gate.scanTickets
     assert.throws(() => scan("/missing/dir"), /missing|ENOENT|tickets directory/i, "scanTickets must throw on missing dir")
   })
 })
@@ -519,13 +461,6 @@ describe("lib/ticket-gate — scanTickets", () => {
 // 6. Meta-task bypass before ticket-id resolution
 // ---------------------------------------------------------------------------
 describe("lib/ticket-gate — meta-task bypass before ticket-id resolution", () => {
-  // Probe names the GREEN implementer might use
-
-  it("bypass helper exists (any of isMetaTaskBypass / shouldBypassTicketGate / checkMetaTaskBypass)", () => {
-    const fn = mod.isMetaTaskBypass
-    assert.equal(typeof fn, "function")
-  })
-
   it("bypass fires case-insensitively for whitelist signals before ticket-id resolution", () => {
     const fn = mod.isMetaTaskBypass
     const cases = [
@@ -556,22 +491,14 @@ describe("lib/ticket-gate — meta-task bypass before ticket-id resolution", () 
   })
 
   it("bypass returns BEFORE ticket-id resolution — stray DIA id in text is not attributed (gate not blocked)", () => {
-    // The higher-level gate should report NOT blocked when bypass fires, even
-    // if a DIA literal is present, and should NOT materialize ticket_id.
-    // We test via the composite gate function if available.
+    // The higher-level gate reports NOT blocked when bypass fires, even
+    // if a DIA literal is present, and does NOT materialize ticket_id.
     const bypassFn = mod.isMetaTaskBypass
-    const gateFn = (() => {
-      try { return mod.isTicketGateBlocked } catch { return null }
-    })()
     const dispatchText = "[META-TASK] create ticket; reference DIA-260902-eqgg for context"
     assert.equal(bypassFn(dispatchText), true, "must bypass")
-    if (gateFn) {
-      // The gate when called with bypass text should NOT be blocked
-      // We try both signatures: (args, tickets) and (dispatchText, sessionId, diaIds, tickets)
-      // This is best-effort; RED will show missing gateFn anyway.
-      // For now assert that bypassFn being true means gate would allow.
-      assert.ok(true, "bypass detected; gate should allow (verified via bypass helper)")
-    }
+    const gateFn = mod.isTicketGateBlocked
+    const res = gateFn(dispatchText, "ses_ctx", [], { failClosed: true })
+    assert.equal(res.blocked, false, "bypass text must not block even with a DIA literal present")
   })
 
   it("meta-task bypass check is pure and does not require FS", () => {
@@ -583,7 +510,7 @@ describe("lib/ticket-gate — meta-task bypass before ticket-id resolution", () 
 })
 
 // ---------------------------------------------------------------------------
-// 7. Failure semantics — scanTickets throws (probe removed, R6)
+// 7. Failure semantics — scanTickets throws so caller can decide fail-closed vs fail-soft
 // ---------------------------------------------------------------------------
 describe("lib/ticket-gate — failure semantics", () => {
   it("scanTickets itself throws (does not swallow) so caller can decide fail-closed vs fail-soft", () => {
@@ -594,24 +521,22 @@ describe("lib/ticket-gate — failure semantics", () => {
       statSync: () => ({ isFile: () => true }),
     }
     const gate = makeGate(fakes)
-    const scan = gate.scanTickets ?? mod.scanTickets
+    const scan = gate.scanTickets
     assert.throws(() => scan("/fake"), /disk error|scan failed|ENOENT/i, "scanTickets must throw, not swallow, so caller can apply policy")
   })
 
-  it("isTicketGateBlocked still handles meta-task bypass without probe", () => {
+  it("isTicketGateBlocked handles meta-task bypass", () => {
     const gate = makeGate({})
-    const fn = gate.isTicketGateBlocked ?? mod.isTicketGateBlocked
+    const fn = gate.isTicketGateBlocked
     const res = fn("scripts/tickets new --title 'New ticket'", "ses_1", [], { failClosed: true })
-    const blocked = typeof res === "boolean" ? res : res.blocked
-    assert.equal(blocked, false, "meta-task bypass must not block even with probe removed")
+    assert.equal(res.blocked, false, "meta-task bypass must not block")
   })
 
-  it("isTicketGateBlocked weak correlation without probe returns not blocked", () => {
+  it("isTicketGateBlocked weak correlation returns not blocked", () => {
     const gate = makeGate({})
-    const fn = gate.isTicketGateBlocked ?? mod.isTicketGateBlocked
+    const fn = gate.isTicketGateBlocked
     const res = fn("completely unrelated turtles", "ses_other", [], { failClosed: false })
-    const blocked = typeof res === "boolean" ? res : res.blocked
-    assert.equal(blocked, false)
+    assert.equal(res.blocked, false)
   })
 })
 

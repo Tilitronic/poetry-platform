@@ -1,75 +1,37 @@
 /**
- * RED test-author lane for Slice 1 — lib/capability.ts (DIA-260902-eqgg).
+ * lib/capability.ts tests (DIA-260909-sazr; settled API, DI via dia-260902-eqgg).
  *
  * Source of truth: .opencode/plugins/delegation-observer.ts (CAPABILITY_SECRET,
- * base64url, CapabilityPayload, mintCapabilityToken, verifyCapabilityToken,
- * CAP- prefix, timingSafeEqual, 5-min expiry, per-process randomBytes(32)).
+ * base64url, mintCapabilityToken, verifyCapabilityToken, CAP- prefix,
+ * timingSafeEqual, 5-min expiry, per-process randomBytes(32)).
  *
- * ASSUMED LIB SIGNATURE (task dispatch says note this so GREEN implementer matches):
- *   .opencode/plugins/lib/capability.ts  (pure, no FS)
- *     export const CAPABILITY_SECRET: Buffer  // Buffer, .server guard attached
- *     export function mintCapabilityToken(scope: string, reason: string): string
- *       -> "CAP-{payloadB64}.{sigB64}" where payloadB64 = base64url(JSON {id, scope, reason, exp})
- *          sigB64 = base64url(HMAC-SHA256(CAPABILITY_SECRET, payloadB64))
- *          exp = Date.now() + 5*60*1000, id = randomUUID()
- *          Loader guard: if called as plugin factory (PluginInput object with directory/client) -> return {} as Hooks
- *     export function verifyCapabilityToken(token: string): { valid: boolean; payload?: CapabilityPayload; error?: string }
- *       -> strip "CAP-" prefix, split ".", HMAC verify via timingSafeEqual, JSON parse, expiry check
- *          errors: "invalid token type" | "malformed token" | "invalid signature" | "payload parse failed" | "token expired"
- *          Loader guard: if called with PluginInput object -> return {} as Hooks, never throw "token.startsWith is not a function"
+ * Settled seam: createCapability({ randomUUID?, now? }) for deterministic
+ * UUID/clock tests; plain mintCapabilityToken / verifyCapabilityToken /
+ * CAPABILITY_SECRET for shell-facing behavior. Wy loader guard: CAPABILITY_SECRET
+ * carries a `.server` async function property.
  *
- * DI seam (design.md Q4): lib is pure/DI'd. GREEN may expose a factory like
- *   createCapability({ randomUUID?, now? }) or accept injected deps via optional params.
- * These tests handle BOTH shapes:
- *   - if lib exports a factory/default factory (createCapability / create / default), they use it with fakes
- *   - otherwise they fall back to the plain exported functions and monkey-patch Date.now/randomUUID where needed
- * Either way the contract above must hold for the plain-export path (A1 shell re-export).
+ *   mintCapabilityToken(scope, reason): "CAP-{payloadB64}.{sigB64}"
+ *     payloadB64 = base64url(JSON {id, scope, reason, exp});
+ *     sigB64 = base64url(HMAC-SHA256(CAPABILITY_SECRET, payloadB64));
+ *     exp = Date.now() + 5*60*1000, id = randomUUID().
+ *   verifyCapabilityToken(token): { valid, payload?, error? }
+ *     strip "CAP-" prefix, split ".", HMAC verify via timingSafeEqual,
+ *     JSON parse, expiry check. Errors: "malformed token" |
+ *     "invalid signature" | "payload parse failed" | "token expired".
+ *   Loader guards: called with a PluginInput object (directory/client)
+ *     both functions return {} as Hooks and never throw.
  *
- * Wy loader guard: CAPABILITY_SECRET must carry a `.server` async function property so
- *   the legacy Bun loader (Wy) treats the Buffer export as a plugin object and does not throw
- *   "Plugin export is not a function".
- *
- * RUN (inside poetry-dev container, like other plugin tests):
- *   bun test .opencode/plugins/__tests__/capability.test.mjs
- *   node --test .opencode/plugins/__tests__/capability.test.mjs
- *
- * EXPECTED RED: all tests FAIL against the S0 stub (export {}) because
- * mintCapabilityToken/verifyCapabilityToken/CAPABILITY_SECRET are undefined.
+ * RUN: bun test .opencode/plugins/__tests__/capability.test.mjs
  */
 
 import { describe, it } from "node:test"
 import assert from "node:assert/strict"
 import { createHmac, randomBytes } from "node:crypto"
+import * as cryptoNs from "node:crypto"
+import * as capMod from "../lib/capability.ts"
 
-// ---------------------------------------------------------------------------
-// Import the lib under test (stub in RED phase).
-// We use a dynamic import so the failure mode is observable as undefined
-// exports rather than a static-import hard error against the stub.
-// ---------------------------------------------------------------------------
-let capMod = {}
-try {
-  capMod = await import("../lib/capability.ts")
-} catch (e) {
-  void e
-}
-
-// Helpers to resolve DI seam if GREEN exposes a factory.
-function resolveCapabilityAPI(mod) {
-  const factory = mod.createCapability
-  if (typeof factory === "function") {
-    try {
-      const probe = factory({ randomUUID: () => "probe-id-"+String(Date.now()), now: () => Date.now() })
-      if (probe && typeof probe.mintCapabilityToken === "function") {
-        return { api: probe, isFactory: true }
-      }
-    } catch {
-      // probe failed — fall through to plain exports
-    }
-  }
-  return { api: mod, isFactory: false }
-}
-
-const { api: cap } = resolveCapabilityAPI(capMod)
+// Settled API: plain exports for behavior, factory for injected UUID/clock.
+const cap = capMod
 
 // Local base64url helper (mirrors the lib's impl) for constructing
 // cross-secret tokens and malformed fixtures.
@@ -82,10 +44,6 @@ function b64url(buf) {
 // 1. mintCapabilityToken produces CAP-{payloadB64}.{sigB64} format
 // ---------------------------------------------------------------------------
 describe("lib/capability — mintCapabilityToken format", () => {
-  it("exists and is a function", () => {
-    assert.equal(typeof cap.mintCapabilityToken, "function", "mintCapabilityToken must be exported as function")
-  })
-
   it("produces CAP- prefix and exactly one dot after prefix", () => {
     const token = cap.mintCapabilityToken("ticket-creation", "test")
     assert.ok(typeof token === "string", "token must be string")
@@ -123,25 +81,10 @@ describe("lib/capability — mintCapabilityToken format", () => {
     assert.ok(payload.exp <= after + fiveMin + 2000, `exp too late: ${payload.exp} vs ${after}+${fiveMin}`)
   })
 
-  it("uses injected Date.now / randomUUID when DI seam is present", async () => {
-    // If the lib exposes a factory with DI, verify fake clock/uuid are honored.
-    // If it only exposes plain functions, this test is vacuous — we still
-    // assert the format requirement via monkey-patched Date.now below.
-    const hasFactory = typeof capMod.createCapability === "function" || typeof capMod.create === "function"
-    if (!hasFactory) {
-      // Fallback behavioral check: mint twice should yield different ids (randomUUID)
-      const t1 = cap.mintCapabilityToken("ticket-creation", "di-check")
-      const t2 = cap.mintCapabilityToken("ticket-creation", "di-check")
-      const p1 = JSON.parse(Buffer.from(t1.slice(4).split(".")[0], "base64url").toString())
-      const p2 = JSON.parse(Buffer.from(t2.slice(4).split(".")[0], "base64url").toString())
-      assert.notEqual(p1.id, p2.id, "two mints must have different ids (randomUUID)")
-      return
-    }
-    // Factory path: inject deterministic fakes
+  it("uses injected Date.now / randomUUID via createCapability", () => {
     const fakeNow = 1_700_000_000_000
     const fakeId = "test-uuid-1234"
-    const factory = capMod.createCapability ?? capMod.create
-    const injected = factory({ randomUUID: () => fakeId, now: () => fakeNow })
+    const injected = capMod.createCapability({ randomUUID: () => fakeId, now: () => fakeNow })
     const token = injected.mintCapabilityToken("ticket-creation", "injected")
     const [payloadB64] = token.slice(4).split(".")
     const payload = JSON.parse(Buffer.from(payloadB64, "base64url").toString())
@@ -154,10 +97,6 @@ describe("lib/capability — mintCapabilityToken format", () => {
 // 2. verifyCapabilityToken
 // ---------------------------------------------------------------------------
 describe("lib/capability — verifyCapabilityToken", () => {
-  it("exists and is a function", () => {
-    assert.equal(typeof cap.verifyCapabilityToken, "function", "verifyCapabilityToken must be exported as function")
-  })
-
   it("valid token -> {valid:true, payload}", () => {
     const token = cap.mintCapabilityToken("ticket-creation", "verify-valid")
     const result = cap.verifyCapabilityToken(token)
@@ -208,7 +147,7 @@ describe("lib/capability — verifyCapabilityToken", () => {
   it("payload parse failure -> {valid:false, error:'payload parse failed'}", () => {
     // Build a payload that is not JSON, but sign it with the real secret so
     // signature passes and the JSON parse is the failure point.
-    const secret = cap.CAPABILITY_SECRET ?? capMod.CAPABILITY_SECRET
+    const secret = capMod.CAPABILITY_SECRET
     assert.ok(secret, "CAPABILITY_SECRET must be exported for this test")
     const notJsonB64 = b64url("not json at all {{{")
     const sig = b64url(createHmac("sha256", secret).update(notJsonB64).digest())
@@ -219,7 +158,7 @@ describe("lib/capability — verifyCapabilityToken", () => {
   })
 
   it("expired token rejected -> {valid:false, error:'token expired'}", () => {
-    const secret = cap.CAPABILITY_SECRET ?? capMod.CAPABILITY_SECRET
+    const secret = capMod.CAPABILITY_SECRET
     assert.ok(secret, "CAPABILITY_SECRET must be exported")
     const payload = {
       id: "test-exp-id",
@@ -272,14 +211,14 @@ describe("lib/capability — verifyCapabilityToken", () => {
 // ---------------------------------------------------------------------------
 describe("lib/capability — CAPABILITY_SECRET per-process invalidation", () => {
   it("CAPABILITY_SECRET exists, is a Buffer of 32 bytes", () => {
-    const secret = cap.CAPABILITY_SECRET ?? capMod.CAPABILITY_SECRET
+    const secret = capMod.CAPABILITY_SECRET
     assert.ok(secret, "CAPABILITY_SECRET must be exported")
     assert.ok(Buffer.isBuffer(secret), `CAPABILITY_SECRET must be Buffer, got ${typeof secret}`)
     assert.equal(secret.length, 32, `CAPABILITY_SECRET must be 32 bytes, got ${secret.length}`)
   })
 
   it("old token minted with a different secret -> invalid signature", () => {
-    const currentSecret = cap.CAPABILITY_SECRET ?? capMod.CAPABILITY_SECRET
+    const currentSecret = capMod.CAPABILITY_SECRET
     assert.ok(currentSecret, "CAPABILITY_SECRET must be exported")
     // Forge a token with a DIFFERENT random secret (simulates pre-restart token)
     const otherSecret = randomBytes(32)
@@ -305,7 +244,7 @@ describe("lib/capability — CAPABILITY_SECRET per-process invalidation", () => 
 // ---------------------------------------------------------------------------
 describe("lib/capability — Wy .server guard", () => {
   it("CAPABILITY_SECRET has .server async function property", async () => {
-    const secret = cap.CAPABILITY_SECRET ?? capMod.CAPABILITY_SECRET
+    const secret = capMod.CAPABILITY_SECRET
     assert.ok(secret, "CAPABILITY_SECRET must be exported")
     assert.ok(secret && typeof secret === "object", "CAPABILITY_SECRET must be object (Buffer)")
     const maybeServer = secret.server
@@ -345,55 +284,56 @@ describe("lib/capability — timingSafeEqual usage", () => {
   it("verify uses timingSafeEqual (spy: constant-time compare called)", async () => {
     // Behavioral spy: if the lib imports timingSafeEqual from node:crypto,
     // ESM live bindings are read-only so direct patch may throw. We attempt
-    // patch via Object.defineProperty fallback; if that also fails we fall
+    // patch via Object.defineProperty workaround; if that also fails we fall
     // back to pure behavioral assertion (tampered same-length sig -> invalid signature).
-    // Either way RED stub shows cap.mintCapabilityToken is not a function.
-    const cryptoNs = await import("node:crypto")
     const original = cryptoNs.timingSafeEqual
-    let called = 0
-    let calledWithBuffers = false
-    let patched = false
-    try {
+    {
+      const cryptoNs = { timingSafeEqual: original }
+      let called = 0
+      let calledWithBuffers = false
+      let patched = false
       try {
-        cryptoNs.timingSafeEqual = function patchedFn(a, b) {
-          called++
-          if (Buffer.isBuffer(a) && Buffer.isBuffer(b)) calledWithBuffers = true
-          return original(a, b)
-        }
-        patched = true
-      } catch {
         try {
-          Object.defineProperty(cryptoNs, "timingSafeEqual", {
-            value: function patchedFn2(a, b) {
-              called++
-              if (Buffer.isBuffer(a) && Buffer.isBuffer(b)) calledWithBuffers = true
-              return original(a, b)
-            },
-            writable: true,
-            configurable: true,
-          })
+          cryptoNs.timingSafeEqual = function patchedFn(a, b) {
+            called++
+            if (Buffer.isBuffer(a) && Buffer.isBuffer(b)) calledWithBuffers = true
+            return original(a, b)
+          }
           patched = true
         } catch {
-          patched = false
+          try {
+            Object.defineProperty(cryptoNs, "timingSafeEqual", {
+              value: function patchedFn2(a, b) {
+                called++
+                if (Buffer.isBuffer(a) && Buffer.isBuffer(b)) calledWithBuffers = true
+                return original(a, b)
+              },
+              writable: true,
+              configurable: true,
+            })
+            patched = true
+          } catch {
+            patched = false
+          }
         }
-      }
-      const token = cap.mintCapabilityToken("ticket-creation", "timingSafeEqual-spy")
-      const dotIdx = token.indexOf(".")
-      const sigPart = token.slice(dotIdx + 1)
-      const flipped = (sigPart[0] === "A" ? "B" : "A") + sigPart.slice(1)
-      const tampered = token.slice(0, dotIdx + 1) + flipped
-      const result = cap.verifyCapabilityToken(tampered)
-      assert.equal(result.valid, false, "tampered token must still be rejected even with spy")
-      if (patched && called > 0) {
-        assert.ok(calledWithBuffers, "timingSafeEqual must be called with Buffers")
-      } else {
-        assert.equal(result.error, "invalid signature", "tampered same-length sig must be invalid signature (constant-time path)")
-      }
-    } finally {
-      try {
-        cryptoNs.timingSafeEqual = original
-      } catch {
-        try { Object.defineProperty(cryptoNs, "timingSafeEqual", { value: original, writable: true, configurable: true }) } catch { /* ignore */ }
+        const token = cap.mintCapabilityToken("ticket-creation", "timingSafeEqual-spy")
+        const dotIdx = token.indexOf(".")
+        const sigPart = token.slice(dotIdx + 1)
+        const flipped = (sigPart[0] === "A" ? "B" : "A") + sigPart.slice(1)
+        const tampered = token.slice(0, dotIdx + 1) + flipped
+        const result = cap.verifyCapabilityToken(tampered)
+        assert.equal(result.valid, false, "tampered token must still be rejected even with spy")
+        if (patched && called > 0) {
+          assert.ok(calledWithBuffers, "timingSafeEqual must be called with Buffers")
+        } else {
+          assert.equal(result.error, "invalid signature", "tampered same-length sig must be invalid signature (constant-time path)")
+        }
+      } finally {
+        try {
+          cryptoNs.timingSafeEqual = original
+        } catch {
+          try { Object.defineProperty(cryptoNs, "timingSafeEqual", { value: original, writable: true, configurable: true }) } catch { /* ignore */ }
+        }
       }
     }
   })

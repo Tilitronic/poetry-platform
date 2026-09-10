@@ -1,5 +1,5 @@
 /**
- * RED test-author lane for Slice 4 — lib/registry.ts (DIA-260902-eqgg).
+ * lib/registry.ts tests (DIA-260909-sazr; settled API, DI via dia-260902-eqgg).
  *
  * Source of truth: .opencode/plugins/delegation-observer.ts seam:
  *   appendRow (seq = maxRegistrySeq()+1 at write time, timestamp, group_key synthetic, fail-soft),
@@ -13,95 +13,33 @@
  *   registry lib is the SINGLE writer of registry.jsonl/messages.jsonl;
  *   boot.json shares bootId/seq with registry session_boot row.
  *
- * ASSUMED LIB SIGNATURE (GREEN implementer must match — note per task dispatch):
+ * Settled seam: createRegistry(deps) factory with injected fs/path/clock/
+ * randomUUID fakes plus registry/messages/boot path overrides.
  *
- *   .opencode/plugins/lib/registry.ts
- *     // Preferred DI seam (design.md D1/Q4): factory with injected deps
- *     export function createRegistry(deps: {
- *       fs: {
- *         appendFileSync(path:string, data:string): void
- *         readFileSync(path:string, enc:string): string
- *         existsSync(path:string): boolean
- *         writeFileSync(path:string, data:string): void
- *         openSync(path:string, flags:string): number
- *         fsyncSync(fd:number): void
- *         closeSync(fd:number): void
- *         renameSync(src:string, dst:string): void
- *         mkdirSync(path:string, opts?:object): void
- *         unlinkSync(path:string): void
- *         statSync(path:string): { mtimeMs:number, size:number, isFile():boolean }
- *       },
- *       path?: { join(...parts:string[]): string, dirname(p:string):string },
- *       clock?: { now():number, isoNow():string } | { Date_now():number, isoNow():string },
- *       randomUUID?: () => string,
- *       directory?: string,              // workspace root for resolving registry/messages/boot paths
- *       registryPath?: string,           // override for tests (if provided, use directly)
- *       messagesPath?: string,
- *       messagesMdPath?: string,
- *       bootPath?: string,
- *       bootTmpPath?: string,
- *       handoffDir?: string,
- *       processStartedAt?: string,       // captured before I/O (DIA-123)
- *       opencodeVersion?: string,
- *     }) => {
- *       appendRow(row: Record<string,unknown>): void
- *       appendMessageRow(row: Record<string,unknown>, sessionID?: string): void
- *       captureConfigLoadSignal(directory?: string): Record<string,string|null>
- *       atomicWriteBootMarker(marker:{ bootId:string, bootSeq:number, configSignal:Record<string,string|null> }): { ok:boolean, error?:string }
- *       maxRowIdInJsonl(jsonlPath:string): number
- *       lastMessagesMdRowNumber(mdPath:string): number
- *       maxRegistrySeq(): number
- *     }
- *     // Aliases the GREEN may use instead of createRegistry:
- *     //   create / createRegistryLib / default (factory)
- *     // Plain-export fallback (also valid — A1 shell re-export compatibility):
- *     export function appendRow(row: Record<string,unknown>): void
- *     export function appendMessageRow(row: Record<string,unknown>, sessionID?:string): void
- *     export function captureConfigLoadSignal(directory?:string): Record<string,string|null>
- *     export function atomicWriteBootMarker(marker:{...}): {ok:boolean}
- *     export function maxRowIdInJsonl(path:string): number
- *     export function lastMessagesMdRowNumber(path:string): number
- *     export function maxRegistrySeq(): number
- *     // boot helper may also be named atomicWriteBootMarker / writeBootMarker
+ *   createRegistry(deps: {
+ *     fs: { appendFileSync, readFileSync, existsSync, writeFileSync, openSync,
+ *       fsyncSync, closeSync, renameSync, mkdirSync, unlinkSync, statSync },
+ *     path?: { join, dirname },
+ *     clock?: { now, isoNow },
+ *     randomUUID?: () => string,
+ *     directory?: string, registryPath?: string, messagesPath?: string,
+ *     messagesMdPath?: string, bootPath?: string, bootTmpPath?: string,
+ *     handoffDir?: string, processStartedAt?: string, opencodeVersion?: string,
+ *   }) => { appendRow, appendMessageRow, captureConfigLoadSignal,
+ *     atomicWriteBootMarker, maxRowIdInJsonl, lastMessagesMdRowNumber,
+ *     maxRegistrySeq }
  *
- *   DI seam: tests inject fakes via factory. If GREEN only exposes plain exports,
- *   tests fall back to monkey-patching globals (Date.now, randomUUID) and assert
- *   the same contract where feasible. Either way the plain-export path must exist
- *   for S0 shell re-export.
- *
- * RUN (inside poetry-dev container):
- *   node --test .opencode/plugins/__tests__/registry.test.mjs
- *   bun test .opencode/plugins/__tests__/registry.test.mjs
- *
- * EXPECTED RED: all tests FAIL against the S0 stub (export {}) because symbols are undefined.
+ * RUN: bun test .opencode/plugins/__tests__/registry.test.mjs
  */
 
 import { describe, it } from "node:test"
 import assert from "node:assert/strict"
+import { readFileSync as nodeReadFileSync } from "node:fs"
+import * as mod from "../lib/registry.ts"
 
-// ---------------------------------------------------------------------------
-// Import the lib under test (stub in RED phase)
-// ---------------------------------------------------------------------------
-let mod = {}
-let importErr = null
-try {
-  mod = await import("../lib/registry.ts")
-} catch (e) {
-  importErr = e
-  mod = {}
-}
-
-// ---------------------------------------------------------------------------
-// Helpers to resolve DI seam
-// ---------------------------------------------------------------------------
+// Settled DI seam: direct factory use only.
 function tryFactory(deps) {
-  const factory = mod.createRegistry
-  if (typeof factory !== "function") return null
-  try {
-    const inst = factory(deps)
-    if (inst && (typeof inst.appendRow === "function" || typeof inst.appendMessageRow === "function")) return inst
-  } catch { /* probe failed */ }
-  return null
+  return mod.createRegistry(deps)
 }
 
 
@@ -196,7 +134,7 @@ function fakePath() {
   }
 }
 
-// Helper to build a registry factory instance with fakes (returns inst or throws RED)
+// Helper to build a registry factory instance with fakes.
 function makeRegistry(fakeFs, extra = {}) {
   const deps = {
     fs: fakeFs,
@@ -214,30 +152,18 @@ function makeRegistry(fakeFs, extra = {}) {
     opencodeVersion: extra.opencodeVersion,
     ...extra,
   }
-  // Also support alternative dep shapes: GREEN may expect { readFileSync, existsSync, ... } flat
-  const inst = tryFactory(deps)
-  if (inst) return inst
-  // Fallback: if mod itself has appendRow, use mod directly (plain exports) — still inject by monkey patch?
-  // For RED this will throw via mod.computeChecksum.
-  return null
+  return tryFactory(deps)
 }
 
 // ---------------------------------------------------------------------------
 // 1. appendRow — serialization + monotonic seq at write time, malformed skip
 // ---------------------------------------------------------------------------
 describe("lib/registry — appendRow", () => {
-  it("exists (factory)", () => {
-    assert.equal(typeof mod.createRegistry, "function")
-    const inst = makeRegistry(makeFakeFs({}), {})
-    assert.equal(typeof inst.appendRow, "function")
-  })
-
   it("serializes as one JSON line with seq and timestamp at write time", () => {
     const regPath = "/workspace/.opencode/session/registry.jsonl"
     const fs = makeFakeFs({})
     const inst = makeRegistry(fs)
-    assert.ok(inst, "factory must be available (makeRegistry returned null — GREEN must expose createRegistry)")
-    const fn = inst.appendRow ?? mod.appendRow
+    const fn = inst.appendRow
     fn({ event: "test_event", session_id: "ses_1", ticket: "DIA-260902-eqgg" })
     const content = fs.files.get(regPath)
     assert.ok(content, "registry file must have been written")
@@ -355,18 +281,12 @@ describe("lib/registry — appendRow", () => {
 // 2. appendMessageRow — row_id = MAX(max jsonl row_id, last md row)+1, malformed skip
 // ---------------------------------------------------------------------------
 describe("lib/registry — appendMessageRow", () => {
-  it("exists (factory)", () => {
-    assert.equal(typeof mod.createRegistry, "function")
-    const inst = makeRegistry(makeFakeFs({}), {})
-    assert.equal(typeof inst.appendMessageRow, "function")
-  })
-
   it("serializes with row_id, event_uuid, timestamp, gen_ai.provider.name, writer", () => {
     const msgPath = "/workspace/.opencode/session/messages.jsonl"
     const fs = makeFakeFs({})
     const inst = makeRegistry(fs, { messagesPath: msgPath })
     assert.ok(inst)
-    const fn = inst.appendMessageRow ?? mod.appendMessageRow
+    const fn = inst.appendMessageRow
     fn({ event_type: "decision", task_ref: "DIA-1" }, "ses_1")
     const content = fs.files.get(msgPath)
     assert.ok(content, "messages.jsonl must have been written")
@@ -446,16 +366,7 @@ describe("lib/registry — appendMessageRow", () => {
     const fs = makeFakeFs({ [mdPath]: md })
     const inst = makeRegistry(fs, { messagesPath: msgPath, messagesMdPath: mdPath })
     assert.ok(inst)
-    // If helpers are exported, test them directly
-    const lastFn = inst.lastMessagesMdRowNumber ?? mod.lastMessagesMdRowNumber
-    if (typeof lastFn === "function") {
-      assert.equal(lastFn(mdPath), 10, "must return max numeric first column (10), skipping VP rows")
-    } else {
-      // otherwise verify via row_id allocation fallback
-      inst.appendMessageRow({ event_type: "probe" })
-      const last = JSON.parse(fs.files.get(msgPath).trim().split("\n").pop())
-      assert.equal(last.row_id, 11, "via allocation: MAX(0,10)+1=11")
-    }
+    assert.equal(inst.lastMessagesMdRowNumber(mdPath), 10, "must return max numeric first column (10), skipping VP rows")
   })
 
   it("row_id is recomputed synchronously before each write (atomic append, no cached counter)", () => {
@@ -484,17 +395,8 @@ describe("lib/registry — appendMessageRow", () => {
     const fs = makeFakeFs({})
     const inst = makeRegistry(fs, { messagesPath: "/no/messages.jsonl", messagesMdPath: "/no/messages.md" })
     assert.ok(inst)
-    const maxFn = inst.maxRowIdInJsonl ?? mod.maxRowIdInJsonl
-    const lastFn = inst.lastMessagesMdRowNumber ?? mod.lastMessagesMdRowNumber
-    if (typeof maxFn === "function") assert.equal(maxFn("/no/messages.jsonl"), 0, "maxRowIdInJsonl absent must be 0")
-    if (typeof lastFn === "function") assert.equal(lastFn("/no/messages.md"), 0, "lastMessagesMdRowNumber absent must be 0")
-    // Also verify via allocation if helpers not exported
-    if (typeof maxFn !== "function" && typeof lastFn !== "function") {
-      inst.appendMessageRow({ event_type: "first_in_empty" })
-      const msgPath = "/workspace/.opencode/session/messages.jsonl"
-      const row = JSON.parse(fs.files.get(msgPath).trim().split("\n").pop())
-      assert.equal(row.row_id, 1, "first row in empty store must be 1")
-    }
+    assert.equal(inst.maxRowIdInJsonl("/no/messages.jsonl"), 0, "maxRowIdInJsonl absent must be 0")
+    assert.equal(inst.lastMessagesMdRowNumber("/no/messages.md"), 0, "lastMessagesMdRowNumber absent must be 0")
   })
 })
 
@@ -502,12 +404,6 @@ describe("lib/registry — appendMessageRow", () => {
 // 3. captureConfigLoadSignal — mtimes before I/O
 // ---------------------------------------------------------------------------
 describe("lib/registry — captureConfigLoadSignal", () => {
-  it("exists (factory)", () => {
-    assert.equal(typeof mod.createRegistry, "function")
-    const inst = makeRegistry(makeFakeFs({}), {})
-    assert.equal(typeof inst.captureConfigLoadSignal, "function")
-  })
-
   it("returns mtimes for both config files as ISO strings (or null when absent)", () => {
     const dir = "/workspace"
     const opPath = "/workspace/.opencode/opencode.jsonc"
@@ -520,7 +416,7 @@ describe("lib/registry — captureConfigLoadSignal", () => {
     fs.dirs.add("/workspace/.opencode")
     const inst = makeRegistry(fs, { directory: dir })
     assert.ok(inst)
-    const fn = inst.captureConfigLoadSignal ?? mod.captureConfigLoadSignal
+    const fn = inst.captureConfigLoadSignal
     const sig = fn(dir)
     assert.equal(sig.opencode_jsonc_mtime, new Date(t1).toISOString(), "opencode_jsonc mtime must be ISO")
     assert.equal(sig.omo_jsonc_mtime, new Date(t2).toISOString(), "omo_jsonc_mtime must be ISO")
@@ -532,7 +428,7 @@ describe("lib/registry — captureConfigLoadSignal", () => {
     // no files set — both missing
     const inst = makeRegistry(fs, { directory: dir })
     assert.ok(inst)
-    const fn = inst.captureConfigLoadSignal ?? mod.captureConfigLoadSignal
+    const fn = inst.captureConfigLoadSignal
     const sig = fn(dir)
     assert.equal(sig.opencode_jsonc_mtime, null, "missing file must be null")
     assert.equal(sig.omo_jsonc_mtime, null)
@@ -546,7 +442,7 @@ describe("lib/registry — captureConfigLoadSignal", () => {
     fs.files.set("/workspace/.opencode/oh-my-opencode-slim.jsonc", "{}")
     const inst = makeRegistry(fs, { directory: dir })
     assert.ok(inst)
-    const fn = inst.captureConfigLoadSignal ?? mod.captureConfigLoadSignal
+    const fn = inst.captureConfigLoadSignal
     fs.calls.length = 0
     fn(dir)
     const callNames = fs.calls.map(c => c[0])
@@ -564,7 +460,7 @@ describe("lib/registry — captureConfigLoadSignal", () => {
     fs.existsSync = () => true
     const inst = makeRegistry(fs, { directory: dir })
     assert.ok(inst)
-    const fn = inst.captureConfigLoadSignal ?? mod.captureConfigLoadSignal
+    const fn = inst.captureConfigLoadSignal
     let sig
     assert.doesNotThrow(() => { sig = fn(dir) }, "capture must be fail-soft on stat error")
     // At least one field should be null on error
@@ -576,12 +472,6 @@ describe("lib/registry — captureConfigLoadSignal", () => {
 // 4. atomicWriteBootMarker — shares bootId/seq with registry row + fsync discipline + fields
 // ---------------------------------------------------------------------------
 describe("lib/registry — atomicWriteBootMarker", () => {
-  it("exists (factory)", () => {
-    assert.equal(typeof mod.createRegistry, "function")
-    const inst = makeRegistry(makeFakeFs({}), {})
-    assert.equal(typeof inst.atomicWriteBootMarker, "function")
-  })
-
   it("boot.json fields: version 1, event session_boot, boot_id, seq, process_started_at, timestamp, config_load_signal, writer plugin", () => {
     const bootPath = "/workspace/.opencode/session/boot.json"
     const bootTmp = "/workspace/.opencode/session/.boot.json.tmp"
@@ -590,7 +480,7 @@ describe("lib/registry — atomicWriteBootMarker", () => {
     const processStartedAt = "2026-09-02T09:00:00.000Z"
     const inst = makeRegistry(fs, { bootPath, bootTmpPath: bootTmp, handoffDir, processStartedAt })
     assert.ok(inst)
-    const fn = inst.atomicWriteBootMarker ?? mod.atomicWriteBootMarker
+    const fn = inst.atomicWriteBootMarker
     const marker = { bootId: "boot-uuid-1234", bootSeq: 42, configSignal: { opencode_jsonc_mtime: "2026-09-01T00:00:00.000Z", omo_jsonc_mtime: null } }
     const res = fn(marker)
     // Accept either void or {ok:true}
@@ -640,7 +530,7 @@ describe("lib/registry — atomicWriteBootMarker", () => {
     const fs = makeFakeFs({})
     const inst = makeRegistry(fs, { bootPath, bootTmpPath: bootTmp, handoffDir })
     assert.ok(inst)
-    const fn = inst.atomicWriteBootMarker ?? mod.atomicWriteBootMarker
+    const fn = inst.atomicWriteBootMarker
     fs.calls.length = 0
     fn({ bootId: "b1", bootSeq: 1, configSignal: { opencode_jsonc_mtime: null, omo_jsonc_mtime: null } })
     const names = fs.calls.map(c => c[0])
@@ -674,25 +564,28 @@ describe("lib/registry — atomicWriteBootMarker", () => {
     const handoffDir = "/workspace/.opencode/session"
     const inst = makeRegistry(fs, { handoffDir, bootPath: `${handoffDir}/boot.json`, bootTmpPath: `${handoffDir}/.boot.json.tmp` })
     assert.ok(inst)
-    const fn = inst.atomicWriteBootMarker ?? mod.atomicWriteBootMarker
+    const fn = inst.atomicWriteBootMarker
     fn({ bootId: "b2", bootSeq: 2, configSignal: {} })
     const mkdirCalls = fs.calls.filter(c => c[0] === "mkdirSync")
     assert.ok(mkdirCalls.some(c => c[1] === handoffDir), `must mkdirSync ${handoffDir}`)
   })
 
-  it("fail-soft: rename failure cleans up tmp and does not throw (best-effort)", () => {
+  it("fail-soft: rename failure cleans up tmp and returns ok:false", () => {
     const bootTmp = "/workspace/.opencode/session/.boot.json.tmp"
+    const bootPath = "/workspace/.opencode/session/boot.json"
     const fs = makeFakeFs({}, { renameShouldThrow: "disk error" })
     fs.files.set(bootTmp, "tmp content")
-    const inst = makeRegistry(fs, { bootTmpPath: bootTmp })
+    const inst = makeRegistry(fs, { bootTmpPath: bootTmp, bootPath })
     assert.ok(inst)
-    const fn = inst.atomicWriteBootMarker ?? mod.atomicWriteBootMarker
+    const fn = inst.atomicWriteBootMarker
     let res
     assert.doesNotThrow(() => { res = fn({ bootId: "b3", bootSeq: 3, configSignal: {} }) }, "atomicWriteBootMarker must not throw on rename failure")
-    // Should either return {ok:false} or void; if returns, ok must be false
-    if (res !== undefined) assert.equal(res.ok, false, "on failure should return {ok:false}")
-    // Fail-soft cleanup: tmp should have been unlinked or at least not left as boot.json
-    assert.ok(!fs.files.has("/workspace/.opencode/session/boot.json") || true, "boot.json should not exist on failure (or be warned)")
+    // The settled contract returns {ok:false} with the rename error.
+    assert.equal(res.ok, false, "on failure must return {ok:false}")
+    assert.match(String(res.error ?? ""), /disk error/i, "error must carry the rename failure")
+    // Fail-soft cleanup: tmp is unlinked and boot.json never lands.
+    assert.ok(!fs.files.has(bootTmp), "tmp must be unlinked after rename failure")
+    assert.ok(!fs.files.has(bootPath), "boot.json must not exist after rename failure")
   })
 
   it("opencode_version included when available, omitted when absent", () => {
@@ -733,44 +626,23 @@ describe("lib/registry — atomicWriteBootMarker", () => {
 // ---------------------------------------------------------------------------
 describe("lib/registry — DI seam (inject fs fakes)", () => {
   it("factory accepts injected fs and does not touch real filesystem", () => {
-    // This test asserts the DI contract itself: the lib must accept fs fakes
-    // and use ONLY them. If GREEN ignores the injected fakes and touches real FS,
-    // this test's fake would not record the calls.
+    // DI contract: the lib accepts fs fakes and uses ONLY them. If it touched
+    // the real FS instead, this fake would record no calls.
     const fs = makeFakeFs({})
     const inst = makeRegistry(fs)
-    assert.ok(inst, "factory must exist and accept fs injection — GREEN must expose createRegistry")
-    const hasFsDep = inst !== null
-    assert.ok(hasFsDep, "lib must be DI'd via factory (injected fs fakes)")
     // Perform an operation and verify it went through the fake
-    inst.appendRow({ event: "di_probe" })
+    inst.appendRow({ event: "di_check" })
     const calls = fs.calls.map(c => c[0])
-    assert.ok(calls.includes("appendFileSync") || calls.includes("readFileSync"), "operation must have used injected fs (appendFileSync/readFileSync recorded)")
+    assert.ok(calls.includes("appendFileSync"), "operation must have used injected fs (appendFileSync recorded)")
     assert.ok(calls.length > 0, "fake fs must have been called")
   })
 
-  it("factory does not capture ctx or import shell — pure lib with injected deps only", async () => {
-    // Structural DI check: lib must be more than the S0 stub and must not import shell.
-    // In RED phase the stub is `export {}` so this test must FAIL to show RED.
-    if (importErr) {
-      assert.fail(`RED scaffold: cannot import lib/registry.ts — ${importErr.message}`)
-    }
-    const { readFileSync } = await import("node:fs")
-    const src = readFileSync(new URL("../lib/registry.ts", import.meta.url), "utf-8")
-    // RED guard: stub has no registry logic — fail with clear message so RED is evident
-    const hasRegistryLogic = src.includes("appendRow") || src.includes("appendMessageRow") || src.includes("atomicWriteBootMarker")
-    assert.ok(hasRegistryLogic, "RED scaffold: lib/registry.ts is still the S0 stub (export {}) — GREEN must implement registry logic")
+  it("factory does not capture ctx or import shell — pure lib with injected deps only", () => {
+    // Structural DI check: lib must not import shell.
+    const src = nodeReadFileSync(new URL("../lib/registry.ts", import.meta.url), "utf-8")
+    assert.ok(src.includes("appendRow"), "lib/registry.ts must implement registry logic")
     assert.ok(!src.includes("from \"../delegation-observer"), "registry lib must not import from delegation-observer (no shell import)")
     assert.ok(!src.includes("from './delegation-observer"), "registry lib must not import shell")
   })
 
-  it("registry lib is the SINGLE writer of registry.jsonl/messages.jsonl (no other lib writes these files)", () => {
-    // Contract check: tasks.md says registry lib is single writer. We verify
-    // the registry lib source mentions both registry.jsonl/messages.jsonl handling
-    // and that it is not just a passthrough. RED stub fails this.
-    assert.ok(typeof mod.createRegistry === "function", "createRegistry factory must exist — registry lib must be the writer")
-    const inst2 = makeRegistry(makeFakeFs({}), {})
-    assert.ok(typeof inst2.appendRow === "function" && typeof inst2.appendMessageRow === "function", "factory instance must have appendRow/appendMessageRow")
-    // Additionally, the lib must expose atomicWriteBootMarker (shares writer role)
-    assert.equal(typeof inst2.atomicWriteBootMarker, "function", "atomicWriteBootMarker must exist — boot.json shares writer")
-  })
 })

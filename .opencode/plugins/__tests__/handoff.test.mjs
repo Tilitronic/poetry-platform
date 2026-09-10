@@ -1,5 +1,5 @@
 /**
- * RED test-author lane for Slice 3 — lib/handoff.ts (DIA-260902-eqgg).
+ * lib/handoff.ts tests (DIA-260909-sazr; settled API, DI via dia-260902-eqgg).
  *
  * Source of truth: .opencode/plugins/delegation-observer.ts seam
  *   computeChecksum(prognosis), atomicWriteHandoff(content, sessionId),
@@ -14,138 +14,35 @@
  *   persistence ordering preserved (tmp->fsync->rename->fsync-dir,
  *   archive-before-overwrite).
  *
- * ASSUMED LIB SIGNATURE (GREEN implementer must match — noted per task dispatch):
+ * Settled seam: computeChecksum(obj) canonical sha256; atomicWriteHandoff(
+ *   paths, sessionId, content, deps) four-arg production arity with injected
+ *   fs/clock/UUID fakes (design.md Q4).
  *
- *   .opencode/plugins/lib/handoff.ts
- *     export function computeChecksum(obj: object): string
- *       // canonical sha256: sort top-level keys ASCII (Object.keys().sort()),
- *       // JSON.stringify(canonical) compact, no trailing newline,
- *       // createHash("sha256").update(JSON.stringify(canonical)).digest("hex")
- *       // nested objects keep insertion order (only top-level sorted)
- *       // -> 64-char hex
+ *   computeChecksum(obj: object): string
+ *     canonical sha256: sort top-level keys ASCII (Object.keys().sort()),
+ *     JSON.stringify(canonical) compact, no trailing newline,
+ *     createHash("sha256").update(JSON.stringify(canonical)).digest("hex");
+ *     nested objects keep insertion order (only top-level sorted) -> 64-char hex.
  *
- *     export type HandoffPaths = {
- *       slotsDir: string        // .opencode/session/handoffs
- *       archiveDir: string      // .opencode/session/handoffs/archive
- *       pointerPath: string     // .opencode/session/handoffs/active.json
- *       legacyPath: string      // .opencode/session/current-handoff.json (READ-ONLY, never written)
- *       reconciledPath: string  // .opencode/session/handoffs/.reconciled (reserved, never clobbered)
- *       // or at minimum: { slotsDir, archiveDir, pointerPath, legacyPath }
- *     }
+ *   HandoffPaths: { slotsDir, archiveDir, pointerPath, legacyPath, reconciledPath }
+ *     slotsDir: .opencode/session/handoffs; archiveDir: .../handoffs/archive;
+ *     pointerPath: .../handoffs/active.json; legacyPath: .../current-handoff.json
+ *     (READ-ONLY, never written); reconciledPath: .../handoffs/.reconciled.
  *
- *     export type HandoffDeps = {
- *       writeFileSync: (p: string, d: string) => void
- *       openSync: (p: string, flags: string) => number
- *       fsyncSync: (fd: number) => void
- *       closeSync: (fd: number) => void
- *       renameSync: (src: string, dst: string) => void
- *       mkdirSync: (p: string, opts?: {recursive:boolean}) => void
- *       existsSync: (p: string) => boolean
- *       readFileSync?: (p: string, enc: string) => string
- *       unlinkSync?: (p: string) => void
- *       randomUUID?: () => string
- *       now?: () => number  // or Date.now style
- *     }
+ *   HandoffDeps: injected { writeFileSync, openSync, fsyncSync, closeSync,
+ *     renameSync, mkdirSync, existsSync, readFileSync?, unlinkSync?,
+ *     randomUUID?, now? }.
  *
- *     // Primary shape (per tasks.md S3 + design.md):
- *     export function atomicWriteHandoff(
- *       paths: HandoffPaths,
- *       sessionId: string,
- *       content: Record<string, unknown>,
- *       deps: HandoffDeps
- *     ): { ok: boolean; archived_prior?: string | null; error?: string }
- *
- *     // Alternate accepted shape (payload object):
- *     export function atomicWriteHandoff(
- *       paths: HandoffPaths,
- *       payload: { sessionId: string; content: Record<string, unknown> },
- *       deps: HandoffDeps
- *     ): { ok: boolean; archived_prior?: string | null; error?: string }
- *
- *     // Or factory DI seam (like lib/capability.ts, lib/ticket-gate.ts):
- *     export function createHandoff(deps: HandoffDeps): {
- *       computeChecksum: typeof computeChecksum
- *       atomicWriteHandoff: (paths: HandoffPaths, sessionId: string, content: object) => {ok:boolean, error?:string}
- *     }
- *     // aliases: create / default factory, or HandoffPaths type in lib/types.ts
- *
- *   DI seam: lib accepts injected deps (fs functions) — design.md Q4.
- *   Persistence ordering (gate findings): tmp->fsync->rename->fsync-dir,
- *   archive-before-overwrite invariant (correction 5), active.json pointer
- *   last-writer-wins, legacy current-handoff.json READ-ONLY.
- *
- * Tests handle ALL shapes: they probe for factory first, then plain exports,
- * then try both call arities. RED stub (export {}) fails every probe with
- * actionable message so Coder-B knows what to implement.
- *
- * RUN (inside poetry-dev container, like capability.test.mjs):
- *   node --test .opencode/plugins/__tests__/handoff.test.mjs
- *   bun test .opencode/plugins/__tests__/handoff.test.mjs
- *
- * EXPECTED RED: all tests FAIL against the S0 stub (export {}) because
- * computeChecksum / atomicWriteHandoff / HandoffPaths are undefined.
+ * RUN: bun test .opencode/plugins/__tests__/handoff.test.mjs
  */
 
 import { describe, it } from "node:test"
 import assert from "node:assert/strict"
 import { createHash } from "node:crypto"
+import * as mod from "../lib/handoff.ts"
 
-// ---------------------------------------------------------------------------
-// Import the lib under test (stub in RED phase).
-// ---------------------------------------------------------------------------
-let mod = {}
-try {
-  mod = await import("../lib/handoff.ts")
-} catch (e) {
-  void e
-  mod = {}
-}
-
-// ---------------------------------------------------------------------------
-// Helpers to resolve DI seam / call shape.
-// ---------------------------------------------------------------------------
-
-
-function tryMakeHandoff(fakes) {
-  const factory = mod.createHandoff
-  if (typeof factory !== "function") return null
-  try {
-    const inst = factory(fakes)
-    if (inst && typeof inst.computeChecksum === "function") return inst
-    if (inst && typeof inst.atomicWriteHandoff === "function") return inst
-  } catch { /* probe failed */ }
-  return null
-}
-
-function getComputeChecksum() {
-  // prefer factory-bound instance if available
-  const inst = tryMakeHandoff({})
-  if (inst?.computeChecksum) return inst.computeChecksum
-  return mod.computeChecksum
-}
-
-function getAtomicWriteHandoff() {
-  const inst = tryMakeHandoff({})
-  if (inst?.atomicWriteHandoff) return inst.atomicWriteHandoff
-  return mod.atomicWriteHandoff
-}
-
-// Unified caller — production arity only (O-01: payload-object overload removed)
-function callAtomic(atomicFn, paths, sessionId, content, deps) {
-  try {
-    const r = atomicFn(paths, sessionId, content, deps)
-    if (r !== undefined) return r
-    return { ok: true }
-  } catch (e) {
-    try {
-      const r3 = atomicFn(paths, sessionId, content)
-      if (r3 !== undefined) return r3
-      return { ok: true }
-    } catch {
-      throw e
-    }
-  }
-}
+// Settled API: direct named use only.
+const { computeChecksum: computeChecksumFn, atomicWriteHandoff: atomicWriteHandoffFn } = mod
 
 // ---------------------------------------------------------------------------
 // Fake FS builder — records ordered call log for ordering assertions.
@@ -265,19 +162,14 @@ function canonicalChecksum(obj) {
 // 1. computeChecksum — canonical sha256 with stable key ordering
 // ---------------------------------------------------------------------------
 describe("lib/handoff — computeChecksum canonical sha256", () => {
-  it("exists and is a function", () => {
-    const fn = getComputeChecksum()
-    assert.equal(typeof fn, "function")
-  })
-
   it("returns 64-char hex string", () => {
-    const fn = getComputeChecksum()
+    const fn = computeChecksumFn
     const out = fn({ a: 1 })
     assert.match(out, /^[0-9a-f]{64}$/, `checksum must be 64 hex chars, got ${out}`)
   })
 
   it("is stable under key order permutation (top-level keys sorted ASCII)", () => {
-    const fn = getComputeChecksum()
+    const fn = computeChecksumFn
     const objA = { z: 1, a: 2, m: 3 }
     const objB = { a: 2, m: 3, z: 1 }
     const objC = { m: 3, z: 1, a: 2 }
@@ -290,7 +182,7 @@ describe("lib/handoff — computeChecksum canonical sha256", () => {
   })
 
   it("differs for different content / different values", () => {
-    const fn = getComputeChecksum()
+    const fn = computeChecksumFn
     const h1 = fn({ a: 1 })
     const h2 = fn({ a: 2 })
     const h3 = fn({ b: 1 })
@@ -300,7 +192,7 @@ describe("lib/handoff — computeChecksum canonical sha256", () => {
   })
 
   it("matches canonical pipeline: sorted keys + compact JSON + sha256 hex (no trailing newline)", () => {
-    const fn = getComputeChecksum()
+    const fn = computeChecksumFn
     // Use a prognosis-like object with deliberately non-alphabetical insertion order
     // (like parallel-handoff.test.mjs fixtures) so unsorted impl would fail.
     const prognosis = {
@@ -323,7 +215,7 @@ describe("lib/handoff — computeChecksum canonical sha256", () => {
   })
 
   it("nested objects keep insertion order (only top-level sorted) — matches validator jq behavior", () => {
-    const fn = getComputeChecksum()
+    const fn = computeChecksumFn
     const inner1 = { b: 2, a: 1 }
     const inner2 = { a: 1, b: 2 }
     // If nested were sorted, these would hash equal. Validator preserves nested insertion order,
@@ -332,15 +224,13 @@ describe("lib/handoff — computeChecksum canonical sha256", () => {
     const obj2 = { z: inner2, a: 0 }
     const h1 = fn(obj1)
     const h2 = fn(obj2)
-    // The spec says nested keeps existing insertion order (matches jq parse order),
-    // so two different nested orders should produce different hashes.
-    // If GREEN sorts nested too, this test would fail — but we document the expected jq behavior.
-    // Accept either? We assert they differ to enforce verbatim validator parity.
+    // Nested objects keep insertion order (only top-level sorted), matching
+    // validator jq behavior: different nested order must hash differently.
     assert.notEqual(h1, h2, "nested insertion order must be preserved (only top-level sorted) — different nested order must hash differently")
   })
 
   it("empty object hashes to known sha256 of '{}'", () => {
-    const fn = getComputeChecksum()
+    const fn = computeChecksumFn
     const expected = createHash("sha256").update("{}").digest("hex")
     assert.equal(fn({}), expected)
   })
@@ -350,20 +240,14 @@ describe("lib/handoff — computeChecksum canonical sha256", () => {
 // 2. atomicWriteHandoff — tmp->fsync->rename->fsync-dir ordering + pointer
 // ---------------------------------------------------------------------------
 describe("lib/handoff — atomicWriteHandoff tmp->fsync->rename->fsync-dir ordering", () => {
-  it("exists and is a function", () => {
-    const fn = getAtomicWriteHandoff()
-    assert.equal(typeof fn, "function")
-  })
-
   it("writes slot via tmp->fsync->rename->fsync-dir in strict order", () => {
-    const fn = getAtomicWriteHandoff()
     const paths = makePaths("/tmp/test1/.opencode/session")
     const { fakes, log, writes } = buildFakeFS({ existing: [] })
 
     const content = { status: "done", session_id: "ses_A", prognosis: { note: "hello" } }
-    const result = callAtomic(fn, paths, "ses_A", content, fakes)
+    const result = atomicWriteHandoffFn(paths, "ses_A", content, fakes)
     // Should succeed
-    if (result && typeof result.ok === "boolean") assert.equal(result.ok, true, `expected ok:true, got ${JSON.stringify(result)}`)
+    assert.equal(result.ok, true, `expected ok:true, got ${JSON.stringify(result)}`)
 
     // Verify ordering for slot write:
     // Sequence must be: mkdirSync slotsDir, mkdirSync archiveDir, (optional existsSync check),
@@ -400,11 +284,10 @@ describe("lib/handoff — atomicWriteHandoff tmp->fsync->rename->fsync-dir order
   })
 
   it("pointer active.json is written AFTER slot via same tmp->fsync->rename->fsync-dir and contains active_session_id", () => {
-    const fn = getAtomicWriteHandoff()
     const paths = makePaths("/tmp/test2/.opencode/session")
     const { fakes, log, writes } = buildFakeFS({ existing: [] })
     const content = { status: "done", session_id: "ses_A", prognosis: { note: "x" } }
-    callAtomic(fn, paths, "ses_A", content, fakes)
+    atomicWriteHandoffFn(paths, "ses_A", content, fakes)
 
     const slotRenameIdx = log.findIndex((e) => e.op === "renameSync" && e.src.includes(".ses_A.json.tmp"))
     const pointerWriteIdx = log.findIndex((e) => e.op === "writeFileSync" && e.path.includes(".active.json.tmp"))
@@ -428,10 +311,9 @@ describe("lib/handoff — atomicWriteHandoff tmp->fsync->rename->fsync-dir order
   })
 
   it("mkdir -p for slotsDir and archiveDir before any write (recursive)", () => {
-    const fn = getAtomicWriteHandoff()
     const paths = makePaths("/tmp/test3/.opencode/session")
     const { fakes, log } = buildFakeFS({ existing: [] })
-    callAtomic(fn, paths, "ses_A", { status: "done", session_id: "ses_A" }, fakes)
+    atomicWriteHandoffFn(paths, "ses_A", { status: "done", session_id: "ses_A" }, fakes)
     const mkdirSlots = log.find((e) => e.op === "mkdirSync" && e.path === paths.slotsDir)
     const mkdirArchive = log.find((e) => e.op === "mkdirSync" && e.path === paths.archiveDir)
     assert.ok(mkdirSlots, "mkdirSync for slotsDir must be called")
@@ -446,33 +328,19 @@ describe("lib/handoff — atomicWriteHandoff tmp->fsync->rename->fsync-dir order
     assert.ok(mkdirArchiveIdx < firstWriteIdx, "mkdir archiveDir must be before first write")
   })
 
-  it("slot path collision guard: sessionId 'active' (or reconciled/legacy) throws or returns ok:false and writes nothing", () => {
-    const fn = getAtomicWriteHandoff()
+  it("slot path collision guard: sessionId 'active' throws and writes nothing", () => {
     const paths = makePaths("/tmp/test4/.opencode/session")
-    const { fakes, writes } = buildFakeFS({ existing: [] })
-    let result
-    let threw = false
-    try {
-      result = callAtomic(fn, paths, "active", { status: "done", session_id: "active" }, fakes)
-    } catch (e) {
-      threw = true
-      assert.match(String(e.message), /collision|reserved|active/i, "collision error must mention reserved path")
-    }
-    if (!threw) {
-      // GREEN may return {ok:false} instead of throw
-      if (result && typeof result.ok === "boolean") {
-        assert.equal(result.ok, false, "collision must return ok:false")
-        assert.ok(result.error, "collision must carry error")
-      } else {
-        assert.fail("collision must either throw or return {ok:false}")
-      }
-    }
-    // No slot or pointer must have been written for the colliding id
-    // (and no rename to pointerPath must have happened for that id)
-    // Simpler: check no write to .../active.json as slot (slot path would be handoffs/active.json)
+    const { fakes, log, writes } = buildFakeFS({ existing: [] })
+    // The settled contract throws before any write happens.
+    assert.throws(
+      () => atomicWriteHandoffFn(paths, "active", { status: "done", session_id: "active" }, fakes),
+      /collision|reserved|active/i,
+      "collision must throw mentioning the reserved path"
+    )
+    // Throw happens before any write: no slot, no pointer, no tmp writes.
     assert.ok(!writes.has(`${paths.slotsDir}/active.json`), "slot file handoffs/active.json must NOT be created for session 'active' (would clobber pointer)")
-    // Also ensure legacy path not written (covered elsewhere, but also here)
     assert.ok(!writes.has(paths.legacyPath), "legacy path must not be written on collision either")
+    assert.ok(!log.some((e) => e.op === "writeFileSync"), "no file may be written when the slot path collides")
   })
 })
 
@@ -481,7 +349,6 @@ describe("lib/handoff — atomicWriteHandoff tmp->fsync->rename->fsync-dir order
 // ---------------------------------------------------------------------------
 describe("lib/handoff — active.json last-writer-wins + archive before overwrite", () => {
   it("two different sessions: both slots survive, pointer points to most recent writer", () => {
-    const fn = getAtomicWriteHandoff()
     const paths = makePaths("/tmp/test5/.opencode/session")
     const sharedWrites = new Map()
     const sharedExisting = new Set()
@@ -503,12 +370,12 @@ describe("lib/handoff — active.json last-writer-wins + archive before overwrit
     }
     const fakes = makeSharedFake(sharedLog, sharedWrites, sharedExisting)
 
-    callAtomic(fn, paths, "ses_A", { status: "done", session_id: "ses_A", prognosis: { v: 1 } }, fakes)
+    atomicWriteHandoffFn(paths, "ses_A", { status: "done", session_id: "ses_A", prognosis: { v: 1 } }, fakes)
     const pointerAfterA = sharedWrites.get(paths.pointerPath)
     assert.ok(pointerAfterA, "pointer must exist after ses_A")
     assert.equal(JSON.parse(pointerAfterA).active_session_id, "ses_A")
 
-    callAtomic(fn, paths, "ses_B", { status: "done", session_id: "ses_B", prognosis: { v: 2 } }, fakes)
+    atomicWriteHandoffFn(paths, "ses_B", { status: "done", session_id: "ses_B", prognosis: { v: 2 } }, fakes)
     const pointerAfterB = sharedWrites.get(paths.pointerPath)
     assert.equal(JSON.parse(pointerAfterB).active_session_id, "ses_B", "pointer must be last-writer-wins (ses_B)")
 
@@ -520,11 +387,10 @@ describe("lib/handoff — active.json last-writer-wins + archive before overwrit
   })
 
   it("same-session second write archives prior slot BEFORE slot rename (archive copy before rename invariant)", () => {
-    const fn = getAtomicWriteHandoff()
     const paths = makePaths("/tmp/test6/.opencode/session")
     const { fakes, writes } = buildFakeFS({ existing: [] })
     // First write creates ses_A.json
-    callAtomic(fn, paths, "ses_A", { status: "done", session_id: "ses_A", prognosis: { v: 1 } }, fakes)
+    atomicWriteHandoffFn(paths, "ses_A", { status: "done", session_id: "ses_A", prognosis: { v: 1 } }, fakes)
     // Clear log for second write but keep writes/existing so slot exists
     const log2 = []
     // Build second fakes sharing same writes/existing but fresh log
@@ -544,8 +410,8 @@ describe("lib/handoff — active.json last-writer-wins + archive before overwrit
     }
 
     const content2 = { status: "done", session_id: "ses_A", prognosis: { v: 2 } }
-    const result = callAtomic(fn, paths, "ses_A", content2, fakes2)
-    if (result && typeof result.ok === "boolean") assert.equal(result.ok, true)
+    const result = atomicWriteHandoffFn(paths, "ses_A", content2, fakes2)
+    assert.equal(result.ok, true)
 
     // Archive must have occurred before slot rename:
     // Find archive rename and slot rename in log2
@@ -566,14 +432,13 @@ describe("lib/handoff — active.json last-writer-wins + archive before overwrit
     assert.equal(JSON.parse(finalSlot).prognosis.v, 2)
     // Archived content should be v:1 (prior slot preserved)
     const archivedData = sharedWrites.get(archiveEntry.dst)
-    if (archivedData) assert.equal(JSON.parse(archivedData).prognosis.v, 1, "archived prior slot must preserve old prognosis")
+    assert.equal(JSON.parse(archivedData).prognosis.v, 1, "archived prior slot must preserve old prognosis")
   })
 
   it("first write for a session does NOT archive (no prior slot)", () => {
-    const fn = getAtomicWriteHandoff()
     const paths = makePaths("/tmp/test7/.opencode/session")
     const { fakes, log } = buildFakeFS({ existing: [] })
-    callAtomic(fn, paths, "ses_A", { status: "done", session_id: "ses_A" }, fakes)
+    atomicWriteHandoffFn(paths, "ses_A", { status: "done", session_id: "ses_A" }, fakes)
     const archiveRenames = log.filter((e) => e.op === "renameSync" && e.dst.startsWith(paths.archiveDir))
     assert.equal(archiveRenames.length, 0, "first write must not create archive (no prior slot)")
   })
@@ -584,7 +449,6 @@ describe("lib/handoff — active.json last-writer-wins + archive before overwrit
 // ---------------------------------------------------------------------------
 describe("lib/handoff — REGRESSION V-A correction 2: archive failure best-effort (DIA-085)", () => {
   it("when archive rename throws, new slot still lands with ok:true (best-effort per DIA-085)", () => {
-    const fn = getAtomicWriteHandoff()
     const paths = makePaths("/tmp/test8/.opencode/session")
     const initialContent = JSON.stringify({ status: "done", session_id: "ses_A", prognosis: { v: 1 } }, null, 2) + "\n"
     const sharedWrites = new Map([[`${paths.slotsDir}/ses_A.json`, initialContent]])
@@ -616,7 +480,7 @@ describe("lib/handoff — REGRESSION V-A correction 2: archive failure best-effo
     let result
     let threw = false
     try {
-      result = callAtomic(fn, paths, "ses_A", { status: "done", session_id: "ses_A", prognosis: { v: 2 } }, fakes)
+      result = atomicWriteHandoffFn(paths, "ses_A", { status: "done", session_id: "ses_A", prognosis: { v: 2 } }, fakes)
     } catch (e) {
       threw = true
       assert.fail(`archive failure must NOT throw per DIA-085 best-effort, got throw: ${e.message}`)
@@ -640,43 +504,24 @@ describe("lib/handoff — REGRESSION V-A correction 2: archive failure best-effo
     assert.ok(slotWrites.length >= 1, "slot tmp write must occur even when archive fails")
   })
 
-  it("non-archive FS failure still cleans up tmp via unlinkSync and returns ok:false (or throws) — pointer not updated", () => {
-    const fn = getAtomicWriteHandoff()
+  it("non-archive FS failure cleans up tmp via unlinkSync and returns ok:false — pointer not updated", () => {
     const paths = makePaths("/tmp/test9/.opencode/session")
-    const { fakes } = buildFakeFS({
-      existing: [],
-      failWriteIf: (p) => p.includes(".ses_A.json.tmp"),
-    })
-    // Override writeFileSync to throw for slot tmp only, but allow pointer path to be testable
-    let threw = false
-    let result
-    try {
-      result = fakes // we need to call atomic with a fakes that fails on slot write
-      const failFakes = {
-        ...fakes,
-        writeFileSync(p, d) {
-          if (p.includes(".ses_A.json.tmp")) throw new Error("ENOSPC: no space left")
-          return fakes.writeFileSync(p, d)
-        },
-      }
-      result = callAtomic(fn, paths, "ses_A", { status: "done", session_id: "ses_A" }, failFakes)
-    } catch (e) {
-      threw = true
-      assert.match(String(e.message), /ENOSPC|no space/i)
+    const { fakes, log, writes } = buildFakeFS({ existing: [] })
+    // Fail the slot tmp write only; the pointer path stays writable.
+    const failFakes = {
+      ...fakes,
+      writeFileSync(p, d) {
+        if (p.includes(".ses_A.json.tmp")) throw new Error("ENOSPC: no space left")
+        return fakes.writeFileSync(p, d)
+      },
     }
-    if (!threw) {
-      // If GREEN returns {ok:false} instead of throw, verify shape
-      if (result && typeof result.ok === "boolean") {
-        assert.equal(result.ok, false, "slot write failure must return ok:false")
-      }
-    }
-    // Tmp should have been unlinked on failure (best-effort cleanup)
-    // We can't assert strictly without knowing GREEN's unlink path, but we document the contract:
-    // On slot write failure, tmp is unlinked and pointer is never updated.
-    // This test is intentionally loose on unlink assertion — the critical invariant is
-    // that the failure does not crash without cleanup and does not update pointer.
-    // The next test covers the strict ordering when write succeeds.
-    assert.ok(true, "non-archive failure contract documented — GREEN must unlink tmp and not update pointer")
+    // The settled contract returns {ok:false} (never throws) on slot write failure.
+    const result = atomicWriteHandoffFn(paths, "ses_A", { status: "done", session_id: "ses_A" }, failFakes)
+    assert.equal(result.ok, false, "slot write failure must return ok:false")
+    assert.match(String(result.error ?? ""), /ENOSPC|no space/i, "error must carry the write failure")
+    const slotTmp = `${paths.slotsDir}/.ses_A.json.tmp`
+    assert.ok(log.some((e) => e.op === "unlinkSync" && e.path === slotTmp), "tmp must be unlinked on slot write failure")
+    assert.ok(!writes.has(paths.pointerPath), "pointer must not be updated when the slot write fails")
   })
 })
 
@@ -685,11 +530,10 @@ describe("lib/handoff — REGRESSION V-A correction 2: archive failure best-effo
 // ---------------------------------------------------------------------------
 describe("lib/handoff — legacy current-handoff.json is READ-ONLY (never written)", () => {
   it("atomicWriteHandoff never writes to legacyPath (writeFileSync/renameSync target check)", () => {
-    const fn = getAtomicWriteHandoff()
     const paths = makePaths("/tmp/test10/.opencode/session")
     const { fakes, log, writes } = buildFakeFS({ existing: [] })
-    callAtomic(fn, paths, "ses_A", { status: "done", session_id: "ses_A" }, fakes)
-    callAtomic(fn, paths, "ses_B", { status: "done", session_id: "ses_B" }, fakes)
+    atomicWriteHandoffFn(paths, "ses_A", { status: "done", session_id: "ses_A" }, fakes)
+    atomicWriteHandoffFn(paths, "ses_B", { status: "done", session_id: "ses_B" }, fakes)
 
     for (const entry of log) {
       if (entry.op === "writeFileSync") assert.notEqual(entry.path, paths.legacyPath, `legacyPath must never be a writeFileSync target, got ${entry.path}`)
@@ -702,11 +546,10 @@ describe("lib/handoff — legacy current-handoff.json is READ-ONLY (never writte
   })
 
   it("legacy path is not created even on same-session archive flow", () => {
-    const fn = getAtomicWriteHandoff()
     const paths = makePaths("/tmp/test11/.opencode/session")
     // First write
     const { fakes: f1, writes: w1 } = buildFakeFS({ existing: [] })
-    callAtomic(fn, paths, "ses_A", { status: "done", session_id: "ses_A", prognosis: { v: 1 } }, f1)
+    atomicWriteHandoffFn(paths, "ses_A", { status: "done", session_id: "ses_A", prognosis: { v: 1 } }, f1)
     // Second write same session — archive + overwrite
     const log2 = []
     const sharedWrites = w1
@@ -722,34 +565,22 @@ describe("lib/handoff — legacy current-handoff.json is READ-ONLY (never writte
       unlinkSync(p) { log2.push({ op: "unlinkSync", path: p }); sharedWrites.delete(p); sharedExisting.delete(p) },
       randomUUID: () => "44444444-4444-4444-8444-444444444444",
     }
-    callAtomic(fn, paths, "ses_A", { status: "done", session_id: "ses_A", prognosis: { v: 2 } }, fakes2)
+    atomicWriteHandoffFn(paths, "ses_A", { status: "done", session_id: "ses_A", prognosis: { v: 2 } }, fakes2)
     for (const e of log2) {
       if (e.op === "writeFileSync") assert.notEqual(e.path, paths.legacyPath)
       if (e.op === "renameSync") assert.notEqual(e.dst, paths.legacyPath)
     }
     assert.ok(!sharedWrites.has(paths.legacyPath), "legacyPath must still not exist after archive flow")
   })
-
-  it("module does not export a writer that targets legacyPath (no legacy import side-effect)", () => {
-    // Ensure the lib's exported paths/constants do not alias legacyPath as slotsDir
-    // This is a structural check: if GREEN exposes HandoffPaths helpers, legacy must be distinct.
-    if (mod.HandoffPaths || mod.handoffPaths || mod.paths) {
-      const maybePaths = mod.HandoffPaths ?? mod.paths
-      if (maybePaths && typeof maybePaths === "object" && maybePaths.legacyPath) {
-        assert.notEqual(maybePaths.legacyPath, maybePaths.slotsDir, "legacyPath must be distinct from slotsDir")
-      }
-    }
-    // Always pass if no paths export — the file-level check above already covers write targeting.
-    assert.ok(true, "legacy READ-ONLY structural check passed")
-  })
 })
+
+
 
 // ---------------------------------------------------------------------------
 // 6. Injected fs fakes contract — lib must use injected deps, not real fs
 // ---------------------------------------------------------------------------
 describe("lib/handoff — injected fs fakes contract", () => {
   it("atomicWriteHandoff uses injected mkdirSync/writeFileSync/openSync/fsyncSync/renameSync (not real fs)", () => {
-    const fn = getAtomicWriteHandoff()
     const paths = makePaths("/tmp/test12/.opencode/session")
     let mkdirCalled = 0, writeCalled = 0, openCalled = 0, fsyncCalled = 0, renameCalled = 0
     const trackingFakes = {
@@ -763,7 +594,7 @@ describe("lib/handoff — injected fs fakes contract", () => {
       unlinkSync() {},
       randomUUID: () => "55555555-5555-4555-8555-555555555555",
     }
-    callAtomic(fn, paths, "ses_F", { status: "done", session_id: "ses_F" }, trackingFakes)
+    atomicWriteHandoffFn(paths, "ses_F", { status: "done", session_id: "ses_F" }, trackingFakes)
     assert.ok(mkdirCalled >= 2, `injected mkdirSync must be called at least twice (slotsDir + archiveDir), got ${mkdirCalled}`)
     assert.ok(writeCalled >= 2, `injected writeFileSync must be called for slot + pointer, got ${writeCalled}`)
     assert.ok(openCalled >= 2, `injected openSync must be called, got ${openCalled}`)
@@ -772,7 +603,7 @@ describe("lib/handoff — injected fs fakes contract", () => {
   })
 
   it("computeChecksum is pure (no fs deps needed, no injection required)", () => {
-    const fn = getComputeChecksum()
+    const fn = computeChecksumFn
     // Must work without any fs fakes — pure function
     const h1 = fn({ a: 1, b: 2 })
     const h2 = fn({ b: 2, a: 1 })
@@ -783,12 +614,11 @@ describe("lib/handoff — injected fs fakes contract", () => {
     // The task explicitly lists readFileSync as an injected fake — verify the lib's
     // deps type accepts it (even if not used in the writer path today).
     // We test by passing a fake that would throw if called incorrectly.
-    const fn = getAtomicWriteHandoff()
     const paths = makePaths("/tmp/test13/.opencode/session")
     const { fakes } = buildFakeFS({ existing: [] })
     // readFileSync is part of fakes — atomic write should succeed even though
     // readFileSync is present (it shouldn't be called on the writer hot path
     // except maybe for archive validation). Just verify no throw due to missing injection.
-    assert.doesNotThrow(() => callAtomic(fn, paths, "ses_G", { status: "done", session_id: "ses_G" }, fakes))
+    assert.doesNotThrow(() => atomicWriteHandoffFn(paths, "ses_G", { status: "done", session_id: "ses_G" }, fakes))
   })
 })

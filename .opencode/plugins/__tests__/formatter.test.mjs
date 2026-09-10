@@ -1,5 +1,5 @@
 /**
- * RED test-author lane for Slice 6 — lib/formatter.ts (DIA-260902-eqgg).
+ * lib/formatter.ts tests (DIA-260909-sazr; settled API, DI via dia-260902-eqgg).
  *
  * Source of truth: .opencode/plugins/delegation-observer.ts
  *   FORMATTER_EXTENSIONS, FORMATTER_IGNORE_PREFIXES, FORMATTER_MAX_BYTES,
@@ -13,54 +13,17 @@
  *   D2 constants verbatim (30s timeout, 1 MiB size guard, allow-list, ignore-prefixes);
  *   D1 formatter stays sync spawnSync.
  *
- * ASSUMED LIB SIGNATURE (task dispatch says note this so GREEN implementer matches it):
+ * Settled seam: runEditTimeFormatter(input, deps) direct with injected
+ *   { spawnSync, existsSync?, statSync?, workspaceRoot }; pure helpers
+ *   isFormatterIgnoredPath(filePath, workspaceRoot) and
+ *   extractPatchPaths(patchText); factory createFormatter(deps) binds
+ *   workspaceRoot for single-arg calls.
+ *   Fail-soft contract: runEditTimeFormatter NEVER throws; on spawn error /
+ *   non-zero exit / timeout it returns { warnNote } (per-file warnNote in
+ *   results) so shell can emit single format_warn row and tuiSafeWarn
+ *   without crashing.
  *
- *   .opencode/plugins/lib/formatter.ts
- *     // D2 constants — verbatim values, exported for shell + tests
- *     export const FORMATTER_MAX_BYTES: number        // 1024 * 1024 (1 MiB)
- *     export const FORMATTER_TIMEOUT_MS: number        // 30_000
- *     export const FORMATTER_EXTENSIONS: Set<string>   // {".ts",".tsx",".js",".jsx",".mjs",".cjs",".vue",".css",".scss",".html",".md",".json",".jsonc",".yaml",".yml"}
- *     export const FORMATTER_IGNORE_PREFIXES: string[] // [".opencode/session/","knowledge/","docs/dev-infra-audit/tickets/","openspec/changes/archive/"]
- *
- *     export function isFormatterIgnoredPath(filePath: string, workspaceRoot: string): boolean
- *       // resolves filePath against workspaceRoot (absolute vs relative), then checks
- *       // FORMATTER_IGNORE_PREFIXES via relative(). Returns true for exact prefix-without-slash
- *       // and for startsWith(prefix). E.g. ".opencode/session" itself is ignored, as is any descendant.
- *
- *     export function extractPatchPaths(patchText: string): string[]
- *       // scans EVERY line for 7 markers, returns deduped list of touched paths:
- *       //   1. Index: <path>
- *       //   2. diff --git a/X b/<path>
- *       //   3. +++ b/<path>
- *       //   4. *** Add File: <path>
- *       //   5. *** Update File: <path>
- *       //   6. *** Delete File: <path>
- *       //   7. *** Move to: <path>
- *       // trims trailing/leading whitespace for the *** markers; dedupes via !includes().
- *
- *     // DI seam (design.md Q4): lib is pure/DI'd — spawnSync and FS probes injected.
- *     // GREEN should expose ONE of these shapes; tests handle ALL of them:
- *     //   (A) Factory: export function createFormatter(deps: {
- *     //         spawnSync, existsSync?, statSync?, workspaceRoot, cwd?: string
- *     //       }) => { isFormatterIgnoredPath, extractPatchPaths, runEditTimeFormatter,
- *     //               FORMATTER_MAX_BYTES, FORMATTER_TIMEOUT_MS, FORMATTER_EXTENSIONS, FORMATTER_IGNORE_PREFIXES }
- *     //       Tests call createFormatter(fakes) and then methods WITHOUT extra deps arg.
- *     //   (B) Direct: export function runEditTimeFormatter(
- *     //         input: { tool: string, sessionID: string, args?: unknown },
- *     //         deps: { spawnSync, existsSync?, statSync?, workspaceRoot: string }
- *     //       ): { formatted: string[], skipped: string[], warnNote?: string, results: Array<{file:string,ok:boolean,warnNote?:string}> }
- *     //       Pure helpers isFormatterIgnoredPath / extractPatchPaths remain (workspaceRoot as 2nd arg for ignoredPath).
- *     //   (C) Hybrid: both — factory plus plain exports. Tests probe factory first, fall back to plain.
- *     //
- *     //   Fail-soft contract: runEditTimeFormatter NEVER throws; on spawn error / non-zero exit / timeout
- *     //   it returns { warnNote } (per-file warnNote in results) so shell can emit single format_warn row
- *     //   and tuiSafeWarn without crashing. Tests assert lib never throws for those cases.
- *
- * RUN (inside poetry-dev container, like capability.test.mjs):
- *   node --test .opencode/plugins/__tests__/formatter.test.mjs
- *   bun test .opencode/plugins/__tests__/formatter.test.mjs
- *
- * EXPECTED RED: all tests FAIL against the S0 stub (export {}) because symbols are undefined.
+ * RUN: bun test .opencode/plugins/__tests__/formatter.test.mjs
  */
 
 import { describe, it, afterEach, after } from "node:test"
@@ -69,61 +32,14 @@ import { mkdirSync, writeFileSync, existsSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join, resolve } from "node:path"
 import { createTempWorkspace } from "./helpers/plugin-harness.mjs"
+import * as mod from "../lib/formatter.ts"
 
-// ---------------------------------------------------------------------------
-// Import the lib under test (stub in RED phase).
-// ---------------------------------------------------------------------------
-let mod = {}
-try {
-  mod = await import("../lib/formatter.ts")
-} catch (e) {
-  void e
-  mod = {}
-}
-
-// ---------------------------------------------------------------------------
-// Helpers to resolve DI seam if GREEN exposes a factory.
-// Per-test fakes are passed to this helper so each runEditTimeFormatter call is isolated.
-// ---------------------------------------------------------------------------
-function resolveFormatter(fakes = {}) {
-  const factory = mod.createFormatter
-  if (typeof factory === "function") {
-    try {
-      const inst = factory(fakes)
-      if (inst && typeof inst.isFormatterIgnoredPath === "function") return inst
-      if (inst && typeof inst.extractPatchPaths === "function") return inst
-      if (inst && typeof inst.runEditTimeFormatter === "function") return inst
-    } catch {
-      // probe failed — fall through to plain exports
-    }
-  }
-  return mod
-}
-
-
-
-// Convenience: call runEditTimeFormatter with DI handling for both shapes
+// Settled DI seam: direct two-arg call; the factory-bound single-arg shape
+// accepts the same call (extra deps arg is ignored by the bound closure).
 function callRunEditTimeFormatter(input, fakes) {
-  const api = resolveFormatter(fakes)
-  const fn = api.runEditTimeFormatter ?? mod.runEditTimeFormatter
-  if (typeof fn !== "function") throw new Error("RED scaffold: runEditTimeFormatter not found")
-  // Shape A: factory-bound => fn(input) (deps already captured)
-  // Shape B: direct => fn(input, deps)
-  // We detect by trying with 2 args; if factory shape is used, second arg is ignored but harmless.
-  // To be robust, check if factory was used: if api !== mod, assume factory-bound single-arg.
-  const isFactory = api !== mod && typeof mod.createFormatter === "function"
-  if (isFactory) {
-    return fn(input)
-  }
+  const fn = mod.runEditTimeFormatter
+  if (typeof fn !== "function") throw new Error("runEditTimeFormatter not found")
   return fn(input, fakes)
-}
-
-// Normalize FORMATTER_EXTENSIONS that may be Set or array or plain object
-function asSet(v) {
-  if (v instanceof Set) return v
-  if (Array.isArray(v)) return new Set(v)
-  if (v && typeof v === "object") return new Set(Object.keys(v))
-  throw new Error(`FORMATTER_EXTENSIONS must be Set or array, got ${typeof v}`)
 }
 
 // ---------------------------------------------------------------------------
@@ -192,8 +108,8 @@ describe("lib/formatter — D2 constants verbatim", () => {
   })
 
   it("FORMATTER_EXTENSIONS exists and is allow-list of 15 prettier-parseable exts", () => {
-    const v = mod.FORMATTER_EXTENSIONS
-    const set = asSet(v)
+    const set = mod.FORMATTER_EXTENSIONS
+    assert.ok(set instanceof Set, "FORMATTER_EXTENSIONS must be a Set")
     const expected = [
       ".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs", ".vue",
       ".css", ".scss", ".html", ".md", ".json", ".jsonc", ".yaml", ".yml",
@@ -220,11 +136,6 @@ describe("lib/formatter — D2 constants verbatim", () => {
 // 2. isFormatterIgnoredPath: 4 ignore prefixes + workspaceRoot
 // ---------------------------------------------------------------------------
 describe("lib/formatter — isFormatterIgnoredPath (4 prefixes + workspaceRoot)", () => {
-  it("exists and is a function", () => {
-    const fn = mod.isFormatterIgnoredPath
-    assert.equal(typeof fn, "function")
-  })
-
   it("each of the 4 prefixes causes true for a descendant path (relative)", () => {
     const fn = mod.isFormatterIgnoredPath
     const root = freshTmpWorkspace()
@@ -235,10 +146,7 @@ describe("lib/formatter — isFormatterIgnoredPath (4 prefixes + workspaceRoot)"
       "openspec/changes/archive/some-old-change/proposal.md",
     ]
     for (const p of cases) {
-      const api = resolveFormatter({ workspaceRoot: root })
-      const f = api.isFormatterIgnoredPath ?? fn
-      const result = f.length === 2 ? f(p, root) : f(p, root)
-      assert.equal(result, true, `'${p}' must be ignored (isFormatterIgnoredPath true) against root ${root}`)
+      assert.equal(fn(p, root), true, `'${p}' must be ignored (isFormatterIgnoredPath true) against root ${root}`)
     }
   })
 
@@ -317,11 +225,6 @@ describe("lib/formatter — isFormatterIgnoredPath (4 prefixes + workspaceRoot)"
 // 3. extractPatchPaths: 7 markers
 // ---------------------------------------------------------------------------
 describe("lib/formatter — extractPatchPaths (7 markers)", () => {
-  it("exists and is a function", () => {
-    const fn = mod.extractPatchPaths
-    assert.equal(typeof fn, "function")
-  })
-
   it("marker 1: Index: <path>", () => {
     const fn = mod.extractPatchPaths
     const paths = fn("Index: src/app.ts\n")
@@ -432,11 +335,9 @@ describe("lib/formatter — FORMATTER_MAX_BYTES 1 MiB skip", () => {
     const fakes = { spawnSync: fakeSpawnSync, statSync: fakeStatSync, existsSync: fakeExistsSync, workspaceRoot: root }
     const result = callRunEditTimeFormatter(input, fakes)
     assert.equal(spawnCalls, 0, "spawnSync must NOT be called for file > 1 MiB")
-    // Result should indicate skip, no warnNote, no throw
-    if (result && typeof result === "object") {
-      assert.ok(!result.warnNote || typeof result.warnNote === "string", "result may have no warnNote for size-skip (silent skip)")
-      assert.ok(!(result.formatted ?? []).includes("src/big.ts"), "oversized file must not be in formatted list")
-    }
+    // Oversized files are silently skipped: no spawn, no warnNote, absent from formatted.
+    assert.equal(result.warnNote, undefined, "size-skip is silent: no warnNote")
+    assert.ok(!result.formatted.includes("src/big.ts"), "oversized file must not be in formatted list")
   })
 
   it("file at exactly 1 MiB is NOT skipped (boundary is strictly >)", () => {
@@ -451,10 +352,8 @@ describe("lib/formatter — FORMATTER_MAX_BYTES 1 MiB skip", () => {
     const result = callRunEditTimeFormatter(input, fakes)
     assert.equal(spawnCalls, 1, "spawnSync MUST be called for file at exactly 1 MiB")
     // Should not be considered an error
-    if (result && result.results) {
-      const r = result.results.find(x => x.file.includes("exact.ts"))
-      if (r) assert.equal(r.ok, true)
-    }
+    const r = result.results.find(x => x.file.includes("exact.ts"))
+    assert.equal(r.ok, true, "file at exactly 1 MiB must format ok")
   })
 
   it("missing file (existsSync false) is silently skipped without spawnSync", () => {
@@ -582,9 +481,12 @@ describe("lib/formatter — fail-soft returns {warnNote} never throws (shell sin
     const fakes = { spawnSync: fakeSpawn, existsSync: () => true, statSync: () => ({ size: 100 }), workspaceRoot: root }
     let result
     assert.doesNotThrow(() => { result = callRunEditTimeFormatter({ tool: "edit", sessionID: "ses_test", args: { filePath: "src/app.ts" } }, fakes) }, "must not throw when spawnSync throws")
-    assert.ok(result, "must return result object even on spawn failure")
-    const note = result.warnNote ?? result.note ?? (result.results && result.results[0] && result.results[0].warnNote) ?? ""
-    assert.ok(typeof note === "string" && note.length > 0 || (result.results && result.results.some(r => r.warnNote)), `must carry warnNote on spawn failure, got ${JSON.stringify(result)}`)
+    // Settled warning shape: collective warnNote plus one per-file entry.
+    assert.ok(typeof result.warnNote === "string" && result.warnNote.length > 0, `must carry collective warnNote, got ${JSON.stringify(result)}`)
+    assert.match(result.warnNote, /spawn ENOENT/, "warnNote must contain the spawn error")
+    assert.equal(result.results.length, 1)
+    assert.equal(result.results[0].ok, false)
+    assert.equal(typeof result.results[0].warnNote, "string")
   })
 
   it("spawnSync returns non-zero status -> returns {warnNote} with exit info, never throws", () => {
@@ -595,9 +497,12 @@ describe("lib/formatter — fail-soft returns {warnNote} never throws (shell sin
     const fakes = { spawnSync: fakeSpawn, existsSync: () => true, statSync: () => ({ size: 100 }), workspaceRoot: root }
     let result
     assert.doesNotThrow(() => { result = callRunEditTimeFormatter({ tool: "edit", sessionID: "ses_test", args: { filePath: "src/app.ts" } }, fakes) })
-    // Must report failure either as warnNote or as results[0].ok===false with warnNote
-    const hasWarn = !!(result && (result.warnNote || result.note || (result.results && result.results.some(r => !r.ok))))
-    assert.ok(hasWarn, `non-zero status must produce warnNote / ok:false, got ${JSON.stringify(result)}`)
+    // Settled warning shape: collective warnNote plus one per-file entry.
+    assert.ok(typeof result.warnNote === "string" && result.warnNote.length > 0, `must carry collective warnNote, got ${JSON.stringify(result)}`)
+    assert.match(result.warnNote, /prettier exit 1/, "warnNote must carry the exit status")
+    assert.equal(result.results.length, 1)
+    assert.equal(result.results[0].ok, false)
+    assert.equal(typeof result.results[0].warnNote, "string")
   })
 
   it("spawnSync result.error set -> returns warnNote", () => {
@@ -608,8 +513,12 @@ describe("lib/formatter — fail-soft returns {warnNote} never throws (shell sin
     const fakes = { spawnSync: fakeSpawn, existsSync: () => true, statSync: () => ({ size: 100 }), workspaceRoot: root }
     let result
     assert.doesNotThrow(() => { result = callRunEditTimeFormatter({ tool: "edit", sessionID: "ses_test", args: { filePath: "src/app.ts" } }, fakes) })
-    const ok = result && (result.warnNote || (result.results && result.results.some(r => r.warnNote || !r.ok)) || result.note)
-    assert.ok(ok || JSON.stringify(result).includes("SIGTERM") || JSON.stringify(result).includes("prettier timeout"), `error result must carry warn info, got ${JSON.stringify(result)}`)
+    // Settled warning shape: collective warnNote plus one per-file entry.
+    assert.ok(typeof result.warnNote === "string" && result.warnNote.length > 0, `must carry collective warnNote, got ${JSON.stringify(result)}`)
+    assert.match(result.warnNote, /prettier timeout/, "warnNote must carry the spawn error text")
+    assert.equal(result.results.length, 1)
+    assert.equal(result.results[0].ok, false)
+    assert.equal(typeof result.results[0].warnNote, "string")
   })
 
   it("never throws for any failure path — tuiSafeWarn would never be reached via throw", () => {
@@ -637,15 +546,13 @@ describe("lib/formatter — fail-soft returns {warnNote} never throws (shell sin
     const patch = "*** Add File: src/a.ts\n*** Add File: src/b.ts\n"
     const fakes = { spawnSync: fakeSpawn, existsSync: () => true, statSync: () => ({ size: 100 }), workspaceRoot: root }
     const result = callRunEditTimeFormatter({ tool: "apply_patch", sessionID: "ses_test", args: { patchText: patch } }, fakes)
-    if (result && result.results) {
-      assert.equal(result.results.length, 2, "2 files => 2 result entries")
-      for (const r of result.results) {
-        assert.equal(r.ok, false, `failing file ${r.file} must have ok:false`)
-        assert.ok(r.warnNote || r.note || typeof r.warnNote === "string" || true, "each failing result should carry warnNote (shell will write single format_warn per entry)")
-      }
-    } else if (result && result.warnNote) {
-      // Single-file warnNote shape is also acceptable for this seam, but multi-file should have per-file
-      assert.ok(true, "result carries collective warnNote")
+    // Settled warning shape: collective warnNote plus one per-file entry each
+    // carrying its own warnNote (format_warn row cardinality 1:1).
+    assert.ok(typeof result.warnNote === "string" && result.warnNote.length > 0, "collective warnNote must be present")
+    assert.equal(result.results.length, 2, "2 files => 2 result entries")
+    for (const r of result.results) {
+      assert.equal(r.ok, false, `failing file ${r.file} must have ok:false`)
+      assert.equal(typeof r.warnNote, "string", `failing file ${r.file} must carry warnNote`)
     }
   })
 
@@ -658,11 +565,9 @@ describe("lib/formatter — fail-soft returns {warnNote} never throws (shell sin
     const result = callRunEditTimeFormatter({ tool: "edit", sessionID: "ses_test", args: { filePath: "src/app.ts" } }, fakes)
     assert.ok(result, "success must return result")
     // On success, no collective warnNote and per-file ok:true
-    if (result && result.results) {
-      const r = result.results[0]
-      assert.equal(r.ok, true)
-      assert.equal(r.warnNote, undefined)
-    }
+    const r = result.results[0]
+    assert.equal(r.ok, true)
+    assert.equal(r.warnNote, undefined)
     assert.equal(result.warnNote, undefined, "success must not have top-level warnNote")
   })
 })
@@ -672,8 +577,7 @@ describe("lib/formatter — fail-soft returns {warnNote} never throws (shell sin
 // ---------------------------------------------------------------------------
 describe("lib/formatter — uses isolated tmp fixture not tracked source (Q7 §3)", () => {
   it("tmp fixture path is under os.tmpdir(), not under workspace/.opencode/plugins or tracked source", () => {
-    // RED guard: also require lib constant so this test fails against empty stub (proves lib not yet implemented)
-    mod.FORMATTER_MAX_BYTES
+    assert.equal(mod.FORMATTER_MAX_BYTES, 1024 * 1024, "lib constants must be present")
     const tmpRoot = freshTmpWorkspace()
     assert.ok(tmpRoot.startsWith(tmpdir()), `tmp workspace must be under tmpdir (${tmpdir()}), got ${tmpRoot}`)
     assert.ok(!tmpRoot.includes(".opencode/plugins"), "tmp workspace must not be under .opencode/plugins")
@@ -782,23 +686,14 @@ describe("lib/formatter — inject spawnSync fakes (DI seam)", () => {
     assert.doesNotThrow(() => callRunEditTimeFormatter({ tool: "edit", sessionID: "ses_test", args: { filePath: "src/app.ts" } }, fakes))
   })
 
-  it("factory seam (if present) is injectable per-test — different factories yield isolated instances", () => {
-    // RED guard: require a lib export so stub fails (either factory or direct helper must exist)
-    mod.runEditTimeFormatter
+  it("factory seam is injectable per-test — different factories yield isolated instances", () => {
     const root = freshTmpWorkspace()
     mkdirSync(join(root, "src"), { recursive: true })
     writeFileSync(join(root, "src/app.ts"), "x")
-    const apiCtor = mod.createFormatter ?? mod.create
-    if (typeof apiCtor !== "function") {
-      // Direct shape has no factory; per-call injection still proven above — but lib must at least export runEditTimeFormatter
-      assert.equal(typeof mod.runEditTimeFormatter, "function")
-      return
-    }
+    const apiCtor = mod.createFormatter
     let callsA = 0, callsB = 0
     const instA = apiCtor({ spawnSync: () => { callsA++; return { status: 0 } }, existsSync: () => true, statSync: () => ({ size: 100 }), workspaceRoot: root })
     const instB = apiCtor({ spawnSync: () => { callsB++; return { status: 1, stderr: "err" } }, existsSync: () => true, statSync: () => ({ size: 100 }), workspaceRoot: root })
-    assert.equal(typeof instA.runEditTimeFormatter, "function")
-    assert.equal(typeof instB.runEditTimeFormatter, "function")
     instA.runEditTimeFormatter({ tool: "edit", sessionID: "ses_test", args: { filePath: "src/app.ts" } })
     assert.equal(callsA, 1)
     assert.equal(callsB, 0)
