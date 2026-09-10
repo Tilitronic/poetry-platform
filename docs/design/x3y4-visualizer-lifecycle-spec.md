@@ -12,7 +12,7 @@ Author role: architecture/spec lane, campaign ticket DIA-260831-x3y4
 - packages/visualizer-2d/src/ssr/index.ts (7 lines)
 - packages/visualizer-3d/src/index.ts (67 lines)
 - apps/author-studio/src/components/VisualizerContainer/VisualizerContainer.vue (53 lines)
-- packages/data-contracts/src/index.ts (13 lines, facade: runtime `contract` + type `PoetryDataContract`)
+- packages/data-contracts/src/index.ts (13 lines; exports runtime `contract` + `PoetryDataContract = typeof` schema doc)
 - packages/data-contracts/schemas/contract.json (19 lines, authoritative schema behind the facade)
 - packages/editor-engine/src/orchestrator/Orchestrator.ts (42 lines)
 - grep over packages/ for orchestrator|Orchestrator|data-contracts|ContractSnapshot|SceneModel (36 matches; zero visualizer-src imports of data-contracts)
@@ -48,35 +48,31 @@ Evidence: packages/visualizer-2d/package.json:21, packages/visualizer-3d/package
 
 ## 3. Design: typed contract snapshot
 
-Derive the render input from the data-contracts module payload type
-(`PoetryDataContract`, packages/data-contracts/src/index.ts:13), NOT from
-`typeof` the raw contract.json schema object. Visualizers MUST NOT import
-Orchestrator, and MUST NOT import schemas/contract.json directly.
-
-```ts
-// packages/visualizer-2d/src/types.ts (new, implementer creates)
-import type { PoetryDataContract } from '@poetry/data-contracts';
-
-export type ContractSnapshot = Pick<
-  PoetryDataContract,
-  'id' | 'version' | 'contract_hash' | 'linesMap' | 'lineOrder'
-> & { metrics?: PoetryDataContract['metrics'] };
-```
+The render input is a future payload-instance contract (working name
+ContractSnapshot): an immutable scene input carrying the data-contracts
+schema fields (schemas/contract.json `required`: id, version,
+contract_hash, linesMap, lineOrder; optional metrics/title). It is NOT a
+TypeScript alias over the schema document: `PoetryDataContract` today is
+`typeof` the JSON Schema doc whose payload fields live under
+`properties`, so a top-level `Pick` over it is false and is forbidden, and
+no shared payload-instance type is declared here. Visualizers MUST NOT
+import Orchestrator.
 
 Rules:
 
-- The snapshot types against the module payload type `PoetryDataContract`
-  (the facade export, src/index.ts:13). Never type it as
-  `typeof import('.../schemas/contract.json')`: the facade is the single
-  type source so consumers cannot drift from the schema.
-- `@poetry/data-contracts` MUST resolve to the module facade
-  (packages/data-contracts/src/index.ts), not to schemas/contract.json.
-  Implementer repoints the visualizer tsconfig mappings that currently aim
-  at the JSON file (see F7) to the module.
+- Snapshot field set mirrors the schema `properties`/`required`. The
+  implementer adds a schema-conformance check at implementation time
+  (validate snapshot keys against the schema before render).
 - Snapshot is immutable (frozen at the container boundary via Object.freeze or readonly type).
 - Container derives it from Orchestrator state (selector, not the whole object) and passes it down as a prop / init argument.
-- `update(next: ContractSnapshot)` re-renders from the snapshot; revision check (`version` / `contract_hash`) lets visualizers skip stale frames.
-- SSR signature becomes `renderVisualizerSSR(snapshot: ContractSnapshot): string` so SSR and interactive render the same data.
+- `update(next)` re-renders from the snapshot; revision check (`version` / `contract_hash`) lets visualizers skip stale frames.
+- SSR takes the same snapshot (`renderVisualizerSSR(snapshot)`) so SSR and interactive render the same data.
+- Name note: `ContractSnapshot` in sections 4-7 is the working name for
+  this seam, not a declared type.
+- Follow-up implementation scope (NOT this ticket, spec-only here):
+  declare the real shared payload-instance type and repoint visualizer
+  imports/tsconfig mappings (currently aimed at the raw JSON file, see F7)
+  at it.
 
 ## 4. Design: lifecycle interface
 
