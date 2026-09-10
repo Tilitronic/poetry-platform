@@ -88,9 +88,9 @@ Rules:
 - Each crash emits a `bun.report` URL. That URL is the upstream artifact:
   it opens the pre-filled Bun GitHub issue form (crash report included).
   It is NOT a filed issue, only the pre-filled form input.
-- Upstream Bun report status: PENDING developer decision to file or not.
-  Internal tracking is DIA-260831-ezyv. Upstream issue URL: TBD (fill in
-  here once filed).
+- Accepted state: no external Bun issue is filed now. Upstream filing is
+  PENDING developer decision. Internal tracking is DIA-260831-ezyv.
+  Upstream issue URL: TBD (added here only if the developer files later).
 - Ticket Verification requires: crash report reviewed + GitHub issue filed,
   OR a recorded decision not to file. Check DIA-260831-ezyv for current
   state before filing duplicates.
