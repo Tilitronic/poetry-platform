@@ -12,7 +12,8 @@ Author role: architecture/spec lane, campaign ticket DIA-260831-x3y4
 - packages/visualizer-2d/src/ssr/index.ts (7 lines)
 - packages/visualizer-3d/src/index.ts (67 lines)
 - apps/author-studio/src/components/VisualizerContainer/VisualizerContainer.vue (53 lines)
-- packages/data-contracts/schemas/contract.json (19 lines)
+- packages/data-contracts/src/index.ts (13 lines, facade: runtime `contract` + type `PoetryDataContract`)
+- packages/data-contracts/schemas/contract.json (19 lines, authoritative schema behind the facade)
 - packages/editor-engine/src/orchestrator/Orchestrator.ts (42 lines)
 - grep over packages/ for orchestrator|Orchestrator|data-contracts|ContractSnapshot|SceneModel (36 matches; zero visualizer-src imports of data-contracts)
 
@@ -47,7 +48,10 @@ Evidence: packages/visualizer-2d/package.json:21, packages/visualizer-3d/package
 
 ## 3. Design: typed contract snapshot
 
-Derive the render input from contract.json required fields (id, version, contract_hash, linesMap, lineOrder; plus optional metrics/title). Visualizers MUST NOT import Orchestrator.
+Derive the render input from the data-contracts module payload type
+(`PoetryDataContract`, packages/data-contracts/src/index.ts:13), NOT from
+`typeof` the raw contract.json schema object. Visualizers MUST NOT import
+Orchestrator, and MUST NOT import schemas/contract.json directly.
 
 ```ts
 // packages/visualizer-2d/src/types.ts (new, implementer creates)
@@ -61,6 +65,14 @@ export type ContractSnapshot = Pick<
 
 Rules:
 
+- The snapshot types against the module payload type `PoetryDataContract`
+  (the facade export, src/index.ts:13). Never type it as
+  `typeof import('.../schemas/contract.json')`: the facade is the single
+  type source so consumers cannot drift from the schema.
+- `@poetry/data-contracts` MUST resolve to the module facade
+  (packages/data-contracts/src/index.ts), not to schemas/contract.json.
+  Implementer repoints the visualizer tsconfig mappings that currently aim
+  at the JSON file (see F7) to the module.
 - Snapshot is immutable (frozen at the container boundary via Object.freeze or readonly type).
 - Container derives it from Orchestrator state (selector, not the whole object) and passes it down as a prop / init argument.
 - `update(next: ContractSnapshot)` re-renders from the snapshot; revision check (`version` / `contract_hash`) lets visualizers skip stale frames.
