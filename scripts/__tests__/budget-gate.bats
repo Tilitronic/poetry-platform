@@ -48,42 +48,9 @@ APPROVED_CAMPAIGNS='{"ticket": "DIA-260903-o7n0", "scope": "refactor", "status":
 TICKET_NAME="DIA-260903-o7n0-test-exception.md"
 
 # ---------------------------------------------------------------------------
-# Fixture helpers (suite-local, not shared)
+# Fixture helpers (suite-local tree shapes and scenario data; shared
+# primitives live in test-helper.bash per DIA-260909-9i1o)
 # ---------------------------------------------------------------------------
-
-# write_manifest <tree> <prod> <shell> <basecount> <campaigns-json-or-empty>
-write_manifest() {
-  cat > "$1/manifest.json" <<EOF
-{
-  "prod_ceiling": $2,
-  "shell_ceiling": $3,
-  "patterns": [
-    {"id": "opencode-mock", "canonical": "mock.module(\"@opencode-ai/plugin\",", "baseline_count": $4, "authorized_site": "plugin-harness.mjs"}
-  ],
-  "campaigns": [$5],
-  "mode": "blocking"
-}
-EOF
-}
-
-# seed_campaign_ticket: M4 fixture. has_backing resolves an approved campaign
-# entry to a real ledger record (filename prefix + status OPEN), so a
-# manifest-backed refactor claim needs an OPEN DIA-260903-o7n0 file in
-# TICKETS_DIR. Without it every refactor-scope test fails on "no backing"
-# instead of reaching the budget under test (the M4 behavior change).
-# The "-zz" suffix is DELIBERATE: try_exception and has_backing both resolve
-# DIA-260903-o7n0* by sorted head -1, and exception-record fixtures are named
-# ...-test-exception.md; the campaign file must sort AFTER them so a real
-# exception record is always the one resolved when it exists.
-seed_campaign_ticket() {
-  local file="$BATS_TEST_TMPDIR/tickets/DIA-260903-o7n0-zz-campaign.md"
-  cat > "$file" <<'EOF'
----
-status: OPEN
----
-# DIA-260903-o7n0 campaign fixture (RED battery)
-EOF
-}
 
 # setup_budget_repo: baseline tree (observer 10 LOC + lib 10 LOC = prod 20,
 # shell 10; one grandfathered scaffold copy + one authorized-site copy).
@@ -97,7 +64,11 @@ setup_budget_repo() {
   mkdir -p "$tree/plug/lib" "$tree/plug/__tests__" "$BATS_TEST_TMPDIR/tickets"
   mkdir -p "$tree/scripts/guards"
   cp "$REPO_ROOT/scripts/guards/home-qualt.sh" "$tree/scripts/guards/home-qualt.sh"
-  seed_campaign_ticket
+  # M4 fixture: the "-zz" suffix is DELIBERATE (see budget_seed_campaign_ticket
+  # callers): try_exception and has_backing resolve DIA-260903-o7n0* by sorted
+  # head -1, and the campaign file must sort AFTER ...-test-exception.md
+  # exception records.
+  budget_seed_campaign_ticket "$BATS_TEST_TMPDIR/tickets" "RED battery"
   seq 1 10 > "$tree/plug/delegation-observer.ts"
   seq 1 10 > "$tree/plug/lib/util.ts"
   cat > "$tree/plug/__tests__/file1.mjs" <<'EOF'
@@ -109,13 +80,8 @@ EOF
 mock.module("@opencode-ai/plugin", () => ({}));
 export const harness = {};
 EOF
-  write_manifest "$tree" 20 10 1 "$APPROVED_CAMPAIGNS"
-  if ! git -C "$tree" init -q -b main 2>/dev/null; then
-    git -C "$tree" init -q
-    git -C "$tree" symbolic-ref HEAD refs/heads/main
-  fi
-  git -C "$tree" config user.email "bats@example.com"
-  git -C "$tree" config user.name "bats test"
+  budget_write_manifest "$tree" 20 10 1 "$APPROVED_CAMPAIGNS"
+  budget_git_init "$tree"
   git -C "$tree" add -A
   git -C "$tree" commit -q -m init
   cp "$GATE" "$tree/gate-under-test.sh" 2>/dev/null || true
@@ -131,23 +97,6 @@ write_msg() {
     [ -n "$exc" ] && printf 'Budget-Exception: %s\n' "$exc"
     return 0
   } > "$file"
-}
-
-# run_gate <tree> <msgfile> [extra env assignments...]
-run_gate() {
-  local tree="$1" msg="$2"; shift 2
-  local manifest="${BUDGET_MANIFEST_OVERRIDE:-$tree/manifest.json}"
-  run env BUDGET_MANIFEST="$manifest" TICKETS_DIR="$BATS_TEST_TMPDIR/tickets" BUDGET_PLUGIN_ROOT="$tree/plug" "$@" bash "$tree/gate-under-test.sh" "$msg"
-}
-
-# run_gate_in_repo <tree> <msgfile> [extra env assignments...]: runs the gate
-# with CWD inside the fixture repo and a RELATIVE BUDGET_MANIFEST + relative
-# BUDGET_PLUGIN_ROOT, so CWD_ROOT and the override both resolve against the
-# fixture tree (M1: relative overrides must absolutize against the caller's
-# checkout and keep enforcing, not silently scope nothing).
-run_gate_in_repo() {
-  local tree="$1" msg="$2"; shift 2
-  run env BUDGET_MANIFEST="manifest.json" TICKETS_DIR="$BATS_TEST_TMPDIR/tickets" "$@" bash -c "cd '$tree' && exec bash '$tree/gate-under-test.sh' '$msg'"
 }
 
 # write_exception_ticket <name> <reason|SKIP> <delta|SKIP> <paths|SKIP> <applicability|SKIP>
@@ -181,7 +130,7 @@ grow_lib() {
   grow_lib "$tree"
   write_msg "$BATS_TEST_TMPDIR/msg" "refactor"
 
-  run_gate "$tree" "$BATS_TEST_TMPDIR/msg"
+  budget_run_hook "$tree" "$BATS_TEST_TMPDIR/msg"
 
   assert_status 1
   assert_output_contains "FAIL:"
@@ -194,7 +143,7 @@ grow_lib() {
   grow_lib "$tree"
   write_msg "$BATS_TEST_TMPDIR/msg"
 
-  run_gate "$tree" "$BATS_TEST_TMPDIR/msg"
+  budget_run_hook "$tree" "$BATS_TEST_TMPDIR/msg"
 
   assert_status 0
   assert_output_contains "ok:"
@@ -207,7 +156,7 @@ grow_lib() {
   write_full_ticket "$TICKET_NAME"
   write_msg "$BATS_TEST_TMPDIR/msg" "refactor" "DIA-260903-o7n0"
 
-  run_gate "$tree" "$BATS_TEST_TMPDIR/msg"
+  budget_run_hook "$tree" "$BATS_TEST_TMPDIR/msg"
 
   assert_status 0
   assert_output_contains "Exception"
@@ -226,7 +175,7 @@ EOF
   git -C "$tree" add plug/__tests__/file2.mjs
   write_msg "$BATS_TEST_TMPDIR/msg" "feature"
 
-  run_gate "$tree" "$BATS_TEST_TMPDIR/msg"
+  budget_run_hook "$tree" "$BATS_TEST_TMPDIR/msg"
 
   assert_status 1
   assert_output_contains "FAIL:"
@@ -238,12 +187,12 @@ EOF
 
 @test "scope: refactor trailer without manifest backing blocks" {
   tree="$(setup_budget_repo)"
-  write_manifest "$tree" 20 10 1 ""
+  budget_write_manifest "$tree" 20 10 1 ""
   git -C "$tree" add manifest.json
   grow_lib "$tree"
   write_msg "$BATS_TEST_TMPDIR/msg" "refactor"
 
-  run_gate "$tree" "$BATS_TEST_TMPDIR/msg"
+  budget_run_hook "$tree" "$BATS_TEST_TMPDIR/msg"
 
   assert_status 1
   assert_output_contains "FAIL:"
@@ -256,7 +205,7 @@ EOF
   grow_lib "$tree"
   write_msg "$BATS_TEST_TMPDIR/msg" "refactor"
 
-  run_gate "$tree" "$BATS_TEST_TMPDIR/msg"
+  budget_run_hook "$tree" "$BATS_TEST_TMPDIR/msg"
 
   assert_status 1
   assert_output_contains "FAIL:"
@@ -267,7 +216,7 @@ EOF
   grow_lib "$tree"
   write_msg "$BATS_TEST_TMPDIR/msg" "refactor"
 
-  BUDGET_MANIFEST_OVERRIDE="$BATS_TEST_TMPDIR/nonexistent.json" run_gate "$tree" "$BATS_TEST_TMPDIR/msg"
+  BUDGET_MANIFEST_OVERRIDE="$BATS_TEST_TMPDIR/nonexistent.json" budget_run_hook "$tree" "$BATS_TEST_TMPDIR/msg"
 
   assert_status 1
   assert_output_contains "FAIL:"
@@ -284,7 +233,7 @@ EOF
   write_full_ticket "$TICKET_NAME"
   write_msg "$BATS_TEST_TMPDIR/msg" "" "DIA-260903-o7n0"
 
-  run_gate "$tree" "$BATS_TEST_TMPDIR/msg"
+  budget_run_hook "$tree" "$BATS_TEST_TMPDIR/msg"
 
   assert_status 1
   assert_output_contains "FAIL:"
@@ -296,23 +245,23 @@ EOF
   write_msg "$BATS_TEST_TMPDIR/msg" "refactor" "DIA-260903-o7n0"
 
   write_exception_ticket "$TICKET_NAME" "SKIP" "A +5" "plug/lib/util.ts" "expiry 2099-12-31"
-  run_gate "$tree" "$BATS_TEST_TMPDIR/msg"
+  budget_run_hook "$tree" "$BATS_TEST_TMPDIR/msg"
   assert_status 1
   assert_output_contains "FAIL:"
   assert_output_contains "Exception-Reason"
 
   write_exception_ticket "$TICKET_NAME" "test reason" "SKIP" "plug/lib/util.ts" "expiry 2099-12-31"
-  run_gate "$tree" "$BATS_TEST_TMPDIR/msg"
+  budget_run_hook "$tree" "$BATS_TEST_TMPDIR/msg"
   assert_status 1
   assert_output_contains "Exception-Delta"
 
   write_exception_ticket "$TICKET_NAME" "test reason" "A +5" "SKIP" "expiry 2099-12-31"
-  run_gate "$tree" "$BATS_TEST_TMPDIR/msg"
+  budget_run_hook "$tree" "$BATS_TEST_TMPDIR/msg"
   assert_status 1
   assert_output_contains "Exception-Paths"
 
   write_exception_ticket "$TICKET_NAME" "test reason" "A +5" "plug/lib/util.ts" "SKIP"
-  run_gate "$tree" "$BATS_TEST_TMPDIR/msg"
+  budget_run_hook "$tree" "$BATS_TEST_TMPDIR/msg"
   assert_status 1
   assert_output_contains "Exception-Applicability"
 }
@@ -323,7 +272,7 @@ EOF
   write_exception_ticket "$TICKET_NAME" "test reason" "A +5" "plug/lib/util.ts" "expiry 2000-01-01"
   write_msg "$BATS_TEST_TMPDIR/msg" "refactor" "DIA-260903-o7n0"
 
-  run_gate "$tree" "$BATS_TEST_TMPDIR/msg"
+  budget_run_hook "$tree" "$BATS_TEST_TMPDIR/msg"
 
   assert_status 1
   assert_output_contains "FAIL:"
@@ -338,7 +287,7 @@ EOF
   tree="$(setup_budget_repo)"
   write_msg "$BATS_TEST_TMPDIR/msg" "refactor"
 
-  run_gate "$tree" "$BATS_TEST_TMPDIR/msg"
+  budget_run_hook "$tree" "$BATS_TEST_TMPDIR/msg"
 
   assert_status 0
   assert_output_contains "ok:"
@@ -350,7 +299,7 @@ EOF
   git -C "$tree" add README.md
   write_msg "$BATS_TEST_TMPDIR/msg" "refactor"
 
-  BUDGET_MANIFEST_OVERRIDE="$BATS_TEST_TMPDIR/nonexistent.json" run_gate "$tree" "$BATS_TEST_TMPDIR/msg"
+  BUDGET_MANIFEST_OVERRIDE="$BATS_TEST_TMPDIR/nonexistent.json" budget_run_hook "$tree" "$BATS_TEST_TMPDIR/msg"
 
   assert_status 0
 }
@@ -360,7 +309,7 @@ EOF
   seq 1 99 > "$tree/plug/lib/util.ts"
   write_msg "$BATS_TEST_TMPDIR/msg" "refactor"
 
-  run_gate "$tree" "$BATS_TEST_TMPDIR/msg"
+  budget_run_hook "$tree" "$BATS_TEST_TMPDIR/msg"
 
   assert_status 0
 }
@@ -371,7 +320,7 @@ EOF
   seq 1 10 > "$tree/plug/lib/util.ts"
   write_msg "$BATS_TEST_TMPDIR/msg" "refactor"
 
-  run_gate "$tree" "$BATS_TEST_TMPDIR/msg"
+  budget_run_hook "$tree" "$BATS_TEST_TMPDIR/msg"
 
   assert_status 1
   assert_output_contains "FAIL:"
@@ -379,11 +328,11 @@ EOF
 
 @test "manifest-edit: manifest change without refactor trailer blocks" {
   tree="$(setup_budget_repo)"
-  write_manifest "$tree" 9999 9999 1 "$APPROVED_CAMPAIGNS"
+  budget_write_manifest "$tree" 9999 9999 1 "$APPROVED_CAMPAIGNS"
   git -C "$tree" add manifest.json
   write_msg "$BATS_TEST_TMPDIR/msg" "feature"
 
-  run_gate "$tree" "$BATS_TEST_TMPDIR/msg"
+  budget_run_hook "$tree" "$BATS_TEST_TMPDIR/msg"
 
   assert_status 1
   assert_output_contains "FAIL:"
@@ -391,12 +340,12 @@ EOF
 
 @test "manifest-edit: exception trailer alone never authorizes a manifest edit" {
   tree="$(setup_budget_repo)"
-  write_manifest "$tree" 9999 9999 1 "$APPROVED_CAMPAIGNS"
+  budget_write_manifest "$tree" 9999 9999 1 "$APPROVED_CAMPAIGNS"
   git -C "$tree" add manifest.json
   write_full_ticket "$TICKET_NAME"
   write_msg "$BATS_TEST_TMPDIR/msg" "" "DIA-260903-o7n0"
 
-  run_gate "$tree" "$BATS_TEST_TMPDIR/msg"
+  budget_run_hook "$tree" "$BATS_TEST_TMPDIR/msg"
 
   assert_status 1
   assert_output_contains "FAIL:"
@@ -404,11 +353,11 @@ EOF
 
 @test "manifest-edit: manifest change with refactor trailer passes" {
   tree="$(setup_budget_repo)"
-  write_manifest "$tree" 9999 9999 1 "$APPROVED_CAMPAIGNS"
+  budget_write_manifest "$tree" 9999 9999 1 "$APPROVED_CAMPAIGNS"
   git -C "$tree" add manifest.json
   write_msg "$BATS_TEST_TMPDIR/msg" "refactor"
 
-  run_gate "$tree" "$BATS_TEST_TMPDIR/msg"
+  budget_run_hook "$tree" "$BATS_TEST_TMPDIR/msg"
 
   assert_status 0
   assert_output_contains "ok:"
@@ -424,7 +373,7 @@ EOF
   git -C "$tree" add plug/__tests__/file2.mjs
   write_msg "$BATS_TEST_TMPDIR/msg" "feature"
 
-  run_gate "$tree" "$BATS_TEST_TMPDIR/msg"
+  budget_run_hook "$tree" "$BATS_TEST_TMPDIR/msg"
 
   assert_status 1
   assert_output_contains "FAIL:"
@@ -438,7 +387,7 @@ EOF
   git -C "$tree" add plug/__tests__/plugin-harness.mjs
   write_msg "$BATS_TEST_TMPDIR/msg" "feature"
 
-  run_gate "$tree" "$BATS_TEST_TMPDIR/msg"
+  budget_run_hook "$tree" "$BATS_TEST_TMPDIR/msg"
 
   assert_status 0
   assert_output_contains "ok:"
@@ -446,13 +395,13 @@ EOF
 
 @test "shell-ceiling: refactor growing shell LOC blocks" {
   tree="$(setup_budget_repo)"
-  write_manifest "$tree" 9999 10 1 "$APPROVED_CAMPAIGNS"
+  budget_write_manifest "$tree" 9999 10 1 "$APPROVED_CAMPAIGNS"
   git -C "$tree" add manifest.json
   seq 1 15 > "$tree/plug/delegation-observer.ts"
   git -C "$tree" add plug/delegation-observer.ts
   write_msg "$BATS_TEST_TMPDIR/msg" "refactor"
 
-  run_gate "$tree" "$BATS_TEST_TMPDIR/msg"
+  budget_run_hook "$tree" "$BATS_TEST_TMPDIR/msg"
 
   assert_status 1
   assert_output_contains "FAIL:"
@@ -467,7 +416,7 @@ EOF
   grow_lib "$tree"
   write_msg "$BATS_TEST_TMPDIR/msg" "refactor"
 
-  run_gate "$tree" "$BATS_TEST_TMPDIR/msg" "BUDGET_GATE_MODE=report"
+  budget_run_hook "$tree" "$BATS_TEST_TMPDIR/msg" "BUDGET_GATE_MODE=report"
 
   assert_status 0
   assert_output_contains "FAIL:"
@@ -482,7 +431,7 @@ EOF
 
 Budget-Scope: refactor"
 
-  run env BUDGET_MANIFEST="$tree/manifest.json" TICKETS_DIR="$BATS_TEST_TMPDIR/tickets" BUDGET_PLUGIN_ROOT="$tree/plug" BUDGET_GATE_MODE=report bash "$tree/gate-under-test.sh" --range HEAD~1..HEAD
+  budget_run_range "$tree" "HEAD~1..HEAD" "BUDGET_GATE_MODE=report"
 
   assert_status 1
   assert_output_contains "FAIL:"
@@ -508,7 +457,7 @@ Budget-Scope: refactor"
   chmod +x "$bindir/docker"
   : > "$BATS_TEST_TMPDIR/docker.log"
 
-  run env PATH="$bindir:$PATH" BUDGET_MANIFEST="$tree/manifest.json" TICKETS_DIR="$BATS_TEST_TMPDIR/tickets" BUDGET_PLUGIN_ROOT="$tree/plug" bash "$tree/gate-under-test.sh" --range HEAD~1..HEAD
+  budget_run_range "$tree" "HEAD~1..HEAD" "PATH=$bindir:$PATH"
 
   assert_status 1
   assert_output_contains "FAIL:"
@@ -523,7 +472,7 @@ Budget-Scope: refactor"
 
 Budget-Scope: refactor"
 
-  run env BUDGET_MANIFEST="$tree/manifest.json" TICKETS_DIR="$BATS_TEST_TMPDIR/tickets" BUDGET_PLUGIN_ROOT="$tree/plug" BUDGET_GATE_MODE=report bash "$tree/gate-under-test.sh" --range HEAD~1..HEAD
+  budget_run_range "$tree" "HEAD~1..HEAD" "BUDGET_GATE_MODE=report"
 
   assert_status 1
   assert_output_contains "FAIL:"
@@ -538,10 +487,10 @@ Budget-Scope: refactor"
   # loosen ONLY the working-tree manifest (ceiling 9999), never staged: the
   # gate must read the manifest from the staged index, so the committed
   # ceiling 20 still applies and the staged growth still blocks.
-  write_manifest "$tree" 9999 9999 0 "$APPROVED_CAMPAIGNS"
+  budget_write_manifest "$tree" 9999 9999 0 "$APPROVED_CAMPAIGNS"
   write_msg "$BATS_TEST_TMPDIR/msg" "refactor"
 
-  run_gate "$tree" "$BATS_TEST_TMPDIR/msg"
+  budget_run_hook "$tree" "$BATS_TEST_TMPDIR/msg"
 
   assert_status 1
   assert_output_contains "FAIL:"
@@ -557,9 +506,9 @@ Budget-Scope: refactor"
 Budget-Scope: refactor"
   # loosen the disk manifest AFTER the commit: a range check must evaluate
   # the manifest as committed at each sha, not whatever sits on disk today.
-  write_manifest "$tree" 9999 9999 0 "$APPROVED_CAMPAIGNS"
+  budget_write_manifest "$tree" 9999 9999 0 "$APPROVED_CAMPAIGNS"
 
-  run env BUDGET_MANIFEST="$tree/manifest.json" TICKETS_DIR="$BATS_TEST_TMPDIR/tickets" BUDGET_PLUGIN_ROOT="$tree/plug" bash "$tree/gate-under-test.sh" --range HEAD~1..HEAD
+  budget_run_range "$tree" "HEAD~1..HEAD"
 
   assert_status 1
   assert_output_contains "exceeds prod ceiling"
@@ -579,7 +528,7 @@ Budget-Scope: refactor"
   git -C "$tree" add plug/__tests__/huge.mjs
   write_msg "$BATS_TEST_TMPDIR/msg" "feature"
 
-  run_gate "$tree" "$BATS_TEST_TMPDIR/msg"
+  budget_run_hook "$tree" "$BATS_TEST_TMPDIR/msg"
 
   assert_status 1
   assert_output_contains "duplication pattern opencode-mock"
@@ -591,7 +540,7 @@ Budget-Scope: refactor"
   grow_lib "$tree"
   write_msg "$BATS_TEST_TMPDIR/msg" "refactor"
 
-  run_gate_in_repo "$tree" "$BATS_TEST_TMPDIR/msg" "BUDGET_PLUGIN_ROOT=plug"
+  budget_run_hook_in_repo "$tree" "$BATS_TEST_TMPDIR/msg" "BUDGET_PLUGIN_ROOT=plug"
 
   assert_status 1
   assert_output_contains "FAIL:"
@@ -611,7 +560,7 @@ Budget-Scope: refactor"
   grow_lib "$tree"
   write_msg "$BATS_TEST_TMPDIR/msg" "refactor"
 
-  run_gate_in_repo "$tree" "$BATS_TEST_TMPDIR/msg" "BUDGET_PLUGIN_ROOT=no-such-plug"
+  budget_run_hook_in_repo "$tree" "$BATS_TEST_TMPDIR/msg" "BUDGET_PLUGIN_ROOT=no-such-plug"
 
   assert_status 1
   assert_output_contains "BUDGET_PLUGIN_ROOT override active"
@@ -628,7 +577,7 @@ Budget-Scope: refactor"
 
 Budget-Scope: refactor"
 
-  run env BUDGET_MANIFEST="$tree/manifest.json" TICKETS_DIR="$BATS_TEST_TMPDIR/tickets" BUDGET_PLUGIN_ROOT="$tree/plug" bash "$tree/gate-under-test.sh" --range HEAD~1..HEAD
+  budget_run_range "$tree" "HEAD~1..HEAD"
 
   assert_status 0
   assert_output_contains "ok:"

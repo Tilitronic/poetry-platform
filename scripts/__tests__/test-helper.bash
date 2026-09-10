@@ -365,6 +365,85 @@ EOF
 }
 
 # ---------------------------------------------------------------------------
+# Budget-gate fixture primitives (campaign ticket DIA-260909-9i1o)
+# ---------------------------------------------------------------------------
+# Only byte-equivalent setup lives here: manifest writing with an explicit
+# baseline count, campaign-ticket seeding, git repo init, and hook/range
+# invocation wrappers. Tree shapes, commits, scenario data, and assertions
+# stay suite-local per design D2. Callers needing a non-default tickets
+# directory pass TICKETS_DIR=<dir> as an extra env assignment; env applies
+# later assignments over earlier ones, so the override wins.
+
+# budget_write_manifest <tree> <prod> <shell> <basecount> <campaigns-json>
+budget_write_manifest() {
+  cat > "$1/manifest.json" <<EOF
+{
+  "prod_ceiling": $2,
+  "shell_ceiling": $3,
+  "patterns": [
+    {"id": "opencode-mock", "canonical": "mock.module(\"@opencode-ai/plugin\",", "baseline_count": $4, "authorized_site": "plugin-harness.mjs"}
+  ],
+  "campaigns": [$5],
+  "mode": "blocking"
+}
+EOF
+}
+
+# budget_seed_campaign_ticket [tickets_dir] [label]: seeds the OPEN
+# DIA-260903-o7n0 campaign record has_backing resolves (filename prefix +
+# status OPEN). The label keeps each suite's fixture comment byte-identical.
+budget_seed_campaign_ticket() {
+  local dir="${1:-$BATS_TEST_TMPDIR/tickets}"
+  local label="${2:-campaign fixture}"
+  mkdir -p "$dir"
+  cat > "$dir/DIA-260903-o7n0-zz-campaign.md" <<EOF
+---
+status: OPEN
+---
+# DIA-260903-o7n0 campaign fixture ($label)
+EOF
+}
+
+# budget_git_init <tree>: hermetic repo init + test identity.
+budget_git_init() {
+  local tree="$1"
+  if ! git -C "$tree" init -q -b main 2>/dev/null; then
+    git -C "$tree" init -q
+    git -C "$tree" symbolic-ref HEAD refs/heads/main
+  fi
+  git -C "$tree" config user.email "bats@example.com"
+  git -C "$tree" config user.name "bats test"
+}
+
+# budget_run_hook <tree> <msgfile> [extra env assignments...]
+budget_run_hook() {
+  local tree="$1" msg="$2"; shift 2
+  local manifest="${BUDGET_MANIFEST_OVERRIDE:-$tree/manifest.json}"
+  run env BUDGET_MANIFEST="$manifest" TICKETS_DIR="$BATS_TEST_TMPDIR/tickets" BUDGET_PLUGIN_ROOT="$tree/plug" "$@" bash "$tree/gate-under-test.sh" "$msg"
+}
+
+# budget_run_hook_in_repo <tree> <msgfile> [extra env assignments...]: runs
+# with CWD inside the fixture repo and a RELATIVE manifest override.
+budget_run_hook_in_repo() {
+  local tree="$1" msg="$2"; shift 2
+  run env BUDGET_MANIFEST="manifest.json" TICKETS_DIR="$BATS_TEST_TMPDIR/tickets" "$@" bash -c "cd '$tree' && exec bash '$tree/gate-under-test.sh' '$msg'"
+}
+
+# budget_run_range <tree> <range> [extra env assignments...]
+budget_run_range() {
+  local tree="$1" range="$2"; shift 2
+  local manifest="${BUDGET_MANIFEST_OVERRIDE:-$tree/manifest.json}"
+  run env BUDGET_MANIFEST="$manifest" TICKETS_DIR="$BATS_TEST_TMPDIR/tickets" BUDGET_PLUGIN_ROOT="$tree/plug" "$@" bash "$tree/gate-under-test.sh" --range "$range"
+}
+
+# budget_run_range_in_repo <tree> <range> [extra env assignments...]: range
+# mode with CWD inside the fixture repo and a RELATIVE manifest override.
+budget_run_range_in_repo() {
+  local tree="$1" range="$2"; shift 2
+  run env BUDGET_MANIFEST="manifest.json" TICKETS_DIR="$BATS_TEST_TMPDIR/tickets" BUDGET_PLUGIN_ROOT="$tree/plug" "$@" bash -c "cd '$tree' && exec bash '$tree/gate-under-test.sh' --range '$range'"
+}
+
+# ---------------------------------------------------------------------------
 # dev-entrypoint.sh tests (user-namespace isolation)
 # ---------------------------------------------------------------------------
 

@@ -19,29 +19,8 @@ GATE="$REPO_ROOT/scripts/check-budget-gate.sh"
 
 APPROVED_CAMPAIGNS='{"ticket": "DIA-260903-o7n0", "scope": "refactor", "status": "approved"}'
 
-write_manifest() {
-  cat > "$1/manifest.json" <<EOF
-{
-  "prod_ceiling": $2,
-  "shell_ceiling": $3,
-  "patterns": [
-    {"id": "opencode-mock", "canonical": "mock.module(\"@opencode-ai/plugin\",", "baseline_count": 0, "authorized_site": "plugin-harness.mjs"}
-  ],
-  "campaigns": [$4],
-  "mode": "blocking"
-}
-EOF
-}
-
-seed_campaign_ticket() {
-  local file="$BATS_TEST_TMPDIR/tickets/DIA-260903-o7n0-zz-campaign.md"
-  cat > "$file" <<'EOF'
----
-status: OPEN
----
-# DIA-260903-o7n0 campaign fixture (range-exemption suite)
-EOF
-}
+# Shared budget-fixture primitives live in test-helper.bash (DIA-260909-9i1o);
+# this suite keeps its own tree shapes, commits, scenario data, and assertions.
 
 # setup_prehistory_repo: init WITHOUT a manifest, land a scoped refactor
 # commit (pre-manifest history), then add the manifest + campaign backing as
@@ -52,12 +31,7 @@ setup_prehistory_repo() {
   cp "$REPO_ROOT/scripts/guards/home-qualt.sh" "$tree/scripts/guards/home-qualt.sh"
   seq 1 10 > "$tree/plug/delegation-observer.ts"
   seq 1 10 > "$tree/plug/lib/util.ts"
-  if ! git -C "$tree" init -q -b main 2>/dev/null; then
-    git -C "$tree" init -q
-    git -C "$tree" symbolic-ref HEAD refs/heads/main
-  fi
-  git -C "$tree" config user.email "bats@example.com"
-  git -C "$tree" config user.name "bats test"
+  budget_git_init "$tree"
   git -C "$tree" add -A
   git -C "$tree" commit -q -m init
   # Commit A (pre-manifest): touches a scoped prod path, same LOC, refactor
@@ -70,8 +44,8 @@ setup_prehistory_repo() {
 Budget-Scope: refactor"
   # Commit B (clean backed): adds the manifest; prod 20/20 shell 10/10 sit
   # exactly at the ceilings with real ledger backing.
-  seed_campaign_ticket
-  write_manifest "$tree" 20 10 "$APPROVED_CAMPAIGNS"
+  budget_seed_campaign_ticket "$BATS_TEST_TMPDIR/tickets" "range-exemption suite"
+  budget_write_manifest "$tree" 20 10 0 "$APPROVED_CAMPAIGNS"
   git -C "$tree" add manifest.json
   git -C "$tree" commit -q -m "add budget baselines
 
@@ -85,7 +59,7 @@ Budget-Scope: refactor"
   local root_sha
   root_sha="$(git -C "$tree" rev-list --max-parents=0 HEAD)"
 
-  run env BUDGET_MANIFEST="manifest.json" TICKETS_DIR="$BATS_TEST_TMPDIR/tickets" BUDGET_PLUGIN_ROOT="$tree/plug" bash -c "cd '$tree' && exec bash '$tree/gate-under-test.sh' --range '$root_sha..HEAD'"
+  budget_run_range_in_repo "$tree" "$root_sha..HEAD"
 
   assert_status 0
   # the pre-manifest commit is SKIPPED, never silently: warn line mandatory
@@ -106,15 +80,10 @@ setup_malformed_repo() {
   cp "$REPO_ROOT/scripts/guards/home-qualt.sh" "$tree/scripts/guards/home-qualt.sh"
   seq 1 10 > "$tree/plug/delegation-observer.ts"
   seq 1 10 > "$tree/plug/lib/util.ts"
-  if ! git -C "$tree" init -q -b main 2>/dev/null; then
-    git -C "$tree" init -q
-    git -C "$tree" symbolic-ref HEAD refs/heads/main
-  fi
-  git -C "$tree" config user.email "bats@example.com"
-  git -C "$tree" config user.name "bats test"
+  budget_git_init "$tree"
   git -C "$tree" add -A
   git -C "$tree" commit -q -m init
-  seed_campaign_ticket
+  budget_seed_campaign_ticket "$BATS_TEST_TMPDIR/tickets" "range-exemption suite"
   printf '{broken json\n' > "$tree/manifest.json"
   seq 1 15 > "$tree/plug/lib/util.ts"
   git -C "$tree" add manifest.json plug/lib/util.ts
@@ -130,7 +99,7 @@ Budget-Scope: refactor"
   local root_sha
   root_sha="$(git -C "$tree" rev-list --max-parents=0 HEAD)"
 
-  run env BUDGET_MANIFEST="manifest.json" TICKETS_DIR="$BATS_TEST_TMPDIR/tickets" BUDGET_PLUGIN_ROOT="$tree/plug" bash -c "cd '$tree' && exec bash '$tree/gate-under-test.sh' --range '$root_sha..HEAD'"
+  budget_run_range_in_repo "$tree" "$root_sha..HEAD"
 
   assert_status 1
   # no pre-gate-history skip for a tree that HAS the manifest
@@ -176,14 +145,9 @@ setup_ticket_history_repo() {
   cp "$REPO_ROOT/scripts/guards/home-qualt.sh" "$tree/scripts/guards/home-qualt.sh"
   seq 1 10 > "$tree/plug/delegation-observer.ts"
   seq 1 10 > "$tree/plug/lib/util.ts"
-  write_manifest "$tree" 20 10 "$APPROVED_CAMPAIGNS"
+  budget_write_manifest "$tree" 20 10 0 "$APPROVED_CAMPAIGNS"
   write_ticket_status "$tree" "$1"
-  if ! git -C "$tree" init -q -b main 2>/dev/null; then
-    git -C "$tree" init -q
-    git -C "$tree" symbolic-ref HEAD refs/heads/main
-  fi
-  git -C "$tree" config user.email "bats@example.com"
-  git -C "$tree" config user.name "bats test"
+  budget_git_init "$tree"
   git -C "$tree" add -A
   git -C "$tree" commit -q -m init
   # Commit H: clean backed refactor (prod stays 20/20, shell 10/10).
@@ -207,7 +171,7 @@ Budget-Scope: refactor"
   local tree h_sha
   read -r tree h_sha <<< "$(setup_ticket_history_repo OPEN CLOSED)"
 
-  run env BUDGET_MANIFEST="manifest.json" TICKETS_DIR="$tree/tickets" BUDGET_PLUGIN_ROOT="$tree/plug" bash -c "cd '$tree' && exec bash '$tree/gate-under-test.sh' --range '$h_sha~1..$h_sha'"
+  budget_run_range_in_repo "$tree" "$h_sha~1..$h_sha" "TICKETS_DIR=$tree/tickets"
 
   # RED against current gate code (reads CLOSED from current disk ledger):
   # exit 1 "no approved backing campaign". Post-fix (commit-tree status):
@@ -220,7 +184,7 @@ Budget-Scope: refactor"
   local tree h_sha
   read -r tree h_sha <<< "$(setup_ticket_history_repo CLOSED OPEN)"
 
-  run env BUDGET_MANIFEST="manifest.json" TICKETS_DIR="$tree/tickets" BUDGET_PLUGIN_ROOT="$tree/plug" bash -c "cd '$tree' && exec bash '$tree/gate-under-test.sh' --range '$h_sha~1..$h_sha'"
+  budget_run_range_in_repo "$tree" "$h_sha~1..$h_sha" "TICKETS_DIR=$tree/tickets"
 
   # RED against current gate code (reads OPEN from current disk ledger):
   # exit 0 "ok: scope refactor backed". Post-fix (commit-tree status):
@@ -236,7 +200,7 @@ Budget-Scope: refactor"
   cp "$REPO_ROOT/scripts/guards/home-qualt.sh" "$tree/scripts/guards/home-qualt.sh"
   seq 1 10 > "$tree/plug/delegation-observer.ts"
   seq 1 10 > "$tree/plug/lib/util.ts"
-  write_manifest "$tree" 20 10 "$APPROVED_CAMPAIGNS"
+  budget_write_manifest "$tree" 20 10 0 "$APPROVED_CAMPAIGNS"
   # Exception ticket valid at H (expiry 2026-02-01) but expired on wall-clock today (2026-09-09).
   # H will be committed with date 2026-01-01, so expiry is after H and range should PASS
   # even though expiry is before today. Pre-fix would compare against today and FAIL.
@@ -249,12 +213,7 @@ Exception-Delta: A +5
 Exception-Paths: plug/lib/util.ts
 Exception-Applicability: expiry 2026-02-01
 EOF
-  if ! git -C "$tree" init -q -b main 2>/dev/null; then
-    git -C "$tree" init -q
-    git -C "$tree" symbolic-ref HEAD refs/heads/main
-  fi
-  git -C "$tree" config user.email "bats@example.com"
-  git -C "$tree" config user.name "bats test"
+  budget_git_init "$tree"
   git -C "$tree" add -A
   git -C "$tree" commit -q -m init
   # Commit H: scoped growth that violates prod ceiling, rescued by the exception
@@ -270,7 +229,7 @@ Budget-Exception: DIA-260903-o7n0"
   h_sha="$(git -C "$tree" rev-parse HEAD)"
   cp "$GATE" "$tree/gate-under-test.sh" 2>/dev/null || true
 
-  run env BUDGET_MANIFEST="manifest.json" TICKETS_DIR="$tree/tickets" BUDGET_PLUGIN_ROOT="$tree/plug" bash -c "cd '$tree' && exec bash '$tree/gate-under-test.sh' --range '$h_sha~1..$h_sha'"
+  budget_run_range_in_repo "$tree" "$h_sha~1..$h_sha" "TICKETS_DIR=$tree/tickets"
 
   assert_status 0
   assert_output_contains "ok:"
@@ -282,7 +241,7 @@ Budget-Exception: DIA-260903-o7n0"
   tree2="$(setup_prehistory_repo)"
   local root_sha
   root_sha="$(git -C "$tree2" rev-list --max-parents=0 HEAD)"
-  run env BUDGET_MANIFEST="manifest.json" TICKETS_DIR="$BATS_TEST_TMPDIR/tickets" BUDGET_PLUGIN_ROOT="$tree2/plug" bash -c "cd '$tree2' && exec bash '$tree2/gate-under-test.sh' --range '$root_sha..HEAD'"
+  budget_run_range_in_repo "$tree2" "$root_sha..HEAD"
   assert_status 0
   assert_output_contains "warn:"
   assert_output_contains "outside gated repo"
