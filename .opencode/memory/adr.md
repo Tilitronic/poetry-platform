@@ -1935,3 +1935,104 @@ promotions:
 - Related: DIA-260828-qtsi, .opencode/promo-registry.json,
   scripts/promo-preset-apply, knowledge/model-registry.yaml,
   .opencode/skills/promo-review/
+
+## ADR: Scenario runner placement in scenarios dir, not helpers/ (DIA-260909-zeik)
+
+### Status
+
+Accepted - 2026-09-09
+
+### Context
+
+DIA-260909-zeik extracted repeated cleanup boilerplate from 3 standalone harness
+scenarios into a shared `scenario-runner.mjs`. Two placement options existed:
+(a) in `helpers/` alongside `plugin-harness.mjs`, or (b) in the scenarios dir
+beside the 3 scenario files. Two constraints applied: the bats runner only
+invokes `$name.scenario.mjs` (so a file in the scenarios dir with a different
+name is invisible to bats), and concurrent ticket DIA-260909-fkiy owns
+`helpers/plugin-harness.mjs` (adding a sibling helper there would create a
+merge conflict).
+
+### Decision
+
+Place `scenario-runner.mjs` in the scenarios dir
+(`.opencode/plugins/__tests__/harness-scenarios/`), not in `helpers/`.
+
+### Rationale (irrecoverable context)
+
+- Collision avoidance: a new file in `helpers/` would collide with fkiy's
+  concurrent edits to `plugin-harness.mjs` in either landing order. The scenarios
+  dir is disjoint from fkiy's scope (zero shared files).
+- Bats invisibility: the bats replay suite only invokes `$name.scenario.mjs`
+  for three known names. A file named `scenario-runner.mjs` in the same dir
+  is never picked up by bats -- safe by construction, not by guard.
+- Composition over duplication: the runner imports `createTempWorkspace` from
+  `helpers/plugin-harness.mjs`; when fkiy later adds bounded retry/backoff
+  inside that helper, all three scenarios inherit it with zero edits.
+
+### Consequences
+
+- Future test-harness helpers that are shared across scenarios should live in
+  the scenarios dir, not `helpers/`, to avoid collision with the bats runner
+  naming convention and with concurrent `helpers/` ownership.
+- The runner's single-export surface (1 symbol) stays under the 4-export cap
+  that governs `helpers/plugin-harness.mjs` (C1 constraint, DIA-260909-fkiy).
+
+### Metadata
+
+- Created: 2026-09-09
+- Related: DIA-260909-zeik, DIA-260909-fkiy,
+  .opencode/plugins/__tests__/harness-scenarios/scenario-runner.mjs,
+  scripts/__tests__/harness-scenario-replay.bats
+
+## ADR: Budget gate fail-closed on CLOSED ticket manifest entries (DIA-260909-zeik)
+
+### Status
+
+Accepted - 2026-09-09
+
+### Context
+
+The budget-gate commit-msg hook runs `scripts/check-budget-gate.sh` which
+resolves `has_backing` by checking whether an OPEN ticket in
+`scripts/budget-baselines.json` provides backing for the commit's
+`Budget-Scope` trailer. The parent epic DIA-260903-o7n0 was CLOSED at the
+time DIA-260909-zeik ran. CLOSED ticket entries in the manifest do NOT
+provide backing for OPEN ticket work -- the gate resolved has_backing=false
+and failed-closed.
+
+### Decision
+
+When a budget-gate has_backing check fails-closed because a parent epic is
+CLOSED, the fix is a ruling-authorized one-line manifest addition for the
+OPEN child ticket, NOT reopening the parent or bypassing the gate. The gate's
+fail-closed behavior is correct by design: CLOSED entries must not back new
+work.
+
+### Rationale (irrecoverable context)
+
+- The gate's has_backing resolution is a runtime behavior: it checks the
+  manifest for OPEN entries matching the Budget-Scope, not CLOSED entries.
+  This is correct -- CLOSED entries represent completed work and must not
+  authorize new work under the same scope. The fail-closed outcome is the
+  gate working as intended, not a bug.
+- The ruling-authorized one-line manifest addition (adding a test-debloat
+  entry for OPEN DIA-260909-zeik) is the minimal fix that preserves gate
+  semantics. It was authorized by the developer during the interview
+  (interview.md Q4 rest) as a one-shot exception.
+- The manifest entry for DIA-260903-o7n0 remains CLOSED in the manifest;
+  its entries do not back zeik's commit.
+
+### Consequences
+
+- Future test-debloat commits must carry their own OPEN manifest entry;
+  they cannot piggyback on a CLOSED parent epic's backing.
+- The gate's fail-closed behavior is a safety property, not a limitation:
+  it prevents stale/backdoored scope from authorizing unrelated work.
+
+### Metadata
+
+- Created: 2026-09-09
+- Related: DIA-260909-zeik, DIA-260903-o7n0,
+  scripts/budget-baselines.json, scripts/check-budget-gate.sh,
+  openspec/changes/dia-260909-zeik-scenario-cleanup-dedupe/interview.md
