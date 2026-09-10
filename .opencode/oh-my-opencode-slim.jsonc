@@ -839,11 +839,11 @@
       },
       "ai-auditor": {
         "model": [
-          "github-copilot/gpt-5.3-codex",
+          "openai/gpt-5.6-sol",
           "github-copilot/gemini-3.1-pro-preview",
           "opencode/big-pickle"
         ],
-        "variant": "high",
+        "variant": "medium",
         "skills": [
           "teaching"
         ],

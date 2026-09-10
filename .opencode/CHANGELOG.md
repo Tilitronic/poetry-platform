@@ -1014,8 +1014,20 @@
 - **Files:** .opencode/oh-my-opencode-slim.jsonc - .opencode/opencode.jsonc - knowledge/model-registry.yaml
 - **Verification:** manual
 
+## 2026-09-09 - DIA-260909-uv53: slim
+
+- **Change:** ai-auditor swap to openai/gpt-5.6-sol medium
+- **Files:** .opencode/oh-my-opencode-slim.jsonc
+- **Verification:** manual
+
 ## 2026-09-09 - DIA-260909-sazr: test
 
 - **Change:** Remove RED-era factory/alias probes from 7 observer-lib test suites (test-only, net -751 LOC)
 - **Files:** .opencode/plugins/__tests__/capability.test.mjs - .opencode/plugins/__tests__/ticket-gate.test.mjs - .opencode/plugins/__tests__/handoff.test.mjs - .opencode/plugins/__tests__/registry.test.mjs - .opencode/plugins/__tests__/stall-sweep.test.mjs - .opencode/plugins/__tests__/formatter.test.mjs - .opencode/plugins/__tests__/circuit-breaker.test.mjs
 - **Verification:** manual
+
+## 2026-09-10 - DIA-260909-uv53: config
+
+- **Change:** ai-auditor Sol registry metadata fix: direct OpenAI pricing short 4/20 over-272K 8/30 per 1M, alias/variant note
+- **Files:** knowledge/model-registry.yaml
+- **Verification:** make test-config EXIT=0 post-registry-fix (2026-09-10, F5): 61 PASS 0 FAIL; decision-variants 337 passed; plugin-structure all gates PASS

@@ -89,6 +89,18 @@ models:
     quota_notes: ">272K-token tier pricing $2.00/$12.00 per 1M; 429 history per DIA-260827-qc59; live PASS 2026-09-09 probe TERRA-PROBE-OK; Variant A primary in muse-qwen-balanced (accepts full high/max ladder)"
     active: true
 
+  - model_id: "openai/gpt-5.6-sol"
+    role: "audit-primary"
+    price_in_1m: 4.00
+    price_out_1m: 20.00
+    req_per_month: null  # pay-as-you-go (no monthly request cap)
+    swe_bench_verified: null  # no archived benchmark yet - benchmark conspect pending (separate ticket)
+    source_ref: "DIA-260909-uv53 2026-09-09"
+    lane: ["ai-auditor"]
+    fallback: ["github-copilot/gemini-3.1-pro-preview", "opencode/big-pickle"]
+    quota_notes: "Direct OpenAI pricing short-context $4.00/$20.00 per 1M; over-272K long-context $8.00/$30.00 per 1M (2x in, 1.5x out); ai-auditor primary in muse-qwen-balanced (variant medium, default; accepts none/low/medium/high/xhigh/max ladder); NOTE gpt-5.6 is model alias, -medium is OMO variant not model ID; same flagship reasoning family as Terra (ai-specialist) - provider overlap, gemini fallback kept for 429-degrade"
+    active: true
+
   - model_id: "kimi-k3"
     role: "coder-escalated"
     price_in_1m: 3.00

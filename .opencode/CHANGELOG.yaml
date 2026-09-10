@@ -4546,6 +4546,14 @@
   verification: manual
   area: opencode-config
 - date: '2026-09-09'
+  ticket: DIA-260909-uv53
+  scope: slim
+  files:
+  - .opencode/oh-my-opencode-slim.jsonc
+  summary: ai-auditor swap to openai/gpt-5.6-sol medium
+  verification: manual
+  area: config
+- date: '2026-09-09'
   ticket: DIA-260909-sazr
   scope: test
   files:
@@ -4560,3 +4568,13 @@
     net -751 LOC)
   verification: manual
   area: opencode-config
+- date: '2026-09-10'
+  ticket: DIA-260909-uv53
+  scope: config
+  files:
+  - knowledge/model-registry.yaml
+  summary: 'ai-auditor Sol registry metadata fix: direct OpenAI pricing short 4/20
+    over-272K 8/30 per 1M, alias/variant note'
+  verification: 'make test-config EXIT=0 post-registry-fix (2026-09-10, F5): 61 PASS
+    0 FAIL; decision-variants 337 passed; plugin-structure all gates PASS'
+  area: config
