@@ -293,13 +293,16 @@
 | DIA-260903-o7n0 | read-only de-bloat audit: delegation-observer plugin test suite + binding budget for next phase | opencode-config | Major | CLOSED | [DIA-260903-o7n0-read-only-de-bloat-audit-delegation-observer-plugin-test-suite-binding-budget-for-next-phase.md](DIA-260903-o7n0-read-only-de-bloat-audit-delegation-observer-plugin-test-suite-binding-budget-for-next-phase.md) |
 | DIA-260903-oj59 | self-rerun thresholds: 60% primary / 75% safety-net (new default) | opencode-config | Medium | OPEN | [DIA-260903-oj59-self-rerun-thresholds-60-primary-75-safety-net-new-default.md](DIA-260903-oj59-self-rerun-thresholds-60-primary-75-safety-net-new-default.md) |
 | DIA-260909-18f4 | Evaluate replacing Qwen3.8 Flash with OpenAI GPT-5.6 Terra High in agent routing | opencode-config | Medium | CLOSED | [DIA-260909-18f4-evaluate-replacing-qwen3-8-flash-with-openai-gpt-5-6-terra-high-in-agent-routing.md](DIA-260909-18f4-evaluate-replacing-qwen3-8-flash-with-openai-gpt-5-6-terra-high-in-agent-routing.md) |
+| DIA-260909-9api | make compose-env.bats hermetic to inherited COMPOSE_ENGINE | scripts | Medium | CLOSED | [DIA-260909-9api-make-compose-env-bats-hermetic-to-inherited-compose-engine.md](DIA-260909-9api-make-compose-env-bats-hermetic-to-inherited-compose-engine.md) |
 | DIA-260909-9c9x | whitespace polish for already-committed files | scripts | Low | CLOSED | [DIA-260909-9c9x-whitespace-polish-for-already-committed-files.md](DIA-260909-9c9x-whitespace-polish-for-already-committed-files.md) |
 | DIA-260909-9i1o | consolidate duplicated budget-gate bats fixture setup | scripts | Medium | OPEN | [DIA-260909-9i1o-consolidate-duplicated-budget-gate-bats-fixture-setup.md](DIA-260909-9i1o-consolidate-duplicated-budget-gate-bats-fixture-setup.md) |
 | DIA-260909-csds | Activate Muse Qwen balanced preset and persist project default | opencode-config | Medium | OPEN | [DIA-260909-csds-activate-muse-qwen-balanced-preset-and-persist-project-default.md](DIA-260909-csds-activate-muse-qwen-balanced-preset-and-persist-project-default.md) |
 | DIA-260909-fkiy | extract repeated workspace-cleanup retry loops into helpers plugin-harness | opencode-config | Medium | OPEN | [DIA-260909-fkiy-extract-repeated-workspace-cleanup-retry-loops-into-helpers-plugin-harness.md](DIA-260909-fkiy-extract-repeated-workspace-cleanup-retry-loops-into-helpers-plugin-harness.md) |
-| DIA-260909-sazr | remove RED-era factory and alias probes from observer-lib test suites | opencode-config | Medium | OPEN | [DIA-260909-sazr-remove-red-era-factory-and-alias-probes-from-observer-lib-test-suites.md](DIA-260909-sazr-remove-red-era-factory-and-alias-probes-from-observer-lib-test-suites.md) |
+| DIA-260909-sazr | remove RED-era factory and alias probes from observer-lib test suites | opencode-config | Medium | CLOSED | [DIA-260909-sazr-remove-red-era-factory-and-alias-probes-from-observer-lib-test-suites.md](DIA-260909-sazr-remove-red-era-factory-and-alias-probes-from-observer-lib-test-suites.md) |
 | DIA-260909-tp5e | Add Muse Qwen balanced agent routing preset | opencode-config | Medium | CLOSED | [DIA-260909-tp5e-add-muse-qwen-balanced-agent-routing-preset.md](DIA-260909-tp5e-add-muse-qwen-balanced-agent-routing-preset.md) |
+| DIA-260909-uv53 | replace ai-auditor GitHub Copilot GPT-5.3 Codex High with OpenAI GPT-5.6 Sol Medium | config | Medium | CLOSED | [DIA-260909-uv53-replace-ai-auditor-github-copilot-gpt-5-3-codex-high-with-openai-gpt-5-6-sol-medium.md](DIA-260909-uv53-replace-ai-auditor-github-copilot-gpt-5-3-codex-high-with-openai-gpt-5-6-sol-medium.md) |
 | DIA-260909-zeik | simplify repeated failure-cleanup paths in standalone harness scenarios | opencode-config | Medium | CLOSED | [DIA-260909-zeik-simplify-repeated-failure-cleanup-paths-in-standalone-harness-scenarios.md](DIA-260909-zeik-simplify-repeated-failure-cleanup-paths-in-standalone-harness-scenarios.md) |
+| DIA-260910-ri0u | Isolated commit for 9api closure (Bats test + ticket + rollup/memory) | scripts | Low | OPEN | [DIA-260910-ri0u-isolated-commit-for-9api-closure-bats-test-ticket-rollup-memory.md](DIA-260910-ri0u-isolated-commit-for-9api-closure-bats-test-ticket-rollup-memory.md) |
 
 ## Status summary
 
@@ -308,9 +311,9 @@
 | Blocker  | 9     |
 | Critical | 15    |
 | Major    | 73    |
-| Medium   | 152   |
+| Medium   | 154   |
 | Minor    | 1     |
-| Low      | 26    |
+| Low      | 27    |
 | Info     | 2     |
 | High     | 20    |
 
@@ -325,7 +328,7 @@
 | FIXED       | 1     |
 | IMPLEMENTED | 2     |
 | VERIFIED    | 28    |
-| CLOSED      | 170   |
+| CLOSED      | 173   |
 | BLOCKED     | 0     |
 | DISPATCHED  | 0     |
 | RUNNING     | 0     |

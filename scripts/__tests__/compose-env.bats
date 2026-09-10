@@ -51,6 +51,12 @@ DEFAULT_EXPECTED="docker-compose.yml:docker-compose.rootless-docker.yml"
 PODMAN_EXPECTED="docker-compose.yml:docker-compose.podman.yml"
 WSL_EXPECTED="docker-compose.yml:docker-compose.rootless-docker.yml:docker-compose.wsl.yml"
 
+# Hermetic default: ignore inherited COMPOSE_ENGINE (e.g. COMPOSE_ENGINE=podman
+# on a Podman host). Override cases export it explicitly after this setup.
+setup() {
+  unset COMPOSE_ENGINE
+}
+
 # assert_file_not_contains <file> <substring>: fails if <file> contains the
 # fixed substring (grep -F). Used for the "dead lines GONE" Makefile assertions.
 assert_file_not_contains() {

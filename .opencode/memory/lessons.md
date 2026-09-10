@@ -1601,6 +1601,44 @@ recorded here). Irrecoverable process lessons:
 - Cross-reference: DIA-211, delegation-observer.ts resource pressure adaptation,
   ai-auditor findings.
 
+## L20260909-uv53-001 - OMO model-array variant is NOT per-fallback; single variant applies to all models in the chain (DIA-260909-uv53, 2026-09-09)
+
+- Observation: when a model array is configured with a single "variant" value
+  (e.g. "variant": "medium"), that variant applies to whichever model in the
+  fallback chain answers first -- including gemini and big-pickle fallbacks that
+  may have different optimal effort levels. There is no per-fallback variant
+  tuning in the OMO foreground-fallback manager.
+- Implication: changing the primary model's variant (e.g. Sol high -> medium)
+  also changes the effective variant for all fallback models. This is a
+  constraint, not a bug -- medium is a safe middle ground for all three in the
+  ai-auditor chain (Sol, gemini, big-pickle). But for lanes where fallback
+  models have very different optimal effort levels, this constraint should be
+  noted in the design.
+- Why irrecoverable: the learnings file documents the variant constraint as a
+  risk (Risk 4), but the generalizable rule -- "OMO model-array variant is
+  single-valued and applies to all fallbacks; there is no per-model variant
+  override" -- is a runtime architecture fact not stated in OMO docs or the
+  config schema. Future model-array config work must account for this.
+- Cross-reference: learnings/external-patterns/2026-09-09-dia-260909-uv53-
+  ai-auditor-sol-medium.md Risk 4, knowledge/res029-model-fallback-semantics/
+  (fallback mechanism), DIA-260909-uv53.
+
+## L20260909-uv53-002 - Conditional GO pattern: gate + review both conditioned on post-restart model-picker smoke (DIA-260909-uv53, 2026-09-09)
+
+- Pattern: both the ai-specialist gate (Phase 1) and the ai-auditor
+  independent review (Phase 6) were CONDITIONAL on a post-restart /models
+  smoke test that the new model resolves without fallback events. The ticket
+  stays OPEN until the smoke evidence is recorded. This is a reusable gating
+  pattern for any config change that retires a model ID or introduces a new
+  provider endpoint -- static validation (test-config) proves syntactic
+  correctness but cannot prove the runtime model picker resolves the new ID.
+- Why irrecoverable: the learnings file documents the next-gates sequence, but
+  the conditional-GO pattern (both gate AND review conditioned on a live smoke)
+  is a process decision not stated in any spec. It applies whenever a config
+  change retires a model ID or introduces a new provider model.
+- Cross-reference: learnings/external-patterns/2026-09-09-dia-260909-uv53-
+  ai-auditor-sol-medium.md next gates section, DIA-260909-uv53 ticket.
+
 ## L20260818-001 - Retrospective audit value: workflow bypasses leave process integrity debt (DIA-204/212/214/215/229, 2026-08-18)
 
 - Observation: @ai-auditor reviewed 5 config changes that bypassed the section 2.5
@@ -2284,3 +2322,93 @@ recorded here). Irrecoverable process lessons:
 - Operational rule: for any whitespace-only fix in code files, verify post-fix that `git diff -w` is empty (confirms no non-whitespace delta). If `git diff -w` shows changes, the fix touched non-whitespace content and must be reverted to a whitespace-only edit. This is the mechanical check that enforces the verbatim-move constraint.
 - Why irrecoverable: the verbatim-move constraint and the `git diff -w` enforcement check are verification discipline not stated in any committed file or test. The fix commit (a0c649bc) shows 3 deletions, but the generalizable rule ("whitespace-only fix must produce empty `git diff -w`") is a session-learned verification habit.
 - Cross-reference: DIA-260909-9c9x fix commit a0c649bc, `.opencode/learnings/external-patterns/2026-09-09-dia-260909-9c9x-whitespace-gate.md` (verification notes section).
+
+## L20260909-003 - Budget gate has_backing reads manifest entries, not ticket status; CLOSED entries don't back OPEN work (DIA-260909-zeik, 2026-09-09)
+
+- Observation: the budget-gate commit-msg hook (`scripts/check-budget-gate.sh`) resolves `has_backing` by checking whether an OPEN ticket in `scripts/budget-baselines.json` provides backing for the commit's `Budget-Scope` trailer. The parent epic DIA-260903-o7n0 was CLOSED at the time DIA-260909-zeik ran. CLOSED ticket entries in the manifest do NOT provide backing for OPEN ticket work. The gate resolved has_backing=false and failed-closed.
+- Operational rule: when a budget-gate has_backing check fails-closed because a parent epic is CLOSED, the fix is a ruling-authorized one-line manifest addition for the OPEN child ticket, NOT reopening the parent or bypassing the gate. The gate's fail-closed behavior is correct by design: CLOSED entries must not back new work. The manifest entry for the CLOSED parent remains CLOSED; its entries do not back the child's commit.
+- Why irrecoverable: the gate's has_backing resolution is a runtime behavior (it checks for OPEN entries matching the Budget-Scope, not CLOSED entries). The fail-closed outcome is the gate working as intended. A fresh agent seeing the gate failure would not know that CLOSED entries are intentionally excluded, and might try to reopen the parent or add a bypass.
+- Cross-reference: DIA-260909-zeik, DIA-260903-o7n0, scripts/budget-baselines.json, scripts/check-budget-gate.sh, openspec/changes/dia-260909-zeik-scenario-cleanup-dedupe/interview.md, adr.md "Budget gate fail-closed" ADR.
+
+## L20260909-004 - Container evidence discipline: honest recording of host-deviation when Docker is down (DIA-260909-zeik, 2026-09-09)
+
+- Observation: during DIA-260909-zeik the Docker daemon was down, making the container-based verification gate impossible. The design's test strategy (section 7) required `docker compose ps` evidence showing `poetry-dev` Up before proceeding. The honest path was to record the host-deviation: host bun 1.3.14 was used instead, all 3 scenarios exited 0 under `bun run`, bats replay skipped by-design (no Docker for bats), and `make test-shell` was proposed post-merge.
+- Operational rule: when a pre-work gate requires container state (Docker daemon) and the container is down, DO NOT fabricate or skip the evidence. Record the host-deviation honestly: state that Docker is unavailable, what替代 verification was performed (host bun run), and what remains to be verified post-merge (bats replay, test-shell). The container evidence discipline prevents future reviewers from assuming container-based verification was performed when it was not.
+- Why irrecoverable: the host-deviation recording is a runtime environment observation; the commits show the code changes but not the Docker-down state or the honest evidence recording. A fresh agent seeing the commits would assume the container gate was satisfied.
+- Cross-reference: DIA-260909-zeik tasks.md task 0.1 (container gate), design.md section 7 (test strategy), AGENTS.md section 6 (pre-work gates).
+
+## L20260909-005 - LOC estimate never pad: over-delivered de-bloat is fine, padding defeats the purpose (DIA-260909-zeik, 2026-09-09)
+
+- Observation: the ticket estimated -45..-70 LOC delta; the actual was -88 (scenarios -124, runner +36). The design.md section 6 explicitly stated "do not pad or over-cut to fit" the estimated range. The developer disposition accepted the over-delivered de-bloat as-is.
+- Operational rule: LOC estimates are HEURISTICS, not contracts. When the actual delta exceeds the estimated range, report the actual delta honestly. Never pad code to meet a range (add unnecessary lines to make the diff smaller) or cut real code to fit a range. The estimate's purpose is to communicate expected scope; the actual delta's purpose is to communicate what was delivered. The no-pad rule is explicit in the design interview but is a generalizable discipline.
+- Why irrecoverable: the estimate-to-actual delta is a session observation; the commits show the final -88 delta but not the -45..-70 estimate or the no-pad decision. A fresh agent seeing only the commits would not know an estimate existed or that over-delivery was a deliberate choice.
+- Cross-reference: DIA-260909-zeik design.md section 6 (LOC budget), tasks.md task 4.1 (LOC delta), interview.md (no-pad ruling).
+
+## L20260909-006 - Attestation-closure pattern: developer-attested external evidence recorded in re-verify before CLOSE (DIA-260909-zeik, 2026-09-09)
+
+- Observation: the ai-auditor fixed-point attestation (Finding C) was CONDITIONAL, gated on persisting evidence of zero drift. The re-verify block recorded developer-attested evidence (env -u COMPOSE_ENGINE make test-shell exit 0 with 638 Bats + replay 3/3 no regression) and resolved the CONDITIONAL to PASS before CLOSE. The attestation was NOT a live automated run — it was a developer-supplied evidence statement accepted by the reviewer lane.
+- Operational pattern: when a re-verify block carries developer-attested external evidence (i.e., the developer ran a command locally and reports the result, rather than the CI/agent running it), record the attestation explicitly in the re-verify finding table with (a) the exact command reported, (b) the exit code, (c) the scope of what the evidence covers, and (d) a note that it is developer-attested (not agent-verified). This distinguishes it from agent-verified evidence and sets the correct confidence level for future auditors.
+- Why irrecoverable: the distinction between developer-attested and agent-verified evidence is a process-level observation about the re-verify gate's trust model. The commits show the closure but not the trust-level distinction; a fresh agent reading only the ticket would assume all evidence was agent-verified.
+- Cross-reference: DIA-260909-zeik re-verify block (Finding C PASS), AGENTS.md section 2.3.1 (re-review loop).
+
+## L20260909-007 - Isolation root-cause assignment: env-inherited vs helper-correct, out-of-scope ticket spawned (DIA-260909-zeik, 2026-09-09)
+
+- Observation: three earlier test failures were observed during DIA-260909-zeik but were attributed to a separate root cause: COMPOSE_ENGINE=podman-inherited isolation issue (the test's hermetic fixture inherits COMPOSE_ENGINE from the host environment, causing docker vs podman mismatch). The helper code itself was correct; the test fixture needed a hermetic fix (set COMPOSE_ENGINE explicitly in the test sandbox). A follow-up infra ticket DIA-260909-9api was spawned via scripts/tickets new to track the compose-env.bats hermetic COMPOSE_ENGINE fix.
+- Operational pattern: when a test failure is observed during a change but the root cause is environment-inherited (host env leaking into the test sandbox) rather than a defect in the code being changed, (a) record the attribution explicitly in the re-verify findings table (failures = separate root cause, not regressions), (b) spawn a follow-up ticket for the env-isolation fix, and (c) do NOT include the env-inherited failures as regressions of the current change. This prevents false regression signals and correctly scopes the current change's verification.
+- Why irrecoverable: the attribution of failures to a separate root cause (env-inherited vs code defect) is a diagnostic decision made during the re-verify cycle. The commits show the fix and the follow-up ticket but not the reasoning that separated the failures from the current change's scope.
+- Cross-reference: DIA-260909-zeik re-verify block (3 earlier failures), DIA-260909-9api (follow-up compose-env.bats hermetic fix), AGENTS.md section 2.3.1 (re-review loop).
+
+## L20260909-008 - Fixed-point drift check method: file set comparison vs tag + CHANGELOG additive note (DIA-260909-zeik, 2026-09-09)
+
+- Observation: the fixed-point drift check (Finding A) compared the zeik file set at the implementation commit (05c0abe) against the tag (2e93e43) and found zero drift. The CHANGELOG carried an additive-only note (the change added a line, did not modify existing entries). The drift check method was: (a) enumerate files touched by the change, (b) compare each file's content at 05c0abe vs 2e93e43, (c) confirm zero unexpected modifications outside the change's scope, (d) verify CHANGELOG entries are additive-only (no rewording or removal of prior entries).
+- Operational pattern: for fixed-point drift checks on cleanup/refactor changes, use the file-set comparison method (enumerate touched files, diff each against the base tag, verify no unexpected modifications) rather than a full-repo diff. The CHANGELOG additive-only invariant is a lightweight check: new entries are appended, existing entries are never modified or removed in the same change. This method is faster than full-repo audit and sufficient for cleanup-scope changes.
+- Why irrecoverable: the drift-check methodology (file-set comparison + CHANGELOG additive invariant) is a verification technique applied during the re-verify cycle. The commits show the final state but not the method used to confirm zero drift; a fresh agent would need to re-invent the comparison approach.
+- Cross-reference: DIA-260909-zeik re-verify block (Finding A PASS zero drift), commit 05c0abe (fixed point), commit 2e93e43 (base tag).
+
+## L20260909-sazr-001 - Ai-auditor advisory findings shift across re-check cycles; scope-growth needs developer authorization to terminate (DIA-260909-sazr, 2026-09-09)
+
+- Observation: the ai-auditor produced advisory NO-GO findings F1-F7 across multiple re-check cycles. The findings shifted between cycles: initial F2-F6 (NO-GO), re-check 1 found F3/F4/F5/F6, re-check 2 found F3/F4/F5/F6 again, final re-check found F3/F4/F5/F6 closed with F2 residuals removed by a developer-authorized allow-list sweep. Each re-check surfaced a different subset of findings, creating a whack-a-mole pattern where closing one finding did not prevent new or shifted findings from appearing.
+- Root cause: the auditor's advisory review is not a fixed-point check; it re-evaluates the full change surface on each pass, so fixes to one area can expose or shift findings in adjacent areas. The auditor's NO-GO verdicts were advisory (not hard-blocking), but each cycle extended the review loop.
+- Developer intervention: the developer explicitly authorized specific fix-loop scope (2 cycles + minimal-plan sweeps + final allow-list sweep) to terminate the loop. Without this authorization, the loop would have continued indefinitely.
+- Operational rule: when ai-auditor advisory findings shift across re-check cycles, (a) record the finding-change delta per cycle (which findings closed, which shifted, which new), (b) after 2 fix-loop cycles, present the remaining findings to the developer for scope authorization (accept residual risk / authorize specific sweep / abort), (c) do NOT loop beyond the developer-authorized scope. The developer's scope authorization is the termination condition, not "all findings closed."
+- Why irrecoverable: the finding-shift pattern and the developer-authorization termination rule are process-level observations about the re-review loop; git shows only the final fix commits, not the whack-a-mole pattern or the scope authorization that ended it.
+- Cross-reference: DIA-260909-sazr ticket (F1-F7 findings, re-check evidence), AGENTS.md section 2.3.1 (re-review loop, max 2 cycles), learnings/external-patterns/2026-09-09-dia-260909-sazr-ai-specialist-gate.md (final outcome).
+
+## L20260909-sazr-002 - Guardrail-to-outcome mismatch: developer can accept over-delivered de-bloat beyond estimated range (DIA-260909-sazr, 2026-09-09)
+
+- Observation: the spec estimated LOC delta of -150..-300. The actual outcome was -751 (322 ins / 1053 del). The ai-specialist gate's verification set (item 4) stated the range "flags over/under-deletion." The developer accepted the over-delivered de-bloat, and the guardrail was superseded.
+- Context: the history of LOC delta across implementation was -522, -614, -667, -726, -751. Each intermediate value was also beyond the -150..-300 guardrail. The developer cited the -667 intermediate as acceptable, and the final -751 was accepted in the same spirit.
+- Operational rule: LOC estimates are HEURISTICS, not contracts. When the actual delta exceeds the estimated range on a de-bloat/cleanup change, (a) report the actual delta honestly, (b) if the developer accepts the over-delivery, record the acceptance explicitly (as a developer disposition or ruling), (c) do NOT pad code to meet the range (see L20260909-005 for the no-pad rule). The guardrail's purpose is to flag unexpected scope; the developer's acceptance overrides the flag.
+- Distinguishing from L20260909-005: that entry covers the case where the design explicitly stated "do not pad." This entry covers the broader case where the developer ACCEPTS over-delivery that exceeds the guardrail. Both share the rule that estimates are heuristics, but the termination mechanism differs: L20260909-005 is design-instruction-driven; sazr-002 is developer-disposition-driven.
+- Why irrecoverable: the guardrail-to-outcome mismatch and the developer acceptance are session-level disposition decisions; the commits show the final -751 delta but not the -150..-300 estimate or the developer's acceptance of over-delivery. A fresh agent seeing only the commits would not know a guardrail existed or that it was superseded.
+- Cross-reference: DIA-260909-sazr ticket (LOC delta evidence), learnings/external-patterns/2026-09-09-dia-260909-sazr-ai-specialist-gate.md (verification set item 4, guardrail), L20260909-005 (no-pad rule, adjacent distinct).
+
+## L20260909-sazr-003 - ADR citation accuracy: cross-check which ADR records which decision before citing (DIA-260909-sazr, 2026-09-09)
+
+- Observation: the OpenSpec spec (design.md) cited ADR3 as the basis for dependency injection (DI) fake seams. ADR3 actually records RED/GREEN instance separation (DIA-175), not dependency injection. The actual DI basis is DIA-260902-eqgg/design.md lines 28-32 and 89-95. The miscitation was corrected during the ai-specialist gate review.
+- Root cause: ADR numbering does not correlate with topic names. ADR3's name ("Batch-D shared tracked test seams must be declared in the spec slice-ownership table") does not suggest it records DI, but its content covers instance separation. A spec author assuming ADR3 covered DI by number-position or topic-similarity misread the actual ADR content.
+- Operational rule: before citing an ADR in a spec or design document, READ the ADR's actual content (Decision section) to confirm it records the decision being cited. Do not rely on ADR number ordering, position, or assumed topic correlation. ADRs record what was DECIDED, not what their title suggests; the title may describe the problem context while the decision addresses a different aspect. If the ADR number is uncertain, grep the ADR file for the decision topic rather than guessing the number.
+- Why irrecoverable: the miscitation was caught during review and corrected before implementation; the commits show only the corrected citation. The process lesson ("always cross-check ADR content before citing") is not stated in any committed file; without it, future spec authors will repeat the same number-guessing pattern.
+- Cross-reference: DIA-260909-sazr spec (design.md corrected citation), DIA-260902-eqgg (actual DI basis), learnings/external-patterns/2026-09-09-dia-260909-sazr-ai-specialist-gate.md (Correction section).
+
+## L20260910-9api-001 - Hermetic Bats COMPOSE_ENGINE isolation: unset in setup(), explicit podman export in test bodies (DIA-260909-9api, CLOSED 2026-09-10)
+
+- Observation: compose-env.bats hermetic tests inherited COMPOSE_ENGINE from the host environment (e.g. podman), causing docker vs podman mismatch in assertions. The helper code (scripts/compose-env.sh:16) was correct; the test fixture was non-hermetic.
+- Fix pattern: (1) setup() explicitly unsets COMPOSE_ENGINE at bats:56-58 to neutralize host env inheritance; (2) test bodies explicitly export COMPOSE_ENGINE=podman at lines 210-219/254-263/314-320 for cases that need a specific engine value.
+- Operational rule: when writing bats hermetic fixtures for shell helpers that read env vars, always unset relevant env vars in setup() AND set them explicitly in test bodies that need specific values. Do not rely on the host environment being clean; treat env inheritance as the default failure mode.
+- Why irrecoverable: the fix diff (setup unset + test-body exports) shows the code change but not the root-cause reasoning (env-inherited vs helper-correct distinction, spawned from DIA-260909-zeik L20260909-007). The pattern is generalizable to any bats test reading env vars.
+- Cross-reference: DIA-260909-9api (CLOSED), DIA-260909-zeik (parent), L20260909-007 (isolation root-cause assignment).
+
+## L20260910-9api-002 - Bats test path drift: tests/compose-env.bats -> scripts/__tests__/compose-env.bats (DIA-260909-9api, CLOSED 2026-09-10)
+
+- Observation: the compose-env.bats file was moved from tests/ to scripts/__tests__/ as part of the hermetic fix. Tests referencing the old path silently fail or skip. Verify the current canonical location before running or referencing test files.
+- Operational rule: before running bats tests or referencing test file paths, confirm the current location via `find scripts/__tests__ tests -name '*.bats' 2>/dev/null` or similar. Do not hardcode test paths in automation; derive from the canonical directory.
+- Why irrecoverable: the path change is in git history but the "which directory is canonical right now" fact is session-specific and requires a current filesystem scan to confirm. Future orchestrators should not assume tests/ vs scripts/__tests__/ without checking.
+- Cross-reference: DIA-260909-9api.
+
+## L20260910-9api-003 - Rollup sibling-flip caution: scripts/tickets rollup can flip unrelated ticket rows (DIA-260909-9api, CLOSED 2026-09-10)
+
+- Observation: after running `scripts/tickets rollup` for DIA-260909-9api, the README rollup also flipped the sazr row from CLOSED to OPEN to match its sibling lane frontmatter. This was a side-effect of the rollup recomputing against current frontmatter state. The sazr row flip is correct (matching the frontmatter) and should be left as-is.
+- Operational rule: when running `scripts/tickets rollup`, expect and accept that unrelated rows may change status to match their current frontmatter state. Verify that each flipped row's new status is correct against the ticket's actual state, not just the pre-rollup snapshot. Do not re-rollup to "fix" flips unless a row's new status is actually wrong.
+- Why irrecoverable: the rollup side-effect (sazr CLOSED->OPEN flip) is a runtime observation about how the rollup script recomputes against live frontmatter, not a code defect. Future operators may be surprised by cross-ticket status flips during rollup.
+- Cross-reference: DIA-260909-9api, DIA-260909-sazr.
