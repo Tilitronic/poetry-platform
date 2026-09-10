@@ -6,7 +6,7 @@ id: DIA-260831-g7h8
 title: "Plugin load validator hardcodes foreign checkout path"
 area: scripts
 severity: Medium
-status: OPEN
+status: CLOSED
 blocked_by: []
 parent_epic: DIA-260827-wfcx
 gate_state: "skipped"
@@ -17,7 +17,7 @@ discovered: 2026-08-31
 source: inventory
 date: 2026-08-31
 created: 2026-08-31
-updated: 2026-08-31
+updated: 2026-09-10
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -47,5 +47,6 @@ Run scripts/validate-plugin-loads.sh from an arbitrary checkout path; assert it 
 Derive the repo root from the script's own location instead of a hardcoded absolute path; use a canonical file URL; add a fixture that exercises two distinct checkout paths.
 
 ## Re-verify
-
-> To be filled at re-verify time.
+CLOSED as RESOLVED per triage verdict.
+Rationale: plugin load validator is portable already; no hardcoded-path failure remains.
+If a portability fixture is wanted, file it as a new separate Low ticket; out of scope here.

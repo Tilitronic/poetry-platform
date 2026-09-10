@@ -6,7 +6,7 @@ id: DIA-260824-1c3e
 title: "Add cebula-ox-alpha OpenCode preset"
 area: opencode-config
 severity: Medium
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: ""
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
@@ -17,7 +17,7 @@ discovered: 2026-08-24
 source: inventory
 date: 2026-08-24
 created: 2026-08-24
-updated: 2026-08-24
+updated: 2026-09-10
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -48,5 +48,6 @@ files and line references where known.>
 > To be filled at fix time.
 
 ## Re-verify
-
-> To be filled at re-verify time.
+CLOSED as OBSOLETE per triage verdict.
+Rationale: Ox Alpha model unavailable, so the cebula-ox-alpha preset is not actionable.
+No fix landed under this ticket; no re-verify run. Campaign ticket DIA-260824-1c3e.

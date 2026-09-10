@@ -6,7 +6,7 @@ id: DIA-260826-spu5
 title: "cebula-openai-hy3 preset variant-priority tuning (12 lanes; reviewer to hy3 high)"
 area: opencode-config
 severity: Medium
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: ""
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
@@ -17,7 +17,7 @@ discovered: 2026-08-26
 source: inventory
 date: 2026-08-26
 created: 2026-08-26
-updated: 2026-08-26
+updated: 2026-09-10
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -90,10 +90,6 @@ unverified and accepted as a conscious decision.
   documenting the tuning.
 
 ## Re-verify
-
-Independent review rev-1 returned APPROVE-WITH-FINDINGS. Developer disposition:
-ALL findings ACCEPTED. Fixes applied: (S1/F3) ticket body populated; (S2)
-registry role field shortened to `multi-lane-primary (cebula-openai-hy3)`;
-(S3) block-level comment added above the preset; (F1/F2) explicit caveats
-appended to the learnings file. `make test-config` re-run exits 0; the 11
-config edits confirmed intact (no regression).
+CLOSED as SUPERSEDED per triage verdict.
+Rationale: superseded by DIA-260827-qc59 (OpenAI-free cebula HY3 preset with role-based reasoning) plus DIA-260827-x99j (hy3 model-id replacement).
+No separate fix under this ticket.

@@ -176,7 +176,7 @@
 | DIA-260820-dr0g | researcher agent deviates from 3-tier fetch chain, uses WebFetch/context7 instead of trafilatura/crawl4ai | dev-infra | Medium | OPEN | [DIA-260820-dr0g-researcher-agent-deviates-from-3-tier-fetch-chain-uses-webfetch-context7-instead-of-trafilatura-crawl4ai.md](DIA-260820-dr0g-researcher-agent-deviates-from-3-tier-fetch-chain-uses-webfetch-context7-instead-of-trafilatura-crawl4ai.md) |
 | DIA-260820-jlu0 | DIA-217 ticket gate creates chicken-and-egg for meta-tasks and procedural authorizations | dev-infra | Major | CLOSED | [DIA-260820-jlu0-dia-217-ticket-gate-creates-chicken-and-egg-for-meta-tasks-and-procedural-authorizations.md](DIA-260820-jlu0-dia-217-ticket-gate-creates-chicken-and-egg-for-meta-tasks-and-procedural-authorizations.md) |
 | DIA-260820-y268 | enforce ticket-status queries via scripts, deprecate README rollup | dev-infra | Medium | CLOSED | [DIA-260820-y268-enforce-ticket-status-queries-via-scripts-deprecate-readme-rollup.md](DIA-260820-y268-enforce-ticket-status-queries-via-scripts-deprecate-readme-rollup.md) |
-| DIA-260821-3blw | remove persistent OpenCode input-area banner: powershell.exe toast spawn failed | opencode-config | Low | OPEN | [DIA-260821-3blw-remove-persistent-opencode-input-area-banner-powershell-exe-toast-spawn-failed.md](DIA-260821-3blw-remove-persistent-opencode-input-area-banner-powershell-exe-toast-spawn-failed.md) |
+| DIA-260821-3blw | remove persistent OpenCode input-area banner: powershell.exe toast spawn failed | opencode-config | Low | CLOSED | [DIA-260821-3blw-remove-persistent-opencode-input-area-banner-powershell-exe-toast-spawn-failed.md](DIA-260821-3blw-remove-persistent-opencode-input-area-banner-powershell-exe-toast-spawn-failed.md) |
 | DIA-260821-4cx5 | Expose opencode serve over Tailscale for remote Android access | docker | Medium | OPEN | [DIA-260821-4cx5-expose-opencode-serve-over-tailscale-for-remote-android-access.md](DIA-260821-4cx5-expose-opencode-serve-over-tailscale-for-remote-android-access.md) |
 | DIA-260821-5r03 | runtime observer plugin duplicate-registration audit and hardening | opencode-config | Major | OPEN | [DIA-260821-5r03-runtime-observer-plugin-duplicate-registration-audit-and-hardening.md](DIA-260821-5r03-runtime-observer-plugin-duplicate-registration-audit-and-hardening.md) |
 | DIA-260821-8kpc | Disable DCP plugin (context/cache concerns) | scripts | Medium | OPEN | [DIA-260821-8kpc-disable-dcp-plugin-context-cache-concerns.md](DIA-260821-8kpc-disable-dcp-plugin-context-cache-concerns.md) |
@@ -195,7 +195,7 @@
 | DIA-260822-unsn | Ticker expiry - purge invalid and stale waiting/error entries during seed/persist | opencode-config | Major | OPEN | [DIA-260822-unsn-ticker-expiry-purge-invalid-and-stale-waiting-error-entries-during-seed-persist.md](DIA-260822-unsn-ticker-expiry-purge-invalid-and-stale-waiting-error-entries-during-seed-persist.md) |
 | DIA-260822-wr2e | Evidence-based audit of five proposed delegation-observer plugin fixes | opencode | Major | OPEN | [DIA-260822-wr2e-evidence-based-audit-of-five-proposed-delegation-observer-plugin-fixes.md](DIA-260822-wr2e-evidence-based-audit-of-five-proposed-delegation-observer-plugin-fixes.md) |
 | DIA-260823-v9di | simplify skill duplicate: project vs global tree ownership/remedy | opencode-config | Medium | CLOSED | [DIA-260823-v9di-simplify-skill-duplicate-project-vs-global-tree-ownership-remedy.md](DIA-260823-v9di-simplify-skill-duplicate-project-vs-global-tree-ownership-remedy.md) |
-| DIA-260824-1c3e | Add cebula-ox-alpha OpenCode preset | opencode-config | Medium | OPEN | [DIA-260824-1c3e-add-cebula-ox-alpha-opencode-preset.md](DIA-260824-1c3e-add-cebula-ox-alpha-opencode-preset.md) |
+| DIA-260824-1c3e | Add cebula-ox-alpha OpenCode preset | opencode-config | Medium | CLOSED | [DIA-260824-1c3e-add-cebula-ox-alpha-opencode-preset.md](DIA-260824-1c3e-add-cebula-ox-alpha-opencode-preset.md) |
 | DIA-260824-8k62 | retire legacy tools/opencode-docker only after unified-runtime acceptance | docker | Medium | OPEN | [DIA-260824-8k62-retire-legacy-tools-opencode-docker-only-after-unified-runtime-acceptance.md](DIA-260824-8k62-retire-legacy-tools-opencode-docker-only-after-unified-runtime-acceptance.md) |
 | DIA-260824-a3mk | make opencode fails: PermissionDenied opening /home/dev/.local/share/opencode/log/opencode.log | docker | Blocker | CLOSED | [DIA-260824-a3mk-make-opencode-fails-permissiondenied-opening-home-dev-local-share-opencode-log-opencode-log.md](DIA-260824-a3mk-make-opencode-fails-permissiondenied-opening-home-dev-local-share-opencode-log-opencode-log.md) |
 | DIA-260824-ifcf | persistent developer Git identity and config propagation for unified poetry-dev workstation | git-hooks | Medium | OPEN | [DIA-260824-ifcf-persistent-developer-git-identity-and-config-propagation-for-unified-poetry-dev-workstation.md](DIA-260824-ifcf-persistent-developer-git-identity-and-config-propagation-for-unified-poetry-dev-workstation.md) |
@@ -221,7 +221,7 @@
 | DIA-260826-ft3q | audit prompt injection vectors and plugin trust boundaries | opencode-config | Major | OPEN | [DIA-260826-ft3q-audit-prompt-injection-vectors-and-plugin-trust-boundaries.md](DIA-260826-ft3q-audit-prompt-injection-vectors-and-plugin-trust-boundaries.md) |
 | DIA-260826-jcte | remove plugin autonomous force worktree removal (C3) | delegation-observer | Critical | CLOSED | [DIA-260826-jcte-remove-plugin-autonomous-force-worktree-removal-c3.md](DIA-260826-jcte-remove-plugin-autonomous-force-worktree-removal-c3.md) |
 | DIA-260826-pjm | fix datetime ticket ID parsing in observer gates (C1) | delegation-observer | Critical | CLOSED | [DIA-260826-pjm-fix-datetime-ticket-id-parsing-in-observer-gates-c1.md](DIA-260826-pjm-fix-datetime-ticket-id-parsing-in-observer-gates-c1.md) |
-| DIA-260826-spu5 | cebula-openai-hy3 preset variant-priority tuning (12 lanes; reviewer to hy3 high) | opencode-config | Medium | OPEN | [DIA-260826-spu5-cebula-openai-hy3-preset-variant-priority-tuning-12-lanes-reviewer-to-hy3-high.md](DIA-260826-spu5-cebula-openai-hy3-preset-variant-priority-tuning-12-lanes-reviewer-to-hy3-high.md) |
+| DIA-260826-spu5 | cebula-openai-hy3 preset variant-priority tuning (12 lanes; reviewer to hy3 high) | opencode-config | Medium | CLOSED | [DIA-260826-spu5-cebula-openai-hy3-preset-variant-priority-tuning-12-lanes-reviewer-to-hy3-high.md](DIA-260826-spu5-cebula-openai-hy3-preset-variant-priority-tuning-12-lanes-reviewer-to-hy3-high.md) |
 | DIA-260826-u27h | make shell runs non-login bash so secrets profile hook never fires (H5 refined) | dev-infra | Major | CLOSED | [DIA-260826-u27h-make-shell-runs-non-login-bash-so-secrets-profile-hook-never-fires-h5-refined.md](DIA-260826-u27h-make-shell-runs-non-login-bash-so-secrets-profile-hook-never-fires-h5-refined.md) |
 | DIA-260826-uovr | audit MCP server security permissions and usage in opencode setup | opencode-config | Major | OPEN | [DIA-260826-uovr-audit-mcp-server-security-permissions-and-usage-in-opencode-setup.md](DIA-260826-uovr-audit-mcp-server-security-permissions-and-usage-in-opencode-setup.md) |
 | DIA-260826-uozv | sync OMO pin in opencode-docker config to project version (H4) | opencode-config | High | OPEN | [DIA-260826-uozv-sync-omo-pin-in-opencode-docker-config-to-project-version-h4.md](DIA-260826-uozv-sync-omo-pin-in-opencode-docker-config-to-project-version-h4.md) |
@@ -271,7 +271,7 @@
 | DIA-260831-d9e0 | CommandBus serves only no-op producer | js-tooling | Low | OPEN | [DIA-260831-d9e0-commandbus-serves-only-no-op-producer.md](DIA-260831-d9e0-commandbus-serves-only-no-op-producer.md) |
 | DIA-260831-e5f6 | Plugin cleanup test intentionally skipped | tests-infra | Medium | OPEN | [DIA-260831-e5f6-plugin-cleanup-test-intentionally-skipped.md](DIA-260831-e5f6-plugin-cleanup-test-intentionally-skipped.md) |
 | DIA-260831-f1g2 | Editor redundant paths debug machinery | js-tooling | Low | OPEN | [DIA-260831-f1g2-editor-redundant-paths-debug-machinery.md](DIA-260831-f1g2-editor-redundant-paths-debug-machinery.md) |
-| DIA-260831-g7h8 | Plugin load validator hardcodes foreign checkout path | scripts | Medium | OPEN | [DIA-260831-g7h8-plugin-load-validator-hardcodes-foreign-checkout-path.md](DIA-260831-g7h8-plugin-load-validator-hardcodes-foreign-checkout-path.md) |
+| DIA-260831-g7h8 | Plugin load validator hardcodes foreign checkout path | scripts | Medium | CLOSED | [DIA-260831-g7h8-plugin-load-validator-hardcodes-foreign-checkout-path.md](DIA-260831-g7h8-plugin-load-validator-hardcodes-foreign-checkout-path.md) |
 | DIA-260831-h3i4 | Built-in build plan write-capable bypass of orchestrator rules | opencode-config | High | OPEN | [DIA-260831-h3i4-built-in-build-plan-write-capable-bypass-of-orchestrator-rules.md](DIA-260831-h3i4-built-in-build-plan-write-capable-bypass-of-orchestrator-rules.md) |
 | DIA-260831-i9j0 | Opus formatting filter destroys CodeMirror transaction semantics | js-tooling | High | CLOSED | [DIA-260831-i9j0-opus-formatting-filter-destroys-codemirror-transaction-semantics.md](DIA-260831-i9j0-opus-formatting-filter-destroys-codemirror-transaction-semantics.md) |
 | DIA-260831-j5k6 | Skill validator checks form not capability compatibility | opencode-config | Medium | OPEN | [DIA-260831-j5k6-skill-validator-checks-form-not-capability-compatibility.md](DIA-260831-j5k6-skill-validator-checks-form-not-capability-compatibility.md) |
@@ -322,7 +322,7 @@
 
 | Status      | Count |
 | ----------- | ----- |
-| OPEN        | 83    |
+| OPEN        | 79    |
 | DONE        | 11    |
 | VALIDATE    | 0     |
 | E2E         | 0     |
@@ -331,7 +331,7 @@
 | FIXED       | 1     |
 | IMPLEMENTED | 2     |
 | VERIFIED    | 28    |
-| CLOSED      | 176   |
+| CLOSED      | 180   |
 | BLOCKED     | 0     |
 | DISPATCHED  | 0     |
 | RUNNING     | 0     |

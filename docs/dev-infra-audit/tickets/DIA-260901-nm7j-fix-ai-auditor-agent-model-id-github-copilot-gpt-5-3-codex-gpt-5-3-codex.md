@@ -6,7 +6,7 @@ id: DIA-260901-nm7j
 title: "Fix @ai-auditor agent model id (github-copilot/gpt-5.3-codex -> gpt-5.3-codex)"
 area: scripts
 severity: Medium
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: ""
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
@@ -17,7 +17,7 @@ discovered: 2026-09-01
 source: inventory
 date: 2026-09-01
 created: 2026-09-01
-updated: 2026-09-01
+updated: 2026-09-10
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -48,5 +48,6 @@ files and line references where known.>
 > To be filled at fix time.
 
 ## Re-verify
-
-> To be filled at re-verify time.
+CLOSED as SUPERSEDED per triage verdict.
+Rationale: superseded by DIA-260909-uv53 (ai-auditor model swap to OpenAI GPT-5.6 Sol Medium), which covers the ai-auditor model-id correction.
+No separate fix under this ticket.

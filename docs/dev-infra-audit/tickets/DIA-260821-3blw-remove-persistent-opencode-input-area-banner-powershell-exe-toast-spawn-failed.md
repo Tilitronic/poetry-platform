@@ -6,7 +6,7 @@ id: DIA-260821-3blw
 title: "remove persistent OpenCode input-area banner: powershell.exe toast spawn failed"
 area: opencode-config
 severity: Low
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: ""
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
@@ -17,7 +17,7 @@ discovered: 2026-08-21
 source: inventory
 date: 2026-08-21
 created: 2026-08-21
-updated: 2026-08-21
+updated: 2026-09-10
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -48,5 +48,6 @@ files and line references where known.>
 > To be filled at fix time.
 
 ## Re-verify
-
-> To be filled at re-verify time.
+CLOSED as OUTDATED per triage verdict.
+Rationale: fix already landed; the persistent input-area banner issue is resolved.
+No further action under this ticket.
