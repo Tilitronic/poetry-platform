@@ -6,7 +6,7 @@ id: DIA-260827-nkvf
 title: "Exposed MCP credential in OpenCode config plaintext"
 area: secrets
 severity: Critical
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: DIA-260827-wfcx
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
@@ -17,7 +17,7 @@ discovered: 2026-08-27
 source: test-lane
 date: 2026-08-27
 created: 2026-08-27
-updated: 2026-08-27
+updated: 2026-09-10
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -52,4 +52,18 @@ Progress 2026-08-31: user rotated the key at the provider. Remaining step is blo
 
 ## Re-verify
 
-> To be filled at re-verify time.
+Re-verify 2026-09-10 (close-out lane, campaign ticket DIA-260827-nkvf):
+
+Gate criterion met per prior lanes: deep MCP tools/call returned result data HTTP 200 all phases, verdict KEY VALID. No 401/403 observed on live calls.
+
+Developer dispositions recorded in thread:
+
+- Key rotated at provider console.
+- Env interpolation in use (literal replaced by env reference).
+- Secret file mode 0600.
+- Live tree scans ABSENT literal.
+- Two historical reachable blobs accepted as revoked residual without rewrite (no history rewrite).
+
+Scope note: this close-out lane performed no fresh config reads and no implementation; evidence taken from thread only.
+
+Result: gate satisfied, ticket eligible for CLOSED.
