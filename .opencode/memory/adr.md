@@ -2036,3 +2036,69 @@ work.
 - Related: DIA-260909-zeik, DIA-260903-o7n0,
   scripts/budget-baselines.json, scripts/check-budget-gate.sh,
   openspec/changes/dia-260909-zeik-scenario-cleanup-dedupe/interview.md
+
+## ADR: Scoped exception to run_workspace delegation -- host-local Bun for make test-harness in pre-push (DIA-260827-36ht)
+
+### Status
+
+Accepted - 2026-08-27
+
+### Context
+
+DIA-260827-36ht needed to wire DIA-189 desktop-toast behavioral tests into the
+pre-push gate ladder. The project's established delegation model routes
+host-level orchestration through run_workspace (AGENTS.md section 6, design.md
+D3). However, `make test-harness` is a host-level orchestration target that
+invokes `docker compose exec` -- it cannot nest inside the socketless dev
+container without breaking the warn-and-pass contract (container-down = warn +
+exit 0, not hard-fail). The candidate approaches were: (A) host-local Bun
+execution running the focused DIA-189 tests directly, bypassing
+run_workspace, or (B) routing through run_workspace to invoke `make
+test-harness` as the standard delegation path. The pre-push ladder already runs
+format, js, js-tests, test-config, test-omo, python, test-shell, but never
+test-harness.
+
+### Decision
+
+SCOPED EXCEPTION: for this specific gate leg only, use a host-local Bun leg
+(option A) instead of the standard run_workspace delegation. Run the six
+focused DIA-189 desktop-toast tests via host Bun on PATH, placed after
+test-omo and before pnpm verify:python. The run_workspace delegation model
+stands for all other pre-push and dev-infra orchestration; this exception
+applies solely to the DIA-189 behavioral tests in the pre-push ladder because
+make test-harness is a docker-compose-exec target that cannot nest inside the
+socketless container.
+
+### Rationale (irrecoverable context)
+
+- The exception is scoped to docker-compose-exec targets: make test-harness
+  invokes `docker compose exec` inside the dev container; routing this through
+  run_workspace creates a nested Docker invocation. The warn-and-pass contract
+  (container-down = warn + exit 0) depends on detecting the container-down
+  state at the script level; a nested Docker call bypasses this detection and
+  either hard-fails or produces misleading pass results. This was confirmed as
+  a Critical finding by the reviewer during the DIA-260827-36ht review.
+- Host-local Bun preserves the warn-and-pass path for this leg: it runs on the
+  host PATH (no Docker nesting), so the container-down state is detected
+  normally and the warn-and-pass contract holds (commit d91a1a6).
+- The host Bun execution also keeps the fast behavioral signal early in the
+  ladder (before the slow bats suite), so real product defects fail fast rather
+  than being buried behind slow test-shell runs.
+- The run_workspace delegation model remains correct for targets that do NOT
+  invoke docker compose exec (e.g. make test-config, make test-omo, make
+  test-shell). This exception does not generalize.
+
+### Consequences
+
+- Host Bun on PATH is a prerequisite for this specific pre-push leg. If Bun is
+  absent, the leg is skipped (not a hard-fail) per the existing warn-and-pass
+  pattern.
+- The run_workspace delegation model is NOT weakened by this exception. Future
+  pre-push legs should continue using run_workspace unless they hit the same
+  docker-compose-exec nesting constraint (document the exception separately if
+  that occurs).
+
+### Metadata
+
+- Created: 2026-08-27
+- Related: DIA-260827-36ht, DIA-189, openspec/changes/dia-260827-36ht-plugin-behavioral-gate/design.md D3, commit d91a1a6
