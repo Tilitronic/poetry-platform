@@ -95,6 +95,73 @@ setup() {
   done
 }
 
+@test "verify-pre-push: wires host-local dia189 toast leg between make test-omo and pnpm verify:python, no test-harness line (DIA-260827-36ht)" {
+  # Static pin: the bun leg line must exist exactly once, AFTER the test-omo
+  # line and BEFORE the verify:python line; the removed run_workspace
+  # "make test-harness" line (nested-Docker root cause) must be gone.
+  # run_workspace/bun-anchored matching (not bare step names) so ladder
+  # comments never affect the pin; relative order, not absolute line numbers,
+  # so other ladder edits stay green.
+  local omo_line toast_line python_line
+  omo_line="$(grep -nF 'run_workspace "make test-omo"' "$SCRIPTS_DIR/verify-pre-push.sh" | head -n 1 | cut -d: -f1)"
+  toast_line="$(grep -nF 'bun test needs-input-observer.dia189.test.mjs' "$SCRIPTS_DIR/verify-pre-push.sh" | head -n 1 | cut -d: -f1)"
+  python_line="$(grep -nF 'run_workspace "pnpm verify:python"' "$SCRIPTS_DIR/verify-pre-push.sh" | head -n 1 | cut -d: -f1)"
+  [ -n "$omo_line" ] && [ -n "$toast_line" ] && [ -n "$python_line" ]
+  [ "$omo_line" -lt "$toast_line" ]
+  [ "$toast_line" -lt "$python_line" ]
+  [ "$(grep -cF 'bun test needs-input-observer.dia189.test.mjs' "$SCRIPTS_DIR/verify-pre-push.sh")" -eq 1 ]
+  run grep -F 'make test-harness' "$SCRIPTS_DIR/verify-pre-push.sh"
+  [ "$status" -ne 0 ]
+}
+
+@test "verify-pre-push: executes the dia189 toast leg on the host between test-omo and verify:python (green path)" {
+  export FAKE_DOCKER_SERVICES="dev"
+  # Same-worker WSL-restore pin (cheap): the leg runs in a child bun process,
+  # so the parent shell env must be untouched afterwards.
+  export WSL_DISTRO_NAME="bats-sentinel"
+
+  run bash "$SCRIPTS_DIR/verify-pre-push.sh"
+
+  assert_status 0
+  assert_output_contains "bun test dia189 desktop-toast"
+  # the real bun run executed (6 toast tests), not just an echo
+  assert_output_contains "6 pass"
+  # snapshot: later `run` invocations clobber $output
+  local script_output="$output"
+  # host-local leg: never delegated, so docker log carries no dia189 entry
+  run grep -c "dia189" "$FAKE_DOCKER_LOG"
+  [ "$output" = "0" ]
+  # placement: the leg echo falls between the test-omo and verify:python
+  # delegation echoes on stdout
+  local omo toast python
+  omo="$(printf '%s\n' "$script_output" | grep -n "make test-omo" | head -n 1 | cut -d: -f1)"
+  toast="$(printf '%s\n' "$script_output" | grep -n "bun test dia189 desktop-toast" | head -n 1 | cut -d: -f1)"
+  python="$(printf '%s\n' "$script_output" | grep -n "verify:python" | head -n 1 | cut -d: -f1)"
+  [ "$omo" -lt "$toast" ]
+  [ "$toast" -lt "$python" ]
+  # parent env untouched by the child bun run
+  [ "$WSL_DISTRO_NAME" = "bats-sentinel" ]
+}
+
+@test "verify-pre-push: aborts (exit 1) when the dia189 toast leg fails (red path blocks push)" {
+  export FAKE_DOCKER_SERVICES="dev"
+  # Failing fake bun first on PATH proves the leg ACTUALLY EXECUTES bun (not
+  # just records it): a recorded-but-never-run leg would still exit 0 here.
+  local bindir="$BATS_TEST_TMPDIR/fakebun"
+  mkdir -p "$bindir"
+  printf '#!/usr/bin/env bash\necho "0 pass, 1 fail (fake bun)"\nexit 1\n' > "$bindir/bun"
+  chmod +x "$bindir/bun"
+  export PATH="$bindir:$PATH"
+
+  run bash "$SCRIPTS_DIR/verify-pre-push.sh"
+
+  assert_status 1
+  assert_output_contains "bun test dia189 desktop-toast"
+  # fail-fast: the python gate after the leg never runs
+  run grep -c "verify:python" "$FAKE_DOCKER_LOG"
+  [ "$output" = "0" ]
+}
+
 @test "verify-pre-push: aborts (exit 1) when a delegated step fails" {
   export FAKE_DOCKER_SERVICES="dev"
   export FAKE_DOCKER_FAIL_STEP="verify:js"
@@ -159,7 +226,15 @@ FAKEPNPM
 printf 'make %s\n' "$*" >> "${DELEGATION_LOG:?DELEGATION_LOG not set}"
 exit 0
 FAKEMAKE
-  chmod +x "$bindir/hostname" "$bindir/pnpm" "$bindir/make"
+  # DIA-260827-36ht: the dia189 toast leg calls bun directly (host-local, no
+  # run_workspace), so a logging fake keeps the in-container path hermetic
+  # (no real bun run) while still proving the leg executes there.
+  cat > "$bindir/bun" <<'FAKEBUN'
+#!/usr/bin/env bash
+printf 'bun %s\n' "$*" >> "${DELEGATION_LOG:?DELEGATION_LOG not set}"
+exit 0
+FAKEBUN
+  chmod +x "$bindir/hostname" "$bindir/pnpm" "$bindir/make" "$bindir/bun"
   export PATH="$bindir:$PATH"
   # Both fakes append to the SAME log (half the entries are make invocations,
   # not pnpm), so the name is DELEGATION_LOG, not PNPM_LOG (S1).
@@ -196,11 +271,14 @@ EOF
   assert_status 0
   assert_output_contains "running inside dev container"
   assert_output_contains "verification passed"
-  # All six ladder steps run directly (no docker) inside the container too;
+  # All ladder steps run directly (no docker) inside the container too;
   # their F-1 fast-to-fail order is asserted in the delegation-path test.
-  for step in "verify:format" "verify:js" "verify:js-tests" "make test-config" "verify:python" "make test-shell"; do
+  # DIA-260827-36ht: the host-local dia189 toast leg also executes
+  # in-container (direct bun call, no delegation), recorded by the fake bun.
+  for step in "verify:format" "verify:js" "verify:js-tests" "make test-config" "make test-omo" "verify:python" "make test-shell"; do
     assert_file_contains "$DELEGATION_LOG" "$step"
   done
+  assert_file_contains "$DELEGATION_LOG" "needs-input-observer.dia189.test.mjs"
   # docker must never be invoked from inside the container
   [ ! -s "$FAKE_DOCKER_LOG" ]
 }

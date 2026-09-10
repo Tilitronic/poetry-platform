@@ -111,12 +111,23 @@ import { createTempWorkspace, mockOpencodePlugin, mockChildProcess } from "./hel
 mockOpencodePlugin()
 
 const workspaceCleanups = []
+// DIA-260827-36ht: prior WSL_DISTRO_NAME value, saved per test in beforeEach
+// and restored in afterEach so the desktop-toast fixture never leaks.
+// DIA-260827-36ht cycle 2 (FALSIFICATION-3): ambient marker captured at module
+// load, before any test body runs - the R1 restore-regression test asserts
+// against it to prove the fixture never leaks between same-worker tests.
+let savedWslDistroName
+const AMBIENT_WSL_DISTRO_NAME = process.env.WSL_DISTRO_NAME
 afterEach(() => {
   // FAIL-1 adoption: explicit mock teardown via the helper restore handle
   // (re-registers the pristine snapshot; mock.restore() alone does NOT undo
   // mock.module()). afterEach runs even when a test throws, so a failure
   // cannot leak this file's mock into the next consumer.
   childMock.restore()
+  // DIA-260827-36ht: restore the pre-test WSL marker (or its absence) even
+  // on failure - non-desktop tests must observe no platform dependence.
+  if (typeof savedWslDistroName === "undefined") delete process.env.WSL_DISTRO_NAME
+  else process.env.WSL_DISTRO_NAME = savedWslDistroName
   while (workspaceCleanups.length) {
     const fn = workspaceCleanups.pop()
     try {
@@ -147,6 +158,9 @@ beforeEach(() => {
   // FAIL-1 adoption: fresh mock per test (file-local handle, NOT global).
   childMock = mockChildProcess("needs-input")
   spawnCalls = childMock.spawnCalls
+  // DIA-260827-36ht: snapshot the ambient WSL marker before any desktop-toast
+  // test overrides it (afterEach restores it).
+  savedWslDistroName = process.env.WSL_DISTRO_NAME
   globalThis[NI_PERM_TIMERS_KEY] = undefined
   globalThis[NI_TITLE_BOOT_KEY] = undefined
   globalThis[NI_TOAST_KEY] = undefined
@@ -163,6 +177,14 @@ beforeEach(() => {
 // referencing spawnCalls, which beforeEach keeps current.
 let childMock = mockChildProcess("needs-input")
 let spawnCalls = childMock.spawnCalls
+
+// DIA-260827-36ht: desktop-toast tests need a WSL capability marker so the
+// platform gate (canUsePowershellToast -> isWSL) reaches the spawn mock on
+// pure-linux hosts. Scoped to desktop-toast tests only - call at the top of
+// those tests; the spawn interception itself is unchanged (mockChildProcess).
+function enableWslToastFixture() {
+  process.env.WSL_DISTRO_NAME = "DIA-189-test-fixture"
+}
 
 // Import AFTER mock.module registration (dynamic import defeats ESM hoisting).
 const { default: createNeedsInputObserver, sessionWordPair } = await import(
@@ -441,6 +463,7 @@ test("A2 RED: notify() title carries the word-pair suffix in the TUI toast title
 })
 
 test("A2 RED: notify() title carries the word-pair suffix in the desktop toast title", async () => {
+  enableWslToastFixture()
   const { hooks } = await makeHarness()
   spawnCalls.length = 0
   await hooks.event(sessionCreatedEvent(DEFAULT_TITLE))
@@ -470,6 +493,7 @@ test("A2 guard: title already ending in the word-pair suffix is NOT double-appen
 // ---------------------------------------------------------------------------
 
 test("A3 RED: Cyrillic detail survives the desktop toast sanitizer", async () => {
+  enableWslToastFixture()
   const { hooks } = await makeHarness()
   spawnCalls.length = 0
   await hooks.event(sessionCreatedEvent(DEFAULT_TITLE))
@@ -480,6 +504,7 @@ test("A3 RED: Cyrillic detail survives the desktop toast sanitizer", async () =>
 })
 
 test("A3b guard: control chars (CR/LF/TAB) still collapse to spaces in the toast script", async () => {
+  enableWslToastFixture()
   const { hooks } = await makeHarness()
   spawnCalls.length = 0
   await hooks.event(sessionCreatedEvent(DEFAULT_TITLE))
@@ -491,6 +516,7 @@ test("A3b guard: control chars (CR/LF/TAB) still collapse to spaces in the toast
 })
 
 test("A3c guard: single quotes are still doubled for PowerShell in the toast script", async () => {
+  enableWslToastFixture()
   const { hooks } = await makeHarness()
   spawnCalls.length = 0
   await hooks.event(sessionCreatedEvent(DEFAULT_TITLE))
@@ -499,6 +525,7 @@ test("A3c guard: single quotes are still doubled for PowerShell in the toast scr
 })
 
 test("A3d guard: toast body text node is still truncated to 180 chars", async () => {
+  enableWslToastFixture()
   const { hooks } = await makeHarness()
   spawnCalls.length = 0
   await hooks.event(sessionCreatedEvent(DEFAULT_TITLE))
@@ -517,6 +544,7 @@ test("A3e guard: C1 control chars (U+0080-U+009F) are still stripped to spaces i
   // containing a C1 control (U+0085 NEL and U+009F APC are the classic
   // examples) through the desktop-toast path - the captured PowerShell
   // script arg must have each replaced by a space, never preserved.
+  enableWslToastFixture()
   const { hooks } = await makeHarness()
   spawnCalls.length = 0
   await hooks.event(sessionCreatedEvent(DEFAULT_TITLE))
@@ -527,6 +555,17 @@ test("A3e guard: C1 control chars (U+0080-U+009F) are still stripped to spaces i
   expect(script).not.toContain("\u0085")
   expect(script).not.toContain("\u009F")
   expect(script).toContain("alpha beta gamma")
+})
+
+test("R1 guard: WSL toast fixture is restored to the ambient value before PTY rename tests run in the same worker", () => {
+  // FALSIFICATION-3 (DIA-260827-36ht cycle 2): bun runs this file's tests
+  // sequentially in one worker and the A3-series tests above set
+  // WSL_DISTRO_NAME via enableWslToastFixture(). afterEach must have restored
+  // the module-load ambient value before this test starts - otherwise the
+  // PTY rename (P1) tests below would observe platform dependence. Placed
+  // here, between the last desktop-toast test (A3e) and the first PTY rename
+  // test (P1a), so file order itself proves restore-before-rename-tests.
+  expect(process.env.WSL_DISTRO_NAME).toBe(AMBIENT_WSL_DISTRO_NAME)
 })
 
 // ---------------------------------------------------------------------------

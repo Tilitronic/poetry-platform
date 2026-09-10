@@ -133,23 +133,30 @@ else
   echo "== poetry-platform pre-push: delegating to dev container =="
 fi
 
-# Fast-to-fail step ladder (F-1, DIA-179): six steps in the order format, js,
-# js-tests, test-config, python, test-shell LAST. The four fast pnpm gates and
-# the OpenCode config validator (make test-config: agent-name drift, JSONC,
-# skill frontmatter) surface a regression in ~1.2 s instead of ~25 s; the slow
-# bats suite (make test-shell, 100+ tests) is the final step so a
-# format/typecheck failure aborts before it ever runs. Delegated via
-# run_workspace like every other step: the container ships make, bats is
-# vendored on the shared /workspace mount, and the pre-push contract
-# (warn+pass when the container is down, DIA-094) is preserved. Hosts without
-# make never reach these lines because they cannot have started the stack
-# (make is the documented entrypoint).
+# Fast-to-fail step ladder (F-1, DIA-179; DIA-260827-36ht adds the behavioral
+# gate): format, js, js-tests, test-config, test-omo, dia189-toast, python,
+# test-shell LAST. The four fast pnpm gates and the OpenCode config validator
+# (make test-config: agent-name drift, JSONC, skill frontmatter) surface a
+# regression in ~1.2 s instead of ~25 s; the slow bats suite (make test-shell,
+# 100+ tests) is the final step so a format/typecheck failure aborts before it
+# ever runs. The dia189 desktop-toast leg sits after test-omo and before
+# python so the plugin behavioral gate blocks pushes while the slow bats suite
+# stays last. It runs host-local via bun (no Docker, no run_workspace):
+# nested Docker delegation broke the design.md:24 warn-and-pass contract, and
+# host-local bun needs no container so warn-and-pass holds trivially (offline
+# pushes exit 0 above before ever reaching this line). Blocking under
+# `set -e`: any toast failure aborts the push. SPEC DEVIATION (recorded in
+# handoff; spec doc update follows separately): design.md/tasks.md 2.1 said
+# to delegate the full harness target via run_workspace. Hosts without bun never reach these lines
+# in practice (bun ships with the documented dev entrypoint, same as make).
 export VERIFY_PRE_PUSH_RUNNING=1
 run_workspace "pnpm verify:format"
 run_workspace "pnpm verify:js"
 run_workspace "pnpm verify:js-tests"
 run_workspace "make test-config"
 run_workspace "make test-omo"
+echo "==> bun test dia189 desktop-toast (host-local, DIA-260827-36ht)"
+(cd "$ROOT/.opencode/plugins/__tests__" && bun test needs-input-observer.dia189.test.mjs -t "desktop toast|Cyrillic|control chars|single quotes|180 chars|C1 control")
 run_workspace "pnpm verify:python"
 run_workspace "make test-shell"
 
