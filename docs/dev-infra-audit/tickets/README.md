@@ -302,6 +302,8 @@
 | DIA-260909-tp5e | Add Muse Qwen balanced agent routing preset | opencode-config | Medium | CLOSED | [DIA-260909-tp5e-add-muse-qwen-balanced-agent-routing-preset.md](DIA-260909-tp5e-add-muse-qwen-balanced-agent-routing-preset.md) |
 | DIA-260909-uv53 | replace ai-auditor GitHub Copilot GPT-5.3 Codex High with OpenAI GPT-5.6 Sol Medium | config | Medium | CLOSED | [DIA-260909-uv53-replace-ai-auditor-github-copilot-gpt-5-3-codex-high-with-openai-gpt-5-6-sol-medium.md](DIA-260909-uv53-replace-ai-auditor-github-copilot-gpt-5-3-codex-high-with-openai-gpt-5-6-sol-medium.md) |
 | DIA-260909-zeik | simplify repeated failure-cleanup paths in standalone harness scenarios | opencode-config | Medium | CLOSED | [DIA-260909-zeik-simplify-repeated-failure-cleanup-paths-in-standalone-harness-scenarios.md](DIA-260909-zeik-simplify-repeated-failure-cleanup-paths-in-standalone-harness-scenarios.md) |
+| DIA-260910-30sz | temp-index-commit-uv53-sol-medium | config | Low | CLOSED | [DIA-260910-30sz-temp-index-commit-uv53-sol-medium.md](DIA-260910-30sz-temp-index-commit-uv53-sol-medium.md) |
+| DIA-260910-8tgy | closure-commit-30sz-ticket-readme-repo | config | Low | CLOSED | [DIA-260910-8tgy-closure-commit-30sz-ticket-readme-repo.md](DIA-260910-8tgy-closure-commit-30sz-ticket-readme-repo.md) |
 | DIA-260910-ri0u | Isolated commit for 9api closure (Bats test + ticket + rollup/memory) | scripts | Low | OPEN | [DIA-260910-ri0u-isolated-commit-for-9api-closure-bats-test-ticket-rollup-memory.md](DIA-260910-ri0u-isolated-commit-for-9api-closure-bats-test-ticket-rollup-memory.md) |
 
 ## Status summary
@@ -313,7 +315,7 @@
 | Major    | 73    |
 | Medium   | 154   |
 | Minor    | 1     |
-| Low      | 27    |
+| Low      | 29    |
 | Info     | 2     |
 | High     | 20    |
 
@@ -328,7 +330,7 @@
 | FIXED       | 1     |
 | IMPLEMENTED | 2     |
 | VERIFIED    | 28    |
-| CLOSED      | 173   |
+| CLOSED      | 175   |
 | BLOCKED     | 0     |
 | DISPATCHED  | 0     |
 | RUNNING     | 0     |

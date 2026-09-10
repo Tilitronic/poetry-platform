@@ -339,6 +339,16 @@ Note: These are navigational facts to help future humans find the infra/test art
   chicken-and-egg solution (L20260820-003), HMAC over UCAN/JWT rationale
   (L20260820-004).
 
+- ai-auditor model retarget (DIA-260909-uv53, 2026-09-09): the ai-auditor
+  agent in oh-my-opencode-slim.jsonc (ai-auditor block ~L840-846) now uses
+  openai/gpt-5.6-sol as primary with variant medium, replacing
+  github-copilot/gpt-5.3-codex high. Fallbacks unchanged (gemini-3.1-pro,
+  big-pickle). Model-registry.yaml has the Sol entry (L92-101) with
+  corrected pricing: direct OpenAI short-context $4.00/$20.00 per 1M,
+  over-272K long-context $8.00/$30.00 per 1M (2x in, 1.5x out). NOTE:
+  gpt-5.6 is the model alias; -medium is the OMO variant (not model ID).
+  Same flagship reasoning family as Terra (ai-specialist) -- provider
+  overlap, gemini fallback kept for 429-degrade.
 - `.prettierignore` covers `.opencode/` (DIA-260909-9c9x, 2026-09-09): the
   `.prettierignore` at the repo root excludes the entire `.opencode/` directory
   from prettier formatting. Consequence: `prettier --write` on the repo will NOT
@@ -348,3 +358,30 @@ Note: These are navigational facts to help future humans find the infra/test art
   `prettier --no-ignore` to fix these files -- that would reformat unrelated
   `.opencode` sources and pollute the diff. Cross-reference: L20260909-001
   (lessons.md), DIA-260909-9c9x learnings file.
+
+- Temp-index commit technique for isolated hunks (DIA-260910-30sz, 2026-09-10):
+  when only specific file hunks from a multi-file change should be committed
+  (e.g. separating uv53-only content from concurrent sazr changes in the same
+  working tree), use `GIT_INDEX_FILE=/tmp/<name>-index git add <paths>` to
+  stage into a temporary index, then commit from that index. The real index
+  remains untouched. The temp index file (e.g. /tmp/uv53-index) can be
+  inspected with `GIT_INDEX_FILE=/tmp/uv53-index git diff --cached` before
+  committing. This technique isolates specific hunks without affecting the
+  main index or requiring stash/commit sequencing. The uv53 run produced
+  commit a4e54a3 (6 files, 342+/2-) using this technique; added-lines grep
+  for sazr = 0 confirmed isolation. Operational pattern for parallel-lane
+  commits when concurrent changes share the working tree.
+
+- Stash ref file ownership gotcha (DIA-260910-30sz, 2026-09-10):
+  `.git/refs/stash` and `.git/logs/refs/stash` can become root:root owned
+  when a container process (uid 0) creates them during the same commit window
+  (observed during the db6abca sazr commit). The lint-staged pre-commit hook
+  runs `git stash store` as a backup step, which fails with "update_ref
+  failed for ref 'refs/stash': Permission denied" when these files are
+  root-owned and the lane user is dev (uid 1000). Every commit with staged
+  changes then fails the hook (content-independent, 2 attempts confirmed).
+  Remediation: chown the two files to dev:dev on the host
+  (`chown dev:dev .git/refs/stash .git/logs/refs/stash`). Future lanes
+  hitting identical hook-stage stash errors on staged content should check
+  stash ref file ownership before retrying. Distinct from the root-owned
+  ticket file pattern (failures.md line 345) but same ownership mechanism.
