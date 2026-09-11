@@ -6,7 +6,7 @@ id: DIA-260831-h3i4
 title: "Built-in build plan write-capable bypass of orchestrator rules"
 area: opencode-config
 severity: High
-status: OPEN
+status: CLOSED
 blocked_by: []
 parent_epic: DIA-260827-wfcx
 gate_state: "skipped"
@@ -17,7 +17,7 @@ discovered: 2026-08-31
 source: inventory
 date: 2026-08-31
 created: 2026-08-31
-updated: 2026-08-31
+updated: 2026-09-11
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -44,8 +44,8 @@ opencode agent list shows no write-capable build/plan primary; resolved agent in
 
 ## Fix
 
-Disable or strictly restrict the built-in build and plan agents (broad edit/bash), and add validation of the resolved agent inventory so no write-capable lane escapes the orchestrator rules.
+Landed in fc96c99 (plus merge 6e6d4b8): built-in build/plan lanes disabled/restricted in opencode.jsonc so no write-capable lane escapes orchestrator ticket/delegation rules. Containment script validates the resolved agent inventory (no write-capable build/plan primary). Inventory check 17/17 pass per evidence lane. ai-auditor: VERIFIED CLOSED. Code plus changelog already landed; this lane is bookkeeping only.
 
 ## Re-verify
 
-> To be filled at re-verify time.
+Re-verify h3i4: containment commit fc96c99 present with merge 6e6d4b8; inventory validation 17/17 pass per evidence lane; auditor VERIFIED CLOSED. This close-out lane: make test-config EXIT 0, git diff --check EXIT 0 (evidence in .scratch/test-config.log). No code change in this lane; status may go CLOSED.

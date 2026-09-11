@@ -231,7 +231,7 @@
 | DIA-260827-36ht | Plugin behavioral gate is red and missing from pre-push | plugins | High | OPEN | [DIA-260827-36ht-plugin-behavioral-gate-is-red-and-missing-from-pre-push.md](DIA-260827-36ht-plugin-behavioral-gate-is-red-and-missing-from-pre-push.md) |
 | DIA-260827-48iw | Python phonetics-core atlas loader has no test or lint gate | tests | High | CLOSED | [DIA-260827-48iw-python-phonetics-core-atlas-loader-has-no-test-or-lint-gate.md](DIA-260827-48iw-python-phonetics-core-atlas-loader-has-no-test-or-lint-gate.md) |
 | DIA-260827-4aqb | Agent routing bypasses tdd-craftsman RED-GREEN workflow | opencode-config | High | OPEN | [DIA-260827-4aqb-agent-routing-bypasses-tdd-craftsman-red-green-workflow.md](DIA-260827-4aqb-agent-routing-bypasses-tdd-craftsman-red-green-workflow.md) |
-| DIA-260827-4q3h | [HIGH] Reviewer cannot acquire its required diff (bash denied) | opencode-config | High | OPEN | [DIA-260827-4q3h-high-reviewer-cannot-acquire-its-required-diff-bash-denied.md](DIA-260827-4q3h-high-reviewer-cannot-acquire-its-required-diff-bash-denied.md) |
+| DIA-260827-4q3h | [HIGH] Reviewer cannot acquire its required diff (bash denied) | opencode-config | High | CLOSED | [DIA-260827-4q3h-high-reviewer-cannot-acquire-its-required-diff-bash-denied.md](DIA-260827-4q3h-high-reviewer-cannot-acquire-its-required-diff-bash-denied.md) |
 | DIA-260827-5blh | [MEDIUM] Handoff identity permits path traversal | opencode-config | Medium | OPEN | [DIA-260827-5blh-medium-handoff-identity-permits-path-traversal.md](DIA-260827-5blh-medium-handoff-identity-permits-path-traversal.md) |
 | DIA-260827-5lvx | Shell test execution not runner-reproducible across machines | scripts | Medium | OPEN | [DIA-260827-5lvx-shell-test-execution-not-runner-reproducible-across-machines.md](DIA-260827-5lvx-shell-test-execution-not-runner-reproducible-across-machines.md) |
 | DIA-260827-6g6r | OpenSpec CLI commands unreachable from skills and agents | opencode-config | High | OPEN | [DIA-260827-6g6r-openspec-cli-commands-unreachable-from-skills-and-agents.md](DIA-260827-6g6r-openspec-cli-commands-unreachable-from-skills-and-agents.md) |
@@ -246,7 +246,7 @@
 | DIA-260827-ft3z | [HIGH] Shell permissions bypass write scopes via curl/wget redirection | opencode-config | High | OPEN | [DIA-260827-ft3z-high-shell-permissions-bypass-write-scopes-via-curl-wget-redirection.md](DIA-260827-ft3z-high-shell-permissions-bypass-write-scopes-via-curl-wget-redirection.md) |
 | DIA-260827-glya | Consolidate dya2608223M commits into omoslim and push to remote | scripts | Medium | OPEN | [DIA-260827-glya-consolidate-dya2608223m-commits-into-omoslim-and-push-to-remote.md](DIA-260827-glya-consolidate-dya2608223m-commits-into-omoslim-and-push-to-remote.md) |
 | DIA-260827-gnrr | Several gates assert source text instead of behavior | tests | Medium | OPEN | [DIA-260827-gnrr-several-gates-assert-source-text-instead-of-behavior.md](DIA-260827-gnrr-several-gates-assert-source-text-instead-of-behavior.md) |
-| DIA-260827-gnsv | [MEDIUM] Concurrent permission asks lose ticker visibility | opencode-config | Medium | OPEN | [DIA-260827-gnsv-medium-concurrent-permission-asks-lose-ticker-visibility.md](DIA-260827-gnsv-medium-concurrent-permission-asks-lose-ticker-visibility.md) |
+| DIA-260827-gnsv | [MEDIUM] Concurrent permission asks lose ticker visibility | opencode-config | Medium | CLOSED | [DIA-260827-gnsv-medium-concurrent-permission-asks-lose-ticker-visibility.md](DIA-260827-gnsv-medium-concurrent-permission-asks-lose-ticker-visibility.md) |
 | DIA-260827-gt8l | No enforced CI and pre-push gate fails open | config | High | OPEN | [DIA-260827-gt8l-no-enforced-ci-and-pre-push-gate-fails-open.md](DIA-260827-gt8l-no-enforced-ci-and-pre-push-gate-fails-open.md) |
 | DIA-260827-ic3r | [MEDIUM] Resource-manager can delegate any lane (task allow unrestricted) | opencode-config | Medium | OPEN | [DIA-260827-ic3r-medium-resource-manager-can-delegate-any-lane-task-allow-unrestricted.md](DIA-260827-ic3r-medium-resource-manager-can-delegate-any-lane-task-allow-unrestricted.md) |
 | DIA-260827-jtvl | Reviewer and playwright-browser skill contracts broken | opencode-config | High | OPEN | [DIA-260827-jtvl-reviewer-and-playwright-browser-skill-contracts-broken.md](DIA-260827-jtvl-reviewer-and-playwright-browser-skill-contracts-broken.md) |
@@ -272,7 +272,7 @@
 | DIA-260831-e5f6 | Plugin cleanup test intentionally skipped | tests-infra | Medium | OPEN | [DIA-260831-e5f6-plugin-cleanup-test-intentionally-skipped.md](DIA-260831-e5f6-plugin-cleanup-test-intentionally-skipped.md) |
 | DIA-260831-f1g2 | Editor redundant paths debug machinery | js-tooling | Low | OPEN | [DIA-260831-f1g2-editor-redundant-paths-debug-machinery.md](DIA-260831-f1g2-editor-redundant-paths-debug-machinery.md) |
 | DIA-260831-g7h8 | Plugin load validator hardcodes foreign checkout path | scripts | Medium | CLOSED | [DIA-260831-g7h8-plugin-load-validator-hardcodes-foreign-checkout-path.md](DIA-260831-g7h8-plugin-load-validator-hardcodes-foreign-checkout-path.md) |
-| DIA-260831-h3i4 | Built-in build plan write-capable bypass of orchestrator rules | opencode-config | High | OPEN | [DIA-260831-h3i4-built-in-build-plan-write-capable-bypass-of-orchestrator-rules.md](DIA-260831-h3i4-built-in-build-plan-write-capable-bypass-of-orchestrator-rules.md) |
+| DIA-260831-h3i4 | Built-in build plan write-capable bypass of orchestrator rules | opencode-config | High | CLOSED | [DIA-260831-h3i4-built-in-build-plan-write-capable-bypass-of-orchestrator-rules.md](DIA-260831-h3i4-built-in-build-plan-write-capable-bypass-of-orchestrator-rules.md) |
 | DIA-260831-i9j0 | Opus formatting filter destroys CodeMirror transaction semantics | js-tooling | High | CLOSED | [DIA-260831-i9j0-opus-formatting-filter-destroys-codemirror-transaction-semantics.md](DIA-260831-i9j0-opus-formatting-filter-destroys-codemirror-transaction-semantics.md) |
 | DIA-260831-j5k6 | Skill validator checks form not capability compatibility | opencode-config | Medium | OPEN | [DIA-260831-j5k6-skill-validator-checks-form-not-capability-compatibility.md](DIA-260831-j5k6-skill-validator-checks-form-not-capability-compatibility.md) |
 | DIA-260831-k1l2 | Editor orchestrator equal-revision overwrite breaks user priority | js-tooling | High | OPEN | [DIA-260831-k1l2-editor-orchestrator-equal-revision-overwrite-breaks-user-priority.md](DIA-260831-k1l2-editor-orchestrator-equal-revision-overwrite-breaks-user-priority.md) |
@@ -327,7 +327,7 @@
 
 | Status      | Count |
 | ----------- | ----- |
-| OPEN        | 76    |
+| OPEN        | 71    |
 | DONE        | 11    |
 | VALIDATE    | 0     |
 | E2E         | 0     |
@@ -336,7 +336,7 @@
 | FIXED       | 1     |
 | IMPLEMENTED | 2     |
 | VERIFIED    | 28    |
-| CLOSED      | 188   |
+| CLOSED      | 193   |
 | BLOCKED     | 0     |
 | DISPATCHED  | 0     |
 | RUNNING     | 0     |
