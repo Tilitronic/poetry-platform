@@ -418,6 +418,10 @@ shelf:
     description: 'Conspect on the OpenCode Go promo structure (the 6x multiplier) and usage caps, a cheapest-model comparison across the promo trio, and the Muse Spark privacy tradeoff (meta-training on prompts/completions, region-limited). Informs the promo preset routing in DIA-260828-qtsi; Muse Spark is excluded from the promo preset pending privacy review.'
     path: knowledge/res041-opencode-go-promo-benchmarks/res041-opencode-go-promo-benchmarks-conspect.md
     created: 2026-08-28
+  - name: Skill Validator Compatibility Design (ses_f6f0c2b15ffe)
+    description: 'Conspect synthesizing 5 archived sources on skill validator design beyond form checks: frontmatter validation (name/description/license per Agent Skills spec), capability cross-references (preset/command/agent/binary declarations resolved against runtime manifest), Ajv custom keywords for cross-field rules, JSONIC schema extensions for async existence checks, and OpenCode community precedent for hard-fail-on-invalid (issue 31616). Verdict: form-only validation is insufficient; dangling references (undeclared presets, missing commands, unresolvable permissions) must fail hard. Design pattern: validate frontmatter shape first, then cross-reference declared capabilities against the live runtime manifest.'
+    path: knowledge/res-260911-emj8-skill-validator-compat/res-260911-emj8-skill-validator-compat-conspect.md
+    created: 2026-09-11
   analyses:
   - name: Agent Alignment Audit
     description: "MECE inventory of all agent definitions across OMO Slim, native\
@@ -1188,6 +1192,21 @@ shelf:
     created: 2026-09-02
     task_ref: DIA-260902-eqgg
     status: validated
+  - name: skill-validator-capability-compatibility
+    description: "OpenSpec change (session ses_f6f048638ffeuhs7smAHxUDKxs): extends
+      skill validator beyond form checks to validate explicit capability declarations
+      (presets, commands, agent permissions, binaries) against a read-only runtime
+      manifest. Collect-all hard-fail on unresolved references. Hermetic Bats fixtures.
+      No implementation code changed; spec only."
+    path: openspec/changes/skill-validator-capability-compatibility/
+    created: 2026-09-11
+    task_ref: DIA-260831-j5k6
+    status: validated
+    artifacts:
+    - openspec/changes/skill-validator-capability-compatibility/proposal.md
+    - openspec/changes/skill-validator-capability-compatibility/design.md
+    - openspec/changes/skill-validator-capability-compatibility/specs/skill-capability-compatibility/spec.md
+    - openspec/changes/skill-validator-capability-compatibility/tasks.md
   architectures:
   - name: dia-redispatch-cycle
     description: "Design-authority seed for the dev-infra campaign protocol (CRISIS-DETECTION, PROGNOSIS-DISCIPLINE, cycle-budget management): 5 ADRs (ADR-001 prognosis in HANDOFF.md only, ADR-002 C1-C5 OR-combined triggers, ADR-003 fresh-session independence, ADR-004 max-cycles=3 budget default, ADR-005 soft exhaustion) that the redispatch rule texts must not contradict. Seeded 2026-08-03 from interview Q5."
