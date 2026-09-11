@@ -904,15 +904,11 @@
       "coder-escalated": {
         "model": [
           {
-            "id": "opencode-go/kimi-k3",
-            "variant": "max"
-          },
-          {
-            "id": "opencode-go/deepseek-v4-pro",
-            "variant": "max"
+            "id": "openai/gpt-5.6-terra",
+            "variant": "high"
           }
         ],
-        "variant": "max",
+        "variant": "high",
         "temperature": 0.1,
         "skills": [
           "playwright-browser",
@@ -1132,7 +1128,7 @@
   "agents": {
     "coder": {},
     "coder-escalated": {
-      "orchestratorPrompt": "@coder-escalated\n- Lane: Escalated implementation for complex problem-fix tasks (Kimi K3, orchestrator-only, hidden)\n- Role: Stronger-model implementation lane dispatched ONLY by the orchestrator when the base @coder cannot resolve the task.\n- **Trigger conditions (BOTH required to be checked):** (1) 2 consecutive failed re-review loops on the same findings (AGENTS.md section 2.3.1 cycle cap) OR (2) reviewer reported Critical severity findings. Do NOT dispatch for routine work — that is @coder's lane.\n- **ONE-SHOT no-retry rule (MANDATORY):** kimi-k3 has a 490 requests/month cap. A single dispatch per escalation. NEVER retry coder-escalated on the same task. If the task fails or the cap is exhausted, the orchestrator asks the developer via wait_for_user BEFORE falling back to deepseek-v4-pro/mimo-v2.5-pro.\n- **Quota protection:** coder-escalated has task: deny — it never delegates further.\n- **Routing back:** after coder-escalated produces output, route back to the base @coder/@reviewer for the normal flow (re-review loop). DIA-133: Consult knowledge/model-registry.yaml for dispatch routing rules and the quota-guard policy (warn 80% / hard-stop at cap / SILENT_FAILURE check) before escalated dispatch. Registry owner: ai-specialist -> coder."
+      "orchestratorPrompt": "@coder-escalated\n- Lane: Escalated implementation for complex problem-fix tasks (GPT-5.6 Terra High, orchestrator-only, hidden)\n- Role: Stronger-model implementation lane dispatched ONLY by the orchestrator when the base @coder cannot resolve the task.\n- **Trigger conditions (BOTH required to be checked):** (1) 2 consecutive failed re-review loops on the same findings (AGENTS.md section 2.3.1 cycle cap) OR (2) reviewer reported Critical severity findings. Do NOT dispatch for routine work — that is @coder's lane.\n- **ONE-SHOT no-retry rule (MANDATORY):** Terra High is billed through the direct OpenAI provider. A single dispatch per escalation. NEVER retry coder-escalated on the same task. If the task fails, the orchestrator asks the developer via wait_for_user before another paid escalation is attempted.\n- **Quota protection:** coder-escalated has task: deny — it never delegates further.\n- **Routing back:** after coder-escalated produces output, route back to the base @coder/@reviewer for the normal flow (re-review loop). DIA-133: Consult knowledge/model-registry.yaml for dispatch routing rules and the quota-guard policy (warn 80% / hard-stop at cap / SILENT_FAILURE check) before escalated dispatch. Registry owner: ai-specialist -> coder."
     },
     "analyzer-escalated": {
       "orchestratorPrompt": "@analyzer-escalated\n- Lane: Escalated analysis for 'cannot comprehend domain' cases (GPT-5.6 Luna, orchestrator-only, hidden)\n- Role: Stronger-model analysis lane dispatched ONLY by the orchestrator when the base @analyzer cannot comprehend the domain.\n- **Trigger conditions:** base analyzer reports 'cannot comprehend domain' OR aborts on complexity (abort-on-complexity). Do NOT dispatch for routine analysis — that is @analyzer's lane.\n- **One-shot dispatch:** single dispatch per escalation; GPT-5.6 Luna usage is budgeted. On failure, ask the developer via wait_for_user before any further escalation.\n- **Quota protection:** analyzer-escalated keeps task deny (base analyzer already denies task).\n- **Routing back:** after analyzer-escalated produces output, route back to the base @analyzer/@reviewer for the normal flow. DIA-133: Consult knowledge/model-registry.yaml for dispatch routing rules and the quota-guard policy (warn 80% / hard-stop at cap / SILENT_FAILURE check) before escalated dispatch. Registry owner: ai-specialist -> coder."

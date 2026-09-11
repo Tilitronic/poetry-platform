@@ -401,18 +401,17 @@
     },
     // coder-escalated — escalated implementation lane (DIA-111/DIA-108, 2026-08-12).
     // Dispatched ONLY by the orchestrator on trigger: 2 consecutive failed
-    // re-review loops OR reviewer Critical severity findings. Kimi K3 model
-    // (opencode-go/kimi-k3). ONE-SHOT no-retry rule — Kimi K3 has a 490 req/mo
-    // cap; on cap exhaustion the orchestrator asks the developer via
-    // wait_for_user BEFORE falling back to deepseek-v4-pro/mimo-v2.5-pro.
+    // re-review loops OR reviewer Critical severity findings. GPT-5.6 Terra
+    // High is used for the paid, complex implementation escalation. The
+    // one-shot no-retry rule still requires developer direction after failure.
     // hidden: true keeps it out of @autocomplete; task() dispatch still works
     // (S2 orchestrator allow-list includes it). Permissions are an exact clone
     // of the base coder PLUS task: "deny" for quota protection (escalated lane
     // must never delegate further).
     "coder-escalated": {
-      "description": "Escalated implementation lane (Kimi K3) for complex problem-fix tasks. Orchestrator-only, hidden from @autocomplete, one-shot no-retry.",
+      "description": "Escalated implementation lane (GPT-5.6 Terra High) for complex problem-fix tasks. Orchestrator-only, hidden from @autocomplete, one-shot no-retry.",
       "mode": "subagent",
-      "model": "opencode-go/kimi-k3",
+      "model": "openai/gpt-5.6-terra",
       "color": "#3B82F6",
       "hidden": true,
       "permission": {

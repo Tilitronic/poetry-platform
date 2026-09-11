@@ -1067,3 +1067,9 @@
 - **Change:** Change: DIA-260910-sjtk (opencode-config, Major) routes the active muse-qwen-balanced architector lane from github-copilot/gemini-3.1-pro-preview to openai/gpt-5.6-sol high (big-pickle fallback retained). Architector-only; Luna utility lanes and coder-escalated Terra High belong to DIA-260911-rqmw and are not part of this commit.
 - **Files:** docs/dev-infra-audit/tickets/DIA-260910-sjtk-route-architector-to-openai-gpt-5-6-sol-high.md - .opencode/learnings/external-patterns/2026-09-11-dia-260910-sjtk-model-routing.md - .opencode/oh-my-opencode-slim.jsonc
 - **Verification:** manual
+
+## 2026-09-11 - DIA-260911-rqmw: coder-escalated Terra High (5-surface scope, Terra ownership)
+
+- **Change:** Change: DIA-260911-rqmw (opencode-config, Medium) routes coder-escalated from opencode-go/kimi-k3 to openai/gpt-5.6-terra high (one-shot no-retry retained, developer-gated paid escalation). 5-surface atomic set: opencode.jsonc direct route, coder-escalated.md contract, AGENTS.md table row, slim jsonc coder-escalated hunk plus orchestratorPrompt line, registry Rung3 plus Terra long-context price correction. Preset churn excluded per owner rule.
+- **Files:** docs/dev-infra-audit/tickets/DIA-260911-rqmw-route-coder-escalated-to-gpt-5-6-terra-high-split-from-dia-260910-sjtk.md - .opencode/learnings/external-patterns/2026-09-11-dia-260911-rqmw-terra-routing.md - .opencode/opencode.jsonc - .opencode/agents/coder-escalated.md - AGENTS.md - .opencode/oh-my-opencode-slim.jsonc - knowledge/model-registry.yaml
+- **Verification:** manual
