@@ -498,25 +498,298 @@ Use when running the validation suite.
   assert_output_not_contains "FAIL:"
 }
 
-# --- DIA-260831-j5k6 slice 1 RED (compat tier, preset + bash classes) -------
-# RED-ONLY fixtures: the current form-only validator ignores these explicit
-# capability declarations and exits 0, so both tests FAIL until the GREEN
-# lane (task 1.2/2.2) lands the read-only compat tier. Do NOT weaken these
-# assertions to match current behavior.
+# --- DIA-260831-j5k6 slice 2 GREEN (compat tier, all four classes) ---------
+# Slice 1 pinned the preset + bash contract (tests above, now passing). Slice
+# 2 extends the tier to commands, agents, and required binaries and pins the
+# full matrix: valid declarations exit 0, empty lists valid, empty entries
+# hard-fail, one invalid fixture per class, multi-failure collect-all, the
+# patch-version floor, the inline-`[]` form, and malformed-manifest failure.
 #
-# Contract pinned for GREEN (from spec + design):
-#   - `presets:` (list of preset names) resolves each entry against a
-#     read-only preset manifest. COMPAT_PRESETS_FILE points at a JSON file
-#     shaped like the real config's preset block ({"presets": {name: ...}});
-#     default is the real .opencode/oh-my-opencode-slim.jsonc preset block.
-#     A preset absent from the manifest is a per-entry hard FAIL naming the
-#     skill, the class ("preset"), and the dangling declaration; exit 1.
-#   - `requires_bash:` (minimum "major.minor" version string) resolves `bash`
-#     via PATH and compares against `bash --version`. An unsatisfiable
-#     minimum is a hard FAIL naming the skill, the class ("bash" /
-#     "requires_bash"), and the demanded version; exit 1.
-# Both fixtures are otherwise fully form-valid (name match, description,
-# license, activation phrase) so the compat FAIL is the only finding.
+# Hermetic seams: COMPAT_PRESETS_FILE ({"presets": {name: ...}}),
+# COMPAT_CONFIG_FILE ({"command": {name: ...}, "agent": {name: ...}}), and
+# COMPAT_COMMANDS_DIR (a dir of <name>.md files completing the command
+# registry). Defaults are the real configs; fixtures below always override
+# all three so the real tree is never read.
+
+# write_compat_manifests: fixed fixture manifests — one preset, one inline
+# config command, one command file, one agent. Everything else dangles.
+write_compat_manifests() {
+  cat > "$BATS_TEST_TMPDIR/compat-presets.json" <<'EOF'
+{"presets": {"fixture-preset-a": {}, "fixture-preset-b": {}}}
+EOF
+  cat > "$BATS_TEST_TMPDIR/compat-config.json" <<'EOF'
+{"command": {"fixture-cmd-a": {}}, "agent": {"fixture-agent-a": {}}}
+EOF
+  mkdir -p "$BATS_TEST_TMPDIR/compat-commands"
+  printf '# fixture file command\n' > "$BATS_TEST_TMPDIR/compat-commands/fixture-file-cmd.md"
+}
+
+# write_stub_binary <name>: a no-op executable on a per-test stubbin dir.
+# Absolute shebang (never /usr/bin/env): stubbin sits first on PATH in the
+# binary tests, so an env shebang could re-resolve an interpreter from here.
+write_stub_binary() {
+  local stubbin="$BATS_TEST_TMPDIR/stubbin"
+  mkdir -p "$stubbin"
+  printf '#!%s\nexit 0\n' "$BASH_BIN" > "$stubbin/$1"
+  chmod +x "$stubbin/$1"
+}
+
+@test "compat: valid declarations across all four classes exit 0" {
+  write_compat_manifests
+  write_stub_binary "fixture-tool-a"
+  write_skill "compat-valid" '---
+name: compat-valid
+description: Skill declaring valid compat. Use when testing compat.
+license: MIT
+presets:
+  - fixture-preset-a
+commands:
+  - fixture-cmd-a
+  - fixture-file-cmd
+agents:
+  - fixture-agent-a
+requires_binaries:
+  - fixture-tool-a
+requires_bash: "4.0"
+---
+
+Use when testing compat.
+'
+
+  SKILLS_ROOT="$FIXTURES" COMPAT_PRESETS_FILE="$BATS_TEST_TMPDIR/compat-presets.json" COMPAT_CONFIG_FILE="$BATS_TEST_TMPDIR/compat-config.json" COMPAT_COMMANDS_DIR="$BATS_TEST_TMPDIR/compat-commands" PATH="$BATS_TEST_TMPDIR/stubbin:$PATH" run bash "$SKILLS_SCRIPT"
+
+  assert_status 0
+  assert_output_not_contains "FAIL:"
+}
+
+@test "compat: empty declaration lists are valid" {
+  write_compat_manifests
+  write_skill "compat-empty" '---
+name: compat-empty
+description: Skill with empty compat lists. Use when testing compat.
+license: MIT
+presets:
+commands:
+agents:
+requires_binaries:
+---
+
+Use when testing compat.
+'
+
+  SKILLS_ROOT="$FIXTURES" COMPAT_PRESETS_FILE="$BATS_TEST_TMPDIR/compat-presets.json" COMPAT_CONFIG_FILE="$BATS_TEST_TMPDIR/compat-config.json" COMPAT_COMMANDS_DIR="$BATS_TEST_TMPDIR/compat-commands" run bash "$SKILLS_SCRIPT"
+
+  assert_status 0
+  assert_output_not_contains "FAIL:"
+}
+
+@test "compat: inline empty list presets [] is a valid empty optional list" {
+  write_compat_manifests
+  write_skill "compat-inline-empty" '---
+name: compat-inline-empty
+description: Skill with inline empty presets. Use when testing compat.
+license: MIT
+presets: []
+---
+
+Use when testing compat.
+'
+
+  SKILLS_ROOT="$FIXTURES" COMPAT_PRESETS_FILE="$BATS_TEST_TMPDIR/compat-presets.json" COMPAT_CONFIG_FILE="$BATS_TEST_TMPDIR/compat-config.json" COMPAT_COMMANDS_DIR="$BATS_TEST_TMPDIR/compat-commands" run bash "$SKILLS_SCRIPT"
+
+  assert_status 0
+  assert_output_not_contains "FAIL:"
+}
+
+@test "compat: unknown command exits 1 with a deterministic FAIL" {
+  write_compat_manifests
+  write_skill "cmd-user" '---
+name: cmd-user
+description: Skill declaring commands. Use when testing compat.
+license: MIT
+commands:
+  - fixture-cmd-a
+  - __dangling_cmd_zzz__
+---
+
+Use when testing compat.
+'
+
+  SKILLS_ROOT="$FIXTURES" COMPAT_PRESETS_FILE="$BATS_TEST_TMPDIR/compat-presets.json" COMPAT_CONFIG_FILE="$BATS_TEST_TMPDIR/compat-config.json" COMPAT_COMMANDS_DIR="$BATS_TEST_TMPDIR/compat-commands" run bash "$SKILLS_SCRIPT"
+
+  assert_status 1
+  assert_output_contains "FAIL:"
+  assert_output_contains "cmd-user"
+  assert_output_contains "command"
+  assert_output_contains "commands"
+  assert_output_contains "__dangling_cmd_zzz__"
+}
+
+@test "compat: unknown agent exits 1 with a deterministic FAIL" {
+  write_compat_manifests
+  write_skill "agent-user" '---
+name: agent-user
+description: Skill declaring agents. Use when testing compat.
+license: MIT
+agents:
+  - fixture-agent-a
+  - __dangling_agent_zzz__
+---
+
+Use when testing compat.
+'
+
+  SKILLS_ROOT="$FIXTURES" COMPAT_PRESETS_FILE="$BATS_TEST_TMPDIR/compat-presets.json" COMPAT_CONFIG_FILE="$BATS_TEST_TMPDIR/compat-config.json" COMPAT_COMMANDS_DIR="$BATS_TEST_TMPDIR/compat-commands" run bash "$SKILLS_SCRIPT"
+
+  assert_status 1
+  assert_output_contains "FAIL:"
+  assert_output_contains "agent-user"
+  assert_output_contains "agent"
+  assert_output_contains "agents"
+  assert_output_contains "__dangling_agent_zzz__"
+}
+
+@test "compat: missing required binary exits 1 with a deterministic FAIL" {
+  write_compat_manifests
+  write_skill "bin-needer" '---
+name: bin-needer
+description: Skill requiring binaries. Use when testing compat.
+license: MIT
+requires_binaries:
+  - __missing_bin_zzz__
+---
+
+Use when testing compat.
+'
+
+  SKILLS_ROOT="$FIXTURES" COMPAT_PRESETS_FILE="$BATS_TEST_TMPDIR/compat-presets.json" COMPAT_CONFIG_FILE="$BATS_TEST_TMPDIR/compat-config.json" COMPAT_COMMANDS_DIR="$BATS_TEST_TMPDIR/compat-commands" run bash "$SKILLS_SCRIPT"
+
+  assert_status 1
+  assert_output_contains "FAIL:"
+  assert_output_contains "bin-needer"
+  assert_output_contains "binary"
+  assert_output_contains "requires_binaries"
+  assert_output_contains "__missing_bin_zzz__"
+}
+
+@test "compat: empty entries are hard failures" {
+  write_compat_manifests
+  write_skill "empty-entry" '---
+name: empty-entry
+description: Skill with empty compat entries. Use when testing compat.
+license: MIT
+presets:
+  - ""
+commands:
+  - ""
+---
+
+Use when testing compat.
+'
+
+  SKILLS_ROOT="$FIXTURES" COMPAT_PRESETS_FILE="$BATS_TEST_TMPDIR/compat-presets.json" COMPAT_CONFIG_FILE="$BATS_TEST_TMPDIR/compat-config.json" COMPAT_COMMANDS_DIR="$BATS_TEST_TMPDIR/compat-commands" run bash "$SKILLS_SCRIPT"
+
+  assert_status 1
+  assert_output_contains "FAIL:"
+  assert_output_contains "empty entry"
+  assert_output_contains "presets"
+  assert_output_contains "commands"
+}
+
+@test "compat: multiple unresolved declarations are all collected" {
+  write_compat_manifests
+  write_skill "multi-bad" '---
+name: multi-bad
+description: Skill with many bad declarations. Use when testing compat.
+license: MIT
+presets:
+  - __dangling_preset_zzz__
+commands:
+  - __dangling_cmd_zzz__
+agents:
+  - __dangling_agent_zzz__
+requires_binaries:
+  - __missing_bin_zzz__
+requires_bash: "99.0"
+---
+
+Use when testing compat.
+'
+
+  SKILLS_ROOT="$FIXTURES" COMPAT_PRESETS_FILE="$BATS_TEST_TMPDIR/compat-presets.json" COMPAT_CONFIG_FILE="$BATS_TEST_TMPDIR/compat-config.json" COMPAT_COMMANDS_DIR="$BATS_TEST_TMPDIR/compat-commands" run bash "$SKILLS_SCRIPT"
+
+  assert_status 1
+  assert_output_contains "__dangling_preset_zzz__"
+  assert_output_contains "__dangling_cmd_zzz__"
+  assert_output_contains "__dangling_agent_zzz__"
+  assert_output_contains "__missing_bin_zzz__"
+  assert_output_contains "99.0"
+  assert_output_contains "failed"
+}
+
+@test "compat: higher patch on equal major.minor does not satisfy requires_bash" {
+  # Stubbed PATH: fake `bash` reports 5.1.0 exactly (same stub pattern as the
+  # impossible-bash test). Demanding 5.1.999 must FAIL — the floor compares
+  # the full major.minor.patch tuple, not just major.minor.
+  local stubbin="$BATS_TEST_TMPDIR/stubbin"
+  mkdir -p "$stubbin"
+  cat > "$stubbin/bash" <<EOF
+#!$BASH_BIN
+if [ "\${1:-}" = "--version" ]; then
+  echo "GNU bash, version 5.1.0(1)-release (x86_64-pc-linux-gnu)"
+  exit 0
+fi
+exec "$BASH_BIN" "\$@"
+EOF
+  chmod +x "$stubbin/bash"
+  write_skill "patch-needer" '---
+name: patch-needer
+description: Skill requiring a newer bash patch. Use when testing compat.
+license: MIT
+requires_bash: "5.1.999"
+---
+
+Use when testing compat.
+'
+
+  SKILLS_ROOT="$FIXTURES" PATH="$stubbin:$PATH" run bash "$SKILLS_SCRIPT"
+
+  assert_status 1
+  assert_output_contains "FAIL:"
+  assert_output_contains "patch-needer"
+  assert_output_contains "bash"
+  assert_output_contains "5.1.999"
+}
+
+@test "compat: unterminated block comment in preset manifest fails validation" {
+  # The manifest is truncated inside a /* comment: accepting it would validate
+  # against silently-dropped content, so the snapshot must reject it (exit 1,
+  # not infra exit 2).
+  printf '{"presets": {"fixture-preset-a": {}} /* never closed' > "$BATS_TEST_TMPDIR/compat-presets.json"
+  write_skill "preset-user" '---
+name: preset-user
+description: Skill declaring presets. Use when testing compat.
+license: MIT
+presets:
+  - fixture-preset-a
+---
+
+Use when testing compat.
+'
+
+  SKILLS_ROOT="$FIXTURES" COMPAT_PRESETS_FILE="$BATS_TEST_TMPDIR/compat-presets.json" run bash "$SKILLS_SCRIPT"
+
+  assert_status 1
+  assert_output_contains "FAIL:"
+  assert_output_contains "compat manifest"
+}
+
+# Slice 1 contract (presets + requires_bash, still pinned): each entry of
+# `presets:` resolves against the preset manifest (absent entry = per-entry
+# hard FAIL naming skill/class/declaration, exit 1); `requires_bash:`
+# resolves `bash` via PATH against `bash --version` (unsatisfiable minimum =
+# hard FAIL naming skill/class/version, exit 1). Both fixtures below are
+# otherwise fully form-valid so the compat FAIL is the only finding.
 
 @test "compat: dangling preset declaration exits 1 with a deterministic FAIL" {
   # Fixed preset array: only fixture-preset-a/b exist. The skill declares one

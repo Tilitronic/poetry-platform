@@ -19,24 +19,34 @@
 #        manifest (default: the `presets` block of the real
 #        .opencode/oh-my-opencode-slim.jsonc; COMPAT_PRESETS_FILE override
 #        points at a JSON file shaped like that block for hermetic tests).
-#        Empty entries and non-list shapes are HARD failures.
-#     6. `requires_bash:` ("major.minor" minimum) is satisfiable by the
-#        PATH-resolved `bash --version`. Empty/malformed values are HARD
-#        failures; an unsatisfiable minimum is a per-declaration FAIL.
+#     6. Every `commands:` entry names a command in the read-only command
+#        manifest (real opencode.jsonc `command` block plus *.md stems under
+#        .opencode/commands; COMPAT_CONFIG_FILE / COMPAT_COMMANDS_DIR
+#        overrides for hermetic tests).
+#     7. Every `agents:` entry names an agent in the read-only agent manifest
+#        (real opencode.jsonc `agent` block keys; same COMPAT_CONFIG_FILE
+#        override). This is the agent-permission membership check.
+#     8. Every `requires_binaries:` entry resolves on PATH (`command -v`,
+#        each distinct binary probed once per run).
+#     9. `requires_bash:` ("major.minor[.patch]" minimum) is satisfiable by
+#        the PATH-resolved `bash --version` tuple comparison.
+#        Empty entries and non-list shapes are HARD failures in every class.
 #        Each compat FAIL names skill, class, declaration, and target.
 #   SOFT (warn-only to stderr, never affects exit code):
-#     5. Body's first non-blank line starts with an activation phrase
-#        ("Use when" / "Invoke when" / "Trigger via" / "Use for" / "Use ONLY
-#        when", case-insensitive).
-#     6. Frontmatter declares a `license:` field (provenance audit concern,
-#        not a runtime one — some vendored skills legitimately omit it).
+#     10. Body's first non-blank line starts with an activation phrase
+#         ("Use when" / "Invoke when" / "Trigger via" / "Use for" / "Use ONLY
+#         when", case-insensitive).
+#     11. Frontmatter declares a `license:` field (provenance audit concern,
+#         not a runtime one — some vendored skills legitimately omit it).
 #
 #   SOFT checks are skipped for a file that fails any HARD check (no parsed
 # frontmatter / no extracted body to inspect).
 #
 #   COMPAT checks run even when a file fails a form HARD check (collect-all):
-# only explicit machine-readable `presets:` / `requires_bash:` declarations
-# participate — prose is never inferred. Empty optional lists are valid.
+# only explicit machine-readable `presets:` / `commands:` / `agents:` /
+# `requires_binaries:` / `requires_bash:` declarations participate — prose is
+# never inferred. Empty optional lists (absent key, `key:`, or `key: []`)
+# are valid.
 #
 # Exit codes: 0 all HARD pass (SOFT warnings may print), 1 HARD failure,
 # 2 infrastructure failure (python3 missing / skills root missing /
@@ -95,9 +105,9 @@ def parse_flat(text):
     Handles flat top-level `key: value` mappings (quoted or unquoted scalars),
     the `>-` folded block scalar, comments, and blank lines. Indented
     continuation lines that belong to nested maps (e.g. `metadata:`) are
-    skipped — the gate only inspects top-level keys (name/description/license)
-    and several real skills carry nested metadata blocks, so a strict flat
-    parser would false-positive on them. Any non-indented line that is not a
+    skipped — the gate only inspects top-level keys (name/description/license
+    plus the compat declaration lists) and several real skills carry nested
+    metadata blocks, so a strict flat parser would false-positive on them. Any non-indented line that is not a
     `key:` pair raises a parse error so genuinely malformed frontmatter (and
     non-mapping roots like bare scalars or lists) is still caught.
 
@@ -113,6 +123,10 @@ def parse_flat(text):
     block_key = None
     list_key = None
     skipped_nested = False
+    # Compat declaration keys whose block-sequence form the fallback parser
+    # collects (`key:` followed by indented `- item` lines). `[]` on one of
+    # these is an inline empty list (F3: valid empty optional list).
+    list_keys = {"presets", "commands", "agents", "requires_binaries"}
     for raw in text.splitlines():
         line = raw.rstrip("\n")
         if not line.strip() or line.lstrip().startswith("#"):
@@ -120,10 +134,10 @@ def parse_flat(text):
         stripped = line.lstrip()
         if line != stripped:
             # Indented line: `>-` block-scalar continuation, a `- item` list
-            # entry under a known list key (currently only `presets:` — the
-            # compat tier needs it even on PyYAML-less hosts), or nested-map
-            # content. Anything else is tolerated (permissive subset parser)
-            # and flagged once per file so the tolerance stays visible.
+            # entry under a known list key (the compat tier needs lists even
+            # on PyYAML-less hosts), or nested-map content. Anything else is
+            # tolerated (permissive subset parser) and flagged once per file
+            # so the tolerance stays visible.
             if block_key is not None:
                 result[block_key] = (result.get(block_key, "") + " " + stripped).strip()
             elif list_key is not None and stripped.startswith("- "):
@@ -147,11 +161,16 @@ def parse_flat(text):
             continue
         if len(value) >= 2 and value[0] == value[-1] and value[0] in "\"'":
             value = value[1:-1]
-        if value == "" and key == "presets":
-            # Empty value on the known compat list key: tentatively a block
+        if value == "" and key in list_keys:
+            # Empty value on a known compat list key: tentatively a block
             # sequence; following indented `- item` lines append above. Any
             # other indented content cancels the list (nested-map tolerance).
             list_key = key
+            result[key] = []
+            continue
+        if value == "[]" and key in list_keys:
+            # Inline empty list: valid empty optional list, no entries.
+            list_key = None
             result[key] = []
             continue
         list_key = None
@@ -166,6 +185,33 @@ def load(text):
     except ImportError:
         # stdlib-only fallback (bare CI runners / host python without PyYAML)
         return parse_flat(text)
+
+
+def emit_compat_list(data, key, cls, tag, skill_name, skill_file):
+    """Validate one compat list declaration; return 1 if a HARD check fired.
+
+    Shape problems (non-list, empty entries, non-string entries) print HARD.
+    Valid entries print a COMPAT_<tag>|<entry> line for bash-side resolution
+    against the startup manifest snapshot. Absent key or empty list (None from
+    a bare `key:`, [] from `key: []` or an empty block sequence): valid, silent.
+    """
+    values = data.get(key)
+    if values is None:
+        return 0
+    if not isinstance(values, list):
+        print(f"HARD|skill '{skill_name}': '{key}' must be a list of names (class {cls}) in {skill_file}")
+        return 1
+    hard = 0
+    for entry in values:
+        if entry is None or (isinstance(entry, str) and not entry.strip()):
+            print(f"HARD|skill '{skill_name}': empty entry in '{key}' declaration (class {cls}) in {skill_file}")
+            hard = 1
+        elif not isinstance(entry, str):
+            print(f"HARD|skill '{skill_name}': non-string entry {entry!r} in '{key}' declaration (class {cls}) in {skill_file}")
+            hard = 1
+        else:
+            print(f"COMPAT_{tag}|{entry.strip()}")
+    return hard
 
 
 def main():
@@ -217,22 +263,18 @@ def main():
     # resolution happens in bash against the one startup snapshot. COMPAT lines
     # print regardless of `hard` so compat findings join the collect-all set
     # instead of hiding behind an unrelated form failure.
-    presets = data.get("presets")
-    # Absent key or `presets:` with no entries (None): empty optional list.
-    if presets is not None:
-        if not isinstance(presets, list):
-            print(f"HARD|skill '{skill_name}': 'presets' must be a list of preset names (class preset) in {skill_file}")
-            hard = 1
-        else:
-            for entry in presets:
-                if entry is None or (isinstance(entry, str) and not entry.strip()):
-                    print(f"HARD|skill '{skill_name}': empty entry in 'presets' declaration (class preset) in {skill_file}")
-                    hard = 1
-                elif not isinstance(entry, str):
-                    print(f"HARD|skill '{skill_name}': non-string entry {entry!r} in 'presets' declaration (class preset) in {skill_file}")
-                    hard = 1
-                else:
-                    print(f"COMPAT_PRESET|{entry.strip()}")
+    #
+    # Four declaration classes (spec.md:9): presets, commands, agents
+    # (agent-permission membership against the agent registry), and
+    # required binaries (PATH availability), plus the requires_bash floor.
+    if emit_compat_list(data, "presets", "preset", "PRESET", skill_name, skill_file):
+        hard = 1
+    if emit_compat_list(data, "commands", "command", "COMMAND", skill_name, skill_file):
+        hard = 1
+    if emit_compat_list(data, "agents", "agent", "AGENT", skill_name, skill_file):
+        hard = 1
+    if emit_compat_list(data, "requires_binaries", "binary", "BINARY", skill_name, skill_file):
+        hard = 1
     req_bash = data.get("requires_bash")
     if req_bash is not None:
         req_str = str(req_bash).strip()
@@ -269,19 +311,37 @@ warnings=0
 # Compat tier snapshot (DIA-260831-j5k6): parsed ONCE at startup, held in
 # memory, never re-parsed per skill or per reference.
 #
-# Preset manifest: COMPAT_PRESETS_FILE override (hermetic bats fixtures) or
-# the real .opencode/oh-my-opencode-slim.jsonc `presets` block. JSONC comments
-# are stripped string-aware (naive // stripping would corrupt URLs inside
-# prompt strings). A missing/malformed manifest is a validation failure
-# (exit 1, spec "Required manifest unavailable"), not infra (exit 2).
+# One snapshot script reads every manifest in a single python3 invocation and
+# emits a sectioned line protocol (PRESET| / COMMAND| / AGENT|) that bash
+# loads into in-memory sets:
+#   - presets: COMPAT_PRESETS_FILE override (hermetic bats fixtures) or the
+#     real .opencode/oh-my-opencode-slim.jsonc `presets` block.
+#   - commands: COMPAT_CONFIG_FILE `command` block (default the real
+#     .opencode/opencode.jsonc) UNION the *.md stems under COMPAT_COMMANDS_DIR
+#     (default the real .opencode/commands). COMPAT_CONFIG_FILE override
+#     points at a JSON file shaped like that block for hermetic tests.
+#   - agents: COMPAT_CONFIG_FILE `agent` block keys (agent-permission class
+#     resolves membership against the agent registry).
+# JSONC comments are stripped string-aware (naive // stripping would corrupt
+# URLs inside prompt strings); an unterminated /* block is malformed input,
+# never silently accepted. A missing/malformed manifest is a validation
+# failure (exit 1, spec "Required manifest unavailable"), not infra (exit 2).
 #
 # Bash floor: `bash --version` resolves via PATH (fixtures stub it) and is
-# probed exactly once; every requires_bash declaration compares in memory.
+# probed exactly once; every requires_bash declaration compares in memory,
+# patch included (5.1.0 does NOT satisfy 5.1.999).
+#
+# Required binaries (`requires_binaries:`) resolve against PATH at check time
+# via the `command -v` builtin, cached so each distinct binary is probed once
+# no matter how many declarations reference it.
 # ---------------------------------------------------------------------------
 COMPAT_PRESETS_FILE="${COMPAT_PRESETS_FILE:-$ROOT/.opencode/oh-my-opencode-slim.jsonc}"
+COMPAT_CONFIG_FILE="${COMPAT_CONFIG_FILE:-$ROOT/.opencode/opencode.jsonc}"
+COMPAT_COMMANDS_DIR="${COMPAT_COMMANDS_DIR:-$ROOT/.opencode/commands}"
 
-cat > "$workdir/compat-presets.py" <<'PYEOF'
+cat > "$workdir/compat-snapshot.py" <<'PYEOF'
 import json
+import os
 import sys
 
 
@@ -313,8 +373,17 @@ def strip_jsonc(text):
             continue
         if c == "/" and i + 1 < n and text[i + 1] == "*":
             i += 2
-            while i + 1 < n and not (text[i] == "*" and text[i + 1] == "/"):
+            closed = False
+            while i + 1 < n:
+                if text[i] == "*" and text[i + 1] == "/":
+                    closed = True
+                    break
                 i += 1
+            if not closed:
+                # F5: an unterminated block comment swallows the rest of the
+                # file — accepting it would silently validate against a
+                # truncated manifest, so it is malformed input, not EOF.
+                raise ValueError("unterminated /* block comment")
             i += 2
             continue
         out.append(c)
@@ -322,45 +391,101 @@ def strip_jsonc(text):
     return "".join(out)
 
 
-with open(sys.argv[1]) as f:
-    data = json.loads(strip_jsonc(f.read()))
-presets = data.get("presets")
+def load_jsonc(path):
+    with open(path) as f:
+        return json.loads(strip_jsonc(f.read()))
+
+
+presets_path, config_path, commands_dir = sys.argv[1], sys.argv[2], sys.argv[3]
+
+presets = load_jsonc(presets_path).get("presets")
 if not isinstance(presets, dict):
-    raise ValueError('missing top-level "presets" object')
+    raise ValueError('missing top-level "presets" object in ' + presets_path)
 for name in presets:
-    print(name)
+    print(f"PRESET|{name}")
+
+config = load_jsonc(config_path)
+commands = config.get("command")
+if not isinstance(commands, dict):
+    raise ValueError('missing top-level "command" object in ' + config_path)
+seen = set()
+for name in commands:
+    seen.add(name)
+    print(f"COMMAND|{name}")
+agents = config.get("agent")
+if not isinstance(agents, dict):
+    raise ValueError('missing top-level "agent" object in ' + config_path)
+for name in agents:
+    print(f"AGENT|{name}")
+
+# Command files on disk (*.md stems) complete the command registry alongside
+# the inline config block. A missing dir contributes nothing — fixtures point
+# this at an empty temp dir for full hermeticity.
+if os.path.isdir(commands_dir):
+    for entry in sorted(os.listdir(commands_dir)):
+        if entry.endswith(".md"):
+            stem = entry[:-3]
+            if stem and stem not in seen:
+                print(f"COMMAND|{stem}")
 PYEOF
 
 declare -A compat_presets=()
-compat_presets_ok=1
-if preset_names="$(python3 "$workdir/compat-presets.py" "$COMPAT_PRESETS_FILE" 2>"$workdir/presets.err")"; then
-  while IFS= read -r pname; do
-    # if-guard (not &&): an empty line must not fail under set -e, and an
-    # empty manifest (no presets) must simply yield an empty set.
-    if [ -n "$pname" ]; then
-      compat_presets["$pname"]=1
+declare -A compat_commands=()
+declare -A compat_agents=()
+compat_snapshot_ok=1
+if snapshot_out="$(python3 "$workdir/compat-snapshot.py" "$COMPAT_PRESETS_FILE" "$COMPAT_CONFIG_FILE" "$COMPAT_COMMANDS_DIR" 2>"$workdir/snapshot.err")"; then
+  while IFS= read -r sline; do
+    # if-guard (not &&): an empty line must not fail under set -e.
+    if [ -n "$sline" ]; then
+      case "$sline" in
+        PRESET\|*) compat_presets["${sline#PRESET|}"]=1 ;;
+        COMMAND\|*) compat_commands["${sline#COMMAND|}"]=1 ;;
+        AGENT\|*) compat_agents["${sline#AGENT|}"]=1 ;;
+        *)
+          echo "FAIL: unexpected compat snapshot output: $sline" >&2
+          failures=$((failures + 1))
+          compat_snapshot_ok=0
+          ;;
+      esac
     fi
-  done <<< "$preset_names"
+  done <<< "$snapshot_out"
 else
-  echo "FAIL: preset manifest missing or malformed: $COMPAT_PRESETS_FILE" >&2
-  if [ -s "$workdir/presets.err" ]; then
-    tr '\n' ' ' < "$workdir/presets.err" >&2
+  echo "FAIL: compat manifest missing or malformed (presets: $COMPAT_PRESETS_FILE, config: $COMPAT_CONFIG_FILE)" >&2
+  if [ -s "$workdir/snapshot.err" ]; then
+    tr '\n' ' ' < "$workdir/snapshot.err" >&2
     echo "" >&2
   fi
   failures=$((failures + 1))
-  compat_presets_ok=0
+  compat_snapshot_ok=0
 fi
 
 compat_bash_actual=""
 compat_bash_major=0
 compat_bash_minor=0
+compat_bash_patch=0
 if bash_line="$(bash --version 2>/dev/null | head -n 1)"; then
-  if [[ "$bash_line" =~ version\ ([0-9]+)\.([0-9]+) ]]; then
+  if [[ "$bash_line" =~ version\ ([0-9]+)\.([0-9]+)(\.([0-9]+))? ]]; then
     compat_bash_major="${BASH_REMATCH[1]}"
     compat_bash_minor="${BASH_REMATCH[2]}"
-    compat_bash_actual="$compat_bash_major.$compat_bash_minor"
+    compat_bash_patch="${BASH_REMATCH[4]:-0}"
+    compat_bash_actual="$compat_bash_major.$compat_bash_minor.$compat_bash_patch"
   fi
 fi
+
+# Binary availability cache: each distinct binary is probed once per run via
+# the `command -v` builtin; per-declaration checks read this in-memory map.
+declare -A compat_bin_found=()
+compat_probe_binary() {
+  local bin="$1"
+  # ${var:-} guard required under `set -u`: an unprobed binary is unset.
+  if [ -z "${compat_bin_found[$bin]+x}" ]; then
+    if command -v "$bin" >/dev/null 2>&1; then
+      compat_bin_found["$bin"]=1
+    else
+      compat_bin_found["$bin"]=0
+    fi
+  fi
+}
 
 for skill_dir in "$SKILLS_ROOT"/*/; do
   # With nullglob off, an empty root leaves the literal glob pattern — skip it.
@@ -408,6 +533,9 @@ for skill_dir in "$SKILLS_ROOT"/*/; do
   file_failed=0
   file_warned=0
   compat_preset_entries=()
+  compat_command_entries=()
+  compat_agent_entries=()
+  compat_binary_entries=()
   compat_bash_req=""
   compat_fails=0
   if ! python3 "$workdir/validate.py" "$fm_tmp" "$skill_name" "$skill_file" >"$py_out" 2>"$py_err"; then
@@ -423,6 +551,15 @@ for skill_dir in "$SKILLS_ROOT"/*/; do
         # Stashed, not printed: resolution against the startup snapshot below
         # is an in-memory set lookup — no subprocess per reference.
         compat_preset_entries+=("${line#COMPAT_PRESET|}")
+        ;;
+      COMPAT_COMMAND\|*)
+        compat_command_entries+=("${line#COMPAT_COMMAND|}")
+        ;;
+      COMPAT_AGENT\|*)
+        compat_agent_entries+=("${line#COMPAT_AGENT|}")
+        ;;
+      COMPAT_BINARY\|*)
+        compat_binary_entries+=("${line#COMPAT_BINARY|}")
         ;;
       COMPAT_BASH\|*)
         compat_bash_req="${line#COMPAT_BASH|}"
@@ -450,7 +587,7 @@ for skill_dir in "$SKILLS_ROOT"/*/; do
   # startup). Each unresolved entry is one distinct FAIL naming skill, class,
   # declaration, and target; collect-all, never fail-fast. Runs even when the
   # file failed a form check so compat findings never hide behind form noise.
-  if [ "$compat_presets_ok" -eq 1 ]; then
+  if [ "$compat_snapshot_ok" -eq 1 ]; then
     for entry in "${compat_preset_entries[@]}"; do
       # The ${var:-} guard is required under `set -u`: an absent preset is an
       # unset assoc key.
@@ -460,24 +597,54 @@ for skill_dir in "$SKILLS_ROOT"/*/; do
         file_failed=1
       fi
     done
+    for entry in "${compat_command_entries[@]}"; do
+      if [ -z "${compat_commands[$entry]:-}" ]; then
+        echo "FAIL: skill '$skill_name': command '$entry' not found in command manifest (class command, declaration 'commands' in $skill_file)" >&2
+        compat_fails=$((compat_fails + 1))
+        file_failed=1
+      fi
+    done
+    for entry in "${compat_agent_entries[@]}"; do
+      if [ -z "${compat_agents[$entry]:-}" ]; then
+        echo "FAIL: skill '$skill_name': agent '$entry' not found in agent manifest (class agent, declaration 'agents' in $skill_file)" >&2
+        compat_fails=$((compat_fails + 1))
+        file_failed=1
+      fi
+    done
+    for entry in "${compat_binary_entries[@]}"; do
+      # One cached probe per distinct binary per run; every further reference
+      # to the same name reads the in-memory map, never re-probes PATH.
+      compat_probe_binary "$entry"
+      if [ "${compat_bin_found[$entry]}" != "1" ]; then
+        echo "FAIL: skill '$skill_name': required binary '$entry' not found on PATH (class binary, declaration 'requires_binaries' in $skill_file)" >&2
+        compat_fails=$((compat_fails + 1))
+        file_failed=1
+      fi
+    done
   fi
-  # An unloadable manifest already emitted its own FAIL at startup; per-entry
-  # preset checks are skipped (nothing to resolve against), not re-reported.
+  # An unloadable snapshot already emitted its own FAIL at startup; per-entry
+  # checks are skipped (nothing to resolve against), not re-reported.
   if [ -n "$compat_bash_req" ]; then
     req_major="${compat_bash_req%%.*}"
     req_rest="${compat_bash_req#*.}"
+    req_patch=0
     if [ "$req_rest" = "$compat_bash_req" ]; then
       req_minor=0
     elif [[ "$req_rest" == *.* ]]; then
       req_minor="${req_rest%%.*}"
+      req_patch="${req_rest#*.}"
     else
       req_minor="$req_rest"
     fi
+    # F4: full major.minor.patch tuple comparison — a higher patch demand on
+    # an equal major.minor is unsatisfiable (5.1.0 does NOT satisfy 5.1.999).
     if [ -z "$compat_bash_actual" ]; then
       echo "FAIL: skill '$skill_name': requires_bash '$compat_bash_req' cannot be satisfied, bash version unknown (class bash in $skill_file)" >&2
       compat_fails=$((compat_fails + 1))
       file_failed=1
-    elif [ "$compat_bash_major" -gt "$req_major" ] || { [ "$compat_bash_major" -eq "$req_major" ] && [ "$compat_bash_minor" -ge "$req_minor" ]; }; then
+    elif [ "$compat_bash_major" -gt "$req_major" ] \
+      || { [ "$compat_bash_major" -eq "$req_major" ] && [ "$compat_bash_minor" -gt "$req_minor" ]; } \
+      || { [ "$compat_bash_major" -eq "$req_major" ] && [ "$compat_bash_minor" -eq "$req_minor" ] && [ "$compat_bash_patch" -ge "$req_patch" ]; }; then
       : # Satisfied: running bash meets the declared minimum.
     else
       echo "FAIL: skill '$skill_name': requires_bash '$compat_bash_req' cannot be satisfied by bash $compat_bash_actual (class bash in $skill_file)" >&2
