@@ -296,7 +296,7 @@
 | DIA-260909-9api | make compose-env.bats hermetic to inherited COMPOSE_ENGINE | scripts | Medium | CLOSED | [DIA-260909-9api-make-compose-env-bats-hermetic-to-inherited-compose-engine.md](DIA-260909-9api-make-compose-env-bats-hermetic-to-inherited-compose-engine.md) |
 | DIA-260909-9c9x | whitespace polish for already-committed files | scripts | Low | CLOSED | [DIA-260909-9c9x-whitespace-polish-for-already-committed-files.md](DIA-260909-9c9x-whitespace-polish-for-already-committed-files.md) |
 | DIA-260909-9i1o | consolidate duplicated budget-gate bats fixture setup | scripts | Medium | CLOSED | [DIA-260909-9i1o-consolidate-duplicated-budget-gate-bats-fixture-setup.md](DIA-260909-9i1o-consolidate-duplicated-budget-gate-bats-fixture-setup.md) |
-| DIA-260909-csds | Activate Muse Qwen balanced preset and persist project default | opencode-config | Medium | OPEN | [DIA-260909-csds-activate-muse-qwen-balanced-preset-and-persist-project-default.md](DIA-260909-csds-activate-muse-qwen-balanced-preset-and-persist-project-default.md) |
+| DIA-260909-csds | Activate Muse Qwen balanced preset and persist project default | opencode-config | Medium | CLOSED | [DIA-260909-csds-activate-muse-qwen-balanced-preset-and-persist-project-default.md](DIA-260909-csds-activate-muse-qwen-balanced-preset-and-persist-project-default.md) |
 | DIA-260909-fkiy | extract repeated workspace-cleanup retry loops into helpers plugin-harness | opencode-config | Medium | OPEN | [DIA-260909-fkiy-extract-repeated-workspace-cleanup-retry-loops-into-helpers-plugin-harness.md](DIA-260909-fkiy-extract-repeated-workspace-cleanup-retry-loops-into-helpers-plugin-harness.md) |
 | DIA-260909-sazr | remove RED-era factory and alias probes from observer-lib test suites | opencode-config | Medium | CLOSED | [DIA-260909-sazr-remove-red-era-factory-and-alias-probes-from-observer-lib-test-suites.md](DIA-260909-sazr-remove-red-era-factory-and-alias-probes-from-observer-lib-test-suites.md) |
 | DIA-260909-tp5e | Add Muse Qwen balanced agent routing preset | opencode-config | Medium | CLOSED | [DIA-260909-tp5e-add-muse-qwen-balanced-agent-routing-preset.md](DIA-260909-tp5e-add-muse-qwen-balanced-agent-routing-preset.md) |
@@ -307,7 +307,9 @@
 | DIA-260910-8tgy | closure-commit-30sz-ticket-readme-repo | config | Low | CLOSED | [DIA-260910-8tgy-closure-commit-30sz-ticket-readme-repo.md](DIA-260910-8tgy-closure-commit-30sz-ticket-readme-repo.md) |
 | DIA-260910-dx8c | zeik missed docs persistence adr failures learning openspec | opencode-config | Low | CLOSED | [DIA-260910-dx8c-zeik-missed-docs-persistence-adr-failures-learning-openspec.md](DIA-260910-dx8c-zeik-missed-docs-persistence-adr-failures-learning-openspec.md) |
 | DIA-260910-ri0u | Isolated commit for 9api closure (Bats test + ticket + rollup/memory) | scripts | Low | OPEN | [DIA-260910-ri0u-isolated-commit-for-9api-closure-bats-test-ticket-rollup-memory.md](DIA-260910-ri0u-isolated-commit-for-9api-closure-bats-test-ticket-rollup-memory.md) |
-| DIA-260910-sjtk | Route architector to OpenAI GPT-5.6 Sol High | opencode-config | Major | OPEN | [DIA-260910-sjtk-route-architector-to-openai-gpt-5-6-sol-high.md](DIA-260910-sjtk-route-architector-to-openai-gpt-5-6-sol-high.md) |
+| DIA-260910-sjtk | Route architector to OpenAI GPT-5.6 Sol High | opencode-config | Major | CLOSED | [DIA-260910-sjtk-route-architector-to-openai-gpt-5-6-sol-high.md](DIA-260910-sjtk-route-architector-to-openai-gpt-5-6-sol-high.md) |
+| DIA-260911-ddsm | Commit j5k6 changelog YAML hunk and render Markdown view | scripts | Medium | OPEN | [DIA-260911-ddsm-commit-j5k6-changelog-yaml-hunk-and-render-markdown-view.md](DIA-260911-ddsm-commit-j5k6-changelog-yaml-hunk-and-render-markdown-view.md) |
+| DIA-260911-rqmw | Route coder-escalated to GPT-5.6 Terra High (split from DIA-260910-sjtk) | scripts | Medium | OPEN | [DIA-260911-rqmw-route-coder-escalated-to-gpt-5-6-terra-high-split-from-dia-260910-sjtk.md](DIA-260911-rqmw-route-coder-escalated-to-gpt-5-6-terra-high-split-from-dia-260910-sjtk.md) |
 | DIA-260911-y52j | Fix recursive child_process mock in reviewer immutable git envelope test | tests-infra | Major | CLOSED | [DIA-260911-y52j-fix-recursive-child-process-mock-in-reviewer-immutable-git-envelope-test.md](DIA-260911-y52j-fix-recursive-child-process-mock-in-reviewer-immutable-git-envelope-test.md) |
 
 ## Status summary
@@ -317,7 +319,7 @@
 | Blocker  | 9     |
 | Critical | 15    |
 | Major    | 75    |
-| Medium   | 155   |
+| Medium   | 157   |
 | Minor    | 1     |
 | Low      | 30    |
 | Info     | 2     |
@@ -325,7 +327,7 @@
 
 | Status      | Count |
 | ----------- | ----- |
-| OPEN        | 77    |
+| OPEN        | 76    |
 | DONE        | 11    |
 | VALIDATE    | 0     |
 | E2E         | 0     |
@@ -334,7 +336,7 @@
 | FIXED       | 1     |
 | IMPLEMENTED | 2     |
 | VERIFIED    | 28    |
-| CLOSED      | 185   |
+| CLOSED      | 188   |
 | BLOCKED     | 0     |
 | DISPATCHED  | 0     |
 | RUNNING     | 0     |
