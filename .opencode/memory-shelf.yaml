@@ -1197,16 +1197,13 @@ shelf:
       skill validator beyond form checks to validate explicit capability declarations
       (presets, commands, agent permissions, binaries) against a read-only runtime
       manifest. Collect-all hard-fail on unresolved references. Hermetic Bats fixtures.
-      No implementation code changed; spec only."
+      No implementation code changed; spec only. Artifacts: proposal.md, design.md,
+      specs/skill-capability-compatibility/spec.md, tasks.md (all under
+      openspec/changes/skill-validator-capability-compatibility/)."
     path: openspec/changes/skill-validator-capability-compatibility/
     created: 2026-09-11
     task_ref: DIA-260831-j5k6
     status: validated
-    artifacts:
-    - openspec/changes/skill-validator-capability-compatibility/proposal.md
-    - openspec/changes/skill-validator-capability-compatibility/design.md
-    - openspec/changes/skill-validator-capability-compatibility/specs/skill-capability-compatibility/spec.md
-    - openspec/changes/skill-validator-capability-compatibility/tasks.md
   architectures:
   - name: dia-redispatch-cycle
     description: "Design-authority seed for the dev-infra campaign protocol (CRISIS-DETECTION, PROGNOSIS-DISCIPLINE, cycle-budget management): 5 ADRs (ADR-001 prognosis in HANDOFF.md only, ADR-002 C1-C5 OR-combined triggers, ADR-003 fresh-session independence, ADR-004 max-cycles=3 budget default, ADR-005 soft exhaustion) that the redispatch rule texts must not contradict. Seeded 2026-08-03 from interview Q5."

@@ -6,7 +6,7 @@ id: DIA-260911-rqmw
 title: "Route coder-escalated to GPT-5.6 Terra High (split from DIA-260910-sjtk)"
 area: scripts
 severity: Medium
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: ""
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
@@ -121,3 +121,19 @@ on commit cdd5f04: AGENTS.md hunk is the semantic coder-escalated row
 only; slim jsonc hunk is coder-escalated model plus orchestratorPrompt
 line only (utility-lane preset churn excluded). Description 4-vs-5
 drift fixed (registry listed as 5th surface).
+
+## Closure re-verify 2026-09-11 (host, test-config green)
+
+- make test-config: exit 0, 8 suites 57 tests pass 57 fail 0.
+- scripts/validate-memory-shelf.sh: exit 0 (1 passed, 0 failed;
+  shelf shape matches scripts/schemas/memory-shelf.schema.json;
+  two disk-artifact warnings are warn-only, non-blocking).
+- git diff --check: exit 0 (worktree and staged).
+- Shelf hunk in this commit is ONLY specs[31] artifacts-key fix
+  (artifacts list folded into description, zero info loss, schema
+  valid); memory-manager sole-writer lane applied it, this lane
+  commits the existing hunk only with no shelf edits.
+- Prior commits cdd5f04 (9-file 5-surface set) + 2c54731
+  (verification-key fix, ticket boxes checked) stand; ai-auditor
+  ai--4 BLOCKED item resolved by the verification-key fix.
+- Status CLOSED per standing developer decision CLOSE.
