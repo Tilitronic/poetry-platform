@@ -41,25 +41,22 @@ evidence:
 
 Route the architector lane of the active muse-qwen-balanced preset from the
 unavailable github-copilot/gemini-3.1-pro-preview to openai/gpt-5.6-sol at high
-reasoning (big-pickle fallback retained). Approved expanded scope also moves
-coder/researcher to Muse Free primary + Luna Medium fallback, code-navigator /
-resource-manager to Luna Medium single-model, memory-manager to MiMo Free +
-Luna Medium (no Go fallback), and coder-escalated to Terra High. Config
-targets: .opencode/oh-my-opencode-slim.jsonc (muse-qwen-balanced block),
-.opencode/opencode.jsonc (coder-escalated direct route), .opencode/agents/coder-escalated.md.
+reasoning (big-pickle fallback retained). Scope is architector-only: the
+coder-escalated Terra High change belongs to DIA-260911-rqmw, and Luna
+utility-lane routing is tracked outside this ticket. Config target:
+.opencode/oh-my-opencode-slim.jsonc (muse-qwen-balanced architector block
+only).
 
 ## Verification
 
-✓ **Configuration changes applied to muse-qwen-balanced preset:**
+✓ **Configuration change applied to muse-qwen-balanced preset (architector-only):**
 
-- **orchestrator**: `["opencode/muse-spark-1.3-contributor-free", "openai/gpt-5.6-luna"]` (free primary, luna fallback) ✓
 - **architector**: `["openai/gpt-5.6-sol", "opencode/big-pickle"]` at variant `high` ✓
-- **coder**: `["opencode/muse-spark-1.3-contributor-free", "openai/gpt-5.6-luna"]` (removed deepseek-v4-flash), luna at variant `medium` ✓
-- **researcher**: `["opencode/muse-spark-1.3-contributor-free", "openai/gpt-5.6-luna"]` (removed deepseek-v4-flash), luna at variant `medium` ✓
-- **code-navigator**: `["openai/gpt-5.6-luna"]` at variant `medium` (removed deepseek-v4-flash) ✓
-- **resource-manager**: `["openai/gpt-5.6-luna"]` at variant `medium` (removed deepseek-v4-flash) ✓
-- **memory-manager**: `["opencode/mimo-v2.5-free", "openai/gpt-5.6-luna"]` (removed deepseek-v4-flash), luna at variant `medium` ✓
-- **coder-escalated**: `["openai/gpt-5.6-terra"]` at variant `high` (replaced kimi-k3 + deepseek-v4-pro) ✓
+
+No other lane is changed by this ticket. Orchestrator / coder / researcher /
+code-navigator / resource-manager / memory-manager routing and coder-escalated
+(Terra High, DIA-260911-rqmw) are out of scope here and left untouched by this
+commit.
 
 **Next steps:**
 
@@ -107,16 +104,10 @@ Implementation requirements:
 - Non-empty Zen route smoke: opencode/muse-spark-1.3-contributor-free at high returned ORCHESTRATOR_MUSE_SMOKE_OK with exit 0.
 - Previously in this verification session, isolated non-empty smokes also passed: Sol High -> SOL_HIGH_SMOKE_OK; Luna Low -> LUNA_LOW_SMOKE_OK; Luna Medium -> LUNA_MEDIUM_SMOKE_OK; Muse Free Medium -> MUSE_FREE_SMOKE_OK; MiMo Free Medium -> MIMO_FREE_SMOKE_OK. Each returned exit 0.
 
-Developer decisions 2026-09-11:
-
-- Keep code-navigator and resource-manager on Luna medium. The earlier low target is superseded.
-- Replace coder-escalated Kimi K3 with OpenAI GPT-5.6 Terra at high reasoning.
-
-Coder-escalated closure evidence:
-
-- Removed the direct opencode-go/kimi-k3 override in .opencode/opencode.jsonc; the direct route now uses openai/gpt-5.6-terra.
-- Updated the coder-escalated agent contract and active preset prompt to GPT-5.6 Terra High. The one-shot rule remains: a failure asks the developer before another paid escalation.
-- Post-restart resolver: coder-escalated -> provider openai, model gpt-5.6-terra, variant high.
-- Isolated non-empty Terra High smoke returned CODER_ESCALATED_TERRA_HIGH_SMOKE_OK with exit 0.
+Scope note 2026-09-11 (architector-only split): Luna utility-lane routing and
+the coder-escalated Kimi K3 to GPT-5.6 Terra High change are NOT part of this
+ticket. Terra 4-surface changes belong to DIA-260911-rqmw and remain
+uncommitted there. This ticket lands only the architector Sol High +
+big-pickle route.
 
 There is no remaining model-routing discrepancy. Final ticket closure still requires the independent ai-auditor review and changelog registration required by the section-2.5 workflow.

@@ -1062,8 +1062,8 @@
 - **Files:** .opencode/plugins/needs-input-observer.ts - .opencode/plugins/__tests__/needs-input-observer.per-permission-rows.test.mjs - .opencode/plugins/__tests__/needs-input-observer.reload-dedup.test.mjs - scripts/ticker-render.sh - scripts/__tests__/ticker-render.bats - .opencode/learnings/external-patterns/2026-09-11-gnsv-per-permission-ticker-rows.md
 - **Verification:** manual
 
-## 2026-09-11 - DIA-260910-sjtk: model routing: architector Sol High + big-pickle; Muse Free + Luna Medium chains; Luna Medium single-model utility lanes; MiMo Free + Luna Medium; coder-escalated Terra High; ticket-doc reconciliation + learnings outcome + changelog registration
+## 2026-09-11 - DIA-260910-sjtk: architector Sol High + big-pickle (architector-only split, commit 6a35248)
 
-- **Change:** Change: DIA-260910-sjtk (opencode-config, Major) model routing for the active muse-qwen-balanced preset. Architector github-copilot/gemini-3.1-pro-preview replaced by openai/gpt-5.6-sol high (big-pickle fallback retained). Coder/researcher on Muse Free primary + Luna Medium fallback; code-navigator/resource-manager on Luna Medium single-model; memory-manager on MiMo Free + Luna Medium (no Go fallback); coder-escalated Kimi K3 replaced by Terra High (direct route + preset prompt, one-shot rule retained). Ticket doc reconciled to current config; learnings outcome finalized.
-- **Files:** docs/dev-infra-audit/tickets/DIA-260910-sjtk-route-architector-to-openai-gpt-5-6-sol-high.md - .opencode/learnings/external-patterns/2026-09-11-dia-260910-sjtk-model-routing.md - .opencode/oh-my-opencode-slim.jsonc - .opencode/opencode.jsonc - .opencode/agents/coder-escalated.md
+- **Change:** Change: DIA-260910-sjtk (opencode-config, Major) routes the active muse-qwen-balanced architector lane from github-copilot/gemini-3.1-pro-preview to openai/gpt-5.6-sol high (big-pickle fallback retained). Architector-only; Luna utility lanes and coder-escalated Terra High belong to DIA-260911-rqmw and are not part of this commit.
+- **Files:** docs/dev-infra-audit/tickets/DIA-260910-sjtk-route-architector-to-openai-gpt-5-6-sol-high.md - .opencode/learnings/external-patterns/2026-09-11-dia-260910-sjtk-model-routing.md - .opencode/oh-my-opencode-slim.jsonc
 - **Verification:** manual
