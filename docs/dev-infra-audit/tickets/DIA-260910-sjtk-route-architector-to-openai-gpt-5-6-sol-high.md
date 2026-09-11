@@ -63,34 +63,38 @@ commit.
 - [x] Run config validation: `make test-config`
 - [x] Restart OpenCode + functional smoke test (see Re-verify evidence below)
 - [x] Dispatch @ai-auditor for independent review (ses_f6f1794ffffeuW0hxGAd3oo5CD, CONFIG PASS, WORKFLOW CLOSURE BLOCKED on doc/changelog only)
-- [ ] Register changelog entry via `scripts/changelog-add`
+- [x] Register changelog entry (CHANGELOG.yaml sjtk entry exists; derived MD regenerated via scripts/changelog-render)
 
 ## Fix
 
-Approved expanded scope, active "muse-qwen-balanced" preset:
+Architector-only change, active "muse-qwen-balanced" preset:
 
-- orchestrator: keep opencode/muse-spark-1.3-contributor-free as primary at high reasoning; openai/gpt-5.6-luna remains its fallback. Do not use Terra Fast for this lane.
 - architector: replace unavailable github-copilot/gemini-3.1-pro-preview with openai/gpt-5.6-sol at high reasoning; retain opencode/big-pickle fallback.
-- coder and researcher: use opencode/muse-spark-1.3-contributor-free as primary; use openai/gpt-5.6-luna as the immediate fallback.
-- every remaining Zen Free model in the active preset: place openai/gpt-5.6-luna immediately after the free model, before any paid OpenCode Go fallback.
-- code-navigator and resource-manager: use openai/gpt-5.6-luna at medium reasoning as primary. Developer decision 2026-09-11: retain medium for these bounded utility lanes.
 
-Decision record (developer approved):
+Explicitly out of scope for this ticket (owned elsewhere, untouched by this
+commit):
 
-- A, chosen: the medium-cost hybrid above. It keeps free Zen Muse as the orchestrator primary to preserve OpenCode Go quota; Luna is the paid resilience fallback; Sol High remains reserved for rare architecture decisions.
+- coder-escalated Kimi K3 to GPT-5.6 Terra High: belongs to DIA-260911-rqmw
+  (Terra 4-surface changes remain uncommitted there).
+- orchestrator / coder / researcher / code-navigator / resource-manager /
+  memory-manager routing (Muse Free / Luna Medium proposals): tracked outside
+  this ticket, not landed here.
+
+Decision record (developer approved, context only - not landed by this ticket):
+
+- A, described: the medium-cost hybrid above. It keeps free Zen Muse as the orchestrator primary to preserve OpenCode Go quota; Luna is the paid resilience fallback; Sol High remains reserved for rare architecture decisions.
 - B, not chosen: Terra Fast as orchestrator primary. It improves latency but adds direct OpenAI spend without improving reasoning quality.
 - C, not chosen/status quo: retain Gemini and OpenCode Go-backed models. Gemini is currently unavailable and does not preserve the remaining OpenCode Go quota.
 
 Evidence:
 
-- Runtime resolver and non-empty smoke confirm orchestrator -> opencode/muse-spark-1.3-contributor-free at high reasoning.
 - Official OpenAI model docs describe GPT-5.6 Sol as the flagship model for complex professional work and support high reasoning effort.
-- Official OpenAI model docs describe GPT-5.6 Luna as optimized for cost-sensitive, high-volume workloads and support low through max reasoning effort.
+- Post-restart smoke in this verification session passed non-empty: Sol High -> SOL_HIGH_SMOKE_OK (exit 0).
 
 Implementation requirements:
 
 - Run the section-2.5 configuration workflow: config validation, JSONC parse, restart plus functional smoke, independent ai-auditor review, then changelog registration.
-- Confirm direct OpenAI provider authentication before activating a Luna or Sol route.
+- Confirm direct OpenAI provider authentication before activating the Sol route.
 
 ## Re-verify
 
@@ -110,4 +114,4 @@ ticket. Terra 4-surface changes belong to DIA-260911-rqmw and remain
 uncommitted there. This ticket lands only the architector Sol High +
 big-pickle route.
 
-There is no remaining model-routing discrepancy. Final ticket closure still requires the independent ai-auditor review and changelog registration required by the section-2.5 workflow.
+There is no remaining model-routing discrepancy for the architector lane. Changelog entry is registered (canonical YAML plus derived MD). Final ticket closure still requires the independent ai-auditor review required by the section-2.5 workflow.
