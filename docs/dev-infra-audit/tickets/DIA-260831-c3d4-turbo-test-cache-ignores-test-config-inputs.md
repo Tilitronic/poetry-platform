@@ -6,7 +6,7 @@ id: DIA-260831-c3d4
 title: "Turbo test cache ignores test config inputs"
 area: tests-infra
 severity: Medium
-status: OPEN
+status: CLOSED
 blocked_by: []
 parent_epic: DIA-260827-wfcx
 gate_state: "skipped"
@@ -17,7 +17,7 @@ discovered: 2026-08-31
 source: inventory
 date: 2026-08-31
 created: 2026-08-31
-updated: 2026-08-31
+updated: 2026-09-11
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -30,7 +30,9 @@ attempts: 0
 lease_expires_at: ""
 files_touched: []
 artifacts: []
-evidence: []
+evidence:
+
+- merge 6e6d4b8 turbo.json test inputs [src/**,vitest.config.ts,tsconfig*.json]
 
 ---
 

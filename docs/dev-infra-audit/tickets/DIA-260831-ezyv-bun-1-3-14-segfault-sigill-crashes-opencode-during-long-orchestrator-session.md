@@ -6,7 +6,7 @@ id: DIA-260831-ezyv
 title: "Bun 1.3.14 segfault/SIGILL crashes opencode during long orchestrator session"
 area: opencode
 severity: Major
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: ""
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
@@ -17,7 +17,7 @@ discovered: 2026-08-31
 source: inventory
 date: 2026-08-31
 created: 2026-08-31
-updated: 2026-08-31
+updated: 2026-09-11
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -30,7 +30,9 @@ attempts: 0
 lease_expires_at: "" # ISO-8601; set on DISPATCHED, cleared on COMPLETE
 files_touched: []
 artifacts: []
-evidence: []
+evidence:
+
+- docs/runbook/bun-crash-mitigation.md landed, explicit no-file upstream decision at 7e2947f per developer
 
 ---
 

@@ -267,7 +267,7 @@
 | DIA-260830-i9d | Evaluate and apply oh-my-opencode-slim 2.217 update if worthwhile | opencode-config | Info | OPEN | [DIA-260830-i9d-evaluate-and-apply-oh-my-opencode-slim-2-217-update-if-worthwhile.md](DIA-260830-i9d-evaluate-and-apply-oh-my-opencode-slim-2-217-update-if-worthwhile.md) |
 | DIA-260831-a1b2 | Test infra cold start cannot bootstrap prerequisites | tests-infra | High | OPEN | [DIA-260831-a1b2-test-infra-cold-start-cannot-bootstrap-prerequisites.md](DIA-260831-a1b2-test-infra-cold-start-cannot-bootstrap-prerequisites.md) |
 | DIA-260831-b7c8 | Delegation observer plugin too broad extract deep modules | opencode-config | Medium | OPEN | [DIA-260831-b7c8-delegation-observer-plugin-too-broad-extract-deep-modules.md](DIA-260831-b7c8-delegation-observer-plugin-too-broad-extract-deep-modules.md) |
-| DIA-260831-c3d4 | Turbo test cache ignores test config inputs | tests-infra | Medium | OPEN | [DIA-260831-c3d4-turbo-test-cache-ignores-test-config-inputs.md](DIA-260831-c3d4-turbo-test-cache-ignores-test-config-inputs.md) |
+| DIA-260831-c3d4 | Turbo test cache ignores test config inputs | tests-infra | Medium | CLOSED | [DIA-260831-c3d4-turbo-test-cache-ignores-test-config-inputs.md](DIA-260831-c3d4-turbo-test-cache-ignores-test-config-inputs.md) |
 | DIA-260831-d9e0 | CommandBus serves only no-op producer | js-tooling | Low | OPEN | [DIA-260831-d9e0-commandbus-serves-only-no-op-producer.md](DIA-260831-d9e0-commandbus-serves-only-no-op-producer.md) |
 | DIA-260831-e5f6 | Plugin cleanup test intentionally skipped | tests-infra | Medium | OPEN | [DIA-260831-e5f6-plugin-cleanup-test-intentionally-skipped.md](DIA-260831-e5f6-plugin-cleanup-test-intentionally-skipped.md) |
 | DIA-260831-f1g2 | Editor redundant paths debug machinery | js-tooling | Low | OPEN | [DIA-260831-f1g2-editor-redundant-paths-debug-machinery.md](DIA-260831-f1g2-editor-redundant-paths-debug-machinery.md) |
@@ -325,7 +325,7 @@
 
 | Status      | Count |
 | ----------- | ----- |
-| OPEN        | 78    |
+| OPEN        | 77    |
 | DONE        | 11    |
 | VALIDATE    | 0     |
 | E2E         | 0     |
@@ -334,7 +334,7 @@
 | FIXED       | 1     |
 | IMPLEMENTED | 2     |
 | VERIFIED    | 28    |
-| CLOSED      | 184   |
+| CLOSED      | 185   |
 | BLOCKED     | 0     |
 | DISPATCHED  | 0     |
 | RUNNING     | 0     |
