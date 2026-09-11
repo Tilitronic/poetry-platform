@@ -1073,3 +1073,9 @@
 - **Change:** Change: DIA-260911-rqmw (opencode-config, Medium) routes coder-escalated from opencode-go/kimi-k3 to openai/gpt-5.6-terra high (one-shot no-retry retained, developer-gated paid escalation). 5-surface atomic set: opencode.jsonc direct route, coder-escalated.md contract, AGENTS.md table row, slim jsonc coder-escalated hunk plus orchestratorPrompt line, registry Rung3 plus Terra long-context price correction. Preset churn excluded per owner rule.
 - **Files:** docs/dev-infra-audit/tickets/DIA-260911-rqmw-route-coder-escalated-to-gpt-5-6-terra-high-split-from-dia-260910-sjtk.md - .opencode/learnings/external-patterns/2026-09-11-dia-260911-rqmw-terra-routing.md - .opencode/opencode.jsonc - .opencode/agents/coder-escalated.md - AGENTS.md - .opencode/oh-my-opencode-slim.jsonc - knowledge/model-registry.yaml
 - **Verification:** manual
+
+## 2026-09-11 - DIA-260831-j5k6: skill validator compat tier (opencode-config)
+
+- **Change:** Close: DIA-260831-j5k6 (opencode-config, Medium) adds skill validator compat tier: 4 capability classes (preset/command/agent-permission/binary) plus requires_bash floor, 12 hermetic fixtures (dangling preset, impossible bash 99.0). Evidence: bats 35/35 exit 0, real-tree 26 passed / 40 warnings exit 0, wrapper exit 0. Commits 3a7a2b6 plus a054191; reviewer rev-1 (4 findings accepted) plus rev-2 re-review 1/2 (5/5 verified-closed); ai-auditor PASS advisory.
+- **Files:** .opencode/scripts/validate-skills.sh - scripts/__tests__/validate-skills.bats - openspec/changes/skill-validator-capability-compatibility/ - knowledge/res-260911-emj8-skill-validator-compat/
+- **Verification:** manual

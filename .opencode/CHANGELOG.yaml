@@ -4663,3 +4663,19 @@
     correction. Preset churn excluded per owner rule.'
   verification: manual
   area: opencode-config
+- date: '2026-09-11'
+  ticket: DIA-260831-j5k6
+  scope: skill validator compat tier (opencode-config)
+  files:
+  - .opencode/scripts/validate-skills.sh
+  - scripts/__tests__/validate-skills.bats
+  - openspec/changes/skill-validator-capability-compatibility/
+  - knowledge/res-260911-emj8-skill-validator-compat/
+  summary: 'Close: DIA-260831-j5k6 (opencode-config, Medium) adds skill validator
+    compat tier: 4 capability classes (preset/command/agent-permission/binary) plus
+    requires_bash floor, 12 hermetic fixtures (dangling preset, impossible bash 99.0).
+    Evidence: bats 35/35 exit 0, real-tree 26 passed / 40 warnings exit 0, wrapper
+    exit 0. Commits 3a7a2b6 plus a054191; reviewer rev-1 (4 findings accepted) plus
+    rev-2 re-review 1/2 (5/5 verified-closed); ai-auditor PASS advisory.'
+  verification: manual
+  area: opencode-config
