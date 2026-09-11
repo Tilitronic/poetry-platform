@@ -6,7 +6,7 @@ id: DIA-260910-sjtk
 title: "Route architector to OpenAI GPT-5.6 Sol High"
 area: opencode-config
 severity: Major
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: ""
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
@@ -17,7 +17,7 @@ discovered: 2026-09-10
 source: inventory
 date: 2026-09-10
 created: 2026-09-10
-updated: 2026-09-10
+updated: 2026-09-11
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -115,3 +115,8 @@ uncommitted there. This ticket lands only the architector Sol High +
 big-pickle route.
 
 There is no remaining model-routing discrepancy for the architector lane. Changelog entry is registered (canonical YAML plus derived MD). Final ticket closure still requires the independent ai-auditor review required by the section-2.5 workflow.
+
+Closure 2026-09-11: developer accepted residual risk on the rqmw template
+finding (still-open, deferred to its own lane DIA-260911-rqmw). ai-auditor
+2/2: scope verified-closed, changelog verified-closed, F1 scope closed.
+Status set to CLOSED via scripts/tickets update.
