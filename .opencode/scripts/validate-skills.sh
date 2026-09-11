@@ -14,6 +14,16 @@
 #     2. `name` present + non-empty.
 #     3. `description` present + non-empty.
 #     4. `name` equals the parent directory name.
+#   COMPAT (exit 1 per unresolved entry, collect-all — never fail-fast):
+#     5. Every `presets:` entry names a preset in the read-only preset
+#        manifest (default: the `presets` block of the real
+#        .opencode/oh-my-opencode-slim.jsonc; COMPAT_PRESETS_FILE override
+#        points at a JSON file shaped like that block for hermetic tests).
+#        Empty entries and non-list shapes are HARD failures.
+#     6. `requires_bash:` ("major.minor" minimum) is satisfiable by the
+#        PATH-resolved `bash --version`. Empty/malformed values are HARD
+#        failures; an unsatisfiable minimum is a per-declaration FAIL.
+#        Each compat FAIL names skill, class, declaration, and target.
 #   SOFT (warn-only to stderr, never affects exit code):
 #     5. Body's first non-blank line starts with an activation phrase
 #        ("Use when" / "Invoke when" / "Trigger via" / "Use for" / "Use ONLY
@@ -21,8 +31,12 @@
 #     6. Frontmatter declares a `license:` field (provenance audit concern,
 #        not a runtime one — some vendored skills legitimately omit it).
 #
-# SOFT checks are skipped for a file that fails any HARD check (no parsed
+#   SOFT checks are skipped for a file that fails any HARD check (no parsed
 # frontmatter / no extracted body to inspect).
+#
+#   COMPAT checks run even when a file fails a form HARD check (collect-all):
+# only explicit machine-readable `presets:` / `requires_bash:` declarations
+# participate — prose is never inferred. Empty optional lists are valid.
 #
 # Exit codes: 0 all HARD pass (SOFT warnings may print), 1 HARD failure,
 # 2 infrastructure failure (python3 missing / skills root missing /
@@ -97,6 +111,7 @@ def parse_flat(text):
     """
     result = {}
     block_key = None
+    list_key = None
     skipped_nested = False
     for raw in text.splitlines():
         line = raw.rstrip("\n")
@@ -104,12 +119,20 @@ def parse_flat(text):
             continue
         stripped = line.lstrip()
         if line != stripped:
-            # Indented line: `>-` block-scalar continuation or nested-map
-            # content. Nested content is tolerated (permissive subset parser)
+            # Indented line: `>-` block-scalar continuation, a `- item` list
+            # entry under a known list key (currently only `presets:` — the
+            # compat tier needs it even on PyYAML-less hosts), or nested-map
+            # content. Anything else is tolerated (permissive subset parser)
             # and flagged once per file so the tolerance stays visible.
             if block_key is not None:
                 result[block_key] = (result.get(block_key, "") + " " + stripped).strip()
+            elif list_key is not None and stripped.startswith("- "):
+                item = stripped[2:].strip()
+                if len(item) >= 2 and item[0] == item[-1] and item[0] in "\"'":
+                    item = item[1:-1]
+                result[list_key].append(item)
             else:
+                list_key = None
                 skipped_nested = True
             continue
         block_key = None
@@ -118,11 +141,20 @@ def parse_flat(text):
             raise ValueError("not a YAML mapping")
         key, value = match.group(1), match.group(2).strip()
         if value == ">-":
+            list_key = None
             block_key = key
             result[key] = ""
             continue
         if len(value) >= 2 and value[0] == value[-1] and value[0] in "\"'":
             value = value[1:-1]
+        if value == "" and key == "presets":
+            # Empty value on the known compat list key: tentatively a block
+            # sequence; following indented `- item` lines append above. Any
+            # other indented content cancels the list (nested-map tolerance).
+            list_key = key
+            result[key] = []
+            continue
+        list_key = None
         result[key] = value
     return result, skipped_nested
 
@@ -178,6 +210,40 @@ def main():
 
     # E6: skip SOFT (license WARN, activation phrase) if any HARD failed;
     # D7: HARD checks accumulate within a file (collect-all, never fail-fast).
+    #
+    # Compat tier (DIA-260831-j5k6): explicit capability declarations are the
+    # only compat input — prose is never inferred. Shape problems (empty
+    # entries, wrong types, malformed versions) are HARD here; cross-manifest
+    # resolution happens in bash against the one startup snapshot. COMPAT lines
+    # print regardless of `hard` so compat findings join the collect-all set
+    # instead of hiding behind an unrelated form failure.
+    presets = data.get("presets")
+    # Absent key or `presets:` with no entries (None): empty optional list.
+    if presets is not None:
+        if not isinstance(presets, list):
+            print(f"HARD|skill '{skill_name}': 'presets' must be a list of preset names (class preset) in {skill_file}")
+            hard = 1
+        else:
+            for entry in presets:
+                if entry is None or (isinstance(entry, str) and not entry.strip()):
+                    print(f"HARD|skill '{skill_name}': empty entry in 'presets' declaration (class preset) in {skill_file}")
+                    hard = 1
+                elif not isinstance(entry, str):
+                    print(f"HARD|skill '{skill_name}': non-string entry {entry!r} in 'presets' declaration (class preset) in {skill_file}")
+                    hard = 1
+                else:
+                    print(f"COMPAT_PRESET|{entry.strip()}")
+    req_bash = data.get("requires_bash")
+    if req_bash is not None:
+        req_str = str(req_bash).strip()
+        if not req_str:
+            print(f"HARD|skill '{skill_name}': empty 'requires_bash' declaration (class bash) in {skill_file}")
+            hard = 1
+        elif not re.match(r"^[0-9]+(\.[0-9]+){0,2}$", req_str):
+            print(f"HARD|skill '{skill_name}': malformed 'requires_bash' version {req_str!r} (expected major.minor, class bash) in {skill_file}")
+            hard = 1
+        else:
+            print(f"COMPAT_BASH|{req_str}")
     if not hard:
         if not data.get("license"):
             print(f"WARN|no license declared in {skill_file} — verify provenance")
@@ -198,6 +264,103 @@ PYEOF
 failures=0
 passed=0
 warnings=0
+
+# ---------------------------------------------------------------------------
+# Compat tier snapshot (DIA-260831-j5k6): parsed ONCE at startup, held in
+# memory, never re-parsed per skill or per reference.
+#
+# Preset manifest: COMPAT_PRESETS_FILE override (hermetic bats fixtures) or
+# the real .opencode/oh-my-opencode-slim.jsonc `presets` block. JSONC comments
+# are stripped string-aware (naive // stripping would corrupt URLs inside
+# prompt strings). A missing/malformed manifest is a validation failure
+# (exit 1, spec "Required manifest unavailable"), not infra (exit 2).
+#
+# Bash floor: `bash --version` resolves via PATH (fixtures stub it) and is
+# probed exactly once; every requires_bash declaration compares in memory.
+# ---------------------------------------------------------------------------
+COMPAT_PRESETS_FILE="${COMPAT_PRESETS_FILE:-$ROOT/.opencode/oh-my-opencode-slim.jsonc}"
+
+cat > "$workdir/compat-presets.py" <<'PYEOF'
+import json
+import sys
+
+
+def strip_jsonc(text):
+    out = []
+    i, n = 0, len(text)
+    in_str = False
+    esc = False
+    while i < n:
+        c = text[i]
+        if in_str:
+            out.append(c)
+            if esc:
+                esc = False
+            elif c == "\\":
+                esc = True
+            elif c == '"':
+                in_str = False
+            i += 1
+            continue
+        if c == '"':
+            in_str = True
+            out.append(c)
+            i += 1
+            continue
+        if c == "/" and i + 1 < n and text[i + 1] == "/":
+            while i < n and text[i] != "\n":
+                i += 1
+            continue
+        if c == "/" and i + 1 < n and text[i + 1] == "*":
+            i += 2
+            while i + 1 < n and not (text[i] == "*" and text[i + 1] == "/"):
+                i += 1
+            i += 2
+            continue
+        out.append(c)
+        i += 1
+    return "".join(out)
+
+
+with open(sys.argv[1]) as f:
+    data = json.loads(strip_jsonc(f.read()))
+presets = data.get("presets")
+if not isinstance(presets, dict):
+    raise ValueError('missing top-level "presets" object')
+for name in presets:
+    print(name)
+PYEOF
+
+declare -A compat_presets=()
+compat_presets_ok=1
+if preset_names="$(python3 "$workdir/compat-presets.py" "$COMPAT_PRESETS_FILE" 2>"$workdir/presets.err")"; then
+  while IFS= read -r pname; do
+    # if-guard (not &&): an empty line must not fail under set -e, and an
+    # empty manifest (no presets) must simply yield an empty set.
+    if [ -n "$pname" ]; then
+      compat_presets["$pname"]=1
+    fi
+  done <<< "$preset_names"
+else
+  echo "FAIL: preset manifest missing or malformed: $COMPAT_PRESETS_FILE" >&2
+  if [ -s "$workdir/presets.err" ]; then
+    tr '\n' ' ' < "$workdir/presets.err" >&2
+    echo "" >&2
+  fi
+  failures=$((failures + 1))
+  compat_presets_ok=0
+fi
+
+compat_bash_actual=""
+compat_bash_major=0
+compat_bash_minor=0
+if bash_line="$(bash --version 2>/dev/null | head -n 1)"; then
+  if [[ "$bash_line" =~ version\ ([0-9]+)\.([0-9]+) ]]; then
+    compat_bash_major="${BASH_REMATCH[1]}"
+    compat_bash_minor="${BASH_REMATCH[2]}"
+    compat_bash_actual="$compat_bash_major.$compat_bash_minor"
+  fi
+fi
 
 for skill_dir in "$SKILLS_ROOT"/*/; do
   # With nullglob off, an empty root leaves the literal glob pattern — skip it.
@@ -244,6 +407,9 @@ for skill_dir in "$SKILLS_ROOT"/*/; do
 
   file_failed=0
   file_warned=0
+  compat_preset_entries=()
+  compat_bash_req=""
+  compat_fails=0
   if ! python3 "$workdir/validate.py" "$fm_tmp" "$skill_name" "$skill_file" >"$py_out" 2>"$py_err"; then
     file_failed=1
   fi
@@ -252,6 +418,14 @@ for skill_dir in "$SKILLS_ROOT"/*/; do
       HARD\|*)
         echo "FAIL: ${line#HARD|}" >&2
         file_failed=1
+        ;;
+      COMPAT_PRESET\|*)
+        # Stashed, not printed: resolution against the startup snapshot below
+        # is an in-memory set lookup — no subprocess per reference.
+        compat_preset_entries+=("${line#COMPAT_PRESET|}")
+        ;;
+      COMPAT_BASH\|*)
+        compat_bash_req="${line#COMPAT_BASH|}"
         ;;
       WARN\|*)
         echo "warn: ${line#WARN|}" >&2
@@ -269,6 +443,47 @@ for skill_dir in "$SKILLS_ROOT"/*/; do
     # python3 crashed outside its error handlers — surface the traceback.
     cat "$py_err" >&2
     file_failed=1
+  fi
+  form_failed="$file_failed"
+
+  # Compat resolution (in-memory; the manifests were snapshotted once at
+  # startup). Each unresolved entry is one distinct FAIL naming skill, class,
+  # declaration, and target; collect-all, never fail-fast. Runs even when the
+  # file failed a form check so compat findings never hide behind form noise.
+  if [ "$compat_presets_ok" -eq 1 ]; then
+    for entry in "${compat_preset_entries[@]}"; do
+      # The ${var:-} guard is required under `set -u`: an absent preset is an
+      # unset assoc key.
+      if [ -z "${compat_presets[$entry]:-}" ]; then
+        echo "FAIL: skill '$skill_name': preset '$entry' not found in preset manifest (class preset, declaration 'presets' in $skill_file)" >&2
+        compat_fails=$((compat_fails + 1))
+        file_failed=1
+      fi
+    done
+  fi
+  # An unloadable manifest already emitted its own FAIL at startup; per-entry
+  # preset checks are skipped (nothing to resolve against), not re-reported.
+  if [ -n "$compat_bash_req" ]; then
+    req_major="${compat_bash_req%%.*}"
+    req_rest="${compat_bash_req#*.}"
+    if [ "$req_rest" = "$compat_bash_req" ]; then
+      req_minor=0
+    elif [[ "$req_rest" == *.* ]]; then
+      req_minor="${req_rest%%.*}"
+    else
+      req_minor="$req_rest"
+    fi
+    if [ -z "$compat_bash_actual" ]; then
+      echo "FAIL: skill '$skill_name': requires_bash '$compat_bash_req' cannot be satisfied, bash version unknown (class bash in $skill_file)" >&2
+      compat_fails=$((compat_fails + 1))
+      file_failed=1
+    elif [ "$compat_bash_major" -gt "$req_major" ] || { [ "$compat_bash_major" -eq "$req_major" ] && [ "$compat_bash_minor" -ge "$req_minor" ]; }; then
+      : # Satisfied: running bash meets the declared minimum.
+    else
+      echo "FAIL: skill '$skill_name': requires_bash '$compat_bash_req' cannot be satisfied by bash $compat_bash_actual (class bash in $skill_file)" >&2
+      compat_fails=$((compat_fails + 1))
+      file_failed=1
+    fi
   fi
 
   # SOFT check: activation-phrase prefix on the body's first non-blank line.
@@ -291,7 +506,12 @@ for skill_dir in "$SKILLS_ROOT"/*/; do
   fi
 
   if [ "$file_failed" -eq 1 ]; then
-    failures=$((failures + 1))
+    # Form HARD counts once per file (existing convention); each compat entry
+    # is a distinct failure (spec: one FAIL per unresolved declaration).
+    if [ "$form_failed" -eq 1 ]; then
+      failures=$((failures + 1))
+    fi
+    failures=$((failures + compat_fails))
   else
     echo "ok: $skill_file"
     passed=$((passed + 1))
