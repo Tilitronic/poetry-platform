@@ -2075,4 +2075,112 @@ describe('task-session-manager hook', () => {
 
     expect(board.list('parent-1')).toHaveLength(0);
   });
+
+  test('stopped unreconciled child becomes a recoverable tombstone with metadata', async () => {
+    const board = new BackgroundJobBoard();
+    const { hook } = createHook({ backgroundJobBoard: board });
+    board.registerLaunch({
+      taskID: 'child-stopped',
+      parentSessionID: 'parent-1',
+      agent: 'coder',
+      description: 'recover stopped work',
+    });
+    board.updateStatus({
+      taskID: 'child-stopped',
+      state: 'completed',
+    });
+
+    await hook.event({
+      event: {
+        type: 'session.deleted',
+        properties: { sessionID: 'child-stopped' },
+      },
+    });
+
+    const tombstone = board.get('child-stopped');
+    expect(tombstone).toBeDefined();
+    expect(tombstone?.state).toBe('stopped-without-result');
+    expect(tombstone?.terminalState).toBeUndefined();
+    expect(tombstone).toMatchObject({
+      taskID: 'child-stopped',
+      cancellationRequested: false,
+      terminalUnreconciled: true,
+    });
+
+    const prompt = board.formatForPrompt('parent-1');
+    expect(prompt).toContain('stopped-without-result');
+    expect(prompt).toContain('task_id: child-stopped');
+    expect(prompt).toContain('board_state: stopped-without-result');
+    expect(prompt).toContain('cancellationRequested: false');
+    expect(prompt).toContain('terminalUnreconciled: true');
+  });
+
+  test('stopped tombstones retain only the existing 500-entry completion bound', async () => {
+    const board = new BackgroundJobBoard();
+    const { hook } = createHook({ backgroundJobBoard: board });
+
+    for (let index = 0; index < 501; index += 1) {
+      const taskID = `stopped-${index}`;
+      board.registerLaunch({
+        taskID,
+        parentSessionID: 'parent-1',
+        agent: 'coder',
+        description: taskID,
+      });
+      board.updateStatus({ taskID, state: 'completed' });
+      await hook.event({
+        event: {
+          type: 'session.deleted',
+          properties: { sessionID: taskID },
+        },
+      });
+    }
+
+    expect(board.list('parent-1')).toHaveLength(500);
+    expect(board.get('stopped-0')).toBeUndefined();
+    expect(board.get('stopped-500')).toMatchObject({
+      state: 'stopped-without-result',
+      terminalUnreconciled: true,
+    });
+  });
+
+  test('failed exact-session recovery preserves tombstone without replacement dispatch', async () => {
+    const board = new BackgroundJobBoard();
+    const { hook } = createHook({ backgroundJobBoard: board });
+    board.registerLaunch({
+      taskID: 'child-stopped',
+      parentSessionID: 'parent-1',
+      agent: 'coder',
+      description: 'recover stopped work',
+    });
+    board.updateStatus({ taskID: 'child-stopped', state: 'completed' });
+    await hook.event({
+      event: {
+        type: 'session.deleted',
+        properties: { sessionID: 'child-stopped' },
+      },
+    });
+
+    const resume = {
+      args: { subagent_type: 'coder', task_id: 'child-stopped' },
+    };
+    await hook['tool.execute.before'](
+      { tool: 'task', sessionID: 'parent-1', callID: 'resume-1' },
+      resume,
+    );
+    expect(resume.args.task_id).toBe('child-stopped');
+
+    await hook['tool.execute.after'](
+      { tool: 'task', sessionID: 'parent-1', callID: 'resume-1' },
+      { output: '[error] session child-stopped not found' },
+    );
+
+    expect(board.list('parent-1').map((job) => job.taskID)).toEqual([
+      'child-stopped',
+    ]);
+    expect(board.get('child-stopped')).toMatchObject({
+      state: 'stopped-without-result',
+      terminalUnreconciled: true,
+    });
+  });
 });
