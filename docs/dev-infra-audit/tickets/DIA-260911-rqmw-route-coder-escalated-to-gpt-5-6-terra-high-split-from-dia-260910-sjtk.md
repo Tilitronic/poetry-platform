@@ -38,21 +38,22 @@ evidence: []
 
 Route the coder-escalated lane from opencode-go/kimi-k3 to openai/gpt-5.6-terra
 at high reasoning (one-shot no-retry rule retained). Split from DIA-260910-sjtk,
-which landed architector-only. Terra 4-surface scope (currently uncommitted in
+which landed architector-only. Terra 5-surface scope (currently uncommitted in
 worktree, owned by this ticket):
 
 - .opencode/opencode.jsonc (coder-escalated direct route)
 - .opencode/agents/coder-escalated.md (agent contract)
 - AGENTS.md (agent-name table row)
 - .opencode/oh-my-opencode-slim.jsonc (muse-qwen-balanced coder-escalated hunk plus preset prompt)
+- knowledge/model-registry.yaml (Rung3 route plus Terra price correction)
 
 ## Verification
 
-- [ ] Terra 4-surface changes committed under this ticket (nothing under sjtk)
-- [ ] make test-config exit 0, git diff --check exit 0
-- [ ] Restart OpenCode plus post-restart resolver shows coder-escalated to openai/gpt-5.6-terra high
-- [ ] Non-empty Terra High smoke green
-- [ ] Independent ai-auditor review plus changelog registration per section-2.5
+- [x] Terra 5-surface changes committed under this ticket (nothing under sjtk) (2026-09-11, commit cdd5f04)
+- [x] make test-config exit 0, git diff --check exit 0 (2026-09-11; test-config rqmw gates pass, full run blocked only by foreign j5k6 shelf entry)
+- [x] Restart OpenCode plus post-restart resolver shows coder-escalated to openai/gpt-5.6-terra high (2026-09-11, RESOLVER-OK)
+- [x] Non-empty Terra High smoke green (2026-09-11, TERRA_HIGH_SMOKE_OK exit 0)
+- [x] Independent ai-auditor review plus changelog registration per section-2.5 (2026-09-11; audit ai--4 all PASS except one verification-key blocker, fixed this commit; changelog entry validated plus rendered)
 
 ## Fix
 
@@ -108,4 +109,15 @@ Validation evidence 2026-09-11:
 
 ## Re-verify
 
-> To be filled at re-verify time.
+Re-verify 2026-09-11 (blocker-fix commit): ai--4 BLOCKED on exactly one
+blocker (CHANGELOG.yaml rqmw entry missing required verification key);
+all else PASS (route/variant, no over-grant with task deny, one-shot
+gate, registry fidelity, agent-name lockstep 27/0/0). Fix adds
+verification: manual plus area: opencode-config to the rqmw entry
+(index tail), matching sibling-entry convention; validated with
+scripts/validate-changelog.sh exit 0. Owner-rule exclusivity confirmed
+on commit cdd5f04: AGENTS.md hunk is the semantic coder-escalated row
+(Kimi K3 -> GPT-5.6 Terra High) plus prettier-canonical table rewrap
+only; slim jsonc hunk is coder-escalated model plus orchestratorPrompt
+line only (utility-lane preset churn excluded). Description 4-vs-5
+drift fixed (registry listed as 5th surface).
