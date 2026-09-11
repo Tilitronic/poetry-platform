@@ -1037,3 +1037,15 @@
 - **Change:** fixture dedup: resolve test flake via state cleanup
 - **Files:** 
 - **Verification:** manual
+
+## 2026-09-10 - DIA-260831-h3i4: opencode-config
+
+- **Change:** built-in build/plan/scout containment with strict procedural gate (ai-auditor VERIFIED CLOSED)
+- **Files:** .opencode/opencode.jsonc - .opencode/learnings/external-patterns/2026-09-10-h3i4-builtin-containment-revised.md
+- **Verification:** manual
+
+## 2026-09-11 - DIA-260911-y52j: s
+
+- **Change:** Fix recursive child_process mock via spread snapshot + bounded regression
+- **Files:** .opencode/plugins/__tests__/reviewer-immutable-git-envelope.test.mjs - .opencode/learnings/external-patterns/2026-09-11-bun-mock-module-live-namespace-snapshot.md
+- **Verification:** manual

@@ -302,10 +302,13 @@
 | DIA-260909-tp5e | Add Muse Qwen balanced agent routing preset | opencode-config | Medium | CLOSED | [DIA-260909-tp5e-add-muse-qwen-balanced-agent-routing-preset.md](DIA-260909-tp5e-add-muse-qwen-balanced-agent-routing-preset.md) |
 | DIA-260909-uv53 | replace ai-auditor GitHub Copilot GPT-5.3 Codex High with OpenAI GPT-5.6 Sol Medium | config | Medium | CLOSED | [DIA-260909-uv53-replace-ai-auditor-github-copilot-gpt-5-3-codex-high-with-openai-gpt-5-6-sol-medium.md](DIA-260909-uv53-replace-ai-auditor-github-copilot-gpt-5-3-codex-high-with-openai-gpt-5-6-sol-medium.md) |
 | DIA-260909-zeik | simplify repeated failure-cleanup paths in standalone harness scenarios | opencode-config | Medium | CLOSED | [DIA-260909-zeik-simplify-repeated-failure-cleanup-paths-in-standalone-harness-scenarios.md](DIA-260909-zeik-simplify-repeated-failure-cleanup-paths-in-standalone-harness-scenarios.md) |
+| DIA-260910-2ztf | pre-commit formatting gap - commit a415c2d landed 5 unformatted ticket files repaired in 3bc5810 | git-hooks | Medium | OPEN | [DIA-260910-2ztf-pre-commit-formatting-gap-commit-a415c2d-landed-5-unformatted-ticket-files-repaired-in-3bc5810.md](DIA-260910-2ztf-pre-commit-formatting-gap-commit-a415c2d-landed-5-unformatted-ticket-files-repaired-in-3bc5810.md) |
 | DIA-260910-30sz | temp-index-commit-uv53-sol-medium | config | Low | CLOSED | [DIA-260910-30sz-temp-index-commit-uv53-sol-medium.md](DIA-260910-30sz-temp-index-commit-uv53-sol-medium.md) |
 | DIA-260910-8tgy | closure-commit-30sz-ticket-readme-repo | config | Low | CLOSED | [DIA-260910-8tgy-closure-commit-30sz-ticket-readme-repo.md](DIA-260910-8tgy-closure-commit-30sz-ticket-readme-repo.md) |
 | DIA-260910-dx8c | zeik missed docs persistence adr failures learning openspec | opencode-config | Low | CLOSED | [DIA-260910-dx8c-zeik-missed-docs-persistence-adr-failures-learning-openspec.md](DIA-260910-dx8c-zeik-missed-docs-persistence-adr-failures-learning-openspec.md) |
 | DIA-260910-ri0u | Isolated commit for 9api closure (Bats test + ticket + rollup/memory) | scripts | Low | OPEN | [DIA-260910-ri0u-isolated-commit-for-9api-closure-bats-test-ticket-rollup-memory.md](DIA-260910-ri0u-isolated-commit-for-9api-closure-bats-test-ticket-rollup-memory.md) |
+| DIA-260910-sjtk | Route architector to OpenAI GPT-5.6 Sol High | opencode-config | Major | OPEN | [DIA-260910-sjtk-route-architector-to-openai-gpt-5-6-sol-high.md](DIA-260910-sjtk-route-architector-to-openai-gpt-5-6-sol-high.md) |
+| DIA-260911-y52j | Fix recursive child_process mock in reviewer immutable git envelope test | tests-infra | Major | CLOSED | [DIA-260911-y52j-fix-recursive-child-process-mock-in-reviewer-immutable-git-envelope-test.md](DIA-260911-y52j-fix-recursive-child-process-mock-in-reviewer-immutable-git-envelope-test.md) |
 
 ## Status summary
 
@@ -313,8 +316,8 @@
 | -------- | ----- |
 | Blocker  | 9     |
 | Critical | 15    |
-| Major    | 73    |
-| Medium   | 154   |
+| Major    | 75    |
+| Medium   | 155   |
 | Minor    | 1     |
 | Low      | 30    |
 | Info     | 2     |
@@ -322,7 +325,7 @@
 
 | Status      | Count |
 | ----------- | ----- |
-| OPEN        | 76    |
+| OPEN        | 78    |
 | DONE        | 11    |
 | VALIDATE    | 0     |
 | E2E         | 0     |
@@ -331,7 +334,7 @@
 | FIXED       | 1     |
 | IMPLEMENTED | 2     |
 | VERIFIED    | 28    |
-| CLOSED      | 183   |
+| CLOSED      | 184   |
 | BLOCKED     | 0     |
 | DISPATCHED  | 0     |
 | RUNNING     | 0     |

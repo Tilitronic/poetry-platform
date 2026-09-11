@@ -4585,3 +4585,22 @@
   summary: 'fixture dedup: resolve test flake via state cleanup'
   verification: manual
   area: test-infra
+- date: '2026-09-10'
+  ticket: DIA-260831-h3i4
+  scope: opencode-config
+  files:
+  - .opencode/opencode.jsonc
+  - .opencode/learnings/external-patterns/2026-09-10-h3i4-builtin-containment-revised.md
+  summary: built-in build/plan/scout containment with strict procedural gate (ai-auditor
+    VERIFIED CLOSED)
+  verification: manual
+  area: opencode-config
+- date: '2026-09-11'
+  ticket: DIA-260911-y52j
+  scope: s
+  files:
+  - .opencode/plugins/__tests__/reviewer-immutable-git-envelope.test.mjs
+  - .opencode/learnings/external-patterns/2026-09-11-bun-mock-module-live-namespace-snapshot.md
+  summary: Fix recursive child_process mock via spread snapshot + bounded regression
+  verification: manual
+  area: tests-infra
