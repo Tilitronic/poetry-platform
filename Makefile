@@ -206,6 +206,7 @@ test-config: test-interview test-skills
 	bash scripts/check-orchestrator-prompt-drift.sh
 	bash scripts/validate-handoff.sh
 	bash scripts/test-ticket-gate.sh
+	bash scripts/test-builtin-containment.sh
 	bash scripts/validate-memory-shelf.sh
 	bash scripts/validate-changelog.sh
 	bash scripts/validate-dia-mentions.sh

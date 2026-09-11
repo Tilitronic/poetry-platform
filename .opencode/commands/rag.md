@@ -4,7 +4,8 @@ description: >-
   query for effective retrieval, pick the right KB, and run the search.
   The user shouldn't need to remember #tag names. Supports flags:
   --list, --route, --refresh, --books, --stats.
-agent: coder
+# DIA-260831-h3i4 F2: no agent binding - runs in the invoking agent
+# (orchestrator); read-only RAG query, no ticket-gate bypass.
 ---
 
 # RAG query

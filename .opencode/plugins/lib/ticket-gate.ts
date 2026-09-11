@@ -199,17 +199,91 @@ export function evaluateTicketCorrelation(
 // ---------------------------------------------------------------------------
 // 7. isMetaTaskBypass (checked BEFORE ticket-id resolution)
 // ---------------------------------------------------------------------------
-const META_TASK_WHITELIST = [
-  "scripts/tickets new",
-  "create ticket",
-  "procedural authorization",
-  "meta-task",
-  "[meta-task]",
-]
+// DIA-260831-h3i4 F3, strict procedural shape (developer-directed, cycle 2):
+// the quote-strip and verb deny-list heuristic is REMOVED as a bypass
+// authorizer. Bypass fires ONLY when prompt and description EACH
+// independently satisfy the strict shape below (checked separately, never
+// merged): the literal `scripts/tickets new` occurs as a REAL command at
+// field start outside any quoted span (or the verified bookkeeping +
+// closed-ticket pair is present), with NO shell separators / newlines /
+// redirection / substitution (; & | > < ` $ curl wget rm delete \n),
+// NO config paths, and NO additional task scope - after removing one
+// start-anchored invocation (optional [meta-task] marker, leading
+// run/please/just + literal + --flag args), quoted spans, and DIA-id
+// tokens, every remaining word must be ordinary procedural framing. Prose
+// framing around the literal ("reference scripts/tickets new") does NOT
+// count as a command; a newline-separated second command hard-blocks. Any
+// remaining word must be ordinary procedural framing. Any extra
+// engineering text, other command, or config path fails the field and the
+// dispatch DIA-217 hard-blocks with no bypass row. The [META-TASK] marker
+// ALONE authorizes nothing. Implementation / build / plan / scout work
+// MUST carry an OPEN DIA ticket.
+const META_TASK_WHITELIST = ["scripts/tickets new"]
 
-export function isMetaTaskBypass(dispatchText: string): boolean {
-  const lower = (dispatchText ?? "").toLowerCase()
-  return META_TASK_WHITELIST.some((sig) => lower.includes(sig))
+const QUOTED_SPAN_RE = /"[^"]*"|'[^']*'/g
+const BOOKKEEPING_RE = /bookkeeping/
+const CLOSED_TICKET_RE = /closed[- ]ticket/
+// Newlines are separators: a second line is always an extra command, so any
+// multi-line field fails. Merged description+"\n"+prompt text therefore
+// NEVER bypasses - fields must be checked separately (hook prod path).
+const SHELL_SPECIAL_RE = /[\r\n;&|><`$]|\b(curl|wget|rm|delete)\b/
+const CONFIG_PATH_RE =
+  /\.opencode\/|opencode\.jsonc|dcp\.jsonc|agents\.md|practice-protected|\bplugin\b|\bskill\b/i
+const DIA_ID_TOKEN_RE = /\bdia-[0-9a-z]+(?:-[0-9a-z]+)?\b/g
+// Anchored to command position (field start, optional [meta-task] marker and
+// leading please/just/run): a prose mention such as "reference
+// scripts/tickets new" does NOT count as a real command - the literal stays
+// in the remainder and fails the framing check below.
+const INVOCATION_RE =
+  /^(?:\s*\[meta-task\]\s*|\s*)(?:please\s+|just\s+)?(?:run\s+)?scripts\/tickets new\b((?:\s+--[a-z][a-z0-9-]*(?:\s+[^\s;|&><`$"'\r\n]+)?)*)/i
+// Ordinary procedural framing vocabulary. Anything else in a field is
+// additional task scope and fails it. Deliberately small: the invoking
+// verb run is consumed by INVOCATION_RE, never framing, so a second run
+// (another command) alongside the literal hard-blocks.
+const FRAMING_WORDS = new Set([
+  "please", "just", "now", "to", "the", "a", "an", "new", "create",
+  "creation", "ticket", "tickets", "campaign", "for", "with", "plus",
+  "see", "reference", "referencing", "context", "it", "its", "this",
+  "that", "these", "those", "via", "using", "use", "and", "then",
+  "first", "following", "as", "in", "on", "of", "up", "meta", "task",
+  "title", "bookkeeping", "closed", "confirmed", "rollup",
+])
+
+function isFramingOnly(text: string): boolean {
+  const tokens = text
+    .replace(DIA_ID_TOKEN_RE, " ")
+    .split(/[^a-z0-9]+/)
+    .filter((t) => t.length > 0)
+  return tokens.every((t) => FRAMING_WORDS.has(t))
+}
+
+function fieldHasShape(lower: string, outsideQuotes: string): boolean {
+  if (outsideQuotes.includes(META_TASK_WHITELIST[0])) return true
+  return BOOKKEEPING_RE.test(lower) && CLOSED_TICKET_RE.test(lower)
+}
+
+function isProceduralField(raw: string): boolean {
+  const lower = (raw ?? "").toLowerCase()
+  if (lower.trim() === "") return true
+  const stripped = lower.replace(QUOTED_SPAN_RE, " ")
+  if (SHELL_SPECIAL_RE.test(stripped) || CONFIG_PATH_RE.test(stripped)) {
+    return false
+  }
+  const anywhere = lower.includes(META_TASK_WHITELIST[0])
+  const outside = stripped.includes(META_TASK_WHITELIST[0])
+  if (anywhere && !outside) return false
+  const rest = outside ? stripped.replace(INVOCATION_RE, " ") : stripped
+  return isFramingOnly(rest)
+}
+
+export function isMetaTaskBypass(prompt: string, description = ""): boolean {
+  const fields = description === "" ? [prompt] : [prompt, description]
+  if (!fields.every(isProceduralField)) return false
+  return fields.some(
+    (f) =>
+      f.trim() !== "" &&
+      fieldHasShape(f.toLowerCase(), f.toLowerCase().replace(QUOTED_SPAN_RE, " "))
+  )
 }
 
 // aliases

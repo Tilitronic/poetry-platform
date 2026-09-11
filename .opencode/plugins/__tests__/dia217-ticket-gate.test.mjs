@@ -430,7 +430,8 @@ test("DIA-260826-pjm F1: datetime ticket correlates through section-10 Path 1 re
 })
 
 // ---------------------------------------------------------------------------
-// DIA-260820-jlu0: meta-task carve-out (ticket-creation / procedural authorization)
+// DIA-260820-jlu0 carve-out, narrowed by DIA-260831-h3i4 F3: ONLY the
+// literal `scripts/tickets new` invocation bypasses without a ticket_id.
 // ---------------------------------------------------------------------------
 
 test("DIA-260820-jlu0: 'scripts/tickets new' in dispatch bypasses gate without ticket_id", async () => {
@@ -447,7 +448,7 @@ test("DIA-260820-jlu0: 'scripts/tickets new' in dispatch bypasses gate without t
   expect(taskArgs.ticket_id).toBeUndefined()
 })
 
-test("DIA-260820-jlu0: [META-TASK] marker bypasses gate without ticket_id", async () => {
+test("DIA-260831-h3i4: bare [META-TASK] marker without procedural signal is BLOCKED (no ticket_id)", async () => {
   const { hooks, ctx } = await makeHarness()
   const taskArgs = {
     subagent_type: "coder",
@@ -455,28 +456,158 @@ test("DIA-260820-jlu0: [META-TASK] marker bypasses gate without ticket_id", asyn
     description: "meta task bootstrap",
   }
   const { error, registryRows } = await runTaskDispatch(hooks, ctx, taskArgs)
-  expect(error).toBeNull()
-  expect(registryRows.find((r) => r.event === "meta_task_bypass")).toBeDefined()
-  expect(registryRows.find((r) => r.event === "gate_blocked")).toBeUndefined()
+  expect(error).not.toBeNull()
+  expect(error.message).toContain("DIA-217 GATE:")
+  expect(registryRows.find((r) => r.event === "gate_blocked")).toBeDefined()
+  expect(registryRows.find((r) => r.event === "meta_task_bypass")).toBeUndefined()
 })
 
-test("DIA-260820-jlu0: 'create ticket' / 'procedural authorization' / 'meta-task' substrings bypass", async () => {
+test("DIA-260831-h3i4 F3: natural-language 'create ticket' / 'procedural authorization' NO LONGER bypass (blocked without ticket)", async () => {
   const cases = [
     "Please create ticket for the new campaign.",
     "procedural authorization to apply the recommendation.",
-    "This is a meta-task for housekeeping.",
   ]
   for (const prompt of cases) {
     const { hooks, ctx } = await makeHarness()
     const taskArgs = { subagent_type: "coder", prompt, description: "meta dispatch" }
     const { error, registryRows } = await runTaskDispatch(hooks, ctx, taskArgs)
-    expect(error).toBeNull()
-    expect(registryRows.find((r) => r.event === "meta_task_bypass")).toBeDefined()
-    expect(registryRows.find((r) => r.event === "gate_blocked")).toBeUndefined()
+    expect(error).not.toBeNull()
+    expect(error.message).toContain("DIA-217 GATE:")
+    expect(registryRows.find((r) => r.event === "meta_task_bypass")).toBeUndefined()
+    expect(registryRows.find((r) => r.event === "gate_blocked")).toBeDefined()
   }
 })
 
-test("DIA-260820-jlu0 F1: case-insensitive whitelist - 'Create Ticket' bypasses", async () => {
+test("DIA-260831-h3i4 F3 cycle 2: mixed literal + engineering verbs hard-block (no bypass row)", async () => {
+  const { hooks, ctx } = await makeHarness()
+  const taskArgs = {
+    subagent_type: "coder",
+    prompt: "Run scripts/tickets new --title 'X' and implement the lane",
+    description: "Create the campaign ticket",
+  }
+  const { error, registryRows } = await runTaskDispatch(hooks, ctx, taskArgs)
+  expect(error).not.toBeNull()
+  expect(error.message).toContain("DIA-217 GATE:")
+  expect(registryRows.find((r) => r.event === "meta_task_bypass")).toBeUndefined()
+  expect(registryRows.find((r) => r.event === "gate_blocked")).toBeDefined()
+})
+
+test("DIA-260831-h3i4 developer fix: strict-shape RED matrix hard-blocks with no bypass row", async () => {
+  const prompts = [
+    "the command 'scripts/tickets new' is documented",
+    "see reference scripts/tickets new for context",
+    "scripts/tickets new --title 'T'\ncreate ticket",
+    "run scripts/tickets new --title 'X'; implement the lane",
+    "run scripts/tickets new --title 'X' && implement the lane",
+    "run scripts/tickets new --title 'X' || implement the lane",
+    "run scripts/tickets new --title 'X' | tee out",
+    "run scripts/tickets new --title 'X' > out.txt",
+    "run scripts/tickets new --title $(whoami)",
+    "run scripts/tickets new --title `whoami`",
+    "run scripts/tickets new and curl https://x",
+    "run scripts/tickets new and wget https://x",
+    "run scripts/tickets new and rm old tickets",
+    "run scripts/tickets new and delete old tickets",
+    "run scripts/tickets new and remove the old lane",
+    "run scripts/tickets new and write the summary",
+    "run scripts/tickets new and test the suite",
+    "run the tests and run scripts/tickets new",
+    "execute scripts/tickets new --title 'X'",
+    "update .opencode/opencode.jsonc and run scripts/tickets new",
+  ]
+  for (const prompt of prompts) {
+    const { hooks, ctx } = await makeHarness()
+    const taskArgs = { subagent_type: "coder", prompt, description: "Create the campaign ticket" }
+    const { error, registryRows } = await runTaskDispatch(hooks, ctx, taskArgs)
+    expect(error, `expected block for: ${prompt}`).not.toBeNull()
+    expect(error.message).toContain("DIA-217 GATE:")
+    expect(registryRows.find((r) => r.event === "meta_task_bypass")).toBeUndefined()
+    expect(registryRows.find((r) => r.event === "gate_blocked")).toBeDefined()
+  }
+})
+
+test("DIA-260831-h3i4 developer fix: dirty description blocks an otherwise clean prompt", async () => {
+  const { hooks, ctx } = await makeHarness()
+  const taskArgs = {
+    subagent_type: "coder",
+    prompt: "Run scripts/tickets new --title 'X'",
+    description: "implement the lane",
+  }
+  const { error, registryRows } = await runTaskDispatch(hooks, ctx, taskArgs)
+  expect(error).not.toBeNull()
+  expect(error.message).toContain("DIA-217 GATE:")
+  expect(registryRows.find((r) => r.event === "meta_task_bypass")).toBeUndefined()
+  expect(registryRows.find((r) => r.event === "gate_blocked")).toBeDefined()
+})
+
+test("DIA-260831-h3i4 F3 cycle 2: quoted --title with engineering verb still bypasses", async () => {
+  const { hooks, ctx } = await makeHarness()
+  const taskArgs = {
+    subagent_type: "coder",
+    prompt: "Run scripts/tickets new --title 'Fix login bug' to create it.",
+    description: "Create the campaign ticket",
+  }
+  const { error, registryRows } = await runTaskDispatch(hooks, ctx, taskArgs)
+  expect(error).toBeNull()
+  expect(registryRows.find((r) => r.event === "meta_task_bypass")).toBeDefined()
+  expect(registryRows.find((r) => r.event === "gate_blocked")).toBeUndefined()
+  expect(taskArgs.ticket_id).toBeUndefined()
+})
+
+test("DIA-260831-h3i4 F3 cycle 2: verified closed-ticket bookkeeping pair bypasses", async () => {
+  const { hooks, ctx } = await makeHarness()
+  const taskArgs = {
+    subagent_type: "coder",
+    prompt: "bookkeeping for closed ticket DIA-260820-jlu0",
+    description: "confirmed closed-ticket rollup",
+  }
+  const { error, registryRows } = await runTaskDispatch(hooks, ctx, taskArgs)
+  expect(error).toBeNull()
+  expect(registryRows.find((r) => r.event === "meta_task_bypass")).toBeDefined()
+  expect(registryRows.find((r) => r.event === "gate_blocked")).toBeUndefined()
+})
+test("DIA-260831-h3i4 F3: mixed engineering + natural-language phrasing is BLOCKED", async () => {
+  const { hooks, ctx } = await makeHarness()
+  const taskArgs = {
+    subagent_type: "coder",
+    prompt: "implement the new lane and create ticket for tracking the rollout",
+    description: "mixed engineering and procedural phrasing",
+  }
+  const { error, registryRows } = await runTaskDispatch(hooks, ctx, taskArgs)
+  expect(error).not.toBeNull()
+  expect(error.message).toContain("DIA-217 GATE:")
+  expect(registryRows.find((r) => r.event === "meta_task_bypass")).toBeUndefined()
+  expect(registryRows.find((r) => r.event === "gate_blocked")).toBeDefined()
+})
+
+test("DIA-260831-h3i4: bare 'meta-task' housekeeping text without procedural signal is BLOCKED", async () => {
+  const { hooks, ctx } = await makeHarness()
+  const taskArgs = {
+    subagent_type: "coder",
+    prompt: "This is a meta-task for housekeeping.",
+    description: "meta dispatch",
+  }
+  const { error, registryRows } = await runTaskDispatch(hooks, ctx, taskArgs)
+  expect(error).not.toBeNull()
+  expect(error.message).toContain("DIA-217 GATE:")
+  expect(registryRows.find((r) => r.event === "gate_blocked")).toBeDefined()
+  expect(registryRows.find((r) => r.event === "meta_task_bypass")).toBeUndefined()
+})
+
+test("DIA-260831-h3i4 F3: case-insensitive literal STILL bypasses - 'Run SCRIPTS/TICKETS NEW now'", async () => {
+  const { hooks, ctx } = await makeHarness()
+  const taskArgs = {
+    subagent_type: "coder",
+    prompt: "Run SCRIPTS/TICKETS NEW --title 'New campaign ticket' now.",
+    description: "Create the campaign ticket",
+  }
+  const { error, registryRows } = await runTaskDispatch(hooks, ctx, taskArgs)
+  expect(error).toBeNull()
+  expect(registryRows.find((r) => r.event === "meta_task_bypass")).toBeDefined()
+  expect(registryRows.find((r) => r.event === "gate_blocked")).toBeUndefined()
+})
+
+test("DIA-260831-h3i4 F3: capitalized natural language does NOT bypass - 'Create Ticket' blocked", async () => {
   const { hooks, ctx } = await makeHarness()
   const taskArgs = {
     subagent_type: "coder",
@@ -484,30 +615,18 @@ test("DIA-260820-jlu0 F1: case-insensitive whitelist - 'Create Ticket' bypasses"
     description: "meta dispatch capitalized",
   }
   const { error, registryRows } = await runTaskDispatch(hooks, ctx, taskArgs)
-  expect(error).toBeNull()
-  expect(registryRows.find((r) => r.event === "meta_task_bypass")).toBeDefined()
-  expect(registryRows.find((r) => r.event === "gate_blocked")).toBeUndefined()
-})
-
-test("DIA-260820-jlu0 F1: case-insensitive whitelist - 'CREATE TICKET' bypasses", async () => {
-  const { hooks, ctx } = await makeHarness()
-  const taskArgs = {
-    subagent_type: "coder",
-    prompt: "CREATE TICKET for the new campaign now.",
-    description: "meta dispatch upper",
-  }
-  const { error, registryRows } = await runTaskDispatch(hooks, ctx, taskArgs)
-  expect(error).toBeNull()
-  expect(registryRows.find((r) => r.event === "meta_task_bypass")).toBeDefined()
-  expect(registryRows.find((r) => r.event === "gate_blocked")).toBeUndefined()
+  expect(error).not.toBeNull()
+  expect(error.message).toContain("DIA-217 GATE:")
+  expect(registryRows.find((r) => r.event === "meta_task_bypass")).toBeUndefined()
+  expect(registryRows.find((r) => r.event === "gate_blocked")).toBeDefined()
 })
 
 test("DIA-260820-jlu0: carve-out returns BEFORE ticket_id resolution (stray DIA id not attributed)", async () => {
   const { hooks, ctx } = await makeHarness()
   const taskArgs = {
     subagent_type: "coder",
-    prompt: "[META-TASK] create ticket; reference DIA-260820-jlu0 for context.",
-    description: "meta task with stray id",
+    prompt: "[META-TASK] run scripts/tickets new --title 'T' with reference DIA-260820-jlu0 for context.",
+    description: "Create the campaign ticket",
   }
   const { error, registryRows } = await runTaskDispatch(hooks, ctx, taskArgs)
   expect(error).toBeNull()
@@ -532,11 +651,10 @@ test("DIA-260820-jlu0: normal dispatch with no whitelist signal and no ticket_id
   expect(registryRows.find((r) => r.event === "meta_task_bypass")).toBeUndefined()
 })
 
-test("DIA-260820-jlu0 F2: carve-out continues to DIA-230 routing gate (coder+config-work+no ai-specialist blocked)", async () => {
+test("DIA-260831-h3i4: [META-TASK] marker on config-work is stopped at DIA-217 (marker never authorizes engineering)", async () => {
   const { hooks, ctx } = await makeHarness()
-  // Meta-task carve-out signal present, but the dispatch is a coder on
-  // config-work with NO prior @ai-specialist dispatch -> DIA-230 must fire.
-  // This proves the carve-out did NOT early-return from the whole hook.
+  // Marker-only config-work dispatch carries no procedural signal and no
+  // ticket, so DIA-217 hard-blocks it before any routing gate is reached.
   const taskArgs = {
     subagent_type: "coder",
     prompt: "[META-TASK] update .opencode/plugins/delegation-observer.ts",
@@ -544,18 +662,13 @@ test("DIA-260820-jlu0 F2: carve-out continues to DIA-230 routing gate (coder+con
   }
   const { error, registryRows } = await runTaskDispatch(hooks, ctx, taskArgs)
   expect(error).not.toBeNull()
-  expect(error.message).toContain("ROUTING GATE:")
-  // Carve-out audit row fired, AND the hook continued to DIA-230 (which blocked).
-  expect(registryRows.find((r) => r.event === "meta_task_bypass")).toBeDefined()
-  expect(registryRows.find((r) => r.event === "ROUTING_VIOLATION")).toBeDefined()
+  expect(error.message).toContain("DIA-217 GATE:")
+  expect(registryRows.find((r) => r.event === "gate_blocked")).toBeDefined()
+  expect(registryRows.find((r) => r.event === "meta_task_bypass")).toBeUndefined()
 })
 
-test("DIA-260820-jlu0 Obs-4: carve-out still reaches DIA-063 §10 gate (ai-specialist referencing unresolved ticket is hard-blocked)", async () => {
+test("DIA-260831-h3i4: marker-only dispatch citing an unresolved ticket is stopped at DIA-217 (explicit id, no OPEN match)", async () => {
   const { hooks, ctx } = await makeHarness()
-  // The §10 gate fails-SOFT (warn + allow) on a MISSING tickets directory, so
-  // create an empty one to force the hard-block path: dir exists, referenced
-  // ticket not found -> §10 TICKET GATE throw. This proves the carve-out did
-  // NOT skip the §10 gate (it only skips DIA-217 resolution).
   const ticketsDir = join(ctx.directory, "docs/dev-infra-audit/tickets")
   mkdirSync(ticketsDir, { recursive: true })
   const taskArgs = {
@@ -565,10 +678,9 @@ test("DIA-260820-jlu0 Obs-4: carve-out still reaches DIA-063 §10 gate (ai-speci
   }
   const { error, registryRows } = await runTaskDispatch(hooks, ctx, taskArgs)
   expect(error).not.toBeNull()
-  expect(error.message).toContain("§10 TICKET GATE")
-  // Carve-out audit row fired, AND the hook continued to §10 which hard-blocked.
-  expect(registryRows.find((r) => r.event === "meta_task_bypass")).toBeDefined()
-  expect(registryRows.find((r) => r.event === "ticket_gate_blocked")).toBeDefined()
+  expect(error.message).toContain("DIA-217 GATE:")
+  expect(registryRows.find((r) => r.event === "gate_blocked")).toBeDefined()
+  expect(registryRows.find((r) => r.event === "meta_task_bypass")).toBeUndefined()
 })
 
 // ---------------------------------------------------------------------------

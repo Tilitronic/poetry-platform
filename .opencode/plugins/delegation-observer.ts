@@ -1874,6 +1874,128 @@ const delegationObserver: Plugin = async (ctx) => {
       }
       calls.push({ tool: input.tool, subagent_type: taskSubagent, worktree })
       turnToolCalls.set(input.sessionID, calls)
+      // DIA-260827-4q3h: reviewer immutable git envelope. The reviewer lane
+      // runs bash-denied (opencode.jsonc agent reviewer: edit/bash/task deny),
+      // so it cannot resolve refs or run git diff/log itself — yet its prompt
+      // contract requires reviewing a fixed-point delta. The hook pins the
+      // range HERE (setup completes before the reviewer dispatches) and
+      // appends the evidence in-memory to the reviewer prompt.
+      // Contract: exactly one FIXED_POINT marker across description+prompt;
+      // resolve via the lane worktree (rev-parse base+HEAD, merge-base);
+      // capture three-dot diff + double-dot log; hard-block missing/multiple/
+      // unresolvable/empty with actionable errors leaving the prompt
+      // unchanged. Reviewer-only: every other lane skips this block (inert).
+      // Rollback = delete this block (reviewer falls back to file inspection).
+      if (input.tool === "task" && taskSubagent === "reviewer") {
+        const reviewDescription =
+          typeof taskArgRecord.description === "string"
+            ? taskArgRecord.description
+            : ""
+        const reviewPrompt =
+          typeof taskArgRecord.prompt === "string" ? taskArgRecord.prompt : ""
+        const fixedPoints = [
+          ...`${reviewDescription}\n${reviewPrompt}`.matchAll(
+            /FIXED_POINT:\s*(\S+)/gi
+          ),
+        ]
+        const failEnvelope = (detail: string): never => {
+          registry.appendRow({
+            event: "reviewer_envelope_blocked",
+            session_id: input.sessionID,
+            subagent_type: "reviewer",
+            detail,
+            writer: "plugin",
+          })
+          rollbackAdaptiveDispatch(input.callID)
+          throw new Error(
+            `REVIEWER ENVELOPE: ${detail}\n` +
+              "Action: include exactly one 'FIXED_POINT: <base-ref>' marker " +
+              "(branch, tag, or commit OID) in the reviewer dispatch so the " +
+              "range can be pinned before review starts."
+          )
+        }
+        if (fixedPoints.length === 0) {
+          failEnvelope("reviewer dispatch has no FIXED_POINT marker")
+        }
+        if (fixedPoints.length > 1) {
+          failEnvelope(
+            `reviewer dispatch has ${fixedPoints.length} FIXED_POINT markers (exactly one required)`
+          )
+        }
+        const baseRef = fixedPoints[0][1]
+        // ctx.worktree is the lane worktree in production; the bun harness
+        // only supplies directory, so fall back to it.
+        const gitCwd =
+          (ctx as unknown as { worktree?: string }).worktree ?? ctx.directory
+        const runGit = (args: string[]): string | null => {
+          try {
+            const res = spawnSync("git", args, {
+              cwd: gitCwd,
+              encoding: "utf-8",
+              timeout: 10_000,
+            })
+            if (res.error || res.status !== 0) return null
+            return (res.stdout ?? "").toString()
+          } catch {
+            return null
+          }
+        }
+        const baseOid: string =
+          runGit(["rev-parse", "--verify", baseRef])?.trim() ?? ""
+        const headOid: string =
+          runGit(["rev-parse", "--verify", "HEAD"])?.trim() ?? ""
+        if (baseOid === "" || headOid === "") {
+          failEnvelope(
+            `cannot resolve range (base='${baseRef}'${baseOid ? "" : " unresolvable"}${headOid ? "" : ", HEAD unresolvable"} in '${gitCwd}': not a git worktree or bad ref?)`
+          )
+        }
+        const mergeBaseOid: string =
+          runGit(["merge-base", baseOid, headOid])?.trim() ?? ""
+        if (mergeBaseOid === "") {
+          failEnvelope(
+            `no merge-base between '${baseRef}' (${baseOid}) and HEAD (${headOid}) (unrelated histories?)`
+          )
+        }
+        // Tri-state: null = capture failed (block); "" = captured but empty
+        // (falls through to the empty-range check below).
+        const diffOut = runGit(["diff", "--no-color", `${baseOid}...${headOid}`])
+        const logOut = runGit(["log", "--no-color", `${baseOid}..${headOid}`])
+        if (diffOut === null || logOut === null) {
+          failEnvelope(
+            `could not capture diff/log for range ${baseOid}..${headOid}`
+          )
+        }
+        const diff: string = diffOut ?? ""
+        const log: string = logOut ?? ""
+        if (diff.trim().length === 0 && log.trim().length === 0) {
+          failEnvelope(
+            `empty range: '${baseRef}' (${baseOid})..HEAD (${headOid}) has no commits and no changes (nothing to review)`
+          )
+        }
+        const envelope = [
+          "```IMMUTABLE_GIT_ENVELOPE",
+          `worktree: ${gitCwd}`,
+          `base_ref: ${baseRef}`,
+          `base_oid: ${baseOid}`,
+          `head_oid: ${headOid}`,
+          `merge_base_oid: ${mergeBaseOid}`,
+          "--- diff (three-dot) ---",
+          diff.trimEnd(),
+          "--- log (double-dot) ---",
+          log.trimEnd(),
+          "```",
+        ].join("\n")
+        taskArgRecord.prompt = `${reviewPrompt}\n\n${envelope}\n`
+        registry.appendRow({
+          event: "reviewer_envelope_attached",
+          session_id: input.sessionID,
+          subagent_type: "reviewer",
+          base_ref: baseRef,
+          base_oid: baseOid,
+          head_oid: headOid,
+          writer: "plugin",
+        })
+      }
       // DIA-172 F4 singleton exemption: the A1 check fires only when the turn
       // holds MORE than one task() call. A single task() alongside semantic
       // tools (log_decision, etc.) is a lone delegation, not a parallel batch -
@@ -2014,34 +2136,48 @@ const delegationObserver: Plugin = async (ctx) => {
           }
         }
 
-        // === DIA-260820-jlu0: meta-task carve-out (ticket-creation / procedural authorization) ===
+        // === DIA-260820-jlu0 meta-task carve-out, narrowed by DIA-260831-h3i4 F3 ===
         // Removes the chicken-and-egg deadlock: a brand-new ticket's ID is
         // generated by `scripts/tickets new` with a random suffix, so the task()
         // that creates the ticket cannot cite its own future ID. The weak-
         // correlation path requires citing a known (but absent) ID, which is
-        // impossible for a fresh ticket. This carve-out lets such meta-tasks
-        // bypass the DIA-217 ticket_id resolution/hard-block WITHOUT a ticket
-        // ID, emitting an audit row + TUI warn.
+        // impossible for a fresh ticket. This carve-out lets ONLY the strict
+        // procedural shape bypass the DIA-217 ticket_id resolution/hard-block
+        // WITHOUT a ticket ID, emitting an audit row + TUI warn: the literal
+        // `scripts/tickets new` as a real command outside quotes (or the
+        // verified bookkeeping + closed-ticket pair), with no shell
+        // separators / redirection / substitution, no config paths, and no
+        // additional task scope in the field. Mixed engineering + procedural
+        // text hard-blocks. Natural-language substrings and the bare
+        // [META-TASK] marker authorize nothing (they occur inside
+        // engineering text); closed-ticket bookkeeping may use either this
+        // pair or the capability-token path.
         // F2: it sets `metaTaskBypass` and does NOT early-return from the whole
         // hook -- so the dispatch still flows through the §10 TICKET GATE
         // (DIA-063, ~line 3156) and the DIA-230 routing-order gate (~line 3193),
         // which are separate `if (input.tool === "task")` blocks after this one.
         // Only the DIA-217 resolution block below is skipped.
-        // F1: case-insensitive -- lowercase both sides so "Create Ticket" /
-        // "CREATE TICKET" still match. The whitelist is the explicit intent
-        // signal (audit-literal); `[META-TASK]` is the strict opt-in, the rest
-        // cover natural orchestrator phrasing.
-        const metaTaskBypass = isMetaTaskBypass(buildDispatchText(taskArgRecord))
+        // DIA-260831-h3i4 F3 (developer-directed, cycle 2): prompt and
+        // description are checked SEPARATELY against the strict procedural
+        // shape - never merged. Each field must independently satisfy it;
+        // any extra engineering text, other command, or config path in
+        // either field hard-blocks with no bypass row.
+        const metaTaskBypass = isMetaTaskBypass(
+          typeof taskArgRecord.prompt === "string" ? taskArgRecord.prompt : "",
+          typeof taskArgRecord.description === "string"
+            ? taskArgRecord.description
+            : ""
+        )
         if (metaTaskBypass) {
           registry.appendRow({
             event: "meta_task_bypass",
             session_id: input.sessionID,
             detail:
-              "ticket-creation / procedural-authorization dispatch bypassing DIA-217 gate (no ticket_id required)",
+              "scripts/tickets new invocation bypassing DIA-217 gate (no ticket_id required)",
             writer: "plugin",
           })
           tuiSafeWarn(
-            "[meta-task] bypassing ticket gate for ticket-creation / procedural-authorization dispatch"
+            "[meta-task] bypassing ticket gate for scripts/tickets new invocation"
           )
         }
 

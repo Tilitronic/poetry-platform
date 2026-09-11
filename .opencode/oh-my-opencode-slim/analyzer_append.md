@@ -4,11 +4,11 @@
   search-order step 2 (project root directory), see
   docs/project-local-customization.md.
 
-  DUAL-RUNTIME WARNING: the project runtime wires the LOCAL vendored plugin
-  (.opencode/opencode.jsonc line 541, file:///workspace/.opencode/
-  oh-my-opencode-slim) where FILE wins; the global runtime wires NPM
-  oh-my-opencode-slim@2.2.13 where INLINE wins (dist/index.js:19282
-  "inlinePrompt ?? filePrompt ?? fallback"). The inline analyzer prompt was
+  DUAL-RUNTIME NOTE (revised DIA-260831-h3i4): the project runtime wires
+  npm oh-my-opencode-slim@2.2.17 from the .opencode/opencode.jsonc plugin
+  array (tui.json aligned to the same pin), which reads prompt overrides
+  from this directory at runtime - so this FILE wins (the vendored checkout
+  itself stays REFERENCE-ONLY, see REFERENCE-ONLY.md). The inline analyzer prompt was
   removed from oh-my-opencode-slim.jsonc (content relocated here) so BOTH
   runtimes now resolve consistently and no override warning fires.
 

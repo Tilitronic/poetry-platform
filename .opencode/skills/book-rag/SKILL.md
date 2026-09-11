@@ -38,9 +38,9 @@ BGE-Reranker-v2-m3 cross-encoder. Supports two trigger modes:
 The backing script (`.opencode/scripts/query_rag.py`) discovers
 knowledge bases **dynamically at runtime** — no hardcoded UUIDs needed.
 
-Prefer the `@rag` opencode command (registered in opencode.json) instead
-of calling the script directly. Use direct bash calls only when the command
-is unavailable or you need flags like `--list` / `--books` / `--stats`.
+Prefer the `/rag` OpenCode slash command, defined by .opencode/commands/rag.md instead
+of calling the script directly. It passes flags like `--list` / `--books` / `--stats`
+through to the script. Use direct bash calls only when the command is unavailable.
 
 ---
 

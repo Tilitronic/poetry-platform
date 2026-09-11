@@ -461,26 +461,61 @@ describe("lib/ticket-gate — scanTickets", () => {
 // 6. Meta-task bypass before ticket-id resolution
 // ---------------------------------------------------------------------------
 describe("lib/ticket-gate — meta-task bypass before ticket-id resolution", () => {
-  it("bypass fires case-insensitively for whitelist signals before ticket-id resolution", () => {
+  it("bypass fires case-insensitively for the literal invocation before ticket-id resolution", () => {
     const fn = mod.isMetaTaskBypass
     const cases = [
       "run scripts/tickets new --title 'New ticket'",
-      "please create ticket for the new campaign",
-      "procedural authorization to apply recommendation",
-      "this is a meta-task for housekeeping",
-      "[META-TASK] bootstrap the lane",
-      "Create Ticket with capital letters",
-      "CREATE TICKET upper",
+      "run SCRIPTS/TICKETS NEW now",
+      // Quoted --title spans are stripped before the engineering scan, so a
+      // title carrying an engineering verb must NOT trip the guard.
+      "Run scripts/tickets new --title 'Fix login bug'",
+      // Verified closed-ticket bookkeeping pair is procedural.
+      "bookkeeping for closed ticket DIA-260820-jlu0",
     ]
     for (const text of cases) {
       assert.equal(fn(text), true, `bypass must fire for: ${text}`)
     }
   })
 
-  it("bypass also checked via lowercased comparison (case-insensitive whitelist)", () => {
+  it("DIA-260831-h3i4 F3 cycle 2: mixed literal + engineering verbs MUST NOT bypass", () => {
     const fn = mod.isMetaTaskBypass
-    assert.equal(fn("Please Create Ticket now"), true)
+    const cases = [
+      "Run scripts/tickets new --title 'X' and implement the lane",
+      "update .opencode/opencode.jsonc and run scripts/tickets new",
+      "implement X; bookkeeping for closed ticket DIA-260820-jlu0",
+    ]
+    for (const text of cases) {
+      assert.equal(fn(text), false, `bypass must NOT fire for: ${text}`)
+    }
+  })
+
+  it("DIA-260831-h3i4 F3: natural-language phrasing does NOT bypass (pair without bookkeeping neither)", () => {
+    const fn = mod.isMetaTaskBypass
+    const cases = [
+      "please create ticket for the new campaign",
+      "procedural authorization to apply recommendation",
+      "closed ticket DIA-260820-jlu0 without the rollup keyword",
+      "Create Ticket with capital letters",
+      "CREATE TICKET upper",
+      "implement the new lane and create ticket for tracking",
+    ]
+    for (const text of cases) {
+      assert.equal(fn(text), false, `bypass must NOT fire for: ${text}`)
+    }
+  })
+
+  it("DIA-260831-h3i4: bare [META-TASK] marker alone does NOT bypass (procedural signal required)", () => {
+    const fn = mod.isMetaTaskBypass
+    assert.equal(fn("[META-TASK] bootstrap the lane"), false)
+    assert.equal(fn("this is a meta-task for housekeeping"), false)
+    assert.equal(fn("[META-TASK] update .opencode/plugins/delegation-observer.ts"), false)
+    assert.equal(fn("[META-TASK] implement something ordinary"), false)
+  })
+
+  it("bypass also checked via lowercased comparison (case-insensitive literal)", () => {
+    const fn = mod.isMetaTaskBypass
     assert.equal(fn("run SCRIPTS/TICKETS NEW now"), true)
+    assert.equal(fn("Please Create Ticket now"), false)
   })
 
   it("normal dispatch without whitelist signal does NOT bypass", () => {
@@ -494,11 +529,55 @@ describe("lib/ticket-gate — meta-task bypass before ticket-id resolution", () 
     // The higher-level gate reports NOT blocked when bypass fires, even
     // if a DIA literal is present, and does NOT materialize ticket_id.
     const bypassFn = mod.isMetaTaskBypass
-    const dispatchText = "[META-TASK] create ticket; reference DIA-260902-eqgg for context"
+    const dispatchText = "[META-TASK] run scripts/tickets new --title 'T' with reference DIA-260902-eqgg for context"
     assert.equal(bypassFn(dispatchText), true, "must bypass")
     const gateFn = mod.isTicketGateBlocked
     const res = gateFn(dispatchText, "ses_ctx", [], { failClosed: true })
     assert.equal(res.blocked, false, "bypass text must not block even with a DIA literal present")
+  })
+
+  it("DIA-260831-h3i4 developer fix: strict-shape RED matrix (separators, substitution, fetchers, removals, extra verbs, quoted literal, config paths)", () => {
+    const fn = mod.isMetaTaskBypass
+    const desc = "Create the campaign ticket"
+    const cases = [
+      "the command 'scripts/tickets new' is documented",
+      // ai--9: prose framing around the literal is NOT command position.
+      "see reference scripts/tickets new for context",
+      // ai--9: newline-separated second command hard-blocks.
+      "scripts/tickets new --title 'T'\ncreate ticket",
+      "run scripts/tickets new --title 'X'; implement the lane",
+      "run scripts/tickets new --title 'X' && implement the lane",
+      "run scripts/tickets new --title 'X' || implement the lane",
+      "run scripts/tickets new --title 'X' | tee out",
+      "run scripts/tickets new --title 'X' > out.txt",
+      "run scripts/tickets new --title 'X' < in.txt",
+      "run scripts/tickets new --title $(whoami)",
+      "run scripts/tickets new --title `whoami`",
+      "run scripts/tickets new and curl https://x",
+      "run scripts/tickets new and wget https://x",
+      "run scripts/tickets new and rm old tickets",
+      "run scripts/tickets new and delete old tickets",
+      "run scripts/tickets new and remove the old lane",
+      "run scripts/tickets new and write the summary",
+      "run scripts/tickets new and test the suite",
+      "run the tests and run scripts/tickets new",
+      "execute scripts/tickets new --title 'X'",
+      "update .opencode/opencode.jsonc and run scripts/tickets new",
+      "run scripts/tickets new --title 'X' for the plugin config",
+    ]
+    for (const prompt of cases) {
+      assert.equal(fn(prompt, desc), false, `bypass must NOT fire for: ${prompt}`)
+    }
+  })
+
+  it("DIA-260831-h3i4 developer fix: prompt and description checked separately - dirt in either blocks", () => {
+    const fn = mod.isMetaTaskBypass
+    const cleanPrompt = "Run scripts/tickets new --title 'X'"
+    const cleanDesc = "Create the campaign ticket"
+    assert.equal(fn(cleanPrompt, cleanDesc), true, "clean prompt + clean description bypasses")
+    assert.equal(fn(cleanPrompt, "implement the lane"), false, "dirty description blocks clean prompt")
+    assert.equal(fn(cleanPrompt, "meta dispatch upper"), false, "non-framing description blocks clean prompt")
+    assert.equal(fn("run scripts/tickets new and implement the lane", cleanDesc), false, "dirty prompt blocked despite clean description")
   })
 
   it("meta-task bypass check is pure and does not require FS", () => {

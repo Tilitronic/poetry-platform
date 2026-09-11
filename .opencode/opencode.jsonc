@@ -131,6 +131,20 @@
     "general": {
       "disable": true
     },
+    // DIA-260831-h3i4 builtin containment: native build/plan bypass the
+    // orchestrator lanes and the DIA-217 ticket gate (broad edit/bash), so
+    // they cannot be dispatched directly; scout is not a current native
+    // agent (verified absent from `opencode agent list`) and the flag is a
+    // guard. All implementation flows through @coder with an OPEN ticket.
+    "build": {
+      "disable": true
+    },
+    "plan": {
+      "disable": true
+    },
+    "scout": {
+      "disable": true
+    },
     // Agent modes/colors + permissions (merged from the old opencode.json)
     // The orchestrator is the plugin's real delegating agent (oh-my-opencode-slim@2.2.17
     // registers it as `orchestrator`). It must NEVER perform engineering work itself:
@@ -756,16 +770,11 @@
   // Custom Commands — reusable multi-step workflows via Ctrl+K
   // ---------------------------------------------------------------------------
   "command": {
-    "tdd-cycle": {
-      "template": "Execute a full TDD cycle for $ARGUMENTS:\n1. If a spec is not yet captured, dispatch @openspec-plan for interview-first spec authoring (Socratic interview → artifact synthesis → openspec validate). Do NOT invoke the openspec-propose skill directly.\n2. For each task (a vertical slice): RED — write a failing test at a pre-agreed seam (invoke tdd-craftsman)\n3. GREEN — implement the minimum code to pass that one test, one slice at a time\n4. Run verification gates after each task: turbo run typecheck lint test --filter=<affected package>\n5. When all slices are green, dispatch @reviewer for the two-axis review (Standards + Spec)",
-      "description": "Full feature TDD cycle — spec → vertical-slice test-first implementation → two-axis review (e.g. /tdd-cycle implement stress detection for Ukrainian)",
-      "agent": "coder"
-    },
-    "test-package": {
-      "template": "Run the test suite for @poetry/$ARGUMENTS with turbo run test --filter=@poetry/$ARGUMENTS. If any tests fail, analyze the errors and suggest fixes.",
-      "description": "Run tests for a specific package (e.g. /test-package editor-engine)",
-      "agent": "coder"
-    },
+    // DIA-260831-h3i4 F2: tdd-cycle + test-package REMOVED. Direct
+    // agent:coder bindings execute as coder with no task() dispatch, so the
+    // DIA-217 ticket gate never fires - implementation work with no
+    // governing OPEN ticket. TDD flows through @coder lane dispatch (with
+    // ticket) via the tdd-craftsman skill; tests via make test-*.
     "arch-check": {
       "template": "Review the architecture of the code at $ARGUMENTS against architecture.md and SOLID principles. Check for: single responsibility violations, missing DI, state mutation outside Orchestrator, worker boundary leaks, OCC version check omissions. Report any violations with specific line references.",
       "description": "Audit code against architectural standards (e.g. /arch-check packages/editor-engine/src)",

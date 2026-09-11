@@ -53,3 +53,9 @@ Fix: use path-validating fetch wrappers or non-shell fetch plus scoped edit.
 ## Re-verify
 
 > To be filled at re-verify time.
+
+## UPDATE 2026-09-10 - learnings registration lane (AGENTS.md 2.5 step 1)
+
+- Registered: `.opencode/learnings/external-patterns/2026-09-10-shell-redirection-write-scope-bypass.md` (status: decided-not-implemented).
+- Developer decision (EBDV, explicit): Option 2+3 durable. Primary control is a typed fetch-to-artifact tool/wrapper taking URL + artifact dir and enforcing the resolved output path inside `knowledge/<allocated-id>/sources/`; defense-in-depth is a protected-path bash gate for `.opencode/*`, `scripts/*`, AGENTS.md, git metadata, and workflow-critical paths; remove `curl *` / `wget *` as universal permissions. Option 1 (tighter bash arg patterns) rejected as primary: glob matchers cannot reliably parse shell syntax.
+- Developer scoping notes: coder-interpreter scope (`node *`, `bun *`, `python3 *`, opencode.jsonc:337-342) is OUT - separate ticket. No status/frontmatter change; no implementation in this lane.

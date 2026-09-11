@@ -181,11 +181,14 @@ Turbo ensures the **build order** is correct — tests never run on stale builds
 **Custom commands** (press Ctrl+K):
 
 ```
-/tdd-cycle <feature>      # Full interview + TDD in one command
-/test-package <name>      # Run tests for a specific package
 /arch-check <path>        # Audit code against architecture standards
 /code-ownership <path>    # Get maintainability score
 ```
+
+> `/tdd-cycle` and `/test-package` were REMOVED (DIA-260831-h3i4): their
+> direct `agent:coder` bindings bypassed the DIA-217 ticket gate. TDD now
+> runs through @coder lane dispatch with an OPEN ticket (tdd-craftsman
+> skill); package tests via `make test-*`.
 
 **MCP servers** (live AI tool access):
 
@@ -310,10 +313,11 @@ YOU: "Add heteronym resolution to the editor"
 
 | Command                  | When to use                                            |
 | ------------------------ | ------------------------------------------------------ |
-| `/tdd-cycle <feature>`   | You want to build something new with full discipline   |
-| `/test-package <name>`   | You want to check if a package's tests pass            |
 | `/arch-check <path>`     | You want to verify code follows our architecture rules |
 | `/code-ownership <path>` | You want to evaluate code quality and maintainability  |
+
+> `/tdd-cycle` and `/test-package` were REMOVED (DIA-260831-h3i4): TDD via
+> @coder lane dispatch with ticket (tdd-craftsman skill), tests via `make test-*`.
 
 ---
 

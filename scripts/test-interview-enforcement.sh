@@ -5,7 +5,8 @@
 #   2. Banned "one-step" / momentum phrases are gone from the openspec-propose
 #      skill and the /opsx-* commands.
 #   3. The openspec-propose skill leads with interview-first language.
-#   4. /tdd-cycle routes through @openspec-plan, not the skill directly.
+#   4. No tdd-cycle / test-package direct-coder command blocks in opencode.jsonc
+#      (DIA-260831-h3i4 F2 containment).
 #   5. The boss fast-path opt-in gate exists in orchestrator_append.md (the live
 #      prompt file; boss_append.md was deleted as a dead duplicate - DIA-160).
 # Run from the repo root: bash scripts/test-interview-enforcement.sh
@@ -118,32 +119,25 @@ else
 fi
 
 # ---------------------------------------------------------------------------
-# Check 4: /tdd-cycle routes through @openspec-plan, not the skill directly
-# The tdd-cycle template keeps an explicit "Do NOT invoke the openspec-propose
-# skill directly." prohibition — so a bare substring grep would false-positive.
-# Use a PCRE negative lookbehind when available; otherwise fall back to the
-# old routing phrase as a proxy.
+# Check 4 (DIA-260831-h3i4 F2): direct-coder TDD/test shortcuts are GONE from
+# opencode.jsonc. tdd-cycle + test-package carried agent:coder bindings that
+# execute as coder with no task() dispatch, so the DIA-217 ticket gate never
+# fired. TDD now flows through @coder lane dispatch (with ticket) via the
+# tdd-craftsman skill; tests via make test-*. Neither block may reappear.
 # ---------------------------------------------------------------------------
 check4_ok=1
-if ! grep -Fq "dispatch @openspec-plan" "$OPENCODE"; then
-    echo "  'dispatch @openspec-plan' missing from opencode.jsonc" >&2
+if grep -Fq '"tdd-cycle"' "$OPENCODE"; then
+    echo "  'tdd-cycle' command block present in opencode.jsonc (direct-coder bypass)" >&2
     check4_ok=0
 fi
-if printf 'a\n' | grep -Pq 'a' 2>/dev/null; then
-    if grep -Pq '(?<!Do NOT )invoke the openspec-propose skill' "$OPENCODE"; then
-        echo "  opencode.jsonc still routes through the openspec-propose skill" >&2
-        check4_ok=0
-    fi
-else
-    if grep -Fq "invoke the openspec-propose skill to author" "$OPENCODE"; then
-        echo "  opencode.jsonc still routes through the openspec-propose skill" >&2
-        check4_ok=0
-    fi
+if grep -Fq '"test-package"' "$OPENCODE"; then
+    echo "  'test-package' command block present in opencode.jsonc (direct-coder bypass)" >&2
+    check4_ok=0
 fi
 if [ "$check4_ok" -eq 1 ]; then
-    pass "Check 4: opencode.jsonc routes /tdd-cycle via 'dispatch @openspec-plan' (no skill authoring)"
+    pass "Check 4: no tdd-cycle / test-package direct-coder blocks in opencode.jsonc"
 else
-    fail "Check 4: opencode.jsonc routes /tdd-cycle via 'dispatch @openspec-plan' (no skill authoring)"
+    fail "Check 4: no tdd-cycle / test-package direct-coder blocks in opencode.jsonc"
 fi
 
 # ---------------------------------------------------------------------------

@@ -2,7 +2,8 @@
 description: >-
   Run scripts/tickets frontier and summarize actionable tickets as
   ID + slug + severity. Conversational entry point for "what can I work on?".
-agent: coder
+# DIA-260831-h3i4 F2: no agent binding - runs in the invoking agent
+# (orchestrator); read-only ticket query, no ticket-gate bypass.
 ---
 
 # Frontier
