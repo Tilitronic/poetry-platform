@@ -1049,3 +1049,9 @@
 - **Change:** Fix recursive child_process mock via spread snapshot + bounded regression
 - **Files:** .opencode/plugins/__tests__/reviewer-immutable-git-envelope.test.mjs - .opencode/learnings/external-patterns/2026-09-11-bun-mock-module-live-namespace-snapshot.md
 - **Verification:** manual
+
+## 2026-09-11 - DIA-260827-4q3h: opencode-config
+
+- **Change:** reviewer immutable git envelope via hook pre-dispatch (ai-auditor APPROVE: F4+F5 verified-closed)
+- **Files:** .opencode/plugins/delegation-observer.ts - .opencode/oh-my-opencode-slim/reviewer.md - .opencode/plugins/__tests__/reviewer-immutable-git-envelope.test.mjs
+- **Verification:** manual

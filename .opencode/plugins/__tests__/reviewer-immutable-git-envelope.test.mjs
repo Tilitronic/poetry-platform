@@ -6,8 +6,9 @@
  * taskSubagent is derived). The reviewer lane runs bash-denied, so the hook
  * pins the review range and appends a fenced IMMUTABLE_GIT_ENVELOPE to the
  * reviewer prompt in-memory. Scenarios:
- *   1. Valid reviewer dispatch with one FIXED_POINT marker -> envelope
- *      injected (fence, OIDs, three-dot diff, double-dot log, --no-color).
+  *   1. Valid reviewer dispatch with one FIXED_POINT marker -> envelope
+  *      injected (fence, OIDs, three-dot diff, double-dot log,
+  *      --no-color + --no-ext-diff).
  *   2. Missing marker -> hard-block, prompt unchanged.
  *   3. Multiple markers -> hard-block, prompt unchanged.
  *   4. Unresolvable ref -> hard-block, prompt unchanged.
@@ -16,13 +17,20 @@
  *   7. ctx.directory not a git repo -> hard-block (unresolvable).
  *   8. Post-injection branch change -> injected envelope is immutable
  *      (still carries the original OIDs, not the moved HEAD).
+ *   9. Related but disconnected roots (orphan branch) -> refs resolve but
+ *      merge-base fails -> hard-block, prompt unchanged.
+ *  10. Refs resolve but diff/log capture fails (selective child_process
+ *      failure) -> hard-block, prompt unchanged.
+ *  11. ctx.worktree precedence: envelope captured from ctx.worktree even
+ *      when ctx.directory is not a git checkout (negative control without
+ *      worktree hard-blocks).
  *
  * The tests drive the REAL plugin (dynamic import) via mocked hook inputs,
  * exactly like the dia217-ticket-gate harness. Two mocks are registered
  * BEFORE the plugin import (ESM hoisting): @opencode-ai/plugin (same helper
  * as dia217) and node:child_process (recording wrapper delegating to the
- * REAL implementation, so git runs for real against temp repos while spawn
- * args stay observable for the --no-color assertion).
+  * REAL implementation, so git runs for real against temp repos while spawn
+  * args stay observable for the --no-color/--no-ext-diff assertion).
  *
  * Hermetic: every repo lives in a fresh mkdtemp workspace; the REAL tickets
  * directory and the REAL workspace repo are never touched.
@@ -38,7 +46,6 @@ import { join } from "node:path"
 import {
   createTempWorkspace,
   mockOpencodePlugin,
-  createHarness,
 } from "./helpers/plugin-harness.mjs"
 
 // Real child_process fns, snapshotted BEFORE mock.module registration.
@@ -48,15 +55,21 @@ import {
 const realCp = { ...(await import("node:child_process")) }
 
 // Recording wrapper: every spawnSync call is logged, then delegated to the
-// real implementation so git operates on real temp repos.
+// real implementation so git operates on real temp repos. Factored as a
+// function so a test can temporarily register a failing wrapper and restore
+// the recorder afterwards (Bun mock.module patches the live namespace in
+// place, so re-registration affects the already-imported plugin).
 const spawnCalls = []
-mock.module("node:child_process", () => ({
-  ...realCp,
-  spawnSync: (cmd, args, opts) => {
-    spawnCalls.push({ cmd, args: Array.isArray(args) ? [...args] : args })
-    return realCp.spawnSync(cmd, args, opts)
-  },
-}))
+function registerRecordingWrapper() {
+  mock.module("node:child_process", () => ({
+    ...realCp,
+    spawnSync: (cmd, args, opts) => {
+      spawnCalls.push({ cmd, args: Array.isArray(args) ? [...args] : args })
+      return realCp.spawnSync(cmd, args, opts)
+    },
+  }))
+}
+registerRecordingWrapper()
 
 // ---- @opencode-ai/plugin mock (registered BEFORE the plugin import) ----
 mockOpencodePlugin()
@@ -122,7 +135,18 @@ function writeOpenTicket(directory, id) {
 }
 
 async function makeHarnessAt(directory) {
-  return createHarness(directory)
+  return makeHarnessWithCtx({ directory })
+}
+
+/** Harness with an explicit ctx (e.g. { directory, worktree }). */
+async function makeHarnessWithCtx(ctx) {
+  const { default: createObserver } = await import(
+    "../delegation-observer.ts"
+  )
+  return createObserver({
+    ...ctx,
+    client: { app: { log: async () => {} } },
+  })
 }
 
 /**
@@ -217,7 +241,9 @@ test("4q3h valid: reviewer + one FIXED_POINT marker receives the fenced envelope
   expect(attached).toBeDefined()
   expect(attached.base_oid).toBe(baseOid)
   expect(attached.head_oid).toBe(headOid)
-  // No-color flags on the capture commands (not on rev-parse/merge-base).
+  // No-color + no-ext-diff flags on the capture commands (not on
+  // rev-parse/merge-base). --no-ext-diff pins stock git output even when
+  // the lane worktree configures an external diff driver.
   const diffCall = spawnCalls.find(
     (c) => c.cmd === "git" && c.args[0] === "diff"
   )
@@ -226,6 +252,8 @@ test("4q3h valid: reviewer + one FIXED_POINT marker receives the fenced envelope
   expect(logCall).toBeDefined()
   expect(diffCall.args).toContain("--no-color")
   expect(logCall.args).toContain("--no-color")
+  expect(diffCall.args).toContain("--no-ext-diff")
+  expect(logCall.args).toContain("--no-ext-diff")
 })
 
 test("4q3h missing: reviewer without FIXED_POINT hard-blocks, prompt unchanged", async () => {
@@ -447,6 +475,171 @@ test("4q3h immutability: envelope keeps original OIDs after the branch moves", a
   expect(injectedPrompt).not.toContain(movedHead)
   expect(injectedPrompt).not.toContain("third note")
   expect(injectedPrompt).not.toContain("hello world again")
+})
+
+test("4q3h unrelated: refs resolve but share no merge-base -> hard-block, prompt unchanged", async () => {
+  const { directory, cleanup } = createTempWorkspace("4q3h-orphan-")
+  workspaceCleanups.push(cleanup)
+  git(directory, "init", "-q", "-b", "main")
+  git(directory, "config", "user.email", "t@t.t")
+  git(directory, "config", "user.name", "t")
+  writeFileSync(join(directory, "a.txt"), "alpha\n")
+  git(directory, "add", "a.txt")
+  git(directory, "commit", "-q", "-m", "root commit")
+  const rootOid = git(directory, "rev-parse", "HEAD")
+  // Disconnected root: both OIDs resolve, but merge-base fails.
+  git(directory, "checkout", "-q", "--orphan", "unrelated")
+  writeFileSync(join(directory, "b.txt"), "beta\n")
+  git(directory, "add", "b.txt")
+  git(directory, "commit", "-q", "-m", "unrelated root")
+  writeOpenTicket(directory, TICKET_ID)
+  const hooks = await makeHarnessAt(directory)
+  const ctx = { directory }
+  const { sessionID, callID } = freshSession()
+  const originalPrompt = `Review. FIXED_POINT: ${rootOid}`
+  const taskArgs = {
+    subagent_type: "reviewer",
+    description: "reviewer delta check",
+    prompt: originalPrompt,
+    ticket_id: TICKET_ID,
+  }
+
+  const { error, registryRows } = await runTaskDispatch(
+    hooks,
+    ctx,
+    taskArgs,
+    sessionID,
+    callID
+  )
+
+  expect(error).not.toBeNull()
+  expect(error.message).toContain("REVIEWER ENVELOPE:")
+  expect(error.message).toContain("no merge-base")
+  expect(taskArgs.prompt).toBe(originalPrompt)
+  expect(
+    registryRows.find((r) => r.event === "reviewer_envelope_blocked")
+  ).toBeDefined()
+  expect(
+    registryRows.find((r) => r.event === "reviewer_envelope_attached")
+  ).toBeUndefined()
+})
+
+test("4q3h capture-fail: refs resolve but diff/log capture fails -> hard-block, prompt unchanged", async () => {
+  const { directory, baseOid } = initTwoCommitRepo()
+  writeOpenTicket(directory, TICKET_ID)
+  const hooks = await makeHarnessAt(directory)
+  const ctx = { directory }
+  const { sessionID, callID } = freshSession()
+  const originalPrompt = `Review. FIXED_POINT: ${baseOid}`
+  const taskArgs = {
+    subagent_type: "reviewer",
+    description: "reviewer delta check",
+    prompt: originalPrompt,
+    ticket_id: TICKET_ID,
+  }
+
+  // Fail ONLY the evidence-capture commands; rev-parse/merge-base still
+  // delegate to real git so ref resolution succeeds.
+  mock.module("node:child_process", () => ({
+    ...realCp,
+    spawnSync: (cmd, args, opts) => {
+      spawnCalls.push({ cmd, args: Array.isArray(args) ? [...args] : args })
+      if (cmd === "git" && (args[0] === "diff" || args[0] === "log")) {
+        return {
+          status: 128,
+          stdout: "",
+          stderr: "simulated capture failure",
+        }
+      }
+      return realCp.spawnSync(cmd, args, opts)
+    },
+  }))
+  try {
+    const { error, registryRows } = await runTaskDispatch(
+      hooks,
+      ctx,
+      taskArgs,
+      sessionID,
+      callID
+    )
+
+    expect(error).not.toBeNull()
+    expect(error.message).toContain("REVIEWER ENVELOPE:")
+    expect(error.message).toContain("could not capture diff/log")
+    expect(taskArgs.prompt).toBe(originalPrompt)
+    expect(
+      registryRows.find((r) => r.event === "reviewer_envelope_blocked")
+    ).toBeDefined()
+    expect(
+      registryRows.find((r) => r.event === "reviewer_envelope_attached")
+    ).toBeUndefined()
+  } finally {
+    registerRecordingWrapper()
+  }
+})
+
+test("4q3h worktree: ctx.worktree takes precedence over a non-git ctx.directory", async () => {
+  const { directory: repoDir, baseOid, headOid } = initTwoCommitRepo()
+  const { directory: plainDir, cleanup } = createTempWorkspace("4q3h-plain-")
+  workspaceCleanups.push(cleanup)
+  // Ticket gate + registry resolve against ctx.directory, so the OPEN
+  // ticket lives in the plain (non-git) directory.
+  writeOpenTicket(plainDir, TICKET_ID)
+  const originalPrompt = `Review the delta. FIXED_POINT: ${baseOid}`
+
+  // Negative control: directory alone (non-git, no worktree) hard-blocks.
+  {
+    const hooks = await makeHarnessWithCtx({ directory: plainDir })
+    const { sessionID, callID } = freshSession()
+    const taskArgs = {
+      subagent_type: "reviewer",
+      description: "reviewer delta check",
+      prompt: originalPrompt,
+      ticket_id: TICKET_ID,
+    }
+    const { error } = await runTaskDispatch(
+      hooks,
+      { directory: plainDir },
+      taskArgs,
+      sessionID,
+      callID
+    )
+    expect(error).not.toBeNull()
+    expect(error.message).toContain("REVIEWER ENVELOPE:")
+    expect(taskArgs.prompt).toBe(originalPrompt)
+  }
+
+  // With worktree set, the envelope is captured from the repo even though
+  // ctx.directory is not a git checkout.
+  {
+    const hooks = await makeHarnessWithCtx({
+      directory: plainDir,
+      worktree: repoDir,
+    })
+    const { sessionID, callID } = freshSession()
+    const taskArgs = {
+      subagent_type: "reviewer",
+      description: "reviewer delta check",
+      prompt: originalPrompt,
+      ticket_id: TICKET_ID,
+    }
+    const { error, registryRows } = await runTaskDispatch(
+      hooks,
+      { directory: plainDir },
+      taskArgs,
+      sessionID,
+      callID
+    )
+    expect(error).toBeNull()
+    expect(taskArgs.prompt).toContain("```IMMUTABLE_GIT_ENVELOPE")
+    expect(taskArgs.prompt).toContain(`worktree: ${repoDir}`)
+    expect(taskArgs.prompt).toContain(`base_oid: ${baseOid}`)
+    expect(taskArgs.prompt).toContain(`head_oid: ${headOid}`)
+    expect(taskArgs.prompt).toContain("hello world")
+    expect(
+      registryRows.find((r) => r.event === "reviewer_envelope_attached")
+    ).toBeDefined()
+  }
 })
 
 test("regression: realCp snapshot does not self-recurse (one bounded git call)", () => {

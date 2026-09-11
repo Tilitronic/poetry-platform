@@ -1957,9 +1957,11 @@ const delegationObserver: Plugin = async (ctx) => {
           )
         }
         // Tri-state: null = capture failed (block); "" = captured but empty
-        // (falls through to the empty-range check below).
-        const diffOut = runGit(["diff", "--no-color", `${baseOid}...${headOid}`])
-        const logOut = runGit(["log", "--no-color", `${baseOid}..${headOid}`])
+        // (falls through to the empty-range check below). --no-ext-diff:
+        // external diff drivers (gitconfig diff.external) must not change
+        // reviewer evidence; the envelope always carries stock git output.
+        const diffOut = runGit(["diff", "--no-color", "--no-ext-diff", `${baseOid}...${headOid}`])
+        const logOut = runGit(["log", "--no-color", "--no-ext-diff", `${baseOid}..${headOid}`])
         if (diffOut === null || logOut === null) {
           failEnvelope(
             `could not capture diff/log for range ${baseOid}..${headOid}`

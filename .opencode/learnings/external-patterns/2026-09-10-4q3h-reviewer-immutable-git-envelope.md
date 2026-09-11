@@ -62,3 +62,14 @@ Implement Variant A as the section-2.5 step 2 design input:
 
 - No new runtime dependency; hook + git CLI only.
 - ASCII-only per DIA-079. Single-file registration; no code touched.
+
+## Outcome
+
+Implemented as Variant A (hook pre-dispatch reviewer-only branch +
+FIXED_POINT marker + deny-by-default git command contract + fenced
+envelope). ai-auditor VERIFIED CLOSED (APPROVE: F4+F5 verified-closed;
+F3 accepted as intentional contract per developer; residual
+orchestratorPrompt drift non-blocking under DIA-128). Evidence:
+harness 12 pass / 81 expects, test-config EXIT 0, reviewer-sections
+1 passed, reviewer bash-deny intact, rollback-by-removal. Registered
+in .opencode/CHANGELOG.yaml under DIA-260827-4q3h (section-2.5 step 7).
