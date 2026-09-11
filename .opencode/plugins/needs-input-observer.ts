@@ -129,6 +129,10 @@ interface WaitingEntry {
   reason: WaitingReason
   detail: string
   since: string
+  // DIA-260827-gnsv: per-permission rows carry their permission id so the
+  // ticker/C2 view names WHICH permission blocks the session. Session-level
+  // rows (question/idle) omit it.
+  permission_id?: string
 }
 
 interface TickerErrorEntry {
@@ -279,7 +283,12 @@ const needsInputObserver: Plugin = async (ctx) => {
 
   // In-memory state, seeded from ticker.json on boot (restart/compaction
   // survival). Persisted atomically on every transition.
-  const waiting = new Map<string, WaitingEntry>()
+  // DIA-260827-gnsv: waiting is split by granularity. sessionWaiting holds
+  // one row per session (question/idle); permissionWaiting holds one row per
+  // pending permission keyed `${sessionID}:${permissionID}` so concurrent
+  // asks stay independently visible. persist() merges both time-sorted.
+  const sessionWaiting = new Map<string, WaitingEntry>()
+  const permissionWaiting = new Map<string, WaitingEntry>()
   const errors = new Map<string, TickerErrorEntry>()
 
   // === DIA-098 R3: permission-ask watchdog state ===
@@ -450,8 +459,10 @@ const needsInputObserver: Plugin = async (ctx) => {
   }
 
   /**
-   * DIA-098 R3: CLEAR side — stop the timer and drop the persisted record
-   * (the ticker "CLEAR transition"). No-op when the pair is untracked.
+   * DIA-098 R3 + DIA-260827-gnsv CLEAR side — stop the timer and drop the
+   * persisted record (the ticker "CLEAR transition") AND the per-permission
+   * waiting row. Scoped: sibling permission rows for the same session are
+   * untouched. No-op when the pair is untracked.
    */
   function clearPermissionWatch(sessionID: string, permissionID: string): void {
     const key = permissionKey(sessionID, permissionID)
@@ -460,17 +471,8 @@ const needsInputObserver: Plugin = async (ctx) => {
       clearTimeout(timer)
       pendingPermissionTimers.delete(key)
     }
-    if (permissionAsks.delete(key)) persist()
-  }
-
-  /** DIA-098 R3: drop every pending permission for a session (session gone). */
-  function clearSessionPermissionWatches(sessionID: string): void {
-    for (const key of [...permissionAsks.keys()]) {
-      const record = permissionAsks.get(key)
-      if (record?.session_id === sessionID) {
-        clearPermissionWatch(sessionID, record.permission_id)
-      }
-    }
+    const droppedRow = permissionWaiting.delete(key)
+    if (permissionAsks.delete(key) || droppedRow) persist()
   }
 
   /**
@@ -488,7 +490,11 @@ const needsInputObserver: Plugin = async (ctx) => {
     const record = permissionAsks.get(key)
     // Guard: a reply that raced the timer removes the record first — never
     // reject an already-resolved permission.
-    if (!record) return
+    if (!record && !permissionWaiting.has(key)) return
+    // DIA-260827-gnsv scoped timeout: clear ONLY this permission key (row +
+    // record + timer). Sibling permission rows and the session-level row are
+    // untouched — the SDK call below targets this permissionID alone.
+    permissionWaiting.delete(key)
     permissionAsks.delete(key)
     pendingPermissionTimers.delete(key)
 
@@ -525,11 +531,11 @@ const needsInputObserver: Plugin = async (ctx) => {
       reason: "no_human_response_within_threshold",
     })
 
-    // 3. Ticker CLEAR with reason: the persisted record is dropped (the
-    //    reason lives in the audit rows above — ticker entries carry no
-    //    clear-reason field) and the waiting entry is cleared.
+    // 3. Ticker CLEAR (scoped): the persisted record + waiting row for THIS
+    //    permission key are already dropped above — the reason lives in the
+    //    audit rows, ticker entries carry no clear-reason field. Single
+    //    persist; sibling rows untouched.
     persist()
-    clear(sessionID)
 
     // 4. messages.jsonl log_decision row — the same semantic contract the
     //    log_decision tool writes (event_type "decision"). content_ref
@@ -633,12 +639,32 @@ const needsInputObserver: Plugin = async (ctx) => {
   }
 
   function purgeExpired(nowMs = Date.now()): void {
-    for (const [id, e] of [...waiting.entries()]) {
-      if (isExpired(e, nowMs)) waiting.delete(id)
+    for (const [id, e] of [...sessionWaiting.entries()]) {
+      if (isExpired(e, nowMs)) sessionWaiting.delete(id)
+    }
+    for (const [key, e] of [...permissionWaiting.entries()]) {
+      if (isExpired(e, nowMs)) {
+        // A stale permission row takes its watchdog record + timer with it
+        // so no orphaned auto-reject fires for a purged row.
+        permissionWaiting.delete(key)
+        const timer = pendingPermissionTimers.get(key)
+        if (timer !== undefined) {
+          clearTimeout(timer)
+          pendingPermissionTimers.delete(key)
+        }
+        permissionAsks.delete(key)
+      }
     }
     for (const [id, e] of [...errors.entries()]) {
       if (isExpired(e, nowMs)) errors.delete(id)
     }
+  }
+
+  /** DIA-260827-gnsv: merged time-sorted view of both waiting maps. */
+  function mergedWaiting(): WaitingEntry[] {
+    return [...sessionWaiting.values(), ...permissionWaiting.values()].sort(
+      (a, b) => a.since.localeCompare(b.since)
+    )
   }
 
   /**
@@ -653,9 +679,11 @@ const needsInputObserver: Plugin = async (ctx) => {
       const doc: TickerDoc = {
         version: 1,
         updated_at: new Date().toISOString(),
-        waiting: [...waiting.values()].sort((a, b) =>
-          a.since.localeCompare(b.since)
-        ),
+        // DIA-260827-gnsv: ONE merged list (session + per-permission rows).
+        // The permission rows are the durable watchdog record; the legacy
+        // `permissions` array below is still written for backward compat
+        // (rollback = revert observer + renderer together).
+        waiting: mergedWaiting(),
         errors: [...errors.values()].sort((a, b) =>
           a.since.localeCompare(b.since)
         ),
@@ -682,14 +710,28 @@ const needsInputObserver: Plugin = async (ctx) => {
       const doc = JSON.parse(raw) as Partial<TickerDoc>
       for (const e of Array.isArray(doc.waiting) ? doc.waiting : []) {
         if (e && typeof e.session_id === "string" && typeof e.reason === "string") {
-          waiting.set(e.session_id, {
+          // DIA-260827-gnsv: permission_id marks a per-permission row (new
+          // format); rows without it are session-level. Both maps seed from
+          // the ONE merged waiting list.
+          const entry: WaitingEntry = {
             session_id: e.session_id,
             title: typeof e.title === "string" ? e.title : undefined,
             agent: typeof e.agent === "string" ? e.agent : undefined,
             reason: e.reason as WaitingReason,
             detail: typeof e.detail === "string" ? e.detail : "",
             since: typeof e.since === "string" ? e.since : new Date().toISOString(),
-          })
+            ...(typeof e.permission_id === "string" && e.permission_id
+              ? { permission_id: e.permission_id }
+              : {}),
+          }
+          if (entry.permission_id) {
+            permissionWaiting.set(
+              permissionKey(entry.session_id, entry.permission_id),
+              entry
+            )
+          } else {
+            sessionWaiting.set(e.session_id, entry)
+          }
         }
       }
       for (const e of Array.isArray(doc.errors) ? doc.errors : []) {
@@ -732,6 +774,37 @@ const needsInputObserver: Plugin = async (ctx) => {
           record
         )
         permRecords.push(record)
+        // DIA-260827-gnsv backward compat: pre-migration ticker.json files
+        // carry permission state ONLY in `permissions` (no permission_id rows
+        // in `waiting`). Backfill a per-permission waiting row so the merged
+        // view stays complete across the upgrade.
+        const wkey = permissionKey(record.session_id, record.permission_id)
+        if (!permissionWaiting.has(wkey)) {
+          permissionWaiting.set(wkey, {
+            session_id: record.session_id,
+            reason: "permission",
+            detail:
+              record.patterns && record.patterns.length > 0
+                ? `permission ${record.patterns.join(", ")}`
+                : "permission requested",
+            since: record.timestamp,
+            permission_id: record.permission_id,
+          })
+        }
+      }
+      // DIA-260827-gnsv forward path: a permission row seeded from the merged
+      // waiting list (new format) still needs its watchdog record + timer.
+      // The waiting row is the durable record — derive permissionAsks here.
+      for (const [wkey, entry] of permissionWaiting) {
+        if (!permissionAsks.has(wkey) && entry.permission_id) {
+          const record: PermissionAskRecord = {
+            session_id: entry.session_id,
+            permission_id: entry.permission_id,
+            timestamp: entry.since,
+          }
+          permissionAsks.set(wkey, record)
+          permRecords.push(record)
+        }
       }
       // DIA-260822-unsn: purge invalid/stale waiting/error entries so a stale
       // ticker does not survive a restart or a persist round-trip. Shared helper
@@ -761,20 +834,55 @@ const needsInputObserver: Plugin = async (ctx) => {
     }
   }
 
-  /** CLEAR transition: remove the session from waiting. No-op when absent. */
+  /**
+   * CLEAR transition: remove the SESSION-level waiting row. Scoped
+   * (DIA-260827-gnsv): per-permission rows for the same session are left
+   * untouched — only a permission reply/timeout or a bulk session event
+   * clears them. No-op when absent.
+   */
   function clear(sessionID: string): void {
-    if (!waiting.delete(sessionID)) return
+    if (!sessionWaiting.delete(sessionID)) return
     persist()
+  }
+
+  /**
+   * DIA-260827-gnsv: drop every per-permission row + watchdog record + timer
+   * for one session WITHOUT persisting (bulk callers persist once). Returns
+   * true when anything was dropped.
+   */
+  function dropSessionPermissionState(sessionID: string): boolean {
+    let dropped = false
+    for (const [key, entry] of [...permissionWaiting]) {
+      if (entry.session_id === sessionID) {
+        permissionWaiting.delete(key)
+        dropped = true
+      }
+    }
+    for (const [key, record] of [...permissionAsks]) {
+      if (record.session_id === sessionID) {
+        const timer = pendingPermissionTimers.get(key)
+        if (timer !== undefined) {
+          clearTimeout(timer)
+          pendingPermissionTimers.delete(key)
+        }
+        permissionAsks.delete(key)
+        dropped = true
+      }
+    }
+    return dropped
   }
 
   /**
    * ERROR bucket transition (separate from waiting, per spec): record the
    * error; also drop the session from waiting (an errored turn is no longer
-   * waiting for input). Errors are NEVER notified - only listed in the ticker
-   * view.
+   * waiting for input). DIA-260827-gnsv bulk rule: an error clears the whole
+   * session scope — the session row AND every per-permission row/timer for
+   * that session — with a single persist. Errors are NEVER notified - only
+   * listed in the ticker view.
    */
   function recordError(sessionID: string, error: string): void {
-    waiting.delete(sessionID)
+    sessionWaiting.delete(sessionID)
+    dropSessionPermissionState(sessionID)
     errors.set(sessionID, {
       session_id: sessionID,
       title: sessionMeta.get(sessionID)?.title,
@@ -887,7 +995,12 @@ const needsInputObserver: Plugin = async (ctx) => {
     // process. On an in-process reload, enter() re-fires for persisted waiting
     // sessions; the globalThis-backed notifiedAsks Set survives the reload so
     // the duplicate toast is suppressed (the audit log above still records it).
-    const toastKey = `${entry.session_id}:${entry.reason}`
+    // DIA-260827-gnsv: per-permission rows toast per permission key so two
+    // concurrent asks for one session notify independently. Session-level
+    // keys keep the legacy session:reason shape (guard-3 test pins it).
+    const toastKey = entry.permission_id
+      ? `${entry.session_id}:${entry.reason}:${entry.permission_id}`
+      : `${entry.session_id}:${entry.reason}`
     if (notifiedAsks.has(toastKey)) return
 
     const title = entry.title || (await resolveTitle(entry.session_id)) || "Agent needs input"
@@ -928,13 +1041,15 @@ const needsInputObserver: Plugin = async (ctx) => {
    * waiting session is left untouched; the belt-and-suspenders wait_for_user
    * path therefore cannot double-enter), then persist + notify. The idle
    * caller resets its per-session delegation counter after entering.
+   * DIA-260827-gnsv: session-level rows only (question/idle) — permission
+   * asks use enterPermission below.
    */
   async function enter(
     sessionID: string,
     reason: WaitingReason,
     detail: string
   ): Promise<void> {
-    if (waiting.has(sessionID)) return
+    if (sessionWaiting.has(sessionID)) return
     const meta = sessionMeta.get(sessionID)
     const entry: WaitingEntry = {
       session_id: sessionID,
@@ -944,9 +1059,40 @@ const needsInputObserver: Plugin = async (ctx) => {
       detail,
       since: new Date().toISOString(),
     }
-    waiting.set(sessionID, entry)
+    sessionWaiting.set(sessionID, entry)
     persist()
     await notify(entry)
+  }
+
+  /**
+   * DIA-260827-gnsv ENTER for one permission ask: creates the per-permission
+   * waiting row keyed `${sessionID}:${permissionID}` (deduped — a duplicate
+   * ask for the same pair is left untouched), then persists + notifies. The
+   * watchdog record + timer are armed by startPermissionWatch (same call).
+   */
+  async function enterPermission(
+    sessionID: string,
+    permissionID: string,
+    detail: string,
+    patterns: string[] | undefined
+  ): Promise<void> {
+    const key = permissionKey(sessionID, permissionID)
+    if (!permissionWaiting.has(key)) {
+      const meta = sessionMeta.get(sessionID)
+      const entry: WaitingEntry = {
+        session_id: sessionID,
+        title: meta?.title,
+        agent: meta?.agent,
+        reason: "permission",
+        detail,
+        since: new Date().toISOString(),
+        permission_id: permissionID,
+      }
+      permissionWaiting.set(key, entry)
+      persist()
+      await notify(entry)
+    }
+    startPermissionWatch(sessionID, permissionID, patterns)
   }
 
   // DIA-189 F3: rename dedupe. Converging event streams (e.g. pty.created
@@ -1242,13 +1388,28 @@ const needsInputObserver: Plugin = async (ctx) => {
               meta.agent = info.agent
             }
           }
-          // Keep a waiting entry's title fresh so notifications and the
-          // ticker view show the current label.
-          const entry = waiting.get(sessionID)
-          if (entry && typeof info.title === "string" && info.title !== entry.title) {
-            entry.title = info.title
-            persist()
+          // Keep waiting titles fresh so notifications and the
+          // ticker view show the current label. DIA-260827-gnsv: refresh
+          // the session row AND every per-permission row for the session.
+          const sessionEntry = sessionWaiting.get(sessionID)
+          let titleTouched = false
+          if (
+            sessionEntry &&
+            typeof info.title === "string" &&
+            info.title !== sessionEntry.title
+          ) {
+            sessionEntry.title = info.title
+            titleTouched = true
           }
+          if (typeof info.title === "string") {
+            for (const entry of permissionWaiting.values()) {
+              if (entry.session_id === sessionID && entry.title !== info.title) {
+                entry.title = info.title
+                titleTouched = true
+              }
+            }
+          }
+          if (titleTouched) persist()
           return
         }
 
@@ -1288,17 +1449,26 @@ const needsInputObserver: Plugin = async (ctx) => {
               : p?.action && Array.isArray(p.resources) && p.resources.length > 0
                 ? `${p.action} ${p.resources.join(", ")}`
                 : (p?.permission ?? p?.action ?? "permission requested")
-          await enter(sessionID, "permission", detail)
+          // DIA-260827-gnsv: ENTER creates the permission-keyed row from
+          // properties.id (deduped per pair inside enterPermission). The
+          // registry audit row is ALWAYS written (ai-auditor finding 3).
+          // Without an id the ask is unidentifiable: fall back to a
+          // session-level row and arm no watchdog timer (auto-rejecting an
+          // unidentifiable permission could reject the WRONG request).
+          const permissionID = p?.id
+          if (typeof permissionID === "string" && permissionID) {
+            await enterPermission(
+              sessionID,
+              permissionID,
+              detail,
+              Array.isArray(p?.patterns) ? p?.patterns : undefined
+            )
+          } else {
+            await enter(sessionID, "permission", detail)
+          }
           // DIA-098 R3 watchdog: record + registry row + 5-min timer. The
           // permission id lives in properties.id for BOTH v1 (PermissionAsked)
-          // and v2 (PermissionV2Asked) events. The audit row is ALWAYS
-          // written (ai-auditor finding 3): when the id is absent,
-          // permission_id is omitted per the registry's optional-field
-          // convention (conditional spread — see existing rows) and a note
-          // marks the ask as unidentifiable. The watchdog timer is only
-          // armed with a real id — auto-rejecting an unidentifiable
-          // permission could reject the WRONG request.
-          const permissionID = p?.id
+          // and v2 (PermissionV2Asked) events.
           appendRegistryRow({
             event: "permission_asked_logged",
             session_id: sessionID,
@@ -1307,13 +1477,6 @@ const needsInputObserver: Plugin = async (ctx) => {
               : { note: "permission_id absent - watchdog timer not armed" }),
             timestamp: new Date().toISOString(),
           })
-          if (typeof permissionID === "string" && permissionID) {
-            startPermissionWatch(
-              sessionID,
-              permissionID,
-              Array.isArray(p?.patterns) ? p?.patterns : undefined
-            )
-          }
           return
         }
 
@@ -1343,21 +1506,31 @@ const needsInputObserver: Plugin = async (ctx) => {
         case "question.replied":
         case "question.v2.replied":
         case "question.rejected":
-        case "question.v2.rejected":
+        case "question.v2.rejected": {
+          const sessionID = event.properties?.sessionID
+          if (!sessionID) return
+          // DIA-260827-gnsv: question replies clear ONLY the session-level
+          // row — sibling permission rows stay visible.
+          clear(sessionID)
+          return
+        }
+
         case "permission.replied":
         case "permission.v2.replied": {
           const sessionID = event.properties?.sessionID
           if (!sessionID) return
-          // DIA-098 R3: the reply references the asked permission's id —
-          // v1 permission.replied carries permissionID, v2 permission.v2
-          // .replied carries requestID (== the asked event's properties.id).
-          // Clear the watchdog timer + ticker record for that pair.
+          // DIA-260827-gnsv + DIA-098 R3: the reply references the asked
+          // permission's id — canonical requestID first (v2 carries
+          // requestID == the asked event's properties.id), permissionID
+          // fallback (v1). Scoped: clears ONLY that permission key
+          // (reply:once — a duplicate reply for the same id is a no-op and
+          // sibling rows are untouched). The session-level row is NOT
+          // cleared here.
           const repliedPermissionID =
-            event.properties?.permissionID ?? event.properties?.requestID
+            event.properties?.requestID ?? event.properties?.permissionID
           if (typeof repliedPermissionID === "string" && repliedPermissionID) {
             clearPermissionWatch(sessionID, repliedPermissionID)
           }
-          clear(sessionID)
           return
         }
 
@@ -1388,17 +1561,18 @@ const needsInputObserver: Plugin = async (ctx) => {
         case "session.deleted": {
           const sessionID = event.properties?.sessionID
           if (!sessionID) return
-          const hadWaiting = waiting.delete(sessionID)
+          const hadWaiting = sessionWaiting.delete(sessionID)
           const hadError = errors.delete(sessionID)
-          // DIA-098 R3: a deleted session cannot answer its pending
-          // permissions — drop every watchdog record + timer for it (a stale
-          // timer would otherwise reject against a 404 session;
-          // clearPermissionWatch persists on each removal).
-          clearSessionPermissionWatches(sessionID)
+          // DIA-098 R3 + DIA-260827-gnsv bulk rule: a deleted session cannot
+          // answer its pending permissions — drop every per-permission row +
+          // watchdog record + timer for it (a stale timer would otherwise
+          // reject against a 404 session). Single persist for the whole
+          // bulk clear.
+          const hadPermissions = dropSessionPermissionState(sessionID)
           sessionMeta.delete(sessionID)
           delegationsSinceIdle.delete(sessionID)
           compactionSuppress.delete(sessionID)
-          if (hadWaiting || hadError) persist()
+          if (hadWaiting || hadError || hadPermissions) persist()
           return
         }
 
@@ -1409,14 +1583,15 @@ const needsInputObserver: Plugin = async (ctx) => {
 
     // C2: compaction survival - inject a markdown snapshot of the waiting
     // sessions into the compaction context (mirror delegation-observer C2).
+    // DIA-260827-gnsv: merged session + per-permission rows, permission_id
+    // threaded through so the compacted context names WHICH permission is
+    // pending.
     "experimental.session.compacting": async (_input, output) => {
-      if (waiting.size === 0 && errors.size === 0) return
-      const lines = [...waiting.values()]
-        .sort((a, b) => a.since.localeCompare(b.since))
-        .map(
-          (e) =>
-            `- session=${e.session_id} reason=${e.reason} since=${e.since} title=${e.title ?? "?"} detail=${e.detail.slice(0, 120)}`
-        )
+      if (sessionWaiting.size === 0 && permissionWaiting.size === 0 && errors.size === 0) return
+      const lines = mergedWaiting().map(
+        (e) =>
+          `- session=${e.session_id} reason=${e.reason} since=${e.since} title=${e.title ?? "?"} permission_id=${e.permission_id ?? "-"} detail=${e.detail.slice(0, 120)}`
+      )
       const snapshot =
         "## Needs-Input Ticker (ticker.json snapshot)\n" +
         (lines.length > 0

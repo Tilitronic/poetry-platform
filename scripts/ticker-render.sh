@@ -60,14 +60,14 @@ mkdir -p "$(dirname "$TICKER_OUTPUT")"
   echo "_Generated: ${GENERATED}_"
   echo ""
   if [ "$WAITING_COUNT" -gt 0 ]; then
-    echo "${WAITING_COUNT} session(s) waiting for developer input."
+    echo "${WAITING_COUNT} waiting row(s) for developer input."
     echo ""
-    echo "| session_id | title | agent | reason | detail | since |"
-    echo "| --- | --- | --- | --- | --- | --- |"
+    echo "| session_id | permission_id | title | agent | reason | detail | since |"
+    echo "| --- | --- | --- | --- | --- | --- | --- |"
     printf '%s' "$WAITING" | jq -r '
       def clean: gsub("\\|"; "&#124;") | gsub("[\r\n]+"; " ");
       sort_by(.since // "") | .[] |
-        "| \(.session_id // "?" | clean) | \(.title // "" | clean) | \(.agent // "" | clean) | \(.reason // "" | clean) | \(.detail // "" | clean) | \(.since // "" | clean) |"
+        "| \(.session_id // "?" | clean) | \(.permission_id // "" | clean) | \(.title // "" | clean) | \(.agent // "" | clean) | \(.reason // "" | clean) | \(.detail // "" | clean) | \(.since // "" | clean) |"
     '
   else
     echo "No sessions waiting for developer input."

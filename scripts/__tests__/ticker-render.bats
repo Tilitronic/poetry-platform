@@ -20,6 +20,7 @@
 #   T4  errors-only ticker -> empty waiting state + Errors section still shown
 #   T5  pipe char in detail escaped for markdown table safety
 #   T6  output written atomically at TICKER_OUTPUT
+#   T7  two per-permission rows render permission_id oldest-first (DIA-260827-gnsv)
 
 load test-helper
 
@@ -76,6 +77,19 @@ JSON
     malformed)
       printf 'this is not json\n' > "$path"
       ;;
+    two-permission-rows)
+      cat > "$path" <<'JSON'
+{
+  "version": 1,
+  "updated_at": "2026-09-11T12:00:00Z",
+  "waiting": [
+    {"session_id":"ses_009","permission_id":"perm_B","title":"Perm session","agent":"coder","reason":"permission","detail":"bash /tmp/b.sh","since":"2026-09-11T12:00:00Z"},
+    {"session_id":"ses_009","permission_id":"perm_A","title":"Perm session","agent":"coder","reason":"permission","detail":"bash /tmp/a.sh","since":"2026-09-11T11:00:00Z"}
+  ],
+  "errors": []
+}
+JSON
+      ;;
   esac
   echo "$path"
 }
@@ -91,8 +105,8 @@ JSON
   assert_file_exists "$out"
   assert_file_contains "$out" "# Needs-Input Ticker"
   assert_file_contains "$out" "_Generated:"
-  assert_file_contains "$out" "2 session(s) waiting for developer input."
-  assert_file_contains "$out" "| session_id | title | agent | reason | detail | since |"
+  assert_file_contains "$out" "2 waiting row(s) for developer input."
+  assert_file_contains "$out" "| session_id | permission_id | title | agent | reason | detail | since |"
   # Oldest first: ses_001 (since 11:00) must appear on an earlier line than
   # ses_003 (since 12:00), even though the fixture lists ses_003 first.
   n1="$(grep -nF '| ses_001 |' "$out" | head -1 | cut -d: -f1)"
@@ -144,7 +158,31 @@ JSON
   assert_file_contains "$out" "No sessions waiting for developer input."
   assert_file_contains "$out" "## Errors"
   assert_file_contains "$out" "| ses_bad | Broken session | 2026-08-12T11:30:00Z | Boom |"
-  assert_output_not_contains "session(s) waiting"
+  assert_output_not_contains "waiting row(s)"
+}
+
+@test "ticker-render: two per-permission rows render permission_id oldest-first" {
+  local in out n1 n2
+  in="$(write_ticker two-permission-rows)"
+  out="$BATS_TEST_TMPDIR/two-perm.md"
+
+  run env TICKER_FILE="$in" TICKER_OUTPUT="$out" bash "$RENDERER"
+
+  assert_status 0
+  assert_file_contains "$out" "2 waiting row(s) for developer input."
+  assert_file_contains "$out" "| session_id | permission_id | title | agent | reason | detail | since |"
+  assert_file_contains "$out" "perm_A"
+  assert_file_contains "$out" "perm_B"
+  # Oldest first: perm_A (since 11:00) must appear on an earlier line than
+  # perm_B (since 12:00), even though the fixture lists perm_B first.
+  n1="$(grep -nF 'perm_A' "$out" | head -1 | cut -d: -f1)"
+  n2="$(grep -nF 'perm_B' "$out" | head -1 | cut -d: -f1)"
+  [ -n "$n1" ] && [ -n "$n2" ] && [ "$n1" -lt "$n2" ] || {
+    echo "expected perm_A (since 11:00) before perm_B (since 12:00); got lines $n1 / $n2" >&2
+    echo "--- ticker.md ---" >&2
+    cat "$out" >&2
+    return 1
+  }
 }
 
 @test "ticker-render: pipe characters in cells escaped for table safety" {

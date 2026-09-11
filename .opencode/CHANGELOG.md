@@ -1055,3 +1055,9 @@
 - **Change:** reviewer immutable git envelope via hook pre-dispatch (ai-auditor APPROVE: F4+F5 verified-closed)
 - **Files:** .opencode/plugins/delegation-observer.ts - .opencode/oh-my-opencode-slim/reviewer.md - .opencode/plugins/__tests__/reviewer-immutable-git-envelope.test.mjs
 - **Verification:** manual
+
+## 2026-09-11 - DIA-260827-gnsv: closure: per-permission ticker rows with scoped clearing (F7+F8 fixed, VERIFIED)
+
+- **Change:** per-permission ticker rows with scoped clearing (ai-auditor CONFORMANT-WITH-NOTES; minors F7+F8 fixed: cross-session test 7/7, renderer relabel, bats 6/6; harness 7 pass/41 expects; make test-shell 642 zero not-ok; make test-config EXIT 0)
+- **Files:** .opencode/plugins/needs-input-observer.ts - .opencode/plugins/__tests__/needs-input-observer.per-permission-rows.test.mjs - .opencode/plugins/__tests__/needs-input-observer.reload-dedup.test.mjs - scripts/ticker-render.sh - scripts/__tests__/ticker-render.bats - .opencode/learnings/external-patterns/2026-09-11-gnsv-per-permission-ticker-rows.md
+- **Verification:** manual

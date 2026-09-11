@@ -184,8 +184,9 @@ describe("DIA-260821-5r03: needs-input-observer reload dedupe (process-scoped)",
 
   test("guard 4: ticker boot-seed (watchdog re-arm) runs once per process", async () => {
     const ctx = freshCtx()
-    // Seed a ticker.json with one pending permission so seedFromDisk arms a
-    // watchdog timer on the first factory call.
+    // Seed a ticker.json with TWO pending permissions (DIA-260827-gnsv:
+    // per-permission rows) so seedFromDisk arms two watchdog timers on the
+    // first factory call.
     const sessionDir = join(ctx.directory, ".opencode", "session")
     mkdirSync(sessionDir, { recursive: true })
     writeFileSync(
@@ -199,6 +200,11 @@ describe("DIA-260821-5r03: needs-input-observer reload dedupe (process-scoped)",
             permission_id: "perm_0001",
             timestamp: new Date().toISOString(),
           },
+          {
+            session_id: "ses_perm_0001",
+            permission_id: "perm_0002",
+            timestamp: new Date().toISOString(),
+          },
         ],
       })
     )
@@ -206,12 +212,12 @@ describe("DIA-260821-5r03: needs-input-observer reload dedupe (process-scoped)",
     const h1 = await createNeedsInputObserver(ctx)
     expect(globalThis[NEEDS_INPUT_TICKER_BOOT_KEY]).toBe(true)
     const timersAfterFirst = globalThis[NEEDS_INPUT_PERM_TIMERS_KEY]
-    expect(timersAfterFirst.size).toBe(1) // one watchdog armed
+    expect(timersAfterFirst.size).toBe(2) // two watchdogs armed
 
     // In-process reload: ticker boot-seed must NOT re-arm (no double-seed).
     await createNeedsInputObserver(ctx)
     expect(globalThis[NEEDS_INPUT_TICKER_BOOT_KEY]).toBe(true)
-    expect(timersAfterFirst.size).toBe(1) // still exactly one, not two
+    expect(timersAfterFirst.size).toBe(2) // still exactly two, not four
 
     // Clean up the armed timer so the test process does not hang.
     for (const t of timersAfterFirst.values()) clearTimeout(t)

@@ -4615,3 +4615,18 @@
     F4+F5 verified-closed)'
   verification: manual
   area: reviewer
+- date: '2026-09-11'
+  ticket: DIA-260827-gnsv
+  scope: 'closure: per-permission ticker rows with scoped clearing (F7+F8 fixed, VERIFIED)'
+  files:
+  - .opencode/plugins/needs-input-observer.ts
+  - .opencode/plugins/__tests__/needs-input-observer.per-permission-rows.test.mjs
+  - .opencode/plugins/__tests__/needs-input-observer.reload-dedup.test.mjs
+  - scripts/ticker-render.sh
+  - scripts/__tests__/ticker-render.bats
+  - .opencode/learnings/external-patterns/2026-09-11-gnsv-per-permission-ticker-rows.md
+  summary: 'per-permission ticker rows with scoped clearing (ai-auditor CONFORMANT-WITH-NOTES;
+    minors F7+F8 fixed: cross-session test 7/7, renderer relabel, bats 6/6; harness
+    7 pass/41 expects; make test-shell 642 zero not-ok; make test-config EXIT 0)'
+  verification: manual
+  area: opencode-config
