@@ -706,7 +706,7 @@
       },
       "architector": {
         "model": [
-          "github-copilot/gemini-3.1-pro-preview",
+          "openai/gpt-5.6-sol",
           "opencode/big-pickle"
         ],
         "variant": "high",
