@@ -4,7 +4,8 @@
 #
 # Execution context:
 #   - inside the dev container -> run pnpm directly in /workspace
-#   - on the host              -> delegate each step via `docker compose exec dev`
+#   - on the host              -> delegate each step via the selected native
+#     compose command (scripts/container-engine.sh)
 #
 # An offline dev stack never blocks the delegated verification steps: if the
 # container is not running those steps print a warning and pass (start it
@@ -35,12 +36,16 @@ WORKSPACE="${POETRY_WORKSPACE:-/workspace}"
 # dir (mirror of the WORKSPACE/POETRY_WORKSPACE seam above).
 COMMANDS_DIR="${POETRY_COMMANDS_DIR:-$ROOT/.opencode/commands}"
 
+# Host-side engine contract (DIA-260912-y2uo): host engine calls route through
+# the selected native compose command. No direct docker/podman invocation.
+ENGINE_ADAPTER="$ROOT/scripts/container-engine.sh"
+
 is_in_dev_container() {
   [ "$(hostname)" = "poetry-dev" ]
 }
 
 container_running() {
-  docker compose -f "$ROOT/docker-compose.yml" ps --services --status running 2>/dev/null | grep -qx "dev"
+  bash "$ENGINE_ADAPTER" dev-running
 }
 
 # run_workspace <command string>: executes <command> from the workspace root in
@@ -60,7 +65,7 @@ run_workspace() {
     # delegated gate hermetic; the in-container branch above needs no redirect
     # (stdin is a terminal there).
     # DESIGN: run_workspace never forwards stdin; pipe data via files or args.
-    docker compose -f "$ROOT/docker-compose.yml" exec -T --user dev dev bash -lc "cd \"${WORKSPACE}\" && ${cmd}" < /dev/null
+    bash "$ENGINE_ADAPTER" compose -f "$ROOT/docker-compose.yml" exec -T --user dev dev bash -lc "cd \"${WORKSPACE}\" && ${cmd}" < /dev/null
   fi
 }
 

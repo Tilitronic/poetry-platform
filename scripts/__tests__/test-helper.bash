@@ -68,13 +68,17 @@ assert_file_contains() {
 # Fake docker CLI (dev-stack.sh tests)
 # ---------------------------------------------------------------------------
 
-# mock_docker: installs a fake `docker` on PATH that records every invocation
-# to $FAKE_DOCKER_LOG and answers canned results from env:
-#   FAKE_DOCKER_DAEMON_UP       yes|no   (docker info exit code)
+# mock_docker: installs fake `docker` AND fake `podman` on PATH; every
+# invocation is recorded to $FAKE_DOCKER_LOG and answered from env:
+#   FAKE_DOCKER_DAEMON_UP       yes|no   (<engine> info exit code)
 #   FAKE_DOCKER_TURBO_INSTALLED yes|no   (node_modules/.bin/turbo exists?)
-#   FAKE_DOCKER_SERVICES        string  (verify-pre-push: `compose ps` output)
-#   FAKE_DOCKER_FAIL_STEP       string  (verify-pre-push: substring whose
-#                                        `compose exec` invocation exits 1)
+#   FAKE_DOCKER_SERVICES        string  (compose ps output)
+#   FAKE_DOCKER_FAIL_STEP       string  (substring whose `compose exec`
+#                                        invocation exits 1)
+# The docker fake logs its bare args ("compose ..."); the podman fake prefixes
+# "podman " ("podman compose ...") so command-recording tests can prove which
+# native engine a caller invoked (DIA-260912-y2uo: no cross-engine fallback).
+# Both fakes share the canned answers above.
 mock_docker() {
   FAKE_DOCKER_LOG="${FAKE_DOCKER_LOG:-$BATS_TEST_TMPDIR/docker.log}"
   export FAKE_DOCKER_LOG
@@ -125,7 +129,53 @@ case "${1:-}" in
 esac
 exit 0
 FAKEDOCKER
-  chmod +x "$bindir/docker"
+  cat > "$bindir/podman" <<'FAKEPODMAN'
+#!/usr/bin/env bash
+# Fake podman CLI for unit tests. Same canned answers as the docker fake;
+# logs with a "podman " prefix so the selected engine is provable.
+printf '%s\n' "podman $*" >> "${FAKE_DOCKER_LOG:?FAKE_DOCKER_LOG not set}"
+
+case "${1:-}" in
+  info)
+    [ "${FAKE_DOCKER_DAEMON_UP:-yes}" = "yes" ] && exit 0 || exit 1
+    ;;
+  compose)
+    shift
+    # consume global compose flags (-f <file>)
+    if [ "${1:-}" = "-f" ]; then shift 2; fi
+    case "${1:-}" in
+      exec)
+        shift
+        # consume flags (-T/-it/--/--user <user>) until the container name
+        while [ $# -gt 0 ]; do
+          case "$1" in
+            --user) shift 2 ;;
+            -T|-it|--|--) shift ;;
+            *) break ;;
+          esac
+        done
+        shift # container name
+        if [ -n "${FAKE_DOCKER_FAIL_STEP:-}" ] && [[ "$*" == *"$FAKE_DOCKER_FAIL_STEP"* ]]; then
+          exit 1
+        fi
+        case "$*" in
+          "test -x node_modules/.bin/turbo")
+            [ "${FAKE_DOCKER_TURBO_INSTALLED:-yes}" = "yes" ] && exit 0 || exit 1
+            ;;
+        esac
+        exit 0
+        ;;
+      ps)
+        printf '%s\n' "${FAKE_DOCKER_SERVICES:-}"
+        exit 0
+        ;;
+    esac
+    exit 0
+    ;;
+esac
+exit 0
+FAKEPODMAN
+  chmod +x "$bindir/docker" "$bindir/podman"
   PATH="$bindir:$PATH"
   export PATH
 }
@@ -172,13 +222,15 @@ setup_hermetic_host_context() {
   mkdir -p "$POETRY_COMMANDS_DIR"
 }
 
-# setup_dev_stack_tree: copies scripts/dev-stack.sh + .env.example into an
-# isolated temp tree so the script never touches the real repo .env.
-# Echoes the tree root.
+# setup_dev_stack_tree: copies scripts/dev-stack.sh + its engine-adapter
+# dependency (scripts/container-engine.sh) + .env.example into an isolated
+# temp tree so the script never touches the real repo .env. Echoes the tree
+# root.
 setup_dev_stack_tree() {
   local tree="$BATS_TEST_TMPDIR/stack"
   mkdir -p "$tree/scripts"
   cp "$SCRIPTS_DIR/dev-stack.sh" "$tree/scripts/dev-stack.sh"
+  cp "$SCRIPTS_DIR/container-engine.sh" "$tree/scripts/container-engine.sh"
   cp "$REPO_ROOT/.env.example" "$tree/.env.example"
   echo "$tree"
 }

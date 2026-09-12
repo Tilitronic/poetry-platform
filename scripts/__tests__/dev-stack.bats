@@ -9,6 +9,10 @@ load test-helper
 
 setup() {
   mock_docker
+  # Hermetic engine selection (DIA-260909-9api precedent): an inherited
+  # COMPOSE_ENGINE=podman would route the script at a podman fake the old
+  # assertions do not expect. Unset it; engine-specific tests export it.
+  unset COMPOSE_ENGINE
   DEV_STACK_TREE="$(setup_dev_stack_tree)"
 }
 
@@ -33,14 +37,14 @@ setup() {
   assert_file_contains "$DEV_STACK_TREE/.env" "SENTINEL=1"
 }
 
-@test "dev-stack: exits with a clear error when the Docker daemon is down" {
+@test "dev-stack: exits with a clear error when the container engine is unreachable" {
   export FAKE_DOCKER_DAEMON_UP=no
 
   run bash "$DEV_STACK_TREE/scripts/dev-stack.sh"
 
   assert_status 1
-  assert_output_contains "Docker daemon is not running"
-  # the stack must not be started when the daemon is down
+  assert_output_contains "is not reachable"
+  # the stack must not be started when the engine is unreachable
   assert_file_contains "$FAKE_DOCKER_LOG" "info"
   assert_output_not_contains "compose up"
 }

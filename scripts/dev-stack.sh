@@ -6,12 +6,20 @@
 #   make stack     (or: pnpm stack, or: bash scripts/dev-stack.sh)
 #
 # Why this lives on the HOST: turbo runs inside the `dev` container, but
-# .env creation and `docker compose` are host operations. Turbo can't do them,
-# so this script is the host-side orchestration layer that hands off to turbo.
+# .env creation and engine compose operations are host operations. Turbo can't
+# do them, so this script is the host-side orchestration layer that hands off
+# to turbo. Engine calls route via scripts/container-engine.sh (native
+# `docker compose` or `podman compose` per COMPOSE_ENGINE).
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
+
+# Host-side engine contract (DIA-260912-y2uo): every engine operation below
+# routes through scripts/container-engine.sh, which resolves COMPOSE_ENGINE
+# (authoritative) or autodetects and invokes the native compose command
+# (`docker compose` or `podman compose`). No direct docker/podman call here.
+ENGINE_ADAPTER="$ROOT/scripts/container-engine.sh"
 
 # --- 1. Create .env from template if missing --------------------------------
 if [ ! -f .env ]; then
@@ -22,22 +30,23 @@ else
 fi
 
 # --- 2. Build dev image + start dev & postgres containers --------------------
-if ! docker info >/dev/null 2>&1; then
-  echo "error: Docker daemon is not running; start it and rerun the stack." >&2
+if ! bash "$ENGINE_ADAPTER" reachable; then
+  engine="$(bash "$ENGINE_ADAPTER" select 2>/dev/null || printf 'docker')"
+  echo "error: container engine '$engine' is not reachable; start it and rerun the stack. (COMPOSE_ENGINE selects docker|podman.)" >&2
   exit 1
 fi
 echo "-> building dev image and starting postgres (first run takes a while)..."
-docker compose up -d --build
+bash "$ENGINE_ADAPTER" compose up -d --build
 
 # --- 3. Install deps inside the container on first run -----------------------
 # node_modules lives in a named volume; turbo binary only exists after install.
 # test -x, not -d: node_modules/.bin/turbo is a file (pnpm shim), and -d is
 # always false for it — which made this branch always re-run pnpm install.
-if docker compose exec -T --user dev dev test -x node_modules/.bin/turbo; then
+if bash "$ENGINE_ADAPTER" compose exec -T --user dev dev test -x node_modules/.bin/turbo; then
   echo "ok: dependencies already installed"
 else
   echo "-> installing dependencies (pnpm install)..."
-  docker compose exec -T --user dev dev pnpm install
+  bash "$ENGINE_ADAPTER" compose exec -T --user dev dev pnpm install
 fi
 
 # --- 4. Start author-studio via turbo ----------------------------------------
@@ -50,4 +59,4 @@ echo "-> starting author-studio via turbo (pnpm dev)..."
 echo "   author-studio : http://localhost:9000"
 echo "   (api-server and publishing-platform are NOT started by turbo;"
 echo "    start them separately — see docs/docker-dev.md)"
-docker compose exec -it --user dev dev pnpm dev
+bash "$ENGINE_ADAPTER" compose exec -it --user dev dev pnpm dev

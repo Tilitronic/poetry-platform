@@ -4,12 +4,18 @@
 #
 # Execution context:
 #   - inside the dev container -> run npx lint-staged directly in /workspace
-#   - on the host              -> delegate via `docker compose exec dev`
+#   - on the host              -> prove readiness through the engine adapter,
+#     then delegate via the selected native compose command
 #
 # Unlike pre-push (which warns and passes when the container is down), this
 # hook FAILS by default (D1): a commit-time autofix gate that silently skips
 # would let unformatted code into the staging area. The developer can start the
 # stack (`make up`) or bypass explicitly with `git commit --no-verify`.
+#
+# DIA-094 strict gate (DIA-260912-y2uo): the host path requires ALL THREE
+# adapter stages — selected-engine reachability, selected-stack dev running
+# status, AND non-mutating `compose exec -T dev true`. Status alone never
+# passes; each failure is distinct and never falls back to the other engine.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -25,28 +31,22 @@ is_in_dev_container() {
   [ "$(hostname)" = "poetry-dev" ]
 }
 
-container_running() {
-  docker compose -f "$ROOT/docker-compose.yml" ps --services --status running 2>/dev/null | grep -qx "dev"
-}
-
-# engine_socket_reachable: probe the container engine directly. `docker info`
-# exits non-zero when no socket is reachable (engine down / socket not mounted)
-# and succeeds when a socket exists even if no services are running. Used by the
-# pre-commit guard to distinguish "engine socket unavailable" from "compose
-# stack is down" (DIA-260821-aoag) so the remediation message is precise.
-engine_socket_reachable() {
-  docker info >/dev/null 2>&1
-}
+# Host-side engine contract (DIA-260912-y2uo). Resolves COMPOSE_ENGINE
+# (authoritative) or autodetects and exposes the selected native compose
+# invocation. All host engine calls below go through it; there is no direct
+# docker/podman invocation and no cross-engine fallback.
+ENGINE_ADAPTER="$ROOT/scripts/container-engine.sh"
 
 # run_workspace <command string>: executes <command> from the workspace root in
-# the right context — directly inside the container, or delegated on the host.
+# the right context — directly inside the container, or delegated on the host
+# through the selected native compose command.
 run_workspace() {
   local cmd="$1"
   echo "==> $cmd"
   if is_in_dev_container; then
     (cd "$WORKSPACE" && bash -lc "$cmd")
   else
-    docker compose -f "$ROOT/docker-compose.yml" exec -T dev bash -lc "cd \"${WORKSPACE}\" && ${cmd}"
+    bash "$ENGINE_ADAPTER" compose -f "$ROOT/docker-compose.yml" exec -T dev bash -lc "cd \"${WORKSPACE}\" && ${cmd}"
   fi
 }
 
@@ -64,21 +64,27 @@ guard_no_home_qualt
 if is_in_dev_container; then
   echo "== poetry-platform pre-commit: running inside dev container =="
 else
-  if ! container_running; then
-    # DIA-260821-aoag: separate "engine socket unavailable" from "compose stack
-    # is down" so the remediation is precise. Inside opencode-docker the engine
-    # socket may be absent (developer forgot --with-engine); on the host the
-    # stack may simply be down. Probe the engine directly: `docker info` fails
-    # when no socket is reachable, succeeds when a socket exists even if no
-    # services are running. The OPENCODE_DOCKER sentinel is exported by the
-    # launcher for every run.
-    if [ "${OPENCODE_DOCKER:-}" = "1" ] && ! engine_socket_reachable; then
-      echo "!! Container engine socket not mounted. Relaunch opencode-docker with --with-engine (or start the container engine) to enable in-container git hooks / docker compose." >&2
-    else
-      echo "!! dev container not running — start with 'make up', then commit again." >&2
-    fi
+  # Strict 3-stage DIA-094 gate via the engine adapter. On failure the gate's
+  # own diagnostic is printed first (it names the selected engine and the
+  # failed stage); the hook adds only the remediation pointer that matches the
+  # failure, preserving the DIA-260821-aoag distinction between "engine socket
+  # unavailable" (--with-engine inside opencode-docker) and "stack is down"
+  # (`make up`). The OPENCODE_DOCKER sentinel is exported by the launcher.
+  gate_out="$(bash "$ENGINE_ADAPTER" gate 2>&1)" && gate_rc=0 || gate_rc=$?
+  if [ "$gate_rc" -ne 0 ]; then
+    echo "$gate_out" >&2
+    case "$gate_out" in
+      *engine-reachability*)
+        if [ "${OPENCODE_DOCKER:-}" = "1" ]; then
+          echo "!! Container engine socket not mounted. Relaunch opencode-docker with --with-engine (or start the container engine) to enable in-container git hooks." >&2
+        else
+          echo "!! dev container not running — start with 'make up', then commit again." >&2
+        fi
+        ;;
+    esac
     exit 1
   fi
+  echo "$gate_out"
   echo "== poetry-platform pre-commit: delegating to dev container =="
 fi
 

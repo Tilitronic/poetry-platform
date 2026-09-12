@@ -19,6 +19,18 @@ set -euo pipefail
 # containing "podman". No docker client at all -> default "docker" (a harmless
 # string; a real error only surfaces on `docker compose up`).
 engine="${COMPOSE_ENGINE:-}"
+# Trust-boundary validation (DIA-260912-y2uo): an explicit override other than
+# docker|podman is rejected before any mapping, so a typo can never silently
+# resolve to the docker stack. Mirrors container_engine_select in
+# scripts/container-engine.sh; keep the accepted values in sync.
+case "$engine" in
+  ""|docker|podman) ;;
+  *)
+    printf '%s\n' \
+      "compose-env: error: unsupported COMPOSE_ENGINE='$engine' (expected 'docker' or 'podman')" >&2
+    exit 1
+    ;;
+esac
 if [ -z "$engine" ]; then
   if command -v docker >/dev/null 2>&1; then
     docker_path="$(readlink -f "$(command -v docker)" 2>/dev/null || true)"
@@ -57,7 +69,12 @@ fi
 # --- Override mapping (replicated from scripts/opencode-dev lines 45-60) -----
 case "$engine" in
   podman) engine_file="docker-compose.podman.yml" ;;
-  *)      engine_file="docker-compose.rootless-docker.yml" ;;
+  docker) engine_file="docker-compose.rootless-docker.yml" ;;
+  *)
+    printf '%s\n' \
+      "compose-env: error: internal: unexpected engine '$engine' (expected 'docker' or 'podman')" >&2
+    exit 1
+    ;;
 esac
 
 # --- Assemble merged COMPOSE_FILE (colon-separated, no trailing colon) -------

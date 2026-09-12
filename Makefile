@@ -28,43 +28,48 @@
 
 .PHONY: build up shell opencode dev stack install db-psql logs down clean check-pin-sync check-tools check-host-jq check-host-lsp gen-jsconfig test-shell test-opencode-docker test-python test-infra test-config test-omo test-interview test-skills eval-lite audit-python context7-docs jsonl-stats session-log-render jsonl-cross-check session-query session-analytics test-harness worktree-gc
 
-# Engine-aware compose stack (DIA-260826-766f): every bare `docker compose`
-# target below inherits this COMPOSE_FILE. Computed docker-free at parse time by
-# scripts/compose-env.sh (no daemon call), so `make` stays host-runnable.
+# Engine-aware compose stack (DIA-260826-766f + DIA-260912-y2uo): every bare
+# `docker compose` target below routes through scripts/container-engine.sh,
+# which resolves COMPOSE_ENGINE (authoritative) or autodetects and invokes the
+# native `docker compose` / `podman compose`. COMPOSE_FILE is computed
+# docker-free at parse time by scripts/compose-env.sh (no daemon call), so
+# `make` stays host-runnable. In-container commands keep their exact form;
+# only the outer host-side engine invocation is routed.
 export COMPOSE_FILE := $(shell scripts/compose-env.sh)
+COMPOSE := bash scripts/container-engine.sh compose
 
 stack:
 	bash scripts/dev-stack.sh
 
 build:
-	docker compose build dev
+	$(COMPOSE) build dev
 
 up:
-	docker compose up -d
+	$(COMPOSE) up -d
 
 shell:
-	docker compose exec --user dev dev bash
+	$(COMPOSE) exec --user dev dev bash
 
 opencode:
-	docker compose exec -it --user root dev /usr/local/bin/dev-entrypoint.sh opencode
+	$(COMPOSE) exec -it --user root dev /usr/local/bin/dev-entrypoint.sh opencode
 
 dev:
-	docker compose exec -it --user dev dev pnpm dev
+	$(COMPOSE) exec -it --user dev dev pnpm dev
 
 install:
-	docker compose exec -it --user dev dev pnpm install
+	$(COMPOSE) exec -it --user dev dev pnpm install
 
 db-psql:
-	docker compose exec postgres psql -U $${POSTGRES_USER:-poetry} -d $${POSTGRES_DB:-poetry}
+	$(COMPOSE) exec postgres psql -U $${POSTGRES_USER:-poetry} -d $${POSTGRES_DB:-poetry}
 
 logs:
-	docker compose logs -f
+	$(COMPOSE) logs -f
 
 down:
-	docker compose down
+	$(COMPOSE) down
 
 clean:
-	docker compose down -v
+	$(COMPOSE) down -v
 
 # Standalone source-parity validator (scripts/check-pin-sync.sh). Asserts
 # .mise.toml ↔ Dockerfile parity (Dockerfile.dev + tools/opencode-docker/Dockerfile)
@@ -142,7 +147,7 @@ gen-jsconfig:
 test-infra: gen-jsconfig test-shell test-harness
 	SMOKE_LEAVE_UP=1 bash scripts/test-docker-smoke.sh
 	$(MAKE) test-python
-	docker compose down
+	$(COMPOSE) down
 
 # Unit tests for the Python packages (pytest): apps/api-server + the
 # analytics-pipeline (DIA-013 — it was previously outside all Python gates)
@@ -151,12 +156,12 @@ test-infra: gen-jsconfig test-shell test-harness
 # externally-managed, so deps go into a project-local venv (.venv) bootstrapped
 # on demand via uv — never the system site-packages. Re-runs reuse the venv.
 test-python:
-	docker compose exec -T --user dev dev bash -c 'cd /workspace/apps/api-server && { test -x .venv/bin/python || uv venv .venv; } && uv pip install --python .venv/bin/python -e ".[dev]"'
-	docker compose exec -T --user dev dev bash -c 'cd /workspace/apps/api-server && .venv/bin/python -m pytest'
-	docker compose exec -T --user dev dev bash -c 'cd /workspace/packages/analytics-pipeline && { test -x .venv/bin/python || uv venv .venv; } && uv pip install --python .venv/bin/python -e ".[dev]"'
-	docker compose exec -T --user dev dev bash -c 'cd /workspace/packages/analytics-pipeline && .venv/bin/python -m pytest'
-	docker compose exec -T --user dev dev bash -c 'cd /workspace/packages/phonetics-core && { test -x .venv/bin/python || uv venv .venv; } && uv pip install --python .venv/bin/python -e ".[dev]"'
-	docker compose exec -T --user dev dev bash -c 'cd /workspace/packages/phonetics-core && .venv/bin/python -m pytest'
+	$(COMPOSE) exec -T --user dev dev bash -c 'cd /workspace/apps/api-server && { test -x .venv/bin/python || uv venv .venv; } && uv pip install --python .venv/bin/python -e ".[dev]"'
+	$(COMPOSE) exec -T --user dev dev bash -c 'cd /workspace/apps/api-server && .venv/bin/python -m pytest'
+	$(COMPOSE) exec -T --user dev dev bash -c 'cd /workspace/packages/analytics-pipeline && { test -x .venv/bin/python || uv venv .venv; } && uv pip install --python .venv/bin/python -e ".[dev]"'
+	$(COMPOSE) exec -T --user dev dev bash -c 'cd /workspace/packages/analytics-pipeline && .venv/bin/python -m pytest'
+	$(COMPOSE) exec -T --user dev dev bash -c 'cd /workspace/packages/phonetics-core && { test -x .venv/bin/python || uv venv .venv; } && uv pip install --python .venv/bin/python -e ".[dev]"'
+	$(COMPOSE) exec -T --user dev dev bash -c 'cd /workspace/packages/phonetics-core && .venv/bin/python -m pytest'
 
 # Interview-first spec-authoring enforcement (scripts/test-interview-enforcement.sh,
 # 5 grep/python checks). DIA-009: the script was orphaned — the CHANGELOG claimed
@@ -196,7 +201,7 @@ test-skills:
 # default-allow non-write-capable tools) do NOT break the gate (Decision 6
 # scoping; see scripts/audit-agent-tool-coverage.sh).
 test-config: test-interview test-skills
-	docker compose config --quiet
+	$(COMPOSE) config --quiet
 	bash .opencode/scripts/validate-opencode-config.sh
 	bash scripts/validate-agent-names.sh
 	bash scripts/validate-output-contracts.sh
@@ -305,12 +310,12 @@ session-analytics:
 # C5 scenario replay tests (DIA-226): bats regression tests from the incident
 # corpus (DIA-206 empty returns, DIA-085 clobber scenarios) driving the real
 # delegation-observer plugin via bun scenario scripts inside the container.
-# Two-part gate: (1) bats scenarios on the host exercise the plugin via docker
-# compose exec + bun, (2) bun plugin tests inside the container validate the
-# C1-C4 contracts. Both must pass for the target to exit 0.
+# Two-part gate: (1) bats scenarios on the host exercise the plugin via the
+# selected native compose exec + bun, (2) bun plugin tests inside the container
+# validate the C1-C4 contracts. Both must pass for the target to exit 0.
 test-harness:
 	bash scripts/__tests__/bats-wrapper.sh --filter harness-scenario-replay
-	docker compose exec -T --user dev dev bash -lc 'cd /workspace/.opencode/plugins/__tests__ && bun test'
+	$(COMPOSE) exec -T --user dev dev bash -lc 'cd /workspace/.opencode/plugins/__tests__ && bun test'
 
 # Embedded OMO suite gate (DIA-260827-6wvm): bun test + typecheck for
 # .opencode/oh-my-opencode-slim (excluded from pnpm-workspace, so pnpm test

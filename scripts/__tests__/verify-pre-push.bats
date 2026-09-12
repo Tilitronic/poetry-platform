@@ -16,6 +16,10 @@ load test-helper
 
 setup() {
   mock_docker
+  # Hermetic engine selection (DIA-260909-9api precedent): an inherited
+  # COMPOSE_ENGINE would reroute the adapter past the docker fake these tests
+  # assert on. Unset it; engine-specific coverage lives in container-engine.bats.
+  unset COMPOSE_ENGINE
   # DIA-123: the husky pre-push hook exports VERIFY_PRE_PUSH_RUNNING=1 before
   # running make test-shell, so every bats test would inherit the flag and hit
   # the script's recursion guard (warning + exit 0), breaking the direct

@@ -16,6 +16,10 @@ load test-helper
 
 setup() {
   mock_docker
+  # Hermetic engine selection (DIA-260909-9api precedent): an inherited
+  # COMPOSE_ENGINE would reroute the adapter past the docker fake these tests
+  # assert on. Unset it; engine-specific coverage lives in container-engine.bats.
+  unset COMPOSE_ENGINE
   # Hermetic host-context (DIA-071, 2026-08-12): fake hostname keeps every
   # non-direct test in the HOST + container-running delegation path even when
   # the suite runs inside poetry-dev; isolated POETRY_COMMANDS_DIR keeps the
