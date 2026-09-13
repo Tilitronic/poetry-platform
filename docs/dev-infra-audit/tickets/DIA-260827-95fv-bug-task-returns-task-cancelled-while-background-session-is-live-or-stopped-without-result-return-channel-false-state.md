@@ -9,15 +9,15 @@ severity: Major
 status: OPEN
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: ""
-gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
-gate_triggers: [] # new-module | cross-boundary | schema-state | new-public-api | cross-cutting | hard-to-reverse | new-ui-component
+gate_state: "grilled" # grilled | waived | bypassed | partial | skipped
+gate_triggers: [schema-state, cross-cutting] # new-module | cross-boundary | schema-state | new-public-api | cross-cutting | hard-to-reverse | new-ui-component
 gate_waivers: [] # hotfix | incremental-to-grilled-module | spike-poc | refactor-no-behavior-change
 gate_override: "" # free-text: developer signal + reason; empty = no override
 discovered: 2026-08-27
 source: inventory
 date: 2026-08-27
 created: 2026-08-27
-updated: 2026-08-27
+updated: 2026-09-13
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -39,14 +39,40 @@ evidence:
 
 ## Description
 
-<To be filled at creation time: what is wrong / what to build, with exact
-files and line references where known.>
+The task return channel trusted a textual `cancelled` receipt even when the
+Background Job Board still described a live task or had no confirmed cancel
+request. This could discard a stopped session, synthesize a false terminal
+state, and trigger duplicate replacement work.
+
+The approved contract makes the Board authoritative: cancellation requires a
+Board terminal state plus `cancellationRequested=true`; uncertainty projects as
+`return-channel-pending`; a deleted non-live task without a terminal result is
+retained as `stopped-without-result` for exact-session recovery.
 
 ## Verification
 
-<Acceptance criteria as checkboxes - how to prove the ticket is done.>
+- [x] Live or unconfirmed cancellation receipts remain non-terminal.
+- [x] Confirmed cancellation requires an explicit Board cancel request.
+- [x] Stopped-without-result tombstones retain required metadata and survive
+      parent prompt injection and idle reconciliation.
+- [x] Tombstones use a dedicated FIFO cap of 500 and exact-task-ID recovery.
+- [x] Failed exact-session resume retains the tombstone without replacement.
+- [x] Missing task IDs emit the exact non-persisted diagnostic without Board
+      mutation.
+- [x] Focused and full reference-package suites, typecheck, Biome, and
+      `git diff --check` pass.
+- [ ] Rebuilt runtime resolves OMO 2.2.19 and passes a real task lifecycle smoke.
 
 ## Fix
+
+- Added explicit `return-channel-pending` and `stopped-without-result` Board
+  states without changing legacy running/completed/error semantics.
+- Added Board-confirmed cancellation, bounded tombstones, exact-ID recovery,
+  truthful metadata projection, and a fail-closed missing-ID diagnostic.
+- Kept unconfirmed cancellation text as non-terminal diagnostic evidence and
+  excluded stopped tombstones from automatic terminal reconciliation.
+- Reconciled legacy cancellation tests to call `markCancelled()` when the test
+  intends an explicit user cancellation.
 
 ## Evidence
 
@@ -81,4 +107,16 @@ orchestrator applies the correct recovery path instead of assuming death.
 
 ## Re-verify
 
-> To be filled at re-verify time.
+- RED fixed points: `7f580c5` (stopped-without-result) and `1b70c88`
+  (false cancelled), integrated before GREEN.
+- Focused lifecycle suites after fix: 103/103, then `test:red-b` 64/64.
+- Full package: 1379 passed, 0 failed, 3125+ assertions.
+- `bun run typecheck`: exit 0.
+- Biome on both production files: exit 0.
+- `git diff --check`: exit 0.
+- Independent review: initial NO-GO found two critical lifecycle regressions and
+  one missing acceptance test; same-session fix plus separate regression-test
+  lane resolved all findings. Targeted re-review cycle 1/2: PASS, all four
+  findings verified closed.
+- Runtime closure remains pending because this source tree is reference-only;
+  the rebuilt npm OMO 2.2.19 path must pass functional smoke before closure.

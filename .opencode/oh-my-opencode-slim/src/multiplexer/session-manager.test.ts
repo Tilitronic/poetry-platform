@@ -512,7 +512,11 @@ describe('MultiplexerSessionManager', () => {
         });
 
         expect(mockMultiplexer.closePane).not.toHaveBeenCalled();
-        board.updateStatus({ taskID: sessionId, state });
+        if (state === 'cancelled') {
+          board.markCancelled(sessionId);
+        } else {
+          board.updateStatus({ taskID: sessionId, state });
+        }
         await Promise.resolve();
 
         expect(mockMultiplexer.closePane).toHaveBeenCalledWith(`p-${state}`);

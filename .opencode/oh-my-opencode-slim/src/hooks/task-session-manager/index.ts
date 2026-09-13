@@ -5,6 +5,7 @@ import {
   deriveTaskSessionLabel,
   parseTaskIdFromTaskOutput,
   parseTaskLaunchOutput,
+  parseTaskStateFromOutput,
   parseTaskStatusOutput,
   SLIM_INTERNAL_INITIATOR_MARKER,
 } from '../../utils';
@@ -263,7 +264,10 @@ export function createTaskSessionManagerHook(
   function rememberInjectedTerminalJobs(parentSessionID: string): void {
     const taskIDs = backgroundJobBoard
       .list(parentSessionID)
-      .filter((job) => job.terminalUnreconciled)
+      .filter(
+        (job) =>
+          job.terminalUnreconciled && job.state !== 'stopped-without-result',
+      )
       .map((job) => job.taskID);
     if (taskIDs.length === 0) return;
 
@@ -290,6 +294,9 @@ export function createTaskSessionManagerHook(
     });
 
     for (const taskID of taskIDs) {
+      if (backgroundJobBoard.get(taskID)?.state === 'stopped-without-result') {
+        continue;
+      }
       backgroundJobBoard.markReconciled(taskID);
     }
     terminalJobsInjectedByParent.delete(parentSessionID);
@@ -446,6 +453,17 @@ export function createTaskSessionManagerHook(
           timedOut: status.timedOut,
           resultSummary: status.result,
         });
+        if (updated?.state === 'return-channel-pending') {
+          output.output = formatLifecycleProjection(updated);
+          if (isObjectRecord(output.metadata)) {
+            output.metadata.state = updated.state;
+            output.metadata.task_id = updated.taskID;
+            output.metadata.board_state = updated.state;
+            output.metadata.cancellationRequested =
+              updated.cancellationRequested;
+            output.metadata.terminalUnreconciled = updated.terminalUnreconciled;
+          }
+        }
         log('[task-session-manager] foreground task status registered', {
           taskID: status.taskID,
           alias: updated?.alias ?? record.alias,
@@ -467,9 +485,19 @@ export function createTaskSessionManagerHook(
 
       const taskId = parseTaskIdFromTaskOutput(output.output);
       if (!taskId) {
+        const taskOutput = output.output;
+        if (parseTaskStateFromOutput(taskOutput)) {
+          output.output = formatMissingTaskIdDiagnostic();
+          if (isObjectRecord(output.metadata)) {
+            output.metadata.state = 'return-channel-unverifiable';
+          }
+          return;
+        }
         if (
           pending.resumedTaskId &&
-          isMissingRememberedSessionError(output.output)
+          isMissingRememberedSessionError(taskOutput) &&
+          backgroundJobBoard.get(pending.resumedTaskId)?.state !==
+            'stopped-without-result'
         ) {
           backgroundJobBoard.drop(pending.resumedTaskId);
         }
@@ -694,7 +722,7 @@ export function createTaskSessionManagerHook(
       if (!sessionId) return;
 
       log(
-        '[task-session-manager] session.deleted observed; clearing job state',
+        '[task-session-manager] session.deleted observed; updating job state',
         {
           sessionID: sessionId,
           deletedJob: (() => {
@@ -712,7 +740,19 @@ export function createTaskSessionManagerHook(
         },
       );
 
-      backgroundJobBoard.drop(sessionId);
+      const deletedJob = backgroundJobBoard.get(sessionId);
+      const tombstone = backgroundJobBoard.markStoppedWithoutResult(sessionId);
+      if (!tombstone) backgroundJobBoard.drop(sessionId);
+      if (tombstone) {
+        log('[task-session-manager] retained stopped task tombstone', {
+          taskID: tombstone.taskID,
+          parentSessionID: tombstone.parentSessionID,
+          boardState: tombstone.state,
+          cancellationRequested: tombstone.cancellationRequested,
+          terminalUnreconciled: tombstone.terminalUnreconciled,
+          previousState: deletedJob?.state,
+        });
+      }
       backgroundJobBoard.clearParent(sessionId);
       terminalJobsInjectedByParent.delete(sessionId);
       taskContextTracker.clearSession(sessionId);
@@ -767,5 +807,23 @@ function formatCancelledTaskStatusOutput(
     '<task_error>',
     summary,
     '</task_error>',
+  ].join('\n');
+}
+
+function formatLifecycleProjection(job: BackgroundJobRecord): string {
+  return [
+    `task_id: ${job.taskID}`,
+    `state: ${job.state}`,
+    '',
+    '<task_result>',
+    `task_id=${job.taskID}; board_state=${job.state}; cancellationRequested=${job.cancellationRequested}; terminalUnreconciled=${job.terminalUnreconciled}`,
+    '</task_result>',
+  ].join('\n');
+}
+
+function formatMissingTaskIdDiagnostic(): string {
+  return [
+    'state: return-channel-unverifiable',
+    '<task_result>reason=missing-task-id; task_id=; board_state=unavailable; cancellationRequested=unavailable; terminalUnreconciled=unavailable</task_result>',
   ].join('\n');
 }

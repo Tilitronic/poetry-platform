@@ -1156,7 +1156,7 @@ describe('task-session-manager hook', () => {
       agent: 'code-navigator',
       description: 'read internals',
     });
-    board.updateStatus({ taskID: 'child-1', state: 'cancelled' });
+    board.markCancelled('child-1');
     board.markReconciled('child-1');
 
     await hook.event({
@@ -2115,7 +2115,125 @@ describe('task-session-manager hook', () => {
     expect(prompt).toContain('terminalUnreconciled: true');
   });
 
-  test('stopped tombstones retain only the existing 500-entry completion bound', async () => {
+  test('stopped-without-result tombstone survives parent prompt injection and idle', async () => {
+    const board = new BackgroundJobBoard();
+    const { hook } = createHook({ backgroundJobBoard: board });
+    board.registerLaunch({
+      taskID: 'child-stopped',
+      parentSessionID: 'parent-1',
+      agent: 'coder',
+      description: 'recover stopped work',
+    });
+    board.updateStatus({ taskID: 'child-stopped', state: 'completed' });
+    await hook.event({
+      event: {
+        type: 'session.deleted',
+        properties: { sessionID: 'child-stopped' },
+      },
+    });
+
+    const messages = createMessages('parent-1', 'continue');
+    await hook['experimental.chat.messages.transform']({}, messages);
+    expect(messages.messages[0].parts[0].text).toContain(
+      'stopped-without-result',
+    );
+
+    await hook.event({
+      event: {
+        type: 'session.status',
+        properties: { sessionID: 'parent-1', status: { type: 'idle' } },
+      },
+    });
+
+    expect(board.get('child-stopped')).toMatchObject({
+      state: 'stopped-without-result',
+      terminalUnreconciled: true,
+      terminalState: undefined,
+    });
+  });
+
+  test('unconfirmed cancellation result becomes stopped-without-result after child deletion', async () => {
+    const board = new BackgroundJobBoard();
+    const { hook } = createHook({ backgroundJobBoard: board });
+    await hook['tool.execute.before'](
+      { tool: 'task', sessionID: 'parent-1', callID: 'call-1' },
+      {
+        args: {
+          subagent_type: 'coder',
+          description: 'recover uncertain cancellation',
+        },
+      },
+    );
+    await hook['tool.execute.after'](
+      { tool: 'task', sessionID: 'parent-1', callID: 'call-1' },
+      {
+        output: [
+          'task_id: child-stopped',
+          'state: cancelled',
+          '',
+          '<task_error>',
+          'Task cancelled',
+          '</task_error>',
+        ].join('\n'),
+      },
+    );
+    expect(board.get('child-stopped')).toMatchObject({
+      state: 'return-channel-pending',
+      cancellationRequested: false,
+      resultSummary: 'Task cancelled',
+    });
+
+    await hook.event({
+      event: {
+        type: 'session.deleted',
+        properties: { sessionID: 'child-stopped' },
+      },
+    });
+
+    expect(board.get('child-stopped')).toMatchObject({
+      state: 'stopped-without-result',
+      cancellationRequested: false,
+      terminalUnreconciled: true,
+      terminalState: undefined,
+    });
+  });
+
+  test('missing task ID returns exact unverifiable diagnostic without Board mutation', async () => {
+    const board = new BackgroundJobBoard();
+    const { hook } = createHook({ backgroundJobBoard: board });
+    await hook['tool.execute.before'](
+      { tool: 'task', sessionID: 'parent-1', callID: 'call-1' },
+      {
+        args: {
+          subagent_type: 'coder',
+          description: 'return without task id',
+        },
+      },
+    );
+    const output = {
+      output: [
+        'state: completed',
+        '<task_result>finished without an identifier</task_result>',
+      ].join('\n'),
+      metadata: { state: 'completed' },
+    };
+
+    await hook['tool.execute.after'](
+      { tool: 'task', sessionID: 'parent-1', callID: 'call-1' },
+      output,
+    );
+
+    expect(output.output).toBe(
+      [
+        'state: return-channel-unverifiable',
+        '<task_result>reason=missing-task-id; task_id=; board_state=unavailable; cancellationRequested=unavailable; terminalUnreconciled=unavailable</task_result>',
+      ].join('\n'),
+    );
+    expect(output.metadata).toEqual({ state: 'return-channel-unverifiable' });
+    expect(board.taskIDs()).toEqual(new Set());
+  });
+
+  test('stopped tombstones retain only the dedicated 500-entry tombstone cap', async () => {
     const board = new BackgroundJobBoard();
     const { hook } = createHook({ backgroundJobBoard: board });
 

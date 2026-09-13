@@ -7,7 +7,11 @@ export interface ContextFile {
   lastReadAt: number;
 }
 
-export type BackgroundJobState = TaskOutputState | 'reconciled';
+export type BackgroundJobState =
+  | TaskOutputState
+  | 'return-channel-pending'
+  | 'stopped-without-result'
+  | 'reconciled';
 
 export interface BackgroundJobRecord {
   taskID: string;
@@ -69,6 +73,7 @@ const TERMINAL_STATES = new Set<BackgroundJobState>([
   'error',
   'cancelled',
 ]);
+const MAX_STOPPED_WITHOUT_RESULT_TOMBSTONES = 500;
 
 const AGENT_PREFIX: Record<string, string> = {
   council: 'cou',
@@ -84,6 +89,7 @@ const AGENT_PREFIX: Record<string, string> = {
 export class BackgroundJobBoard {
   private readonly jobs = new Map<string, BackgroundJobRecord>();
   private readonly counters = new Map<string, number>();
+  private readonly stoppedTombstoneOrder: string[] = [];
   private terminalStateListeners: TerminalStateListener[] = [];
 
   private readonly maxReusablePerAgent: number;
@@ -121,6 +127,7 @@ export class BackgroundJobBoard {
     const existing = this.jobs.get(input.taskID);
 
     if (existing) {
+      this.removeStoppedTombstone(input.taskID);
       const updated = {
         ...existing,
         agent: input.agent || existing.agent,
@@ -190,11 +197,16 @@ export class BackgroundJobBoard {
     }
 
     const now = input.now ?? Date.now();
-    const terminal = TERMINAL_STATES.has(input.state);
+    const unconfirmedCancellation =
+      input.state === 'cancelled' && !existing.cancellationRequested;
+    const state = unconfirmedCancellation
+      ? 'return-channel-pending'
+      : input.state;
+    const terminal = TERMINAL_STATES.has(state);
     const notifyTerminal = terminal && !TERMINAL_STATES.has(existing.state);
     const updated: BackgroundJobRecord = {
       ...existing,
-      state: input.state,
+      state,
       timedOut: input.timedOut ?? false,
       recoverableAfterLiveBusy:
         input.state !== 'running'
@@ -227,6 +239,46 @@ export class BackgroundJobBoard {
     this.jobs.set(input.taskID, updated);
     this.trimReusable(input.taskID);
     if (notifyTerminal) this.notifyTerminalStateListeners(input.taskID);
+    return updated;
+  }
+
+  markStoppedWithoutResult(
+    taskID: string,
+    now = Date.now(),
+  ): BackgroundJobRecord | undefined {
+    const existing = this.jobs.get(taskID);
+    const unconfirmedCancellationReceipt =
+      existing?.state === 'return-channel-pending' &&
+      existing.cancellationRequested === false &&
+      existing.terminalState === undefined;
+    if (
+      (!existing?.terminalUnreconciled && !unconfirmedCancellationReceipt) ||
+      (existing.resultSummary && !unconfirmedCancellationReceipt) ||
+      (existing.terminalState === 'cancelled' && existing.cancellationRequested)
+    ) {
+      return undefined;
+    }
+
+    const updated: BackgroundJobRecord = {
+      ...existing,
+      state: 'stopped-without-result',
+      timedOut: false,
+      recoverableAfterLiveBusy: false,
+      statusUncertain: false,
+      terminalUnreconciled: true,
+      completedAt: undefined,
+      terminalState: undefined,
+      resultSummary: undefined,
+      updatedAt: now,
+      lastStatusError: unconfirmedCancellationReceipt
+        ? existing.resultSummary
+        : undefined,
+    };
+
+    this.jobs.set(taskID, updated);
+    this.removeStoppedTombstone(taskID);
+    this.stoppedTombstoneOrder.push(taskID);
+    this.trimStoppedTombstones();
     return updated;
   }
 
@@ -404,6 +456,9 @@ export class BackgroundJobBoard {
     const job = this.resolve(parentSessionID, taskIDOrAlias);
     if (!job) return undefined;
     if (agent && job.agent !== agent) return undefined;
+    if (job.state === 'stopped-without-result') {
+      return job.taskID === taskIDOrAlias.trim() ? job : undefined;
+    }
     if (job.state !== 'running' || !job.recoverableAfterLiveBusy) {
       return undefined;
     }
@@ -479,7 +534,10 @@ export class BackgroundJobBoard {
     now = Date.now(),
   ): string | undefined {
     const active = this.list(parentSessionID).filter(
-      (job) => job.state === 'running' || job.terminalUnreconciled,
+      (job) =>
+        job.state === 'running' ||
+        job.state === 'return-channel-pending' ||
+        job.terminalUnreconciled,
     );
     const reusable = this.list(parentSessionID).filter(isReusable);
 
@@ -508,11 +566,27 @@ export class BackgroundJobBoard {
   clearParent(parentSessionID: string): void {
     for (const job of this.list(parentSessionID)) {
       this.jobs.delete(job.taskID);
+      this.removeStoppedTombstone(job.taskID);
     }
   }
 
   drop(taskID: string): void {
     this.jobs.delete(taskID);
+    this.removeStoppedTombstone(taskID);
+  }
+
+  private removeStoppedTombstone(taskID: string): void {
+    const index = this.stoppedTombstoneOrder.indexOf(taskID);
+    if (index !== -1) this.stoppedTombstoneOrder.splice(index, 1);
+  }
+
+  private trimStoppedTombstones(): void {
+    while (
+      this.stoppedTombstoneOrder.length > MAX_STOPPED_WITHOUT_RESULT_TOMBSTONES
+    ) {
+      const oldest = this.stoppedTombstoneOrder.shift();
+      if (oldest) this.jobs.delete(oldest);
+    }
   }
 
   private trimReusable(taskID: string): void {
@@ -616,6 +690,18 @@ function formatJob(job: BackgroundJobRecord, now = Date.now()): string {
     `- ${job.alias} / ${job.taskID} / ${job.agent} / ${status}`,
     `  Objective: ${job.objective || job.description}`,
   ];
+
+  if (
+    job.state === 'return-channel-pending' ||
+    job.state === 'stopped-without-result'
+  ) {
+    lines.push(
+      `  task_id: ${job.taskID}`,
+      `  board_state: ${job.state}`,
+      `  cancellationRequested: ${job.cancellationRequested}`,
+      `  terminalUnreconciled: ${job.terminalUnreconciled}`,
+    );
+  }
 
   if (job.resultSummary && job.terminalUnreconciled) {
     lines.push(`  Result: ${singleLine(job.resultSummary)}`);

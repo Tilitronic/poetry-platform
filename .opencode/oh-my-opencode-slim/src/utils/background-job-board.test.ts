@@ -182,7 +182,7 @@ describe('BackgroundJobBoard', () => {
       agent: 'architector',
       description: 'cancelled review',
     });
-    board.updateStatus({ taskID: 'ses_cancelled', state: 'cancelled' });
+    board.markCancelled('ses_cancelled');
     board.markReconciled('ses_cancelled');
     board.registerLaunch({
       taskID: 'ses_error',
@@ -314,21 +314,13 @@ describe('BackgroundJobBoard', () => {
       description: 'map files',
     });
 
-    board.updateFromStatusOutput(
-      [
-        'task_id: ses_1',
-        'state: cancelled',
-        '',
-        '<task_error>',
-        'cancelled by user',
-        '</task_error>',
-      ].join('\n'),
-    );
+    board.markCancelled('ses_1', 'cancelled by user');
 
     expect(board.get('ses_1')).toMatchObject({
       state: 'cancelled',
+      cancellationRequested: true,
       terminalUnreconciled: true,
-      resultSummary: 'cancelled by user',
+      resultSummary: 'cancelled: cancelled by user',
     });
   });
 
@@ -543,12 +535,7 @@ describe('BackgroundJobBoard', () => {
       parentSessionID: 'parent-1',
       agent: 'code-navigator',
     });
-    board.updateStatus({
-      taskID: 'ses_1',
-      state: 'cancelled',
-      resultSummary: 'upstream cancelled during compaction',
-      now: 100,
-    });
+    board.markCancelled('ses_1', 'upstream cancelled during compaction', 100);
 
     const updated = board.markRunningFromLiveSession('ses_1', 200);
 
@@ -559,7 +546,9 @@ describe('BackgroundJobBoard', () => {
     });
     expect(updated?.completedAt).toBeDefined();
     expect(updated?.terminalState).toBe('cancelled');
-    expect(updated?.resultSummary).toBe('upstream cancelled during compaction');
+    expect(updated?.resultSummary).toBe(
+      'cancelled: upstream cancelled during compaction',
+    );
   });
 
   test('live busy session does not reopen explicit cancel requests', () => {
@@ -587,7 +576,7 @@ describe('BackgroundJobBoard', () => {
       parentSessionID: 'parent-1',
       agent: 'code-navigator',
     });
-    board.updateStatus({ taskID: 'ses_1', state: 'cancelled', now: 100 });
+    board.markCancelled('ses_1', undefined, 100);
     board.markReconciled('ses_1', 150);
 
     const updated = board.markRunningFromLiveSession('ses_1', 200);
