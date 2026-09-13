@@ -8,8 +8,8 @@
 
 ## 2. Prove the isolated RED-B bootstrap
 
-- [ ] 2.1 **Blockers: 1.1.** In a disposable worktree at the integrated RED fixed point, or a documented restored equivalent, run `bun install --frozen-lockfile` in the vendored package and then `bun run test:red-b`. Acceptance: the lifecycle RED tests execute and exit nonzero with the named `state: return-channel-pending` mismatch plus stopped-tombstone assertions; output has no Zod module-resolution error; no fallback install, override, current-worktree mutation, or `bun add` occurs.
+- [x] 2.1 **Blockers: 1.1.** In a disposable worktree at the integrated RED fixed point, or a documented restored equivalent, run `bun install --frozen-lockfile` in the vendored package and then `bun run test:red-b`. Acceptance: the lifecycle RED tests execute and exit nonzero with the named `state: return-channel-pending` mismatch plus stopped-tombstone assertions; output has no Zod module-resolution error; no fallback install, override, current-worktree mutation, or `bun add` occurs.
 
 ## 3. Gate the lifecycle handoff
 
-- [ ] 3.1 **Blockers: 2.1.** Record the isolated worktree revision, commands, exit statuses, named-test evidence, expected assertion evidence, and absence of Zod resolution failure. Acceptance: valid evidence unblocks only RED-B rerun and evidence review for DIA-260827-95fv; a passing or unexpected result fails closed and does not permit GREEN.
+- [x] 3.1 **Blockers: 2.1.** Record the isolated worktree revision, commands, exit statuses, named-test evidence, expected assertion evidence, and absence of Zod resolution failure. Acceptance: valid evidence unblocks only RED-B rerun and evidence review for DIA-260827-95fv; a passing or unexpected result fails closed and does not permit GREEN.

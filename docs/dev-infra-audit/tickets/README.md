@@ -240,7 +240,7 @@
 | DIA-260827-7mtr | Product test coverage concentrated in two narrow modules | tests | Medium | OPEN | [DIA-260827-7mtr-product-test-coverage-concentrated-in-two-narrow-modules.md](DIA-260827-7mtr-product-test-coverage-concentrated-in-two-narrow-modules.md) |
 | DIA-260827-8la4 | [MEDIUM] Model routing sources disagree (registry vs prompt vs runtime) | opencode-config | Medium | OPEN | [DIA-260827-8la4-medium-model-routing-sources-disagree-registry-vs-prompt-vs-runtime.md](DIA-260827-8la4-medium-model-routing-sources-disagree-registry-vs-prompt-vs-runtime.md) |
 | DIA-260827-95fv | [BUG] task() returns 'Task cancelled' while background session is live or stopped-without-result (return-channel false state) | opencode-config | Major | OPEN | [DIA-260827-95fv-bug-task-returns-task-cancelled-while-background-session-is-live-or-stopped-without-result-return-channel-false-state.md](DIA-260827-95fv-bug-task-returns-task-cancelled-while-background-session-is-live-or-stopped-without-result-return-channel-false-state.md) |
-| DIA-260827-aa5i | make test-config fails on memory-shelf schema error | tests-infra | Major | OPEN | [DIA-260827-aa5i-make-test-config-fails-on-memory-shelf-schema-error.md](DIA-260827-aa5i-make-test-config-fails-on-memory-shelf-schema-error.md) |
+| DIA-260827-aa5i | make test-config fails on memory-shelf schema error | tests-infra | Major | CLOSED | [DIA-260827-aa5i-make-test-config-fails-on-memory-shelf-schema-error.md](DIA-260827-aa5i-make-test-config-fails-on-memory-shelf-schema-error.md) |
 | DIA-260827-bry9 | OMO version and model-routing drift from baseline | opencode-config | High | OPEN | [DIA-260827-bry9-omo-version-and-model-routing-drift-from-baseline.md](DIA-260827-bry9-omo-version-and-model-routing-drift-from-baseline.md) |
 | DIA-260827-ce63 | [MEDIUM] Mechanical idle rows masquerade as handoffs | opencode-config | Medium | OPEN | [DIA-260827-ce63-medium-mechanical-idle-rows-masquerade-as-handoffs.md](DIA-260827-ce63-medium-mechanical-idle-rows-masquerade-as-handoffs.md) |
 | DIA-260827-ft3z | [HIGH] Shell permissions bypass write scopes via curl/wget redirection | opencode-config | High | OPEN | [DIA-260827-ft3z-high-shell-permissions-bypass-write-scopes-via-curl-wget-redirection.md](DIA-260827-ft3z-high-shell-permissions-bypass-write-scopes-via-curl-wget-redirection.md) |
@@ -308,9 +308,15 @@
 | DIA-260910-dx8c | zeik missed docs persistence adr failures learning openspec | opencode-config | Low | CLOSED | [DIA-260910-dx8c-zeik-missed-docs-persistence-adr-failures-learning-openspec.md](DIA-260910-dx8c-zeik-missed-docs-persistence-adr-failures-learning-openspec.md) |
 | DIA-260910-ri0u | Isolated commit for 9api closure (Bats test + ticket + rollup/memory) | scripts | Low | OPEN | [DIA-260910-ri0u-isolated-commit-for-9api-closure-bats-test-ticket-rollup-memory.md](DIA-260910-ri0u-isolated-commit-for-9api-closure-bats-test-ticket-rollup-memory.md) |
 | DIA-260910-sjtk | Route architector to OpenAI GPT-5.6 Sol High | opencode-config | Major | CLOSED | [DIA-260910-sjtk-route-architector-to-openai-gpt-5-6-sol-high.md](DIA-260910-sjtk-route-architector-to-openai-gpt-5-6-sol-high.md) |
+| DIA-260911-4y5v | Memory shelf and AI documentation hygiene: stale content inventory, deprecation, archival | docs | Medium | OPEN | [DIA-260911-4y5v-memory-shelf-and-ai-documentation-hygiene-stale-content-inventory-deprecation-archival.md](DIA-260911-4y5v-memory-shelf-and-ai-documentation-hygiene-stale-content-inventory-deprecation-archival.md) |
+| DIA-260911-cz0y | Closure memory-disposition gate before ticket closure | opencode-config | Major | OPEN | [DIA-260911-cz0y-closure-memory-disposition-gate-before-ticket-closure.md](DIA-260911-cz0y-closure-memory-disposition-gate-before-ticket-closure.md) |
 | DIA-260911-ddsm | Commit j5k6 changelog YAML hunk and render Markdown view | scripts | Medium | OPEN | [DIA-260911-ddsm-commit-j5k6-changelog-yaml-hunk-and-render-markdown-view.md](DIA-260911-ddsm-commit-j5k6-changelog-yaml-hunk-and-render-markdown-view.md) |
 | DIA-260911-rqmw | Route coder-escalated to GPT-5.6 Terra High (split from DIA-260910-sjtk) | scripts | Medium | OPEN | [DIA-260911-rqmw-route-coder-escalated-to-gpt-5-6-terra-high-split-from-dia-260910-sjtk.md](DIA-260911-rqmw-route-coder-escalated-to-gpt-5-6-terra-high-split-from-dia-260910-sjtk.md) |
 | DIA-260911-y52j | Fix recursive child_process mock in reviewer immutable git envelope test | tests-infra | Major | CLOSED | [DIA-260911-y52j-fix-recursive-child-process-mock-in-reviewer-immutable-git-envelope-test.md](DIA-260911-y52j-fix-recursive-child-process-mock-in-reviewer-immutable-git-envelope-test.md) |
+| DIA-260912-dean | Add OpenAI-first cost-balanced preset with Luna Terra Sol routing | opencode-config | Medium | OPEN | [DIA-260912-dean-add-openai-first-cost-balanced-preset-with-luna-terra-sol-routing.md](DIA-260912-dean-add-openai-first-cost-balanced-preset-with-luna-terra-sol-routing.md) |
+| DIA-260912-h8o5 | tests-infra: reproducible runtime for undeclared zod import | scripts | Medium | CLOSED | [DIA-260912-h8o5-tests-infra-reproducible-runtime-for-undeclared-zod-import.md](DIA-260912-h8o5-tests-infra-reproducible-runtime-for-undeclared-zod-import.md) |
+| DIA-260912-y2uo | Podman support for DIA-094: container-engine adapter with engine-neutral checks, hard-fail preserved | scripts | Medium | OPEN | [DIA-260912-y2uo-podman-support-for-dia-094-container-engine-adapter-with-engine-neutral-checks-hard-fail-preserved.md](DIA-260912-y2uo-podman-support-for-dia-094-container-engine-adapter-with-engine-neutral-checks-hard-fail-preserved.md) |
+| DIA-260913-ir3r | Fix root-owned npm cache for OpenCode background dependency installs | docker | Major | OPEN | [DIA-260913-ir3r-fix-root-owned-npm-cache-for-opencode-background-dependency-installs.md](DIA-260913-ir3r-fix-root-owned-npm-cache-for-opencode-background-dependency-installs.md) |
 
 ## Status summary
 
@@ -318,8 +324,8 @@
 | -------- | ----- |
 | Blocker  | 9     |
 | Critical | 15    |
-| Major    | 75    |
-| Medium   | 157   |
+| Major    | 77    |
+| Medium   | 161   |
 | Minor    | 1     |
 | Low      | 30    |
 | Info     | 2     |
@@ -327,7 +333,7 @@
 
 | Status      | Count |
 | ----------- | ----- |
-| OPEN        | 71    |
+| OPEN        | 75    |
 | DONE        | 11    |
 | VALIDATE    | 0     |
 | E2E         | 0     |
@@ -336,7 +342,7 @@
 | FIXED       | 1     |
 | IMPLEMENTED | 2     |
 | VERIFIED    | 28    |
-| CLOSED      | 193   |
+| CLOSED      | 195   |
 | BLOCKED     | 0     |
 | DISPATCHED  | 0     |
 | RUNNING     | 0     |

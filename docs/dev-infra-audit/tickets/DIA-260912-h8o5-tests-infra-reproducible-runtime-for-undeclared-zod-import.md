@@ -6,7 +6,7 @@ id: DIA-260912-h8o5
 title: "tests-infra: reproducible runtime for undeclared zod import"
 area: scripts
 severity: Medium
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: ""
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
@@ -30,7 +30,10 @@ attempts: 0
 lease_expires_at: "" # ISO-8601; set on DISPATCHED, cleared on COMPLETE
 files_touched: []
 artifacts: []
-evidence: []
+evidence:
+
+- commit:2b0945a
+- test:clean-worktree-frozen-install-red-replay
 
 ---
 
@@ -51,7 +54,7 @@ DIA-260827-95fv.
       RED commits; it does not run unrelated package tests.
 - [x] The focused run reaches assertion bodies and contains the named
       `return-channel-pending` mismatch with no Zod resolution error.
-- [ ] The manifest and lockfile are committed, then the same receipt is
+- [x] The manifest and lockfile are committed, then the same receipt is
       reproduced from a disposable clean worktree.
 
 ## Fix
@@ -69,4 +72,6 @@ with `git add -f` for the isolated ticket commit.
 - `bun run test:red-b`: expected exit 1, 56 pass / 5 fail. Both
   `return-channel-pending` assertion mismatches execute; the three tombstone
   RED assertions also execute; no module-resolution error appears.
-- Final clean-worktree replay: pending the isolated dependency commit.
+- Disposable worktree at commit `2b0945a`: frozen install exit 0; focused RED
+  exit 1 with 56 pass / 5 expected fail; named pending/tombstone evidence
+  present; zero Zod resolution errors; worktree removed successfully.
