@@ -1192,6 +1192,17 @@ shelf:
     created: 2026-09-02
     task_ref: DIA-260902-eqgg
     status: validated
+  - name: dia-260912-h8o5-reproducible-zod-test-runtime
+    description: "OpenSpec change (ticket DIA-260912-h8o5): reproducible Zod
+      test runtime for the reference OMO package. package.json exact-pins the
+      development dependency zod@4.3.6 while retaining peer ^4.0.0; the
+      Bun-generated lockfile supports frozen installation. Focused test:red-b
+      reaches the integrated lifecycle assertion bodies with 56 pass / 5 expected
+      RED and no Zod resolution error, unblocking the separate GREEN lane."
+    path: openspec/changes/dia-260912-h8o5-reproducible-zod-test-runtime/
+    created: 2026-09-12
+    task_ref: DIA-260912-h8o5
+    status: validated
   - name: skill-validator-capability-compatibility
     description: "OpenSpec change (session ses_f6f048638ffeuhs7smAHxUDKxs): extends
       skill validator beyond form checks to validate explicit capability declarations
