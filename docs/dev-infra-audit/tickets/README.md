@@ -224,7 +224,7 @@
 | DIA-260826-spu5 | cebula-openai-hy3 preset variant-priority tuning (12 lanes; reviewer to hy3 high) | opencode-config | Medium | CLOSED | [DIA-260826-spu5-cebula-openai-hy3-preset-variant-priority-tuning-12-lanes-reviewer-to-hy3-high.md](DIA-260826-spu5-cebula-openai-hy3-preset-variant-priority-tuning-12-lanes-reviewer-to-hy3-high.md) |
 | DIA-260826-u27h | make shell runs non-login bash so secrets profile hook never fires (H5 refined) | dev-infra | Major | CLOSED | [DIA-260826-u27h-make-shell-runs-non-login-bash-so-secrets-profile-hook-never-fires-h5-refined.md](DIA-260826-u27h-make-shell-runs-non-login-bash-so-secrets-profile-hook-never-fires-h5-refined.md) |
 | DIA-260826-uovr | audit MCP server security permissions and usage in opencode setup | opencode-config | Major | OPEN | [DIA-260826-uovr-audit-mcp-server-security-permissions-and-usage-in-opencode-setup.md](DIA-260826-uovr-audit-mcp-server-security-permissions-and-usage-in-opencode-setup.md) |
-| DIA-260826-uozv | sync OMO pin in opencode-docker config to project version (H4) | opencode-config | High | OPEN | [DIA-260826-uozv-sync-omo-pin-in-opencode-docker-config-to-project-version-h4.md](DIA-260826-uozv-sync-omo-pin-in-opencode-docker-config-to-project-version-h4.md) |
+| DIA-260826-uozv | sync OMO pin in opencode-docker config to project version (H4) | opencode-config | High | CLOSED | [DIA-260826-uozv-sync-omo-pin-in-opencode-docker-config-to-project-version-h4.md](DIA-260826-uozv-sync-omo-pin-in-opencode-docker-config-to-project-version-h4.md) |
 | DIA-260826-xu8o | Add explicit Ox Alpha Free provider catalog overlay | opencode-config | Major | CLOSED | [DIA-260826-xu8o-add-explicit-ox-alpha-free-provider-catalog-overlay.md](DIA-260826-xu8o-add-explicit-ox-alpha-free-provider-catalog-overlay.md) |
 | DIA-260826-zvu4 | exempt verification-only coder dispatches from SILENT_FAILURE detection (H1) | delegation-observer | Major | CLOSED | [DIA-260826-zvu4-exempt-verification-only-coder-dispatches-from-silent-failure-detection-h1.md](DIA-260826-zvu4-exempt-verification-only-coder-dispatches-from-silent-failure-detection-h1.md) |
 | DIA-260827-15xv | Full ponytail whole-repo over-engineering audit via analyzer-escalated | scripts | Medium | OPEN | [DIA-260827-15xv-full-ponytail-whole-repo-over-engineering-audit-via-analyzer-escalated.md](DIA-260827-15xv-full-ponytail-whole-repo-over-engineering-audit-via-analyzer-escalated.md) |
@@ -239,7 +239,7 @@
 | DIA-260827-6wvm | Embedded OMO suite excluded from root tests hides orchestrator alias regression | tests | High | CLOSED | [DIA-260827-6wvm-embedded-omo-suite-excluded-from-root-tests-hides-orchestrator-alias-regression.md](DIA-260827-6wvm-embedded-omo-suite-excluded-from-root-tests-hides-orchestrator-alias-regression.md) |
 | DIA-260827-7mtr | Product test coverage concentrated in two narrow modules | tests | Medium | OPEN | [DIA-260827-7mtr-product-test-coverage-concentrated-in-two-narrow-modules.md](DIA-260827-7mtr-product-test-coverage-concentrated-in-two-narrow-modules.md) |
 | DIA-260827-8la4 | [MEDIUM] Model routing sources disagree (registry vs prompt vs runtime) | opencode-config | Medium | OPEN | [DIA-260827-8la4-medium-model-routing-sources-disagree-registry-vs-prompt-vs-runtime.md](DIA-260827-8la4-medium-model-routing-sources-disagree-registry-vs-prompt-vs-runtime.md) |
-| DIA-260827-95fv | [BUG] task() returns 'Task cancelled' while background session is live or stopped-without-result (return-channel false state) | opencode-config | Major | OPEN | [DIA-260827-95fv-bug-task-returns-task-cancelled-while-background-session-is-live-or-stopped-without-result-return-channel-false-state.md](DIA-260827-95fv-bug-task-returns-task-cancelled-while-background-session-is-live-or-stopped-without-result-return-channel-false-state.md) |
+| DIA-260827-95fv | [BUG] task() returns 'Task cancelled' while background session is live or stopped-without-result (return-channel false state) | opencode-config | Major | CLOSED | [DIA-260827-95fv-bug-task-returns-task-cancelled-while-background-session-is-live-or-stopped-without-result-return-channel-false-state.md](DIA-260827-95fv-bug-task-returns-task-cancelled-while-background-session-is-live-or-stopped-without-result-return-channel-false-state.md) |
 | DIA-260827-aa5i | make test-config fails on memory-shelf schema error | tests-infra | Major | CLOSED | [DIA-260827-aa5i-make-test-config-fails-on-memory-shelf-schema-error.md](DIA-260827-aa5i-make-test-config-fails-on-memory-shelf-schema-error.md) |
 | DIA-260827-bry9 | OMO version and model-routing drift from baseline | opencode-config | High | OPEN | [DIA-260827-bry9-omo-version-and-model-routing-drift-from-baseline.md](DIA-260827-bry9-omo-version-and-model-routing-drift-from-baseline.md) |
 | DIA-260827-ce63 | [MEDIUM] Mechanical idle rows masquerade as handoffs | opencode-config | Medium | OPEN | [DIA-260827-ce63-medium-mechanical-idle-rows-masquerade-as-handoffs.md](DIA-260827-ce63-medium-mechanical-idle-rows-masquerade-as-handoffs.md) |
@@ -315,8 +315,9 @@
 | DIA-260911-y52j | Fix recursive child_process mock in reviewer immutable git envelope test | tests-infra | Major | CLOSED | [DIA-260911-y52j-fix-recursive-child-process-mock-in-reviewer-immutable-git-envelope-test.md](DIA-260911-y52j-fix-recursive-child-process-mock-in-reviewer-immutable-git-envelope-test.md) |
 | DIA-260912-dean | Add OpenAI-first cost-balanced preset with Luna Terra Sol routing | opencode-config | Medium | OPEN | [DIA-260912-dean-add-openai-first-cost-balanced-preset-with-luna-terra-sol-routing.md](DIA-260912-dean-add-openai-first-cost-balanced-preset-with-luna-terra-sol-routing.md) |
 | DIA-260912-h8o5 | tests-infra: reproducible runtime for undeclared zod import | scripts | Medium | CLOSED | [DIA-260912-h8o5-tests-infra-reproducible-runtime-for-undeclared-zod-import.md](DIA-260912-h8o5-tests-infra-reproducible-runtime-for-undeclared-zod-import.md) |
-| DIA-260912-y2uo | Podman support for DIA-094: container-engine adapter with engine-neutral checks, hard-fail preserved | scripts | Medium | OPEN | [DIA-260912-y2uo-podman-support-for-dia-094-container-engine-adapter-with-engine-neutral-checks-hard-fail-preserved.md](DIA-260912-y2uo-podman-support-for-dia-094-container-engine-adapter-with-engine-neutral-checks-hard-fail-preserved.md) |
+| DIA-260912-y2uo | Podman support for DIA-094: container-engine adapter with engine-neutral checks, hard-fail preserved | scripts | Medium | CLOSED | [DIA-260912-y2uo-podman-support-for-dia-094-container-engine-adapter-with-engine-neutral-checks-hard-fail-preserved.md](DIA-260912-y2uo-podman-support-for-dia-094-container-engine-adapter-with-engine-neutral-checks-hard-fail-preserved.md) |
 | DIA-260913-ir3r | Fix root-owned npm cache for OpenCode background dependency installs | docker | Major | OPEN | [DIA-260913-ir3r-fix-root-owned-npm-cache-for-opencode-background-dependency-installs.md](DIA-260913-ir3r-fix-root-owned-npm-cache-for-opencode-background-dependency-installs.md) |
+| DIA-260913-srn4 | Refresh rustup-init checksums blocking Podman dev image rebuild | dev-infra | Major | CLOSED | [DIA-260913-srn4-refresh-rustup-init-checksums-blocking-podman-dev-image-rebuild.md](DIA-260913-srn4-refresh-rustup-init-checksums-blocking-podman-dev-image-rebuild.md) |
 
 ## Status summary
 
@@ -324,7 +325,7 @@
 | -------- | ----- |
 | Blocker  | 9     |
 | Critical | 15    |
-| Major    | 77    |
+| Major    | 78    |
 | Medium   | 161   |
 | Minor    | 1     |
 | Low      | 30    |
@@ -333,7 +334,7 @@
 
 | Status      | Count |
 | ----------- | ----- |
-| OPEN        | 75    |
+| OPEN        | 72    |
 | DONE        | 11    |
 | VALIDATE    | 0     |
 | E2E         | 0     |
@@ -342,7 +343,7 @@
 | FIXED       | 1     |
 | IMPLEMENTED | 2     |
 | VERIFIED    | 28    |
-| CLOSED      | 195   |
+| CLOSED      | 199   |
 | BLOCKED     | 0     |
 | DISPATCHED  | 0     |
 | RUNNING     | 0     |

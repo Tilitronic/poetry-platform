@@ -5,7 +5,7 @@
   docs/project-local-customization.md.
 
   DUAL-RUNTIME NOTE (revised DIA-260831-h3i4): the project runtime wires
-  npm oh-my-opencode-slim@2.2.17 from the .opencode/opencode.jsonc plugin
+  npm oh-my-opencode-slim@2.2.19 from the .opencode/opencode.jsonc plugin
   array (tui.json aligned to the same pin), which reads prompt overrides
   from this directory at runtime - so this FILE wins (the vendored checkout
   itself stays REFERENCE-ONLY, see REFERENCE-ONLY.md). The inline analyzer prompt was

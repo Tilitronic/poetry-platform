@@ -14,7 +14,7 @@
 # hook's POETRY_WORKSPACE seam with a fake docker that executes the inner
 # command locally and a fake lint-staged that writes to .git/index, proving
 # the write path works; (b) asserts the entrypoint issues the chown for the
-# four writable paths (the ownership migration that removes the EACCES root
+# six writable paths (the ownership migration that removes the EACCES root
 # cause); (c) asserts the config/.env wiring is present.
 
 load test-helper
@@ -25,6 +25,7 @@ load test-helper
   mkdir -p "$ws/.git"
   : > "$ws/.git/index"
   export POETRY_WORKSPACE="$ws"
+  export COMPOSE_ENGINE=docker
 
   # Hermmetic host context: fake hostname so the hook takes the delegation
   # path (never the in-container direct path), and an isolated commands dir
@@ -88,7 +89,7 @@ FAKENPX
 }
 
 # --- (b) entrypoint ownership migration issues the four chowns --------------
-@test "dev-entrypoint: migrates ownership of /workspace/.git and named volumes (m7vk fix)" {
+@test "dev-entrypoint: migrates ownership of workspace, named volumes, and npm cache" {
   require_unshare
   local fakebin="$BATS_TEST_TMPDIR/fakebin"
   mkdir -p "$fakebin"
@@ -119,7 +120,14 @@ FAKEGOSU
   assert_file_contains "$FAKE_CHOWN_LOG" "/workspace/.git"
   assert_file_contains "$FAKE_CHOWN_LOG" "/workspace/node_modules"
   assert_file_contains "$FAKE_CHOWN_LOG" "/home/dev/.local/share"
+  assert_file_contains "$FAKE_CHOWN_LOG" "/home/dev/.local/state"
   assert_file_contains "$FAKE_CHOWN_LOG" "/home/dev/.cache"
+  assert_file_contains "$FAKE_CHOWN_LOG" "/home/dev/.npm"
+}
+
+@test "Dockerfile healthcheck runs opencode directly as the configured user" {
+  assert_file_contains "$REPO_ROOT/Dockerfile.dev" "CMD opencode --version"
+  ! grep -Fq "CMD gosu dev opencode --version" "$REPO_ROOT/Dockerfile.dev"
 }
 
 # --- (c) config + .env wiring ----------------------------------------------

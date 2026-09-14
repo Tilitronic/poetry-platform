@@ -6,7 +6,7 @@ id: DIA-260827-95fv
 title: "[BUG] task() returns 'Task cancelled' while background session is live or stopped-without-result (return-channel false state)"
 area: opencode-config
 severity: Major
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: ""
 gate_state: "grilled" # grilled | waived | bypassed | partial | skipped
@@ -17,7 +17,7 @@ discovered: 2026-08-27
 source: inventory
 date: 2026-08-27
 created: 2026-08-27
-updated: 2026-09-13
+updated: 2026-09-14
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -61,7 +61,7 @@ retained as `stopped-without-result` for exact-session recovery.
       mutation.
 - [x] Focused and full reference-package suites, typecheck, Biome, and
       `git diff --check` pass.
-- [ ] Rebuilt runtime resolves OMO 2.2.19 and passes a real task lifecycle smoke.
+- [x] Rebuilt runtime resolves OMO 2.2.19 and passes a real task lifecycle smoke.
 
 ## Fix
 
@@ -118,5 +118,7 @@ orchestrator applies the correct recovery path instead of assuming death.
   one missing acceptance test; same-session fix plus separate regression-test
   lane resolved all findings. Targeted re-review cycle 1/2: PASS, all four
   findings verified closed.
-- Runtime closure remains pending because this source tree is reference-only;
-  the rebuilt npm OMO 2.2.19 path must pass functional smoke before closure.
+- Rebuilt Podman runtime resolved npm OMO 2.2.19. A real orchestrator run
+  dispatched two code-navigator tasks in parallel, waited for both terminal
+  results, and returned the expected non-empty lines:
+  `A:poetry-platform-monorepo` and `B:2.2.19` (exit 0, 2026-09-14).

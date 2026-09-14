@@ -203,6 +203,7 @@ test-skills:
 test-config: test-interview test-skills
 	$(COMPOSE) config --quiet
 	bash .opencode/scripts/validate-opencode-config.sh
+	bash scripts/check-omo-version-sync.sh
 	bash scripts/validate-agent-names.sh
 	bash scripts/validate-output-contracts.sh
 	bash scripts/validate-reviewer-sections.sh

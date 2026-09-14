@@ -78,7 +78,9 @@ if [ "$(id -u)" -eq 0 ]; then
   chown -R dev:dev /workspace/.git 2>/dev/null || true
   chown -R dev:dev /workspace/node_modules 2>/dev/null || true
   chown -R dev:dev /home/dev/.local/share 2>/dev/null || true
+  chown -R dev:dev /home/dev/.local/state 2>/dev/null || true
   chown -R dev:dev /home/dev/.cache 2>/dev/null || true
+  chown -R dev:dev /home/dev/.npm 2>/dev/null || true
   if command -v gosu >/dev/null 2>&1; then
     exec gosu dev "$@"
   elif command -v runuser >/dev/null 2>&1; then

@@ -6,7 +6,7 @@ id: DIA-260827-wvev
 title: "dev container healthcheck unhealthy: gosu not in dev PATH, use opencode --version directly"
 area: dev-infra
 severity: Medium
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: ""
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
@@ -17,7 +17,7 @@ discovered: 2026-08-27
 source: inventory
 date: 2026-08-27
 created: 2026-08-27
-updated: 2026-08-27
+updated: 2026-09-14
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -40,12 +40,20 @@ Reaudit (DIA-260827-wfcx, 2026-08-31; W-M8) confirms Dockerfile.dev:349-350 runs
 
 ## Verification
 
-docker inspect shows Config.User 1000:1000; container health becomes healthy; direct 'opencode --version' returns exit 0.
+- [x] Image healthcheck invokes `opencode --version` directly with no nested
+      `gosu` privilege drop.
+- [x] Focused structural and container-adapter Bats tests pass.
+- [x] Rebuilt Podman container reports `healthy` and direct
+      `opencode --version` exits 0.
 
 ## Fix
 
-Run the healthcheck as the already-unprivileged configured user (drop the redundant gosu dev wrapper); after rebuild verify on Fedora Podman and WSL Docker.
+Changed the Dockerfile healthcheck to call `opencode --version` directly. The
+entrypoint remains responsible for its single root-to-dev privilege drop.
 
 ## Re-verify
 
-> To be filled at re-verify time.
+- Focused Bats batch: 65/65 pass, including the direct-healthcheck assertion.
+- Podman rebuild completed through all 51 image steps. The recreated
+  `poetry-dev` container reports `healthy`; direct `opencode --version` as
+  `dev` returned `1.18.18` with exit 0 (2026-09-14).

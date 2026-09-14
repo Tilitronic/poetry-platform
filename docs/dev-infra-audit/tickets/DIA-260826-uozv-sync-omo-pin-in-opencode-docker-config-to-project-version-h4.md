@@ -6,7 +6,7 @@ id: DIA-260826-uozv
 title: "sync OMO pin in opencode-docker config to project version (H4)"
 area: opencode-config
 severity: High
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: DIA-260825-wprb
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
@@ -17,7 +17,7 @@ discovered: 2026-08-26
 source: inventory
 date: 2026-08-26
 created: 2026-08-26
-updated: 2026-08-26
+updated: 2026-09-14
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -36,16 +36,37 @@ evidence: []
 
 ## Description
 
-Reaudit (DIA-260827-wfcx, 2026-08-31; S-H5) confirms project runtime 2.2.17 (opencode.jsonc:709-718), Docker 2.2.14 (tools/opencode-docker/config/opencode.json:24-27), embedded metadata 2.2.11 (oh-my-opencode-slim/package.json:2-5), and REFERENCE-ONLY.md:1-3 claims 2.2.13. Impact: host, container, and audited vendored code can behave differently; docs mislead. Correct fix: one source-of-truth policy, sync pins/docs, and an effective version assertion in the runtime gate.
+Reaudit on 2026-09-13 confirmed that the active project and TUI runtime used
+2.2.17 while the dev image still baked 2.2.14. The source checkout under
+`.opencode/oh-my-opencode-slim/src` is explicitly reference-only and is not a
+runtime pin. The legacy `tools/opencode-docker` runtime is handled by
+DIA-260824-8k62 "retire legacy tools/opencode-docker only after unified-runtime
+acceptance" and is intentionally excluded from this active-runtime upgrade.
 
 ## Verification
 
-All surfaces report one pinned version; a runtime-gate assertion fails on version drift.
+- [x] `.opencode/opencode.jsonc`, `.opencode/tui.json`, and `Dockerfile.dev`
+      declare one exact OMO version.
+- [x] A host-safe config gate fails on drift or a missing active pin source.
+- [x] Current runtime documentation identifies the source checkout as
+      reference-only and names the same runtime version.
+- [x] A rebuilt Podman dev container resolves OMO 2.2.19 and passes functional
+      TUI/delegation smoke.
 
 ## Fix
 
-Establish one source-of-truth version policy, sync the Docker and embedded pins with docs, and add an effective-version assertion in the runtime config gate.
+Pinned the active runtime, TUI, and image bake to OMO 2.2.19. Added
+`scripts/check-omo-version-sync.sh` plus focused Bats coverage and wired it into
+`make test-config`. Updated current documentation without rewriting historical
+evidence or falsely relabelling the reference-only source checkout.
 
 ## Re-verify
 
-> To be filled at re-verify time.
+- `make test-config`: exit 0, 57/57.
+- `check-omo-version-sync.bats`: 3/3 pass.
+- Podman image rebuild completed successfully and the recreated `poetry-dev`
+  container reports healthy. OpenCode resolved OMO 2.2.19; the TUI exposed
+  `/preset`, selected `Orchestrator - GPT-5.6 Luna - OpenAI`, and a non-empty
+  OAuth prompt returned `OMO_2219_OPENAI_OK`.
+- A two-task orchestrator lifecycle smoke returned
+  `A:poetry-platform-monorepo` and `B:2.2.19` (exit 0, 2026-09-14).
