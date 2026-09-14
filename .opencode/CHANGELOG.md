@@ -1097,3 +1097,9 @@
 - **Change:** Preserve uncertain background task lifecycle states and exact-session recovery
 - **Files:** .opencode/oh-my-opencode-slim/src/utils/background-job-board.ts - .opencode/oh-my-opencode-slim/src/hooks/task-session-manager/index.ts - .opencode/oh-my-opencode-slim/src/utils/task-lifecycle.test.ts - .opencode/oh-my-opencode-slim/src/hooks/task-session-manager/index.test.ts
 - **Verification:** focused 103/103 and test:red-b 64/64; full package 1379/1379; typecheck and Biome pass; rebuilt OMO 2.2.19 two-task lifecycle smoke passed
+
+## 2026-09-14 - DIA-260912-dean: OpenAI-only preset routing
+
+- **Change:** Add and activate strict OpenAI-only cost-balanced Luna/Terra/Sol routing after six-route runtime smoke
+- **Files:** .opencode/oh-my-opencode-slim.jsonc - .opencode/learnings/external-patterns/2026-09-12-dia-260912-dean-openai-first-preset-gate.md - docs/dev-infra-audit/tickets/DIA-260912-dean-add-openai-first-cost-balanced-preset-with-luna-terra-sol-routing.md
+- **Verification:** make test-config 57/57; restarted OpenCode resolved all 17 roles to OpenAI and returned non-empty markers for Luna medium/high, Terra medium/high, and Sol medium/high; independent config audit mapping PASS
