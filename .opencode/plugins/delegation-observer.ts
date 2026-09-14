@@ -448,7 +448,7 @@ const delegationObserver: Plugin = async (ctx) => {
   const stallSweepInst = createStallSweep({
     handleStore: stallSweepStore as unknown as Record<symbol, unknown>,
     now: () => Date.now(),
-    readRegistryRows: () => readRegistryRows(),
+    readActiveEntries: () => registry.readActiveLifecycleEntries(),
     getRootSessionIds: () => rootSessionIds,
     getSessionMeta: (key: string) => sessionMeta.get(key),
     emitStall: (key: string, row: Record<string, unknown>, ageSec: number, thresholdMin: number, escalation?: "dead") => {

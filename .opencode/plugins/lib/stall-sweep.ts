@@ -38,6 +38,8 @@ interface RegistryRow {
   role?: string
   parent_session?: string
   escalation?: string
+  last_stall_timestamp?: string
+  last_dead_timestamp?: string
   [key: string]: unknown
 }
 
@@ -59,6 +61,7 @@ export interface StallSweepDeps {
   clearInterval?: typeof clearInterval
   now?: () => number
   readRegistryRows?: () => RegistryRow[]
+  readActiveEntries?: () => RegistryRow[]
   emitStall?: (key: string, row: RegistryRow, ageSec: number, thresholdMin: number, escalation?: "dead") => void
   pluginLoadMs?: number
   thresholds?: Partial<StallSweepThresholds>
@@ -113,7 +116,7 @@ export function createStallSweep(deps: StallSweepDeps = {}): StallSweepHandle {
   const setIntervalFn = (deps.setInterval ?? globalThis.setInterval) as typeof setInterval
   const clearIntervalFn = (deps.clearInterval ?? globalThis.clearInterval) as typeof clearInterval
   const now = deps.now ?? Date.now
-  const readRegistryRows = deps.readRegistryRows ?? (() => [] as RegistryRow[])
+  const readSweepRows = deps.readActiveEntries ?? deps.readRegistryRows ?? (() => [] as RegistryRow[])
   const emitStall = deps.emitStall ?? (() => {})
   const pluginLoadMs = deps.pluginLoadMs ?? 0
   const onError = deps.onError ?? (() => {})
@@ -137,7 +140,7 @@ export function createStallSweep(deps: StallSweepDeps = {}): StallSweepHandle {
     try {
       let rows: RegistryRow[]
       try {
-        rows = readRegistryRows()
+        rows = readSweepRows()
       } catch (e) {
         try {
           onError(e)
@@ -170,14 +173,16 @@ export function createStallSweep(deps: StallSweepDeps = {}): StallSweepHandle {
       const lastDeadByKey = new Map<string, number>()
       for (const r of rows) {
         try {
-          if (r.event !== "stall_detected") continue
           const key = (r.session_id ?? r.task_id) as string | undefined
           if (!key) continue
-          const ts = Date.parse(r.timestamp ?? "")
-          if (Number.isNaN(ts)) continue
-          const tier = r.escalation === "dead" ? lastDeadByKey : lastStallByKey
-          const prev = tier.get(key)
-          if (prev === undefined || ts > prev) tier.set(key, ts)
+          const stallTimestamp = r.last_stall_timestamp ?? (r.event === "stall_detected" && r.escalation !== "dead" ? r.timestamp : undefined)
+          const deadTimestamp = r.last_dead_timestamp ?? (r.event === "stall_detected" && r.escalation === "dead" ? r.timestamp : undefined)
+          for (const [value, tier] of [[stallTimestamp, lastStallByKey], [deadTimestamp, lastDeadByKey]] as const) {
+            const ts = Date.parse(value ?? "")
+            if (Number.isNaN(ts)) continue
+            const prev = tier.get(key)
+            if (prev === undefined || ts > prev) tier.set(key, ts)
+          }
         } catch (e) {
           try { onError(e) } catch { /* noop */ }
           continue

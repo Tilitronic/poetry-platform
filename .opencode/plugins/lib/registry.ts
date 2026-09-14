@@ -13,6 +13,7 @@ import {
   mkdirSync as nodeMkdirSync,
   openSync as nodeOpenSync,
   readFileSync as nodeReadFileSync,
+  readSync as nodeReadSync,
   renameSync as nodeRenameSync,
   rmdirSync as nodeRmdirSync,
   statSync as nodeStatSync,
@@ -39,7 +40,8 @@ type FsDeps = {
   mkdirSync(path: string, opts?: object): void
   unlinkSync(path: string): void
   rmdirSync?: (path: string) => void
-  statSync(path: string): { mtimeMs: number; size: number; isFile(): boolean }
+  statSync(path: string): { mtimeMs: number; size: number; dev?: number; ino?: number; isFile(): boolean }
+  readSync?: (fd: number, buffer: Uint8Array, offset: number, length: number, position: number) => number
 }
 
 type PathDeps = {
@@ -88,6 +90,14 @@ type ActiveLifecycleEntry = LifecycleRow & {
   lifecycle_generation: number
 }
 
+type ActiveLifecycleIndexOptions = {
+  rows?: LifecycleRow[]
+  maxEntries?: number
+  maxTransitionReceipts?: number
+  sourceIdentity?: string | number
+  byteOffset?: number
+}
+
 function lifecycleRowOrder(row: LifecycleRow, position: number): [number, number, number] {
   const seq = typeof row.seq === "number" && Number.isFinite(row.seq) ? row.seq : -1
   const time = typeof row.timestamp === "string" ? Date.parse(row.timestamp) : Number.NaN
@@ -118,10 +128,25 @@ function lifecycleState(row: LifecycleRow): string {
   return typeof row.dispatch_state === "string" ? row.dispatch_state.toLowerCase() : ""
 }
 
+function projectLifecycleRow(row: LifecycleRow): LifecycleRow {
+  const allowed = [
+    "seq", "timestamp", "_offset", "session_id", "task_id", "event", "dispatch_state", "status",
+    "role", "parent_session", "escalation", "lifecycle_generation", "terminalUnreconciled",
+    "cancellationRequested", "recovery", "recovery_method", "stall_duration_seconds", "last_status",
+    "last_stall_timestamp", "last_dead_timestamp",
+  ] as const
+  const projected: LifecycleRow = {}
+  for (const key of allowed) {
+    if (row[key] !== undefined) projected[key] = row[key]
+  }
+  return projected
+}
+
 function isAuthoritativeOpen(row: LifecycleRow): boolean {
   const event = lifecycleEvent(row)
   const state = lifecycleState(row)
-  return (event === "dispatch" || event === "invocation" || event === "invoked" || event === "resume" || event === "recovery") &&
+  const childSpawn = event === "session_spawn" && typeof row.session_id === "string" && row.session_id.length > 0
+  return (event === "dispatch" || event === "invocation" || event === "invoked" || event === "resume" || event === "recovery" || childSpawn) &&
     state !== "completed" && state !== "failed" && state !== "error" && state !== "cancelled" && state !== "terminal"
 }
 
@@ -134,8 +159,9 @@ function isTerminalLifecycleRow(row: LifecycleRow): boolean {
   const event = lifecycleEvent(row)
   const state = lifecycleState(row)
   return event === "task_success" || event === "task_completed" || event === "completed" || event === "task_error" ||
-    event === "task_failed" || event === "failed" || event === "error" || event === "cancelled" ||
-    state === "completed" || state === "failed" || state === "error" || state === "cancelled"
+    event === "task_failed" || event === "session_complete" || event === "session_completed" || event === "session_error" ||
+    event === "failed" || event === "error" || event === "cancelled" || event === "reconciled" ||
+    state === "completed" || state === "failed" || state === "error" || state === "cancelled" || state === "reconciled"
 }
 
 /**
@@ -143,56 +169,136 @@ function isTerminalLifecycleRow(row: LifecycleRow): boolean {
  * This is deliberately functional: the returned closure owns only projection
  * state and does not read or write journals.
  */
-export function createActiveLifecycleIndex({ rows = [] }: { rows?: LifecycleRow[] } = {}) {
+export function createActiveLifecycleIndex({
+  rows = [],
+  maxEntries = 500,
+  maxTransitionReceipts = 500,
+  sourceIdentity: initialSourceIdentity,
+  byteOffset: initialByteOffset = 0,
+}: ActiveLifecycleIndexOptions = {}) {
+  if (!Number.isSafeInteger(maxEntries) || maxEntries < 1) throw new Error("active projection bound must be a positive integer")
+  if (!Number.isSafeInteger(maxTransitionReceipts) || maxTransitionReceipts < 1) {
+    throw new Error("active projection transition bound must be a positive integer")
+  }
   const active = new Map<string, ActiveLifecycleEntry>()
   const generations = new Map<string, number>()
   const closed = new Set<string>()
-  const history: LifecycleRow[] = []
-  const ordered = rows.map((row, position) => ({ row, position })).sort(compareLifecycleRows)
+  const transitions: LifecycleRow[] = []
+  let sourceIdentity = initialSourceIdentity
+  let byteOffset = initialByteOffset
+  let partialLine = ""
 
-  for (const item of ordered) {
-    const row = { ...item.row }
+  function rememberTransition(row: LifecycleRow): void {
+    transitions.push(row)
+    if (transitions.length > maxTransitionReceipts) transitions.splice(0, transitions.length - maxTransitionReceipts)
+  }
+
+  function rememberClosed(identity: string): void {
+    closed.delete(identity)
+    closed.add(identity)
+    while (closed.size > maxTransitionReceipts) {
+      const oldest = closed.values().next().value as string | undefined
+      if (oldest === undefined) break
+      closed.delete(oldest)
+      if (!active.has(oldest)) generations.delete(oldest)
+    }
+  }
+
+  function admit(identity: string, entry: ActiveLifecycleEntry): void {
+    if (!active.has(identity) && active.size >= maxEntries) {
+      throw new Error(`active projection bound ${maxEntries} reached; admission rejected`)
+    }
+    active.set(identity, entry)
+  }
+
+  function apply(input: LifecycleRow): void {
+    const row = projectLifecycleRow(input)
     const identity = lifecycleIdentity(row)
-    if (!identity) continue
+    if (!identity) return
     const current = active.get(identity)
     const knownGeneration = generations.get(identity)
 
-    if (!current && (isAuthoritativeOpen(row) || typeof row.lifecycle_generation === "number")) {
+    if (!current && !isTerminalLifecycleRow(row) && (isAuthoritativeOpen(row) || typeof row.lifecycle_generation === "number")) {
       const generation = typeof row.lifecycle_generation === "number" && !isExplicitRecovery(row) ? row.lifecycle_generation :
         (isExplicitRecovery(row) || knownGeneration === undefined || closed.has(identity) ?
           (typeof row.seq === "number" && Number.isFinite(row.seq) ? row.seq : undefined) : knownGeneration)
-      if (generation === undefined) continue
+      if (generation === undefined) return
       const entry = { ...row, session_id: identity, lifecycle_generation: generation }
-      active.set(identity, entry)
+      admit(identity, entry)
       generations.set(identity, generation)
-      continue
+      closed.delete(identity)
+      return
     }
 
-    if (!current) continue
+    if (!current) return
 
     if (isExplicitRecovery(row)) {
       const generation = typeof row.seq === "number" && Number.isFinite(row.seq) ? row.seq : current.lifecycle_generation
-      history.push({ ...row, session_id: identity, lifecycle_generation: generation })
-      active.set(identity, { ...row, session_id: identity, lifecycle_generation: generation })
+      rememberTransition({ ...row, session_id: identity, lifecycle_generation: generation })
+      admit(identity, { ...row, session_id: identity, lifecycle_generation: generation })
       generations.set(identity, generation)
-      continue
+      closed.delete(identity)
+      return
     }
 
     const attached = { ...row, session_id: identity, lifecycle_generation: current.lifecycle_generation }
-    history.push(attached)
     if (isTerminalLifecycleRow(row)) {
+      rememberTransition(attached)
       active.delete(identity)
-      closed.add(identity)
-      continue
+      rememberClosed(identity)
+      return
     }
-    active.set(identity, { ...current, ...attached, lifecycle_generation: current.lifecycle_generation })
+    const stallMarker = lifecycleEvent(row) === "stall_detected" && typeof row.timestamp === "string" ?
+      (row.escalation === "dead" ? { last_dead_timestamp: row.timestamp } : { last_stall_timestamp: row.timestamp }) : {}
+    admit(identity, { ...current, ...attached, ...stallMarker, lifecycle_generation: current.lifecycle_generation })
+  }
+
+  const ordered = rows.map((row, position) => ({ row, position })).sort(compareLifecycleRows)
+  for (const item of ordered) apply(item.row)
+
+  function consumeAppendedBytes({
+    bytes,
+    inode,
+    offset,
+  }: {
+    bytes: Uint8Array | string
+    inode?: string | number
+    offset?: number
+    readFullRegistry?: () => unknown
+  }): number {
+    if (sourceIdentity !== undefined && inode !== undefined && inode !== sourceIdentity) {
+      throw new Error("active projection source rotated; controlled rebuild required")
+    }
+    if (offset !== undefined && offset !== byteOffset) {
+      throw new Error(`active projection offset mismatch: expected ${byteOffset}, received ${offset}`)
+    }
+    if (sourceIdentity === undefined && inode !== undefined) sourceIdentity = inode
+    const chunk = typeof bytes === "string" ? bytes : new TextDecoder().decode(bytes)
+    byteOffset += typeof bytes === "string" ? new TextEncoder().encode(bytes).byteLength : bytes.byteLength
+    const lines = (partialLine + chunk).split("\n")
+    partialLine = lines.pop() ?? ""
+    let applied = 0
+    for (const line of lines) {
+      if (!line) continue
+      try {
+        apply(JSON.parse(line) as LifecycleRow)
+        applied += 1
+      } catch (error) {
+        if (error instanceof SyntaxError) continue
+        throw error
+      }
+    }
+    return applied
   }
 
   return {
     entries: (): ActiveLifecycleEntry[] => Array.from(active.values()),
     generationFor: (identity: string): number | undefined => active.get(identity)?.lifecycle_generation ?? generations.get(identity),
-    history: (): LifecycleRow[] => history.slice(),
+    history: (): LifecycleRow[] => transitions.slice(),
     exportRows: (): LifecycleRow[] => Array.from(active.values()).map((entry) => ({ ...entry })),
+    apply,
+    consumeAppendedBytes,
+    cursor: () => ({ inode: sourceIdentity, offset: byteOffset, partialBytes: new TextEncoder().encode(partialLine).byteLength }),
   }
 }
 
@@ -201,6 +307,7 @@ function resolveFs(deps: RegistryDeps): FsDeps {
   return {
     appendFileSync: nodeAppendFileSync,
     readFileSync: nodeReadFileSync as unknown as FsDeps["readFileSync"],
+    readSync: nodeReadSync,
     existsSync: nodeExistsSync,
     writeFileSync: nodeWriteFileSync,
     openSync: nodeOpenSync as unknown as FsDeps["openSync"],
@@ -319,9 +426,63 @@ export function createRegistry(deps: RegistryDeps = {}) {
   })
   const opencodeVersion: string | undefined = deps.opencodeVersion ?? (process.env.OPENCODE_VERSION as string | undefined)
 
-  type AppendResult = JournalResult
+  type AppendResult = JournalResult | {
+    ok: false
+    stage: "index"
+    retryable: false
+    error: string
+    reserved_id: number
+  }
   let registryCounter: number | undefined
   let messagesCounter: number | undefined
+  let activeIndexDirty = false
+  let bootstrapContent = ""
+  let bootstrapIdentity: string | undefined
+  if (fs.existsSync(registryPath)) {
+    try {
+      bootstrapContent = fs.readFileSync(registryPath, "utf-8")
+      const stat = fs.statSync(registryPath)
+      if (typeof stat.dev === "number" && typeof stat.ino === "number") bootstrapIdentity = `${stat.dev}:${stat.ino}`
+    } catch {
+      activeIndexDirty = true
+    }
+  }
+  const bootstrapRows: LifecycleRow[] = []
+  let bootstrapOffset = 0
+  let bootstrapLineCount = 0
+  let bootstrapMaxSeq = 0
+  let bootstrapHasSeq = false
+  for (const line of bootstrapContent.split("\n")) {
+    const lineBytes = new TextEncoder().encode(`${line}\n`).byteLength
+    if (line) {
+      bootstrapLineCount += 1
+      try {
+        const parsed = JSON.parse(line) as LifecycleRow
+        bootstrapRows.push({ ...parsed, _offset: bootstrapOffset })
+        if (typeof parsed.seq === "number") {
+          bootstrapHasSeq = true
+          if (parsed.seq > bootstrapMaxSeq) bootstrapMaxSeq = parsed.seq
+        }
+      } catch { /* malformed history is not active */ }
+    }
+    bootstrapOffset += lineBytes
+  }
+  if (!bootstrapContent.endsWith("\n") && bootstrapContent.length > 0) {
+    bootstrapOffset -= 1
+  }
+  let registryHistoryMax = bootstrapHasSeq ? Math.max(bootstrapMaxSeq, bootstrapLineCount) : bootstrapLineCount
+  let activeLifecycleIndex: ReturnType<typeof createActiveLifecycleIndex>
+  try {
+    activeLifecycleIndex = createActiveLifecycleIndex({
+      rows: bootstrapRows,
+      maxEntries: 500,
+      sourceIdentity: bootstrapIdentity,
+      byteOffset: new TextEncoder().encode(bootstrapContent).byteLength,
+    })
+  } catch {
+    activeIndexDirty = true
+    activeLifecycleIndex = createActiveLifecycleIndex({ maxEntries: 500 })
+  }
   const journal = createJournalPersistence({
     fs,
     path,
@@ -331,6 +492,53 @@ export function createRegistry(deps: RegistryDeps = {}) {
     randomUUID: rand,
     now: deps.clock?.now ?? Date.now,
   })
+
+  function refreshActiveLifecycleIndex(): { ok: true; applied: number } | { ok: false; error: string } {
+    if (activeIndexDirty) return { ok: false, error: "active lifecycle index requires controlled rebuild" }
+    if (!fs.existsSync(registryPath)) return { ok: true, applied: 0 }
+    try {
+      const stat = fs.statSync(registryPath)
+      const cursor = activeLifecycleIndex.cursor()
+      const identity = typeof stat.dev === "number" && typeof stat.ino === "number" ? `${stat.dev}:${stat.ino}` : undefined
+      if (cursor.inode !== undefined && identity !== undefined && cursor.inode !== identity) {
+        activeIndexDirty = true
+        return { ok: false, error: "active lifecycle registry rotated; controlled rebuild required" }
+      }
+      if (stat.size < cursor.offset || !fs.readSync) {
+        activeIndexDirty = true
+        return { ok: false, error: "active lifecycle registry cursor is no longer readable" }
+      }
+      const remaining = stat.size - cursor.offset
+      if (remaining === 0) return { ok: true, applied: 0 }
+      const bytes = new Uint8Array(remaining)
+      const fd = fs.openSync(registryPath, "r")
+      let read = 0
+      try {
+        while (read < remaining) {
+          const count = fs.readSync(fd, bytes, read, remaining - read, cursor.offset + read)
+          if (count === 0) break
+          read += count
+        }
+      } finally {
+        fs.closeSync(fd)
+      }
+      const applied = activeLifecycleIndex.consumeAppendedBytes({
+        bytes: bytes.subarray(0, read),
+        inode: identity,
+        offset: cursor.offset,
+      })
+      return { ok: true, applied }
+    } catch (error) {
+      activeIndexDirty = true
+      return { ok: false, error: error instanceof Error ? error.message : String(error) }
+    }
+  }
+
+  function readActiveLifecycleEntries(): ActiveLifecycleEntry[] {
+    const refreshed = refreshActiveLifecycleIndex()
+    if (!refreshed.ok) throw new Error(refreshed.error)
+    return activeLifecycleIndex.entries()
+  }
 
   function lastMessagesMdRowNumber(mdPath: string = messagesMdPath): number {
     if (!fs.existsSync(mdPath)) return 0
@@ -375,27 +583,7 @@ export function createRegistry(deps: RegistryDeps = {}) {
   }
 
   function maxRegistrySeq(): number {
-    if (!fs.existsSync(registryPath)) return 0
-    let maxSeq = 0
-    let lineCount = 0
-    let hasSeq = false
-    let content: string
-    try {
-      content = fs.readFileSync(registryPath, "utf-8")
-    } catch {
-      return 0
-    }
-    for (const line of content.split("\n")) {
-      if (!line) continue
-      lineCount++
-      try {
-        const row = JSON.parse(line) as { seq?: number }
-        if (typeof row.seq === "number") { hasSeq = true; if (row.seq > maxSeq) maxSeq = row.seq }
-      } catch {
-        // Malformed line — skip
-      }
-    }
-    return hasSeq ? Math.max(maxSeq, lineCount) : lineCount
+    return registryHistoryMax
   }
 
   function appendRow(row: Record<string, unknown>): AppendResult {
@@ -415,7 +603,29 @@ export function createRegistry(deps: RegistryDeps = {}) {
       if (entry.group_key === TASK_NO_ID_GROUP_KEY) entry.group_key = `${TASK_NO_ID_GROUP_KEY}${seq}`
       stage = "append"
       journal.appendChecked(registryPath, JSON.stringify(entry) + "\n")
+      registryHistoryMax = Math.max(registryHistoryMax, seq)
       journal.releaseJournalLock(acquired.token)
+      if (activeIndexDirty) {
+        return {
+          ok: false,
+          stage: "index",
+          retryable: false,
+          error: "registry row persisted but active lifecycle index requires controlled rebuild",
+          reserved_id: seq,
+        }
+      }
+      try {
+        activeLifecycleIndex.apply(entry)
+      } catch (error) {
+        activeIndexDirty = true
+        return {
+          ok: false,
+          stage: "index",
+          retryable: false,
+          error: error instanceof Error ? error.message : String(error),
+          reserved_id: seq,
+        }
+      }
       return { ok: true, id: seq, entry }
     } catch (err) {
       journal.releaseJournalLock(acquired.token)
@@ -562,5 +772,8 @@ export function createRegistry(deps: RegistryDeps = {}) {
     maxRegistrySeq,
     getSessionMessageCount,
     sessionMessageCount,
+    activeLifecycleIndex,
+    refreshActiveLifecycleIndex,
+    readActiveLifecycleEntries,
   }
 }
