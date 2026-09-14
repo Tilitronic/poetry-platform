@@ -36,6 +36,7 @@ import { describe, it } from "node:test"
 import assert from "node:assert/strict"
 import { readFileSync as nodeReadFileSync } from "node:fs"
 import * as nodeFs from "node:fs"
+import { spawn } from "node:child_process"
 import { tmpdir } from "node:os"
 import { join as nodeJoin } from "node:path"
 import * as mod from "../lib/registry.ts"
@@ -1028,5 +1029,221 @@ describe("DIA-260914-tqor RED-A review gaps - real persistence", () => {
     assert.equal(counterResult?.stage, "counter", "counter operation determines counter stage")
     assert.equal(appendResult?.stage, "append", "append operation determines append stage")
     assert.equal(counterResult?.error, appendResult?.error, "same text does not determine stage")
+  })
+})
+
+describe("DIA-260914-tqor RED-A review cycle 2 - strict ownership", () => {
+  const registryPath = "/workspace/.opencode/session/registry.jsonl"
+  const messagesPath = "/workspace/.opencode/session/messages.jsonl"
+  const registrySeqPath = "/workspace/.opencode/session/registry.seq"
+  const messagesRowIdPath = "/workspace/.opencode/session/messages.row-id"
+  const invalidCounters = ["12junk", "12.5", "+12", "-12", "12 \n junk"]
+
+  it("rejects partial decimal signed and whitespace-junk registry counters until explicit recovery", () => {
+    for (const value of invalidCounters) {
+      const fs = makeFakeFs({
+        [registryPath]: JSON.stringify({ seq: 7 }) + "\n",
+        [registrySeqPath]: value,
+      })
+      const registry = makeRegistry(fs)
+      const rejected = registry.appendRow({ event: "must-recover" })
+      assert.deepEqual(
+        { ok: rejected?.ok, stage: rejected?.stage },
+        { ok: false, stage: "counter" },
+        `registry counter ${JSON.stringify(value)} fails closed`,
+      )
+      assert.equal(typeof registry.recoverCounters, "function")
+      assert.equal(registry.recoverCounters()?.ok, true)
+      assert.equal(expectDurableId(registry.appendRow({ event: "recovered" })), 8)
+    }
+  })
+
+  it("rejects partial decimal signed and whitespace-junk message counters until explicit recovery", () => {
+    for (const value of invalidCounters) {
+      const fs = makeFakeFs({
+        [messagesPath]: JSON.stringify({ row_id: 9 }) + "\n",
+        [messagesRowIdPath]: value,
+      })
+      const registry = makeRegistry(fs)
+      const rejected = registry.appendMessageRow({ event_type: "must-recover" })
+      assert.deepEqual(
+        { ok: rejected?.ok, stage: rejected?.stage },
+        { ok: false, stage: "counter" },
+        `message counter ${JSON.stringify(value)} fails closed`,
+      )
+      assert.equal(typeof registry.recoverCounters, "function")
+      assert.equal(registry.recoverCounters()?.ok, true)
+      assert.equal(expectDurableId(registry.appendMessageRow({ event_type: "recovered" })), 10)
+    }
+  })
+
+  function expectDurableId(result) {
+    assert.equal(result?.ok, true)
+    assert.equal(typeof result?.id, "number")
+    return result.id
+  }
+
+  it("recovers an empty lock directory left between owner removal and directory cleanup", () => {
+    const root = nodeFs.mkdtempSync(nodeJoin(tmpdir(), "tqor-empty-lock-"))
+    const sessionDir = nodeJoin(root, ".opencode/session")
+    const lockPath = nodeJoin(sessionDir, "journal.lock")
+    nodeFs.mkdirSync(lockPath, { recursive: true })
+    let livenessChecks = 0
+    try {
+      const registry = mod.createRegistry({
+        directory: root,
+        registryPath: nodeJoin(sessionDir, "registry.jsonl"),
+        messagesPath: nodeJoin(sessionDir, "messages.jsonl"),
+        messagesMdPath: nodeJoin(sessionDir, "messages.md"),
+        registrySeqPath: nodeJoin(sessionDir, "registry.seq"),
+        messagesRowIdPath: nodeJoin(sessionDir, "messages.row-id"),
+        journalLockPath: lockPath,
+        isProcessAlive: () => { livenessChecks++; return true },
+      })
+      assert.equal(expectDurableId(registry.appendRow({ event: "after-empty-lock" })), 1)
+      assert.equal(nodeFs.existsSync(lockPath), false, "empty crash-window lock is cleaned after success")
+      assert.equal(livenessChecks, 0, "empty lock recovery does not invent owner identity")
+    } finally {
+      nodeFs.rmSync(root, { recursive: true, force: true })
+    }
+  })
+
+  it("allocates unique IDs across separate OS processes with deterministic lock contention", async () => {
+    const root = nodeFs.mkdtempSync(nodeJoin(tmpdir(), "tqor-processes-"))
+    const sessionDir = nodeJoin(root, ".opencode/session")
+    nodeFs.mkdirSync(sessionDir, { recursive: true })
+    nodeFs.writeFileSync(nodeJoin(sessionDir, "registry.jsonl"), JSON.stringify({ seq: 0 }) + "\n")
+    const moduleUrl = new URL("../lib/registry.ts", import.meta.url).href
+    const childSource = `
+      import * as fs from "node:fs";
+      import { createRegistry } from ${JSON.stringify(moduleUrl)};
+      const root = process.env.TQOR_ROOT;
+      const session = root + "/.opencode/session";
+      const registryPath = session + "/registry.jsonl";
+      const lockPath = session + "/journal.lock";
+      let gated = false;
+      const wrapped = {
+        ...fs,
+        mkdirSync(path, options) {
+          const result = fs.mkdirSync(path, options);
+          if (process.env.TQOR_HOLD === "1" && path === lockPath && !gated) {
+            gated = true;
+            process.stdout.write("LOCKED\\n");
+            fs.readFileSync(0, "utf8");
+          }
+          return result;
+        },
+        readFileSync(path, ...args) {
+          const snapshot = fs.readFileSync(path, ...args);
+          if (process.env.TQOR_HOLD === "1" && path === registryPath && !gated) {
+            gated = true;
+            process.stdout.write("SNAPSHOT\\n");
+            fs.readFileSync(0, "utf8");
+          }
+          return snapshot;
+        },
+      };
+      const registry = createRegistry({
+        fs: wrapped,
+        directory: root,
+        registryPath,
+        messagesPath: session + "/messages.jsonl",
+        messagesMdPath: session + "/messages.md",
+        registrySeqPath: session + "/registry.seq",
+        messagesRowIdPath: session + "/messages.row-id",
+        journalLockPath: lockPath,
+        processIdentity: { pid: process.pid, startedAt: process.env.TQOR_OWNER },
+      });
+      const result = registry.appendRow({ event: process.env.TQOR_OWNER });
+      process.stdout.write("RESULT " + JSON.stringify(result) + "\\n");
+    `
+
+    function launch(owner, hold) {
+      const child = spawn(process.execPath, ["--eval", childSource], {
+        cwd: new URL("..", import.meta.url),
+        env: { ...process.env, TQOR_ROOT: root, TQOR_OWNER: owner, TQOR_HOLD: hold ? "1" : "0" },
+        stdio: ["pipe", "pipe", "pipe"],
+      })
+      let stdout = ""
+      let stderr = ""
+      child.stdout.setEncoding("utf8")
+      child.stderr.setEncoding("utf8")
+      child.stdout.on("data", (chunk) => { stdout += chunk })
+      child.stderr.on("data", (chunk) => { stderr += chunk })
+      return { child, output: () => stdout, errors: () => stderr }
+    }
+
+    function waitFor(handle, pattern, label) {
+      return new Promise((resolve, reject) => {
+        const timer = setTimeout(() => reject(new Error(`${label} timed out: ${handle.output()} ${handle.errors()}`)), 5000)
+        const inspect = () => {
+          if (!pattern.test(handle.output())) return
+          clearTimeout(timer)
+          resolve(handle.output())
+        }
+        handle.child.stdout.on("data", inspect)
+        handle.child.once("exit", (code) => {
+          inspect()
+          if (!pattern.test(handle.output())) {
+            clearTimeout(timer)
+            reject(new Error(`${label} exited ${code}: ${handle.output()} ${handle.errors()}`))
+          }
+        })
+        inspect()
+      })
+    }
+
+    function resultOf(handle) {
+      const match = /^RESULT (.+)$/m.exec(handle.output())
+      assert.ok(match, `child returned a result: ${handle.output()} ${handle.errors()}`)
+      return JSON.parse(match[1])
+    }
+
+    try {
+      const first = launch("first", true)
+      const firstGate = await waitFor(first, /^(LOCKED|SNAPSHOT)$/m, "first writer gate")
+      const second = launch("second", true)
+      if (/^LOCKED$/m.test(firstGate)) {
+        await waitFor(second, /^RESULT /m, "contending writer result")
+        const blocked = resultOf(second)
+        assert.deepEqual({ ok: blocked?.ok, stage: blocked?.stage }, { ok: false, stage: "lock" })
+        first.child.stdin.end("release\n")
+        await waitFor(first, /^RESULT /m, "first writer result")
+      } else {
+        await waitFor(second, /^SNAPSHOT$/m, "second writer snapshot")
+        first.child.stdin.end("release\n")
+        second.child.stdin.end("release\n")
+        await Promise.all([
+          waitFor(first, /^RESULT /m, "first legacy result"),
+          waitFor(second, /^RESULT /m, "second legacy result"),
+        ])
+      }
+      const firstResult = resultOf(first)
+      const retry = launch("retry", false)
+      await waitFor(retry, /^RESULT /m, "retry writer result")
+      const retryResult = resultOf(retry)
+      assert.deepEqual([firstResult?.id, retryResult?.id], [1, 2], "separate processes allocate unique monotonic IDs")
+      assert.equal(firstResult?.ok, true)
+      assert.equal(retryResult?.ok, true)
+    } finally {
+      nodeFs.rmSync(root, { recursive: true, force: true })
+    }
+  })
+
+  it("puts lock counter and checked-append operations in functional journal persistence", () => {
+    const helperUrl = new URL("../lib/journal-persistence.ts", import.meta.url)
+    assert.equal(nodeFs.existsSync(helperUrl), true, "functional journal-persistence helper exists")
+    const src = nodeFs.readFileSync(helperUrl, "utf8")
+    for (const [operation, pattern] of [
+      ["acquire", /acquire[A-Za-z]*Lock/],
+      ["release", /release[A-Za-z]*Lock/],
+      ["reserve", /reserve[A-Za-z]*Counter/],
+      ["publish", /publish[A-Za-z]*Counter|atomic[A-Za-z]*Counter/],
+      ["checked append", /appendChecked|checkedAppend/],
+    ]) {
+      assert.match(src, pattern, `journal-persistence owns ${operation}`)
+    }
+    const registrySrc = nodeReadFileSync(new URL("../lib/registry.ts", import.meta.url), "utf8")
+    assert.match(registrySrc, /from\s+["']\.\/journal-persistence\.ts["']/, "registry composes the functional helper")
   })
 })
