@@ -313,19 +313,20 @@
 | DIA-260911-ddsm | Commit j5k6 changelog YAML hunk and render Markdown view | scripts | Medium | OPEN | [DIA-260911-ddsm-commit-j5k6-changelog-yaml-hunk-and-render-markdown-view.md](DIA-260911-ddsm-commit-j5k6-changelog-yaml-hunk-and-render-markdown-view.md) |
 | DIA-260911-rqmw | Route coder-escalated to GPT-5.6 Terra High (split from DIA-260910-sjtk) | scripts | Medium | OPEN | [DIA-260911-rqmw-route-coder-escalated-to-gpt-5-6-terra-high-split-from-dia-260910-sjtk.md](DIA-260911-rqmw-route-coder-escalated-to-gpt-5-6-terra-high-split-from-dia-260910-sjtk.md) |
 | DIA-260911-y52j | Fix recursive child_process mock in reviewer immutable git envelope test | tests-infra | Major | CLOSED | [DIA-260911-y52j-fix-recursive-child-process-mock-in-reviewer-immutable-git-envelope-test.md](DIA-260911-y52j-fix-recursive-child-process-mock-in-reviewer-immutable-git-envelope-test.md) |
-| DIA-260912-dean | Add OpenAI-first cost-balanced preset with Luna Terra Sol routing | opencode-config | Medium | OPEN | [DIA-260912-dean-add-openai-first-cost-balanced-preset-with-luna-terra-sol-routing.md](DIA-260912-dean-add-openai-first-cost-balanced-preset-with-luna-terra-sol-routing.md) |
+| DIA-260912-dean | Add OpenAI-first cost-balanced preset with Luna Terra Sol routing | opencode-config | Medium | CLOSED | [DIA-260912-dean-add-openai-first-cost-balanced-preset-with-luna-terra-sol-routing.md](DIA-260912-dean-add-openai-first-cost-balanced-preset-with-luna-terra-sol-routing.md) |
 | DIA-260912-h8o5 | tests-infra: reproducible runtime for undeclared zod import | scripts | Medium | CLOSED | [DIA-260912-h8o5-tests-infra-reproducible-runtime-for-undeclared-zod-import.md](DIA-260912-h8o5-tests-infra-reproducible-runtime-for-undeclared-zod-import.md) |
 | DIA-260912-y2uo | Podman support for DIA-094: container-engine adapter with engine-neutral checks, hard-fail preserved | scripts | Medium | CLOSED | [DIA-260912-y2uo-podman-support-for-dia-094-container-engine-adapter-with-engine-neutral-checks-hard-fail-preserved.md](DIA-260912-y2uo-podman-support-for-dia-094-container-engine-adapter-with-engine-neutral-checks-hard-fail-preserved.md) |
 | DIA-260913-ir3r | Fix root-owned npm cache for OpenCode background dependency installs | docker | Major | CLOSED | [DIA-260913-ir3r-fix-root-owned-npm-cache-for-opencode-background-dependency-installs.md](DIA-260913-ir3r-fix-root-owned-npm-cache-for-opencode-background-dependency-installs.md) |
 | DIA-260913-srn4 | Refresh rustup-init checksums blocking Podman dev image rebuild | dev-infra | Major | CLOSED | [DIA-260913-srn4-refresh-rustup-init-checksums-blocking-podman-dev-image-rebuild.md](DIA-260913-srn4-refresh-rustup-init-checksums-blocking-podman-dev-image-rebuild.md) |
 | DIA-260914-4s66 | Avoid rootless Podman remap of host git ownership during entrypoint startup | docker | Critical | CLOSED | [DIA-260914-4s66-avoid-rootless-podman-remap-of-host-git-ownership-during-entrypoint-startup.md](DIA-260914-4s66-avoid-rootless-podman-remap-of-host-git-ownership-during-entrypoint-startup.md) |
+| DIA-260914-tqor | Stop delegation-observer stall sweep from re-emitting dead sessions forever and bound registry scan cost | scripts | Medium | OPEN | [DIA-260914-tqor-stop-delegation-observer-stall-sweep-from-re-emitting-dead-sessions-forever-and-bound-registry-scan-cost.md](DIA-260914-tqor-stop-delegation-observer-stall-sweep-from-re-emitting-dead-sessions-forever-and-bound-registry-scan-cost.md) |
 
 ## Status summary
 
 | Severity | Count |
 | -------- | ----- |
 | Blocker  | 9     |
-| Critical | 16    |
+| Critical | 17    |
 | Major    | 78    |
 | Medium   | 161   |
 | Minor    | 1     |
@@ -344,7 +345,7 @@
 | FIXED       | 1     |
 | IMPLEMENTED | 2     |
 | VERIFIED    | 28    |
-| CLOSED      | 201   |
+| CLOSED      | 202   |
 | BLOCKED     | 0     |
 | DISPATCHED  | 0     |
 | RUNNING     | 0     |
