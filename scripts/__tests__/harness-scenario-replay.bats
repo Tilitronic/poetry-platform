@@ -13,10 +13,11 @@
 # Runs inside the poetry-dev container (bun + TypeScript).
 
 load test-helper
+source "$REPO_ROOT/scripts/container-engine.sh"
 
 SCENARIOS_DIR="$REPO_ROOT/.opencode/plugins/__tests__/harness-scenarios"
 
-# run_scenario <name>: runs a bun scenario script inside the Docker container.
+# run_scenario <name>: runs a bun scenario script inside the selected container.
 # The script receives a fresh mkdtemp path via $WORKSPACE and asserts the
 # plugin's observable output (registry.jsonl, handoffs/). Exits non-zero on
 # assertion failure.
@@ -27,13 +28,13 @@ run_scenario() {
     echo "run_scenario: missing script: $script" >&2
     return 1
   }
-  # Skip when Docker is unavailable (inside container or daemon down).
-  # These tests require docker compose exec which is only possible from the host.
-  if ! docker info >/dev/null 2>&1; then
-    echo "# skip: Docker not available (inside container or daemon down)" >&3
+  # Skip when the selected host engine is unavailable. These tests require a
+  # host-side compose exec and therefore cannot run from inside the container.
+  if ! container_engine_reachable; then
+    echo "# skip: selected container engine unavailable" >&3
     return 0
   fi
-  docker compose exec -T dev bash -lc \
+  container_engine_compose exec -T dev bash -lc \
     "cd /workspace/.opencode/plugins/__tests__/harness-scenarios && bun run $name.scenario.mjs"
 }
 

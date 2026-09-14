@@ -40,6 +40,11 @@ set -u
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 MANIFEST="${EVAL_LITE_MANIFEST:-${ROOT_DIR}/docs/dev-infra/eval-lite-tasks.md}"
+source "${ROOT_DIR}/scripts/container-engine.sh"
+# The adapter is shared by strict callers and enables errexit when sourced.
+# eval-lite deliberately keeps soft-failure semantics so task exit codes are
+# compared and reported instead of aborting the harness on the first failure.
+set +e
 
 if [ ! -f "${MANIFEST}" ]; then
   echo "ERROR: docs/dev-infra/eval-lite-tasks.md not found. Run the curator script or restore from git."
@@ -52,7 +57,7 @@ fi
 # dev service is running (design.md Decision 7). Any failure (daemon
 # unreachable, compose absent, empty output, status not Up) => unavailable.
 CONTAINER_UP=no
-if container_json="$(docker compose ps --format json dev 2>/dev/null)"; then
+if container_json="$(container_engine_compose ps --format json dev 2>/dev/null)"; then
   if [ -n "${container_json}" ]; then
     if jq -e 'if type == "array" then (.[0].Status // "" | startswith("Up")) else (.Status // "" | startswith("Up")) end' >/dev/null 2>&1 <<<"${container_json}"; then
       CONTAINER_UP=yes

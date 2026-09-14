@@ -67,6 +67,18 @@ FAKEDOCKER
   export PATH
 }
 
+# mock_podman_autodetect: expose the existing recording fakes from a resolved
+# path containing "podman", which is the adapter's docker-free autodetection
+# signal. The copied clients still write to FAKE_DOCKER_LOG.
+mock_podman_autodetect() {
+  local bindir="$BATS_TEST_TMPDIR/podman-engine-bin"
+  mkdir -p "$bindir"
+  cp "$BATS_TEST_TMPDIR/bin/docker" "$bindir/docker"
+  cp "$BATS_TEST_TMPDIR/bin/podman" "$bindir/podman"
+  PATH="$bindir:$PATH"
+  export PATH
+}
+
 # mock_grep_os <wsl|native>: plants a fake `grep` on PATH that controls ONLY
 # the OS-detection probe (/proc/version) and delegates everything else to the
 # real binary. Drives WSL auto-detect tests hermetically.
@@ -97,6 +109,9 @@ GREP
 }
 
 setup() {
+  # Auto-detection tests must start with no inherited override. Tests that
+  # exercise an explicit engine set it in their own body.
+  unset COMPOSE_ENGINE
   FAKE_DOCKER_SERVICES=""
   mock_docker
   # Preflight wiring (T7.0b): the launcher runs scripts/check-secrets-ownership.sh
@@ -145,11 +160,28 @@ setup() {
   assert_file_contains "$FAKE_DOCKER_LOG" "docker-compose.rootless-docker.yml"
 }
 
+@test "engine override --engine=podman routes every host operation through native podman compose" {
+  # This is the RED migration contract for the remaining direct-compose
+  # caller.  The selected engine must cover config, up, and the mode's exec;
+  # a docker-only implementation is not equivalent under Podman.
+  mock_docker
+  export COMPOSE_ENGINE="podman"
+  run bash "$SCRIPT" --engine=podman
+  assert_status 0
+  assert_file_contains "$FAKE_DOCKER_LOG" "podman compose -f docker-compose.yml -f docker-compose.podman.yml config"
+  assert_file_contains "$FAKE_DOCKER_LOG" "podman compose up -d dev"
+  assert_file_contains "$FAKE_DOCKER_LOG" "podman compose exec -it --user dev dev bash"
+  if grep -q '^compose ' "$FAKE_DOCKER_LOG"; then
+    echo "host operations bypassed the selected podman engine" >&2
+    return 1
+  fi
+}
+
 # --- engine auto-detection via docker --version (NEW contract, RED) ----------
 
 @test "engine auto-detect: Podman version selects docker-compose.podman.yml" {
   FAKE_DOCKER_SERVICES=""
-  mock_docker_engine
+  mock_podman_autodetect
   export FAKE_DOCKER_VERSION="Podman version 5.0.0"
   run bash "$SCRIPT"
   assert_file_contains "$FAKE_DOCKER_LOG" "docker-compose.podman.yml"
@@ -167,7 +199,7 @@ setup() {
 
 @test "WSL overlay added on top of engine override when OS=wsl (auto-detect)" {
   FAKE_DOCKER_SERVICES=""
-  mock_docker_engine
+  mock_podman_autodetect
   export FAKE_DOCKER_VERSION="Podman version 5.0.0"
   mock_grep_os wsl
   run bash "$SCRIPT"
@@ -178,7 +210,7 @@ setup() {
 
 @test "WSL overlay NOT added when OS is native (auto-detect)" {
   FAKE_DOCKER_SERVICES=""
-  mock_docker_engine
+  mock_podman_autodetect
   export FAKE_DOCKER_VERSION="Podman version 5.0.0"
   mock_grep_os native
   run bash "$SCRIPT"

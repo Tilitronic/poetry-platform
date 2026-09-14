@@ -88,6 +88,29 @@ EOF
   echo "$bindir"
 }
 
+# mock_podman_up: same container probe as mock_docker_up, but records the
+# native Podman invocation so COMPOSE_ENGINE=podman migration is observable.
+mock_podman_up() {
+  local version="${1:-1.97.1}"
+  local bindir="$BATS_TEST_TMPDIR/fake-podman"
+  mkdir -p "$bindir"
+  cat > "$bindir/podman" <<EOF
+#!/usr/bin/env bash
+printf '%s\n' "podman \$*" >> "\${MOCK_ENGINE_LOG:?MOCK_ENGINE_LOG not set}"
+if [ "\${1:-}" = "compose" ]; then
+  for a in "\$@"; do
+    if [ "\$a" = "exec" ]; then
+      printf '%s\n' "rust-analyzer ${version} (fake podman container 2026-08-06)"
+      exit 0
+    fi
+  done
+fi
+exit 1
+EOF
+  chmod +x "$bindir/podman"
+  echo "$bindir"
+}
+
 # run_probe <tree> <fakes_dir> [docker_dir] [strict]: runs check-host-lsp.sh
 # with a hermetic PATH (fakes dir + optional fake docker dir + /usr/bin:/bin
 # only) so no real LSP binary or real docker can ever be shelled. Pass a
@@ -104,9 +127,9 @@ run_probe() {
     probe_path="${fakes}:${docker_dir}:/usr/bin:/bin"
   fi
   if [ -n "${strict}" ]; then
-    run env PATH="${probe_path}" CHECK_HOST_LSP_STRICT=1 bash "$tree/scripts/check-host-lsp.sh"
+    run env PATH="${probe_path}" COMPOSE_ENGINE=docker CHECK_HOST_LSP_STRICT=1 bash "$tree/scripts/check-host-lsp.sh"
   else
-    run env PATH="${probe_path}" bash "$tree/scripts/check-host-lsp.sh"
+    run env PATH="${probe_path}" COMPOSE_ENGINE=docker bash "$tree/scripts/check-host-lsp.sh"
   fi
 }
 
@@ -116,10 +139,20 @@ setup_tree() {
   local tree="$BATS_TEST_TMPDIR/tree"
   mkdir -p "$tree/scripts"
   cp "$REPO_ROOT/scripts/check-host-lsp.sh" "$tree/scripts/check-host-lsp.sh"
+  cp "$REPO_ROOT/scripts/container-engine.sh" "$tree/scripts/container-engine.sh"
   if [ "${1:-1}" = "1" ]; then
     cp "$REPO_ROOT/scripts/lsp-versions.env" "$tree/scripts/lsp-versions.env"
   fi
   echo "$tree"
+}
+
+run_probe_podman() {
+  local tree="$1"
+  local fakes="$2"
+  local docker_dir="$3"
+  local podman_dir="$4"
+  local probe_path="${fakes}:${docker_dir}:${podman_dir}:/usr/bin:/bin"
+  run env PATH="${probe_path}" COMPOSE_ENGINE=podman MOCK_ENGINE_LOG="$BATS_TEST_TMPDIR/engine.log" bash "$tree/scripts/check-host-lsp.sh"
 }
 
 @test "check-host-lsp: all tools present at pinned versions -> exit 0 with 4 ok lines and summary" {
@@ -291,4 +324,22 @@ setup_tree() {
   assert_status 1
   assert_output_contains "lsp-versions.env not found"
   assert_output_contains "docs/dev-infra/host-lsp-setup.md"
+}
+
+@test "check-host-lsp: COMPOSE_ENGINE=podman routes container probe through native podman compose" {
+  fakes="$BATS_TEST_TMPDIR/fakes"
+  install_fakes "$fakes"
+  tree="$(setup_tree)"
+  docker_dir="$(mock_docker_up 1.83.0)"
+  podman_dir="$(mock_podman_up 1.97.1)"
+
+  run_probe_podman "$tree" "$fakes" "$docker_dir" "$podman_dir"
+
+  assert_status 0
+  assert_output_contains "ok: rust-analyzer 1.97.1 (container poetry-dev, version matches scripts/lsp-versions.env)"
+  assert_file_contains "$BATS_TEST_TMPDIR/engine.log" "podman compose -f"
+  if grep -q '^docker ' "$BATS_TEST_TMPDIR/engine.log"; then
+    echo "check-host-lsp bypassed the selected podman engine" >&2
+    return 1
+  fi
 }

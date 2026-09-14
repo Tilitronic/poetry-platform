@@ -37,6 +37,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ENV_FILE="${SCRIPT_DIR}/lsp-versions.env"
+source "${SCRIPT_DIR}/container-engine.sh"
 
 # --- Guard: the pin source of truth must exist and define all keys -----------
 if [ ! -f "${ENV_FILE}" ]; then
@@ -122,14 +123,16 @@ probe_rust_analyzer_container() {
   local compose_file="${SCRIPT_DIR}/../docker-compose.yml"
   local version_output actual
 
-  if ! version_output="$(docker compose -f "${compose_file}" exec -T dev bash -lc 'rust-analyzer --version' 2>/dev/null)"; then
+  if ! version_output="$(container_engine_compose -f "${compose_file}" exec -T dev bash -lc 'rust-analyzer --version' 2>/dev/null)"; then
     # Dev container unavailable — caller falls back to the host PATH probe.
     return 1
   fi
 
   actual="$(extract_version "${version_output}")"
   if [ "${actual}" != "${pinned}" ]; then
-    echo "fail: rust-analyzer - ${actual:-<unknown>} in dev container, expected ${pinned} (scripts/lsp-versions.env). Rebuild: docker compose build dev && docker compose up -d dev" >&2
+    local engine
+    engine="$(container_engine_select)"
+    echo "fail: rust-analyzer - ${actual:-<unknown>} in dev container, expected ${pinned} (scripts/lsp-versions.env). Rebuild: ${engine} compose build dev && ${engine} compose up -d dev" >&2
     fail=$((fail + 1))
     status=1
     return 0

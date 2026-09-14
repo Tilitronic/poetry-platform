@@ -31,6 +31,12 @@ bats_require_minimum_version 1.5.0
 
 HARNESS="$REPO_ROOT/scripts/eval-lite.sh"
 
+setup() {
+  # Existing cases exercise the Docker fallback path. Keep them independent
+  # of a caller's exported engine; the Podman case below opts in explicitly.
+  export COMPOSE_ENGINE=docker
+}
+
 # write_fixture <file> <printf-format...>: writes manifest lines to <file>.
 # Formats carry literal \t escapes (printf %b turns them into real tabs) so the
 # fixture files have the TSV shape the harness expects.
@@ -159,4 +165,24 @@ write_fixture() {
   assert_output_contains "WARN: line 1 has 5 fields (missing container-bound field) -- assuming container-bound: no"
   assert_output_contains "1 passed, 0 failed, 0 skipped"
   assert_output_not_contains "FAIL:"
+}
+
+@test "eval-lite: COMPOSE_ENGINE=podman probes dev through native podman compose" {
+  local tree manifest
+  tree="$BATS_TEST_TMPDIR/podman"
+  mkdir -p "$tree"
+  manifest="$tree/manifest.tsv"
+  write_fixture "$manifest" 'T-PODMAN\ttrue\t0\tunit\tevidence\tno'
+
+  export COMPOSE_ENGINE="podman"
+  mock_docker
+  EVAL_LITE_MANIFEST="$manifest" run bash "$HARNESS"
+
+  assert_status 0
+  assert_output_contains "1 passed, 0 failed, 0 skipped"
+  assert_file_contains "$FAKE_DOCKER_LOG" "podman compose ps --format json dev"
+  if grep -q '^compose ps --format json dev$' "$FAKE_DOCKER_LOG"; then
+    echo "eval-lite bypassed the selected podman engine" >&2
+    return 1
+  fi
 }
