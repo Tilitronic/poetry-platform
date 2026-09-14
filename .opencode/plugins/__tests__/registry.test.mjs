@@ -148,6 +148,9 @@ function makeRegistry(fakeFs, extra = {}) {
     bootPath: extra.bootPath ?? "/workspace/.opencode/session/boot.json",
     bootTmpPath: extra.bootTmpPath ?? "/workspace/.opencode/session/.boot.json.tmp",
     handoffDir: extra.handoffDir ?? "/workspace/.opencode/session",
+    registrySeqPath: extra.registrySeqPath ?? "/workspace/.opencode/session/registry.seq",
+    messagesRowIdPath: extra.messagesRowIdPath ?? "/workspace/.opencode/session/messages.row-id",
+    journalLockPath: extra.journalLockPath ?? "/workspace/.opencode/session/journal.lock",
     processStartedAt: extra.processStartedAt ?? "2026-09-02T00:00:00.000Z",
     opencodeVersion: extra.opencodeVersion,
     ...extra,
@@ -645,4 +648,172 @@ describe("lib/registry — DI seam (inject fs fakes)", () => {
     assert.ok(!src.includes("from './delegation-observer"), "registry lib must not import shell")
   })
 
+})
+
+// DIA-260914-tqor RED-A. These cases specify the approved production wrapper
+// behavior without importing the not-yet-created persistence helper.
+describe("DIA-260914-tqor RED-A - durable journal persistence", () => {
+  const registryPath = "/workspace/.opencode/session/registry.jsonl"
+  const messagesPath = "/workspace/.opencode/session/messages.jsonl"
+  const registrySeqPath = "/workspace/.opencode/session/registry.seq"
+  const messagesRowIdPath = "/workspace/.opencode/session/messages.row-id"
+  const journalLockPath = "/workspace/.opencode/session/journal.lock"
+
+  function expectSuccess(result, label) {
+    assert.equal(typeof result, "object", `${label} returns a durable result`)
+    assert.equal(result?.ok, true, `${label} reports ok:true after append`)
+    assert.equal(typeof result?.id, "number", `${label} exposes its durable ID`)
+    return result.id
+  }
+
+  it("persists independent registry seq and message row_id counters", () => {
+    const fs = makeFakeFs({
+      [registryPath]: JSON.stringify({ seq: 40 }) + "\n",
+      [messagesPath]: JSON.stringify({ row_id: 900 }) + "\n",
+    })
+    const registry = makeRegistry(fs)
+    assert.equal(expectSuccess(registry.appendRow({ event: "next" }), "appendRow"), 41)
+    assert.equal(expectSuccess(registry.appendMessageRow({ event_type: "next" }), "appendMessageRow"), 901)
+    assert.equal(Number(fs.files.get(registrySeqPath)), 41, "registry.seq stores registry high-water")
+    assert.equal(Number(fs.files.get(messagesRowIdPath)), 901, "messages.row-id stores message high-water")
+  })
+
+  it("does not repeat full JSONL scans after counter initialization", () => {
+    const fs = makeFakeFs({
+      [registryPath]: JSON.stringify({ seq: 4 }) + "\n",
+      [messagesPath]: JSON.stringify({ row_id: 8 }) + "\n",
+    })
+    const registry = makeRegistry(fs)
+    registry.appendRow({ event: "one" })
+    registry.appendRow({ event: "two" })
+    registry.appendMessageRow({ event_type: "one" })
+    registry.appendMessageRow({ event_type: "two" })
+    const registryScans = fs.calls.filter(([name, path]) => name === "readFileSync" && path === registryPath)
+    const messageScans = fs.calls.filter(([name, path]) => name === "readFileSync" && path === messagesPath)
+    assert.ok(registryScans.length <= 1, `registry scanned ${registryScans.length} times`)
+    assert.ok(messageScans.length <= 1, `messages scanned ${messageScans.length} times`)
+  })
+
+  it("gives two writer instances unique monotonic IDs through one sidecar", () => {
+    const fs = makeFakeFs({})
+    const writerA = makeRegistry(fs, { processIdentity: { pid: 101, startedAt: "a" } })
+    const writerB = makeRegistry(fs, { processIdentity: { pid: 202, startedAt: "b" } })
+    const ids = [
+      expectSuccess(writerA.appendRow({ event: "a" }), "writer A"),
+      expectSuccess(writerB.appendRow({ event: "b" }), "writer B"),
+      expectSuccess(writerA.appendRow({ event: "c" }), "writer A again"),
+    ]
+    assert.deepEqual(ids, [1, 2, 3], "writers share one sequence")
+    assert.equal(Number(fs.files.get(registrySeqPath)), 3)
+  })
+
+  it("refuses a live lock owner with a retryable lock result", () => {
+    const fs = makeFakeFs({
+      [journalLockPath]: JSON.stringify({ pid: 777, startedAt: "owner", leaseDeadline: 9000 }),
+    })
+    const registry = makeRegistry(fs, {
+      processIdentity: { pid: 888, startedAt: "contender" },
+      isProcessAlive: (owner) => owner.pid === 777 && owner.startedAt === "owner",
+      clock: { now: () => 2000, isoNow: () => "2026-09-14T00:00:02.000Z" },
+    })
+    const result = registry.appendRow({ event: "blocked" })
+    assert.deepEqual(
+      { ok: result?.ok, stage: result?.stage, retryable: result?.retryable },
+      { ok: false, stage: "lock", retryable: true },
+      "live owner cannot be preempted",
+    )
+    assert.equal(fs.files.has(registryPath), false, "lock refusal prevents append")
+  })
+
+  it("reclaims an expired lock only for a confirmed dead exact owner", () => {
+    const fs = makeFakeFs({
+      [journalLockPath]: JSON.stringify({ pid: 777, startedAt: "old", leaseDeadline: 1500 }),
+    })
+    const registry = makeRegistry(fs, {
+      processIdentity: { pid: 888, startedAt: "new" },
+      isProcessAlive: () => false,
+      clock: { now: () => 2000, isoNow: () => "2026-09-14T00:00:02.000Z" },
+    })
+    assert.equal(expectSuccess(registry.appendRow({ event: "reclaimed" }), "reclaim append"), 1)
+    assert.equal(fs.files.has(journalLockPath), false, "lock released after append")
+  })
+
+  it("fails closed for unreadable lock metadata and PID reuse ambiguity", () => {
+    for (const [label, lock] of [
+      ["unreadable", "not-json"],
+      ["pid-reuse", JSON.stringify({ pid: 777, startedAt: "old", leaseDeadline: 1500 })],
+    ]) {
+      const fs = makeFakeFs({ [journalLockPath]: lock })
+      const registry = makeRegistry(fs, {
+        isProcessAlive: () => ({ alive: true, startedAt: "different" }),
+        clock: { now: () => 2000, isoNow: () => "2026-09-14T00:00:02.000Z" },
+      })
+      const result = registry.appendRow({ event: label })
+      assert.equal(result?.ok, false, `${label} ownership fails closed`)
+      assert.equal(result?.stage, "lock", `${label} identifies lock stage`)
+      assert.equal(fs.files.has(registryPath), false, `${label} prevents append`)
+    }
+  })
+
+  it("recovers absent, corrupt, and lower sidecars once from durable history", () => {
+    for (const [label, sidecar] of [["absent", undefined], ["corrupt", "oops"], ["lower", "2\n"]]) {
+      const initial = { [registryPath]: JSON.stringify({ seq: 7 }) + "\n" }
+      if (sidecar !== undefined) initial[registrySeqPath] = sidecar
+      const fs = makeFakeFs(initial)
+      const registry = makeRegistry(fs)
+      assert.equal(expectSuccess(registry.appendRow({ event: label }), `${label} recovery`), 8)
+      assert.equal(Number(fs.files.get(registrySeqPath)), 8, `${label} sidecar recovered`)
+      registry.appendRow({ event: `${label}-again` })
+      const scans = fs.calls.filter(([name, path]) => name === "readFileSync" && path === registryPath)
+      assert.ok(scans.length <= 1, `${label} recovery scans once, observed ${scans.length}`)
+    }
+  })
+
+  it("returns discriminated append failure without a persisted entry", () => {
+    const fs = makeFakeFs({})
+    fs.appendFileSync = () => { throw new Error("disk full") }
+    const result = makeRegistry(fs).appendRow({ event: "not-persisted" })
+    assert.equal(result?.ok, false)
+    assert.equal(result?.stage, "append")
+    assert.equal(result?.retryable, false)
+    assert.equal(result?.reserved_id, 1, "reserved gap remains diagnostic")
+    assert.equal(result?.entry, undefined, "failure exposes no persisted entry")
+  })
+
+  it("prevents append when atomic counter publication fails", () => {
+    const fs = makeFakeFs({}, { renameShouldThrow: "counter rename failed" })
+    const result = makeRegistry(fs).appendRow({ event: "must-not-append" })
+    assert.equal(result?.ok, false)
+    assert.equal(result?.stage, "counter")
+    assert.equal(
+      fs.calls.some(([name, path]) => name === "appendFileSync" && path === registryPath),
+      false,
+      "counter failure prevents journal append",
+    )
+  })
+
+  it("never reuses a reservation lost after counter persistence", () => {
+    const fs = makeFakeFs({})
+    const append = fs.appendFileSync
+    let failOnce = true
+    fs.appendFileSync = (path, data) => {
+      if (path === registryPath && failOnce) {
+        failOnce = false
+        throw new Error("crash after reservation")
+      }
+      append(path, data)
+    }
+    const failed = makeRegistry(fs).appendRow({ event: "gap" })
+    assert.equal(failed?.ok, false)
+    assert.equal(failed?.reserved_id, 1)
+    const next = makeRegistry(fs).appendRow({ event: "after-gap" })
+    assert.equal(expectSuccess(next, "post-crash append"), 2, "ID 1 is never reused")
+  })
+
+  it("uses the canonical registry adapter from needs-input observer", () => {
+    const src = nodeReadFileSync(new URL("../needs-input-observer.ts", import.meta.url), "utf-8")
+    assert.equal(/from\s+["']\.\/lib\/registry\.ts["']/.test(src), true, "canonical adapter import exists")
+    assert.doesNotMatch(src, /function\s+maxJsonlNumber\s*\(/, "observer owns no ID scan")
+    assert.doesNotMatch(src, /appendFileSync\s*\(\s*(registryPath|messagesPath)/, "observer owns no journal append")
+  })
 })
