@@ -78,8 +78,9 @@ function appendRawRow(directory, row) { appendFileSync(registryPath(directory), 
 // Seed a nonterminal delegation key with controlled timestamp.
 // Role signal: role:"subagent" + dispatch_state running -> subagent threshold 10min.
 function seedNonTerminalKey(directory, key, timestampIso, opts = {}) { const row = { timestamp: timestampIso,
-    event: "task_success",
+    event: "session_spawn",
     session_id: key,
+    parent_session: opts.parent_session ?? "ses_parent",
     dispatch_state: opts.dispatch_state ?? "running",
     status: "RUNNING",
     role: opts.role ?? "subagent",

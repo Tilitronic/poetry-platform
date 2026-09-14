@@ -10,6 +10,9 @@
 
 import { describe, it } from "node:test"
 import assert from "node:assert/strict"
+import { appendFileSync, mkdirSync, mkdtempSync, renameSync, rmSync, writeFileSync } from "node:fs"
+import { tmpdir } from "node:os"
+import { join } from "node:path"
 import * as registry from "../lib/registry.ts"
 
 function makeIndex(rows = [], options = {}) {
@@ -29,6 +32,28 @@ function row(seq, event, dispatchState = "running", extra = {}) {
     event,
     dispatch_state: dispatchState,
     ...extra,
+  }
+}
+
+function jsonl(value) {
+  return Buffer.from(`${JSON.stringify(value)}\n`)
+}
+
+function requireMethod(target, name) {
+  assert.equal(typeof target[name], "function", `GREEN must expose ${name}`)
+  return target[name].bind(target)
+}
+
+function withRegistryFile(initialRows, run) {
+  const directory = mkdtempSync(join(tmpdir(), "dia-260914-tqor-index-"))
+  const sessionDirectory = join(directory, ".opencode/session")
+  const registryPath = join(sessionDirectory, "registry.jsonl")
+  try {
+    mkdirSync(sessionDirectory, { recursive: true })
+    writeFileSync(registryPath, Buffer.concat(initialRows.map(jsonl)))
+    return run({ directory, registryPath })
+  } finally {
+    rmSync(directory, { recursive: true, force: true })
   }
 }
 
@@ -129,6 +154,7 @@ describe("DIA-260914-tqor RED-C exact lifecycle generations", () => {
       row(40, "session_spawn", "running", {
         session_id: "ses_real_child",
         task_id: "task_real_child",
+        parent_session: "ses_parent",
       }),
       row(41, "progress", "running", {
         session_id: "ses_real_child",
@@ -171,5 +197,145 @@ describe("DIA-260914-tqor RED-C exact lifecycle generations", () => {
     )
     assert.equal(fullReads.length, 0, "steady sweep must not perform a full registry read")
     assert.equal(index.generationFor("ses_incremental"), 60)
+  })
+
+  it("keeps orphan exact-session resume or recovery ineligible without recoverable prior evidence", () => {
+    for (const event of ["resume", "recovery"]) {
+      const index = makeIndex([
+        row(70, event, "running", {
+          session_id: `ses_orphan_${event}`,
+          recovery: "exact-session",
+        }),
+      ])
+      assert.equal(index.generationFor(`ses_orphan_${event}`), undefined)
+      assert.equal(index.entries().length, 0)
+    }
+  })
+
+  it("valid exact-session recovery preserves projected role and parent metadata only", () => {
+    const index = makeIndex([
+      row(80, "session_spawn", "running", {
+        session_id: "ses_recoverable",
+        parent_session: "ses_parent",
+        role: "coder",
+      }),
+      row(81, "stopped_without_result", "running", {
+        session_id: "ses_recoverable",
+        terminalUnreconciled: true,
+      }),
+      row(82, "resume", "running", {
+        session_id: "ses_recoverable",
+        recovery: "exact-session",
+        parent_session: "ses_parent",
+        role: "coder",
+        prompt_body: "must not enter the projection",
+      }),
+    ])
+    const entry = index.entries()[0]
+    assert.equal(entry.lifecycle_generation, 82)
+    assert.equal(entry.role, "coder")
+    assert.equal(entry.parent_session, "ses_parent")
+    assert.equal(entry.prompt_body, undefined)
+  })
+
+  it("requires parent_session child provenance before session_spawn can anchor a generation", () => {
+    const orphan = makeIndex([
+      row(90, "session_spawn", "running", {
+        session_id: "ses_unproven_spawn",
+        task_id: "task_unproven_spawn",
+      }),
+    ])
+    assert.equal(orphan.generationFor("ses_unproven_spawn"), undefined)
+    assert.equal(orphan.entries().length, 0)
+
+    const child = makeIndex([
+      row(91, "session_spawn", "running", {
+        session_id: "ses_proven_child",
+        task_id: "task_proven_child",
+        parent_session: "ses_parent",
+      }),
+    ])
+    assert.equal(child.generationFor("ses_proven_child"), 91)
+  })
+
+  it("refreshes a same-inode real registry append without rebuilding or rereading history", () => {
+    withRegistryFile([
+      row(100, "session_spawn", "running", {
+        session_id: "ses_real_fs",
+        parent_session: "ses_parent",
+      }),
+    ], ({ directory, registryPath }) => {
+      const store = registry.createRegistry({ directory })
+      appendFileSync(registryPath, jsonl(row(101, "progress", "running", { session_id: "ses_real_fs" })))
+      const refresh = requireMethod(store, "refreshActiveLifecycleIndex")
+      assert.deepEqual(refresh(), { ok: true, applied: 1 })
+      assert.equal(store.readActiveLifecycleEntries()[0].seq, 101)
+      assert.equal(store.activeLifecycleIndex.generationFor("ses_real_fs"), 100)
+    })
+  })
+
+  it("retains a partial line and split UTF-8 byte until the complete row can be parsed", () => {
+    withRegistryFile([], ({ directory, registryPath }) => {
+      const store = registry.createRegistry({ directory })
+      const encoded = jsonl(row(110, "session_spawn", "running", {
+        session_id: "ses_split_utf8",
+        parent_session: "ses_parent",
+        role: "codér",
+      }))
+      const split = encoded.indexOf(Buffer.from("é")) + 1
+      appendFileSync(registryPath, encoded.subarray(0, split))
+      const refresh = requireMethod(store, "refreshActiveLifecycleIndex")
+      assert.deepEqual(refresh(), { ok: true, applied: 0 })
+      assert.equal(store.activeLifecycleIndex.cursor().partialBytes > 0, true)
+      appendFileSync(registryPath, encoded.subarray(split))
+      assert.deepEqual(refresh(), { ok: true, applied: 1 })
+      const entry = store.readActiveLifecycleEntries()[0]
+      assert.equal(entry.session_id, "ses_split_utf8")
+      assert.equal(entry.role, "codér")
+    })
+  })
+
+  it("marks inode rotation dirty until an explicit controlled rebuild restores projection", () => {
+    withRegistryFile([
+      row(120, "session_spawn", "running", {
+        session_id: "ses_before_rotation",
+        parent_session: "ses_parent",
+      }),
+    ], ({ directory, registryPath }) => {
+      const store = registry.createRegistry({ directory })
+      renameSync(registryPath, `${registryPath}.rotated`)
+      writeFileSync(registryPath, jsonl(row(121, "session_spawn", "running", {
+        session_id: "ses_after_rotation",
+        parent_session: "ses_parent",
+      })))
+      const refreshIndex = requireMethod(store, "refreshActiveLifecycleIndex")
+      const rebuild = requireMethod(store, "rebuildActiveLifecycleIndex")
+      const refresh = refreshIndex()
+      assert.equal(refresh.ok, false)
+      assert.match(refresh.error, /rotated|rebuild/i)
+      assert.deepEqual(rebuild(), { ok: true, applied: 1 })
+      assert.deepEqual(store.readActiveLifecycleEntries().map((entry) => entry.session_id), ["ses_after_rotation"])
+    })
+  })
+
+  it("keeps controlled rebuild fail-closed when the active projection bound is exceeded", () => {
+    withRegistryFile([], ({ directory, registryPath }) => {
+      const store = registry.createRegistry({ directory, activeLifecycleMaxEntries: 1 })
+      const rebuild = requireMethod(store, "rebuildActiveLifecycleIndex")
+      writeFileSync(registryPath, Buffer.concat([
+        jsonl(row(130, "session_spawn", "running", {
+          session_id: "ses_bound_one",
+          parent_session: "ses_parent",
+        })),
+        jsonl(row(131, "session_spawn", "running", {
+          session_id: "ses_bound_two",
+          parent_session: "ses_parent",
+        })),
+      ]))
+      const rebuilt = rebuild()
+      assert.equal(rebuilt.ok, false)
+      assert.match(rebuilt.error, /active projection bound/i)
+      assert.throws(() => store.readActiveLifecycleEntries(), /rebuild|bound/i)
+    })
   })
 })
