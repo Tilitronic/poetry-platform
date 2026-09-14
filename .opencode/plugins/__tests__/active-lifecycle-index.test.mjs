@@ -12,13 +12,13 @@ import { describe, it } from "node:test"
 import assert from "node:assert/strict"
 import * as registry from "../lib/registry.ts"
 
-function makeIndex(rows = []) {
+function makeIndex(rows = [], options = {}) {
   assert.equal(
     typeof registry.createActiveLifecycleIndex,
     "function",
     "GREEN must expose createActiveLifecycleIndex from lib/registry.ts",
   )
-  return registry.createActiveLifecycleIndex({ rows })
+  return registry.createActiveLifecycleIndex({ rows, ...options })
 }
 
 function row(seq, event, dispatchState = "running", extra = {}) {
@@ -122,5 +122,54 @@ describe("DIA-260914-tqor RED-C exact lifecycle generations", () => {
     assert.equal(index.entries().length, 0)
     const terminal = index.history().find((entry) => entry.event === "task_success")
     assert.equal(terminal.lifecycle_generation, 10)
+  })
+
+  it("anchors a real child whose first durable row is session_spawn and closes on session_complete", () => {
+    const index = makeIndex([
+      row(40, "session_spawn", "running", {
+        session_id: "ses_real_child",
+        task_id: "task_real_child",
+      }),
+      row(41, "progress", "running", {
+        session_id: "ses_real_child",
+        task_id: "task_real_child",
+      }),
+      row(42, "session_complete", "completed", {
+        session_id: "ses_real_child",
+        task_id: "task_real_child",
+      }),
+    ])
+    assert.equal(index.generationFor("ses_real_child"), 40)
+    assert.equal(index.entries().some((entry) => entry.session_id === "ses_real_child"), false)
+    assert.equal(
+      index.history().find((entry) => entry.event === "session_complete").lifecycle_generation,
+      40,
+    )
+  })
+
+  it("rejects projection admission at its explicit bound without evicting existing live entries", () => {
+    const index = makeIndex([], { maxEntries: 1 })
+    index.apply(row(50, "dispatch", "running", { session_id: "ses_live" }))
+    assert.throws(
+      () => index.apply(row(51, "dispatch", "running", { session_id: "ses_second" })),
+      /active projection bound/i,
+      "capacity exhaustion must fail loudly",
+    )
+    assert.deepEqual(index.entries().map((entry) => entry.session_id), ["ses_live"])
+  })
+
+  it("lets a steady sweep consume projection and appended bytes without rereading the full registry", () => {
+    const index = makeIndex([row(60, "dispatch", "running", { session_id: "ses_incremental" })])
+    assert.equal(typeof index.consumeAppendedBytes, "function", "GREEN must expose incremental byte consumption")
+    const fullReads = []
+    assert.equal(
+      index.consumeAppendedBytes({
+        bytes: Buffer.from(JSON.stringify(row(61, "progress", "running", { session_id: "ses_incremental" })) + "\n"),
+        readFullRegistry: () => fullReads.push(true),
+      }),
+      1,
+    )
+    assert.equal(fullReads.length, 0, "steady sweep must not perform a full registry read")
+    assert.equal(index.generationFor("ses_incremental"), 60)
   })
 })
