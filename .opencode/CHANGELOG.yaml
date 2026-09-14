@@ -4632,16 +4632,16 @@
   area: opencode-config
 - date: '2026-09-11'
   ticket: DIA-260910-sjtk
-  scope: 'architector Sol High + big-pickle (architector-only split, commit 6a35248)'
+  scope: architector Sol High + big-pickle (architector-only split, commit 6a35248)
   files:
   - docs/dev-infra-audit/tickets/DIA-260910-sjtk-route-architector-to-openai-gpt-5-6-sol-high.md
   - .opencode/learnings/external-patterns/2026-09-11-dia-260910-sjtk-model-routing.md
   - .opencode/oh-my-opencode-slim.jsonc
-  summary: 'Change: DIA-260910-sjtk (opencode-config, Major) routes the active
-    muse-qwen-balanced architector lane from github-copilot/gemini-3.1-pro-preview
-    to openai/gpt-5.6-sol high (big-pickle fallback retained). Architector-only;
-    Luna utility lanes and coder-escalated Terra High belong to DIA-260911-rqmw
-    and are not part of this commit.'
+  summary: 'Change: DIA-260910-sjtk (opencode-config, Major) routes the active muse-qwen-balanced
+    architector lane from github-copilot/gemini-3.1-pro-preview to openai/gpt-5.6-sol
+    high (big-pickle fallback retained). Architector-only; Luna utility lanes and
+    coder-escalated Terra High belong to DIA-260911-rqmw and are not part of this
+    commit.'
   verification: manual
   area: opencode-config
 - date: '2026-09-11'
@@ -4679,3 +4679,39 @@
     rev-2 re-review 1/2 (5/5 verified-closed); ai-auditor PASS advisory.'
   verification: manual
   area: opencode-config
+- date: '2026-09-12'
+  ticket: DIA-260911-4y5v
+  scope: datetime artifact ID examples and doubled-slug path correction
+  files:
+  - .opencode/oh-my-opencode-slim/orchestrator_append.md
+  - .opencode/skills/research-pipeline/SKILL.md
+  - .opencode/agents/analyzer.md
+  - .opencode/agents/researcher.md
+  summary: Normalize artifact-ID examples to datetime allocate-id form; fix doubled-slug
+    path
+  verification: make test-config 57/57; strict OpenSpec validation; restarted OpenCode
+    loaded updated agent and skill prompts; non-empty OpenAI functional smoke passed
+  area: config
+- date: '2026-09-14'
+  ticket: DIA-260826-uozv
+  scope: OpenCode runtime
+  files:
+  - .opencode/opencode.jsonc
+  - .opencode/tui.json
+  - Dockerfile.dev
+  - scripts/check-omo-version-sync.sh
+  - scripts/__tests__/check-omo-version-sync.bats
+  summary: Align active OMO runtime pins to 2.2.19 and verify Podman TUI delegation
+  verification: make test-config 57/57; pin-sync Bats 4/4; rebuilt Podman TUI, OpenAI
+    OAuth, and two-task delegation smoke passed
+- date: '2026-09-14'
+  ticket: DIA-260827-95fv
+  scope: OMO task lifecycle reference implementation
+  files:
+  - .opencode/oh-my-opencode-slim/src/utils/background-job-board.ts
+  - .opencode/oh-my-opencode-slim/src/hooks/task-session-manager/index.ts
+  - .opencode/oh-my-opencode-slim/src/utils/task-lifecycle.test.ts
+  - .opencode/oh-my-opencode-slim/src/hooks/task-session-manager/index.test.ts
+  summary: Preserve uncertain background task lifecycle states and exact-session recovery
+  verification: focused 103/103 and test:red-b 64/64; full package 1379/1379;
+    typecheck and Biome pass; rebuilt OMO 2.2.19 two-task lifecycle smoke passed

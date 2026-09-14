@@ -35,8 +35,8 @@ artifact path in your return message so the orchestrator can dispatch
   analysis focus obvious without reading the document. Example:
   conspects-capability-gap-matrix (NOT all-conspects),
   p5js-integration-ssr-safety, sketch-performance-benchmarks. The orchestrator
-  preallocates your ana<NN> ID and passes it in the dispatch payload; use it
-  exactly.
+  preallocates your ana-260911-ab12-capability-gap-matrix ID and passes it in the
+  dispatch payload; use it exactly.
 - **Memory Shelf:** Do NOT register in memory-shelf.yaml yourself. Report the
   artifact path in your return message so the orchestrator can dispatch
   @memory-manager for shelf registration.

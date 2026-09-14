@@ -11,7 +11,7 @@ The orchestrator uses this skill when standalone research should produce persist
 ## Workflow Phases
 
 ### Phase 1: ID Pre-Allocation
-Before dispatching `@researcher`, run `scripts/allocate-id res <slug>` to obtain a collision-resistant datetime ID (format: res-YYMMDD-<rand4>-<slug>). Pass the returned ID in the dispatch payload: "Write to knowledge/<returned-id>-<topic>/sources/". Never let the researcher or conspecter self-allocate. Never scan knowledge/ for highest existing IDs — that pattern is retired (DIA-260831-9zq6).
+Before dispatching `@researcher`, run `scripts/allocate-id res <slug>` to obtain a collision-resistant datetime ID (format: res-YYMMDD-<rand4>-<slug>). Pass the returned ID in the dispatch payload: "Write to knowledge/<returned-id>/sources/". Never let the researcher or conspecter self-allocate. Never scan knowledge/ for highest existing IDs — that pattern is retired (DIA-260831-9zq6).
 
 ### Phase 2: Research + Phase A Source Capture (researcher-owned, D5/D6)
 Dispatch `@researcher` with a specific question, scope, the pre-allocated `res<id>`, and output format requirements. The researcher OWNS Phase A source capture: it fetches every source URL ONCE into `knowledge/res<id>-<topic>/sources/` using the 3-tier fallback chain, evaluates each source, and returns structured findings. This single-fetch ownership structurally eliminates the double-fetch defect (no second trafilatura pass by a conspecter).
@@ -59,6 +59,7 @@ There is no developer-facing KEEP/DELETE decision. Conspect creation is automati
 Dispatch `@conspecter` with:
 1. **The pre-allocated ID + topic** — `knowledge/res<id>-<topic>/` (already created by the researcher's Phase A capture)
 2. **Naming** — the `<id>` was pre-allocated in Phase 1; the conspecter must NOT re-derive it
+3. **ID verbatim guard** - `scripts/allocate-id` already returns the full ID including the slug (format: res-YYMMDD-XXXX-<slug>). Use the returned ID verbatim as `knowledge/<returned-id>/`. Do NOT append `-<topic>` again. The generic `res<id>-<topic>` form used in this file is a template placeholder only, not a double-suffix instruction.
 
 The conspecter is a PURE SYNTHESIS lane: it reads ONLY the archived sources under `sources/` (NO network fetch — curl/trafilatura/crwl/playwright are revoked), synthesizes the MLA-cited conspect, and reports artifact path; @memory-manager registers in memory-shelf. It must cite ONLY sources that pass the researcher's evaluation; excluded sources are listed under Unarchived/Excluded with reason.
 

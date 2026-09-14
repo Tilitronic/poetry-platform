@@ -1079,3 +1079,21 @@
 - **Change:** Close: DIA-260831-j5k6 (opencode-config, Medium) adds skill validator compat tier: 4 capability classes (preset/command/agent-permission/binary) plus requires_bash floor, 12 hermetic fixtures (dangling preset, impossible bash 99.0). Evidence: bats 35/35 exit 0, real-tree 26 passed / 40 warnings exit 0, wrapper exit 0. Commits 3a7a2b6 plus a054191; reviewer rev-1 (4 findings accepted) plus rev-2 re-review 1/2 (5/5 verified-closed); ai-auditor PASS advisory.
 - **Files:** .opencode/scripts/validate-skills.sh - scripts/__tests__/validate-skills.bats - openspec/changes/skill-validator-capability-compatibility/ - knowledge/res-260911-emj8-skill-validator-compat/
 - **Verification:** manual
+
+## 2026-09-12 - DIA-260911-4y5v: datetime artifact ID examples and doubled-slug path correction
+
+- **Change:** Normalize artifact-ID examples to datetime allocate-id form; fix doubled-slug path
+- **Files:** .opencode/oh-my-opencode-slim/orchestrator_append.md - .opencode/skills/research-pipeline/SKILL.md - .opencode/agents/analyzer.md - .opencode/agents/researcher.md
+- **Verification:** make test-config 57/57; strict OpenSpec validation; restarted OpenCode loaded updated agent and skill prompts; non-empty OpenAI functional smoke passed
+
+## 2026-09-14 - DIA-260826-uozv: OpenCode runtime
+
+- **Change:** Align active OMO runtime pins to 2.2.19 and verify Podman TUI delegation
+- **Files:** .opencode/opencode.jsonc - .opencode/tui.json - Dockerfile.dev - scripts/check-omo-version-sync.sh - scripts/__tests__/check-omo-version-sync.bats
+- **Verification:** make test-config 57/57; pin-sync Bats 4/4; rebuilt Podman TUI, OpenAI OAuth, and two-task delegation smoke passed
+
+## 2026-09-14 - DIA-260827-95fv: OMO task lifecycle reference implementation
+
+- **Change:** Preserve uncertain background task lifecycle states and exact-session recovery
+- **Files:** .opencode/oh-my-opencode-slim/src/utils/background-job-board.ts - .opencode/oh-my-opencode-slim/src/hooks/task-session-manager/index.ts - .opencode/oh-my-opencode-slim/src/utils/task-lifecycle.test.ts - .opencode/oh-my-opencode-slim/src/hooks/task-session-manager/index.test.ts
+- **Verification:** focused 103/103 and test:red-b 64/64; full package 1379/1379; typecheck and Biome pass; rebuilt OMO 2.2.19 two-task lifecycle smoke passed
