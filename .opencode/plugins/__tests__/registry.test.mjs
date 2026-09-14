@@ -1290,12 +1290,15 @@ describe("DIA-260914-tqor RED-A review cycle 2 - strict ownership", () => {
       first.child.stdin.end()
       await waitFor(first, /^RESULT /m, "first writer result")
       const firstResult = resultOf(first)
-      const retry = launch("retry", false)
+      const retry = launch("second", false)
       await waitFor(retry, /^RESULT /m, "retry writer result")
       const retryResult = resultOf(retry)
       assert.deepEqual([firstResult?.id, retryResult?.id], [1, 2], "separate processes allocate unique monotonic IDs")
       assert.equal(firstResult?.ok, true)
       assert.equal(retryResult?.ok, true)
+      const rows = nodeFs.readFileSync(nodeJoin(sessionDir, "registry.jsonl"), "utf8")
+        .trim().split("\n").map((line) => JSON.parse(line))
+      assert.deepEqual(rows.map((row) => row.event), ["first", "second"], "retry replays the blocked writer's exact payload")
     } finally {
       nodeFs.rmSync(root, { recursive: true, force: true })
     }

@@ -215,6 +215,30 @@ describe("DIA-260827-gnsv: per-permission waiting rows", () => {
       expect(doc.waiting[0].permission_id).toBe("perm_B")
       const permIds = (doc.permissions || []).map((p) => p.permission_id)
       expect(permIds).toEqual(["perm_B"])
+      const registryRows = readFileSync(join(dir, ".opencode/session/registry.jsonl"), "utf8")
+        .trim().split("\n").map((line) => JSON.parse(line))
+      const rejected = registryRows.filter((row) => row.event === "permission_auto_rejected")
+      expect(rejected).toHaveLength(1)
+      expect(rejected[0]).toMatchObject({
+        session_id: "ses_gnsv_03",
+        permission_id: "perm_A",
+        timeout_seconds: 300,
+        reason: "no_human_response_within_threshold",
+      })
+      const messageRows = readFileSync(join(dir, ".opencode/session/messages.jsonl"), "utf8")
+        .trim().split("\n").map((line) => JSON.parse(line))
+      const decisions = messageRows.filter((row) => row.content_ref === "permission_auto_rejected_after_5min")
+      expect(decisions).toHaveLength(1)
+      expect(decisions[0]).toMatchObject({
+        "gen_ai.operation.name": "invoke_workflow",
+        from: "orchestrator",
+        event_type: "decision",
+        task_ref: "ses_gnsv_03",
+        resolution_status: "escalated",
+        content_ref: "permission_auto_rejected_after_5min",
+        next_action: "re-dispatch or fail-fast",
+        "gen_ai.agent.id": "ses_gnsv_03",
+      })
     } finally {
       cleanup()
     }
@@ -358,6 +382,27 @@ describe("DIA-260827-gnsv: per-permission waiting rows", () => {
       for (const key of timers.keys()) {
         expect(key.startsWith("ses_gnsv_B")).toBe(true)
       }
+    } finally {
+      cleanup()
+    }
+  })
+
+  test("DIA-260914-tqor: permission ask keeps the canonical audit payload", async () => {
+    const { directory: dir, cleanup } = createTempWorkspace("tqor-needs-input-")
+    try {
+      const hooks = await createNeedsInputObserver(freshCtx(dir))
+      liveHooks.push(hooks)
+      await hooks.event(permissionAsked("ses_tqor_01", "perm_tqor_01", "/tmp/task.sh"))
+
+      const rows = readFileSync(join(dir, ".opencode/session/registry.jsonl"), "utf8")
+        .trim().split("\n").map((line) => JSON.parse(line))
+      const asked = rows.filter((row) => row.event === "permission_asked_logged")
+      expect(asked).toHaveLength(1)
+      expect(asked[0]).toMatchObject({
+        event: "permission_asked_logged",
+        session_id: "ses_tqor_01",
+        permission_id: "perm_tqor_01",
+      })
     } finally {
       cleanup()
     }
