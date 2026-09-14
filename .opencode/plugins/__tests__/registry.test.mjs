@@ -35,6 +35,9 @@
 import { describe, it } from "node:test"
 import assert from "node:assert/strict"
 import { readFileSync as nodeReadFileSync } from "node:fs"
+import * as nodeFs from "node:fs"
+import { tmpdir } from "node:os"
+import { join as nodeJoin } from "node:path"
 import * as mod from "../lib/registry.ts"
 
 // Settled DI seam: direct factory use only.
@@ -823,5 +826,172 @@ describe("DIA-260914-tqor RED-A - durable journal persistence", () => {
     assert.equal(/from\s+["']\.\/lib\/registry\.ts["']/.test(src), true, "canonical adapter import exists")
     assert.doesNotMatch(src, /function\s+maxJsonlNumber\s*\(/, "observer owns no ID scan")
     assert.doesNotMatch(src, /appendFileSync\s*\(\s*(registryPath|messagesPath)/, "observer owns no journal append")
+  })
+})
+
+describe("DIA-260914-tqor RED-A review gaps - real persistence", () => {
+  function withTempRegistry(run) {
+    const root = nodeFs.mkdtempSync(nodeJoin(tmpdir(), "tqor-registry-"))
+    const sessionDir = nodeJoin(root, ".opencode/session")
+    nodeFs.mkdirSync(sessionDir, { recursive: true })
+    const paths = {
+      root,
+      sessionDir,
+      registry: nodeJoin(sessionDir, "registry.jsonl"),
+      messages: nodeJoin(sessionDir, "messages.jsonl"),
+      messagesMd: nodeJoin(sessionDir, "messages.md"),
+      seq: nodeJoin(sessionDir, "registry.seq"),
+      rowId: nodeJoin(sessionDir, "messages.row-id"),
+      lock: nodeJoin(sessionDir, "journal.lock"),
+    }
+    try {
+      return run(paths)
+    } finally {
+      nodeFs.rmSync(root, { recursive: true, force: true })
+    }
+  }
+
+  function realRegistry(paths, extra = {}) {
+    return mod.createRegistry({
+      directory: paths.root,
+      registryPath: paths.registry,
+      messagesPath: paths.messages,
+      messagesMdPath: paths.messagesMd,
+      registrySeqPath: paths.seq,
+      messagesRowIdPath: paths.rowId,
+      journalLockPath: paths.lock,
+      ...extra,
+    })
+  }
+
+  it("uses real wx ownership while independent writers allocate unique IDs", () => {
+    withTempRegistry((paths) => {
+      const opens = []
+      let writerB
+      let contendedResult
+      let contentionTriggered = false
+      const fs = {
+        ...nodeFs,
+        openSync(path, flags, ...rest) {
+          opens.push([path, String(flags)])
+          return nodeFs.openSync(path, flags, ...rest)
+        },
+        appendFileSync(path, data) {
+          nodeFs.appendFileSync(path, data)
+          if (path === paths.registry && !contentionTriggered) {
+            contentionTriggered = true
+            contendedResult = writerB.appendRow({ event: "contended-b" })
+          }
+        },
+      }
+      const writerA = realRegistry(paths, { fs, processIdentity: { pid: 101, startedAt: "a" } })
+      writerB = realRegistry(paths, { fs, processIdentity: { pid: 202, startedAt: "b" } })
+      const first = writerA.appendRow({ event: "a" })
+      const second = writerB.appendRow({ event: "retry-b" })
+      assert.deepEqual([first?.id, second?.id], [1, 2], "real writers allocate unique monotonic IDs")
+      assert.equal(first?.ok, true)
+      assert.equal(second?.ok, true)
+      assert.deepEqual(
+        { ok: contendedResult?.ok, stage: contendedResult?.stage, retryable: contendedResult?.retryable },
+        { ok: false, stage: "lock", retryable: true },
+        "contending writer refuses the live wx lock and retries after release",
+      )
+      assert.ok(opens.some(([path, flags]) => path === paths.lock && flags.includes("x")), "lock uses real exclusive-create semantics")
+    })
+  })
+
+  it("does not let an old nonce owner remove a replacement lock", () => {
+    withTempRegistry((paths) => {
+      const replacement = { nonce: "replacement", pid: 303, startedAt: "replacement" }
+      const fs = {
+        ...nodeFs,
+        appendFileSync(path, data) {
+          nodeFs.appendFileSync(path, data)
+          if (path === paths.registry) nodeFs.writeFileSync(paths.lock, JSON.stringify(replacement))
+        },
+      }
+      const result = realRegistry(paths, {
+        fs,
+        processIdentity: { pid: 101, startedAt: "old-owner" },
+      }).appendRow({ event: "replace-lock-before-release" })
+      assert.equal(result?.ok, true, "journal append succeeds before replacement")
+      assert.deepEqual(JSON.parse(nodeFs.readFileSync(paths.lock, "utf8")), replacement, "nonce mismatch preserves replacement lock")
+    })
+  })
+
+  it("never reclaims a live owner after its lease deadline", () => {
+    withTempRegistry((paths) => {
+      const owner = { nonce: "live", pid: 777, startedAt: "owner", leaseDeadline: 1500 }
+      nodeFs.writeFileSync(paths.lock, JSON.stringify(owner))
+      const result = realRegistry(paths, {
+        processIdentity: { pid: 888, startedAt: "contender" },
+        isProcessAlive: () => true,
+        clock: { now: () => 9000, isoNow: () => "2026-09-14T00:00:09.000Z" },
+      }).appendRow({ event: "must-not-land" })
+      assert.deepEqual({ ok: result?.ok, stage: result?.stage }, { ok: false, stage: "lock" })
+      assert.deepEqual(JSON.parse(nodeFs.readFileSync(paths.lock, "utf8")), owner, "live owner lock remains byte-equivalent")
+      assert.equal(nodeFs.existsSync(paths.registry), false, "live owner blocks append")
+    })
+  })
+
+  it("performs zero full JSONL scans on valid-sidecar cold start", () => {
+    withTempRegistry((paths) => {
+      nodeFs.writeFileSync(paths.registry, JSON.stringify({ seq: 12 }) + "\n")
+      nodeFs.writeFileSync(paths.seq, "12\n")
+      let fullReads = 0
+      const fs = {
+        ...nodeFs,
+        readFileSync(path, ...args) {
+          if (path === paths.registry) fullReads++
+          return nodeFs.readFileSync(path, ...args)
+        },
+      }
+      const result = realRegistry(paths, { fs }).appendRow({ event: "cold-start" })
+      assert.deepEqual({ ok: result?.ok, id: result?.id }, { ok: true, id: 13 })
+      assert.equal(fullReads, 0, "valid sidecar avoids registry history scan")
+    })
+  })
+
+  it("fsyncs the journal after append before returning ok:true", () => {
+    withTempRegistry((paths) => {
+      const events = []
+      const fdPaths = new Map()
+      const fs = {
+        ...nodeFs,
+        appendFileSync(path, data) {
+          events.push(["append", path])
+          nodeFs.appendFileSync(path, data)
+        },
+        openSync(path, flags, ...rest) {
+          const fd = nodeFs.openSync(path, flags, ...rest)
+          fdPaths.set(fd, path)
+          return fd
+        },
+        fsyncSync(fd) {
+          events.push(["fsync", fdPaths.get(fd)])
+          nodeFs.fsyncSync(fd)
+        },
+        closeSync(fd) {
+          fdPaths.delete(fd)
+          nodeFs.closeSync(fd)
+        },
+      }
+      const result = realRegistry(paths, { fs }).appendRow({ event: "durable" })
+      assert.equal(result?.ok, true)
+      const appendAt = events.findIndex(([event, path]) => event === "append" && path === paths.registry)
+      const fsyncAt = events.findIndex(([event, path]) => event === "fsync" && path === paths.registry)
+      assert.ok(appendAt >= 0 && fsyncAt > appendAt, "journal fsync follows append before success")
+    })
+  })
+
+  it("classifies identical injected errors by failed stage, not message", () => {
+    const counterFs = makeFakeFs({}, { renameShouldThrow: "same failure" })
+    const counterResult = makeRegistry(counterFs).appendRow({ event: "counter" })
+    const appendFs = makeFakeFs({})
+    appendFs.appendFileSync = () => { throw new Error("same failure") }
+    const appendResult = makeRegistry(appendFs).appendRow({ event: "append" })
+    assert.equal(counterResult?.stage, "counter", "counter operation determines counter stage")
+    assert.equal(appendResult?.stage, "append", "append operation determines append stage")
+    assert.equal(counterResult?.error, appendResult?.error, "same text does not determine stage")
   })
 })
