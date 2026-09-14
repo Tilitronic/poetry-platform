@@ -178,13 +178,13 @@
 | DIA-260820-y268 | enforce ticket-status queries via scripts, deprecate README rollup | dev-infra | Medium | CLOSED | [DIA-260820-y268-enforce-ticket-status-queries-via-scripts-deprecate-readme-rollup.md](DIA-260820-y268-enforce-ticket-status-queries-via-scripts-deprecate-readme-rollup.md) |
 | DIA-260821-3blw | remove persistent OpenCode input-area banner: powershell.exe toast spawn failed | opencode-config | Low | CLOSED | [DIA-260821-3blw-remove-persistent-opencode-input-area-banner-powershell-exe-toast-spawn-failed.md](DIA-260821-3blw-remove-persistent-opencode-input-area-banner-powershell-exe-toast-spawn-failed.md) |
 | DIA-260821-4cx5 | Expose opencode serve over Tailscale for remote Android access | docker | Medium | OPEN | [DIA-260821-4cx5-expose-opencode-serve-over-tailscale-for-remote-android-access.md](DIA-260821-4cx5-expose-opencode-serve-over-tailscale-for-remote-android-access.md) |
-| DIA-260821-5r03 | runtime observer plugin duplicate-registration audit and hardening | opencode-config | Major | OPEN | [DIA-260821-5r03-runtime-observer-plugin-duplicate-registration-audit-and-hardening.md](DIA-260821-5r03-runtime-observer-plugin-duplicate-registration-audit-and-hardening.md) |
+| DIA-260821-5r03 | runtime observer plugin duplicate-registration audit and hardening | opencode-config | Major | CLOSED | [DIA-260821-5r03-runtime-observer-plugin-duplicate-registration-audit-and-hardening.md](DIA-260821-5r03-runtime-observer-plugin-duplicate-registration-audit-and-hardening.md) |
 | DIA-260821-8kpc | Disable DCP plugin (context/cache concerns) | scripts | Medium | OPEN | [DIA-260821-8kpc-disable-dcp-plugin-context-cache-concerns.md](DIA-260821-8kpc-disable-dcp-plugin-context-cache-concerns.md) |
 | DIA-260821-aoag | container engine socket security hardening: add default-off --with-engine opt-in flag | docker | Major | CLOSED | [DIA-260821-aoag-container-engine-socket-security-hardening-add-default-off-with-engine-opt-in-flag.md](DIA-260821-aoag-container-engine-socket-security-hardening-add-default-off-with-engine-opt-in-flag.md) |
 | DIA-260821-bqy7 | audit repository risks and prioritize unresolved remediation | dev-infra | Major | OPEN | [DIA-260821-bqy7-audit-repository-risks-and-prioritize-unresolved-remediation.md](DIA-260821-bqy7-audit-repository-risks-and-prioritize-unresolved-remediation.md) |
 | DIA-260821-cku1 | Add minimal controlled scripts/tickets update capability for status and Fix/Re-verify evidence | dev-infra | Major | OPEN | [DIA-260821-cku1-add-minimal-controlled-scripts-tickets-update-capability-for-status-and-fix-re-verify-evidence.md](DIA-260821-cku1-add-minimal-controlled-scripts-tickets-update-capability-for-status-and-fix-re-verify-evidence.md) |
 | DIA-260821-m7vk | Repair in-container lint-staged Git index failure blocking pre-commit | dev-infra | Major | CLOSED | [DIA-260821-m7vk-repair-in-container-lint-staged-git-index-failure-blocking-pre-commit.md](DIA-260821-m7vk-repair-in-container-lint-staged-git-index-failure-blocking-pre-commit.md) |
-| DIA-260821-mzk7 | diagnose active OpenCode preset routing mismatch after restart | opencode-config | Major | OPEN | [DIA-260821-mzk7-diagnose-active-opencode-preset-routing-mismatch-after-restart.md](DIA-260821-mzk7-diagnose-active-opencode-preset-routing-mismatch-after-restart.md) |
+| DIA-260821-mzk7 | diagnose active OpenCode preset routing mismatch after restart | opencode-config | Major | CLOSED | [DIA-260821-mzk7-diagnose-active-opencode-preset-routing-mismatch-after-restart.md](DIA-260821-mzk7-diagnose-active-opencode-preset-routing-mismatch-after-restart.md) |
 | DIA-260821-n8sq | Add runtime config test (make test-runtime-config in clean HOME) | scripts | Medium | OPEN | [DIA-260821-n8sq-add-runtime-config-test-make-test-runtime-config-in-clean-home.md](DIA-260821-n8sq-add-runtime-config-test-make-test-runtime-config-in-clean-home.md) |
 | DIA-260821-qw29 | Verify opencode-go Hy3 x8 promo and whether to swap from mimo-v2.5 in the cebula preset | opencode-config | Info | CLOSED | [DIA-260821-qw29-verify-opencode-go-hy3-x8-promo-and-whether-to-swap-from-mimo-v2-5-in-the-cebula-preset.md](DIA-260821-qw29-verify-opencode-go-hy3-x8-promo-and-whether-to-swap-from-mimo-v2-5-in-the-cebula-preset.md) |
 | DIA-260821-x5nj | unified Docker development runtime plan for Fedora Linux and WSL developers | docker | Medium | OPEN | [DIA-260821-x5nj-unified-docker-development-runtime-plan-for-fedora-linux-and-wsl-developers.md](DIA-260821-x5nj-unified-docker-development-runtime-plan-for-fedora-linux-and-wsl-developers.md) |
@@ -336,7 +336,7 @@
 
 | Status      | Count |
 | ----------- | ----- |
-| OPEN        | 71    |
+| OPEN        | 69    |
 | DONE        | 11    |
 | VALIDATE    | 0     |
 | E2E         | 0     |
@@ -345,7 +345,7 @@
 | FIXED       | 1     |
 | IMPLEMENTED | 2     |
 | VERIFIED    | 28    |
-| CLOSED      | 202   |
+| CLOSED      | 204   |
 | BLOCKED     | 0     |
 | DISPATCHED  | 0     |
 | RUNNING     | 0     |

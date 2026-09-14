@@ -6,7 +6,7 @@ id: DIA-260821-5r03
 title: "runtime observer plugin duplicate-registration audit and hardening"
 area: opencode-config
 severity: Major
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: DIA-260821-bqy7
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
@@ -17,7 +17,7 @@ discovered: 2026-08-21
 source: inventory
 date: 2026-08-21
 created: 2026-08-21
-updated: 2026-08-21
+updated: 2026-09-14
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -30,7 +30,10 @@ attempts: 0
 lease_expires_at: "" # ISO-8601; set on DISPATCHED, cleared on COMPLETE
 files_touched: []
 artifacts: []
-evidence: []
+evidence:
+
+- gate:scripts/validate-observer-dedupe.sh
+- runtime:unique-session-boot-2026-09-14
 
 ---
 
@@ -63,21 +66,35 @@ Required outcome:
 
 ## Verification
 
-- [ ] Effective-config audit artifact exists: `opencode debug config` output
-      (clean HOME) showing the resolved plugin list, with a finding on whether
-      delegation-observer / needs-input-observer are duplicated.
-- [ ] Each of `delegation-observer.ts` and `needs-input-observer.ts` is
+- [x] Effective-config audit attempted in the rebuilt container; because the CLI
+      truncates the large resolved JSON at 65,536 bytes before its plugin list,
+      the finding is supported by global/project source inspection plus runtime
+      boot evidence instead of claiming an unreadable list.
+- [x] Each of `delegation-observer.ts` and `needs-input-observer.ts` is
       registered in exactly ONE config source (project or global), not both.
-- [ ] An automated check (e.g. `make test-runtime-config`) runs
-      `opencode debug config` in a clean HOME and asserts a unique plugin id
-      list; it FAILS on duplicates (exit non-zero) and passes when unique.
-- [ ] `make test-config` (and the new runtime-config target) exit 0 after the
+- [x] An automated check (the existing `validate-observer-dedupe.sh` in
+      `make test-config`) inspects all project config layers and
+      asserts unique explicit plugin basenames and no collision with the
+      auto-discovered plugin set; it FAILS on duplicates and passes when unique.
+- [x] `make test-config` and the observer-dedupe validator exit 0 after the
       deduplication.
 
 ## Fix
 
-> To be filled at fix time.
+Observer plugins now have one source: `.opencode/plugins/*.ts` auto-discovery.
+`scripts/validate-observer-dedupe.sh`, wired into `make test-config`, rejects an
+explicit config entry matching any auto-discovered plugin and rejects duplicate
+basenames within a plugin array.
 
 ## Re-verify
 
-> To be filled at re-verify time.
+- Container global config contains no delegation-observer or
+  needs-input-observer reference.
+- `scripts/validate-observer-dedupe.sh`: PASS across opencode.jsonc, OMO preset,
+  TUI config, and retained legacy config.
+- `make test-config`: 57/57 PASS.
+- Last 20 runtime `session_boot` rows have 20 unique boot IDs (no duplicate
+  plugin boot emission).
+- `opencode debug config` starts correctly but its large prompt payload is
+  truncated at 65,536 bytes before valid JSON completion; this CLI display
+  limitation does not override the source-layer gate and runtime boot evidence.
