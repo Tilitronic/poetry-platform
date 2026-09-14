@@ -766,8 +766,8 @@ describe("DIA-260914-tqor RED-A - durable journal persistence", () => {
     }
   })
 
-  it("recovers absent, corrupt, and lower sidecars once from durable history", () => {
-    for (const [label, sidecar] of [["absent", undefined], ["corrupt", "oops"], ["lower", "2\n"]]) {
+  it("bootstraps absent and corrupt sidecars once from durable history", () => {
+    for (const [label, sidecar] of [["absent", undefined], ["corrupt", "oops"]]) {
       const initial = { [registryPath]: JSON.stringify({ seq: 7 }) + "\n" }
       if (sidecar !== undefined) initial[registrySeqPath] = sidecar
       const fs = makeFakeFs(initial)
@@ -778,6 +778,22 @@ describe("DIA-260914-tqor RED-A - durable journal persistence", () => {
       const scans = fs.calls.filter(([name, path]) => name === "readFileSync" && path === registryPath)
       assert.ok(scans.length <= 1, `${label} recovery scans once, observed ${scans.length}`)
     }
+  })
+
+  it("repairs a known-lower valid sidecar only through explicit counter recovery", () => {
+    const fs = makeFakeFs({
+      [registryPath]: JSON.stringify({ seq: 7 }) + "\n",
+      [registrySeqPath]: "2\n",
+    })
+    const registry = makeRegistry(fs)
+    assert.equal(typeof registry.recoverCounters, "function", "known-lower repair requires explicit recoverCounters API")
+    const recovery = registry.recoverCounters()
+    assert.equal(recovery?.ok, true, "explicit recovery succeeds")
+    assert.equal(Number(fs.files.get(registrySeqPath)), 7, "recovery repairs sidecar to durable history max")
+    const scansAfterRecovery = fs.calls.filter(([name, path]) => name === "readFileSync" && path === registryPath).length
+    assert.equal(expectSuccess(registry.appendRow({ event: "after-explicit-recovery" }), "post-recovery append"), 8)
+    const scansAfterAppend = fs.calls.filter(([name, path]) => name === "readFileSync" && path === registryPath).length
+    assert.equal(scansAfterAppend, scansAfterRecovery, "normal append trusts valid repaired sidecar without scanning")
   })
 
   it("returns discriminated append failure without a persisted entry", () => {
@@ -864,17 +880,17 @@ describe("DIA-260914-tqor RED-A review gaps - real persistence", () => {
     })
   }
 
-  it("uses real wx ownership while independent writers allocate unique IDs", () => {
+  it("uses atomic lock-directory ownership while independent writers allocate unique IDs", () => {
     withTempRegistry((paths) => {
-      const opens = []
+      const lockMkdirs = []
       let writerB
       let contendedResult
       let contentionTriggered = false
       const fs = {
         ...nodeFs,
-        openSync(path, flags, ...rest) {
-          opens.push([path, String(flags)])
-          return nodeFs.openSync(path, flags, ...rest)
+        mkdirSync(path, options) {
+          if (path === paths.lock) lockMkdirs.push([path, options])
+          return nodeFs.mkdirSync(path, options)
         },
         appendFileSync(path, data) {
           nodeFs.appendFileSync(path, data)
@@ -894,20 +910,38 @@ describe("DIA-260914-tqor RED-A review gaps - real persistence", () => {
       assert.deepEqual(
         { ok: contendedResult?.ok, stage: contendedResult?.stage, retryable: contendedResult?.retryable },
         { ok: false, stage: "lock", retryable: true },
-        "contending writer refuses the live wx lock and retries after release",
+        "contending writer refuses the live lock directory and retries after release",
       )
-      assert.ok(opens.some(([path, flags]) => path === paths.lock && flags.includes("x")), "lock uses real exclusive-create semantics")
+      assert.ok(lockMkdirs.length >= 2, "writers contend through atomic mkdir on the shared lock directory")
     })
   })
 
   it("does not let an old nonce owner remove a replacement lock", () => {
     withTempRegistry((paths) => {
       const replacement = { nonce: "replacement", pid: 303, startedAt: "replacement" }
+      const replacementOwnerPath = nodeJoin(paths.lock, "owner.json")
+      const quarantine = `${paths.lock}.old-owner`
+      const fdPaths = new Map()
+      let replaced = false
       const fs = {
         ...nodeFs,
-        appendFileSync(path, data) {
-          nodeFs.appendFileSync(path, data)
-          if (path === paths.registry) nodeFs.writeFileSync(paths.lock, JSON.stringify(replacement))
+        openSync(path, flags, ...rest) {
+          const fd = nodeFs.openSync(path, flags, ...rest)
+          fdPaths.set(fd, path)
+          return fd
+        },
+        closeSync(fd) {
+          fdPaths.delete(fd)
+          nodeFs.closeSync(fd)
+        },
+        fsyncSync(fd) {
+          nodeFs.fsyncSync(fd)
+          if (fdPaths.get(fd) === paths.registry && !replaced) {
+            replaced = true
+            nodeFs.renameSync(paths.lock, quarantine)
+            nodeFs.mkdirSync(paths.lock)
+            nodeFs.writeFileSync(replacementOwnerPath, JSON.stringify(replacement))
+          }
         },
       }
       const result = realRegistry(paths, {
@@ -915,7 +949,8 @@ describe("DIA-260914-tqor RED-A review gaps - real persistence", () => {
         processIdentity: { pid: 101, startedAt: "old-owner" },
       }).appendRow({ event: "replace-lock-before-release" })
       assert.equal(result?.ok, true, "journal append succeeds before replacement")
-      assert.deepEqual(JSON.parse(nodeFs.readFileSync(paths.lock, "utf8")), replacement, "nonce mismatch preserves replacement lock")
+      assert.equal(replaced, true, "replacement occurs after journal fsync and before release")
+      assert.deepEqual(JSON.parse(nodeFs.readFileSync(replacementOwnerPath, "utf8")), replacement, "nonce mismatch preserves replacement lock")
     })
   })
 
