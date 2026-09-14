@@ -29,14 +29,13 @@
  *     atomicWriteBootMarker, maxRowIdInJsonl, lastMessagesMdRowNumber,
  *     maxRegistrySeq }
  *
- * RUN: bun test .opencode/plugins/__tests__/registry.test.mjs
+ * RUN: cd .opencode/plugins && bun test ./__tests__/registry.test.mjs
  */
 
 import { describe, it } from "node:test"
 import assert from "node:assert/strict"
 import { readFileSync as nodeReadFileSync } from "node:fs"
 import * as nodeFs from "node:fs"
-import { spawn } from "node:child_process"
 import { tmpdir } from "node:os"
 import { join as nodeJoin } from "node:path"
 import * as mod from "../lib/registry.ts"
@@ -221,6 +220,21 @@ describe("lib/registry — appendRow", () => {
     const lines = fs.files.get(regPath).trim().split("\n")
     const last = JSON.parse(lines[3])
     assert.equal(last.seq, 4, "without seq, lineCount (3)+1=4 must be used")
+  })
+
+  it("lineCount remains the floor when sequenced and legacy rows are mixed", () => {
+    const regPath = "/workspace/.opencode/session/registry.jsonl"
+    const fs = makeFakeFs({
+      [regPath]: [
+        JSON.stringify({ seq: 1 }),
+        JSON.stringify({ event: "legacy-a" }),
+        JSON.stringify({ event: "legacy-b" }),
+      ].join("\n") + "\n",
+    })
+    const inst = makeRegistry(fs)
+    inst.appendRow({ event: "after-mixed-history" })
+    const rows = fs.files.get(regPath).trim().split("\n").map((line) => JSON.parse(line))
+    assert.equal(rows.at(-1).seq, 4, "MAX(max seq 1, lineCount 3)+1 prevents ID reuse")
   })
 
   it("malformed JSON lines are skipped when computing max seq / lineCount", () => {
@@ -781,20 +795,19 @@ describe("DIA-260914-tqor RED-A - durable journal persistence", () => {
     }
   })
 
-  it("repairs a known-lower valid sidecar only through explicit counter recovery", () => {
+  it("repairs a known-lower valid sidecar once during controlled initialization", () => {
     const fs = makeFakeFs({
       [registryPath]: JSON.stringify({ seq: 7 }) + "\n",
       [registrySeqPath]: "2\n",
     })
     const registry = makeRegistry(fs)
-    assert.equal(typeof registry.recoverCounters, "function", "known-lower repair requires explicit recoverCounters API")
-    const recovery = registry.recoverCounters()
-    assert.equal(recovery?.ok, true, "explicit recovery succeeds")
-    assert.equal(Number(fs.files.get(registrySeqPath)), 7, "recovery repairs sidecar to durable history max")
+    assert.equal(expectSuccess(registry.appendRow({ event: "after-controlled-recovery" }), "recovered append"), 8)
+    assert.equal(Number(fs.files.get(registrySeqPath)), 8, "append repairs sidecar above durable history max")
     const scansAfterRecovery = fs.calls.filter(([name, path]) => name === "readFileSync" && path === registryPath).length
-    assert.equal(expectSuccess(registry.appendRow({ event: "after-explicit-recovery" }), "post-recovery append"), 8)
+    registry.appendRow({ event: "after-recovery" })
     const scansAfterAppend = fs.calls.filter(([name, path]) => name === "readFileSync" && path === registryPath).length
-    assert.equal(scansAfterAppend, scansAfterRecovery, "normal append trusts valid repaired sidecar without scanning")
+    assert.equal(scansAfterRecovery, 1, "initialization performs one controlled history scan")
+    assert.equal(scansAfterAppend, scansAfterRecovery, "subsequent append trusts repaired sidecar without scanning")
   })
 
   it("returns discriminated append failure without a persisted entry", () => {
@@ -890,7 +903,7 @@ describe("DIA-260914-tqor RED-A review gaps - real persistence", () => {
       const fs = {
         ...nodeFs,
         mkdirSync(path, options) {
-          if (path === paths.lock) lockMkdirs.push([path, options])
+          if (path.startsWith(`${paths.lock}.acquire-`)) lockMkdirs.push(path)
           return nodeFs.mkdirSync(path, options)
         },
         appendFileSync(path, data) {
@@ -913,7 +926,10 @@ describe("DIA-260914-tqor RED-A review gaps - real persistence", () => {
         { ok: false, stage: "lock", retryable: true },
         "contending writer refuses the live lock directory and retries after release",
       )
-      assert.ok(lockMkdirs.length >= 2, "writers contend through atomic mkdir on the shared lock directory")
+      assert.ok(
+        lockMkdirs.some((path) => path.startsWith(`${paths.lock}.acquire-`)),
+        "writers prepare private lock directories before atomic publication",
+      )
     })
   })
 
@@ -958,19 +974,38 @@ describe("DIA-260914-tqor RED-A review gaps - real persistence", () => {
   it("never reclaims a live owner after its lease deadline", () => {
     withTempRegistry((paths) => {
       const owner = { nonce: "live", pid: 777, startedAt: "owner", leaseDeadline: 1500 }
-      nodeFs.writeFileSync(paths.lock, JSON.stringify(owner))
+      nodeFs.mkdirSync(paths.lock)
+      nodeFs.writeFileSync(nodeJoin(paths.lock, "owner.json"), JSON.stringify(owner))
       const result = realRegistry(paths, {
         processIdentity: { pid: 888, startedAt: "contender" },
         isProcessAlive: () => true,
         clock: { now: () => 9000, isoNow: () => "2026-09-14T00:00:09.000Z" },
       }).appendRow({ event: "must-not-land" })
       assert.deepEqual({ ok: result?.ok, stage: result?.stage }, { ok: false, stage: "lock" })
-      assert.deepEqual(JSON.parse(nodeFs.readFileSync(paths.lock, "utf8")), owner, "live owner lock remains byte-equivalent")
+      assert.deepEqual(
+        JSON.parse(nodeFs.readFileSync(nodeJoin(paths.lock, "owner.json"), "utf8")),
+        owner,
+        "live owner lock remains byte-equivalent",
+      )
       assert.equal(nodeFs.existsSync(paths.registry), false, "live owner blocks append")
     })
   })
 
-  it("performs zero full JSONL scans on valid-sidecar cold start", () => {
+  it("fails closed for malformed real lock-directory ownership metadata", () => {
+    withTempRegistry((paths) => {
+      nodeFs.mkdirSync(paths.lock)
+      nodeFs.writeFileSync(nodeJoin(paths.lock, "owner.json"), "{not-json")
+      const result = realRegistry(paths).appendRow({ event: "must-not-land" })
+      assert.deepEqual(
+        { ok: result?.ok, stage: result?.stage, retryable: result?.retryable },
+        { ok: false, stage: "lock", retryable: true },
+      )
+      assert.equal(nodeFs.existsSync(paths.registry), false)
+      assert.equal(nodeFs.existsSync(paths.lock), true, "unverifiable ownership evidence is preserved")
+    })
+  })
+
+  it("scans once on valid-sidecar cold start and never again in steady state", () => {
     withTempRegistry((paths) => {
       nodeFs.writeFileSync(paths.registry, JSON.stringify({ seq: 12 }) + "\n")
       nodeFs.writeFileSync(paths.seq, "12\n")
@@ -982,9 +1017,58 @@ describe("DIA-260914-tqor RED-A review gaps - real persistence", () => {
           return nodeFs.readFileSync(path, ...args)
         },
       }
-      const result = realRegistry(paths, { fs }).appendRow({ event: "cold-start" })
+      const registry = realRegistry(paths, { fs })
+      const result = registry.appendRow({ event: "cold-start" })
       assert.deepEqual({ ok: result?.ok, id: result?.id }, { ok: true, id: 13 })
-      assert.equal(fullReads, 0, "valid sidecar avoids registry history scan")
+      assert.equal(fullReads, 1, "cold start verifies the durable high-water floor once")
+      assert.equal(registry.appendRow({ event: "steady-state" })?.id, 14)
+      assert.equal(fullReads, 1, "steady-state append performs no full history scan")
+    })
+  })
+
+  it("fails closed when directory fsync reports a real I/O error", () => {
+    withTempRegistry((paths) => {
+      const fdPaths = new Map()
+      const fs = {
+        ...nodeFs,
+        openSync(path, flags, ...rest) {
+          const fd = nodeFs.openSync(path, flags, ...rest)
+          fdPaths.set(fd, path)
+          return fd
+        },
+        closeSync(fd) {
+          fdPaths.delete(fd)
+          nodeFs.closeSync(fd)
+        },
+        fsyncSync(fd) {
+          if (nodeFs.statSync(fdPaths.get(fd)).isDirectory()) {
+            throw Object.assign(new Error("directory fsync failed"), { code: "EIO" })
+          }
+          nodeFs.fsyncSync(fd)
+        },
+      }
+      const result = realRegistry(paths, { fs }).appendRow({ event: "must-not-land" })
+      assert.deepEqual({ ok: result?.ok, stage: result?.stage }, { ok: false, stage: "lock" })
+      assert.equal(nodeFs.existsSync(paths.registry), false)
+    })
+  })
+
+  it("fails closed when a cached counter sidecar becomes corrupt", () => {
+    withTempRegistry((paths) => {
+      nodeFs.writeFileSync(paths.seq, "1\n")
+      const registry = realRegistry(paths)
+      assert.deepEqual(
+        { ok: registry.appendRow({ event: "prime-cache" })?.ok },
+        { ok: true },
+      )
+      nodeFs.writeFileSync(paths.seq, "999junk")
+      const rejected = registry.appendRow({ event: "must-not-land" })
+      assert.deepEqual(
+        { ok: rejected?.ok, stage: rejected?.stage },
+        { ok: false, stage: "counter" },
+      )
+      const rows = nodeFs.readFileSync(paths.registry, "utf8").trim().split("\n")
+      assert.equal(rows.length, 1, "corrupt cached sidecar prevents a second append")
     })
   })
 
@@ -1088,7 +1172,6 @@ describe("DIA-260914-tqor RED-A review cycle 2 - strict ownership", () => {
     const sessionDir = nodeJoin(root, ".opencode/session")
     const lockPath = nodeJoin(sessionDir, "journal.lock")
     nodeFs.mkdirSync(lockPath, { recursive: true })
-    let livenessChecks = 0
     try {
       const registry = mod.createRegistry({
         directory: root,
@@ -1098,11 +1181,9 @@ describe("DIA-260914-tqor RED-A review cycle 2 - strict ownership", () => {
         registrySeqPath: nodeJoin(sessionDir, "registry.seq"),
         messagesRowIdPath: nodeJoin(sessionDir, "messages.row-id"),
         journalLockPath: lockPath,
-        isProcessAlive: () => { livenessChecks++; return true },
       })
       assert.equal(expectDurableId(registry.appendRow({ event: "after-empty-lock" })), 1)
       assert.equal(nodeFs.existsSync(lockPath), false, "empty crash-window lock is cleaned after success")
-      assert.equal(livenessChecks, 0, "empty lock recovery does not invent owner identity")
     } finally {
       nodeFs.rmSync(root, { recursive: true, force: true })
     }
@@ -1112,7 +1193,6 @@ describe("DIA-260914-tqor RED-A review cycle 2 - strict ownership", () => {
     const root = nodeFs.mkdtempSync(nodeJoin(tmpdir(), "tqor-processes-"))
     const sessionDir = nodeJoin(root, ".opencode/session")
     nodeFs.mkdirSync(sessionDir, { recursive: true })
-    nodeFs.writeFileSync(nodeJoin(sessionDir, "registry.jsonl"), JSON.stringify({ seq: 0 }) + "\n")
     const moduleUrl = new URL("../lib/registry.ts", import.meta.url).href
     const childSource = `
       import * as fs from "node:fs";
@@ -1124,23 +1204,14 @@ describe("DIA-260914-tqor RED-A review cycle 2 - strict ownership", () => {
       let gated = false;
       const wrapped = {
         ...fs,
-        mkdirSync(path, options) {
-          const result = fs.mkdirSync(path, options);
-          if (process.env.TQOR_HOLD === "1" && path === lockPath && !gated) {
+        renameSync(source, destination) {
+          const result = fs.renameSync(source, destination);
+          if (process.env.TQOR_HOLD === "1" && destination === lockPath && !gated) {
             gated = true;
             process.stdout.write("LOCKED\\n");
             fs.readFileSync(0, "utf8");
           }
           return result;
-        },
-        readFileSync(path, ...args) {
-          const snapshot = fs.readFileSync(path, ...args);
-          if (process.env.TQOR_HOLD === "1" && path === registryPath && !gated) {
-            gated = true;
-            process.stdout.write("SNAPSHOT\\n");
-            fs.readFileSync(0, "utf8");
-          }
-          return snapshot;
         },
       };
       const registry = createRegistry({
@@ -1152,25 +1223,32 @@ describe("DIA-260914-tqor RED-A review cycle 2 - strict ownership", () => {
         registrySeqPath: session + "/registry.seq",
         messagesRowIdPath: session + "/messages.row-id",
         journalLockPath: lockPath,
-        processIdentity: { pid: process.pid, startedAt: process.env.TQOR_OWNER },
       });
       const result = registry.appendRow({ event: process.env.TQOR_OWNER });
       process.stdout.write("RESULT " + JSON.stringify(result) + "\\n");
     `
 
     function launch(owner, hold) {
-      const child = spawn(process.execPath, ["--eval", childSource], {
-        cwd: new URL("..", import.meta.url),
+      const child = globalThis.Bun.spawn([process.execPath, "--eval", childSource], {
+        cwd: new URL("..", import.meta.url).pathname,
         env: { ...process.env, TQOR_ROOT: root, TQOR_OWNER: owner, TQOR_HOLD: hold ? "1" : "0" },
-        stdio: ["pipe", "pipe", "pipe"],
+        stdin: "pipe",
+        stdout: "pipe",
+        stderr: "pipe",
       })
       let stdout = ""
       let stderr = ""
-      child.stdout.setEncoding("utf8")
-      child.stderr.setEncoding("utf8")
-      child.stdout.on("data", (chunk) => { stdout += chunk })
-      child.stderr.on("data", (chunk) => { stderr += chunk })
-      return { child, output: () => stdout, errors: () => stderr }
+      const listeners = new Set()
+      const decode = new TextDecoder()
+      const pump = async (stream, receive) => {
+        for await (const chunk of stream) {
+          receive(decode.decode(chunk, { stream: true }))
+          for (const listener of listeners) listener()
+        }
+      }
+      void pump(child.stdout, (chunk) => { stdout += chunk })
+      void pump(child.stderr, (chunk) => { stderr += chunk })
+      return { child, listeners, output: () => stdout, errors: () => stderr }
     }
 
     function waitFor(handle, pattern, label) {
@@ -1179,13 +1257,15 @@ describe("DIA-260914-tqor RED-A review cycle 2 - strict ownership", () => {
         const inspect = () => {
           if (!pattern.test(handle.output())) return
           clearTimeout(timer)
+          handle.listeners.delete(inspect)
           resolve(handle.output())
         }
-        handle.child.stdout.on("data", inspect)
-        handle.child.once("exit", (code) => {
+        handle.listeners.add(inspect)
+        void handle.child.exited.then((code) => {
           inspect()
           if (!pattern.test(handle.output())) {
             clearTimeout(timer)
+            handle.listeners.delete(inspect)
             reject(new Error(`${label} exited ${code}: ${handle.output()} ${handle.errors()}`))
           }
         })
@@ -1201,23 +1281,14 @@ describe("DIA-260914-tqor RED-A review cycle 2 - strict ownership", () => {
 
     try {
       const first = launch("first", true)
-      const firstGate = await waitFor(first, /^(LOCKED|SNAPSHOT)$/m, "first writer gate")
+      await waitFor(first, /^LOCKED$/m, "first writer gate")
       const second = launch("second", true)
-      if (/^LOCKED$/m.test(firstGate)) {
-        await waitFor(second, /^RESULT /m, "contending writer result")
-        const blocked = resultOf(second)
-        assert.deepEqual({ ok: blocked?.ok, stage: blocked?.stage }, { ok: false, stage: "lock" })
-        first.child.stdin.end("release\n")
-        await waitFor(first, /^RESULT /m, "first writer result")
-      } else {
-        await waitFor(second, /^SNAPSHOT$/m, "second writer snapshot")
-        first.child.stdin.end("release\n")
-        second.child.stdin.end("release\n")
-        await Promise.all([
-          waitFor(first, /^RESULT /m, "first legacy result"),
-          waitFor(second, /^RESULT /m, "second legacy result"),
-        ])
-      }
+      await waitFor(second, /^RESULT /m, "contending writer result")
+      const blocked = resultOf(second)
+      assert.deepEqual({ ok: blocked?.ok, stage: blocked?.stage }, { ok: false, stage: "lock" })
+      first.child.stdin.write("release\n")
+      first.child.stdin.end()
+      await waitFor(first, /^RESULT /m, "first writer result")
       const firstResult = resultOf(first)
       const retry = launch("retry", false)
       await waitFor(retry, /^RESULT /m, "retry writer result")

@@ -671,7 +671,7 @@ const delegationObserver: Plugin = async (ctx) => {
       config_load_signal: configSignal,
       writer: "plugin",
     })
-    registry.atomicWriteBootMarker({ bootId, bootSeq, configSignal })
+    registry.atomicWriteBootMarker({ bootId, bootSeq: bootSeq.ok ? bootSeq.id : 0, configSignal })
     // Arm the process-scoped boot flag so a subsequent in-process reload
     // suppresses boot evidence; a full process restart resets globalThis and
     // emits a fresh boot (DIA-260822-oldn, design.md D1/D3).

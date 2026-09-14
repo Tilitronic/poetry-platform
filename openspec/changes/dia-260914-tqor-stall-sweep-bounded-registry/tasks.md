@@ -90,7 +90,7 @@
 **Dependencies:** 2-8. **Acceptance commands:**
 
 ```bash
-bun test .opencode/plugins/__tests__/registry.test.mjs
+bun test "$PWD/.opencode/plugins/__tests__/registry.test.mjs"
 bun test .opencode/plugins/__tests__/stall-sweep.test.mjs
 bun test .opencode/plugins/__tests__
 bats scripts/__tests__/session-query.bats

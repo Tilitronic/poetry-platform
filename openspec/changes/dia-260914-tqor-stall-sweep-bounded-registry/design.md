@@ -171,7 +171,7 @@ Revert production and test commits in reverse dependency order, but never delete
 Exact focused commands may be narrowed to changed test files, followed by:
 
 ```bash
-bun test .opencode/plugins/__tests__/registry.test.mjs
+bun test "$PWD/.opencode/plugins/__tests__/registry.test.mjs"
 bun test .opencode/plugins/__tests__/stall-sweep.test.mjs
 bun test .opencode/plugins/__tests__
 make test-shell

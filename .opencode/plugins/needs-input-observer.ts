@@ -44,9 +44,7 @@
  *     including the PowerShell one-liner.
  */
 import { spawn } from "node:child_process"
-import { randomUUID } from "node:crypto"
 import {
-  appendFileSync,
   closeSync,
   existsSync,
   fsyncSync,
@@ -63,6 +61,7 @@ import type { Hooks, Plugin } from "@opencode-ai/plugin"
 // (DIA-260825-oyh). Explicit .ts extension: plugins load via
 // node --experimental-strip-types as individual files (no bundler).
 import { errorMessage } from "./lib/errors.ts"
+import { createRegistry } from "./lib/registry.ts"
 
 // ---------------------------------------------------------------------------
 // DIA-189 word-pair naming: deterministically maps a session_id to a
@@ -327,91 +326,18 @@ const needsInputObserver: Plugin = async (ctx) => {
     return `${sessionID}:${permissionID}`
   }
 
-  // Registry + messages paths (DIA-098 R3; ai-auditor finding 1): ana016 gap
-  // 1 flagged that the permission watchdog needs registry access. There is
-  // no shared utility — delegation-observer owns its appendRow and this
-  // plugin owns ticker.json — so the watchdog implements a minimal
-  // appendRow-equivalent using the SAME row conventions
-  // (seq/timestamp/event/writer for registry.jsonl;
-  // row_id/event_uuid/timestamp/gen_ai.provider.name/writer for
-  // messages.jsonl). ID allocation is UNIFIED across both plugins: EVERY
-  // writer recomputes its id as MAX+1 over the CURRENT file state at write
-  // time — no cached in-memory counters exist anywhere. Both plugins run in
-  // ONE server process and append synchronously (appendFileSync), so
-  // read-compute-append is atomic in the JS thread: no write can interleave
-  // between another writer's read and its append, and MAX+1 is therefore
-  // provably collision-free under mixed-plugin interleaving (delegation-
-  // observer's messages writer additionally floors on the legacy
-  // messages.md row numbering — a migration safeguard that only lifts its
-  // ids higher and never affects uniqueness, since every write lands in the
-  // file before the next read).
   const registryPath = join(ctx.directory, ".opencode/session/registry.jsonl")
   const messagesPath = join(ctx.directory, ".opencode/session/messages.jsonl")
+  const journal = createRegistry({ directory: ctx.directory, registryPath, messagesPath })
 
-  function maxJsonlNumber(
-    filePath: string,
-    field: string,
-    label: string
-  ): number {
-    try {
-      if (!existsSync(filePath)) return 0
-      let max = 0
-      for (const line of readFileSync(filePath, "utf-8").split("\n")) {
-        if (!line) continue
-        try {
-          const v = (JSON.parse(line) as Record<string, unknown>)[field]
-          if (typeof v === "number" && v > max) max = v
-        } catch {
-          // Malformed line — skip (same policy as delegation-observer's
-          // registry boot scan).
-        }
-      }
-      return max
-    } catch (err) {
-      console.warn(
-        `[needs-input-observer] ${label} scan failed: ${errorMessage(err)}`
-      )
-      return 0
-    }
-  }
-
-  /** Registry.jsonl appendRow-equivalent (DIA-098 R3) — same conventions as
-   *  delegation-observer's appendRow: seq, timestamp, event, writer. */
   function appendRegistryRow(row: Record<string, unknown>): void {
-    try {
-      const entry: Record<string, unknown> = {
-        seq: maxJsonlNumber(registryPath, "seq", "registry seq") + 1,
-        timestamp: new Date().toISOString(),
-        ...row,
-        writer: "plugin",
-      }
-      appendFileSync(registryPath, JSON.stringify(entry) + "\n")
-    } catch (err) {
-      console.warn(
-        `[needs-input-observer] registry.jsonl write failed: ${errorMessage(err)}`
-      )
-    }
+    const result = journal.appendRow({ ...row, writer: "plugin" })
+    if (result.ok === false) console.warn(`[needs-input-observer] registry.jsonl write failed: ${result.error}`)
   }
 
-  /** Messages.jsonl appendRow-equivalent (DIA-098 R3) — mirrors
-   *  delegation-observer's appendMessageRow envelope (row_id, event_uuid,
-   *  timestamp, gen_ai.provider.name, writer) for the log_decision row. */
   function appendMessageRow(row: Record<string, unknown>): void {
-    try {
-      const entry: Record<string, unknown> = {
-        row_id: maxJsonlNumber(messagesPath, "row_id", "messages row_id") + 1,
-        event_uuid: randomUUID(),
-        timestamp: new Date().toISOString(),
-        "gen_ai.provider.name": "opencode-go",
-        writer: "plugin",
-        ...row,
-      }
-      appendFileSync(messagesPath, JSON.stringify(entry) + "\n")
-    } catch (err) {
-      console.warn(
-        `[needs-input-observer] messages.jsonl write failed: ${errorMessage(err)}`
-      )
-    }
+    const result = journal.appendMessageRow(row)
+    if (result.ok === false) console.warn(`[needs-input-observer] messages.jsonl write failed: ${result.error}`)
   }
 
   /**

@@ -127,50 +127,20 @@ describe("REGRESSION 2 — sessionMessageCount: appendMessageRow updates calling
 
   it("createRegistry factory directly: appendMessageRow increments per-session count (isolated)", async () => {
     const { createRegistry } = await import("../lib/registry.ts")
-    // Probe if factory exposes per-session tracking via injected map or getter
-    // Current code ignores _sessionID, so no tracking exists — this must fail
-    const fakeFs = {
-      appendFileSync: () => {},
-      readFileSync: () => { throw Object.assign(new Error("ENOENT"), { code: "ENOENT" }) },
-      existsSync: () => false,
-      writeFileSync: () => {},
-      openSync: () => 10,
-      fsyncSync: () => {},
-      closeSync: () => {},
-      renameSync: () => {},
-      mkdirSync: () => {},
-      unlinkSync: () => {},
-      statSync: () => { throw Object.assign(new Error("ENOENT"), { code: "ENOENT" }) },
-    }
-    // Try to inject a map — if GREEN wires it, it will be mutated
+    const { directory, cleanup } = createTempWorkspace("registry-message-count-")
     const sessionMap = new Map()
-    let inst
     try {
-      inst = createRegistry({ fs: fakeFs, path: { join: (...p) => p.join("/"), dirname: (p) => p.split("/").slice(0,-1).join("/") }, directory: "/tmp", sessionMessageCount: sessionMap, messageCountMap: sessionMap, counters: sessionMap })
-    } catch { /* noop */ }
-    if (!inst) inst = createRegistry({ fs: fakeFs, path: { join: (...p) => p.join("/"), dirname: (p) => p.split("/").slice(0,-1).join("/") }, directory: "/tmp" })
-    // Call with session IDs
-    inst.appendMessageRow({ event_type: "decision", task_ref: "a" }, "ses_A")
-    inst.appendMessageRow({ event_type: "decision", task_ref: "b" }, "ses_A")
-    inst.appendMessageRow({ event_type: "decision", task_ref: "c" }, "ses_B")
-    // If per-session tracking exists, ses_A should be 2, ses_B 1
-    // Probe multiple possible accessors
-    let countA, countB
-    if (typeof inst.getSessionMessageCount === "function") {
-      countA = inst.getSessionMessageCount("ses_A")
-      countB = inst.getSessionMessageCount("ses_B")
-    } else if (inst.sessionMessageCount instanceof Map) {
-      countA = inst.sessionMessageCount.get("ses_A")
-      countB = inst.sessionMessageCount.get("ses_B")
-    } else if (sessionMap.size > 0) {
-      countA = sessionMap.get("ses_A")
-      countB = sessionMap.get("ses_B")
-    } else {
-      // No tracking exposed — fail to expose regression
-      assert.fail("REGRESSION 2: createRegistry does not expose per-session message counts and does not increment any injected map — _sessionID is ignored")
+      const inst = createRegistry({ directory, sessionMessageCount: sessionMap })
+      inst.appendMessageRow({ event_type: "decision", task_ref: "a" }, "ses_A")
+      inst.appendMessageRow({ event_type: "decision", task_ref: "b" }, "ses_A")
+      inst.appendMessageRow({ event_type: "decision", task_ref: "c" }, "ses_B")
+      assert.equal(inst.getSessionMessageCount("ses_A"), 2)
+      assert.equal(inst.getSessionMessageCount("ses_B"), 1)
+      assert.equal(sessionMap.get("ses_A"), 2)
+      assert.equal(sessionMap.get("ses_B"), 1)
+    } finally {
+      cleanup()
     }
-    assert.equal(countA, 2, `ses_A count must be 2, got ${countA}`)
-    assert.equal(countB, 1, `ses_B count must be 1, got ${countB}`)
   })
 })
 

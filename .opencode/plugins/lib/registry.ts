@@ -14,12 +14,16 @@ import {
   openSync as nodeOpenSync,
   readFileSync as nodeReadFileSync,
   renameSync as nodeRenameSync,
+  rmdirSync as nodeRmdirSync,
   statSync as nodeStatSync,
   unlinkSync as nodeUnlinkSync,
   writeFileSync as nodeWriteFileSync,
 } from "node:fs"
 import { dirname as nodeDirname, join as nodeJoin } from "node:path"
 import { randomUUID as nodeRandomUUID } from "node:crypto"
+import { readFileSync as nodeReadProcFileSync } from "node:fs"
+import { createJournalPersistence } from "./journal-persistence.ts"
+import type { JournalResult } from "./journal-persistence.ts"
 
 const TASK_NO_ID_GROUP_KEY = "__task_no_id__"
 
@@ -34,6 +38,7 @@ type FsDeps = {
   renameSync(src: string, dst: string): void
   mkdirSync(path: string, opts?: object): void
   unlinkSync(path: string): void
+  rmdirSync?: (path: string) => void
   statSync(path: string): { mtimeMs: number; size: number; isFile(): boolean }
 }
 
@@ -60,6 +65,11 @@ type RegistryDeps = {
   opencodeVersion?: string
   onWarn?: (msg: string, opts?: unknown) => void
   sessionMessageCount?: Map<string, number>
+  registrySeqPath?: string
+  messagesRowIdPath?: string
+  journalLockPath?: string
+  processIdentity?: { pid: number; startedAt: string }
+  isProcessAlive?: (owner: { pid: number; startedAt: string }) => boolean | { alive: boolean; startedAt?: string }
 }
 
 function resolveFs(deps: RegistryDeps): FsDeps {
@@ -75,6 +85,7 @@ function resolveFs(deps: RegistryDeps): FsDeps {
     renameSync: nodeRenameSync,
     mkdirSync: nodeMkdirSync as unknown as FsDeps["mkdirSync"],
     unlinkSync: nodeUnlinkSync,
+    rmdirSync: nodeRmdirSync,
     statSync: nodeStatSync as unknown as FsDeps["statSync"],
   }
 }
@@ -136,6 +147,15 @@ function resolveProcessStartedAt(deps: RegistryDeps): string {
   return deps.processStartedAt ?? new Date().toISOString()
 }
 
+function linuxProcessStartToken(pid: number): string | undefined {
+  if (process.platform !== "linux") return undefined
+  try {
+    const stat = nodeReadProcFileSync(`/proc/${pid}/stat`, "utf-8")
+    const close = stat.lastIndexOf(")")
+    return stat.slice(close + 2).split(" ")[19]
+  } catch { return undefined }
+}
+
 function resolveWarn(deps: RegistryDeps): ((msg: string, opts?: unknown) => void) | undefined {
   if (typeof deps.onWarn === "function") return deps.onWarn
   return undefined
@@ -164,7 +184,29 @@ export function createRegistry(deps: RegistryDeps = {}) {
   const bootTmpPath = resolveBootTmpPath(deps, path)
   const handoffDir = resolveHandoffDir(deps, path)
   const processStartedAt = resolveProcessStartedAt(deps)
+  const registrySeqPath = deps.registrySeqPath ?? path.join(resolveDirectory(deps), ".opencode/session/registry.seq")
+  const messagesRowIdPath = deps.messagesRowIdPath ?? path.join(resolveDirectory(deps), ".opencode/session/messages.row-id")
+  const journalLockPath = deps.journalLockPath ?? path.join(resolveDirectory(deps), ".opencode/session/journal.lock")
+  const processIdentity = deps.processIdentity ?? { pid: process.pid, startedAt: linuxProcessStartToken(process.pid) ?? processStartedAt }
+  const isProcessAlive = deps.isProcessAlive ?? ((owner: { pid: number; startedAt: string }) => {
+    const token = linuxProcessStartToken(owner.pid)
+    if (process.platform === "linux" && !nodeExistsSync(`/proc/${owner.pid}`)) return false
+    return token === undefined ? { alive: true, startedAt: owner.startedAt } : { alive: true, startedAt: token }
+  })
   const opencodeVersion: string | undefined = deps.opencodeVersion ?? (process.env.OPENCODE_VERSION as string | undefined)
+
+  type AppendResult = JournalResult
+  let registryCounter: number | undefined
+  let messagesCounter: number | undefined
+  const journal = createJournalPersistence({
+    fs,
+    path,
+    lockPath: journalLockPath,
+    processIdentity,
+    isProcessAlive,
+    randomUUID: rand,
+    now: deps.clock?.now ?? Date.now,
+  })
 
   function lastMessagesMdRowNumber(mdPath: string = messagesMdPath): number {
     if (!fs.existsSync(mdPath)) return 0
@@ -212,6 +254,7 @@ export function createRegistry(deps: RegistryDeps = {}) {
     if (!fs.existsSync(registryPath)) return 0
     let maxSeq = 0
     let lineCount = 0
+    let hasSeq = false
     let content: string
     try {
       content = fs.readFileSync(registryPath, "utf-8")
@@ -223,58 +266,99 @@ export function createRegistry(deps: RegistryDeps = {}) {
       lineCount++
       try {
         const row = JSON.parse(line) as { seq?: number }
-        if (typeof row.seq === "number" && row.seq > maxSeq) maxSeq = row.seq
+        if (typeof row.seq === "number") { hasSeq = true; if (row.seq > maxSeq) maxSeq = row.seq }
       } catch {
         // Malformed line — skip
       }
     }
-    return Math.max(maxSeq, lineCount)
+    return hasSeq ? Math.max(maxSeq, lineCount) : lineCount
   }
 
-  function appendRow(row: Record<string, unknown>): number {
-    const seq = maxRegistrySeq() + 1
+  function appendRow(row: Record<string, unknown>): AppendResult {
+    const acquired = journal.acquireJournalLock()
+    if (acquired.ok === false) return acquired
+    let seq = 0
+    let stage: "counter" | "append" = "counter"
     const entry: Record<string, unknown> = {
-      seq,
-      timestamp: isoNow(deps),
       ...row,
     }
-    if (entry.group_key === TASK_NO_ID_GROUP_KEY) {
-      entry.group_key = `${TASK_NO_ID_GROUP_KEY}${seq}`
-    }
     try {
-      fs.appendFileSync(registryPath, JSON.stringify(entry) + "\n")
+      seq = journal.reserveCounter(registrySeqPath, maxRegistrySeq, registryCounter) + 1
+      registryCounter = seq
+      journal.publishCounter(registrySeqPath, seq)
+      entry.seq = seq
+      entry.timestamp = isoNow(deps)
+      if (entry.group_key === TASK_NO_ID_GROUP_KEY) entry.group_key = `${TASK_NO_ID_GROUP_KEY}${seq}`
+      stage = "append"
+      journal.appendChecked(registryPath, JSON.stringify(entry) + "\n")
+      journal.releaseJournalLock(acquired.token)
+      return { ok: true, id: seq, entry }
     } catch (err) {
+      journal.releaseJournalLock(acquired.token)
       if (warn) {
         const msg = err instanceof Error ? err.message : String(err)
         try { warn(`[registry] appendRow failed seq=${seq}: ${msg}`, { seq, error: msg }) } catch { /* noop */ }
       }
+      return { ok: false, stage, retryable: false, error: err instanceof Error ? err.message : String(err), reserved_id: seq || undefined }
     }
-    return seq
   }
 
-  function appendMessageRow(row: Record<string, unknown>, _sessionID?: string): number {
-    const rowId = Math.max(maxRowIdInJsonl(messagesPath), lastMessagesMdRowNumber(messagesMdPath)) + 1
+  /** Explicit, operator-invoked repair for absent/corrupt/lower sidecars. */
+  function recoverCounters(): { ok: true; registry: number; messages: number } | { ok: false; stage: "lock" | "counter"; retryable: boolean; error: string } {
+    const acquired = journal.acquireJournalLock()
+    if (acquired.ok === false) return acquired
+    try {
+      const registry = maxRegistrySeq()
+      const messages = Math.max(maxRowIdInJsonl(messagesPath), lastMessagesMdRowNumber(messagesMdPath))
+      journal.publishCounter(registrySeqPath, registry)
+      journal.publishCounter(messagesRowIdPath, messages)
+      registryCounter = registry
+      messagesCounter = messages
+      journal.releaseJournalLock(acquired.token)
+      return { ok: true, registry, messages }
+    } catch (err) {
+      journal.releaseJournalLock(acquired.token)
+      return { ok: false, stage: "counter", retryable: false, error: err instanceof Error ? err.message : String(err) }
+    }
+  }
+
+  function appendMessageRow(row: Record<string, unknown>, _sessionID?: string): AppendResult {
+    const acquired = journal.acquireJournalLock()
+    if (acquired.ok === false) return acquired
+    let rowId = 0
+    let stage: "counter" | "append" = "counter"
     const entry: Record<string, unknown> = {
-      row_id: rowId,
-      event_uuid: rand(),
-      timestamp: isoNow(deps),
-      "gen_ai.provider.name": "opencode-go",
-      writer: "plugin",
       ...row,
     }
     try {
-      fs.appendFileSync(messagesPath, JSON.stringify(entry) + "\n")
+      rowId = journal.reserveCounter(
+        messagesRowIdPath,
+        () => Math.max(maxRowIdInJsonl(messagesPath), lastMessagesMdRowNumber(messagesMdPath)),
+        messagesCounter,
+      ) + 1
+      messagesCounter = rowId
+      journal.publishCounter(messagesRowIdPath, rowId)
+      entry.row_id = rowId
+      entry.event_uuid = rand()
+      entry.timestamp = isoNow(deps)
+      entry["gen_ai.provider.name"] = "opencode-go"
+      entry.writer = "plugin"
+      stage = "append"
+      journal.appendChecked(messagesPath, JSON.stringify(entry) + "\n")
       if (_sessionID) {
         const prev = sessionMessageCount.get(_sessionID) ?? 0
         sessionMessageCount.set(_sessionID, prev + 1)
       }
+      journal.releaseJournalLock(acquired.token)
+      return { ok: true, id: rowId, entry }
     } catch (err) {
+      journal.releaseJournalLock(acquired.token)
       if (warn) {
         const msg = err instanceof Error ? err.message : String(err)
         try { warn(`[registry] appendMessageRow failed row_id=${rowId}: ${msg}`, { row_id: rowId, error: msg }) } catch { /* noop */ }
       }
+      return { ok: false, stage, retryable: false, error: err instanceof Error ? err.message : String(err), reserved_id: rowId || undefined }
     }
-    return rowId
   }
 
   function getSessionMessageCount(sessionID: string): number {
@@ -346,6 +430,7 @@ export function createRegistry(deps: RegistryDeps = {}) {
   return {
     appendRow,
     appendMessageRow,
+    recoverCounters,
     captureConfigLoadSignal,
     atomicWriteBootMarker,
     maxRowIdInJsonl,
