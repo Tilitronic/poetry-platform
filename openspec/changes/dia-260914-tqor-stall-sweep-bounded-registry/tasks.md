@@ -31,7 +31,7 @@
 
 ## 3. Exact lifecycle generations and process-local index
 
-- [ ] 3.1 **RED-C:** A test-only coder adds failing cases for the transition table: first authoritative non-terminal `seq` anchors generation; repeated running/progress, `session_spawn`, stall, and `task_success` stay in that generation; terminal closes it; explicit recovery or dispatch after closure starts a new anchor; restart never increments; terminal-only/missing-ID chains never become sweep-eligible.
+- [ ] 3.1 **RED-C:** A test-only coder adds failing cases for the transition table: first authoritative non-terminal `seq` anchors generation; a real child `session_spawn` opens a generation when no earlier dispatch row exists; repeated running/progress, `session_spawn`, stall, and `task_success` stay in that generation; terminal closes it; explicit recovery or dispatch after closure starts a new anchor; restart never increments; terminal-only/missing-ID chains never become sweep-eligible.
 - [ ] 3.2 Add legacy fixture cases ordered by `seq`, timestamp, then offset, including deterministic legacy generation mapping, duplicate/out-of-order rows, and byte-identical archived history.
 - [ ] 3.3 **GREEN-C, different instance:** Implement the bounded process-local incremental index in `lib/registry.ts`, with active-file bootstrap and inode/rotation-aware ingestion of only new bytes. Do not add a durable active-index sidecar.
 - [ ] 3.4 Prove terminal/reconciled removal, tombstone preservation, bound fail-loud behavior, and dirty local-index rebuild before sweep resumes.

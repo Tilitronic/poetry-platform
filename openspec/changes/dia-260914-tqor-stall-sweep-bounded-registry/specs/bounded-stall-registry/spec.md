@@ -2,7 +2,7 @@
 
 ### Requirement: Generation-scoped stall escalation
 
-The delegation observer MUST emit each stall escalation tier at most once for a `(session_id, lifecycle_generation)` pair. `lifecycle_generation` MUST equal the `seq` of the first authoritative non-terminal row that opens the generation. `session_spawn`, progress, stall, and `task_success` MUST remain in the open generation and MUST NOT increment it. A restart or elapsed time MUST NOT advance lifecycle generation. A confirmed new dispatch after closure or explicit recovery MUST open a new generation. Legacy rows MUST map deterministically by sequence, timestamp, and file offset; chains without an authoritative non-terminal anchor MUST remain historical and ineligible for sweep. `dead` MUST remain diagnostic and MUST NOT be projected as a terminal lifecycle state.
+The delegation observer MUST emit each stall escalation tier at most once for a `(session_id, lifecycle_generation)` pair. `lifecycle_generation` MUST equal the `seq` of the first authoritative non-terminal row that opens the generation. A non-terminal `session_spawn` carrying a real child session ID MUST open the generation when the producer persisted no earlier dispatch/invocation row; when a generation is already open it MUST remain in that generation and MUST NOT increment it. Progress, stall, and `task_success` MUST remain in the open generation and MUST NOT increment it. A restart or elapsed time MUST NOT advance lifecycle generation. A confirmed new dispatch after closure or explicit recovery MUST open a new generation. Legacy rows MUST map deterministically by sequence, timestamp, and file offset; chains without an authoritative non-terminal anchor MUST remain historical and ineligible for sweep. `dead` MUST remain diagnostic and MUST NOT be projected as a terminal lifecycle state.
 
 #### Scenario: Repeated sweeps do not repeat dead escalation
 
@@ -15,6 +15,12 @@ The delegation observer MUST emit each stall escalation tier at most once for a 
 - **GIVEN** a session generation was escalated and then explicitly recovered
 - **WHEN** the new generation later exceeds the dead threshold
 - **THEN** exactly one `dead` escalation is permitted for the new generation
+
+#### Scenario: Real child spawn opens a generation
+
+- **GIVEN** the first durable row for a real child session is a non-terminal `session_spawn`
+- **WHEN** no earlier authoritative dispatch or invocation row exists for that child session
+- **THEN** the spawn row's `seq` anchors one active lifecycle generation
 
 ### Requirement: Bounded active lifecycle projection
 
