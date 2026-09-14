@@ -241,19 +241,20 @@ describe("lib/registry — appendRow", () => {
     assert.equal(last.seq, 11, "malformed lines must be skipped for maxSeq but counted for lineCount floor — MAX(10,4)+1=11")
   })
 
-  it("recomputes at write time — external append between two writes is respected (no cached counter)", () => {
+  it("coordinates interleaved canonical writers without out-of-band appends", () => {
     const regPath = "/workspace/.opencode/session/registry.jsonl"
     const fs = makeFakeFs({ [regPath]: JSON.stringify({ seq: 1, event: "a" }) + "\n" })
     const inst = makeRegistry(fs)
     assert.ok(inst)
-    inst.appendRow({ event: "first" }) // should be 2
-    // Simulate external writer (e.g., needs-input-observer) appending seq 50
-    const cur = fs.files.get(regPath)
-    fs.files.set(regPath, cur + JSON.stringify({ seq: 50, event: "external" }) + "\n")
+    inst.appendRow({ event: "first" })
+    const external = makeRegistry(fs, {
+      processIdentity: { pid: 202, startedAt: "external" },
+    })
+    external.appendRow({ event: "external" })
     inst.appendRow({ event: "second" })
     const lines = fs.files.get(regPath).trim().split("\n")
     const last = JSON.parse(lines[lines.length - 1])
-    assert.equal(last.seq, 51, "second write must recompute from file, MAX(50, lineCount)+1=51, not cached 3")
+    assert.equal(last.seq, 4, "canonical writers allocate 2, 3, then 4")
   })
 
   it("synthetic group_key __task_no_id__ resolved with seq suffix", () => {
@@ -372,18 +373,22 @@ describe("lib/registry — appendMessageRow", () => {
     assert.equal(inst.lastMessagesMdRowNumber(mdPath), 10, "must return max numeric first column (10), skipping VP rows")
   })
 
-  it("row_id is recomputed synchronously before each write (atomic append, no cached counter)", () => {
+  it("coordinates message row_id across canonical writer instances", () => {
     const msgPath = "/workspace/.opencode/session/messages.jsonl"
     const fs = makeFakeFs({ [msgPath]: JSON.stringify({ row_id: 1 }) + "\n" })
     const inst = makeRegistry(fs, { messagesPath: msgPath, messagesMdPath: "/nonexistent.md" })
     assert.ok(inst)
-    inst.appendMessageRow({ event_type: "a" }) // 2
-    // External writer interleaving
-    fs.files.set(msgPath, fs.files.get(msgPath) + JSON.stringify({ row_id: 99 }) + "\n")
+    inst.appendMessageRow({ event_type: "a" })
+    const external = makeRegistry(fs, {
+      messagesPath: msgPath,
+      messagesMdPath: "/nonexistent.md",
+      processIdentity: { pid: 202, startedAt: "external" },
+    })
+    external.appendMessageRow({ event_type: "external" })
     inst.appendMessageRow({ event_type: "b" })
     const rows = fs.files.get(msgPath).trim().split("\n").map(l => JSON.parse(l))
     const last = rows[rows.length - 1]
-    assert.equal(last.row_id, 100, "must recompute MAX after external write — 99+1=100")
+    assert.equal(last.row_id, 4, "canonical writers allocate message rows 2, 3, then 4")
   })
 
   it("fail-soft: messages write error does not throw", () => {
@@ -512,14 +517,17 @@ describe("lib/registry — atomicWriteBootMarker", () => {
     assert.ok(inst)
     // Simulate shell boot shot: appendRow then atomicWriteBootMarker with same bootId/seq
     const bootId = "shared-boot-id-xyz"
-    // Need to get seq assigned by appendRow
-    inst.appendRow({ event: "session_boot", boot_id: bootId, process_started_at: processStartedAt, config_load_signal: { opencode_jsonc_mtime: null, omo_jsonc_mtime: null }, writer: "plugin" })
+    const appendResult = inst.appendRow({ event: "session_boot", boot_id: bootId, process_started_at: processStartedAt, config_load_signal: { opencode_jsonc_mtime: null, omo_jsonc_mtime: null }, writer: "plugin" })
     const regLine = fs.files.get(regPath).trim().split("\n").pop()
     const regRow = JSON.parse(regLine)
     assert.equal(regRow.event, "session_boot")
     assert.equal(regRow.boot_id, bootId)
-    const bootSeq = regRow.seq
+    // During the RED transition, accept the legacy numeric return so this
+    // pre-existing boot test remains about marker identity. GREEN changes the
+    // production return to AppendResult; then this consumes its durable ID.
+    const bootSeq = typeof appendResult === "number" ? appendResult : appendResult.id
     assert.equal(typeof bootSeq, "number")
+    assert.equal(regRow.seq, bootSeq, "persisted row seq must match append result ID")
     inst.atomicWriteBootMarker({ bootId, bootSeq, configSignal: { opencode_jsonc_mtime: null, omo_jsonc_mtime: null } })
     const boot = JSON.parse(fs.files.get(bootPath))
     assert.equal(boot.boot_id, bootId, "boot.json boot_id must equal registry row boot_id")
