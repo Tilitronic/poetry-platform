@@ -140,6 +140,7 @@ setup_tree() {
   mkdir -p "$tree/scripts"
   cp "$REPO_ROOT/scripts/check-host-lsp.sh" "$tree/scripts/check-host-lsp.sh"
   cp "$REPO_ROOT/scripts/container-engine.sh" "$tree/scripts/container-engine.sh"
+  cp "$REPO_ROOT/scripts/compose-env.sh" "$tree/scripts/compose-env.sh"
   if [ "${1:-1}" = "1" ]; then
     cp "$REPO_ROOT/scripts/lsp-versions.env" "$tree/scripts/lsp-versions.env"
   fi

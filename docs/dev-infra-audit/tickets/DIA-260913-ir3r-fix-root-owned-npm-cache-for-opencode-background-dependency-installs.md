@@ -6,7 +6,7 @@ id: DIA-260913-ir3r
 title: "Fix root-owned npm cache for OpenCode background dependency installs"
 area: docker
 severity: Major
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: ""
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
@@ -17,7 +17,7 @@ discovered: 2026-09-13
 source: inventory
 date: 2026-09-13
 created: 2026-09-13
-updated: 2026-09-13
+updated: 2026-09-14
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -49,13 +49,13 @@ configuration in this ticket.
 
 ## Verification
 
-- [ ] Rebuild the dev image with Podman and recreate the dev container.
-- [ ] `/home/dev/.npm` and its writable cache paths are owned by the configured
+- [x] Rebuild the dev image with Podman and recreate the dev container.
+- [x] `/home/dev/.npm` and its writable cache paths are owned by the configured
       dev UID/GID.
-- [ ] `/home/dev/.local/state/opencode/locks` is owned by and writable for the
+- [x] `/home/dev/.local/state/opencode/locks` is owned by and writable for the
       configured dev UID/GID.
-- [ ] A non-mutating npm cache write probe succeeds as `dev`.
-- [ ] `opencode debug config` exits 0 without a fresh npm-cache `EACCES` or
+- [x] A non-mutating npm cache write probe succeeds as `dev`.
+- [x] `opencode debug config` exits 0 without a fresh npm-cache `EACCES` or
       `NpmInstallFailedError` log entry.
 - [x] Container-engine focused Bats and `make test-config` exit 0.
 
@@ -70,8 +70,13 @@ test guards the ownership repair.
 
 - `make test-config`: exit 0, 57/57.
 - Focused Bats batch: 65/65, including npm ownership migration.
-- Rebuild, ownership/write probe, and fresh-log check: pending developer host
-  execution.
+- Rebuilt committed fixed point `3a0c1e0` with Podman as image
+  `4a69116e67aa`; recreated `poetry-dev` reached `healthy`.
+- Fresh-container paths `/home/dev/.npm`, `/home/dev/.local/state/opencode`,
+  and `/home/dev/.local/state/opencode/locks` report `dev:dev`; both required
+  roots are writable as `dev`.
+- `npm cache verify`: exit 0. `opencode debug config`: exit 0 with zero fresh
+  `EACCES`, `PermissionDenied`, or `NpmInstallFailedError` matches.
 - First rebuilt runtime probe logged `EACCES` for
   `/home/dev/.local/state/opencode/locks`; a live root repair made it `dev:dev`
   and writable, and the permanent preflight now covers that path.

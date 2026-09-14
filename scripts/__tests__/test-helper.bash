@@ -223,7 +223,7 @@ setup_hermetic_host_context() {
 }
 
 # setup_dev_stack_tree: copies scripts/dev-stack.sh + its engine-adapter
-# dependency (scripts/container-engine.sh) + .env.example into an isolated
+# dependencies (container-engine.sh + compose-env.sh) + .env.example into an isolated
 # temp tree so the script never touches the real repo .env. Echoes the tree
 # root.
 setup_dev_stack_tree() {
@@ -231,6 +231,7 @@ setup_dev_stack_tree() {
   mkdir -p "$tree/scripts"
   cp "$SCRIPTS_DIR/dev-stack.sh" "$tree/scripts/dev-stack.sh"
   cp "$SCRIPTS_DIR/container-engine.sh" "$tree/scripts/container-engine.sh"
+  cp "$SCRIPTS_DIR/compose-env.sh" "$tree/scripts/compose-env.sh"
   cp "$REPO_ROOT/.env.example" "$tree/.env.example"
   echo "$tree"
 }

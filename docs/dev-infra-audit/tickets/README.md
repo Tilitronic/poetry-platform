@@ -316,15 +316,16 @@
 | DIA-260912-dean | Add OpenAI-first cost-balanced preset with Luna Terra Sol routing | opencode-config | Medium | OPEN | [DIA-260912-dean-add-openai-first-cost-balanced-preset-with-luna-terra-sol-routing.md](DIA-260912-dean-add-openai-first-cost-balanced-preset-with-luna-terra-sol-routing.md) |
 | DIA-260912-h8o5 | tests-infra: reproducible runtime for undeclared zod import | scripts | Medium | CLOSED | [DIA-260912-h8o5-tests-infra-reproducible-runtime-for-undeclared-zod-import.md](DIA-260912-h8o5-tests-infra-reproducible-runtime-for-undeclared-zod-import.md) |
 | DIA-260912-y2uo | Podman support for DIA-094: container-engine adapter with engine-neutral checks, hard-fail preserved | scripts | Medium | CLOSED | [DIA-260912-y2uo-podman-support-for-dia-094-container-engine-adapter-with-engine-neutral-checks-hard-fail-preserved.md](DIA-260912-y2uo-podman-support-for-dia-094-container-engine-adapter-with-engine-neutral-checks-hard-fail-preserved.md) |
-| DIA-260913-ir3r | Fix root-owned npm cache for OpenCode background dependency installs | docker | Major | OPEN | [DIA-260913-ir3r-fix-root-owned-npm-cache-for-opencode-background-dependency-installs.md](DIA-260913-ir3r-fix-root-owned-npm-cache-for-opencode-background-dependency-installs.md) |
+| DIA-260913-ir3r | Fix root-owned npm cache for OpenCode background dependency installs | docker | Major | CLOSED | [DIA-260913-ir3r-fix-root-owned-npm-cache-for-opencode-background-dependency-installs.md](DIA-260913-ir3r-fix-root-owned-npm-cache-for-opencode-background-dependency-installs.md) |
 | DIA-260913-srn4 | Refresh rustup-init checksums blocking Podman dev image rebuild | dev-infra | Major | CLOSED | [DIA-260913-srn4-refresh-rustup-init-checksums-blocking-podman-dev-image-rebuild.md](DIA-260913-srn4-refresh-rustup-init-checksums-blocking-podman-dev-image-rebuild.md) |
+| DIA-260914-4s66 | Avoid rootless Podman remap of host git ownership during entrypoint startup | docker | Critical | CLOSED | [DIA-260914-4s66-avoid-rootless-podman-remap-of-host-git-ownership-during-entrypoint-startup.md](DIA-260914-4s66-avoid-rootless-podman-remap-of-host-git-ownership-during-entrypoint-startup.md) |
 
 ## Status summary
 
 | Severity | Count |
 | -------- | ----- |
 | Blocker  | 9     |
-| Critical | 15    |
+| Critical | 16    |
 | Major    | 78    |
 | Medium   | 161   |
 | Minor    | 1     |
@@ -334,7 +335,7 @@
 
 | Status      | Count |
 | ----------- | ----- |
-| OPEN        | 72    |
+| OPEN        | 71    |
 | DONE        | 11    |
 | VALIDATE    | 0     |
 | E2E         | 0     |
@@ -343,7 +344,7 @@
 | FIXED       | 1     |
 | IMPLEMENTED | 2     |
 | VERIFIED    | 28    |
-| CLOSED      | 199   |
+| CLOSED      | 201   |
 | BLOCKED     | 0     |
 | DISPATCHED  | 0     |
 | RUNNING     | 0     |

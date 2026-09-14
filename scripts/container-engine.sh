@@ -81,6 +81,13 @@ container_engine_compose_bin() {
 container_engine_compose() {
   local engine
   engine="$(container_engine_select)" || return 1
+  # Direct CLI callers do not inherit Make's exported COMPOSE_FILE. Resolve
+  # the same engine/OS overlay here so `container-engine.sh compose ...` and
+  # `make ...` cannot create differently mapped containers.
+  if [ -z "${COMPOSE_FILE:-}" ]; then
+    COMPOSE_FILE="$(COMPOSE_ENGINE="$engine" bash "$(dirname "${BASH_SOURCE[0]}")/compose-env.sh")" || return 1
+    export COMPOSE_FILE
+  fi
   "$engine" compose "$@"
 }
 

@@ -209,6 +209,23 @@ setup_no_docker_client() {
   assert_log_only_engine podman
 }
 
+@test "operations: direct Podman CLI resolves the Podman compose overlay" {
+  export COMPOSE_ENGINE="podman"
+  unset COMPOSE_FILE
+  local bindir="$BATS_TEST_TMPDIR/compose-file-probe"
+  mkdir -p "$bindir"
+  cat > "$bindir/podman" <<'EOF'
+#!/usr/bin/env bash
+printf '%s\n' "${COMPOSE_FILE:-<unset>}"
+EOF
+  chmod +x "$bindir/podman"
+  PATH="$bindir:$PATH"
+
+  run bash "$ADAPTER" compose config --quiet
+  assert_status 0
+  assert_output_contains "docker-compose.yml:docker-compose.podman.yml"
+}
+
 @test "operations: reachability/status/exec probes use the selected engine" {
   export COMPOSE_ENGINE="podman"
   export FAKE_DOCKER_SERVICES="dev"
