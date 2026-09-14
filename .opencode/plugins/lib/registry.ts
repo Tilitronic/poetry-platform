@@ -70,6 +70,7 @@ type RegistryDeps = {
   registrySeqPath?: string
   messagesRowIdPath?: string
   journalLockPath?: string
+  activeLifecycleMaxEntries?: number
   processIdentity?: { pid: number; startedAt: string }
   isProcessAlive?: (owner: { pid: number; startedAt: string }) => boolean | { alive: boolean; startedAt?: string }
 }
@@ -145,14 +146,25 @@ function projectLifecycleRow(row: LifecycleRow): LifecycleRow {
 function isAuthoritativeOpen(row: LifecycleRow): boolean {
   const event = lifecycleEvent(row)
   const state = lifecycleState(row)
-  const childSpawn = event === "session_spawn" && typeof row.session_id === "string" && row.session_id.length > 0
-  return (event === "dispatch" || event === "invocation" || event === "invoked" || event === "resume" || event === "recovery" || childSpawn) &&
+  const childSpawn = event === "session_spawn" && typeof row.session_id === "string" && row.session_id.length > 0 &&
+    typeof row.parent_session === "string" && row.parent_session.length > 0 && row.parent_session !== row.session_id
+  return (event === "dispatch" || event === "invocation" || event === "invoked" || childSpawn) &&
+    state.length > 0 &&
     state !== "completed" && state !== "failed" && state !== "error" && state !== "cancelled" && state !== "terminal"
 }
 
 function isExplicitRecovery(row: LifecycleRow): boolean {
   const event = lifecycleEvent(row)
   return event === "resume" || event === "recovery" || row.recovery === "exact-session" || row.recovery_method === "exact-session"
+}
+
+function isRecoverableLifecycle(row: LifecycleRow): boolean {
+  const event = lifecycleEvent(row)
+  const state = lifecycleState(row)
+  return row.terminalUnreconciled === true || event === "stopped_without_result" || event === "stopped-without-result" ||
+    event === "return_channel_pending" || event === "return-channel-pending" ||
+    state === "stopped_without_result" || state === "stopped-without-result" ||
+    state === "return_channel_pending" || state === "return-channel-pending"
 }
 
 function isTerminalLifecycleRow(row: LifecycleRow): boolean {
@@ -187,6 +199,7 @@ export function createActiveLifecycleIndex({
   let sourceIdentity = initialSourceIdentity
   let byteOffset = initialByteOffset
   let partialLine = ""
+  const decoder = new TextDecoder()
 
   function rememberTransition(row: LifecycleRow): void {
     transitions.push(row)
@@ -218,6 +231,7 @@ export function createActiveLifecycleIndex({
     const current = active.get(identity)
     const knownGeneration = generations.get(identity)
 
+    if (!current && isExplicitRecovery(row)) return
     if (!current && !isTerminalLifecycleRow(row) && (isAuthoritativeOpen(row) || typeof row.lifecycle_generation === "number")) {
       const generation = typeof row.lifecycle_generation === "number" && !isExplicitRecovery(row) ? row.lifecycle_generation :
         (isExplicitRecovery(row) || knownGeneration === undefined || closed.has(identity) ?
@@ -233,9 +247,11 @@ export function createActiveLifecycleIndex({
     if (!current) return
 
     if (isExplicitRecovery(row)) {
+      if (!isRecoverableLifecycle(current)) return
       const generation = typeof row.seq === "number" && Number.isFinite(row.seq) ? row.seq : current.lifecycle_generation
-      rememberTransition({ ...row, session_id: identity, lifecycle_generation: generation })
-      admit(identity, { ...row, session_id: identity, lifecycle_generation: generation })
+      const recovered = { ...current, ...row, session_id: identity, lifecycle_generation: generation }
+      rememberTransition(recovered)
+      admit(identity, recovered)
       generations.set(identity, generation)
       closed.delete(identity)
       return
@@ -273,7 +289,7 @@ export function createActiveLifecycleIndex({
       throw new Error(`active projection offset mismatch: expected ${byteOffset}, received ${offset}`)
     }
     if (sourceIdentity === undefined && inode !== undefined) sourceIdentity = inode
-    const chunk = typeof bytes === "string" ? bytes : new TextDecoder().decode(bytes)
+    const chunk = typeof bytes === "string" ? bytes : decoder.decode(bytes, { stream: true })
     byteOffset += typeof bytes === "string" ? new TextEncoder().encode(bytes).byteLength : bytes.byteLength
     const lines = (partialLine + chunk).split("\n")
     partialLine = lines.pop() ?? ""
@@ -436,13 +452,16 @@ export function createRegistry(deps: RegistryDeps = {}) {
   let registryCounter: number | undefined
   let messagesCounter: number | undefined
   let activeIndexDirty = false
+  const activeLifecycleMaxEntries = deps.activeLifecycleMaxEntries ?? 500
   let bootstrapContent = ""
   let bootstrapIdentity: string | undefined
   if (fs.existsSync(registryPath)) {
     try {
+      const before = fs.statSync(registryPath)
       bootstrapContent = fs.readFileSync(registryPath, "utf-8")
-      const stat = fs.statSync(registryPath)
-      if (typeof stat.dev === "number" && typeof stat.ino === "number") bootstrapIdentity = `${stat.dev}:${stat.ino}`
+      const after = fs.statSync(registryPath)
+      if (before.size !== after.size || before.dev !== after.dev || before.ino !== after.ino) throw new Error("registry changed during bootstrap")
+      if (typeof after.dev === "number" && typeof after.ino === "number") bootstrapIdentity = `${after.dev}:${after.ino}`
     } catch {
       activeIndexDirty = true
     }
@@ -475,13 +494,13 @@ export function createRegistry(deps: RegistryDeps = {}) {
   try {
     activeLifecycleIndex = createActiveLifecycleIndex({
       rows: bootstrapRows,
-      maxEntries: 500,
+      maxEntries: activeLifecycleMaxEntries,
       sourceIdentity: bootstrapIdentity,
       byteOffset: new TextEncoder().encode(bootstrapContent).byteLength,
     })
   } catch {
     activeIndexDirty = true
-    activeLifecycleIndex = createActiveLifecycleIndex({ maxEntries: 500 })
+    activeLifecycleIndex = createActiveLifecycleIndex({ maxEntries: activeLifecycleMaxEntries })
   }
   const journal = createJournalPersistence({
     fs,
@@ -522,12 +541,50 @@ export function createRegistry(deps: RegistryDeps = {}) {
       } finally {
         fs.closeSync(fd)
       }
+      const after = fs.statSync(registryPath)
+      const afterIdentity = typeof after.dev === "number" && typeof after.ino === "number" ? `${after.dev}:${after.ino}` : undefined
+      if (identity !== afterIdentity || after.size < cursor.offset + read) {
+        activeIndexDirty = true
+        return { ok: false, error: "active lifecycle registry changed during refresh; rebuild required" }
+      }
       const applied = activeLifecycleIndex.consumeAppendedBytes({
         bytes: bytes.subarray(0, read),
         inode: identity,
         offset: cursor.offset,
       })
       return { ok: true, applied }
+    } catch (error) {
+      activeIndexDirty = true
+      return { ok: false, error: error instanceof Error ? error.message : String(error) }
+    }
+  }
+
+  function rebuildActiveLifecycleIndex(): { ok: true; applied: number } | { ok: false; error: string } {
+    try {
+      const before = fs.statSync(registryPath)
+      const content = fs.readFileSync(registryPath, "utf-8")
+      const after = fs.statSync(registryPath)
+      if (before.size !== after.size || before.dev !== after.dev || before.ino !== after.ino) {
+        throw new Error("active lifecycle registry changed during controlled rebuild")
+      }
+      const rows: LifecycleRow[] = []
+      let offset = 0
+      for (const line of content.split("\n")) {
+        if (line) {
+          try { rows.push({ ...(JSON.parse(line) as LifecycleRow), _offset: offset }) } catch { /* malformed row */ }
+        }
+        offset += new TextEncoder().encode(`${line}\n`).byteLength
+      }
+      const identity = typeof after.dev === "number" && typeof after.ino === "number" ? `${after.dev}:${after.ino}` : undefined
+      const candidate = createActiveLifecycleIndex({
+        rows,
+        maxEntries: activeLifecycleMaxEntries,
+        sourceIdentity: identity,
+        byteOffset: new TextEncoder().encode(content).byteLength,
+      })
+      activeLifecycleIndex = candidate
+      activeIndexDirty = false
+      return { ok: true, applied: rows.length }
     } catch (error) {
       activeIndexDirty = true
       return { ok: false, error: error instanceof Error ? error.message : String(error) }
@@ -774,6 +831,7 @@ export function createRegistry(deps: RegistryDeps = {}) {
     sessionMessageCount,
     activeLifecycleIndex,
     refreshActiveLifecycleIndex,
+    rebuildActiveLifecycleIndex,
     readActiveLifecycleEntries,
   }
 }
