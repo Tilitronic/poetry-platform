@@ -72,6 +72,130 @@ type RegistryDeps = {
   isProcessAlive?: (owner: { pid: number; startedAt: string }) => boolean | { alive: boolean; startedAt?: string }
 }
 
+type LifecycleRow = Record<string, unknown> & {
+  seq?: number
+  timestamp?: string
+  _offset?: number
+  session_id?: string
+  task_id?: string
+  event?: string
+  dispatch_state?: string
+  lifecycle_generation?: number
+}
+
+type ActiveLifecycleEntry = LifecycleRow & {
+  session_id: string
+  lifecycle_generation: number
+}
+
+function lifecycleRowOrder(row: LifecycleRow, position: number): [number, number, number] {
+  const seq = typeof row.seq === "number" && Number.isFinite(row.seq) ? row.seq : -1
+  const time = typeof row.timestamp === "string" ? Date.parse(row.timestamp) : Number.NaN
+  const timestamp = Number.isFinite(time) ? time : -1
+  const offset = typeof row._offset === "number" ? row._offset : position
+  return [seq, timestamp, offset]
+}
+
+function compareLifecycleRows(a: { row: LifecycleRow; position: number }, b: { row: LifecycleRow; position: number }): number {
+  const left = lifecycleRowOrder(a.row, a.position)
+  const right = lifecycleRowOrder(b.row, b.position)
+  for (let index = 0; index < left.length; index += 1) {
+    if (left[index] !== right[index]) return left[index] - right[index]
+  }
+  return a.position - b.position
+}
+
+function lifecycleIdentity(row: LifecycleRow): string | undefined {
+  const value = row.session_id ?? row.task_id
+  return typeof value === "string" && value.length > 0 ? value : undefined
+}
+
+function lifecycleEvent(row: LifecycleRow): string {
+  return typeof row.event === "string" ? row.event.toLowerCase() : ""
+}
+
+function lifecycleState(row: LifecycleRow): string {
+  return typeof row.dispatch_state === "string" ? row.dispatch_state.toLowerCase() : ""
+}
+
+function isAuthoritativeOpen(row: LifecycleRow): boolean {
+  const event = lifecycleEvent(row)
+  const state = lifecycleState(row)
+  return (event === "dispatch" || event === "invocation" || event === "invoked" || event === "resume" || event === "recovery") &&
+    state !== "completed" && state !== "failed" && state !== "error" && state !== "cancelled" && state !== "terminal"
+}
+
+function isExplicitRecovery(row: LifecycleRow): boolean {
+  const event = lifecycleEvent(row)
+  return event === "resume" || event === "recovery" || row.recovery === "exact-session" || row.recovery_method === "exact-session"
+}
+
+function isTerminalLifecycleRow(row: LifecycleRow): boolean {
+  const event = lifecycleEvent(row)
+  const state = lifecycleState(row)
+  return event === "task_success" || event === "task_completed" || event === "completed" || event === "task_error" ||
+    event === "task_failed" || event === "failed" || event === "error" || event === "cancelled" ||
+    state === "completed" || state === "failed" || state === "error" || state === "cancelled"
+}
+
+/**
+ * Project registry rows into the small lifecycle state consumed by the sweep.
+ * This is deliberately functional: the returned closure owns only projection
+ * state and does not read or write journals.
+ */
+export function createActiveLifecycleIndex({ rows = [] }: { rows?: LifecycleRow[] } = {}) {
+  const active = new Map<string, ActiveLifecycleEntry>()
+  const generations = new Map<string, number>()
+  const closed = new Set<string>()
+  const history: LifecycleRow[] = []
+  const ordered = rows.map((row, position) => ({ row, position })).sort(compareLifecycleRows)
+
+  for (const item of ordered) {
+    const row = { ...item.row }
+    const identity = lifecycleIdentity(row)
+    if (!identity) continue
+    const current = active.get(identity)
+    const knownGeneration = generations.get(identity)
+
+    if (!current && (isAuthoritativeOpen(row) || typeof row.lifecycle_generation === "number")) {
+      const generation = typeof row.lifecycle_generation === "number" && !isExplicitRecovery(row) ? row.lifecycle_generation :
+        (isExplicitRecovery(row) || knownGeneration === undefined || closed.has(identity) ?
+          (typeof row.seq === "number" && Number.isFinite(row.seq) ? row.seq : undefined) : knownGeneration)
+      if (generation === undefined) continue
+      const entry = { ...row, session_id: identity, lifecycle_generation: generation }
+      active.set(identity, entry)
+      generations.set(identity, generation)
+      continue
+    }
+
+    if (!current) continue
+
+    if (isExplicitRecovery(row)) {
+      const generation = typeof row.seq === "number" && Number.isFinite(row.seq) ? row.seq : current.lifecycle_generation
+      history.push({ ...row, session_id: identity, lifecycle_generation: generation })
+      active.set(identity, { ...row, session_id: identity, lifecycle_generation: generation })
+      generations.set(identity, generation)
+      continue
+    }
+
+    const attached = { ...row, session_id: identity, lifecycle_generation: current.lifecycle_generation }
+    history.push(attached)
+    if (isTerminalLifecycleRow(row)) {
+      active.delete(identity)
+      closed.add(identity)
+      continue
+    }
+    active.set(identity, { ...current, ...attached, lifecycle_generation: current.lifecycle_generation })
+  }
+
+  return {
+    entries: (): ActiveLifecycleEntry[] => Array.from(active.values()),
+    generationFor: (identity: string): number | undefined => active.get(identity)?.lifecycle_generation ?? generations.get(identity),
+    history: (): LifecycleRow[] => history.slice(),
+    exportRows: (): LifecycleRow[] => Array.from(active.values()).map((entry) => ({ ...entry })),
+  }
+}
+
 function resolveFs(deps: RegistryDeps): FsDeps {
   if (deps.fs && typeof deps.fs.appendFileSync === "function") return deps.fs
   return {
