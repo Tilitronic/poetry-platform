@@ -144,11 +144,13 @@ export function createStallSweep(deps: StallSweepDeps = {}): StallSweepHandle {
   let stallSweepFirstDone = false
   let inFlight = false
   const reportedWarnings = new Set<string>()
+  const MAX_REPORTED_WARNINGS = 32
 
   function reportWarning(error: unknown, fingerprint?: string): void {
     const message = error instanceof Error ? error.message : String(error)
     const key = fingerprint ?? message
     if (reportedWarnings.has(key)) return
+    if (reportedWarnings.size >= MAX_REPORTED_WARNINGS) return
     reportedWarnings.add(key)
     try { onError(error instanceof Error ? error : new Error(message)) } catch { /* noop */ }
   }
@@ -166,6 +168,7 @@ export function createStallSweep(deps: StallSweepDeps = {}): StallSweepHandle {
       }
 
       const latestByKey = new Map<string, RegistryRow>()
+      const validRows: RegistryRow[] = []
       let malformedRows = 0
       for (const r of rows) {
         try {
@@ -173,6 +176,7 @@ export function createStallSweep(deps: StallSweepDeps = {}): StallSweepHandle {
             malformedRows += 1
             continue
           }
+          validRows.push(r)
           if (typeof r.dispatch_state !== "string") continue
           const key = (r.session_id ?? r.task_id) as string | undefined
           if (!key) continue
@@ -185,6 +189,7 @@ export function createStallSweep(deps: StallSweepDeps = {}): StallSweepHandle {
           continue
         }
       }
+      if (malformedRows > 0) reportWarning(new Error(`malformed registry rows skipped: ${malformedRows}`), "malformed-rows")
       if (latestByKey.size === 0) {
         stallSweepFirstDone = true
         return
@@ -192,7 +197,7 @@ export function createStallSweep(deps: StallSweepDeps = {}): StallSweepHandle {
 
       const lastStallByKey = new Map<string, number>()
       const lastDeadByKey = new Map<string, number>()
-      for (const r of rows) {
+      for (const r of validRows) {
         try {
           const key = (r.session_id ?? r.task_id) as string | undefined
           if (!key) continue
@@ -209,8 +214,6 @@ export function createStallSweep(deps: StallSweepDeps = {}): StallSweepHandle {
           continue
         }
       }
-      if (malformedRows > 0) reportWarning(new Error(`malformed registry rows skipped: ${malformedRows}`), "malformed-rows")
-
       const nowMs = now()
       const isFirstSweep = !stallSweepFirstDone
       for (const [key, row] of latestByKey) {
