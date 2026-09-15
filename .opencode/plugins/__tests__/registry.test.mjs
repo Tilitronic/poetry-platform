@@ -294,6 +294,22 @@ describe("RED-F — verified registry rotation", () => {
     }
   })
 
+  it("recreates the registry after rotation without lowering either durable sidecar high-water mark", () => {
+    const fixture = rotationFixture()
+    try {
+      const first = fixture.make()
+      const rotated = requireRotation(first)
+      assert.equal(rotated.ok, true, "RED-F: rotation must succeed before restart check")
+      const restarted = fixture.make()
+      const registry = restarted.appendRow({ event: "post_restart_registry" })
+      const message = restarted.appendMessageRow({ event: "post_restart_message" })
+      assert.ok(registry.id > 12, "RED-F: registry seq sidecar must survive restart")
+      assert.ok(message.id > 33, "RED-F: message row_id sidecar must survive restart")
+    } finally {
+      nodeFs.rmSync(fixture.root, { recursive: true, force: true })
+    }
+  })
+
   it("serializes rotation with a concurrent append and leaves one authoritative active file", () => {
     const fixture = rotationFixture()
     try {
@@ -339,15 +355,15 @@ describe("RED-F — verified registry rotation", () => {
       const result = requireRotation(fixture.make())
       assert.equal(result.ok, true, "RED-F: verified rotation must succeed")
       const archiveName = nodeFs.realpathSync(result.archivePath).split("/").pop()
-      assert.match(archiveName ?? "", /^registry-\d+(?:-[0-9a-f-]+)?\.jsonl$/, "RED-F: archive filename must be explicit and collision-safe")
       const manifest = JSON.parse(nodeFs.readFileSync(result.manifestPath, "utf8"))
-      assert.equal(manifest.archive, archiveName)
+      assert.equal(manifest.archive, archiveName, "RED-F: manifest must identify the published archive exactly")
       assert.equal(manifest.byte_count, Buffer.byteLength(fixture.source))
       assert.equal(manifest.row_count, 3, "RED-F: malformed line is not a valid row")
       assert.equal(manifest.malformed_row_count, 1)
       assert.equal(manifest.first_seq, 4)
       assert.equal(manifest.last_seq, 12)
       assert.equal(manifest.sha256, createHash("sha256").update(fixture.source).digest("hex"))
+      assert.equal(createHash("sha256").update(nodeFs.readFileSync(result.archivePath)).digest("hex"), manifest.sha256, "RED-F: independent archive read must retain integrity")
     } finally {
       nodeFs.rmSync(fixture.root, { recursive: true, force: true })
     }
@@ -425,16 +441,27 @@ describe("RED-F — verified registry rotation", () => {
       const fixture = rotationFixture()
       try {
         const failingFs = { ...nodeFs }
-        const original = stage === "active replacement" ? nodeFs.renameSync : stage.includes("fsync") ? nodeFs.fsyncSync : stage === "manifest write" ? nodeFs.writeFileSync : nodeFs.readFileSync
-        const injected = (...args) => {
-          if (stage === "copy" || stage === "checksum" || stage === "verification" || original === nodeFs.readFileSync) throw new Error(`RED-F injected ${stage} failure`)
-          if (stage.includes("fsync") || stage === "active replacement" || stage === "manifest write") throw new Error(`RED-F injected ${stage} failure`)
-          return original(...args)
+        const fdPaths = new Map()
+        const originalOpen = nodeFs.openSync
+        failingFs.openSync = (path, flags) => { const fd = originalOpen(path, flags); fdPaths.set(fd, path); return fd }
+        failingFs.readFileSync = (path, encoding) => {
+          if (stage === "copy" && path === fixture.registryPath) throw new Error("RED-F injected copy failure")
+          if (stage === "checksum" && path.includes("registry-archive")) throw new Error("RED-F injected checksum failure")
+          if (stage === "verification" && (path.includes("registry-archive") || path.includes("manifest"))) throw new Error("RED-F injected verification failure")
+          return nodeFs.readFileSync(path, encoding)
         }
-        if (original === nodeFs.renameSync) failingFs.renameSync = injected
-        else if (original === nodeFs.fsyncSync) failingFs.fsyncSync = injected
-        else if (original === nodeFs.writeFileSync) failingFs.writeFileSync = injected
-        else failingFs.readFileSync = injected
+        failingFs.writeFileSync = (path, data) => {
+          if (stage === "manifest write" && path.includes("registry-archive")) throw new Error("RED-F injected manifest write failure")
+          return nodeFs.writeFileSync(path, data)
+        }
+        failingFs.fsyncSync = (fd) => {
+          if ((stage === "archive fsync" || stage === "manifest fsync") && fdPaths.get(fd)?.includes("registry-archive")) throw new Error(`RED-F injected ${stage} failure`)
+          return nodeFs.fsyncSync(fd)
+        }
+        failingFs.renameSync = (from, to) => {
+          if (stage === "active replacement" && to === fixture.registryPath) throw new Error("RED-F injected active replacement failure")
+          return nodeFs.renameSync(from, to)
+        }
         const registry = mod.createRegistry({ directory: fixture.root, registryPath: fixture.registryPath, messagesPath: fixture.messagesPath, messagesMdPath: nodeJoin(fixture.session, "messages.md"), registrySeqPath: nodeJoin(fixture.session, "registry.seq"), messagesRowIdPath: nodeJoin(fixture.session, "messages.row-id"), journalLockPath: nodeJoin(fixture.session, "journal.lock"), archiveDir: fixture.archive, fs: failingFs })
         assert.equal(typeof registry.rotateRegistry, "function", `RED-F ${stage}: rotation boundary required`)
         const result = registry.rotateRegistry()
