@@ -694,6 +694,93 @@ export function createRegistry(deps: RegistryDeps = {}) {
     }
   }
 
+  /**
+   * Atomically reserve and append one stall tier after checking the durable
+   * active projection. The lock covers both the incremental ingest and the
+   * compare, so separate plugin processes converge on one row.
+   */
+  function compareAndAppendStall(candidate: {
+    session_id?: string
+    task_id?: string
+    lifecycle_generation?: number
+    tier?: string
+    row: Record<string, unknown>
+  }): AppendResult | { ok: false; reason: "duplicate" } {
+    let acquired = journal.acquireJournalLock()
+    for (let attempt = 0; acquired.ok === false && attempt < 100; attempt += 1) {
+      if (typeof Atomics?.wait === "function") {
+        Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 1)
+      }
+      acquired = journal.acquireJournalLock()
+    }
+    if (acquired.ok === false) {
+      // A concurrent writer may have completed the same durable append while
+      // this process observed the live lock. Confirm that narrow race before
+      // returning the retryable lock failure.
+      try {
+        if (fs.existsSync(registryPath)) {
+          const identity = candidate.session_id ?? candidate.task_id
+          const generation = candidate.lifecycle_generation
+          const tier = candidate.tier ?? (candidate.row.escalation === "dead" ? "dead" : "stall")
+          const duplicate = fs.readFileSync(registryPath, "utf-8").split("\n").some((line) => {
+            if (!line) return false
+            try {
+              const row = JSON.parse(line) as Record<string, unknown>
+              return (row.session_id ?? row.task_id) === identity && row.lifecycle_generation === generation &&
+                row.event === "stall_detected" && (tier === "dead" ? row.escalation === "dead" : row.escalation !== "dead")
+            } catch { return false }
+          })
+          if (duplicate) return { ok: false, reason: "duplicate" }
+        }
+      } catch { /* preserve the explicit lock failure */ }
+      return acquired
+    }
+    try {
+      const refreshed = refreshActiveLifecycleIndex()
+      if (!refreshed.ok) {
+        journal.releaseJournalLock(acquired.token)
+        return { ok: false, stage: "index", retryable: false, error: refreshed.error }
+      }
+      const identity = candidate.session_id ?? candidate.task_id
+      const generation = candidate.lifecycle_generation
+      const tier = candidate.tier ?? (candidate.row.escalation === "dead" ? "dead" : "stall")
+      const existing = identity && typeof generation === "number"
+        ? activeLifecycleIndex.entries().find((entry) =>
+          entry.session_id === identity && entry.lifecycle_generation === generation &&
+          (tier === "dead" ? typeof entry.last_dead_timestamp === "string" : typeof entry.last_stall_timestamp === "string"))
+        : undefined
+      if (existing) {
+        journal.releaseJournalLock(acquired.token)
+        return { ok: false, reason: "duplicate" }
+      }
+
+      let seq = 0
+      const entry: Record<string, unknown> = { ...candidate.row }
+      entry[tier === "dead" ? "last_dead_timestamp" : "last_stall_timestamp"] = isoNow(deps)
+      seq = journal.reserveCounter(registrySeqPath, maxRegistrySeq, registryCounter) + 1
+      registryCounter = seq
+      journal.publishCounter(registrySeqPath, seq)
+      entry.seq = seq
+      entry.timestamp = entry[tier === "dead" ? "last_dead_timestamp" : "last_stall_timestamp"]
+      journal.appendChecked(registryPath, JSON.stringify(entry) + "\n")
+      registryHistoryMax = Math.max(registryHistoryMax, seq)
+      try {
+        activeLifecycleIndex.apply(entry)
+      } catch (error) {
+        activeIndexDirty = true
+        journal.releaseJournalLock(acquired.token)
+        return { ok: false, stage: "index", retryable: false,
+          error: error instanceof Error ? error.message : String(error), reserved_id: seq }
+      }
+      journal.releaseJournalLock(acquired.token)
+      return { ok: true, id: seq, entry }
+    } catch (error) {
+      journal.releaseJournalLock(acquired.token)
+      return { ok: false, stage: "append", retryable: false,
+        error: error instanceof Error ? error.message : String(error) }
+    }
+  }
+
   /** Explicit, operator-invoked repair for absent/corrupt/lower sidecars. */
   function recoverCounters(): { ok: true; registry: number; messages: number } | { ok: false; stage: "lock" | "counter"; retryable: boolean; error: string } {
     const acquired = journal.acquireJournalLock()
@@ -820,6 +907,7 @@ export function createRegistry(deps: RegistryDeps = {}) {
 
   return {
     appendRow,
+    compareAndAppendStall,
     appendMessageRow,
     recoverCounters,
     captureConfigLoadSignal,

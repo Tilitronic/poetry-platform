@@ -449,19 +449,10 @@ const delegationObserver: Plugin = async (ctx) => {
     handleStore: stallSweepStore as unknown as Record<symbol, unknown>,
     now: () => Date.now(),
     readActiveEntries: () => registry.readActiveLifecycleEntries(),
+    compareAndAppendStall: (candidate) => registry.compareAndAppendStall(candidate),
     getRootSessionIds: () => rootSessionIds,
     getSessionMeta: (key: string) => sessionMeta.get(key),
     emitStall: (key: string, row: Record<string, unknown>, ageSec: number, thresholdMin: number, escalation?: "dead") => {
-      registry.appendRow({
-        event: "stall_detected",
-        session_id: row.session_id as string | undefined,
-        task_id: row.task_id as string | undefined,
-        stall_duration_seconds: ageSec,
-        last_status: row.status as string | undefined,
-        detected_at: new Date().toISOString(),
-        ...(escalation === "dead" ? { escalation: "dead", note: "assumed dead - still non-terminal past STALL_DEAD_MINUTES (ana011 claim-staleness protocol)" } : {}),
-        writer: "plugin",
-      })
       registry.appendMessageRow({
         "gen_ai.operation.name": "invoke_workflow",
         from: "orchestrator",

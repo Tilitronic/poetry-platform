@@ -63,6 +63,13 @@ export interface StallSweepDeps {
   readRegistryRows?: () => RegistryRow[]
   readActiveEntries?: () => RegistryRow[]
   emitStall?: (key: string, row: RegistryRow, ageSec: number, thresholdMin: number, escalation?: "dead") => void
+  compareAndAppendStall?: (candidate: {
+    session_id?: string
+    task_id?: string
+    lifecycle_generation?: number
+    tier: "stall" | "dead"
+    row: RegistryRow
+  }) => { ok: boolean; [key: string]: unknown }
   pluginLoadMs?: number
   thresholds?: Partial<StallSweepThresholds>
   handleStore?: Record<symbol, unknown>
@@ -118,6 +125,7 @@ export function createStallSweep(deps: StallSweepDeps = {}): StallSweepHandle {
   const now = deps.now ?? Date.now
   const readSweepRows = deps.readActiveEntries ?? deps.readRegistryRows ?? (() => [] as RegistryRow[])
   const emitStall = deps.emitStall ?? (() => {})
+  const compareAndAppendStall = deps.compareAndAppendStall ?? (() => ({ ok: true }))
   const pluginLoadMs = deps.pluginLoadMs ?? 0
   const onError = deps.onError ?? (() => {})
   const handleStore = (deps.handleStore ?? (globalThis as unknown as Record<symbol, unknown>)) as Record<symbol, unknown>
@@ -206,13 +214,49 @@ export function createStallSweep(deps: StallSweepDeps = {}): StallSweepHandle {
           if (ageSec >= thresholds.dead * 60) {
             const lastDead = lastDeadByKey.get(key)
             if (lastDead !== undefined && nowMs - lastDead < thresholds.dead * 60_000) continue
-            emitStall(key, row, ageSec, thresholds.dead, "dead")
+            const result = compareAndAppendStall({
+              session_id: row.session_id,
+              task_id: row.task_id,
+              lifecycle_generation: typeof row.lifecycle_generation === "number" ? row.lifecycle_generation : undefined,
+              tier: "dead",
+              row: {
+                event: "stall_detected",
+                session_id: row.session_id,
+                task_id: row.task_id,
+                lifecycle_generation: row.lifecycle_generation,
+                dispatch_state: row.dispatch_state,
+                stall_duration_seconds: ageSec,
+                last_status: row.status,
+                detected_at: new Date(nowMs).toISOString(),
+                escalation: "dead",
+                note: "assumed dead - still non-terminal past STALL_DEAD_MINUTES (ana011 claim-staleness protocol)",
+                writer: "plugin",
+              },
+            })
+            if (result?.ok === true) emitStall(key, row, ageSec, thresholds.dead, "dead")
             continue
           }
           if (ageSec < thresholdMin * 60) continue
           const lastStall = lastStallByKey.get(key)
           if (lastStall !== undefined && nowMs - lastStall < thresholdMin * 60_000) continue
-          emitStall(key, row, ageSec, thresholdMin, undefined)
+          const result = compareAndAppendStall({
+            session_id: row.session_id,
+            task_id: row.task_id,
+            lifecycle_generation: typeof row.lifecycle_generation === "number" ? row.lifecycle_generation : undefined,
+            tier: "stall",
+            row: {
+              event: "stall_detected",
+              session_id: row.session_id,
+              task_id: row.task_id,
+              lifecycle_generation: row.lifecycle_generation,
+              dispatch_state: row.dispatch_state,
+              stall_duration_seconds: ageSec,
+              last_status: row.status,
+              detected_at: new Date(nowMs).toISOString(),
+              writer: "plugin",
+            },
+          })
+          if (result?.ok === true) emitStall(key, row, ageSec, thresholdMin, undefined)
         } catch (e) {
           try { onError(e) } catch { /* noop */ }
           continue
