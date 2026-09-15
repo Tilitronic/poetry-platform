@@ -346,6 +346,35 @@ JSON
   assert_output_contains "universe:       1"
 }
 
+@test "jsonl-cross-check: archive dedup canonicalizes nested object key order for the same seq" {
+  tree="$(setup_tree)"
+  local dir="$BATS_TEST_TMPDIR/archive-cross-check-nested-seq-dedup"
+  mkdir -p "$dir/archive"
+  cat > "$dir/registry.jsonl" <<'JSONL'
+{"seq":2,"timestamp":"2026-08-06T20:01:00Z","event":"task_success","task_id":"t-active","writer":"plugin","payload":{"outer":{"a":1,"b":2},"z":3}}
+JSONL
+  cat > "$dir/messages.jsonl" <<'JSONL'
+{"row_id":2,"timestamp":"2026-08-06T20:01:02Z","gen_ai.operation.name":"invoke_agent","gen_ai.agent.id":"t-active","event_type":"delegation"}
+JSONL
+  cat > "$dir/archive/registry-old.jsonl" <<'JSONL'
+{"payload":{"z":3,"outer":{"b":2,"a":1}},"writer":"plugin","task_id":"t-active","event":"task_success","timestamp":"2026-08-06T20:01:00Z","seq":2}
+JSONL
+  local checksum
+  checksum="$(sha256sum "$dir/archive/registry-old.jsonl" | awk '{print $1}')"
+  local byte_count
+  byte_count="$(wc -c < "$dir/archive/registry-old.jsonl")"
+  cat > "$dir/archive/registry-old.jsonl.manifest.json" <<JSON
+{"archive":"registry-old.jsonl","sha256":"$checksum","byte_count":$byte_count,"row_count":1}
+JSON
+
+  run bash "$tree/.opencode/scripts/jsonl-cross-check.sh" \
+    "$dir/registry.jsonl" "$dir/messages.jsonl" --archive-dir "$dir/archive" \
+    --since 2026-08-06T00:00:00Z
+
+  assert_status 0
+  assert_output_contains "universe:       1"
+}
+
 @test "jsonl-cross-check: archive fails closed on conflicting payload for the same seq" {
   tree="$(setup_tree)"
   local dir="$BATS_TEST_TMPDIR/archive-cross-check-seq-conflict"
