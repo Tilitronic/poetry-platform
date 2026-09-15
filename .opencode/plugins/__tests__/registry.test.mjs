@@ -332,6 +332,120 @@ describe("RED-F — verified registry rotation", () => {
       nodeFs.rmSync(fixture.root, { recursive: true, force: true })
     }
   })
+
+  it("publishes an explicit manifest with archive identity, counts, sequence range, malformed rows, and bytes", () => {
+    const fixture = rotationFixture()
+    try {
+      const result = requireRotation(fixture.make())
+      assert.equal(result.ok, true, "RED-F: verified rotation must succeed")
+      const archiveName = nodeFs.realpathSync(result.archivePath).split("/").pop()
+      assert.match(archiveName ?? "", /^registry-\d+(?:-[0-9a-f-]+)?\.jsonl$/, "RED-F: archive filename must be explicit and collision-safe")
+      const manifest = JSON.parse(nodeFs.readFileSync(result.manifestPath, "utf8"))
+      assert.equal(manifest.archive, archiveName)
+      assert.equal(manifest.byte_count, Buffer.byteLength(fixture.source))
+      assert.equal(manifest.row_count, 3, "RED-F: malformed line is not a valid row")
+      assert.equal(manifest.malformed_row_count, 1)
+      assert.equal(manifest.first_seq, 4)
+      assert.equal(manifest.last_seq, 12)
+      assert.equal(manifest.sha256, createHash("sha256").update(fixture.source).digest("hex"))
+    } finally {
+      nodeFs.rmSync(fixture.root, { recursive: true, force: true })
+    }
+  })
+
+  it("retains pending, recoverable, and unreconciled lifecycle rows while removing terminal history", () => {
+    const fixture = rotationFixture()
+    const extra = [
+      JSON.stringify({ seq: 13, event: "needs_input", session_id: "ses_pending", lifecycle_generation: 13, dispatch_state: "pending" }),
+      JSON.stringify({ seq: 14, event: "resume_available", session_id: "ses_recoverable", lifecycle_generation: 14, recoverable: true }),
+      JSON.stringify({ seq: 15, event: "stopped-without-result", session_id: "ses_unreconciled", lifecycle_generation: 15, terminalUnreconciled: true }),
+    ].join("\n") + "\n"
+    nodeFs.appendFileSync(fixture.registryPath, extra)
+    try {
+      const result = requireRotation(fixture.make())
+      assert.equal(result.ok, true, "RED-F: rotation must succeed")
+      const active = nodeFs.readFileSync(fixture.registryPath, "utf8")
+      assert.match(active, /ses_pending/)
+      assert.match(active, /ses_recoverable/)
+      assert.match(active, /ses_unreconciled/)
+      assert.doesNotMatch(active, /ses_done/)
+    } finally {
+      nodeFs.rmSync(fixture.root, { recursive: true, force: true })
+    }
+  })
+
+  it("uses the shared lock for a true cross-process append-versus-rotate race", async () => {
+    const fixture = rotationFixture()
+    const moduleUrl = new URL("../lib/registry.ts", import.meta.url).href
+    const childSource = `
+      import { createRegistry } from ${JSON.stringify(moduleUrl)};
+      import * as fs from "node:fs";
+      const root = process.env.TQOR_ROTATION_ROOT;
+      const session = root + "/.opencode/session";
+      const registry = createRegistry({ directory: root, registryPath: session + "/registry.jsonl", messagesPath: session + "/messages.jsonl", messagesMdPath: session + "/messages.md", registrySeqPath: session + "/registry.seq", messagesRowIdPath: session + "/messages.row-id", journalLockPath: session + "/journal.lock", archiveDir: session + "/registry-archive" });
+      process.stdout.write("READY\\n");
+      fs.readFileSync(0, "utf8");
+      let result;
+      try { result = process.env.TQOR_ROTATE === "1" ? registry.rotateRegistry() : registry.appendRow({ event: "cross_process_append", session_id: "ses_live" }); }
+      catch (error) { result = { ok: false, error: error instanceof Error ? error.message : String(error) }; }
+      process.stdout.write("RESULT " + JSON.stringify(result) + "\\n");
+    `
+    function spawn(role) {
+      const child = globalThis.Bun.spawn([process.execPath, "--eval", childSource], { cwd: new URL("..", import.meta.url).pathname, env: { ...process.env, TQOR_ROTATION_ROOT: fixture.root, TQOR_ROTATE: role }, stdin: "pipe", stdout: "pipe", stderr: "pipe" })
+      return { child, reader: child.stdout.getReader() }
+    }
+    async function ready(handle) {
+      const chunk = await handle.reader.read()
+      assert.match(new TextDecoder().decode(chunk.value), /READY/)
+    }
+    async function release(handle) {
+      handle.child.stdin.write("go")
+      handle.child.stdin.end()
+      let output = ""
+      const decoder = new TextDecoder()
+      for (;;) { const chunk = await handle.reader.read(); if (chunk.done) break; output += decoder.decode(chunk.value) }
+      assert.equal(await handle.child.exited, 0)
+      return JSON.parse(output.match(/RESULT (.+)/)?.[1] ?? "null")
+    }
+    try {
+      const append = spawn("0")
+      const rotate = spawn("1")
+      await Promise.all([ready(append), ready(rotate)])
+      const [appendResult, rotateResult] = await Promise.all([release(append), release(rotate)])
+      assert.equal(appendResult.ok, true, "RED-F: append must complete under shared lock")
+      assert.equal(rotateResult.ok, true, "RED-F: rotate must complete under shared lock")
+    } finally {
+      nodeFs.rmSync(fixture.root, { recursive: true, force: true })
+    }
+  })
+
+  it("fails closed at every publication stage and emits no success row before verification", () => {
+    const stages = ["copy", "archive fsync", "checksum", "manifest write", "manifest fsync", "verification", "active replacement"]
+    for (const stage of stages) {
+      const fixture = rotationFixture()
+      try {
+        const failingFs = { ...nodeFs }
+        const original = stage === "active replacement" ? nodeFs.renameSync : stage.includes("fsync") ? nodeFs.fsyncSync : stage === "manifest write" ? nodeFs.writeFileSync : nodeFs.readFileSync
+        const injected = (...args) => {
+          if (stage === "copy" || stage === "checksum" || stage === "verification" || original === nodeFs.readFileSync) throw new Error(`RED-F injected ${stage} failure`)
+          if (stage.includes("fsync") || stage === "active replacement" || stage === "manifest write") throw new Error(`RED-F injected ${stage} failure`)
+          return original(...args)
+        }
+        if (original === nodeFs.renameSync) failingFs.renameSync = injected
+        else if (original === nodeFs.fsyncSync) failingFs.fsyncSync = injected
+        else if (original === nodeFs.writeFileSync) failingFs.writeFileSync = injected
+        else failingFs.readFileSync = injected
+        const registry = mod.createRegistry({ directory: fixture.root, registryPath: fixture.registryPath, messagesPath: fixture.messagesPath, messagesMdPath: nodeJoin(fixture.session, "messages.md"), registrySeqPath: nodeJoin(fixture.session, "registry.seq"), messagesRowIdPath: nodeJoin(fixture.session, "messages.row-id"), journalLockPath: nodeJoin(fixture.session, "journal.lock"), archiveDir: fixture.archive, fs: failingFs })
+        assert.equal(typeof registry.rotateRegistry, "function", `RED-F ${stage}: rotation boundary required`)
+        const result = registry.rotateRegistry()
+        assert.equal(result.ok, false, `RED-F ${stage}: failure must fail closed`)
+        assert.equal(nodeFs.readFileSync(fixture.registryPath, "utf8"), fixture.source)
+        assert.doesNotMatch(nodeFs.readFileSync(fixture.registryPath, "utf8"), /registry_rotated/)
+      } finally {
+        nodeFs.rmSync(fixture.root, { recursive: true, force: true })
+      }
+    }
+  })
 })
 
 function makeRegistryDepsForRedE(fakeFs) {
