@@ -90,8 +90,13 @@ project plugin's stall-sweep persistence contract.
   observer and stall sweep notify only after a durable stall append succeeds.
 - RED/GREEN fixed points: `22596e2` (RED-D), `c81c827` (GREEN-D), and `8be415a`
   (accepted review fix). Earlier slices are recorded in the OpenSpec history.
-- Archive/compaction, archive-aware readers, live migration, and final runtime
-  observation remain deferred sections 6-10 of the same OPEN ticket.
+- Explicit operator-only rotation now creates a byte-identical immutable archive
+  and verified manifest under the shared lock, compacts active lifecycle state,
+  preserves both counter high-water marks, and rolls back the authoritative
+  active registry if a later index/counter/event step fails. It is never called
+  by the periodic sweep or hot hooks and provides no archive deletion API.
+- Archive-aware readers, live migration, and final runtime observation remain
+  deferred sections 7-10 of the same OPEN ticket.
 - RED-E fixed points `2ce8e1a` and `9ba59c1` cover failure/malformed input.
   GREEN-E `0d0468a` preserves actual failure stages and rate-limits warnings;
   review fix `a306081` bounds warning fingerprints and reports malformed-only
@@ -112,4 +117,13 @@ project plugin's stall-sweep persistence contract.
 - The independent reviewer lane could not start because its Codex usage quota
   was exhausted. Root performed the read-only diff review; two boundedness and
   malformed-only observations were fixed in the original GREEN-E session.
-- Ticket remains OPEN pending the unchecked archive/migration/runtime-smoke work.
+- RED-F commits `06d62f8`, `35c50e4`, `e2696cd`, and `7b74497` establish the
+  real-filesystem, cross-process, failure-stage, rollback, and raw-byte contract.
+  GREEN-F commits `8319d05` and `9d11a2c` implement it in a separate coder
+  instance. Focused registry verification is 70/70; Podman pre-commit, Prettier,
+  and `git diff --check` pass.
+- Targeted GREEN-F re-review cycle 1/2 verified all four accepted findings
+  closed: distinct failure stages, archive/manifest rename coverage,
+  post-replacement rollback, and byte-identical non-UTF-8 archival.
+- Ticket remains OPEN pending archive-aware readers, controlled live migration,
+  runtime smoke, and final closure work in sections 7-10.

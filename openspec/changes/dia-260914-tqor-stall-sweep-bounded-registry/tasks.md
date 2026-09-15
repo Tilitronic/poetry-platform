@@ -55,9 +55,9 @@
 
 ## 6. Verified archive and active compaction
 
-- [ ] 6.1 **RED-F:** A test-only coder adds real-filesystem failing tests for immutable archive creation, manifest/checksum, lifecycle retention, sequence continuity, atomic replacement, concurrent append serialization, and fail-closed copy/fsync/checksum/manifest/rename failures.
-- [ ] 6.2 **GREEN-F, different instance:** Add explicit rotation to `lib/registry.ts` using the shared persistence lock and approved migration order. Never invoke it from periodic sweep or hot hooks.
-- [ ] 6.3 Preserve both counter high-water marks, rebuild process-local indexes, and append one `registry_rotated` event only after verified success. Add no archive deletion API.
+- [x] 6.1 **RED-F:** A test-only coder adds real-filesystem failing tests for immutable archive creation, manifest/checksum, lifecycle retention, sequence continuity, atomic replacement, concurrent append serialization, and fail-closed copy/fsync/checksum/manifest/rename failures.
+- [x] 6.2 **GREEN-F, different instance:** Add explicit rotation to `lib/registry.ts` using the shared persistence lock and approved migration order. Never invoke it from periodic sweep or hot hooks.
+- [x] 6.3 Preserve both counter high-water marks, rebuild process-local indexes, and append one `registry_rotated` event only after verified success. Add no archive deletion API.
 
 **Dependencies:** 1, 3, 5. **Acceptance:** Failure leaves the original active registry authoritative; success creates a verified immutable archive/manifest and compact active state; counters never decrease.
 
