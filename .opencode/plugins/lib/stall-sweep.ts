@@ -107,11 +107,13 @@ function sessionRoleFromRows(
     }
   } catch { /* noop */ }
   for (const r of rows) {
+    if (!r || typeof r !== "object") continue
     if ((r.session_id ?? r.task_id) !== key) continue
     if (r.role === "orchestrator") return "orchestrator"
   }
   let sawSubagent = false
   for (const r of rows) {
+    if (!r || typeof r !== "object") continue
     if ((r.session_id ?? r.task_id) !== key) continue
     if (r.role === "subagent") sawSubagent = true
     if (r.parent_session && r.parent_session !== r.session_id) sawSubagent = true
@@ -141,6 +143,15 @@ export function createStallSweep(deps: StallSweepDeps = {}): StallSweepHandle {
 
   let stallSweepFirstDone = false
   let inFlight = false
+  const reportedWarnings = new Set<string>()
+
+  function reportWarning(error: unknown, fingerprint?: string): void {
+    const message = error instanceof Error ? error.message : String(error)
+    const key = fingerprint ?? message
+    if (reportedWarnings.has(key)) return
+    reportedWarnings.add(key)
+    try { onError(error instanceof Error ? error : new Error(message)) } catch { /* noop */ }
+  }
 
   function sweep(): void {
     if (inFlight) return
@@ -150,15 +161,18 @@ export function createStallSweep(deps: StallSweepDeps = {}): StallSweepHandle {
       try {
         rows = readSweepRows()
       } catch (e) {
-        try {
-          onError(e)
-        } catch { /* noop */ }
+        reportWarning(e, `read:${e instanceof Error ? e.message : String(e)}`)
         return
       }
 
       const latestByKey = new Map<string, RegistryRow>()
+      let malformedRows = 0
       for (const r of rows) {
         try {
+          if (!r || typeof r !== "object") {
+            malformedRows += 1
+            continue
+          }
           if (typeof r.dispatch_state !== "string") continue
           const key = (r.session_id ?? r.task_id) as string | undefined
           if (!key) continue
@@ -166,12 +180,11 @@ export function createStallSweep(deps: StallSweepDeps = {}): StallSweepHandle {
           if (!prev || (r.timestamp ?? "") >= (prev.timestamp ?? "")) {
             latestByKey.set(key, r)
           }
-        } catch (e) {
-          try { onError(e) } catch { /* noop */ }
+        } catch {
+          malformedRows += 1
           continue
         }
       }
-
       if (latestByKey.size === 0) {
         stallSweepFirstDone = true
         return
@@ -191,11 +204,12 @@ export function createStallSweep(deps: StallSweepDeps = {}): StallSweepHandle {
             const prev = tier.get(key)
             if (prev === undefined || ts > prev) tier.set(key, ts)
           }
-        } catch (e) {
-          try { onError(e) } catch { /* noop */ }
+        } catch {
+          malformedRows += 1
           continue
         }
       }
+      if (malformedRows > 0) reportWarning(new Error(`malformed registry rows skipped: ${malformedRows}`), "malformed-rows")
 
       const nowMs = now()
       const isFirstSweep = !stallSweepFirstDone
@@ -258,13 +272,13 @@ export function createStallSweep(deps: StallSweepDeps = {}): StallSweepHandle {
           })
           if (result?.ok === true) emitStall(key, row, ageSec, thresholdMin, undefined)
         } catch (e) {
-          try { onError(e) } catch { /* noop */ }
+          reportWarning(e)
           continue
         }
       }
       stallSweepFirstDone = true
     } catch (e) {
-      try { onError(e) } catch { /* noop */ }
+      reportWarning(e)
     } finally {
       inFlight = false
     }

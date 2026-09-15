@@ -714,6 +714,7 @@ export function createRegistry(deps: RegistryDeps = {}) {
       acquired = journal.acquireJournalLock()
     }
     if (acquired.ok === false) return acquired
+    let stage: "counter" | "append" = "counter"
     try {
       const refreshed = refreshActiveLifecycleIndex()
       if (!refreshed.ok) {
@@ -741,6 +742,7 @@ export function createRegistry(deps: RegistryDeps = {}) {
       journal.publishCounter(registrySeqPath, seq)
       entry.seq = seq
       entry.timestamp = entry[tier === "dead" ? "last_dead_timestamp" : "last_stall_timestamp"]
+      stage = "append"
       journal.appendChecked(registryPath, JSON.stringify(entry) + "\n")
       registryHistoryMax = Math.max(registryHistoryMax, seq)
       try {
@@ -755,7 +757,7 @@ export function createRegistry(deps: RegistryDeps = {}) {
       return { ok: true, id: seq, entry }
     } catch (error) {
       journal.releaseJournalLock(acquired.token)
-      return { ok: false, stage: "append", retryable: false,
+      return { ok: false, stage, retryable: false,
         error: error instanceof Error ? error.message : String(error) }
     }
   }
