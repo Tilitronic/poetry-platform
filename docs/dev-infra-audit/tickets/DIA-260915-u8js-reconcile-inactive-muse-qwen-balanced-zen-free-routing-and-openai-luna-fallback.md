@@ -62,8 +62,10 @@ OpenCode Go quota. Keep this change isolated from memory hygiene.
 
 ## Fix
 
-> To be filled at fix time.
+- [x] Updated the inactive `muse-qwen-balanced` composition comment to match the approved Zen-free/OpenAI fallback routes.
+- [x] Preserved the `openai-first-cost-balanced` active preset pointer and all model route values.
 
 ## Re-verify
 
-> To be filled at re-verify time.
+- [x] Static JSONC/config validation completed; no route or active-pointer changes were introduced.
+- [x] `make test-config` passed (exit 0); runtime restart, smoke, independent audit, and changelog remain pending by design.

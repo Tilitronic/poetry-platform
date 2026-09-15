@@ -681,16 +681,13 @@
     // OH_MY_OPENCODE_SLIM_PRESET environment override is set.
     // Clones promo skeleton (all 17 agents; researcher orchestratorPrompt verbatim; orchestrator prompt BYTE-IDENTICAL to promo 15/25 text).
     // Muse 1.3 admission basis DIA-260828-qtsi.
-    // Composition (Variant A DIA-260909-18f4): orchestrator Muse 1.3 -> deepseek-v4-flash,mimo-free|high; architector openai/gpt-5.6-sol|high + big-pickle fallback (DIA-260910-sjtk); coder muse-1.3->deepseek|medium;
-    // reviewer qwen3.8->terra|high; analyzer qwen3.8->terra|high; openspec-plan qwen3.8->terra|high;
-    // ai-specialist qwen3.8->terra|high; analyzer-escalated fallback qwen3.8->terra|max;
-    // researcher muse-1.3->deepseek|medium; conspecter muse-1.3->mimo-free|medium; rest UNCHANGED.
+    // Composition (DIA-260915-u8js): orchestrator Muse Free -> Luna high; coder/researcher Muse Free -> Luna medium;
+    // resource-manager/code-navigator Luna medium; memory-manager MiMo Free -> Luna medium; other routes unchanged from owning tickets.
     "muse-qwen-balanced": {
       "orchestrator": {
         "model": [
-          "opencode-go/muse-spark-1.3-contributor",
-          "opencode-go/deepseek-v4-flash",
-          "opencode/mimo-v2.5-free"
+          "opencode/muse-spark-1.3-contributor-free",
+          "openai/gpt-5.6-luna"
         ],
         "variant": "high",
         "temperature": 0.3,
@@ -746,8 +743,8 @@
       },
       "coder": {
         "model": [
-          "opencode-go/muse-spark-1.3-contributor",
-          "opencode-go/deepseek-v4-flash"
+          "opencode/muse-spark-1.3-contributor-free",
+          "openai/gpt-5.6-luna"
         ],
         "variant": "medium",
         "skills": [
@@ -853,8 +850,7 @@
       },
       "resource-manager": {
         "model": [
-          "opencode/mimo-v2.5-free",
-          "opencode-go/deepseek-v4-flash"
+          "openai/gpt-5.6-luna"
         ],
         "variant": "medium",
         "skills": [],
@@ -865,7 +861,7 @@
       "memory-manager": {
         "model": [
           "opencode/mimo-v2.5-free",
-          "opencode-go/deepseek-v4-flash"
+          "openai/gpt-5.6-luna"
         ],
         "variant": "medium",
         "skills": [
@@ -876,8 +872,7 @@
       },
       "code-navigator": {
         "model": [
-          "opencode/mimo-v2.5-free",
-          "opencode-go/deepseek-v4-flash"
+          "openai/gpt-5.6-luna"
         ],
         "variant": "medium",
         "skills": [],
@@ -885,8 +880,8 @@
       },
       "researcher": {
         "model": [
-          "opencode-go/muse-spark-1.3-contributor",
-          "opencode-go/deepseek-v4-flash"
+          "opencode/muse-spark-1.3-contributor-free",
+          "openai/gpt-5.6-luna"
         ],
         "variant": "medium",
         "temperature": 0.3,
