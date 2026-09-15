@@ -713,28 +713,7 @@ export function createRegistry(deps: RegistryDeps = {}) {
       }
       acquired = journal.acquireJournalLock()
     }
-    if (acquired.ok === false) {
-      // A concurrent writer may have completed the same durable append while
-      // this process observed the live lock. Confirm that narrow race before
-      // returning the retryable lock failure.
-      try {
-        if (fs.existsSync(registryPath)) {
-          const identity = candidate.session_id ?? candidate.task_id
-          const generation = candidate.lifecycle_generation
-          const tier = candidate.tier ?? (candidate.row.escalation === "dead" ? "dead" : "stall")
-          const duplicate = fs.readFileSync(registryPath, "utf-8").split("\n").some((line) => {
-            if (!line) return false
-            try {
-              const row = JSON.parse(line) as Record<string, unknown>
-              return (row.session_id ?? row.task_id) === identity && row.lifecycle_generation === generation &&
-                row.event === "stall_detected" && (tier === "dead" ? row.escalation === "dead" : row.escalation !== "dead")
-            } catch { return false }
-          })
-          if (duplicate) return { ok: false, reason: "duplicate" }
-        }
-      } catch { /* preserve the explicit lock failure */ }
-      return acquired
-    }
+    if (acquired.ok === false) return acquired
     try {
       const refreshed = refreshActiveLifecycleIndex()
       if (!refreshed.ok) {
