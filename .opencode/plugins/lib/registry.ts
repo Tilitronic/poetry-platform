@@ -22,6 +22,7 @@ import {
 } from "node:fs"
 import { dirname as nodeDirname, join as nodeJoin } from "node:path"
 import { randomUUID as nodeRandomUUID } from "node:crypto"
+import { createHash as nodeCreateHash } from "node:crypto"
 import { readFileSync as nodeReadProcFileSync } from "node:fs"
 import { createJournalPersistence } from "./journal-persistence.ts"
 import type { JournalResult } from "./journal-persistence.ts"
@@ -70,6 +71,7 @@ type RegistryDeps = {
   registrySeqPath?: string
   messagesRowIdPath?: string
   journalLockPath?: string
+  archiveDir?: string
   activeLifecycleMaxEntries?: number
   processIdentity?: { pid: number; startedAt: string }
   isProcessAlive?: (owner: { pid: number; startedAt: string }) => boolean | { alive: boolean; startedAt?: string }
@@ -434,6 +436,7 @@ export function createRegistry(deps: RegistryDeps = {}) {
   const registrySeqPath = deps.registrySeqPath ?? path.join(resolveDirectory(deps), ".opencode/session/registry.seq")
   const messagesRowIdPath = deps.messagesRowIdPath ?? path.join(resolveDirectory(deps), ".opencode/session/messages.row-id")
   const journalLockPath = deps.journalLockPath ?? path.join(resolveDirectory(deps), ".opencode/session/journal.lock")
+  const archiveDir = deps.archiveDir ?? path.join(resolveDirectory(deps), ".opencode/session/registry-archive")
   const processIdentity = deps.processIdentity ?? { pid: process.pid, startedAt: linuxProcessStartToken(process.pid) ?? processStartedAt }
   const isProcessAlive = deps.isProcessAlive ?? ((owner: { pid: number; startedAt: string }) => {
     const token = linuxProcessStartToken(owner.pid)
@@ -595,6 +598,135 @@ export function createRegistry(deps: RegistryDeps = {}) {
     const refreshed = refreshActiveLifecycleIndex()
     if (!refreshed.ok) throw new Error(refreshed.error)
     return activeLifecycleIndex.entries()
+  }
+
+  /**
+   * Explicit operator-only registry rotation.  This is intentionally not
+   * called by observers or periodic sweep code: rotation is a maintenance
+   * boundary, not a hot-path lifecycle operation.
+   */
+  function rotateRegistry(): {
+    ok: true
+    archivePath: string
+    manifestPath: string
+    retainedActive: number
+    malformedRows: number
+    checksum: string
+  } | { ok: false; stage: string; error: string } {
+    let acquired = journal.acquireJournalLock()
+    for (let attempt = 0; acquired.ok === false && attempt < 100; attempt += 1) {
+      if (typeof Atomics?.wait === "function") {
+        Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 1)
+      }
+      acquired = journal.acquireJournalLock()
+    }
+    if (acquired.ok === false) return acquired
+    let archivePath = ""
+    let manifestPath = ""
+    try {
+      if (!fs.existsSync(registryPath)) {
+        journal.releaseJournalLock(acquired.token)
+        return { ok: true, archivePath: "", manifestPath: "", retainedActive: 0, malformedRows: 0, checksum: nodeCreateHash("sha256").update("").digest("hex") }
+      }
+
+      const refreshed = refreshActiveLifecycleIndex()
+      if (!refreshed.ok) throw new Error(`index: ${refreshed.error}`)
+      const before = fs.statSync(registryPath)
+      const source = fs.readFileSync(registryPath, "utf-8")
+      const after = fs.statSync(registryPath)
+      if (before.size !== after.size || before.dev !== after.dev || before.ino !== after.ino) {
+        throw new Error("source registry changed during rotation snapshot")
+      }
+
+      let validRows = 0
+      let malformedRows = 0
+      let firstSeq: number | undefined
+      let lastSeq: number | undefined
+      for (const line of source.split("\n")) {
+        if (!line) continue
+        try {
+          const row = JSON.parse(line) as LifecycleRow
+          validRows += 1
+          if (typeof row.seq === "number" && Number.isFinite(row.seq)) {
+            firstSeq = firstSeq === undefined ? row.seq : Math.min(firstSeq, row.seq)
+            lastSeq = lastSeq === undefined ? row.seq : Math.max(lastSeq, row.seq)
+          }
+        } catch { malformedRows += 1 }
+      }
+
+      fs.mkdirSync(archiveDir, { recursive: true })
+      const stamp = isoNow(deps).replace(/[^0-9]/g, "").slice(0, 14) || String(Date.now())
+      const archiveName = `registry-${stamp}-${rand()}.jsonl`
+      archivePath = path.join(archiveDir, archiveName)
+      const archiveTmp = `${archivePath}.tmp`
+      manifestPath = path.join(archiveDir, `${archiveName}.manifest.json`)
+      const manifestTmp = `${manifestPath}.tmp`
+      const activeTmp = `${registryPath}.rotate-${rand()}.tmp`
+      fs.writeFileSync(archiveTmp, source)
+      fsyncPath(archiveTmp)
+      const checksum = nodeCreateHash("sha256").update(fs.readFileSync(archiveTmp, "utf-8")).digest("hex")
+      const manifest = {
+        archive: archiveName,
+        sha256: checksum,
+        byte_count: Buffer.byteLength(source),
+        row_count: validRows,
+        malformed_row_count: malformedRows,
+        first_seq: firstSeq ?? null,
+        last_seq: lastSeq ?? null,
+        created_at: isoNow(deps),
+      }
+      fs.writeFileSync(manifestTmp, `${JSON.stringify(manifest, null, 2)}\n`)
+      fsyncPath(manifestTmp)
+      const stagedArchive = fs.readFileSync(archiveTmp, "utf-8")
+      const stagedManifest = JSON.parse(fs.readFileSync(manifestTmp, "utf-8")) as typeof manifest
+      if (stagedArchive !== source || stagedManifest.sha256 !== checksum || stagedManifest.byte_count !== Buffer.byteLength(source)) {
+        throw new Error("rotation archive verification failed")
+      }
+      fs.renameSync(archiveTmp, archivePath)
+      fs.renameSync(manifestTmp, manifestPath)
+      fsyncDirectory(archivePath)
+
+      const retained = activeLifecycleIndex.exportRows()
+      const compact = retained.length === 0 ? "" : retained.map((row) => JSON.stringify(row)).join("\n") + "\n"
+      fs.writeFileSync(activeTmp, compact)
+      fsyncPath(activeTmp)
+      fs.renameSync(activeTmp, registryPath)
+      fsyncDirectory(registryPath)
+      const rebuilt = rebuildActiveLifecycleIndex()
+      if (!rebuilt.ok) throw new Error(`index rebuild: ${rebuilt.error}`)
+
+      const rotationEntry: Record<string, unknown> = {
+        event: "registry_rotated",
+        archive_path: archivePath,
+        archive_sha256: checksum,
+        sequence_range: { first: firstSeq ?? null, last: lastSeq ?? null },
+        retained_active_count: retained.length,
+        malformed_row_count: malformedRows,
+        seq: journal.reserveCounter(registrySeqPath, maxRegistrySeq, registryCounter) + 1,
+        timestamp: isoNow(deps),
+      }
+      registryCounter = rotationEntry.seq as number
+      journal.publishCounter(registrySeqPath, registryCounter)
+      journal.appendChecked(registryPath, `${JSON.stringify(rotationEntry)}\n`)
+      registryHistoryMax = Math.max(registryHistoryMax, registryCounter)
+      activeLifecycleIndex.apply(rotationEntry as LifecycleRow)
+      journal.releaseJournalLock(acquired.token)
+      return { ok: true, archivePath, manifestPath, retainedActive: retained.length, malformedRows, checksum }
+    } catch (error) {
+      journal.releaseJournalLock(acquired.token)
+      return { ok: false, stage: "rotation", error: error instanceof Error ? error.message : String(error) }
+    }
+  }
+
+  function fsyncPath(filePath: string): void {
+    const fd = fs.openSync(filePath, "r+")
+    try { fs.fsyncSync(fd) } finally { fs.closeSync(fd) }
+  }
+
+  function fsyncDirectory(filePath: string): void {
+    let fd: number
+    try { fd = fs.openSync(path.dirname(filePath), "r") } catch { return }
+    try { fs.fsyncSync(fd) } finally { fs.closeSync(fd) }
   }
 
   function lastMessagesMdRowNumber(mdPath: string = messagesMdPath): number {
@@ -902,5 +1034,6 @@ export function createRegistry(deps: RegistryDeps = {}) {
     refreshActiveLifecycleIndex,
     rebuildActiveLifecycleIndex,
     readActiveLifecycleEntries,
+    rotateRegistry,
   }
 }
