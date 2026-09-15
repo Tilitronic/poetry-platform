@@ -508,3 +508,70 @@ Failed-loop lessons & preventive actions
   - Preventive action: before staging ANY .md file, run `prettier --check <file>` first. If it fails, run `prettier --write <file>` BEFORE `git add`. This is the canonical prevention. Do not rely on the hook's auto-restage to handle formatting -- the auto-restage is the conflict trigger.
   - Why irrecoverable: the stash/restore merge-conflict mechanism is a runtime interaction between prettier formatting, lint-staged's stash lifecycle, and git's merge logic. It is not visible in the hook's source code (which looks correct) and is not recoverable from diffs. The 2x verified deterministic nature makes this a reliable trigger, not an intermittent flake.
   - Cross-reference: lessons.md lines 71-73 (partial-staging variant, adjacent distinct), L20260910-c3d4-001 (full lesson), DIA-260831-c3d4, lint-staged hook lifecycle.
+
+- Failure mode (2026-09-11, DIA-260910-sjtk cod-3): empty result was reporting artifact, WORK_LANDED resolved via resume -- same-session empty-result discrimination
+  - Symptom: cod-3 returned an empty result during the DIA-260910-sjtk campaign. Given the history of empty-result failures (DIA-130, DIA-098, DIA-260824-a3mk), this initially looked like a dropped writer.
+  - Recovery: verify-first read-only inspection confirmed WORK_LANDED: yes (artifacts on disk, rqmw scope note filled, changelog checkbox checked). The empty result was a REPORTING ARTIFACT, not missing work. The same session was resumed and the work completed.
+  - Distinguishing from existing entries: this is the SAME CLASS as the 2026-08-14 empty-result ambiguity (failures.md line 260) and the 2026-08-27 jcte reporting artifact (failures.md line 441). The cod-3 variant confirms the pattern: an empty result is AMBIGUOUS and the ONLY reliable discriminator is ground-truth verification (git status + artifacts on disk) via a read-only lane BEFORE deciding accept-vs-redispatch.
+  - Preventive action: always verify in-scope artifacts (ticket file content, changelog, target paths, git status) via a read-only lane before accepting an empty result as either success or failure. Do not assume failure from absence of evidence.
+  - Why irrecoverable: the empty-result classification and the verify-first recovery ordering are runtime/session behavior, not reconstructible from the commits (which show the final landed state, not the empty-result detection path).
+  - Cross-reference: failures.md line 260 (empty-result ambiguity, 2026-08-14); failures.md line 441 (jcte reporting artifact, 2026-08-27); DIA-130 (silent-failure variant); DIA-098; resume-truncated-lane skill; DIA-260910-sjtk ticket.
+
+- Failure mode (2026-09-11): lane lifecycle errors during closure session
+  - Forensics lane was runtime-cancelled and superseded by repair approval.
+    A cod-5 resume was refused because lifecycle generation ownership belonged
+    to another operation; fresh lanes were used instead.
+  - Two ai-auditor lanes were cancelled earlier in this session. Treat these
+    as lifecycle failures, not evidence that the reviewed content was wrong;
+    after ownership refusal or cancellation, verify state and use a fresh lane
+    rather than looping the blocked resume.
+  - Why irrecoverable: cancellation and lifecycle-generation ownership are
+    runtime session behavior not represented by final commits or ticket text.
+
+- Failure mode (2026-09-11): stopped memory lanes and cancelled auditor lanes
+  during persistence retry
+  - Symptom: multiple memory-manager lanes stopped without terminal results and
+    auditor lanes were cancelled, leaving persistence/review outcomes
+    unconfirmed.
+  - Recovery: verify the working tree and memory state first, then use one
+    fresh bounded retry. Treat stopped or cancelled lanes as unconfirmed; do
+    not blindly resume or infer success.
+  - Why irrecoverable: lifecycle outcomes and the no-bypass recovery ordering
+    are runtime behavior, not repository content.
+
+- Failure mode (2026-09-11, DIA-260911-4y5v): reviewer lane blocked 3x on
+  hygiene-decision-register review attempt -- missing FIXED_POINT, HEAD parse,
+  empty HEAD..HEAD range on untracked file
+  - Symptom: the reviewer lane was dispatched to review the hygiene decision
+    register (docs/dev-infra-audit/hygiene-decisions.md) and was BLOCKED 3
+    consecutive times with distinct git-envelope errors:
+    1. Missing FIXED_POINT: the review dispatch could not identify a committed
+       fixed point to review against.
+    2. HEAD parse failure: git could not parse HEAD to establish the review
+       base.
+    3. Empty HEAD..HEAD range: the file was untracked (never committed), so
+       `git diff HEAD..HEAD` produced an empty range -- nothing to review.
+  - Root cause: the hygiene decision register was a NEW untracked file that
+    had never been committed. The reviewer lane's git-envelope comparison
+    (comparing working-tree state against HEAD) requires the file to exist at
+    HEAD or be staged. An untracked file has no HEAD version, so every
+    comparison attempt returned empty or failed to parse.
+  - Recovery: the review was completed by direct document inspection (reading
+    the Markdown against the design contract) rather than through the
+    git-envelope diff path. The OpenSpec validation (openspec validate) passed
+    independently.
+  - Preventive action: before dispatching a reviewer lane on a NEW file, either
+    (a) commit the file first so HEAD has a version to compare against, or
+    (b) stage the file (git add) so the diff can be computed against the index,
+    or (c) explicitly instruct the reviewer to use direct-document inspection
+    instead of git-envelope comparison. The reviewer lane's default behavior
+    assumes git-trackable files; untracked new files break this assumption.
+  - Why irrecoverable: the 3x block sequence and the git-envelope assumption
+    (files must be committed or staged for diff-based review) are
+    runtime/plugin behavior; the final document was reviewed successfully via
+    an alternative path, but the block pattern and its cause are not in any
+    committed file. A fresh agent encountering the same block on a new
+    untracked file would not know the cause without this lesson.
+  - Cross-reference: docs/dev-infra-audit/hygiene-decisions.md (the reviewed
+    document), DIA-260911-4y5v campaign ticket,
+    openspec/changes/dia-260911-4y5v-hygiene-decision-register/ (valid).

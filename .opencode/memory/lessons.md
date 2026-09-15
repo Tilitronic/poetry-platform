@@ -219,6 +219,12 @@ These lessons capture irrecoverable, human-context knowledge discovered during t
 
    - Addendum (2026-08-12, session 14): the resource-manager lane also runs with subagent_depth=1 in the OMO runtime, which BLOCKS nested dispatch (resource-manager cannot itself spawn a coder/@researcher/@conspecter lane). This runtime depth limit is session/environment state, not present in committed config (no explicit subagent_depth value in opencode.jsonc / oh-my-opencode-slim.jsonc). Operational consequence: curation edits (e.g. ai-assist-sources.yaml refresh, DIA-108) must be handed to a SEPARATE coder lane for validation (make test-config / YAML parse) + commit + push; the resource-manager lane can author the scoped edit but cannot orchestrate the validation/commit sub-lane itself.
  
+## DIA-260912-h8o5 / DIA-260827-95fv resolution (2026-09-12)
+
+- Historical fail-closed outcome: the zod runtime repair for h8o5 was structurally valid, but focused verification produced 52 pass / 3 fail with zero return-channel-pending matches. The result did not validate the 95fv hypothesis, so both tickets were held until a named RED-B test could exercise the real return-channel path.
+- Resolution: h8o5 and 95fv are now CLOSED. Treat the prior dependency and GREEN block as historical; any future change must establish its own current evidence rather than copy this gate state.
+- Cross-reference: DIA-260912-h8o5, DIA-260827-95fv, and the dated external-pattern learning.
+
 ## dev-infra-jq-probe (2026-08-06)
 
 - Title: Probe-pattern evolution and canonical missing-tool bats pattern
@@ -2406,6 +2412,18 @@ recorded here). Irrecoverable process lessons:
 - Why irrecoverable: the path change is in git history but the "which directory is canonical right now" fact is session-specific and requires a current filesystem scan to confirm. Future orchestrators should not assume tests/ vs scripts/__tests__/ without checking.
 - Cross-reference: DIA-260909-9api.
 
+## DIA-260911-4y5v hygiene-decision-register (2026-09-11)
+
+- **Audit session inventory retrieval gap (synthesis lesson):** when composing the hygiene decision register from 3 completed audit sessions (architect ses_f6d68b31cffe4vSDgqyX7kY1dl, AI-specialist ses_f6b1bae72ffeQC1XRgX6Sp1yjf, analyzer ses_f6b1badc9ffeX3HtV69RY0fu0N), the row-level inventories from each session were NOT retrievable as files. Only summaries and the design reconciliation constraints were available at register composition time. Per the design risk rule, no action target was reconstructed from a summary alone: every claim without a verifiable exact path or exact edit became `preserve/pending`. This means the register is conservative but incomplete - many rows are pending because their exact paths could not be traced to retrievable audit records.
+  - Operational lesson: when synthesizing a decision register from completed audit sessions, verify inventory retrievability BEFORE starting the register. If session inventories are not retrievable (no partial-result artifacts, no exported files), flag this as a scope limitation in the register itself and plan a follow-up retrieval step. Do not assume completed sessions' outputs are always accessible.
+  - Why irrecoverable: the register's conservatism (9 of 10 rows are `preserve/pending`) is a direct consequence of the retrieval gap, not a design choice. The register text documents the gap ("row-level inventories were not retrievable as files") but the synthesis decision (mark everything pending rather than guess) is an orchestration judgment not visible in the final artifact.
+  - Cross-reference: docs/dev-infra-audit/hygiene-decisions.md (the register), openspec/changes/dia-260911-4y5v-hygiene-decision-register/design.md (design risk rule), DIA-260911-4y5v campaign ticket.
+
+- **res036-res038 blocking condition cleared but reclassification pending (conditional preservation):** the AI-specialist constraint (res036-res038 stay `preserve/pending` while DIA-260821-8kpc is OPEN) was documented in the register. DIA-260821-8kpc is now CLOSED, so the blocking condition has cleared. However, reclassification still needs developer approval per the register's per-row gate contract. The register preserves the rows as `preserve/pending` despite the cleared condition, because reclassification to any non-preserve class requires all five safety gates plus developer approval.
+  - Operational lesson: when a blocking condition on a `preserve/pending` row clears (e.g. a related ticket closes), do NOT automatically reclassify the row. The register's gate contract requires explicit developer approval for any non-preserve action. Record the cleared condition as a note on the row so the developer can make an informed reclassification decision, but do not treat the clearing as implicit authorization.
+  - Why irrecoverable: the cleared-but-still-pending state is a register-specific decision not visible in any git diff or ticket status change. The register text notes the cleared condition; the decision to remain pending is a gate-contract enforcement observation.
+  - Cross-reference: docs/dev-infra-audit/hygiene-decisions.md res036-res038 rows, DIA-260821-8kpc (CLOSED).
+
 ## L20260910-9api-003 - Rollup sibling-flip caution: scripts/tickets rollup can flip unrelated ticket rows (DIA-260909-9api, CLOSED 2026-09-10)
 
 - Observation: after running `scripts/tickets rollup` for DIA-260909-9api, the README rollup also flipped the sazr row from CLOSED to OPEN to match its sibling lane frontmatter. This was a side-effect of the rollup recomputing against current frontmatter state. The sazr row flip is correct (matching the frontmatter) and should be left as-is.
@@ -2640,3 +2658,334 @@ recorded here). Irrecoverable process lessons:
 - Cross-reference: DIA-260911-y52j, worktree conventions, L20260910-c3d4-005
   (merge guard over dirty tree -- adjacent, distinct: that entry is about
   dirty-tree hygiene, this is about developer-authorized deferral).
+
+## L20260911-closure-001 - Triple closure evidence and no-bypass bookkeeping (2026-09-11)
+
+- Commit a911223 completed the shared Fix/Re-verify closure for
+  DIA-260827-4q3h, DIA-260831-h3i4, and DIA-260827-gnsv: evidence was
+  collected, ticket bookkeeping was completed, all three statuses were
+  CLOSED, the scoped README rollup was committed, and the hook passed.
+- No bypass was used. This records the closure protocol and negative evidence,
+  not ticket bodies or commit contents.
+- Why irrecoverable: the session-level evidence-collection and bookkeeping
+  sequence is not reconstructible from the final commit alone.
+
+## L20260911-j5k6-001 - Split-lane research replaces unstable single-gate ai-specialist; 3x cancel on j5k6 (2026-09-11)
+
+- Observation: DIA-260831-j5k6 experienced 3 consecutive cancellations of the
+  ai-specialist gate-lane for skill-validator compatibility research. The
+  research was eventually completed by splitting into separate researcher +
+  conspecter lanes (the standard research-pipeline pattern) instead of
+  relying on ai-specialist as a single-gate all-in-one lane.
+- Root cause: the ai-specialist lane is overloaded when a task requires both
+  source archival AND deep synthesis in a single pass. The 3x cancel pattern
+  matches the broader ai-specialist instability observed across multiple
+  recent campaigns (L20260816-006, L20260817-006, L20260817-008, DIA-099).
+- Lesson: when a task requires research + synthesis, ALWAYS use the split-lane
+  research pipeline (researcher for source capture -> conspecter for
+  synthesis) rather than dispatching ai-specialist as a single-gate
+  all-in-one. The split-lane pattern is MORE reliable because: (1) each lane
+  has a narrower, well-defined scope; (2) source archival failures are isolated
+  from synthesis; (3) the researcher lane can be resumed/retried independently
+  of the conspecter. The ai-specialist lane is appropriate for SHORT read-only
+  config research (gate validation, schema checks) but NOT for multi-phase
+  research that spans archival + synthesis.
+- Operational rule: classify the task before dispatching. If the task requires:
+  (a) fetching and archiving external sources, AND (b) synthesizing those
+  sources into a structured conspect -- use the split-lane pipeline. If the
+  task is a SHORT read-only probe (schema check, version lookup, permission
+  audit) -- ai-specialist is appropriate. The 3x cancel on j5k6 is evidence
+  that ai-specialist fails on the former class.
+- Lane-0 checksum match: 344eed6d (conspecter lane confirmed source integrity).
+- sjtk commit: d623111 (final persistence of j5k6 research artifacts).
+- Why irrecoverable: the 3x cancellation pattern and the split-lane recovery
+  are runtime/session behavior; git shows only the final conspect and commits,
+  not the ai-specialist instability that motivated the lane split.
+  - Cross-reference: DIA-260831-j5k6, DIA-099 (3-failure cap), L20260816-006
+   (ai-specialist endpoint outage), L20260817-006 (ai-specialist session-return
+   failure), L20260817-008 (cross-lane empty-return pattern),
+   research-pipeline skill.
+
+## L20260911-sjtk-001 - ai-auditor review trajectory: NO-GO to partial to partial across fix cycles; intermediate states not visible in final ticket (DIA-260910-sjtk, 2026-09-11)
+
+- Observation: the ai-auditor independent review of DIA-260910-sjtk progressed
+  through multiple intermediate states: initial NO-GO, then partial (scope
+  split), then partial again (F1-F3 fix cycle), before reaching the final
+  state (scope verified-closed, changelog verified-closed, F1 scope closed).
+  The ticket file records only the final verdict and the re-verify evidence;
+  the intermediate NO-GO and partial states are session-level review
+  progression behavior.
+- Distinguishing from existing patterns: L20260909-sazr-001 documents the
+  "whack-a-mole" pattern where findings shift across re-check cycles. This
+  entry is ADJACENT but DISTINCT: sjtk's trajectory was a deliberate scope
+  narrowing (architector-only split resolved the initial NO-GO), not a
+  shifting-finding pattern. The progression was: NO-GO (scope too broad) ->
+  partial (scope narrowed to architector-only, F1-F3 identified) ->
+  partial (F1-F3 fixed, scope verified-closed) -> CLOSED.
+- Operational rule: when an ai-auditor review progresses through NO-GO ->
+  partial -> partial before reaching final approval, record the intermediate
+  states in the ticket's re-verify findings table alongside the final
+  verdict. The trajectory (how the review reached its final state) is
+  irrecoverable from the ticket's final-state-only record; a fresh agent
+  reading the ticket would not know the initial NO-GO was scope-based or
+  that the scope split resolved it.
+- Why irrecoverable: the review trajectory is session-level behavior; the
+  commits show only the final closure (7e1dfe0) and the re-verify evidence,
+  not the NO-GO -> partial -> partial progression or the scope-split
+  decision that resolved the initial block.
+- Cross-reference: DIA-260910-sjtk ticket (final state), DIA-260911-rqmw
+  (scope split target), L20260909-sazr-001 (adjacent whack-a-mole pattern),
+  AGENTS.md section 2.3.1 (re-review loop).
+
+## L20260911-sjtk-002 - Scope-split rationale: Terra 4-surface deferred to separate ticket when architector-only scope was the minimal change (DIA-260910-sjtk, 2026-09-11)
+
+- Observation: the DIA-260910-sjtk campaign initially bundled two model
+  routing changes: (1) architector to GPT-5.6 Sol High, and (2) coder-
+  escalated to GPT-5.6 Terra High (Terra 4-surface: opencode.jsonc, coder-
+  escalated.md, AGENTS.md table, OMO hunk). The ai-auditor's initial NO-GO
+  was driven by scope breadth. The developer chose to SPLIT: sjtk landed
+  architector-only; rqmw (DIA-260911-rqmw) was spawned to carry the Terra
+  4-surface changes as uncommitted work.
+- The split rationale (session-level, not in ticket): the architector Sol
+  High change was a single-surface edit (oh-my-opencode-slim.jsonc muse-
+  qwen-balanced preset architector block only) with zero cross-file
+  dependencies. The Terra 4-surface change touched 4 files across 3
+  directories (opencode.jsonc, agents/coder-escalated.md, AGENTS.md table,
+  OMO preset hunk) with interdependencies (agent-name table must match
+  agent file, OMO preset must match model registry). Splitting minimized
+  the blast radius of each change and allowed independent verification.
+- Operational rule: when an ai-auditor flags scope breadth as a NO-GO driver,
+  evaluate whether the change can be split into independent, verifiable
+  sub-changes with zero interdependencies. Each sub-change gets its own
+  ticket, verification cycle, and ai-auditor review. The split is
+  warranted when: (1) sub-changes have no shared file dependencies, (2)
+  each sub-change can be verified independently, (3) the split reduces
+  blast radius without losing correctness.
+- Why irrecoverable: the split decision and the rationale (minimize blast
+  radius, independent verification) are developer-level design decisions
+  not recorded in either ticket's Fix section. The sjtk ticket says
+  "architector-only" and the rqmw ticket says "Terra 4-surface" but neither
+  records WHY the split was chosen over a single broader change.
+- Cross-reference: DIA-260910-sjtk (architector-only scope), DIA-260911-rqmw
+  (Terra 4-surface scope), ai-auditor NO-GO finding, L20260911-sjtk-001
+  (review trajectory).
+
+## L20260911-sjtk-003 - Deferred risk acceptance on rqmw template: developer accepted residual risk on still-open template finding (DIA-260910-sjtk, 2026-09-11)
+
+- Observation: the DIA-260910-sjtk closure commit (7e1dfe0) records "rqmw
+  template finding still-open, deferred to its own lane DIA-260911-rqmw
+  per developer accepted residual risk 2026-09-11." The rqmw ticket file
+  carries the template finding as a Verification checkbox (- [ ] Terra
+  4-surface changes committed under this ticket) with status OPEN.
+- The accepted-risk rationale (session-level): the developer accepted that
+  the rqmw template finding (the Terra 4-surface config changes being
+  uncommitted in the worktree) posed LOW risk because: (1) the changes
+  are config-only (no behavioral code), (2) the changes are staged but
+  uncommitted (can be reverted cleanly), (3) the architector Sol High
+  change is independently verifiable and does not depend on Terra. The
+  developer chose to close sjtk with the residual rqmw work tracked as
+  a separate OPEN ticket rather than blocking sjtk closure.
+- Operational rule: when a parent ticket carries deferred deliverables
+  (items explicitly out of scope and tracked in a separate ticket), the
+  parent can be CLOSED with the deferred items documented as accepted-risk
+  residual. The deferred ticket (rqmw) remains OPEN and governs the
+  remaining work. This is DISTINCT from the "do not close parent before
+  deferred items are dispatched" rule (L20260815-012) -- that rule applies
+  when the deferred items have NO tracking ticket; here, rqmw EXISTS as
+  the tracking ticket.
+- Why irrecoverable: the accepted-risk rationale and the developer's
+  risk-assessment reasoning are session-level decisions; the closure
+  commit message records the deferral but not WHY the risk was accepted
+  as low. A fresh agent reading the commit would see the deferral but
+  not the risk-assessment logic.
+- Cross-reference: DIA-260910-sjtk closure (7e1dfe0), DIA-260911-rqmw
+  (OPEN, Terra 4-surface), L20260815-012 (parent-closure-before-deferred,
+  adjacent distinct), DIA-063 (ticket gate).
+
+## L20260911-rqmw-001 - Concurrent-lane-closure gate-reject: when one lane closes a ticket, sibling lanes referencing that ticket are gate-blocked (DIA-260911-rqmw, 2026-09-11)
+
+- Observation: during DIA-260911-rqmw, a fix lane was dispatched to address
+  ai-auditor NO-GO findings. The fix lane was GATE-REJECTED because the ticket
+  (DIA-260911-rqmw) had already been CLOSED by a concurrent lane (commit
+  49ba589) in the same session window. The fix lane's dispatch text referenced
+  the rqmw ticket ID, but the DIA-063 ticket gate resolved the ID against the
+  ticket ledger and found status CLOSED, so the dispatch was blocked.
+- Pattern: this is a RUNTIME gate behavior where two concurrent lanes operate
+  on the same ticket. Lane A completes its work and closes the ticket. Lane B
+  (dispatched earlier but still in-flight) references the same ticket ID for a
+  fix/re-verify. When Lane B's dispatch reaches the gate, the ticket is already
+  CLOSED, and the gate blocks the dispatch. The gate is CORRECT (a CLOSED
+  ticket should not accept new work), but the timing creates a window where
+  in-flight work referencing a newly-closed ticket is silently blocked.
+- Detection: when a fix lane is gate-blocked on a ticket that was OPEN when
+  dispatched but is now CLOSED, check whether a concurrent lane closed it. The
+  gate rejection message references the ticket status. The fix is NOT to reopen
+  the ticket; the fix is to recognize that the work may already be complete
+  (verify ground truth: commit present, ticket Fix section populated, test-config
+  green).
+- Distinguishing from existing patterns:
+  - L20260810-001 (stale-gate recency block): that pattern is about ticket age
+    (recency window), not ticket status (CLOSED). This pattern is about status.
+  - DIA-063 gate: the gate itself is correct; the issue is concurrent-lane
+    timing, not gate logic.
+- Operational rule: when a lane is gate-blocked on a ticket that changed status
+  from OPEN to CLOSED during the session, FIRST verify whether the concurrent
+  lane's closure is complete and correct (commit present, Fix section populated,
+  test-config green). If the closure is complete, the gate-reject is EXPECTED
+  and the in-flight work is redundant. Do NOT reopen the ticket or retry the
+  dispatch.
+- Why irrecoverable: the concurrent-lane timing (Lane A closes while Lane B is
+  in-flight) is session-level runtime behavior. Git shows the final CLOSED state
+  and the commits, but not the gate-rejection event or the timing that caused
+  it. A fresh agent seeing the CLOSED ticket would not know a fix lane was
+  gate-blocked.
+- Cross-reference: DIA-260911-rqmw (closure commit 49ba589, fix lane
+  gate-rejection), DIA-063 (ticket gate), DIA-085 (parallel-handoff-slots),
+  concurrent-lane coordination model.
+
+## L20260911-rqmw-002 - ai-auditor double-cancel then third-try NO-GO: distinct from ai-specialist instability (DIA-260911-rqmw, 2026-09-11)
+
+- Observation: the ai-auditor independent review of DIA-260911-rqmw was
+  dispatched 3 times. The first 2 dispatches were CANCELLED (session cancelled
+  before producing a result). The third dispatch completed and produced a NO-GO
+  verdict with 2 specific failures: FAIL-1 (EBDV absent -- the change lacked
+  Evidence-Backed Decision Variants per DIA-115/AGENTS.md section 10) and
+  FAIL-2 (registry fallback vs one-shot -- the model-registry.yaml had a
+  fallback chain that contradicted the one-shot developer direction).
+- Distinguishing from ai-specialist instability:
+  - L20260911-j5k6-001 documents ai-specialist 3x cancel for j5k6 research.
+    That pattern is ai-specialist as a SINGLE-GATE all-in-one lane overloaded
+    by multi-phase research. The fix was split-lane pipeline.
+  - THIS pattern is ai-auditor as Phase-6 independent reviewer. The cancels
+    are not from overload but from session lifecycle (external cancellation,
+    not content failure). The third try succeeded and produced a real verdict.
+    The fix is NOT lane-splitting; the fix is the two specific NO-GO findings.
+- The NO-GO finding taxonomy (session-level, not in ticket):
+  - FAIL-1: EBDV absent. The rqmw change was a policy-class config change
+    (model routing) that required >=2 decision variants per DIA-115. The change
+    had only one variant (swap kimi-k3 to terra) with no abort/status-quo
+    variant documented. This is a SPEC-PROCESS gap, not a code defect.
+  - FAIL-2: registry fallback vs one-shot. The model-registry.yaml entry for
+    terra included a fallback chain, but the developer direction was one-shot
+    no-retry. The registry's fallback contradicted the developer's explicit
+    constraint. This is a SPEC-CONFORMANCE gap.
+- Resolution path: both findings were resolved by the developer before closure:
+  FAIL-1 by documenting the EBDV in the learnings file
+  (.opencode/learnings/external-patterns/2026-09-11-dia-260911-rqmw-terra-routing.md);
+  FAIL-2 by correcting the registry entry (one-shot comment kept, fallback
+  gated on developer approval). The closure commit (49ba589) records the
+  final state.
+- Operational rule: when an ai-auditor produces a NO-GO with specific FAIL
+  findings, resolve EACH finding individually before re-dispatching the auditor.
+  Do not retry the audit hoping for a different verdict -- the findings are
+  deterministic (the auditor re-evaluates the same change surface). The
+  resolution path is: (1) read the specific FAIL findings, (2) apply fixes
+  for each, (3) re-dispatch the auditor for targeted re-verification.
+- Why irrecoverable: the double-cancel behavior, the specific FAIL-1/FAIL-2
+  taxonomy, and the resolution path are session-level behavior. Git shows the
+  final closure and the commits, but not the cancellation episodes or the
+  finding-specific resolution steps. A fresh agent seeing the CLOSED ticket
+  would not know the auditor was cancelled twice or what specific process gaps
+  drove the NO-GO.
+- Cross-reference: DIA-260911-rqmw (ticket Fix/Re-verify sections), DIA-260910-sjtk
+  (scope split that spawned rqmw), L20260911-j5k6-001 (ai-specialist 3x cancel,
+  adjacent distinct), L20260911-sjtk-001 (NO-GO trajectory for sjtk), DIA-115
+  (EBDV requirement), AGENTS.md section 2.5 (Phase-6 ai-auditor review).
+
+## L20260911-rqmw-003 - Shelf-fix unblocks test-config: foreign shelf entry can gate-block unrelated tickets; fix is isolated shelf correction (DIA-260911-rqmw + DIA-260831-j5k6, 2026-09-11)
+
+- Observation: during DIA-260911-rqmw verification, make test-config failed on
+  validate-memory-shelf.sh due to a FOREIGN shelf entry (DIA-260831-j5k6's
+  specs[31] artifacts-key). This entry was committed by a concurrent lane
+  (21904d1) and was NOT part of the rqmw change. The rqmw lane's test-config
+  was gate-blocked by an unrelated shelf schema violation.
+- The fix path: the j5k6 shelf entry's artifacts key was malformed (an
+  `artifacts` property that the schema did not accept). The memory-manager
+  lane applied an isolated fix (commit 49ba589) that folded the artifacts list
+  into the description field (zero info loss, schema valid). After this fix,
+  test-config passed green (8 suites, 57 tests, 0 failures).
+- Pattern: this is a CROSS-TICKET GATE CONTAMINATION pattern. When multiple
+  tickets modify shared infrastructure (memory-shelf.yaml), a schema violation
+  introduced by one ticket can gate-block verification of OTHER tickets that
+  touch the same infrastructure. The gate treats the shelf as a single
+  artifact; it cannot distinguish which entry caused the failure.
+- Detection: when test-config fails on validate-memory-shelf.sh, check whether
+  the failure is in YOUR change's shelf entries or in a FOREIGN entry committed
+  by a concurrent lane. The validate-memory-shelf.sh output names the failing
+  entry. If the failure is foreign, the fix is to correct the foreign entry
+  (not your own change).
+- Relevance to j5k6 HOLD: this shelf-fix resolved the j5k6 HOLD condition
+  (the j5k6 ticket was HOLD on the shelf schema violation). After 49ba589,
+  the j5k6 shelf entry was schema-valid and the HOLD was lifted.
+- Operational rule: when test-config fails on a shared artifact (memory-shelf,
+  CHANGELOG, agent-names), check whether the failure is from YOUR change or a
+  CONCURRENT lane's change. If concurrent, fix the concurrent entry (or wait
+  for the owning lane to fix it) rather than modifying your own change to work
+  around a foreign violation. Do NOT close your ticket as FAILED when the
+  failure is foreign -- the gate contamination is a cross-ticket issue.
+- Why irrecoverable: the cross-ticket gate contamination and the foreign-entry
+  diagnosis are session-level behavior. Git shows the fix commit (49ba589)
+  but not the diagnostic step that identified the failure as foreign (vs your
+  own change). A fresh agent seeing the test-config failure would not know
+  whether to fix its own shelf entry or a foreign one.
+- Cross-reference: DIA-260911-rqmw (test-config evidence), DIA-260831-j5k6
+  (foreign shelf entry, HOLD condition), 49ba589 (fix commit), make test-config
+  (gate infrastructure).
+
+## L20260909-csds-001 - code-navigator lacks shell tool; use coder lanes for git
+verification evidence (DIA-260909-csds, 2026-09-09)
+
+- Observation: the code-navigator agent has NO shell/exec tool in its runtime
+  toolset. It cannot run git verification commands (git show --stat HEAD, git log,
+  git status) that are needed to produce commit evidence for ticket closure or
+  merge-gate checks. Attempting git commands from a code-navigator lane fails
+  silently or returns no output.
+- Correct play: when git verification evidence is needed (commit present, HEAD
+  matches expected, status clean), dispatch a coder verification-only lane
+  (a narrow coder session scoped to running git commands and returning their
+  output). code-navigator can READ files and grep, but it CANNOT EXECUTE git
+  commands.
+- Why irrecoverable: the code-navigator's tool-capability gap (no shell) is a
+  runtime agent property not stated in any config file, agent prompt, or
+  AGENTS.md section. A fresh agent would assume code-navigator can run git
+  because it can read code. The workaround (use coder for git evidence) is an
+  operational routing decision not in any spec.
+- Cross-reference: lessons.md line 45 (code-navigator inventory vs ground-truth,
+  same agent, different limitation); failures.md line 80 (step-cap exhaustion
+  for coder lanes, relevant to lane sizing).
+
+## L20260912-4y5v-001 - Doubled-slug instruction pattern: allocate-id already embeds the slug, so instruction examples must NOT append a second slug suffix (DIA-260911-4y5v, 2026-09-12)
+
+- Observation: the `orchestrator_append.md` and `research-pipeline/SKILL.md`
+  instruction files contained the path template
+  `knowledge/<returned-id>-<topic>/sources/` which tells the orchestrator to
+  append `-<topic>` to the pre-allocated ID. But `scripts/allocate-id` already
+  embeds the slug in the returned ID (format: `<type>-YYMMDD-<rand4>-<slug>`),
+  so following the instruction literally produces a doubled slug like
+  `knowledge/res-260911-ab12-my-topic-my-topic/sources/`. The same pattern
+  appeared in `researcher.md` which referenced `res<id>-<topic>` paths.
+- Fix applied (4 files):
+  1. `orchestrator_append.md:55` — changed path from
+     `knowledge/res<NN>-<topic>/sources/` to
+     `knowledge/<returned-id>/sources/` (no extra slug appended).
+  2. `research-pipeline/SKILL.md` Phase 1 — same path correction in the
+     dispatch payload instruction.
+  3. `researcher.md` — added prose: "Allocated IDs use datetime form
+     `<type>-YYMMDD-<random4>-<slug>` per scripts/allocate-id; the returned
+     ID already includes the slug, so use it verbatim without appending
+     another suffix."
+  4. `analyzer.md:38` — replaced sequential `ana<NN>` example with datetime
+     `ana-260911-ab12-topic` example; fixed whitespace indent alignment on
+     the same line.
+- Why irrecoverable: the doubled-slug is a cross-file instruction consistency
+  bug — each file's example looks correct in isolation, but the allocator's
+  slug-embedding behavior means the instruction examples contradict the
+  allocator's actual output. The fix is not visible from any single diff
+  without understanding that `allocate-id` already includes the slug. A fresh
+  agent reading the pre-fix instructions would produce doubled-slug paths.
+- Verification: make test-config EXIT 0 (57 pass); smoke allocate-id returned
+  non-empty datetime ID; ai-auditor F1 verified-closed, F4 conditional-pass
+  pending full restart.
+- Cross-reference: openspec/changes/dia-260911-4y5v-datetime-artifact-id-examples/
+  (proposal/design/tasks), scripts/allocate-id (allocator ground truth),
+  learnings/external-patterns/dia-260911-4y5v-datetime-id-gate.md.

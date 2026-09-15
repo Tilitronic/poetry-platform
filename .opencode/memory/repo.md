@@ -372,19 +372,13 @@ Note: These are navigational facts to help future humans find the infra/test art
   for sazr = 0 confirmed isolation. Operational pattern for parallel-lane
   commits when concurrent changes share the working tree.
 
-- Stash ref file ownership gotcha (DIA-260910-30sz, 2026-09-10):
-  `.git/refs/stash` and `.git/logs/refs/stash` can become root:root owned
-  when a container process (uid 0) creates them during the same commit window
-  (observed during the db6abca sazr commit). The lint-staged pre-commit hook
-  runs `git stash store` as a backup step, which fails with "update_ref
-  failed for ref 'refs/stash': Permission denied" when these files are
-  root-owned and the lane user is dev (uid 1000). Every commit with staged
-  changes then fails the hook (content-independent, 2 attempts confirmed).
-  Remediation: chown the two files to dev:dev on the host
-  (`chown dev:dev .git/refs/stash .git/logs/refs/stash`). Future lanes
-  hitting identical hook-stage stash errors on staged content should check
-  stash ref file ownership before retrying. Distinct from the root-owned
-  ticket file pattern (failures.md line 345) but same ownership mechanism.
+- Stash ref ownership outage (2026-09-11, supersedes the earlier 2026-09-10
+  observation): lint-staged's pre-commit hook failed three times with zero
+  tasks executed. Root cause was root-owned Git stash refs blocking
+  `git stash store` with `Permission denied`. The developer chowned exactly
+  five affected paths on the host; the retry then succeeded. When this exact
+  failure repeats, inspect ownership of the stash-related paths before
+  retrying. No bypass was used.
 
 - test-helper.bash budget-fixture boundary (DIA-260909-9i1o, 2026-09-10):
   `scripts/__tests__/test-helper.bash` lines 367-444 is the canonical location
