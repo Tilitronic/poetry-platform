@@ -1949,4 +1949,48 @@ describe("DIA-260914-tqor RED-A review cycle 2 - strict ownership", () => {
       nodeFs.rmSync(root, { recursive: true, force: true })
     }
   })
+
+  it("reports durable sidecar high-water marks in diagnostics without writing", () => {
+    const root = nodeFs.mkdtempSync(nodeJoin(tmpdir(), "tqor-health-sidecars-"))
+    const session = nodeJoin(root, ".opencode/session")
+    nodeFs.mkdirSync(session, { recursive: true })
+    const registryPath = nodeJoin(session, "registry.jsonl")
+    const messagesPath = nodeJoin(session, "messages.jsonl")
+    const registrySeqPath = nodeJoin(session, "registry.seq")
+    const messagesRowIdPath = nodeJoin(session, "messages.row-id")
+    nodeFs.writeFileSync(registryPath, JSON.stringify({ seq: 4, event: "session_spawn", session_id: "ses_live", dispatch_state: "running" }) + "\n")
+    nodeFs.writeFileSync(messagesPath, JSON.stringify({ row_id: 7, event_type: "delegation" }) + "\n")
+    nodeFs.writeFileSync(registrySeqPath, "400\n")
+    nodeFs.writeFileSync(messagesRowIdPath, "700\n")
+    const before = {
+      registry: nodeFs.readFileSync(registryPath, "utf8"),
+      messages: nodeFs.readFileSync(messagesPath, "utf8"),
+      registrySeq: nodeFs.readFileSync(registrySeqPath, "utf8"),
+      messagesRowId: nodeFs.readFileSync(messagesRowIdPath, "utf8"),
+    }
+    try {
+      const registry = mod.createRegistry({
+        directory: root,
+        registryPath,
+        messagesPath,
+        messagesMdPath: nodeJoin(session, "messages.md"),
+        registrySeqPath,
+        messagesRowIdPath,
+        journalLockPath: nodeJoin(session, "journal.lock"),
+        archiveDir: nodeJoin(session, "registry-archive"),
+      })
+
+      const health = registry.getDiagnostics()
+
+      assert.equal(health.last_registry_seq, 400, "diagnostics must prefer durable registry.seq over lower JSONL history")
+      assert.equal(health.last_message_row_id, 700, "diagnostics must prefer durable messages.row-id over lower JSONL history")
+      assert.equal(nodeFs.readFileSync(registryPath, "utf8"), before.registry, "diagnostics must not write registry.jsonl")
+      assert.equal(nodeFs.readFileSync(messagesPath, "utf8"), before.messages, "diagnostics must not write messages.jsonl")
+      assert.equal(nodeFs.readFileSync(registrySeqPath, "utf8"), before.registrySeq, "diagnostics must not write registry.seq")
+      assert.equal(nodeFs.readFileSync(messagesRowIdPath, "utf8"), before.messagesRowId, "diagnostics must not write messages.row-id")
+      assert.equal(nodeFs.existsSync(nodeJoin(session, "journal.lock")), false, "diagnostics must not acquire the write lock")
+    } finally {
+      nodeFs.rmSync(root, { recursive: true, force: true })
+    }
+  })
 })
