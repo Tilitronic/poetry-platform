@@ -910,7 +910,7 @@
 
 - **Change:** datetime-first ticket ID parsing: shared const regexes fix C1 truncation + Path-1 case normalization; 122/122 plugin tests
 - **Files:** .opencode/plugins/delegation-observer.ts - .opencode/plugins/__tests__/dia-ticket-id-parser.test.mjs - .opencode/plugins/__tests__/dia217-ticket-gate.test.mjs
-- **Verification:** manual
+- **Verification:** make test-config exit 0; live catalogs resolved Muse Free, MiMo Free, and Luna; process-scoped preset override resolved Muse Free and returned non-empty U8JS_SMOKE_OK; independent config audit PASS
 
 ## 2026-08-26 - DIA-260826-zvu4: opencode-config
 
@@ -1103,3 +1103,9 @@
 - **Change:** Add and activate strict OpenAI-only cost-balanced Luna/Terra/Sol routing after six-route runtime smoke
 - **Files:** .opencode/oh-my-opencode-slim.jsonc - .opencode/learnings/external-patterns/2026-09-12-dia-260912-dean-openai-first-preset-gate.md - docs/dev-infra-audit/tickets/DIA-260912-dean-add-openai-first-cost-balanced-preset-with-luna-terra-sol-routing.md
 - **Verification:** make test-config 57/57; restarted OpenCode resolved all 17 roles to OpenAI and returned non-empty markers for Luna medium/high, Terra medium/high, and Sol medium/high; independent config audit mapping PASS
+
+## 2026-09-15 - DIA-260915-u8js: OpenCode preset routing
+
+- **Change:** Reconcile inactive Muse preset with Zen-free primaries and Luna fallbacks
+- **Files:** .opencode/oh-my-opencode-slim.jsonc - .opencode/learnings/external-patterns/2026-09-15-dia-260915-u8js-zen-free-routing-gate.md - docs/dev-infra-audit/tickets/DIA-260915-u8js-reconcile-inactive-muse-qwen-balanced-zen-free-routing-and-openai-luna-fallback.md
+- **Verification:** manual

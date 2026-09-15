@@ -6,7 +6,7 @@ id: DIA-260915-u8js
 title: "Reconcile inactive Muse Qwen balanced Zen-free routing and OpenAI Luna fallback"
 area: opencode-config
 severity: Low
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: ""
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
@@ -30,7 +30,9 @@ attempts: 0
 lease_expires_at: "" # ISO-8601; set on DISPATCHED, cleared on COMPLETE
 files_touched: []
 artifacts: []
-evidence: []
+evidence:
+
+- git:231eafd
 
 ---
 
@@ -51,14 +53,14 @@ OpenCode Go quota. Keep this change isolated from memory hygiene.
 
 ## Verification
 
-- [ ] The composition comment matches every changed primary/fallback route.
-- [ ] `opencode/muse-spark-1.3-contributor-free`, `opencode/mimo-v2.5-free`,
+- [x] The composition comment matches every changed primary/fallback route.
+- [x] `opencode/muse-spark-1.3-contributor-free`, `opencode/mimo-v2.5-free`,
       and `openai/gpt-5.6-luna` resolve in the live model catalogs.
-- [ ] The active preset remains `openai-first-cost-balanced`.
-- [ ] `make test-config` and JSONC validation exit 0.
-- [ ] After restart, selecting `muse-qwen-balanced` resolves only the approved
+- [x] The active preset remains `openai-first-cost-balanced`.
+- [x] `make test-config` and JSONC validation exit 0.
+- [x] After restart, selecting `muse-qwen-balanced` resolves only the approved
       free/OpenAI routes and returns a non-empty smoke response.
-- [ ] Independent config audit, changelog, and isolated commit are complete.
+- [x] Independent config audit, changelog, and isolated commit are complete.
 
 ## Fix
 
@@ -68,4 +70,10 @@ OpenCode Go quota. Keep this change isolated from memory hygiene.
 ## Re-verify
 
 - [x] Static JSONC/config validation completed; no route or active-pointer changes were introduced.
-- [x] `make test-config` passed (exit 0); runtime restart, smoke, independent audit, and changelog remain pending by design.
+- [x] `make test-config` passed (exit 0); live catalogs resolved Muse Free,
+      MiMo Free, and Luna.
+- [x] A process-scoped `muse-qwen-balanced` override resolved
+      `orchestrator · muse-spark-1.3-contributor-free` and returned non-empty
+      `U8JS_SMOKE_OK` without changing the persistent active pointer.
+- [x] Independent config audit passed; changelog validation/render produced 149
+      entries.

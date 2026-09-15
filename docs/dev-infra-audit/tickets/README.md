@@ -320,7 +320,7 @@
 | DIA-260913-srn4 | Refresh rustup-init checksums blocking Podman dev image rebuild | dev-infra | Major | CLOSED | [DIA-260913-srn4-refresh-rustup-init-checksums-blocking-podman-dev-image-rebuild.md](DIA-260913-srn4-refresh-rustup-init-checksums-blocking-podman-dev-image-rebuild.md) |
 | DIA-260914-4s66 | Avoid rootless Podman remap of host git ownership during entrypoint startup | docker | Critical | CLOSED | [DIA-260914-4s66-avoid-rootless-podman-remap-of-host-git-ownership-during-entrypoint-startup.md](DIA-260914-4s66-avoid-rootless-podman-remap-of-host-git-ownership-during-entrypoint-startup.md) |
 | DIA-260914-tqor | Stop delegation-observer stall sweep from re-emitting dead sessions forever and bound registry scan cost | scripts | Medium | OPEN | [DIA-260914-tqor-stop-delegation-observer-stall-sweep-from-re-emitting-dead-sessions-forever-and-bound-registry-scan-cost.md](DIA-260914-tqor-stop-delegation-observer-stall-sweep-from-re-emitting-dead-sessions-forever-and-bound-registry-scan-cost.md) |
-| DIA-260915-u8js | Reconcile inactive Muse Qwen balanced Zen-free routing and OpenAI Luna fallback | opencode-config | Low | OPEN | [DIA-260915-u8js-reconcile-inactive-muse-qwen-balanced-zen-free-routing-and-openai-luna-fallback.md](DIA-260915-u8js-reconcile-inactive-muse-qwen-balanced-zen-free-routing-and-openai-luna-fallback.md) |
+| DIA-260915-u8js | Reconcile inactive Muse Qwen balanced Zen-free routing and OpenAI Luna fallback | opencode-config | Low | CLOSED | [DIA-260915-u8js-reconcile-inactive-muse-qwen-balanced-zen-free-routing-and-openai-luna-fallback.md](DIA-260915-u8js-reconcile-inactive-muse-qwen-balanced-zen-free-routing-and-openai-luna-fallback.md) |
 
 ## Status summary
 
@@ -337,7 +337,7 @@
 
 | Status      | Count |
 | ----------- | ----- |
-| OPEN        | 70    |
+| OPEN        | 69    |
 | DONE        | 11    |
 | VALIDATE    | 0     |
 | E2E         | 0     |
@@ -346,7 +346,7 @@
 | FIXED       | 1     |
 | IMPLEMENTED | 2     |
 | VERIFIED    | 28    |
-| CLOSED      | 204   |
+| CLOSED      | 205   |
 | BLOCKED     | 0     |
 | DISPATCHED  | 0     |
 | RUNNING     | 0     |
