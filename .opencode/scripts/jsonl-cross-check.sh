@@ -186,7 +186,8 @@ require_jq
 # active file wins on exact duplicate lines, so a rotation overlap is counted
 # once. Archives are registry-only; messages.jsonl remains authoritative for
 # delegation rows. Any unverified archive fails closed before the check runs.
-if [ -n "$ARCHIVE_DIR" ] && [ -d "$ARCHIVE_DIR" ]; then
+if [ -n "$ARCHIVE_DIR" ]; then
+  [ -d "$ARCHIVE_DIR" ] || fail_input "archive directory $ARCHIVE_DIR not found"
   REG_SOURCE="$(mktemp "${TMPDIR:-/tmp}/tqor-cross-check.XXXXXX")"
   trap 'rm -f "$REG_SOURCE"' EXIT
   cat "$REG_FILE" > "$REG_SOURCE"
@@ -207,9 +208,35 @@ if [ -n "$ARCHIVE_DIR" ] && [ -d "$ARCHIVE_DIR" ]; then
     fi
     cat "$archive" >> "$REG_SOURCE"
   done
-  # Exact JSONL lines are the stable identity emitted by rotation. Keep the
-  # active copy and discard only later archive duplicates.
-  awk '!seen[$0]++' "$REG_SOURCE" > "${REG_SOURCE}.dedup"
+  # Valid numeric seq is the stable registry identity across active/archive
+  # overlap. Formatting or key order changes still deduplicate; conflicting
+  # payloads for the same seq fail closed. Legacy no-seq rows stay row-distinct.
+  dedup_result="$(jq -Rn '
+    def canon:
+      to_entries | sort_by(.key) | from_entries | tojson;
+    reduce inputs as $line ({seen:{}, out:[], error:null};
+      if .error != null then .
+      elif ($line | length) == 0 then .out += [$line]
+      else
+        (try ($line | fromjson) catch null) as $row
+        | if $row == null then .out += [$line]
+          elif (($row.seq | type) == "number") then
+            ($row.seq | tostring) as $seq
+            | ($row | canon) as $canon
+            | if (.seen[$seq] == null) then
+                .seen[$seq] = $canon | .out += [$line]
+              elif .seen[$seq] == $canon then
+                .
+              else
+                .error = ("conflicting registry archive payload for seq " + $seq)
+              end
+          else
+            .out += [$line]
+          end
+      end)' "$REG_SOURCE")"
+  dedup_error="$(printf '%s' "$dedup_result" | jq -r '.error // empty')"
+  [ -z "$dedup_error" ] || fail_input "$dedup_error"
+  printf '%s' "$dedup_result" | jq -r '.out[]' > "${REG_SOURCE}.dedup"
   mv "${REG_SOURCE}.dedup" "$REG_SOURCE"
   REG_FILE="$REG_SOURCE"
 fi

@@ -588,18 +588,31 @@ describe("RED-F — verified registry rotation", () => {
         () => mod.createRegistry({
           directory: repo,
           registryPath: nodeJoin(temp, "registry.jsonl"),
+          messagesPath: nodeJoin(repo, ".opencode/session/messages.jsonl"),
         }),
         /split-parent|same parent|sidecar|explicit/i,
-        "explicit registry path without its companion paths must fail closed",
+        "registry and messages paths from different parents must fail closed",
       )
       assert.throws(
         () => mod.createRegistry({
           directory: repo,
+          registryPath: nodeJoin(temp, "registry.jsonl"),
           messagesPath: nodeJoin(temp, "messages.jsonl"),
+          archiveDir: nodeJoin(repo, ".opencode/session/registry-archive"),
         }),
         /split-parent|same parent|sidecar|explicit/i,
-        "explicit messages path without its companion paths must fail closed",
+        "archive path from a different parent must fail closed",
       )
+      assert.doesNotThrow(() => mod.createRegistry({
+        directory: repo,
+        registryPath: nodeJoin(temp, "registry.jsonl"),
+        messagesPath: nodeJoin(temp, "messages.jsonl"),
+      }), "matching explicit registry/messages parent may derive sidecars")
+      assert.doesNotThrow(() => mod.createRegistry({
+        directory: repo,
+        messagesPath: nodeJoin(temp, "messages.jsonl"),
+        messagesMdPath: nodeJoin(temp, "messages.md"),
+      }), "helper-only message path overrides remain allowed")
     } finally {
       nodeFs.rmSync(repo, { recursive: true, force: true })
       nodeFs.rmSync(temp, { recursive: true, force: true })
@@ -1000,7 +1013,7 @@ describe("lib/registry — appendMessageRow", () => {
 
   it("returns 0 for absent files (helpers)", () => {
     const fs = makeFakeFs({})
-    const inst = makeRegistry(fs, { messagesPath: "/no/messages.jsonl", messagesMdPath: "/no/messages.md" })
+    const inst = makeRegistry(fs, { registryPath: "/no/registry.jsonl", messagesPath: "/no/messages.jsonl", messagesMdPath: "/no/messages.md" })
     assert.ok(inst)
     assert.equal(inst.maxRowIdInJsonl("/no/messages.jsonl"), 0, "maxRowIdInJsonl absent must be 0")
     assert.equal(inst.lastMessagesMdRowNumber("/no/messages.md"), 0, "lastMessagesMdRowNumber absent must be 0")

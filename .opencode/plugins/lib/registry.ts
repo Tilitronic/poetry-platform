@@ -368,19 +368,35 @@ function resolveDirectory(deps: RegistryDeps): string {
   return deps.directory ?? "/workspace"
 }
 
+function resolveSessionParent(deps: RegistryDeps, path: PathDeps): string {
+  const defaultParent = path.join(resolveDirectory(deps), ".opencode/session")
+  const registryParent = deps.registryPath ? path.dirname(deps.registryPath) : undefined
+  const messagesParent = deps.messagesPath ? path.dirname(deps.messagesPath) : undefined
+  const archiveParent = deps.archiveDir ? path.dirname(deps.archiveDir) : undefined
+
+  const explicitParents = [registryParent, messagesParent, archiveParent].filter((value): value is string => typeof value === "string")
+  const sessionParent = explicitParents[0] ?? defaultParent
+  for (const parent of explicitParents) {
+    if (parent !== sessionParent) {
+      throw new Error("split-parent registry configuration: explicit registry/messages/archive paths must share one session parent")
+    }
+  }
+  return sessionParent
+}
+
 function resolveRegistryPath(deps: RegistryDeps, path: PathDeps): string {
   if (deps.registryPath) return deps.registryPath
-  return path.join(resolveDirectory(deps), ".opencode/session/registry.jsonl")
+  return path.join(resolveSessionParent(deps, path), "registry.jsonl")
 }
 
 function resolveMessagesPath(deps: RegistryDeps, path: PathDeps): string {
   if (deps.messagesPath) return deps.messagesPath
-  return path.join(resolveDirectory(deps), ".opencode/session/messages.jsonl")
+  return path.join(resolveSessionParent(deps, path), "messages.jsonl")
 }
 
 function resolveMessagesMdPath(deps: RegistryDeps, path: PathDeps): string {
   if (deps.messagesMdPath) return deps.messagesMdPath
-  return path.join(resolveDirectory(deps), ".opencode/session/messages.md")
+  return path.join(resolveSessionParent(deps, path), "messages.md")
 }
 
 function resolveBootPath(deps: RegistryDeps, path: PathDeps): string {
@@ -431,6 +447,7 @@ export function createRegistry(deps: RegistryDeps = {}) {
   const rand = resolveRandomUUID(deps)
   const warn = resolveWarn(deps)
   const sessionMessageCount = resolveSessionMessageCount(deps)
+  const sessionParent = resolveSessionParent(deps, path)
 
   const registryPath = resolveRegistryPath(deps, path)
   const messagesPath = resolveMessagesPath(deps, path)
@@ -439,10 +456,10 @@ export function createRegistry(deps: RegistryDeps = {}) {
   const bootTmpPath = resolveBootTmpPath(deps, path)
   const handoffDir = resolveHandoffDir(deps, path)
   const processStartedAt = resolveProcessStartedAt(deps)
-  const registrySeqPath = deps.registrySeqPath ?? path.join(resolveDirectory(deps), ".opencode/session/registry.seq")
-  const messagesRowIdPath = deps.messagesRowIdPath ?? path.join(resolveDirectory(deps), ".opencode/session/messages.row-id")
-  const journalLockPath = deps.journalLockPath ?? path.join(resolveDirectory(deps), ".opencode/session/journal.lock")
-  const archiveDir = deps.archiveDir ?? path.join(resolveDirectory(deps), ".opencode/session/registry-archive")
+  const registrySeqPath = deps.registrySeqPath ?? path.join(sessionParent, "registry.seq")
+  const messagesRowIdPath = deps.messagesRowIdPath ?? path.join(sessionParent, "messages.row-id")
+  const journalLockPath = deps.journalLockPath ?? path.join(sessionParent, "journal.lock")
+  const archiveDir = deps.archiveDir ?? path.join(sessionParent, "registry-archive")
   const processIdentity = deps.processIdentity ?? { pid: process.pid, startedAt: linuxProcessStartToken(process.pid) ?? processStartedAt }
   const isProcessAlive = deps.isProcessAlive ?? ((owner: { pid: number; startedAt: string }) => {
     const token = linuxProcessStartToken(owner.pid)

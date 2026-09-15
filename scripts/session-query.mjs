@@ -121,6 +121,7 @@ function parseArgs(argv) {
     registry: DEFAULT_REGISTRY,
     messages: DEFAULT_MESSAGES,
     archiveDir: DEFAULT_ARCHIVE_DIR,
+    archiveDirExplicit: false,
     activeOnly: false,
     session: null,
     countBy: null,
@@ -148,6 +149,7 @@ function parseArgs(argv) {
         break;
       case '--archive-dir':
         opts.archiveDir = needValue('archive-dir', i);
+        opts.archiveDirExplicit = true;
         i++;
         break;
       case '--active-only':
@@ -215,7 +217,19 @@ function parseArgs(argv) {
 // so output rows are byte-faithful to the committed records. Malformed lines
 // are skipped with a warning (documented policy, see header).
 // ---------------------------------------------------------------------------
-function importJsonl(db, table, filePath, { seen } = {}) {
+function canonicalJson(value) {
+  if (Array.isArray(value)) return value.map(canonicalJson);
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(
+      Object.entries(value)
+        .sort(([left], [right]) => left.localeCompare(right))
+        .map(([key, item]) => [key, canonicalJson(item)]),
+    );
+  }
+  return value;
+}
+
+function importJsonl(db, table, filePath, { seenSeq } = {}) {
   db.exec(
     `CREATE TABLE IF NOT EXISTS ${table} (id INTEGER PRIMARY KEY AUTOINCREMENT, data TEXT NOT NULL)`,
   );
@@ -232,15 +246,24 @@ function importJsonl(db, table, filePath, { seen } = {}) {
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
     if (!line.trim()) continue; // blank lines are noise, not malformed rows
+    let parsed;
     try {
-      JSON.parse(line); // validate; the raw line is what we store
+      parsed = JSON.parse(line); // validate; the raw line is what we store
     } catch {
       skipped++;
       console.error(`warn: ${filePath} line ${i + 1} is malformed JSON - skipped`);
       continue;
     }
-    if (seen && seen.has(line)) continue;
-    seen?.add(line);
+    if (seenSeq && typeof parsed.seq === 'number' && Number.isFinite(parsed.seq)) {
+      const key = String(parsed.seq);
+      const canonical = JSON.stringify(canonicalJson(parsed));
+      const existing = seenSeq.get(key);
+      if (existing === canonical) continue;
+      if (existing !== undefined) {
+        throw new Error(`conflicting registry archive payload for seq ${key}`);
+      }
+      seenSeq.set(key, canonical);
+    }
     insert.run(line);
     imported++;
   }
@@ -249,8 +272,12 @@ function importJsonl(db, table, filePath, { seen } = {}) {
 
 // Registry archives are immutable only when their adjacent manifest verifies
 // the exact bytes. Unverified files are never queried (fail closed).
-function verifiedRegistryArchives(archiveDir) {
-  if (!archiveDir || !fs.existsSync(archiveDir)) return [];
+function verifiedRegistryArchives(archiveDir, { required = false } = {}) {
+  if (!archiveDir) return [];
+  if (!fs.existsSync(archiveDir)) {
+    if (required) throw new Error(`archive directory unavailable: ${archiveDir} (ENOENT)`);
+    return [];
+  }
   let names;
   try {
     names = fs.readdirSync(archiveDir, { withFileTypes: true });
@@ -335,12 +362,14 @@ function main() {
 
   const db = new DatabaseSync(':memory:'); // ephemeral: dies with this process
   const w = buildWhere(opts.wheres);
-  const registrySeen = new Set();
-  const registryStats = importJsonl(db, 'registry', opts.registry, { seen: registrySeen });
-  const archiveFiles = opts.activeOnly ? [] : verifiedRegistryArchives(opts.archiveDir);
+  const registrySeenSeq = new Map();
+  const registryStats = importJsonl(db, 'registry', opts.registry, { seenSeq: registrySeenSeq });
+  const archiveFiles = opts.activeOnly
+    ? []
+    : verifiedRegistryArchives(opts.archiveDir, { required: opts.archiveDirExplicit });
   const archiveStats = archiveFiles.reduce(
     (total, filePath) => {
-      const stats = importJsonl(db, 'registry', filePath, { seen: registrySeen });
+      const stats = importJsonl(db, 'registry', filePath, { seenSeq: registrySeenSeq });
       return { imported: total.imported + stats.imported, skipped: total.skipped + stats.skipped };
     },
     { imported: 0, skipped: 0 },
