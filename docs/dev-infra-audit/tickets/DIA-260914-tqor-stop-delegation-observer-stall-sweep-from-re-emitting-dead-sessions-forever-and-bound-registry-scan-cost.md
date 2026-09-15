@@ -91,7 +91,11 @@ project plugin's stall-sweep persistence contract.
 - RED/GREEN fixed points: `22596e2` (RED-D), `c81c827` (GREEN-D), and `8be415a`
   (accepted review fix). Earlier slices are recorded in the OpenSpec history.
 - Archive/compaction, archive-aware readers, live migration, and final runtime
-  observation remain deferred sections 5-10 of the same OPEN ticket.
+  observation remain deferred sections 6-10 of the same OPEN ticket.
+- RED-E fixed points `2ce8e1a` and `9ba59c1` cover failure/malformed input.
+  GREEN-E `0d0468a` preserves actual failure stages and rate-limits warnings;
+  review fix `a306081` bounds warning fingerprints and reports malformed-only
+  batches once without blocking later valid rows.
 
 ## Re-verify
 
@@ -102,4 +106,10 @@ project plugin's stall-sweep persistence contract.
 - Independent review found one hot-path full-scan fallback on lock exhaustion.
   Same-session fix `8be415a` removed it; targeted re-review cycle 1/2 marked the
   finding verified-closed with no new observations.
+- RED-E baseline was 93 passed / 3 intended behavioral failures. After GREEN-E
+  and its review fix, registry plus stall-sweep are 96/96 passed; typecheck,
+  `git diff --check`, and the Podman pre-commit gate passed.
+- The independent reviewer lane could not start because its Codex usage quota
+  was exhausted. Root performed the read-only diff review; two boundedness and
+  malformed-only observations were fixed in the original GREEN-E session.
 - Ticket remains OPEN pending the unchecked archive/migration/runtime-smoke work.

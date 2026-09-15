@@ -48,8 +48,8 @@
 
 ## 5. Error and malformed-input behavior
 
-- [ ] 5.1 **RED-E:** A test-only coder adds failing cases for empty/missing registry no-op, isolated malformed rows with aggregated bounded warning examples, valid rows after corruption, missing IDs without synthetic keys, read failure suppressing sweep, rate-limited warnings, discriminated failures at lock/counter/append/index stages, and dirty-index rebuild.
-- [ ] 5.2 **GREEN-E, different instance:** Implement only the approved fail-soft/fail-closed paths in the canonical persistence, registry, and stall seams.
+- [x] 5.1 **RED-E:** A test-only coder adds failing cases for empty/missing registry no-op, isolated malformed rows with aggregated bounded warning examples, valid rows after corruption, missing IDs without synthetic keys, read failure suppressing sweep, rate-limited warnings, discriminated failures at lock/counter/append/index stages, and dirty-index rebuild.
+- [x] 5.2 **GREEN-E, different instance:** Implement only the approved fail-soft/fail-closed paths in the canonical persistence, registry, and stall seams.
 
 **Dependencies:** 1, 3, 4. **Acceptance:** Infrastructure errors never synthesize terminal state or stall success; warning paths cannot form another loop; focused tests exit 0.
 
