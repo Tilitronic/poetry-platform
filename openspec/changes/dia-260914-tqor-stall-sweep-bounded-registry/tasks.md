@@ -8,41 +8,41 @@
 
 ## 0. Pre-flight and baseline
 
-- [ ] 0.1 Confirm the ticket is OPEN, the container is reachable, and the registered section 2.5 research/learnings gate is complete.
-- [ ] 0.2 Record registry bytes, row count, valid/malformed counts, maximum `seq`, maximum message `row_id`, `stall_detected` count, duplicate-dead distribution, and current startup/sweep timing without changing runtime files.
-- [ ] 0.3 Capture focused test baselines and every production reader/writer of registry and messages JSONL. Freeze allowed files per slice.
+- [x] 0.1 Confirm the ticket is OPEN, the container is reachable, and the registered section 2.5 research/learnings gate is complete.
+- [x] 0.2 Record registry bytes, row count, valid/malformed counts, maximum `seq`, maximum message `row_id`, `stall_detected` count, duplicate-dead distribution, and current startup/sweep timing without changing runtime files.
+- [x] 0.3 Capture focused test baselines and every production reader/writer of registry and messages JSONL. Freeze allowed files per slice.
 
 **Acceptance:** Ticket evidence exists; no migration or production edit occurred.
 
 ## 1. Functional journal persistence and both durable counters
 
-- [ ] 1.1 **RED-A:** A test-only coder adds failing production-interface cases for one-time recovery of registry `seq` and message `row_id`, repeated writes without full scans, two deterministic processes receiving unique monotonic IDs, live-owner lock refusal, expired/dead-owner reclamation, corrupt/lower counters, atomic counter failure, checked append/fsync failure, and allowed crash gaps that are never reused.
-- [ ] 1.2 **GREEN-A, different instance:** Add the minimal functional `.opencode/plugins/lib/journal-persistence.ts` helper and wire explicit `lib/registry.ts` registry/message wrappers to it. The helper owns only DI, the shared inter-process lock, named durable counters, and checked append/fsync.
-- [ ] 1.3 Make both wrappers return the approved discriminated durable result. Prove a reserved ID is never reported as persisted after append/fsync failure.
+- [x] 1.1 **RED-A:** A test-only coder adds failing production-interface cases for one-time recovery of registry `seq` and message `row_id`, repeated writes without full scans, two deterministic processes receiving unique monotonic IDs, live-owner lock refusal, expired/dead-owner reclamation, corrupt/lower counters, atomic counter failure, checked append/fsync failure, and allowed crash gaps that are never reused.
+- [x] 1.2 **GREEN-A, different instance:** Add the minimal functional `.opencode/plugins/lib/journal-persistence.ts` helper and wire explicit `lib/registry.ts` registry/message wrappers to it. The helper owns only DI, the shared inter-process lock, named durable counters, and checked append/fsync.
+- [x] 1.3 Make both wrappers return the approved discriminated durable result. Prove a reserved ID is never reported as persisted after append/fsync failure.
 
 **Dependencies:** 0. **Acceptance:** Both counters are unique and monotonic across writers/restart; subsequent appends perform no full JSONL scan; no OOP or unrelated-log abstraction; registry tests exit 0.
 
 ## 2. Centralize needs-input observer writes
 
-- [ ] 2.1 **RED-B:** A different test-only coder proves concurrent delegation-observer and needs-input writes cannot duplicate `seq` or `row_id`, and that needs-input event payloads/cardinality remain unchanged.
-- [ ] 2.2 **GREEN-B, different instance:** Replace `needs-input-observer.ts` independent `maxJsonlNumber`/`appendFileSync` writers with the canonical `lib/registry.ts` wrappers. Do not refactor observer semantics.
+- [x] 2.1 **RED-B:** A different test-only coder proves concurrent delegation-observer and needs-input writes cannot duplicate `seq` or `row_id`, and that needs-input event payloads/cardinality remain unchanged.
+- [x] 2.2 **GREEN-B, different instance:** Replace `needs-input-observer.ts` independent `maxJsonlNumber`/`appendFileSync` writers with the canonical `lib/registry.ts` wrappers. Do not refactor observer semantics.
 
 **Dependencies:** 1. **Acceptance:** All plugin registry/message writes use the canonical adapter; focused needs-input and concurrency tests exit 0.
 
 ## 3. Exact lifecycle generations and process-local index
 
-- [ ] 3.1 **RED-C:** A test-only coder adds failing cases for the transition table: first authoritative non-terminal `seq` anchors generation; a real child `session_spawn` opens a generation when no earlier dispatch row exists; repeated running/progress, `session_spawn`, stall, and `task_success` stay in that generation; terminal closes it; explicit recovery or dispatch after closure starts a new anchor; restart never increments; terminal-only/missing-ID chains never become sweep-eligible.
+- [x] 3.1 **RED-C:** A test-only coder adds failing cases for the transition table: first authoritative non-terminal `seq` anchors generation; a real child `session_spawn` opens a generation when no earlier dispatch row exists; repeated running/progress, `session_spawn`, stall, and `task_success` stay in that generation; terminal closes it; explicit recovery or dispatch after closure starts a new anchor; restart never increments; terminal-only/missing-ID chains never become sweep-eligible.
 - [ ] 3.2 Add legacy fixture cases ordered by `seq`, timestamp, then offset, including deterministic legacy generation mapping, duplicate/out-of-order rows, and byte-identical archived history.
-- [ ] 3.3 **GREEN-C, different instance:** Implement the bounded process-local incremental index in `lib/registry.ts`, with active-file bootstrap and inode/rotation-aware ingestion of only new bytes. Do not add a durable active-index sidecar.
-- [ ] 3.4 Prove terminal/reconciled removal, tombstone preservation, bound fail-loud behavior, and dirty local-index rebuild before sweep resumes.
+- [x] 3.3 **GREEN-C, different instance:** Implement the bounded process-local incremental index in `lib/registry.ts`, with active-file bootstrap and inode/rotation-aware ingestion of only new bytes. Do not add a durable active-index sidecar.
+- [x] 3.4 Prove terminal/reconciled removal, tombstone preservation, bound fail-loud behavior, and dirty local-index rebuild before sweep resumes.
 
 **Dependencies:** 1, 2. **Acceptance:** Transition-table and legacy tests pass; no sensitive content enters the index; ordinary bounds never evict live or unreconciled entries.
 
 ## 4. Locked cross-process stall compare-and-append
 
 - [ ] 4.1 **RED-D:** A test-only coder adds failing cases for one dead escalation across repeated intervals and two plugin processes, restart/bootstrap dedup, explicit recovery/new generation, current-lifetime stalls, hundreds of historical stale sessions without cascade, and suppression count without repeated rows.
-- [ ] 4.2 **GREEN-D, different instance:** Change `lib/stall-sweep.ts` to consume the process-local index and call a canonical locked compare-and-append operation. Under lock, ingest new bytes, compare durable generation/tier evidence, and append only if absent.
-- [ ] 4.3 Wire `delegation-observer.ts` minimally. Emit TUI/crisis notification only after `{ok:true}` stall append. On notification failure, retain the durable dedup row and emit only a rate-limited warning.
+- [x] 4.2 **GREEN-D, different instance:** Change `lib/stall-sweep.ts` to consume the process-local index and call a canonical locked compare-and-append operation. Under lock, ingest new bytes, compare durable generation/tier evidence, and append only if absent.
+- [x] 4.3 Wire `delegation-observer.ts` minimally. Emit TUI/crisis notification only after `{ok:true}` stall append. On notification failure, retain the durable dedup row and emit only a rate-limited warning.
 
 **Dependencies:** 3. **Acceptance:** One dead row per generation/tier across processes; no full-history sweep; failed append sends no success notification; current fresh stalls remain detected.
 

@@ -17,7 +17,7 @@ discovered: 2026-09-14
 source: inventory
 date: 2026-09-14
 created: 2026-09-14
-updated: 2026-09-14
+updated: 2026-09-15
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -63,25 +63,43 @@ project plugin's stall-sweep persistence contract.
 
 ## Verification
 
-- [ ] A dead/unreconciled session produces at most one durable dead escalation
+- [x] A dead/unreconciled session produces at most one durable dead escalation
       until explicit lifecycle recovery changes its authoritative state.
-- [ ] Restarting/reloading the plugin does not re-enroll historical dead rows or
+- [x] Restarting/reloading the plugin does not re-enroll historical dead rows or
       create a new cascade.
-- [ ] The periodic sweep does not parse the full unbounded registry on every
+- [x] The periodic sweep does not parse the full unbounded registry on every
       interval; retention/indexing keeps work bounded with preserved audit history.
-- [ ] Concurrent plugin instances share one effective sweep and cannot append
+- [x] Concurrent plugin instances share one effective sweep and cannot append
       duplicate escalations for the same session/tier.
 - [ ] Behavioral tests cover repeated intervals, restart, many stale sessions,
       current-lifetime stalls, and explicit recovery.
-- [ ] Existing stall detection for a genuinely live current-lifetime session is
+- [x] Existing stall detection for a genuinely live current-lifetime session is
       preserved; `make test-shell` and `make test-config` pass.
 - [ ] A migration/compaction command preserves the current registry as a
       recoverable archive before reducing the active file.
 
 ## Fix
 
-> To be filled at fix time.
+- `journal-persistence.ts` now owns the shared lock, durable counters, checked
+  append/fsync, and crash-gap-safe allocation used by registry and message writers.
+- `registry.ts` maintains a bounded process-local lifecycle projection, ingests
+  appended bytes incrementally, rebuilds explicitly after rotation/truncation,
+  and performs locked durable `(session_id, generation, tier)` stall
+  compare-and-append without a full-history contention fallback.
+- `needs-input-observer.ts` uses the canonical registry writer. The delegation
+  observer and stall sweep notify only after a durable stall append succeeds.
+- RED/GREEN fixed points: `22596e2` (RED-D), `c81c827` (GREEN-D), and `8be415a`
+  (accepted review fix). Earlier slices are recorded in the OpenSpec history.
+- Archive/compaction, archive-aware readers, live migration, and final runtime
+  observation remain deferred sections 5-10 of the same OPEN ticket.
 
 ## Re-verify
 
-> To be filled at re-verify time.
+- Focused registry plus stall-sweep: 91 passed, 0 failed.
+- GREEN-D dependent suites: registry 57/57, stall sweep 34/34, stale-boot 5/5,
+  reload dedup 3/3, and needs-input focused suites green.
+- `make test-shell`: 684/684 passed; `make test-config`: exit 0 (57/57).
+- Independent review found one hot-path full-scan fallback on lock exhaustion.
+  Same-session fix `8be415a` removed it; targeted re-review cycle 1/2 marked the
+  finding verified-closed with no new observations.
+- Ticket remains OPEN pending the unchecked archive/migration/runtime-smoke work.
