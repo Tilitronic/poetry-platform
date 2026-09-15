@@ -31,9 +31,10 @@ const TASK_NO_ID_GROUP_KEY = "__task_no_id__"
 
 type FsDeps = {
   appendFileSync(path: string, data: string): void
+  readFileSync(path: string): Uint8Array | string
   readFileSync(path: string, enc: string): string
   existsSync(path: string): boolean
-  writeFileSync(path: string, data: string): void
+  writeFileSync(path: string, data: string | Uint8Array): void
   openSync(path: string, flags: string): number
   fsyncSync(fd: number): void
   closeSync(fd: number): void
@@ -457,11 +458,14 @@ export function createRegistry(deps: RegistryDeps = {}) {
   let activeIndexDirty = false
   const activeLifecycleMaxEntries = deps.activeLifecycleMaxEntries ?? 500
   let bootstrapContent = ""
+  let bootstrapByteLength = 0
   let bootstrapIdentity: string | undefined
   if (fs.existsSync(registryPath)) {
     try {
       const before = fs.statSync(registryPath)
-      bootstrapContent = fs.readFileSync(registryPath, "utf-8")
+      const bootstrapBytes = fs.readFileSync(registryPath)
+      bootstrapContent = typeof bootstrapBytes === "string" ? bootstrapBytes : Buffer.from(bootstrapBytes).toString("utf-8")
+      bootstrapByteLength = typeof bootstrapBytes === "string" ? Buffer.byteLength(bootstrapBytes) : bootstrapBytes.byteLength
       const after = fs.statSync(registryPath)
       if (before.size !== after.size || before.dev !== after.dev || before.ino !== after.ino) throw new Error("registry changed during bootstrap")
       if (typeof after.dev === "number" && typeof after.ino === "number") bootstrapIdentity = `${after.dev}:${after.ino}`
@@ -499,7 +503,7 @@ export function createRegistry(deps: RegistryDeps = {}) {
       rows: bootstrapRows,
       maxEntries: activeLifecycleMaxEntries,
       sourceIdentity: bootstrapIdentity,
-      byteOffset: new TextEncoder().encode(bootstrapContent).byteLength,
+      byteOffset: bootstrapByteLength,
     })
   } catch {
     activeIndexDirty = true
@@ -623,6 +627,8 @@ export function createRegistry(deps: RegistryDeps = {}) {
     if (acquired.ok === false) return acquired
     let archivePath = ""
     let manifestPath = ""
+    let sourceBytes: Uint8Array | undefined
+    let activeReplaced = false
     try {
       if (!fs.existsSync(registryPath)) {
         journal.releaseJournalLock(acquired.token)
@@ -632,7 +638,9 @@ export function createRegistry(deps: RegistryDeps = {}) {
       const refreshed = refreshActiveLifecycleIndex()
       if (!refreshed.ok) throw new Error(`index: ${refreshed.error}`)
       const before = fs.statSync(registryPath)
-      const source = fs.readFileSync(registryPath, "utf-8")
+      const sourceRead = fs.readFileSync(registryPath)
+      sourceBytes = typeof sourceRead === "string" ? Buffer.from(sourceRead) : sourceRead
+      const source = Buffer.from(sourceBytes).toString("utf-8")
       const after = fs.statSync(registryPath)
       if (before.size !== after.size || before.dev !== after.dev || before.ino !== after.ino) {
         throw new Error("source registry changed during rotation snapshot")
@@ -662,13 +670,13 @@ export function createRegistry(deps: RegistryDeps = {}) {
       manifestPath = path.join(archiveDir, `${archiveName}.manifest.json`)
       const manifestTmp = `${manifestPath}.tmp`
       const activeTmp = `${registryPath}.rotate-${rand()}.tmp`
-      fs.writeFileSync(archiveTmp, source)
+      fs.writeFileSync(archiveTmp, sourceBytes)
       fsyncPath(archiveTmp)
-      const checksum = nodeCreateHash("sha256").update(fs.readFileSync(archiveTmp, "utf-8")).digest("hex")
+      const checksum = nodeCreateHash("sha256").update(fs.readFileSync(archiveTmp)).digest("hex")
       const manifest = {
         archive: archiveName,
         sha256: checksum,
-        byte_count: Buffer.byteLength(source),
+        byte_count: sourceBytes.byteLength,
         row_count: validRows,
         malformed_row_count: malformedRows,
         first_seq: firstSeq ?? null,
@@ -677,9 +685,9 @@ export function createRegistry(deps: RegistryDeps = {}) {
       }
       fs.writeFileSync(manifestTmp, `${JSON.stringify(manifest, null, 2)}\n`)
       fsyncPath(manifestTmp)
-      const stagedArchive = fs.readFileSync(archiveTmp, "utf-8")
+      const stagedArchive = fs.readFileSync(archiveTmp)
       const stagedManifest = JSON.parse(fs.readFileSync(manifestTmp, "utf-8")) as typeof manifest
-      if (stagedArchive !== source || stagedManifest.sha256 !== checksum || stagedManifest.byte_count !== Buffer.byteLength(source)) {
+      if (!Buffer.from(stagedArchive).equals(Buffer.from(sourceBytes)) || stagedManifest.sha256 !== checksum || stagedManifest.byte_count !== sourceBytes.byteLength) {
         throw new Error("rotation archive verification failed")
       }
       fs.renameSync(archiveTmp, archivePath)
@@ -691,6 +699,7 @@ export function createRegistry(deps: RegistryDeps = {}) {
       fs.writeFileSync(activeTmp, compact)
       fsyncPath(activeTmp)
       fs.renameSync(activeTmp, registryPath)
+      activeReplaced = true
       fsyncDirectory(registryPath)
       const rebuilt = rebuildActiveLifecycleIndex()
       if (!rebuilt.ok) throw new Error(`index rebuild: ${rebuilt.error}`)
@@ -713,6 +722,19 @@ export function createRegistry(deps: RegistryDeps = {}) {
       journal.releaseJournalLock(acquired.token)
       return { ok: true, archivePath, manifestPath, retainedActive: retained.length, malformedRows, checksum }
     } catch (error) {
+      if (activeReplaced && sourceBytes !== undefined) {
+        try {
+          const rollbackTmp = `${registryPath}.rollback-${rand()}.tmp`
+          fs.writeFileSync(rollbackTmp, sourceBytes)
+          fsyncPath(rollbackTmp)
+          fs.renameSync(rollbackTmp, registryPath)
+          fsyncDirectory(registryPath)
+          const restored = rebuildActiveLifecycleIndex()
+          if (!restored.ok) activeIndexDirty = true
+        } catch {
+          activeIndexDirty = true
+        }
+      }
       journal.releaseJournalLock(acquired.token)
       return { ok: false, stage: "rotation", error: error instanceof Error ? error.message : String(error) }
     }
