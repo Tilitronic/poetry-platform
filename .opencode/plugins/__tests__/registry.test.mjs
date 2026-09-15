@@ -548,6 +548,63 @@ describe("RED-F — verified registry rotation", () => {
       nodeFs.rmSync(fixture.root, { recursive: true, force: true })
     }
   })
+
+  it("derives all sidecars from explicit temp registry/messages/archive paths and leaves repo session sidecars unchanged", () => {
+    const repo = nodeFs.mkdtempSync(nodeJoin(tmpdir(), "tqor-repo-sidecars-"))
+    const temp = nodeFs.mkdtempSync(nodeJoin(tmpdir(), "tqor-temp-sidecars-"))
+    const repoSession = nodeJoin(repo, ".opencode/session")
+    const tempArchive = nodeJoin(temp, "registry-archive")
+    nodeFs.mkdirSync(repoSession, { recursive: true })
+    nodeFs.writeFileSync(nodeJoin(repoSession, "registry.seq"), "100\n")
+    nodeFs.writeFileSync(nodeJoin(repoSession, "messages.row-id"), "200\n")
+    try {
+      const registry = mod.createRegistry({
+        directory: repo,
+        registryPath: nodeJoin(temp, "registry.jsonl"),
+        messagesPath: nodeJoin(temp, "messages.jsonl"),
+        messagesMdPath: nodeJoin(temp, "messages.md"),
+        archiveDir: tempArchive,
+      })
+      assert.equal(registry.appendRow({ event: "temp-registry" })?.ok, true)
+      assert.equal(registry.appendMessageRow({ event_type: "temp-message" })?.ok, true)
+
+      assert.equal(nodeFs.readFileSync(nodeJoin(repoSession, "registry.seq"), "utf8"), "100\n", "repo registry.seq must not be touched by temp registry")
+      assert.equal(nodeFs.readFileSync(nodeJoin(repoSession, "messages.row-id"), "utf8"), "200\n", "repo messages.row-id must not be touched by temp messages")
+      assert.equal(nodeFs.existsSync(nodeJoin(repoSession, "journal.lock")), false, "repo journal.lock must not be used for temp paths")
+      assert.equal(Number(nodeFs.readFileSync(nodeJoin(temp, "registry.seq"), "utf8")), 1, "temp registry.seq is derived beside explicit registry path")
+      assert.equal(Number(nodeFs.readFileSync(nodeJoin(temp, "messages.row-id"), "utf8")), 1, "temp messages.row-id is derived beside explicit messages path")
+      assert.equal(nodeFs.existsSync(nodeJoin(temp, "journal.lock")), false, "temp journal.lock is cleaned after use")
+    } finally {
+      nodeFs.rmSync(repo, { recursive: true, force: true })
+      nodeFs.rmSync(temp, { recursive: true, force: true })
+    }
+  })
+
+  it("rejects split-parent explicit paths instead of mixing temp files with repo sidecars", () => {
+    const repo = nodeFs.mkdtempSync(nodeJoin(tmpdir(), "tqor-split-repo-"))
+    const temp = nodeFs.mkdtempSync(nodeJoin(tmpdir(), "tqor-split-temp-"))
+    try {
+      assert.throws(
+        () => mod.createRegistry({
+          directory: repo,
+          registryPath: nodeJoin(temp, "registry.jsonl"),
+        }),
+        /split-parent|same parent|sidecar|explicit/i,
+        "explicit registry path without its companion paths must fail closed",
+      )
+      assert.throws(
+        () => mod.createRegistry({
+          directory: repo,
+          messagesPath: nodeJoin(temp, "messages.jsonl"),
+        }),
+        /split-parent|same parent|sidecar|explicit/i,
+        "explicit messages path without its companion paths must fail closed",
+      )
+    } finally {
+      nodeFs.rmSync(repo, { recursive: true, force: true })
+      nodeFs.rmSync(temp, { recursive: true, force: true })
+    }
+  })
 })
 
 function makeRegistryDepsForRedE(fakeFs) {

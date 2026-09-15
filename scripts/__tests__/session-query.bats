@@ -397,6 +397,31 @@ JSONL
   assert_output_contains "verified manifest"
 }
 
+@test "session-query: explicit missing archive directory fails closed" {
+  require_node_sqlite
+  local dir="$BATS_TEST_TMPDIR/archive-missing-explicit"
+  write_base_fixtures "$dir"
+
+  run node "$QUERY" --registry "$dir/registry.jsonl" --messages "$dir/messages.jsonl" \
+    --archive-dir "$dir/missing-registry-archive" --session ses_aaa
+
+  assert_status 2
+  assert_output_contains "archive directory"
+}
+
+@test "session-query: absent default archive directory remains valid for active recall" {
+  require_node_sqlite
+  local cwd="$BATS_TEST_TMPDIR/default-archive-absent"
+  mkdir -p "$cwd/.opencode/session"
+  write_base_fixtures "$cwd/.opencode/session"
+
+  run bash -c "cd '$cwd' && node '$QUERY' --session ses_aaa"
+
+  assert_status 0
+  assert_output_contains '"session_id":"ses_aaa","status":"RUNNING"'
+  assert_output_contains '"gen_ai.agent.id":"ses_aaa"'
+}
+
 @test "session-query: Makefile wiring - test-shell auto-discovers the bats suite" {
   # Seam guard (same shape as validate-grilling-gate.bats): the bats suite is
   # auto-discovered by bats-wrapper.sh (exec "$BATS" "$TESTS_DIR"), so the

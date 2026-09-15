@@ -317,6 +317,107 @@ JSON
   assert_output_contains "completeness:    100.0%"
 }
 
+@test "jsonl-cross-check: archive dedup uses seq despite formatting and key order differences" {
+  tree="$(setup_tree)"
+  local dir="$BATS_TEST_TMPDIR/archive-cross-check-seq-dedup"
+  mkdir -p "$dir/archive"
+  cat > "$dir/registry.jsonl" <<'JSONL'
+{"seq":2,"timestamp":"2026-08-06T20:01:00Z","event":"task_success","task_id":"t-active","writer":"plugin"}
+JSONL
+  cat > "$dir/messages.jsonl" <<'JSONL'
+{"row_id":2,"timestamp":"2026-08-06T20:01:02Z","gen_ai.operation.name":"invoke_agent","gen_ai.agent.id":"t-active","event_type":"delegation"}
+JSONL
+  cat > "$dir/archive/registry-old.jsonl" <<'JSONL'
+{ "writer" : "plugin", "task_id" : "t-active", "event" : "task_success", "timestamp" : "2026-08-06T20:01:00Z", "seq" : 2 }
+JSONL
+  local checksum
+  checksum="$(sha256sum "$dir/archive/registry-old.jsonl" | awk '{print $1}')"
+  local byte_count
+  byte_count="$(wc -c < "$dir/archive/registry-old.jsonl")"
+  cat > "$dir/archive/registry-old.jsonl.manifest.json" <<JSON
+{"archive":"registry-old.jsonl","sha256":"$checksum","byte_count":$byte_count,"row_count":1}
+JSON
+
+  run bash "$tree/.opencode/scripts/jsonl-cross-check.sh" \
+    "$dir/registry.jsonl" "$dir/messages.jsonl" --archive-dir "$dir/archive" \
+    --since 2026-08-06T00:00:00Z
+
+  assert_status 0
+  assert_output_contains "universe:       1"
+}
+
+@test "jsonl-cross-check: archive fails closed on conflicting payload for the same seq" {
+  tree="$(setup_tree)"
+  local dir="$BATS_TEST_TMPDIR/archive-cross-check-seq-conflict"
+  mkdir -p "$dir/archive"
+  cat > "$dir/registry.jsonl" <<'JSONL'
+{"seq":2,"timestamp":"2026-08-06T20:01:00Z","event":"task_success","task_id":"t-active","writer":"plugin"}
+JSONL
+  cat > "$dir/messages.jsonl" <<'JSONL'
+{"row_id":2,"timestamp":"2026-08-06T20:01:02Z","gen_ai.operation.name":"invoke_agent","gen_ai.agent.id":"t-active","event_type":"delegation"}
+JSONL
+  cat > "$dir/archive/registry-old.jsonl" <<'JSONL'
+{"seq":2,"timestamp":"2026-08-06T20:09:00Z","event":"task_success","task_id":"t-conflict","writer":"plugin"}
+JSONL
+  local checksum
+  checksum="$(sha256sum "$dir/archive/registry-old.jsonl" | awk '{print $1}')"
+  local byte_count
+  byte_count="$(wc -c < "$dir/archive/registry-old.jsonl")"
+  cat > "$dir/archive/registry-old.jsonl.manifest.json" <<JSON
+{"archive":"registry-old.jsonl","sha256":"$checksum","byte_count":$byte_count,"row_count":1}
+JSON
+
+  run bash "$tree/.opencode/scripts/jsonl-cross-check.sh" \
+    "$dir/registry.jsonl" "$dir/messages.jsonl" --archive-dir "$dir/archive" \
+    --since 2026-08-06T00:00:00Z
+
+  assert_status 2
+  assert_output_contains "conflicting"
+  assert_output_contains "seq"
+}
+
+@test "jsonl-cross-check: no-seq legacy duplicate rows are not collapsed by archive dedup" {
+  tree="$(setup_tree)"
+  local dir="$BATS_TEST_TMPDIR/archive-cross-check-legacy-no-seq"
+  mkdir -p "$dir/archive"
+  cat > "$dir/registry.jsonl" <<'JSONL'
+{"timestamp":"2026-08-06T20:01:00Z","event":"task_success","task_id":"legacy-dup","writer":"plugin"}
+JSONL
+  cat > "$dir/messages.jsonl" <<'JSONL'
+{"row_id":2,"timestamp":"2026-08-06T20:01:02Z","gen_ai.operation.name":"invoke_agent","gen_ai.agent.id":"legacy-dup","event_type":"delegation"}
+JSONL
+  cat > "$dir/archive/registry-old.jsonl" <<'JSONL'
+{"timestamp":"2026-08-06T20:01:00Z","event":"task_success","task_id":"legacy-dup","writer":"plugin"}
+JSONL
+  local checksum
+  checksum="$(sha256sum "$dir/archive/registry-old.jsonl" | awk '{print $1}')"
+  local byte_count
+  byte_count="$(wc -c < "$dir/archive/registry-old.jsonl")"
+  cat > "$dir/archive/registry-old.jsonl.manifest.json" <<JSON
+{"archive":"registry-old.jsonl","sha256":"$checksum","byte_count":$byte_count,"row_count":1}
+JSON
+
+  run bash "$tree/.opencode/scripts/jsonl-cross-check.sh" \
+    "$dir/registry.jsonl" "$dir/messages.jsonl" --archive-dir "$dir/archive" \
+    --since 2026-08-06T00:00:00Z
+
+  assert_status 0
+  assert_output_contains "universe:       2"
+}
+
+@test "jsonl-cross-check: explicit missing archive directory fails closed" {
+  tree="$(setup_tree)"
+  local dir="$BATS_TEST_TMPDIR/archive-cross-check-missing-dir"
+  write_fixture "$dir" pass
+
+  run bash "$tree/.opencode/scripts/jsonl-cross-check.sh" \
+    "$dir/registry.jsonl" "$dir/messages.jsonl" --archive-dir "$dir/missing-archive" \
+    --since 2026-08-06T00:00:00Z
+
+  assert_status 2
+  assert_output_contains "archive"
+}
+
 @test "jsonl-cross-check: unverified registry archive fails closed" {
   tree="$(setup_tree)"
   local dir="$BATS_TEST_TMPDIR/archive-cross-check-unverified"
