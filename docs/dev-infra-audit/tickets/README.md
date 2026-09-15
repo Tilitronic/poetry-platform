@@ -264,7 +264,7 @@
 | DIA-260828-qtsi | promo preset infrastructure: opencode-go promotion-optimized preset with json patch + skill (2-week review, weekend coding) | opencode-config | Major | CLOSED | [DIA-260828-qtsi-promo-preset-infrastructure-opencode-go-promotion-optimized-preset-with-json-patch-skill-2-week-review-weekend-coding.md](DIA-260828-qtsi-promo-preset-infrastructure-opencode-go-promotion-optimized-preset-with-json-patch-skill-2-week-review-weekend-coding.md) |
 | DIA-260829-kxqu | log_decision tool unavailable to orchestrator -- delegation-observer plugin tool not exposed to orchestrator agent | scripts | Medium | CLOSED | [DIA-260829-kxqu-log-decision-tool-unavailable-to-orchestrator-delegation-observer-plugin-tool-not-exposed-to-orchestrator-agent.md](DIA-260829-kxqu-log-decision-tool-unavailable-to-orchestrator-delegation-observer-plugin-tool-not-exposed-to-orchestrator-agent.md) |
 | DIA-260830-3q7e | Change session name format: drop 'New session -' prefix, show [short-id] first | opencode-config | Minor | CLOSED | [DIA-260830-3q7e-change-session-name-format-drop-new-session-prefix-show-short-id-first.md](DIA-260830-3q7e-change-session-name-format-drop-new-session-prefix-show-short-id-first.md) |
-| DIA-260830-i9d | Evaluate and apply oh-my-opencode-slim 2.217 update if worthwhile | opencode-config | Info | OPEN | [DIA-260830-i9d-evaluate-and-apply-oh-my-opencode-slim-2-217-update-if-worthwhile.md](DIA-260830-i9d-evaluate-and-apply-oh-my-opencode-slim-2-217-update-if-worthwhile.md) |
+| DIA-260830-i9d | Evaluate and apply oh-my-opencode-slim 2.217 update if worthwhile | opencode-config | Info | CLOSED | [DIA-260830-i9d-evaluate-and-apply-oh-my-opencode-slim-2-217-update-if-worthwhile.md](DIA-260830-i9d-evaluate-and-apply-oh-my-opencode-slim-2-217-update-if-worthwhile.md) |
 | DIA-260831-a1b2 | Test infra cold start cannot bootstrap prerequisites | tests-infra | High | OPEN | [DIA-260831-a1b2-test-infra-cold-start-cannot-bootstrap-prerequisites.md](DIA-260831-a1b2-test-infra-cold-start-cannot-bootstrap-prerequisites.md) |
 | DIA-260831-b7c8 | Delegation observer plugin too broad extract deep modules | opencode-config | Medium | OPEN | [DIA-260831-b7c8-delegation-observer-plugin-too-broad-extract-deep-modules.md](DIA-260831-b7c8-delegation-observer-plugin-too-broad-extract-deep-modules.md) |
 | DIA-260831-c3d4 | Turbo test cache ignores test config inputs | tests-infra | Medium | CLOSED | [DIA-260831-c3d4-turbo-test-cache-ignores-test-config-inputs.md](DIA-260831-c3d4-turbo-test-cache-ignores-test-config-inputs.md) |
@@ -337,7 +337,7 @@
 
 | Status      | Count |
 | ----------- | ----- |
-| OPEN        | 69    |
+| OPEN        | 68    |
 | DONE        | 11    |
 | VALIDATE    | 0     |
 | E2E         | 0     |
@@ -346,7 +346,7 @@
 | FIXED       | 1     |
 | IMPLEMENTED | 2     |
 | VERIFIED    | 28    |
-| CLOSED      | 205   |
+| CLOSED      | 206   |
 | BLOCKED     | 0     |
 | DISPATCHED  | 0     |
 | RUNNING     | 0     |
