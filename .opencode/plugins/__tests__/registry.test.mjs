@@ -435,30 +435,37 @@ describe("RED-F — verified registry rotation", () => {
     }
   })
 
-  it("fails closed at every publication stage and emits no success row before verification", () => {
-    const stages = ["copy", "archive fsync", "checksum", "manifest write", "manifest fsync", "verification", "active replacement"]
+  it("fails closed at distinct pre-replacement publication stages and emits no success row", () => {
+    const stages = ["copy", "archive fsync", "checksum", "manifest write", "manifest fsync", "verification", "archive publish", "manifest publish", "active replacement"]
     for (const stage of stages) {
       const fixture = rotationFixture()
       try {
         const failingFs = { ...nodeFs }
         const fdPaths = new Map()
+        const readCounts = new Map()
         const originalOpen = nodeFs.openSync
         failingFs.openSync = (path, flags) => { const fd = originalOpen(path, flags); fdPaths.set(fd, path); return fd }
         failingFs.readFileSync = (path, encoding) => {
-          if (stage === "copy" && path === fixture.registryPath) throw new Error("RED-F injected copy failure")
-          if (stage === "checksum" && path.includes("registry-archive")) throw new Error("RED-F injected checksum failure")
-          if (stage === "verification" && (path.includes("registry-archive") || path.includes("manifest"))) throw new Error("RED-F injected verification failure")
+          const count = (readCounts.get(path) ?? 0) + 1
+          readCounts.set(path, count)
+          if (stage === "checksum" && path.endsWith(".jsonl.tmp") && count === 1) throw new Error("RED-F injected checksum failure")
+          if (stage === "verification" && path.endsWith(".jsonl.tmp") && count === 2) throw new Error("RED-F injected verification failure")
           return nodeFs.readFileSync(path, encoding)
         }
         failingFs.writeFileSync = (path, data) => {
-          if (stage === "manifest write" && path.includes("registry-archive")) throw new Error("RED-F injected manifest write failure")
+          if (stage === "copy" && path.endsWith(".jsonl.tmp")) throw new Error("RED-F injected copy failure")
+          if (stage === "manifest write" && path.endsWith(".manifest.json.tmp")) throw new Error("RED-F injected manifest write failure")
           return nodeFs.writeFileSync(path, data)
         }
         failingFs.fsyncSync = (fd) => {
-          if ((stage === "archive fsync" || stage === "manifest fsync") && fdPaths.get(fd)?.includes("registry-archive")) throw new Error(`RED-F injected ${stage} failure`)
+          const openedPath = fdPaths.get(fd) ?? ""
+          if (stage === "archive fsync" && openedPath.endsWith(".jsonl.tmp")) throw new Error("RED-F injected archive fsync failure")
+          if (stage === "manifest fsync" && openedPath.endsWith(".manifest.json.tmp")) throw new Error("RED-F injected manifest fsync failure")
           return nodeFs.fsyncSync(fd)
         }
         failingFs.renameSync = (from, to) => {
+          if (stage === "archive publish" && from.endsWith(".jsonl.tmp") && to.endsWith(".jsonl")) throw new Error("RED-F injected archive publish failure")
+          if (stage === "manifest publish" && from.endsWith(".manifest.json.tmp") && to.endsWith(".manifest.json")) throw new Error("RED-F injected manifest publish failure")
           if (stage === "active replacement" && to === fixture.registryPath) throw new Error("RED-F injected active replacement failure")
           return nodeFs.renameSync(from, to)
         }
@@ -471,6 +478,74 @@ describe("RED-F — verified registry rotation", () => {
       } finally {
         nodeFs.rmSync(fixture.root, { recursive: true, force: true })
       }
+    }
+  })
+
+  it("restores the original authoritative registry after post-replacement failures", () => {
+    const stages = ["index rebuild", "counter publication", "rotation event append"]
+    for (const stage of stages) {
+      const fixture = rotationFixture()
+      try {
+        const failingFs = { ...nodeFs }
+        let activeReplaced = false
+        failingFs.renameSync = (from, to) => {
+          if (to === fixture.registryPath) activeReplaced = true
+          if (stage === "counter publication" && activeReplaced && to.endsWith("registry.seq")) throw new Error("RED-F injected counter publication failure")
+          return nodeFs.renameSync(from, to)
+        }
+        failingFs.statSync = (path) => {
+          if (stage === "index rebuild" && activeReplaced && path === fixture.registryPath) throw new Error("RED-F injected index rebuild failure")
+          return nodeFs.statSync(path)
+        }
+        failingFs.appendFileSync = (path, data) => {
+          if (stage === "rotation event append" && activeReplaced && path === fixture.registryPath && String(data).includes('"event":"registry_rotated"')) throw new Error("RED-F injected rotation event append failure")
+          return nodeFs.appendFileSync(path, data)
+        }
+        const registry = mod.createRegistry({ directory: fixture.root, registryPath: fixture.registryPath, messagesPath: fixture.messagesPath, messagesMdPath: nodeJoin(fixture.session, "messages.md"), registrySeqPath: nodeJoin(fixture.session, "registry.seq"), messagesRowIdPath: nodeJoin(fixture.session, "messages.row-id"), journalLockPath: nodeJoin(fixture.session, "journal.lock"), archiveDir: fixture.archive, fs: failingFs })
+        const result = registry.rotateRegistry()
+        assert.equal(result.ok, false, `RED-F ${stage}: failure must fail closed`)
+        const active = nodeFs.readFileSync(fixture.registryPath, "utf8")
+        assert.equal(active, fixture.source, `RED-F ${stage}: original active registry must be restored`)
+        assert.doesNotMatch(active, /registry_rotated/)
+      } finally {
+        nodeFs.rmSync(fixture.root, { recursive: true, force: true })
+      }
+    }
+  })
+
+  it("appends registry_rotated only after archive, manifest, and active replacement publication", () => {
+    const fixture = rotationFixture()
+    const operations = []
+    try {
+      const observedFs = { ...nodeFs }
+      observedFs.renameSync = (from, to) => { operations.push(["rename", from, to]); return nodeFs.renameSync(from, to) }
+      observedFs.appendFileSync = (path, data) => { if (String(data).includes('"event":"registry_rotated"')) operations.push(["rotation-event", path]); return nodeFs.appendFileSync(path, data) }
+      const registry = mod.createRegistry({ directory: fixture.root, registryPath: fixture.registryPath, messagesPath: fixture.messagesPath, messagesMdPath: nodeJoin(fixture.session, "messages.md"), registrySeqPath: nodeJoin(fixture.session, "registry.seq"), messagesRowIdPath: nodeJoin(fixture.session, "messages.row-id"), journalLockPath: nodeJoin(fixture.session, "journal.lock"), archiveDir: fixture.archive, fs: observedFs })
+      assert.equal(registry.rotateRegistry().ok, true)
+      const eventIndex = operations.findIndex(([operation]) => operation === "rotation-event")
+      const archiveIndex = operations.findIndex(([operation, from]) => operation === "rename" && from.endsWith(".jsonl.tmp"))
+      const manifestIndex = operations.findIndex(([operation, from]) => operation === "rename" && from.endsWith(".manifest.json.tmp"))
+      const activeIndex = operations.findIndex(([operation, , to]) => operation === "rename" && to === fixture.registryPath)
+      assert.ok(eventIndex > archiveIndex && eventIndex > manifestIndex && eventIndex > activeIndex, "RED-F: success event must follow all verified publications")
+    } finally {
+      nodeFs.rmSync(fixture.root, { recursive: true, force: true })
+    }
+  })
+
+  it("archives the exact source bytes even when malformed input contains non-UTF8 octets", () => {
+    const fixture = rotationFixture()
+    const binarySource = Buffer.concat([
+      Buffer.from(JSON.stringify({ seq: 41, event: "session_spawn", session_id: "ses_binary", lifecycle_generation: 41, dispatch_state: "running" }) + "\n"),
+      Buffer.from([0xff, 0xfe, 0x00, 0x80, 0x0a]),
+      Buffer.from(JSON.stringify({ seq: 42, event: "task_success", session_id: "ses_old", dispatch_state: "completed" }) + "\n"),
+    ])
+    nodeFs.writeFileSync(fixture.registryPath, binarySource)
+    try {
+      const result = fixture.make().rotateRegistry()
+      assert.equal(result.ok, true, "RED-F: binary source rotation must succeed")
+      assert.deepEqual(nodeFs.readFileSync(result.archivePath), binarySource, "RED-F: archive must preserve the exact source Buffer")
+    } finally {
+      nodeFs.rmSync(fixture.root, { recursive: true, force: true })
     }
   })
 })
