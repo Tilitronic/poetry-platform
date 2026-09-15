@@ -38,6 +38,7 @@ import { readFileSync as nodeReadFileSync } from "node:fs"
 import * as nodeFs from "node:fs"
 import { tmpdir } from "node:os"
 import { join as nodeJoin } from "node:path"
+import { createHash } from "node:crypto"
 import * as mod from "../lib/registry.ts"
 
 // Settled DI seam: direct factory use only.
@@ -214,6 +215,122 @@ describe("RED-D — registry locked stall compare-and-append", () => {
       ["lock", "counter", "append", "index"],
       "named RED-E: compare-and-append failures must preserve their actual stage",
     )
+  })
+})
+
+// ---------------------------------------------------------------------------
+// RED-F: explicit operator-invoked rotation (DIA-260914-tqor)
+// ---------------------------------------------------------------------------
+describe("RED-F — verified registry rotation", () => {
+  function rotationFixture() {
+    const root = nodeFs.mkdtempSync(nodeJoin(tmpdir(), "tqor-rotation-"))
+    const session = nodeJoin(root, ".opencode/session")
+    const archive = nodeJoin(session, "registry-archive")
+    nodeFs.mkdirSync(session, { recursive: true })
+    const source = [
+      JSON.stringify({ seq: 4, event: "session_spawn", session_id: "ses_live", lifecycle_generation: 4, dispatch_state: "running" }),
+      "legacy malformed row {{{",
+      JSON.stringify({ seq: 9, event: "task_success", session_id: "ses_done", lifecycle_generation: 7, dispatch_state: "completed" }),
+      JSON.stringify({ seq: 12, event: "stopped-without-result", session_id: "ses_tombstone", lifecycle_generation: 12, terminalUnreconciled: true }),
+    ].join("\n") + "\n"
+    const registryPath = nodeJoin(session, "registry.jsonl")
+    const messagesPath = nodeJoin(session, "messages.jsonl")
+    const messagesMdPath = nodeJoin(session, "messages.md")
+    nodeFs.writeFileSync(registryPath, source)
+    nodeFs.writeFileSync(messagesPath, JSON.stringify({ row_id: 21, event: "message" }) + "\n")
+    nodeFs.writeFileSync(messagesMdPath, "| 33 | legacy message |\n")
+    const make = () => mod.createRegistry({
+      directory: root,
+      registryPath,
+      messagesPath,
+      messagesMdPath,
+      registrySeqPath: nodeJoin(session, "registry.seq"),
+      messagesRowIdPath: nodeJoin(session, "messages.row-id"),
+      journalLockPath: nodeJoin(session, "journal.lock"),
+      archiveDir: archive,
+    })
+    return { root, session, archive, registryPath, messagesPath, make, source }
+  }
+
+  function requireRotation(registry) {
+    assert.equal(typeof registry.rotateRegistry, "function", "RED-F: registry must expose explicit rotateRegistry operator boundary")
+    return registry.rotateRegistry()
+  }
+
+  it("creates an immutable byte-preserving archive and verified manifest while retaining live/tombstone rows", () => {
+    const fixture = rotationFixture()
+    try {
+      const result = requireRotation(fixture.make())
+      assert.equal(result.ok, true, "RED-F: rotation must publish only after archive verification")
+      assert.ok(result.archivePath)
+      assert.ok(result.manifestPath)
+      const archived = nodeFs.readFileSync(result.archivePath)
+      assert.equal(archived.toString(), fixture.source, "RED-F: archive must preserve exact source bytes")
+      const manifest = JSON.parse(nodeFs.readFileSync(result.manifestPath, "utf8"))
+      assert.equal(manifest.sha256, createHash("sha256").update(archived).digest("hex"))
+      const active = nodeFs.readFileSync(fixture.registryPath, "utf8")
+      assert.match(active, /ses_live/)
+      assert.match(active, /ses_tombstone/)
+      assert.match(active, /registry_rotated/)
+    } finally {
+      nodeFs.rmSync(fixture.root, { recursive: true, force: true })
+    }
+  })
+
+  it("preserves registry and message counter high-water marks and appends rotation only after publication", () => {
+    const fixture = rotationFixture()
+    try {
+      const registry = fixture.make()
+      const result = requireRotation(registry)
+      assert.equal(result.ok, true, "RED-F: rotation must succeed")
+      const nextRegistry = registry.appendRow({ event: "after_rotation" })
+      const nextMessage = registry.appendMessageRow({ event: "after_rotation_message" })
+      assert.equal(nextRegistry.id > 12, true, "RED-F: registry seq must not decrease after rotation")
+      assert.equal(nextMessage.id > 33, true, "RED-F: message row_id must not decrease after rotation")
+      const rows = nodeFs.readFileSync(fixture.registryPath, "utf8").trim().split("\n").map(JSON.parse)
+      assert.equal(rows.filter((row) => row.event === "registry_rotated").length, 1)
+    } finally {
+      nodeFs.rmSync(fixture.root, { recursive: true, force: true })
+    }
+  })
+
+  it("serializes rotation with a concurrent append and leaves one authoritative active file", () => {
+    const fixture = rotationFixture()
+    try {
+      const registry = fixture.make()
+      const append = registry.appendRow({ event: "concurrent_append", session_id: "ses_live" })
+      const rotation = requireRotation(registry)
+      assert.equal(append.ok, true, "RED-F: append must serialize with rotation")
+      assert.equal(rotation.ok, true, "RED-F: rotation must serialize with append")
+      const rows = nodeFs.readFileSync(fixture.registryPath, "utf8").trim().split("\n").map(JSON.parse)
+      assert.ok(rows.some((row) => row.event === "concurrent_append") || rows.some((row) => row.event === "registry_rotated"))
+    } finally {
+      nodeFs.rmSync(fixture.root, { recursive: true, force: true })
+    }
+  })
+
+  it("fails closed on publication failures without replacing the original active registry", () => {
+    const fixture = rotationFixture()
+    try {
+      const registry = mod.createRegistry({
+        directory: fixture.root,
+        registryPath: fixture.registryPath,
+        messagesPath: fixture.messagesPath,
+        messagesMdPath: nodeJoin(fixture.session, "messages.md"),
+        registrySeqPath: nodeJoin(fixture.session, "registry.seq"),
+        messagesRowIdPath: nodeJoin(fixture.session, "messages.row-id"),
+        journalLockPath: nodeJoin(fixture.session, "journal.lock"),
+        archiveDir: fixture.archive,
+        fs: { ...nodeFs, renameSync() { throw new Error("RED-F injected rename failure") } },
+      })
+      assert.equal(typeof registry.rotateRegistry, "function", "RED-F: failure test requires rotation boundary")
+      const result = registry.rotateRegistry()
+      assert.equal(result.ok, false, "RED-F: rotation failure must fail closed")
+      assert.equal(nodeFs.readFileSync(fixture.registryPath, "utf8"), fixture.source)
+      assert.doesNotMatch(nodeFs.readFileSync(fixture.registryPath, "utf8"), /registry_rotated/)
+    } finally {
+      nodeFs.rmSync(fixture.root, { recursive: true, force: true })
+    }
   })
 })
 
