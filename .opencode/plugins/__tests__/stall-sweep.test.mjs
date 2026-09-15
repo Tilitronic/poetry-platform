@@ -18,7 +18,11 @@
 
 import { describe, it } from "node:test"
 import assert from "node:assert/strict"
+import * as nodeFs from "node:fs"
+import { tmpdir } from "node:os"
+import { join as nodeJoin } from "node:path"
 import * as mod from "../lib/stall-sweep.ts"
+import * as registryMod from "../lib/registry.ts"
 
 // Settled DI seam: direct factory use.
 const factory = mod.createStallSweep
@@ -575,6 +579,90 @@ describe("lib/stall-sweep — one in-flight guard", () => {
 // 7. Per-iteration try/catch continues
 // ---------------------------------------------------------------------------
 describe("lib/stall-sweep — per-iteration try/catch continues", () => {
+  it("RED-E: missing registry is a clean no-op, distinct from read failure", () => {
+    const root = nodeFs.mkdtempSync(nodeJoin(tmpdir(), "tqor-missing-registry-"))
+    const session = nodeJoin(root, ".opencode/session")
+    nodeFs.mkdirSync(session, { recursive: true })
+    const paths = {
+      registry: nodeJoin(session, "registry.jsonl"),
+      messages: nodeJoin(session, "messages.jsonl"),
+      messagesMd: nodeJoin(session, "messages.md"),
+      seq: nodeJoin(session, "registry.seq"),
+      rowId: nodeJoin(session, "messages.row-id"),
+      lock: nodeJoin(session, "journal.lock"),
+    }
+    const registry = registryMod.createRegistry({ directory: root, ...paths })
+    const emitted = []
+    const errors = []
+    const inst = factory({
+      handleStore: {},
+      now: () => Date.now(),
+      readActiveEntries: registry.readActiveLifecycleEntries,
+      compareAndAppendStall: registry.compareAndAppendStall,
+      emitStall: (...args) => emitted.push(args),
+      onError: (error) => errors.push(error),
+    })
+    try {
+      assert.doesNotThrow(() => inst.sweep())
+      assert.equal(emitted.length, 0, "missing registry must not emit a success")
+      assert.equal(errors.length, 0, "missing registry bootstrap is not an infrastructure warning")
+    } finally {
+      try { inst.dispose?.() } catch { /* noop */ }
+      nodeFs.rmSync(root, { recursive: true, force: true })
+    }
+  })
+
+  it("RED-E: failed dirty-index rebuild suppresses sweep until a successful rebuild", () => {
+    const nowMs = Date.now()
+    const ts = new Date(nowMs - 15 * 60 * 1000).toISOString()
+    const root = nodeFs.mkdtempSync(nodeJoin(tmpdir(), "tqor-dirty-index-"))
+    const session = nodeJoin(root, ".opencode/session")
+    nodeFs.mkdirSync(session, { recursive: true })
+    const registryPath = nodeJoin(session, "registry.jsonl")
+    const row = { seq: 1, session_id: "ses_rebuild", lifecycle_generation: 1, event: "dispatch", dispatch_state: "running", role: "subagent", timestamp: ts }
+    nodeFs.writeFileSync(registryPath, JSON.stringify(row) + "\n")
+    const registry = registryMod.createRegistry({
+      directory: root,
+      registryPath,
+      messagesPath: nodeJoin(session, "messages.jsonl"),
+      messagesMdPath: nodeJoin(session, "messages.md"),
+      registrySeqPath: nodeJoin(session, "registry.seq"),
+      messagesRowIdPath: nodeJoin(session, "messages.row-id"),
+      journalLockPath: nodeJoin(session, "journal.lock"),
+    })
+    const replacement = `${registryPath}.replacement`
+    nodeFs.writeFileSync(replacement, JSON.stringify(row) + "\n")
+    nodeFs.renameSync(replacement, registryPath)
+    const emitted = []
+    const errors = []
+    const inst = factory({
+      handleStore: {},
+      now: () => nowMs,
+      pluginLoadMs: nowMs - 60 * 60 * 1000,
+      thresholds: { subagent: 10, orchestrator: 20, dead: 60 },
+      readActiveEntries: registry.readActiveLifecycleEntries,
+      compareAndAppendStall: registry.compareAndAppendStall,
+      emitStall: (key) => emitted.push(key),
+      onError: (error) => errors.push(String(error?.message ?? error)),
+    })
+    try {
+      inst.sweep()
+      assert.equal(emitted.length, 0, "dirty index must suppress sweep before rebuild")
+      assert.ok(errors.length >= 1, "dirty index must surface a read/index failure")
+      nodeFs.rmSync(registryPath)
+      assert.equal(registry.rebuildActiveLifecycleIndex().ok, false, "failed rebuild must remain fail-closed")
+      inst.sweep()
+      assert.equal(emitted.length, 0, "failed rebuild must not permit a stall success")
+      nodeFs.writeFileSync(registryPath, JSON.stringify(row) + "\n")
+      assert.equal(registry.rebuildActiveLifecycleIndex().ok, true, "controlled rebuild must recover the index")
+      inst.sweep()
+      assert.deepEqual(emitted, ["ses_rebuild"], "sweep resumes only after successful rebuild")
+    } finally {
+      try { inst.dispose?.() } catch { /* noop */ }
+      nodeFs.rmSync(root, { recursive: true, force: true })
+    }
+  })
+
   it("one key throwing does not prevent other keys from being evaluated", () => {
     const nowMs = Date.now()
     const ts = new Date(nowMs - 15 * 60 * 1000).toISOString()
