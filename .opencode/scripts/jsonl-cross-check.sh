@@ -213,7 +213,13 @@ if [ -n "$ARCHIVE_DIR" ]; then
   # payloads for the same seq fail closed. Legacy no-seq rows stay row-distinct.
   dedup_result="$(jq -Rn '
     def canon:
-      to_entries | sort_by(.key) | from_entries | tojson;
+      if type == "object" then
+        to_entries | sort_by(.key) | map(.value |= canon) | from_entries
+      elif type == "array" then
+        map(canon)
+      else
+        .
+      end;
     reduce inputs as $line ({seen:{}, out:[], error:null};
       if .error != null then .
       elif ($line | length) == 0 then .out += [$line]
@@ -222,7 +228,7 @@ if [ -n "$ARCHIVE_DIR" ]; then
         | if $row == null then .out += [$line]
           elif (($row.seq | type) == "number") then
             ($row.seq | tostring) as $seq
-            | ($row | canon) as $canon
+            | ($row | canon | tojson) as $canon
             | if (.seen[$seq] == null) then
                 .seen[$seq] = $canon | .out += [$line]
               elif .seen[$seq] == $canon then
