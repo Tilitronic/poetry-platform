@@ -173,7 +173,68 @@ describe("RED-D — registry locked stall compare-and-append", () => {
       nodeFs.rmSync(root, { recursive: true, force: true })
     }
   })
+
+  it("RED-E: returns discriminated lock, counter, append, and index failures", () => {
+    const registryPath = "/workspace/.opencode/session/registry.jsonl"
+    const lockPath = "/workspace/.opencode/session/journal.lock"
+    const baseCandidate = {
+      session_id: "ses_failure_stages",
+      lifecycle_generation: 1,
+      tier: "dead",
+      row: { event: "stall_detected", escalation: "dead", session_id: "ses_failure_stages", lifecycle_generation: 1, dispatch_state: "running" },
+    }
+
+    const lockedFs = makeFakeFs({ [lockPath]: JSON.stringify({ pid: 777, startedAt: "owner", leaseDeadline: 9000 }) })
+    const locked = mod.createRegistry({
+      ...makeRegistryDepsForRedE(lockedFs),
+      processIdentity: { pid: 888, startedAt: "contender" },
+      isProcessAlive: () => true,
+      clock: { now: () => 2000, isoNow: () => "2026-09-15T00:00:02.000Z" },
+    })
+    const lockResult = locked.compareAndAppendStall(baseCandidate)
+
+    const counterFs = makeFakeFs({}, { renameShouldThrow: "counter publication failed" })
+    const counterResult = makeRegistry(counterFs).compareAndAppendStall(baseCandidate)
+
+    const appendFs = makeFakeFs({})
+    appendFs.appendFileSync = (path, data) => {
+      if (path === registryPath) throw new Error("append failed")
+      const previous = appendFs.files.get(path) ?? ""
+      appendFs.files.set(path, previous + data)
+    }
+    const appendResult = makeRegistry(appendFs).compareAndAppendStall(baseCandidate)
+
+    const indexFs = makeFakeFs({
+      [registryPath]: JSON.stringify({ seq: 1, session_id: "ses_existing", lifecycle_generation: 1, event: "dispatch", dispatch_state: "running" }) + "\n",
+    })
+    const indexResult = makeRegistry(indexFs, { activeLifecycleMaxEntries: 1 }).compareAndAppendStall(baseCandidate)
+
+    assert.deepEqual(
+      [lockResult?.stage, counterResult?.stage, appendResult?.stage, indexResult?.stage],
+      ["lock", "counter", "append", "index"],
+      "named RED-E: compare-and-append failures must preserve their actual stage",
+    )
+  })
 })
+
+function makeRegistryDepsForRedE(fakeFs) {
+  return {
+    fs: fakeFs,
+    path: fakePath(),
+    randomUUID: () => "red-e-uuid",
+    directory: "/workspace",
+    registryPath: "/workspace/.opencode/session/registry.jsonl",
+    messagesPath: "/workspace/.opencode/session/messages.jsonl",
+    messagesMdPath: "/workspace/.opencode/session/messages.md",
+    bootPath: "/workspace/.opencode/session/boot.json",
+    bootTmpPath: "/workspace/.opencode/session/.boot.json.tmp",
+    handoffDir: "/workspace/.opencode/session",
+    registrySeqPath: "/workspace/.opencode/session/registry.seq",
+    messagesRowIdPath: "/workspace/.opencode/session/messages.row-id",
+    journalLockPath: "/workspace/.opencode/session/journal.lock",
+    processStartedAt: "2026-09-15T00:00:00.000Z",
+  }
+}
 
 
 

@@ -644,6 +644,53 @@ describe("lib/stall-sweep — per-iteration try/catch continues", () => {
     assert.doesNotThrow(() => inst.sweep())
     try { inst.dispose?.() } catch { /* noop */ }
   })
+
+  it("RED-E: read failure suppresses notifications and rate-limits repeated warnings", () => {
+    const timer = makeFakeTimer()
+    const warnings = []
+    const emitted = []
+    const inst = factory({
+      setInterval: timer.setInterval,
+      clearInterval: timer.clearInterval,
+      handleStore: {},
+      now: () => Date.now(),
+      readRegistryRows: () => { throw new Error("registry read unavailable") },
+      emitStall: (...args) => emitted.push(args),
+      onError: (error) => warnings.push(String(error?.message ?? error)),
+    })
+    inst.start()
+    timer.tickAll()
+    timer.tickAll()
+    timer.tickAll()
+    assert.equal(emitted.length, 0, "read failure must never report a successful stall")
+    assert.equal(warnings.length, 1, "repeated read failures must use one bounded warning")
+    assert.match(warnings[0], /registry read unavailable/)
+    try { inst.dispose?.() } catch { /* noop */ }
+  })
+
+  it("RED-E: isolated malformed rows warn once but later valid rows still emit", () => {
+    const nowMs = Date.now()
+    const ts = new Date(nowMs - 15 * 60 * 1000).toISOString()
+    const warnings = []
+    const emitted = []
+    const timer = makeFakeTimer()
+    const rows = [null, { dispatch_state: "running", timestamp: ts }, null, { dispatch_state: "running", timestamp: ts }, makeRow({ session_id: "ses_after_corruption", timestamp: ts })]
+    const inst = factory({
+      setInterval: timer.setInterval,
+      clearInterval: timer.clearInterval,
+      handleStore: {},
+      now: () => nowMs,
+      pluginLoadMs: nowMs - 60 * 60 * 1000,
+      thresholds: { subagent: 10, orchestrator: 20, dead: 60 },
+      readRegistryRows: () => rows,
+      emitStall: (key) => emitted.push(key),
+      onError: (error) => warnings.push(String(error?.message ?? error)),
+    })
+    inst.sweep()
+    assert.deepEqual(emitted, ["ses_after_corruption"], "valid rows after corruption must remain sweepable and missing IDs must not synthesize keys")
+    assert.equal(warnings.length, 1, "malformed input warnings must be aggregated and bounded")
+    try { inst.dispose?.() } catch { /* noop */ }
+  })
 })
 
 // ---------------------------------------------------------------------------
