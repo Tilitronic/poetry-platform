@@ -45,6 +45,136 @@ function tryFactory(deps) {
   return mod.createRegistry(deps)
 }
 
+// ---------------------------------------------------------------------------
+// RED-D: canonical durable stall compare-and-append boundary
+// ---------------------------------------------------------------------------
+describe("RED-D — registry locked stall compare-and-append", () => {
+  function realRegistry(root) {
+    const session = nodeJoin(root, ".opencode/session")
+    nodeFs.mkdirSync(session, { recursive: true })
+    return mod.createRegistry({
+      directory: root,
+      registryPath: nodeJoin(session, "registry.jsonl"),
+      messagesPath: nodeJoin(session, "messages.jsonl"),
+      messagesMdPath: nodeJoin(session, "messages.md"),
+      registrySeqPath: nodeJoin(session, "registry.seq"),
+      messagesRowIdPath: nodeJoin(session, "messages.row-id"),
+      journalLockPath: nodeJoin(session, "journal.lock"),
+    })
+  }
+
+  function candidate(generation) {
+    return {
+      session_id: "ses_cross_process",
+      lifecycle_generation: generation,
+      tier: "dead",
+      row: {
+        event: "stall_detected",
+        escalation: "dead",
+        session_id: "ses_cross_process",
+        lifecycle_generation: generation,
+        dispatch_state: "running",
+      },
+    }
+  }
+
+  it("two Bun processes racing the same generation/tier persist exactly one row", async () => {
+    const root = nodeFs.mkdtempSync(nodeJoin(tmpdir(), "tqor-stall-race-"))
+    const moduleUrl = new URL("../lib/registry.ts", import.meta.url).href
+    const childSource = `
+      import { createRegistry } from ${JSON.stringify(moduleUrl)};
+      import * as fs from "node:fs";
+      const root = process.env.TQOR_STALL_ROOT;
+      const session = root + "/.opencode/session";
+      fs.mkdirSync(session, { recursive: true });
+      const registry = createRegistry({
+        directory: root,
+        registryPath: session + "/registry.jsonl",
+        messagesPath: session + "/messages.jsonl",
+        messagesMdPath: session + "/messages.md",
+        registrySeqPath: session + "/registry.seq",
+        messagesRowIdPath: session + "/messages.row-id",
+        journalLockPath: session + "/journal.lock",
+      });
+      process.stdout.write("READY\\n");
+      fs.readFileSync(0, "utf8");
+      let result;
+      try {
+        result = registry.compareAndAppendStall({
+          session_id: "ses_cross_process",
+          lifecycle_generation: 7,
+          tier: "dead",
+          row: { event: "stall_detected", escalation: "dead", session_id: "ses_cross_process", lifecycle_generation: 7, dispatch_state: "running" },
+        });
+      } catch (error) {
+        result = { ok: false, stage: "api", error: error instanceof Error ? error.message : String(error) };
+      }
+      process.stdout.write("RESULT " + JSON.stringify(result) + "\\n");
+    `
+
+    async function launch() {
+      const child = globalThis.Bun.spawn([process.execPath, "--eval", childSource], {
+        cwd: new URL("..", import.meta.url).pathname,
+        env: { ...process.env, TQOR_STALL_ROOT: root },
+        stdin: "pipe",
+        stdout: "pipe",
+        stderr: "pipe",
+      })
+      const reader = child.stdout.getReader()
+      const first = await reader.read()
+      const ready = new TextDecoder().decode(first.value)
+      assert.match(ready, /READY/, "child must reach the deterministic start barrier")
+      return { child, reader, prefix: ready }
+    }
+
+    async function release(handle) {
+      handle.child.stdin.write("go")
+      handle.child.stdin.end()
+      let output = handle.prefix
+      const decoder = new TextDecoder()
+      for (;;) {
+        const chunk = await handle.reader.read()
+        if (chunk.done) break
+        output += decoder.decode(chunk.value, { stream: true })
+      }
+      const code = await handle.child.exited
+      const stderr = await new Response(handle.child.stderr).text()
+      assert.equal(code, 0, `child process failed: ${stderr}`)
+      return JSON.parse(output.match(/RESULT (.+)/)?.[1] ?? "null")
+    }
+
+    try {
+      const left = await launch()
+      const right = await launch()
+      const [leftResult, rightResult] = await Promise.all([release(left), release(right)])
+      assert.equal([leftResult, rightResult].filter((result) => result?.ok === true).length, 1, "named RED: exactly one racing writer must append")
+      assert.equal([leftResult, rightResult].filter((result) => result?.reason === "duplicate").length, 1, "named RED: the losing writer must receive a durable duplicate result")
+      const path = nodeJoin(root, ".opencode/session/registry.jsonl")
+      const rows = nodeFs.readFileSync(path, "utf8").trim().split("\n").filter(Boolean).map(JSON.parse)
+      assert.equal(rows.filter((row) => row.event === "stall_detected" && row.session_id === "ses_cross_process" && row.lifecycle_generation === 7 && row.escalation === "dead").length, 1)
+    } finally {
+      nodeFs.rmSync(root, { recursive: true, force: true })
+    }
+  })
+
+  it("fresh registry instances suppress a durable tier but allow a new generation", () => {
+    const root = nodeFs.mkdtempSync(nodeJoin(tmpdir(), "tqor-stall-restart-"))
+    try {
+      const first = realRegistry(root)
+      assert.equal(typeof first.compareAndAppendStall, "function", "named RED: registry must export compareAndAppendStall")
+      assert.equal(first.compareAndAppendStall(candidate(7)).ok, true)
+
+      const restarted = realRegistry(root)
+      const duplicate = restarted.compareAndAppendStall(candidate(7))
+      assert.equal(duplicate.ok, false, "restart must suppress the durable generation/tier")
+      assert.equal(duplicate.reason, "duplicate")
+      assert.equal(restarted.compareAndAppendStall(candidate(8)).ok, true, "explicit recovery/new generation permits a new tier")
+    } finally {
+      nodeFs.rmSync(root, { recursive: true, force: true })
+    }
+  })
+})
+
 
 
 // ---------------------------------------------------------------------------

@@ -110,6 +110,67 @@ describe("lib/stall-sweep — stallThresholdMinutes env fallback", () => {
 })
 
 // ---------------------------------------------------------------------------
+// RED-D: locked durable generation/tier compare-and-append
+// ---------------------------------------------------------------------------
+describe("RED-D — locked cross-process stall compare-and-append", () => {
+  const nowMs = Date.parse("2026-09-15T12:00:00.000Z")
+
+  function deadRow() {
+    return {
+      session_id: "ses_race",
+      lifecycle_generation: 7,
+      dispatch_state: "running",
+      status: "RUNNING",
+      role: "subagent",
+      event: "task_started",
+      timestamp: new Date(nowMs - 61 * 60 * 1000).toISOString(),
+    }
+  }
+
+  it("uses the canonical compare-and-append callback before notifying", () => {
+    const compared = []
+    const notified = []
+    const sweep = factory({
+      now: () => nowMs,
+      readActiveEntries: () => [deadRow()],
+      thresholds: { subagent: 10, orchestrator: 20, dead: 60 },
+      pluginLoadMs: 0,
+      compareAndAppendStall: (candidate) => {
+        compared.push(candidate)
+        return { ok: true, id: 42 }
+      },
+      emitStall: (...args) => notified.push(args),
+      handleStore: {},
+    })
+    sweep.sweep()
+    assert.equal(compared.length, 1, "named RED: sweep must invoke the canonical compare-and-append boundary")
+    assert.equal(compared[0].session_id, "ses_race")
+    assert.equal(compared[0].lifecycle_generation, 7)
+    assert.equal(compared[0].tier, "dead")
+    assert.equal(notified.length, 1, "successful durable append permits one notification")
+  })
+
+  it("failure or durable duplicate sends no success notification", () => {
+    const notified = []
+    for (const result of [
+      { ok: false, stage: "append", retryable: true, error: "not durable" },
+      { ok: false, reason: "duplicate" },
+    ]) {
+      factory({
+        now: () => nowMs,
+        readActiveEntries: () => [deadRow()],
+        thresholds: { subagent: 10, orchestrator: 20, dead: 60 },
+        pluginLoadMs: 0,
+        compareAndAppendStall: () => result,
+        emitStall: (...args) => notified.push(args),
+        handleStore: {},
+      }).sweep()
+    }
+    assert.equal(notified.length, 0, "named RED: failed or duplicate durable append must not notify success")
+  })
+})
+
+// ---------------------------------------------------------------------------
 // 2. STALL_SWEEP_INTERVAL_MS
 // ---------------------------------------------------------------------------
 describe("lib/stall-sweep — STALL_SWEEP_INTERVAL_MS", () => {
