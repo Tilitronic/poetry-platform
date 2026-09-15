@@ -1844,4 +1844,39 @@ describe("DIA-260914-tqor RED-A review cycle 2 - strict ownership", () => {
     const registrySrc = nodeReadFileSync(new URL("../lib/registry.ts", import.meta.url), "utf8")
     assert.match(registrySrc, /from\s+["']\.\/journal-persistence\.ts["']/, "registry composes the functional helper")
   })
+
+  it("exposes bounded read-only registry health diagnostics without sensitive content", () => {
+    const root = nodeFs.mkdtempSync(nodeJoin(tmpdir(), "tqor-health-"))
+    const session = nodeJoin(root, ".opencode/session")
+    nodeFs.mkdirSync(session, { recursive: true })
+    const registryPath = nodeJoin(session, "registry.jsonl")
+    nodeFs.writeFileSync(registryPath, [
+      JSON.stringify({ seq: 4, event: "session_spawn", session_id: "ses_live", dispatch_state: "running" }),
+      "malformed {{{",
+    ].join("\n") + "\n")
+    try {
+      const registry = mod.createRegistry({
+        directory: root,
+        registryPath,
+        messagesPath: nodeJoin(session, "messages.jsonl"),
+        messagesMdPath: nodeJoin(session, "messages.md"),
+        registrySeqPath: nodeJoin(session, "registry.seq"),
+        messagesRowIdPath: nodeJoin(session, "messages.row-id"),
+        journalLockPath: nodeJoin(session, "journal.lock"),
+        archiveDir: nodeJoin(session, "registry-archive"),
+      })
+      assert.equal(typeof registry.getDiagnostics, "function", "RED-G: registry health diagnostics boundary required")
+      const health = registry.getDiagnostics()
+      for (const key of [
+        "active_bytes", "active_count", "last_registry_seq", "last_message_row_id",
+        "archive_count", "archive_bytes", "index_dirty", "last_rotation",
+        "suppressed_duplicate_count", "malformed_examples",
+      ]) assert.ok(Object.hasOwn(health, key), `RED-G: diagnostics missing ${key}`)
+      assert.ok(Array.isArray(health.malformed_examples))
+      assert.ok(health.malformed_examples.length <= 5, "RED-G: malformed diagnostics must be bounded")
+      assert.equal(JSON.stringify(health).includes("prompt"), false, "RED-G: diagnostics must not expose prompt content")
+    } finally {
+      nodeFs.rmSync(root, { recursive: true, force: true })
+    }
+  })
 })

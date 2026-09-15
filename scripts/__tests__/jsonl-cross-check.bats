@@ -278,6 +278,59 @@ JSONL
   assert_output_contains "registry has 0 in-universe task_success rows at/after --since"
 }
 
+# ---------------------------------------------------------------------------
+# (archive) historical completeness is explicit and manifest-verified. RED-G
+# requirements: include an archive once, reject an unverified archive.
+# ---------------------------------------------------------------------------
+
+@test "jsonl-cross-check: verified registry archive joins historical universe once" {
+  tree="$(setup_tree)"
+  local dir="$BATS_TEST_TMPDIR/archive-cross-check"
+  mkdir -p "$dir/archive"
+  cat > "$dir/registry.jsonl" <<'JSONL'
+{"seq":2,"timestamp":"2026-08-06T20:01:00Z","event":"task_success","task_id":"t-active","writer":"plugin"}
+JSONL
+  cat > "$dir/messages.jsonl" <<'JSONL'
+{"row_id":2,"timestamp":"2026-08-06T20:01:02Z","gen_ai.operation.name":"invoke_agent","gen_ai.agent.id":"t-active","event_type":"delegation"}
+JSONL
+  cat > "$dir/archive/registry-old.jsonl" <<'JSONL'
+{"seq":1,"timestamp":"2026-08-06T20:00:00Z","event":"task_success","task_id":"t-archived","writer":"plugin"}
+JSONL
+  cat > "$dir/archive/registry-old.messages.jsonl" <<'JSONL'
+{"row_id":1,"timestamp":"2026-08-06T20:00:02Z","gen_ai.operation.name":"invoke_agent","gen_ai.agent.id":"t-archived","event_type":"delegation"}
+JSONL
+  local checksum
+  checksum="$(sha256sum "$dir/archive/registry-old.jsonl" | awk '{print $1}')"
+  cat > "$dir/archive/registry-old.manifest.json" <<JSON
+{"archive":"registry-old.jsonl","sha256":"$checksum","byte_count":55,"row_count":1}
+JSON
+
+  run bash "$tree/.opencode/scripts/jsonl-cross-check.sh" \
+    "$dir/registry.jsonl" "$dir/messages.jsonl" --archive-dir "$dir/archive" \
+    --since 2026-08-06T00:00:00Z
+
+  assert_status 0
+  assert_output_contains "universe:       2"
+  assert_output_contains "completeness:    100.0%"
+}
+
+@test "jsonl-cross-check: unverified registry archive fails closed" {
+  tree="$(setup_tree)"
+  local dir="$BATS_TEST_TMPDIR/archive-cross-check-unverified"
+  mkdir -p "$dir/archive"
+  write_fixture "$dir" pass
+  cat > "$dir/archive/unverified.jsonl" <<'JSONL'
+{"seq":3,"timestamp":"2026-08-06T10:02:00Z","event":"task_success","task_id":"t-unverified","writer":"plugin"}
+JSONL
+
+  run bash "$tree/.opencode/scripts/jsonl-cross-check.sh" \
+    "$dir/registry.jsonl" "$dir/messages.jsonl" --archive-dir "$dir/archive" \
+    --since 2026-08-06T00:00:00Z
+
+  assert_status 2
+  assert_output_contains "verified manifest"
+}
+
 @test "jsonl-cross-check: unparseable registry timestamp skipped with warning, pass intact" {
   tree="$(setup_tree)"
   write_fixture "$BATS_TEST_TMPDIR/badts" badts

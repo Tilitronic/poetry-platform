@@ -327,6 +327,74 @@ JSONL
   assert_status 0
 }
 
+# ---------------------------------------------------------------------------
+# (archive) historical recall is explicit, verified, and active-only remains
+# available for operational queries. These are RED-G requirements for TQOR
+# slice 7.1; the current query implementation has no archive option yet.
+# ---------------------------------------------------------------------------
+
+@test "session-query: archived session recall includes verified archive exactly once" {
+  require_node_sqlite
+  local dir="$BATS_TEST_TMPDIR/archive"
+  local archive="$dir/registry-archive"
+  mkdir -p "$archive"
+  cat > "$dir/registry.jsonl" <<'JSONL'
+{"seq":11,"timestamp":"2026-08-10T11:00:00.000Z","event":"session_spawn","session_id":"ses_active","status":"RUNNING"}
+JSONL
+  : > "$dir/messages.jsonl"
+  cat > "$archive/registry-2026-08-10T12-00-00Z.jsonl" <<'JSONL'
+{"seq":3,"timestamp":"2026-08-10T10:00:00.000Z","event":"session_spawn","session_id":"ses_archived","status":"RUNNING"}
+JSONL
+  local checksum
+  checksum="$(sha256sum "$archive/registry-2026-08-10T12-00-00Z.jsonl" | awk '{print $1}')"
+  cat > "$archive/registry-2026-08-10T12-00-00Z.manifest.json" <<JSON
+{"archive":"registry-2026-08-10T12-00-00Z.jsonl","sha256":"$checksum","byte_count":${#checksum}}
+JSON
+
+  run node "$QUERY" --registry "$dir/registry.jsonl" --messages "$dir/messages.jsonl" \
+    --archive-dir "$archive" --session ses_archived
+
+  assert_status 0
+  assert_output_contains '"session_id":"ses_archived"'
+  [ "$(printf '%s' "$output" | grep -c '"session_id":"ses_archived"')" -eq 1 ]
+}
+
+@test "session-query: active-only mode excludes archived history" {
+  require_node_sqlite
+  local dir="$BATS_TEST_TMPDIR/archive-active-only"
+  mkdir -p "$dir/registry-archive"
+  cat > "$dir/registry.jsonl" <<'JSONL'
+{"seq":11,"timestamp":"2026-08-10T11:00:00.000Z","event":"session_spawn","session_id":"ses_active","status":"RUNNING"}
+JSONL
+  : > "$dir/messages.jsonl"
+  cat > "$dir/registry-archive/old.jsonl" <<'JSONL'
+{"seq":3,"timestamp":"2026-08-10T10:00:00.000Z","event":"session_spawn","session_id":"ses_archived","status":"RUNNING"}
+JSONL
+
+  run node "$QUERY" --registry "$dir/registry.jsonl" --messages "$dir/messages.jsonl" \
+    --archive-dir "$dir/registry-archive" --active-only --session ses_archived
+
+  assert_status 0
+  [ "$(printf '%s' "$output" | grep -c '^{' || true)" -eq 0 ]
+}
+
+@test "session-query: unverified archive fails closed" {
+  require_node_sqlite
+  local dir="$BATS_TEST_TMPDIR/archive-unverified"
+  mkdir -p "$dir/registry-archive"
+  : > "$dir/registry.jsonl"
+  : > "$dir/messages.jsonl"
+  cat > "$dir/registry-archive/unverified.jsonl" <<'JSONL'
+{"seq":3,"timestamp":"2026-08-10T10:00:00.000Z","event":"session_spawn","session_id":"ses_unverified","status":"RUNNING"}
+JSONL
+
+  run node "$QUERY" --registry "$dir/registry.jsonl" --messages "$dir/messages.jsonl" \
+    --archive-dir "$dir/registry-archive" --session ses_unverified
+
+  assert_status 2
+  assert_output_contains "verified manifest"
+}
+
 @test "session-query: Makefile wiring - test-shell auto-discovers the bats suite" {
   # Seam guard (same shape as validate-grilling-gate.bats): the bats suite is
   # auto-discovered by bats-wrapper.sh (exec "$BATS" "$TESTS_DIR"), so the
