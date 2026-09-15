@@ -25,7 +25,7 @@ import { dirname as nodeDirname, join as nodeJoin } from "node:path"
 import { randomUUID as nodeRandomUUID } from "node:crypto"
 import { createHash as nodeCreateHash } from "node:crypto"
 import { readFileSync as nodeReadProcFileSync } from "node:fs"
-import { createJournalPersistence } from "./journal-persistence.ts"
+import { counterValue, createJournalPersistence } from "./journal-persistence.ts"
 import type { JournalResult } from "./journal-persistence.ts"
 
 const TASK_NO_ID_GROUP_KEY = "__task_no_id__"
@@ -679,14 +679,25 @@ export function createRegistry(deps: RegistryDeps = {}) {
     const recoverable = active.filter((entry) => isRecoverableLifecycle(entry)).length
     const tombstones = active.filter((entry) => entry.terminalUnreconciled === true ||
       lifecycleEvent(entry) === "stopped-without-result" || lifecycleEvent(entry) === "return-channel-pending").length
+    const readCounterHigh = (counterPath: string, floor: number): number => {
+      try {
+        if (!fs.existsSync(counterPath)) return floor
+        const value = counterValue(fs.readFileSync(counterPath, "utf-8"))
+        return Number.isFinite(value) ? Math.max(floor, value) : floor
+      } catch {
+        return floor
+      }
+    }
+    const registryHigh = readCounterHigh(registrySeqPath, Math.max(registryHistoryMax, registryCounter ?? 0))
+    const messageHigh = readCounterHigh(messagesRowIdPath, Math.max(messagesCounter ?? 0, maxRowIdInJsonl(messagesPath)))
     return {
       active_bytes: activeBytes,
       active_count: active.length,
       live_count: live,
       recoverable_count: recoverable,
       tombstone_count: tombstones,
-      last_registry_seq: Math.max(registryHistoryMax, registryCounter ?? 0),
-      last_message_row_id: Math.max(messagesCounter ?? 0, maxRowIdInJsonl(messagesPath)),
+      last_registry_seq: registryHigh,
+      last_message_row_id: messageHigh,
       archive_count: archiveCount,
       archive_bytes: archiveBytes,
       index_dirty: activeIndexDirty,
