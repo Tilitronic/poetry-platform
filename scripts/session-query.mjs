@@ -66,10 +66,12 @@
  */
 
 import fs from 'node:fs';
+import { createHash } from 'node:crypto';
 import { DatabaseSync } from 'node:sqlite';
 
 const DEFAULT_REGISTRY = '.opencode/session/registry.jsonl';
 const DEFAULT_MESSAGES = '.opencode/session/messages.jsonl';
+const DEFAULT_ARCHIVE_DIR = '.opencode/session/registry-archive';
 const VALID_TABLES = new Set(['registry', 'messages']);
 // Recall matches messages rows via the task/session correlation key
 // (gen_ai.agent.id) because the messages log has no session_id column.
@@ -88,6 +90,8 @@ nothing is ever written back and no binary DB file is created.
 Options:
   --registry <path>   registry.jsonl path (default: .opencode/session/registry.jsonl)
   --messages <path>   messages.jsonl path (default: .opencode/session/messages.jsonl)
+  --archive-dir <path> verified registry archive directory (default: .opencode/session/registry-archive)
+  --active-only       query only the active registry (skip archive validation)
   --session <id>      recall: print every registry row with session_id=<id>
                       plus every messages row with gen_ai.agent.id=<id>
   --count-by <field>  aggregate: print { "<field>": value, "count": N } per
@@ -116,6 +120,8 @@ function parseArgs(argv) {
   const opts = {
     registry: DEFAULT_REGISTRY,
     messages: DEFAULT_MESSAGES,
+    archiveDir: DEFAULT_ARCHIVE_DIR,
+    activeOnly: false,
     session: null,
     countBy: null,
     table: null,
@@ -139,6 +145,13 @@ function parseArgs(argv) {
       case '--messages':
         opts.messages = needValue('messages', i);
         i++;
+        break;
+      case '--archive-dir':
+        opts.archiveDir = needValue('archive-dir', i);
+        i++;
+        break;
+      case '--active-only':
+        opts.activeOnly = true;
         break;
       case '--session':
         opts.session = needValue('session', i);
@@ -202,7 +215,7 @@ function parseArgs(argv) {
 // so output rows are byte-faithful to the committed records. Malformed lines
 // are skipped with a warning (documented policy, see header).
 // ---------------------------------------------------------------------------
-function importJsonl(db, table, filePath) {
+function importJsonl(db, table, filePath, { seen } = {}) {
   db.exec(
     `CREATE TABLE IF NOT EXISTS ${table} (id INTEGER PRIMARY KEY AUTOINCREMENT, data TEXT NOT NULL)`,
   );
@@ -226,10 +239,48 @@ function importJsonl(db, table, filePath) {
       console.error(`warn: ${filePath} line ${i + 1} is malformed JSON - skipped`);
       continue;
     }
+    if (seen && seen.has(line)) continue;
+    seen?.add(line);
     insert.run(line);
     imported++;
   }
   return { imported, skipped };
+}
+
+// Registry archives are immutable only when their adjacent manifest verifies
+// the exact bytes. Unverified files are never queried (fail closed).
+function verifiedRegistryArchives(archiveDir) {
+  if (!archiveDir || !fs.existsSync(archiveDir)) return [];
+  let names;
+  try {
+    names = fs.readdirSync(archiveDir, { withFileTypes: true });
+  } catch (err) {
+    throw new Error(`archive directory unavailable: ${archiveDir} (${err.code ?? err.message})`);
+  }
+  const files = names
+    .filter((entry) => entry.isFile() && entry.name.endsWith('.jsonl'))
+    .map((entry) => entry.name)
+    .sort();
+  return files.map((name) => {
+    const filePath = `${archiveDir}/${name}`;
+    const manifestPath = `${filePath}.manifest.json`;
+    let manifest;
+    try {
+      manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+    } catch (err) {
+      throw new Error(`archive ${name} lacks a verified manifest (${err.code ?? err.message})`);
+    }
+    const bytes = fs.readFileSync(filePath);
+    const checksum = createHash('sha256').update(bytes).digest('hex');
+    if (
+      manifest.archive !== name ||
+      manifest.sha256 !== checksum ||
+      manifest.byte_count !== bytes.byteLength
+    ) {
+      throw new Error(`archive ${name} failed verified manifest check`);
+    }
+    return filePath;
+  });
 }
 
 // Build a repeatable-equality filter fragment over the JSON payload.
@@ -284,11 +335,20 @@ function main() {
 
   const db = new DatabaseSync(':memory:'); // ephemeral: dies with this process
   const w = buildWhere(opts.wheres);
-  const registryStats = importJsonl(db, 'registry', opts.registry);
+  const registrySeen = new Set();
+  const registryStats = importJsonl(db, 'registry', opts.registry, { seen: registrySeen });
+  const archiveFiles = opts.activeOnly ? [] : verifiedRegistryArchives(opts.archiveDir);
+  const archiveStats = archiveFiles.reduce(
+    (total, filePath) => {
+      const stats = importJsonl(db, 'registry', filePath, { seen: registrySeen });
+      return { imported: total.imported + stats.imported, skipped: total.skipped + stats.skipped };
+    },
+    { imported: 0, skipped: 0 },
+  );
   const messagesStats = importJsonl(db, 'messages', opts.messages);
   console.error(
-    `note: imported registry=${registryStats.imported} messages=${messagesStats.imported}` +
-      ` malformed-skipped=${registryStats.skipped + messagesStats.skipped}`,
+    `note: imported registry=${registryStats.imported + archiveStats.imported} messages=${messagesStats.imported}` +
+      ` malformed-skipped=${registryStats.skipped + archiveStats.skipped + messagesStats.skipped}`,
   );
 
   let rows = [];

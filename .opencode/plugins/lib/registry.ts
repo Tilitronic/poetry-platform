@@ -13,6 +13,7 @@ import {
   mkdirSync as nodeMkdirSync,
   openSync as nodeOpenSync,
   readFileSync as nodeReadFileSync,
+  readdirSync as nodeReaddirSync,
   readSync as nodeReadSync,
   renameSync as nodeRenameSync,
   rmdirSync as nodeRmdirSync,
@@ -43,6 +44,7 @@ type FsDeps = {
   unlinkSync(path: string): void
   rmdirSync?: (path: string) => void
   statSync(path: string): { mtimeMs: number; size: number; dev?: number; ino?: number; isFile(): boolean }
+  readdirSync?: (path: string, opts?: { withFileTypes?: boolean }) => string[] | { name: string; isFile(): boolean }[]
   readSync?: (fd: number, buffer: Uint8Array, offset: number, length: number, position: number) => number
 }
 
@@ -73,6 +75,8 @@ type RegistryDeps = {
   messagesRowIdPath?: string
   journalLockPath?: string
   archiveDir?: string
+  /** Test-only fault injection for the operator maintenance boundary. */
+  injectFailure?: string
   activeLifecycleMaxEntries?: number
   processIdentity?: { pid: number; startedAt: string }
   isProcessAlive?: (owner: { pid: number; startedAt: string }) => boolean | { alive: boolean; startedAt?: string }
@@ -336,6 +340,7 @@ function resolveFs(deps: RegistryDeps): FsDeps {
     mkdirSync: nodeMkdirSync as unknown as FsDeps["mkdirSync"],
     unlinkSync: nodeUnlinkSync,
     rmdirSync: nodeRmdirSync,
+    readdirSync: nodeReaddirSync as unknown as FsDeps["readdirSync"],
     statSync: nodeStatSync as unknown as FsDeps["statSync"],
   }
 }
@@ -455,6 +460,7 @@ export function createRegistry(deps: RegistryDeps = {}) {
   }
   let registryCounter: number | undefined
   let messagesCounter: number | undefined
+  let suppressedDuplicateCount = 0
   let activeIndexDirty = false
   const activeLifecycleMaxEntries = deps.activeLifecycleMaxEntries ?? 500
   let bootstrapContent = ""
@@ -605,6 +611,75 @@ export function createRegistry(deps: RegistryDeps = {}) {
   }
 
   /**
+   * Return bounded, privacy-safe health data for an operator or diagnostic
+   * caller. This reads the active registry and archive directory only; it
+   * never writes, exposes raw rows, or includes prompt/output content.
+   */
+  function getDiagnostics(): Record<string, unknown> {
+    let activeBytes = 0
+    let malformedExamples: Array<{ line: number; offset: number }> = []
+    let lastRotation: Record<string, unknown> | null = null
+    try {
+      const raw = fs.readFileSync(registryPath)
+      const bytes = typeof raw === "string" ? Buffer.from(raw) : Buffer.from(raw)
+      activeBytes = bytes.byteLength
+      const text = bytes.toString("utf-8")
+      let offset = 0
+      for (const [index, line] of text.split("\n").entries()) {
+        if (line.trim()) {
+          try {
+            const row = JSON.parse(line) as Record<string, unknown>
+            if (row.event === "registry_rotated") lastRotation = {
+              timestamp: typeof row.timestamp === "string" ? row.timestamp : null,
+              archive_path: typeof row.archive_path === "string" ? row.archive_path : null,
+              archive_sha256: typeof row.archive_sha256 === "string" ? row.archive_sha256 : null,
+            }
+          } catch {
+            if (malformedExamples.length < 5) malformedExamples.push({ line: index + 1, offset })
+          }
+        }
+        offset += Buffer.byteLength(`${line}\n`)
+      }
+    } catch {
+      // A read failure is represented by zeroed bounded diagnostics. The
+      // operator command remains read-only and does not synthesize state.
+    }
+    let archiveCount = 0
+    let archiveBytes = 0
+    try {
+      const names = fs.readdirSync?.(archiveDir) ?? []
+      for (const item of names) {
+        const name = typeof item === "string" ? item : item.name
+        if (!name.endsWith(".jsonl")) continue
+        archiveCount += 1
+        try { archiveBytes += fs.statSync(path.join(archiveDir, name)).size } catch { /* diagnostic best effort */ }
+      }
+    } catch {
+      // An absent archive directory is a valid pre-rotation state.
+    }
+    const active = activeLifecycleIndex.entries()
+    const live = active.filter((entry) => lifecycleState(entry) === "running" || lifecycleState(entry) === "in_progress").length
+    const recoverable = active.filter((entry) => isRecoverableLifecycle(entry)).length
+    const tombstones = active.filter((entry) => entry.terminalUnreconciled === true ||
+      lifecycleEvent(entry) === "stopped-without-result" || lifecycleEvent(entry) === "return-channel-pending").length
+    return {
+      active_bytes: activeBytes,
+      active_count: active.length,
+      live_count: live,
+      recoverable_count: recoverable,
+      tombstone_count: tombstones,
+      last_registry_seq: Math.max(registryHistoryMax, registryCounter ?? 0),
+      last_message_row_id: Math.max(messagesCounter ?? 0, maxRowIdInJsonl(messagesPath)),
+      archive_count: archiveCount,
+      archive_bytes: archiveBytes,
+      index_dirty: activeIndexDirty,
+      last_rotation: lastRotation,
+      suppressed_duplicate_count: suppressedDuplicateCount,
+      malformed_examples: malformedExamples,
+    }
+  }
+
+  /**
    * Explicit operator-only registry rotation.  This is intentionally not
    * called by observers or periodic sweep code: rotation is a maintenance
    * boundary, not a hot-path lifecycle operation.
@@ -629,6 +704,7 @@ export function createRegistry(deps: RegistryDeps = {}) {
     let manifestPath = ""
     let sourceBytes: Uint8Array | undefined
     let activeReplaced = false
+    let rotationStage = "lock"
     try {
       if (!fs.existsSync(registryPath)) {
         journal.releaseJournalLock(acquired.token)
@@ -662,6 +738,7 @@ export function createRegistry(deps: RegistryDeps = {}) {
         } catch { malformedRows += 1 }
       }
 
+      rotationStage = "copy"
       fs.mkdirSync(archiveDir, { recursive: true })
       const stamp = isoNow(deps).replace(/[^0-9]/g, "").slice(0, 14) || String(Date.now())
       const archiveName = `registry-${stamp}-${rand()}.jsonl`
@@ -670,8 +747,11 @@ export function createRegistry(deps: RegistryDeps = {}) {
       manifestPath = path.join(archiveDir, `${archiveName}.manifest.json`)
       const manifestTmp = `${manifestPath}.tmp`
       const activeTmp = `${registryPath}.rotate-${rand()}.tmp`
+      if (deps.injectFailure === "copy") throw new Error("injected copy failure")
       fs.writeFileSync(archiveTmp, sourceBytes)
+      rotationStage = "archive fsync"
       fsyncPath(archiveTmp)
+      if (deps.injectFailure === "checksum") throw new Error("injected checksum failure")
       const checksum = nodeCreateHash("sha256").update(fs.readFileSync(archiveTmp)).digest("hex")
       const manifest = {
         archive: archiveName,
@@ -683,14 +763,23 @@ export function createRegistry(deps: RegistryDeps = {}) {
         last_seq: lastSeq ?? null,
         created_at: isoNow(deps),
       }
+      rotationStage = "manifest write"
       fs.writeFileSync(manifestTmp, `${JSON.stringify(manifest, null, 2)}\n`)
+      rotationStage = "manifest fsync"
       fsyncPath(manifestTmp)
+      rotationStage = "verification"
       const stagedArchive = fs.readFileSync(archiveTmp)
       const stagedManifest = JSON.parse(fs.readFileSync(manifestTmp, "utf-8")) as typeof manifest
       if (!Buffer.from(stagedArchive).equals(Buffer.from(sourceBytes)) || stagedManifest.sha256 !== checksum || stagedManifest.byte_count !== sourceBytes.byteLength) {
         throw new Error("rotation archive verification failed")
       }
+      rotationStage = "archive publish"
+      if (deps.injectFailure === "rename") {
+        rotationStage = "rename"
+        throw new Error("injected rename failure")
+      }
       fs.renameSync(archiveTmp, archivePath)
+      rotationStage = "manifest publish"
       fs.renameSync(manifestTmp, manifestPath)
       fsyncDirectory(archivePath)
 
@@ -698,9 +787,11 @@ export function createRegistry(deps: RegistryDeps = {}) {
       const compact = retained.length === 0 ? "" : retained.map((row) => JSON.stringify(row)).join("\n") + "\n"
       fs.writeFileSync(activeTmp, compact)
       fsyncPath(activeTmp)
+      rotationStage = "active replacement"
       fs.renameSync(activeTmp, registryPath)
       activeReplaced = true
       fsyncDirectory(registryPath)
+      rotationStage = "index rebuild"
       const rebuilt = rebuildActiveLifecycleIndex()
       if (!rebuilt.ok) throw new Error(`index rebuild: ${rebuilt.error}`)
 
@@ -714,13 +805,19 @@ export function createRegistry(deps: RegistryDeps = {}) {
         seq: journal.reserveCounter(registrySeqPath, maxRegistrySeq, registryCounter) + 1,
         timestamp: isoNow(deps),
       }
+      rotationStage = "counter publication"
       registryCounter = rotationEntry.seq as number
       journal.publishCounter(registrySeqPath, registryCounter)
+      rotationStage = "rotation event append"
       journal.appendChecked(registryPath, `${JSON.stringify(rotationEntry)}\n`)
       registryHistoryMax = Math.max(registryHistoryMax, registryCounter)
       activeLifecycleIndex.apply(rotationEntry as LifecycleRow)
       journal.releaseJournalLock(acquired.token)
-      return { ok: true, archivePath, manifestPath, retainedActive: retained.length, malformedRows, checksum }
+      return {
+        ok: true, archivePath, manifestPath, retainedActive: retained.length, malformedRows, checksum,
+        sourceBytes: sourceBytes.byteLength, archiveBytes: sourceBytes.byteLength,
+        registrySeq: registryCounter, messageRowId: Math.max(messagesCounter ?? 0, maxRowIdInJsonl(messagesPath)),
+      }
     } catch (error) {
       if (activeReplaced && sourceBytes !== undefined) {
         try {
@@ -736,7 +833,7 @@ export function createRegistry(deps: RegistryDeps = {}) {
         }
       }
       journal.releaseJournalLock(acquired.token)
-      return { ok: false, stage: "rotation", error: error instanceof Error ? error.message : String(error) }
+      return { ok: false, stage: rotationStage, error: error instanceof Error ? error.message : String(error) }
     }
   }
 
@@ -884,6 +981,7 @@ export function createRegistry(deps: RegistryDeps = {}) {
           (tier === "dead" ? typeof entry.last_dead_timestamp === "string" : typeof entry.last_stall_timestamp === "string"))
         : undefined
       if (existing) {
+        suppressedDuplicateCount += 1
         journal.releaseJournalLock(acquired.token)
         return { ok: false, reason: "duplicate" }
       }
@@ -1056,6 +1154,7 @@ export function createRegistry(deps: RegistryDeps = {}) {
     refreshActiveLifecycleIndex,
     rebuildActiveLifecycleIndex,
     readActiveLifecycleEntries,
+    getDiagnostics,
     rotateRegistry,
   }
 }

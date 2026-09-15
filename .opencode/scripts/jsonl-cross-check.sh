@@ -84,7 +84,7 @@ SINCE="2026-08-06T19:30:00Z"
 
 fail_usage() {
   echo "error: $*" >&2
-  echo "usage: jsonl-cross-check.sh [registry.jsonl] [messages.jsonl] [--threshold <0..1>] [--since <ISO-8601>]" >&2
+  echo "usage: jsonl-cross-check.sh [registry.jsonl] [messages.jsonl] [--archive-dir <dir>] [--threshold <0..1>] [--since <ISO-8601>]" >&2
   exit 2
 }
 
@@ -134,6 +134,7 @@ count_malformed() {
 # --- argument parsing: two positional file paths + --threshold/--since anywhere.
 REG_ARG=""
 MSG_ARG=""
+ARCHIVE_DIR=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --threshold)
@@ -146,8 +147,13 @@ while [ $# -gt 0 ]; do
       [ $# -gt 0 ] || fail_usage "--since requires a value"
       SINCE="$1"
       ;;
+    --archive-dir)
+      shift
+      [ $# -gt 0 ] || fail_usage "--archive-dir requires a value"
+      ARCHIVE_DIR="$1"
+      ;;
     --help|-h)
-      echo "usage: jsonl-cross-check.sh [registry.jsonl] [messages.jsonl] [--threshold <0..1>] [--since <ISO-8601>]"
+      echo "usage: jsonl-cross-check.sh [registry.jsonl] [messages.jsonl] [--archive-dir <dir>] [--threshold <0..1>] [--since <ISO-8601>]"
       echo "  registry.jsonl  plugin delegation registry (default .opencode/session/registry.jsonl)"
       echo "  messages.jsonl  session log (default .opencode/session/messages.jsonl)"
       echo "  --threshold     pass threshold as a 0..1 fraction (default 0.99)"
@@ -175,6 +181,38 @@ done
 require_jq
 [ -f "$REG_FILE" ] || fail_input "$REG_FILE not found — run from the repo root (or pass the registry path)"
 [ -f "$MSG_FILE" ] || fail_input "$MSG_FILE not found — run from the repo root (or pass the messages path)"
+
+# When requested, join verified registry archives to the active source. The
+# active file wins on exact duplicate lines, so a rotation overlap is counted
+# once. Archives are registry-only; messages.jsonl remains authoritative for
+# delegation rows. Any unverified archive fails closed before the check runs.
+if [ -n "$ARCHIVE_DIR" ] && [ -d "$ARCHIVE_DIR" ]; then
+  REG_SOURCE="$(mktemp "${TMPDIR:-/tmp}/tqor-cross-check.XXXXXX")"
+  trap 'rm -f "$REG_SOURCE"' EXIT
+  cat "$REG_FILE" > "$REG_SOURCE"
+  for archive in "$ARCHIVE_DIR"/*.jsonl; do
+    [ -f "$archive" ] || continue
+    manifest="${archive}.manifest.json"
+    [ -f "$manifest" ] || fail_input "archive $(basename "$archive") lacks a verified manifest"
+    manifest_archive="$(jq -r '.archive // empty' "$manifest" 2>/dev/null || true)"
+    manifest_sha="$(jq -r '.sha256 // empty' "$manifest" 2>/dev/null || true)"
+    manifest_bytes="$(jq -r '.byte_count // empty' "$manifest" 2>/dev/null || true)"
+    archive_name="$(basename "$archive")"
+    actual_sha="$(sha256sum "$archive" | awk '{print $1}')"
+    actual_bytes="$(wc -c < "$archive" | tr -d ' ')"
+    if [ "$manifest_archive" != "$archive_name" ] ||
+      [ "$manifest_sha" != "$actual_sha" ] ||
+      [ "$manifest_bytes" != "$actual_bytes" ]; then
+      fail_input "archive $archive_name failed verified manifest check"
+    fi
+    cat "$archive" >> "$REG_SOURCE"
+  done
+  # Exact JSONL lines are the stable identity emitted by rotation. Keep the
+  # active copy and discard only later archive duplicates.
+  awk '!seen[$0]++' "$REG_SOURCE" > "${REG_SOURCE}.dedup"
+  mv "${REG_SOURCE}.dedup" "$REG_SOURCE"
+  REG_FILE="$REG_SOURCE"
+fi
 
 # Validate the threshold is a number in [0, 1] (jq does the float check; bash
 # has no float arithmetic).
@@ -299,7 +337,7 @@ if [ "$reg_bad_ts" -gt 0 ]; then
   echo "  bad timestamp:  $reg_bad_ts rows with unparseable/missing timestamp (excluded; see warning above)"
 fi
 echo
-echo "universe:         $reg_universe registry task_success rows (in-universe, with task_id)"
+echo "universe:       $reg_universe registry task_success rows (in-universe, with task_id)"
 echo "matched:          $matched ($(printf '%.1f' "$pct")%) — delegation row with same task_id + timestamp within ${TOLERANCE}s"
 echo "  outside ±${TOLERANCE}s: $same_id_outside — same task_id but timestamp delta > ${TOLERANCE}s (NOT counted)"
 echo "  unmatched:      $unmatched — no delegation row carries that task_id"
