@@ -347,8 +347,10 @@ JSONL
 JSONL
   local checksum
   checksum="$(sha256sum "$archive/registry-2026-08-10T12-00-00Z.jsonl" | awk '{print $1}')"
-  cat > "$archive/registry-2026-08-10T12-00-00Z.manifest.json" <<JSON
-{"archive":"registry-2026-08-10T12-00-00Z.jsonl","sha256":"$checksum","byte_count":${#checksum}}
+  local byte_count
+  byte_count="$(wc -c < "$archive/registry-2026-08-10T12-00-00Z.jsonl")"
+  cat > "$archive/registry-2026-08-10T12-00-00Z.jsonl.manifest.json" <<JSON
+{"archive":"registry-2026-08-10T12-00-00Z.jsonl","sha256":"$checksum","byte_count":$byte_count}
 JSON
 
   run node "$QUERY" --registry "$dir/registry.jsonl" --messages "$dir/messages.jsonl" \

@@ -293,16 +293,19 @@ JSONL
   cat > "$dir/messages.jsonl" <<'JSONL'
 {"row_id":2,"timestamp":"2026-08-06T20:01:02Z","gen_ai.operation.name":"invoke_agent","gen_ai.agent.id":"t-active","event_type":"delegation"}
 JSONL
+  # The archive overlaps the active source with the same task row. The
+  # historical reader must deduplicate it rather than count it twice.
   cat > "$dir/archive/registry-old.jsonl" <<'JSONL'
-{"seq":1,"timestamp":"2026-08-06T20:00:00Z","event":"task_success","task_id":"t-archived","writer":"plugin"}
+{"seq":2,"timestamp":"2026-08-06T20:01:00Z","event":"task_success","task_id":"t-active","writer":"plugin"}
 JSONL
-  cat > "$dir/archive/registry-old.messages.jsonl" <<'JSONL'
-{"row_id":1,"timestamp":"2026-08-06T20:00:02Z","gen_ai.operation.name":"invoke_agent","gen_ai.agent.id":"t-archived","event_type":"delegation"}
-JSONL
+  # jsonl-cross-check archives registry rows only; the matching message stays
+  # in the current messages.jsonl source.
   local checksum
   checksum="$(sha256sum "$dir/archive/registry-old.jsonl" | awk '{print $1}')"
-  cat > "$dir/archive/registry-old.manifest.json" <<JSON
-{"archive":"registry-old.jsonl","sha256":"$checksum","byte_count":55,"row_count":1}
+  local byte_count
+  byte_count="$(wc -c < "$dir/archive/registry-old.jsonl")"
+  cat > "$dir/archive/registry-old.jsonl.manifest.json" <<JSON
+{"archive":"registry-old.jsonl","sha256":"$checksum","byte_count":$byte_count,"row_count":1}
 JSON
 
   run bash "$tree/.opencode/scripts/jsonl-cross-check.sh" \
@@ -310,7 +313,7 @@ JSON
     --since 2026-08-06T00:00:00Z
 
   assert_status 0
-  assert_output_contains "universe:       2"
+  assert_output_contains "universe:       1"
   assert_output_contains "completeness:    100.0%"
 }
 
