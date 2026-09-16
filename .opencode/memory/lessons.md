@@ -2989,3 +2989,9 @@ verification evidence (DIA-260909-csds, 2026-09-09)
 - Cross-reference: openspec/changes/dia-260911-4y5v-datetime-artifact-id-examples/
   (proposal/design/tasks), scripts/allocate-id (allocator ground truth),
   learnings/external-patterns/dia-260911-4y5v-datetime-id-gate.md.
+
+## L20260916-tqor-001 - Registry recovery: lock counters, preserve source-aware identity, verify migration (DIA-260914-tqor, 2026-09-16)
+
+- Reusable rule: durable registry counters require the shared writer lock; active compact projections are not byte-identical archive rows; legacy archives may repeat a `seq` within one source, so deduplicate source-aware and fail closed on conflicting payloads.
+- Runtime migration is complete only after checksum/manifest verification and a reader smoke test against the archived data.
+- Lane notes: an unsafe pre-fix test advanced the counter by one (a safe monotonic gap, with no JSONL loss); the original GREEN lane hit quota and required a recovery lane.

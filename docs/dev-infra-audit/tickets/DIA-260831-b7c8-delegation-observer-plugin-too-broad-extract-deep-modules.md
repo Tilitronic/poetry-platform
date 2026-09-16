@@ -30,7 +30,9 @@ attempts: 0
 lease_expires_at: ""
 files_touched: []
 artifacts: []
-evidence: []
+evidence:
+
+- DIA-260914-tqor final audit: defer remaining active-registry hot-hook scans and duplicate recovery transition to this refactor
 
 ---
 

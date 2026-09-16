@@ -319,8 +319,9 @@
 | DIA-260913-ir3r | Fix root-owned npm cache for OpenCode background dependency installs | docker | Major | CLOSED | [DIA-260913-ir3r-fix-root-owned-npm-cache-for-opencode-background-dependency-installs.md](DIA-260913-ir3r-fix-root-owned-npm-cache-for-opencode-background-dependency-installs.md) |
 | DIA-260913-srn4 | Refresh rustup-init checksums blocking Podman dev image rebuild | dev-infra | Major | CLOSED | [DIA-260913-srn4-refresh-rustup-init-checksums-blocking-podman-dev-image-rebuild.md](DIA-260913-srn4-refresh-rustup-init-checksums-blocking-podman-dev-image-rebuild.md) |
 | DIA-260914-4s66 | Avoid rootless Podman remap of host git ownership during entrypoint startup | docker | Critical | CLOSED | [DIA-260914-4s66-avoid-rootless-podman-remap-of-host-git-ownership-during-entrypoint-startup.md](DIA-260914-4s66-avoid-rootless-podman-remap-of-host-git-ownership-during-entrypoint-startup.md) |
-| DIA-260914-tqor | Stop delegation-observer stall sweep from re-emitting dead sessions forever and bound registry scan cost | scripts | Medium | OPEN | [DIA-260914-tqor-stop-delegation-observer-stall-sweep-from-re-emitting-dead-sessions-forever-and-bound-registry-scan-cost.md](DIA-260914-tqor-stop-delegation-observer-stall-sweep-from-re-emitting-dead-sessions-forever-and-bound-registry-scan-cost.md) |
+| DIA-260914-tqor | Stop delegation-observer stall sweep from re-emitting dead sessions forever and bound registry scan cost | scripts | Medium | CLOSED | [DIA-260914-tqor-stop-delegation-observer-stall-sweep-from-re-emitting-dead-sessions-forever-and-bound-registry-scan-cost.md](DIA-260914-tqor-stop-delegation-observer-stall-sweep-from-re-emitting-dead-sessions-forever-and-bound-registry-scan-cost.md) |
 | DIA-260915-u8js | Reconcile inactive Muse Qwen balanced Zen-free routing and OpenAI Luna fallback | opencode-config | Low | CLOSED | [DIA-260915-u8js-reconcile-inactive-muse-qwen-balanced-zen-free-routing-and-openai-luna-fallback.md](DIA-260915-u8js-reconcile-inactive-muse-qwen-balanced-zen-free-routing-and-openai-luna-fallback.md) |
+| DIA-260916-z5pf | Optimize archive-aware jsonl cross-check for bounded interactive latency | dev-infra | Medium | OPEN | [DIA-260916-z5pf-optimize-archive-aware-jsonl-cross-check-for-bounded-interactive-latency.md](DIA-260916-z5pf-optimize-archive-aware-jsonl-cross-check-for-bounded-interactive-latency.md) |
 
 ## Status summary
 
@@ -329,7 +330,7 @@
 | Blocker  | 9     |
 | Critical | 17    |
 | Major    | 78    |
-| Medium   | 161   |
+| Medium   | 162   |
 | Minor    | 1     |
 | Low      | 31    |
 | Info     | 2     |
@@ -346,7 +347,7 @@
 | FIXED       | 1     |
 | IMPLEMENTED | 2     |
 | VERIFIED    | 28    |
-| CLOSED      | 206   |
+| CLOSED      | 207   |
 | BLOCKED     | 0     |
 | DISPATCHED  | 0     |
 | RUNNING     | 0     |

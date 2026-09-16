@@ -4739,3 +4739,25 @@
   - docs/dev-infra-audit/tickets/DIA-260915-u8js-reconcile-inactive-muse-qwen-balanced-zen-free-routing-and-openai-luna-fallback.md
   summary: Reconcile inactive Muse preset with Zen-free primaries and Luna fallbacks
   verification: manual
+- date: '2026-09-16'
+  ticket: DIA-260914-tqor
+  scope: delegation-observer registry persistence, stall sweep, verified archive migration,
+    and historical readers
+  files:
+  - .opencode/plugins/lib/journal-persistence.ts
+  - .opencode/plugins/lib/registry.ts
+  - .opencode/plugins/lib/stall-sweep.ts
+  - .opencode/plugins/delegation-observer.ts
+  - .opencode/plugins/needs-input-observer.ts
+  - scripts/registry-maintenance.mjs
+  - scripts/session-query.mjs
+  - .opencode/scripts/jsonl-cross-check.sh
+  - openspec/changes/dia-260914-tqor-stall-sweep-bounded-registry/
+  summary: Bound stall escalation by lifecycle generation, added durable journal counters
+    and active projection, preserved history through verified registry rotation, and
+    made diagnostics archive-aware.
+  verification: TQOR plugin suites 189/189; archive/query Bats 50/50; make test-shell
+    708/708; make test-config 57/57; strict OpenSpec valid; verified 44,861,601-byte
+    archive SHA-256; non-empty orchestrator smoke; unchanged stall count across two
+    sweep intervals; independent review cycle 2/2 PASS
+  area: opencode-config

@@ -68,4 +68,10 @@ semantics, and does not authorize deleting runtime archives.
 
 ## Outcome
 
-Pending developer disposition and OpenSpec amendment.
+Implemented and runtime-verified on 2026-09-16. The active registry was
+rotated under the shared lock into a byte-identical immutable archive with a
+verified manifest, then reduced from 44,861,601 bytes / 128,373 rows to 4,012
+bytes / 13 rows. Archive-aware readers preserve legacy same-source duplicate
+sequence values while deduplicating or rejecting cross-source overlap by
+semantic identity. Focused plugin tests, 708 shell tests, 57 config tests, a
+non-empty orchestrator smoke, and two unchanged sweep intervals passed.

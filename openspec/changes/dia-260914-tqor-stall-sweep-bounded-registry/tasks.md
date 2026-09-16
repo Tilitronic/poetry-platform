@@ -32,7 +32,7 @@
 ## 3. Exact lifecycle generations and process-local index
 
 - [x] 3.1 **RED-C:** A test-only coder adds failing cases for the transition table: first authoritative non-terminal `seq` anchors generation; a real child `session_spawn` opens a generation when no earlier dispatch row exists; repeated running/progress, `session_spawn`, stall, and `task_success` stay in that generation; terminal closes it; explicit recovery or dispatch after closure starts a new anchor; restart never increments; terminal-only/missing-ID chains never become sweep-eligible.
-- [ ] 3.2 Add legacy fixture cases ordered by `seq`, timestamp, then offset, including deterministic legacy generation mapping, duplicate/out-of-order rows, and byte-identical archived history.
+- [x] 3.2 Add legacy fixture cases ordered by `seq`, timestamp, then offset, including deterministic legacy generation mapping, duplicate/out-of-order rows, and byte-identical archived history.
 - [x] 3.3 **GREEN-C, different instance:** Implement the bounded process-local incremental index in `lib/registry.ts`, with active-file bootstrap and inode/rotation-aware ingestion of only new bytes. Do not add a durable active-index sidecar.
 - [x] 3.4 Prove terminal/reconciled removal, tombstone preservation, bound fail-loud behavior, and dirty local-index rebuild before sweep resumes.
 
@@ -40,7 +40,7 @@
 
 ## 4. Locked cross-process stall compare-and-append
 
-- [ ] 4.1 **RED-D:** A test-only coder adds failing cases for one dead escalation across repeated intervals and two plugin processes, restart/bootstrap dedup, explicit recovery/new generation, current-lifetime stalls, hundreds of historical stale sessions without cascade, and suppression count without repeated rows.
+- [x] 4.1 **RED-D:** A test-only coder adds failing cases for one dead escalation across repeated intervals and two plugin processes, restart/bootstrap dedup, explicit recovery/new generation, current-lifetime stalls, hundreds of historical stale sessions without cascade, and suppression count without repeated rows.
 - [x] 4.2 **GREEN-D, different instance:** Change `lib/stall-sweep.ts` to consume the process-local index and call a canonical locked compare-and-append operation. Under lock, ingest new bytes, compare durable generation/tier evidence, and append only if absent.
 - [x] 4.3 Wire `delegation-observer.ts` minimally. Emit TUI/crisis notification only after `{ok:true}` stall append. On notification failure, retain the durable dedup row and emit only a rate-limited warning.
 
@@ -63,29 +63,29 @@
 
 ## 7. Explicit archive-aware historical readers and diagnostics
 
-- [ ] 7.1 **RED-G:** A test-only coder extends `scripts/__tests__/session-query.bats` for archived session recall and active-only operational mode, and `scripts/__tests__/jsonl-cross-check.bats` for verified archive inclusion, duplicate avoidance, and rejection of unverified archives.
-- [ ] 7.2 Add failing registry-health cases for active bytes/counts, last counters, archive count/bytes, local-index health, last rotation, suppression count, and bounded malformed examples.
-- [ ] 7.3 **GREEN-G, different instance:** Make `scripts/session-query.mjs` explicitly archive-aware for historical recall and `.opencode/scripts/jsonl-cross-check.sh` explicitly archive-aware for historical completeness. Keep sweep and active decisions archive-blind.
-- [ ] 7.4 Add the smallest read-only diagnostic surface and audit other readers. Apply only compatibility changes required by the explicit active/history contract.
+- [x] 7.1 **RED-G:** A test-only coder extends `scripts/__tests__/session-query.bats` for archived session recall and active-only operational mode, and `scripts/__tests__/jsonl-cross-check.bats` for verified archive inclusion, duplicate avoidance, and rejection of unverified archives.
+- [x] 7.2 Add failing registry-health cases for active bytes/counts, last counters, archive count/bytes, local-index health, last rotation, suppression count, and bounded malformed examples.
+- [x] 7.3 **GREEN-G, different instance:** Make `scripts/session-query.mjs` explicitly archive-aware for historical recall and `.opencode/scripts/jsonl-cross-check.sh` explicitly archive-aware for historical completeness. Keep sweep and active decisions archive-blind.
+- [x] 7.4 Add the smallest read-only diagnostic surface and audit other readers. Apply only compatibility changes required by the explicit active/history contract.
 
 **Dependencies:** 6. **Acceptance:** Archived evidence remains queryable and cross-checkable exactly once; unverified archives fail closed; diagnostics are local/read-only and expose no sensitive content; Bats suites pass.
 
 ## 8. Migrate the current registry
 
-- [ ] 8.1 At the documented safe point, acquire the common lock and run explicit migration once against the current approximately 44.85 MB registry.
-- [ ] 8.2 Record archive path, source/archive bytes, row and malformed counts, first/last sequence, SHA-256, retained active/tombstone counts, both counter high-water marks, and elapsed time.
-- [ ] 8.3 Independently verify manifest/checksum and every retained live/recoverable/unreconciled generation before accepting compact active state.
-- [ ] 8.4 Confirm runtime registry/archive files remain outside Git and no archive is deleted.
+- [x] 8.1 At the documented safe point, acquire the common lock and run explicit migration once against the current approximately 44.85 MB registry.
+- [x] 8.2 Record archive path, source/archive bytes, row and malformed counts, first/last sequence, SHA-256, retained active/tombstone counts, both counter high-water marks, and elapsed time.
+- [x] 8.3 Independently verify manifest/checksum and every retained live/recoverable/unreconciled generation before accepting compact active state.
+- [x] 8.4 Confirm runtime registry/archive files remain outside Git and no archive is deleted.
 
 **Dependencies:** 6, 7. **Acceptance:** Migration is verified and recoverable; any failure preserves the original authoritative source.
 
 ## 9. Full verification and runtime smoke
 
 - [ ] 9.1 Run focused registry, persistence, stall-sweep, needs-input, session-query, and jsonl-cross-check tests, then the complete plugin suite.
-- [ ] 9.2 Run `make test-shell`, `make test-config`, and `git diff --check`; record exit codes and summaries.
-- [ ] 9.3 Restart OpenCode, run a non-empty orchestrator smoke, and capture registry diagnostics.
-- [ ] 9.4 Observe multiple unchanged sweep intervals and prove `stall_detected` does not increase. Exercise one fresh stall and one recovery/new-generation case.
-- [ ] 9.5 Record steady-state scan/byte counts proving `O(active sessions + new bytes)` and no per-append full scan. Record startup duration as evidence, not a flaky CI gate.
+- [x] 9.2 Run `make test-shell`, `make test-config`, and `git diff --check`; record exit codes and summaries.
+- [x] 9.3 Restart OpenCode, run a non-empty orchestrator smoke, and capture registry diagnostics.
+- [x] 9.4 Observe multiple unchanged sweep intervals and prove `stall_detected` does not increase. Exercise one fresh stall and one recovery/new-generation case.
+- [x] 9.5 Record steady-state scan/byte counts proving `O(active sessions + new bytes)` and no per-append full scan. Record startup duration as evidence, not a flaky CI gate.
 
 **Dependencies:** 2-8. **Acceptance commands:**
 
