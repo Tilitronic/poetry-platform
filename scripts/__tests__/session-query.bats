@@ -361,6 +361,104 @@ JSON
   [ "$(printf '%s' "$output" | grep -c '"session_id":"ses_archived"')" -eq 1 ]
 }
 
+@test "session-query: archive plus active compact projection overlap returns archived event once" {
+  require_node_sqlite
+  local dir="$BATS_TEST_TMPDIR/archive-projection-overlap"
+  local archive="$dir/registry-archive"
+  mkdir -p "$archive"
+  cat > "$dir/registry.jsonl" <<'JSONL'
+{"seq":7,"timestamp":"2026-08-10T10:00:00.000Z","event":"session_spawn","session_id":"ses_overlap","status":"RUNNING","_offset":0,"lifecycle_generation":7}
+JSONL
+  : > "$dir/messages.jsonl"
+  cat > "$archive/old.jsonl" <<'JSONL'
+{"seq":7,"timestamp":"2026-08-10T10:00:00.000Z","event":"session_spawn","session_id":"ses_overlap","status":"RUNNING","writer":"plugin","prompt_body":"original event"}
+JSONL
+  local checksum
+  checksum="$(sha256sum "$archive/old.jsonl" | awk '{print $1}')"
+  local byte_count
+  byte_count="$(wc -c < "$archive/old.jsonl")"
+  cat > "$archive/old.jsonl.manifest.json" <<JSON
+{"archive":"old.jsonl","sha256":"$checksum","byte_count":$byte_count,"row_count":1}
+JSON
+
+  run node "$QUERY" --registry "$dir/registry.jsonl" --messages "$dir/messages.jsonl" \
+    --archive-dir "$archive" --session ses_overlap
+
+  assert_status 0
+  assert_output_contains '"prompt_body":"original event"'
+  [ "$(printf '%s' "$output" | grep -c '"session_id":"ses_overlap"')" -eq 1 ]
+}
+
+@test "session-query: active-only recall returns compact projection overlap" {
+  require_node_sqlite
+  local dir="$BATS_TEST_TMPDIR/archive-projection-active-only"
+  mkdir -p "$dir/registry-archive"
+  cat > "$dir/registry.jsonl" <<'JSONL'
+{"seq":7,"timestamp":"2026-08-10T10:00:00.000Z","event":"session_spawn","session_id":"ses_overlap","status":"RUNNING","_offset":0,"lifecycle_generation":7}
+JSONL
+  : > "$dir/messages.jsonl"
+  run node "$QUERY" --registry "$dir/registry.jsonl" --messages "$dir/messages.jsonl" \
+    --archive-dir "$dir/registry-archive" --active-only --session ses_overlap
+
+  assert_status 0
+  assert_output_contains '"lifecycle_generation":7'
+  [ "$(printf '%s' "$output" | grep -c '"session_id":"ses_overlap"')" -eq 1 ]
+}
+
+@test "session-query: custom registry uses its adjacent default archive" {
+  require_node_sqlite
+  local cwd="$BATS_TEST_TMPDIR/custom-registry-default-archive"
+  local custom="$cwd/custom"
+  local archive="$custom/registry-archive"
+  mkdir -p "$archive"
+  cat > "$custom/registry.jsonl" <<'JSONL'
+{"seq":11,"timestamp":"2026-08-10T11:00:00.000Z","event":"session_spawn","session_id":"ses_custom","status":"RUNNING"}
+JSONL
+  : > "$custom/messages.jsonl"
+  cat > "$archive/old.jsonl" <<'JSONL'
+{"seq":3,"timestamp":"2026-08-10T10:00:00.000Z","event":"session_spawn","session_id":"ses_custom_archived","status":"RUNNING"}
+JSONL
+  local checksum
+  checksum="$(sha256sum "$archive/old.jsonl" | awk '{print $1}')"
+  local byte_count
+  byte_count="$(wc -c < "$archive/old.jsonl")"
+  cat > "$archive/old.jsonl.manifest.json" <<JSON
+{"archive":"old.jsonl","sha256":"$checksum","byte_count":$byte_count,"row_count":1}
+JSON
+
+  run bash -c "cd '$cwd' && node '$QUERY' --registry '$custom/registry.jsonl' --messages '$custom/messages.jsonl' --session ses_custom_archived"
+
+  assert_status 0
+  assert_output_contains '"session_id":"ses_custom_archived"'
+}
+
+@test "session-query: same-seq non-projection conflict still fails closed" {
+  require_node_sqlite
+  local dir="$BATS_TEST_TMPDIR/archive-projection-conflict"
+  local archive="$dir/registry-archive"
+  mkdir -p "$archive"
+  cat > "$dir/registry.jsonl" <<'JSONL'
+{"seq":7,"timestamp":"2026-08-10T10:00:00.000Z","event":"task_error","session_id":"ses_overlap","status":"ERROR"}
+JSONL
+  : > "$dir/messages.jsonl"
+  cat > "$archive/old.jsonl" <<'JSONL'
+{"seq":7,"timestamp":"2026-08-10T10:00:00.000Z","event":"session_spawn","session_id":"ses_overlap","status":"RUNNING"}
+JSONL
+  local checksum
+  checksum="$(sha256sum "$archive/old.jsonl" | awk '{print $1}')"
+  local byte_count
+  byte_count="$(wc -c < "$archive/old.jsonl")"
+  cat > "$archive/old.jsonl.manifest.json" <<JSON
+{"archive":"old.jsonl","sha256":"$checksum","byte_count":$byte_count,"row_count":1}
+JSON
+
+  run node "$QUERY" --registry "$dir/registry.jsonl" --messages "$dir/messages.jsonl" \
+    --archive-dir "$archive" --session ses_overlap
+
+  assert_status 2
+  assert_output_contains "conflicting registry archive payload for seq 7"
+}
+
 @test "session-query: active-only mode excludes archived history" {
   require_node_sqlite
   local dir="$BATS_TEST_TMPDIR/archive-active-only"

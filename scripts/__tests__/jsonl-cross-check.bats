@@ -346,6 +346,36 @@ JSON
   assert_output_contains "universe:       1"
 }
 
+@test "jsonl-cross-check: archive original and active compact projection overlap once" {
+  tree="$(setup_tree)"
+  local dir="$BATS_TEST_TMPDIR/archive-cross-check-projection-overlap"
+  mkdir -p "$dir/archive"
+  cat > "$dir/registry.jsonl" <<'JSONL'
+{"seq":7,"timestamp":"2026-08-06T20:01:00Z","event":"task_success","task_id":"t-projection","writer":"projection","_offset":0,"lifecycle_generation":7}
+JSONL
+  cat > "$dir/messages.jsonl" <<'JSONL'
+{"row_id":7,"timestamp":"2026-08-06T20:01:02Z","gen_ai.operation.name":"invoke_agent","gen_ai.agent.id":"t-projection","event_type":"delegation"}
+JSONL
+  cat > "$dir/archive/registry-old.jsonl" <<'JSONL'
+{"seq":7,"timestamp":"2026-08-06T20:01:00Z","event":"task_success","task_id":"t-projection","writer":"plugin","prompt_body":"original event"}
+JSONL
+  local checksum
+  checksum="$(sha256sum "$dir/archive/registry-old.jsonl" | awk '{print $1}')"
+  local byte_count
+  byte_count="$(wc -c < "$dir/archive/registry-old.jsonl")"
+  cat > "$dir/archive/registry-old.jsonl.manifest.json" <<JSON
+{"archive":"registry-old.jsonl","sha256":"$checksum","byte_count":$byte_count,"row_count":1}
+JSON
+
+  run bash "$tree/.opencode/scripts/jsonl-cross-check.sh" \
+    "$dir/registry.jsonl" "$dir/messages.jsonl" --archive-dir "$dir/archive" \
+    --since 2026-08-06T00:00:00Z
+
+  assert_status 0
+  assert_output_contains "universe:       1"
+  assert_output_contains "completeness:    100.0%"
+}
+
 @test "jsonl-cross-check: archive dedup canonicalizes nested object key order for the same seq" {
   tree="$(setup_tree)"
   local dir="$BATS_TEST_TMPDIR/archive-cross-check-nested-seq-dedup"
