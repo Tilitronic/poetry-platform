@@ -389,6 +389,33 @@ JSON
   [ "$(printf '%s' "$output" | grep -c '"session_id":"ses_overlap"')" -eq 1 ]
 }
 
+@test "session-query: same-seq distinct rows within one archive remain countable" {
+  require_node_sqlite
+  local dir="$BATS_TEST_TMPDIR/archive-same-seq-legacy-rows"
+  local archive="$dir/registry-archive"
+  mkdir -p "$archive"
+  : > "$dir/registry.jsonl"
+  : > "$dir/messages.jsonl"
+  cat > "$archive/legacy.jsonl" <<'JSONL'
+{"seq":214,"timestamp":"2026-08-10T10:00:00.000Z","event":"task_success","session_id":"ses_legacy_a","task_id":"task_a","status":"COMPLETE"}
+{"seq":214,"timestamp":"2026-08-10T10:01:00.000Z","event":"task_success","session_id":"ses_legacy_b","task_id":"task_b","status":"COMPLETE"}
+JSONL
+  local checksum
+  checksum="$(sha256sum "$archive/legacy.jsonl" | awk '{print $1}')"
+  local byte_count
+  byte_count="$(wc -c < "$archive/legacy.jsonl")"
+  cat > "$archive/legacy.jsonl.manifest.json" <<JSON
+{"archive":"legacy.jsonl","sha256":"$checksum","byte_count":$byte_count,"row_count":2}
+JSON
+
+  run node "$QUERY" --registry "$dir/registry.jsonl" --messages "$dir/messages.jsonl" \
+    --archive-dir "$archive" --count-by session_id --table registry
+
+  assert_status 0
+  assert_output_contains '{"session_id":"ses_legacy_a","count":1}'
+  assert_output_contains '{"session_id":"ses_legacy_b","count":1}'
+}
+
 @test "session-query: active-only recall returns compact projection overlap" {
   require_node_sqlite
   local dir="$BATS_TEST_TMPDIR/archive-projection-active-only"

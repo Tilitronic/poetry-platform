@@ -376,6 +376,36 @@ JSON
   assert_output_contains "completeness:    100.0%"
 }
 
+@test "jsonl-cross-check: same-seq distinct rows within one archive remain countable" {
+  tree="$(setup_tree)"
+  local dir="$BATS_TEST_TMPDIR/archive-cross-check-same-seq-legacy-rows"
+  mkdir -p "$dir/archive"
+  : > "$dir/registry.jsonl"
+  cat > "$dir/messages.jsonl" <<'JSONL'
+{"row_id":1,"timestamp":"2026-08-06T20:01:02Z","gen_ai.operation.name":"invoke_agent","gen_ai.agent.id":"task_a","event_type":"delegation"}
+{"row_id":2,"timestamp":"2026-08-06T20:02:02Z","gen_ai.operation.name":"invoke_agent","gen_ai.agent.id":"task_b","event_type":"delegation"}
+JSONL
+  cat > "$dir/archive/registry-old.jsonl" <<'JSONL'
+{"seq":214,"timestamp":"2026-08-06T20:01:00Z","event":"task_success","task_id":"task_a","session_id":"ses_legacy_a"}
+{"seq":214,"timestamp":"2026-08-06T20:02:00Z","event":"task_success","task_id":"task_b","session_id":"ses_legacy_b"}
+JSONL
+  local checksum
+  checksum="$(sha256sum "$dir/archive/registry-old.jsonl" | awk '{print $1}')"
+  local byte_count
+  byte_count="$(wc -c < "$dir/archive/registry-old.jsonl")"
+  cat > "$dir/archive/registry-old.jsonl.manifest.json" <<JSON
+{"archive":"registry-old.jsonl","sha256":"$checksum","byte_count":$byte_count,"row_count":2}
+JSON
+
+  run bash "$tree/.opencode/scripts/jsonl-cross-check.sh" \
+    "$dir/registry.jsonl" "$dir/messages.jsonl" --archive-dir "$dir/archive" \
+    --since 2026-08-06T00:00:00Z
+
+  assert_status 0
+  assert_output_contains "universe:       2"
+  assert_output_contains "completeness:    100.0%"
+}
+
 @test "jsonl-cross-check: archive dedup canonicalizes nested object key order for the same seq" {
   tree="$(setup_tree)"
   local dir="$BATS_TEST_TMPDIR/archive-cross-check-nested-seq-dedup"
