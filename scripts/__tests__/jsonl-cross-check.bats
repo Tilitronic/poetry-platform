@@ -465,6 +465,38 @@ JSON
   assert_output_contains "seq"
 }
 
+@test "jsonl-cross-check: conflicting payload across verified archives fails closed" {
+  tree="$(setup_tree)"
+  local dir="$BATS_TEST_TMPDIR/archive-cross-check-two-archive-conflict"
+  mkdir -p "$dir/archive"
+  : > "$dir/registry.jsonl"
+  : > "$dir/messages.jsonl"
+  cat > "$dir/archive/registry-a.jsonl" <<'JSONL'
+{"seq":214,"timestamp":"2026-08-06T20:01:00Z","event":"task_success","task_id":"task_a","session_id":"ses_a"}
+JSONL
+  cat > "$dir/archive/registry-b.jsonl" <<'JSONL'
+{"seq":214,"timestamp":"2026-08-06T20:02:00Z","event":"task_success","task_id":"task_b","session_id":"ses_b"}
+JSONL
+  local archive
+  for archive in "$dir/archive/registry-a.jsonl" "$dir/archive/registry-b.jsonl"; do
+    local checksum
+    checksum="$(sha256sum "$archive" | awk '{print $1}')"
+    local byte_count
+    byte_count="$(wc -c < "$archive")"
+    cat > "$archive.manifest.json" <<JSON
+{"archive":"$(basename "$archive")","sha256":"$checksum","byte_count":$byte_count,"row_count":1}
+JSON
+  done
+
+  run bash "$tree/.opencode/scripts/jsonl-cross-check.sh" \
+    "$dir/registry.jsonl" "$dir/messages.jsonl" --archive-dir "$dir/archive" \
+    --since 2026-08-06T00:00:00Z
+
+  assert_status 2
+  assert_output_contains "conflicting"
+  assert_output_contains "seq 214"
+}
+
 @test "jsonl-cross-check: no-seq legacy duplicate rows are not collapsed by archive dedup" {
   tree="$(setup_tree)"
   local dir="$BATS_TEST_TMPDIR/archive-cross-check-legacy-no-seq"
