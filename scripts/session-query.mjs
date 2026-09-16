@@ -67,6 +67,7 @@
 
 import fs from 'node:fs';
 import { createHash } from 'node:crypto';
+import { dirname, join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 
 const DEFAULT_REGISTRY = '.opencode/session/registry.jsonl';
@@ -209,6 +210,12 @@ function parseArgs(argv) {
   if (opts.table && !VALID_TABLES.has(opts.table)) {
     throw new UsageError(`--table must be one of: ${[...VALID_TABLES].join(', ')}`);
   }
+  // A custom registry belongs to its own session directory.  Keep the
+  // canonical default unchanged, but never accidentally read the repository
+  // archive when a caller points at a disposable registry fixture.
+  if (!opts.archiveDirExplicit && opts.registry !== DEFAULT_REGISTRY) {
+    opts.archiveDir = join(dirname(opts.registry), 'registry-archive');
+  }
   return opts;
 }
 
@@ -229,7 +236,18 @@ function canonicalJson(value) {
   return value;
 }
 
-function importJsonl(db, table, filePath, { seenSeq } = {}) {
+function isCompactProjection(row) {
+  return (
+    row &&
+    typeof row === 'object' &&
+    typeof row._offset === 'number' &&
+    Number.isFinite(row._offset) &&
+    typeof row.lifecycle_generation === 'number' &&
+    Number.isFinite(row.lifecycle_generation)
+  );
+}
+
+function importJsonl(db, table, filePath, { seenSeq, allowProjectionOverlap = false } = {}) {
   db.exec(
     `CREATE TABLE IF NOT EXISTS ${table} (id INTEGER PRIMARY KEY AUTOINCREMENT, data TEXT NOT NULL)`,
   );
@@ -258,11 +276,29 @@ function importJsonl(db, table, filePath, { seenSeq } = {}) {
       const key = String(parsed.seq);
       const canonical = JSON.stringify(canonicalJson(parsed));
       const existing = seenSeq.get(key);
-      if (existing === canonical) continue;
+      if (existing !== undefined && existing.canonical === canonical) continue;
       if (existing !== undefined) {
+        if (allowProjectionOverlap && table === 'registry') {
+          const projection = isCompactProjection(parsed);
+          if (existing.projection && !projection) {
+            db.prepare('DELETE FROM registry WHERE id = ?').run(existing.id);
+            const inserted = insert.run(line);
+            seenSeq.set(key, { canonical, projection: false, id: inserted.lastInsertRowid });
+            imported++;
+            continue;
+          }
+          if (!existing.projection && projection) continue;
+        }
         throw new Error(`conflicting registry archive payload for seq ${key}`);
       }
-      seenSeq.set(key, canonical);
+      const inserted = insert.run(line);
+      seenSeq.set(key, {
+        canonical,
+        projection: table === 'registry' && isCompactProjection(parsed),
+        id: inserted.lastInsertRowid,
+      });
+      imported++;
+      continue;
     }
     insert.run(line);
     imported++;
@@ -363,13 +399,19 @@ function main() {
   const db = new DatabaseSync(':memory:'); // ephemeral: dies with this process
   const w = buildWhere(opts.wheres);
   const registrySeenSeq = new Map();
-  const registryStats = importJsonl(db, 'registry', opts.registry, { seenSeq: registrySeenSeq });
+  const registryStats = importJsonl(db, 'registry', opts.registry, {
+    seenSeq: registrySeenSeq,
+    allowProjectionOverlap: !opts.activeOnly,
+  });
   const archiveFiles = opts.activeOnly
     ? []
     : verifiedRegistryArchives(opts.archiveDir, { required: opts.archiveDirExplicit });
   const archiveStats = archiveFiles.reduce(
     (total, filePath) => {
-      const stats = importJsonl(db, 'registry', filePath, { seenSeq: registrySeenSeq });
+      const stats = importJsonl(db, 'registry', filePath, {
+        seenSeq: registrySeenSeq,
+        allowProjectionOverlap: true,
+      });
       return { imported: total.imported + stats.imported, skipped: total.skipped + stats.skipped };
     },
     { imported: 0, skipped: 0 },

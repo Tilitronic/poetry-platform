@@ -135,6 +135,7 @@ count_malformed() {
 REG_ARG=""
 MSG_ARG=""
 ARCHIVE_DIR=""
+ARCHIVE_DIR_EXPLICIT=0
 while [ $# -gt 0 ]; do
   case "$1" in
     --threshold)
@@ -151,6 +152,7 @@ while [ $# -gt 0 ]; do
       shift
       [ $# -gt 0 ] || fail_usage "--archive-dir requires a value"
       ARCHIVE_DIR="$1"
+      ARCHIVE_DIR_EXPLICIT=1
       ;;
     --help|-h)
       echo "usage: jsonl-cross-check.sh [registry.jsonl] [messages.jsonl] [--archive-dir <dir>] [--threshold <0..1>] [--since <ISO-8601>]"
@@ -178,6 +180,13 @@ done
 [ -z "$REG_ARG" ] || REG_FILE="$REG_ARG"
 [ -z "$MSG_ARG" ] || MSG_FILE="$MSG_ARG"
 
+# A disposable/custom registry owns the archive beside it.  Preserve the
+# canonical default behavior, while avoiding accidental reads from the repo
+# archive when callers pass a fixture registry without --archive-dir.
+if [ "$ARCHIVE_DIR_EXPLICIT" -eq 0 ] && [ -n "$REG_ARG" ]; then
+  ARCHIVE_DIR="$(dirname "$REG_FILE")/registry-archive"
+fi
+
 require_jq
 [ -f "$REG_FILE" ] || fail_input "$REG_FILE not found — run from the repo root (or pass the registry path)"
 [ -f "$MSG_FILE" ] || fail_input "$MSG_FILE not found — run from the repo root (or pass the messages path)"
@@ -186,11 +195,13 @@ require_jq
 # active file wins on exact duplicate lines, so a rotation overlap is counted
 # once. Archives are registry-only; messages.jsonl remains authoritative for
 # delegation rows. Any unverified archive fails closed before the check runs.
-if [ -n "$ARCHIVE_DIR" ]; then
+if [ -n "$ARCHIVE_DIR" ] && { [ "$ARCHIVE_DIR_EXPLICIT" -eq 1 ] || [ -d "$ARCHIVE_DIR" ]; }; then
   [ -d "$ARCHIVE_DIR" ] || fail_input "archive directory $ARCHIVE_DIR not found"
   REG_SOURCE="$(mktemp "${TMPDIR:-/tmp}/tqor-cross-check.XXXXXX")"
   trap 'rm -f "$REG_SOURCE"' EXIT
-  cat "$REG_FILE" > "$REG_SOURCE"
+  # Keep source provenance while deduplicating: an archived full row is the
+  # historical source of truth for an overlapping compact active projection.
+  jq -Rnc --arg source active 'inputs | {line: ., source: $source}' "$REG_FILE" > "$REG_SOURCE"
   for archive in "$ARCHIVE_DIR"/*.jsonl; do
     [ -f "$archive" ] || continue
     manifest="${archive}.manifest.json"
@@ -206,12 +217,14 @@ if [ -n "$ARCHIVE_DIR" ]; then
       [ "$manifest_bytes" != "$actual_bytes" ]; then
       fail_input "archive $archive_name failed verified manifest check"
     fi
-    cat "$archive" >> "$REG_SOURCE"
+    jq -Rnc --arg source archive 'inputs | {line: ., source: $source}' "$archive" >> "$REG_SOURCE"
   done
   # Valid numeric seq is the stable registry identity across active/archive
-  # overlap. Formatting or key order changes still deduplicate; conflicting
-  # payloads for the same seq fail closed. Legacy no-seq rows stay row-distinct.
-  dedup_result="$(jq -Rn '
+  # overlap. Formatting or key order changes still deduplicate; a compact
+  # active projection may overlap its archived full row without conflict. A
+  # genuine same-seq non-projection conflict still fails closed. Legacy no-seq
+  # rows stay row-distinct.
+  dedup_result="$(jq -s '
     def canon:
       if type == "object" then
         to_entries | sort_by(.key) | map(.value |= canon) | from_entries
@@ -220,24 +233,34 @@ if [ -n "$ARCHIVE_DIR" ]; then
       else
         .
       end;
-    reduce inputs as $line ({seen:{}, out:[], error:null};
+    def projection:
+      type == "object" and (._offset | type) == "number" and
+      (.lifecycle_generation | type) == "number";
+    reduce .[] as $entry ({seen:{}, out:[], error:null};
       if .error != null then .
-      elif ($line | length) == 0 then .out += [$line]
+      elif ($entry.line | length) == 0 then .out += [$entry.line]
       else
-        (try ($line | fromjson) catch null) as $row
-        | if $row == null then .out += [$line]
+        (try ($entry.line | fromjson) catch null) as $row
+        | if $row == null then .out += [$entry.line]
           elif (($row.seq | type) == "number") then
             ($row.seq | tostring) as $seq
             | ($row | canon | tojson) as $canon
+            | ($row | projection) as $is_projection
             | if (.seen[$seq] == null) then
-                .seen[$seq] = $canon | .out += [$line]
-              elif .seen[$seq] == $canon then
+                .seen[$seq] = {canon:$canon, projection:$is_projection, index:(.out | length)}
+                | .out += [$entry.line]
+              elif .seen[$seq].canon == $canon then
+                .
+              elif (.seen[$seq].projection and ($is_projection | not)) then
+                .out[.seen[$seq].index] = $entry.line
+                | .seen[$seq] = {canon:$canon, projection:false, index:.seen[$seq].index}
+              elif ((.seen[$seq].projection | not) and $is_projection) then
                 .
               else
                 .error = ("conflicting registry archive payload for seq " + $seq)
               end
           else
-            .out += [$line]
+            .out += [$entry.line]
           end
       end)' "$REG_SOURCE")"
   dedup_error="$(printf '%s' "$dedup_result" | jq -r '.error // empty')"
