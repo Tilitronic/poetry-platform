@@ -217,7 +217,7 @@ if [ -n "$ARCHIVE_DIR" ] && { [ "$ARCHIVE_DIR_EXPLICIT" -eq 1 ] || [ -d "$ARCHIV
       [ "$manifest_bytes" != "$actual_bytes" ]; then
       fail_input "archive $archive_name failed verified manifest check"
     fi
-    jq -Rnc --arg source archive 'inputs | {line: ., source: $source}' "$archive" >> "$REG_SOURCE"
+    jq -Rnc --arg source "$archive" 'inputs | {line: ., source: $source}' "$archive" >> "$REG_SOURCE"
   done
   # Valid numeric seq is the stable registry identity across active/archive
   # overlap. Formatting or key order changes still deduplicate; a compact
