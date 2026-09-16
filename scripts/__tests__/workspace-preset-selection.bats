@@ -10,10 +10,12 @@ REPO_ROOT="$(cd "$(dirname "$BATS_TEST_FILENAME")/../.." && pwd)"
 MAKEFILE="$REPO_ROOT/Makefile"
 
 setup() {
-  mock_docker
-  export XDG_CONFIG_HOME="$BATS_TEST_TMPDIR/config-home"
+  export FAKE_DOCKER_LOG="$BATS_TEST_TMPDIR/docker-$BATS_TEST_NUMBER.log"
+  export XDG_CONFIG_HOME="$BATS_TEST_TMPDIR/config-home-$BATS_TEST_NUMBER"
+  unset OPENCODE_CONFIG_DIR
   export COMPOSE_ENGINE=docker
   export COMPOSE_OS=native
+  mock_docker
 }
 
 run_make() {
@@ -72,4 +74,56 @@ run_make() {
     echo "invalid PRESET must abort before container setup" >&2
     return 1
   fi
+}
+
+@test "stale stored preset fails closed before agent setup" {
+  mkdir -p "$XDG_CONFIG_HOME/opencode"
+  printf '{"version":1,"workspaces":{"%s":"removed"}}\n' "$REPO_ROOT" \
+    > "$XDG_CONFIG_HOME/opencode/workspace-presets.json"
+
+  run_make opencode
+
+  assert_status 2
+  assert_output_contains "removed"
+  assert_output_contains "$REPO_ROOT"
+  assert_output_contains "opencode-go"
+  [ ! -s "$FAKE_DOCKER_LOG" ]
+}
+
+@test "malformed stored data fails closed before agent setup" {
+  mkdir -p "$XDG_CONFIG_HOME/opencode"
+  printf '{malformed\n' > "$XDG_CONFIG_HOME/opencode/workspace-presets.json"
+
+  run_make opencode
+
+  assert_status 2
+  assert_output_contains "invalid store data"
+  assert_output_contains "$REPO_ROOT"
+  assert_output_contains "opencode-go"
+  [ ! -s "$FAKE_DOCKER_LOG" ]
+}
+
+@test "store lock failure does not acknowledge a preset write" {
+  mkdir -p "$XDG_CONFIG_HOME/opencode"
+  : > "$XDG_CONFIG_HOME/opencode/workspace-presets.json.lock"
+
+  run_make preset NAME=opencode-go
+
+  assert_status 2
+  assert_output_contains "lock"
+  assert_output_not_contains "Saved"
+}
+
+@test "project config parse failure fails closed before agent setup" {
+  workspace="$BATS_TEST_TMPDIR/parse-workspace-$BATS_TEST_NUMBER"
+  mkdir -p "$workspace/.opencode"
+  printf '{malformed\n' > "$workspace/.opencode/oh-my-opencode-slim.json"
+
+  run env XDG_CONFIG_HOME="$XDG_CONFIG_HOME" bun run \
+    "$REPO_ROOT/.opencode/oh-my-opencode-slim/src/config/workspace-preset-cli.ts" \
+    resolve "$workspace"
+
+  assert_status 1
+  assert_output_contains "invalid preset configuration"
+  [ ! -s "$FAKE_DOCKER_LOG" ]
 }

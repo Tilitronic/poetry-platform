@@ -51,10 +51,11 @@ shell:
 	$(COMPOSE) exec --user dev dev bash
 
 opencode:
-	@resolution=$$(python3 scripts/workspace-preset-selection.py resolve "$(CURDIR)" "$${PRESET:-}") || exit $$?; \
-	printf '%s\n' "$$resolution"; \
-	preset_value=$$(python3 scripts/workspace-preset-selection.py value "$(CURDIR)" "$${PRESET:-}"); \
-	preset_source=$$(python3 scripts/workspace-preset-selection.py source "$(CURDIR)" "$${PRESET:-}"); \
+	@resolution=$$(bun run .opencode/oh-my-opencode-slim/src/config/workspace-preset-cli.ts resolve "$(CURDIR)" "$${PRESET:-}") || exit $$?; \
+	set -- $$resolution; preset_value="$$1"; preset_source="$$2"; \
+	if [ "$$preset_value" = - ]; then preset_value=''; fi; \
+	source_label="$$preset_source"; if [ "$$preset_source" = override ]; then source_label='PRESET override'; fi; \
+	printf 'Effective preset: %s (source: %s)\n' "$${preset_value:-no preset}" "$$source_label"; \
 	if [ -n "$$preset_value" ]; then \
 		if [ "$$preset_source" = stored ]; then \
 			$(COMPOSE) exec -it --user root -e OPENCODE_WORKSPACE_PRESET="$$preset_value" dev /usr/local/bin/dev-entrypoint.sh opencode; \
@@ -66,7 +67,7 @@ opencode:
 	fi
 
 preset:
-	@python3 scripts/workspace-preset-selection.py save "$(CURDIR)" "$${NAME:-}"
+	@bun run .opencode/oh-my-opencode-slim/src/config/workspace-preset-cli.ts save "$(CURDIR)" "$${NAME:-}"
 
 dev:
 	$(COMPOSE) exec -it --user dev dev pnpm dev

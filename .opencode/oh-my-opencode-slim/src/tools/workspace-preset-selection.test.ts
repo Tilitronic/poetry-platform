@@ -15,6 +15,11 @@ import {
   getActiveRuntimePreset,
   setActiveRuntimePreset,
 } from '../config/runtime-preset';
+import {
+  getWorkspacePresetStorePath,
+  readWorkspacePreset,
+  saveWorkspacePreset,
+} from '../config/workspace-preset';
 import { readTuiSnapshot, recordTuiAgentModels } from '../tui-state';
 import { createPresetManager } from './preset-manager';
 
@@ -139,6 +144,45 @@ describe('workspace-keyed preset selection', () => {
     } finally {
       rename.mockRestore();
     }
+  });
+
+  test('does not acknowledge a selection when verification re-read differs', async () => {
+    const workspace = path.join(tempDir, 'workspace');
+    fs.mkdirSync(workspace);
+    saveWorkspacePreset(workspace, 'cheap');
+    const storePath = getWorkspacePresetStorePath();
+    const originalRead = fs.readFileSync.bind(fs) as (...args: any[]) => any;
+    let storeReads = 0;
+    const read = spyOn(fs, 'readFileSync').mockImplementation(((
+      filePath: any,
+      options?: any,
+    ) => {
+      const value = originalRead(filePath, options);
+      if (String(filePath) === storePath && storeReads++ === 1) {
+        return JSON.stringify({
+          version: 1,
+          workspaces: { [fs.realpathSync(workspace)]: 'cheap' },
+        });
+      }
+      return value;
+    }) as any);
+
+    try {
+      const output = createOutput();
+      await createPresetManager(
+        createContext(workspace),
+        config,
+      ).handleCommandExecuteBefore(
+        { command: 'preset', sessionID: 's1', arguments: 'durable' },
+        output,
+      );
+
+      expect(outputText(output)).toContain('failed');
+      expect(outputText(output)).not.toContain('Saved');
+    } finally {
+      read.mockRestore();
+    }
+    expect(readWorkspacePreset(workspace)).toBe('durable');
   });
 
   test('rejects an unknown slash-command preset without changing session state', async () => {

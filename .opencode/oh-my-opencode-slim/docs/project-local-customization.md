@@ -36,7 +36,7 @@ When oh-my-opencode-slim loads, it resolves configuration properties and prompt 
        ↓ (overridden by)
 [Project Config] (local repository)
        ↓ (overridden by)
-[Environment Preset Override] (via OH_MY_OPENCODE_SLIM_PRESET env var)
+[PRESET Override] (one-run environment override)
        ↓ (merged into agents)
 [Active Preset] (merges preset-specific agent options)
        ↓ (overridden by)

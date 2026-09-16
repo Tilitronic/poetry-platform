@@ -7,6 +7,10 @@ import {
   getActiveRuntimePreset,
   setActiveRuntimePreset,
 } from '../config/runtime-preset';
+import {
+  readWorkspacePreset,
+  saveWorkspacePreset,
+} from '../config/workspace-preset';
 import { readTuiSnapshot, recordTuiAgentModels } from '../tui-state';
 import { createPresetManager } from './preset-manager';
 
@@ -119,7 +123,7 @@ describe('createPresetManager', () => {
       expect(ctx.client.config.update).not.toHaveBeenCalled();
     });
 
-    test('lists presets with active marker when preset is set', async () => {
+    test('lists the stored preset with a stored marker', async () => {
       const ctx = createMockContext();
       const config: PluginConfig = {
         preset: 'cheap',
@@ -128,6 +132,7 @@ describe('createPresetManager', () => {
           powerful: { orchestrator: { model: 'openai/gpt-5.5' } },
         },
       };
+      saveWorkspacePreset(tempDir, 'cheap');
       const manager = createPresetManager(ctx, config);
       const output = createOutput();
 
@@ -137,7 +142,7 @@ describe('createPresetManager', () => {
       );
 
       const text = getOutputText(output);
-      expect(text).toContain('← active');
+      expect(text).toContain('cheap ← stored');
     });
 
     test('shows no-presets message when none configured', async () => {
@@ -155,7 +160,7 @@ describe('createPresetManager', () => {
       expect(text).toContain('No presets configured');
     });
 
-    test('switches preset state without config.update or instance.dispose', async () => {
+    test('saves a preset without changing the current session', async () => {
       const ctx = createMockContext();
       const config: PluginConfig = {
         presets: {
@@ -175,16 +180,14 @@ describe('createPresetManager', () => {
 
       const text = getOutputText(output);
       expect(text).toContain('Saved preset "cheap"');
-      expect(text).toContain('boss');
-      expect(text).toContain('anthropic/claude-3.5-haiku');
-      expect(text).toContain('code-navigator');
-      expect(text).toContain('Restart or reload OpenCode');
-      expect(getActiveRuntimePreset()).toBe('cheap');
+      expect(text).toContain('next launch only');
+      expect(readWorkspacePreset(tempDir)).toBe('cheap');
+      expect(getActiveRuntimePreset()).toBeNull();
       expect(ctx.client.config.update).not.toHaveBeenCalled();
       expect(ctx.client.instance.dispose).not.toHaveBeenCalled();
     });
 
-    test('updates the TUI snapshot after a successful preset switch', async () => {
+    test('does not update the TUI snapshot after saving a preset', async () => {
       recordTuiAgentModels({
         agentModels: {
           'code-navigator': 'openai/gpt-5.4-mini',
@@ -210,13 +213,12 @@ describe('createPresetManager', () => {
       );
 
       expect(readTuiSnapshot().agentModels).toEqual({
-        'code-navigator': 'openai/gpt-5.5',
+        'code-navigator': 'openai/gpt-5.4-mini',
         coder: 'openai/gpt-5.4-mini',
-        boss: 'anthropic/claude-3.5-haiku',
       });
     });
 
-    test('persists preset changes from JSONC user config', async () => {
+    test('keeps JSONC config unchanged while persisting the workspace selection', async () => {
       const configDir = path.join(tempDir, 'opencode-config');
       fs.mkdirSync(configDir, { recursive: true });
       process.env.OPENCODE_CONFIG_DIR = configDir;
@@ -249,19 +251,13 @@ describe('createPresetManager', () => {
         output,
       );
 
-      const persisted = JSON.parse(fs.readFileSync(configPath, 'utf-8')) as {
-        preset?: string;
-        agents?: Record<string, unknown>;
-      };
-      expect(persisted.preset).toBe('cheap');
-      expect(persisted.agents).toEqual({
-        orchestrator: { model: 'old-model' },
-      });
+      expect(fs.readFileSync(configPath, 'utf-8')).toContain('"preset": "old"');
+      expect(readWorkspacePreset(tempDir)).toBe('cheap');
       expect(ctx.client.config.update).not.toHaveBeenCalled();
       expect(ctx.client.instance.dispose).not.toHaveBeenCalled();
     });
 
-    test('shows temperature in preset summary without runtime config update', async () => {
+    test('saves a preset with temperature without runtime config update', async () => {
       const ctx = createMockContext();
       const config: PluginConfig = {
         presets: {
@@ -279,14 +275,13 @@ describe('createPresetManager', () => {
       );
 
       const text = getOutputText(output);
-      expect(text).toContain('boss');
-      expect(text).toContain('model: openai/o3');
-      expect(text).toContain('temp: 0.1');
+      expect(text).toContain('next launch only');
+      expect(readWorkspacePreset(tempDir)).toBe('precise');
       expect(ctx.client.config.update).not.toHaveBeenCalled();
       expect(ctx.client.instance.dispose).not.toHaveBeenCalled();
     });
 
-    test('shows variant in preset summary without runtime config update', async () => {
+    test('saves a preset with a variant without runtime config update', async () => {
       const ctx = createMockContext();
       const config: PluginConfig = {
         presets: {
@@ -307,9 +302,8 @@ describe('createPresetManager', () => {
       );
 
       const text = getOutputText(output);
-      expect(text).toContain('architector');
-      expect(text).toContain('model: anthropic/claude-sonnet-4-6');
-      expect(text).toContain('variant: thinking');
+      expect(text).toContain('next launch only');
+      expect(readWorkspacePreset(tempDir)).toBe('thinker');
       expect(ctx.client.config.update).not.toHaveBeenCalled();
       expect(ctx.client.instance.dispose).not.toHaveBeenCalled();
     });
@@ -403,7 +397,7 @@ describe('createPresetManager', () => {
       expect(ctx.client.config.update).not.toHaveBeenCalled();
     });
 
-    test('shows options in preset summary without runtime config update', async () => {
+    test('saves a preset with options without runtime config update', async () => {
       const ctx = createMockContext();
       const config: PluginConfig = {
         presets: {
@@ -426,8 +420,8 @@ describe('createPresetManager', () => {
       );
 
       const text = getOutputText(output);
-      expect(text).toContain('architector');
-      expect(text).toContain('options: yes');
+      expect(text).toContain('next launch only');
+      expect(readWorkspacePreset(tempDir)).toBe('thinker');
       expect(ctx.client.config.update).not.toHaveBeenCalled();
       expect(ctx.client.instance.dispose).not.toHaveBeenCalled();
     });
@@ -494,7 +488,7 @@ describe('createPresetManager', () => {
       expect(ctx.client.config.update).not.toHaveBeenCalled();
     });
 
-    test('skips agents with empty overrides in mixed preset', async () => {
+    test('saves a mixed preset without changing current-session agents', async () => {
       const ctx = createMockContext();
       const config: PluginConfig = {
         presets: {
@@ -515,8 +509,8 @@ describe('createPresetManager', () => {
 
       const text = getOutputText(output);
       expect(text).toContain('Saved preset "mixed"');
-      expect(text).toContain('boss');
-      expect(text).toContain('architector');
+      expect(text).toContain('next launch only');
+      expect(readWorkspacePreset(tempDir)).toBe('mixed');
       expect(ctx.client.config.update).not.toHaveBeenCalled();
       expect(ctx.client.instance.dispose).not.toHaveBeenCalled();
     });
@@ -542,8 +536,8 @@ describe('createPresetManager', () => {
 
       const text = getOutputText(output);
       expect(text).toContain('Saved preset "fallback"');
-      expect(text).toContain('boss');
-      expect(text).toContain('anthropic/claude-3.5-haiku');
+      expect(text).toContain('next launch only');
+      expect(readWorkspacePreset(tempDir)).toBe('fallback');
       expect(ctx.client.config.update).not.toHaveBeenCalled();
       expect(ctx.client.instance.dispose).not.toHaveBeenCalled();
     });
@@ -572,13 +566,13 @@ describe('createPresetManager', () => {
 
       const text = getOutputText(output);
       expect(text).toContain('Saved preset "thinker"');
-      expect(text).toContain('architector');
-      expect(text).toContain('variant: thinking');
+      expect(text).toContain('next launch only');
+      expect(readWorkspacePreset(tempDir)).toBe('thinker');
       expect(ctx.client.config.update).not.toHaveBeenCalled();
       expect(ctx.client.instance.dispose).not.toHaveBeenCalled();
     });
 
-    test('shows variant and options in switch summary', async () => {
+    test('saves a preset with variant and options', async () => {
       const ctx = createMockContext();
       const config: PluginConfig = {
         presets: {
@@ -600,8 +594,8 @@ describe('createPresetManager', () => {
       );
 
       const text = getOutputText(output);
-      expect(text).toContain('variant: thinking');
-      expect(text).toContain('options: yes');
+      expect(text).toContain('next launch only');
+      expect(readWorkspacePreset(tempDir)).toBe('thinker');
     });
 
     test('tracks active preset after switch', async () => {
@@ -628,7 +622,7 @@ describe('createPresetManager', () => {
         { command: 'preset', sessionID: 's1', arguments: '' },
         output2,
       );
-      expect(getOutputText(output2)).toContain('cheap ← active');
+      expect(getOutputText(output2)).toContain('cheap ← stored');
 
       // Switch to powerful
       const output3 = createOutput();
@@ -644,7 +638,7 @@ describe('createPresetManager', () => {
         { command: 'preset', sessionID: 's1', arguments: '' },
         output4,
       );
-      expect(getOutputText(output4)).toContain('powerful ← active');
+      expect(getOutputText(output4)).toContain('powerful ← stored');
 
       // Cleanup module state
       setActiveRuntimePreset(null);
@@ -685,7 +679,7 @@ describe('createPresetManager', () => {
   });
 
   describe('preset switching stale state', () => {
-    test('switching presets updates active preset without runtime config update', async () => {
+    test('saving successive presets leaves runtime state unchanged', async () => {
       const ctx = createMockContext();
       const config: PluginConfig = {
         presets: {
@@ -719,7 +713,8 @@ describe('createPresetManager', () => {
       );
 
       expect(getOutputText(output2)).toContain('Saved preset "powerful"');
-      expect(getActiveRuntimePreset()).toBe('powerful');
+      expect(getActiveRuntimePreset()).toBeNull();
+      expect(readWorkspacePreset(tempDir)).toBe('powerful');
       expect(ctx.client.config.update).not.toHaveBeenCalled();
       expect(ctx.client.instance.dispose).not.toHaveBeenCalled();
     });
@@ -759,7 +754,7 @@ describe('createPresetManager', () => {
       expect(ctx.client.instance.dispose).not.toHaveBeenCalled();
     });
 
-    test('preset state persists across successive switches without runtime update', async () => {
+    test('preset selection persists across successive saves without runtime update', async () => {
       const ctx = createMockContext();
       const config: PluginConfig = {
         presets: {
@@ -779,7 +774,8 @@ describe('createPresetManager', () => {
         { command: 'preset', sessionID: 's1', arguments: 'cheap' },
         output1,
       );
-      expect(getActiveRuntimePreset()).toBe('cheap');
+      expect(getActiveRuntimePreset()).toBeNull();
+      expect(readWorkspacePreset(tempDir)).toBe('cheap');
 
       // Try to switch to expensive
       const output2 = createOutput();
@@ -788,16 +784,14 @@ describe('createPresetManager', () => {
         output2,
       );
 
-      expect(getActiveRuntimePreset()).toBe('expensive');
+      expect(getActiveRuntimePreset()).toBeNull();
+      expect(readWorkspacePreset(tempDir)).toBe('expensive');
       expect(getOutputText(output2)).toContain('Saved preset "expensive"');
       expect(ctx.client.config.update).not.toHaveBeenCalled();
       expect(ctx.client.instance.dispose).not.toHaveBeenCalled();
     });
 
-    test('activePreset syncs from runtime-preset state on factory creation', async () => {
-      // Set runtime preset before creating manager
-      setActiveRuntimePreset('cheap');
-
+    test('stored selection is shown when manager is created', async () => {
       const ctx = createMockContext();
       const config: PluginConfig = {
         presets: {
@@ -810,10 +804,10 @@ describe('createPresetManager', () => {
         },
       };
 
-      // Create manager - should sync from module-level state
+      saveWorkspacePreset(tempDir, 'cheap');
       const manager = createPresetManager(ctx, config);
 
-      // List presets should show cheap as active
+      // Listing reads persisted state so a new manager sees the next launch choice.
       const output = createOutput();
       await manager.handleCommandExecuteBefore(
         { command: 'preset', sessionID: 's1', arguments: '' },
@@ -821,7 +815,7 @@ describe('createPresetManager', () => {
       );
 
       const text = getOutputText(output);
-      expect(text).toContain('cheap ← active');
+      expect(text).toContain('cheap ← stored');
       expect(text).toContain('powerful');
 
       // Cleanup

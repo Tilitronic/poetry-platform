@@ -37,7 +37,7 @@ The config system follows a layered architecture:
 1. Discovery Phase
    ├─ User config: $OPENCODE_CONFIG_DIR/oh-my-opencode-slim.{jsonc,json}
    ├─ Project config: <directory>/.opencode/oh-my-opencode-slim.{jsonc,json}
-   └─ Environment variable: OH_MY_OPENCODE_SLIM_PRESET (overrides preset field)
+   └─ Workspace store selection, with PRESET as a one-run override
 
 2. Parsing Phase
    ├─ JSONC support (comments, trailing commas) via stripJsonComments
@@ -190,7 +190,7 @@ This allows consumers to import directly from `src/config` rather than individua
 ## Environment Variable Support
 
 - `{env:VAR_NAME}`: Interpolated in config files during parsing
-- `OH_MY_OPENCODE_SLIM_PRESET`: Overrides config.preset at runtime
+- `PRESET`: One-run exact preset override; persistent selection stays in the workspace store
 
 ## Backward Compatibility
 

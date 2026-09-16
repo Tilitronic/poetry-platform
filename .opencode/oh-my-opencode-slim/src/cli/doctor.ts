@@ -116,7 +116,7 @@ function checkConfigFile(
     } else if (
       err instanceof Error &&
       'code' in err &&
-      (err as NodeJS.ErrnoException).code === 'ENOENT'
+      (err as { code?: string }).code === 'ENOENT'
     ) {
       return {
         scope,
@@ -146,7 +146,7 @@ function checkConfigFile(
 function checkPreset(
   mergedConfig: PluginConfig,
 ): PresetCheckResult | undefined {
-  const envPreset = process.env.OH_MY_OPENCODE_SLIM_PRESET;
+  const envPreset = process.env.PRESET;
   const presetName = envPreset || mergedConfig.preset;
 
   if (presetName === undefined) {

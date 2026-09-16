@@ -131,7 +131,7 @@ export function saveWorkspacePreset(
 export function resolveWorkspacePreset(
   directory: string,
   presets: Record<string, Preset> | undefined,
-  override = process.env.PRESET ?? process.env.OH_MY_OPENCODE_SLIM_PRESET,
+  override = process.env.PRESET,
 ): WorkspacePresetResolution {
   const workspace = canonicalWorkspace(directory);
   const available = presets ?? {};
@@ -159,7 +159,15 @@ export function resolveWorkspacePreset(
     return { name: bridged, source: 'stored', workspace };
   }
 
-  const stored = readWorkspacePreset(directory);
+  let stored: string | null;
+  try {
+    stored = readWorkspacePreset(directory);
+  } catch (error) {
+    throw new Error(
+      `Stored preset value "invalid store data" is invalid for workspace ${workspace}. Available presets: ${Object.keys(available).join(', ') || 'none'}`,
+      { cause: error },
+    );
+  }
   if (stored !== null) {
     if (!Object.hasOwn(available, stored)) {
       throw new Error(

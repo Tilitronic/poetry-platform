@@ -4,6 +4,7 @@ import * as os from 'node:os';
 import * as path from 'node:path';
 import type { ConfigLoadWarning } from './loader';
 import { loadAgentPrompt, loadPluginConfig } from './loader';
+import { saveWorkspacePreset } from './workspace-preset';
 
 // Test deepMerge indirectly through loadPluginConfig behavior
 // since deepMerge is not exported
@@ -273,8 +274,9 @@ describe('onWarning callback', () => {
     ) => {
       const [filePath] = args;
       if (filePath === configPath) {
-        const error = new Error('Permission denied') as NodeJS.ErrnoException;
-        error.code = 'EACCES';
+        const error = Object.assign(new Error('Permission denied'), {
+          code: 'EACCES',
+        });
         throw error;
       }
 
@@ -297,7 +299,7 @@ describe('onWarning callback', () => {
     }
   });
 
-  test('missing preset calls onWarning with missing-preset', () => {
+  test('legacy config preset is ignored without a workspace selection', () => {
     const projectDir = path.join(tempDir, 'project');
     const projectConfigDir = path.join(projectDir, '.opencode');
     fs.mkdirSync(projectConfigDir, { recursive: true });
@@ -310,18 +312,12 @@ describe('onWarning callback', () => {
       }),
     );
 
-    const warnings: ConfigLoadWarning[] = [];
-    const config = loadPluginConfig(projectDir, {
-      onWarning: (warning) => warnings.push(warning),
-    });
-
-    expect(warnings).toHaveLength(1);
-    expect(warnings[0]?.kind).toBe('missing-preset');
-    expect(warnings[0]?.message).toContain('Preset "nonexistent" not found');
+    const config = loadPluginConfig(projectDir);
+    expect(config.preset).toBeUndefined();
     expect(config.agents?.architector?.model).toBe('root');
   });
 
-  test('silent: true on missing preset still calls onWarning but not console.warn', () => {
+  test('silent loading keeps valid root agents when legacy preset is unknown', () => {
     const projectDir = path.join(tempDir, 'project');
     const projectConfigDir = path.join(projectDir, '.opencode');
     fs.mkdirSync(projectConfigDir, { recursive: true });
@@ -336,14 +332,11 @@ describe('onWarning callback', () => {
 
     const warnSpy = spyOn(console, 'warn').mockImplementation(() => {});
     try {
-      const warnings: ConfigLoadWarning[] = [];
       const config = loadPluginConfig(projectDir, {
         silent: true,
-        onWarning: (warning) => warnings.push(warning),
       });
 
-      expect(warnings).toHaveLength(1);
-      expect(warnings[0]?.kind).toBe('missing-preset');
+      expect(config.preset).toBeUndefined();
       expect(config.agents?.architector?.model).toBe('root');
       expect(warnSpy).not.toHaveBeenCalled();
     } finally {
@@ -635,7 +628,7 @@ describe('preset resolution', () => {
     expect(config.preset).toBeUndefined();
   });
 
-  test("preset applied: preset + presets returns preset's agents", () => {
+  test('stored workspace selection applies the named preset', () => {
     const projectDir = path.join(tempDir, 'project');
     const projectConfigDir = path.join(projectDir, '.opencode');
     fs.mkdirSync(projectConfigDir, { recursive: true });
@@ -649,11 +642,12 @@ describe('preset resolution', () => {
       }),
     );
 
+    saveWorkspacePreset(projectDir, 'fast');
     const config = loadPluginConfig(projectDir);
     expect(config.agents?.architector?.model).toBe('fast-model');
   });
 
-  test('root agents override preset agents', () => {
+  test('root agents override a stored preset', () => {
     const projectDir = path.join(tempDir, 'project');
     const projectConfigDir = path.join(projectDir, '.opencode');
     fs.mkdirSync(projectConfigDir, { recursive: true });
@@ -673,13 +667,14 @@ describe('preset resolution', () => {
       }),
     );
 
+    saveWorkspacePreset(projectDir, 'fast');
     const config = loadPluginConfig(projectDir);
     expect(config.agents?.architector?.model).toBe('fast-model');
     expect(config.agents?.architector?.temperature).toBe(0.9);
     expect(config.agents?.['code-navigator']?.model).toBe('explorer-model');
   });
 
-  test('missing preset: preset set but not in presets -> returns empty/root agents', () => {
+  test('unknown legacy config preset does not replace root agents', () => {
     const projectDir = path.join(tempDir, 'project');
     const projectConfigDir = path.join(projectDir, '.opencode');
     fs.mkdirSync(projectConfigDir, { recursive: true });
@@ -695,10 +690,11 @@ describe('preset resolution', () => {
     );
 
     const config = loadPluginConfig(projectDir);
+    expect(config.preset).toBeUndefined();
     expect(config.agents?.architector?.model).toBe('root');
   });
 
-  test('preset only: no root agents, just preset works', () => {
+  test('stored preset can provide agents when root agents are absent', () => {
     const projectDir = path.join(tempDir, 'project');
     const projectConfigDir = path.join(projectDir, '.opencode');
     fs.mkdirSync(projectConfigDir, { recursive: true });
@@ -712,6 +708,7 @@ describe('preset resolution', () => {
       }),
     );
 
+    saveWorkspacePreset(projectDir, 'dev');
     const config = loadPluginConfig(projectDir);
     expect(config.agents?.architector?.model).toBe('dev-model');
   });
@@ -736,7 +733,7 @@ describe('preset resolution', () => {
     expect(loadPluginConfig(projectDir)).toEqual({});
   });
 
-  test('nonexistent preset from config warns and falls back to root agents', () => {
+  test('unknown legacy config preset does not warn', () => {
     const projectDir = path.join(tempDir, 'project');
     const projectConfigDir = path.join(projectDir, '.opencode');
     fs.mkdirSync(projectConfigDir, { recursive: true });
@@ -754,13 +751,12 @@ describe('preset resolution', () => {
     const consoleWarnSpy = spyOn(console, 'warn');
     const config = loadPluginConfig(projectDir);
     expect(config.agents?.architector?.model).toBe('root');
-    expect(consoleWarnSpy).toHaveBeenCalled();
-    const warningMessage = consoleWarnSpy.mock.calls[0][0] as string;
-    expect(warningMessage).toContain('Preset "nonexistent" not found');
-    expect(warningMessage).toContain('Available presets: other');
+    expect(config.preset).toBeUndefined();
+    expect(consoleWarnSpy).not.toHaveBeenCalled();
+    consoleWarnSpy.mockRestore();
   });
 
-  test('nonexistent preset with no root agents returns empty agents', () => {
+  test('unknown legacy config preset leaves agents empty without warning', () => {
     const projectDir = path.join(tempDir, 'project');
     const projectConfigDir = path.join(projectDir, '.opencode');
     fs.mkdirSync(projectConfigDir, { recursive: true });
@@ -777,12 +773,12 @@ describe('preset resolution', () => {
     const consoleWarnSpy = spyOn(console, 'warn');
     const config = loadPluginConfig(projectDir);
     expect(config.agents).toBeUndefined();
-    expect(consoleWarnSpy).toHaveBeenCalled();
-    const warningMessage = consoleWarnSpy.mock.calls[0][0] as string;
-    expect(warningMessage).toContain('Preset "nonexistent" not found');
+    expect(config.preset).toBeUndefined();
+    expect(consoleWarnSpy).not.toHaveBeenCalled();
+    consoleWarnSpy.mockRestore();
   });
 
-  test('options from preset are deep-merged with root agents', () => {
+  test('stored preset options are deep-merged with root agents', () => {
     const projectDir = path.join(tempDir, 'project');
     const projectConfigDir = path.join(projectDir, '.opencode');
     fs.mkdirSync(projectConfigDir, { recursive: true });
@@ -806,6 +802,7 @@ describe('preset resolution', () => {
       }),
     );
 
+    saveWorkspacePreset(projectDir, 'openai');
     const config = loadPluginConfig(projectDir);
     expect(config.agents?.architector?.model).toBe('openai/gpt-5.5');
     // deepMerge should combine both option keys
@@ -815,7 +812,7 @@ describe('preset resolution', () => {
     });
   });
 
-  test('options from preset only work without root agents', () => {
+  test('stored preset options work without root agents', () => {
     const projectDir = path.join(tempDir, 'project');
     const projectConfigDir = path.join(projectDir, '.opencode');
     fs.mkdirSync(projectConfigDir, { recursive: true });
@@ -836,6 +833,7 @@ describe('preset resolution', () => {
       }),
     );
 
+    saveWorkspacePreset(projectDir, 'anthropic-thinking');
     const config = loadPluginConfig(projectDir);
     expect(config.agents?.architector?.model).toBe(
       'anthropic/claude-sonnet-4-6',
@@ -845,7 +843,7 @@ describe('preset resolution', () => {
     });
   });
 
-  test('root options override preset options for same key', () => {
+  test('root options override stored preset options for same key', () => {
     const projectDir = path.join(tempDir, 'project');
     const projectConfigDir = path.join(projectDir, '.opencode');
     fs.mkdirSync(projectConfigDir, { recursive: true });
@@ -869,6 +867,7 @@ describe('preset resolution', () => {
       }),
     );
 
+    saveWorkspacePreset(projectDir, 'concise');
     const config = loadPluginConfig(projectDir);
     expect(config.agents?.architector?.model).toBe('openai/gpt-5.5');
     // root wins over preset for same key
@@ -886,6 +885,8 @@ describe('environment variable preset override', () => {
     tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'env-preset-test-'));
     originalEnv = { ...process.env };
     delete process.env.OPENCODE_CONFIG_DIR;
+    delete process.env.PRESET;
+    delete process.env.OH_MY_OPENCODE_SLIM_PRESET;
     process.env.XDG_CONFIG_HOME = path.join(tempDir, 'user-config');
   });
 
@@ -909,7 +910,7 @@ describe('environment variable preset override', () => {
       }),
     );
 
-    process.env.OH_MY_OPENCODE_SLIM_PRESET = 'env-preset';
+    process.env.PRESET = 'env-preset';
     const config = loadPluginConfig(projectDir);
     expect(config.preset).toBe('env-preset');
     expect(config.agents?.architector?.model).toBe('env-model');
@@ -928,13 +929,13 @@ describe('environment variable preset override', () => {
       }),
     );
 
-    process.env.OH_MY_OPENCODE_SLIM_PRESET = 'env-preset';
+    process.env.PRESET = 'env-preset';
     const config = loadPluginConfig(projectDir);
     expect(config.preset).toBe('env-preset');
     expect(config.agents?.architector?.model).toBe('env-model');
   });
 
-  test('Env var is ignored if empty string', () => {
+  test('PRESET is ignored if empty string', () => {
     const projectDir = path.join(tempDir, 'project');
     const projectConfigDir = path.join(projectDir, '.opencode');
     fs.mkdirSync(projectConfigDir, { recursive: true });
@@ -948,13 +949,13 @@ describe('environment variable preset override', () => {
       }),
     );
 
-    process.env.OH_MY_OPENCODE_SLIM_PRESET = '';
+    process.env.PRESET = '';
     const config = loadPluginConfig(projectDir);
-    expect(config.preset).toBe('config-preset');
-    expect(config.agents?.architector?.model).toBe('config-model');
+    expect(config.preset).toBeUndefined();
+    expect(config.agents).toBeUndefined();
   });
 
-  test('Env var is ignored if undefined', () => {
+  test('PRESET is ignored if undefined', () => {
     const projectDir = path.join(tempDir, 'project');
     const projectConfigDir = path.join(projectDir, '.opencode');
     fs.mkdirSync(projectConfigDir, { recursive: true });
@@ -968,13 +969,13 @@ describe('environment variable preset override', () => {
       }),
     );
 
-    delete process.env.OH_MY_OPENCODE_SLIM_PRESET;
+    delete process.env.PRESET;
     const config = loadPluginConfig(projectDir);
-    expect(config.preset).toBe('config-preset');
-    expect(config.agents?.architector?.model).toBe('config-model');
+    expect(config.preset).toBeUndefined();
+    expect(config.agents).toBeUndefined();
   });
 
-  test('Env var with nonexistent preset warns and falls back', () => {
+  test('unknown PRESET fails closed', () => {
     const projectDir = path.join(tempDir, 'project');
     const projectConfigDir = path.join(projectDir, '.opencode');
     fs.mkdirSync(projectConfigDir, { recursive: true });
@@ -989,18 +990,10 @@ describe('environment variable preset override', () => {
       }),
     );
 
-    process.env.OH_MY_OPENCODE_SLIM_PRESET = 'typo-preset';
-    const consoleWarnSpy = spyOn(console, 'warn');
-    const config = loadPluginConfig(projectDir);
-    expect(config.preset).toBe('typo-preset');
-    expect(config.agents?.architector?.model).toBe('fallback');
-    expect(consoleWarnSpy).toHaveBeenCalled();
-    const calls = consoleWarnSpy.mock.calls as string[][];
-    const warningMessage =
-      calls.find((call) => call[0]?.includes('typo-preset'))?.[0] || '';
-    expect(warningMessage).toContain('Preset "typo-preset" not found');
-    expect(warningMessage).toContain('environment variable');
-    expect(warningMessage).toContain('config-preset');
+    process.env.PRESET = 'typo-preset';
+    expect(() => loadPluginConfig(projectDir)).toThrow(
+      'Preset "typo-preset" not found',
+    );
   });
 });
 
@@ -1182,6 +1175,7 @@ describe('JSONC config support', () => {
       }`,
     );
 
+    process.env.PRESET = 'dev';
     const config = loadPluginConfig(projectDir);
     expect(config.preset).toBe('dev');
     expect(config.agents?.architector?.model).toBe('dev-oracle');

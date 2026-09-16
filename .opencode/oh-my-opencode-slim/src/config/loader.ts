@@ -52,7 +52,7 @@ const PROMPTS_DIR_NAME = 'oh-my-opencode-slim';
  * @param onWarning - Optional callback for warnings
  * @returns Validated config object, or null if loading failed
  */
-function loadConfigFromPath(
+export function loadConfigFromPath(
   configPath: string,
   options?: LoadPluginConfigOptions,
 ): PluginConfig | null {
