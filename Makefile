@@ -26,7 +26,7 @@
 #   make session-analytics  canned analytics over native OpenCode telemetry (opencode stats/db; ARGS pass-through)
 #   make test-harness  C5 scenario replay (bats) + bun plugin tests (requires Docker)
 
-.PHONY: build up shell opencode dev stack install db-psql logs down clean check-pin-sync check-tools check-host-jq check-host-lsp gen-jsconfig test-shell test-opencode-docker test-python test-infra test-config test-omo test-interview test-skills eval-lite audit-python context7-docs jsonl-stats session-log-render jsonl-cross-check session-query session-analytics test-harness worktree-gc
+.PHONY: build up shell opencode preset dev stack install db-psql logs down clean check-pin-sync check-tools check-host-jq check-host-lsp gen-jsconfig test-shell test-opencode-docker test-python test-infra test-config test-omo test-interview test-skills eval-lite audit-python context7-docs jsonl-stats session-log-render jsonl-cross-check session-query session-analytics test-harness worktree-gc
 
 # Engine-aware compose stack (DIA-260826-766f + DIA-260912-y2uo): every bare
 # `docker compose` target below routes through scripts/container-engine.sh,
@@ -51,7 +51,22 @@ shell:
 	$(COMPOSE) exec --user dev dev bash
 
 opencode:
-	$(COMPOSE) exec -it --user root dev /usr/local/bin/dev-entrypoint.sh opencode
+	@resolution=$$(python3 scripts/workspace-preset-selection.py resolve "$(CURDIR)" "$${PRESET:-}") || exit $$?; \
+	printf '%s\n' "$$resolution"; \
+	preset_value=$$(python3 scripts/workspace-preset-selection.py value "$(CURDIR)" "$${PRESET:-}"); \
+	preset_source=$$(python3 scripts/workspace-preset-selection.py source "$(CURDIR)" "$${PRESET:-}"); \
+	if [ -n "$$preset_value" ]; then \
+		if [ "$$preset_source" = stored ]; then \
+			$(COMPOSE) exec -it --user root -e OPENCODE_WORKSPACE_PRESET="$$preset_value" dev /usr/local/bin/dev-entrypoint.sh opencode; \
+		else \
+			$(COMPOSE) exec -it --user root -e PRESET="$$preset_value" dev /usr/local/bin/dev-entrypoint.sh opencode; \
+		fi; \
+	else \
+		$(COMPOSE) exec -it --user root dev /usr/local/bin/dev-entrypoint.sh opencode; \
+	fi
+
+preset:
+	@python3 scripts/workspace-preset-selection.py save "$(CURDIR)" "$${NAME:-}"
 
 dev:
 	$(COMPOSE) exec -it --user dev dev pnpm dev

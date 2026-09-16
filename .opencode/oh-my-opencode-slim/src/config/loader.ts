@@ -3,6 +3,7 @@ import * as path from 'node:path';
 import { stripJsonComments } from '../cli/config-io';
 import { getConfigSearchDirs } from '../cli/paths';
 import { type PluginConfig, PluginConfigSchema } from './schema';
+import { resolveWorkspacePreset } from './workspace-preset';
 
 /**
  * Warning kinds produced during config loading.
@@ -104,7 +105,7 @@ function loadConfigFromPath(
     if (
       error instanceof Error &&
       'code' in error &&
-      (error as NodeJS.ErrnoException).code !== 'ENOENT'
+      (error as { code?: string }).code !== 'ENOENT'
     ) {
       options?.onWarning?.({
         path: configPath,
@@ -288,36 +289,19 @@ export function loadPluginConfig(
   // Migrate legacy tmux config to multiplexer config for backward compatibility
   config = migrateTmuxToMultiplexer(config);
 
-  // Override preset from environment variable if set
-  const envPreset = process.env.OH_MY_OPENCODE_SLIM_PRESET;
-  if (envPreset) {
-    config.preset = envPreset;
+  // The workspace store is the only persistent selector. The legacy config
+  // `preset` field remains part of the registry format but is not used as a
+  // hidden fallback: an absent selection must mean no preset.
+  const resolution = resolveWorkspacePreset(directory, config.presets);
+  if (resolution.name) {
+    config.preset = resolution.name;
+    config.agents = deepMerge(config.presets?.[resolution.name], config.agents);
+  } else {
+    delete config.preset;
   }
-
-  // Resolve preset and merge with root agents
-  if (config.preset) {
-    const preset = config.presets?.[config.preset];
-    if (preset) {
-      // Merge preset agents with root agents (root overrides)
-      config.agents = deepMerge(preset, config.agents);
-    } else {
-      // Preset name specified but doesn't exist - warn user
-      const presetSource =
-        envPreset === config.preset ? 'environment variable' : 'config file';
-      const availablePresets = config.presets
-        ? Object.keys(config.presets).join(', ')
-        : 'none';
-      const message = `Preset "${config.preset}" not found (from ${presetSource}). Available presets: ${availablePresets}`;
-      options?.onWarning?.({
-        path: projectConfigPath ?? userConfigPath ?? '',
-        kind: 'missing-preset',
-        message,
-      });
-      if (!options?.silent) {
-        console.warn(`[oh-my-opencode-slim] ${message}`);
-      }
-    }
-  }
+  console.log(
+    `[oh-my-opencode-slim] Effective preset: ${resolution.name ?? 'no preset'} (source: ${resolution.source === 'override' ? 'PRESET override' : resolution.source})`,
+  );
 
   // Normalize companion config defaults
   if (config.companion) {
