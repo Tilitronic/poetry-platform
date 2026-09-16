@@ -236,33 +236,53 @@ if [ -n "$ARCHIVE_DIR" ] && { [ "$ARCHIVE_DIR_EXPLICIT" -eq 1 ] || [ -d "$ARCHIV
     def projection:
       type == "object" and (._offset | type) == "number" and
       (.lifecycle_generation | type) == "number";
-    reduce .[] as $entry ({seen:{}, out:[], error:null};
+    def append($line): .out[.next | tostring] = $line | .next += 1;
+    reduce .[] as $entry ({seen:{}, out:{}, next:0, error:null};
       if .error != null then .
-      elif ($entry.line | length) == 0 then .out += [$entry.line]
+      elif ($entry.line | length) == 0 then append($entry.line)
       else
         (try ($entry.line | fromjson) catch null) as $row
-        | if $row == null then .out += [$entry.line]
+        | if $row == null then append($entry.line)
           elif (($row.seq | type) == "number") then
             ($row.seq | tostring) as $seq
-            | ($row | canon | tojson) as $canon
             | ($row | projection) as $is_projection
-            | if (.seen[$seq] == null) then
-                .seen[$seq] = {canon:$canon, projection:$is_projection, index:(.out | length)}
-                | .out += [$entry.line]
-              elif .seen[$seq].canon == $canon then
+            | (.seen[$seq] // []) as $existing
+            | if any($existing[]; .source == $entry.source and .raw == $entry.line) then
                 .
-              elif (.seen[$seq].projection and ($is_projection | not)) then
-                .out[.seen[$seq].index] = $entry.line
-                | .seen[$seq] = {canon:$canon, projection:false, index:.seen[$seq].index}
-              elif ((.seen[$seq].projection | not) and $is_projection) then
+              elif any($existing[]; .source == $entry.source) then
+                ($row | canon | tojson) as $canon
+                | if any($existing[]; .source == $entry.source and
+                    (.canon == $canon or ((try (.raw | fromjson | canon | tojson) catch null) == $canon))) then
+                    .
+                  else
+                    .seen[$seq] += [{canon:$canon, projection:$is_projection, index:.next, source:$entry.source, raw:$entry.line}]
+                    | append($entry.line)
+                  end
+              elif any($existing[]; .raw == $entry.line) then
                 .
+              elif ($existing | length) == 0 then
+                .seen[$seq] = [{canon:null, projection:$is_projection, index:.next, source:$entry.source, raw:$entry.line}]
+                | append($entry.line)
               else
-                .error = ("conflicting registry archive payload for seq " + $seq)
+                ($row | canon | tojson) as $canon
+                | ($existing | map(.canon // (try (.raw | fromjson | canon | tojson) catch null))) as $canons
+                | if any($canons[]; . == $canon) then
+                    .
+                  elif (($existing | any(.projection)) and ($is_projection | not)) then
+                    (($existing | map(select(.projection)) | .[0].index) as $idx
+                     | .out[($idx | tostring)] = $entry.line
+                     | .seen[$seq] = (($existing | map(select(.index != $idx))) +
+                         [{canon:$canon, projection:false, index:$idx, source:$entry.source, raw:$entry.line}]))
+                  elif (($existing | any(.projection | not)) and $is_projection) then
+                    .
+                  else
+                    .error = ("conflicting registry archive payload for seq " + $seq)
+                  end
               end
           else
-            .out += [$entry.line]
+            append($entry.line)
           end
-      end)' "$REG_SOURCE")"
+      end) | .out = ([.out | to_entries[] | .value])' "$REG_SOURCE")"
   dedup_error="$(printf '%s' "$dedup_result" | jq -r '.error // empty')"
   [ -z "$dedup_error" ] || fail_input "$dedup_error"
   printf '%s' "$dedup_result" | jq -r '.out[]' > "${REG_SOURCE}.dedup"

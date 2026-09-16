@@ -247,7 +247,12 @@ function isCompactProjection(row) {
   );
 }
 
-function importJsonl(db, table, filePath, { seenSeq, allowProjectionOverlap = false } = {}) {
+function importJsonl(
+  db,
+  table,
+  filePath,
+  { seenSeq, sourceId = filePath, allowProjectionOverlap = false } = {},
+) {
   db.exec(
     `CREATE TABLE IF NOT EXISTS ${table} (id INTEGER PRIMARY KEY AUTOINCREMENT, data TEXT NOT NULL)`,
   );
@@ -275,28 +280,52 @@ function importJsonl(db, table, filePath, { seenSeq, allowProjectionOverlap = fa
     if (seenSeq && typeof parsed.seq === 'number' && Number.isFinite(parsed.seq)) {
       const key = String(parsed.seq);
       const canonical = JSON.stringify(canonicalJson(parsed));
-      const existing = seenSeq.get(key);
-      if (existing !== undefined && existing.canonical === canonical) continue;
-      if (existing !== undefined) {
+      const existing = seenSeq.get(key) ?? [];
+      const sameSource = existing.filter((entry) => entry.sourceId === sourceId);
+      if (sameSource.some((entry) => entry.canonical === canonical)) continue;
+      if (sameSource.length > 0) {
+        const inserted = insert.run(line);
+        seenSeq.set(key, [
+          ...existing,
+          {
+            canonical,
+            projection: table === 'registry' && isCompactProjection(parsed),
+            id: inserted.lastInsertRowid,
+            sourceId,
+          },
+        ]);
+        imported++;
+        continue;
+      }
+      const equivalent = existing.find((entry) => entry.canonical === canonical);
+      if (equivalent) continue;
+      if (existing.length > 0) {
         if (allowProjectionOverlap && table === 'registry') {
           const projection = isCompactProjection(parsed);
-          if (existing.projection && !projection) {
-            db.prepare('DELETE FROM registry WHERE id = ?').run(existing.id);
+          const projected = existing.find((entry) => entry.projection);
+          if (projected && !projection) {
+            db.prepare('DELETE FROM registry WHERE id = ?').run(projected.id);
             const inserted = insert.run(line);
-            seenSeq.set(key, { canonical, projection: false, id: inserted.lastInsertRowid });
+            seenSeq.set(key, [
+              ...existing.filter((entry) => entry !== projected),
+              { canonical, projection: false, id: inserted.lastInsertRowid, sourceId },
+            ]);
             imported++;
             continue;
           }
-          if (!existing.projection && projection) continue;
+          if (existing.some((entry) => !entry.projection) && projection) continue;
         }
         throw new Error(`conflicting registry archive payload for seq ${key}`);
       }
       const inserted = insert.run(line);
-      seenSeq.set(key, {
-        canonical,
-        projection: table === 'registry' && isCompactProjection(parsed),
-        id: inserted.lastInsertRowid,
-      });
+      seenSeq.set(key, [
+        {
+          canonical,
+          projection: table === 'registry' && isCompactProjection(parsed),
+          id: inserted.lastInsertRowid,
+          sourceId,
+        },
+      ]);
       imported++;
       continue;
     }
