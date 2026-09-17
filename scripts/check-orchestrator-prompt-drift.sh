@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Mechanical orchestrator-prompt drift checker (DIA-097). Greps the 3 preset
-# orchestrator prompts (opencode-go / cebula / free) in
+# Mechanical orchestrator-prompt drift checker (DIA-097). Greps the 2 preset
+# orchestrator prompts (promo / openai-first-cost-balanced) in
 # .opencode/oh-my-opencode-slim.jsonc for REQUIRED delegation-rule markers and
 # fails the config gate when any marker is missing from any prompt. Runs from
 # `make test-config`; SLIM_JSONC env override keeps it hermetically testable
@@ -52,16 +52,18 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SLIM_JSONC="${SLIM_JSONC:-$ROOT/.opencode/oh-my-opencode-slim.jsonc}"
-# The 3 presets whose orchestrator prompts are under audit (DIA-097).
-PRESETS="${PRESETS:-opencode-go cebula free}"
+# The 2 presets whose orchestrator prompts are under audit (DIA-097;
+# DIA-260916-7jek: opencode-go/cebula/free renamed away, only promo +
+# openai-first-cost-balanced remain; both carry inline prompts).
+PRESETS="${PRESETS:-promo openai-first-cost-balanced}"
 
 # Fixed required-marker contract (see header). Matched as fixed strings;
 # pure-dispatch additionally case-insensitive (PURE-DISPATCH in the prompts).
 MARKERS=(delegation-only batch-approval DIA-133 pure-dispatch no-bash-tool \
   read-scope-note ebdv-clause threshold-15-25 todowrite-discipline)
 # The MARKERS tokens stay hyphenated/whitespace-safe; the needles below spell
-# out the exact prompt phrases they match (verified present in all 3 prompts
-# as of 2026-08-13 - including the DIA-097 additions the ai-auditor Minor
+# out the exact prompt phrases they match (verified present in both prompts
+# as of 2026-09-17 - including the DIA-097 additions the ai-auditor Minor
 # locks: the DIA-126a READ-SCOPE note, the EBDV (DIA-115) clause, and the
 # 15/25 threshold text).
 NO_BASH_MARKER="no bash tool"
@@ -210,13 +212,16 @@ if [ "$missing" -gt 0 ]; then
   exit 1
 fi
 
-# Byte-identity verification across all 3 presets (after marker check so
-# "1 marker gap(s)" summary is visible when a single prompt drifts)
-if [ "${#prompts[@]}" -eq 3 ]; then
-  if [ "${prompts[0]}" != "${prompts[1]}" ] || [ "${prompts[1]}" != "${prompts[2]}" ]; then
-    echo "FAIL: prompts not byte-identical across presets" >&2
-    exit 1
-  fi
+# Byte-identity verification across all audited presets (after marker check so
+# "1 marker gap(s)" summary is visible when a single prompt drifts).
+# Generic over the preset count so PRESETS-override fixtures (1..N) keep working.
+if [ "${#prompts[@]}" -ge 2 ]; then
+  for p in "${prompts[@]:1}"; do
+    if [ "$p" != "${prompts[0]}" ]; then
+      echo "FAIL: prompts not byte-identical across presets" >&2
+      exit 1
+    fi
+  done
 fi
 
 echo "ok: check-orchestrator-prompt-drift: $checked preset(s) checked, ${#MARKERS[@]} markers each, 0 gaps, byte-identical"

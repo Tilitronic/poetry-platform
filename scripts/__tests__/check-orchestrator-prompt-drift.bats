@@ -3,9 +3,11 @@
 # scripts/check-orchestrator-prompt-drift.sh (2026-08-13, implementation lane;
 # marker-set extension 2026-08-13 by the ai-auditor Minor fix lane - 5 -> 8
 # markers, +3 tests below).
-# The script greps the 3 preset orchestrator prompts (opencode-go / cebula /
-# free) in oh-my-opencode-slim.jsonc for REQUIRED delegation-rule markers and
-# fails the config gate when any marker is missing from any prompt.
+# The script greps the 2 preset orchestrator prompts (promo /
+# openai-first-cost-balanced) in oh-my-opencode-slim.jsonc for REQUIRED
+# delegation-rule markers and fails the config gate when any marker is
+# missing from any prompt. (DIA-260916-7jek: opencode-go/cebula/free
+# renamed away; only promo + openai-first-cost-balanced remain.)
 #
 # Isolation strategy (validate-decision-variants.bats / validate-agent-names
 # .bats conventions): every test builds a throwaway fixture JSONC under
@@ -47,28 +49,23 @@ fixture_dir() {
   echo "$dir"
 }
 
-# write_config <file> <go_prompt> <cebula_prompt> <free_prompt>:
-# writes a minimal JSONC config with the 3 audited presets, each carrying the
+# write_config <file> <promo_prompt> <openai_prompt>:
+# writes a minimal JSONC config with the 2 audited presets, each carrying the
 # given orchestrator prompt. Formatting deliberately mimics the real file
 # (prompt is the LAST key in the orchestrator block, so no trailing comma).
 write_config() {
-  local file="$1" go="$2" ceb="$3" free="$4"
+  local file="$1" promo="$2" openai="$3"
   cat > "$file" <<JSONC
 {
   "presets": {
-    "opencode-go": {
+    "promo": {
       "orchestrator": {
-        "prompt": "$go"
+        "prompt": "$promo"
       }
     },
-    "cebula": {
+    "openai-first-cost-balanced": {
       "orchestrator": {
-        "prompt": "$ceb"
-      }
-    },
-    "free": {
-      "orchestrator": {
-        "prompt": "$free"
+        "prompt": "$openai"
       }
     }
   }
@@ -76,108 +73,102 @@ write_config() {
 JSONC
 }
 
-@test "check-orchestrator-prompt-drift: all 3 prompts with all markers PASS" {
+@test "check-orchestrator-prompt-drift: both prompts with all markers PASS" {
   dir="$(fixture_dir)"
-  write_config "$dir/ok.jsonc" "$FULL_PROMPT" "$FULL_PROMPT" "$FULL_PROMPT"
+  write_config "$dir/ok.jsonc" "$FULL_PROMPT" "$FULL_PROMPT"
 
   SLIM_JSONC="$dir/ok.jsonc" run bash "$CHECKER"
 
   assert_status 0
-  assert_output_contains "3 preset(s) checked, 9 markers each, 0 gaps"
+  assert_output_contains "2 preset(s) checked, 9 markers each, 0 gaps"
   assert_output_not_contains "FAIL"
 }
 
 @test "check-orchestrator-prompt-drift: missing DIA-133 in ONE prompt FAILS and names the preset" {
   dir="$(fixture_dir)"
-  write_config "$dir/drift.jsonc" "$FULL_PROMPT" "$FULL_PROMPT" "$DRIFTY_NO_DIA133"
+  write_config "$dir/drift.jsonc" "$FULL_PROMPT" "$DRIFTY_NO_DIA133"
 
   SLIM_JSONC="$dir/drift.jsonc" run bash "$CHECKER"
 
   assert_status 1
-  assert_output_contains "FAIL: free: missing required marker 'DIA-133'"
+  assert_output_contains "FAIL: openai-first-cost-balanced: missing required marker 'DIA-133'"
   assert_output_contains "1 marker gap(s)"
-  assert_output_not_contains "FAIL: opencode-go"
-  assert_output_not_contains "FAIL: cebula"
+  assert_output_not_contains "FAIL: promo"
 }
 
-@test "check-orchestrator-prompt-drift: missing delegation-only in all 3 prompts FAILS with 3 gaps" {
+@test "check-orchestrator-prompt-drift: missing delegation-only in both prompts FAILS with 2 gaps" {
   dir="$(fixture_dir)"
-  write_config "$dir/drift.jsonc" "$DRIFTY_NO_DELEGATION" "$DRIFTY_NO_DELEGATION" "$DRIFTY_NO_DELEGATION"
+  write_config "$dir/drift.jsonc" "$DRIFTY_NO_DELEGATION" "$DRIFTY_NO_DELEGATION"
 
   SLIM_JSONC="$dir/drift.jsonc" run bash "$CHECKER"
 
   assert_status 1
-  assert_output_contains "FAIL: opencode-go: missing required marker 'delegation-only'"
-  assert_output_contains "FAIL: cebula: missing required marker 'delegation-only'"
-  assert_output_contains "FAIL: free: missing required marker 'delegation-only'"
-  assert_output_contains "3 marker gap(s)"
+  assert_output_contains "FAIL: promo: missing required marker 'delegation-only'"
+  assert_output_contains "FAIL: openai-first-cost-balanced: missing required marker 'delegation-only'"
+  assert_output_contains "2 marker gap(s)"
 }
 
 @test "check-orchestrator-prompt-drift: missing no-bash-tool marker FAILS (phrase with spaces)" {
   dir="$(fixture_dir)"
-  write_config "$dir/drift.jsonc" "$FULL_PROMPT" "$FULL_PROMPT" "$DRIFTY_NO_BASH"
+  write_config "$dir/drift.jsonc" "$FULL_PROMPT" "$DRIFTY_NO_BASH"
 
   SLIM_JSONC="$dir/drift.jsonc" run bash "$CHECKER"
 
   assert_status 1
-  assert_output_contains "FAIL: free: missing required marker 'no bash tool'"
+  assert_output_contains "FAIL: openai-first-cost-balanced: missing required marker 'no bash tool'"
 }
 
 @test "check-orchestrator-prompt-drift: missing READ-SCOPE (DIA-126a note) in ONE prompt FAILS and names the preset" {
   dir="$(fixture_dir)"
-  write_config "$dir/drift.jsonc" "$FULL_PROMPT" "$FULL_PROMPT" "$DRIFTY_NO_READSCOPE"
+  write_config "$dir/drift.jsonc" "$FULL_PROMPT" "$DRIFTY_NO_READSCOPE"
 
   SLIM_JSONC="$dir/drift.jsonc" run bash "$CHECKER"
 
   assert_status 1
-  assert_output_contains "FAIL: free: missing required marker 'READ-SCOPE'"
+  assert_output_contains "FAIL: openai-first-cost-balanced: missing required marker 'READ-SCOPE'"
   assert_output_contains "1 marker gap(s)"
-  assert_output_not_contains "FAIL: opencode-go"
-  assert_output_not_contains "FAIL: cebula"
+  assert_output_not_contains "FAIL: promo"
 }
 
 @test "check-orchestrator-prompt-drift: missing EBDV (DIA-115 clause) in ONE prompt FAILS and names the preset" {
   dir="$(fixture_dir)"
-  write_config "$dir/drift.jsonc" "$FULL_PROMPT" "$FULL_PROMPT" "$DRIFTY_NO_EBDV"
+  write_config "$dir/drift.jsonc" "$FULL_PROMPT" "$DRIFTY_NO_EBDV"
 
   SLIM_JSONC="$dir/drift.jsonc" run bash "$CHECKER"
 
   assert_status 1
-  assert_output_contains "FAIL: free: missing required marker 'EBDV'"
+  assert_output_contains "FAIL: openai-first-cost-balanced: missing required marker 'EBDV'"
   assert_output_contains "1 marker gap(s)"
-  assert_output_not_contains "FAIL: opencode-go"
-  assert_output_not_contains "FAIL: cebula"
+  assert_output_not_contains "FAIL: promo"
 }
 
 @test "check-orchestrator-prompt-drift: missing threshold text (15% primary) in ONE prompt FAILS and names the preset" {
   dir="$(fixture_dir)"
-  write_config "$dir/drift.jsonc" "$FULL_PROMPT" "$FULL_PROMPT" "$DRIFTY_NO_THRESHOLD"
+  write_config "$dir/drift.jsonc" "$FULL_PROMPT" "$DRIFTY_NO_THRESHOLD"
 
   SLIM_JSONC="$dir/drift.jsonc" run bash "$CHECKER"
 
   assert_status 1
-  assert_output_contains "FAIL: free: missing required marker '15% (primary)'"
+  assert_output_contains "FAIL: openai-first-cost-balanced: missing required marker '15% (primary)'"
   assert_output_contains "1 marker gap(s)"
-  assert_output_not_contains "FAIL: opencode-go"
-  assert_output_not_contains "FAIL: cebula"
+  assert_output_not_contains "FAIL: promo"
 }
 
 @test "check-orchestrator-prompt-drift: missing TODOWRITE (DIA-260819-880v) in ONE prompt FAILS and names the preset" {
   dir="$(fixture_dir)"
-  write_config "$dir/drift.jsonc" "$FULL_PROMPT" "$FULL_PROMPT" "$DRIFTY_NO_TODOWRITE"
+  write_config "$dir/drift.jsonc" "$FULL_PROMPT" "$DRIFTY_NO_TODOWRITE"
 
   SLIM_JSONC="$dir/drift.jsonc" run bash "$CHECKER"
 
   assert_status 1
-  assert_output_contains "FAIL: free: missing required marker 'TODOWRITE DIA-260819-880v'"
+  assert_output_contains "FAIL: openai-first-cost-balanced: missing required marker 'TODOWRITE DIA-260819-880v'"
   assert_output_contains "1 marker gap(s)"
-  assert_output_not_contains "FAIL: opencode-go"
-  assert_output_not_contains "FAIL: cebula"
+  assert_output_not_contains "FAIL: promo"
 }
 
 @test "check-orchestrator-prompt-drift: pure-dispatch matched case-insensitively (PURE-DISPATCH in prompt PASSES)" {
   dir="$(fixture_dir)"
-  write_config "$dir/ok.jsonc" "$FULL_PROMPT" "$FULL_PROMPT" "$FULL_PROMPT"
+  write_config "$dir/ok.jsonc" "$FULL_PROMPT" "$FULL_PROMPT"
 
   SLIM_JSONC="$dir/ok.jsonc" run bash "$CHECKER"
 
@@ -187,21 +178,16 @@ JSONC
 
 @test "check-orchestrator-prompt-drift: missing entire prompt for one preset FAILS" {
   dir="$(fixture_dir)"
-  # free's orchestrator block exists but has no prompt key at all.
+  # openai-first-cost-balanced's orchestrator block exists but has no prompt key at all.
   cat > "$dir/missing.jsonc" <<JSONC
 {
   "presets": {
-    "opencode-go": {
+    "promo": {
       "orchestrator": {
         "prompt": "$FULL_PROMPT"
       }
     },
-    "cebula": {
-      "orchestrator": {
-        "prompt": "$FULL_PROMPT"
-      }
-    },
-    "free": {
+    "openai-first-cost-balanced": {
       "orchestrator": {}
     }
   }
@@ -211,7 +197,7 @@ JSONC
   SLIM_JSONC="$dir/missing.jsonc" run bash "$CHECKER"
 
   assert_status 1
-  assert_output_contains "FAIL: free: orchestrator prompt missing entirely"
+  assert_output_contains "FAIL: openai-first-cost-balanced: orchestrator prompt missing entirely"
 }
 
 @test "check-orchestrator-prompt-drift: preset absent from config FAILS (empty prompt emitted)" {
@@ -219,12 +205,7 @@ JSONC
   cat > "$dir/nopreset.jsonc" <<JSONC
 {
   "presets": {
-    "opencode-go": {
-      "orchestrator": {
-        "prompt": "$FULL_PROMPT"
-      }
-    },
-    "cebula": {
+    "promo": {
       "orchestrator": {
         "prompt": "$FULL_PROMPT"
       }
@@ -236,7 +217,7 @@ JSONC
   SLIM_JSONC="$dir/nopreset.jsonc" run bash "$CHECKER"
 
   assert_status 1
-  assert_output_contains "FAIL: free: orchestrator prompt missing entirely"
+  assert_output_contains "FAIL: openai-first-cost-balanced: orchestrator prompt missing entirely"
 }
 
 @test "check-orchestrator-prompt-drift: JSONC comments and trailing commas are tolerated" {
@@ -247,18 +228,13 @@ JSONC
 {
   // a comment before presets
   "presets": {
-    "opencode-go": {
+    "promo": {
       "orchestrator": {
         "prompt": "$FULL_PROMPT",
       },
     },
-    "cebula": {
+    "openai-first-cost-balanced": {
       /* block comment */
-      "orchestrator": {
-        "prompt": "$FULL_PROMPT",
-      },
-    },
-    "free": {
       "orchestrator": {
         "prompt": "$FULL_PROMPT",
       },
@@ -270,7 +246,7 @@ JSONC
   SLIM_JSONC="$dir/commenty.jsonc" run bash "$CHECKER"
 
   assert_status 0
-  assert_output_contains "3 preset(s) checked, 9 markers each, 0 gaps"
+  assert_output_contains "2 preset(s) checked, 9 markers each, 0 gaps"
 }
 
 @test "check-orchestrator-prompt-drift: invalid JSONC exits 1 (config defect, not INFRA)" {
@@ -293,11 +269,12 @@ JSONC
 @test "check-orchestrator-prompt-drift: PRESETS override targets a single preset" {
   dir="$(fixture_dir)"
   local drifty="Orchestrator Operating Rules: batch-approval boot gate. DIA-133: consult the model registry. PURE-DISPATCH RULE. The orchestrator has no bash tool by design."
-  write_config "$dir/ok.jsonc" "$FULL_PROMPT" "$drifty" "$FULL_PROMPT"
+  write_config "$dir/ok.jsonc" "$FULL_PROMPT" "$drifty"
 
-  # Only audit opencode-go: its prompt is complete, so the drift in cebula
-  # must NOT be reported (PROVES the PRESETS override scopes the check).
-  SLIM_JSONC="$dir/ok.jsonc" PRESETS="opencode-go" run bash "$CHECKER"
+  # Only audit promo: its prompt is complete, so the drift in
+  # openai-first-cost-balanced must NOT be reported (PROVES the PRESETS
+  # override scopes the check).
+  SLIM_JSONC="$dir/ok.jsonc" PRESETS="promo" run bash "$CHECKER"
 
   assert_status 0
   assert_output_contains "1 preset(s) checked"
