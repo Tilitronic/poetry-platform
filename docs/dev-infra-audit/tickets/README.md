@@ -119,19 +119,6 @@
 | DIA-164 | Give opencode-docker container host docker/podman socket access so pre-commit hooks work from inside OpenCode | docker | Major | VERIFIED | [DIA-164-opencode-docker-host-socket-access.md](DIA-164-opencode-docker-host-socket-access.md) |
 | DIA-165 | verify-pre-push recursion fork-bomb: root-cause fix (DIA-161 regression) | git-hooks | Critical | VERIFIED | [DIA-165-verify-pre-push-recursion-guard.md](DIA-165-verify-pre-push-recursion-guard.md) |
 | DIA-166 | pre-push blocked: make test-shell fails inside hook (unshare 127 + guard-flag interaction suspicion) | git-hooks | Critical | VERIFIED | [DIA-166-pre-push-suite-failure.md](DIA-166-pre-push-suite-failure.md) |
-| DIA-167 | test infra Phase 0: safety wins (author-studio fails loudly, flaky-pin tests removed, config gate hardened) | tests-infra | Major | CLOSED | [DIA-167-test-infra-phase0-safety-wins.md](DIA-167-test-infra-phase0-safety-wins.md) |
-| DIA-168 | test infra Phase 1: de-duplication (bats helpers, it.each, bash -n auto-discovery, per-package dependsOn) | tests-infra | Medium | CLOSED | [DIA-168-test-infra-phase1-dedup.md](DIA-168-test-infra-phase1-dedup.md) |
-| DIA-169 | test infra Phase 2: critical gaps (vitest in author-studio, real data-contracts test) | tests-infra | Critical | CLOSED | [DIA-169-test-infra-phase2-critical-gaps.md](DIA-169-test-infra-phase2-critical-gaps.md) |
-| DIA-170 | test infra Phase 3: Orchestrator contract test (acceptWorkerResult, zero mocks) | tests-infra | Medium | DONE | [DIA-170-test-infra-phase3-orchestrator-contract.md](DIA-170-test-infra-phase3-orchestrator-contract.md) |
-| DIA-171 | Install docker CLI + compose plugin in poetry-dev image (pre-push test-config gate) | docker | Major | IMPLEMENTED | [DIA-171-install-docker-cli-poetry-dev-image.md](DIA-171-install-docker-cli-poetry-dev-image.md) |
-| DIA-172 | Parallel coders (batch D) + read-only batch expansion - DIA-159 follow-up review and design | opencode-config | Medium | IMPLEMENTED | [DIA-172-parallel-coders-batch-d-expansion.md](DIA-172-parallel-coders-batch-d-expansion.md) |
-| DIA-173 | Forward host SSH agent socket into opencode-docker so git push works from the container (SSH agent forwarding) | docker | Major | DONE | [DIA-173-ssh-agent-forward-opencode-docker.md](DIA-173-ssh-agent-forward-opencode-docker.md) |
-| DIA-174 | Batch D infra hardening: worktree hooks, test persistence, branch-ownership payloads, dispatch tokens (DIA-172 retrospective) | dev-infra | Major | DONE | [DIA-174-batch-d-infra-hardening.md](DIA-174-batch-d-infra-hardening.md) |
-| DIA-175 | Coder prompt hygiene: instance separation, same-session fixes, scratch-dir permissions (DIA-174 follow-up) | opencode-config | Medium | DONE | [DIA-175-coder-prompt-hygiene-scratch-dir.md](DIA-175-coder-prompt-hygiene-scratch-dir.md) |
-| DIA-176 | Deep review: 2-day commit window (DIA-167..176) consistency vs pre-existing docs/config/docker | dev-infra | Major | DONE | [DIA-176-deep-review-2day-window-consistency.md](DIA-176-deep-review-2day-window-consistency.md) |
-| DIA-177 | worktree branch cleanup subcommand with merge verification | dev-infra | Low | CLOSED | [DIA-177-worktree-branch-cleanup.md](DIA-177-worktree-branch-cleanup.md) |
-| DIA-178 | Memory shelf hygiene audit: duplicate/stale/irrelevant lessons, conspects, analyses | docs | Medium | DONE | [DIA-178-memory-shelf-hygiene-audit.md](DIA-178-memory-shelf-hygiene-audit.md) |
-| DIA-179 | Full test-suite audit: execution order, fast-to-fail, duplicates, stale tests, verification honesty, DRY helpers | tests-infra | Medium | DONE | [DIA-179-full-test-suite-audit.md](DIA-179-full-test-suite-audit.md) |
 | DIA-180 | artifact format substrate review: YAML vs Markdown per artifact type (changelog, tickets, learnings, knowledge, session) | docs | Medium | CLOSED | [DIA-180-artifact-format-substrate-review-yaml-vs-markdown-per-artifact-type-changelog-tickets-learnings-knowledge-session.md](DIA-180-artifact-format-substrate-review-yaml-vs-markdown-per-artifact-type-changelog-tickets-learnings-knowledge-session.md) |
 | DIA-181 | data-reducer skill + scripts/data-reduce.sh: RLM pattern - reduce large data before reading into context (DeepSeek TUI RLM adoption) | opencode-config | Medium | CLOSED | [DIA-181-data-reducer-skill-rlm.md](DIA-181-data-reducer-skill-rlm.md) |
 | DIA-182 | native telemetry analytics wrapper - scripts/session-analytics.sh over opencode stats/db (per-agent cost/tokens, tool/model usage) | opencode-config | Medium | CLOSED | [DIA-182-native-telemetry-analytics-wrapper.md](DIA-182-native-telemetry-analytics-wrapper.md) |
@@ -328,7 +315,8 @@
 | DIA-260917-2z0u | publish opencode infrastructure operational map | scripts | Medium | OPEN | [DIA-260917-2z0u-publish-opencode-infrastructure-operational-map.md](DIA-260917-2z0u-publish-opencode-infrastructure-operational-map.md) |
 | DIA-260917-bm5k | 2026-08-01 audit verification | scripts | Medium | OPEN | [DIA-260917-bm5k-2026-08-01-audit-verification.md](DIA-260917-bm5k-2026-08-01-audit-verification.md) |
 | DIA-260917-jrph | de-hardcode escalated lane model names after promo openai-free ruling | scripts | Medium | OPEN | [DIA-260917-jrph-de-hardcode-escalated-lane-model-names-after-promo-openai-free-ruling.md](DIA-260917-jrph-de-hardcode-escalated-lane-model-names-after-promo-openai-free-ruling.md) |
-| DIA-260917-knz2 | preset fork promo vs promo-union-alpha strip union-alpha from promo | config | Medium | OPEN | [DIA-260917-knz2-preset-fork-promo-vs-promo-union-alpha-strip-union-alpha-from-promo.md](DIA-260917-knz2-preset-fork-promo-vs-promo-union-alpha-strip-union-alpha-from-promo.md) |
+| DIA-260917-knz2 | preset fork promo vs promo-union-alpha strip union-alpha from promo | config | Medium | CLOSED | [DIA-260917-knz2-preset-fork-promo-vs-promo-union-alpha-strip-union-alpha-from-promo.md](DIA-260917-knz2-preset-fork-promo-vs-promo-union-alpha-strip-union-alpha-from-promo.md) |
+| DIA-260917-mqjs | warning hygiene permission deny scope and legacy archive precedent | config | Low | OPEN | [DIA-260917-mqjs-warning-hygiene-permission-deny-scope-and-legacy-archive-precedent.md](DIA-260917-mqjs-warning-hygiene-permission-deny-scope-and-legacy-archive-precedent.md) |
 | DIA-260917-s95f | promo preset union-alpha variants enumeration | config | Medium | OPEN | [DIA-260917-s95f-promo-preset-union-alpha-variants-enumeration.md](DIA-260917-s95f-promo-preset-union-alpha-variants-enumeration.md) |
 
 ## Status summary
@@ -336,9 +324,9 @@
 | Severity | Count |
 | -------- | ----- |
 | Blocker  | 9     |
-| Critical | 17    |
-| Major    | 78    |
-| Medium   | 170   |
+| Critical | 16    |
+| Major    | 73    |
+| Medium   | 164   |
 | Minor    | 1     |
 | Low      | 31    |
 | Info     | 2     |
@@ -347,15 +335,15 @@
 | Status      | Count |
 | ----------- | ----- |
 | OPEN        | 74    |
-| DONE        | 11    |
+| DONE        | 4     |
 | VALIDATE    | 0     |
 | E2E         | 0     |
 | DEFERRED    | 1     |
 | MONITOR     | 1     |
 | FIXED       | 1     |
-| IMPLEMENTED | 2     |
+| IMPLEMENTED | 0     |
 | VERIFIED    | 28    |
-| CLOSED      | 209   |
+| CLOSED      | 206   |
 | BLOCKED     | 0     |
 | DISPATCHED  | 0     |
 | RUNNING     | 0     |

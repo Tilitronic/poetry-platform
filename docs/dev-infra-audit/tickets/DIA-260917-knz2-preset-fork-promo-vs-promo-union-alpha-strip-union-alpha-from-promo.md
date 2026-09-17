@@ -6,7 +6,7 @@ id: DIA-260917-knz2
 title: "preset fork promo vs promo-union-alpha strip union-alpha from promo"
 area: config
 severity: Medium
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: ""
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
