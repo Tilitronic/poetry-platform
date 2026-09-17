@@ -4785,3 +4785,13 @@
     registry entry (Zen catalog verified 2026-09-17)
   verification: manual
   area: opencode-config
+- date: '2026-09-17'
+  ticket: DIA-260917-s95f
+  scope: promo-preset
+  files:
+  - scripts/promo-preset-apply
+  - .opencode/oh-my-opencode-slim.jsonc
+  - .opencode/promo-registry.json
+  summary: Union Alpha first in 9-lane promo preset
+  verification: manual
+  area: config

@@ -402,3 +402,12 @@ Note: These are navigational facts to help future humans find the infra/test art
   `OPENCODE_WORKSPACE_PRESET` because the container does not mount the host
   user config. The effective preset registry remains
   `.opencode/oh-my-opencode-slim.jsonc`.
+
+- Union Alpha preview window (DIA-260917-s95f, 2026-09-17): union-alpha
+  resolved to a SINGLE live variant at research time
+  (opencode/union-alpha on Zen = opencode-go/union-alpha on Go, no family);
+  preview expiry circa 2026-09-23. Variant liveness is external catalog
+  state that rots: re-verify against the live catalog (verify-on-use)
+  before the next promo touch, do not trust this date. Full enumeration
+  (8 sources) is tracked in the DIA-260917-s95f ticket and its learnings
+  file; this entry records only the single-variant outcome + expiry pointer.

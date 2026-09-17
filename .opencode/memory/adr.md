@@ -2169,3 +2169,29 @@ stale-rename entry. The drift gate audits both presets, never promo-only.
 
 - Created: 2026-09-17
 - Related: DIA-260916-7jek, .opencode/learnings/external-patterns/DIA-260916-7jek-preset-gate.md
+
+## ADR: Union Alpha 9-lane prepend-not-replace promo routing (DIA-260917-s95f)
+
+### Decision
+
+Route opencode/union-alpha as FIRST model with the prior model retained as
+fallback (prepend, not replace) across the 9 promo lanes. Accept the
+reviewer==coder model overlap for the promo window (diversity rule
+explicitly overridden, not forgotten). Route non-sensitive lanes only.
+
+### Rationale (irrecoverable context)
+
+- Prepend-not-replace keeps a known-good fallback inside the same lane, so a
+  promo-model outage degrades to the prior route instead of failing the lane.
+  A replace would have made the promo a single point of failure.
+- The reviewer==coder overlap was a conscious time-boxed tradeoff for the
+  preview window, not an oversight: independent-review diversity is restored
+  when the promo is reverted or re-based. A future audit must not "fix" the
+  overlap as drift during the window.
+- Non-sensitive-only bounds the blast radius: promo (preview, third-party
+  hosted) lanes must not carry secrets or sensitive codebase paths.
+
+### Metadata
+
+- Created: 2026-09-17
+- Related: DIA-260917-s95f, .opencode/promo-registry.json

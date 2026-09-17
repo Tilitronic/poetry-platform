@@ -591,3 +591,39 @@ Failed-loop lessons & preventive actions
   - Cross-reference: docs/dev-infra-audit/hygiene-decisions.md (the reviewed
     document), DIA-260911-4y5v campaign ticket,
     openspec/changes/dia-260911-4y5v-hygiene-decision-register/ (valid).
+
+- Failure mode (2026-09-17, DIA-260917-s95f): conspecter lane unusable when
+  its model binding is Go-exclusive
+  - Symptom: the conspecter lane errored with model-not-found for
+    opencode-go/muse-spark-1.3-contributor-free because the Zen runtime has no
+    such binding. Same class as the 2026-08-04 hallucinated-model and the
+    DIA-260827-bry9 bare-deepseek failures, new trigger: a model valid on one
+    runtime is not valid on the other.
+  - Preventive action: verify each lane's model binding against the runtime
+    that will actually launch it (Zen vs Go), not just against the catalog.
+    Catalog-exists does not imply runtime-reachable.
+  - Why irrecoverable: the runtime split is session/environment behavior, not
+    reconstructible from the registry diff.
+
+- Failure mode (2026-09-17, DIA-260917-s95f): promo generator
+  find_promo_region not idempotent
+  - Symptom: a second run of the promo-region generator DELETED the
+    DIA-260909 marker comment the first run depends on. Single-run-only; a
+    re-run silently destroys its own anchor.
+  - Preventive action: run the generator exactly once per promo application.
+    A re-run requires restoring the anchor first. Long-term fix belongs in
+    the generator (write-if-absent / anchor check before delete).
+  - Why irrecoverable: the delete-on-second-run sequence is runtime behavior;
+    the committed script shows the final state, not the anchor destruction.
+
+- Failure mode (2026-09-17, DIA-260917-s95f): finalize on host with Docker
+  ENGINE-DOWN yields no container evidence
+  - Symptom: the finalize lane ran on the host while the Docker engine was
+    down, so no dev-container verification evidence (docker compose ps,
+    in-container gates) could be produced for the merge report.
+  - Preventive action: do not finalize/merge-report a container-gated change
+    without recorded container state; if the engine is down, record
+    ENGINE-DOWN explicitly and defer container evidence instead of leaving
+    the evidence section silently empty.
+  - Why irrecoverable: engine-down at finalize time is transient host state,
+    not reconstructible from commits.

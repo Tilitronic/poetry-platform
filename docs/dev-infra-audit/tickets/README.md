@@ -328,6 +328,7 @@
 | DIA-260917-2z0u | publish opencode infrastructure operational map | scripts | Medium | OPEN | [DIA-260917-2z0u-publish-opencode-infrastructure-operational-map.md](DIA-260917-2z0u-publish-opencode-infrastructure-operational-map.md) |
 | DIA-260917-bm5k | 2026-08-01 audit verification | scripts | Medium | OPEN | [DIA-260917-bm5k-2026-08-01-audit-verification.md](DIA-260917-bm5k-2026-08-01-audit-verification.md) |
 | DIA-260917-jrph | de-hardcode escalated lane model names after promo openai-free ruling | scripts | Medium | OPEN | [DIA-260917-jrph-de-hardcode-escalated-lane-model-names-after-promo-openai-free-ruling.md](DIA-260917-jrph-de-hardcode-escalated-lane-model-names-after-promo-openai-free-ruling.md) |
+| DIA-260917-s95f | promo preset union-alpha variants enumeration | config | Medium | OPEN | [DIA-260917-s95f-promo-preset-union-alpha-variants-enumeration.md](DIA-260917-s95f-promo-preset-union-alpha-variants-enumeration.md) |
 
 ## Status summary
 
@@ -336,7 +337,7 @@
 | Blocker  | 9     |
 | Critical | 17    |
 | Major    | 78    |
-| Medium   | 168   |
+| Medium   | 169   |
 | Minor    | 1     |
 | Low      | 31    |
 | Info     | 2     |
@@ -344,7 +345,7 @@
 
 | Status      | Count |
 | ----------- | ----- |
-| OPEN        | 72    |
+| OPEN        | 73    |
 | DONE        | 11    |
 | VALIDATE    | 0     |
 | E2E         | 0     |

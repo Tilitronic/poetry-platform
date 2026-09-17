@@ -3024,3 +3024,22 @@ verification evidence (DIA-260909-csds, 2026-09-09)
   collected prompts instead of a fixed count. Cross-reference: the per-ticket
   detail lives in .opencode/learnings/external-patterns/DIA-260916-7jek-preset-gate.md
   (tracked); this entry records only the cross-file checklist rule.
+
+## L20260917-s95f-001 - Promo ROUTING edits go through scripts/promo-preset-apply, never hand-edited (DIA-260917-s95f, 2026-09-17)
+
+- Hand-editing promo ROUTING blocks drifts from the registry on the next
+  apply run (proven 1.2/1.3 drift in this campaign: manual edits the
+  generator did not own were clobbered/mismatched). The apply script is the
+  ONLY writer for promo preset mutations; registry is the source of truth.
+- Preventive rule: change the registry entry, re-run the script, diff. Never
+  edit generated ROUTING blocks by hand, even for one-line fixes.
+- Cross-reference: per-ticket evidence in the DIA-260917-s95f ticket and
+  commit 2f3694f (tracked); this entry records only the sole-writer rule.
+
+## L20260917-s95f-002 - ai-auditor APPROVE-WITH-NOTES is advisory; disposition each note (DIA-260917-s95f, 2026-09-17)
+
+- An APPROVE-WITH-NOTES verdict is not a clean approve: all 5 notes were
+  dispositioned (accepted-all) before close in this campaign. Treating the
+  approve line as sufficient would have left known notes unaddressed.
+- Preventive rule: on APPROVE-WITH-NOTES, list each note with accept/reject
+  + evidence in the ticket before closing. No silent notes.

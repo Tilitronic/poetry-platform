@@ -25,22 +25,19 @@ REPO_ROOT = os.path.dirname(SCRIPT_DIR)
 CONFIG_DEFAULT = os.path.join(REPO_ROOT, ".opencode", "oh-my-opencode-slim.jsonc")
 REGISTRY_DEFAULT = os.path.join(REPO_ROOT, ".opencode", "promo-registry.json")
 
-# ana036 section 8.2 promo routing. Lanes not listed are cloned unchanged.
-# Format mirrors promo preset: object {"id","variant"} where a variant is forced,
-# else plain string. Fallback order matters (primary first).
+# DIA-260917-s95f: opencode/union-alpha (Zen primary, variant A) prepended on
+# 9 lanes; existing entries retained in order (prepend-not-replace, absolute
+# arrays so re-runs stay idempotent). Lanes not listed are cloned unchanged.
 ROUTING = {
-    # DIA-260828-qtsi: Muse Spark admitted as primary for the 6 lanes below,
-    # DeepSeek V4 Flash as fallback for burst (100 RPM cap). Other lanes cloned unchanged.
-    "coder": ["opencode-go/muse-spark-1.2-contributor", "opencode-go/deepseek-v4-flash"],
-    "reviewer": ["opencode-go/muse-spark-1.2-contributor", "opencode-go/deepseek-v4-flash"],
-    "analyzer": ["opencode-go/muse-spark-1.2-contributor", "opencode-go/deepseek-v4-flash"],
-    "researcher": ["opencode-go/muse-spark-1.2-contributor", "opencode-go/deepseek-v4-flash"],
-    "conspecter": ["opencode-go/muse-spark-1.2-contributor", "opencode-go/deepseek-v4-flash"],
-    "openspec-plan": ["opencode-go/muse-spark-1.2-contributor", "opencode-go/deepseek-v4-flash"],
-    "orchestrator": ["opencode-go/deepseek-v4-flash", "opencode-go/mimo-v2.5-free"],
-    "resource-manager": ["opencode/mimo-v2.5-free", "opencode-go/deepseek-v4-flash"],
-    "memory-manager": ["opencode/mimo-v2.5-free", "opencode-go/deepseek-v4-flash"],
-    "code-navigator": ["opencode/mimo-v2.5-free", "opencode-go/deepseek-v4-flash"],
+    "orchestrator": ["opencode/union-alpha", "opencode/muse-spark-1.3-contributor-free", "opencode-go/muse-spark-1.3"],
+    "architector": ["opencode/union-alpha", "opencode-go/deepseek-v4.1-flash"],
+    "openspec-plan": ["opencode/union-alpha", "opencode/muse-spark-1.3-contributor-free", "opencode-go/muse-spark-1.3-contributor"],
+    "coder": ["opencode/union-alpha", "opencode/muse-spark-1.3-contributor-free", "opencode-go/muse-spark-1.3-contributor"],
+    "reviewer": ["opencode/union-alpha", "opencode/muse-spark-1.3-contributor-free", "opencode-go/muse-spark-1.3-contributor"],
+    "analyzer": ["opencode/union-alpha", "opencode/muse-spark-1.3-contributor-free", "opencode-go/muse-spark-1.3-contributor"],
+    "ai-specialist": ["opencode/union-alpha", "opencode/muse-spark-1.3-contributor-free", "opencode-go/deepseek-v4.1-flash"],
+    "ai-auditor": ["opencode/union-alpha", "opencode/muse-spark-1.3-contributor-free", "opencode-go/deepseek-v4.1-flash"],
+    "researcher": ["opencode/union-alpha", "opencode/muse-spark-1.3-contributor-free", "opencode-go/muse-spark-1.3-contributor"],
 }
 
 

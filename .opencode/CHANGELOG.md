@@ -1127,3 +1127,9 @@
 - **Change:** Prefix 4 bare deepseek-v4.1-flash bindings with opencode-go/ and add Go-exclusive registry entry (Zen catalog verified 2026-09-17)
 - **Files:** .opencode/oh-my-opencode-slim.jsonc - knowledge/model-registry.yaml
 - **Verification:** manual
+
+## 2026-09-17 - DIA-260917-s95f: promo-preset
+
+- **Change:** Union Alpha first in 9-lane promo preset
+- **Files:** scripts/promo-preset-apply - .opencode/oh-my-opencode-slim.jsonc - .opencode/promo-registry.json
+- **Verification:** manual
