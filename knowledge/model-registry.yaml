@@ -13,6 +13,18 @@ models:
     quota_notes: "Promo primary for orchestrator + fallback for coder/reviewer/analyzer/researcher/conspecter/openspec-plan/memory-manager/code-navigator (DIA-260901-s4ij); peak $0.44/$1.32 01:00-04:00+06:00-10:00 UTC"
     active: true
 
+  - model_id: "opencode-go/deepseek-v4.1-flash"
+    role: "multi-lane-primary"
+    price_in_1m: 0.22
+    price_out_1m: 0.66
+    req_per_month: 18900  # ESTIMATE (mirrors deepseek-v4-flash until Go docs refresh)
+    swe_bench_verified: null  # no archived benchmark yet - benchmark conspect pending (separate ticket)
+    source_ref: "DIA-260827-bry9 gate 2026-09-17 (Go-exclusive)"
+    lane: ["architector", "ai-specialist", "ai-auditor", "coder-escalated"]
+    fallback: ["opencode/mimo-v2.5-free", "opencode/big-pickle"]
+    quota_notes: "Go-exclusive as of 2026-09-17 per DIA-260827-bry9 gate; pricing mirrors deepseek-v4-flash pending fresh Go docs refresh"
+    active: true
+
   - model_id: "mimo-v2.5"
     role: "coder-default-volume"
     price_in_1m: 0.14

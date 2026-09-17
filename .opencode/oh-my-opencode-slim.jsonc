@@ -31,7 +31,7 @@
       },
       "architector": {
         "model": [
-          "deepseek-v4.1-flash"
+          "opencode-go/deepseek-v4.1-flash"
         ],
         "variant": "high",
         "temperature": 0.1,
@@ -150,7 +150,7 @@
       "ai-specialist": {
         "model": [
           "opencode/muse-spark-1.3-contributor-free",
-          "deepseek-v4.1-flash"
+          "opencode-go/deepseek-v4.1-flash"
         ],
         "variant": "high",
         "skills": [
@@ -163,7 +163,7 @@
       "ai-auditor": {
         "model": [
           "opencode/muse-spark-1.3-contributor-free",
-          "deepseek-v4.1-flash"
+          "opencode-go/deepseek-v4.1-flash"
         ],
         "variant": "medium",
         "skills": [
@@ -223,7 +223,7 @@
         "orchestratorPrompt": "@researcher\n- Lane: External knowledge and library research, fast web research\n- Role: Authoritative source for current library docs, API references, examples, bug investigations, and web retrieval\n- Permissions: read_files\n- **Output contract:** Return findings with: (1) structured summary, (2) source URLs, (3) confidence assessment, (4) persistence recommendation (whether findings warrant conspect archiving).\n- **Persistence flag:** When findings reference 3+ external sources OR cover a non-obvious topic likely to be re-needed, include `PERSISTENCE_RECOMMENDED: true` in the output header. Conspect synthesis proceeds automatically after Phase 2.\n- **Delegate when:** Libraries with frequent API changes • Complex APIs needing official examples • Version-specific behavior matters • Unfamiliar library • Edge cases or advanced features\n- **Standalone:** user explicitly asks for research — dispatch @researcher directly\n- **Don't delegate when:** Standard usage • Simple stable APIs • General programming knowledge • Info already in conversation\n- **Persistence workflow:** When PERSISTENCE_RECOMMENDED: true, load the `research-pipeline` skill for the full pipeline (automatic conspect synthesis → memory shelf verification). Do NOT dispatch @conspecter directly without the skill.\n\n## PHASE A - Source Capture (D5, researcher-owned - MANDATORY when the orchestrator pre-allocates a res ID and passes it in the dispatch payload)\n1. Create directory: `knowledge/<type><id>-<topic>/sources/`\n2. For each source URL, apply the 3-tier chain by URL class:\n   a. **registry.npmjs.org/<package>** -> `curl -s \"https://registry.npmjs.org/<package>\" > sources/<slug>.json` (JSON API - the response IS the archive; richer than HTML, no trafilatura needed)\n   b. **Any URL** -> `trafilatura -u \"<URL>\" --output-format markdown > sources/<slug>.md` (direct, or after `curl -sL -A \"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36\" \"<URL>\"` for JS-gated pages; verify content >100 bytes)\n   c. **If trafilatura fails (0 bytes or <100 bytes)** -> `curl -sL -A \"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36\" \"<URL>\" | trafilatura --output-format markdown > sources/<slug>.md`\n   d. **crwl headless (LAST-RESORT ONLY)** -> crawl4ai with headless Chromium (`BrowserConfig(headless=True)`). crwl is NEVER the first attempt (DIA-129); a crwl failure = SKIP the URL and mark it per DIA-072 (do NOT keep retrying). Cache crwl outputs per-URL-hash within the session to avoid repeat Chromium launches.\n3. Evaluate each source for RELEVANCE (does it answer the research question) + RELIABILITY (authority, recency, independence, vendor-vs-independent): rate High/Med/Low each (D6).\n4. Write `.source-urls.txt`: one URL per line WITH the per-source relevance/reliability rating; mark any remaining failures as `# NOT ARCHIVED (all methods exhausted)`; list excluded sources with reason.\n5. The conspect (written later by @conspecter) must cite ONLY sources that pass this evaluation."
       },
       "coder-escalated": {
-        "model": "deepseek-v4.1-flash",
+        "model": "opencode-go/deepseek-v4.1-flash",
         "variant": "high",
         "temperature": 0.1,
         "skills": [
