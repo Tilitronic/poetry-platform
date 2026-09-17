@@ -9,8 +9,8 @@ severity: High
 status: OPEN
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: DIA-260827-wfcx
-gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
-gate_triggers: [] # new-module | cross-boundary | schema-state | new-public-api | cross-cutting | hard-to-reverse | new-ui-component
+gate_state: "grilled" # grilled | waived | bypassed | partial | skipped
+gate_triggers: [cross-cutting] # new-module | cross-boundary | schema-state | new-public-api | cross-cutting | hard-to-reverse | new-ui-component
 gate_waivers: [] # hotfix | incremental-to-grilled-module | spike-poc | refactor-no-behavior-change
 gate_override: "" # free-text: developer signal + reason; empty = no override
 discovered: 2026-08-27
