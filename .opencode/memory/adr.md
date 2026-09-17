@@ -2134,3 +2134,38 @@ falling back to an unintended routing profile.
 
 - Created: 2026-09-16
 - Related: DIA-260916-gv9i, openspec/changes/workspace-preset-selection/
+
+## ADR: Two-preset split - promo openai-free main, openai-first separate by design
+
+### Decision
+
+The config carries exactly two presets with pointer `"preset": "promo"`.
+`promo` (renamed from muse-qwen-balanced) is the main preset and must stay
+openai-free (0 `openai/` hits). `openai-first-cost-balanced` is a separate
+preset for the openai subscription and stays openai-only by design (17
+`openai/` hits, one per agent - expected, not drift). The openai-first
+orchestrator carries an inline prompt byte-identical to the promo
+orchestrator prompt; promo.code-navigator uses
+opencode/muse-spark-1.3-contributor-free (a route already used in promo, so
+zero new model IDs).
+
+### Rationale
+
+The 0-vs-17 `openai/` split is intentional policy, not leftover drift: a
+future audit grepping `openai/` must not "fix" the 17 hits in openai-first.
+The orchestrator prompt text is routing-agnostic, so byte-identity across
+the two presets is the correct invariant (enforced by the drift gate) while
+model/variant/temp/skills/mcps stay per-preset. Luna was replaced because
+the developer ruled promo openai-free; muse-spark was chosen because it was
+already the dominant promo route, keeping the change to one model field.
+
+### Consequences
+
+Preset renames must retarget every hardcoded preset tuple in the same change
+(interview tuple, drift-checker default, bats fixtures) - see lessons.md
+stale-rename entry. The drift gate audits both presets, never promo-only.
+
+### Metadata
+
+- Created: 2026-09-17
+- Related: DIA-260916-7jek, .opencode/learnings/external-patterns/DIA-260916-7jek-preset-gate.md

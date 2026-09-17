@@ -3010,3 +3010,17 @@ verification evidence (DIA-260909-csds, 2026-09-09)
 - Host/container launchers need an explicit bridge when user config is not
   mounted. Keep the bridge private, pass only the already-resolved validated
   value, and print effective value plus source so a restart failure is visible.
+
+## L20260917-7jek-001 - Preset renames orphan every hardcoded preset tuple (DIA-260916-7jek, 2026-09-17)
+
+- Renaming a preset (muse-qwen-balanced -> promo) silently broke three
+  hardcoded tuples of the same stale-rename class: the interview-enforcement
+  preset tuple (KeyError 'opencode-go'), the drift-checker default PRESETS,
+  and the drift bats 3-preset fixtures. None failed at the rename commit;
+  each surfaced only when its own gate ran.
+- Preventive rule: before closing a rename ticket, grep the old preset names
+  across scripts/ and scripts/__tests__/ and retarget every tuple, default,
+  and fixture together; generalize byte-identity guards to loop over all
+  collected prompts instead of a fixed count. Cross-reference: the per-ticket
+  detail lives in .opencode/learnings/external-patterns/DIA-260916-7jek-preset-gate.md
+  (tracked); this entry records only the cross-file checklist rule.
