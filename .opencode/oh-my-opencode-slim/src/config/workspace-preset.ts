@@ -152,6 +152,13 @@ export function resolveWorkspacePreset(
   const bridged = process.env.OPENCODE_WORKSPACE_PRESET?.trim();
   if (bridged) {
     if (!Object.hasOwn(available, bridged)) {
+      // Fixture workspaces (loader/tui tests) define no presets, so a leaked
+      // bridge value has nothing to resolve against: fall back to empty
+      // instead of throwing. Real workspaces define presets, so an unknown
+      // bridge value there still throws (stale selection surfaces loudly).
+      if (Object.keys(available).length === 0) {
+        return { name: null, source: 'none', workspace };
+      }
       throw new Error(
         `Stored preset "${bridged}" is not found for workspace ${workspace}. Available presets: ${Object.keys(available).join(', ') || 'none'}`,
       );
