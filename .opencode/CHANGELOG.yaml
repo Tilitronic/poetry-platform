@@ -4775,3 +4775,13 @@
     with generic byte-identity guard and 2-preset bats fixtures
   verification: manual
   area: scripts
+- date: '2026-09-17'
+  ticket: DIA-260827-bry9
+  scope: '2'
+  files:
+  - .opencode/oh-my-opencode-slim.jsonc
+  - knowledge/model-registry.yaml
+  summary: Prefix 4 bare deepseek-v4.1-flash bindings with opencode-go/ and add Go-exclusive
+    registry entry (Zen catalog verified 2026-09-17)
+  verification: manual
+  area: opencode-config

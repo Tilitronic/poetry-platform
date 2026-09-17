@@ -1121,3 +1121,9 @@
 - **Change:** promo preset made openai-free (code-navigator Luna replaced with muse-spark free, inline orchestrator prompt added to openai-first-cost-balanced); interview-enforcement and prompt-drift gates retargeted from opencode-go/cebula/free to promo/openai-first-cost-balanced with generic byte-identity guard and 2-preset bats fixtures
 - **Files:** .opencode/oh-my-opencode-slim.jsonc - scripts/test-interview-enforcement.sh - scripts/check-orchestrator-prompt-drift.sh - scripts/__tests__/check-orchestrator-prompt-drift.bats
 - **Verification:** manual
+
+## 2026-09-17 - DIA-260827-bry9: 2
+
+- **Change:** Prefix 4 bare deepseek-v4.1-flash bindings with opencode-go/ and add Go-exclusive registry entry (Zen catalog verified 2026-09-17)
+- **Files:** .opencode/oh-my-opencode-slim.jsonc - knowledge/model-registry.yaml
+- **Verification:** manual
