@@ -323,9 +323,10 @@
 | DIA-260915-u8js | Reconcile inactive Muse Qwen balanced Zen-free routing and OpenAI Luna fallback | opencode-config | Low | CLOSED | [DIA-260915-u8js-reconcile-inactive-muse-qwen-balanced-zen-free-routing-and-openai-luna-fallback.md](DIA-260915-u8js-reconcile-inactive-muse-qwen-balanced-zen-free-routing-and-openai-luna-fallback.md) |
 | DIA-260916-7jek | Zamina OpenAI modeley v preseti | scripts | Medium | CLOSED | [DIA-260916-7jek-zamina-openai-modeley-v-preseti.md](DIA-260916-7jek-zamina-openai-modeley-v-preseti.md) |
 | DIA-260916-ch3o | new Union Alpha 3 preset for next free week | scripts | Medium | OPEN | [DIA-260916-ch3o-new-union-alpha-3-preset-for-next-free-week.md](DIA-260916-ch3o-new-union-alpha-3-preset-for-next-free-week.md) |
-| DIA-260916-gv9i | preset change not applying after restart | scripts | Medium | OPEN | [DIA-260916-gv9i-preset-change-not-applying-after-restart.md](DIA-260916-gv9i-preset-change-not-applying-after-restart.md) |
+| DIA-260916-gv9i | preset change not applying after restart | scripts | Medium | CLOSED | [DIA-260916-gv9i-preset-change-not-applying-after-restart.md](DIA-260916-gv9i-preset-change-not-applying-after-restart.md) |
 | DIA-260916-z5pf | Optimize archive-aware jsonl cross-check for bounded interactive latency | dev-infra | Medium | OPEN | [DIA-260916-z5pf-optimize-archive-aware-jsonl-cross-check-for-bounded-interactive-latency.md](DIA-260916-z5pf-optimize-archive-aware-jsonl-cross-check-for-bounded-interactive-latency.md) |
 | DIA-260917-2z0u | publish opencode infrastructure operational map | scripts | Medium | OPEN | [DIA-260917-2z0u-publish-opencode-infrastructure-operational-map.md](DIA-260917-2z0u-publish-opencode-infrastructure-operational-map.md) |
+| DIA-260917-bm5k | 2026-08-01 audit verification | scripts | Medium | OPEN | [DIA-260917-bm5k-2026-08-01-audit-verification.md](DIA-260917-bm5k-2026-08-01-audit-verification.md) |
 | DIA-260917-jrph | de-hardcode escalated lane model names after promo openai-free ruling | scripts | Medium | OPEN | [DIA-260917-jrph-de-hardcode-escalated-lane-model-names-after-promo-openai-free-ruling.md](DIA-260917-jrph-de-hardcode-escalated-lane-model-names-after-promo-openai-free-ruling.md) |
 
 ## Status summary
@@ -335,7 +336,7 @@
 | Blocker  | 9     |
 | Critical | 17    |
 | Major    | 78    |
-| Medium   | 167   |
+| Medium   | 168   |
 | Minor    | 1     |
 | Low      | 31    |
 | Info     | 2     |
@@ -352,7 +353,7 @@
 | FIXED       | 1     |
 | IMPLEMENTED | 2     |
 | VERIFIED    | 28    |
-| CLOSED      | 208   |
+| CLOSED      | 209   |
 | BLOCKED     | 0     |
 | DISPATCHED  | 0     |
 | RUNNING     | 0     |
