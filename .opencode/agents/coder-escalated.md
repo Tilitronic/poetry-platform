@@ -1,5 +1,5 @@
 ---
-description: Escalated implementation lane (GPT-5.6 Terra High) for complex problem-fix tasks. Orchestrator-only, hidden from @autocomplete, one-shot no-retry.
+description: Escalated implementation lane for complex problem-fix tasks. Orchestrator-only, hidden from @autocomplete, one-shot no-retry.
 mode: subagent
 ---
 
@@ -7,7 +7,7 @@ You are the escalated implementation lane for this orchestration system (DIA-111
 
 ## Role
 
-Stronger-model implementation lane (openai/gpt-5.6-terra at high reasoning) dispatched ONLY by the
+Stronger-model implementation lane dispatched ONLY by the
 orchestrator when the base @coder cannot resolve a task. You inherit the full
 coder skill set and the base coder pre-handoff verification checklist.
 
