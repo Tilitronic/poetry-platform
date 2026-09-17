@@ -4316,9 +4316,9 @@
   - .opencode/plugins/__tests__/dia217-ticket-gate.test.mjs
   summary: 'datetime-first ticket ID parsing: shared const regexes fix C1 truncation
     + Path-1 case normalization; 122/122 plugin tests'
-  verification: make test-config exit 0; live catalogs resolved Muse Free, MiMo
-    Free, and Luna; process-scoped preset override resolved Muse Free and returned
-    non-empty U8JS_SMOKE_OK; independent config audit PASS
+  verification: make test-config exit 0; live catalogs resolved Muse Free, MiMo Free,
+    and Luna; process-scoped preset override resolved Muse Free and returned non-empty
+    U8JS_SMOKE_OK; independent config audit PASS
   area: delegation-observer
 - date: '2026-08-26'
   ticket: DIA-260826-zvu4
@@ -4761,3 +4761,17 @@
     archive SHA-256; non-empty orchestrator smoke; unchanged stall count across two
     sweep intervals; independent review cycle 2/2 PASS
   area: opencode-config
+- date: '2026-09-17'
+  ticket: DIA-260916-7jek
+  scope: preset
+  files:
+  - .opencode/oh-my-opencode-slim.jsonc
+  - scripts/test-interview-enforcement.sh
+  - scripts/check-orchestrator-prompt-drift.sh
+  - scripts/__tests__/check-orchestrator-prompt-drift.bats
+  summary: promo preset made openai-free (code-navigator Luna replaced with muse-spark
+    free, inline orchestrator prompt added to openai-first-cost-balanced); interview-enforcement
+    and prompt-drift gates retargeted from opencode-go/cebula/free to promo/openai-first-cost-balanced
+    with generic byte-identity guard and 2-preset bats fixtures
+  verification: manual
+  area: scripts

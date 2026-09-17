@@ -321,6 +321,9 @@
 | DIA-260914-4s66 | Avoid rootless Podman remap of host git ownership during entrypoint startup | docker | Critical | CLOSED | [DIA-260914-4s66-avoid-rootless-podman-remap-of-host-git-ownership-during-entrypoint-startup.md](DIA-260914-4s66-avoid-rootless-podman-remap-of-host-git-ownership-during-entrypoint-startup.md) |
 | DIA-260914-tqor | Stop delegation-observer stall sweep from re-emitting dead sessions forever and bound registry scan cost | scripts | Medium | CLOSED | [DIA-260914-tqor-stop-delegation-observer-stall-sweep-from-re-emitting-dead-sessions-forever-and-bound-registry-scan-cost.md](DIA-260914-tqor-stop-delegation-observer-stall-sweep-from-re-emitting-dead-sessions-forever-and-bound-registry-scan-cost.md) |
 | DIA-260915-u8js | Reconcile inactive Muse Qwen balanced Zen-free routing and OpenAI Luna fallback | opencode-config | Low | CLOSED | [DIA-260915-u8js-reconcile-inactive-muse-qwen-balanced-zen-free-routing-and-openai-luna-fallback.md](DIA-260915-u8js-reconcile-inactive-muse-qwen-balanced-zen-free-routing-and-openai-luna-fallback.md) |
+| DIA-260916-7jek | Zamina OpenAI modeley v preseti | scripts | Medium | CLOSED | [DIA-260916-7jek-zamina-openai-modeley-v-preseti.md](DIA-260916-7jek-zamina-openai-modeley-v-preseti.md) |
+| DIA-260916-ch3o | new Union Alpha 3 preset for next free week | scripts | Medium | OPEN | [DIA-260916-ch3o-new-union-alpha-3-preset-for-next-free-week.md](DIA-260916-ch3o-new-union-alpha-3-preset-for-next-free-week.md) |
+| DIA-260916-gv9i | preset change not applying after restart | scripts | Medium | OPEN | [DIA-260916-gv9i-preset-change-not-applying-after-restart.md](DIA-260916-gv9i-preset-change-not-applying-after-restart.md) |
 | DIA-260916-z5pf | Optimize archive-aware jsonl cross-check for bounded interactive latency | dev-infra | Medium | OPEN | [DIA-260916-z5pf-optimize-archive-aware-jsonl-cross-check-for-bounded-interactive-latency.md](DIA-260916-z5pf-optimize-archive-aware-jsonl-cross-check-for-bounded-interactive-latency.md) |
 
 ## Status summary
@@ -330,7 +333,7 @@
 | Blocker  | 9     |
 | Critical | 17    |
 | Major    | 78    |
-| Medium   | 162   |
+| Medium   | 165   |
 | Minor    | 1     |
 | Low      | 31    |
 | Info     | 2     |
@@ -338,7 +341,7 @@
 
 | Status      | Count |
 | ----------- | ----- |
-| OPEN        | 68    |
+| OPEN        | 70    |
 | DONE        | 11    |
 | VALIDATE    | 0     |
 | E2E         | 0     |
@@ -347,7 +350,7 @@
 | FIXED       | 1     |
 | IMPLEMENTED | 2     |
 | VERIFIED    | 28    |
-| CLOSED      | 207   |
+| CLOSED      | 208   |
 | BLOCKED     | 0     |
 | DISPATCHED  | 0     |
 | RUNNING     | 0     |
