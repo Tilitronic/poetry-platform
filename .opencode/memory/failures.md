@@ -1,5 +1,14 @@
 Failed-loop lessons & preventive actions
 
+- Failure mode (DIA-260916-gv9i, 2026-09-16): a preset selected through
+  `/preset` did not apply after restart. Root cause was split ownership: the
+  command wrote a user config value, while the project preset was the winning
+  config on the next load; the missing effective user value produced a silent
+  no-op. Preventive action: persist a canonical-workspace selection in a
+  verified user store and resolve it at the launcher/config boundary before
+  agent construction. Never treat a failed or absent persistence path as a
+  successful selection, and never silently fall back from invalid stored data.
+
 - Failure mode: Boss/orchestrator making direct code edits for dev-infra/config (scripts, Makefile, opencode configs). Root cause: cultural shortcut and lack of process enforcement.
   Preventive action: HARD RULE added to boss_append.md requiring the boss to dispatch @coder for dev-infra and config edits; Change Routing table added. Educate team on the rule during onboarding and code review.
 

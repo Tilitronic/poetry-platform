@@ -2995,3 +2995,18 @@ verification evidence (DIA-260909-csds, 2026-09-09)
 - Reusable rule: durable registry counters require the shared writer lock; active compact projections are not byte-identical archive rows; legacy archives may repeat a `seq` within one source, so deduplicate source-aware and fail closed on conflicting payloads.
 - Runtime migration is complete only after checksum/manifest verification and a reader smoke test against the archived data.
 - Lane notes: an unsafe pre-fix test advanced the counter by one (a safe monotonic gap, with no JSONL loss); the original GREEN lane hit quota and required a recovery lane.
+
+## L20260916-gv9i-001 - Persist the selector where startup actually reads it (DIA-260916-gv9i, 2026-09-16)
+
+- A command can report a successful config write yet have no restart effect when
+  project configuration wins over the user layer. Trace the full next-process
+  read path before choosing a persistence location; selector ownership and
+  startup resolution must share one helper.
+- For workspace-scoped choices, canonical `realpath` keys are the smallest
+  identity that shares symlinked launches while keeping clones and moved
+  workspaces independent. Resolve `PRESET` first, stored selection second, and
+  no preset last; validate every non-empty value against the effective preset
+  registry.
+- Host/container launchers need an explicit bridge when user config is not
+  mounted. Keep the bridge private, pass only the already-resolved validated
+  value, and print effective value plus source so a restart failure is visible.

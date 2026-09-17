@@ -2102,3 +2102,35 @@ socketless container.
 
 - Created: 2026-08-27
 - Related: DIA-260827-36ht, DIA-189, openspec/changes/dia-260827-36ht-plugin-behavioral-gate/design.md D3, commit d91a1a6
+
+## ADR: Workspace-keyed preset selection and launch resolution
+
+### Decision
+
+Preset selection is stored in a user-owned map keyed by the workspace
+canonical absolute path (`realpath`). The shared TypeScript helper owns
+canonicalization, locking, atomic replacement, validation, and post-write
+verification. Launch resolution is ordered `PRESET` override, stored workspace
+selection, then no preset; invalid explicit or stored values fail closed before
+agent setup. Selectors only schedule the next launch.
+
+### Rationale
+
+The former `/preset` path wrote a user config value while the project preset
+won after restart, so the choice became a silent no-op. A project-path key
+preserves independent clones while allowing symlinked paths to share a choice,
+without changing shared preset definitions or coupling repositories by remote
+identity. The explicit override is intentionally non-persistent so automation
+cannot silently alter future launches.
+
+### Consequences
+
+The host launcher must bridge a stored value into the container because the
+user config directory is not mounted there. Startup reports the effective
+preset and source, and stale or corrupt state remains diagnosable instead of
+falling back to an unintended routing profile.
+
+### Metadata
+
+- Created: 2026-09-16
+- Related: DIA-260916-gv9i, openspec/changes/workspace-preset-selection/

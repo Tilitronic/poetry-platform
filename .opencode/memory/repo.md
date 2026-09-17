@@ -394,3 +394,11 @@ Note: These are navigational facts to help future humans find the infra/test art
   F1 (TICKETS_DIR override), F2 (in-repo manifest), F3 (range scoping) all
   confirmed with targeted bats evidence. Before/after parity: 40/40 tests,
   full suite 638 ok, exit 0.
+
+- Workspace preset runtime boundary (DIA-260916-gv9i, 2026-09-16): the shared
+  selector implementation is `.opencode/oh-my-opencode-slim/src/config/workspace-preset.ts`;
+  its CLI adapter is `workspace-preset-cli.ts`. The host `Makefile` resolves
+  before invoking `dev-entrypoint.sh`, then bridges stored state with
+  `OPENCODE_WORKSPACE_PRESET` because the container does not mount the host
+  user config. The effective preset registry remains
+  `.opencode/oh-my-opencode-slim.jsonc`.

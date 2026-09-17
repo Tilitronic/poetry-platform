@@ -841,6 +841,12 @@ shelf:
     path: .opencode/memory/adr.md
     created: 2026-08-13
   specs:
+  - name: workspace-preset-selection
+    description: 'Implemented OpenSpec change for durable workspace-keyed preset selection. A shared TypeScript helper stores selections by canonical realpath with lock, atomic write, and re-read verification; launch precedence is PRESET override, stored selection, then no preset; invalid values fail closed before agent setup; selectors are next-launch only. Host Makefile resolution bridges stored state into the container and reports effective preset plus source.'
+    path: "openspec/changes/workspace-preset-selection/"
+    created: 2026-09-16
+    task_ref: DIA-260916-gv9i
+    status: implemented
   - name: context7-docs-pipeline
     description: 'OpenSpec change: fetches Context7 library documentation for monorepo
       workspace dependencies. Key-optional (dry-run without CONTEXT7_API_KEY), deduplicates
