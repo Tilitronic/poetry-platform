@@ -325,6 +325,8 @@
 | DIA-260916-ch3o | new Union Alpha 3 preset for next free week | scripts | Medium | OPEN | [DIA-260916-ch3o-new-union-alpha-3-preset-for-next-free-week.md](DIA-260916-ch3o-new-union-alpha-3-preset-for-next-free-week.md) |
 | DIA-260916-gv9i | preset change not applying after restart | scripts | Medium | OPEN | [DIA-260916-gv9i-preset-change-not-applying-after-restart.md](DIA-260916-gv9i-preset-change-not-applying-after-restart.md) |
 | DIA-260916-z5pf | Optimize archive-aware jsonl cross-check for bounded interactive latency | dev-infra | Medium | OPEN | [DIA-260916-z5pf-optimize-archive-aware-jsonl-cross-check-for-bounded-interactive-latency.md](DIA-260916-z5pf-optimize-archive-aware-jsonl-cross-check-for-bounded-interactive-latency.md) |
+| DIA-260917-2z0u | publish opencode infrastructure operational map | scripts | Medium | OPEN | [DIA-260917-2z0u-publish-opencode-infrastructure-operational-map.md](DIA-260917-2z0u-publish-opencode-infrastructure-operational-map.md) |
+| DIA-260917-jrph | de-hardcode escalated lane model names after promo openai-free ruling | scripts | Medium | OPEN | [DIA-260917-jrph-de-hardcode-escalated-lane-model-names-after-promo-openai-free-ruling.md](DIA-260917-jrph-de-hardcode-escalated-lane-model-names-after-promo-openai-free-ruling.md) |
 
 ## Status summary
 
@@ -333,7 +335,7 @@
 | Blocker  | 9     |
 | Critical | 17    |
 | Major    | 78    |
-| Medium   | 165   |
+| Medium   | 167   |
 | Minor    | 1     |
 | Low      | 31    |
 | Info     | 2     |
@@ -341,7 +343,7 @@
 
 | Status      | Count |
 | ----------- | ----- |
-| OPEN        | 70    |
+| OPEN        | 72    |
 | DONE        | 11    |
 | VALIDATE    | 0     |
 | E2E         | 0     |
