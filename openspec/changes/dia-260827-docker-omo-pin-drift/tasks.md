@@ -3,11 +3,13 @@
 - [ ] 1.1 Change `oh-my-opencode-slim@2.2.14` to `oh-my-opencode-slim@2.2.19`
       in the `plugin` array of `tools/opencode-docker/config/opencode.json`
       (line 25). Touch nothing else: no MCP edits, no preset block, no key
-      reorder, no formatting churn. **Acceptance:** `git diff --stat` shows one
-      implementation file, one line (ticket-ledger bookkeeping excluded); `jq -re '.plugin[] | select(test("^oh-my-opencode-slim@"))'
+      reorder, no formatting churn. **Acceptance:** `git diff --stat` shows TWO
+      hunks as the norm - one implementation hunk (one file, one line: the
+      pin bump) PLUS one ticket-ledger bookkeeping hunk (gate/evidence
+      update); `jq -re '.plugin[] | select(test("^oh-my-opencode-slim@"))'
 tools/opencode-docker/config/opencode.json` outputs exactly
-      `oh-my-opencode-slim@2.2.19`. Scope guard: diff introducing any other
-      hunk fails review. **Blocks:** 2.1.
+      `oh-my-opencode-slim@2.2.19`. Scope guard: a third hunk of any kind
+      fails review. **Blocks:** 2.1.
 
 ## 2. Validation gates (existing seams)
 
