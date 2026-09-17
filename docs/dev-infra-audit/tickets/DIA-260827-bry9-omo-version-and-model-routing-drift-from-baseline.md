@@ -17,7 +17,7 @@ discovered: 2026-08-27
 source: test-lane
 date: 2026-08-27
 created: 2026-08-27
-updated: 2026-08-27
+updated: 2026-09-17
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -51,3 +51,13 @@ Remove the global root model and overlapping agent/model blocks from the project
 ## Re-verify
 
 > To be filled at re-verify time.
+
+## Update 2026-09-17 (re-review cycle 1, docker pin stopgap)
+
+- Standalone pin bumped: tools/opencode-docker/config/opencode.json
+  oh-my-opencode-slim@2.2.14 -> oh-my-opencode-slim@2.2.19 (commit 1012e25).
+- Load evidence (dry-run install of the exact pin read from the config,
+  npm install --dry-run --no-save oh-my-opencode-slim@2.2.19, exit 0):
+  evidence line "add oh-my-opencode-slim 2.2.19" ("added 175 packages in 4s",
+  no resolve error). Resolver output ASCII-only; allow-scripts warnings are
+  pre-existing postinstall notices, not errors.
