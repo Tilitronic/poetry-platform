@@ -105,7 +105,14 @@ Failed-loop lessons & preventive actions
     1. When changing model assignments, always verify model IDs against the provider's live model catalog (models.dev or vendor model card) before committing. Do not rely on learnings or memory claims about availability unless a verification date and source are recorded.
     2. When patching a single preset, perform a preset-resolution check: enumerate all presets, the ACTIVE preset, and any preset-alias resolution chain to ensure no stale model IDs remain as primary or fallback.
     3. Add a post-restart smoke step to the change checklist that performs a dry-launch of critical agents (observer, orchestrator) and fails fast on "Model not found" errors.
-  Cross-reference: lessons.md entry about model metadata verification and campaign registration pattern.
+   Cross-reference: lessons.md entry about model metadata verification and campaign registration pattern.
+   Occurrence 2026-09-17 (DIA-260827-bry9): bare `deepseek-v4.1-flash` (no
+   provider prefix) surfaced as "Model not found" on the architector lane;
+   root cause was a phantom zen binding (model is Go-exclusive). Fixed by
+   prefixing 4 bindings with `opencode-go/` + registry entry (commit 98d6fae).
+   Same class, same preventive actions; see the dated learnings file
+   `.opencode/learnings/external-patterns/2026-09-17-deepseek-v41-flash-naming-gate.md`
+   for the catalog evidence (verify-on-use: Go-exclusive status rots).
 
 
 - Failure mode (2026-08-10): cod-4 silent-empty result (docs/registration lane)
