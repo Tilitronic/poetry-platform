@@ -4795,3 +4795,11 @@
   summary: Union Alpha first in 9-lane promo preset
   verification: manual
   area: config
+- date: '2026-09-17'
+  ticket: DIA-260917-knz2
+  scope: promo-preset
+  files:
+  - .opencode/opencode.jsonc
+  summary: Preset fork promo vs promo-union-alpha, promo stripped of union-alpha
+  verification: manual
+  area: config

@@ -1133,3 +1133,9 @@
 - **Change:** Union Alpha first in 9-lane promo preset
 - **Files:** scripts/promo-preset-apply - .opencode/oh-my-opencode-slim.jsonc - .opencode/promo-registry.json
 - **Verification:** manual
+
+## 2026-09-17 - DIA-260917-knz2: promo-preset
+
+- **Change:** Preset fork promo vs promo-union-alpha, promo stripped of union-alpha
+- **Files:** .opencode/opencode.jsonc
+- **Verification:** manual
