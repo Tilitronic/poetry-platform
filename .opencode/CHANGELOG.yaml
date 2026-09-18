@@ -4829,9 +4829,7 @@
   - Makefile
   - preset-switching.md
   summary: 'DIA-260918-yug6 preset free switching fails after make preset: durable
-    project-local preset store plus loud degrade plus doctor single owner plus lock
-    removal plus bridge telemetry plus docs; project default muse-balanced now active
-    via tier 4 (was silently none)'
+    store plus degrade plus docs'
   verification: 'make test-omo exit 0 (1409 pass 0 fail, tsc clean); make test-config
     exit 0'
   area: oh-my-opencode-slim

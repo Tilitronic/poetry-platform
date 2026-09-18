@@ -1148,6 +1148,6 @@
 
 ## 2026-09-18 - DIA-260918-yug6: oh-my-opencode-slim
 
-- **Change:** DIA-260918-yug6 preset free switching fails after make preset: durable project-local preset store plus loud degrade plus doctor single owner plus lock removal plus bridge telemetry plus docs; project default muse-balanced now active via tier 4 (was silently none)
+- **Change:** DIA-260918-yug6 preset free switching fails after make preset: durable store plus degrade plus docs
 - **Files:** workspace-preset.ts - loader.ts - workspace-preset-cli.ts - doctor.ts - Makefile - preset-switching.md
 - **Verification:** make test-omo exit 0 (1409 pass 0 fail, tsc clean); make test-config exit 0
