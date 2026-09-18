@@ -39,13 +39,16 @@ run_make() {
   assert_output_contains "make presets"
 }
 
-@test "Makefile forwards the override via -e PRESET and drops a stale bridge" {
+@test "Makefile forwards the override via -e PRESET and has no second path" {
   assert_file_contains "$MAKEFILE" '-e PRESET='
-  assert_file_contains "$MAKEFILE" 'unset OPENCODE_WORKSPACE_PRESET'
   assert_file_contains "$MAKEFILE" 'presets:'
+  if grep -qF "OPENCODE_WORKSPACE_PRESET" "$MAKEFILE"; then
+    echo "Makefile must not reference the dropped bridge" >&2
+    return 1
+  fi
 }
 
-@test "explicit PRESET beats a stale OPENCODE_WORKSPACE_PRESET bridge" {
+@test "a stale OPENCODE_WORKSPACE_PRESET export is ignored, PRESET wins by being the only path" {
   run env XDG_CONFIG_HOME="$BATS_TEST_TMPDIR/config-$BATS_TEST_NUMBER" \
     COMPOSE_ENGINE=docker COMPOSE_OS=native \
     OPENCODE_WORKSPACE_PRESET=openai-first-cost-balanced \
@@ -55,6 +58,19 @@ run_make() {
   assert_output_contains "PRESET override"
   assert_output_not_contains "openai-first-cost-balanced"
   grep -qF "PRESET=free" "$FAKE_DOCKER_LOG"
+}
+
+@test "bare make opencode forwards no override even with a stale bridge exported" {
+  run env XDG_CONFIG_HOME="$BATS_TEST_TMPDIR/config-$BATS_TEST_NUMBER" \
+    COMPOSE_ENGINE=docker COMPOSE_OS=native \
+    OPENCODE_WORKSPACE_PRESET=openai-first-cost-balanced \
+    make -C "$REPO_ROOT" opencode
+  assert_status 0
+  assert_output_contains "no override"
+  if grep -qF "PRESET=" "$FAKE_DOCKER_LOG"; then
+    echo "bare make opencode must forward no PRESET override" >&2
+    return 1
+  fi
 }
 
 @test "unknown PRESET fails loudly with the available list before container setup" {

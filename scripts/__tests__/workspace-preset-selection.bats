@@ -50,8 +50,36 @@ HELPER="$REPO_ROOT/scripts/presets.py"
   assert_output_contains "usage"
 }
 
-@test "helper uses stdlib only (no third-party imports)" {
+@test "helper uses stdlib only (plus the single-owner sibling stripper)" {
   run grep -E "^import |^from [A-Za-z]" "$HELPER"
   assert_status 0
-  [ "$(printf '%s\n' "$output" | grep -cvE '^import (json|os|sys)$')" -eq 0 ]
+  [ "$(printf '%s\n' "$output" | grep -cvE '^import (json|os|sys)$|^from jsonc_strip import strip_jsonc([[:space:]]|$)')" -eq 0 ]
+}
+
+@test "fail-closed on missing registry" {
+  run env PRESETS_JSONC="$BATS_TEST_TMPDIR/does-not-exist.jsonc" python3 "$HELPER" list
+  assert_status 1
+}
+
+@test "fail-closed on corrupt registry" {
+  printf '{not valid jsonc,,,\n' > "$BATS_TEST_TMPDIR/corrupt.jsonc"
+  run env PRESETS_JSONC="$BATS_TEST_TMPDIR/corrupt.jsonc" python3 "$HELPER" list
+  assert_status 1
+}
+
+@test "fail-closed on empty registry and on missing presets key" {
+  : > "$BATS_TEST_TMPDIR/empty.jsonc"
+  run env PRESETS_JSONC="$BATS_TEST_TMPDIR/empty.jsonc" python3 "$HELPER" list
+  assert_status 1
+  printf '{"other": {}}\n' > "$BATS_TEST_TMPDIR/no-key.jsonc"
+  run env PRESETS_JSONC="$BATS_TEST_TMPDIR/no-key.jsonc" python3 "$HELPER" check free
+  assert_status 1
+  assert_output_contains "no presets key"
+}
+
+@test "stripper keeps URL slashes and apostrophes (double-quote strings only)" {
+  printf '{"presets": {"it'"'"'s-free": {}, "free": {}}, "url": "https://example.com/x"} // trailing\n' > "$BATS_TEST_TMPDIR/apos.jsonc"
+  run env PRESETS_JSONC="$BATS_TEST_TMPDIR/apos.jsonc" python3 "$HELPER" list
+  assert_status 0
+  assert_output_contains "free"
 }

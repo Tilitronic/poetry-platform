@@ -45,12 +45,11 @@ There is no store file anymore and nothing in the repo writes one.
 
 ## Troubleshooting
 
-An explicit PRESET always beats the stale bridge: the `opencode` recipe
-unsets `OPENCODE_WORKSPACE_PRESET` in its shell whenever PRESET is set, and
-forwards only `-e PRESET=<resolved>` into the container (clearing
-`-e OPENCODE_WORKSPACE_PRESET=`), so a stale host value never reaches the
-runtime. If your interactive shell still exports a stale bridge value from
-an old session, clear it once:
+There is no second path: the `opencode` recipe reads only `PRESET` and
+forwards only `-e PRESET=<name>` into the container. A stale
+`OPENCODE_WORKSPACE_PRESET` export lingering in your interactive shell from
+an old session is never read and never forwarded, so it cannot affect the
+launch. Clear it once to avoid confusion:
 
     unset OPENCODE_WORKSPACE_PRESET
 

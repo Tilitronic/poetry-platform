@@ -55,27 +55,23 @@ shell:
 # Single-path preset launch (DIA-260918-vsq8): `make opencode PRESET=<name>`
 # is the only override path - one-run, nothing persisted, no OMO source
 # involved (registry read is scripts/presets.py, python3 stdlib only, so the
-# Makefile stays on the clean npm track). Precedence mirrors the old resolver
-# order: explicit PRESET beats the stale OPENCODE_WORKSPACE_PRESET bridge,
-# which is honored only as a fallback when PRESET is unset (and is unset in
-# the recipe shell once PRESET is set, so it cannot leak back in). An unknown
-# name fails loudly with the available list before any container setup (the
-# nonzero recipe exit surfaces as make exit 2). Only -e PRESET= is forwarded
-# into the container; the bridge is cleared (-e OPENCODE_WORKSPACE_PRESET=)
-# so a stale host value never reaches the runtime. Bare `make opencode`
-# forwards nothing and the runtime preset field applies.
+# Makefile stays on the clean npm track). There is no second path: the recipe
+# reads only PRESET - any stale workspace-bridge export lingering in the host
+# environment from an old session is simply ignored, never forwarded. An
+# unknown name fails loudly with the available list before any container
+# setup (the recipe maps the helper exit to an explicit exit 2). Only
+# -e PRESET= is forwarded into the container; bare `make opencode` forwards
+# nothing and the runtime preset field applies.
 opencode:
 	@preset_override="$(PRESET)"; \
-	if [ -n "$$preset_override" ]; then unset OPENCODE_WORKSPACE_PRESET; fi; \
-	resolved="$$preset_override"; source="PRESET override"; \
-	if [ -z "$$resolved" ]; then resolved="$${OPENCODE_WORKSPACE_PRESET:-}"; source="OPENCODE_WORKSPACE_PRESET bridge"; fi; \
-	if [ -z "$$resolved" ]; then source="none"; fi; \
-	if [ -n "$$resolved" ]; then \
-		python3 scripts/presets.py check "$$resolved" >/dev/null || exit 1; \
-		printf 'Effective preset: %s (source: %s)\n' "$$resolved" "$$source"; \
-		$(COMPOSE) exec -it --user root -e PRESET="$$resolved" -e OPENCODE_WORKSPACE_PRESET= dev /usr/local/bin/dev-entrypoint.sh opencode; \
+	if [ -n "$$preset_override" ]; then \
+		python3 scripts/presets.py check "$$preset_override" >/dev/null || exit 2; \
+		preset_source="PRESET override"; \
+		printf 'Effective preset: %s (source: %s)\n' "$$preset_override" "$$preset_source"; \
+		$(COMPOSE) exec -it --user root -e PRESET="$$preset_override" dev /usr/local/bin/dev-entrypoint.sh opencode; \
 	else \
-		printf 'Effective preset: no override (source: none; runtime preset field applies)\n'; \
+		preset_source="none"; \
+		printf 'Effective preset: no override (source: %s; runtime preset field applies)\n' "$$preset_source"; \
 		$(COMPOSE) exec -it --user root dev /usr/local/bin/dev-entrypoint.sh opencode; \
 	fi
 

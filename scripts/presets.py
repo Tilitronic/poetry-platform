@@ -12,90 +12,61 @@ Usage:
   presets.py check <name>    exit 0 if <name> is a registry key, else print
                              "Available presets: ..." to stderr and exit 1
 
-Any JSONC parse failure fails closed (stderr + exit 1) before container setup.
+Any registry failure (missing file, malformed JSONC, missing presets key)
+fails closed via RegistryError, mapped to stderr plus exit 1.
+
+Test seam: PRESETS_JSONC overrides the config path (used by bats fixtures).
 """
 import json
 import os
 import sys
 
-CONFIG = os.path.join(
-    os.path.dirname(os.path.abspath(__file__)),
-    "..",
-    ".opencode",
-    "oh-my-opencode-slim.jsonc",
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+from jsonc_strip import strip_jsonc  # noqa: E402
+
+CONFIG = os.environ.get("PRESETS_JSONC") or os.path.normpath(
+    os.path.join(
+        os.path.dirname(os.path.abspath(__file__)),
+        "..",
+        ".opencode",
+        "oh-my-opencode-slim.jsonc",
+    )
 )
 
 
-def strip_jsonc(src):
-    """Char-level JSONC comment/trailing-comma stripper (string-aware).
-
-    Same shape as the stripper in scripts/check-orchestrator-prompt-drift.sh:
-    // and /* */ comments are dropped only outside string literals, trailing
-    commas before } or ] are dropped. URLs survive because a '/' inside a
-    string never enters comment-scanning.
-    """
-    out = []
-    i = 0
-    n = len(src)
-    in_string = None
-    while i < n:
-        c = src[i]
-        nxt = src[i + 1] if i + 1 < n else ""
-        if in_string:
-            out.append(c)
-            if c == "\\":
-                i += 1
-                if i < n:
-                    out.append(src[i])
-            elif c == in_string:
-                in_string = None
-            i += 1
-            continue
-        if c in "\"'":
-            in_string = c
-            out.append(c)
-            i += 1
-            continue
-        if c == "/" and nxt == "/":
-            while i < n and src[i] != "\n":
-                i += 1
-            continue
-        if c == "/" and nxt == "*":
-            i += 2
-            while i + 1 < n and not (src[i] == "*" and src[i + 1] == "/"):
-                i += 1
-            i += 2
-            continue
-        if c == ",":
-            j = i + 1
-            while j < n and src[j].isspace():
-                j += 1
-            if j < n and src[j] in "}]":
-                i += 1
-                continue
-        out.append(c)
-        i += 1
-    return "".join(out)
+class RegistryError(Exception):
+    """Raised when the preset registry cannot be loaded (missing file,
+    malformed JSONC, or missing presets key)."""
 
 
 def load_names():
     try:
         with open(CONFIG, encoding="utf-8") as f:
             data = json.loads(strip_jsonc(f.read()))
-    except Exception as exc:
-        print("preset registry parse failed: %s" % exc, file=sys.stderr)
-        sys.exit(1)
-    presets = data.get("presets") or {}
-    return sorted(presets)
+    except (OSError, ValueError) as exc:
+        raise RegistryError("preset registry unreadable: %s" % exc)
+    if not isinstance(data, dict) or not isinstance(data.get("presets"), dict):
+        raise RegistryError("preset registry has no presets key: %s" % CONFIG)
+    return sorted(data["presets"])
 
 
 def main(argv):
     if argv == ["list"]:
-        for name in load_names():
+        try:
+            names = load_names()
+        except RegistryError as exc:
+            print(exc, file=sys.stderr)
+            return 1
+        for name in names:
             print(name)
         return 0
     if len(argv) == 2 and argv[0] == "check":
-        names = load_names()
+        try:
+            names = load_names()
+        except RegistryError as exc:
+            print(exc, file=sys.stderr)
+            return 1
         if argv[1] not in names:
             print(
                 'Unknown preset "%s". Available presets: %s'
