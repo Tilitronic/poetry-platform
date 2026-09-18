@@ -8,7 +8,6 @@ import {
   setActiveRuntimePreset,
 } from '../config/runtime-preset';
 import {
-  getWorkspacePresetStorePath,
   readWorkspacePreset,
   saveWorkspacePreset,
 } from '../config/workspace-preset';
@@ -143,36 +142,7 @@ describe('createPresetManager', () => {
       );
 
       const text = getOutputText(output);
-      expect(text).toContain('cheap <- stored');
-    });
-
-    test('/preset none clears the stored selection without touching runtime', async () => {
-      const ctx = createMockContext();
-      const config: PluginConfig = {
-        presets: {
-          cheap: { orchestrator: { model: 'anthropic/claude-3.5-haiku' } },
-        },
-      };
-      saveWorkspacePreset(tempDir, 'cheap');
-      const manager = createPresetManager(ctx, config);
-
-      const cleared = createOutput();
-      await manager.handleCommandExecuteBefore(
-        { command: 'preset', sessionID: 's1', arguments: 'none' },
-        cleared,
-      );
-
-      expect(getOutputText(cleared)).toContain('Cleared preset');
-      expect(readWorkspacePreset(tempDir)).toBeNull();
-      expect(ctx.client.config.update).not.toHaveBeenCalled();
-
-      const listed = createOutput();
-      await manager.handleCommandExecuteBefore(
-        { command: 'preset', sessionID: 's1', arguments: '' },
-        listed,
-      );
-      expect(getOutputText(listed)).toContain('Stored selection: none');
-      expect(getOutputText(listed)).not.toContain('<- stored');
+      expect(text).toContain('cheap ← stored');
     });
 
     test('shows no-presets message when none configured', async () => {
@@ -652,7 +622,7 @@ describe('createPresetManager', () => {
         { command: 'preset', sessionID: 's1', arguments: '' },
         output2,
       );
-      expect(getOutputText(output2)).toContain('cheap <- stored');
+      expect(getOutputText(output2)).toContain('cheap ← stored');
 
       // Switch to powerful
       const output3 = createOutput();
@@ -668,37 +638,10 @@ describe('createPresetManager', () => {
         { command: 'preset', sessionID: 's1', arguments: '' },
         output4,
       );
-      expect(getOutputText(output4)).toContain('powerful <- stored');
+      expect(getOutputText(output4)).toContain('powerful ← stored');
 
       // Cleanup module state
       setActiveRuntimePreset(null);
-    });
-  });
-
-  describe('project-local store', () => {
-    test('saves into <projectRoot>/.opencode/state/workspace-preset.json', async () => {
-      const ctx = createMockContext();
-      const config: PluginConfig = {
-        presets: {
-          cheap: { orchestrator: { model: 'anthropic/claude-3.5-haiku' } },
-        },
-      };
-      const manager = createPresetManager(ctx, config);
-      const output = createOutput();
-
-      await manager.handleCommandExecuteBefore(
-        { command: 'preset', sessionID: 's1', arguments: 'cheap' },
-        output,
-      );
-
-      expect(getOutputText(output)).toContain('Saved preset "cheap"');
-      expect(getWorkspacePresetStorePath(tempDir)).toBe(
-        path.join(tempDir, '.opencode', 'state', 'workspace-preset.json'),
-      );
-      const stored = JSON.parse(
-        fs.readFileSync(getWorkspacePresetStorePath(tempDir), 'utf-8'),
-      );
-      expect(stored).toEqual({ version: 2, preset: 'cheap' });
     });
   });
 
@@ -872,7 +815,7 @@ describe('createPresetManager', () => {
       );
 
       const text = getOutputText(output);
-      expect(text).toContain('cheap <- stored');
+      expect(text).toContain('cheap ← stored');
       expect(text).toContain('powerful');
 
       // Cleanup

@@ -4818,18 +4818,3 @@
     inventory with promo-union-alpha + free explicitly unaudited'
   verification: manual
   area: config
-- date: '2026-09-18'
-  ticket: DIA-260918-yug6
-  scope: oh-my-opencode-slim
-  files:
-  - workspace-preset.ts
-  - loader.ts
-  - workspace-preset-cli.ts
-  - doctor.ts
-  - Makefile
-  - preset-switching.md
-  summary: 'DIA-260918-yug6 preset free switching fails after make preset: durable
-    store plus degrade plus docs'
-  verification: 'make test-omo exit 0 (1409 pass 0 fail, tsc clean); make test-config
-    exit 0'
-  area: oh-my-opencode-slim

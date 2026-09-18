@@ -51,7 +51,7 @@ const config: PluginConfig = {
   },
 };
 
-describe('project-local preset selection', () => {
+describe('workspace-keyed preset selection', () => {
   let tempDir: string;
   let originalEnv: typeof process.env;
 
@@ -150,7 +150,7 @@ describe('project-local preset selection', () => {
     const workspace = path.join(tempDir, 'workspace');
     fs.mkdirSync(workspace);
     saveWorkspacePreset(workspace, 'cheap');
-    const storePath = getWorkspacePresetStorePath(workspace);
+    const storePath = getWorkspacePresetStorePath();
     const originalRead = fs.readFileSync.bind(fs) as (...args: any[]) => any;
     let storeReads = 0;
     const read = spyOn(fs, 'readFileSync').mockImplementation(((
@@ -158,10 +158,11 @@ describe('project-local preset selection', () => {
       options?: any,
     ) => {
       const value = originalRead(filePath, options);
-      // Save no longer pre-reads (self-heal): the readback verify is the
-      // first store read, so poison it to simulate a torn write.
-      if (String(filePath) === storePath && storeReads++ === 0) {
-        return JSON.stringify({ version: 2, preset: 'cheap' });
+      if (String(filePath) === storePath && storeReads++ === 1) {
+        return JSON.stringify({
+          version: 1,
+          workspaces: { [fs.realpathSync(workspace)]: 'cheap' },
+        });
       }
       return value;
     }) as any);
@@ -182,34 +183,6 @@ describe('project-local preset selection', () => {
       read.mockRestore();
     }
     expect(readWorkspacePreset(workspace)).toBe('durable');
-  });
-
-  test('shares one project-local store between the root and a subdirectory', async () => {
-    const project = path.join(tempDir, 'project');
-    const subdir = path.join(project, 'packages', 'nested');
-    fs.mkdirSync(subdir, { recursive: true });
-    fs.mkdirSync(path.join(project, '.opencode'));
-
-    const manager = createPresetManager(createContext(project), config);
-    const saved = createOutput();
-    await manager.handleCommandExecuteBefore(
-      { command: 'preset', sessionID: 's1', arguments: 'durable' },
-      saved,
-    );
-    expect(outputText(saved)).toContain('durable');
-
-    const fromSubdir = createOutput();
-    await createPresetManager(
-      createContext(subdir),
-      config,
-    ).handleCommandExecuteBefore(
-      { command: 'preset', sessionID: 's2', arguments: '' },
-      fromSubdir,
-    );
-    expect(outputText(fromSubdir)).toContain('Stored selection: durable');
-    expect(getWorkspacePresetStorePath(subdir)).toBe(
-      getWorkspacePresetStorePath(project),
-    );
   });
 
   test('rejects an unknown slash-command preset without changing session state', async () => {

@@ -3,11 +3,7 @@ import * as path from 'node:path';
 import { stripJsonComments } from '../cli/config-io';
 import { getConfigSearchDirs } from '../cli/paths';
 import { type PluginConfig, PluginConfigSchema } from './schema';
-import {
-  findProjectRoot,
-  resolveWorkspacePreset,
-  type WorkspacePresetResolution,
-} from './workspace-preset';
+import { resolveWorkspacePreset } from './workspace-preset';
 
 /**
  * Warning kinds produced during config loading.
@@ -165,33 +161,29 @@ function findConfigPathInDirs(
 /**
  * Find plugin config paths (user and project) for a given directory.
  * User config uses getConfigSearchDirs() for lookup.
- * Project config walks up to the project root (nearest ancestor with
- * `.opencode` or `.git`) so sub directory launches see the same registry.
+ * Project config uses <directory>/.opencode/oh-my-opencode-slim.
  *
  * @param directory - Project directory to search for .opencode config
- * @returns Object with userConfigPath, projectConfigPath (null if not
- * found) and the resolved projectRoot
+ * @returns Object with userConfigPath and projectConfigPath (null if not found)
  */
 export function findPluginConfigPaths(directory: string): {
   userConfigPath: string | null;
   projectConfigPath: string | null;
-  projectRoot: string;
 } {
   const userConfigPath = findConfigPathInDirs(
     getConfigSearchDirs(),
     'oh-my-opencode-slim',
   );
 
-  const projectRoot = findProjectRoot(directory);
   const projectConfigBasePath = path.join(
-    projectRoot,
+    directory,
     '.opencode',
     'oh-my-opencode-slim',
   );
 
   const projectConfigPath = findConfigPath(projectConfigBasePath);
 
-  return { userConfigPath, projectConfigPath, projectRoot };
+  return { userConfigPath, projectConfigPath };
 }
 
 /**
@@ -297,49 +289,18 @@ export function loadPluginConfig(
   // Migrate legacy tmux config to multiplexer config for backward compatibility
   config = migrateTmuxToMultiplexer(config);
 
-  // Single five-tier resolution (DIA-260918-yug6): the merged config `preset`
-  // field is the declaredDefault fallback tier, honored only when no louder
-  // tier (PRESET override, deprecated bridge, project-local store) selects.
-  // Degrade, never fatal (F2): a contradictory selection warns loudly with
-  // source + value + root + store path + available, then the launch
-  // continues with no preset instead of FATAL init failure.
-  const declaredDefault =
-    config.preset && config.preset.trim() !== '' ? config.preset : undefined;
-  let resolution: WorkspacePresetResolution;
-  try {
-    resolution = resolveWorkspacePreset(
-      directory,
-      config.presets,
-      process.env.PRESET,
-      declaredDefault,
-    );
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    console.warn(
-      `[oh-my-opencode-slim] Preset selection failed, continuing with no preset: ${message}`,
-    );
-    resolution = {
-      name: null,
-      source: 'none',
-      workspace: findProjectRoot(directory),
-    };
-  }
+  // The workspace store is the only persistent selector. The legacy config
+  // `preset` field remains part of the registry format but is not used as a
+  // hidden fallback: an absent selection must mean no preset.
+  const resolution = resolveWorkspacePreset(directory, config.presets);
   if (resolution.name) {
     config.preset = resolution.name;
     config.agents = deepMerge(config.presets?.[resolution.name], config.agents);
   } else {
     delete config.preset;
   }
-  const sourceLabel =
-    resolution.source === 'override'
-      ? 'PRESET override'
-      : resolution.source === 'declared'
-        ? 'config preset'
-        : resolution.source === 'bridge'
-          ? 'bridge (deprecated)'
-          : resolution.source;
   console.log(
-    `[oh-my-opencode-slim] Effective preset: ${resolution.name ?? 'no preset'} (source: ${sourceLabel})`,
+    `[oh-my-opencode-slim] Effective preset: ${resolution.name ?? 'no preset'} (source: ${resolution.source === 'override' ? 'PRESET override' : resolution.source})`,
   );
 
   // Normalize companion config defaults

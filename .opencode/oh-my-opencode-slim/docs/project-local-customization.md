@@ -36,23 +36,12 @@ When oh-my-opencode-slim loads, it resolves configuration properties and prompt 
        ↓ (overridden by)
 [Project Config] (local repository)
        ↓ (overridden by)
-[Preset selection] (five tiers, first hit wins — see Preset Switching)
-  1. PRESET env override (one-run environment override)
-  2. OPENCODE_WORKSPACE_PRESET bridge (deprecated, read-only)
-  3. Project-local store (.opencode/state/workspace-preset.json)
-  4. Config `preset` field (declared project default)
-  5. None
+[PRESET Override] (one-run environment override)
        ↓ (merged into agents)
 [Active Preset] (merges preset-specific agent options)
        ↓ (overridden by)
 [Root Config agents.*] (individual agent configs beat preset configurations)
 ```
-
-The active preset is a launch-time selection, not a live switch: `/preset`
-and `make preset` save into the project-local store for the next launch.
-Contradictory selections warn loudly and degrade to no preset instead of
-failing startup. Full behavior, including the launch-path matrix, lives in
-[Preset Switching](preset-switching.md).
 
 ### Note on Root Overrides vs Presets
 The root `agents.*` configuration (defined at the top level of user or project config) always takes precedence over the active preset configurations. To override a root agent choice globally, you must specify the override in the project-level root `agents.*` rather than inside a local preset configuration alone.

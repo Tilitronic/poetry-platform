@@ -1,17 +1,12 @@
 import { deepMerge, findPluginConfigPaths, loadConfigFromPath } from './loader';
 import type { Preset } from './schema';
 import {
-  clearWorkspacePreset,
-  getWorkspacePresetStorePath,
   readWorkspacePreset,
   resolveWorkspacePreset,
   saveWorkspacePreset,
 } from './workspace-preset';
 
-function configuredRegistry(directory: string): {
-  presets: Record<string, Preset>;
-  declaredDefault: string | undefined;
-} {
+function configuredPresets(directory: string): Record<string, Preset> {
   const { userConfigPath, projectConfigPath } =
     findPluginConfigPaths(directory);
   const loadRegistry = (configPath: string | null) => {
@@ -30,25 +25,15 @@ function configuredRegistry(directory: string): {
   };
   const user = loadRegistry(userConfigPath);
   const project = loadRegistry(projectConfigPath);
-  const presets = deepMerge(user?.presets, project?.presets) ?? {};
-  // Project wins for the declared default, mirroring mergePluginConfigs.
-  const declaredDefault =
-    (project?.preset?.trim() ? project.preset : undefined) ??
-    (user?.preset?.trim() ? user.preset : undefined);
-  return { presets, declaredDefault };
+  return deepMerge(user?.presets, project?.presets) ?? {};
 }
 
 function formatError(error: unknown): string {
-  if (error instanceof Error) {
-    const cause =
-      error.cause instanceof Error ? `: ${error.cause.message}` : '';
-    return `${error.message}${cause}`;
-  }
-  return String(error);
+  return error instanceof Error ? error.message : String(error);
 }
 
-export function runCli(args: string[]): number {
-  const [command, directory, argument = ''] = args;
+function main(): number {
+  const [command, directory, argument = ''] = process.argv.slice(2);
   if (!command || !directory) {
     console.error(
       'usage: workspace-preset-cli.ts save|resolve WORKSPACE [NAME]',
@@ -57,20 +42,13 @@ export function runCli(args: string[]): number {
   }
 
   try {
-    const { presets, declaredDefault } = configuredRegistry(directory);
+    const presets = configuredPresets(directory);
     if (command === 'save') {
       if (!argument) {
         console.log(
           `Stored selection: ${readWorkspacePreset(directory) ?? 'none'}`,
         );
-        console.log('Usage: make preset NAME=NAME (NAME=none clears)');
-        return 0;
-      }
-      if (argument === 'none') {
-        const workspace = clearWorkspacePreset(directory);
-        console.log(
-          `Cleared preset for workspace ${workspace} (store: ${getWorkspacePresetStorePath(directory)}). Launches fall back to the declared default or no preset.`,
-        );
+        console.log('Usage: make preset NAME=NAME');
         return 0;
       }
       if (!Object.hasOwn(presets, argument)) {
@@ -80,18 +58,13 @@ export function runCli(args: string[]): number {
       }
       const workspace = saveWorkspacePreset(directory, argument);
       console.log(
-        `Saved preset "${argument}" for workspace ${workspace} (store: ${getWorkspacePresetStorePath(directory)}). It applies on the next launch only, on every launch path (make opencode, shell+opencode, direct, subdir).`,
+        `Saved preset "${argument}" for workspace ${workspace}. It applies on the next launch only.`,
       );
       return 0;
     }
 
     if (command === 'resolve') {
-      const resolution = resolveWorkspacePreset(
-        directory,
-        presets,
-        argument,
-        declaredDefault,
-      );
+      const resolution = resolveWorkspacePreset(directory, presets, argument);
       console.log(`${resolution.name ?? '-'} ${resolution.source}`);
       return 0;
     }
@@ -104,5 +77,5 @@ export function runCli(args: string[]): number {
 }
 
 if (import.meta.main) {
-  process.exitCode = runCli(process.argv.slice(2));
+  process.exitCode = main();
 }

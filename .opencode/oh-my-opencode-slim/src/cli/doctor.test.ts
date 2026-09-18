@@ -2,7 +2,6 @@ import { afterEach, beforeEach, describe, expect, spyOn, test } from 'bun:test';
 import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
-import { saveWorkspacePreset } from '../config/workspace-preset';
 import {
   doctor,
   formatJsonDoctorResult,
@@ -62,7 +61,6 @@ describe('runDoctorCheck', () => {
     delete process.env.OPENCODE_CONFIG_DIR;
     delete process.env.PRESET;
     delete process.env.OH_MY_OPENCODE_SLIM_PRESET;
-    delete process.env.OPENCODE_WORKSPACE_PRESET;
     process.env.XDG_CONFIG_HOME = path.join(tempDir, 'user-config');
   });
 
@@ -400,63 +398,6 @@ describe('runDoctorCheck', () => {
     expect(result.ok).toBe(true);
     expect(result.configs[1].path).toContain('.jsonc');
   });
-
-  test('stored project-local preset is reported', () => {
-    const projectDir = path.join(tempDir, 'project');
-    const configDir = path.join(projectDir, '.opencode');
-    fs.mkdirSync(configDir, { recursive: true });
-    fs.writeFileSync(
-      path.join(configDir, 'oh-my-opencode-slim.json'),
-      JSON.stringify({
-        presets: { stored: { oracle: { model: 'stored/model' } } },
-      }),
-    );
-
-    saveWorkspacePreset(projectDir, 'stored');
-    const result = runDoctorCheck(projectDir);
-
-    expect(result.ok).toBe(true);
-    expect(result.presetCheck).toEqual({ preset: 'stored', ok: true });
-  });
-
-  test('unknown stored preset fails the check', () => {
-    const projectDir = path.join(tempDir, 'project');
-    const configDir = path.join(projectDir, '.opencode');
-    fs.mkdirSync(configDir, { recursive: true });
-    fs.writeFileSync(
-      path.join(configDir, 'oh-my-opencode-slim.json'),
-      JSON.stringify({
-        presets: { other: { oracle: { model: 'other/model' } } },
-      }),
-    );
-
-    saveWorkspacePreset(projectDir, 'stale');
-    const result = runDoctorCheck(projectDir);
-
-    expect(result.ok).toBe(false);
-    expect(result.presetCheck?.ok).toBe(false);
-    expect(result.presetCheck?.preset).toBe('stale');
-  });
-
-  test('subdir run finds the project config', () => {
-    const projectDir = path.join(tempDir, 'project');
-    const configDir = path.join(projectDir, '.opencode');
-    fs.mkdirSync(configDir, { recursive: true });
-    fs.writeFileSync(
-      path.join(configDir, 'oh-my-opencode-slim.json'),
-      JSON.stringify({
-        preset: 'mypreset',
-        presets: { mypreset: { oracle: { model: 'test/model' } } },
-      }),
-    );
-    const subdir = path.join(projectDir, 'packages', 'nested');
-    fs.mkdirSync(subdir, { recursive: true });
-
-    const result = runDoctorCheck(subdir);
-
-    expect(result.ok).toBe(true);
-    expect(result.presetCheck).toEqual({ preset: 'mypreset', ok: true });
-  });
 });
 
 describe('doctor CLI wrapper', () => {
@@ -483,7 +424,6 @@ describe('doctor CLI wrapper', () => {
     delete process.env.OPENCODE_CONFIG_DIR;
     delete process.env.PRESET;
     delete process.env.OH_MY_OPENCODE_SLIM_PRESET;
-    delete process.env.OPENCODE_WORKSPACE_PRESET;
     process.env.XDG_CONFIG_HOME = path.join(tempDir, 'user-config');
   });
 
