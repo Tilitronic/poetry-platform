@@ -2195,3 +2195,103 @@ explicitly overridden, not forgotten). Route non-sensitive lanes only.
 
 - Created: 2026-09-17
 - Related: DIA-260917-s95f, .opencode/promo-registry.json
+
+## ADR: Project-local workspace preset store (DIA-260918-yug6)
+
+### Decision
+
+Move workspace preset selection from the user-owned realpath-keyed map to a
+project-local store at `.opencode/state/workspace-preset.json` (schema v2,
+gitignored, machine-written). Single resolver with five tiers: (1) PRESET env
+override, (2) deprecated OPENCODE_WORKSPACE_PRESET bridge, (3) project store,
+(4) config preset, (5) none. Remove the silent none fallback; resolve the
+project root by walk-up to `.opencode` or `.git`; Makefile forwards only the
+PRESET override.
+
+### Rationale (irrecoverable context)
+
+- The 2026-09-16 user-owned map design assumed one key space, but host and
+  container compute different realpath identities for the same checkout, so
+  the same repo carries two divergent stores (split-brain). The only bridge
+  is the `make opencode` env forward, which every other launch path bypasses;
+  without it the container silently resolves to none/stale and the switch
+  never happens.
+- A project-local file rides the repo mount both sides already share, so one
+  write is visible to host and container with no per-launch bridge. Keeping
+  the deprecated bridge as tier 2 (not deleting it) keeps old launch paths
+  working during migration instead of breaking them on day one.
+- Walk-up root resolution (not CWD-exact match) closes the nested-worktree /
+  subdir-launch miss where a subdir CWD missed the project registry.
+
+### Consequences
+
+- `.opencode/state/` is gitignored runtime state: a fresh clone has no
+  selection and resolves to none until the user saves once. Do not treat an
+  absent store as an error.
+- Shipped as 3-commit chain bcb6f26 (store plus degrade plus docs) +
+  9cd078f (rev-1: Makefile degrade plus save self-heal plus preset none
+  plus ASCII plus scope slug) + e50c1de (narrow diff: hand-appended single
+  changelog entry scope oh-my-opencode-slim plus rendered MD; .scratch/
+  already root-gitignored so no err litter). Gates: test-omo 1409 pass
+  0 fail tsc clean, test-config exit 0, validate plus render exit 0,
+  pre-commit passed, host podman compose ps dev Up 3h postgres Up 3h,
+  resolve free stored root plus subdir. Reviews: ai-auditor re-review 8
+  of 10 closed F1 partial, reviewer rev-2 9 closed 2 partial (changelog
+  narrowed). Lane errors cod-3 cod-4 ai--1 cod-6 empty mitigated by
+  resume plus fresh-dispatch verify-first.
+
+### Metadata
+
+- Created: 2026-09-18
+- Amends: Workspace-keyed preset selection ADR (2026-09-16, DIA-260916-gv9i)
+- Related: DIA-260918-yug6, knowledge/ana-260918-6ac2-preset-free-switching/,
+  .opencode/learnings/external-patterns/2026-09-18-preset-workspace-bridge.md
+
+## ADR: Single-path preset launch, no fork (DIA-260918-vsq8)
+
+### Decision
+
+Launch preset flows through ONE path only: `make opencode PRESET=<name>`
+(validated one-run override, forwarded, forgotten). No store file exists
+and nothing writes one. `make preset NAME=...` is a deprecated stub that
+writes nothing and exits 2 pointing at the single path. Bare
+`make opencode` applies the runtime preset field from
+`.opencode/oh-my-opencode-slim.jsonc` and reports no override. Slash preset
+inside opencode is left as is with a docs warning only.
+
+### Rationale (irrecoverable context)
+
+- Stored selection was removed because a persisted value could diverge from
+  the explicit PRESET flag (user verbatim Q2). A store that disagrees with
+  the flag is worse than no store; explicit-per-launch wins over
+  durable-but-stale.
+- Revert rationale: commit 793d40b reverted the fork chain to the clean npm
+  track before building single-path (fe29b95d), so the shipped path carries
+  no fork delta. This ordering matters because a reviewer reading only the
+  final diff cannot tell the fork was tried and deliberately backed out.
+- No-fork rationale for slash (user decision Q3): changing slash preset
+  would fork OMO runtime behavior for an in-session convenience that the
+  single host-side path already covers. Docs warning is the whole fix.
+- Rev-3 reviewer findings forced the deletions: the OPENCODE_WORKSPACE_PRESET
+  bridge, the none fallback, and the quote/strip gaps all contradicted the
+  single-path contract and were dropped, not repaired.
+
+### Consequences
+
+- Preset list is `make presets`: free, muse-balanced,
+  openai-first-cost-balanced, promo-union-alpha (live set at ship time).
+- Invalid PRESET fails closed before launch; stale or corrupt state cannot
+  occur because there is no state to go stale.
+- Chain: 793d40b revert, fe29b95d single-path, 8690921 rev-3 fixes, d59e9fc
+  warning docs; archive openspec/changes/archive/2026-09-18-workspace-preset-selection/
+  with sync skipped; rev-4 re-review 9 of 9 verified-closed, 0 open,
+  0 partial, cycle 2/2.
+
+### Metadata
+
+- Created: 2026-09-18
+- Supersedes: Workspace-keyed preset selection ADR (2026-09-16, DIA-260916-gv9i)
+  and Project-local workspace preset store ADR (DIA-260918-yug6, same day)
+- Related: DIA-260918-vsq8, docs/dev-infra/preset-single-path.md,
+  scripts/presets.py, scripts/jsonc_strip.py,
+  scripts/__tests__/preset-single-path.bats

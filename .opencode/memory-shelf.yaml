@@ -820,6 +820,11 @@ shelf:
     path: knowledge/ana-260903-qh9y-plugin-test-debloat-audit/ana-260903-qh9y-plugin-test-debloat-audit-report.md
     created: 2026-09-03
     task_ref: DIA-260903-o7n0
+  - name: Preset Free Switching Failure Synthesis (ana-260918-6ac2)
+    description: "Synthesis analysis for DIA-260918-yug6: make preset NAME=free reports success but a later launch never activates free. Primary chain is host/container persistence split (HOST store under HOST identity vs CONTAINER re-resolve under a different identity, one narrow make-opencode env bridge, silent none/stale fallback). S5 catalog-defect REFUTED; residual free risk reframed as Zen/auth activation risk. Shipped as bcb6f26 + 9cd078f + e50c1de narrow diff (single changelog entry scope oh-my-opencode-slim, rendered MD); gates test-omo 1409 pass test-config exit 0; re-reviews 8 of 10 and 9 closed with partials; host podman dev Up postgres Up."
+    path: "knowledge/ana-260918-6ac2-preset-free-switching/ana-260918-6ac2-preset-free-switching-report.md"
+    created: 2026-09-18
+    task_ref: DIA-260918-yug6
   adrs:
   - name: Memory Storage Strategy
     description: 'Evaluation of Claude-Mem, Honcho, and current hand-written memory
@@ -842,11 +847,14 @@ shelf:
     created: 2026-08-13
   specs:
   - name: workspace-preset-selection
-    description: 'Implemented OpenSpec change for durable workspace-keyed preset selection. A shared TypeScript helper stores selections by canonical realpath with lock, atomic write, and re-read verification; launch precedence is PRESET override, stored selection, then no preset; invalid values fail closed before agent setup; selectors are next-launch only. Host Makefile resolution bridges stored state into the container and reports effective preset plus source.'
-    path: "openspec/changes/workspace-preset-selection/"
+    description: 'Superseded-archived 2026-09-18: durable workspace-keyed preset selection replaced by single-path contract (DIA-260918-vsq8). Prior 0/6 tasks will-not-do; stale gv9i SHALLs contradicted single-path. Source of truth docs/dev-infra/preset-single-path.md; archive holds proposal/design/tasks/specs plus ARCHIVE-NOTE.md.'
+    path: "openspec/changes/archive/2026-09-18-workspace-preset-selection/"
     created: 2026-09-16
-    task_ref: DIA-260916-gv9i
-    status: implemented
+    task_ref: DIA-260918-vsq8
+    status: superseded-archived
+    archive_to: "openspec/changes/archive/2026-09-18-workspace-preset-selection/"
+    reason: "single-path contract replaces stored selection (DIA-260918-vsq8)"
+    prior: "DIA-260916-gv9i stale 0/6 will-not-do"
   - name: context7-docs-pipeline
     description: 'OpenSpec change: fetches Context7 library documentation for monorepo
       workspace dependencies. Key-optional (dry-run without CONTEXT7_API_KEY), deduplicates

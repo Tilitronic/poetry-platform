@@ -411,3 +411,29 @@ Note: These are navigational facts to help future humans find the infra/test art
   before the next promo touch, do not trust this date. Full enumeration
   (8 sources) is tracked in the DIA-260917-s95f ticket and its learnings
   file; this entry records only the single-variant outcome + expiry pointer.
+
+- Project-local preset store (DIA-260918-yug6, 2026-09-18): workspace preset
+  selection now lives at `.opencode/state/workspace-preset.json` (schema v2;
+  `.opencode/state/` is a gitignored machine-written dir), replacing the
+  user-owned realpath-keyed map from the DIA-260916-gv9i entry above. Selector
+  stays at `.opencode/oh-my-opencode-slim/src/config/workspace-preset.ts`
+  (CLI adapter `workspace-preset-cli.ts`, loader hook in `loader.ts`,
+  next-launch scheduling in `src/tools/preset-manager.ts`, startup report in
+  `src/cli/doctor.ts`). Amends the gv9i entry; rationale in the adr.md yug6
+  ADR. Shipped 2026-09-18 as bcb6f26 plus 9cd078f plus e50c1de (narrow
+  diff: single changelog entry scope oh-my-opencode-slim, rendered MD).
+
+- Single-path preset launch (DIA-260918-vsq8, 2026-09-18; SUPERSEDES both
+  preset-store entries above): no store file exists and nothing writes one.
+  Runtime surface is `scripts/presets.py` (list plus resolve, stdlib only;
+  preset names via `scripts/jsonc_strip.py` so commented JSONC parses) plus
+  `Makefile` targets `presets` (list), `opencode PRESET=<name>` (validate,
+  forward, forget), and `preset` (deprecated stub, writes nothing, exits 2).
+  Bare `make opencode` falls back to the runtime preset field in
+  `.opencode/oh-my-opencode-slim.jsonc` (muse-balanced at ship time) and
+  reports no override. Slash preset unchanged by design; warning only in
+  `docs/dev-infra/preset-single-path.md` (source of truth). Tests:
+  `scripts/__tests__/preset-single-path.bats` plus narrowed
+  `scripts/__tests__/workspace-preset-selection.bats`. Archived spec:
+  `openspec/changes/archive/2026-09-18-workspace-preset-selection/`
+  (ARCHIVE-NOTE.md; sync skipped; prior 0/6 will-not-do).
