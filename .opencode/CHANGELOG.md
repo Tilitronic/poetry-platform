@@ -1145,3 +1145,9 @@
 - **Change:** Variant B muse-balanced retarget plus F6 header truth: hardcoded promo preset tuples retargeted to muse-balanced, drift gate default + fixtures + workspace bats updated, 8-space indent fixed to 4-space, headers now state true 4-preset inventory with promo-union-alpha + free explicitly unaudited
 - **Files:** scripts/test-interview-enforcement.sh - scripts/check-orchestrator-prompt-drift.sh - scripts/__tests__/check-orchestrator-prompt-drift.bats - scripts/__tests__/workspace-preset-selection.bats - .opencode/oh-my-opencode-slim.jsonc
 - **Verification:** manual
+
+## 2026-09-18 - DIA-260918-yug6: s
+
+- **Change:** durable project-local preset store plus loud degrade plus doctor single owner plus lock removal plus bridge telemetry plus docs; project default muse-balanced now active via tier 4 (was silently none)
+- **Files:** workspace-preset.ts - loader.ts - workspace-preset-cli.ts - doctor.ts - Makefile - preset-switching.md
+- **Verification:** make test-omo exit 0 (1407 pass 0 fail, tsc clean); make test-config exit 0

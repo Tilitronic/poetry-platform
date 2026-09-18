@@ -1,6 +1,7 @@
 import type { PluginInput } from '@opencode-ai/plugin';
 import type { ModelEntry, PluginConfig, Preset } from '../config';
 import {
+  getWorkspacePresetStorePath,
   readWorkspacePreset,
   saveWorkspacePreset,
 } from '../config/workspace-preset';
@@ -11,9 +12,10 @@ const COMMAND_NAME = 'preset';
 /**
  * Creates a preset manager for the /preset slash command.
  *
- * Stores the requested preset for the next launch. It deliberately does not
- * mutate runtime or TUI state because the current process already loaded its
- * agent configuration.
+ * Stores the requested preset in the project-local store
+ * (<projectRoot>/.opencode/state/workspace-preset.json) for the next
+ * launch. It deliberately does not mutate runtime or TUI state because the
+ * current process already loaded its agent configuration.
  */
 export function createPresetManager(ctx: PluginInput, config: PluginConfig) {
   let activePreset: string | null = null;
@@ -118,7 +120,7 @@ export function createPresetManager(ctx: PluginInput, config: PluginConfig) {
       activePreset = presetName;
       output.parts.push(
         createInternalAgentTextPart(
-          `Saved preset "${presetName}" for workspace ${workspace}. It applies on the next launch only.`,
+          `Saved preset "${presetName}" for workspace ${workspace} (store: ${getWorkspacePresetStorePath(ctx.directory)}). It applies on the next launch only, on every launch path (make opencode, shell+opencode, direct, subdir).`,
         ),
       );
     } catch (error) {

@@ -2686,11 +2686,13 @@
   ticket: orchestrator-permission-task-allowlist
   scope: project-agent scoping (ai--3 S10 gate + ai--4 Phase 6 review)
   files: []
-  summary: "Change: orchestrator `permission.task` changed `\"allow\"` \u2192 21 named\
-    \ allows + `\"*\": \"deny\"` (opencode.jsonc L106-129). Developer directive: project\
-    \ uses only project-scoped agents \u2014 mechanically blocks global code-executor/gigabuild/gigaplan\
-    \ dispatch. ai--3 \xA710 gate + ai--4 Phase 6 review (GO). Cod-6 implemented;\
-    \ coder-restore validated.\n"
+  summary: 'Change: orchestrator `permission.task` changed `"allow"` → 21 named allows
+    + `"*": "deny"` (opencode.jsonc L106-129). Developer directive: project uses only
+    project-scoped agents — mechanically blocks global code-executor/gigabuild/gigaplan
+    dispatch. ai--3 §10 gate + ai--4 Phase 6 review (GO). Cod-6 implemented; coder-restore
+    validated.
+
+    '
   verification: 'No explicit verification recorded in the legacy prose entry.
 
     '
@@ -2699,21 +2701,23 @@
   scope: defense-in-depth
   files:
   - .opencode/opencode.jsonc (coder permission + bash snip deny; comment reconciled)
-  - "docs/dev-infra-audit/tickets/DIA-077-job-board-stale-objective.md (OPEN\u2192\
-    DEFERRED + root-cause section)"
-  - "docs/dev-infra-audit/tickets/README.md (DIA-077 row OPEN\u2192DEFERRED; OPEN\
-    \ 7\u21926, DEFERRED 0\u21921)"
-  - ".opencode/learnings/external-patterns/2026-08-10-dia078-snip-deny-gate.md (NEW\
-    \ \u2014 ai--1 Q1 findings, permission-glob semantics, code-executor discrepancy)"
+  - docs/dev-infra-audit/tickets/DIA-077-job-board-stale-objective.md (OPEN→DEFERRED
+    + root-cause section)
+  - docs/dev-infra-audit/tickets/README.md (DIA-077 row OPEN→DEFERRED; OPEN 7→6, DEFERRED
+    0→1)
+  - .opencode/learnings/external-patterns/2026-08-10-dia078-snip-deny-gate.md (NEW
+    — ai--1 Q1 findings, permission-glob semantics, code-executor discrepancy)
   - CHANGELOG.md.
-  summary: "Change: DIA-078 defense-in-depth: added bash deny `{\"snip\": \"deny\"\
-    , \"snip *\": \"deny\"}` to the coder `permission` object in `.opencode/opencode.jsonc`\
-    \ (ai--1 \xA710 gate research, approved by developer; trigger met \u2014 snip\
-    \ slips recurred 2+ sessions). DIA-077 deferred: job-board stale objective traced\
-    \ to OMO `background-job-board.ts` in-memory display reuse (`registerLaunch()`\
-    \ L128 `input.objective ?? existing.objective` + resolve L388+ returning a previous\
-    \ task ID for a new dispatch) \u2014 cosmetic; JSONL ground truth correct; delegation-observer.ts\
-    \ exonerated (writes correct per-row task_ref/objective, L1044-1059).\n"
+  summary: 'Change: DIA-078 defense-in-depth: added bash deny `{"snip": "deny", "snip
+    *": "deny"}` to the coder `permission` object in `.opencode/opencode.jsonc` (ai--1
+    §10 gate research, approved by developer; trigger met — snip slips recurred 2+
+    sessions). DIA-077 deferred: job-board stale objective traced to OMO `background-job-board.ts`
+    in-memory display reuse (`registerLaunch()` L128 `input.objective ?? existing.objective`
+    + resolve L388+ returning a previous task ID for a new dispatch) — cosmetic; JSONL
+    ground truth correct; delegation-observer.ts exonerated (writes correct per-row
+    task_ref/objective, L1044-1059).
+
+    '
   verification: '`make test-config` exit 0 (see lane report); `git status --short`
     delta limited to expected files.
 
@@ -2723,22 +2727,24 @@
   scope: 'M4 VERIFIED + archived (session 2: boot-gate checksum MATCH, B2 exemption,
     C1 tri-state, DIA-078 fix landed + audited conforms-with-caveats)'
   files:
-  - "docs/dev-infra-audit/tickets/DIA-076-dia063-fix-implementation.md (VERIFIED +\
-    \ M4 evidence) \u2192 archive/DIA-076-dia063-fix-implementation.md"
-  - "docs/dev-infra-audit/tickets/DIA-074-ticket-human-readable-names.md \u2192 archive/"
-  - "docs/dev-infra-audit/tickets/README.md (DIA-076 VERIFIED row + archive links\
-    \ + OPEN 6\u21925 + VERIFIED 10\u219211)"
+  - docs/dev-infra-audit/tickets/DIA-076-dia063-fix-implementation.md (VERIFIED +
+    M4 evidence) → archive/DIA-076-dia063-fix-implementation.md
+  - docs/dev-infra-audit/tickets/DIA-074-ticket-human-readable-names.md → archive/
+  - docs/dev-infra-audit/tickets/README.md (DIA-076 VERIFIED row + archive links +
+    OPEN 6→5 + VERIFIED 10→11)
   - '.opencode/opencode.jsonc (coder comment reconciled with the single `doom_loop:
     deny` permission)'
   - .opencode/learnings/external-patterns/2026-08-10-dia063-ticket-gate-non-determinism.md
     (status line + M4 outcome)
   - CHANGELOG.md.
-  summary: "Change: DIA-076 M4 close \u2014 session 2 (ses_0146a6425ffeHH6Yg3G5xpCwJM,\
-    \ ses_014693e89ffeftnU0Ue7JtP1ao, ses_0144a2262ffeAP7MDK0y5GeQri, ses_014475a8dffe72utMHBqLHa7Y3,\
-    \ ses_014422613fferxqtxtxcRPoLYY) reran boot-gate checksum verification (checksum\
-    \ MATCH 0d70c13c\u2026), B2 boot-gate exemption + C1 tri-state live, DIA-078 fix\
-    \ landed and audited conforms-with-caveats; `make test-config` exit 0. DIA-076\
-    \ \u2192 VERIFIED \u2192 archived per DIA-074 convention.\n"
+  summary: 'Change: DIA-076 M4 close — session 2 (ses_0146a6425ffeHH6Yg3G5xpCwJM,
+    ses_014693e89ffeftnU0Ue7JtP1ao, ses_0144a2262ffeAP7MDK0y5GeQri, ses_014475a8dffe72utMHBqLHa7Y3,
+    ses_014422613fferxqtxtxcRPoLYY) reran boot-gate checksum verification (checksum
+    MATCH 0d70c13c…), B2 boot-gate exemption + C1 tri-state live, DIA-078 fix landed
+    and audited conforms-with-caveats; `make test-config` exit 0. DIA-076 → VERIFIED
+    → archived per DIA-074 convention.
+
+    '
   verification: '`make test-config` exit 0 (18 passed / 0 failed / 33 warnings; validate-opencode-config
     4/4; validate-agent-names ok); `git status`/`git diff --stat` delta limited to
     expected files.
@@ -2748,24 +2754,26 @@
   ticket: DIA-078
   scope: hardening applied - snip-prefix guardrail generalized (3 presets), doom_loop
   files:
-  - ".opencode/oh-my-opencode-slim.jsonc (coder prompt guardrail \xD73 presets: cebula/opencode-go/free\
-    \ \u2014 renamed `## Snip-prefix Guardrail (DIA-075, DIA-078)`, universal snip-prefix\
-    \ FORBIDDEN class rule, jq guidance retained as subsection, 2-attempt anti-loop\
-    \ rule)"
-  - ".opencode/opencode.jsonc (coder `\"permission\": { \"doom_loop\": \"deny\" }`\
-    \ \u2014 mechanical 3\xD7-identical-call halt)"
-  - ".opencode/learnings/external-patterns/2026-08-10-dia078-snip-loop-hardening.md\
-    \ (NEW \u2014 doom_loop discovery, class-vs-instance lesson, prompt-vs-mechanical\
-    \ enforcement)"
+  - '.opencode/oh-my-opencode-slim.jsonc (coder prompt guardrail ×3 presets: cebula/opencode-go/free
+    — renamed `## Snip-prefix Guardrail (DIA-075, DIA-078)`, universal snip-prefix
+    FORBIDDEN class rule, jq guidance retained as subsection, 2-attempt anti-loop
+    rule)'
+  - '.opencode/opencode.jsonc (coder `"permission": { "doom_loop": "deny" }` — mechanical
+    3×-identical-call halt)'
+  - .opencode/learnings/external-patterns/2026-08-10-dia078-snip-loop-hardening.md
+    (NEW — doom_loop discovery, class-vs-instance lesson, prompt-vs-mechanical enforcement)
   - CHANGELOG.md.
-  summary: "Change: DIA-078 hardening applied \u2014 snip-prefix guardrail generalized\
-    \ (3 presets), doom_loop:deny added, learnings registered; reason: coder snip-wrapper\
-    \ loop recurrence.\n"
-  verification: "`make test-config` exit 0 (validate-opencode-config 4/4, validate-agent-names,\
-    \ JSONC validity); grep confirmations (3\xD7 `## Snip-prefix Guardrail (DIA-075,\
-    \ DIA-078)` header; `\"doom_loop\": \"deny\"` under coder permission; learnings\
-    \ file present); `git diff --stat`/`git status` delta limited to the 4 expected\
-    \ files.\n"
+  summary: 'Change: DIA-078 hardening applied — snip-prefix guardrail generalized
+    (3 presets), doom_loop:deny added, learnings registered; reason: coder snip-wrapper
+    loop recurrence.
+
+    '
+  verification: '`make test-config` exit 0 (validate-opencode-config 4/4, validate-agent-names,
+    JSONC validity); grep confirmations (3× `## Snip-prefix Guardrail (DIA-075, DIA-078)`
+    header; `"doom_loop": "deny"` under coder permission; learnings file present);
+    `git diff --stat`/`git status` delta limited to the 4 expected files.
+
+    '
 - date: '2026-08-10'
   ticket: DIA-076
   scope: M3 post-restart smoke PASSED + DIA-077/DIA-078 created (job-board quirk +
@@ -2775,35 +2783,36 @@
     + evidence session ids)
   - docs/dev-infra-audit/tickets/DIA-077-job-board-stale-objective.md (NEW)
   - docs/dev-infra-audit/tickets/DIA-078-coder-snip-wrapper-loop.md (NEW)
-  - "docs/dev-infra-audit/tickets/README.md (index rows DIA-077+DIA-078 + OPEN 4\u2192\
-    6 + Major 5\u21926 + Low 4\u21925)"
+  - docs/dev-infra-audit/tickets/README.md (index rows DIA-077+DIA-078 + OPEN 4→6
+    + Major 5→6 + Low 4→5)
   - learnings/external-patterns/2026-08-10-dia063-ticket-gate-non-determinism.md (outcome
     update + label correction + NEW INCIDENT)
   - CHANGELOG.md.
-  summary: "Change: (1) DIA-076 M3 post-restart smoke PASSED 2026-08-10 (session ses_0157ee16cffegdBsSp9uGdasiy,\
-    \ orchestrator) \u2014 C1 tri-state + B2 boot-gate exemption proven live: checksum\
-    \ verification dispatch (cod-1, registry seq 1770-1772) ran WITHOUT \xA710 ticket-gate\
-    \ block via canonical `bash -c` jq passthrough (computed == stored == `6163028d\u2026\
-    75aa9f`); \xA710-scoped dispatch referencing long-lived OPEN DIA-071 (ai--1, seq\
-    \ 1774) passed \u2014 under the OLD gate it would have over-fired on the recency/session-ownership\
-    \ requirement. Plugin liveness confirmed on disk (A1 L485-494, A2 L873-879, A3\
-    \ L848-854, A4 L905-942). Registry location resolved: `.opencode/session/registry.jsonl`\
-    \ (1774 rows) + `messages.jsonl` (1481 rows) EXIST \u2014 gitignore caused the\
-    \ earlier glob miss. M4 session 1 done, session 2 required before DIA-076 close.\
-    \ (2) DIA-077 created (job-board stale-objective observability quirk, Low, OPEN):\
-    \ Background Job Board sentinel reuses the previous session's objective for ALL\
-    \ coder-lane sessions; JSONL rows show correct per-session attribution \u2014\
-    \ rendering/description-capture layer issue, cosmetic only. (3) DIA-078 created\
-    \ (coder snip-wrapper loop recurrence, Major, OPEN): cod-2 (ses_014d638bfffemyvUdhEaa4uhTq)\
-    \ + cod-3 (ses_014cf7024ffe1gvwIMsRvHb0jH) both errored looping `snip make test-config`\
-    \ (identical command + identical EXIT_CODE=0 output, 7+ repetitions, no progress)\
-    \ until session error \u2014 DIA-075 recurrence broader than jq; root-cause hypothesis:\
-    \ Layer-2 guardrail scoped to `snip jq` only + weak anti-loop rule; fix direction\
-    \ (developer-directed): forbid snip-prefixing ANY command (plain commands for\
-    \ anything checked) + harden STOP-and-escalate anti-loop rule; docs lane re-routed\
-    \ to code-executor. (4) Label correction: \"DIA-069 PR #54\" residual is a DIA-075\
-    \ dependency, NOT DIA-069 (DIA-069 is CLOSED/archived; upstream jq-filter flag\
-    \ belongs to DIA-075 per its Fix \xA710 note).\n"
+  summary: 'Change: (1) DIA-076 M3 post-restart smoke PASSED 2026-08-10 (session ses_0157ee16cffegdBsSp9uGdasiy,
+    orchestrator) — C1 tri-state + B2 boot-gate exemption proven live: checksum verification
+    dispatch (cod-1, registry seq 1770-1772) ran WITHOUT §10 ticket-gate block via
+    canonical `bash -c` jq passthrough (computed == stored == `6163028d…75aa9f`);
+    §10-scoped dispatch referencing long-lived OPEN DIA-071 (ai--1, seq 1774) passed
+    — under the OLD gate it would have over-fired on the recency/session-ownership
+    requirement. Plugin liveness confirmed on disk (A1 L485-494, A2 L873-879, A3 L848-854,
+    A4 L905-942). Registry location resolved: `.opencode/session/registry.jsonl` (1774
+    rows) + `messages.jsonl` (1481 rows) EXIST — gitignore caused the earlier glob
+    miss. M4 session 1 done, session 2 required before DIA-076 close. (2) DIA-077
+    created (job-board stale-objective observability quirk, Low, OPEN): Background
+    Job Board sentinel reuses the previous session''s objective for ALL coder-lane
+    sessions; JSONL rows show correct per-session attribution — rendering/description-capture
+    layer issue, cosmetic only. (3) DIA-078 created (coder snip-wrapper loop recurrence,
+    Major, OPEN): cod-2 (ses_014d638bfffemyvUdhEaa4uhTq) + cod-3 (ses_014cf7024ffe1gvwIMsRvHb0jH)
+    both errored looping `snip make test-config` (identical command + identical EXIT_CODE=0
+    output, 7+ repetitions, no progress) until session error — DIA-075 recurrence
+    broader than jq; root-cause hypothesis: Layer-2 guardrail scoped to `snip jq`
+    only + weak anti-loop rule; fix direction (developer-directed): forbid snip-prefixing
+    ANY command (plain commands for anything checked) + harden STOP-and-escalate anti-loop
+    rule; docs lane re-routed to code-executor. (4) Label correction: "DIA-069 PR
+    #54" residual is a DIA-075 dependency, NOT DIA-069 (DIA-069 is CLOSED/archived;
+    upstream jq-filter flag belongs to DIA-075 per its Fix §10 note).
+
+    '
   verification: '`make test-config` run at end of docs lane (see exit code + summaries
     in lane report). No implementation/plugin code touched.
 
@@ -2813,77 +2822,83 @@
   scope: S10 ticket-gate correlation fix + snip guardrails
   files:
   - .opencode/plugins/delegation-observer.ts
-  - ".opencode/oh-my-opencode-slim.jsonc (3 presets \xD7 coder guardrail + orchestrator\
-    \ brief)"
+  - .opencode/oh-my-opencode-slim.jsonc (3 presets × coder guardrail + orchestrator
+    brief)
   - scripts/test-ticket-gate.sh (NEW)
   - Makefile (test-config wiring)
-  - "AGENTS.md (\xA72.5/\xA72.4 Phase-6 review matrix \u2192 @ai-auditor)"
+  - AGENTS.md (§2.5/§2.4 Phase-6 review matrix → @ai-auditor)
   - docs/dev-infra-audit/tickets/DIA-063-orchestrator-ticket-creation-gate.md
   - docs/dev-infra-audit/tickets/DIA-075-checksum-mismatch-snip-jq-loop.md (NEW)
   - docs/dev-infra-audit/tickets/DIA-076-dia063-fix-implementation.md (NEW)
   - ~/.config/snip/config.toml (user-home, outside repo)
   - NEW learnings/external-patterns/2026-08-10-dia063-ticket-gate-non-determinism.md
   - CHANGELOG.md.
-  summary: "Change: DIA-063 Option B fix implemented in `.opencode/plugins/delegation-observer.ts`\
-    \ \u2014 (1) path-1 tri-state: an explicit DIA-id reference resolves ONLY against\
-    \ OPEN tickets (explicit-id precedence; no more `isSessionOwned || isRecent` requirement\
-    \ \u2014 kills the 24h recency-boundary flake on long-lived valid tickets); (2)\
-    \ boot-gate exemption for DIA-061 checksum/handoff-integrity dispatches (`checksum\\\
-    s+verif | handoff\\s*integrit`; bare `sha256\\b` arm dropped) \u2014 breaks the\
-    \ 3\xD7 boot circular deadlock; (3) `configWorkHint` regex narrowed to `/opencode\\\
-    .jsonc|AGENTS\\.md|skill|plugin/i` (`.opencode\\/` arm dropped \u2014 `.opencode/session/`\
-    \ transients no longer flagged as \xA710 work); (4) path-3 weak correlation now\
-    \ warn-not-throw (`ticket_gate_weak_correlation`), explicit-ids-no-match stays\
-    \ HARD throw. DIA-075 snip guardrails (3-layer): `~/.config/snip/config.toml`\
-    \ `[filters.enable] jq = false` (user-home, NON-\xA710); coder prompt anti-snip\
-    \ guardrail + orchestrator canonical-checksum dispatch brief appended to all 3\
-    \ presets in oh-my-opencode-slim.jsonc. Probe: NEW `scripts/test-ticket-gate.sh`\
-    \ (6/6 regression checks) wired into `make test-config`. Reason: DIA-063 gate\
-    \ non-determinism \u2014 same nominal dispatch passed then blocked 9 min later\
-    \ (date-only `parseTicketDate` \u2192 local-midnight 24h cliff; path-1 over-fired\
-    \ on valid long-lived tickets); 3\xD7 boot deadlock; DIA-075 `snip jq` truncation\
-    \ caused false checksum mismatch/loop. - Pending user: restart OpenCode \u2192\
-    \ boot-gate checksum smoke + \xA710 dispatch smoke \u2192 next session fills M3/M4\
-    \ and closes DIA-076.\n"
-  verification: "`make test-config` exit 0 (18 passed/0 failed/33 warnings; validate-opencode-config\
-    \ ok; validate-agent-names 22 passed; validate-handoff 5 passed; probe PASS; tool-coverage\
-    \ 0 gaps); `scripts/test-ticket-gate.sh` exit 0 (6/6 PASS); tsc only pre-existing\
-    \ TS2792 (no deps, not in test-config). Review: ai--6 Phase-6 re-review cycle\
-    \ 1/2 \u2014 C1/M1/m1 verified-closed; M2 partial \u2192 evidenced in DIA-076;\
-    \ M3 (restart) + M4 (2-session durability) PENDING-BY-DESIGN (developer restart\
-    \ / next session). project AGENTS.md \xA72.5/\xA72.4 review matrix corrected \u2014\
-    \ Phase-6 independent review is @ai-auditor's lane (was mis-stated as @ai-specialist).\n"
+  summary: 'Change: DIA-063 Option B fix implemented in `.opencode/plugins/delegation-observer.ts`
+    — (1) path-1 tri-state: an explicit DIA-id reference resolves ONLY against OPEN
+    tickets (explicit-id precedence; no more `isSessionOwned || isRecent` requirement
+    — kills the 24h recency-boundary flake on long-lived valid tickets); (2) boot-gate
+    exemption for DIA-061 checksum/handoff-integrity dispatches (`checksum\s+verif
+    | handoff\s*integrit`; bare `sha256\b` arm dropped) — breaks the 3× boot circular
+    deadlock; (3) `configWorkHint` regex narrowed to `/opencode\.jsonc|AGENTS\.md|skill|plugin/i`
+    (`.opencode\/` arm dropped — `.opencode/session/` transients no longer flagged
+    as §10 work); (4) path-3 weak correlation now warn-not-throw (`ticket_gate_weak_correlation`),
+    explicit-ids-no-match stays HARD throw. DIA-075 snip guardrails (3-layer): `~/.config/snip/config.toml`
+    `[filters.enable] jq = false` (user-home, NON-§10); coder prompt anti-snip guardrail
+    + orchestrator canonical-checksum dispatch brief appended to all 3 presets in
+    oh-my-opencode-slim.jsonc. Probe: NEW `scripts/test-ticket-gate.sh` (6/6 regression
+    checks) wired into `make test-config`. Reason: DIA-063 gate non-determinism —
+    same nominal dispatch passed then blocked 9 min later (date-only `parseTicketDate`
+    → local-midnight 24h cliff; path-1 over-fired on valid long-lived tickets); 3×
+    boot deadlock; DIA-075 `snip jq` truncation caused false checksum mismatch/loop.
+    - Pending user: restart OpenCode → boot-gate checksum smoke + §10 dispatch smoke
+    → next session fills M3/M4 and closes DIA-076.
+
+    '
+  verification: '`make test-config` exit 0 (18 passed/0 failed/33 warnings; validate-opencode-config
+    ok; validate-agent-names 22 passed; validate-handoff 5 passed; probe PASS; tool-coverage
+    0 gaps); `scripts/test-ticket-gate.sh` exit 0 (6/6 PASS); tsc only pre-existing
+    TS2792 (no deps, not in test-config). Review: ai--6 Phase-6 re-review cycle 1/2
+    — C1/M1/m1 verified-closed; M2 partial → evidenced in DIA-076; M3 (restart) +
+    M4 (2-session durability) PENDING-BY-DESIGN (developer restart / next session).
+    project AGENTS.md §2.5/§2.4 review matrix corrected — Phase-6 independent review
+    is @ai-auditor''s lane (was mis-stated as @ai-specialist).
+
+    '
 - date: '2026-08-09'
   ticket: TUI-stdout-corruption-fix
   scope: subagent-reporter plugin disabled (renamed .disabled)
   files:
-  - "`~/.config/opencode/plugins/subagent-reporter.ts` \u2192 `subagent-reporter.ts.disabled`\
-    \ (outside repo, NOT committed)"
+  - '`~/.config/opencode/plugins/subagent-reporter.ts` → `subagent-reporter.ts.disabled`
+    (outside repo, NOT committed)'
   - '`.opencode/CHANGELOG.md`'
   - '`.opencode/learnings/external-patterns/2026-08-09-tui-plugin-stdout-corruption.md`
     (NEW)'
-  - "`.opencode/session/persistence-pending.json` (deleted \u2014 transient research-persistence\
-    \ flag)"
+  - '`.opencode/session/persistence-pending.json` (deleted — transient research-persistence
+    flag)'
   - '`.opencode/memory-shelf.yaml` + `knowledge/res007-tui-corruption-stdout/` (res007
     registration, prior conspecter lane).'
-  summary: "Change: Disabled `~/.config/opencode/plugins/subagent-reporter.ts` by\
-    \ renaming to `subagent-reporter.ts.disabled` (reversible \u2014 NOT deleted):\
-    \ a GLOBAL auto-discovered plugin (loaded from `~/.config/opencode/plugins/`,\
-    \ NOT in any `plugin[]` array) wrote raw subagent text output and chain-of-thought\
-    \ reasoning to `process.stdout` on every `message.part.updated` (source lines\
-    \ ~218/248/266/281). OpenCode's TUI has no alternate screen buffer and calls `disableStdoutInterception()`,\
-    \ so those raw writes painted over the render surface \u2192 corrupted TUI during\
-    \ subagent calls (flat raw text dump, misplaced cursor, garbled glyphs). Conspect:\
-    \ `knowledge/res007-tui-corruption-stdout/`. Upstream: anomalyco/opencode #8639\
-    \ #6830 #19108. Reason: user-reported TUI breakage during subagent calls; root-caused\
-    \ to the auto-discovered global plugin writing full subagent output/reasoning\
-    \ to stdout; developer decision: DISABLE over rewrite (reversible rename).\n"
-  verification: "`ls -la ~/.config/opencode/plugins/` shows `subagent-reporter.ts.disabled`\
-    \ (7884 bytes); grep `subagent-reporter` across global `opencode.jsonc` + project\
-    \ `opencode.jsonc` + `oh-my-opencode-slim.jsonc` \u2192 no matches (exit 1; auto-discovered,\
-    \ no `plugin[]` entry to remove); `persistence-pending.json` absent from `.opencode/session/`;\
-    \ memory-shelf `shelf.conspects` res007 entry present (created 2026-08-09); res007\
-    \ sources (10 `.md`) + `.source-urls.txt` + conspect present.\n"
+  summary: 'Change: Disabled `~/.config/opencode/plugins/subagent-reporter.ts` by
+    renaming to `subagent-reporter.ts.disabled` (reversible — NOT deleted): a GLOBAL
+    auto-discovered plugin (loaded from `~/.config/opencode/plugins/`, NOT in any
+    `plugin[]` array) wrote raw subagent text output and chain-of-thought reasoning
+    to `process.stdout` on every `message.part.updated` (source lines ~218/248/266/281).
+    OpenCode''s TUI has no alternate screen buffer and calls `disableStdoutInterception()`,
+    so those raw writes painted over the render surface → corrupted TUI during subagent
+    calls (flat raw text dump, misplaced cursor, garbled glyphs). Conspect: `knowledge/res007-tui-corruption-stdout/`.
+    Upstream: anomalyco/opencode #8639 #6830 #19108. Reason: user-reported TUI breakage
+    during subagent calls; root-caused to the auto-discovered global plugin writing
+    full subagent output/reasoning to stdout; developer decision: DISABLE over rewrite
+    (reversible rename).
+
+    '
+  verification: '`ls -la ~/.config/opencode/plugins/` shows `subagent-reporter.ts.disabled`
+    (7884 bytes); grep `subagent-reporter` across global `opencode.jsonc` + project
+    `opencode.jsonc` + `oh-my-opencode-slim.jsonc` → no matches (exit 1; auto-discovered,
+    no `plugin[]` entry to remove); `persistence-pending.json` absent from `.opencode/session/`;
+    memory-shelf `shelf.conspects` res007 entry present (created 2026-08-09); res007
+    sources (10 `.md`) + `.source-urls.txt` + conspect present.
+
+    '
 - date: '2026-08-08'
   ticket: DIA-070
   status: CLOSED
@@ -2892,17 +2907,19 @@
   files:
   - docs/dev-infra-audit/tickets/DIA-070.md
   - CHANGELOG.md.
-  summary: "Change: DIA-070 final closing docs in `docs/dev-infra-audit/tickets/DIA-070.md`:\
-    \ (1) Patch-3 implementation-order description corrected to match the live patched\
-    \ `dist/plugin.js` (role filter \u2192 `inFlightSessions` gate, return WITHOUT\
-    \ adding \u2192 `seenMessageIds` check \u2192 `seenMessageIds.add` only when proceeding\
-    \ \u2192 `inFlightSessions.add` \u2192 processing); (2) residual runtime risk\
-    \ recorded with developer ACCEPT 2026-08-08 (`seenMessageIds.add()` precedes downstream\
-    \ fetch/processing success; `finally` clears only `inFlightSessions` \u2014 telemetry\
-    \ P2a primary guard unaffected, seen-set is a secondary symmetry guard, transient-failure\
-    \ window tolerable); (3) status OPEN \u2192 CLOSED with closing summary (implementation\
-    \ + Phase 5 runtime proof PASS + Phase 6 audit + re-verify + dispositions complete).\
-    \ Docs-only, no vendored-plugin changes.\n"
+  summary: 'Change: DIA-070 final closing docs in `docs/dev-infra-audit/tickets/DIA-070.md`:
+    (1) Patch-3 implementation-order description corrected to match the live patched
+    `dist/plugin.js` (role filter → `inFlightSessions` gate, return WITHOUT adding
+    → `seenMessageIds` check → `seenMessageIds.add` only when proceeding → `inFlightSessions.add`
+    → processing); (2) residual runtime risk recorded with developer ACCEPT 2026-08-08
+    (`seenMessageIds.add()` precedes downstream fetch/processing success; `finally`
+    clears only `inFlightSessions` — telemetry P2a primary guard unaffected, seen-set
+    is a secondary symmetry guard, transient-failure window tolerable); (3) status
+    OPEN → CLOSED with closing summary (implementation + Phase 5 runtime proof PASS
+    + Phase 6 audit + re-verify + dispositions complete). Docs-only, no vendored-plugin
+    changes.
+
+    '
   verification: '`make test-config` exit 0; `git status --short` only the two doc
     files + untracked DIA-071 dir.
 
@@ -2917,28 +2934,29 @@
   - '`.opencode/learnings/index.md`'
   - '`docs/dev-infra-audit/tickets/DIA-070.md`'
   - CHANGELOG.md.
-  summary: "Change: (1) Patch-3 ordering fix in the vendored `opencode-token-monitor@0.5.0`\
-    \ `dist/plugin.js` (npm cache, outside repo): `seenMessageIds.add(msgInfo.id)`\
-    \ moved AFTER the `inFlightSessions` check \u2014 entry order now role filter\
-    \ \u2192 in-flight gate (return WITHOUT adding) \u2192 seen check (return if seen)\
-    \ \u2192 add \u2192 existing processing unchanged. Prior order could suppress\
-    \ later first-time processing when the session was already in flight. New backup\
-    \ `plugin.js.bak-dia070-fix` (original `.bak-dia070` untouched); `node --check`\
-    \ exit 0. (2) Registration fidelity reconciliation: learnings entry `2026-08-08-plugin-reentrancy-guards.md`\
-    \ + index row updated from \"no implementation / deferred\" to \"applied/implemented\"\
-    \ (3 patches, `.bak-dia070` backups, commit 3ac8c0f, Phase 5 runtime proof PASSED,\
-    \ Phase 6 audit disposition completed). (3) Shadow-copy risk documented: stale\
-    \ unpatched copies at `~/.config/opencode/node_modules/opencode-telemetry` (migrations\
-    \ to v5 only) and `@latest`/unscoped cache aliases for both plugins \u2014 clearing\
-    \ `~/.cache/opencode/packages/` silently regresses the duplicate-turn bug; mitigation\
-    \ documented (durable runtime source-of-truth OR startup fingerprint/checksum\
-    \ guard), not implemented. (4) Process-doc drift deferred: AGENTS.md \xA72.5 still\
-    \ describes the DIA-070 fixes as deferred \u2014 future \xA710 change. Reason:\
-    \ @ai-auditor Phase 6 audit found the Patch-3 ordering defect (seen-add before\
-    \ in-flight gate) and stale \"deferred\" registration; developer-approved disposition\
-    \ lane executed the fix + documentation reconciliation. - Pending user: orchestrator\
-    \ finalizes DIA-070 conditional close after re-verification; optional future \xA7\
-    10 change for AGENTS.md \xA72.5 doc-drift + shadow-copy mitigation.\n"
+  summary: 'Change: (1) Patch-3 ordering fix in the vendored `opencode-token-monitor@0.5.0`
+    `dist/plugin.js` (npm cache, outside repo): `seenMessageIds.add(msgInfo.id)` moved
+    AFTER the `inFlightSessions` check — entry order now role filter → in-flight gate
+    (return WITHOUT adding) → seen check (return if seen) → add → existing processing
+    unchanged. Prior order could suppress later first-time processing when the session
+    was already in flight. New backup `plugin.js.bak-dia070-fix` (original `.bak-dia070`
+    untouched); `node --check` exit 0. (2) Registration fidelity reconciliation: learnings
+    entry `2026-08-08-plugin-reentrancy-guards.md` + index row updated from "no implementation
+    / deferred" to "applied/implemented" (3 patches, `.bak-dia070` backups, commit
+    3ac8c0f, Phase 5 runtime proof PASSED, Phase 6 audit disposition completed). (3)
+    Shadow-copy risk documented: stale unpatched copies at `~/.config/opencode/node_modules/opencode-telemetry`
+    (migrations to v5 only) and `@latest`/unscoped cache aliases for both plugins
+    — clearing `~/.cache/opencode/packages/` silently regresses the duplicate-turn
+    bug; mitigation documented (durable runtime source-of-truth OR startup fingerprint/checksum
+    guard), not implemented. (4) Process-doc drift deferred: AGENTS.md §2.5 still
+    describes the DIA-070 fixes as deferred — future §10 change. Reason: @ai-auditor
+    Phase 6 audit found the Patch-3 ordering defect (seen-add before in-flight gate)
+    and stale "deferred" registration; developer-approved disposition lane executed
+    the fix + documentation reconciliation. - Pending user: orchestrator finalizes
+    DIA-070 conditional close after re-verification; optional future §10 change for
+    AGENTS.md §2.5 doc-drift + shadow-copy mitigation.
+
+    '
   verification: '`node --check` token-monitor `dist/plugin.js` exit 0; `make test-config`
     exit 0; `git status --short` clean except untracked DIA-071 dir.
 
@@ -2955,36 +2973,39 @@
   - .opencode/learnings/index.md (pointer, prior lane)
   - docs/dev-infra-audit/tickets/DIA-070.md (Implementation/Re-verify sections filled)
   - CHANGELOG.md.
-  summary: "Change: Three vendored patches in the volatile npm cache (NO tracked repo\
-    \ source files modified; `.bak-dia070` backups created for all three before editing):\
-    \ (1) opencode-telemetry@0.1.19 `src/db.ts` migration v6 \u2014 UNIQUE partial\
-    \ index `idx_turns_message_id` on `turns(message_id) WHERE message_id IS NOT NULL`\
-    \ (P4 persistence; pre-check warns + deduplicates existing duplicate message_ids\
-    \ keeping MIN(id) before index creation); (2) opencode-telemetry@0.1.19 `src/handlers.ts`\
-    \ P2a \u2014 `inFlightMessageIds` Set, `message.updated` entry order now inFlight-check\
-    \ \u2192 seenMessageIds-check \u2192 `time.completed` check \u2192 add to BOTH\
-    \ sets, turn-processing wrapped in `try { ... } finally { inFlightMessageIds.delete(msg.id);\
-    \ }`; (3) opencode-token-monitor@0.5.0 `dist/plugin.js` P2b \u2014 `seenMessageIds`\
-    \ Set added AFTER the assistant-role filter, BEFORE the `inFlightSessions` check\
-    \ (no finally \u2014 pure P4 semantics). Implementation is vendored-patch only\
-    \ \u2014 NO config file changes (`.opencode/opencode.jsonc` untouched). Learnings\
-    \ registration (`2026-08-08-plugin-reentrancy-guards.md` + index pointer, prior\
-    \ lane) committed with this entry. Reason: DIA-070 residuals of the DIA-056(b)\
-    \ re-entrancy audit (ana009): opencode-telemetry@0.1.19 was P4-only (`seenMessageIds`),\
-    \ opencode-token-monitor@0.5.0 was P1-only (`inFlightSessions`), both lacked P2\
-    \ (in-flight suppression). Defense-in-depth, not an active bug (no infinite loops\
-    \ reproduced). P4 persistence makes dedup restart-durable via the SQLite UNIQUE\
-    \ partial index (`INSERT OR IGNORE` at src/db.ts already \u2014 silent dedup across\
-    \ restarts). - Pending user: restart OpenCode \u2192 Phase 5 smoke (dispatch-storm\
-    \ no-duplicate + restart persistence check); Phase 6 @ai-auditor audit; follow-up\
-    \ upstream PR tickets (separate concern, out of scope for this lane).\n"
-  verification: "`node --check` token-monitor `dist/plugin.js` exit 0; repo tsc 5.9.3\
-    \ over the telemetry src closure exit 0 (zero diagnostics; ambient stubs for `bun:sqlite`/`fs`/`path`/`os`/`process`/`console`/`Buffer`/`ImportMeta.dir`\
-    \ \u2014 no bun/@types/node in this env); `.bak-dia070` backups present for all\
-    \ 3 files; DIA-069 artifacts (commands.ts/index.ts + `.bak-dia069`) mtimes unchanged.\
-    \ Review: Phase 5 restart + independent review PENDING \u2014 this is Phase 4\
-    \ implementation; developer restarts OpenCode, then a separate post-restart verification\
-    \ task and @ai-auditor Phase 6 audit.\n"
+  summary: 'Change: Three vendored patches in the volatile npm cache (NO tracked repo
+    source files modified; `.bak-dia070` backups created for all three before editing):
+    (1) opencode-telemetry@0.1.19 `src/db.ts` migration v6 — UNIQUE partial index
+    `idx_turns_message_id` on `turns(message_id) WHERE message_id IS NOT NULL` (P4
+    persistence; pre-check warns + deduplicates existing duplicate message_ids keeping
+    MIN(id) before index creation); (2) opencode-telemetry@0.1.19 `src/handlers.ts`
+    P2a — `inFlightMessageIds` Set, `message.updated` entry order now inFlight-check
+    → seenMessageIds-check → `time.completed` check → add to BOTH sets, turn-processing
+    wrapped in `try { ... } finally { inFlightMessageIds.delete(msg.id); }`; (3) opencode-token-monitor@0.5.0
+    `dist/plugin.js` P2b — `seenMessageIds` Set added AFTER the assistant-role filter,
+    BEFORE the `inFlightSessions` check (no finally — pure P4 semantics). Implementation
+    is vendored-patch only — NO config file changes (`.opencode/opencode.jsonc` untouched).
+    Learnings registration (`2026-08-08-plugin-reentrancy-guards.md` + index pointer,
+    prior lane) committed with this entry. Reason: DIA-070 residuals of the DIA-056(b)
+    re-entrancy audit (ana009): opencode-telemetry@0.1.19 was P4-only (`seenMessageIds`),
+    opencode-token-monitor@0.5.0 was P1-only (`inFlightSessions`), both lacked P2
+    (in-flight suppression). Defense-in-depth, not an active bug (no infinite loops
+    reproduced). P4 persistence makes dedup restart-durable via the SQLite UNIQUE
+    partial index (`INSERT OR IGNORE` at src/db.ts already — silent dedup across restarts).
+    - Pending user: restart OpenCode → Phase 5 smoke (dispatch-storm no-duplicate
+    + restart persistence check); Phase 6 @ai-auditor audit; follow-up upstream PR
+    tickets (separate concern, out of scope for this lane).
+
+    '
+  verification: '`node --check` token-monitor `dist/plugin.js` exit 0; repo tsc 5.9.3
+    over the telemetry src closure exit 0 (zero diagnostics; ambient stubs for `bun:sqlite`/`fs`/`path`/`os`/`process`/`console`/`Buffer`/`ImportMeta.dir`
+    — no bun/@types/node in this env); `.bak-dia070` backups present for all 3 files;
+    DIA-069 artifacts (commands.ts/index.ts + `.bak-dia069`) mtimes unchanged. Review:
+    Phase 5 restart + independent review PENDING — this is Phase 4 implementation;
+    developer restarts OpenCode, then a separate post-restart verification task and
+    @ai-auditor Phase 6 audit.
+
+    '
 - date: '2026-08-08'
   ticket: DIA-069
   scope: telemetry plugin command-doc rewrite fix (interim guard)
@@ -3001,36 +3022,38 @@
   - CHANGELOG.md
   - vendored plugin package opencode-telemetry@0.1.19 (patched in npm cache, outside
     repo).
-  summary: "Change: opencode-telemetry@0.1.19 `registerCommands()` rewrote `.opencode/commands/telemetry-{report,inspect}.md`\
-    \ with hardcoded absolute `/home/qualt` paths on EVERY plugin load \u2014 portability\
-    \ bug + working-tree pollution (plugins bypass the OpenCode permission system;\
-    \ no config-level mitigation exists). Interim local guard committed as 8e75259:\
-    \ portable baseline (verbatim shipped `command/*.md` templates, byte-identical),\
-    \ `scripts/restore-telemetry-commands.sh` + `make restore-telemetry-commands`,\
-    \ `watcher.ignore` for the two docs in `.opencode/opencode.jsonc`, `scripts/verify-telemetry-guard.sh`\
-    \ + `make test-telemetry-guard` (5 assertions A1-A5). Vendored plugin patch (opencode-telemetry@0.1.19,\
-    \ npm cache) adds a respect-existing guard (commands.ts:41 `fs.existsSync` skip,\
-    \ `copyFileSync` of shipped templates, package root passed from index.ts, no `writeFileSync`\
-    \ remains, `.bak-dia069` backups present). Upstream PR to agostinilabsrl/opencode-telemetry\
-    \ PENDING \u2014 staging clone `/tmp/opencode-telemetry-upstream` LOST on host\
-    \ (regeneration required). Reason: the plugin clobbered the committed `$HOME`-portable\
-    \ command docs with machine-specific absolute paths on every load; no config-level\
-    \ mitigation exists, so an interim guard + vendored patch stop the rewrite until\
-    \ the upstream fix lands. - Pending user: upstream PR submission (staging clone\
-    \ `/tmp/opencode-telemetry-upstream` regeneration required \u2014 patch regeneration\
-    \ is a separate pending step); DIA-070/DIA-071 deferred by developer scope decision\
-    \ (not implemented, do not reopen).\n"
-  verification: "Phase 5 restart-twice validation \u2014 after two developer OpenCode\
-    \ restarts the patched vendored plugin did NOT rewrite the two command docs (zero\
-    \ `/home/qualt` literals), `make test-telemetry-guard` 5/5 (A1-A5) both times\
-    \ WITHOUT restore, `make test-config` exit 0. Review: Phase 6 @ai-auditor independent\
-    \ review \u2014 verdict SOUND-WITH-CAVEATS, no blockers (portable baseline matches\
-    \ shipped templates; restore guard + verify guard A1-A5 implemented and passing;\
-    \ watcher.ignore applied; learnings registration present; vendored patch respect-existing\
-    \ guard verified). Caveats (informational, accepted): cache-path volatility of\
-    \ the vendored patch (durability depends on upstream merge); watcher-ignore temporary-by-design;\
-    \ one-time manual restore needed for previously-polluted files (covered by `make\
-    \ restore-telemetry-commands`).\n"
+  summary: 'Change: opencode-telemetry@0.1.19 `registerCommands()` rewrote `.opencode/commands/telemetry-{report,inspect}.md`
+    with hardcoded absolute `/home/qualt` paths on EVERY plugin load — portability
+    bug + working-tree pollution (plugins bypass the OpenCode permission system; no
+    config-level mitigation exists). Interim local guard committed as 8e75259: portable
+    baseline (verbatim shipped `command/*.md` templates, byte-identical), `scripts/restore-telemetry-commands.sh`
+    + `make restore-telemetry-commands`, `watcher.ignore` for the two docs in `.opencode/opencode.jsonc`,
+    `scripts/verify-telemetry-guard.sh` + `make test-telemetry-guard` (5 assertions
+    A1-A5). Vendored plugin patch (opencode-telemetry@0.1.19, npm cache) adds a respect-existing
+    guard (commands.ts:41 `fs.existsSync` skip, `copyFileSync` of shipped templates,
+    package root passed from index.ts, no `writeFileSync` remains, `.bak-dia069` backups
+    present). Upstream PR to agostinilabsrl/opencode-telemetry PENDING — staging clone
+    `/tmp/opencode-telemetry-upstream` LOST on host (regeneration required). Reason:
+    the plugin clobbered the committed `$HOME`-portable command docs with machine-specific
+    absolute paths on every load; no config-level mitigation exists, so an interim
+    guard + vendored patch stop the rewrite until the upstream fix lands. - Pending
+    user: upstream PR submission (staging clone `/tmp/opencode-telemetry-upstream`
+    regeneration required — patch regeneration is a separate pending step); DIA-070/DIA-071
+    deferred by developer scope decision (not implemented, do not reopen).
+
+    '
+  verification: 'Phase 5 restart-twice validation — after two developer OpenCode restarts
+    the patched vendored plugin did NOT rewrite the two command docs (zero `/home/qualt`
+    literals), `make test-telemetry-guard` 5/5 (A1-A5) both times WITHOUT restore,
+    `make test-config` exit 0. Review: Phase 6 @ai-auditor independent review — verdict
+    SOUND-WITH-CAVEATS, no blockers (portable baseline matches shipped templates;
+    restore guard + verify guard A1-A5 implemented and passing; watcher.ignore applied;
+    learnings registration present; vendored patch respect-existing guard verified).
+    Caveats (informational, accepted): cache-path volatility of the vendored patch
+    (durability depends on upstream merge); watcher-ignore temporary-by-design; one-time
+    manual restore needed for previously-polluted files (covered by `make restore-telemetry-commands`).
+
+    '
 - date: '2026-08-08'
   ticket: DIA-055
   scope: R1 token_* deny closure (6 agents)
@@ -3040,21 +3063,24 @@
   - docs/dev-infra-audit/tickets/DIA-055.md (closure delta)
   - docs/dev-infra-audit/tickets/README.md
   - CHANGELOG.md.
-  summary: "Change: `.opencode/opencode.jsonc` agent permission blocks \u2014 coder/code-navigator/researcher/designer/observer/memory-manager\
-    \ `token_*: deny`. coder gains its first permission entry; the preserved \"deliberately\
-    \ no restrictions\" comment (M2 decision) now notes token_* is the explicit carve-out\
-    \ (edit/bash/task rationale untouched). Total `\"token_*\": \"deny\"` entries:\
-    \ 13 (7 prior + 6 new). R2 spin-off DIA-066 (tool-coverage audit script, OPEN);\
-    \ R3 upstream monitoring recurring (no permission changes v1.18.12\u2192v1.18.15);\
-    \ resource-manager bash-gap closed as not a real gap (curl/wget/trafilatura allow\
-    \ + `*: deny` at opencode.jsonc:195-214). Reason: confirmed write-capable `token_export`\
-    \ default-allow leak (arbitrary `file_path`, no allowlist); driven by \xA710 gate\
-    \ research (DIA-055). - Pending user: restart OpenCode \u2192 Phase 5 smoke (DIA-055\
-    \ VERIFIED status).\n"
-  verification: "`make test-config` exit 0; JSONC parse of opencode.jsonc passes (validate-opencode-config.sh).\
-    \ Review: \xA710 gate \u2014 @ai-specialist findings (line-refs verified) + Phase\
-    \ 2 developer decision \"Proceed R1 + spin DIA-066\"; gate token `ai-specialist-reviewed`\
-    \ present 2026-08-08.\n"
+  summary: 'Change: `.opencode/opencode.jsonc` agent permission blocks — coder/code-navigator/researcher/designer/observer/memory-manager
+    `token_*: deny`. coder gains its first permission entry; the preserved "deliberately
+    no restrictions" comment (M2 decision) now notes token_* is the explicit carve-out
+    (edit/bash/task rationale untouched). Total `"token_*": "deny"` entries: 13 (7
+    prior + 6 new). R2 spin-off DIA-066 (tool-coverage audit script, OPEN); R3 upstream
+    monitoring recurring (no permission changes v1.18.12→v1.18.15); resource-manager
+    bash-gap closed as not a real gap (curl/wget/trafilatura allow + `*: deny` at
+    opencode.jsonc:195-214). Reason: confirmed write-capable `token_export` default-allow
+    leak (arbitrary `file_path`, no allowlist); driven by §10 gate research (DIA-055).
+    - Pending user: restart OpenCode → Phase 5 smoke (DIA-055 VERIFIED status).
+
+    '
+  verification: '`make test-config` exit 0; JSONC parse of opencode.jsonc passes (validate-opencode-config.sh).
+    Review: §10 gate — @ai-specialist findings (line-refs verified) + Phase 2 developer
+    decision "Proceed R1 + spin DIA-066"; gate token `ai-specialist-reviewed` present
+    2026-08-08.
+
+    '
 - date: '2026-08-07'
   ticket: DIA-057/058
   scope: research-persistence workflow (mechanical trigger + hard gate + agents)
@@ -3067,21 +3093,24 @@
     (extended)
   - .opencode/learnings/index.md (pointer)
   - CHANGELOG.md.
-  summary: "Change: (A) `.opencode/plugins/delegation-observer.ts` PERSISTENCE_RECOMMENDED\
-    \ mechanical trigger \u2014 `tool.execute.after` task-completion detector (researcher\
-    \ lane only, `<task_result>` payload-scoped) writes `.opencode/session/persistence-pending.json`\
-    \ (overwrite-based, latest event wins); (D) `.opencode/oh-my-opencode-slim/orchestrator_append.md`\
-    \ Research Persistence Gate \u2014 hard-gate the orchestrator on the pending file;\
-    \ (E) NEW `.opencode/agents/analyzer.md` (pure-analyst runtime-truth + stale-contradiction\
-    \ docs + coder fallback) + `.opencode/agents/conspecter.md` (two-phase + guard\
-    \ gate). Reason: DIA-057 knowledge-workflow order violation (analysis/conspect\
-    \ before research completed); DIA-058 PERSISTENCE_RECOMMENDED auto-ignore (no\
-    \ mechanical detection path).\n"
-  verification: "`make test-config` exit 0; `npx tsc --noEmit` (project flags, delegation-observer.ts)\
-    \ exit 0. Pending: restart OpenCode + next-session smoke. Review: ai-auditor ai--4\
-    \ APPROVE-WITH-FINDINGS (3); all findings accepted \u2014 F1 CHANGELOG registration,\
-    \ F2 learnings plugin-feasibility extension, F3 researcher-lane plugin trigger\
-    \ scoping.\n"
+  summary: 'Change: (A) `.opencode/plugins/delegation-observer.ts` PERSISTENCE_RECOMMENDED
+    mechanical trigger — `tool.execute.after` task-completion detector (researcher
+    lane only, `<task_result>` payload-scoped) writes `.opencode/session/persistence-pending.json`
+    (overwrite-based, latest event wins); (D) `.opencode/oh-my-opencode-slim/orchestrator_append.md`
+    Research Persistence Gate — hard-gate the orchestrator on the pending file; (E)
+    NEW `.opencode/agents/analyzer.md` (pure-analyst runtime-truth + stale-contradiction
+    docs + coder fallback) + `.opencode/agents/conspecter.md` (two-phase + guard gate).
+    Reason: DIA-057 knowledge-workflow order violation (analysis/conspect before research
+    completed); DIA-058 PERSISTENCE_RECOMMENDED auto-ignore (no mechanical detection
+    path).
+
+    '
+  verification: '`make test-config` exit 0; `npx tsc --noEmit` (project flags, delegation-observer.ts)
+    exit 0. Pending: restart OpenCode + next-session smoke. Review: ai-auditor ai--4
+    APPROVE-WITH-FINDINGS (3); all findings accepted — F1 CHANGELOG registration,
+    F2 learnings plugin-feasibility extension, F3 researcher-lane plugin trigger scoping.
+
+    '
 - date: '2026-08-07'
   ticket: DIA-055/056
   scope: token-tool permission hardening (wildcard denies)
@@ -3090,15 +3119,19 @@
   - .opencode/learnings/external-patterns/2026-08-07-token-tool-permission-model.md
   - .opencode/learnings/index.md (pointer)
   - CHANGELOG.md.
-  summary: "Change: `.opencode/opencode.jsonc` agent permission blocks \u2014 orchestrator\
-    \ `token_export: allow` (explicit); architector/analyzer/reviewer/council/resource-manager/ai-specialist\
-    \ `token_*: deny`; ai-auditor `token_export: deny` \u2192 `token_*: deny` (wildcard).\
-    \ Reason: write-capable `token_export` was default-allow for all agents (DIA-055);\
-    \ DIA-056 ai-auditor token-tool stacking closed via config-block inspection (candidate\
-    \ c/d fold).\n"
-  verification: "`make test-config` exit 0. Review: independent @ai-specialist review\
-    \ (ai--2) APPROVE-WITH-FINDINGS; developer accepted findings 1/3/4 \u2014 CHANGELOG\
-    \ registration, learnings index pointer, envsitter wording reconciliation.\n"
+  summary: 'Change: `.opencode/opencode.jsonc` agent permission blocks — orchestrator
+    `token_export: allow` (explicit); architector/analyzer/reviewer/council/resource-manager/ai-specialist
+    `token_*: deny`; ai-auditor `token_export: deny` → `token_*: deny` (wildcard).
+    Reason: write-capable `token_export` was default-allow for all agents (DIA-055);
+    DIA-056 ai-auditor token-tool stacking closed via config-block inspection (candidate
+    c/d fold).
+
+    '
+  verification: '`make test-config` exit 0. Review: independent @ai-specialist review
+    (ai--2) APPROVE-WITH-FINDINGS; developer accepted findings 1/3/4 — CHANGELOG registration,
+    learnings index pointer, envsitter wording reconciliation.
+
+    '
 - date: '2026-08-07'
   ticket: DIA-059
   scope: apply_patch S10 gate hardening + DIA-061 handoff checksum enforcement
@@ -3114,48 +3147,50 @@
   - docs/dev-infra-audit/tickets/DIA-059.md
   - docs/dev-infra-audit/tickets/DIA-061.md
   - docs/dev-infra-audit/tickets/README.md.
-  summary: "Change: (1) `.opencode/plugins/delegation-observer.ts` apply_patch branch\
-    \ hardened \u2014 first-line-only `Index:`/`diff --git` parse replaced with a\
-    \ multi-marker, multi-file scan (`Index:`, `diff --git`, `+++ b/`, omo `*** Add/Update/Delete\
-    \ File:` markers) that stops at the first `isProtectedPath()` match. Closes two\
-    \ fail-open triggers: leading-blank/format-patch/MIME-header patches, and omo\
-    \ rewritePatch output (codec.ts `formatPatch`) that matched neither git-style\
-    \ regex. (2) `scripts/validate-handoff.sh` \u2014 new checksum block (DIA-061):\
-    \ rejects missing/empty/non-64-hex/placeholder checksums and verifies integrity\
-    \ against the canonical serialization `jq -c '.prognosis | to_entries | sort_by(.key)\
-    \ | from_entries'`; non-JSON inputs (markdown template via `make test-config`)\
-    \ skip the block. (3) `orchestrator_append.md` boot gate \u2014 SHA256 verify\
-    \ upgraded to HARD GATE: mismatch/missing/non-64-hex \u2192 REFUSE TO RESUME +\
-    \ `log_decision` ('handoff','escalated','checksum-mismatch', computed= vs stored=)\
-    \ + escalate; match \u2192 `log_decision` ('handoff','acknowledged','checksum-verified').\
-    \ (4) current-handoff.json checksum recomputed to canonical (0eee533e\u2026) \u2014\
-    \ stored 25646ee\u2026 was written with a non-canonical serialization. NEW learnings\
-    \ entry `external-patterns/2026-08-07-plugin-hook-order-and-gate-gaps.md` + index\
-    \ pointer; DIA-061 status OPEN \u2192 IMPLEMENTED. Reason: the \xA710 gate's apply_patch\
-    \ branch silently fail-opened for any patch whose first line was not `Index:`/`diff\
-    \ --git` \u2014 including every omo-rewritten patch (omo loads before this plugin\
-    \ per opencode.jsonc plugin array order). DIA-061: handoff continuity required\
-    \ a deterministic integrity gate \u2014 placeholder or stale checksums (this handoff's\
-    \ stored checksum did not match the canonical serialization) must refuse resume,\
-    \ not silently proceed. - Pending user: restart OpenCode \u2192 runtime smoke\
-    \ of the apply_patch branch (session with the apply_patch tool + plugin restart)\
-    \ and tampered-handoff boot refusal (DIA-061 Re-verify).\n"
-  verification: "`npx tsc --noEmit --strict --skipLibCheck --target ESNext --module\
-    \ preserve --moduleResolution bundler .opencode/plugins/delegation-observer.ts`\
-    \ exit 0; `make test-config` exit 0; validate-handoff.sh checksum block negative\
-    \ tests (placeholder / mismatch / missing checksum) each FAIL as expected against\
-    \ /tmp copies of current-handoff.json. Review: (F1) writer-side canonical checksum\
-    \ \u2014 `delegation-observer.ts` `computeChecksum` now hashes top-level-key-sorted\
-    \ compact JSON (byte-identical with the validator's `jq -c \u2026 | printf '%s'`\
-    \ no-trailing-newline method; writer simulation reproduces 0eee533e\u2026 on the\
-    \ current handoff); (F2) apply_patch marker chain adds omo's `*** Move to:` rename-destination\
-    \ marker (codec.ts `formatPatch`), closing the move-into-`.opencode/**` blind\
-    \ spot; (F3) `orchestrator_append.md` boot-gate command made byte-identical (`|\
-    \ tr -d '\\n'`) + no-trailing-newline caveat sentence; (F4) `validate-handoff.sh`\
-    \ placeholder regex broadened to any repeated char `^(.)\\1{63}$`; (F5) DIA-061\
-    \ narrative reconciled to the canonical 0eee533e\u2026 path (45a8404\u2026 noted\
-    \ as the non-canonical raw-pipe intermediate). learnings `2026-08-07-plugin-hook-order-and-gate-gaps.md`\
-    \ updated with the writer-contract + Move-to coverage notes.\n"
+  summary: 'Change: (1) `.opencode/plugins/delegation-observer.ts` apply_patch branch
+    hardened — first-line-only `Index:`/`diff --git` parse replaced with a multi-marker,
+    multi-file scan (`Index:`, `diff --git`, `+++ b/`, omo `*** Add/Update/Delete
+    File:` markers) that stops at the first `isProtectedPath()` match. Closes two
+    fail-open triggers: leading-blank/format-patch/MIME-header patches, and omo rewritePatch
+    output (codec.ts `formatPatch`) that matched neither git-style regex. (2) `scripts/validate-handoff.sh`
+    — new checksum block (DIA-061): rejects missing/empty/non-64-hex/placeholder checksums
+    and verifies integrity against the canonical serialization `jq -c ''.prognosis
+    | to_entries | sort_by(.key) | from_entries''`; non-JSON inputs (markdown template
+    via `make test-config`) skip the block. (3) `orchestrator_append.md` boot gate
+    — SHA256 verify upgraded to HARD GATE: mismatch/missing/non-64-hex → REFUSE TO
+    RESUME + `log_decision` (''handoff'',''escalated'',''checksum-mismatch'', computed=
+    vs stored=) + escalate; match → `log_decision` (''handoff'',''acknowledged'',''checksum-verified'').
+    (4) current-handoff.json checksum recomputed to canonical (0eee533e…) — stored
+    25646ee… was written with a non-canonical serialization. NEW learnings entry `external-patterns/2026-08-07-plugin-hook-order-and-gate-gaps.md`
+    + index pointer; DIA-061 status OPEN → IMPLEMENTED. Reason: the §10 gate''s apply_patch
+    branch silently fail-opened for any patch whose first line was not `Index:`/`diff
+    --git` — including every omo-rewritten patch (omo loads before this plugin per
+    opencode.jsonc plugin array order). DIA-061: handoff continuity required a deterministic
+    integrity gate — placeholder or stale checksums (this handoff''s stored checksum
+    did not match the canonical serialization) must refuse resume, not silently proceed.
+    - Pending user: restart OpenCode → runtime smoke of the apply_patch branch (session
+    with the apply_patch tool + plugin restart) and tampered-handoff boot refusal
+    (DIA-061 Re-verify).
+
+    '
+  verification: '`npx tsc --noEmit --strict --skipLibCheck --target ESNext --module
+    preserve --moduleResolution bundler .opencode/plugins/delegation-observer.ts`
+    exit 0; `make test-config` exit 0; validate-handoff.sh checksum block negative
+    tests (placeholder / mismatch / missing checksum) each FAIL as expected against
+    /tmp copies of current-handoff.json. Review: (F1) writer-side canonical checksum
+    — `delegation-observer.ts` `computeChecksum` now hashes top-level-key-sorted compact
+    JSON (byte-identical with the validator''s `jq -c … | printf ''%s''` no-trailing-newline
+    method; writer simulation reproduces 0eee533e… on the current handoff); (F2) apply_patch
+    marker chain adds omo''s `*** Move to:` rename-destination marker (codec.ts `formatPatch`),
+    closing the move-into-`.opencode/**` blind spot; (F3) `orchestrator_append.md`
+    boot-gate command made byte-identical (`| tr -d ''\n''`) + no-trailing-newline
+    caveat sentence; (F4) `validate-handoff.sh` placeholder regex broadened to any
+    repeated char `^(.)\1{63}$`; (F5) DIA-061 narrative reconciled to the canonical
+    0eee533e… path (45a8404… noted as the non-canonical raw-pipe intermediate). learnings
+    `2026-08-07-plugin-hook-order-and-gate-gaps.md` updated with the writer-contract
+    + Move-to coverage notes.
+
+    '
 - date: '2026-08-07'
   ticket: DIA-059
   scope: S10 gate plugin fix
@@ -3167,20 +3202,21 @@
   - docs/dev-infra-audit/tickets/DIA-059.md
   - docs/dev-infra-audit/tickets/README.md
   - CHANGELOG.md.
-  summary: "Change: `.opencode/plugins/delegation-observer.ts` `tool.execute.before`\
-    \ hook args contract fixed \u2014 L482 `async (input, _output)` \u2192 `async\
-    \ (input, output)`; L514 `(input as unknown as { args }).args` \u2192 `(output\
-    \ as unknown as { args }).args`. Tool arguments live in **`output.args`**, NOT\
-    \ `input.args` (input is read-only `{ tool, sessionID?, callID?, directory? }`).\
-    \ The gate was **fail-open**: reading args from `input.args` yielded `undefined`\
-    \ at runtime, so `filePath` guards silently never fired and `.opencode/` edits\
-    \ bypassed the \xA710 gate. NEW learnings entry `external-patterns/2026-08-07-plugin-hook-args-contract.md`\
-    \ + index pointer; DIA-059 status OPEN \u2192 IMPLEMENTED. Reason: post-restart\
-    \ re-verify (2026-08-07) showed the plugin binary live (event hooks fire) but\
-    \ the gate did not block edit/write on `.opencode/**` \u2014 root cause was the\
-    \ before-hook args contract, not hook dispatch. - Pending user: restart OpenCode\
-    \ \u2192 gate smoke verification (blocked \u2192 gate-token \u2192 allowed \u2192\
-    \ cleared \u2192 blocked) + apply_patch edge case + CI regression grep.\n"
+  summary: 'Change: `.opencode/plugins/delegation-observer.ts` `tool.execute.before`
+    hook args contract fixed — L482 `async (input, _output)` → `async (input, output)`;
+    L514 `(input as unknown as { args }).args` → `(output as unknown as { args }).args`.
+    Tool arguments live in **`output.args`**, NOT `input.args` (input is read-only
+    `{ tool, sessionID?, callID?, directory? }`). The gate was **fail-open**: reading
+    args from `input.args` yielded `undefined` at runtime, so `filePath` guards silently
+    never fired and `.opencode/` edits bypassed the §10 gate. NEW learnings entry
+    `external-patterns/2026-08-07-plugin-hook-args-contract.md` + index pointer; DIA-059
+    status OPEN → IMPLEMENTED. Reason: post-restart re-verify (2026-08-07) showed
+    the plugin binary live (event hooks fire) but the gate did not block edit/write
+    on `.opencode/**` — root cause was the before-hook args contract, not hook dispatch.
+    - Pending user: restart OpenCode → gate smoke verification (blocked → gate-token
+    → allowed → cleared → blocked) + apply_patch edge case + CI regression grep.
+
+    '
   verification: '`npx tsc --noEmit --strict --skipLibCheck --target ESNext --module
     preserve --moduleResolution bundler .opencode/plugins/delegation-observer.ts`
     exit 0; `make test-config` exit 0; Phase 6 audit APPROVE-WITH-NOTES (ai-auditor
@@ -3191,28 +3227,29 @@
   ticket: DIA-064
   scope: cebula preset
   files:
-  - ".opencode/oh-my-opencode-slim.jsonc (cebula preset \u2014 7 agent model keys)"
+  - .opencode/oh-my-opencode-slim.jsonc (cebula preset — 7 agent model keys)
   - docs/dev-infra-audit/tickets/DIA-064.md (NEW)
   - .opencode/learnings/external-patterns/2026-08-07-cebula-preset-revert.md (NEW)
   - CHANGELOG.md.
-  summary: "Change: Reverted 7 agent model assignments in the `cebula` preset to their\
-    \ pre-commit (2e0c4f3e) all-flash state: orchestrator (`[\"opencode-go/deepseek-v4-flash\"\
-    , \"opencode/deepseek-v4-flash\"]`), coder (`[\"opencode-go/deepseek-v4-flash\"\
-    , \"opencode/deepseek-v4-flash\"]`), conspecter (`[\"github-copilot/gpt-5-mini\"\
-    , \"opencode-go/deepseek-v4-flash\", \"opencode/deepseek-v4-flash\"]`), resource-manager\
-    \ (`[\"github-copilot/gpt-5-mini\", \"opencode-go/deepseek-v4-flash\", \"opencode/deepseek-v4-flash\"\
-    ]`), memory-manager (`[\"github-copilot/gpt-5-mini\", \"opencode-go/deepseek-v4-flash\"\
-    , \"opencode/deepseek-v4-flash\"]`), code-navigator (`[\"github-copilot/gpt-5-mini\"\
-    , \"opencode-go/deepseek-v4-flash\", \"opencode/deepseek-v4-flash\"]`), researcher\
-    \ (`[\"opencode-go/deepseek-v4-flash\", \"opencode/deepseek-v4-flash\"]`). 5 agents\
-    \ also restored their `github-copilot/gpt-5-mini` primary/fallback entries. Reason:\
-    \ Commit 2e0c4f3e6cacb3d3120f6c5db44ea21f18e724da changed all 7 cebula agents\
-    \ from flash\u2192pro \u2014 a cost-critical leak. DIA-062 later reverted only\
-    \ the orchestrator (single-string). Developer approved Option A: full revert to\
-    \ pre-commit all-flash state (cost ~5-10x reduction). Lesson: preset model changes\
-    \ in config commits need explicit review before merge. Scope: Only cebula preset\
-    \ touched \u2014 opencode-go, free presets, and council entries unchanged. - Pending\
-    \ user: restart OpenCode (config takes effect on next run) + post-restart smoke.\n"
+  summary: 'Change: Reverted 7 agent model assignments in the `cebula` preset to their
+    pre-commit (2e0c4f3e) all-flash state: orchestrator (`["opencode-go/deepseek-v4-flash",
+    "opencode/deepseek-v4-flash"]`), coder (`["opencode-go/deepseek-v4-flash", "opencode/deepseek-v4-flash"]`),
+    conspecter (`["github-copilot/gpt-5-mini", "opencode-go/deepseek-v4-flash", "opencode/deepseek-v4-flash"]`),
+    resource-manager (`["github-copilot/gpt-5-mini", "opencode-go/deepseek-v4-flash",
+    "opencode/deepseek-v4-flash"]`), memory-manager (`["github-copilot/gpt-5-mini",
+    "opencode-go/deepseek-v4-flash", "opencode/deepseek-v4-flash"]`), code-navigator
+    (`["github-copilot/gpt-5-mini", "opencode-go/deepseek-v4-flash", "opencode/deepseek-v4-flash"]`),
+    researcher (`["opencode-go/deepseek-v4-flash", "opencode/deepseek-v4-flash"]`).
+    5 agents also restored their `github-copilot/gpt-5-mini` primary/fallback entries.
+    Reason: Commit 2e0c4f3e6cacb3d3120f6c5db44ea21f18e724da changed all 7 cebula agents
+    from flash→pro — a cost-critical leak. DIA-062 later reverted only the orchestrator
+    (single-string). Developer approved Option A: full revert to pre-commit all-flash
+    state (cost ~5-10x reduction). Lesson: preset model changes in config commits
+    need explicit review before merge. Scope: Only cebula preset touched — opencode-go,
+    free presets, and council entries unchanged. - Pending user: restart OpenCode
+    (config takes effect on next run) + post-restart smoke.
+
+    '
   verification: 'No explicit verification recorded in the legacy prose entry.
 
     '
@@ -3222,21 +3259,24 @@
   files:
   - .opencode/skills/research-pipeline/SKILL.md (NEW)
   - .opencode/agents/researcher.md (NEW)
-  - ".opencode/oh-my-opencode-slim.jsonc (orchestratorPrompt \xD73 presets)"
+  - .opencode/oh-my-opencode-slim.jsonc (orchestratorPrompt ×3 presets)
   - .opencode/learnings/external-patterns/2026-08-07-research-persistence-pipeline.md
     (NEW)
   - .opencode/learnings/index.md (pointer).
-  summary: "Change: NEW skill `.opencode/skills/research-pipeline/SKILL.md` (4-phase\
-    \ orchestrator workflow: research \u2192 persistence decision \u2192 conspecter\
-    \ dispatch \u2192 memory shelf verification); NEW agent file `.opencode/agents/researcher.md`\
-    \ (output contract with `PERSISTENCE_RECOMMENDED` flag); `orchestratorPrompt`\
-    \ added to researcher in all 3 presets (opencode-go, cebula, free); NEW learning\
-    \ entry `external-patterns/2026-08-07-research-persistence-pipeline.md`; `learnings/index.md`\
-    \ pointer added. Reason: Close gap where @researcher returned conversation-only\
-    \ findings with no path to @conspecter persistence. Two confirmed missing knowledge\
-    \ artifacts (2026-08-06).\n"
-  verification: "Review: independent review \u2014 2 Major (CHANGELOG + skill reference\
-    \ in orchestratorPrompt), 4 Minor.\n"
+  summary: 'Change: NEW skill `.opencode/skills/research-pipeline/SKILL.md` (4-phase
+    orchestrator workflow: research → persistence decision → conspecter dispatch →
+    memory shelf verification); NEW agent file `.opencode/agents/researcher.md` (output
+    contract with `PERSISTENCE_RECOMMENDED` flag); `orchestratorPrompt` added to researcher
+    in all 3 presets (opencode-go, cebula, free); NEW learning entry `external-patterns/2026-08-07-research-persistence-pipeline.md`;
+    `learnings/index.md` pointer added. Reason: Close gap where @researcher returned
+    conversation-only findings with no path to @conspecter persistence. Two confirmed
+    missing knowledge artifacts (2026-08-06).
+
+    '
+  verification: 'Review: independent review — 2 Major (CHANGELOG + skill reference
+    in orchestratorPrompt), 4 Minor.
+
+    '
 - date: '2026-08-06'
   ticket: Silent-session-logging
   scope: silent-session-logging, Option E
@@ -3248,24 +3288,28 @@
   - .opencode/scripts/jsonl-cross-check.sh
   - docs/dev-infra-audit/NEXT-RUN.md
   - .opencode/oh-my-opencode-slim/orchestrator_append.md (JSONL Sidecar removal)
-  - ".opencode/oh-my-opencode-slim.jsonc (orchestrator prompt one-liners \xD73)"
+  - .opencode/oh-my-opencode-slim.jsonc (orchestrator prompt one-liners ×3)
   - docs/dev-infra-audit/tickets/DIA-051.md (resolved-by-implementation)
   - NEW .opencode/learnings/external-patterns/2026-08-06-silent-session-logging.md.
-  summary: "Change: delegation-observer plugin now writes canonical session JSONL\
-    \ silently to `.opencode/session/messages.jsonl` + `registry.jsonl` (writer:\"\
-    plugin\", row_id, event_uuid); new `log_decision` tool (permission \"allow\" on\
-    \ orchestrator only in `.opencode/opencode.jsonc`); `messages.md` is now a DERIVED\
-    \ VIEW regenerated by `scripts/session-log render` (never hand-edited); P5 gate\
-    \ tool `.opencode/scripts/jsonl-cross-check.sh` (`--since` default 2026-08-06T19:30:00Z,\
-    \ \u226599% completeness, \xB15s tolerance, exit 0/1/2) verifies registry\u2194\
-    messages completeness. Reason: eliminate orchestrator manual dual-write discipline\
-    \ (hand-editing messages.md + messages.jsonl after every delegation); plugin-authored\
-    \ audit trail; fail-soft writers + gate cannot mask a dead plugin. - Pending user:\
-    \ commit decision (nothing staged/committed by the executor lane).\n"
-  verification: "Review: independent review \u2014 2 Critical findings closed (F1\
-    \ changelog registration, F2 learnings registration); DIA-051 closed resolved-by-implementation;\
-    \ P5 smoke 100% (in-universe 8/8), `make jsonl-cross-check` exit 0 (registry 213\
-    \ task_success = 205 legacy + 8 in-universe).\n"
+  summary: 'Change: delegation-observer plugin now writes canonical session JSONL
+    silently to `.opencode/session/messages.jsonl` + `registry.jsonl` (writer:"plugin",
+    row_id, event_uuid); new `log_decision` tool (permission "allow" on orchestrator
+    only in `.opencode/opencode.jsonc`); `messages.md` is now a DERIVED VIEW regenerated
+    by `scripts/session-log render` (never hand-edited); P5 gate tool `.opencode/scripts/jsonl-cross-check.sh`
+    (`--since` default 2026-08-06T19:30:00Z, ≥99% completeness, ±5s tolerance, exit
+    0/1/2) verifies registry↔messages completeness. Reason: eliminate orchestrator
+    manual dual-write discipline (hand-editing messages.md + messages.jsonl after
+    every delegation); plugin-authored audit trail; fail-soft writers + gate cannot
+    mask a dead plugin. - Pending user: commit decision (nothing staged/committed
+    by the executor lane).
+
+    '
+  verification: 'Review: independent review — 2 Critical findings closed (F1 changelog
+    registration, F2 learnings registration); DIA-051 closed resolved-by-implementation;
+    P5 smoke 100% (in-universe 8/8), `make jsonl-cross-check` exit 0 (registry 213
+    task_success = 205 legacy + 8 in-universe).
+
+    '
 - date: '2026-08-05'
   ticket: Copilot-PR-2-review-fixes
   scope: dev-infra-copilot-fixes, Commit A + Commit B
@@ -3284,68 +3328,68 @@
   - NEW .opencode/learnings/external-patterns/2026-08-05-copilot-pr2-config-fixes.md
   - learnings/index.md (pointer row)
   - CHANGELOG.md.
-  summary: "Change: 8 owner-confirmed Copilot review fixes on PR #2, split across\
-    \ two commits along the AGENTS.md routing boundary. **Commit A (dev-infra, \xA7\
-    2.4 \u2192 @reviewer):** #1 `scripts/dev-stack.sh` output corrected (names only\
-    \ `author-studio` as turbo-managed; drops fabricated URLs; `api-server`/`publishing`\
-    \ noted as started separately); #4 `tools/opencode-docker/Dockerfile` four `*)`\
-    \ fail-fast branches added (`NODE_ARCH`/`MISE_ARCH`/`SNIP_ARCH`/`UV_ARCH` \u2014\
-    \ unsupported TARGETARCH now errors instead of silent build corruption); #6 `dev-entrypoint.sh`\
-    \ zero-byte secret skip (`[ ! -s \"$file\" ]` \u2192 `[skip]` + degraded boot,\
-    \ never crash); #7 `scripts/dev-secrets-profile.sh` same parity skip; companion\
-    \ `secrets/README.md` sync note + 2 new bats tests (Dockerfile arch-failfast static\
-    \ grep, empty-secret skip). **Commit B (AI-tooling config, \xA710 \u2192 @ai-specialist):**\
-    \ #2 `telemetry-report.md` + #3 `telemetry-inspect.md` hardcoded `/home/qualt`\
-    \ paths \u2192 `${HOME:?HOME must be set}` POSIX fail-fast guards (0 `/home/qualt`\
-    \ literals); #5 `.config/opencode/skills/book-rag/knowledge-bases.yaml` committed\
-    \ runtime cache deleted + path-scoped root `.gitignore` entry; #8 `.opencode/memory/failures.md`\
-    \ duplicated MCP bullet deduped (1 bullet + Resolution). Plus executor lane: failures.md\
-    \ Resolution indent 3\u21922 spaces (1-char Minor). Reason: Copilot review flagged\
-    \ misleading dev-stack output, missing fail-fast defaults in arch dispatch (silent\
-    \ malformed-URL builds), zero-byte secrets exported as empty env vars (masks developer-provided\
-    \ values, contradicts secrets/README.md), machine-specific paths in committed\
-    \ commands (portability), committed runtime cache churn (generated artifacts out\
-    \ of version control, matches `knowledge/*/sources/` pattern), and duplicated\
-    \ memory entry (hygiene). Design decisions / review: two-chain review matrix per\
-    \ tasks.md \u2014 Commit A \u2192 @reviewer (two-axis: Standards + Spec fidelity;\
-    \ `make test-shell` + `make test-infra`); Commit B \u2192 @ai-specialist (\xA7\
-    10.5 independent review; `make test-config`). \xA710 Phase 1 gate findings registered\
-    \ 2026-08-05 (ai--1, row 371, session ses_02f7d3527ffe7vY9c5406DJ6Lb) \u2014 incl.\
-    \ CORRECTED rationale: `query_rag.py` at `.opencode/scripts/query_rag.py` (1328\
-    \ lines) is NOT orphaned; cache regenerated on demand (`get_kb_list` :292 \u2192\
-    \ `_load_kb_cache` :314 \u2192 `_save_kb_cache` atomic write :236-263). Query_rag.py\
-    \ itself untouched (book-rag refactor out of scope). No `.sdd/` governs the touched\
-    \ paths; secrets-loader `.sdd/` gap flagged in proposal, not invented here. -\
-    \ Pending user: restart OpenCode (config changes take effect on next start) +\
-    \ commit decision (commit lane separate \u2014 nothing staged/committed by the\
-    \ executor lane).\n"
+  summary: 'Change: 8 owner-confirmed Copilot review fixes on PR #2, split across
+    two commits along the AGENTS.md routing boundary. **Commit A (dev-infra, §2.4
+    → @reviewer):** #1 `scripts/dev-stack.sh` output corrected (names only `author-studio`
+    as turbo-managed; drops fabricated URLs; `api-server`/`publishing` noted as started
+    separately); #4 `tools/opencode-docker/Dockerfile` four `*)` fail-fast branches
+    added (`NODE_ARCH`/`MISE_ARCH`/`SNIP_ARCH`/`UV_ARCH` — unsupported TARGETARCH
+    now errors instead of silent build corruption); #6 `dev-entrypoint.sh` zero-byte
+    secret skip (`[ ! -s "$file" ]` → `[skip]` + degraded boot, never crash); #7 `scripts/dev-secrets-profile.sh`
+    same parity skip; companion `secrets/README.md` sync note + 2 new bats tests (Dockerfile
+    arch-failfast static grep, empty-secret skip). **Commit B (AI-tooling config,
+    §10 → @ai-specialist):** #2 `telemetry-report.md` + #3 `telemetry-inspect.md`
+    hardcoded `/home/qualt` paths → `${HOME:?HOME must be set}` POSIX fail-fast guards
+    (0 `/home/qualt` literals); #5 `.config/opencode/skills/book-rag/knowledge-bases.yaml`
+    committed runtime cache deleted + path-scoped root `.gitignore` entry; #8 `.opencode/memory/failures.md`
+    duplicated MCP bullet deduped (1 bullet + Resolution). Plus executor lane: failures.md
+    Resolution indent 3→2 spaces (1-char Minor). Reason: Copilot review flagged misleading
+    dev-stack output, missing fail-fast defaults in arch dispatch (silent malformed-URL
+    builds), zero-byte secrets exported as empty env vars (masks developer-provided
+    values, contradicts secrets/README.md), machine-specific paths in committed commands
+    (portability), committed runtime cache churn (generated artifacts out of version
+    control, matches `knowledge/*/sources/` pattern), and duplicated memory entry
+    (hygiene). Design decisions / review: two-chain review matrix per tasks.md — Commit
+    A → @reviewer (two-axis: Standards + Spec fidelity; `make test-shell` + `make
+    test-infra`); Commit B → @ai-specialist (§10.5 independent review; `make test-config`).
+    §10 Phase 1 gate findings registered 2026-08-05 (ai--1, row 371, session ses_02f7d3527ffe7vY9c5406DJ6Lb)
+    — incl. CORRECTED rationale: `query_rag.py` at `.opencode/scripts/query_rag.py`
+    (1328 lines) is NOT orphaned; cache regenerated on demand (`get_kb_list` :292
+    → `_load_kb_cache` :314 → `_save_kb_cache` atomic write :236-263). Query_rag.py
+    itself untouched (book-rag refactor out of scope). No `.sdd/` governs the touched
+    paths; secrets-loader `.sdd/` gap flagged in proposal, not invented here. - Pending
+    user: restart OpenCode (config changes take effect on next start) + commit decision
+    (commit lane separate — nothing staged/committed by the executor lane).
+
+    '
   verification: 'No explicit verification recorded in the legacy prose entry.
 
     '
 - date: '2026-08-04'
   ticket: Copilot-legacy-annual-pricing
-  scope: "observer fallback \u22646x (gpt-5-mini)"
+  scope: observer fallback ≤6x (gpt-5-mini)
   files:
   - oh-my-opencode-slim.jsonc (cebula observer array fallback)
   - ai-assist-sources.yaml (role_mapping observer label)
   - learnings/external-patterns/2026-08-04-copilot-legacy-annual-pricing.md (NEW)
   - learnings/index.md (pointer row + Last updated)
   - CHANGELOG.md.
-  summary: "Change: cebula preset observer fallback `github-copilot/gemini-3.5-flash`\
-    \ (14x credit multiplier) \u2192 `github-copilot/gpt-5-mini` (0.33x) \u2014 GitHub's\
-    \ #1 recommended vision model on the legacy annual plan; knowledge update (NEW\
-    \ learnings `2026-08-04-copilot-legacy-annual-pricing.md` + index pointer row)\
-    \ and ai-assist-sources.yaml role_mapping observer label. Reason: legacy ANNUAL\
-    \ GitHub Copilot Pro plan uses credit-multiplier (premium-request) billing \u2014\
-    \ the credit multiplier governs cost. gemini-3.5-flash = 14x worst deal (~21 premium\
-    \ interactions/month); gpt-5-mini = 0.33x cheapest (~909/month); owner policy:\
-    \ models \u22646x multiplier. 42x cheaper per interaction. Design decisions /\
-    \ review: ai--3 authoritative research (fetched 2026-08-04, docs.github.com model-multipliers-for-annual-plans);\
-    \ \xA710 Phase 2 owner approval \u2014 observer fallback \u22646x (gpt-5-mini)\
-    \ + full knowledge update; primary opencode-go/kimi-k2.7-code [0] and last-resort\
-    \ opencode/big-pickle unchanged; opencode-go/free preset observers, council/councillor,\
-    \ coder/reviewer/designer models untouched. - Pending user: dcp.jsonc `gemini-3.5-flash`\
-    \ cleanup \u2014 RESOLVED (both occurrences removed in ebbe17c).\n"
+  summary: 'Change: cebula preset observer fallback `github-copilot/gemini-3.5-flash`
+    (14x credit multiplier) → `github-copilot/gpt-5-mini` (0.33x) — GitHub''s #1 recommended
+    vision model on the legacy annual plan; knowledge update (NEW learnings `2026-08-04-copilot-legacy-annual-pricing.md`
+    + index pointer row) and ai-assist-sources.yaml role_mapping observer label. Reason:
+    legacy ANNUAL GitHub Copilot Pro plan uses credit-multiplier (premium-request)
+    billing — the credit multiplier governs cost. gemini-3.5-flash = 14x worst deal
+    (~21 premium interactions/month); gpt-5-mini = 0.33x cheapest (~909/month); owner
+    policy: models ≤6x multiplier. 42x cheaper per interaction. Design decisions /
+    review: ai--3 authoritative research (fetched 2026-08-04, docs.github.com model-multipliers-for-annual-plans);
+    §10 Phase 2 owner approval — observer fallback ≤6x (gpt-5-mini) + full knowledge
+    update; primary opencode-go/kimi-k2.7-code [0] and last-resort opencode/big-pickle
+    unchanged; opencode-go/free preset observers, council/councillor, coder/reviewer/designer
+    models untouched. - Pending user: dcp.jsonc `gemini-3.5-flash` cleanup — RESOLVED
+    (both occurrences removed in ebbe17c).
+
+    '
   verification: 'No explicit verification recorded in the legacy prose entry.
 
     '
@@ -3356,20 +3400,21 @@
   - oh-my-opencode-slim.jsonc (cebula observer array)
   - dcp.jsonc (modelMaxLimits/modelMinLimits)
   - ai-assist-sources.yaml (role_mapping label).
-  summary: "Change: cebula preset observer primary model corrected to opencode-go/kimi-k2.7-code\
-    \ (multimodal); stale nonexistent github-copilot/gemini-3.6-flash replaced with\
-    \ github-copilot/gemini-3.5-flash fallback across 3 files (oh-my-opencode-slim.jsonc\
-    \ cebula observer array, dcp.jsonc model limits \xD72, ai-assist-sources.yaml\
-    \ role_mapping label). Reason: post-restart Smoke-1 dispatch error \"Model not\
-    \ found: github-copilot/gemini-3.6-flash\"; \xA710 Phase 1 root-cause \u2014 F7\
-    \ incomplete (only opencode-go preset updated, cebula missed); Phase 4 cod-3 3\
-    \ edits; Phase 5 ai--3 APPROVE-WITH-FINDINGS (F1..F4 dispositioned); Smoke-1 re-run\
-    \ (obs-2) PASS. Design decisions / review: opencode-go/kimi-k2.7-code promoted\
-    \ to cebula observer primary (multimodal) with github-copilot/gemini-3.5-flash\
-    \ fallback; superseded gemini-3.6-flash GA claim annotated in learnings (2026-08-03-cebula-copilot-rebalance.md);\
-    \ \xA710 Phase 5 ai--3 APPROVE-WITH-FINDINGS (0 Blocker/Critical/Major \u2014\
-    \ F1 ACCEPTED, F2 deferred, F3 closed, F4 no-action). - Pending user: 3-edit change\
-    \ set remains uncommitted \u2014 owner commit decision pending.\n"
+  summary: 'Change: cebula preset observer primary model corrected to opencode-go/kimi-k2.7-code
+    (multimodal); stale nonexistent github-copilot/gemini-3.6-flash replaced with
+    github-copilot/gemini-3.5-flash fallback across 3 files (oh-my-opencode-slim.jsonc
+    cebula observer array, dcp.jsonc model limits ×2, ai-assist-sources.yaml role_mapping
+    label). Reason: post-restart Smoke-1 dispatch error "Model not found: github-copilot/gemini-3.6-flash";
+    §10 Phase 1 root-cause — F7 incomplete (only opencode-go preset updated, cebula
+    missed); Phase 4 cod-3 3 edits; Phase 5 ai--3 APPROVE-WITH-FINDINGS (F1..F4 dispositioned);
+    Smoke-1 re-run (obs-2) PASS. Design decisions / review: opencode-go/kimi-k2.7-code
+    promoted to cebula observer primary (multimodal) with github-copilot/gemini-3.5-flash
+    fallback; superseded gemini-3.6-flash GA claim annotated in learnings (2026-08-03-cebula-copilot-rebalance.md);
+    §10 Phase 5 ai--3 APPROVE-WITH-FINDINGS (0 Blocker/Critical/Major — F1 ACCEPTED,
+    F2 deferred, F3 closed, F4 no-action). - Pending user: 3-edit change set remains
+    uncommitted — owner commit decision pending.
+
+    '
   verification: 'No explicit verification recorded in the legacy prose entry.
 
     '
@@ -3381,21 +3426,22 @@
   - ai-assist-sources.yaml
   - practice-protected.md
   - openspec/templates/HANDOFF.md.
-  summary: "Change: \xA710 lane fixed the DIA-045 config-drift backlog fix-now set\
-    \ \u2014 stale \"boss\"\u2192\"orchestrator\" aliases (coder \xD73 prompts, architector/analyzer\
-    \ orchestratorPrompts, practice-protected.md), underscore\u2192hyphen agent names\
-    \ (ai-specialist, resource-manager) across ai-assist-sources.yaml + prompts, opencode-go\
-    \ observer \u2192 kimi-k2.7-code (multimodal) + role_mapping update, HANDOFF.md\
-    \ template restructured (## Prognosis for next cycle wrapper + 5 ### subsections\
-    \ matching the batch-approval gate). Reason: DIA-045 (config drift from ai--1\
-    \ 22-finding audit, 2026-08-04); owner-approved fix-now set + 2 anomaly dispositions.\
-    \ Design decisions / review: \xA710 two-sided audit \u2014 ai--1 Phase 1 gate\
-    \ \u2192 ai--2 Phase 5 APPROVE \u2192 cod-7 independent re-confirm; HANDOFF template\
-    \ option A (template carries the wrapper, gate check stays `## Prognosis for next\
-    \ cycle`). - Pending user: restart OpenCode + 4 post-restart smoke items (observer\
-    \ dispatch kimi, HANDOFF gate on template-produced HANDOFF, @ai-specialist/@resource-manager\
-    \ name resolution, coder escalation \"orchestrator\"); deferred items F18/F21/F15/F19/F20/F22\
-    \ remain OPEN; commit pending owner decision.\n"
+  summary: 'Change: §10 lane fixed the DIA-045 config-drift backlog fix-now set —
+    stale "boss"→"orchestrator" aliases (coder ×3 prompts, architector/analyzer orchestratorPrompts,
+    practice-protected.md), underscore→hyphen agent names (ai-specialist, resource-manager)
+    across ai-assist-sources.yaml + prompts, opencode-go observer → kimi-k2.7-code
+    (multimodal) + role_mapping update, HANDOFF.md template restructured (## Prognosis
+    for next cycle wrapper + 5 ### subsections matching the batch-approval gate).
+    Reason: DIA-045 (config drift from ai--1 22-finding audit, 2026-08-04); owner-approved
+    fix-now set + 2 anomaly dispositions. Design decisions / review: §10 two-sided
+    audit — ai--1 Phase 1 gate → ai--2 Phase 5 APPROVE → cod-7 independent re-confirm;
+    HANDOFF template option A (template carries the wrapper, gate check stays `##
+    Prognosis for next cycle`). - Pending user: restart OpenCode + 4 post-restart
+    smoke items (observer dispatch kimi, HANDOFF gate on template-produced HANDOFF,
+    @ai-specialist/@resource-manager name resolution, coder escalation "orchestrator");
+    deferred items F18/F21/F15/F19/F20/F22 remain OPEN; commit pending owner decision.
+
+    '
   verification: 'No explicit verification recorded in the legacy prose entry.
 
     '
@@ -3407,40 +3453,45 @@
   - get-my-session-id.ts (NEW tool)
   - opencode.jsonc
   - jsonl-stats.sh (F17 fix + dangling/orphan/telemetry)
-  - "oh-my-opencode-slim.jsonc (PURE-DISPATCH \xD73)"
+  - oh-my-opencode-slim.jsonc (PURE-DISPATCH ×3)
   - orchestrator_append.md
-  - "NEXT-RUN.md \xA72"
+  - NEXT-RUN.md §2
   - _TEMPLATE.md
   - to-tickets SKILL.md
   - session/README.md
   - registry.jsonl (gitignored, plugin-created).
-  summary: "Change: Tickets System 2.0 \u2014 session-attributed delegation & grounded\
-    \ dispatch (fixes false delegation + enables exact subagent-session recall). Reason:\
-    \ 3 confirmed false-delegation incidents in 2026-08-04 dev-audit (task() silently\
-    \ dropped when batched with edit()); tickets lacked session_id/lane_id/files_touched/artifacts\
-    \ linkage (ana005 report). Design decisions: plugin-as-hooks (OpenCode native\
-    \ hooks closed not-planned); task_id success-path-only (PR #13958 unmerged) +\
-    \ session.children fallback + session.prompt recall; registry.jsonl = business\
-    \ cross-ref index (gitignored) + native session APIs = lifecycle; gen_ai.agent.id\
-    \ + ticket_id = labeled Project Extensions (semconv v1.42.0); dispatch_state lifecycle\
-    \ invoked|running|completed|failed (+SILENT_FAILURE status); __task_no_id__ group_key\
-    \ exclusion; gatedSessions Set O(1); alert_note column. - Pending user: restart\
-    \ OpenCode + post-restart smoke (V5/V6/V10\u2013V13 + S1/S2) + commit decision.\n"
-  verification: "Review: \xA710 two-sided audit \u2014 Phase 1 ai--1 APPROVE-WITH-CHANGES,\
-    \ recheck ai--2 UPDATES-REQUIRED, Phase 5 ai--3 APPROVE (95%); @reviewer rev-1\
-    \ (BLOCKERS) \u2192 cod-3 \u2192 rev-2 (17/17 closed) \u2192 cod-4 (RR fixes)\
-    \ \u2192 rev-3 (5/5 closed, 0 regressions).\n"
+  summary: 'Change: Tickets System 2.0 — session-attributed delegation & grounded
+    dispatch (fixes false delegation + enables exact subagent-session recall). Reason:
+    3 confirmed false-delegation incidents in 2026-08-04 dev-audit (task() silently
+    dropped when batched with edit()); tickets lacked session_id/lane_id/files_touched/artifacts
+    linkage (ana005 report). Design decisions: plugin-as-hooks (OpenCode native hooks
+    closed not-planned); task_id success-path-only (PR #13958 unmerged) + session.children
+    fallback + session.prompt recall; registry.jsonl = business cross-ref index (gitignored)
+    + native session APIs = lifecycle; gen_ai.agent.id + ticket_id = labeled Project
+    Extensions (semconv v1.42.0); dispatch_state lifecycle invoked|running|completed|failed
+    (+SILENT_FAILURE status); __task_no_id__ group_key exclusion; gatedSessions Set
+    O(1); alert_note column. - Pending user: restart OpenCode + post-restart smoke
+    (V5/V6/V10–V13 + S1/S2) + commit decision.
+
+    '
+  verification: 'Review: §10 two-sided audit — Phase 1 ai--1 APPROVE-WITH-CHANGES,
+    recheck ai--2 UPDATES-REQUIRED, Phase 5 ai--3 APPROVE (95%); @reviewer rev-1 (BLOCKERS)
+    → cod-3 → rev-2 (17/17 closed) → cod-4 (RR fixes) → rev-3 (5/5 closed, 0 regressions).
+
+    '
 - date: '2026-08-04'
   ticket: F1-F5
   scope: opencode-config stale-reference cleanup (from ai--1 critical review)
   files: []
-  summary: "Change: ai-specialist prompt global knowledge paths \u2192 project-relative\
-    \ (.opencode/oh-my-opencode-slim/knowledge/); ai-assist-sources.yaml role_mapping\
-    \ \u2192 AGENTS.md \xA79 current names; tier3_local_references cross-project visualPoetryResearch\
-    \ entries removed, memory_shelf repointed to this repo; opencode_best_practices\
-    \ \u2192 project-relative; NEXT-RUN.md @code-executor \u2192 @coder (\xD72, deduped).\
-    \ Reason: 22-finding critical review (1 Blocker + 4 Critical); owner disposed\
-    \ Blocker+Critical now, rest \u2192 DIA-045.\n"
+  summary: 'Change: ai-specialist prompt global knowledge paths → project-relative
+    (.opencode/oh-my-opencode-slim/knowledge/); ai-assist-sources.yaml role_mapping
+    → AGENTS.md §9 current names; tier3_local_references cross-project visualPoetryResearch
+    entries removed, memory_shelf repointed to this repo; opencode_best_practices
+    → project-relative; NEXT-RUN.md @code-executor → @coder (×2, deduped). Reason:
+    22-finding critical review (1 Blocker + 4 Critical); owner disposed Blocker+Critical
+    now, rest → DIA-045.
+
+    '
   verification: 'make test-config exit 0; ai--2 Phase 5 APPROVE. Uncommitted.
 
     '
@@ -3458,21 +3509,22 @@
   - .opencode/session/README.md
   - NEW .opencode/scripts/jsonl-stats.sh
   - Makefile
-  summary: "Change: \xA710-approved modernization of the orchestrator handoff protocol\
-    \ per the handoff-protocol audit (learnings 2026-08-03-handoff-protocol-audit.md).\
-    \ 9 files modified, 1 script created, 0 deleted. Uncommitted. Reason: Audit found\
-    \ 3 correctness defects (G1 Critical batch-approval boot never executed; G2 Major\
-    \ HANDOFF.md staleness; G3 Major messages.md non-monotonic numbering) + modernization\
-    \ of continuity mechanics (G4 compaction/SELF-RERUN split, 30% primary / 50% safety-net;\
-    \ G5 prompt-enforced pre-handoff verification gate; G6 verification_result section)\
-    \ + tooling (G7 adr.md 64k\u21921M; G8 verified no-op; G9 jsonl-stats consumer).\
-    \ Design decisions: batch-approval ENFORCED not deprecated (G1); HANDOFF-REFRESH\
-    \ milestone-based rewrite (G2); JSONL-canonical + strictly monotonic numbering\
-    \ (G3); native compaction handles raw pressure, SELF-RERUN = campaign-state transfer\
-    \ with 30% primary/50% hard-cap (G4); plugin-free prompt gate (G5, research: no\
-    \ native OpenCode hooks//goal \u2014 Option B); verifier-only Verification Result\
-    \ (G6). - Pending user: restart OpenCode \u2192 post-restart smoke \u2192 commit\
-    \ decision.\n"
+  summary: 'Change: §10-approved modernization of the orchestrator handoff protocol
+    per the handoff-protocol audit (learnings 2026-08-03-handoff-protocol-audit.md).
+    9 files modified, 1 script created, 0 deleted. Uncommitted. Reason: Audit found
+    3 correctness defects (G1 Critical batch-approval boot never executed; G2 Major
+    HANDOFF.md staleness; G3 Major messages.md non-monotonic numbering) + modernization
+    of continuity mechanics (G4 compaction/SELF-RERUN split, 30% primary / 50% safety-net;
+    G5 prompt-enforced pre-handoff verification gate; G6 verification_result section)
+    + tooling (G7 adr.md 64k→1M; G8 verified no-op; G9 jsonl-stats consumer). Design
+    decisions: batch-approval ENFORCED not deprecated (G1); HANDOFF-REFRESH milestone-based
+    rewrite (G2); JSONL-canonical + strictly monotonic numbering (G3); native compaction
+    handles raw pressure, SELF-RERUN = campaign-state transfer with 30% primary/50%
+    hard-cap (G4); plugin-free prompt gate (G5, research: no native OpenCode hooks//goal
+    — Option B); verifier-only Verification Result (G6). - Pending user: restart OpenCode
+    → post-restart smoke → commit decision.
+
+    '
   verification: 'Review: ai-specialist ai--14 APPROVE-WITH-CHANGES (confidence 90%;
     C1 jsonl-stats execution resolved by coder evidence; M1 cosmetic not applied;
     M2 no-action); owner approved as-is (row 187).
@@ -3482,62 +3534,71 @@
   ticket: Reviewer-context-fork-alignment
   scope: Options A+C
   files:
-  - "oh-my-opencode-slim.jsonc (reviewer skills \xD73 presets; reviewer orchestratorPrompt)."
-  summary: "Change: Removed `teaching`, `playwright-browser`, `reflect` from reviewer\
-    \ skills array (\xD73 presets) \u2014 reviewer now loads `[book-rag, code-review-fowler,\
-    \ review-re-verify]`; appended `## FRESH-CONTEXT EVALUATION` section to reviewer\
-    \ orchestratorPrompt (\"You receive only the diff, criteria, and coder's verification\
-    \ evidence \u2014 NOT the coder's reasoning, chain-of-thought, or self-justifications...\"\
-    ). Reason: Anthropic fresh-context verification principle \u2014 a verifier must\
-    \ evaluate the code on its own terms with clean criteria, not be anchored to the\
-    \ builder's reasoning/narrative (\"the agent doing the work isn't the one grading\
-    \ it\"; \"sees only the diff and the criteria you give it, not the reasoning that\
-    \ produced the change\"). Design decisions: Option A+C from context-fork gap analysis\
-    \ (ai--1 audit): teaching \u2192 mentoring posture assumes coder intent; reflect\
-    \ \u2192 self-referential anchoring in re-review; playwright-browser \u2192 irrelevant\
-    \ context bloat. Option B (structured fixes-applied summary) deferred; O3/O4 remain\
-    \ deferred. - Pending user: restart OpenCode + functional smoke test.\n"
-  verification: "Review: \xA710 ai-specialist APPROVE (6/6 PASS, coherence teaching-mode\
-    \ vs fresh-context = orthogonal, no tension).\n"
+  - oh-my-opencode-slim.jsonc (reviewer skills ×3 presets; reviewer orchestratorPrompt).
+  summary: 'Change: Removed `teaching`, `playwright-browser`, `reflect` from reviewer
+    skills array (×3 presets) — reviewer now loads `[book-rag, code-review-fowler,
+    review-re-verify]`; appended `## FRESH-CONTEXT EVALUATION` section to reviewer
+    orchestratorPrompt ("You receive only the diff, criteria, and coder''s verification
+    evidence — NOT the coder''s reasoning, chain-of-thought, or self-justifications...").
+    Reason: Anthropic fresh-context verification principle — a verifier must evaluate
+    the code on its own terms with clean criteria, not be anchored to the builder''s
+    reasoning/narrative ("the agent doing the work isn''t the one grading it"; "sees
+    only the diff and the criteria you give it, not the reasoning that produced the
+    change"). Design decisions: Option A+C from context-fork gap analysis (ai--1 audit):
+    teaching → mentoring posture assumes coder intent; reflect → self-referential
+    anchoring in re-review; playwright-browser → irrelevant context bloat. Option
+    B (structured fixes-applied summary) deferred; O3/O4 remain deferred. - Pending
+    user: restart OpenCode + functional smoke test.
+
+    '
+  verification: 'Review: §10 ai-specialist APPROVE (6/6 PASS, coherence teaching-mode
+    vs fresh-context = orthogonal, no tension).
+
+    '
 - date: '2026-08-03'
   ticket: Reviewing-stage-verification-loop
   scope: 'Phase 1: O1/O2/O5/O6'
   files:
-  - "AGENTS.md (\xA72.3 renumbered + \xA72.3.1 new)"
-  - "oh-my-opencode-slim.jsonc (coder prompt \xD73 presets, reviewer orchestratorPrompt,\
-    \ reviewer skills \xD73 presets)"
+  - AGENTS.md (§2.3 renumbered + §2.3.1 new)
+  - oh-my-opencode-slim.jsonc (coder prompt ×3 presets, reviewer orchestratorPrompt,
+    reviewer skills ×3 presets)
   - .opencode/skills/review-re-verify/SKILL.md (NEW)
   - orchestrator_append.md (review gate row updated).
-  summary: "Change: Added fix\u2192re-verify\u2192re-review loop to the reviewing\
-    \ stage. O1: orchestrator re-dispatches @reviewer after coder fixes (targeted\
-    \ re-review, max 2 cycles, escalation to owner). O2: coder must include verification\
-    \ evidence in handoff; reviewer demands it. O5: coder pre-handoff verification\
-    \ checklist. O6: reviewer findings-resolution table with evidence column. Reason:\
-    \ Anthropic engineering best practices \u2014 verification loop (worker \u2260\
-    \ judge), evidence-over-assertion, bounded iteration. \xA710 Phase 1 gate findings\
-    \ registered 2026-08-03. Design decisions: O1/O6 reviewer protocol extracted to\
-    \ skill (code-review-fowler precedent \u2014 budget relief); O1 orchestrator behavior\
-    \ in AGENTS.md (canonical source); O2/O5 in coder prompt (headroom available).\
-    \ - Pending user: restart OpenCode + functional smoke test.\n"
-  verification: "Review: \xA710 Phase 5 ai-specialist APPROVE-WITH-CHANGES (1 Minor\
-    \ tool-limitation, 1 Suggestion \u2014 coder prompt 1068ch documented); Phase\
-    \ 6 registration 2026-08-03.\n"
+  summary: 'Change: Added fix→re-verify→re-review loop to the reviewing stage. O1:
+    orchestrator re-dispatches @reviewer after coder fixes (targeted re-review, max
+    2 cycles, escalation to owner). O2: coder must include verification evidence in
+    handoff; reviewer demands it. O5: coder pre-handoff verification checklist. O6:
+    reviewer findings-resolution table with evidence column. Reason: Anthropic engineering
+    best practices — verification loop (worker ≠ judge), evidence-over-assertion,
+    bounded iteration. §10 Phase 1 gate findings registered 2026-08-03. Design decisions:
+    O1/O6 reviewer protocol extracted to skill (code-review-fowler precedent — budget
+    relief); O1 orchestrator behavior in AGENTS.md (canonical source); O2/O5 in coder
+    prompt (headroom available). - Pending user: restart OpenCode + functional smoke
+    test.
+
+    '
+  verification: 'Review: §10 Phase 5 ai-specialist APPROVE-WITH-CHANGES (1 Minor tool-limitation,
+    1 Suggestion — coder prompt 1068ch documented); Phase 6 registration 2026-08-03.
+
+    '
 - date: '2026-08-03'
   ticket: OTel-GenAI-JSONL-sidecar-ticket-format-standardization
   scope: OTel GenAI JSONL sidecar + ticket format standardization
   files: []
-  summary: "Change: orchestrator now dual-writes .opencode/session/messages.jsonl\
-    \ (OTel GenAI semconv-genai v1.42.0 attribute names, forward-only) alongside messages.md;\
-    \ ticket ledger standardized to YAML frontmatter + harmonized enums (severity\
-    \ +Medium; status +DEFERRED/MONITOR/IMPLEMENTED) + archive/ policy. Reason: owner\
-    \ request \u2014 align orchestrator logging with OTel GenAI JSON convention; standardize\
-    \ ticket formats (markdown+YAML frontmatter, kanban-ready, archive instead of\
-    \ delete). Files: .opencode/session/README.md + messages.jsonl (gitignored); orchestrator_append.md;\
-    \ oh-my-opencode-slim.jsonc (3 preset prompts); docs/dev-infra-audit/tickets/_TEMPLATE.md\
-    \ + DIA-003/006/030/034/037.md + README.md + archive/README.md; .opencode/skills/to-tickets/SKILL.md.\
-    \ Pending: restart OpenCode (prompts + skill take effect); post-restart smoke\
-    \ (JSONL dual-write emits lines; to-tickets emits YAML frontmatter); commit decision\
-    \ after smoke.\n"
+  summary: 'Change: orchestrator now dual-writes .opencode/session/messages.jsonl
+    (OTel GenAI semconv-genai v1.42.0 attribute names, forward-only) alongside messages.md;
+    ticket ledger standardized to YAML frontmatter + harmonized enums (severity +Medium;
+    status +DEFERRED/MONITOR/IMPLEMENTED) + archive/ policy. Reason: owner request
+    — align orchestrator logging with OTel GenAI JSON convention; standardize ticket
+    formats (markdown+YAML frontmatter, kanban-ready, archive instead of delete).
+    Files: .opencode/session/README.md + messages.jsonl (gitignored); orchestrator_append.md;
+    oh-my-opencode-slim.jsonc (3 preset prompts); docs/dev-infra-audit/tickets/_TEMPLATE.md
+    + DIA-003/006/030/034/037.md + README.md + archive/README.md; .opencode/skills/to-tickets/SKILL.md.
+    Pending: restart OpenCode (prompts + skill take effect); post-restart smoke (JSONL
+    dual-write emits lines; to-tickets emits YAML frontmatter); commit decision after
+    smoke.
+
+    '
   verification: 'No explicit verification recorded in the legacy prose entry.
 
     '
@@ -3545,24 +3606,24 @@
   ticket: mattpocock-skills-fork-adapt
   scope: 5 skills for OpenCode workflows
   files: []
-  summary: "Change: Forked and adapted 5 skills from mattpocock/skills (MIT, 200k\u2605\
-    ) into our workflows \u2014 domain-grilling (merged grill-with-docs+domain-modeling+grilling,\
-    \ 3-phase Socratic interview w/ CONTEXT.md glossary + .sdd ADR capture), to-tickets\
-    \ (tracer-bullet vertical slices + blocking edges + expand-contract, published\
-    \ to DIA ticket ledger), code-review-fowler (12-smell baseline for @reviewer),\
-    \ resolving-merge-conflicts (never --abort discipline), diagnosing-bugs discipline\
-    \ merged into debugging-workflow (global + project copies). Root CONTEXT.md created;\
-    \ AGENTS.md \xA73/\xA72.3 + .sdd/README updated; DIA-037 filed for make test-skills\
-    \ gap. Reason: gaps surfaced by \xA710 Phase 1 gate \u2014 persistent domain glossary\
-    \ (ana004 remediation), wide-refactor playbook, review smell descriptions, bug-diagnosis\
-    \ discipline, merge-conflict process. Owner approved all 5 (row 99); design arc-1\
-    \ (row 100-101); independent review approve-with-changes (row 103-104); fixes\
-    \ applied (row 105). Files: .opencode/skills/{domain-grilling,to-tickets,code-review-fowler,resolving-merge-conflicts}/SKILL.md,\
-    \ CONTEXT.md, ~/.config/opencode/skills/debugging-workflow/SKILL.md, .opencode/skills/debugging-workflow/SKILL.md,\
-    \ .opencode/oh-my-opencode-slim.jsonc (12 skill-array edits across 3 presets +\
-    \ reviewer prompt ref), AGENTS.md, .sdd/README.md, docs/dev-infra-audit/tickets/{_TEMPLATE.md,DIA-037.md,README.md}\
-    \ Pending: owner restart OpenCode \u2192 smoke tests (skill activation \xD75)\
-    \ \u2192 commit.\n"
+  summary: 'Change: Forked and adapted 5 skills from mattpocock/skills (MIT, 200k★)
+    into our workflows — domain-grilling (merged grill-with-docs+domain-modeling+grilling,
+    3-phase Socratic interview w/ CONTEXT.md glossary + .sdd ADR capture), to-tickets
+    (tracer-bullet vertical slices + blocking edges + expand-contract, published to
+    DIA ticket ledger), code-review-fowler (12-smell baseline for @reviewer), resolving-merge-conflicts
+    (never --abort discipline), diagnosing-bugs discipline merged into debugging-workflow
+    (global + project copies). Root CONTEXT.md created; AGENTS.md §3/§2.3 + .sdd/README
+    updated; DIA-037 filed for make test-skills gap. Reason: gaps surfaced by §10
+    Phase 1 gate — persistent domain glossary (ana004 remediation), wide-refactor
+    playbook, review smell descriptions, bug-diagnosis discipline, merge-conflict
+    process. Owner approved all 5 (row 99); design arc-1 (row 100-101); independent
+    review approve-with-changes (row 103-104); fixes applied (row 105). Files: .opencode/skills/{domain-grilling,to-tickets,code-review-fowler,resolving-merge-conflicts}/SKILL.md,
+    CONTEXT.md, ~/.config/opencode/skills/debugging-workflow/SKILL.md, .opencode/skills/debugging-workflow/SKILL.md,
+    .opencode/oh-my-opencode-slim.jsonc (12 skill-array edits across 3 presets + reviewer
+    prompt ref), AGENTS.md, .sdd/README.md, docs/dev-infra-audit/tickets/{_TEMPLATE.md,DIA-037.md,README.md}
+    Pending: owner restart OpenCode → smoke tests (skill activation ×5) → commit.
+
+    '
   verification: 'No explicit verification recorded in the legacy prose entry.
 
     '
@@ -3574,19 +3635,20 @@
   - '`.opencode/oh-my-opencode-slim.jsonc` (cebula preset models)'
   - '`.opencode/dcp.jsonc` (max/min limits)'
   - '`.opencode/learnings/external-patterns/2026-08-03-cebula-copilot-rebalance.md`'
-  summary: "Change: cebula preset rebalance \u2014 `observer` \u2192 `github-copilot/gemini-3.6-flash`\
-    \ (multimodal, replaces gpt-5-mini which is NOT multimodal \u2014 observer does\
-    \ visual/media analysis), `conspecter` \u2192 `github-copilot/gpt-5-mini`, `code-navigator`\
-    \ \u2192 `github-copilot/gpt-5-mini`, `resource-manager` \u2192 `github-copilot/gpt-5-mini`.\
-    \ All 4 moved agents keep their Go \u2192 free fallback chains (observer: kimi-k2.7-code\
-    \ \u2192 big-pickle; conspecter/code-navigator/resource-manager: deepseek-v4-flash\
-    \ \xD72). dcp.jsonc: `github-copilot/gemini-3.6-flash` added to both `modelMaxLimits`\
-    \ (\"50%\") and `modelMinLimits` (\"25%\"), mirroring the `github-copilot/gemini-3.1-pro-preview`\
-    \ entry. Reason: shift subscription quota drain from OpenCode Go ($60/mo cap)\
-    \ toward Copilot Pro (1,500 credits/$15) targeting ~70% Copilot utilization; per\
-    \ \xA710 GATE research 2026-08-03. - Pending user: restart OpenCode + monitor\
-    \ Copilot utilization via `token_stats` (2-week plan in learnings entry; flip\
-    \ conspecter back to Go if Copilot >80% by mid-month).\n"
+  summary: 'Change: cebula preset rebalance — `observer` → `github-copilot/gemini-3.6-flash`
+    (multimodal, replaces gpt-5-mini which is NOT multimodal — observer does visual/media
+    analysis), `conspecter` → `github-copilot/gpt-5-mini`, `code-navigator` → `github-copilot/gpt-5-mini`,
+    `resource-manager` → `github-copilot/gpt-5-mini`. All 4 moved agents keep their
+    Go → free fallback chains (observer: kimi-k2.7-code → big-pickle; conspecter/code-navigator/resource-manager:
+    deepseek-v4-flash ×2). dcp.jsonc: `github-copilot/gemini-3.6-flash` added to both
+    `modelMaxLimits` ("50%") and `modelMinLimits` ("25%"), mirroring the `github-copilot/gemini-3.1-pro-preview`
+    entry. Reason: shift subscription quota drain from OpenCode Go ($60/mo cap) toward
+    Copilot Pro (1,500 credits/$15) targeting ~70% Copilot utilization; per §10 GATE
+    research 2026-08-03. - Pending user: restart OpenCode + monitor Copilot utilization
+    via `token_stats` (2-week plan in learnings entry; flip conspecter back to Go
+    if Copilot >80% by mid-month).
+
+    '
   verification: 'No explicit verification recorded in the legacy prose entry.
 
     '
@@ -3597,17 +3659,19 @@
   - the 11-file change set (opencode.jsonc, oh-my-opencode-slim.jsonc, practice-protected.md,
     global AGENTS.md naming row, orchestrator_append.md, boss_append.md, onboarding.md,
     NEXT-RUN.md, ai-assist-sources.yaml, opencode-best-practices.md, DIA-007.md)
-  summary: "Change: split ai-specialist into `resource-manager` (NEW artifact-producer\
-    \ curation agent: model opencode-go/deepseek-v4-flash, edit scoped to `.opencode/oh-my-opencode-slim/knowledge/*`\
-    \ only, bash curl/wget/trafilatura, task: allow \u2192 @researcher/@conspecter,\
-    \ mcps [websearch]; owns ai-assist-sources.yaml curation, Tier-1 caching, Tier-2\
-    \ re-fetch, awesome-opencode star-count eval) + `ai-specialist` (RETAINED name/roles:\
-    \ pure-analyst qwen3.7-plus, \xA710 gate + independent review + telemetry receiver;\
-    \ prompt + step-10 source-referral; orchestratorPrompt trimmed to ~2-line routing\
-    \ summary) Reason: owner approved full split (Alternative D) 2026-08-03 \u2014\
-    \ all 6 design decision points approved; fixes pre-existing stale WINDOWS paths\
-    \ in ai-assist-sources.yaml (6 paths \u2192 Linux) - Pending user: restart OpenCode\
-    \ + functional smoke test, then commit.\n"
+  summary: 'Change: split ai-specialist into `resource-manager` (NEW artifact-producer
+    curation agent: model opencode-go/deepseek-v4-flash, edit scoped to `.opencode/oh-my-opencode-slim/knowledge/*`
+    only, bash curl/wget/trafilatura, task: allow → @researcher/@conspecter, mcps
+    [websearch]; owns ai-assist-sources.yaml curation, Tier-1 caching, Tier-2 re-fetch,
+    awesome-opencode star-count eval) + `ai-specialist` (RETAINED name/roles: pure-analyst
+    qwen3.7-plus, §10 gate + independent review + telemetry receiver; prompt + step-10
+    source-referral; orchestratorPrompt trimmed to ~2-line routing summary) Reason:
+    owner approved full split (Alternative D) 2026-08-03 — all 6 design decision points
+    approved; fixes pre-existing stale WINDOWS paths in ai-assist-sources.yaml (6
+    paths → Linux) - Pending user: restart OpenCode + functional smoke test, then
+    commit.
+
+    '
   verification: 'No explicit verification recorded in the legacy prose entry.
 
     '
@@ -3615,41 +3679,42 @@
   ticket: Orchestrator-operating-model
   scope: read-restriction + session continuity + NEXT-RUN manual
   files: []
-  summary: "Change: `.opencode/opencode.jsonc` orchestrator permission block rewritten\
-    \ \u2014 BEFORE: flat `read/glob/grep: allow` + `write: deny` + `edit/apply_patch/ast_grep_replace/bash/webfetch/envsitter*:\
-    \ deny`; AFTER: `read` path-scoped to `.opencode/session/*`, `docs/dev-infra-audit/NEXT-RUN.md`,\
-    \ `AGENTS.md`, `.opencode/practice-protected.md` (everything else denied), `edit`\
-    \ path-scoped to `.opencode/session/*` (covers write+apply_patch per OpenCode\
-    \ docs \u2014 flat `write` key removed), `glob` path-scoped to `.opencode/session/*`,\
-    \ `grep` denied. Orchestration tools unchanged: task/cancel_task/list/lsp/question/wait_for_user/todowrite/skill/websearch\
-    \ allow. No other agent block touched. Session continuity protocol: orchestrator\
-    \ appends one row to `.opencode/session/messages.md` after EVERY delegation result\
-    \ and user decision (`# | timestamp | from | to | lane/ticket | result | next-action`);\
-    \ writes `.opencode/session/current-handoff.json` on self-rerun. Self-rerun at\
-    \ >= 50% context: orchestrator detects via `token_stats`, computes (input+output)/model_context_window\
-    \ (lookup table: qwen3.7-max 1M, qwen3.7-plus 131K, deepseek-v4-flash 64K, big-pickle\
-    \ 200K, else 131K), writes HANDOFF.md + final log row, then tells the user to\
-    \ start a fresh session. `docs/dev-infra-audit/NEXT-RUN.md`: new operating manual\
-    \ \u2014 boot sequence (HANDOFF \u2192 messages.md \u2192 NEXT-RUN \u2192 practice-protected),\
-    \ orchestrator operating rules (read/write restrictions, messages-log discipline,\
-    \ self-rerun, delegation map, strict workflow), audit rerun flow (7 gates in order),\
-    \ open tickets to close (DIA-003/006/007/030/034 with dispositions), clean-cycle\
-    \ definition, session continuity. OMO prompt additions: `oh-my-opencode-slim.jsonc`\
-    \ \u2014 all 3 presets (opencode-go, cebula, free) orchestrator blocks got a compact\
-    \ \"Orchestrator Operating Rules\" `prompt` (same text each): delegation-only\
-    \ + forbidden repo reads (path-scoped permission), messages.md after every delegation,\
-    \ self-rerun handoff at >=50%, strict workflow adherence (interview gate, \xA7\
-    10, review gates). Gitignore: `.opencode/session/` added \u2014 transient orchestrator\
-    \ session state is never committed. Follow-up (same day): reordered the three\
-    \ path-scoped orchestrator permission objects (`read`/`edit`/`glob`) so the catch-all\
-    \ `\"*\": \"deny\"` rule comes FIRST and specific `allow` paths follow \u2014\
-    \ per OpenCode permission docs, \"last matching rule wins\" and the common pattern\
-    \ puts `\"*\"` first; valid under both order-based and specificity-based matcher\
-    \ semantics. No allow/deny values lost or added. - Validation: `make test-config`\
-    \ PASS (4/4 JSONC). `git check-ignore .opencode/session/messages.md` \u2192 ignored.\
-    \ Diff confirms only the orchestrator permission block changed in opencode.jsonc.\
-    \ - Pending user: restart OpenCode + functional smoke tests (orchestrator must\
-    \ delegate, read-restriction enforced, messages.md logging works).\n"
+  summary: 'Change: `.opencode/opencode.jsonc` orchestrator permission block rewritten
+    — BEFORE: flat `read/glob/grep: allow` + `write: deny` + `edit/apply_patch/ast_grep_replace/bash/webfetch/envsitter*:
+    deny`; AFTER: `read` path-scoped to `.opencode/session/*`, `docs/dev-infra-audit/NEXT-RUN.md`,
+    `AGENTS.md`, `.opencode/practice-protected.md` (everything else denied), `edit`
+    path-scoped to `.opencode/session/*` (covers write+apply_patch per OpenCode docs
+    — flat `write` key removed), `glob` path-scoped to `.opencode/session/*`, `grep`
+    denied. Orchestration tools unchanged: task/cancel_task/list/lsp/question/wait_for_user/todowrite/skill/websearch
+    allow. No other agent block touched. Session continuity protocol: orchestrator
+    appends one row to `.opencode/session/messages.md` after EVERY delegation result
+    and user decision (`# | timestamp | from | to | lane/ticket | result | next-action`);
+    writes `.opencode/session/current-handoff.json` on self-rerun. Self-rerun at >=
+    50% context: orchestrator detects via `token_stats`, computes (input+output)/model_context_window
+    (lookup table: qwen3.7-max 1M, qwen3.7-plus 131K, deepseek-v4-flash 64K, big-pickle
+    200K, else 131K), writes HANDOFF.md + final log row, then tells the user to start
+    a fresh session. `docs/dev-infra-audit/NEXT-RUN.md`: new operating manual — boot
+    sequence (HANDOFF → messages.md → NEXT-RUN → practice-protected), orchestrator
+    operating rules (read/write restrictions, messages-log discipline, self-rerun,
+    delegation map, strict workflow), audit rerun flow (7 gates in order), open tickets
+    to close (DIA-003/006/007/030/034 with dispositions), clean-cycle definition,
+    session continuity. OMO prompt additions: `oh-my-opencode-slim.jsonc` — all 3
+    presets (opencode-go, cebula, free) orchestrator blocks got a compact "Orchestrator
+    Operating Rules" `prompt` (same text each): delegation-only + forbidden repo reads
+    (path-scoped permission), messages.md after every delegation, self-rerun handoff
+    at >=50%, strict workflow adherence (interview gate, §10, review gates). Gitignore:
+    `.opencode/session/` added — transient orchestrator session state is never committed.
+    Follow-up (same day): reordered the three path-scoped orchestrator permission
+    objects (`read`/`edit`/`glob`) so the catch-all `"*": "deny"` rule comes FIRST
+    and specific `allow` paths follow — per OpenCode permission docs, "last matching
+    rule wins" and the common pattern puts `"*"` first; valid under both order-based
+    and specificity-based matcher semantics. No allow/deny values lost or added. -
+    Validation: `make test-config` PASS (4/4 JSONC). `git check-ignore .opencode/session/messages.md`
+    → ignored. Diff confirms only the orchestrator permission block changed in opencode.jsonc.
+    - Pending user: restart OpenCode + functional smoke tests (orchestrator must delegate,
+    read-restriction enforced, messages.md logging works).
+
+    '
   verification: 'No explicit verification recorded in the legacy prose entry.
 
     '
@@ -3657,43 +3722,42 @@
   ticket: DIA-001/003/016/017/019/020
   scope: Dev-infra config audit fixes (F3 lane)
   files: []
-  summary: "- DIA-001 (Minor): `opencode.jsonc` `references.shelf.path` `\".opencode\"\
-    ` \u2192 `\".opencode/memory-shelf.yaml\"` \u2014 the shelf key pointed at a directory\
-    \ instead of the actual shelf index file (the description already named memory-shelf.yaml\
-    \ as the entry point). - DIA-019 (Major): `skills/book-rag/SKILL.md` (8 refs)\
-    \ + `commands/rag.md` \u2014 replaced `~/.config/opencode/scripts/query_rag.py`\
-    \ with `.opencode/scripts/query_rag.py` (repo-relative). The repo's canonical\
-    \ script lives at `.opencode/scripts/query_rag.py`; `~/.config/opencode/scripts/`\
-    \ is a machine-local copy and must not be referenced from the repo. Verified `grep\
-    \ -rn \"~/.config/opencode/scripts\" .opencode/` \u2192 clean. - DIA-017 (Minor):\
-    \ `oh-my-opencode-slim.jsonc` ai-specialist prompt \u2014 knowledge-source path\
-    \ `~/.config/opencode/oh-my-opencode-slim/knowledge/ai-assist-sources.yaml` \u2192\
-    \ `.opencode/oh-my-opencode-slim/knowledge/ai-assist-sources.yaml` (the global\
-    \ path does not exist; the project file does \u2014 verified). - DIA-020 (Minor,\
-    \ global OUTSIDE repo): `~/.config/opencode/oh-my-opencode-slim.jsonc` \u2014\
-    \ added `\"!openspec-propose\"` to orchestrator `skills` in all 3 presets (`opencode-go`,\
-    \ `cebula`, `free`) so global matches project `[\"*\", \"!openspec-propose\"]`.\
-    \ Backup: `~/.config/opencode/oh-my-opencode-slim.jsonc.bak-20260802`. No other\
-    \ global keys touched. - DIA-003 (evaluate \u2192 DEFER): skills-lock.json pinning\
-    \ of the 15 project skills \u2014 NOT done. Evidence: (1) lock format is remote-github-skill\
-    \ only (`source`/`sourceType: \"github\"`/`skillPath`/`computedHash`) \u2014 local\
-    \ `.opencode/skills/*` don't fit; (2) zero consumers in the vendored fork (`rg\
-    \ skills-lock` in fork source/docs \u2192 nothing; fork is REFERENCE-ONLY per\
-    \ REFERENCE-ONLY.md, not the running npm 2.2.8 plugin); (3) local skills are already\
-    \ pinned by git. Ticket stays OPEN for the reconcile lane. - DIA-016 (evaluate\
-    \ \u2192 intentional): global `~/.config/opencode/dcp.jsonc` left as the sparse\
-    \ `maxContextLimit: \"50%\"` fallback; project `.opencode/dcp.jsonc` (14 models,\
-    \ max/min limits) is project-scoped and takes precedence inside this repo. Evidence:\
-    \ global file is a generic default for all projects; the 14 model IDs are this\
-    \ repo's lineup; aligning global would leak repo-specific tuning into the user's\
-    \ machine-wide config. Divergence documented, no change. - Validation: `make test-config`\
-    \ PASS (4/4 JSONC). `pytest .opencode/scripts/test_query_rag.py .opencode/scripts/test_query_web.py`\
-    \ in dev container (`uv run --with pytest`): 68 passed, 3 failed \u2014 the 3\
-    \ failures (`test_unknown_hashtag`, `test_hashtag_with_digits`, `test_hashtag_with_underscore`)\
-    \ are pre-existing hashtag fuzzy-match bugs in untouched `query_rag.py`, reproduced\
-    \ identically at baseline 6ba7200; out of scope for this config lane. - Pending\
-    \ user: restart OpenCode \u2014 config changes take effect on next start (DIA-001/017/019/020\
-    \ are loaded at startup).\n"
+  summary: '- DIA-001 (Minor): `opencode.jsonc` `references.shelf.path` `".opencode"`
+    → `".opencode/memory-shelf.yaml"` — the shelf key pointed at a directory instead
+    of the actual shelf index file (the description already named memory-shelf.yaml
+    as the entry point). - DIA-019 (Major): `skills/book-rag/SKILL.md` (8 refs) +
+    `commands/rag.md` — replaced `~/.config/opencode/scripts/query_rag.py` with `.opencode/scripts/query_rag.py`
+    (repo-relative). The repo''s canonical script lives at `.opencode/scripts/query_rag.py`;
+    `~/.config/opencode/scripts/` is a machine-local copy and must not be referenced
+    from the repo. Verified `grep -rn "~/.config/opencode/scripts" .opencode/` → clean.
+    - DIA-017 (Minor): `oh-my-opencode-slim.jsonc` ai-specialist prompt — knowledge-source
+    path `~/.config/opencode/oh-my-opencode-slim/knowledge/ai-assist-sources.yaml`
+    → `.opencode/oh-my-opencode-slim/knowledge/ai-assist-sources.yaml` (the global
+    path does not exist; the project file does — verified). - DIA-020 (Minor, global
+    OUTSIDE repo): `~/.config/opencode/oh-my-opencode-slim.jsonc` — added `"!openspec-propose"`
+    to orchestrator `skills` in all 3 presets (`opencode-go`, `cebula`, `free`) so
+    global matches project `["*", "!openspec-propose"]`. Backup: `~/.config/opencode/oh-my-opencode-slim.jsonc.bak-20260802`.
+    No other global keys touched. - DIA-003 (evaluate → DEFER): skills-lock.json pinning
+    of the 15 project skills — NOT done. Evidence: (1) lock format is remote-github-skill
+    only (`source`/`sourceType: "github"`/`skillPath`/`computedHash`) — local `.opencode/skills/*`
+    don''t fit; (2) zero consumers in the vendored fork (`rg skills-lock` in fork
+    source/docs → nothing; fork is REFERENCE-ONLY per REFERENCE-ONLY.md, not the running
+    npm 2.2.8 plugin); (3) local skills are already pinned by git. Ticket stays OPEN
+    for the reconcile lane. - DIA-016 (evaluate → intentional): global `~/.config/opencode/dcp.jsonc`
+    left as the sparse `maxContextLimit: "50%"` fallback; project `.opencode/dcp.jsonc`
+    (14 models, max/min limits) is project-scoped and takes precedence inside this
+    repo. Evidence: global file is a generic default for all projects; the 14 model
+    IDs are this repo''s lineup; aligning global would leak repo-specific tuning into
+    the user''s machine-wide config. Divergence documented, no change. - Validation:
+    `make test-config` PASS (4/4 JSONC). `pytest .opencode/scripts/test_query_rag.py
+    .opencode/scripts/test_query_web.py` in dev container (`uv run --with pytest`):
+    68 passed, 3 failed — the 3 failures (`test_unknown_hashtag`, `test_hashtag_with_digits`,
+    `test_hashtag_with_underscore`) are pre-existing hashtag fuzzy-match bugs in untouched
+    `query_rag.py`, reproduced identically at baseline 6ba7200; out of scope for this
+    config lane. - Pending user: restart OpenCode — config changes take effect on
+    next start (DIA-001/017/019/020 are loaded at startup).
+
+    '
   verification: 'No explicit verification recorded in the legacy prose entry.
 
     '
@@ -3715,33 +3779,34 @@
   ticket: P1-P9-N1-N5
   scope: Config audit fixes
   files: []
-  summary: "- P1: `.opencode/tui.json` plugin key dropped (dead `file:///workspace/`\
-    \ Docker path + unpinned `dcp@latest`) \u2192 `{}`; plugin ownership is `opencode.jsonc`.\
-    \ - P5: removed dead `github:raisbecka/opencode-subagent-output` from project\
-    \ plugin array (repo has no `package.json`; never loaded; global uses local `~/.config/opencode/plugins/subagent-reporter.ts`).\
-    \ - P4/N6: removed `agent.orchestrator.model` from `opencode.jsonc` \u2014 a user-agent\
-    \ model string overrides the preset array and disables its fallback chain (verified\
-    \ dist:40228-40241); OMO cebula preset owns model routing. - P7: council block\
-    \ indentation fixed (cosmetic). - P3: project `disabled_agents` `[]` \u2192 `[\"\
-    oracle\",\"fixer\",\"explorer\",\"librarian\"]` \u2014 project `[]` was overriding\
-    \ the global disable list (deepMerge replaces arrays), re-enabling native agents\
-    \ contrary to AGENTS.md \xA79. Now aligned. - P6: `dcp.jsonc` pruned 6 stale model\
-    \ entries (`github-models/*` \xD73, `github-copilot/gemini-3-flash-preview`, `opencode-go/deepseek-v4-pro`,\
-    \ `opencode-go/kimi-k2.6`) from both max/min limits; 14 valid entries kept. -\
-    \ N4: `validate-opencode-config.sh` now covers `opencode.jsonc` + `oh-my-opencode-slim.jsonc`\
-    \ + `dcp.jsonc` + `tui.json`. - P8: `.opencode/oh-my-opencode-slim/REFERENCE-ONLY.md`\
-    \ \u2014 vendored fork checkout documented as reference-only (not the running\
-    \ plugin; npm 2.2.8 is live). - P9: `.env.example` got `CONTEXT7_API_KEY=` placeholder\
-    \ (real key goes in `.env` \u2014 user step). - N1\u2013N3 (global `~/.config/opencode/`):\
-    \ `cebula.designer` model fixed (invalid `github-copilot/gemini-3-flash-preview`\
-    \ \u2192 `[claude-sonnet-4.5, kimi-k2.7-code, big-pickle]`); council `github-models`\
-    \ seats (`gemini-3-flash`, `gemini-2.5-pro`) consolidated into one `github-copilot/gemini-3.1-pro-preview`\
-    \ seat (5\u21924); `github-models` provider block removed from global `opencode.jsonc`\
-    \ (auth-broken). - Review: independent @ai-specialist review PASS (14/14, no scope\
-    \ creep, no dangling references). Validation: `validate-opencode-config.sh` exit\
-    \ 0 on all 4 files; `opencode models` cross-check (residual: `opencode/deepseek-v4-flash`\
-    \ not in model list \u2014 pre-existing, kept). - Pending user: add `CONTEXT7_API_KEY`\
-    \ to `.env`; restart OpenCode.\n"
+  summary: '- P1: `.opencode/tui.json` plugin key dropped (dead `file:///workspace/`
+    Docker path + unpinned `dcp@latest`) → `{}`; plugin ownership is `opencode.jsonc`.
+    - P5: removed dead `github:raisbecka/opencode-subagent-output` from project plugin
+    array (repo has no `package.json`; never loaded; global uses local `~/.config/opencode/plugins/subagent-reporter.ts`).
+    - P4/N6: removed `agent.orchestrator.model` from `opencode.jsonc` — a user-agent
+    model string overrides the preset array and disables its fallback chain (verified
+    dist:40228-40241); OMO cebula preset owns model routing. - P7: council block indentation
+    fixed (cosmetic). - P3: project `disabled_agents` `[]` → `["oracle","fixer","explorer","librarian"]`
+    — project `[]` was overriding the global disable list (deepMerge replaces arrays),
+    re-enabling native agents contrary to AGENTS.md §9. Now aligned. - P6: `dcp.jsonc`
+    pruned 6 stale model entries (`github-models/*` ×3, `github-copilot/gemini-3-flash-preview`,
+    `opencode-go/deepseek-v4-pro`, `opencode-go/kimi-k2.6`) from both max/min limits;
+    14 valid entries kept. - N4: `validate-opencode-config.sh` now covers `opencode.jsonc`
+    + `oh-my-opencode-slim.jsonc` + `dcp.jsonc` + `tui.json`. - P8: `.opencode/oh-my-opencode-slim/REFERENCE-ONLY.md`
+    — vendored fork checkout documented as reference-only (not the running plugin;
+    npm 2.2.8 is live). - P9: `.env.example` got `CONTEXT7_API_KEY=` placeholder (real
+    key goes in `.env` — user step). - N1–N3 (global `~/.config/opencode/`): `cebula.designer`
+    model fixed (invalid `github-copilot/gemini-3-flash-preview` → `[claude-sonnet-4.5,
+    kimi-k2.7-code, big-pickle]`); council `github-models` seats (`gemini-3-flash`,
+    `gemini-2.5-pro`) consolidated into one `github-copilot/gemini-3.1-pro-preview`
+    seat (5→4); `github-models` provider block removed from global `opencode.jsonc`
+    (auth-broken). - Review: independent @ai-specialist review PASS (14/14, no scope
+    creep, no dangling references). Validation: `validate-opencode-config.sh` exit
+    0 on all 4 files; `opencode models` cross-check (residual: `opencode/deepseek-v4-flash`
+    not in model list — pre-existing, kept). - Pending user: add `CONTEXT7_API_KEY`
+    to `.env`; restart OpenCode.
+
+    '
   verification: 'No explicit verification recorded in the legacy prose entry.
 
     '
@@ -3749,32 +3814,33 @@
   ticket: Boss-delegation-enforcement
   scope: orchestrator-first default (Phase 2)
   files: []
-  summary: "Root cause: `default_agent: \"boss\"` resolved to a bare config agent\
-    \ (model+color only, no prompt, no permission restrictions) while the plugin's\
-    \ real delegating agent is registered as `orchestrator`. The npm 2.2.8 config\
-    \ hook only overrides `default_agent` when unset/subagent, so `boss` (truthy primary)\
-    \ won \u2014 sessions ran a plain coder that did engineering work itself \u2192\
-    \ context overflow + session restarts. - Changed `default_agent` \u2192 `\"orchestrator\"\
-    ` so sessions start in the plugin's delegating agent. - Replaced bare `agent.boss`\
-    \ block with `agent.orchestrator` (model `opencode-go/deepseek-v4-flash`, color\
-    \ `#6366F1`) with mechanical enforcement: `edit/write/apply_patch/ast_grep_replace/bash`\
-    \ deny + `envsitter_set/add/delete/unset/annotate/format/reorder/copy` deny +\
-    \ `webfetch` deny (save_binary disk-write risk). Orchestration tools remain allow:\
-    \ `task/cancel_task/read/glob/grep/list/lsp/question/wait_for_user/todowrite/skill/websearch`.\
-    \ - Created `.opencode/oh-my-opencode-slim/orchestrator_append.md` \u2014 the\
-    \ strict delegation workflow loaded by 2.2.8 (`loadAgentPrompt(\"orchestrator\"\
-    , ...)` \u2192 `orchestrator_append.md`): HARD RULE no-self-engineering, Interview-First\
-    \ Gate (@openspec-plan \u2192 spec \u2192 vertical slices \u2192 @coder), Fast-Path\
-    \ Opt-In, Context Budgets, Change Routing, **new Verification Discipline** (orchestrator\
-    \ never runs verification \u2014 it reviews results from specialists, communicates\
-    \ to user, or restarts cycle for rework/bugfix), Mandatory Final Step via @memory-manager.\
-    \ - `boss_append.md` kept in place as dead historical reference (2.2.8 never loads\
-    \ it); `orchestrator_append.md` is the live prompt file. - Independent review\
-    \ (ai-specialist): initial BLOCKER was a false positive (reviewer cited fork source\
-    \ `index.ts:495`; running 2.2.8 uses `loadAgentPrompt(\"orchestrator\")` \u2014\
-    \ verified in dist). Valid findings applied: envsitter + webfetch denies. - Validation:\
-    \ `validate-opencode-config.sh` OK; jsonc parses; append file verified. - Pending:\
-    \ restart OpenCode + functional smoke test (boss must delegate, never edit).\n"
+  summary: 'Root cause: `default_agent: "boss"` resolved to a bare config agent (model+color
+    only, no prompt, no permission restrictions) while the plugin''s real delegating
+    agent is registered as `orchestrator`. The npm 2.2.8 config hook only overrides
+    `default_agent` when unset/subagent, so `boss` (truthy primary) won — sessions
+    ran a plain coder that did engineering work itself → context overflow + session
+    restarts. - Changed `default_agent` → `"orchestrator"` so sessions start in the
+    plugin''s delegating agent. - Replaced bare `agent.boss` block with `agent.orchestrator`
+    (model `opencode-go/deepseek-v4-flash`, color `#6366F1`) with mechanical enforcement:
+    `edit/write/apply_patch/ast_grep_replace/bash` deny + `envsitter_set/add/delete/unset/annotate/format/reorder/copy`
+    deny + `webfetch` deny (save_binary disk-write risk). Orchestration tools remain
+    allow: `task/cancel_task/read/glob/grep/list/lsp/question/wait_for_user/todowrite/skill/websearch`.
+    - Created `.opencode/oh-my-opencode-slim/orchestrator_append.md` — the strict
+    delegation workflow loaded by 2.2.8 (`loadAgentPrompt("orchestrator", ...)` →
+    `orchestrator_append.md`): HARD RULE no-self-engineering, Interview-First Gate
+    (@openspec-plan → spec → vertical slices → @coder), Fast-Path Opt-In, Context
+    Budgets, Change Routing, **new Verification Discipline** (orchestrator never runs
+    verification — it reviews results from specialists, communicates to user, or restarts
+    cycle for rework/bugfix), Mandatory Final Step via @memory-manager. - `boss_append.md`
+    kept in place as dead historical reference (2.2.8 never loads it); `orchestrator_append.md`
+    is the live prompt file. - Independent review (ai-specialist): initial BLOCKER
+    was a false positive (reviewer cited fork source `index.ts:495`; running 2.2.8
+    uses `loadAgentPrompt("orchestrator")` — verified in dist). Valid findings applied:
+    envsitter + webfetch denies. - Validation: `validate-opencode-config.sh` OK; jsonc
+    parses; append file verified. - Pending: restart OpenCode + functional smoke test
+    (boss must delegate, never edit).
+
+    '
   verification: 'No explicit verification recorded in the legacy prose entry.
 
     '
@@ -3782,16 +3848,18 @@
   ticket: Copilot-model-cleanup-in-cebula-preset
   scope: Phase 1
   files: []
-  summary: "- Fixed `designer`: replaced invalid `github-copilot/gemini-3-flash-preview`\
-    \ (not in OpenCode model list \u2014 silently fell through to Go kimi) with `github-copilot/claude-sonnet-4.5`\
-    \ (GA, 6x, vision). Chain now: claude-sonnet-4.5 \u2192 kimi-k2.7-code \u2192\
-    \ big-pickle. - Rebuilt `council` balanced lineup: gemini-3.1-pro-preview (6x)\
-    \ + gpt-5.3-codex (6x) + claude-sonnet-4.5 (6x) + deepseek + qwen (Go) = ~18 premium/run.\
-    \ - Deleted dead `github-models` provider block from `opencode.jsonc` (auth-broken)\
-    \ + both `github-models/*` council seats (gemini-3-flash, gemini-2.5-pro). - `memory-manager`\
-    \ kept on `github-copilot/gpt-5-mini` (already optimal: cheapest premium @ 0.33x).\
-    \ - Verified via `opencode models`: all referenced models exist; `make test-config`\
-    \ passes.\n"
+  summary: '- Fixed `designer`: replaced invalid `github-copilot/gemini-3-flash-preview`
+    (not in OpenCode model list — silently fell through to Go kimi) with `github-copilot/claude-sonnet-4.5`
+    (GA, 6x, vision). Chain now: claude-sonnet-4.5 → kimi-k2.7-code → big-pickle.
+    - Rebuilt `council` balanced lineup: gemini-3.1-pro-preview (6x) + gpt-5.3-codex
+    (6x) + claude-sonnet-4.5 (6x) + deepseek + qwen (Go) = ~18 premium/run. - Deleted
+    dead `github-models` provider block from `opencode.jsonc` (auth-broken) + both
+    `github-models/*` council seats (gemini-3-flash, gemini-2.5-pro). - `memory-manager`
+    kept on `github-copilot/gpt-5-mini` (already optimal: cheapest premium @ 0.33x).
+    - Verified via `opencode models`: all referenced models exist; `make test-config`
+    passes.
+
+    '
   verification: 'No explicit verification recorded in the legacy prose entry.
 
     '
@@ -3799,21 +3867,23 @@
   ticket: Interview-first-spec-authoring-enforcement
   scope: Phase 1
   files: []
-  summary: "- Rewrote `skills/openspec-propose` + `/opsx-propose`, `/opsx-new`, `/opsx-continue`,\
-    \ `/tdd-cycle` to interview-first: mandatory Socratic interview via @openspec-plan,\
-    \ artifact synthesis from interview transcript only, `openspec validate` before\
-    \ apply. Removed one-shot \"generate all artifacts / keep momentum\" behavior.\
-    \ - Boss skills denylist in all 3 OMO presets: `[\"*\"]` \u2192 `[\"*\", \"!openspec-propose\"\
-    ]`. - Added Fast-Path Opt-In gate (explicit \"fast-path approved\" + eligibility\
-    \ checklist + audit trail; NEVER auto-classify) and Interactive Review Gate row\
-    \ to `boss_append.md`. - Extended `@openspec-plan` orchestratorPrompt with deep\
-    \ interview protocol (Full/Compressed/Skip depth modes, silent context scan, one-question-at-a-time\
-    \ with recommended answers, Q1\u2013Q11 incl. numerical-invariants battery, transcript-only\
-    \ synthesis). - Added Review Disposition zone + Artifact Ownership Tracking to\
-    \ `practice-protected.md`. - Added `scripts/test-interview-enforcement.sh` (5\
-    \ checks) + registered in Makefile test targets (script path: `scripts/test-interview-enforcement.sh`).\
-    \ - Decision: Option C \u2014 no forks, plugins auto-update (npm oh-my-opencode-slim@2.2.8\
-    \ unchanged). Phase 2 (compiled boss gate) deferred.\n"
+  summary: '- Rewrote `skills/openspec-propose` + `/opsx-propose`, `/opsx-new`, `/opsx-continue`,
+    `/tdd-cycle` to interview-first: mandatory Socratic interview via @openspec-plan,
+    artifact synthesis from interview transcript only, `openspec validate` before
+    apply. Removed one-shot "generate all artifacts / keep momentum" behavior. - Boss
+    skills denylist in all 3 OMO presets: `["*"]` → `["*", "!openspec-propose"]`.
+    - Added Fast-Path Opt-In gate (explicit "fast-path approved" + eligibility checklist
+    + audit trail; NEVER auto-classify) and Interactive Review Gate row to `boss_append.md`.
+    - Extended `@openspec-plan` orchestratorPrompt with deep interview protocol (Full/Compressed/Skip
+    depth modes, silent context scan, one-question-at-a-time with recommended answers,
+    Q1–Q11 incl. numerical-invariants battery, transcript-only synthesis). - Added
+    Review Disposition zone + Artifact Ownership Tracking to `practice-protected.md`.
+    - Added `scripts/test-interview-enforcement.sh` (5 checks) + registered in Makefile
+    test targets (script path: `scripts/test-interview-enforcement.sh`). - Decision:
+    Option C — no forks, plugins auto-update (npm oh-my-opencode-slim@2.2.8 unchanged).
+    Phase 2 (compiled boss gate) deferred.
+
+    '
   verification: 'No explicit verification recorded in the legacy prose entry.
 
     '
@@ -3958,13 +4028,15 @@
   scope: 'Global cebula orchestrator model: deepseek-v4-flash -> mimo-v2.5'
   files:
   - ~/.config/opencode/oh-my-opencode-slim.jsonc
-  summary: "Fixed stale global OMO config (line 109) where cebula orchestrator model\
-    \ was still deepseek-v4-flash despite project-level swap. Changed to array [opencode-go/mimo-v2.5,\
-    \ opencode/mimo-v2.5-free] matching project config. Root cause: OMO plugin resolves\
-    \ mimo-v2.5 but OpenCode core falls back to default when model isn't on agent\
-    \ definition; global config merge gap let the old value persist. Restart required\
-    \ for change to take effect. Coder/researcher/conspecter global cebula entries\
-    \ still show deepseek-v4-flash \u2014 out of scope for this fix but noted as divergence.\n"
+  summary: 'Fixed stale global OMO config (line 109) where cebula orchestrator model
+    was still deepseek-v4-flash despite project-level swap. Changed to array [opencode-go/mimo-v2.5,
+    opencode/mimo-v2.5-free] matching project config. Root cause: OMO plugin resolves
+    mimo-v2.5 but OpenCode core falls back to default when model isn''t on agent definition;
+    global config merge gap let the old value persist. Restart required for change
+    to take effect. Coder/researcher/conspecter global cebula entries still show deepseek-v4-flash
+    — out of scope for this fix but noted as divergence.
+
+    '
   verification: 'make test-config exit 0 (56/56); ai-auditor PASS-WITH-NITS (2 informational
     nits, both non-blocking)
 
@@ -4818,3 +4890,19 @@
     inventory with promo-union-alpha + free explicitly unaudited'
   verification: manual
   area: config
+- date: '2026-09-18'
+  ticket: DIA-260918-yug6
+  scope: s
+  files:
+  - workspace-preset.ts
+  - loader.ts
+  - workspace-preset-cli.ts
+  - doctor.ts
+  - Makefile
+  - preset-switching.md
+  summary: durable project-local preset store plus loud degrade plus doctor single
+    owner plus lock removal plus bridge telemetry plus docs; project default muse-balanced
+    now active via tier 4 (was silently none)
+  verification: make test-omo exit 0 (1407 pass 0 fail, tsc clean); make test-config
+    exit 0
+  area: oh-my-opencode-slim

@@ -81,6 +81,9 @@ secrets/*
 # Orchestrator session state (transient, regenerated per session)
 .opencode/session/
 
+# Project-local workspace preset selection (DIA-260918-yug6, machine-written)
+.opencode/state/
+
 # === OpenCode clipboard/screenshot artifacts (transient) ===
 .opencode/images/
 

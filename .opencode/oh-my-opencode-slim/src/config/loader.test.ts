@@ -4,7 +4,11 @@ import * as os from 'node:os';
 import * as path from 'node:path';
 import type { ConfigLoadWarning } from './loader';
 import { loadAgentPrompt, loadPluginConfig } from './loader';
-import { saveWorkspacePreset } from './workspace-preset';
+import {
+  getWorkspacePresetStorePath,
+  resolveWorkspacePreset,
+  saveWorkspacePreset,
+} from './workspace-preset';
 
 // Test deepMerge indirectly through loadPluginConfig behavior
 // since deepMerge is not exported
@@ -299,25 +303,25 @@ describe('onWarning callback', () => {
     }
   });
 
-  test('legacy config preset is ignored without a workspace selection', () => {
+  test('declared config preset applies as fallback without a workspace selection', () => {
     const projectDir = path.join(tempDir, 'project');
     const projectConfigDir = path.join(projectDir, '.opencode');
     fs.mkdirSync(projectConfigDir, { recursive: true });
     fs.writeFileSync(
       path.join(projectConfigDir, 'oh-my-opencode-slim.json'),
       JSON.stringify({
-        preset: 'nonexistent',
+        preset: 'other',
         presets: { other: { architector: { model: 'other' } } },
         agents: { architector: { model: 'root' } },
       }),
     );
 
     const config = loadPluginConfig(projectDir);
-    expect(config.preset).toBeUndefined();
+    expect(config.preset).toBe('other');
     expect(config.agents?.architector?.model).toBe('root');
   });
 
-  test('silent loading keeps valid root agents when legacy preset is unknown', () => {
+  test('unknown declared config preset degrades to no preset with a loud warning', () => {
     const projectDir = path.join(tempDir, 'project');
     const projectConfigDir = path.join(projectDir, '.opencode');
     fs.mkdirSync(projectConfigDir, { recursive: true });
@@ -332,11 +336,39 @@ describe('onWarning callback', () => {
 
     const warnSpy = spyOn(console, 'warn').mockImplementation(() => {});
     try {
+      const config = loadPluginConfig(projectDir);
+      expect(config.preset).toBeUndefined();
+      expect(config.agents?.architector?.model).toBe('root');
+      expect(warnSpy).toHaveBeenCalled();
+      const warning = warnSpy.mock.calls.map((c) => String(c[0])).join('\n');
+      expect(warning).toContain('continuing with no preset');
+      expect(warning).toContain('config preset');
+      expect(warning).toContain('nonexistent');
+    } finally {
+      warnSpy.mockRestore();
+    }
+  });
+
+  test('silent loading keeps valid root agents when declared preset applies', () => {
+    const projectDir = path.join(tempDir, 'project');
+    const projectConfigDir = path.join(projectDir, '.opencode');
+    fs.mkdirSync(projectConfigDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(projectConfigDir, 'oh-my-opencode-slim.json'),
+      JSON.stringify({
+        preset: 'other',
+        presets: { other: { architector: { model: 'other' } } },
+        agents: { architector: { model: 'root' } },
+      }),
+    );
+
+    const warnSpy = spyOn(console, 'warn').mockImplementation(() => {});
+    try {
       const config = loadPluginConfig(projectDir, {
         silent: true,
       });
 
-      expect(config.preset).toBeUndefined();
+      expect(config.preset).toBe('other');
       expect(config.agents?.architector?.model).toBe('root');
       expect(warnSpy).not.toHaveBeenCalled();
     } finally {
@@ -604,6 +636,7 @@ describe('preset resolution', () => {
     tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'preset-test-'));
     originalEnv = { ...process.env };
     delete process.env.OPENCODE_CONFIG_DIR;
+    delete process.env.OPENCODE_WORKSPACE_PRESET;
     process.env.XDG_CONFIG_HOME = path.join(tempDir, 'user-config');
   });
 
@@ -674,14 +707,14 @@ describe('preset resolution', () => {
     expect(config.agents?.['code-navigator']?.model).toBe('explorer-model');
   });
 
-  test('unknown legacy config preset does not replace root agents', () => {
+  test('declared config preset does not replace root agents', () => {
     const projectDir = path.join(tempDir, 'project');
     const projectConfigDir = path.join(projectDir, '.opencode');
     fs.mkdirSync(projectConfigDir, { recursive: true });
     fs.writeFileSync(
       path.join(projectConfigDir, 'oh-my-opencode-slim.json'),
       JSON.stringify({
-        preset: 'nonexistent',
+        preset: 'other',
         presets: {
           other: { architector: { model: 'other' } },
         },
@@ -690,7 +723,7 @@ describe('preset resolution', () => {
     );
 
     const config = loadPluginConfig(projectDir);
-    expect(config.preset).toBeUndefined();
+    expect(config.preset).toBe('other');
     expect(config.agents?.architector?.model).toBe('root');
   });
 
@@ -733,14 +766,14 @@ describe('preset resolution', () => {
     expect(loadPluginConfig(projectDir)).toEqual({});
   });
 
-  test('unknown legacy config preset does not warn', () => {
+  test('declared config preset does not warn', () => {
     const projectDir = path.join(tempDir, 'project');
     const projectConfigDir = path.join(projectDir, '.opencode');
     fs.mkdirSync(projectConfigDir, { recursive: true });
     fs.writeFileSync(
       path.join(projectConfigDir, 'oh-my-opencode-slim.json'),
       JSON.stringify({
-        preset: 'nonexistent',
+        preset: 'other',
         presets: {
           other: { architector: { model: 'other' } },
         },
@@ -751,19 +784,19 @@ describe('preset resolution', () => {
     const consoleWarnSpy = spyOn(console, 'warn');
     const config = loadPluginConfig(projectDir);
     expect(config.agents?.architector?.model).toBe('root');
-    expect(config.preset).toBeUndefined();
+    expect(config.preset).toBe('other');
     expect(consoleWarnSpy).not.toHaveBeenCalled();
     consoleWarnSpy.mockRestore();
   });
 
-  test('unknown legacy config preset leaves agents empty without warning', () => {
+  test('declared config preset provides agents when root agents are absent', () => {
     const projectDir = path.join(tempDir, 'project');
     const projectConfigDir = path.join(projectDir, '.opencode');
     fs.mkdirSync(projectConfigDir, { recursive: true });
     fs.writeFileSync(
       path.join(projectConfigDir, 'oh-my-opencode-slim.json'),
       JSON.stringify({
-        preset: 'nonexistent',
+        preset: 'other',
         presets: {
           other: { architector: { model: 'other' } },
         },
@@ -772,8 +805,8 @@ describe('preset resolution', () => {
 
     const consoleWarnSpy = spyOn(console, 'warn');
     const config = loadPluginConfig(projectDir);
-    expect(config.agents).toBeUndefined();
-    expect(config.preset).toBeUndefined();
+    expect(config.agents?.architector?.model).toBe('other');
+    expect(config.preset).toBe('other');
     expect(consoleWarnSpy).not.toHaveBeenCalled();
     consoleWarnSpy.mockRestore();
   });
@@ -887,6 +920,7 @@ describe('environment variable preset override', () => {
     delete process.env.OPENCODE_CONFIG_DIR;
     delete process.env.PRESET;
     delete process.env.OH_MY_OPENCODE_SLIM_PRESET;
+    delete process.env.OPENCODE_WORKSPACE_PRESET;
     process.env.XDG_CONFIG_HOME = path.join(tempDir, 'user-config');
   });
 
@@ -951,8 +985,8 @@ describe('environment variable preset override', () => {
 
     process.env.PRESET = '';
     const config = loadPluginConfig(projectDir);
-    expect(config.preset).toBeUndefined();
-    expect(config.agents).toBeUndefined();
+    expect(config.preset).toBe('config-preset');
+    expect(config.agents?.architector?.model).toBe('config-model');
   });
 
   test('PRESET is ignored if undefined', () => {
@@ -971,8 +1005,8 @@ describe('environment variable preset override', () => {
 
     delete process.env.PRESET;
     const config = loadPluginConfig(projectDir);
-    expect(config.preset).toBeUndefined();
-    expect(config.agents).toBeUndefined();
+    expect(config.preset).toBe('config-preset');
+    expect(config.agents?.architector?.model).toBe('config-model');
   });
 
   test('unknown PRESET fails closed', () => {
@@ -991,8 +1025,238 @@ describe('environment variable preset override', () => {
     );
 
     process.env.PRESET = 'typo-preset';
-    expect(() => loadPluginConfig(projectDir)).toThrow(
-      'Preset "typo-preset" not found',
+    const warnSpy = spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      const config = loadPluginConfig(projectDir);
+      expect(config.preset).toBeUndefined();
+      expect(config.agents?.architector?.model).toBe('fallback');
+      expect(warnSpy).toHaveBeenCalled();
+      expect(
+        warnSpy.mock.calls.map((c) => String(c[0])).join('\n'),
+      ).toContain('PRESET override');
+    } finally {
+      warnSpy.mockRestore();
+    }
+  });
+
+  test('subdir launch walks up to the project root config', () => {
+    const projectDir = path.join(tempDir, 'project');
+    const projectConfigDir = path.join(projectDir, '.opencode');
+    fs.mkdirSync(projectConfigDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(projectConfigDir, 'oh-my-opencode-slim.json'),
+      JSON.stringify({
+        preset: 'config-preset',
+        presets: {
+          'config-preset': { architector: { model: 'config-model' } },
+        },
+      }),
+    );
+    const subdir = path.join(projectDir, 'packages', 'nested');
+    fs.mkdirSync(subdir, { recursive: true });
+
+    delete process.env.PRESET;
+    const config = loadPluginConfig(subdir);
+    expect(config.preset).toBe('config-preset');
+    expect(config.agents?.architector?.model).toBe('config-model');
+  });
+
+  test('deprecated bridge resolves when the registry knows the value', () => {
+    const projectDir = path.join(tempDir, 'project');
+    const projectConfigDir = path.join(projectDir, '.opencode');
+    fs.mkdirSync(projectConfigDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(projectConfigDir, 'oh-my-opencode-slim.json'),
+      JSON.stringify({
+        presets: {
+          'bridge-preset': { architector: { model: 'bridge-model' } },
+        },
+      }),
+    );
+
+    delete process.env.PRESET;
+    process.env.OPENCODE_WORKSPACE_PRESET = 'bridge-preset';
+    try {
+      const config = loadPluginConfig(projectDir);
+      expect(config.preset).toBe('bridge-preset');
+      expect(config.agents?.architector?.model).toBe('bridge-model');
+    } finally {
+      delete process.env.OPENCODE_WORKSPACE_PRESET;
+    }
+  });
+
+  test('unknown bridge value degrades to no preset with a loud warning', () => {
+    const projectDir = path.join(tempDir, 'project');
+    const projectConfigDir = path.join(projectDir, '.opencode');
+    fs.mkdirSync(projectConfigDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(projectConfigDir, 'oh-my-opencode-slim.json'),
+      JSON.stringify({
+        presets: {
+          'config-preset': { architector: { model: 'config-model' } },
+        },
+      }),
+    );
+
+    delete process.env.PRESET;
+    process.env.OPENCODE_WORKSPACE_PRESET = 'stale-preset';
+    const warnSpy = spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      const config = loadPluginConfig(projectDir);
+      expect(config.preset).toBeUndefined();
+      expect(warnSpy).toHaveBeenCalled();
+      const warning = warnSpy.mock.calls.map((c) => String(c[0])).join('\n');
+      expect(warning).toContain('stale-preset');
+      expect(warning).toContain('bridge (deprecated)');
+    } finally {
+      warnSpy.mockRestore();
+      delete process.env.OPENCODE_WORKSPACE_PRESET;
+    }
+  });
+
+  test('corrupt project store degrades to no preset with cause text', () => {
+    const projectDir = path.join(tempDir, 'project');
+    const stateDir = path.join(projectDir, '.opencode', 'state');
+    fs.mkdirSync(stateDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(projectDir, '.opencode', 'oh-my-opencode-slim.json'),
+      JSON.stringify({
+        presets: {
+          'config-preset': { architector: { model: 'config-model' } },
+        },
+      }),
+    );
+    fs.writeFileSync(
+      path.join(stateDir, 'workspace-preset.json'),
+      '{ corrupt json',
+    );
+
+    delete process.env.PRESET;
+    const warnSpy = spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      const config = loadPluginConfig(projectDir);
+      expect(config.preset).toBeUndefined();
+      expect(warnSpy).toHaveBeenCalled();
+      const warning = warnSpy.mock.calls.map((c) => String(c[0])).join('\n');
+      expect(warning).toContain('workspace-preset.json');
+      expect(warning).toContain('invalid shape');
+    } finally {
+      warnSpy.mockRestore();
+    }
+  });
+
+  test('project store beats the declared default', () => {
+    const projectDir = path.join(tempDir, 'project');
+    const projectConfigDir = path.join(projectDir, '.opencode');
+    fs.mkdirSync(projectConfigDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(projectConfigDir, 'oh-my-opencode-slim.json'),
+      JSON.stringify({
+        preset: 'declared-preset',
+        presets: {
+          'declared-preset': { architector: { model: 'declared-model' } },
+          'stored-preset': { architector: { model: 'stored-model' } },
+        },
+      }),
+    );
+
+    delete process.env.PRESET;
+    saveWorkspacePreset(projectDir, 'stored-preset');
+    const config = loadPluginConfig(projectDir);
+    expect(config.preset).toBe('stored-preset');
+    expect(config.agents?.architector?.model).toBe('stored-model');
+  });
+});
+
+describe('resolveWorkspacePreset fail-closed tiers (F8)', () => {
+  let tempDir: string;
+  let originalEnv: typeof process.env;
+
+  beforeEach(() => {
+    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'resolver-test-'));
+    originalEnv = { ...process.env };
+    delete process.env.OPENCODE_CONFIG_DIR;
+    delete process.env.PRESET;
+    delete process.env.OPENCODE_WORKSPACE_PRESET;
+    process.env.XDG_CONFIG_HOME = path.join(tempDir, 'user-config');
+  });
+
+  afterEach(() => {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+    process.env = originalEnv;
+  });
+
+  test('corrupt project store throws with store path and cause text', () => {
+    const projectDir = path.join(tempDir, 'project');
+    const stateDir = path.join(projectDir, '.opencode', 'state');
+    fs.mkdirSync(stateDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(stateDir, 'workspace-preset.json'),
+      '{ corrupt json',
+    );
+
+    let error: unknown;
+    try {
+      resolveWorkspacePreset(projectDir, {});
+    } catch (e) {
+      error = e;
+    }
+    expect(error).toBeInstanceOf(Error);
+    const message = (error as Error).message;
+    expect(message).toContain('workspace-preset.json');
+    expect(message).toContain(projectDir);
+    expect(message).toContain('invalid shape');
+    expect((error as Error).cause).toBeInstanceOf(Error);
+  });
+
+  test('empty registry with PRESET intent throws instead of silent none', () => {
+    const projectDir = path.join(tempDir, 'project');
+    fs.mkdirSync(projectDir, { recursive: true });
+
+    expect(() =>
+      resolveWorkspacePreset(projectDir, {}, 'free', undefined),
+    ).toThrow('Preset "free" (source: PRESET override)');
+  });
+
+  test('empty registry with bridge intent throws instead of silent none', () => {
+    const projectDir = path.join(tempDir, 'project');
+    fs.mkdirSync(projectDir, { recursive: true });
+    process.env.OPENCODE_WORKSPACE_PRESET = 'free';
+
+    expect(() => resolveWorkspacePreset(projectDir, {})).toThrow(
+      'Preset "free" (source: OPENCODE_WORKSPACE_PRESET bridge (deprecated))',
+    );
+  });
+
+  test('empty registry with no intent resolves to none', () => {
+    const projectDir = path.join(tempDir, 'project');
+    fs.mkdirSync(projectDir, { recursive: true });
+
+    const resolution = resolveWorkspacePreset(projectDir, {});
+    expect(resolution).toEqual({
+      name: null,
+      source: 'none',
+      workspace: projectDir,
+    });
+  });
+
+  test('bridge hit reports the distinct bridge source', () => {
+    const projectDir = path.join(tempDir, 'project');
+    fs.mkdirSync(projectDir, { recursive: true });
+    process.env.OPENCODE_WORKSPACE_PRESET = 'free';
+
+    const resolution = resolveWorkspacePreset(projectDir, {
+      free: { architector: { model: 'free/model' } },
+    });
+    expect(resolution.name).toBe('free');
+    expect(resolution.source).toBe('bridge');
+  });
+
+  test('store path helper points at the project-local file', () => {
+    const projectDir = path.join(tempDir, 'project');
+    fs.mkdirSync(path.join(projectDir, '.opencode'), { recursive: true });
+    expect(getWorkspacePresetStorePath(projectDir)).toBe(
+      path.join(projectDir, '.opencode', 'state', 'workspace-preset.json'),
     );
   });
 });

@@ -8,6 +8,7 @@ import {
   setActiveRuntimePreset,
 } from '../config/runtime-preset';
 import {
+  getWorkspacePresetStorePath,
   readWorkspacePreset,
   saveWorkspacePreset,
 } from '../config/workspace-preset';
@@ -642,6 +643,33 @@ describe('createPresetManager', () => {
 
       // Cleanup module state
       setActiveRuntimePreset(null);
+    });
+  });
+
+  describe('project-local store', () => {
+    test('saves into <projectRoot>/.opencode/state/workspace-preset.json', async () => {
+      const ctx = createMockContext();
+      const config: PluginConfig = {
+        presets: {
+          cheap: { orchestrator: { model: 'anthropic/claude-3.5-haiku' } },
+        },
+      };
+      const manager = createPresetManager(ctx, config);
+      const output = createOutput();
+
+      await manager.handleCommandExecuteBefore(
+        { command: 'preset', sessionID: 's1', arguments: 'cheap' },
+        output,
+      );
+
+      expect(getOutputText(output)).toContain('Saved preset "cheap"');
+      expect(getWorkspacePresetStorePath(tempDir)).toBe(
+        path.join(tempDir, '.opencode', 'state', 'workspace-preset.json'),
+      );
+      const stored = JSON.parse(
+        fs.readFileSync(getWorkspacePresetStorePath(tempDir), 'utf-8'),
+      );
+      expect(stored).toEqual({ version: 2, preset: 'cheap' });
     });
   });
 

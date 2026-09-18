@@ -2,6 +2,10 @@ import * as fs from 'node:fs';
 import { z } from 'zod';
 import { findPluginConfigPaths, mergePluginConfigs } from '../config/loader';
 import { type PluginConfig, PluginConfigSchema } from '../config/schema';
+import {
+  readWorkspacePreset,
+  resolveWorkspacePreset,
+} from '../config/workspace-preset';
 import { stripJsonComments } from './config-io';
 
 export type DoctorArgs = {
@@ -145,26 +149,45 @@ function checkConfigFile(
 
 function checkPreset(
   mergedConfig: PluginConfig,
+  cwd: string,
 ): PresetCheckResult | undefined {
-  const envPreset = process.env.PRESET;
-  const presetName = envPreset || mergedConfig.preset;
-
-  if (presetName === undefined) {
-    return undefined;
-  }
-
-  if (!mergedConfig.presets?.[presetName]) {
+  // Single owner (F4): the verdict comes from resolveWorkspacePreset. This
+  // wrapper only maps its result onto the doctor report shape; the candidate
+  // label below mirrors precedence for display on throw paths only.
+  const declared = mergedConfig.preset?.trim()
+    ? mergedConfig.preset.trim()
+    : undefined;
+  try {
+    const resolution = resolveWorkspacePreset(
+      cwd,
+      mergedConfig.presets,
+      process.env.PRESET,
+      declared,
+    );
+    if (!resolution.name) {
+      return undefined;
+    }
+    return { preset: resolution.name, ok: true };
+  } catch (error) {
+    const override = process.env.PRESET?.trim()
+      ? (process.env.PRESET as string).trim()
+      : undefined;
+    const bridged = process.env.OPENCODE_WORKSPACE_PRESET?.trim() || undefined;
+    let stored: string | null = null;
+    try {
+      stored = readWorkspacePreset(cwd);
+    } catch {
+      stored = '(unreadable store)';
+    }
     return {
-      preset: presetName,
+      preset: override || bridged || stored || declared || '(unknown)',
       ok: false,
       error: {
         kind: 'missing-preset',
-        message: `Preset "${presetName}" not found in config`,
+        message: error instanceof Error ? error.message : String(error),
       },
     };
   }
-
-  return { preset: presetName, ok: true };
 }
 
 function getMergedConfig(
@@ -189,7 +212,7 @@ export function runDoctorCheck(cwd: string): DoctorResult {
   let presetCheckResult: DoctorResult['presetCheck'] | undefined;
   if (!hasInvalidConfig) {
     const mergedConfig = getMergedConfig(userCheck.config, projectCheck.config);
-    presetCheckResult = checkPreset(mergedConfig);
+    presetCheckResult = checkPreset(mergedConfig, cwd);
   }
 
   return {
