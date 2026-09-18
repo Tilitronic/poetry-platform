@@ -4,7 +4,9 @@
 #   make build        build the dev image
 #   make up           start dev + postgres in background
 #   make shell        open a shell in the dev container
-#   make opencode     run opencode in the dev container
+#   make opencode PRESET=<name>  run opencode with a one-run preset override
+#   make presets      list available preset names (registry keys)
+#   make preset       DEPRECATED stub (exit 2, writes nothing)
 #   make dev          start all app services (turbo run dev)
 #   make install      pnpm install inside the dev container
 #   make db-psql      psql into postgres
@@ -26,7 +28,7 @@
 #   make session-analytics  canned analytics over native OpenCode telemetry (opencode stats/db; ARGS pass-through)
 #   make test-harness  C5 scenario replay (bats) + bun plugin tests (requires Docker)
 
-.PHONY: build up shell opencode preset dev stack install db-psql logs down clean check-pin-sync check-tools check-host-jq check-host-lsp gen-jsconfig test-shell test-opencode-docker test-python test-infra test-config test-omo test-interview test-skills eval-lite audit-python context7-docs jsonl-stats session-log-render jsonl-cross-check session-query session-analytics test-harness worktree-gc
+.PHONY: build up shell opencode preset presets dev stack install db-psql logs down clean check-pin-sync check-tools check-host-jq check-host-lsp gen-jsconfig test-shell test-opencode-docker test-python test-infra test-config test-omo test-interview test-skills eval-lite audit-python context7-docs jsonl-stats session-log-render jsonl-cross-check session-query session-analytics test-harness worktree-gc
 
 # Engine-aware compose stack (DIA-260826-766f + DIA-260912-y2uo): every bare
 # `docker compose` target below routes through scripts/container-engine.sh,
@@ -50,24 +52,40 @@ up:
 shell:
 	$(COMPOSE) exec --user dev dev bash
 
+# Single-path preset launch (DIA-260918-vsq8): `make opencode PRESET=<name>`
+# is the only override path - one-run, nothing persisted, no OMO source
+# involved (registry read is scripts/presets.py, python3 stdlib only, so the
+# Makefile stays on the clean npm track). Precedence mirrors the old resolver
+# order: explicit PRESET beats the stale OPENCODE_WORKSPACE_PRESET bridge,
+# which is honored only as a fallback when PRESET is unset (and is unset in
+# the recipe shell once PRESET is set, so it cannot leak back in). An unknown
+# name fails loudly with the available list before any container setup (the
+# nonzero recipe exit surfaces as make exit 2). Only -e PRESET= is forwarded
+# into the container; the bridge is cleared (-e OPENCODE_WORKSPACE_PRESET=)
+# so a stale host value never reaches the runtime. Bare `make opencode`
+# forwards nothing and the runtime preset field applies.
 opencode:
-	@resolution=$$(bun run .opencode/oh-my-opencode-slim/src/config/workspace-preset-cli.ts resolve "$(CURDIR)" "$${PRESET:-}") || exit $$?; \
-	set -- $$resolution; preset_value="$$1"; preset_source="$$2"; \
-	if [ "$$preset_value" = - ]; then preset_value=''; fi; \
-	source_label="$$preset_source"; if [ "$$preset_source" = override ]; then source_label='PRESET override'; fi; \
-	printf 'Effective preset: %s (source: %s)\n' "$${preset_value:-no preset}" "$$source_label"; \
-	if [ -n "$$preset_value" ]; then \
-		if [ "$$preset_source" = stored ]; then \
-			$(COMPOSE) exec -it --user root -e OPENCODE_WORKSPACE_PRESET="$$preset_value" dev /usr/local/bin/dev-entrypoint.sh opencode; \
-		else \
-			$(COMPOSE) exec -it --user root -e PRESET="$$preset_value" dev /usr/local/bin/dev-entrypoint.sh opencode; \
-		fi; \
+	@preset_override="$(PRESET)"; \
+	if [ -n "$$preset_override" ]; then unset OPENCODE_WORKSPACE_PRESET; fi; \
+	resolved="$$preset_override"; source="PRESET override"; \
+	if [ -z "$$resolved" ]; then resolved="$${OPENCODE_WORKSPACE_PRESET:-}"; source="OPENCODE_WORKSPACE_PRESET bridge"; fi; \
+	if [ -z "$$resolved" ]; then source="none"; fi; \
+	if [ -n "$$resolved" ]; then \
+		python3 scripts/presets.py check "$$resolved" >/dev/null || exit 1; \
+		printf 'Effective preset: %s (source: %s)\n' "$$resolved" "$$source"; \
+		$(COMPOSE) exec -it --user root -e PRESET="$$resolved" -e OPENCODE_WORKSPACE_PRESET= dev /usr/local/bin/dev-entrypoint.sh opencode; \
 	else \
+		printf 'Effective preset: no override (source: none; runtime preset field applies)\n'; \
 		$(COMPOSE) exec -it --user root dev /usr/local/bin/dev-entrypoint.sh opencode; \
 	fi
 
+# Registry list for the single path (python3 stdlib only, no new dependency).
+presets:
+	@python3 scripts/presets.py list
+
+# Deprecated: the stored-selection path is gone. Exit 2, write nothing.
 preset:
-	@bun run .opencode/oh-my-opencode-slim/src/config/workspace-preset-cli.ts save "$(CURDIR)" "$${NAME:-}"
+	@echo "make preset is deprecated: Use 'make opencode PRESET=<name>' instead (list names with 'make presets')."; exit 2
 
 dev:
 	$(COMPOSE) exec -it --user dev dev pnpm dev
