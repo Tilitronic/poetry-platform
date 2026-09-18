@@ -1,0 +1,60 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Memory Shelf",
+  "description": "Shape contract for .opencode/memory-shelf.yaml - the central RAG index that agents read to locate conspects, analyses, ADRs, specs, and architectures (DIA-180 A2). Validated by scripts/validate-memory-shelf.sh at `make test-config`; the script's embedded structural checks mirror this schema so hosts without the jsonschema pip package still get gate coverage. The shelf entries are agent-written via text tools, so the contract is deliberately strict: unknown keys and malformed dates fail the gate instead of silently degrading lookups.",
+  "type": "object",
+  "required": ["shelf"],
+  "additionalProperties": false,
+  "properties": {
+    "shelf": {
+      "type": "object",
+      "required": ["conspects", "analyses", "adrs", "specs", "architectures"],
+      "additionalProperties": false,
+      "properties": {
+        "conspects": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/shelfEntry" }
+        },
+        "analyses": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/shelfEntry" }
+        },
+        "adrs": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/shelfEntry" }
+        },
+        "specs": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/shelfEntry" }
+        },
+        "architectures": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/shelfEntry" }
+        },
+        "rag_bases": {
+          "type": "array",
+          "description": "Reserved for future RAG base registrations; empty today (2026-08)."
+        }
+      }
+    }
+  },
+  "definitions": {
+    "shelfEntry": {
+      "type": "object",
+      "description": "One shelf record. Every section shares the same entry shape: name + description + path + created are required; status/task_ref/id/title/date are the optional extras observed in the real shelf (2026-08-15 inventory). created must be an ISO-8601 date (YYYY-MM-DD); the validator normalizes PyYAML's native datetime.date objects to ISO strings before validation so both quoted and unquoted spellings pass.",
+      "required": ["name", "description", "path", "created"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "description": { "type": "string", "minLength": 1 },
+        "path": { "type": "string", "minLength": 1 },
+        "created": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$" },
+        "status": { "type": "string" },
+        "task_ref": { "type": "string" },
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "date": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$" }
+      }
+    }
+  }
+}

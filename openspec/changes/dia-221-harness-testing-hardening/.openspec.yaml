@@ -1,0 +1,8 @@
+schema: spec-driven
+created: 2026-08-18
+skip_specs: true
+task_ref: DIA-221
+gate_state: grilled
+gate_triggers: [plugin-patch, test-gate, cross-cutting]
+gate_waivers: []
+gate_override: none

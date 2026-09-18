@@ -1,0 +1,9 @@
+- date: '2026/08/16'
+  ticket: 'DIA-183'
+  scope: 'malformed date'
+  files:
+    - 'AGENTS.md'
+  summary: >
+    Change: date uses slashes, not the ISO-8601 YYYY-MM-DD pattern.
+  verification: >
+    make test-config exit 0.

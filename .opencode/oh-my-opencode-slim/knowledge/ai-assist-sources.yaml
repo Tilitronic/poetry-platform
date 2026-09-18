@@ -1,11 +1,13 @@
-# ai-assist-specialist: Curated Sources & Fundamental Knowledge
+# ai-specialist: Curated Sources & Fundamental Knowledge
 #
 # Tier 1 — Stable fundamentals (re-fetch quarterly, cache locally)
 # Tier 2 — Volatile sources (ALWAYS fetch fresh from web — prices change)
 # Tier 3 — Local reference data (conspects, config files)
 #
-# Model pricing is NEVER stored here — it changes dynamically.
+# Authoritative model pricing is NEVER stored here — it changes dynamically.
 # Always fetch latest pricing from live URLs in Tier 2.
+# (Inline prices that appear in "strong_sides" below are contextual weakness
+# notes, reference-only snapshots at last review — NOT authoritative.)
 
 tier1_fundamentals:
   anthropic_engineering:
@@ -75,23 +77,17 @@ tier2_volatile_web:
       why: "Curated list of OpenCode tools, configs, extensions, and community resources. CRITICAL EVALUATION REQUIRED (see evaluation rules below)."
 
 tier3_local_references:
-  model_compendium:
-    path: "W:\\Projects\\visualPoetryResearch\\knowledge\\research-ai-models-compendium\\research-ai-models-compendium-conspect.md"
-    why: "Complete model specs, benchmarks for Go + Copilot Pro models (stable data)"
-  model_analysis:
-    path: "W:\\Projects\\visualPoetryResearch\\knowledge\\analysis-ai-models-value\\analysis-ai-models-detailed.md"
-    why: "Model rankings per priority, budget analysis"
   memory_shelf:
-    path: "W:\\Projects\\visualPoetryResearch\\.opencode\\memory-shelf.yaml"
-    why: "All research conspects, analyses, specs"
+    path: ".opencode/memory-shelf.yaml"
+    why: "Central index of this project's research conspects, analyses, specs"
   opencode_config:
-    path: "C:\\Users\\qualt\\.config\\opencode\\opencode.jsonc"
+    path: "/home/qualt/.config/opencode/opencode.jsonc"
     why: "Current provider config, base permissions, agent definitions"
   omo_slim_config:
-    path: "C:\\Users\\qualt\\.config\\opencode\\oh-my-opencode-slim.jsonc"
+    path: "/home/qualt/.config/opencode/oh-my-opencode-slim.jsonc"
     why: "Active preset, all agent model assignments, council config"
   opencode_best_practices:
-    path: "C:\\Users\\qualt\\.config\\opencode\\oh-my-opencode-slim\\knowledge\\opencode-best-practices.md"
+    path: ".opencode/oh-my-opencode-slim/knowledge/opencode-best-practices.md"
     why: "Curated mid-2026 best practices for OpenCode agents, workflows, AGENTS.md files, and community resource evaluation"
 
 # Stable model benchmark reference (NOT pricing — pricing always from web)
@@ -115,10 +111,6 @@ model_benchmark_reference:
         score: 77.7%
         pool: Go
         note: "Best daily driver on Go"
-      - model: "Gemini 3 Flash"
-        score: 78.0%
-        pool: Copilot
-        note: "Cheapest premium model"
       - model: "DeepSeek V4 Pro"
         score: 80.6%
         pool: Go
@@ -131,6 +123,22 @@ model_benchmark_reference:
         score: ~59.8%
         pool: Copilot
         note: "Cheapest GPT on Pro"
+      # Go models added 2026-08-12 (DIA-108 / res013). Trackers differ: BenchLM
+      # is a 63-model aggregation, Vals a 79-model bash-only mini-swe-agent, so
+      # scores are not directly cross-comparable. Only models with an archived
+      # overall SWE-bench score appear here; the rest are in strong_sides.
+      - model: "Kimi K3"
+        score: 93.4%
+        pool: Go
+        note: "Vals strongest open-weight; best Go model (490 req/mo cap)"
+      - model: "Grok 4.5"
+        score: 86.6%
+        pool: Go
+        note: "Vals bash-only harness (600 req/mo cap)"
+      - model: "MiniMax M3"
+        score: 80.5%
+        pool: Go
+        note: "BenchLM aggregation, open weight"
     gpqa_diamond:
       - model: "Gemini 3.1 Pro"
         score: 94.3%
@@ -149,11 +157,11 @@ model_benchmark_reference:
       - model: "DeepSeek V4 Flash"
         score: 88.1%
         pool: Go
-      - model: "Gemini 3 Flash"
-        score: 90.4%
-        pool: Copilot
 
   strong_sides:
+    # NOTE: Prices listed inline below are contextual weakness notes, captured
+    # as a reference-only snapshot at the last review. They are NOT authoritative
+    # — always fetch current pricing live from Tier 2 URLs before recommending.
     deepseek_v4_flash:
       - "Fastest and cheapest on Go ($0.14/$0.28)"
       - "79% SWE-bench — best price/performance ratio"
@@ -162,7 +170,7 @@ model_benchmark_reference:
     deepseek_v4_pro:
       - "80.6% SWE-bench — best coding score on Go"
       - "1M context window"
-      - "Weak: more expensive ($1.74/$3.48)"
+      - "Weak: more expensive than Flash ($0.435/$0.87)"
     qwen37_plus:
       - "77.7% SWE, 90.3% GPQA — excellent all-rounder on Go"
       - "Very cheap ($0.40/$1.60)"
@@ -179,38 +187,64 @@ model_benchmark_reference:
       - "79.6% SWE, 89.9% GPQA — strong all-round Anthropic model"
       - "Best instruction following in class"
       - "Weak: expensive ($3/$15), ~18 cr/100K"
-    gemini_3_flash:
-      - "78% SWE, 90.4% GPQA — best value on Copilot"
-      - "Cheapest premium model ($0.50/$3, ~3.5 cr/100K)"
-      - "1M context"
     gpt_5_mini:
       - "Cheapest GPT on Copilot Pro ($0.25/$2, ~3 cr/100K)"
       - "Good for fast, simple tasks"
       - "Weak: only ~60% SWE"
+    # New Go models added 2026-08-12 (DIA-108 / res013). Inline prices are a
+    # reference-only snapshot at last review — always fetch current pricing live.
+    kimi_k3:
+      - "93.4% SWE-bench (Vals) — strongest open-weight; best Go model for high-difficulty"
+      - "Go $3.00/$15.00 per 1M; tight cap 490 req/mo (110/5h, 250/wk) — special ammo"
+    grok_45:
+      - "86.6% SWE-bench (Vals)"
+      - "Go $2.00/$6.00 per 1M (identical on Copilot default tier); 600 req/mo cap — special ammo"
+      - "Uses ZDR on Go (no stateful Responses API)"
+    gpt_56_luna:
+      - "Cheap lightweight: $0.20/$1.20 per 1M on Go and Copilot identical"
+      - "10,250 req/mo — high volume"
+      - "No overall SWE in archive; Vals difficulty split 96/92/86/67%"
+    minimax_m3:
+      - "80.5% SWE-bench (BenchLM, open weight)"
+      - "Go $0.30/$1.20 per 1M; 16,000 req/mo"
+    qwen38_max:
+      - "Go $2.00/$6.00 per 1M; 810 req/mo — tight cap, premium (not a default)"
+      - "No archived SWE score (res013)"
+    hy3:
+      - "Go $0.14/$0.58 per 1M; 21,500 req/mo"
+      - "No archived SWE score (res013)"
+    mimo_v25_pro:
+      - "Go $0.435/$0.87 per 1M — identical to DeepSeek V4 Pro; 16,300 req/mo"
+      - "Benchmark gap (DIA-087 R5) — no archived SWE score"
+    glm_52:
+      - "Go $1.40/$4.40 per 1M; 4,300 req/mo"
+      - "Vals list, no overall %; difficulty split 88/82/67/67%"
 
 # Model selection rules of thumb (pricing always fetched fresh from web)
 model_selection_guidelines:
   role_mapping:
     orchestrator: "DS V4 Flash (Go) — fast routing, 1M ctx, cheap"
-    oracle: "Gemini 3.1 Pro (Copilot) — highest GPQA for architecture depth"
-    fixer: "DS V4 Flash (Go) — speed + value for implementation"
-    code_reviewer: "GPT-5.3-Codex (Copilot) — model diversity, 85% SWE"
-    openspec_plan: "Qwen3.7 Plus (Go) — volume for spec writing"
-    designer: "Gemini 3 Flash (Copilot) or Kimi K2.6 (Go) — fast, multimodal"
-    explorer: "GPT-5 mini (Copilot) — fast code search, cheap"
-    librarian: "DS V4 Flash (Go) — volume research"
+    architector: "Gemini 3.1 Pro (Copilot) — highest GPQA for architecture depth"
+    coder: "DS V4 Flash (Go) — speed + value for implementation"
+    reviewer: "Qwen3.7 Plus (Go) — review diversity vs coder (DeepSeek), 77.7% SWE"
+    openspec-plan: "Qwen3.7 Plus (Go) — volume for spec writing"
+    designer: "Kimi K2.7 Code (Go) or Claude Sonnet 4.5 (Copilot) — fast, multimodal"
+    code-navigator: "DS V4 Flash (Go) — fast code search, cheap"
+    researcher: "DS V4 Flash (Go) — volume research"
     conspecter: "DS V4 Flash (Go) — volume synthesis"
     analyzer: "Qwen3.7 Plus (Go) — 90.3% GPQA for analysis"
-    observer: "GPT-5 mini (Copilot) — passive monitoring, cheap"
-    ai_assist_specialist: "Qwen3.7 Plus (Go) — research agent"
+    observer: "Kimi K2.7 Code (Go) — multimodal primary; Copilot fallback: GPT-5 mini; tail: big-pickle"
+    ai-specialist: "Qwen3.7 Plus (Go) — research agent"
+    resource-manager: "DS V4 Flash (Go) — fast curation of sources.yaml, Tier-1 caching, cheap"
 
   rules:
     - "Always check current pricing from web before recommending — Go and Copilot rates change"
     - "Default to Go models for volume work (DS V4 Flash, Qwen3.7 Plus)"
     - "Copilot credits: 1,500/mo for Pro, 7,000/mo for Pro+ — reserve for model diversity"
     - "Never recommend a model the user doesn't have access to"
-    - "For review diversity: code-reviewer must be different model family than fixer"
+    - "For review diversity: reviewer must be different model family than coder"
     - "Qwen3.7 Max is special ammo — not a default for any agent (6x cost for 2% gain)"
+    - "Kimi K3 (490 req/mo), Grok 4.5 (600 req/mo), Qwen3.8 Max (810 req/mo) are special-ammo premium Go models with tight caps — reserve for high-difficulty, not defaults"
 
 community_source_evaluation:
   awesome_opencode:

@@ -4,7 +4,6 @@ import * as THREE from 'three';
 export default defineComponent({
   name: 'Visualizer3D',
   props: {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     orchestrator: { type: Object as PropType<any>, required: false },
   },
   setup() {

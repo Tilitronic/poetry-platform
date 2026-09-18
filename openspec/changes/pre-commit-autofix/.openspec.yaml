@@ -1,0 +1,12 @@
+schema: spec-driven
+created: 2026-08-02
+skip_specs: true
+status: proposed
+status_note: >
+  All four open questions RESOLVED:
+  Q1: FAIL-by-default when dev container is down (pre-commit hook).
+  Q2: lint-staged config lives in root package.json "lint-staged" key.
+  Q3: ruff line-length = 100 (prettier printWidth parity).
+  Q4: ruff lint rules = E+F+I (isort auto-sorts imports; UP deliberately excluded —
+  modernizes syntax and churns existing code without safety value).
+  All artifacts updated to reflect resolved decisions. Ready for implementation.

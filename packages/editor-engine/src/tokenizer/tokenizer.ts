@@ -14,7 +14,7 @@ export const APOSTROPHE = {
 
 const APOSTROPHE_SET = [...new Set([...APOSTROPHE.eng, ...APOSTROPHE.ukr])];
 
-const escClass = (s: string) => s.replace(/[\]\\^\-]/g, '\\$&');
+const escClass = (s: string) => s.replace(/[\]\\^-]/g, '\\$&');
 const WORD_APOS = escClass(APOSTROPHE_SET.join(''));
 
 const WORD = `[\\p{L}\\d]+(?:[${WORD_APOS}][\\p{L}\\d]+)*(?:-[\\p{L}\\d]+(?:[${WORD_APOS}][\\p{L}\\d]+)*)*`;

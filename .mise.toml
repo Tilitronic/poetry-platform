@@ -1,0 +1,12 @@
+# .mise.toml — Tool versions pinned for the poetry-platform dev environment.
+#
+# The node/pnpm versions here are derived from Dockerfile.dev ARGs at spec-author
+# time (2026-08-03: node 24.18.0, pnpm 10.33.0). There is no automated sync
+# between the two sources of truth; a future change may add a script that
+# enforces parity. Until then, bumping either version requires updating BOTH:
+#   - The ARG in Dockerfile.dev + tools/opencode-docker/Dockerfile
+#   - The [tools] entry below
+
+[tools]
+node = "24.18.0"
+pnpm = "10.33.0"

@@ -1,0 +1,275 @@
+#!/usr/bin/env bash
+#
+# OpenCode Docker wrapper script
+# Add this directory to your PATH to run the Docker isolated OpenCode from anywhere
+#
+# Options:
+#   -w, --websearch     Enable web search (sets OPENCODE_ENABLE_EXA=1)
+#   -e, --experimental  Enable experimental features (sets OPENCODE_EXPERIMENTAL=1 and OPENCODE_ENABLE_EXPERIMENTAL_MODELS=1)
+#   -U, --update-config Overwrite ~/.opencode-docker/config/ files with repo versions
+#   -m, --memory        Set memory limit (default: 4g, e.g., -m 8g)
+#   -c, --cpus          Set CPU count (default: 4, e.g., -c 8)
+#   -S, --serve         Run `opencode serve` instead of the TUI, publishing 127.0.0.1:4096
+#   -E, --with-engine   Mount the host container engine socket read-only into the container (opt-in, default off)
+
+set -euo pipefail
+
+# Pre-flight checks — fail fast before touching filesystem
+if ! command -v podman &>/dev/null; then
+    echo "Error: podman is not installed" >&2
+    exit 1
+fi
+if ! podman image inspect opencode-docker:latest &>/dev/null; then
+    echo "Error: image opencode-docker:latest not found. Run 'make build' in opencode-docker repo." >&2
+    exit 1
+fi
+
+UPDATE_CONFIG=0
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+ocd_dir="$HOME/.opencode-docker"
+repo_dir="${OPENCODE_DOCKER_REPO:-$(cd "$SCRIPT_DIR/.." && pwd)}"
+
+# Ensure base dir exists before acquiring lock
+mkdir -p "$ocd_dir"
+chmod 700 "$ocd_dir"
+
+# Instance lock — prevent concurrent runs that corrupt shared config/session data
+LOCKFILE="$ocd_dir/.run.lock"
+exec 9>"$LOCKFILE"
+if ! flock -n 9; then
+    echo "Error: another opencode-docker instance is already running in $ocd_dir" >&2
+    echo "Use a different OPENCODE_DOCKER_HOME or stop the other instance first." >&2
+    exit 1
+fi
+# Lock released automatically when fd 9 closes (process exit)
+
+mkdir -p "$ocd_dir/config" "$ocd_dir/secrets"
+chmod 700 "$ocd_dir" "$ocd_dir/config" "$ocd_dir/secrets"
+
+# Ensure persistence subdirs exist (needed for selective mounts)
+mkdir -p "$ocd_dir/.local/share" "$ocd_dir/.local/state" "$ocd_dir/.cache"
+
+# Default workspace to current directory if not specified
+WORKSPACE="${OPENCODE_WORKSPACE:-$(pwd)}"
+
+if [ ! -d "$WORKSPACE" ]; then
+    echo "Error: workspace path is not an existing directory: $WORKSPACE" >&2
+    exit 1
+fi
+
+# ponytail: block workspace=$HOME, :Z relabel of home dir fails on SELinux
+if [ "$WORKSPACE" = "$HOME" ]; then
+    echo "Error: cannot use home directory as workspace. Run from a project directory instead." >&2
+    exit 1
+fi
+
+EXTRA_ENV=()
+MEMORY_LIMIT="${MEMORY_LIMIT:-4g}"
+CPU_LIMIT="${CPU_LIMIT:-4}"
+SERVE_MODE=0
+WITH_ENGINE=0
+# Sentinel: always exported so in-container hooks (e.g. verify-pre-commit.sh)
+# can tell "inside opencode-docker" from "on the host" — both make
+# `docker compose ps` fail when the engine socket is absent, but the remediation
+# differs (relaunch with --with-engine vs `make up`). DIA-260821-aoag.
+EXTRA_ENV+=("-e" "OPENCODE_DOCKER=1")
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        -U|--update-config)
+            UPDATE_CONFIG=1
+            shift
+            ;;
+        -w|--websearch)
+            EXTRA_ENV+=("-e" "OPENCODE_ENABLE_EXA=1")
+            shift
+            ;;
+        -e|--experimental)
+            EXTRA_ENV+=("-e" "OPENCODE_EXPERIMENTAL=1")
+            EXTRA_ENV+=("-e" "OPENCODE_ENABLE_EXPERIMENTAL_MODELS=1")
+            shift
+            ;;
+        -m|--memory)
+            MEMORY_LIMIT="$2"
+            shift 2
+            ;;
+        -c|--cpus)
+            CPU_LIMIT="$2"
+            shift 2
+            ;;
+        -S|--serve)
+            SERVE_MODE=1
+            shift
+            ;;
+        -E|--with-engine)
+            WITH_ENGINE=1
+            shift
+            ;;
+        *)
+            break
+            ;;
+    esac
+done
+
+# Config copy after flag parsing so -U/--update-config works
+if [ -d "$repo_dir/config" ]; then
+  if [ "$UPDATE_CONFIG" = 1 ]; then
+    cp -a "$repo_dir/config/." "$ocd_dir/config/"
+  else
+    cp -a --update=none "$repo_dir/config/." "$ocd_dir/config/"
+  fi
+fi
+
+if [ -t 0 ]; then
+    DOCKER_FLAGS="-it"
+else
+    DOCKER_FLAGS="-i"
+fi
+
+GITCONFIG_MOUNT=()
+# ponytail: copy gitconfig into .opencode-docker so :Z works (home dir blocks relabel)
+if [ -f "$HOME/.gitconfig" ]; then
+    cp "$HOME/.gitconfig" "$ocd_dir/.gitconfig"
+    GITCONFIG_MOUNT=(-v "$ocd_dir/.gitconfig:/app/.gitconfig:ro,Z")
+fi
+
+# ponytail: mount ponytail plugin if present on host. Legacy fallback path —
+# since DIA-183 (2026-08-15) the canonical install is the project plugin
+# array entry (@dietrichgebert/ponytail, Bun-installed at opencode startup);
+# the host mount remains only for host-side checkout copies. ssh-agent-
+# forward.bats asserts this source is in the allowed mount-source set, so
+# the hook MUST stay.
+PONYTAIL_MOUNT=()
+if [ -d "$HOME/ponytail" ]; then
+    PONYTAIL_MOUNT=(-v "$HOME/ponytail:/app/ponytail:ro,Z")
+fi
+
+# ponytail: mount host container socket read-only so `docker compose` works
+# inside the container (pre-commit hook delegation, DIA-121). Rootless podman
+# socket = the host user's own containers only, NOT host root. Mount target
+# pre-exists in the image (Dockerfile touch) because podman cannot create a
+# mountpoint on a --read-only rootfs.
+# SECURITY (DIA-260821-aoag): the socket is mounted OPT-IN only — default OFF.
+# An always-mounted engine socket is a least-privilege violation: any code
+# running inside opencode-docker gains API authority over the host's
+# containers. Pass -E/--with-engine to mount it. No socket -> warn but still
+# launch (opencode itself works without docker; only commit hooks need it).
+# SELinux enforcing hosts: ':z' alone is insufficient - podman relabels the
+# socket to container_file_t:s0 (fixes stat) but container_t still lacks
+# connectto on a container_file_t SOCKET, so docker API calls fail with
+# permission denied; manual chcon to container_runtime_t is policy-denied.
+# The real fix is --security-opt label=disable on the podman run line below
+# (runs the container without SELinux confinement; acceptable trade-off:
+# non-root uid 1000, read-only rootfs, --cap-drop ALL, no added privileges).
+SOCKET_MOUNT=()
+if [ "$WITH_ENGINE" = 1 ]; then
+  for sock in \
+      "${XDG_RUNTIME_DIR:-}/podman/podman.sock" \
+      "/run/user/$(id -u)/podman/podman.sock" \
+      "/var/run/docker.sock"
+  do
+      if [ -S "$sock" ]; then
+          SOCKET_MOUNT=(-v "$sock:/var/run/docker.sock:ro")
+          EXTRA_ENV+=("-e" "DOCKER_HOST=unix:///var/run/docker.sock")
+          break
+      fi
+  done
+  if [ ${#SOCKET_MOUNT[@]} -eq 0 ]; then
+      echo "Warning: --with-engine set but no container engine socket found - start podman/docker and relaunch" >&2
+  fi
+else
+  echo "Warning: container engine socket NOT mounted (default-off). In-container 'docker compose' and git pre-commit hooks that delegate to the dev container require it - relaunch opencode-docker with --with-engine to enable." >&2
+fi
+
+# Forward the host SSH agent socket read-only so `git push` to SSH remotes
+# works from inside the container (DIA-133). SECURITY: only the agent SOCKET
+# is mounted - keys never leave the host (no ~/.ssh bind, no key files, no
+# .git-credentials). Target is /tmp/ssh-agent.sock because the rootfs is
+# --read-only (podman cannot create a mountpoint at /) while /tmp is a
+# writable tmpfs (--tmpfs /tmp:exec,size=512m). Probe order (decision D3):
+# $SSH_AUTH_SOCK first, then the GNOME keyring paths; first found wins.
+# No socket -> warn-and-continue: opencode works without git auth. The
+# container can only request sign-ops through the socket; it can never modify
+# the host socket state (:ro). GIT_SSH_COMMAND is set unconditionally (Q3):
+# the read-only /app cannot host known_hosts, and accept-new = TOFU (rejects
+# changed keys, trusts first-seen ones) - same trust model as the already
+# accepted DIA-121 docker-socket forwarding.
+SSH_MOUNT=()
+for sock in \
+    "${SSH_AUTH_SOCK:-}" \
+    "${XDG_RUNTIME_DIR:-}/keyring/ssh" \
+    "${XDG_RUNTIME_DIR:-}/gcr/ssh"
+do
+    if [ -S "$sock" ]; then
+        SSH_MOUNT=(-v "$sock:/tmp/ssh-agent.sock:ro")
+        EXTRA_ENV+=("-e" "SSH_AUTH_SOCK=/tmp/ssh-agent.sock")
+        break
+    fi
+done
+if [ ${#SSH_MOUNT[@]} -eq 0 ]; then
+    echo "Warning: SSH agent socket not found - git push to SSH remotes will not work from the container; start the host SSH agent (GNOME keyring/ssh-agent) and relaunch" >&2
+fi
+# GIT_SSH_COMMAND is unconditional: /app is --read-only, so the default
+# known_hosts (~/.ssh/known_hosts) cannot be written - accept-new would emit a
+# non-fatal warning on every first contact. Point UserKnownHostsFile at the
+# writable /tmp tmpfs so TOFU state persists for the container's lifetime and
+# the warning disappears. The value MUST start with the ssh command word (git
+# spawns GIT_SSH_COMMAND verbatim through /bin/sh - a bare "-o ..." breaks
+# with "Illegal option -o"). IdentityAgent is pinned to the container-side
+# socket path so ssh finds the forwarded agent even if SSH_AUTH_SOCK is lost
+# in a child env (belt-and-braces, DIA-153).
+EXTRA_ENV+=("-e" "GIT_SSH_COMMAND=ssh -o StrictHostKeyChecking=accept-new -o UserKnownHostsFile=/tmp/known_hosts -o IdentityAgent=/tmp/ssh-agent.sock")
+
+# Serve mode (opt-in, -S/--serve): run `opencode serve` instead of the TUI so
+# the server daemon is reachable from other devices (e.g. Tailscale + Android
+# via the opencode Android app). Publish host 127.0.0.1:4096 -> container 4096,
+# forward OPENCODE_SERVER_PASSWORD from the host server.env, and set cwd to
+# /workspace (the Dockerfile WORKDIR is /app) so serve opens the mounted repo.
+# TUI mode (no -S) is unchanged: no port publish, no env-file, no workdir.
+SERVE_ENV_ARGS=()
+PORT_PUBLISH=()
+WORKDIR_FLAGS=()
+CMD_ARGS=(/workspace "$@")
+if [ "$SERVE_MODE" = 1 ]; then
+    SERVER_ENV_FILE="${OPENCODE_SERVER_ENV:-$HOME/.config/opencode/server.env}"
+    if [ -f "$SERVER_ENV_FILE" ]; then
+        SERVE_ENV_ARGS=(--env-file "$SERVER_ENV_FILE")
+    else
+        echo "Warning: server.env not found at $SERVER_ENV_FILE - serve mode exposes opencode without a password; create the file with OPENCODE_SERVER_PASSWORD=yourpassword" >&2
+    fi
+    PORT_PUBLISH=(-p 127.0.0.1:4096:4096)
+    WORKDIR_FLAGS=(--workdir /workspace)
+    CMD_ARGS=(serve --hostname 0.0.0.0 --port 4096)
+fi
+
+# The workspace mount must stay SHARED label (':z'), never private (':Z'): the
+# poetry-dev container mounts the same dir with ':z', and a ':Z' relabel from
+# this container would stamp private MCS categories onto the workspace files,
+# which poetry-dev cannot dominate, locking it out (DIA-121). label=disable
+# (above) means this container needs no relabel at all, so ':z' only affects
+# cross-container access.
+podman run --rm $DOCKER_FLAGS \
+    --userns=keep-id \
+    --read-only \
+    --tmpfs /tmp:exec,size=512m \
+    --cap-drop=ALL \
+    --security-opt=no-new-privileges \
+    --security-opt=label=disable \
+    --shm-size=1g \
+    --memory="${MEMORY_LIMIT}" \
+    --cpus="${CPU_LIMIT}" \
+    "${PORT_PUBLISH[@]}" \
+    "${WORKDIR_FLAGS[@]}" \
+    "${EXTRA_ENV[@]}" "${SERVE_ENV_ARGS[@]}" \
+    -v "$ocd_dir/.local/share:/app/.local/share:rw,Z" \
+    -v "$ocd_dir/.local/state:/app/.local/state:rw,Z" \
+    -v "$ocd_dir/config:/app/.config/opencode:rw,Z" \
+    -v "$ocd_dir/.cache:/app/.cache:rw,Z" \
+    -v "$ocd_dir/secrets:/run/secrets:ro,Z" \
+    "${GITCONFIG_MOUNT[@]}" \
+    "${PONYTAIL_MOUNT[@]}" \
+    "${SOCKET_MOUNT[@]}" \
+    "${SSH_MOUNT[@]}" \
+    -v "$WORKSPACE:/workspace:rw,z" \
+    opencode-docker:latest "${CMD_ARGS[@]}"

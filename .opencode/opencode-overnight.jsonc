@@ -1,0 +1,215 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+
+  // ---------------------------------------------------------------------------
+  // OVERNIGHT DESTRUCTIVE COMMAND BASELINE v1 (DIA-134 Baseline A,
+  // developer-approved 2026-08-14)
+  //
+  // Authoritative, versioned list of the deny rules an unattended overnight
+  // run MUST carry. This list is the contract that scripts/overnight.sh
+  // validates the extracted permission payload against (DIA-134 S2): every
+  // rule below must resolve to "deny" in permission.bash or the launcher
+  // refuses to start. Future edits to the permission block below are baseline
+  // edits - diff them against this list; adding, removing, or softening a rule
+  // is a baseline VERSION BUMP (v2 via the DIA-134 flow), never a silent edit.
+  //
+  // Baseline A = 5 inherited interactive-profile rules (rm, rm -rf, rmdir,
+  // chmod, chown - flipped ask -> deny for the overnight run only) + 6
+  // data+git candidates (docker volume rm, docker system prune, docker system
+  // prune -af, git reset --hard, git clean -fd, git push --force). All 11:
+  //
+  //   1.  rm *
+  //   2.  rm -rf *
+  //   3.  rmdir *
+  //   4.  chmod *
+  //   5.  chown *
+  //   6.  docker volume rm *
+  //   7.  docker system prune *
+  //   8.  docker system prune -af*
+  //   9.  git reset --hard *
+  //   10. git clean -fd*
+  //   11. git push --force*
+  // ---------------------------------------------------------------------------
+
+  // ---------------------------------------------------------------------------
+  // Overnight autonomous-run permission profile - DIA-126 direction (a)
+  // autonomous permission profile, Option A full (developer-approved
+  // 2026-08-13); deny set extended to the DIA-134 baseline v1 (data+git)
+  // 2026-08-14. Lane: SECTION-10 PHASE 4 IMPLEMENTATION.
+  //
+  // PURPOSE
+  //   An unattended overnight run launches with `opencode --auto`, which
+  //   auto-approves every ASK-level permission request. The interactive
+  //   profile (.opencode/opencode.jsonc) keeps the destructive bash rules
+  //   (rm, rm -rf, rmdir, chmod, chown) at ASK so a human confirms them;
+  //   under --auto that human gate disappears and the commands would run
+  //   without any confirmation. This profile re-hardens those five rules and
+  //   the DIA-134 baseline v1 additions (docker volume rm, docker system
+  //   prune, docker system prune -af, git reset --hard, git clean -fd,
+  //   git push --force) to DENY for overnight runs ONLY. DENY stays enforced
+  //   under --auto (Permission.ask short-circuits on deny before any
+  //   auto-approval; OpenCode docs: "Explicit deny rules are still enforced").
+  //
+  //   The interactive session is NOT affected: this file is loaded only by
+  //   scripts/overnight.sh. The interactive profile keeps the ask prompt.
+  //
+  // ENFORCEMENT MECHANISM (empirically verified 2026-08-13, STEP 2 of the
+  //   DIA-126(a) lane): scripts/overnight.sh extracts this `permission` block
+  //   and passes it to OpenCode via the OPENCODE_PERMISSION environment
+  //   variable. A plain OPENCODE_CONFIG override does NOT suffice: configs
+  //   are deep-merged in load order (global -> OPENCODE_CONFIG -> project
+  //   files -> .opencode/ directory files) with the LAST file winning
+  //   conflicting keys, so the project .opencode/opencode.jsonc would
+  //   clobber any permission rule this file declares. OPENCODE_PERMISSION is
+  //   deep-merged into the final permission object AFTER all config files
+  //   and therefore wins (verified with `opencode debug config`: the
+  //   baseline rules resolve to deny while the other bash rules stay
+  //   unchanged).
+  //
+  // PAYLOAD SHAPE VALIDATION (DIA-134 S2, 2026-08-14)
+  //   scripts/overnight.sh now validates the extracted payload against the
+  //   baseline v1 list above BEFORE exporting OPENCODE_PERMISSION: a payload
+  //   that is missing a rule or carries a softened ("ask") rule exits 1 with
+  //   a rule-specific error and NEVER launches opencode. This closes the
+  //   ai-auditor S2 gap where a drifted payload ({} or rules reverted to
+  //   ask) would silently un-harden the run.
+  //
+  // SCOPE
+  //   The DIA-134 baseline v1 (11 deny rules) is unchanged and still the
+  //   contract scripts/overnight.sh validates against. DIA-186 (2026-08-15,
+  //   developer-approved minimal allow-list delta) ADDED an allow-list for
+  //   batch-D worktree coder operations (docker compose / docker ps / make /
+  //   git worktree / git commit / git push / git add / git status / git diff /
+  //   git log / git branch / pnpm / npm / node / prettier) plus scoped
+  //   read/edit allows for .slim/worktrees/* - these are NON-baseline rules
+  //   (they do not touch the 11-rule deny contract; overnight.sh's shape
+  //   validation still only asserts the baseline v1 keys resolve to deny).
+  //   The merge is per-key, so everything else - the full interactive
+  //   permission block, agent definitions, plugins - stays byte-identical to
+  //   the interactive profile. git reset --hard / git clean -fd / git push
+  //   --force are already DENY in the interactive profile; re-asserting them
+  //   here keeps the overnight payload self-contained (the baseline is
+  //   verified against THIS file, not against the interactive profile's
+  //   state).
+  //
+  //   DIA-186 GUARD DENIES (why they exist): OpenCode evaluates permission
+  //   rules with the LAST matching rule winning (docs: "Rules are evaluated
+  //   by pattern match, with the last matching rule winning"). The allow-list
+  //   patterns below (git branch *, git push *, git worktree remove *) would
+  //   otherwise match destructive subcommands whose deny patterns appear
+  //   EARLIER in the merged rule set (e.g. the baseline "git push --force*"
+  //   deny precedes the new "git push *" allow). The guard denies re-assert
+  //   the destructive invariants AFTER the allows they constrain so the deny
+  //   is the last match: git branch -d/-D/--delete (DIA-096/DIA-177: branch
+  //   deletion stays denied for lanes; -d and --delete are denied nowhere
+  //   globally), git worktree remove --force/-f (DIA-117: force-remove
+  //   discards uncommitted work), and the full force-push family
+  //   (--force/-f/--force-with-lease in both flag-first and remote-first
+  //   positions, including the --force-with-lease=<value> equals-syntax
+  //   forms, DIA-096; ai-auditor caveat fix 2026-08-15). These mirror the
+  //   interactive profile's deny patterns 1:1 so the overnight payload stays
+  //   self-contained.
+  // ---------------------------------------------------------------------------
+
+  "permission": {
+    "bash": {
+      // DIA-134 baseline v1 (11 rules, deny). Order within the map is
+      // irrelevant for evaluation (OpenCode uses the last matching rule;
+      // these are the only bash rules whose pattern matches each command
+      // family) and the global "*": "allow" catch-all stays first in the
+      // merged profile, so the bash tool remains visible in the function
+      // schema. Order here mirrors the baseline v1 list above so the block
+      // diffs 1:1 against the comment and against scripts/overnight.sh's
+      // OVERNIGHT_DENY_BASELINE array.
+      "rm *": "deny",
+      "rm -rf *": "deny",
+      "rmdir *": "deny",
+      "chmod *": "deny",
+      "chown *": "deny",
+      "docker volume rm *": "deny",
+      "docker system prune *": "deny",
+      "docker system prune -af*": "deny",
+      "git reset --hard *": "deny",
+      "git clean -fd*": "deny",
+      "git push --force*": "deny",
+
+      // DIA-186 allow-list (developer-approved delta, 2026-08-15): batch-D
+      // worktree coder operations that previously hit permission asks and
+      // stalled unattended overnight runs. Keep these patterns as the
+      // approved set - no additions, no removals.
+      "docker compose *": "allow",
+      "docker ps *": "allow",
+      "make *": "allow",
+      "git worktree add *": "allow",
+      "git worktree remove *": "allow",
+      "git worktree list": "allow",
+      "git commit *": "allow",
+      "git push *": "allow",
+      "git add *": "allow",
+      "git status": "allow",
+      "git diff *": "allow",
+      "git log *": "allow",
+      "git branch *": "allow",
+      "pnpm *": "allow",
+      "npm *": "allow",
+      "node *": "allow",
+      "prettier *": "allow",
+
+      // DIA-186 guard denies. MUST stay AFTER the allows they constrain
+      // (last-match-wins evaluation). Destructive subcommand families the
+      // allow-list above would otherwise broaden:
+      //   - git branch -d / -D / --delete: branch deletion stays denied for
+      //     lanes (DIA-096/DIA-177). The interactive profile denies only -D;
+      //     -d and --delete are denied nowhere, so short AND long forms are
+      //     re-asserted here (ai-auditor caveat fix 2026-08-15: --delete).
+      //   - git worktree remove --force / -f (all argument positions):
+      //     force-remove is semantically git clean -f* / git branch -D
+      //     (DIA-117) - stays denied.
+      //   - force-push family in BOTH flag-first (git push --force ...) and
+      //     remote-first (git push origin --force) positions, AND the
+      //     --force-with-lease=<value> equals-syntax forms in both positions
+      //     (DIA-096; ai-auditor caveat fix 2026-08-15: space-separated guards
+      //     do not match the = form, which would slip through "git push *").
+      "git branch -d *": "deny",
+      "git branch -d": "deny",
+      "git branch -D *": "deny",
+      "git branch -D": "deny",
+      "git branch --delete *": "deny",
+      "git branch --delete": "deny",
+      "git worktree remove --force *": "deny",
+      "git worktree remove --force": "deny",
+      "git worktree remove -f *": "deny",
+      "git worktree remove -f": "deny",
+      "git worktree remove * --force *": "deny",
+      "git worktree remove * --force": "deny",
+      "git worktree remove * -f *": "deny",
+      "git worktree remove * -f": "deny",
+      "git push --force *": "deny",
+      "git push --force": "deny",
+      "git push -f *": "deny",
+      "git push -f": "deny",
+      "git push --force-with-lease *": "deny",
+      "git push --force-with-lease": "deny",
+      "git push --force-with-lease=*": "deny",
+      "git push --force-with-lease=* *": "deny",
+      "git push * --force *": "deny",
+      "git push * --force": "deny",
+      "git push * -f *": "deny",
+      "git push * -f": "deny",
+      "git push * --force-with-lease *": "deny",
+      "git push * --force-with-lease": "deny",
+      "git push * --force-with-lease=*": "deny"
+    },
+    // DIA-186: batch-D worktree coder lanes are confined to
+    // .slim/worktrees/* - explicitly allow read/edit there so file writes in
+    // the worktree base do not surface as permission asks during unattended
+    // runs. The interactive profile keeps its own read/edit scope; this
+    // profile only ever needs the worktree paths.
+    "read": {
+      ".slim/worktrees/*": "allow"
+    },
+    "edit": {
+      ".slim/worktrees/*": "allow"
+    }
+  }
+}

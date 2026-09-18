@@ -1,0 +1,64 @@
+# DIA-046 — Prettier format failures (verify:format exit 1 — 5 files)
+
+---
+
+id: DIA-046
+title: "Prettier format failures (verify:format exit 1 — 5 files)"
+area: js-tooling
+severity: Minor
+status: VERIFIED
+blocked_by: []
+discovered:
+source: test-lane
+date: 2026-08-04
+created: 2026-08-04
+updated: 2026-08-04
+
+---
+
+## Description
+
+Validation-loop gate failure (2026-08-04): `pnpm verify:format`
+(`prettier --check "**/*.{js,ts,vue,css,scss,html,md,json}"`) exits 1 — 5 files
+flagged:
+
+- `.sdd/README.md` + `CONTEXT.md` — pre-existing baseline violations, previously
+  accepted.
+- `docs/dev-infra-audit/tickets/DIA-038-makefile-gate-matrix-validation.md`, `DIA-040-python-gates.md`, `DIA-045-opencode-config-drift-backlog.md` — new
+  ticket files written without prettier formatting (markdown table / code-block
+  alignment drift).
+
+Gate impact: `pnpm verify` (format lane) cannot go green, so the JS verify
+pipeline stays red until this clears.
+
+**Docs-lane addendum (2026-08-04, read-back):** the read-back of the cod-5
+ticket-ledger edits found two further files failing prettier —
+`docs/dev-infra-audit/tickets/README.md` and `docs/dev-infra-audit/README.md`
+(table column-width misalignment introduced with the DIA-038 … DIA-045 ledger
+rows). Those two were formatted in the docs lane itself (2026-08-04) and are no
+longer part of the open set; the 5 files above remain.
+
+## Verification
+
+1. `pnpm verify:format` → exit 1; record the flagged file list.
+2. `pnpm exec prettier --check <file>` per flagged file → confirms each
+   violation independently.
+3. Re-run `pnpm verify:format` after the fix → exit 0; record the clean file
+   list.
+
+## Fix
+
+> Owner disposition pending (options: fix all 5 / fix only new ticket files /
+> document-as-baseline).
+> Proposed: run `pnpm format` (or `prettier --write` on the 5 files) + consider
+> adding a prettier check to the ticket/docs-writing workflow.
+
+> To be filled at fix time.
+
+## Re-verify
+
+Re-verify 2026-08-04 (cod-10): `pnpm exec prettier --check` on all 5 files
+(`.sdd/README.md`, `CONTEXT.md`,
+DIA-038-makefile-gate-matrix-validation.md / DIA-040-python-gates.md /
+DIA-045-opencode-config-drift-backlog.md) exit 0; `pnpm verify:format`
+exit 0.

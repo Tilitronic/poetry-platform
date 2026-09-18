@@ -1,0 +1,76 @@
+# DIA-030 — unverified installs in Dockerfile.dev
+
+---
+
+id: DIA-030
+title: "unverified installs in Dockerfile.dev (node, rustup-init, volta)"
+area: docker
+severity: Medium
+status: CLOSED
+blocked_by: []
+discovered:
+source: fix-lane
+date: 2026-08-02
+created: 2026-08-02
+updated: 2026-08-03
+
+---
+
+## Description
+
+`Dockerfile.dev` downloaded toolchains without integrity verification: `node` and
+`rustup-init` were fetched via `curl | bash` / plain download (no SHA256 check), and
+`volta` was installed the same way. Unverified toolchain installs let a
+compromised/mutated artifact land in the dev image. Medium because the risk is
+real but confined to the dev container, and parts are now fixed.
+
+## Verification
+
+1. Read `Dockerfile.dev` install stages → confirm which installs verify digests.
+
+## Fix
+
+**PARTIAL — `5174931`:**
+
+- `node v24.18.0` — sha256-verified on both arches against
+  `nodejs.org` `SHASUMS256.txt`; `curl | bash` replaced with digest-verified
+  download.
+- `rustup-init` — sha256-verified on both arches against
+  `static.rust-lang.org` `.sha256`; `curl | bash` replaced with digest-verified
+  download.
+- **BLOCKED:** `volta v2.0.2` publishes **no official checksums**, so it is left
+  untouched with an in-code blocker comment. Revisit when Volta ships digests.
+
+## Re-verify
+
+> **Re-verify (2026-08-03):** upstream still publishes no digests. GitHub release v2.0.2 (still latest per volta.sh/latest-version) ships 8 binary assets with zero checksum files; `volta.manifest` lists only binary names (`volta`, `volta-shim`, `volta-migrate`), no hashes. `release.yml` has no checksum step. Homebrew/NixOS hashes cover the source archive only — not the `volta-2.0.2-linux{,-arm}.tar.gz` binaries this image downloads, so "never guess a hash" still applies. **Stays MONITOR** — unblocked only by an upstream checksum publishing change or a future volta release that includes digests.
+
+## Disposition
+
+CLOSED 2026-08-03 (owner directive after upstream recheck). MONITOR unblock
+condition NOT met — upstream escalated: Volta is now officially UNMAINTAINED
+(README banner recommends migrating to mise; issue #2080); v2.0.2 (2024-12-05)
+still latest; GitHub Releases API reports digest:null on all assets (auto-digest
+feature 2025-06-03 does not retroactively cover pre-rollout uploads); installer
+performs no checksum verification. Recommendation recorded: migrate to mise or
+vendor-pinned tarball at next Dockerfile.dev change. Archived per archive policy.
+
+## Resolution (volta-to-mise, 2026-08-03)
+
+Owner directive fulfilled by `openspec/changes/volta-to-mise`:
+
+- `volta` blocks removed from `package.json` (root) + `apps/author-studio/package.json`;
+  `.mise.toml` (repo root, `[tools]` only) is the single source of node/pnpm pins
+  (node 24.18.0, pnpm 10.33.0).
+- `Dockerfile.dev` + `tools/opencode-docker/Dockerfile`: the unverified Volta v2.0.2
+  install replaced with SHA256-verified mise v2026.8.0 (upstream `SHASUMS256.txt`
+  manifest; x64 `64183603…`, arm64 `6d888ba3…`) — SEC-DOCKER-001 restored.
+- `MISE_TRUSTED_CONFIG_PATHS=/workspace` added to `Dockerfile.dev` ENV so the
+  non-root `dev` user trusts the mounted `/workspace/.mise.toml`; runtime whitelist
+  renamed `volta volta-migrate volta-shim` → `mise` in
+  `tools/opencode-docker/scripts/collect-runtime-deps.sh` invocation.
+- Gates green: `make test-shell`, `make test-config`, `openspec validate volta-to-mise`;
+  smoke probes extended in `scripts/test-docker-smoke.sh` (mise presence, `.mise.toml`
+  resolution, `MISE_TRUSTED_CONFIG_PATHS`, no-volta-install-remnant greps).
+
+CLOSED status unchanged — this note adds traceability only.

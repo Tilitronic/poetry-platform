@@ -1,0 +1,91 @@
+{
+  "version": 1,
+  "last_reviewed": "2026-09-17",
+  "next_review": "2026-09-23",
+  "promoted_preset": "promo",
+  "history": [
+    {
+      "date": "2026-08-28",
+      "action": "create",
+      "preset": "promo",
+      "ticket": "DIA-260828-qtsi",
+      "note": "ADMITTED 2026-08-28 DIA-260828-qtsi - primary for 6 lanes, Hy3 fallback, privacy cleared (no sensitive traffic)."
+    },
+    {
+      "date": "2026-09-09",
+      "action": "registry-refresh",
+      "preset": "muse-qwen-balanced",
+      "ticket": "DIA-260909-tp5e",
+      "note": "Variant A INACTIVE add: fetched_at 2026-09-09 stale 2026-09-16 per stable-volatile; added muse-spark-1.3-contributor (mirror 1.2, benchmark-pending) + containment lane update"
+    },
+    {
+      "date": "2026-09-17",
+      "action": "registry-refresh",
+      "preset": "promo",
+      "ticket": "DIA-260917-s95f",
+      "note": "Union Alpha variant A ACTIVE add: opencode/union-alpha prepended on 9 lanes; next_review accelerated to preview end circa 2026-09-23 (not +14d); diversity override + correlated auditor accepted for window; non-sensitive-only condition."
+    }
+  ],
+  "promos": [
+    {
+      "model_id": "opencode-go/muse-spark-1.2-contributor",
+      "promo_price_in": 0.1,
+      "promo_price_out": 0.2,
+      "standard_price_in": null,
+      "standard_price_out": null,
+      "req_per_month": 226600,
+      "privacy_tradeoff": "meta-training on prompts/completions (Meta Contributor tier)",
+      "region_restricted": true,
+      "expiry": null,
+      "notes": "ADMITTED 2026-08-28 DIA-260828-qtsi - primary for 6 lanes, Hy3 fallback, privacy cleared (no sensitive traffic).",
+      "fetched_at": "2026-09-09"
+    },
+    {
+      "model_id": "xiaomi/mimo-v2-5",
+      "promo_price_in": 0.14,
+      "promo_price_out": 0.28,
+      "standard_price_in": 0.8,
+      "standard_price_out": 4.0,
+      "req_per_month": 150400,
+      "privacy_tradeoff": "none known (open weights MIT, 0-day retention)",
+      "region_restricted": false,
+      "expiry": null,
+      "notes": "Promo -98% off (list $0.80/$4.00 -> $0.14/$0.28). Cheapest clean model; 150K req/mo. Primary for coder/researcher/conspecter in promo preset.",
+      "fetched_at": "2026-09-09"
+    },
+    {
+      "model_id": "opencode-go/muse-spark-1.3-contributor",
+      "promo_price_in": 0.1,
+      "promo_price_out": 0.2,
+      "standard_price_in": null,
+      "standard_price_out": null,
+      "req_per_month": 226600,
+      "privacy_tradeoff": "trains-on-data NOT-ZDR region-limited (Meta Contributor tier; developer cleared per DIA-260828-qtsi)",
+      "region_restricted": true,
+      "expiry": null,
+      "benchmark": null,
+      "swe_bench_verified": null,
+      "notes": "ADMITTED via DIA-260909-tp5e 2026-09-09 (mirror 1.2 res041, benchmark-pending UNVERIFIED inherits 1.2 terms; 1.05M ctx). Variant A muse-qwen-balanced: primary on coder/researcher/conspecter + fallback on analyzer/openspec-plan. DSF ZDR through 2026-09-30 for DeepSeek lanes.",
+      "fetched_at": "2026-09-09",
+      "source_ref": "DIA-260909-tp5e 2026-09-09"
+    },
+    {
+      "model_id": "opencode/union-alpha",
+      "promo_price_in": 0,
+      "promo_price_out": 0,
+      "standard_price_in": null,
+      "standard_price_out": null,
+      "req_per_month": "Unlimited",
+      "privacy_tradeoff": "retained-but-not-trained (weaker zero-retention claim than Big Pickle; operative risk; non-sensitive traffic only)",
+      "region_restricted": false,
+      "expiry": "circa 2026-09-23 (vendor about-a-week from 2026-09-16; no firm date)",
+      "benchmark": null,
+      "swe_bench_verified": null,
+      "notes": "ACTIVE via DIA-260917-s95f 2026-09-17 variant A Zen primary: prepended model[0] on 9 lanes (orchestrator, architector, openspec-plan, coder, reviewer, analyzer, ai-specialist, ai-auditor, researcher), existing entries retained as fallback. Big Pickle prepend-not-replace precedent. Diversity override (reviewer==coder same-family) and correlated auditor accepted for preview window only. stealth/union-alpha invalid in presets; no mini/preview/dated variants exist.",
+      "fetched_at": "2026-09-17",
+      "source_ref": "DIA-260917-s95f 2026-09-17"
+    }
+  ],
+  "fetched_at": "2026-09-17",
+  "stale_at": "2026-09-24"
+}

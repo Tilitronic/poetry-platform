@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+# allocate-id - unified ID generator for all artifact types.
+#
+# WHY: different artifact types used different ID patterns (DIA-NNN,
+# resNNN, anaNNN, tchNNN), creating collision risks under concurrent
+# sessions. This script centralises allocation with a single format:
+# <type>-YYMMDD-<random4>-<slug> (DIA-260819-8kwm).
+#
+# Usage: allocate-id <type> <slug>
+# Example: allocate-id res ticket-navigation
+#
+# Exit codes: 0 success; 1 usage/type error.
+
+set -euo pipefail
+
+TYPE="${1:-}"
+SLUG="${2:-}"
+
+if [[ -z "$TYPE" || -z "$SLUG" ]]; then
+  echo "Usage: allocate-id <type> <slug>" >&2
+  echo "Types: res, ana, tch, DIA" >&2
+  exit 1
+fi
+
+# Validate type
+case "$TYPE" in
+  res|ana|tch|DIA) ;;
+  *) echo "Error: invalid type '$TYPE'. Must be: res, ana, tch, DIA" >&2; exit 1 ;;
+esac
+
+# Generate datetime component (YYMMDD)
+DATE=$(date +%y%m%d)
+
+# Generate random 4-char suffix (alphanumeric lowercase).
+# WHY: 64 bytes gave ~9 alphanumerics on avg but could still yield <4 chars
+# (SIGPIPE-truncated), violating DIA-YYMMDD-XXXX. Mixing nanoseconds + PID
+# makes rapid bursts (same ms) extremely unlikely to collide while keeping
+# exactly 4 [a-z0-9] chars for downstream parsers.
+# Loop guarantees length==4; 256 bytes + date +%N makes short reads virtually impossible.
+RAND=""
+while [ "${#RAND}" -lt 4 ]; do
+  CHUNK=$( (head -c256 /dev/urandom 2>/dev/null; printf '%s' "$(date +%N 2>/dev/null)$$${BASHPID:-}") | tr -dc 'a-z0-9' | tr -d '\n' || true)
+  RAND="${RAND}${CHUNK}"
+done
+RAND=$(printf '%s' "$RAND" | head -c4)
+
+# Output: <type>-YYMMDD-<random4>-<slug>
+echo "${TYPE}-${DATE}-${RAND}-${SLUG}"

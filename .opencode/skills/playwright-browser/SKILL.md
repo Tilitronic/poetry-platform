@@ -34,8 +34,6 @@ When a feature requires both: write unit tests via `tdd-craftsman` first, then b
 ## Availability
 
 - **playwright-cli:** Available via `npx @playwright/cli` (auto-fetches). Browsers already installed.
-- **Console Ninja MCP:** For server-side Node.js runtime logs and errors, Console Ninja provides an MCP server at `~/.console-ninja/mcp/`. Agents can query it for runtime debugging when a Node.js app is running with `console-ninja` prefix. This complements Playwright's `console` command (browser-side logs).
-
 ## Snapshot Workflow (Primary Agent Pattern)
 
 The `snapshot` command is the agent's primary interaction pattern:
@@ -56,8 +54,6 @@ Playwright CLI provides browser-side debugging:
 - `request <N>` — inspect full request/response details
 - `screenshot [target]` — capture for analysis reports
 - `eval <js>` — run arbitrary JS in the page
-
-For server-side Node.js debugging, Console Ninja's MCP server provides runtime logs.
 
 ## Quick start
 
