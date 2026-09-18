@@ -39,8 +39,8 @@ run_make() {
   assert_output_contains "make presets"
 }
 
-@test "Makefile forwards the override via -e PRESET and has no second path" {
-  assert_file_contains "$MAKEFILE" '-e PRESET='
+@test "Makefile forwards the override via -e OH_MY_OPENCODE_SLIM_PRESET and has no second path" {
+  assert_file_contains "$MAKEFILE" '-e OH_MY_OPENCODE_SLIM_PRESET='
   assert_file_contains "$MAKEFILE" 'presets:'
   if grep -qF "OPENCODE_WORKSPACE_PRESET" "$MAKEFILE"; then
     echo "Makefile must not reference the dropped bridge" >&2
@@ -57,7 +57,7 @@ run_make() {
   assert_output_contains "free"
   assert_output_contains "PRESET override"
   assert_output_not_contains "openai-first-cost-balanced"
-  grep -qF "PRESET=free" "$FAKE_DOCKER_LOG"
+  grep -qF "OH_MY_OPENCODE_SLIM_PRESET=free" "$FAKE_DOCKER_LOG"
 }
 
 @test "bare make opencode forwards no override even with a stale bridge exported" {
@@ -67,8 +67,8 @@ run_make() {
     make -C "$REPO_ROOT" opencode
   assert_status 0
   assert_output_contains "no override"
-  if grep -qF "PRESET=" "$FAKE_DOCKER_LOG"; then
-    echo "bare make opencode must forward no PRESET override" >&2
+  if grep -qF "OH_MY_OPENCODE_SLIM_PRESET=" "$FAKE_DOCKER_LOG"; then
+    echo "bare make opencode must forward no OH_MY_OPENCODE_SLIM_PRESET override" >&2
     return 1
   fi
 }

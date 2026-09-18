@@ -56,19 +56,20 @@ shell:
 # is the only override path - one-run, nothing persisted, no OMO source
 # involved (registry read is scripts/presets.py, python3 stdlib only, so the
 # Makefile stays on the clean npm track). There is no second path: the recipe
-# reads only PRESET - any stale workspace-bridge export lingering in the host
-# environment from an old session is simply ignored, never forwarded. An
-# unknown name fails loudly with the available list before any container
-# setup (the recipe maps the helper exit to an explicit exit 2). Only
-# -e PRESET= is forwarded into the container; bare `make opencode` forwards
+# reads only make-level PRESET - any stale workspace-bridge export lingering
+# in the host environment from an old session is simply ignored, never
+# forwarded. An unknown name fails loudly with the available list before any
+# container setup (the recipe maps the helper exit to an explicit exit 2).
+# Only -e OH_MY_OPENCODE_SLIM_PRESET= (the sole preset env the 2.2.19 dist
+# bundle reads) is forwarded into the container; bare `make opencode` forwards
 # nothing and the runtime preset field applies.
 opencode:
 	@preset_override="$(PRESET)"; \
 	if [ -n "$$preset_override" ]; then \
 		python3 scripts/presets.py check "$$preset_override" >/dev/null || exit 2; \
-		preset_source="PRESET override"; \
+		preset_source="OH_MY_OPENCODE_SLIM_PRESET override (via make PRESET=$$preset_override)"; \
 		printf 'Effective preset: %s (source: %s)\n' "$$preset_override" "$$preset_source"; \
-		$(COMPOSE) exec -it --user root -e PRESET="$$preset_override" dev /usr/local/bin/dev-entrypoint.sh opencode; \
+		$(COMPOSE) exec -it --user root -e OH_MY_OPENCODE_SLIM_PRESET="$$preset_override" dev /usr/local/bin/dev-entrypoint.sh opencode; \
 	else \
 		preset_source="none"; \
 		printf 'Effective preset: no override (source: %s; runtime preset field applies)\n' "$$preset_source"; \

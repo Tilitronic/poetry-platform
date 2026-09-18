@@ -45,8 +45,10 @@ There is no store file anymore and nothing in the repo writes one.
 
 ## Troubleshooting
 
-There is no second path: the `opencode` recipe reads only `PRESET` and
-forwards only `-e PRESET=<name>` into the container. A stale
+There is no second path: the `opencode` recipe reads only make-level
+`PRESET` and forwards only `-e OH_MY_OPENCODE_SLIM_PRESET=<name>` into the
+container (the sole preset env the 2.2.19 dist bundle reads; a bare `-e
+PRESET=` is never read by the runtime). A stale
 `OPENCODE_WORKSPACE_PRESET` export lingering in your interactive shell from
 an old session is never read and never forwarded, so it cannot affect the
 launch. Clear it once to avoid confusion:
