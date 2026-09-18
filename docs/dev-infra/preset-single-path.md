@@ -57,3 +57,9 @@ Unknown-name failure looks like this (make exit 2, no container started):
 
     Unknown preset "typo". Available presets: free,
     muse-balanced, openai-first-cost-balanced, promo-union-alpha
+
+## Slash preset (out of scope)
+
+Do not use a slash preset inside opencode. It is outside the
+single-path contract and keeps the old unchanged behavior.
+To choose a preset, exit and use `make opencode PRESET=<name>` instead.
