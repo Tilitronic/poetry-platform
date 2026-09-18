@@ -1139,3 +1139,9 @@
 - **Change:** Preset fork promo vs promo-union-alpha, promo stripped of union-alpha
 - **Files:** .opencode/opencode.jsonc
 - **Verification:** manual
+
+## 2026-09-18 - DIA-260917-s95f: scripts
+
+- **Change:** Variant B muse-balanced retarget plus F6 header truth: hardcoded promo preset tuples retargeted to muse-balanced, drift gate default + fixtures + workspace bats updated, 8-space indent fixed to 4-space, headers now state true 4-preset inventory with promo-union-alpha + free explicitly unaudited
+- **Files:** scripts/test-interview-enforcement.sh - scripts/check-orchestrator-prompt-drift.sh - scripts/__tests__/check-orchestrator-prompt-drift.bats - scripts/__tests__/workspace-preset-selection.bats - .opencode/oh-my-opencode-slim.jsonc
+- **Verification:** manual

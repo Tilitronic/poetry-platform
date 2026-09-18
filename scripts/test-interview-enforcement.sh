@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Validates the interview-first spec-authoring enforcement changes:
-#   1. OMO presets (promo/openai-first-cost-balanced) deny openspec-propose to the boss
+#   1. OMO presets (muse-balanced/openai-first-cost-balanced) deny openspec-propose to the boss
 #      orchestrator via the skills denylist (['*', '!openspec-propose']).
 #   2. Banned "one-step" / momentum phrases are gone from the openspec-propose
 #      skill and the /opsx-* commands.
@@ -71,16 +71,16 @@ def strip_jsonc(text):
 
 with open(sys.argv[1]) as f:
     data = json.loads(strip_jsonc(f.read()))
-for preset in ('promo', 'openai-first-cost-balanced'):
+for preset in ('muse-balanced', 'openai-first-cost-balanced'):
     skills = data['presets'][preset]['orchestrator']['skills']
     if '!openspec-propose' not in skills:
         print(f"  {preset} orchestrator.skills missing '!openspec-propose': {skills}", file=sys.stderr)
         sys.exit(1)
 PYEOF
 then
-    pass "Check 1: OMO presets (promo/openai-first-cost-balanced) orchestrator.skills contain '!openspec-propose'"
+    pass "Check 1: OMO presets (muse-balanced/openai-first-cost-balanced) orchestrator.skills contain '!openspec-propose'"
 else
-    fail "Check 1: OMO presets (promo/openai-first-cost-balanced) orchestrator.skills contain '!openspec-propose'"
+    fail "Check 1: OMO presets (muse-balanced/openai-first-cost-balanced) orchestrator.skills contain '!openspec-propose'"
 fi
 
 # ---------------------------------------------------------------------------

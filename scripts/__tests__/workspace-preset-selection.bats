@@ -34,16 +34,16 @@ run_make() {
 }
 
 @test "make preset saves an exact name for the next launch" {
-  run_make preset NAME=promo
+  run_make preset NAME=muse-balanced
 
   assert_status 0
-  assert_output_contains "promo"
+  assert_output_contains "muse-balanced"
   assert_output_contains "$REPO_ROOT"
   assert_output_contains "next launch"
 }
 
 @test "startup uses PRESET override before the stored workspace selection" {
-  run_make preset NAME=promo
+  run_make preset NAME=muse-balanced
   assert_status 0
 
   run_make opencode PRESET=openai-first-cost-balanced
@@ -54,7 +54,7 @@ run_make() {
 
   run_make opencode
   assert_status 0
-  assert_output_contains "promo"
+  assert_output_contains "muse-balanced"
   assert_output_contains "stored"
 }
 
@@ -73,7 +73,7 @@ run_make() {
   # the invalid preset fails closed before any container setup.
   assert_status 2
   assert_output_contains "does-not-exist"
-  assert_output_contains "promo"
+  assert_output_contains "muse-balanced"
   assert_output_contains "$REPO_ROOT"
   if grep -qF "compose up" "$FAKE_DOCKER_LOG" || grep -qF "compose exec" "$FAKE_DOCKER_LOG"; then
     echo "invalid PRESET must abort before container setup" >&2
@@ -91,7 +91,7 @@ run_make() {
   assert_status 2
   assert_output_contains "removed"
   assert_output_contains "$REPO_ROOT"
-  assert_output_contains "promo"
+  assert_output_contains "muse-balanced"
   [ ! -s "$FAKE_DOCKER_LOG" ]
 }
 
@@ -104,7 +104,7 @@ run_make() {
   assert_status 2
   assert_output_contains "invalid store data"
   assert_output_contains "$REPO_ROOT"
-  assert_output_contains "promo"
+  assert_output_contains "muse-balanced"
   [ ! -s "$FAKE_DOCKER_LOG" ]
 }
 
@@ -112,7 +112,7 @@ run_make() {
   mkdir -p "$XDG_CONFIG_HOME/opencode"
   : > "$XDG_CONFIG_HOME/opencode/workspace-presets.json.lock"
 
-  run_make preset NAME=promo
+  run_make preset NAME=muse-balanced
 
   assert_status 2
   assert_output_contains "lock"

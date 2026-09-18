@@ -3,11 +3,12 @@
 # scripts/check-orchestrator-prompt-drift.sh (2026-08-13, implementation lane;
 # marker-set extension 2026-08-13 by the ai-auditor Minor fix lane - 5 -> 8
 # markers, +3 tests below).
-# The script greps the 2 preset orchestrator prompts (promo /
+# The script greps the 2 audited preset orchestrator prompts (muse-balanced /
 # openai-first-cost-balanced) in oh-my-opencode-slim.jsonc for REQUIRED
 # delegation-rule markers and fails the config gate when any marker is
-# missing from any prompt. (DIA-260916-7jek: opencode-go/cebula/free
-# renamed away; only promo + openai-first-cost-balanced remain.)
+# missing from any prompt. (Inventory truth DIA-260917-s95f: the config
+# carries 4 prompt-bearing presets; promo-union-alpha + free are explicitly
+# unaudited during the preview window - pre-existing 2-preset scope.)
 #
 # Isolation strategy (validate-decision-variants.bats / validate-agent-names
 # .bats conventions): every test builds a throwaway fixture JSONC under
@@ -49,18 +50,18 @@ fixture_dir() {
   echo "$dir"
 }
 
-# write_config <file> <promo_prompt> <openai_prompt>:
+# write_config <file> <balanced_prompt> <openai_prompt>:
 # writes a minimal JSONC config with the 2 audited presets, each carrying the
 # given orchestrator prompt. Formatting deliberately mimics the real file
 # (prompt is the LAST key in the orchestrator block, so no trailing comma).
 write_config() {
-  local file="$1" promo="$2" openai="$3"
+  local file="$1" balanced="$2" openai="$3"
   cat > "$file" <<JSONC
 {
   "presets": {
-    "promo": {
+    "muse-balanced": {
       "orchestrator": {
-        "prompt": "$promo"
+        "prompt": "$balanced"
       }
     },
     "openai-first-cost-balanced": {
@@ -93,7 +94,7 @@ JSONC
   assert_status 1
   assert_output_contains "FAIL: openai-first-cost-balanced: missing required marker 'DIA-133'"
   assert_output_contains "1 marker gap(s)"
-  assert_output_not_contains "FAIL: promo"
+  assert_output_not_contains "FAIL: muse-balanced"
 }
 
 @test "check-orchestrator-prompt-drift: missing delegation-only in both prompts FAILS with 2 gaps" {
@@ -103,7 +104,7 @@ JSONC
   SLIM_JSONC="$dir/drift.jsonc" run bash "$CHECKER"
 
   assert_status 1
-  assert_output_contains "FAIL: promo: missing required marker 'delegation-only'"
+  assert_output_contains "FAIL: muse-balanced: missing required marker 'delegation-only'"
   assert_output_contains "FAIL: openai-first-cost-balanced: missing required marker 'delegation-only'"
   assert_output_contains "2 marker gap(s)"
 }
@@ -127,7 +128,7 @@ JSONC
   assert_status 1
   assert_output_contains "FAIL: openai-first-cost-balanced: missing required marker 'READ-SCOPE'"
   assert_output_contains "1 marker gap(s)"
-  assert_output_not_contains "FAIL: promo"
+  assert_output_not_contains "FAIL: muse-balanced"
 }
 
 @test "check-orchestrator-prompt-drift: missing EBDV (DIA-115 clause) in ONE prompt FAILS and names the preset" {
@@ -139,7 +140,7 @@ JSONC
   assert_status 1
   assert_output_contains "FAIL: openai-first-cost-balanced: missing required marker 'EBDV'"
   assert_output_contains "1 marker gap(s)"
-  assert_output_not_contains "FAIL: promo"
+  assert_output_not_contains "FAIL: muse-balanced"
 }
 
 @test "check-orchestrator-prompt-drift: missing threshold text (15% primary) in ONE prompt FAILS and names the preset" {
@@ -151,7 +152,7 @@ JSONC
   assert_status 1
   assert_output_contains "FAIL: openai-first-cost-balanced: missing required marker '15% (primary)'"
   assert_output_contains "1 marker gap(s)"
-  assert_output_not_contains "FAIL: promo"
+  assert_output_not_contains "FAIL: muse-balanced"
 }
 
 @test "check-orchestrator-prompt-drift: missing TODOWRITE (DIA-260819-880v) in ONE prompt FAILS and names the preset" {
@@ -163,7 +164,7 @@ JSONC
   assert_status 1
   assert_output_contains "FAIL: openai-first-cost-balanced: missing required marker 'TODOWRITE DIA-260819-880v'"
   assert_output_contains "1 marker gap(s)"
-  assert_output_not_contains "FAIL: promo"
+  assert_output_not_contains "FAIL: muse-balanced"
 }
 
 @test "check-orchestrator-prompt-drift: pure-dispatch matched case-insensitively (PURE-DISPATCH in prompt PASSES)" {
@@ -182,7 +183,7 @@ JSONC
   cat > "$dir/missing.jsonc" <<JSONC
 {
   "presets": {
-    "promo": {
+    "muse-balanced": {
       "orchestrator": {
         "prompt": "$FULL_PROMPT"
       }
@@ -205,7 +206,7 @@ JSONC
   cat > "$dir/nopreset.jsonc" <<JSONC
 {
   "presets": {
-    "promo": {
+    "muse-balanced": {
       "orchestrator": {
         "prompt": "$FULL_PROMPT"
       }
@@ -228,7 +229,7 @@ JSONC
 {
   // a comment before presets
   "presets": {
-    "promo": {
+    "muse-balanced": {
       "orchestrator": {
         "prompt": "$FULL_PROMPT",
       },
@@ -271,10 +272,10 @@ JSONC
   local drifty="Orchestrator Operating Rules: batch-approval boot gate. DIA-133: consult the model registry. PURE-DISPATCH RULE. The orchestrator has no bash tool by design."
   write_config "$dir/ok.jsonc" "$FULL_PROMPT" "$drifty"
 
-  # Only audit promo: its prompt is complete, so the drift in
+  # Only audit muse-balanced: its prompt is complete, so the drift in
   # openai-first-cost-balanced must NOT be reported (PROVES the PRESETS
   # override scopes the check).
-  SLIM_JSONC="$dir/ok.jsonc" PRESETS="promo" run bash "$CHECKER"
+  SLIM_JSONC="$dir/ok.jsonc" PRESETS="muse-balanced" run bash "$CHECKER"
 
   assert_status 0
   assert_output_contains "1 preset(s) checked"

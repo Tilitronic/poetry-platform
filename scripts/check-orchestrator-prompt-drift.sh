@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Mechanical orchestrator-prompt drift checker (DIA-097). Greps the 2 preset
-# orchestrator prompts (promo / openai-first-cost-balanced) in
+# Mechanical orchestrator-prompt drift checker (DIA-097). Greps the 2 audited
+# preset orchestrator prompts (muse-balanced / openai-first-cost-balanced) in
 # .opencode/oh-my-opencode-slim.jsonc for REQUIRED delegation-rule markers and
 # fails the config gate when any marker is missing from any prompt. Runs from
 # `make test-config`; SLIM_JSONC env override keeps it hermetically testable
@@ -52,10 +52,13 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SLIM_JSONC="${SLIM_JSONC:-$ROOT/.opencode/oh-my-opencode-slim.jsonc}"
-# The 2 presets whose orchestrator prompts are under audit (DIA-097;
-# DIA-260916-7jek: opencode-go/cebula/free renamed away, only promo +
-# openai-first-cost-balanced remain; both carry inline prompts).
-PRESETS="${PRESETS:-promo openai-first-cost-balanced}"
+# The 2 presets whose orchestrator prompts are under audit (DIA-097).
+# Inventory truth (DIA-260917-s95f): the config carries 4 prompt-bearing
+# presets (promo-union-alpha, muse-balanced, free,
+# openai-first-cost-balanced). The gate audits muse-balanced +
+# openai-first-cost-balanced only; promo-union-alpha + free are explicitly
+# unaudited during the preview window (pre-existing 2-preset scope).
+PRESETS="${PRESETS:-muse-balanced openai-first-cost-balanced}"
 
 # Fixed required-marker contract (see header). Matched as fixed strings;
 # pure-dispatch additionally case-insensitive (PURE-DISPATCH in the prompts).
