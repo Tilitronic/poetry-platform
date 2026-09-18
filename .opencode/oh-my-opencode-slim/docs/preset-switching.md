@@ -10,6 +10,7 @@ configuration, so nothing switches in place.
 |---------|-------------|
 | `/preset` | List available presets (highlights the stored one) |
 | `/preset <name>` | Save the named preset for the next launch |
+| `/preset none` | Clear the stored selection (declared default or no preset applies) |
 | `make preset NAME=<name>` | Save from the host shell (same store) |
 | `make preset NAME=none` | Clear the stored selection |
 

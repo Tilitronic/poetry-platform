@@ -1146,8 +1146,8 @@
 - **Files:** scripts/test-interview-enforcement.sh - scripts/check-orchestrator-prompt-drift.sh - scripts/__tests__/check-orchestrator-prompt-drift.bats - scripts/__tests__/workspace-preset-selection.bats - .opencode/oh-my-opencode-slim.jsonc
 - **Verification:** manual
 
-## 2026-09-18 - DIA-260918-yug6: s
+## 2026-09-18 - DIA-260918-yug6: oh-my-opencode-slim
 
-- **Change:** durable project-local preset store plus loud degrade plus doctor single owner plus lock removal plus bridge telemetry plus docs; project default muse-balanced now active via tier 4 (was silently none)
+- **Change:** DIA-260918-yug6 preset free switching fails after make preset: durable project-local preset store plus loud degrade plus doctor single owner plus lock removal plus bridge telemetry plus docs; project default muse-balanced now active via tier 4 (was silently none)
 - **Files:** workspace-preset.ts - loader.ts - workspace-preset-cli.ts - doctor.ts - Makefile - preset-switching.md
-- **Verification:** make test-omo exit 0 (1407 pass 0 fail, tsc clean); make test-config exit 0
+- **Verification:** make test-omo exit 0 (1409 pass 0 fail, tsc clean); make test-config exit 0

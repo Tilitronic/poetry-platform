@@ -226,20 +226,9 @@ export function saveWorkspacePreset(
 ): string {
   const workspace = findProjectRoot(directory);
   const storeFile = path.join(workspace, STORE_REL_PATH);
-  try {
-    parseProjectStore(fs.readFileSync(storeFile, 'utf8'), storeFile);
-  } catch (error) {
-    if (
-      !(
-        error instanceof Error &&
-        'code' in error &&
-        (error as { code?: string }).code === 'ENOENT'
-      )
-    ) {
-      throw error;
-    }
-  }
-
+  // Self-heal: no pre-read, so a corrupt store is overwritten instead of
+  // blocking the save. The readback verify inside atomicWriteStore still
+  // proves the new bytes landed intact.
   atomicWriteStore(storeFile, presetName);
   return workspace;
 }

@@ -51,7 +51,12 @@ shell:
 	$(COMPOSE) exec --user dev dev bash
 
 opencode:
-	@resolution=$$(bun run .opencode/oh-my-opencode-slim/src/config/workspace-preset-cli.ts resolve "$(CURDIR)" "$${PRESET:-}") || exit $$?; \
+	@mkdir -p .scratch; \
+	resolution=$$(bun run .opencode/oh-my-opencode-slim/src/config/workspace-preset-cli.ts resolve "$(CURDIR)" "$${PRESET:-}" 2>.scratch/preset-resolve-err.txt); rc=$$?; \
+	if [ $$rc -eq 2 ]; then cat .scratch/preset-resolve-err.txt; rm -f .scratch/preset-resolve-err.txt; exit 1; fi; \
+	if [ $$rc -ne 0 ]; then printf 'Effective preset: no preset (selection failed, launching bare)\n'; cat .scratch/preset-resolve-err.txt; rm -f .scratch/preset-resolve-err.txt; \
+		$(COMPOSE) exec -it --user root dev /usr/local/bin/dev-entrypoint.sh opencode; exit 0; fi; \
+	rm -f .scratch/preset-resolve-err.txt; \
 	set -- $$resolution; preset_value="$$1"; preset_source="$$2"; \
 	if [ "$$preset_value" = - ]; then preset_value=''; fi; \
 	source_label="$$preset_source"; if [ "$$preset_source" = override ]; then source_label='PRESET override'; elif [ "$$preset_source" = bridge ]; then source_label='bridge (deprecated)'; elif [ "$$preset_source" = declared ]; then source_label='config preset'; fi; \

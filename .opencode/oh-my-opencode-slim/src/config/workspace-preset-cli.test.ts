@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, spyOn, test } from 'bun:test';
 import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
-import { readWorkspacePreset } from './workspace-preset';
+import { readWorkspacePreset, saveWorkspacePreset } from './workspace-preset';
 import { runCli } from './workspace-preset-cli';
 
 describe('workspace-preset-cli', () => {
@@ -55,6 +55,22 @@ describe('workspace-preset-cli', () => {
   test('resolve falls back to the declared default after clear', () => {
     expect(runCli(['save', projectDir, 'none'])).toBe(0);
     expect(runCli(['resolve', projectDir, ''])).toBe(0);
+  });
+
+  test('save self-heals a corrupt store file', () => {
+    const storePath = path.join(
+      projectDir,
+      '.opencode',
+      'state',
+      'workspace-preset.json',
+    );
+    fs.mkdirSync(path.dirname(storePath), { recursive: true });
+    fs.writeFileSync(storePath, '{ corrupt json');
+
+    expect(saveWorkspacePreset(projectDir, 'cheap')).toBe(projectDir);
+    expect(readWorkspacePreset(projectDir)).toBe('cheap');
+    expect(runCli(['save', projectDir, 'cheap'])).toBe(0);
+    expect(readWorkspacePreset(projectDir)).toBe('cheap');
   });
 
   test('save rejects an unknown preset', () => {

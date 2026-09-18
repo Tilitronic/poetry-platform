@@ -158,7 +158,9 @@ describe('project-local preset selection', () => {
       options?: any,
     ) => {
       const value = originalRead(filePath, options);
-      if (String(filePath) === storePath && storeReads++ === 1) {
+      // Save no longer pre-reads (self-heal): the readback verify is the
+      // first store read, so poison it to simulate a torn write.
+      if (String(filePath) === storePath && storeReads++ === 0) {
         return JSON.stringify({ version: 2, preset: 'cheap' });
       }
       return value;

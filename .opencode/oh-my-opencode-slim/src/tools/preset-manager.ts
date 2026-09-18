@@ -1,6 +1,7 @@
 import type { PluginInput } from '@opencode-ai/plugin';
 import type { ModelEntry, PluginConfig, Preset } from '../config';
 import {
+  clearWorkspacePreset,
   getWorkspacePresetStorePath,
   readWorkspacePreset,
   saveWorkspacePreset,
@@ -56,6 +57,28 @@ export function createPresetManager(ctx: PluginInput, config: PluginConfig) {
         output.parts.push(
           createInternalAgentTextPart(
             `Failed to read stored preset for ${ctx.directory}: ${formatError(error)}`,
+          ),
+        );
+      }
+      return;
+    }
+
+    // Clear path mirrors `make preset NAME=none`: drops the stored
+    // selection so launches fall back to the declared default or no preset.
+    // Runtime state is untouched; only the list highlight resets.
+    if (arg === 'none') {
+      try {
+        const workspace = clearWorkspacePreset(ctx.directory);
+        activePreset = null;
+        output.parts.push(
+          createInternalAgentTextPart(
+            `Cleared preset for workspace ${workspace} (store: ${getWorkspacePresetStorePath(ctx.directory)}). Launches fall back to the declared default or no preset.`,
+          ),
+        );
+      } catch (error) {
+        output.parts.push(
+          createInternalAgentTextPart(
+            `Clear failed for workspace ${ctx.directory}: ${formatError(error)}`,
           ),
         );
       }
@@ -143,7 +166,7 @@ export function createPresetManager(ctx: PluginInput, config: PluginConfig) {
 
     const lines = ['Available presets:'];
     for (const name of names) {
-      const marker = name === activePreset ? ' ← stored' : '';
+      const marker = name === activePreset ? ' <- stored' : '';
       const preset = presets[name];
       const agentNames = Object.keys(preset);
       const models = agentNames
@@ -155,7 +178,7 @@ export function createPresetManager(ctx: PluginInput, config: PluginConfig) {
               : Array.isArray(cfg.model) && cfg.model.length > 0
                 ? resolveFirstModel(cfg.model)
                 : undefined;
-          return modelStr ? `    ${a} → ${modelStr}` : `    ${a}`;
+          return modelStr ? `    ${a} -> ${modelStr}` : `    ${a}`;
         })
         .join('\n');
       lines.push(`  ${name}${marker}`);
