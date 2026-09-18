@@ -847,14 +847,11 @@ shelf:
     created: 2026-08-13
   specs:
   - name: workspace-preset-selection
-    description: 'Superseded-archived 2026-09-18: durable workspace-keyed preset selection replaced by single-path contract (DIA-260918-vsq8). Prior 0/6 tasks will-not-do; stale gv9i SHALLs contradicted single-path. Source of truth docs/dev-infra/preset-single-path.md; archive holds proposal/design/tasks/specs plus ARCHIVE-NOTE.md.'
+    description: 'Superseded-archived 2026-09-18: durable workspace-keyed preset selection replaced by single-path contract (DIA-260918-vsq8). Prior DIA-260916-gv9i stale 0/6 tasks will-not-do; stale gv9i SHALLs contradicted single-path. Archived to openspec/changes/archive/2026-09-18-workspace-preset-selection/; source of truth docs/dev-infra/preset-single-path.md; archive holds proposal/design/tasks/specs plus ARCHIVE-NOTE.md.'
     path: "openspec/changes/archive/2026-09-18-workspace-preset-selection/"
     created: 2026-09-16
     task_ref: DIA-260918-vsq8
     status: superseded-archived
-    archive_to: "openspec/changes/archive/2026-09-18-workspace-preset-selection/"
-    reason: "single-path contract replaces stored selection (DIA-260918-vsq8)"
-    prior: "DIA-260916-gv9i stale 0/6 will-not-do"
   - name: context7-docs-pipeline
     description: 'OpenSpec change: fetches Context7 library documentation for monorepo
       workspace dependencies. Key-optional (dry-run without CONTEXT7_API_KEY), deduplicates
