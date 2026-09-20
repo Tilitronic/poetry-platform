@@ -166,6 +166,7 @@ setup() {
   # a docker-only implementation is not equivalent under Podman.
   mock_docker
   export COMPOSE_ENGINE="podman"
+  mock_grep_os native
   run bash "$SCRIPT" --engine=podman
   assert_status 0
   assert_file_contains "$FAKE_DOCKER_LOG" "podman compose -f docker-compose.yml -f docker-compose.podman.yml config"

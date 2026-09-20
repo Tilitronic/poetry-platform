@@ -65,6 +65,14 @@ setup() {
   export REAL_DOCKER
   FAKE_DOCKER_SERVICES=""
   mock_docker
+  # Preflight fixture (mirrors opencode-dev.bats setup): the launcher runs
+  # check-secrets-ownership.sh against ./secrets/ (CWD-relative) before
+  # 'compose up', so seed a SAFE fixture in the scratch CWD. Without this the
+  # suite scans the live repo secrets/ (644 placeholders) and fails.
+  cd "$BATS_TEST_TMPDIR"
+  mkdir -p secrets
+  : > secrets/api.key
+  chmod 600 secrets/api.key
 }
 
 # --- Behavior 1: Podman override declares keep-id + SELinux (res040 §2) ------
