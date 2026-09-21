@@ -437,3 +437,17 @@ Note: These are navigational facts to help future humans find the infra/test art
   `scripts/__tests__/workspace-preset-selection.bats`. Archived spec:
   `openspec/changes/archive/2026-09-18-workspace-preset-selection/`
   (ARCHIVE-NOTE.md; sync skipped; prior 0/6 will-not-do).
+
+- Forward fix root cause (DIA-260918-vsq8, f2656c6, 2026-09-18): runtime
+  dist inspection of oh-my-opencode-slim 2.2.19 proved zero reads of
+  `PRESET` and `OPENCODE_WORKSPACE_PRESET`. The sole preset env var the dist
+  honors is `OH_MY_OPENCODE_SLIM_PRESET` (dist index 19865), plus TUI and
+  server clones overriding `config.preset` at load. The single-path commit
+  (fe29b95d) forwarded `-e PRESET` which never reached the runtime -- wrong
+  env var name. f2656c6 changed Makefile to `-e OH_MY_OPENCODE_SLIM_PRESET`
+  with user syntax unchanged; bats and docs updated. Gates: test-shell 724
+  ok, test-config exit 0, pre-commit clean, tree clean. Live smoke confirmed
+  by developer: `make opencode PRESET=free` switches, slash presets shows
+  active. Full chain: 793d40b revert, fe29b95d single-path, 8690921 rev-3,
+  d59e9fc slash warning, 84b58f4 artifacts, 8903970 shelf fix, f2656c6
+  forward fix. No fork; clean npm track.

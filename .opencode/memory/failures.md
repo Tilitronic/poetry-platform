@@ -627,3 +627,41 @@ Failed-loop lessons & preventive actions
     the evidence section silently empty.
   - Why irrecoverable: engine-down at finalize time is transient host state,
     not reconstructible from commits.
+
+- Failure mode (2026-09-21, DIA-260918-ok9m): O2 near-miss, recommendation
+  from EMPTY_RESULT lane never independently verified
+  - Symptom: the O2 chat.message model-guard recommendation arrived from a
+    lane that returned EMPTY_RESULT. It was killed at the gate (ai--1:
+    no hook or v1 client method sets model), but only because the gate
+    checked independently. Had the gate trusted the lane, an
+    unimplementable guard would have entered the plan.
+  - Root cause: a recommendation from an EMPTY_RESULT lane was treated as
+    content before its provenance was checked. Empty result means no
+    verifiable work product backs the claim.
+  - Preventive action: never act on a recommendation from an EMPTY_RESULT
+    lane without independent verification of its core factual claim
+    (here: does the hook/method exist). Verify-first, then plan.
+  - Why irrecoverable: the empty result plus the near-miss ordering are
+    runtime session behavior; the final tree shows neither.
+
+- Failure mode (2026-09-21, DIA-260918-ok9m): free-preset -free twin never
+  equals the Balanced Go intent under exact-match comparison
+  - Symptom: the `free` preset pins Zen `-free` twins
+    (opencode/muse-spark-1.3-contributor-free, opencode/mimo-v2.5-free)
+    while `muse-balanced` pins Go models
+    (opencode-go/muse-spark-1.3-contributor). The S1 guard's sameModel is
+    exact-string on BOTH providerID and id, so a -free newborn under a Go
+    intent (or vice versa) ALWAYS diverges and is switched -- cross-provider
+    twins never compare equal even when they name the same model family.
+  - Root cause: treating `-free` as an interchangeable alias of the Go
+    model. It is not: providerID is part of the identity, and the equality
+    short-circuit is exact. Any test, fixture, or intent mapping that
+    assumes twin-equality silently misclassifies every cross-provider
+    newborn.
+  - Preventive action: never equate models across providers by name stem;
+    compare full providerID/id pairs. When authoring guard fixtures or
+    preset-intent tests, include at least one cross-provider twin case
+    (Go intent vs -free newborn) to pin the always-diverge behavior.
+  - Why irrecoverable: the config shows both model strings but not the
+    twin-equality trap; the misclassification only surfaces at guard
+    decision time against live presets, not in any single committed file.

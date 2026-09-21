@@ -2287,6 +2287,27 @@ inside opencode is left as is with a docs warning only.
   with sync skipped; rev-4 re-review 9 of 9 verified-closed, 0 open,
   0 partial, cycle 2/2.
 
+### Amendment (2026-09-18) -- forward fix root cause and live confirmation
+
+Runtime dist inspection of oh-my-opencode-slim 2.2.19 proved that the
+installed dist reads ZERO of `PRESET` and `OPENCODE_WORKSPACE_PRESET`. The
+sole preset env var the dist honors is `OH_MY_OPENCODE_SLIM_PRESET`
+(dist index 19865), plus the TUI and server clones that override
+`config.preset` at load. This is the root cause of why the single-path
+commit (fe29b95d) forwarding `-e PRESET` never reached the runtime: the
+env var name did not match what the dist actually reads.
+
+Forward fix commit f2656c6 changed `Makefile` `-e PRESET` to
+`-e OH_MY_OPENCODE_SLIM_PRESET` with user syntax (`PRESET=free`) unchanged.
+Bats and docs updated in the same change. Gates: test-shell 724 ok,
+test-config exit 0, pre-commit clean, tree clean.
+
+Live smoke confirmed by developer: `make opencode PRESET=free` switches
+presets; slash presets shows the active preset. Full chain at ship:
+793d40b revert, fe29b95d single-path, 8690921 rev-3, d59e9fc slash
+warning, 84b58f4 artifacts, 8903970 shelf fix, f2656c6 forward fix.
+No fork; clean npm track throughout.
+
 ### Metadata
 
 - Created: 2026-09-18
@@ -2295,3 +2316,145 @@ inside opencode is left as is with a docs warning only.
 - Related: DIA-260918-vsq8, docs/dev-infra/preset-single-path.md,
   scripts/presets.py, scripts/jsonc_strip.py,
   scripts/__tests__/preset-single-path.bats
+
+## ADR: Orchestrator model separation - no per-message override, inert stripper reverted (DIA-260918-ok9m)
+
+### Status
+
+Accepted - 2026-09-21
+
+### Context
+
+The DIA-260918-ok9m campaign tried two mechanisms to keep the
+orchestrator on its own model while coders run elsewhere: (O2) a
+chat.message model-guard, and (S3) a stripOrchestratorModel key-strip
+in config. The container-isolation research pipeline closed in the
+same campaign: res-260921-qivl (21 sources), 306-line conspect,
+shelf entry registered.
+
+### Decision
+
+1. O2 REJECTED at gate: no hook or v1 client method sets a per-message
+   model. The OMO levers are the startup config hook plus the host
+   session.switchModel call. A chat.message model-guard cannot work;
+   do not re-propose it.
+2. S3 REVERTED per ai-auditor F4: stripOrchestratorModel is inert
+   under all four presets because every preset sets
+   orchestrator.model explicitly, so there is nothing to strip.
+   Net-zero vs HEAD on the jsonc; test-config exit 0 twice;
+   changelog entry validated. Do not re-add the stripper without a
+   preset that omits orchestrator.model.
+
+### Rationale (irrecoverable context)
+
+- The O2 kill came from a gate verdict (ai--1), not from a diff:
+   the missing hook/method is a runtime API absence, invisible in
+   the final tree because nothing landed.
+- The F4 inert-key finding is why the revert was correct: a strip
+   key that never fires gives false confidence that separation is
+   enforced. The jsonc net-zero state hides both the attempt and
+   the reason it was backed out.
+
+### Consequences
+
+- S1 switchModel-reachability spike CLOSED 2026-09-21 with
+   V2-ONLY verdict (coder lane cod-6, read-only, zero edits);
+   restart-verify deferred to session boundary.
+- Future model-separation work starts from switchModel
+   reachability, not from message guards or config strippers.
+
+### S1 verdict (2026-09-21, irrecoverable - read-only spike left zero diff)
+
+- V2-ONLY: no HookContext/ctx.client/ctx.session type and zero
+  switchModel/switchAgent hits in @opencode-ai/plugin 1.18.23
+  dist/index.d.ts (322 lines).
+- Zero switchModel/switchAgent hits in @opencode-ai/sdk v1
+  dist/gen/*, while the v2 tree HAS switchModel
+  (sdk.gen.d.ts:1681-1684).
+- OMO calls s.switchModel via V2Context (dist/index.js:47796+47845,
+  type v2/types.d.ts:190).
+- v1 CAN observe session.created via the event hook
+  (types.gen.d.ts:493-498) but cannot act on the model.
+- Consequence: session model control must go through the v2 path;
+  do not re-spike v1 for action.
+
+### Metadata
+
+- Created: 2026-09-21
+- Related: DIA-260918-ok9m,
+  knowledge/res-260921-qivl-container-model-isolation/res-260921-qivl-container-model-isolation-conspect.md
+
+## ADR: S1 session-created switchModel guard - creation-time enforcement with synthetic-only override scope (DIA-260918-ok9m)
+
+### Status
+
+Accepted - 2026-09-21
+
+### Context
+
+The S1 slice (commits 9fc299d, 7b19111, 28bc2a9, 91d6ab5) built on the
+S1 V2-ONLY spike verdict: the only actionable model-control path is
+ctx.session.switchModel on the v2 session.created event. The guard lives
+in one new file (.opencode/plugins/preset-model-guard.ts), independently
+revertible by file delete. Mechanics are recoverable from the spec
+(specs/session-created-model-guard/spec.md), design D1-D4, and the T1/T3/T5
+tests; this ADR records only the four boundary judgments that the code
+does not explain.
+
+### Decision
+
+1. Creation-time switchModel only: the guard fires once per session ID at
+   session.created and never re-enforces. A user who changes preset
+   mid-session gets no re-enforcement; runtime preset switching stays
+   OMO-owned. Per-turn/per-message enforcement (O2) was rejected at the
+   gate and stays rejected.
+2. Synthetic-only override scope (rev-1 Critical): the never-clobber
+   exemption covers ONLY the best-effort synthetic info.override
+   "model"/"agent" marker (event payload or session.get mirror). A REAL
+   --model flag or agent-model selection carries NO marker on
+   session.created payloads in OMO 2.2.19 (zero info.override hits in the
+   vendored dist), so a divergent real---model newborn IS switched. The
+   spec promises nothing the payload does not carry.
+3. Preset-NAME single-key lookup (D3 amendment, rev-1 Major): a slash-less
+   env value resolves as a preset NAME via presets[<name>].orchestrator.model
+   first array entry, read live at runtime. This is a single-key lookup,
+   not a merge re-implementation, so it stays within D3 env-only intent
+   (the env value remains the sole intent carrier). Any lookup failure
+   degrades to the unparsable one-log no-op. Slash-form values keep the
+   strict single-slash split path (multi-slash is unparsable, never
+   forwarded).
+4. Uncapped fire-once (rev-1 Major): the fired-set is an UNBOUNDED
+   in-process Set with no eviction. Any cap with eviction would re-arm an
+   evicted ID and break the at-most-once-per-ID spec. Entries are short
+   session IDs for one process lifetime; no disk state, no registry writes.
+
+### Rationale (irrecoverable context)
+
+- The creation-time-only boundary is a scope judgment, not a technical
+  limit: re-enforcement would fight OMO-owned runtime switching and the
+  user's explicit mid-session choice. The design accepts the gap openly
+  rather than half-covering it.
+- The synthetic-only scope is a honesty-over-comfort call: exempting
+  "explicit overrides" the payload cannot actually carry would be false
+  confidence. The rev-1 Critical downgraded the exemption to what exists
+  instead of what the name suggests.
+- The D3 amendment thread (single-key lookup vs merge re-implementation)
+  is the line that keeps the guard env-only: reading one key tracks
+  config edits without duplicating OMO merge logic (startup vs runtime
+  asymmetry in res-260921-qivl sec 5).
+- The uncapped Set reverses the GREEN-B first attempt (FIRED_CAP 1000 with
+  FIFO eviction): a bounded set that forgets is not a fire-once set.
+
+### Consequences
+
+- Future model-separation work starts from switchModel reachability
+  (v2 path), not from message guards or config strippers.
+- Wiring registration proof stays deferred (plugin event-seam attach not
+  shown live); S1 spike still open. Residual: no live restart-verify of
+  the guard firing against a real divergent /new.
+
+### Metadata
+
+- Created: 2026-09-21
+- Related: DIA-260918-ok9m, openspec/changes/dia-260918-ok9m-s1-switchmodel-guard/,
+  .opencode/plugins/preset-model-guard.ts

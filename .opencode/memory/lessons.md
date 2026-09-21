@@ -2642,6 +2642,14 @@ recorded here). Irrecoverable process lessons:
 - Cross-reference: DIA-175 same-session fix-loop policy (lessons.md line 839),
   L20260827-001 (same-session fix-loop failure, fresh-session fallback),
   DIA-260911-y52j.
+- Second occurrence (2026-09-21, DIA-260918-ok9m S1): the GREEN fix-loop
+  recovery ran as a FRESH instance (GREEN-B, commit 9fc299d "fix-loop
+  recovery") rather than a same-session resume, with RED/GREEN separation
+  preserved (RED test-author stayed a different instance). Confirms the
+  waiver path works for fix-loop recovery, not just expired sessions:
+  when the same-session lease cannot be honored, record the waiver and
+  dispatch fresh, keeping the RED author disjoint from the fresh GREEN
+  writer.
 
 ## L20260911-y52j-002 - Second-worktree merge deferred per developer instruction; prioritize main-branch work (DIA-260911-y52j, 2026-09-11)
 
@@ -3043,3 +3051,46 @@ verification evidence (DIA-260909-csds, 2026-09-09)
   approve line as sufficient would have left known notes unaddressed.
 - Preventive rule: on APPROVE-WITH-NOTES, list each note with accept/reject
   + evidence in the ticket before closing. No silent notes.
+
+## L20260921-ok9m-001 - pending-gate-clear takes basename only (DIA-260918-ok9m, 2026-09-21)
+
+- scripts/pending-gate-clear refuses a full path for the
+  conspect-pending flag clear. Pass the basename only.
+- Why irrecoverable: the refusal is a runtime argument rule, not
+  visible in the cleared flag state afterward.
+
+## L20260921-ok9m-002 - mark pid lanes verification-only (DIA-260918-ok9m, 2026-09-21)
+
+- Lanes that only inspect process/container state (pid lanes) must
+  carry an explicit verification-only marker so no reviewer mistakes
+  the inspection for a mutation or a fix.
+- Why irrecoverable: the lane transcript shows commands run, not
+  the no-mutation intent the marker records.
+
+## L20260921-ok9m-003 - inert config keys give false confidence (DIA-260918-ok9m, 2026-09-21)
+
+- A config key that never fires under any live preset (here
+  stripOrchestratorModel, inert under all four presets because each
+  sets orchestrator.model) looks like enforcement but enforces
+  nothing. Provenance: ai-auditor F4; jsonc net-zero vs HEAD after
+  revert; test-config exit 0 twice.
+- Preventive rule: before landing a guard/strip key, prove it fires
+  under at least one live preset; otherwise revert and record why.
+- Why irrecoverable: the reverted tree shows neither the key nor
+  the reason it was inert.
+
+## L20260921-ok9m-004 - v1-observe-only vs v2-act for session model control (DIA-260918-ok9m, 2026-09-21)
+
+- v1 event hooks can observe session.created (types.gen.d.ts:493-498)
+  but expose no HookContext/ctx.client/ctx.session type and no
+  switchModel/switchAgent (zero hits in @opencode-ai/plugin 1.18.23
+  dist/index.d.ts, 322 lines; zero hits in @opencode-ai/sdk v1
+  dist/gen/*). Action lives on the v2 path only: switchModel in
+  sdk.gen.d.ts:1681-1684, called by OMO via V2Context
+  (dist/index.js:47796+47845, type v2/types.d.ts:190).
+- Provenance: S1 spike stage-1 verdict V2-ONLY (coder lane cod-6,
+  read-only, zero edits).
+- Preventive rule: route session model control through v2; do not
+  re-spike v1 for action.
+- Why irrecoverable: read-only spike left zero diff, so the
+  v1-observe-only ceiling is invisible in the tree without this entry.

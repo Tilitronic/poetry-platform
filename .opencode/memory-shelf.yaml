@@ -422,6 +422,10 @@ shelf:
     description: 'Conspect synthesizing 5 archived sources on skill validator design beyond form checks: frontmatter validation (name/description/license per Agent Skills spec), capability cross-references (preset/command/agent/binary declarations resolved against runtime manifest), Ajv custom keywords for cross-field rules, JSONIC schema extensions for async existence checks, and OpenCode community precedent for hard-fail-on-invalid (issue 31616). Verdict: form-only validation is insufficient; dangling references (undeclared presets, missing commands, unresolvable permissions) must fail hard. Design pattern: validate frontmatter shape first, then cross-reference declared capabilities against the live runtime manifest.'
     path: knowledge/res-260911-emj8-skill-validator-compat/res-260911-emj8-skill-validator-compat-conspect.md
     created: 2026-09-11
+  - name: Container Model Isolation (DIA-260918-ok9m)
+    description: 'Conspect on session/agent model separation and precedence in OpenCode V2 + OMO, env-var injection to providers/tools/shells, and maintainer-sanctioned container patterns for OpenCode and Pi with failure modes (21 archived sources, 1 failure).'
+    path: "knowledge/res-260921-qivl-container-model-isolation/res-260921-qivl-container-model-isolation-conspect.md"
+    created: 2026-09-21
   analyses:
   - name: Agent Alignment Audit
     description: "MECE inventory of all agent definitions across OMO Slim, native\
@@ -1226,6 +1230,12 @@ shelf:
     created: 2026-09-11
     task_ref: DIA-260831-j5k6
     status: validated
+  - name: S1 v2 session-created switchModel guard
+    description: "OpenSpec change (ticket DIA-260918-ok9m, DIA-143 sole-writer handoff from openspec-plan): v2-shape project plugin guard firing once at session.created, calling ctx.session.switchModel to preset intent on divergence (env OH_MY_OPENCODE_SLIM_PRESET intent, explicit-override exempt, fire-once per sessionID, fail-soft). Basis ADR 2320-2379 S1 V2-ONLY plus res-260921-qivl sec 3. Artifacts: proposal.md, design.md, specs/session-created-model-guard/spec.md, tasks.md under openspec/changes/dia-260918-ok9m-s1-switchmodel-guard/."
+    path: "openspec/changes/dia-260918-ok9m-s1-switchmodel-guard/"
+    created: 2026-09-21
+    task_ref: DIA-260918-ok9m
+    status: spec-complete
   architectures:
   - name: dia-redispatch-cycle
     description: "Design-authority seed for the dev-infra campaign protocol (CRISIS-DETECTION, PROGNOSIS-DISCIPLINE, cycle-budget management): 5 ADRs (ADR-001 prognosis in HANDOFF.md only, ADR-002 C1-C5 OR-combined triggers, ADR-003 fresh-session independence, ADR-004 max-cycles=3 budget default, ADR-005 soft exhaustion) that the redispatch rule texts must not contradict. Seeded 2026-08-03 from interview Q5."
