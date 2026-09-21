@@ -28,7 +28,7 @@ New file `.opencode/plugins/preset-model-guard.ts`, v2 export shape `{id, server
 2. `server` event subscription: on `session.created`, run the decision function:
    - read `OH_MY_OPENCODE_SLIM_PRESET`; absent/empty -> return (no-op).
    - resolve preset intent to `{providerID, id}` via the same preset-to-model mapping the active preset uses; unparsable -> log once, return.
-   - detect explicit override: newborn session created with `--model` / agent-model selection -> return (no explicit clobbering).
+   - detect synthetic override marker: info.override "model" or "agent" via the event payload or the session.get() mirror -> return (no synthetic clobbering; a real --model selection carries no marker per the scope limit and is switched like any divergent newborn).
    - compare newborn model to intent; equal -> return.
    - check fired-set for sessionID; present -> return (fire-once).
    - else `await ctx.session.switchModel({sessionID, model: intent})` in try/catch; on throw, log once, return with no retry. Record sessionID in fired-set before (or idempotently after) the call so duplicates stay single.
@@ -74,7 +74,7 @@ RED instance (coder session A, test-author only): failing tests at S1 covering t
 
 - [Risk] OMO dist upgrade drifts the v2 `{id, server, setup}` shape or renames switchModel -> Mitigation: setup-time probe degrades to no-op with a log line; version-sync triplet pins the verified dist.
 - [Risk] Preset intent parsing diverges from OMO preset merge (startup vs runtime asymmetry) -> Mitigation: env-only intent plus equality short-circuit; a wrong parse degrades to one stray switch at creation, visible in the next-turn model banner, revertible by file delete.
-- [Risk] session.created fires for child/subagent spawns the guard should not touch -> Mitigation: equality check plus fired-set make spurious fires no-ops; explicit-override exemption covers --model spawns.
+- [Risk] session.created fires for child/subagent spawns the guard should not touch -> Mitigation: equality check plus fired-set make spurious fires no-ops; synthetic-override exemption covers synthetic info.override spawns (a real --model spawn carries no marker per the scope limit and is switched like any divergent newborn).
 - [Risk] Silent no-op (env unset everywhere) gives false confidence separation is enforced -> Mitigation: one log line per skip class; acceptance case 3 pins the no-op visibly in tests.
 - Trade-off: fire-once means a user who changes preset mid-session gets no re-enforcement; accepted by design (creation-time guard only, runtime preset switching stays OMO-owned).
 

@@ -16,7 +16,7 @@
  * agent-model selection carries NO marker on session.created payloads in
  * OMO 2.2.19 (dist has zero info.override hits; its override hits are
  * config-level agent/prompt/model overrides only). The guard therefore
- * CANNOT exempt real --model sessions: a divergent real---model newborn is
+ * CANNOT exempt real --model sessions: a divergent real --model newborn is
  * switched like any other divergent newborn. The info.override exemption is
  * best-effort SYNTHETIC only (a future runtime or wrapper may set it;
  * session.get mirror likewise), pinned by T3a/T3b. The spec scopes the
