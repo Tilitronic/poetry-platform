@@ -68,47 +68,9 @@ afterEach(() => {
 })
 
 const { loadHooks } = await createGuardHandle()
-
-// Minimal JSONC comment stripper: drops // line comments and /* */ blocks
-// outside string literals. The presets file carries URLs and prose with
-// slashes inside strings, so a naive regex would corrupt values.
-function stripJsoncComments(text) {
-  let out = ""
-  let i = 0
-  let inString = false
-  let escaped = false
-  while (i < text.length) {
-    const ch = text[i]
-    const next = text[i + 1]
-    if (inString) {
-      out += ch
-      if (escaped) escaped = false
-      else if (ch === "\\") escaped = true
-      else if (ch === '"') inString = false
-      i += 1
-      continue
-    }
-    if (ch === '"') {
-      inString = true
-      out += ch
-      i += 1
-      continue
-    }
-    if (ch === "/" && next === "/") {
-      while (i < text.length && text[i] !== "\n") i += 1
-      continue
-    }
-    if (ch === "/" && next === "*") {
-      i += 2
-      while (i < text.length && !(text[i] === "*" && text[i + 1] === "/")) i += 1
-      i += 2
-      continue
-    }
-    out += ch
-    i += 1
-  }
-  return out
-}
+// Single-owner JSONC stripper (rev-1 Major): owned by preset-model-guard.ts,
+// shared here for the T5a live-config read instead of a duplicated copy.
+const { stripJsoncComments } = await import("../preset-model-guard.ts")
 
 // Preset-NAME intent source of truth, read live from the repo config:
 // presets.free.orchestrator.model, first entry on array form ("a/b" split

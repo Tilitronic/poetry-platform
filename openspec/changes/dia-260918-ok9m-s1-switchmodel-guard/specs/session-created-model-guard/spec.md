@@ -10,18 +10,30 @@ The system SHALL call switchModel exactly once for a newborn session whose model
 
 #### Scenario: Divergent session with env and no override
 
-- **WHEN** a session.created event arrives with model M, env OH_MY_OPENCODE_SLIM_PRESET resolves to intent P, M differs from P, and no explicit --model or agent-model selection is present
+- **WHEN** a session.created event arrives with model M, env OH_MY_OPENCODE_SLIM_PRESET resolves to intent P, M differs from P, and no synthetic override marker (info.override "model" or "agent") is present
 - **THEN** the guard calls switchModel once with the session ID and P, and subsequent requests use P
 - Seam: v2 session.created event hook (same channel family as delegation-observer "event" seam).
 
 ### Requirement: Explicit user override is never clobbered
 
-The system SHALL NOT call switchModel when the newborn session carries an explicit user model selection.
+The system SHALL NOT call switchModel when the newborn session carries the synthetic explicit-override marker.
+
+Scope limit (rev-1 Critical): the marker is best-effort synthetic ONLY. A real --model flag or agent-model selection carries NO marker on session.created payloads in OMO 2.2.19 (verified against the vendored dist: zero info.override hits), so real --model sessions are NOT exempt and a divergent real---model newborn IS switched. The spec promises nothing the payload does not carry.
 
 #### Scenario: Explicit --model invocation is exempt
 
-- **WHEN** a session.created event arrives for a session created with an explicit --model flag or agent-model selection
+- **WHEN** a session.created event arrives carrying info.override "model" (synthetic explicit --model signal) or "agent" (synthetic agent-model selection), via the event payload or the session.get() mirror, with a divergent model and valid env
 - **THEN** the guard makes zero switchModel calls and the session keeps its selected model
+- Seam: v2 session.created event hook.
+
+### Requirement: Slash-less env resolves as preset name
+
+The system SHALL resolve a slash-less preset env value as a preset NAME via presets[<name>].orchestrator.model (first entry on array form) read live from the repo presets config; any lookup failure (missing file, bad JSON, missing preset, unusable ref) degrades to the unparsable one-log no-op and the session keeps its newborn model.
+
+#### Scenario: Preset-NAME env switches divergent newborn via mapped model
+
+- **WHEN** a session.created event arrives with model M, env OH_MY_OPENCODE_SLIM_PRESET holds a slash-less name N, presets[N].orchestrator.model resolves to intent P, and M differs from P with no synthetic override marker present
+- **THEN** the guard calls switchModel once with the session ID and P
 - Seam: v2 session.created event hook.
 
 ### Requirement: Absent env is a no-op

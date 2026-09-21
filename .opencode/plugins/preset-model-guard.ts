@@ -11,18 +11,27 @@
  * the S2 setup shape probe. Version-sync registration and test-config
  * wiring stay out of the guard file.
  *
- * Residual risk (finding 7, verified 2026-09-21 against the vendored
- * .opencode/oh-my-opencode-slim/dist/index.js): no real --model/agent
- * marker exists on session.created payloads in OMO 2.2.19 (dist reads
- * properties.info.{id,parentID,providerID,modelID,model,agent} only; no
- * info.override key anywhere). The info.override marker stays best-effort
- * alongside, pinned by T3a/T3b.
+ * Override-exemption limit (rev-1 Critical, verified 2026-09-21 against the
+ * vendored .opencode/oh-my-opencode-slim/dist/index.js): a REAL --model or
+ * agent-model selection carries NO marker on session.created payloads in
+ * OMO 2.2.19 (dist has zero info.override hits; its override hits are
+ * config-level agent/prompt/model overrides only). The guard therefore
+ * CANNOT exempt real --model sessions: a divergent real---model newborn is
+ * switched like any other divergent newborn. The info.override exemption is
+ * best-effort SYNTHETIC only (a future runtime or wrapper may set it;
+ * session.get mirror likewise), pinned by T3a/T3b. The spec scopes the
+ * never-clobber requirement to that synthetic marker.
  */
 
 import { readFileSync } from "node:fs"
 
 const ENV_KEY = "OH_MY_OPENCODE_SLIM_PRESET"
-const FIRED_CAP = 1000
+
+// D2: in-process fire-once set (sessions are process-scoped; no disk state).
+// Uncapped by design (rev-1 Major): any cap with eviction would re-arm an
+// evicted ID and break the at-most-once-per-ID spec. Entries are short
+// session IDs for one process lifetime; no disk state, no registry writes.
+const fired = new Set<string>()
 
 // Minimal surfaces the guard touches (finding 4). Structural so both the
 // real v2 ctx and the mocked fixture ctx satisfy them. No runtime change.
@@ -42,18 +51,6 @@ interface CreatedInput {
   event?: { type?: string; properties?: { sessionID?: string; info?: { id?: string; model?: GuardModel; override?: string } } }
 }
 
-// D2: in-process fire-once set (sessions are process-scoped; no disk state).
-const fired = new Set<string>()
-
-function noteFired(sessionID: string): void {
-  // ponytail: FIFO cap, drop oldest (insertion order) if throughput matters use LRU
-  if (fired.size >= FIRED_CAP) {
-    const oldest = fired.values().next()
-    if (!oldest.done) fired.delete(oldest.value)
-  }
-  fired.add(sessionID)
-}
-
 function splitRef(ref: string): { providerID: string; id: string } | undefined {
   const trimmed = ref.trim()
   if (!trimmed) return undefined
@@ -68,7 +65,12 @@ function splitRef(ref: string): { providerID: string; id: string } | undefined {
   return { providerID, id }
 }
 
-function stripJsoncComments(text: string): string {
+// Single owner of JSONC comment stripping (rev-1 Major): the guard and the
+// T5 setup reader share this export instead of duplicating it. Drops //
+// line comments and /* */ blocks outside string literals; the presets file
+// carries URLs and prose with slashes inside strings, so a naive regex
+// would corrupt values.
+export function stripJsoncComments(text: string): string {
   let out = ""
   let i = 0
   let inString = false
@@ -106,7 +108,8 @@ function stripJsoncComments(text: string): string {
   return out
 }
 
-// Preset-NAME lookup (finding 1): slash-less env resolves via
+// Preset-NAME lookup (spec Requirement "Slash-less env resolves as preset
+// name", design D3 as amended rev-1): slash-less env resolves via
 // presets[<name>].orchestrator.model first array entry, read live at
 // runtime so config edits track without a guard change. Any failure
 // (missing file, bad JSON, missing preset, unusable ref) returns
@@ -187,10 +190,12 @@ async function server(ctx: GuardCtx): Promise<{ event: (input: CreatedInput) => 
       const sessionID: string | undefined = props.sessionID ?? props.info?.id
       if (!sessionID) return
 
-      // Explicit-override exemption: info.override "model" (--model flag) or
-      // "agent" (agent-model selection) is never clobbered. The marker rides
-      // redundantly at properties.info.override and in session.get(); either
-      // read path exempts. Absent marker (T1 fixtures) defaults to act.
+      // Synthetic-override exemption (rev-1 Critical: real --model/agent
+      // selections carry no payload marker in OMO 2.2.19, so only this
+      // best-effort info.override signal exempts). info.override "model"
+      // or "agent" is never clobbered. The marker rides redundantly at
+      // properties.info.override and in session.get(); either read path
+      // exempts. Absent marker (T1 fixtures) defaults to act.
       const eventOverride = props.info?.override
       if (eventOverride === "model" || eventOverride === "agent") return
       if (eventOverride == null) {
@@ -239,8 +244,9 @@ async function server(ctx: GuardCtx): Promise<{ event: (input: CreatedInput) => 
       // Recorded BEFORE the call so a throwing first attempt still blocks
       // duplicates: no retry by design (spec fail-soft requirement).
       // Sync check-then-add with no await between: concurrent dispatches
-      // in one tick stay atomic via run-to-completion (T5c).
-      noteFired(sessionID)
+      // in one tick stay atomic via run-to-completion (T5c). Uncapped Set:
+      // every recorded ID stays recorded for the process lifetime.
+      fired.add(sessionID)
 
       try {
         await ctx?.session?.switchModel?.({ sessionID, model: { providerID: intent.providerID, id: intent.id } })
