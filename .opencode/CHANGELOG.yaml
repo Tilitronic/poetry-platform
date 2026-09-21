@@ -4838,3 +4838,14 @@
     test-config PASS, rev-1 4/4 + rev-2 4/4)
   verification: manual
   area: scripts
+- date: '2026-09-21'
+  ticket: DIA-260921-6o4i
+  scope: s
+  files:
+  - docs/dev-infra-audit/tickets/DIA-260921-6o4i-console-free-tier-gate-rejects-free-models.md
+  - .opencode/learnings/external-patterns/2026-09-21-console-free-tier-gate.md
+  - knowledge/ana-260921-0f9i-free-tier-gate/ana-260921-0f9i-free-tier-gate-report.md
+  summary: 'Console free-tier gate finding: provider-side gate rejects -free models,
+    V1 Go-routing pending approval'
+  verification: manual
+  area: scripts

@@ -1157,3 +1157,9 @@
 - **Change:** S1 switchModel guard GREEN-B + cycle2 rev-1 fixes + tiny docs (11/11 pass, test-config PASS, rev-1 4/4 + rev-2 4/4)
 - **Files:** .opencode/plugins/preset-model-guard.ts - openspec/changes/dia-260918-ok9m-s1-switchmodel-guard/specs/session-created-model-guard/spec.md - openspec/changes/dia-260918-ok9m-s1-switchmodel-guard/design.md
 - **Verification:** manual
+
+## 2026-09-21 - DIA-260921-6o4i: s
+
+- **Change:** Console free-tier gate finding: provider-side gate rejects -free models, V1 Go-routing pending approval
+- **Files:** docs/dev-infra-audit/tickets/DIA-260921-6o4i-console-free-tier-gate-rejects-free-models.md - .opencode/learnings/external-patterns/2026-09-21-console-free-tier-gate.md - knowledge/ana-260921-0f9i-free-tier-gate/ana-260921-0f9i-free-tier-gate-report.md
+- **Verification:** manual
