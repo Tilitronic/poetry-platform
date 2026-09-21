@@ -665,3 +665,42 @@ Failed-loop lessons & preventive actions
   - Why irrecoverable: the config shows both model strings but not the
     twin-equality trap; the misclassification only surfaces at guard
     decision time against live presets, not in any single committed file.
+
+- Failure mode (2026-09-21, DIA-260921-6o4i): DIA-217 procedural carve-out
+  text alone did not pass this env's ticket gate -- capability token required
+  - Symptom: the DIA-217 procedural carve-out (literal `scripts/tickets new`
+    invocation in dispatch text) was expected to bypass the ticket gate for
+    ticket creation. It did NOT pass this environment's gate configuration.
+    The capability-token path (`mint_capability` with scope
+    `ticket-creation`) was required instead.
+  - Root cause: the gate's carve-out detection depends on env-specific
+    configuration that may differ from the documented expectation. The bare
+    procedural text was insufficient; the capability token worked.
+  - Preventive action: for ticket creation bypasses, use the
+    `mint_capability` tool with scope `ticket-creation` as the reliable
+    path. Do not depend solely on procedural text detection in the gate.
+  - Why irrecoverable: the gate's behavior is runtime/plugin configuration
+    state; the commit shows the ticket but not the gate interaction that
+    blocked the procedural path.
+
+- Failure mode (2026-09-21, DIA-260918-ok9m): GREEN-B recovery dispatch
+  returned GREEN-DONE already-implemented (stale handoff prognosis)
+  - Symptom: a GREEN-B recovery dispatch for DIA-260918-ok9m returned
+    GREEN-DONE with no diff -- the work had already landed (9fc299d refined
+    7b19111, no net diff). The old handoff prognosis item "GREEN-B recovery
+    BLOCKED" was stale; the work landed before this session started.
+  - Root cause: the handoff prognosis was written before the previous session
+    completed its final push. On restart, the prognosis still claimed the
+    work was blocked, so a recovery dispatch was dispatched against a task
+    that was already done.
+  - Preventive action: before dispatching a recovery lane based on a handoff
+    prognosis, verify the CURRENT ticket status and implementation state via
+    recon (ticket ledger + git log + target files) rather than trusting the
+    handoff's claim. A handoff is a point-in-time snapshot; the work may
+    have landed since it was written. This confirms and extends the
+    L20260817-005 stale-handoff lesson (lessons.md line 1467).
+  - Why irrecoverable: the stale-handoff recovery ordering is runtime/session
+    behaviour; the final commits show the landed state but not the
+    unnecessary recovery dispatch triggered by the stale prognosis.
+  - Cross-reference: L20260817-005 (stale handoff duplicate filing),
+    failures.md line 141 (stale handoff vs landed sibling work).

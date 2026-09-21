@@ -829,6 +829,40 @@ External-knowledge grounding fact caught by @ai-specialist against live DeepSeek
   Lesson: every spec must assign a file owner for EVERY artifact it mandates (including
   ADR recordings), not just code slices.
 
+## Free-tier gate investigation (DIA-260921-6o4i, 2026-09-21)
+
+- podman runtime has no docker socket (expected, not daemon-down): the poetry-dev
+  container runs under podman, not Docker. `docker ps` failures are EXPECTED
+  behavior -- podman does not expose a Docker-compatible socket at the default
+  path. Do not treat docker-command failures as evidence of a daemon-down state
+  when the runtime is podman. The container is healthy if `podman ps` or
+  `compose ps` (via podman) shows it Up.
+
+- Container auth store is isolated from host: the container poetry-dev has its own
+  auth store at `/home/dev/.local/share/opencode/auth.json` with NO host mount.
+  Host-side reconnect or re-auth does NOT reach the container's auth store.
+  Container-side re-auth refreshed container-local credentials but the provider
+  refusal persisted, which is exactly what a server-side entitlement change
+  predicts. Operational rule: when diagnosing auth failures inside a container,
+  check the CONTAINER's auth store, not the host's; they are independent.
+
+- DIA-217 procedural carve-out: the DIA-217 procedural carve-out text alone did
+  NOT pass this environment's ticket gate. The capability-token path
+  (`mint_capability` with scope `ticket-creation`) worked for `scripts/tickets
+  new`. The bare procedural carve-out (literal `scripts/tickets new` invocation
+  in dispatch text) was insufficient in this env's gate configuration. Use the
+  capability-token path as the reliable bypass for ticket creation.
+
+- Open discrepancy (flagged, NOT resolved): ai-specialist cited
+  `.opencode/plugins/preset-model-guard.ts:28,117-156` as the mechanism that
+  maps free models to rejected status. The analyzer found that file ABSENT from
+  the current tree (only `src/utils/guards.ts` exists under the OMO source
+  layer), and the provider receipt of the model string proves no client
+  pre-rejection fired. The cited guard is either from a different revision, a
+  different repo layer, or a stale reference. This discrepancy is RECORDED ONLY;
+  it is not resolved. If the file is found in a future investigation, reconcile
+  against this finding.
+
 ## DIA-175 coder prompt hygiene (2026-08-14)
 
 Merged 9922f9a (feat) + 6e62af1 (close-out), ticket DONE. Direct opencode-config
@@ -3094,3 +3128,41 @@ verification evidence (DIA-260909-csds, 2026-09-09)
   re-spike v1 for action.
 - Why irrecoverable: read-only spike left zero diff, so the
   v1-observe-only ceiling is invisible in the tree without this entry.
+
+## DIA-260918-ok9m reviewer dispatch behaviour lessons (2026-09-21)
+
+- Reviewer dispatch must NEVER include an author-written IMMUTABLE_GIT_ENVELOPE
+  block (2026-09-21, DIA-260918-ok9m): 5 consecutive reviewer dispatches that
+  carried a pasted IMMUTABLE_GIT_ENVELOPE block in the prompt were cancelled
+  server-side with bare "Task cancelled" status. Identical dispatches WITHOUT the
+  envelope block routed cleanly. The envelope is injected by the plugin at
+  dispatch time; authoring it in the prompt reads as forgery to the server.
+  Operational rule: send ONLY the FIXED_POINT marker line (e.g.
+  "FIXED_POINT: <sha>") in the dispatch payload. Do NOT include the full
+  IMMUTABLE_GIT_ENVELOPE block -- the plugin will inject it automatically.
+  Why irrecoverable: the cancellation pattern (5x cancelled with envelope, clean
+  without) is a runtime/plugin behaviour not stated in any committed file.
+
+- FIXED_POINT marker OID must have zero trailing punctuation on its line
+  (2026-09-21, DIA-260918-ok9m): a period glued to the OID
+  (e.g. "FIXED_POINT: 806.") made the revision range unresolvable -- the parser
+  treated the base as a literal ref and failed with "bad revision" or "not a
+  worktree". Fix: isolate the marker on its own line with no trailing punctuation
+  after the SHA. Example:
+    FIXED_POINT: f2656c619f165fcc520fa15badfdc0066a578806
+  NOT:
+    FIXED_POINT: f2656c619f165fcc520fa15badfdc0066a578806.
+  Why irrecoverable: the parser's strict OID matching is a runtime behaviour; the
+  trailing-period failure is a session-specific debugging fact not in any commit.
+
+- Reviewer duplicate-dispatch guard (2026-09-21, DIA-260918-ok9m): after
+  several cancelled reviewer attempts, a clean retry was blocked as an
+  idempotent duplicate -- meaning a reviewer lane exists server-side even though
+  the background job board shows no reviewer row. Cancelled reviewer dispatches
+  may still be tracked server-side under lifecycle ownership. Operational rule:
+  before assuming no lane runs, check task_status for the pending dispatch; do
+  not rely on the job board alone to determine whether a server-side lane
+  exists. If blocked as duplicate, cancel any stale server-side lifecycle before
+  re-dispatching. Why irrecoverable: the job-board-vs-server-side divergence and
+  the duplicate-block on retry are runtime lifecycle behaviour not visible in
+  any committed artifact.

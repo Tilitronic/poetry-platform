@@ -829,6 +829,22 @@ shelf:
     path: "knowledge/ana-260918-6ac2-preset-free-switching/ana-260918-6ac2-preset-free-switching-report.md"
     created: 2026-09-18
     task_ref: DIA-260918-yug6
+  - name: Free-Tier Gate Rejects Free Models (ana-260921-0f9i)
+    description: "Root cause analysis of the provider-side console gate on providerID=opencode\
+      \ that rejects -free model suffixes (onset ~2026-09-18). PROVEN: error string is\
+      \ provider-originated (zero repo hits); free preset block intact; Makefile PRESET=free\
+      \ forwarding correct; runtime pins consistent (binary 1.18.18, OMO 2.2.19); fresh\
+      \ reconnect does NOT fix; opencode-go path streams fine in same session; OMO 2.2.22\
+      \ excluded by date (onset precedes publish). REFUTED: preset catalog defect, client-side\
+      \ error string, OMO 2.2.22 regression, stale auth as sufficient cause. UNVERIFIED:\
+      \ preset-model-guard.ts:28,117-156 cited by ai-specialist but file absent from current\
+      \ tree with provider receipt proving no pre-rejection. INFERENCE: UA/entrypoint mechanism\
+      \ plausible but unconfirmed. RECOMMENDATION: V1 route free workloads to opencode-go\
+      \ equivalents (Tier-1 evidence, zero client change, registry-blessed fallbacks).\
+      \ Campaign ticket: DIA-260921-6o4i."
+    path: "knowledge/ana-260921-0f9i-free-tier-gate/ana-260921-0f9i-free-tier-gate-report.md"
+    created: 2026-09-21
+    task_ref: DIA-260921-6o4i
   adrs:
   - name: Memory Storage Strategy
     description: 'Evaluation of Claude-Mem, Honcho, and current hand-written memory

@@ -324,6 +324,7 @@
 | DIA-260918-ubxv | ADR supersession promo two-preset pointer vs 4-preset muse-balanced tree | config | Medium | OPEN | [DIA-260918-ubxv-adr-supersession-promo-two-preset-pointer-vs-4-preset-muse-balanced-tree.md](DIA-260918-ubxv-adr-supersession-promo-two-preset-pointer-vs-4-preset-muse-balanced-tree.md) |
 | DIA-260918-vsq8 | single-path preset launch make opencode PRESET | scripts | Medium | OPEN | [DIA-260918-vsq8-single-path-preset-launch-make-opencode-preset.md](DIA-260918-vsq8-single-path-preset-launch-make-opencode-preset.md) |
 | DIA-260918-yug6 | preset free switching fails after make preset NAME=free | scripts | Medium | OPEN | [DIA-260918-yug6-preset-free-switching-fails-after-make-preset-name-free.md](DIA-260918-yug6-preset-free-switching-fails-after-make-preset-name-free.md) |
+| DIA-260921-6o4i | Console free-tier gate rejects -free models | scripts | Major | OPEN | [DIA-260921-6o4i-console-free-tier-gate-rejects-free-models.md](DIA-260921-6o4i-console-free-tier-gate-rejects-free-models.md) |
 
 ## Status summary
 
@@ -331,7 +332,7 @@
 | -------- | ----- |
 | Blocker  | 9     |
 | Critical | 16    |
-| Major    | 73    |
+| Major    | 74    |
 | Medium   | 170   |
 | Minor    | 1     |
 | Low      | 31    |
@@ -340,7 +341,7 @@
 
 | Status      | Count |
 | ----------- | ----- |
-| OPEN        | 80    |
+| OPEN        | 81    |
 | DONE        | 4     |
 | VALIDATE    | 0     |
 | E2E         | 0     |
