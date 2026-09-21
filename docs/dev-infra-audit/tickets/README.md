@@ -319,6 +319,7 @@
 | DIA-260917-mqjs | warning hygiene permission deny scope and legacy archive precedent | config | Low | OPEN | [DIA-260917-mqjs-warning-hygiene-permission-deny-scope-and-legacy-archive-precedent.md](DIA-260917-mqjs-warning-hygiene-permission-deny-scope-and-legacy-archive-precedent.md) |
 | DIA-260917-s95f | promo preset union-alpha variants enumeration | config | Medium | OPEN | [DIA-260917-s95f-promo-preset-union-alpha-variants-enumeration.md](DIA-260917-s95f-promo-preset-union-alpha-variants-enumeration.md) |
 | DIA-260918-mm2u | retire or repoint promo-preset-apply stale promo target plus overcapture | scripts | Medium | OPEN | [DIA-260918-mm2u-retire-or-repoint-promo-preset-apply-stale-promo-target-plus-overcapture.md](DIA-260918-mm2u-retire-or-repoint-promo-preset-apply-stale-promo-target-plus-overcapture.md) |
+| DIA-260918-ok9m | Investigate slash-new preset inheritance without fork | scripts | Medium | OPEN | [DIA-260918-ok9m-investigate-slash-new-preset-inheritance-without-fork.md](DIA-260918-ok9m-investigate-slash-new-preset-inheritance-without-fork.md) |
 | DIA-260918-rbqk | promo-registry promoted_preset still promo vs tree muse-balanced | config | Medium | OPEN | [DIA-260918-rbqk-promo-registry-promoted-preset-still-promo-vs-tree-muse-balanced.md](DIA-260918-rbqk-promo-registry-promoted-preset-still-promo-vs-tree-muse-balanced.md) |
 | DIA-260918-ubxv | ADR supersession promo two-preset pointer vs 4-preset muse-balanced tree | config | Medium | OPEN | [DIA-260918-ubxv-adr-supersession-promo-two-preset-pointer-vs-4-preset-muse-balanced-tree.md](DIA-260918-ubxv-adr-supersession-promo-two-preset-pointer-vs-4-preset-muse-balanced-tree.md) |
 | DIA-260918-vsq8 | single-path preset launch make opencode PRESET | scripts | Medium | OPEN | [DIA-260918-vsq8-single-path-preset-launch-make-opencode-preset.md](DIA-260918-vsq8-single-path-preset-launch-make-opencode-preset.md) |
@@ -331,7 +332,7 @@
 | Blocker  | 9     |
 | Critical | 16    |
 | Major    | 73    |
-| Medium   | 169   |
+| Medium   | 170   |
 | Minor    | 1     |
 | Low      | 31    |
 | Info     | 2     |
@@ -339,7 +340,7 @@
 
 | Status      | Count |
 | ----------- | ----- |
-| OPEN        | 79    |
+| OPEN        | 80    |
 | DONE        | 4     |
 | VALIDATE    | 0     |
 | E2E         | 0     |
