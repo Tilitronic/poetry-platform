@@ -1,5 +1,5 @@
 /**
- * preset-model-guard - DIA-260918-ok9m slice T2 (GREEN instance B).
+ * preset-model-guard - DIA-260918-ok9m slice T2 (GREEN instance B, fix-loop recovery).
  *
  * WHY a separate file: the guard must be independently revertible (one-file
  * delete) without touching delegation-observer's registry/ticket duties (D1).
@@ -10,23 +10,154 @@
  * override exemption (info.override model|agent, event or session.get) and
  * the S2 setup shape probe. Version-sync registration and test-config
  * wiring stay out of the guard file.
+ *
+ * Residual risk (finding 7, verified 2026-09-21 against the vendored
+ * .opencode/oh-my-opencode-slim/dist/index.js): no real --model/agent
+ * marker exists on session.created payloads in OMO 2.2.19 (dist reads
+ * properties.info.{id,parentID,providerID,modelID,model,agent} only; no
+ * info.override key anywhere). The info.override marker stays best-effort
+ * alongside, pinned by T3a/T3b.
  */
 
+import { readFileSync } from "node:fs"
+
 const ENV_KEY = "OH_MY_OPENCODE_SLIM_PRESET"
+const FIRED_CAP = 1000
+
+// Minimal surfaces the guard touches (finding 4). Structural so both the
+// real v2 ctx and the mocked fixture ctx satisfy them. No runtime change.
+interface GuardModel {
+  providerID?: string
+  id?: string
+}
+interface GuardSession {
+  get?: () => Promise<Record<string, unknown>>
+  switchModel?: (input: { sessionID: string; model: { providerID: string; id: string } }) => Promise<unknown>
+}
+interface GuardCtx {
+  client?: { app?: { log?: (input: { body: { service: string; level: string; message: string } }) => Promise<unknown> } }
+  session?: GuardSession
+}
+interface CreatedInput {
+  event?: { type?: string; properties?: { sessionID?: string; info?: { id?: string; model?: GuardModel; override?: string } } }
+}
 
 // D2: in-process fire-once set (sessions are process-scoped; no disk state).
 const fired = new Set<string>()
 
-function parseIntent(raw: string | undefined): { providerID: string; id: string } | undefined {
+function noteFired(sessionID: string): void {
+  // ponytail: FIFO cap, drop oldest (insertion order) if throughput matters use LRU
+  if (fired.size >= FIRED_CAP) {
+    const oldest = fired.values().next()
+    if (!oldest.done) fired.delete(oldest.value)
+  }
+  fired.add(sessionID)
+}
+
+function splitRef(ref: string): { providerID: string; id: string } | undefined {
+  const trimmed = ref.trim()
+  if (!trimmed) return undefined
+  const slash = trimmed.indexOf("/")
+  // FALSIFICATION-2 strict split: exactly one slash, both sides non-empty.
+  // Multi-slash (provider/model/extra) is unparsable, never forwarded.
+  if (slash <= 0 || slash === trimmed.length - 1) return undefined
+  if (trimmed.indexOf("/", slash + 1) !== -1) return undefined
+  const providerID = trimmed.slice(0, slash).trim()
+  const id = trimmed.slice(slash + 1).trim()
+  if (!providerID || !id || providerID.includes("/") || id.includes("/")) return undefined
+  return { providerID, id }
+}
+
+function stripJsoncComments(text: string): string {
+  let out = ""
+  let i = 0
+  let inString = false
+  let escaped = false
+  while (i < text.length) {
+    const ch = text[i]
+    const next = text[i + 1]
+    if (inString) {
+      out += ch
+      if (escaped) escaped = false
+      else if (ch === "\\") escaped = true
+      else if (ch === '"') inString = false
+      i += 1
+      continue
+    }
+    if (ch === '"') {
+      inString = true
+      out += ch
+      i += 1
+      continue
+    }
+    if (ch === "/" && next === "/") {
+      while (i < text.length && text[i] !== "\n") i += 1
+      continue
+    }
+    if (ch === "/" && next === "*") {
+      i += 2
+      while (i < text.length && !(text[i] === "*" && text[i + 1] === "/")) i += 1
+      i += 2
+      continue
+    }
+    out += ch
+    i += 1
+  }
+  return out
+}
+
+// Preset-NAME lookup (finding 1): slash-less env resolves via
+// presets[<name>].orchestrator.model first array entry, read live at
+// runtime so config edits track without a guard change. Any failure
+// (missing file, bad JSON, missing preset, unusable ref) returns
+// undefined and the caller treats it as unparsable one-log no-op.
+async function resolvePresetName(name: string): Promise<{ providerID: string; id: string } | undefined> {
+  const key = name.trim()
+  if (!key || key.includes("/")) return undefined
+  const candidates: Array<URL | string> = []
+  try {
+    // Primary: alongside the plugin dir (works in both runtimes).
+    candidates.push(new URL("../oh-my-opencode-slim.jsonc", import.meta.url))
+  } catch {
+    // import.meta.url unavailable: fall through to cwd candidates.
+  }
+  // Fallbacks for test harnesses and odd cwd layouts (each tried in
+  // order, failures ignored).
+  candidates.push(
+    "file:///workspace/.opencode/oh-my-opencode-slim.jsonc",
+    ".opencode/oh-my-opencode-slim.jsonc",
+    "../oh-my-opencode-slim.jsonc",
+    "../../oh-my-opencode-slim.jsonc",
+  )
+  let text: string | undefined
+  for (const cand of candidates) {
+    try {
+      text = readFileSync(cand, "utf-8")
+      break
+    } catch {
+      text = undefined
+    }
+  }
+  if (text === undefined) return undefined
+  try {
+    const config = JSON.parse(stripJsoncComments(text)) as {
+      presets?: Record<string, { orchestrator?: { model?: string | string[] } }>
+    }
+    const entry = config?.presets?.[key]?.orchestrator?.model
+    const ref = Array.isArray(entry) ? entry[0] : entry
+    if (typeof ref !== "string") return undefined
+    return splitRef(ref)
+  } catch {
+    return undefined
+  }
+}
+
+async function parseIntent(raw: string | undefined): Promise<{ providerID: string; id: string } | undefined> {
   if (!raw) return undefined
   const trimmed = raw.trim()
   if (!trimmed) return undefined
-  const slash = trimmed.indexOf("/")
-  if (slash <= 0 || slash === trimmed.length - 1) return undefined
-  const providerID = trimmed.slice(0, slash).trim()
-  const id = trimmed.slice(slash + 1).trim()
-  if (!providerID || !id) return undefined
-  return { providerID, id }
+  if (trimmed.includes("/")) return splitRef(trimmed)
+  return resolvePresetName(trimmed)
 }
 
 function sameModel(
@@ -37,16 +168,18 @@ function sameModel(
   return a.providerID === b.providerID && a.id === b.id
 }
 
-async function logLine(ctx: any, message: string, level = "info"): Promise<void> {
+async function logLine(ctx: GuardCtx, message: string, level = "info"): Promise<void> {
   try {
+    // Shape verified against OMO 2.2.19 dist appLog (finding 6):
+    // ctx.client.app.log({ body: { service, level, message } }).
     await ctx?.client?.app?.log?.({ body: { service: "preset-model-guard", level, message } })
   } catch {
     // Logging never breaks session creation.
   }
 }
 
-async function server(ctx: any): Promise<{ event: (input: any) => Promise<void> }> {
-  async function event(input: any): Promise<void> {
+async function server(ctx: GuardCtx): Promise<{ event: (input: CreatedInput) => Promise<void> }> {
+  async function event(input: CreatedInput): Promise<void> {
     try {
       const ev = input?.event
       if (!ev || ev.type !== "session.created") return
@@ -63,14 +196,15 @@ async function server(ctx: any): Promise<{ event: (input: any) => Promise<void> 
       if (eventOverride == null) {
         try {
           const current = await ctx?.session?.get?.()
-          const mirrored = current?.override ?? current?.info?.override
+          const mirrored = (current as { override?: string; info?: { override?: string } } | undefined)?.override
+            ?? (current as { info?: { override?: string } } | undefined)?.info?.override
           if (mirrored === "model" || mirrored === "agent") return
         } catch {
           // Fail-open: an unreadable session falls through to the act path.
         }
       }
 
-      const intent = parseIntent(process.env[ENV_KEY])
+      const intent = await parseIntent(process.env[ENV_KEY])
       if (!intent) {
         // Env absent/empty/unparsable: no-op (unparsable logs one line).
         const raw = process.env[ENV_KEY]
@@ -86,16 +220,27 @@ async function server(ctx: any): Promise<{ event: (input: any) => Promise<void> 
       if (!newborn) {
         try {
           const current = await ctx?.session?.get?.()
-          newborn = current?.model ?? current?.info?.model
+          newborn = (current as { model?: GuardModel; info?: { model?: GuardModel } } | undefined)?.model
+            ?? (current as { info?: { model?: GuardModel } } | undefined)?.info?.model
         } catch {
           return
         }
       }
       if (sameModel(newborn, intent)) return
       if (fired.has(sessionID)) return
+      // Event-time shape drift (finding 2): without switchModel on the
+      // session surface there is nothing to call. Log exactly one line and
+      // return WITHOUT consuming fired, so a later well-formed event for
+      // the same session can still act.
+      if (typeof ctx?.session?.switchModel !== "function") {
+        await logLine(ctx, `[preset-model-guard] shape drift: session.switchModel absent, leaving session ${sessionID} untouched`)
+        return
+      }
       // Recorded BEFORE the call so a throwing first attempt still blocks
       // duplicates: no retry by design (spec fail-soft requirement).
-      fired.add(sessionID)
+      // Sync check-then-add with no await between: concurrent dispatches
+      // in one tick stay atomic via run-to-completion (T5c).
+      noteFired(sessionID)
 
       try {
         await ctx?.session?.switchModel?.({ sessionID, model: { providerID: intent.providerID, id: intent.id } })
@@ -111,7 +256,7 @@ async function server(ctx: any): Promise<{ event: (input: any) => Promise<void> 
   return { event }
 }
 
-async function setup(ctx: any): Promise<void> {
+async function setup(ctx: GuardCtx): Promise<void> {
   // D4 shape probe (S2): without switchModel on the v2 session surface (v1
   // runtime or shape drift) the guard registers nothing and degrades to a
   // no-op with exactly one log line. A present switchModel needs no action

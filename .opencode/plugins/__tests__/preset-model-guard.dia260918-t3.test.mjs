@@ -49,114 +49,46 @@
  * switchModel try/catch early; they pin that behavior so T4 keeps it green.
  */
 import { test, expect, describe, beforeEach, afterEach } from "bun:test"
-import { createTempWorkspace, mockOpencodePlugin } from "./helpers/plugin-harness.mjs"
+import { mockOpencodePlugin } from "./helpers/plugin-harness.mjs"
+import {
+  ENV_KEY,
+  INTENT_REF,
+  INTENT_MODEL,
+  DIVERGENT_MODEL,
+  snapshotEnv,
+  restoreEnv,
+  createCleanupTracker,
+  createGuardHandle,
+  makeTempDir,
+  makeGuardCtx,
+  createdEvent,
+} from "./helpers/preset-model-guard-fixture.mjs"
 
 mockOpencodePlugin()
 
-const ENV_KEY = "OH_MY_OPENCODE_SLIM_PRESET"
-const INTENT_REF = "test-provider/test-intent-model"
-const INTENT_MODEL = { providerID: "test-provider", id: "test-intent-model" }
-const DIVERGENT_MODEL = { providerID: "other-provider", id: "other-model" }
-
-const workspaceCleanups = []
+// Shared harness lives in helpers/preset-model-guard-fixture.mjs (T5
+// extraction); payloads and call shapes here are unchanged.
+const workspaces = createCleanupTracker()
 let savedEnv
 
 beforeEach(() => {
-  savedEnv = process.env[ENV_KEY]
+  savedEnv = snapshotEnv()
 })
 
 afterEach(() => {
-  if (typeof savedEnv === "undefined") delete process.env[ENV_KEY]
-  else process.env[ENV_KEY] = savedEnv
-  while (workspaceCleanups.length) {
-    const fn = workspaceCleanups.pop()
-    try {
-      fn()
-    } catch {
-      // best-effort temp cleanup only
-    }
-  }
+  restoreEnv(savedEnv)
+  workspaces.drain()
 })
 
-// The guard exists since T2 GREEN; keep the guarded import so a missing
-// module still reports as per-test RED failures instead of a load error.
-let guardMod = null
-let guardLoadError = null
-try {
-  guardMod = await import("../preset-model-guard.ts")
-} catch (err) {
-  guardLoadError = err
-}
-
-function requireGuard() {
-  if (guardLoadError) {
-    throw new Error(`RED: preset-model-guard.ts not loadable: ${guardLoadError.message}`)
-  }
-  return guardMod
-}
-
-// Mocked v2 ctx. opts: override marker ("model" | "agent" | undefined),
-// switchImpl to replace the switchModel spy body (e.g. throwing), logCalls
-// array to capture client.app.log lines. No real client, no I/O.
-async function makeGuardCtx(sessionID, newbornModel, opts = {}) {
-  const { directory, cleanup } = createTempWorkspace("dia260918-t3-")
-  workspaceCleanups.push(cleanup)
-  const switchModelCalls = []
-  const logCalls = opts.logCalls ?? []
-  const override = opts.override
-  const switchImpl =
-    opts.switchImpl ??
-    (async (arg) => {
-      switchModelCalls.push(arg)
-      return {}
-    })
-  const ctx = {
-    directory,
-    client: {
-      app: {
-        log: async (arg) => {
-          logCalls.push(arg)
-          return {}
-        },
-      },
-    },
-    session: {
-      get: async () => ({ id: sessionID, model: newbornModel, override }),
-      switchModel: async (arg) => switchImpl(arg),
-    },
-  }
-  return { ctx, switchModelCalls, logCalls }
-}
-
-// Resolve the {event} hooks from either accepted export spelling: a plain
-// v1 factory, or the dual-runtime {id, server, setup} object via server().
-async function loadHooks(ctx) {
-  const mod = requireGuard()
-  const def = mod.default ?? mod
-  if (typeof def === "function") return await def(ctx)
-  if (def && typeof def.server === "function") return await def.server(ctx)
-  throw new Error("RED: guard must default-export a factory or {id,server,setup} with server()")
-}
-
-// session.created payload; the override marker rides at info.override and
-// the newborn model at info.model (session.get mirrors both).
-function createdEvent(sessionID, model, override) {
-  return {
-    event: {
-      type: "session.created",
-      properties: {
-        sessionID,
-        info: { id: sessionID, model, override },
-      },
-    },
-  }
-}
+// Guard handle (import + hooks resolver) comes from the shared fixture;
+// T3e also needs requireGuard for the S2 setup probe.
+const { requireGuard, loadHooks } = await createGuardHandle()
 
 describe("DIA-260918-ok9m T3: exemption, fire-once, failure survival, probe", () => {
   test("T3a divergent + env + explicit --model override makes zero switchModel calls", async () => {
     process.env[ENV_KEY] = INTENT_REF
     const sessionID = "ses_t3a_model_override"
-    const { ctx, switchModelCalls } = await makeGuardCtx(sessionID, DIVERGENT_MODEL, {
+    const { ctx, switchModelCalls } = await makeGuardCtx(workspaces, sessionID, DIVERGENT_MODEL, {
       override: "model",
     })
     const hooks = await loadHooks(ctx)
@@ -167,7 +99,7 @@ describe("DIA-260918-ok9m T3: exemption, fire-once, failure survival, probe", ()
   test("T3b divergent + env + explicit agent-model override makes zero switchModel calls", async () => {
     process.env[ENV_KEY] = INTENT_REF
     const sessionID = "ses_t3b_agent_override"
-    const { ctx, switchModelCalls } = await makeGuardCtx(sessionID, DIVERGENT_MODEL, {
+    const { ctx, switchModelCalls } = await makeGuardCtx(workspaces, sessionID, DIVERGENT_MODEL, {
       override: "agent",
     })
     const hooks = await loadHooks(ctx)
@@ -178,7 +110,7 @@ describe("DIA-260918-ok9m T3: exemption, fire-once, failure survival, probe", ()
   test("T3c duplicate session.created for same ID switches exactly once total", async () => {
     process.env[ENV_KEY] = INTENT_REF
     const sessionID = "ses_t3c_duplicate"
-    const { ctx, switchModelCalls } = await makeGuardCtx(sessionID, DIVERGENT_MODEL)
+    const { ctx, switchModelCalls } = await makeGuardCtx(workspaces, sessionID, DIVERGENT_MODEL)
     const hooks = await loadHooks(ctx)
     await hooks.event(createdEvent(sessionID, DIVERGENT_MODEL))
     await hooks.event(createdEvent(sessionID, DIVERGENT_MODEL))
@@ -193,7 +125,7 @@ describe("DIA-260918-ok9m T3: exemption, fire-once, failure survival, probe", ()
     const sessionID = "ses_t3d_throwing"
     const switchModelCalls = []
     const logCalls = []
-    const { ctx } = await makeGuardCtx(sessionID, DIVERGENT_MODEL, {
+    const { ctx } = await makeGuardCtx(workspaces, sessionID, DIVERGENT_MODEL, {
       logCalls,
       switchImpl: async (arg) => {
         switchModelCalls.push(arg)
@@ -216,8 +148,7 @@ describe("DIA-260918-ok9m T3: exemption, fire-once, failure survival, probe", ()
     const mod = requireGuard()
     const def = mod.default ?? mod
     expect(typeof def.setup).toBe("function")
-    const { directory, cleanup } = createTempWorkspace("dia260918-t3e-")
-    workspaceCleanups.push(cleanup)
+    const directory = makeTempDir(workspaces, "dia260918-t3e-")
     const logCalls = []
     // v1-shaped ctx: session surface exists but switchModel is absent.
     const probeCtx = {
