@@ -1145,3 +1145,15 @@
 - **Change:** Variant B muse-balanced retarget plus F6 header truth: hardcoded promo preset tuples retargeted to muse-balanced, drift gate default + fixtures + workspace bats updated, 8-space indent fixed to 4-space, headers now state true 4-preset inventory with promo-union-alpha + free explicitly unaudited
 - **Files:** scripts/test-interview-enforcement.sh - scripts/check-orchestrator-prompt-drift.sh - scripts/__tests__/check-orchestrator-prompt-drift.bats - scripts/__tests__/workspace-preset-selection.bats - .opencode/oh-my-opencode-slim.jsonc
 - **Verification:** manual
+
+## 2026-09-21 - DIA-260918-ok9m: config
+
+- **Change:** S3 revert closeout: O2 NO-GO, S3 stripOrchestratorModel applied then reverted per ai-auditor F4 inert-under-all-presets, S1 spike queued, res-260921-qivl conspect shelf 47, investigation-only close
+- **Files:** .opencode/oh-my-opencode-slim.jsonc
+- **Verification:** manual
+
+## 2026-09-21 - DIA-260918-ok9m: s
+
+- **Change:** S1 switchModel guard GREEN-B + cycle2 rev-1 fixes + tiny docs (11/11 pass, test-config PASS, rev-1 4/4 + rev-2 4/4)
+- **Files:** .opencode/plugins/preset-model-guard.ts - openspec/changes/dia-260918-ok9m-s1-switchmodel-guard/specs/session-created-model-guard/spec.md - openspec/changes/dia-260918-ok9m-s1-switchmodel-guard/design.md
+- **Verification:** manual

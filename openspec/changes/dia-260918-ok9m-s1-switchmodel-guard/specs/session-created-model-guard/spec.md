@@ -18,7 +18,7 @@ The system SHALL call switchModel exactly once for a newborn session whose model
 
 The system SHALL NOT call switchModel when the newborn session carries the synthetic explicit-override marker.
 
-Scope limit (rev-1 Critical): the marker is best-effort synthetic ONLY. A real --model flag or agent-model selection carries NO marker on session.created payloads in OMO 2.2.19 (verified against the vendored dist: zero info.override hits), so real --model sessions are NOT exempt and a divergent real---model newborn IS switched. The spec promises nothing the payload does not carry.
+Scope limit (rev-1 Critical): the marker is best-effort synthetic ONLY. A real --model flag or agent-model selection carries NO marker on session.created payloads in OMO 2.2.19 (verified against the vendored dist: zero info.override hits), so real --model sessions are NOT exempt and a divergent real --model newborn IS switched. The spec promises nothing the payload does not carry.
 
 #### Scenario: Synthetic explicit-override marker is exempt
 
