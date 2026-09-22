@@ -326,6 +326,7 @@
 | DIA-260920-cry5 | Bun 1.3.14 segfault + illegal instruction in opencode sub-agent process | docker | Major | OPEN | [DIA-260920-cry5-bun-1-3-14-segfault-illegal-instruction-in-opencode-sub-agent-process.md](DIA-260920-cry5-bun-1-3-14-segfault-illegal-instruction-in-opencode-sub-agent-process.md) |
 | DIA-260920-ffuj | docker auto-start fails inside WSL2 Ubuntu - docker-desktop Stopped | docker | Major | OPEN | [DIA-260920-ffuj-docker-auto-start-fails-inside-wsl2-ubuntu-docker-desktop-stopped.md](DIA-260920-ffuj-docker-auto-start-fails-inside-wsl2-ubuntu-docker-desktop-stopped.md) |
 | DIA-260920-jh6q | host gate environment drift rust-analyzer version bun missing docker unavailable | scripts | Major | OPEN | [DIA-260920-jh6q-host-gate-environment-drift-rust-analyzer-version-bun-missing-docker-unavailable.md](DIA-260920-jh6q-host-gate-environment-drift-rust-analyzer-version-bun-missing-docker-unavailable.md) |
+| DIA-260922-cp0m | Re-audit container topology: single merged container vs split containers for two divergent dev workflows | docker | Major | OPEN | [DIA-260922-cp0m-re-audit-container-topology-single-merged-container-vs-split-containers-for-two-divergent-dev-workflows.md](DIA-260922-cp0m-re-audit-container-topology-single-merged-container-vs-split-containers-for-two-divergent-dev-workflows.md) |
 
 ## Status summary
 
@@ -333,7 +334,7 @@
 | -------- | ----- |
 | Blocker  | 9     |
 | Critical | 16    |
-| Major    | 77    |
+| Major    | 78    |
 | Medium   | 168   |
 | Minor    | 1     |
 | Low      | 31    |
@@ -342,7 +343,7 @@
 
 | Status      | Count |
 | ----------- | ----- |
-| OPEN        | 82    |
+| OPEN        | 83    |
 | DONE        | 4     |
 | VALIDATE    | 0     |
 | E2E         | 0     |

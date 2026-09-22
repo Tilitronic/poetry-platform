@@ -75,6 +75,47 @@ ACCEPTANCE CRITERIA:
 3. Reliability/low-maintenance comparison (merged vs split)
 4. Recommendation with trade-offs (keep merged / revert to split / hybrid)
 
+---
+
+## Audit + Verification Findings (2026-09-22)
+
+VERDICT: PARTLY justified. The premise "two containers merged into one" is IMPRECISE: docker-compose.yml has exactly two services (dev, postgres) and postgres has ALWAYS been separate. The real consolidation was of two DEV IMAGES (Dockerfile.dev vs tools/opencode-docker), and it is INCOMPLETE.
+
+### Evidence-cited topology
+
+- Live `docker compose ps`: 2 services only (dev Up 4 days, postgres Up 4 days).
+- All 7 cited commit hashes VERIFIED (arc-1 ses_f37a6b044ffer0rrVC9eHFBfFP).
+- Legacy runtime still present: tools/opencode-docker/ directory retained; gated by `make test-opencode-docker`.
+- OPENCODE_VERSION DIVERGED: Dockerfile.dev has 1.18.32; tools/opencode-docker/Dockerfile has 1.18.4.
+- check-pin-sync.sh does 4 comparisons (node/pnpm x 2 Dockerfiles).
+- opencode install block at Dockerfile.dev:143-160; 13 RUN layers follow it; image 9.17GB.
+- No CHANGELOG entry for DIA-260821-x5nj.
+- DIA-260821-x5nj: OPEN (planning only). DIA-260824-8k62 (retire legacy): OPEN, blocked on 5 tickets.
+
+### Windows/WSL-host workflow load-bearing assessment
+
+- Load-bearing: postgres, the dev container as DIA-094 pre-commit delegation target, and the test/toolchain executor.
+- NOT load-bearing: the baked opencode binary, OMO cache, make opencode, and the opencode-keyed healthcheck.
+
+### DECISION (developer, 2026-09-22)
+
+Variant 3 - keep ONE dev-toolchain container plus the separate stateful postgres; FINISH the merge rather than revert. Rationale: the drift problem is real and recurring; the security boundary was already consciously traded by the DIA-260824-iirx decisions; one image + one pin source is strictly lower maintenance.
+
+### ACCEPTED FOLLOW-UPS
+
+1. Retire tools/opencode-docker + delete docker-compose.fedora.yml and drop test-opencode-docker from test-shell.
+2. Consolidate pins to one edit site.
+3. Move the opencode install block to the last Docker layer (highest-value reliability win).
+4. Decouple the dev healthcheck from opencode.
+5. Resolve the Docker-CLI contradiction (x5nj T0.9 vs Dockerfile.dev:82-112).
+6. ADR persisted in .sdd/dev-infra/architecture.md (ADR 11, container topology).
+
+## Re-verify
+
 ## Re-verify
 
 > To be filled at re-verify time.
+
+- ADR 11 persisted in .sdd/dev-infra/architecture.md (container topology decision).
+- Follow-ups tracked: 5 concrete items to finish the merge (retire legacy, consolidate pins, move opencode block, decouple healthcheck, resolve Docker-CLI contradiction).
+- Status: OPEN (merge not yet finished; OPENCODE_VERSION diverged; legacy still present).

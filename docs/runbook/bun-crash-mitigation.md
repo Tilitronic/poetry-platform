@@ -79,8 +79,8 @@ restart wrapper would become useful and should be revisited then.
 
 Bun is pinned in TWO Dockerfiles. Both must stay in lockstep:
 
-- `Dockerfile.dev:34` -- `ARG BUN_VERSION=1.3.14` (dev workstation image).
-- `tools/opencode-docker/Dockerfile:8` -- `ARG BUN_VERSION=1.3.14`
+- `Dockerfile.dev:35` -- `ARG BUN_VERSION=1.4.2` (dev workstation image).
+- `tools/opencode-docker/Dockerfile:8` -- `ARG BUN_VERSION=1.4.2`
   (opencode-docker image).
 
 Rules:
@@ -93,7 +93,7 @@ Rules:
 - When a bump IS approved: change both ARG lines to the same version,
   rebuild both images, run `bun --version` in each rebuilt image plus the
   standard pre-commit/config gates, and record the new version in the ticket.
-- Until then: 1.3.14 stays pinned. This runbook mitigates operationally
+- Until then: 1.4.2 stays pinned. This runbook mitigates operationally
   around the pinned version.
 
 ## 4a. Version landscape (updated 2026-09-20)

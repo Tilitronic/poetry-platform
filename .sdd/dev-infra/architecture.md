@@ -91,20 +91,33 @@ This document defines the architectural boundaries and operational mechanics of 
 - **Consequences:** Fresh clones can run the full config gate without re-materialization; the suite ships with the repo and its drift is caught by the assertions themselves. Supersedes design.md DD2's "gitignored, recreate per session" decision.
 - **Alternatives Considered:** Keep gitignored + add a Makefile existence check (rejected: silently skips the suite on fresh clone, weakening the gate); keep the suite in /tmp (rejected - the DIA-172 problem this suite was created to fix).
 
+### ADR 11: Container Topology - One Dev-Toolchain Container + One Stateful Postgres
+
+- **Status:** Accepted (supersedes the two-dev-image topology; refines DIA-260821-x5nj and ana025 Variant C)
+- **Context:** Two developer workflows must share one repository: (a) Linux-in-container (runs make opencode / docker compose exec dev), and (b) Windows/WSL-host (runs opencode on the WSL host; uses the container only as the postgres host and the DIA-094 delegated test/lint executor). The legacy topology shipped two divergent dev images (Dockerfile.dev and tools/opencode-docker/Dockerfile) with drifted OpenCode pins and duplicated toolchain pins. ana023/ana024 documented the duplication; ana025 recommended keeping both runtime boundaries and deduplicating pins (Variant C). DIA-260821-x5nj instead selected a unified image (Dockerfile.dev), with DIA-260824-iirx grilling decisions removing the engine socket and Docker CLI, and DIA-260824-8k62 gating retirement of the legacy image.
+- **Decision:** The development stack consists of exactly one writable dev-toolchain container (dev, image poetry-platform-dev built from Dockerfile.dev) plus one stateful database container (postgres, named volume pgdata). The dev image carries the full toolchain and the in-container opencode binary needed by the Linux workflow. Engine differences (Podman keep-id vs rootless Docker) are expressed only as compose overlays selected by scripts/compose-env.sh; OS differences as an optional WSL overlay. The legacy tools/opencode-docker runtime is retired after acceptance (DIA-260824-8k62); no second dev image is maintained.
+- **Consequences:** Database state is isolated from dev-image rebuilds by service and named-volume boundaries; a dev rebuild cannot destroy pgdata. The Windows/WSL-host developer does not depend on the container opencode binary; their crash exposure is host-side and unaffected by image rebuilds. Shared tool pins must have exactly one edit site; parity is enforced by a gate (check-pin-sync.sh family). The duplication that required dual BUN bumps is removed with the legacy image. The read-only/capability-dropped interactive boundary described in ana025 is intentionally not preserved; it was traded for drift elimination under the DIA-260824-iirx decisions. The dev healthcheck must not depend on the opencode binary, since one workflow never uses it.
+- **Alternatives Considered:** Revert to two dev images (ana025 Variant C) - rejected: reintroduces the version drift that motivated the change and raises maintenance. Merge everything including postgres into one container - rejected: would couple durable state to dev-image lifecycle and rebuilds. Merge into the hardened opencode-docker image (ana025 Variant A) - rejected: high migration/security risk; loses the app toolchain and postgres network modeling.
+
+#### Implementation status (2026-09-22)
+
+Decision ACCEPTED by the developer. The merge is NOT yet finished: OPENCODE_VERSION is currently DIVERGED between the two Dockerfiles (1.18.32 in Dockerfile.dev vs 1.18.4 in tools/opencode-docker/Dockerfile, verified live), DIA-260821-x5nj remains planning-only, and DIA-260824-8k62 (retire legacy) is OPEN and blocked on 5 tickets. Accepted follow-ups: retire the legacy runtime, consolidate pins to one edit site, move the opencode install block (Dockerfile.dev:143-160) to the LAST layer (13 RUN layers currently follow it; image is 9.17GB), decouple the dev healthcheck from opencode, and resolve the Docker-CLI contradiction (x5nj T0.9 vs Dockerfile.dev:82-112).
+
 ## Traceability Table
 
-| ADR | Topic                     | Origin Ticket        | Implementation Evidence                                                   |
-| --- | ------------------------- | -------------------- | ------------------------------------------------------------------------- |
-| 1   | Worktrees-Only Model      | DIA-073, DIA-100     | `scripts/worktrees.sh`                                                    |
-| 2   | Branch Naming             | DIA-074, DIA-100     | `validate_branch` in `scripts/worktrees.sh`                               |
-| 3   | Squash-Merge Strategy     | DIA-100              | `docs/dev-infra-audit/worktree-conventions.md`                            |
-| 4   | Session Isolation         | DIA-100              | `cmd_create` isolation check in `worktrees.sh`                            |
-| 5   | DIA-096 Boundary          | DIA-096, DIA-100     | `cmd_remove` force guard in `worktrees.sh`                                |
-| 6   | Conflict Escalation       | DIA-100              | `worktree-conventions.md`                                                 |
-| 7   | Worktree Location         | DIA-100              | `WORKTREES_DIR` default in `worktrees.sh`                                 |
-| 8   | Bash-3 / Remote Bounds    | DIA-100              | `timeout 5 git ls-remote` in `worktrees.sh`                               |
-| 9   | Worktree Husky Shim       | DIA-174              | `cmd_create` husky shim copy in `worktrees.sh`                            |
-| 10  | Batch-D Suite Persistence | DIA-174 DD2, DIA-176 | `scripts/__tests__/batch-d-infra.test.mjs` (tracked) + `make test-config` |
+| ADR | Topic                     | Origin Ticket                    | Implementation Evidence                                                   |
+| --- | ------------------------- | -------------------------------- | ------------------------------------------------------------------------- |
+| 1   | Worktrees-Only Model      | DIA-073, DIA-100                 | `scripts/worktrees.sh`                                                    |
+| 2   | Branch Naming             | DIA-074, DIA-100                 | `validate_branch` in `scripts/worktrees.sh`                               |
+| 3   | Squash-Merge Strategy     | DIA-100                          | `docs/dev-infra-audit/worktree-conventions.md`                            |
+| 4   | Session Isolation         | DIA-100                          | `cmd_create` isolation check in `worktrees.sh`                            |
+| 5   | DIA-096 Boundary          | DIA-096, DIA-100                 | `cmd_remove` force guard in `worktrees.sh`                                |
+| 6   | Conflict Escalation       | DIA-100                          | `worktree-conventions.md`                                                 |
+| 7   | Worktree Location         | DIA-100                          | `WORKTREES_DIR` default in `worktrees.sh`                                 |
+| 8   | Bash-3 / Remote Bounds    | DIA-100                          | `timeout 5 git ls-remote` in `worktrees.sh`                               |
+| 9   | Worktree Husky Shim       | DIA-174                          | `cmd_create` husky shim copy in `worktrees.sh`                            |
+| 10  | Batch-D Suite Persistence | DIA-174 DD2, DIA-176             | `scripts/__tests__/batch-d-infra.test.mjs` (tracked) + `make test-config` |
+| 11  | Container Topology        | DIA-260922-cp0m, DIA-260821-x5nj | `Dockerfile.dev` + `docker-compose.yml` (two services: dev, postgres)     |
 
 ## Module Boundaries
 
