@@ -3099,3 +3099,5 @@ verification evidence (DIA-260909-csds, 2026-09-09)
   container image rebuild (bun 1.4.2 / opencode 1.18.32) is still correct for
   Linux container sessions but is orthogonal for Windows users.
 - Cross-reference: DIA-260920-cry5 (Fix section), ses_f37b8d93dffeCt29mlT42pi2n2.
+
+- Distinguish a real Bun crash from an opencode self-update restart (2026-09-22): opencode self-updates (always-on, no config toggle). A self-update restart looks like a crash to the user: the session dies and the version changes. Discriminator: crash markers (`Bun has crashed`, `Segmentation fault`, `Illegal instruction`, bun.report URL, stack napi_module_register/process_dlopen) + clean dmesg + empty /var/crash + no core dumps = NOT a crash; presence of `upgraded method=curl target=` plus a new `creating instance` run id = self-update. Do not file or escalate a crash ticket without this check. Cross-reference DIA-260920-cry5 and ses_f377d6331ffeDBVEpwc5FT2Ehl.

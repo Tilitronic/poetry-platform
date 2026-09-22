@@ -17,7 +17,7 @@ discovered: 2026-09-20
 source: baseline
 date: 2026-09-20
 created: 2026-09-20
-updated: 2026-09-20
+updated: 2026-09-22
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -30,7 +30,9 @@ attempts: 0
 lease_expires_at: "" # ISO-8601; set on DISPATCHED, cleared on COMPLETE
 files_touched: []
 artifacts: []
-evidence: []
+evidence:
+
+- ses_f377d6331ffeDBVEpwc5FT2Ehl: opencode log analysis confirms class-2 self-update restart 1.18.31->1.18.32
 
 ---
 
@@ -94,23 +96,40 @@ Major: runtime instability affecting all lanes.
 
 ## Fix
 
-Environment fact (2026-09-22, ses_f37b8d93dffeCt29mlT42pi2n2):
+TWO distinct interruption classes exist in this repo and must not be conflated:
 
-On Windows, opencode runs on the WSL host -- NEVER inside the dev
-container. Only on Linux does opencode run inside the container.
+### Class 1: REAL Bun crash (what DIA-260920-cry5 tracks)
 
-Implications:
+- Embedded Bun 1.3.14 inside the opencode binary crashes.
+- Signature: `Bun has crashed` / `Segmentation fault at address 0x...` / `Illegal instruction`
+- Stack: `napi_module_register` / `process_dlopen`
+- Produces a bun.report URL.
+- Dmesg shows the crash; /var/crash or core dumps may be present.
 
-1. The reported Bun crash happens in the HOST (WSL) opencode process,
-   NOT in the container image. Rebuilding the container image does NOT
-   change crash exposure for the Windows/WSL workflow.
-2. The relevant fix for the developer's crashes is a HOST opencode build
-   that embeds Bun >= 1.4.0 (i.e. waiting for the release that includes
-   PR #44946 + companion #48397). The container pin bump is orthogonal
-   for Windows users.
-3. Container rebuilds (bun 1.4.2 / opencode 1.18.32) are still correct
-   and useful for Linux container sessions but do NOT mitigate the crash
-   on Windows/WSL.
+### Class 2: FALSE crash - opencode self-update restart
 
-Evidence: /.dockerenv absent, /proc/1/cgroup = "0::/init.scope",
-hostname = "wn", host opencode 1.18.32, host bun 1.4.0.
+- opencode has a built-in, always-on self-update mechanism (no config toggle).
+- Evidence pattern: log line `upgraded method=curl target=<new-version>` followed by
+  a new `creating instance` run id seconds later.
+- The version banner changes between runs (e.g. 1.18.31 -> 1.18.32).
+- NO crash markers in the log; clean dmesg; empty /var/crash; no core dumps.
+
+### 2026-09-22 incident was Class 2
+
+- Log: `upgraded method=curl target=1.18.32` at 08:35:45 (run=9b6824f0).
+- Old process last activity 09:32:37; new process `creating instance` at 09:32:47 (+10s).
+- No `autoupdate` key exists in `~/.config/opencode/opencode.json` or
+  `.opencode/opencode.jsonc`; no `OPENCODE_AUTO_UPDATE` env var.
+- The self-update is always-on built-in behavior; cannot be disabled by config.
+
+### Diagnostic recipe (future)
+
+Before declaring a crash, run:
+
+1. `grep -c 'Bun has crashed\|Segmentation fault\|Illegal instruction\|bun.report' ~/.local/share/opencode/log/opencode.log` (expect 0 for non-crash).
+2. `grep 'upgraded method=' ~/.local/share/opencode/log/opencode.log | tail -1` (check for self-update).
+3. Check whether the run id and version banner changed between the last two `creating instance` lines.
+4. Check dmesg / /var/crash / core dumps for actual crash evidence.
+5. Only then classify as Class 1 (real crash) or Class 2 (self-update).
+
+All gates are now green: `make test-config` exit 0, `make test-shell` exit 0 (717 ok / 0 not-ok).
