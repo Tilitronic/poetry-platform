@@ -6,7 +6,7 @@ id: DIA-260824-ifcf
 title: "persistent developer Git identity and config propagation for unified poetry-dev workstation"
 area: git-hooks
 severity: Medium
-status: OPEN
+status: CLOSED
 blocked_by: [DIA-260821-m7vk] # DIA-NNN refs, or empty
 parent_epic: DIA-260824-iirx
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
@@ -17,7 +17,7 @@ discovered: 2026-08-24
 source: inventory
 date: 2026-08-24
 created: 2026-08-24
-updated: 2026-08-24
+updated: 2026-09-22
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -45,7 +45,7 @@ files and line references where known.>
 
 ## Fix
 
-> To be filled at fix time.
+Closed as obsolete placeholder (developer disposition, 2026-09-22). The ticket body was never authored - Description, Verification and Fix are all unfilled stubs; no acceptance criteria or file references exist. Its only blocking edge referenced DIA-260821-m7vk, which is now CLOSED. Re-creatable if the developer git-identity / config-propagation gap reappears.
 
 ## Re-verify
 

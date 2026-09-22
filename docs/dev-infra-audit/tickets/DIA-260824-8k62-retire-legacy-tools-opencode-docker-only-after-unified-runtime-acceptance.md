@@ -7,7 +7,7 @@ title: "retire legacy tools/opencode-docker only after unified-runtime acceptanc
 area: docker
 severity: Medium
 status: OPEN
-blocked_by: [DIA-260821-m7vk, DIA-260821-x5nj, DIA-260821-n8sq, DIA-260821-aoag, DIA-260824-ifcf] # DIA-NNN refs, or empty
+blocked_by: [DIA-260821-x5nj] # DIA-NNN refs, or empty
 parent_epic: DIA-260824-iirx
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
 gate_triggers: [] # new-module | cross-boundary | schema-state | new-public-api | cross-cutting | hard-to-reverse | new-ui-component
@@ -17,7 +17,7 @@ discovered: 2026-08-24
 source: inventory
 date: 2026-08-24
 created: 2026-08-24
-updated: 2026-08-24
+updated: 2026-09-22
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -50,3 +50,13 @@ files and line references where known.>
 ## Re-verify
 
 > To be filled at re-verify time.
+
+## UPDATE 2026-09-22
+
+Blocking edges reduced by developer disposition:
+
+- DIA-260821-m7vk - already CLOSED (blocker cleared).
+- DIA-260821-aoag - already CLOSED (blocker cleared).
+- DIA-260824-ifcf - CLOSED as obsolete placeholder (see that ticket).
+- DIA-260821-n8sq - DECOUPLED by developer disposition 2026-09-22: it is independent scripts/CI test work (its `test-runtime-config` make target is verified ABSENT - `grep -n "test-runtime-config" Makefile` exits 1, no match in scripts/). It stays OPEN as independent work but no longer gates this ticket.
+- DIA-260821-x5nj - RETAINED. Its substantive criteria were verified 6/7 SATISFIED (lane cod-2, session ses_f37350954ffeHKJRXubvEUp1it) against openspec/changes/dia-260821-x5nj-unified-docker-dev-runtime/ and .sdd/dev-infra/architecture.md:94-104 (ADR 11). Criterion (g) 'no Dockerfile/compose/config file modified' is PARTIAL (x5nj-era commits created 4 compose overlays). Formal disposition is pending an analysis report; this edge is retained until that disposition lands.
