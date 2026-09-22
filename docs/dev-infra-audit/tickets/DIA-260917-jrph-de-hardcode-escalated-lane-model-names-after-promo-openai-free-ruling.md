@@ -6,7 +6,7 @@ id: DIA-260917-jrph
 title: "de-hardcode escalated lane model names after promo openai-free ruling"
 area: scripts
 severity: Medium
-status: OPEN
+status: DONE
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: ""
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
@@ -87,3 +87,12 @@ to runtime config, not prompt text. Files:
 >   Residual noted: analyzer-escalated.md line 23 still mentions "GPT-5.6
 >   Luna"; left unticked above pending owner decision. Status stays OPEN per
 >   lane scope.
+
+## Close
+
+> 2026-09-22 bounded close lane (developer approved closure after line-23
+> fix): backfill commit c1ad782 in log (d9c20993 confirmed, test-config
+> 78 PASS, routing-order 36/36, batch-d 57/57) and fix commit deda3db in
+> log (analyzer-escalated.md line 23 reworded model-neutral, grep clean
+> for gpt-5.6/luna/terra in both escalated prompts, test-config exit 0).
+> Status set DONE.
