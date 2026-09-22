@@ -10,85 +10,29 @@
  * F3: Config-work pattern coverage (commands/, rules/)
  * F4: Integration tests simulating full hook control flow
  *
- * Plain node ESM, zero npm deps. No plugin loading needed -- tests the
- * pure logic functions directly.
+ * Plain node ESM, zero npm deps. Imports the REAL production seam
+ * (.opencode/plugins/lib/routing-gate.ts, shared with
+ * delegation-observer.ts) — no local logic copies.
  *
  * Run: node scripts/__tests__/routing-order-gate.test.mjs
+ * Wired into `make test-config` (DIA-260827-uv).
  */
 import { describe, it, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-// --- Config-work path detection regex (extracted from delegation-observer.ts) ---
-// F3: Added .opencode/commands/, .opencode/rules/
-const CONFIG_WORK_PATTERN =
-  /(\.opencode\/plugins\/|\.opencode\/oh-my-opencode-slim|orchestrator_append\.md|\.opencode\/agents\/|\.opencode\/skills\/|\.opencode\/commands\/|\.opencode\/rules\/|opencode\.jsonc|AGENTS\.md|practice-protected\.md)/i;
-
-/**
- * Detect if a dispatch text contains config-work path indicators.
- * Extracted from delegation-observer.ts DIA-230 routing-order gate.
- */
-function isConfigWorkDispatch(dispatchText) {
-  return CONFIG_WORK_PATTERN.test(dispatchText);
-}
-
-/**
- * F2: Scan messages.jsonl for a prior @ai-specialist dispatch in a session.
- * Delegation rows (event_type "delegation") do not carry session_id in their
- * payload, so we match the paracrine dispatch.started signal (DIA-220) which
- * carries both session_id and the agent name.
- * Returns true if any paracrine dispatch.started row for agent "ai-specialist" exists.
- */
-function hasPriorAiSpecialistDispatch(messagesPath, sessionId) {
-  if (!existsSync(messagesPath)) return false;
-  const lines = readFileSync(messagesPath, 'utf-8').split('\n').filter(Boolean);
-  return lines.some((line) => {
-    try {
-      const row = JSON.parse(line);
-      return (
-        row.session_id === sessionId &&
-        row.agent === 'ai-specialist' &&
-        row.event_type === 'paracrine' &&
-        row.signal_type === 'dispatch.started'
-      );
-    } catch {
-      return false;
-    }
-  });
-}
-
-/**
- * Check if a subagent type is a coder variant.
- * Extracted from delegation-observer.ts DIA-230 routing-order gate.
- */
-function isCoderAgent(subagentType) {
-  return subagentType === 'coder' || subagentType === 'coder-escalated';
-}
-
-/**
- * F4: Simulate the full routing-order gate control flow.
- * Returns { violation: boolean, reason: string } describing the outcome.
- * This mirrors the exact logic in delegation-observer.ts tool.execute.before.
- */
-function simulateRoutingGate({ subagentType, dispatchText, messagesPath, sessionId }) {
-  // Only check coder variants
-  if (subagentType !== 'coder' && subagentType !== 'coder-escalated') {
-    return { violation: false, reason: 'not a coder agent' };
-  }
-
-  // Detect config-work paths
-  if (!CONFIG_WORK_PATTERN.test(dispatchText)) {
-    return { violation: false, reason: 'no config-work paths detected' };
-  }
-
-  // Scan messages.jsonl for prior ai-specialist dispatch
-  if (hasPriorAiSpecialistDispatch(messagesPath, sessionId)) {
-    return { violation: false, reason: 'prior @ai-specialist dispatch found' };
-  }
-
-  return { violation: true, reason: 'no prior @ai-specialist dispatch' };
-}
+// --- Production imports (DIA-260827-uv a): single source of truth lives in
+// .opencode/plugins/lib/routing-gate.ts, shared with delegation-observer.ts.
+// No local copies of the pattern, scan, coder check, gate flow, or error text.
+import {
+  isConfigWorkDispatch,
+  hasPriorAiSpecialistDispatch,
+  isCoderAgent,
+  evaluateRoutingGate as simulateRoutingGate,
+  ROUTING_GATE_PREFIX,
+  buildRoutingGateError,
+} from '../../.opencode/plugins/lib/routing-gate.ts';
 
 // Mirrors emitStateSignal's row shape in delegation-observer.ts (DIA-220):
 // paracrine dispatch.started rows carry session_id + agent in the payload,
@@ -426,22 +370,16 @@ describe('DIA-230: Full routing gate simulation (F4)', () => {
   });
 
   it('F4b: ROUTING GATE error prefix matches catch-block re-throw condition', () => {
-    // Verify the routing gate error message starts with "ROUTING GATE:" so it
-    // matches the catch-block re-throw condition alongside "TICKET GATE:".
-    const routingError = new Error(
-      'ROUTING GATE: @coder dispatched on config-work without prior @ai-specialist gate review.\n' +
-        'AGENTS.md section 2.5 requires:\n' +
-        '  1. @ai-specialist gate research -> findings registered\n' +
-        '  2. User reviews & approves findings\n' +
-        '  3. THEN @coder implementation can proceed\n' +
-        'Action: dispatch @ai-specialist first.',
-    );
+    // Verify the PRODUCTION routing gate error starts with "ROUTING GATE:"
+    // so it matches the catch-block re-throw condition alongside
+    // "TICKET GATE:". Uses the real production builder, not a local copy.
+    const routingError = buildRoutingGateError();
 
     const ticketError = new Error('§10 TICKET GATE: no DIA ticket found for config-work dispatch.');
 
     // Both must match the re-throw condition
     assert.ok(
-      routingError.message.startsWith('ROUTING GATE:'),
+      routingError.message.startsWith(ROUTING_GATE_PREFIX),
       'ROUTING GATE: error must start with ROUTING GATE:',
     );
     assert.ok(

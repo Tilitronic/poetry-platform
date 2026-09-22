@@ -6,7 +6,7 @@ id: DIA-260827-uv
 title: "Routing-order regression suite copies logic and is orphaned"
 area: scripts
 severity: Medium
-status: OPEN
+status: DONE
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: DIA-260827-wfcx
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
@@ -17,7 +17,7 @@ discovered: 2026-08-27
 source: baseline
 date: 2026-08-27
 created: 2026-08-27
-updated: 2026-08-27
+updated: 2026-09-22
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -48,6 +48,32 @@ Production gate functions extracted into an importable module; the Node suite te
 
 Extract the routing-order gate functions into an importable module; have the Node suite test those exact exports plus an end-to-end hook case; wire the suite into make test-config.
 
+FIX APPLIED (2026-09-22, bounded implementation lane):
+(a) Import-over-copy: new seam .opencode/plugins/lib/routing-gate.ts exports
+CONFIG_WORK_PATTERN, isConfigWorkDispatch, hasPriorAiSpecialistDispatch,
+isCoderAgent, evaluateRoutingGate, ROUTING_GATE_PREFIX, buildRoutingGateError.
+delegation-observer.ts imports and uses all three (pattern, gate decision,
+error builder); the inline pattern/scan/decision/error-string copies deleted.
+scripts/**tests**/routing-order-gate.test.mjs imports the same seam (Node 24
+strips erasable TS by default); local copies deleted, all 36 tests keep intent.
+(b) Wiring: `node scripts/__tests__/routing-order-gate.test.mjs` added to the
+make test-config recipe (after batch-d-infra.test.mjs).
+(c) Token consistency: stale dcp.jsonc token deleted from BOTH production
+regexes (delegation-observer.ts routing pattern, ticket-gate.ts CONFIG_PATH_RE);
+seam pattern carries no dcp token. Status stays OPEN -- closure is separate approval.
+
 ## Re-verify
 
-> To be filled at re-verify time.
+RE-VERIFY EVIDENCE (2026-09-22):
+
+- node scripts/**tests**/routing-order-gate.test.mjs: exit 0, tests 36 pass 36 fail 0
+- make test-config: exit 0 (suite runs inside it, 36/36)
+- make test-shell: exit 0
+- bun build delegation-observer.ts --target node: exit 0 (11 modules bundled)
+- scripts/validate-plugin-structure.sh: all structural gates PASS
+- grep dcp.jsonc over both production regexes + seam + suite: zero regex hits
+  (only the seam's explanatory comment mentions dcp)
+
+CLOSE (2026-09-22, developer approved): evidence re-confirmed fresh on this
+date -- suite 36/36 exit 0, make test-config exit 0, make test-shell exit 0,
+Makefile wiring + zero-dcp-regex verified. Status OPEN -> DONE.

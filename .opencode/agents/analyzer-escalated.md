@@ -20,7 +20,7 @@ Do NOT dispatch for routine analysis — that is @analyzer's lane.
 
 ## One-Shot Dispatch
 
-Single dispatch per escalation; GPT-5.6 Luna usage is budgeted. On failure, the
+Single dispatch per escalation; escalated-model usage is budgeted. On failure, the
 orchestrator asks the developer via wait_for_user before any further escalation.
 
 ## Runtime Permissions (ground truth — `.opencode/opencode.jsonc`)

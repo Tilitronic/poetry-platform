@@ -655,8 +655,8 @@ Failed-loop lessons & preventive actions
        The fresh lane read the code, confirmed it was correct, and committed
        it.
     4. **Container rebuild**: the pre-commit hook hard-fails when the dev
-       container is down (DIA-094), so the container had to be brought back
-       up and the image rebuilt before commits could proceed.
+    container is down (DIA-094), so the container had to be brought back
+    up and the image rebuilt before commits could proceed.
   - Preventive action: after ANY process-kill (not crash, not session error)
     of a writer lane, follow the same verify-first ordering as for empty
     results (failures.md line 260) and crashed lanes (failures.md line 253):
@@ -672,3 +672,80 @@ Failed-loop lessons & preventive actions
     failures.md line 418 (DIA-260824-a3mk empty-result, state-inspection
     before re-dispatch); lessons.md L20260922-cp0m entries; DIA-094
     (container required for pre-commit).
+
+- Failure mode (2026-09-21, DIA-260918-ok9m): O2 near-miss, recommendation
+  from EMPTY_RESULT lane never independently verified
+  - Symptom: the O2 chat.message model-guard recommendation arrived from a
+    lane that returned EMPTY_RESULT. It was killed at the gate (ai--1:
+    no hook or v1 client method sets model), but only because the gate
+    checked independently. Had the gate trusted the lane, an
+    unimplementable guard would have entered the plan.
+  - Root cause: a recommendation from an EMPTY_RESULT lane was treated as
+    content before its provenance was checked. Empty result means no
+    verifiable work product backs the claim.
+  - Preventive action: never act on a recommendation from an EMPTY_RESULT
+    lane without independent verification of its core factual claim
+    (here: does the hook/method exist). Verify-first, then plan.
+  - Why irrecoverable: the empty result plus the near-miss ordering are
+    runtime session behavior; the final tree shows neither.
+
+- Failure mode (2026-09-21, DIA-260918-ok9m): free-preset -free twin never
+  equals the Balanced Go intent under exact-match comparison
+  - Symptom: the `free` preset pins Zen `-free` twins
+    (opencode/muse-spark-1.3-contributor-free, opencode/mimo-v2.5-free)
+    while `muse-balanced` pins Go models
+    (opencode-go/muse-spark-1.3-contributor). The S1 guard's sameModel is
+    exact-string on BOTH providerID and id, so a -free newborn under a Go
+    intent (or vice versa) ALWAYS diverges and is switched -- cross-provider
+    twins never compare equal even when they name the same model family.
+  - Root cause: treating `-free` as an interchangeable alias of the Go
+    model. It is not: providerID is part of the identity, and the equality
+    short-circuit is exact. Any test, fixture, or intent mapping that
+    assumes twin-equality silently misclassifies every cross-provider
+    newborn.
+  - Preventive action: never equate models across providers by name stem;
+    compare full providerID/id pairs. When authoring guard fixtures or
+    preset-intent tests, include at least one cross-provider twin case
+    (Go intent vs -free newborn) to pin the always-diverge behavior.
+  - Why irrecoverable: the config shows both model strings but not the
+    twin-equality trap; the misclassification only surfaces at guard
+    decision time against live presets, not in any single committed file.
+
+- Failure mode (2026-09-21, DIA-260921-6o4i): DIA-217 procedural carve-out
+  text alone did not pass this env's ticket gate -- capability token required
+  - Symptom: the DIA-217 procedural carve-out (literal `scripts/tickets new`
+    invocation in dispatch text) was expected to bypass the ticket gate for
+    ticket creation. It did NOT pass this environment's gate configuration.
+    The capability-token path (`mint_capability` with scope
+    `ticket-creation`) was required instead.
+  - Root cause: the gate's carve-out detection depends on env-specific
+    configuration that may differ from the documented expectation. The bare
+    procedural text was insufficient; the capability token worked.
+  - Preventive action: for ticket creation bypasses, use the
+    `mint_capability` tool with scope `ticket-creation` as the reliable
+    path. Do not depend solely on procedural text detection in the gate.
+  - Why irrecoverable: the gate's behavior is runtime/plugin configuration
+    state; the commit shows the ticket but not the gate interaction that
+    blocked the procedural path.
+
+- Failure mode (2026-09-21, DIA-260918-ok9m): GREEN-B recovery dispatch
+  returned GREEN-DONE already-implemented (stale handoff prognosis)
+  - Symptom: a GREEN-B recovery dispatch for DIA-260918-ok9m returned
+    GREEN-DONE with no diff -- the work had already landed (9fc299d refined
+    7b19111, no net diff). The old handoff prognosis item "GREEN-B recovery
+    BLOCKED" was stale; the work landed before this session started.
+  - Root cause: the handoff prognosis was written before the previous session
+    completed its final push. On restart, the prognosis still claimed the
+    work was blocked, so a recovery dispatch was dispatched against a task
+    that was already done.
+  - Preventive action: before dispatching a recovery lane based on a handoff
+    prognosis, verify the CURRENT ticket status and implementation state via
+    recon (ticket ledger + git log + target files) rather than trusting the
+    handoff's claim. A handoff is a point-in-time snapshot; the work may
+    have landed since it was written. This confirms and extends the
+    L20260817-005 stale-handoff lesson (lessons.md line 1467).
+  - Why irrecoverable: the stale-handoff recovery ordering is runtime/session
+    behaviour; the final commits show the landed state but not the
+    unnecessary recovery dispatch triggered by the stale prognosis.
+  - Cross-reference: L20260817-005 (stale handoff duplicate filing),
+    failures.md line 141 (stale handoff vs landed sibling work).

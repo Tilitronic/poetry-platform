@@ -6,7 +6,7 @@ id: DIA-260827-bry9
 title: "OMO version and model-routing drift from baseline"
 area: opencode-config
 severity: High
-status: OPEN
+status: DONE
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: DIA-260827-wfcx
 gate_state: "grilled" # grilled | waived | bypassed | partial | skipped
@@ -51,6 +51,14 @@ Remove the global root model and overlapping agent/model blocks from the project
 ## Re-verify
 
 > To be filled at re-verify time.
+
+## Close-as-stale 2026-09-22 (bounded lane, campaign ticket DIA-260827-bry9)
+
+- Freshness recon ses_f36f90630ffeTXfbokr8S7Jzb2 proved all 3 claims STALE; developer approved close-as-stale 2026-09-22.
+- Claim 1 STALE: no top-level model key in .opencode/oh-my-opencode-slim.jsonc (grep '^ "model"' absent; top keys are $schema/preset/compactSidebar/disabled_agents/presets/agents/council).
+- Claim 2 STALE: agents block (lines 789-826) has zero model keys (prompt/orchestratorPrompt only; model keys live under presets.\* and council.presets.default).
+- Claim 3 STALE: legacy tester/writer absent as agent keys (also architect key absent); only "legacy fallback" prose inside orchestrator prompt text.
+- Context: claims predate current 857-line config; live debug shows opencode-go/muse-spark-1.3-contributor for orchestrator+reviewer (active preset muse-balanced). No code change; ticket file only.
 
 ## Update 2026-09-17 (re-review cycle 1, docker pin stopgap)
 

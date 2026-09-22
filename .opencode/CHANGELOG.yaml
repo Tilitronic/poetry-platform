@@ -4846,3 +4846,44 @@
     TUI'
   verification: manual
   area: docker
+- date: '2026-09-21'
+  ticket: DIA-260918-ok9m
+  scope: config
+  files:
+  - .opencode/oh-my-opencode-slim.jsonc
+  summary: 'S3 revert closeout: O2 NO-GO, S3 stripOrchestratorModel applied then reverted
+    per ai-auditor F4 inert-under-all-presets, S1 spike queued, res-260921-qivl conspect
+    shelf 47, investigation-only close'
+  verification: manual
+- date: '2026-09-21'
+  ticket: DIA-260918-ok9m
+  scope: s
+  files:
+  - .opencode/plugins/preset-model-guard.ts
+  - openspec/changes/dia-260918-ok9m-s1-switchmodel-guard/specs/session-created-model-guard/spec.md
+  - openspec/changes/dia-260918-ok9m-s1-switchmodel-guard/design.md
+  summary: S1 switchModel guard GREEN-B + cycle2 rev-1 fixes + tiny docs (11/11 pass,
+    test-config PASS, rev-1 4/4 + rev-2 4/4)
+  verification: manual
+  area: scripts
+- date: '2026-09-21'
+  ticket: DIA-260921-6o4i
+  scope: s
+  files:
+  - docs/dev-infra-audit/tickets/DIA-260921-6o4i-console-free-tier-gate-rejects-free-models.md
+  - .opencode/learnings/external-patterns/2026-09-21-console-free-tier-gate.md
+  - knowledge/ana-260921-0f9i-free-tier-gate/ana-260921-0f9i-free-tier-gate-report.md
+  summary: 'Console free-tier gate finding: provider-side gate rejects -free models,
+    V1 Go-routing pending approval'
+  verification: manual
+  area: scripts
+- date: '2026-09-22'
+  ticket: DIA-186
+  scope: s
+  files:
+  - .opencode/opencode-overnight.jsonc
+  - scripts/__tests__/overnight.bats
+  summary: 'Overnight profile: read/edit allows moved .slim/worktrees to .worktrees,
+    added podman compose/ps allows (19 allow entries)'
+  verification: manual
+  area: config

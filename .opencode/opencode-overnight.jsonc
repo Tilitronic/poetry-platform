@@ -2,8 +2,9 @@
   "$schema": "https://opencode.ai/config.json",
 
   // ---------------------------------------------------------------------------
-  // OVERNIGHT DESTRUCTIVE COMMAND BASELINE v1 (DIA-134 Baseline A,
-  // developer-approved 2026-08-14)
+  // OVERNIGHT DESTRUCTIVE COMMAND BASELINE v2 (DIA-134 Baseline A,
+  // developer-approved 2026-08-14; v2 podman mirrors developer-approved
+  // 2026-09-22 via DIA-186 F2)
   //
   // Authoritative, versioned list of the deny rules an unattended overnight
   // run MUST carry. This list is the contract that scripts/overnight.sh
@@ -16,7 +17,9 @@
   // Baseline A = 5 inherited interactive-profile rules (rm, rm -rf, rmdir,
   // chmod, chown - flipped ask -> deny for the overnight run only) + 6
   // data+git candidates (docker volume rm, docker system prune, docker system
-  // prune -af, git reset --hard, git clean -fd, git push --force). All 11:
+  // prune -af, git reset --hard, git clean -fd, git push --force) + 4
+  // DIA-186 v2 podman mirrors (podman volume rm, podman system prune,
+  // podman system prune -af, podman compose down -v). All 15:
   //
   //   1.  rm *
   //   2.  rm -rf *
@@ -26,15 +29,20 @@
   //   6.  docker volume rm *
   //   7.  docker system prune *
   //   8.  docker system prune -af*
-  //   9.  git reset --hard *
-  //   10. git clean -fd*
-  //   11. git push --force*
+  //   9.  podman volume rm *
+  //   10. podman system prune *
+  //   11. podman system prune -af*
+  //   12. podman compose down -v
+  //   13. git reset --hard *
+  //   14. git clean -fd*
+  //   15. git push --force*
   // ---------------------------------------------------------------------------
 
   // ---------------------------------------------------------------------------
   // Overnight autonomous-run permission profile - DIA-126 direction (a)
   // autonomous permission profile, Option A full (developer-approved
-  // 2026-08-13); deny set extended to the DIA-134 baseline v1 (data+git)
+  // 2026-08-13); deny set extended to the DIA-134 baseline v2 (data+git +
+  // DIA-186 podman mirrors)
   // 2026-08-14. Lane: SECTION-10 PHASE 4 IMPLEMENTATION.
   //
   // PURPOSE
@@ -44,8 +52,10 @@
   //   (rm, rm -rf, rmdir, chmod, chown) at ASK so a human confirms them;
   //   under --auto that human gate disappears and the commands would run
   //   without any confirmation. This profile re-hardens those five rules and
-  //   the DIA-134 baseline v1 additions (docker volume rm, docker system
-  //   prune, docker system prune -af, git reset --hard, git clean -fd,
+  //   the DIA-134 baseline v2 additions (docker volume rm, docker system
+  //   prune, docker system prune -af, podman volume rm, podman system
+  //   prune, podman system prune -af, podman compose down -v,
+  //   git reset --hard, git clean -fd,
   //   git push --force) to DENY for overnight runs ONLY. DENY stays enforced
   //   under --auto (Permission.ask short-circuits on deny before any
   //   auto-approval; OpenCode docs: "Explicit deny rules are still enforced").
@@ -68,22 +78,25 @@
   //
   // PAYLOAD SHAPE VALIDATION (DIA-134 S2, 2026-08-14)
   //   scripts/overnight.sh now validates the extracted payload against the
-  //   baseline v1 list above BEFORE exporting OPENCODE_PERMISSION: a payload
+  //   baseline v2 list above BEFORE exporting OPENCODE_PERMISSION: a payload
   //   that is missing a rule or carries a softened ("ask") rule exits 1 with
   //   a rule-specific error and NEVER launches opencode. This closes the
   //   ai-auditor S2 gap where a drifted payload ({} or rules reverted to
   //   ask) would silently un-harden the run.
   //
   // SCOPE
-  //   The DIA-134 baseline v1 (11 deny rules) is unchanged and still the
-  //   contract scripts/overnight.sh validates against. DIA-186 (2026-08-15,
-  //   developer-approved minimal allow-list delta) ADDED an allow-list for
-  //   batch-D worktree coder operations (docker compose / docker ps / make /
+  //   The deny contract is now baseline v2 (15 deny rules: 11 v1 + 4
+  //   DIA-186 podman mirrors, developer-approved 2026-09-22) - this is
+  //   what scripts/overnight.sh validates against. DIA-186 (2026-08-15,
+  //   developer-approved minimal allow-list delta, refreshed 2026-09-22)
+  //   ADDED a 19-entry allow-list for
+  //   batch-D worktree coder operations (docker compose / docker ps /
+  //   podman compose / podman ps / make /
   //   git worktree / git commit / git push / git add / git status / git diff /
   //   git log / git branch / pnpm / npm / node / prettier) plus scoped
-  //   read/edit allows for .slim/worktrees/* - these are NON-baseline rules
-  //   (they do not touch the 11-rule deny contract; overnight.sh's shape
-  //   validation still only asserts the baseline v1 keys resolve to deny).
+  //   read/edit allows for .worktrees/* - these are NON-baseline rules
+  //   (they do not touch the 15-rule deny contract; overnight.sh's shape
+  //   validation still only asserts the baseline v2 keys resolve to deny).
   //   The merge is per-key, so everything else - the full interactive
   //   permission block, agent definitions, plugins - stays byte-identical to
   //   the interactive profile. git reset --hard / git clean -fd / git push
@@ -113,14 +126,18 @@
 
   "permission": {
     "bash": {
-      // DIA-134 baseline v1 (11 rules, deny). Order within the map is
-      // irrelevant for evaluation (OpenCode uses the last matching rule;
-      // these are the only bash rules whose pattern matches each command
-      // family) and the global "*": "allow" catch-all stays first in the
-      // merged profile, so the bash tool remains visible in the function
-      // schema. Order here mirrors the baseline v1 list above so the block
-      // diffs 1:1 against the comment and against scripts/overnight.sh's
-      // OVERNIGHT_DENY_BASELINE array.
+      // DIA-134 baseline v2 (15 rules, deny: 11 v1 + 4 DIA-186 podman
+      // mirrors). Order within the map is irrelevant for evaluation
+      // (OpenCode uses the last matching rule; these are the only bash
+      // rules whose pattern matches each command family - EXCEPT rule 12
+      // podman compose down -v, which overlaps the "podman compose *"
+      // allow below and therefore lives in the guard-denies section AFTER
+      // the allows so the deny is the last match) and the global "*":
+      // "allow" catch-all stays first in the merged profile, so the bash
+      // tool remains visible in the function schema. Order here mirrors
+      // the baseline v2 list above so the block diffs 1:1 against the
+      // comment and against scripts/overnight.sh's OVERNIGHT_DENY_BASELINE
+      // array (validation is order-insensitive: presence + "deny").
       "rm *": "deny",
       "rm -rf *": "deny",
       "rmdir *": "deny",
@@ -129,16 +146,24 @@
       "docker volume rm *": "deny",
       "docker system prune *": "deny",
       "docker system prune -af*": "deny",
+      "podman volume rm *": "deny",
+      "podman system prune *": "deny",
+      "podman system prune -af*": "deny",
       "git reset --hard *": "deny",
       "git clean -fd*": "deny",
       "git push --force*": "deny",
 
-      // DIA-186 allow-list (developer-approved delta, 2026-08-15): batch-D
+      // DIA-186 allow-list (developer-approved 2026-08-15, refreshed
+      // 2026-09-22 with podman mirrors + deny baseline v2): 19 batch-D
       // worktree coder operations that previously hit permission asks and
-      // stalled unattended overnight runs. Keep these patterns as the
+      // stalled unattended overnight runs (docker/podman compose, docker/
+      // podman ps, make, git worktree/commit/push/add/status/diff/log/
+      // branch, pnpm, npm, node, prettier). Keep these patterns as the
       // approved set - no additions, no removals.
       "docker compose *": "allow",
       "docker ps *": "allow",
+      "podman compose *": "allow",
+      "podman ps *": "allow",
       "make *": "allow",
       "git worktree add *": "allow",
       "git worktree remove *": "allow",
@@ -170,6 +195,13 @@
       //     --force-with-lease=<value> equals-syntax forms in both positions
       //     (DIA-096; ai-auditor caveat fix 2026-08-15: space-separated guards
       //     do not match the = form, which would slip through "git push *").
+      //   - podman compose down -v: baseline v2 rule 12 (DIA-186 F2,
+      //     developer-approved 2026-09-22). Deletes named volumes; would
+      //     otherwise slip through the "podman compose *" allow above, so
+      //     it is placed HERE (after the allows) rather than in the
+      //     baseline block - last-match-wins. Still validated as baseline
+      //     v2 by scripts/overnight.sh (validation is order-insensitive).
+      "podman compose down -v": "deny",
       "git branch -d *": "deny",
       "git branch -d": "deny",
       "git branch -D *": "deny",
@@ -201,15 +233,15 @@
       "git push * --force-with-lease=*": "deny"
     },
     // DIA-186: batch-D worktree coder lanes are confined to
-    // .slim/worktrees/* - explicitly allow read/edit there so file writes in
+    // .worktrees/* - explicitly allow read/edit there so file writes in
     // the worktree base do not surface as permission asks during unattended
     // runs. The interactive profile keeps its own read/edit scope; this
     // profile only ever needs the worktree paths.
     "read": {
-      ".slim/worktrees/*": "allow"
+      ".worktrees/*": "allow"
     },
     "edit": {
-      ".slim/worktrees/*": "allow"
+      ".worktrees/*": "allow"
     }
   }
 }

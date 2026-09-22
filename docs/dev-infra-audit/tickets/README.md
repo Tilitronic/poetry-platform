@@ -320,6 +320,7 @@
 | DIA-260917-s95f | promo preset union-alpha variants enumeration | config | Medium | OPEN | [DIA-260917-s95f-promo-preset-union-alpha-variants-enumeration.md](DIA-260917-s95f-promo-preset-union-alpha-variants-enumeration.md) |
 | DIA-260918-czsi | promo preset refresh | scripts | Medium | OPEN | [DIA-260918-czsi-promo-preset-refresh.md](DIA-260918-czsi-promo-preset-refresh.md) |
 | DIA-260918-mm2u | retire or repoint promo-preset-apply stale promo target plus overcapture | scripts | Medium | OPEN | [DIA-260918-mm2u-retire-or-repoint-promo-preset-apply-stale-promo-target-plus-overcapture.md](DIA-260918-mm2u-retire-or-repoint-promo-preset-apply-stale-promo-target-plus-overcapture.md) |
+| DIA-260918-ok9m | Investigate slash-new preset inheritance without fork | scripts | Medium | OPEN | [DIA-260918-ok9m-investigate-slash-new-preset-inheritance-without-fork.md](DIA-260918-ok9m-investigate-slash-new-preset-inheritance-without-fork.md) |
 | DIA-260918-rbqk | promo-registry promoted_preset still promo vs tree muse-balanced | config | Medium | OPEN | [DIA-260918-rbqk-promo-registry-promoted-preset-still-promo-vs-tree-muse-balanced.md](DIA-260918-rbqk-promo-registry-promoted-preset-still-promo-vs-tree-muse-balanced.md) |
 | DIA-260918-ubxv | ADR supersession promo two-preset pointer vs 4-preset muse-balanced tree | config | Medium | OPEN | [DIA-260918-ubxv-adr-supersession-promo-two-preset-pointer-vs-4-preset-muse-balanced-tree.md](DIA-260918-ubxv-adr-supersession-promo-two-preset-pointer-vs-4-preset-muse-balanced-tree.md) |
 | DIA-260920-2w0o | fetch pull and verify main updates | scripts | Major | OPEN | [DIA-260920-2w0o-fetch-pull-and-verify-main-updates.md](DIA-260920-2w0o-fetch-pull-and-verify-main-updates.md) |
@@ -327,6 +328,9 @@
 | DIA-260920-ffuj | docker auto-start fails inside WSL2 Ubuntu - docker-desktop Stopped | docker | Major | OPEN | [DIA-260920-ffuj-docker-auto-start-fails-inside-wsl2-ubuntu-docker-desktop-stopped.md](DIA-260920-ffuj-docker-auto-start-fails-inside-wsl2-ubuntu-docker-desktop-stopped.md) |
 | DIA-260920-jh6q | host gate environment drift rust-analyzer version bun missing docker unavailable | scripts | Major | OPEN | [DIA-260920-jh6q-host-gate-environment-drift-rust-analyzer-version-bun-missing-docker-unavailable.md](DIA-260920-jh6q-host-gate-environment-drift-rust-analyzer-version-bun-missing-docker-unavailable.md) |
 | DIA-260922-cp0m | Re-audit container topology: single merged container vs split containers for two divergent dev workflows | docker | Major | OPEN | [DIA-260922-cp0m-re-audit-container-topology-single-merged-container-vs-split-containers-for-two-divergent-dev-workflows.md](DIA-260922-cp0m-re-audit-container-topology-single-merged-container-vs-split-containers-for-two-divergent-dev-workflows.md) |
+| DIA-260918-vsq8 | single-path preset launch make opencode PRESET | scripts | Medium | OPEN | [DIA-260918-vsq8-single-path-preset-launch-make-opencode-preset.md](DIA-260918-vsq8-single-path-preset-launch-make-opencode-preset.md) |
+| DIA-260918-yug6 | preset free switching fails after make preset NAME=free | scripts | Medium | OPEN | [DIA-260918-yug6-preset-free-switching-fails-after-make-preset-name-free.md](DIA-260918-yug6-preset-free-switching-fails-after-make-preset-name-free.md) |
+| DIA-260921-6o4i | Console free-tier gate rejects -free models | scripts | Major | OPEN | [DIA-260921-6o4i-console-free-tier-gate-rejects-free-models.md](DIA-260921-6o4i-console-free-tier-gate-rejects-free-models.md) |
 
 ## Status summary
 
@@ -334,8 +338,8 @@
 | -------- | ----- |
 | Blocker  | 9     |
 | Critical | 16    |
-| Major    | 78    |
-| Medium   | 168   |
+| Major    | 79    |
+| Medium   | 171   |
 | Minor    | 1     |
 | Low      | 31    |
 | Info     | 2     |
@@ -343,8 +347,8 @@
 
 | Status      | Count |
 | ----------- | ----- |
-| OPEN        | 80    |
-| DONE        | 4     |
+| OPEN        | 73    |
+| DONE        | 15    |
 | VALIDATE    | 0     |
 | E2E         | 0     |
 | DEFERRED    | 1     |

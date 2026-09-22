@@ -1157,3 +1157,27 @@
 - **Change:** Bun crash triage: standalone CLI bumped 1.3.14 -> 1.4.2; opencode pin 1.18.18 -> 1.18.32 with refreshed SHA256 digests; runbook documents that the embedded Bun 1.3.14 crash is unfixed upstream (PR #44946 open, blocked on a Bun 1.4.x splitting regression) and that a restart loop is not a valid mitigation for the interactive TUI
 - **Files:** Dockerfile.dev - scripts/validate-plugin-loads.sh - tools/opencode-docker/Dockerfile - docs/runbook/bun-crash-mitigation.md
 - **Verification:** manual
+
+## 2026-09-21 - DIA-260918-ok9m: config
+
+- **Change:** S3 revert closeout: O2 NO-GO, S3 stripOrchestratorModel applied then reverted per ai-auditor F4 inert-under-all-presets, S1 spike queued, res-260921-qivl conspect shelf 47, investigation-only close
+- **Files:** .opencode/oh-my-opencode-slim.jsonc
+- **Verification:** manual
+
+## 2026-09-21 - DIA-260918-ok9m: s
+
+- **Change:** S1 switchModel guard GREEN-B + cycle2 rev-1 fixes + tiny docs (11/11 pass, test-config PASS, rev-1 4/4 + rev-2 4/4)
+- **Files:** .opencode/plugins/preset-model-guard.ts - openspec/changes/dia-260918-ok9m-s1-switchmodel-guard/specs/session-created-model-guard/spec.md - openspec/changes/dia-260918-ok9m-s1-switchmodel-guard/design.md
+- **Verification:** manual
+
+## 2026-09-21 - DIA-260921-6o4i: s
+
+- **Change:** Console free-tier gate finding: provider-side gate rejects -free models, V1 Go-routing pending approval
+- **Files:** docs/dev-infra-audit/tickets/DIA-260921-6o4i-console-free-tier-gate-rejects-free-models.md - .opencode/learnings/external-patterns/2026-09-21-console-free-tier-gate.md - knowledge/ana-260921-0f9i-free-tier-gate/ana-260921-0f9i-free-tier-gate-report.md
+- **Verification:** manual
+
+## 2026-09-22 - DIA-186: s
+
+- **Change:** Overnight profile: read/edit allows moved .slim/worktrees to .worktrees, added podman compose/ps allows (19 allow entries)
+- **Files:** .opencode/opencode-overnight.jsonc - scripts/__tests__/overnight.bats
+- **Verification:** manual

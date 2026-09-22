@@ -10,9 +10,10 @@
 # tokenizer must genuinely extract the permission block from the profile -
 # faking it would test nothing.
 #
-# DIA-134 additions: (S1) every rule of the 11-rule "overnight destructive
-# command baseline v1" (developer-approved 2026-08-14, Baseline A = 5
-# inherited + 6 data+git) must resolve to deny in the exported payload;
+# DIA-134 additions: (S1) every rule of the 15-rule "overnight destructive
+# command baseline v2" (v1 developer-approved 2026-08-14, Baseline A = 5
+# inherited + 6 data+git; v2 adds 4 DIA-186 podman mirrors, developer-approved
+# 2026-09-22) must resolve to deny in the exported payload;
 # (S2) payload shape validation - a {} or softened ("ask") permission.bash
 # exits 1 with a rule-specific error and never launches (fail closed).
 
@@ -57,6 +58,10 @@ OVERNIGHT_BASELINE_RULES=(
   'docker volume rm *'
   'docker system prune *'
   'docker system prune -af*'
+  'podman volume rm *'
+  'podman system prune *'
+  'podman system prune -af*'
+  'podman compose down -v'
   'git reset --hard *'
   'git clean -fd*'
   'git push --force*'
@@ -104,6 +109,8 @@ OVERNIGHT_GUARD_RULES=(
 OVERNIGHT_ALLOW_RULES=(
   'docker compose *'
   'docker ps *'
+  'podman compose *'
+  'podman ps *'
   'make *'
   'git worktree add *'
   'git worktree remove *'
@@ -184,7 +191,7 @@ setup_tree() {
   # OPENCODE_PERMISSION payload contract: SUBSET-PRESENCE, not exact-string
   # (DIA-186 drift fix, 2026-08-15 - see the contract arrays above). Every
   # baseline deny + guard deny must resolve to deny, every allow to allow,
-  # and the .slim/worktrees/* read/edit blocks must be present. Exact-string
+  # and the .worktrees/* read/edit blocks must be present. Exact-string
   # equality would break on any additive payload change; subset-presence
   # still catches the real regressions (a deny removed/softened, an allow
   # removed) while tolerating future DIA-186-family additions.
@@ -195,8 +202,8 @@ setup_tree() {
   for rule in "${OVERNIGHT_ALLOW_RULES[@]}"; do
     assert_output_contains "\"${rule}\":\"allow\""
   done
-  assert_output_contains '".slim/worktrees/*":"allow"'
-  assert_output_contains "hardened: DIA-134 baseline v1 - 11 destructive rules -> DENY"
+  assert_output_contains '".worktrees/*":"allow"'
+  assert_output_contains "hardened: DIA-134 baseline v2 - 15 destructive rules -> DENY"
 }
 
 @test "overnight: run mode forwards message to opencode run --auto with title" {
@@ -281,12 +288,12 @@ JSONC
   assert_output_not_contains "ARGS:"
 }
 
-# --- DIA-134 S1: overnight destructive command baseline v1 (11 deny rules) ---
+# --- DIA-134 S1: overnight destructive command baseline v2 (15 deny rules) ---
 
-@test "overnight: DIA-134 S1 - all 11 baseline v1 deny rules resolve to deny in the exported payload" {
+@test "overnight: DIA-134 S1 - all 15 baseline v2 deny rules resolve to deny in the exported payload" {
   # S1 acceptance: the profile carries the full developer-approved baseline
-  # (5 inherited + 6 data+git). End-to-end through the launcher: the fake
-  # prints OPENCODE_PERMISSION=<json>, and every baseline v1 rule key must
+  # (5 inherited + 6 data+git + 4 DIA-186 podman mirrors). End-to-end through the launcher: the fake
+  # prints OPENCODE_PERMISSION=<json>, and every baseline v2 rule key must
   # appear with value "deny" inside it (also proves the S2 happy path still
   # exits 0 and launches). Baseline rules live in the shared
   # OVERNIGHT_BASELINE_RULES contract array (DIA-186 drift fix) - the same

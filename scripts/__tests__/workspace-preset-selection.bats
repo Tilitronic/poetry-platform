@@ -1,134 +1,85 @@
 #!/usr/bin/env bats
-# RED-phase seam tests for campaign ticket DIA-260916-gv9i.
+# Unit tests for scripts/presets.py, the registry reader behind the
+# single-path preset launch (campaign ticket DIA-260918-vsq8).
 #
-# The selection store is isolated with XDG_CONFIG_HOME. Compose is mocked so
-# startup assertions prove validation happens before container setup.
+# Why this file exists separately from preset-single-path.bats: that suite
+# proves the make-level contract (presets list, preset stub, -e PRESET
+# forwarding, precedence, loud unknown-name failure). This suite proves the
+# helper itself: sorted non-empty list, exact-name check, loud failure with
+# the available list, and fail-closed parse errors. No compose, no OMO
+# source, no project-local store (the stored-selection path is gone).
 
 load test-helper
 
 REPO_ROOT="$(cd "$(dirname "$BATS_TEST_FILENAME")/../.." && pwd)"
-MAKEFILE="$REPO_ROOT/Makefile"
+HELPER="$REPO_ROOT/scripts/presets.py"
 
-setup() {
-  export FAKE_DOCKER_LOG="$BATS_TEST_TMPDIR/docker-$BATS_TEST_NUMBER.log"
-  export XDG_CONFIG_HOME="$BATS_TEST_TMPDIR/config-home-$BATS_TEST_NUMBER"
-  unset OPENCODE_CONFIG_DIR
-  # DIA-260916-gv9i followup: the dev shell exports OPENCODE_WORKSPACE_PRESET
-  # (host launcher bridge) and PRESET may leak from the caller env. Either
-  # would shadow the isolated file store, so drop both for hermetic tests.
-  unset OPENCODE_WORKSPACE_PRESET
-  unset PRESET
-  export COMPOSE_ENGINE=docker
-  export COMPOSE_OS=native
-  mock_docker
-}
-
-run_make() {
-  run env XDG_CONFIG_HOME="$XDG_CONFIG_HOME" COMPOSE_ENGINE=docker \
-    COMPOSE_OS=native make -C "$REPO_ROOT" "$@"
-}
-
-@test "make exposes the workspace selector and forwards PRESET to opencode" {
-  assert_file_contains "$MAKEFILE" "preset:"
-  assert_file_contains "$MAKEFILE" "PRESET"
-}
-
-@test "make preset saves an exact name for the next launch" {
-  run_make preset NAME=muse-balanced
-
+@test "list prints a sorted non-empty registry including free and muse-balanced" {
+  run python3 "$HELPER" list
   assert_status 0
+  assert_output_contains "free"
   assert_output_contains "muse-balanced"
-  assert_output_contains "$REPO_ROOT"
-  assert_output_contains "next launch"
+  [ -n "$output" ]
+  sorted="$(printf '%s\n' "$output" | LC_ALL=C sort)"
+  [ "$output" = "$sorted" ]
 }
 
-@test "startup uses PRESET override before the stored workspace selection" {
-  run_make preset NAME=muse-balanced
+@test "check accepts an exact registry name" {
+  run python3 "$HELPER" check free
   assert_status 0
-
-  run_make opencode PRESET=openai-first-cost-balanced
-  assert_status 0
-  assert_output_contains "openai-first-cost-balanced"
-  assert_output_contains "PRESET"
-  assert_output_contains "override"
-
-  run_make opencode
-  assert_status 0
-  assert_output_contains "muse-balanced"
-  assert_output_contains "stored"
+  assert_output_contains "free"
 }
 
-@test "startup reports the no-preset default when no selection exists" {
-  run_make opencode
-
-  assert_status 0
-  assert_output_contains "no preset"
-  assert_output_contains "source"
-}
-
-@test "unknown PRESET fails closed before agent setup" {
-  run_make opencode PRESET=does-not-exist
-
-  # GNU make reports a failed recipe as exit 2; the nonzero status still proves
-  # the invalid preset fails closed before any container setup.
-  assert_status 2
+@test "check rejects an unknown name loudly with the available list" {
+  run python3 "$HELPER" check does-not-exist
+  [ "$status" -ne 0 ]
   assert_output_contains "does-not-exist"
+  assert_output_contains "Available presets"
   assert_output_contains "muse-balanced"
-  assert_output_contains "$REPO_ROOT"
-  if grep -qF "compose up" "$FAKE_DOCKER_LOG" || grep -qF "compose exec" "$FAKE_DOCKER_LOG"; then
-    echo "invalid PRESET must abort before container setup" >&2
-    return 1
-  fi
 }
 
-@test "stale stored preset fails closed before agent setup" {
-  mkdir -p "$XDG_CONFIG_HOME/opencode"
-  printf '{"version":1,"workspaces":{"%s":"removed"}}\n' "$REPO_ROOT" \
-    > "$XDG_CONFIG_HOME/opencode/workspace-presets.json"
+@test "check rejects a near-miss name (exact match only, no fuzzy fallback)" {
+  run python3 "$HELPER" check Free
+  [ "$status" -ne 0 ]
+  assert_output_contains "Available presets"
+}
 
-  run_make opencode
-
+@test "usage error exits 2" {
+  run python3 "$HELPER" bogus
   assert_status 2
-  assert_output_contains "removed"
-  assert_output_contains "$REPO_ROOT"
-  assert_output_contains "muse-balanced"
-  [ ! -s "$FAKE_DOCKER_LOG" ]
+  assert_output_contains "usage"
 }
 
-@test "malformed stored data fails closed before agent setup" {
-  mkdir -p "$XDG_CONFIG_HOME/opencode"
-  printf '{malformed\n' > "$XDG_CONFIG_HOME/opencode/workspace-presets.json"
-
-  run_make opencode
-
-  assert_status 2
-  assert_output_contains "invalid store data"
-  assert_output_contains "$REPO_ROOT"
-  assert_output_contains "muse-balanced"
-  [ ! -s "$FAKE_DOCKER_LOG" ]
+@test "helper uses stdlib only (plus the single-owner sibling stripper)" {
+  run grep -E "^import |^from [A-Za-z]" "$HELPER"
+  assert_status 0
+  [ "$(printf '%s\n' "$output" | grep -cvE '^import (json|os|sys)$|^from jsonc_strip import strip_jsonc([[:space:]]|$)')" -eq 0 ]
 }
 
-@test "store lock failure does not acknowledge a preset write" {
-  mkdir -p "$XDG_CONFIG_HOME/opencode"
-  : > "$XDG_CONFIG_HOME/opencode/workspace-presets.json.lock"
-
-  run_make preset NAME=muse-balanced
-
-  assert_status 2
-  assert_output_contains "lock"
-  assert_output_not_contains "Saved"
-}
-
-@test "project config parse failure fails closed before agent setup" {
-  workspace="$BATS_TEST_TMPDIR/parse-workspace-$BATS_TEST_NUMBER"
-  mkdir -p "$workspace/.opencode"
-  printf '{malformed\n' > "$workspace/.opencode/oh-my-opencode-slim.json"
-
-  run env XDG_CONFIG_HOME="$XDG_CONFIG_HOME" bun run \
-    "$REPO_ROOT/.opencode/oh-my-opencode-slim/src/config/workspace-preset-cli.ts" \
-    resolve "$workspace"
-
+@test "fail-closed on missing registry" {
+  run env PRESETS_JSONC="$BATS_TEST_TMPDIR/does-not-exist.jsonc" python3 "$HELPER" list
   assert_status 1
-  assert_output_contains "invalid preset configuration"
-  [ ! -s "$FAKE_DOCKER_LOG" ]
+}
+
+@test "fail-closed on corrupt registry" {
+  printf '{not valid jsonc,,,\n' > "$BATS_TEST_TMPDIR/corrupt.jsonc"
+  run env PRESETS_JSONC="$BATS_TEST_TMPDIR/corrupt.jsonc" python3 "$HELPER" list
+  assert_status 1
+}
+
+@test "fail-closed on empty registry and on missing presets key" {
+  : > "$BATS_TEST_TMPDIR/empty.jsonc"
+  run env PRESETS_JSONC="$BATS_TEST_TMPDIR/empty.jsonc" python3 "$HELPER" list
+  assert_status 1
+  printf '{"other": {}}\n' > "$BATS_TEST_TMPDIR/no-key.jsonc"
+  run env PRESETS_JSONC="$BATS_TEST_TMPDIR/no-key.jsonc" python3 "$HELPER" check free
+  assert_status 1
+  assert_output_contains "no presets key"
+}
+
+@test "stripper keeps URL slashes and apostrophes (double-quote strings only)" {
+  printf '{"presets": {"it'"'"'s-free": {}, "free": {}}, "url": "https://example.com/x"} // trailing\n' > "$BATS_TEST_TMPDIR/apos.jsonc"
+  run env PRESETS_JSONC="$BATS_TEST_TMPDIR/apos.jsonc" python3 "$HELPER" list
+  assert_status 0
+  assert_output_contains "free"
 }

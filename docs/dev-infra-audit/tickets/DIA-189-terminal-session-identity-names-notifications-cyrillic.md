@@ -3,13 +3,13 @@ id: DIA-189
 title: 'terminal session identity: unique names + notification attribution + Cyrillic visibility'
 area: opencode-config
 severity: Major
-status: OPEN
+status: DONE
 blocked_by: []
 discovered: 2026-08-15
 source: session-observation (developer report, 2026-08-15, screenshot clipboard-84a17fb4.png)
 date: 2026-08-15
 created: 2026-08-15
-updated: 2026-08-15
+updated: 2026-09-21
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -157,3 +157,37 @@ Developer requests more human-readable session identifiers beyond the current `[
 **Ticket numbering conflict (related):** sequential DIA numbering creates conflicts when multiple team members create tickets in parallel. Research globally-unique short IDs from datetime (e.g., `DIA-260818-a1b2` format) to eliminate merge conflicts.
 
 **Action:** research feasible approaches, present EBDV to developer, implement selected approach.
+
+## UPDATE (2026-09-21, verify-then-close lane, campaign ticket DIA-189)
+
+Grounding: knowledge/ana-260921-yl7m-terminal-session-identity/ana-260921-yl7m-terminal-session-identity-report.md
+(all three problems root-caused + code-fixed, confidence High).
+
+Fix presence verified in tree (.opencode/plugins/needs-input-observer.ts):
+
+- P1 rename-if-not-suffixed, Session surface: session.created hook lines 1277-1300
+  (alreadySuffixed-only gate line 1277, word-pair derived title line 1284,
+  session.update line 1286).
+- P1 rename-if-not-suffixed, Pty surface: shared renameDefaultTitle lines 1071-1109
+  (guard line 1082, derived title line 1089), wired via pty.created/pty.updated
+  lines 1347-1353, boot retro pass over pty.list + session.list lines 1123-1172.
+- P2 shared word-pair prefix on both toast channels: notify lines 932-942
+  (wordPair line 939, attributedTitle lines 940-942), tui.showToast title
+  lines 948-955, desktop toast line 962.
+- P3 C0/C1-only sanitizer: sanitize lines 865-871 (C0/C1 strip line 869,
+  old [^x20-x7E] strip gone).
+
+Test evidence (bun 1.3.14, run from .opencode/plugins/**tests**):
+
+- needs-input-observer.dia189.test.mjs: 32 pass / 0 fail.
+- All 5 related suites (dia189 + platform-gate + reload-dedup + ticker-expiry +
+  per-permission-rows): 58 pass / 0 fail.
+
+RESIDUAL HUMAN STEP (not automated, recorded either way): restart OpenCode and
+visually confirm (1) distinct PTY labels for new + pre-existing panes,
+(2) word-pair suffix in a live notification on BOTH channels (in-TUI toast +
+WinRT desktop toast), (3) Cyrillic rendering in both channels (in-TUI depends
+on terminal font coverage). Residual risks R1-R4 per the analysis report
+accepted as documented.
+
+Status flipped OPEN -> DONE by the verify-then-close lane 2026-09-21.

@@ -422,6 +422,15 @@ shelf:
     description: 'Conspect synthesizing 5 archived sources on skill validator design beyond form checks: frontmatter validation (name/description/license per Agent Skills spec), capability cross-references (preset/command/agent/binary declarations resolved against runtime manifest), Ajv custom keywords for cross-field rules, JSONIC schema extensions for async existence checks, and OpenCode community precedent for hard-fail-on-invalid (issue 31616). Verdict: form-only validation is insufficient; dangling references (undeclared presets, missing commands, unresolvable permissions) must fail hard. Design pattern: validate frontmatter shape first, then cross-reference declared capabilities against the live runtime manifest.'
     path: knowledge/res-260911-emj8-skill-validator-compat/res-260911-emj8-skill-validator-compat-conspect.md
     created: 2026-09-11
+  - name: Container Model Isolation (DIA-260918-ok9m)
+    description: 'Conspect on session/agent model separation and precedence in OpenCode V2 + OMO, env-var injection to providers/tools/shells, and maintainer-sanctioned container patterns for OpenCode and Pi with failure modes (21 archived sources, 1 failure).'
+    path: "knowledge/res-260921-qivl-container-model-isolation/res-260921-qivl-container-model-isolation-conspect.md"
+    created: 2026-09-21
+  - name: Unified Dev Container with Podman (DIA-260824-iirx)
+    description: 'Conspect on a unified image/Dockerfile-based single-container devcontainer (14 archived sources, 1 failure): podman-vs-docker shims (podman-docker, dockerPath=podman, socket/DOCKER_HOST, compose provider pinning), Fedora-vs-WSL runtime split (userns=keep-id, machine lifecycle, cgroups v2, no systemd in machine), GPU via CDI device strings plus SYS_PTRACE debug and optional sidecars, auth mount-vs-copy for isolated /home/dev (mode 0600, gitignored, never baked), and failure-mode checklist.'
+    path: "knowledge/res-260921-fo7q-unified-dev-container/res-260921-fo7q-unified-dev-container-conspect.md"
+    created: 2026-09-21
+    task_ref: DIA-260824-iirx
   analyses:
   - name: Agent Alignment Audit
     description: "MECE inventory of all agent definitions across OMO Slim, native\
@@ -828,6 +837,57 @@ shelf:
     path: knowledge/ana-260922-4fod-x5nj-scope-breach-disposition/ana-260922-4fod-x5nj-scope-breach-disposition-report.md
     created: 2026-09-22
     task_ref: DIA-260922-cp0m
+  - name: Preset Free Switching Failure Synthesis (ana-260918-6ac2)
+    description: "Synthesis analysis for DIA-260918-yug6: make preset NAME=free reports success but a later launch never activates free. Primary chain is host/container persistence split (HOST store under HOST identity vs CONTAINER re-resolve under a different identity, one narrow make-opencode env bridge, silent none/stale fallback). S5 catalog-defect REFUTED; residual free risk reframed as Zen/auth activation risk. Shipped as bcb6f26 + 9cd078f + e50c1de narrow diff (single changelog entry scope oh-my-opencode-slim, rendered MD); gates test-omo 1409 pass test-config exit 0; re-reviews 8 of 10 and 9 closed with partials; host podman dev Up postgres Up."
+    path: "knowledge/ana-260918-6ac2-preset-free-switching/ana-260918-6ac2-preset-free-switching-report.md"
+    created: 2026-09-18
+    task_ref: DIA-260918-yug6
+  - name: Free-Tier Gate Rejects Free Models (ana-260921-0f9i)
+    description: "Root cause analysis of the provider-side console gate on providerID=opencode\
+      \ that rejects -free model suffixes (onset ~2026-09-18). PROVEN: error string is\
+      \ provider-originated (zero repo hits); free preset block intact; Makefile PRESET=free\
+      \ forwarding correct; runtime pins consistent (binary 1.18.18, OMO 2.2.19); fresh\
+      \ reconnect does NOT fix; opencode-go path streams fine in same session; OMO 2.2.22\
+      \ excluded by date (onset precedes publish). REFUTED: preset catalog defect, client-side\
+      \ error string, OMO 2.2.22 regression, stale auth as sufficient cause. UNVERIFIED:\
+      \ preset-model-guard.ts:28,117-156 cited by ai-specialist but file absent from current\
+      \ tree with provider receipt proving no pre-rejection. INFERENCE: UA/entrypoint mechanism\
+      \ plausible but unconfirmed. RECOMMENDATION: V1 route free workloads to opencode-go\
+      \ equivalents (Tier-1 evidence, zero client change, registry-blessed fallbacks).\
+      \ Campaign ticket: DIA-260921-6o4i."
+    path: "knowledge/ana-260921-0f9i-free-tier-gate/ana-260921-0f9i-free-tier-gate-report.md"
+    created: 2026-09-21
+    task_ref: DIA-260921-6o4i
+  - name: Terminal Session Identity, Notification Attribution, Cyrillic Visibility (DIA-189)
+    description: "Analysis of three DIA-085 worktree usability defects, code-verified in needs-input-observer.ts (1552 lines) plus the 32-block DIA-189 harness suite. Findings: identical terminal names (visible strip is Pty.title not Session.title, first fix hit the wrong surface), notification attribution, Cyrillic visibility. Ticket OPEN at analysis time, implementation merged, pending human restart-verify."
+    path: "knowledge/ana-260921-yl7m-terminal-session-identity/ana-260921-yl7m-terminal-session-identity-report.md"
+    created: 2026-09-21
+    task_ref: DIA-189
+  - name: ai-specialist Lane Empty-Return Failure, Systemic Cross-Lane (DIA-206)
+    description: "Root-cause diagnosis of 5 empty-return incidents in the 2026-08-17 window (ai-specialist x3, coder cod-2, researcher res-1). Verdict: systemic provider/endpoint/runtime-layer failure, NOT ai-specialist-specific; exact sub-cause (transient provider fault vs harness session-return plumbing) partial because original partial-result files are gone. Includes recovery + hardening recommendations."
+    path: "knowledge/ana-260921-dwtc-empty-return-failure/ana-260921-dwtc-empty-return-failure-report.md"
+    created: 2026-09-21
+    task_ref: DIA-206
+  - name: WSL Cap Exhaustion vsock Relay Stall Analysis (DIA-207)
+    description: "Tests the DIA-207 causal chain (WSL2 caps memory=16GB/processors=6 saturate under load -> swap thrash + CPU oversubscription -> vsock relay accept stall UtilAcceptVsock:246 -> VSCode Remote-WSL disconnect; long-lived opencode sessions are the main RSS growth driver). Ranks ticket fix Phases 1-5 by leverage and states falsification criteria. Methods: 5-Whys, forward causal chain, systems thinking, inversion."
+    path: "knowledge/ana-260921-5ort-wsl-cap-exhaustion/ana-260921-5ort-wsl-cap-exhaustion-report.md"
+    created: 2026-09-21
+    task_ref: DIA-207
+  - name: Datetime Ticket IDs DIA-YYMMDD-XXXX Analysis (DIA-234)
+    description: "Headline finding: the DIA-234 datetime-ticket-ID fix is already implemented in the working tree (scripts/tickets cmd_new -> scripts/allocate-id -> README index -> ticket-gate.ts scan/parse), but the ticket is still OPEN with empty Fix/Re-verify sections. All four ticket verification criteria satisfiable today. Four minor residuals: stale comment, shell-portability contract breach, lenient regex, convention-only enforcement. Methods: 5-Whys on max+1 race, systems thinking, MECE residuals, inversion."
+    path: "knowledge/ana-260921-yq8u-datetime-ticket-ids/ana-260921-yq8u-datetime-ticket-ids-report.md"
+    created: 2026-09-21
+    task_ref: DIA-234
+  - name: Repo Risk Triage 2026-09-21 (DIA-260821-bqy7)
+    description: "Repository-level risk triage (ticket body is an empty template, so OPEN backlog is the risk register plus observed repo-health signals). Census: 12 High / 12 Major / 53 Medium / 7 Low OPEN, 237 CLOSED; tail concentrated in opencode-config (169 tickets all-status, dominant risk area). Rank within band by blast radius x exploitability x reversibility (security, delivery integrity, correctness, ops, hygiene)."
+    path: "knowledge/ana-260921-z1g8-repo-risk-triage/ana-260921-z1g8-repo-risk-triage-report.md"
+    created: 2026-09-21
+    task_ref: DIA-260821-bqy7
+  - name: Unified Dev Container Gap Analysis and Migration Plan (ana-260921-fm96)
+    description: "Gap analysis and migration plan to one unified OpenCode dev container for DIA-260824-iirx. Keeps Compose for the postgres sidecar (health-gated depends_on plus pgdata volume); merges the fedora/podman duplicate overlays into ONE podman overlay; Fedora-first with rootless podman, WSL Ubuntu/Debian second; 4 migration waves (Wave 0 freeze and proof, Wave 1 overlay collapse, Wave 2 devcontainer.json alignment, Wave 3 auth, Wave 4 lifecycle and GPU) each with rollback; 8-risk table (provider quirks, image tag, TLS bake, WSL race, auth leak, GPU, secrets drift, doc refs). Independent critique verdict: sound-with-caveats, needs Wave 0 evidence before cutover."
+    path: "knowledge/ana-260921-fm96-unified-dev-container/ana-260921-fm96-unified-dev-container-report.md"
+    created: 2026-09-21
+    task_ref: DIA-260824-iirx
   adrs:
   - name: Memory Storage Strategy
     description: 'Evaluation of Claude-Mem, Honcho, and current hand-written memory
@@ -850,11 +910,11 @@ shelf:
     created: 2026-08-13
   specs:
   - name: workspace-preset-selection
-    description: 'Implemented OpenSpec change for durable workspace-keyed preset selection. A shared TypeScript helper stores selections by canonical realpath with lock, atomic write, and re-read verification; launch precedence is PRESET override, stored selection, then no preset; invalid values fail closed before agent setup; selectors are next-launch only. Host Makefile resolution bridges stored state into the container and reports effective preset plus source.'
-    path: "openspec/changes/workspace-preset-selection/"
+    description: 'Superseded-archived 2026-09-18: durable workspace-keyed preset selection replaced by single-path contract (DIA-260918-vsq8). Prior DIA-260916-gv9i stale 0/6 tasks will-not-do; stale gv9i SHALLs contradicted single-path. Archived to openspec/changes/archive/2026-09-18-workspace-preset-selection/; source of truth docs/dev-infra/preset-single-path.md; archive holds proposal/design/tasks/specs plus ARCHIVE-NOTE.md.'
+    path: "openspec/changes/archive/2026-09-18-workspace-preset-selection/"
     created: 2026-09-16
-    task_ref: DIA-260916-gv9i
-    status: implemented
+    task_ref: DIA-260918-vsq8
+    status: superseded-archived
   - name: context7-docs-pipeline
     description: 'OpenSpec change: fetches Context7 library documentation for monorepo
       workspace dependencies. Key-optional (dry-run without CONTEXT7_API_KEY), deduplicates
@@ -1229,6 +1289,12 @@ shelf:
     created: 2026-09-11
     task_ref: DIA-260831-j5k6
     status: validated
+  - name: S1 v2 session-created switchModel guard
+    description: "OpenSpec change (ticket DIA-260918-ok9m, DIA-143 sole-writer handoff from openspec-plan): v2-shape project plugin guard firing once at session.created, calling ctx.session.switchModel to preset intent on divergence (env OH_MY_OPENCODE_SLIM_PRESET intent, explicit-override exempt, fire-once per sessionID, fail-soft). Basis ADR 2320-2379 S1 V2-ONLY plus res-260921-qivl sec 3. Artifacts: proposal.md, design.md, specs/session-created-model-guard/spec.md, tasks.md under openspec/changes/dia-260918-ok9m-s1-switchmodel-guard/."
+    path: "openspec/changes/dia-260918-ok9m-s1-switchmodel-guard/"
+    created: 2026-09-21
+    task_ref: DIA-260918-ok9m
+    status: spec-complete
   architectures:
   - name: dia-redispatch-cycle
     description: "Design-authority seed for the dev-infra campaign protocol (CRISIS-DETECTION, PROGNOSIS-DISCIPLINE, cycle-budget management): 5 ADRs (ADR-001 prognosis in HANDOFF.md only, ADR-002 C1-C5 OR-combined triggers, ADR-003 fresh-session independence, ADR-004 max-cycles=3 budget default, ADR-005 soft exhaustion) that the redispatch rule texts must not contradict. Seeded 2026-08-03 from interview Q5."

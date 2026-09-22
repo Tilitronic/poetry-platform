@@ -6,7 +6,7 @@ id: DIA-234
 title: "Datetime-based ticket IDs (DIA-YYMMDD-XXXX) and human-readable mentions"
 area: scripts
 severity: Major
-status: OPEN
+status: DONE
 blocked_by: []
 parent_epic: ""
 
@@ -18,7 +18,7 @@ discovered:
 source: fix-lane
 date: 2026-08-19
 created: 2026-08-19
-updated: 2026-08-19
+updated: 2026-09-21
 
 session_id: ""
 lane_id: ""
@@ -58,8 +58,39 @@ Additionally, enforce the "DIA-NNN 'slug'" mention format in orchestrator dispat
 
 ## Fix
 
-> To be filled at fix time.
+Implemented before close-out (verified present in working tree 2026-09-21):
+
+- `scripts/allocate-id` (new): unified datetime ID generator, emits
+  `DIA-YYMMDD-XXXX` (6-digit date + 4-char lowercase base36 suffix from
+  /dev/urandom with PID/nanosecond mixing, loops until 4 chars accumulate).
+- `scripts/tickets next_dia()`: delegates to `scripts/allocate-id`
+  (no more max+1 scan); `num_of_file`, `cmd_frontier`, `blockers_of`,
+  `find_ticket_file` all datetime-aware; dual-mode sort keeps the
+  sequential block (numeric) before the datetime block (lexical).
+- `cmd_new` validates `blocked-by` / `parent-epic` in both formats and
+  keeps the 5-attempt file/README collision guard as a second net.
+- Gate (`.opencode/plugins/lib/ticket-gate.ts` lines 103-105):
+  `TICKET_ID_RE` / `_FIND` / `_FILENAME` accept both formats, case-folded.
+- `scripts/__tests__/tickets.bats`: datetime-format, README-landing,
+  blocked-by, parent-epic, frontier-sort, and rollup coverage.
+- `AGENTS.md` documents the `DIA-NNN 'slug'` / `DIA-YYMMDD-XXXX 'slug'`
+  mention format (prose convention, no mechanical check).
 
 ## Re-verify
 
-> To be filled at re-verify time.
+2026-09-21 close-out run, all 4 ticket criteria PASS:
+
+1. `scripts/tickets new "DIA-234 verify alpha" --area scripts --severity Minor`
+   produced `DIA-260921-25nq-dia-234-verify-alpha.md` (DIA-YYMMDD-XXXX). PASS.
+2. Second rapid create produced `DIA-260921-d0js-dia-234-verify-beta.md`;
+   suffixes `25nq` vs `d0js` distinct, no collision. PASS.
+   (Both probe tickets moved to `.scratch/dia-234-verify-probes/` and their
+   README rows removed; `scripts/tickets rollup` recomputed counts.)
+3. `make test-config` exit 0. PASS.
+4. README index holds 150 sequential + 173 datetime rows; `tickets show DIA-045`
+   and `tickets list` parse sequential tickets correctly. PASS.
+
+Residuals (unchanged, accepted as-is): R1 stale max+1 comment
+(`scripts/tickets` ~852-859, Low); R2 `[[ ]]` vs bash-3 header claim
+(~717, Low); R3 gate suffix `[a-z0-9]+` lenient vs exactly-4 (~103-105, Low);
+R4 mention rule prose-only (Info). No Critical/Major residuals.
