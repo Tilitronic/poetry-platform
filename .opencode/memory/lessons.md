@@ -251,6 +251,10 @@ Notes:
 
 - Minor helper convention (note): the optional-arg helper change used `${3-...}` (intentionally not `${3:-...}`) so that an explicit empty-string argument is preserved by callers who want a PATH suffix of "" (fakes-only). This is a small but deliberate design choice intended to make the hermetic fakes-only invocation ergonomic; record it here to explain the helper's signature for future probe authors.
 
+## 2026-09-22 - Do not misdiagnose a transient HTTP 500 as a DNS failure
+
+A Docker build failed with `curl: (22) The requested URL returned error: 500` and a lane concluded DNS was broken, adding an unnecessary `--network=host` workaround. HTTP 500 means DNS resolved, TCP connected, TLS completed and the SERVER returned an error; a DNS failure reads `curl: (6) Could not resolve host`. Discriminate by re-running the plain build and by probing DNS directly; retry is the correct response to a 5xx. Cross-reference DIA-260922-cp0m and ses_f374fe4afffeS5bFb7qV7haetj.
+
 
 ## Campaign operational addenda (2026-08-06)
 

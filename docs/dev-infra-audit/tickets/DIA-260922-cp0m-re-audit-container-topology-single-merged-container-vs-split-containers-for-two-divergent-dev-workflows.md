@@ -114,8 +114,33 @@ Variant 3 - keep ONE dev-toolchain container plus the separate stateful postgres
 
 ## Re-verify
 
-> To be filled at re-verify time.
+> Filled 2026-09-22.
 
-- ADR 11 persisted in .sdd/dev-infra/architecture.md (container topology decision).
-- Follow-ups tracked: 5 concrete items to finish the merge (retire legacy, consolidate pins, move opencode block, decouple healthcheck, resolve Docker-CLI contradiction).
-- Status: OPEN (merge not yet finished; OPENCODE_VERSION diverged; legacy still present).
+### PHASE 1 COMPLETE (commit 07c0513)
+
+The opencode install block (formerly Dockerfile.dev:143-160) was moved to the last layer, immediately before the OMO cache layer. Measured improvement: ~85% reduction in invalidated layers per opencode bump (13 layers previously -> 3 layers now: opencode layer + OMO cache + git global safe.directory).
+
+Verified green (ses_f375702edffe36XpGy4yluTINz):
+
+- test-shell: exit 0, 734 ok / 0 not-ok (full run to completion, no artificial timeout)
+- Container: opencode 1.18.32, bun 1.4.2
+- Binary ownership: /usr/local/bin/opencode 1001:1001 preserved
+- Functional check: OPENCODE_OK
+- Git tree: clean, 07c0513 as HEAD
+
+### CORRECTIONS
+
+1. **DNS misdiagnosis** -- the `--network=host` workaround reported by the implementation lane was NOT needed. ses_f374fe4afffeS5bFb7qV7haetj proved plain `docker compose build dev` exits 0 with an UNCACHED build (all 23 layers, all network fetches succeeded). The `curl: (22) ... 500` was a transient GitHub CDN HTTP 500 (server-side), NOT a DNS failure (which would read `curl: (6) Could not resolve host`). Both plain and --network=host probes returned NET_OK. No daemon.json exists. The Linux colleague is NOT affected.
+
+2. **Causation** -- the reorder is a pure positional move of an existing RUN block (identical curl URL, identical sha256 digests, zero content change) and therefore cannot have caused any network error.
+
+### REMAINING PHASES
+
+1. Consolidate pins to one edit site
+2. Retire tools/opencode-docker + delete docker-compose.fedora.yml + drop test-opencode-docker from test-shell
+3. Decouple the dev healthcheck from opencode (probe node/pnpm)
+4. Resolve the Docker-CLI contradiction (x5nj T0.9 vs Dockerfile.dev:82-112) and formally abandon/defer the hook-inversion
+
+### STATUS
+
+OPEN (phases 2-5 remaining; legacy still present; OPENCODE_VERSION diverged).

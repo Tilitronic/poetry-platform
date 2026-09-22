@@ -101,7 +101,7 @@ This document defines the architectural boundaries and operational mechanics of 
 
 #### Implementation status (2026-09-22)
 
-Decision ACCEPTED by the developer. The merge is NOT yet finished: OPENCODE_VERSION is currently DIVERGED between the two Dockerfiles (1.18.32 in Dockerfile.dev vs 1.18.4 in tools/opencode-docker/Dockerfile, verified live), DIA-260821-x5nj remains planning-only, and DIA-260824-8k62 (retire legacy) is OPEN and blocked on 5 tickets. Accepted follow-ups: retire the legacy runtime, consolidate pins to one edit site, move the opencode install block (Dockerfile.dev:143-160) to the LAST layer (13 RUN layers currently follow it; image is 9.17GB), decouple the dev healthcheck from opencode, and resolve the Docker-CLI contradiction (x5nj T0.9 vs Dockerfile.dev:82-112).
+Decision ACCEPTED by the developer. PHASE 1 COMPLETE (commit 07c0513): the opencode install block was moved to the last layer, immediately before the OMO cache layer. Measured ~85% reduction in invalidated layers per opencode bump (13 -> 3). Verified green: test-shell 734 ok / 0 not-ok; opencode 1.18.32 + bun 1.4.2; binary ownership 1001:1001 preserved. The DNS misdiagnosis correction (plain docker compose build dev works, no --network=host needed) is recorded in the DIA-260922-cp0m ticket. Phases 2-5 remain: consolidate pins to one edit site, retire the legacy runtime (tools/opencode-docker), decouple the dev healthcheck from opencode, and resolve the Docker-CLI contradiction.
 
 ## Traceability Table
 
