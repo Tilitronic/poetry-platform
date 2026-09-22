@@ -1,5 +1,13 @@
 # DIA-188 - OMO self-sufficiency: project-level plugin declaration + docker bake (openCode >= 1.18.13 in image)
 
+<!-- STALE-CLOSE 2026-09-22 (bounded close lane, developer approved closure
+     as stale/landed): the 2.2.14 subject of this ticket is SUPERSEDED - the
+     tree now pins oh-my-opencode-slim@2.2.19 in all three project layers.
+     Windows-native pin item (scope step 6) is NOT APPLICABLE (dormant host
+     path, outside repo control). Host-global Phase 2 removal is outside repo
+     verifiability (host ~/.config, not in git). Self-sufficiency objective
+     LANDED at the 2.2.19 pin level; no further work tracked here. -->
+
 <!-- UPDATE 2026-08-15: EBDV decision recorded (variant A - project-level plugin
      declaration + docker bake). Diagnosis complete; implementation started.
      Route: openspec-plan spec -> coder implementation -> test gates ->
@@ -28,7 +36,7 @@ id: DIA-188
 title: "OMO self-sufficiency: project-level plugin declaration + docker bake (openCode >= 1.18.13 in image)"
 area: opencode-config
 severity: Medium
-status: OPEN
+status: DONE
 blocked_by: [] # no blockers
 parent_epic: ""
 
@@ -44,7 +52,7 @@ discovered:
 source: developer requirement
 date: 2026-08-15
 created: 2026-08-15
-updated: 2026-08-15
+updated: 2026-09-22
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -231,4 +239,25 @@ Restart-verify checklist (next lane):
 
 ## Re-verify
 
-> To be filled at re-verify time.
+> Stale-close re-verify 2026-09-22 (bounded close lane): self-sufficiency
+> objective LANDED at the 2.2.19 pin level - all evidence lines below are
+> live tree reads dated 2026-09-22. No container rebuild or restart-verify
+> performed (out of scope for a stale close; the Phase-1 2.2.14
+> restart-verify checklist above is superseded along with its subject pin).
+>
+> - .opencode/opencode.jsonc:724 pins "oh-my-opencode-slim@2.2.19" in the
+>   project plugin array (DIA-188 declaration comment, single source).
+> - .opencode/tui.json carries {"plugin": ["oh-my-opencode-slim@2.2.19"]}
+>   for project-level OMO panel registration.
+> - tools/opencode-docker/config/opencode.json:25 pins
+>   "oh-my-opencode-slim@2.2.19" in the docker config plugin array.
+> - Dockerfile.dev bakes OPENCODE_VERSION=1.18.18 (line 29) + OMO_VERSION=2.2.19
+>   (line 32) with OMO cache pre-population RUN (line ~342).
+> - check-omo-version-sync gate exists: scripts/check-omo-version-sync.sh +
+>   scripts/**tests**/check-omo-version-sync.bats, wired into Makefile:237
+>   (make test-config).
+> - Superseded: 2.2.14 subject pin (no 2.2.14 references remain in the three
+>   project layers or Dockerfile). Not applicable: Windows-native pin
+>   (dormant host path, outside repo control). Outside repo verifiability:
+>   host-global Phase 2 removal (host ~/.config, not in git).
+> - Developer approval for stale/landed closure recorded 2026-09-22.
