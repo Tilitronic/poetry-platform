@@ -4,10 +4,14 @@ import { createAgents, getAgentConfigs } from './index';
 
 describe('custom-agent creation', () => {
   test('infers custom agents from unknown keys', () => {
+    // Must use a name that is NOT in ALL_AGENT_NAMES / SUBAGENT_NAMES so
+    // createAgents routes it through the custom-agent path (which uses the
+    // inline prompt from config) instead of the built-in path (which calls
+    // loadAgentPrompt and may replace it with a real user-level .md file).
     const config: PluginConfig = {
       agents: {
         'code-navigator': { model: 'openai/gpt-5.4-mini' },
-        reviewer: {
+        'custom-reviewer': {
           model: 'openai/gpt-5.5',
           prompt: 'You are the custom reviewer agent.',
         },
@@ -17,9 +21,9 @@ describe('custom-agent creation', () => {
     const agents = createAgents(config);
     const names = agents.map((agent) => agent.name);
 
-    expect(names).toContain('reviewer');
+    expect(names).toContain('custom-reviewer');
 
-    const customAgent = agents.find((agent) => agent.name === 'reviewer');
+    const customAgent = agents.find((agent) => agent.name === 'custom-reviewer');
     expect(customAgent).toBeDefined();
     expect(customAgent?.config.model).toBe('openai/gpt-5.5');
     expect(customAgent?.config.prompt).toBe(

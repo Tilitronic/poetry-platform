@@ -116,8 +116,12 @@ mock.module('./background-subagents', () => {
     ...actualBackgroundSubagents,
     isBackgroundSubagentsEnabled: (env?: string) =>
       enableInstallMocks ? true : originalIsBackgroundSubagentsEnabled(env),
-    detectBackgroundSubagentsTarget: () =>
-      enableInstallMocks ? '/path' : originalDetectBackgroundSubagentsTarget(),
+    detectBackgroundSubagentsTarget: (...args: unknown[]) =>
+      enableInstallMocks
+        ? '/path'
+        : originalDetectBackgroundSubagentsTarget(
+            ...(args as [Record<string, string | undefined>?]),
+          ),
     expandHomePath: (p: string) =>
       enableInstallMocks ? p : originalExpandHomePath(p),
     getBackgroundSubagentsBlock: (target: string) =>
