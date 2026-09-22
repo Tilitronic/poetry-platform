@@ -6,7 +6,7 @@ id: DIA-260918-vsq8
 title: "single-path preset launch make opencode PRESET"
 area: scripts
 severity: Medium
-status: OPEN
+status: DONE
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: ""
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
@@ -53,7 +53,7 @@ fail loudly with the available-preset list before any container starts.
 - [x] Makefile forwards only OH_MY_OPENCODE_SLIM_PRESET; no second preset path remains; stale OPENCODE_WORKSPACE_PRESET export is ignored and bare `make opencode` forwards no override (bats tests 3/4/5, 2026-09-22)
 - [x] preset-single-path.bats 6/6 pass, exit 0 (2026-09-22 backfill run)
 - [x] make test-config passes, exit 0 (2026-09-22 backfill run)
-- [ ] Live TUI check: `make opencode PRESET=free` and PRESET=muse-balanced Effective lines at TUI startup - HUMAN STEP PENDING, to be captured on next interactive launch
+- [ ] Live TUI check: `make opencode PRESET=free` and PRESET=muse-balanced Effective lines at TUI startup - RESIDUAL (known-deferred): human interactive step, accepted same class as DIA-189 restart-verify residual; developer approved closure 2026-09-22.
 
 ## Fix
 
@@ -96,3 +96,12 @@ Host smoke 2026-09-18 provided by developer, recorded verbatim:
 4. make opencode PRESET=does-not-exist prints Unknown preset plus Available presets list, make exit 2, EXIT=2, no container started.
 
 Remaining live check: make opencode PRESET=free and PRESET=muse-balanced Effective lines at TUI startup, to be captured on next interactive launch.
+
+## Close
+
+RESIDUAL (known-deferred, developer approved 2026-09-22): live TUI check
+(make opencode PRESET=free and PRESET=muse-balanced Effective lines at
+TUI startup) remains a human interactive step. Accepted as known-deferred,
+same class as DIA-189 restart-verify residual. Backfill commit b465128 in
+log (7 commits verified, bats 6/6 + test-shell 724/724 + test-config
+exit 0). Status DONE.
