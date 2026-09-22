@@ -140,25 +140,6 @@ RUN NODE_ARCH=$(case "${TARGETARCH:-$(uname -m)}" in x86_64|amd64) echo "x64" ;;
     rm -f /tmp/node.tar.gz && \
     node --version && npm --version
 
-# === OpenCode CLI (pinned binary from GitHub release, SHA256-verified) ===
-# DIA-188 (DD2): replaces the install-script pattern. The script at
-# opencode.ai/install lives on a mutable dev branch (anomalyco/opencode
-# refs/heads/dev/install) and performs NO sha256 verification of the binary it
-# downloads - pinning the script's own digest (the old fc3c1b2... pattern) was
-# stale/unstable. Direct binary download + digest verification matches the
-# node/snip/uv/mise pattern used elsewhere in this file. Repo relocated
-# sst/opencode -> anomalyco/opencode (res028). Digests pinned from the v1.18.32
-# GitHub release assets (downloaded + sha256sum, 2026-09-22).
-RUN OC_ARCH=$(case "${TARGETARCH:-$(uname -m)}" in x86_64|amd64) echo "linux-x64" ;; aarch64|arm64) echo "linux-arm64" ;; esac) && \
-    curl -fsSL "https://github.com/anomalyco/opencode/releases/download/v${OPENCODE_VERSION}/opencode-${OC_ARCH}.tar.gz" -o /tmp/opencode.tar.gz && \
-    case "${OC_ARCH}" in \
-      linux-x64)   echo "3046e0404fdc60fb80307e7a47824ba07477364178a4d09baa8548496dd6d43b  /tmp/opencode.tar.gz" | sha256sum -c - ;; \
-      linux-arm64) echo "568461b7d4d8c19865c97e9a1102e613049c6039d01fe772154de873c1865840  /tmp/opencode.tar.gz" | sha256sum -c - ;; \
-    esac && \
-    tar xzf /tmp/opencode.tar.gz -C /usr/local/bin/ && \
-    rm -f /tmp/opencode.tar.gz && \
-    opencode --version
-
 # === Global npm packages: pnpm, bun, OpenSpec, language servers ===
 # typescript-language-server + typescript + pyright give LSP intelligence in
 # the dev container; versions are pinned in the ARG block above.
@@ -325,6 +306,29 @@ COPY --chmod=0644 scripts/dev-git-turbo-profile.sh /etc/profile.d/git-turbo.sh
 # runtime /etc/gitconfig workaround, which was lost on every recreate.
 # The --get assertion makes the build fail if the entry does not land.
 RUN git config --system --add safe.directory /workspace && git config --system --get safe.directory /workspace
+
+# === OpenCode CLI (pinned binary from GitHub release, SHA256-verified) ===
+# DIA-188 (DD2): replaces the install-script pattern. The script at
+# opencode.ai/install lives on a mutable dev branch (anomalyco/opencode
+# refs/heads/dev/install) and performs NO sha256 verification of the binary it
+# downloads - pinning the script's own digest (the old fc3c1b2... pattern) was
+# stale/unstable. Direct binary download + digest verification matches the
+# node/snip/uv/mise pattern used elsewhere in this file. Repo relocated
+# sst/opencode -> anomalyco/opencode (res028). Digests pinned from the v1.18.32
+# GitHub release assets (downloaded + sha256sum, 2026-09-22).
+# DIA-260922-cp0m: moved to LAST layer so version bumps stop rebuilding the
+# whole ~9GB image. Binary ownership (1001:1001 from tarball) is preserved
+# because extraction runs as root (no USER directive). Inserted before OMO
+# cache so the binary is available for the HEALTHCHECK and any runtime deps.
+RUN OC_ARCH=$(case "${TARGETARCH:-$(uname -m)}" in x86_64|amd64) echo "linux-x64" ;; aarch64|arm64) echo "linux-arm64" ;; esac) && \
+    curl -fsSL "https://github.com/anomalyco/opencode/releases/download/v${OPENCODE_VERSION}/opencode-${OC_ARCH}.tar.gz" -o /tmp/opencode.tar.gz && \
+    case "${OC_ARCH}" in \
+      linux-x64)   echo "3046e0404fdc60fb80307e7a47824ba07477364178a4d09baa8548496dd6d43b  /tmp/opencode.tar.gz" | sha256sum -c - ;; \
+      linux-arm64) echo "568461b7d4d8c19865c97e9a1102e613049c6039d01fe772154de873c1865840  /tmp/opencode.tar.gz" | sha256sum -c - ;; \
+    esac && \
+    tar xzf /tmp/opencode.tar.gz -C /usr/local/bin/ && \
+    rm -f /tmp/opencode.tar.gz && \
+    opencode --version
 
 # === OMO plugin cache pre-population (DIA-188 DD3) ===
 # Pre-install oh-my-opencode-slim into OpenCode's plugin cache
