@@ -2,27 +2,29 @@
 
 ## Vertical Slices
 
-### Slice 0: Hook Execution Model Inversion (P0 — Architectural Core)
+### Slice 0: Hook Execution Model Inversion (P0 — Architectural Core) — DEFERRED (2026-09-22)
+
+**Status: DEFERRED (DIA-260922-cp0m).** Reason: host delegation is the approved current reality (`scripts/container-engine.sh`; `scripts/verify-pre-push.sh:53-70,161`); the inversion is not required to finish the container merge and is not on the critical path. Tasks T0.1-T0.6 are retained for traceability but are NOT in scope for this change.
 
 **Goal:** Make the unified container the sole workspace for git commit, eliminating host delegation.
 
 **Tasks:**
 
-- [ ] **T0.1** Update `.husky/pre-commit` to execute directly inside container
+- [ ] **T0.1** [DEFERRED] Update `.husky/pre-commit` to execute directly inside container
   - Remove host-delegation logic (no `is_in_dev_container` / `container_running` branching)
   - Hook runs directly: `bash scripts/verify-pre-commit.sh`
   - Acceptance: Hook executes inside container without delegation
   - Depends on: none
   - Blocks: T0.3, T7.1
 
-- [ ] **T0.2** Update `.husky/pre-push` to execute directly inside container
+- [ ] **T0.2** [DEFERRED] Update `.husky/pre-push` to execute directly inside container
   - Remove host-delegation logic (no `is_in_dev_container` / `container_running` branching)
   - Hook runs directly: `bash scripts/verify-pre-push.sh`
   - Acceptance: Hook executes inside container without delegation
   - Depends on: none
   - Blocks: T0.4, T7.1
 
-- [ ] **T0.3** Simplify `scripts/verify-pre-commit.sh`
+- [ ] **T0.3** [DEFERRED] Simplify `scripts/verify-pre-commit.sh`
   - Remove `is_in_dev_container()` function
   - Remove `container_running()` function
   - Remove `run_workspace()` branching
@@ -31,7 +33,7 @@
   - Depends on: T0.1
   - Blocks: T7.1
 
-- [ ] **T0.4** Simplify `scripts/verify-pre-push.sh`
+- [ ] **T0.4** [DEFERRED] Simplify `scripts/verify-pre-push.sh`
   - Remove `is_in_dev_container()` function
   - Remove `container_running()` function
   - Remove `run_workspace()` branching
@@ -40,14 +42,14 @@
   - Depends on: T0.2
   - Blocks: T7.1
 
-- [ ] **T0.5** Update `AGENTS.md` §2.3 to reflect direct hook execution
+- [ ] **T0.5** [DEFERRED] Update `AGENTS.md` §2.3 to reflect direct hook execution
   - Document that hooks now run inside the container, not on the host
   - Update pre-commit/pre-push hook documentation
   - Acceptance: Documentation updated
   - Depends on: T0.3, T0.4
   - Blocks: T7.1
 
-- [ ] **T0.6** Create bats tests for direct hook execution model
+- [ ] **T0.6** [DEFERRED] Create bats tests for direct hook execution model
   - File: `scripts/__tests__/direct-hooks.bats`
   - Mock git, verify hook executes directly (no delegation)
   - Acceptance: Tests pass without real container
@@ -67,12 +69,13 @@
   - Depends on: none
   - Blocks: T1.2
 
-- [ ] **T0.9** Remove Docker CLI from `Dockerfile.dev`
-  - Delete lines 76-106 (Docker CLI apt-repo install)
+- [ ] **T0.9** Remove Docker CLI from `Dockerfile.dev` (now achievable under the PHASE 5 variant)
+  - Delete the Docker CLI apt-repo install block (comment + keyring/apt-repo install + version verification)
   - Saves ~90MB
   - Acceptance: Docker CLI not in container, image size reduced
-  - Depends on: none
+  - Depends on: T12.4 (the relocated host-side compose-config gate must exist before the CLI's only in-container consumer is removed)
   - Blocks: T1.1
+  - Note: implemented by T12.5; T0.9 is the acceptance-level restatement of that work.
 
 - [ ] **T0.10** Add resource limits to `docker-compose.yml`
   - `deploy.resources.limits`: memory 8g, cpus 4
@@ -505,6 +508,132 @@
   - Depends on: T0.7, T8.5
   - Blocks: none
 
+### Slice 10: PHASE 2 — Single Tool-Pin Source (4-pair parity)
+
+**Goal:** Make the pin gate the single gated source for the four shared tool pins (node, pnpm, opencode, bun), per ADR 11 line 99. Authority: `.sdd/dev-infra/architecture.md` ADR 11.
+
+**Tasks:**
+
+- [ ] **T10.0** Verify mise registry support for `opencode` and `bun` (branch selector)
+  - Run in the dev container: `mise registry` and confirm whether `opencode` and `bun` resolve
+  - Record the outcome and select branch A/B/C (design.md "PHASE 2 — Single Tool-Pin Source" table)
+  - Acceptance: the selected branch is recorded; `make check-tools` is not broken by the decision
+  - Depends on: none
+  - Blocks: T10.1, T10.3
+
+- [ ] **T10.1** Add the opencode/bun reference pins per the T10.0 branch
+  - Branch A (mise supports both): add `opencode` and `bun` under `[tools]` in `.mise.toml`
+  - Branch B (bun only): add `bun` under `[tools]`; the opencode pin goes to `scripts/pins.env` read by `parse_reference`
+  - Branch C (neither): both new pins go to `scripts/pins.env`; `[tools]` keeps node/pnpm only
+  - Acceptance: every reference value equals the corresponding `Dockerfile.dev` ARG value; adding the keys does not break `mise install`
+  - Depends on: T10.0
+  - Blocks: T10.2, T10.3
+
+- [ ] **T10.2** Extend `scripts/check-pin-sync.sh` to four comparisons
+  - `parse_reference`/`parse_dockerfile` learn `OPENCODE_VERSION` and `BUN_VERSION` (missing/duplicate -> INFRA exit 2)
+  - Add two `compare` calls (opencode, bun); keep report-ALL and exit precedence 2>1>0
+  - Update the header comment from "2 comparisons" to four
+  - Acceptance: `make check-pin-sync` prints `summary: 4 ok, 0 fail` on the real tree
+  - Depends on: T10.1
+  - Blocks: T10.4, T10.5
+
+- [ ] **T10.3** Extend `scripts/check-tools.sh` for the mise-managed new keys
+  - Only for keys mise actually manages in-container (per T10.0); add `probe_tool` calls at the Dockerfile ARG values
+  - MUST leave the unscoped `mise install` (check-tools.sh:53) working
+  - Acceptance: `make check-tools` still exits 0 in-container (or the documented expected error on a host without mise)
+  - Depends on: T10.0, T10.1
+  - Blocks: T10.5
+
+- [ ] **T10.4** Extend bats coverage to the 4-pin matrix
+  - `setup_pin_sync_tree` handles four pins; `check-pin-sync.bats` summary assertions become "4 ok, 0 fail"
+  - Add mismatch/duplicate/missing cases for opencode and bun; update the S4 real-`.mise.toml` structural case
+  - Update the Makefile `check-pin-sync` comment ("2 comparisons" -> four)
+  - Acceptance: `make test-shell` green; a single opencode/bun drift exits 1; missing/duplicate exits 2
+  - Depends on: T10.2
+  - Blocks: T10.5
+
+- [ ] **T10.5** PHASE 2 acceptance verification
+  - `make check-pin-sync` -> 4 ok / 0 fail; `make test-shell` green; `make check-tools` not broken
+  - Acceptance: all three exit 0 with recorded evidence
+  - Depends on: T10.3, T10.4
+  - Blocks: none
+
+### Slice 11: PHASE 4 — Decouple the Dev Healthcheck from OpenCode
+
+**Goal:** The healthcheck probes a non-opencode binary (ADR 11 line 99).
+
+**Tasks:**
+
+- [ ] **T11.1** Replace the `Dockerfile.dev` HEALTHCHECK CMD with a node probe
+  - `CMD node --version >/dev/null 2>&1 || exit 1`
+  - Acceptance: HEALTHCHECK no longer references `opencode`
+  - Depends on: none
+  - Blocks: T11.2, T11.3
+
+- [ ] **T11.2** Update the healthcheck regression test
+  - `scripts/__tests__/verify-pre-commit-uid-mismatch.bats` (the Dockerfile healthcheck case): assert the node probe and that no `opencode`/gosu variant remains
+  - Acceptance: the updated case passes
+  - Depends on: T11.1
+  - Blocks: T11.3
+
+- [ ] **T11.3** PHASE 4 acceptance verification
+  - Rebuild `dev`; `docker compose ps` reports the service healthy; healthcheck is independent of the opencode pin
+  - Acceptance: container healthy; `make test-shell` green
+  - Depends on: T11.1, T11.2
+  - Blocks: none
+
+### Slice 12: PHASE 5 — Remove the Docker CLI; Relocate the Compose-Config Gate
+
+**Goal:** Host-side compose-config validation replaces the in-container Docker CLI (ADR 11 / DIA-260824-iirx decision 3; x5nj T0.9).
+
+**Tasks:**
+
+- [ ] **T12.1** Create `scripts/check-compose-config.sh` (host-only)
+  - Runs `<engine> compose config --quiet` via `scripts/container-engine.sh`
+  - HARD FAIL (non-zero, actionable) when the engine CLI is unavailable; never a silent skip
+  - Acceptance: exits 0 on a valid compose file; exits non-zero with guidance when the CLI is absent
+  - Depends on: none
+  - Blocks: T12.2, T12.3, T12.6
+
+- [ ] **T12.2** Add the `check-compose-config` Makefile target
+  - Target invokes the script; added to `.PHONY`
+  - Acceptance: `make check-compose-config` runs the check
+  - Depends on: T12.1
+  - Blocks: T12.3, T12.4
+
+- [ ] **T12.3** Wire the host check into the pre-push path ABOVE the container-down early-exit
+  - `scripts/verify-pre-push.sh`: invoke `check-compose-config` host-side before delegation (alongside the home-qualt guard and budget backstop)
+  - Acceptance: `compose config` (client-side, no daemon) runs on every push even when the stack is down; a missing CLI blocks the push
+  - Depends on: T12.2
+  - Blocks: T12.6, T12.7
+
+- [ ] **T12.4** Remove the compose-config line from the in-container `test-config` recipe with a visible host-scoped note
+  - Drop `$(COMPOSE) config --quiet` from the shared recipe; print an explicit, visible note that the check is host-scoped and runs host-side in pre-push
+  - Update the Makefile `test-config` comment
+  - Acceptance: in-container `make test-config` passes and prints the visible note; host `make check-compose-config` retains compose coverage
+  - Depends on: T12.2
+  - Blocks: T12.5, T12.6
+
+- [ ] **T12.5** Remove the Docker CLI install from `Dockerfile.dev`
+  - Remove the DIA-131 comment + apt-repo install + `docker --version && docker compose version` verification
+  - Correct the failure-mode text (engine adapter form with `-f docker-compose.yml --user dev`; real error `bash: docker: command not found`)
+  - Acceptance: the built image has no `docker` binary; image size reduced (~90MB)
+  - Depends on: T12.4
+  - Blocks: T12.6, T12.7
+
+- [ ] **T12.6** bats coverage for the relocated check and the removal
+  - New `scripts/__tests__/check-compose-config.bats`: mock CLI absent -> hard fail; present + valid -> pass; assert no silent skip path
+  - Update any suite asserting the docker CLI or the old `test-config` recipe
+  - Acceptance: `make test-shell` green
+  - Depends on: T12.1, T12.3, T12.4, T12.5
+  - Blocks: T12.7
+
+- [ ] **T12.7** PHASE 5 acceptance verification
+  - Build the image without the Docker CLI; in-container `make test-config` passes with the visible note; host `make check-compose-config` passes; simulate a missing CLI -> hard fail; verify pre-push ordering
+  - Acceptance: all evidenced
+  - Depends on: T12.5, T12.6
+  - Blocks: none
+
 ## Blocking Edges Summary
 
 ```
@@ -561,11 +690,31 @@ T8.2 → T8.3
 T8.3 → T8.4
 T8.4 → T8.5
 T8.5 → T8.6
+T0.9 → T12.4 (gate: the relocated host compose-config check must land first)
+T10.0 → T10.1, T10.3
+T10.1 → T10.2, T10.3
+T10.2 → T10.4, T10.5
+T10.3 → T10.5
+T10.4 → T10.5
+T11.1 → T11.2, T11.3
+T11.2 → T11.3
+T12.1 → T12.2, T12.3, T12.6
+T12.2 → T12.3, T12.4
+T12.3 → T12.6, T12.7
+T12.4 → T12.5, T12.6
+T12.5 → T12.6, T12.7
+T12.6 → T12.7
 ```
 
 ## Critical Path
 
 T0.9 → T1.1 → T1.2 → T1.4 → T3.1 → T4.1 → T4.3 → T5.1 → T6.1 → T6.3 → T0.1 → T0.3 → T0.5 → T7.1 → T7.2 → T7.4 → T7.6 → T7.7 → T8.1 → T8.2 → T8.3 → T8.4 → T8.5 → T0.7 → T8.6
+
+**Container-merge completion critical path (2026-09-22, DIA-260922-cp0m):**
+
+- PHASE 2: T10.0 → T10.1 → T10.2 → T10.4 → T10.5
+- PHASE 4: T11.1 → T11.2 → T11.3
+- PHASE 5: T12.1 → T12.2 → T12.4 → T12.5 → T12.6 → T12.7 (and T12.4 → T0.9)
 
 ## Parallel Opportunities
 
@@ -580,6 +729,10 @@ T0.9 → T1.1 → T1.2 → T1.4 → T3.1 → T4.1 → T4.3 → T5.1 → T6.1 →
 - T7.0e can run after T7.0c, T7.0d
 - T7.3, T7.5 can run in parallel after T7.1
 - T7.4, T7.6 can run in parallel after T7.2
+- T10.0, T11.1, T12.1 can start in parallel (the three completion phases have no cross-phase blockers)
+- T10.3, T10.4 can run in parallel after T10.1/T10.2
+- T11.2 and T12.2 can run in parallel after T11.1/T12.1
+- T12.3, T12.4 can run in parallel after T12.2
 
 ## Implementation-Ready Ordered Slices
 
@@ -594,4 +747,7 @@ T0.9 → T1.1 → T1.2 → T1.4 → T3.1 → T4.1 → T4.3 → T5.1 → T6.1 →
 7. **Slice 6 (P6)**: Contract tests — validates unification
 8. **Slice 7 (P7)**: Preflight + keep-id verify — security hardening
 9. **Slice 8 (P8)**: Acceptance verification — final validation
-10. **Slice 9 (P9)**: Retirement — cleanup
+10. **Slice 9 (P9)**: Retirement — cleanup (COMPLETE: T8.6 done)
+11. **Slice 10 (P10)**: PHASE 2 — single tool-pin source (4-pair parity)
+12. **Slice 11 (P11)**: PHASE 4 — healthcheck decoupling from opencode
+13. **Slice 12 (P12)**: PHASE 5 — Docker CLI removal + host-side compose-config gate

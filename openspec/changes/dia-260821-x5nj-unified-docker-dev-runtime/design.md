@@ -3,12 +3,17 @@
 ## Governing Constraints
 
 - `.sdd/dev-infra/architecture.md` — ADR 8 (bash-3 compatibility)
+- `.sdd/dev-infra/architecture.md` — ADR 11 (container topology). Line 99: shared tool pins must have exactly one edit site with parity enforced by a gate; the dev healthcheck must not depend on the opencode binary. Lines 102-104: PHASE 1/3 complete, PHASES 2/4/5 remain.
 - `AGENTS.md` §2.4 — dev-infra changes >~20 lines require OpenSpec
 - `AGENTS.md` §6 — container gates (DIA-094)
-- `DIA-260821-x5nj` — planning-only, no implementation
+- `DIA-260821-x5nj` / `DIA-260922-cp0m` — this change now owns the container-merge completion (PHASES 2/4/5), superseding the original planning-only framing
 - `knowledge/res040-docker-rootless-uid-compatibility/res040-docker-rootless-uid-compatibility-conspect.md` — UID/GID mapping evidence
 
 ## Current State
+
+### Container-Merge Progress (2026-09-22)
+
+PHASE 1 (commit 07c0513) and PHASE 3 (commit 63d6478) are complete: the opencode install block is the last layer, and the legacy `tools/opencode-docker` runtime is retired (only `Dockerfile.dev` remains). The "Two Divergent Dockerfiles" table below is retained as the historical rationale for the merge, not as current state. PHASES 2, 4 and 5 are specified in the "Container-Merge Completion" section.
 
 ### Two Divergent Dockerfiles
 
@@ -200,6 +205,87 @@ Explicitly NOT in first release:
    - Current single-stage build is functional
    - Optimization can come later
 
+## Container-Merge Completion (PHASES 2, 4, 5)
+
+Added 2026-09-22 (DIA-260922-cp0m). These phases complete the merge begun by this change; PHASES 1 and 3 are already implemented. Authority is ADR 11 (`.sdd/dev-infra/architecture.md`).
+
+### PHASE 2 — Single Tool-Pin Source
+
+**Reference-only pin semantics.** ADR 11's "exactly one edit site" is read as ONE SITE PER PIN, not one file for all pins. `.mise.toml [tools]` is the reference for pins mise can install; where mise cannot install a pin, the reference entry is a REFERENCE-ONLY pin for the parity gate and does not imply mise manages the binary.
+
+**Verify-then-branch rule (T10.0).** Before choosing a representation, verify in-container whether mise's registry provides `opencode` and `bun`, then branch:
+
+| Branch | mise support         | Representation                                                                                                          |
+| ------ | -------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| A      | `opencode` AND `bun` | both under `[tools]`; extend `check-tools.sh` `probe_tool` to cover the new keys at their Dockerfile ARG values         |
+| B      | `bun` only           | `bun` under `[tools]`; the `opencode` pin lives in a dedicated reference (`scripts/pins.env`) read by `parse_reference` |
+| C      | neither              | both new pins live in the dedicated reference file; `[tools]` keeps node/pnpm only                                      |
+
+**Hard constraint (stated acceptance criterion).** `make check-tools` MUST NOT break. `scripts/check-tools.sh:53-56` runs an unscoped `mise install` over the entire `[tools]` block and hard-fails on any unresolvable entry; a verification step in T10.0/T10.3 covers this explicitly.
+
+**Gate contract unchanged.** Four comparisons, report-ALL (never fail-fast), exit precedence `2 (INFRA) > 1 (mismatch) > 0 (match)`.
+
+**Alternatives considered.** Put all four pins in `[tools]` unconditionally (rejected: breaks `make check-tools` if mise cannot install opencode); leave the gate at two pairs (rejected: leaves opencode/bun ungated and does not satisfy ADR 11 line 99); gate OMO here too (rejected: OMO already has a 3-way gate, `scripts/check-omo-version-sync.sh`, over a different reference set).
+
+### PHASE 4 — Healthcheck Decoupling
+
+**Probe:** `node --version >/dev/null 2>&1 || exit 1`.
+
+**Rationale:** node is a core runtime, installed deterministically and unaffected by opencode pin bumps; the healthcheck must not depend on the opencode binary because one developer workflow never uses it (ADR 11 line 99).
+
+**Cross-change supersession.** `openspec/changes/dia-260824-opencode-log-permission-fix/tasks.md` task 1.3 (`gosu dev opencode --version`) is SUPERSEDED-BY this change. The gosu wrapper form is moot because the probe no longer runs opencode.
+
+**Alternatives considered.** Keep `opencode --version` (rejected: violates ADR 11 line 99); probe `pnpm` or `mise` (rejected: node is the runtime the app needs and is the least coupled to any single workflow).
+
+### PHASE 5 — Docker CLI Removal and Host-Side Compose-Config Gate
+
+**Chosen variant:** RELOCATE the compose-config check to the host, then REMOVE the Docker CLI. Rationale: `Makefile:209 $(COMPOSE) config --quiet` is the only runtime docker invocation in the repository (the other grep hits are comments, docs, and host-side bats); the host always has docker, so the gate moves rather than disappears.
+
+**Host check interface:**
+
+- `scripts/check-compose-config.sh` (host-only): runs `<engine> compose config --quiet` through `scripts/container-engine.sh`.
+- `make check-compose-config` target.
+- Invoked host-side from `scripts/verify-pre-push.sh` ABOVE the container-down early-exit (the home-qualt guard and budget backstop precedent).
+- HARD FAIL when the engine CLI is unavailable; NEVER a silent skip.
+
+**Offline contract preserved.** `docker compose config` is client-side and needs no daemon, so the documented "offline dev stack never blocks" pre-push contract holds even when the stack is down.
+
+**In-container `test-config`.** The compose-config line is removed from the shared recipe and replaced by an explicit, visible host-scoped skip note: documented, never a silent drop.
+
+**Dockerfile failure-mode correction.** The DIA-131 comment's real delegation path is the engine adapter with `-f docker-compose.yml --user dev` (`scripts/verify-pre-push.sh:68`), not `docker compose exec -T dev`; the real error when the CLI is absent is `bash: docker: command not found`, not `make: docker: No such file or directory`.
+
+**False-green guard (PHASE 3 lesson).** A gate that silently shrinks its own coverage is a Critical defect. The relocated check therefore has a testable non-silent acceptance criterion: missing CLI -> non-zero with guidance; in-container -> visible note, never a silent pass.
+
+#### Pre-push host flow (post-change)
+
+```mermaid
+sequenceDiagram
+    participant Dev as Developer
+    participant Hook as .husky/pre-push
+    participant VPP as verify-pre-push.sh (host)
+    participant CCC as check-compose-config.sh (host)
+    participant CE as container-engine.sh
+    participant Cnt as dev container
+
+    Dev->>Hook: git push
+    Hook->>VPP: bash scripts/verify-pre-push.sh
+    VPP->>VPP: home-qualt guard
+    VPP->>VPP: budget range backstop
+    VPP->>CCC: host compose-config check
+    CCC->>CE: compose config --quiet
+    alt engine CLI unavailable
+        CE-->>CCC: command not found
+        CCC-->>VPP: HARD FAIL (non-zero)
+        VPP-->>Dev: push blocked with guidance
+    else CLI present
+        CE-->>CCC: exit 0
+        CCC-->>VPP: ok
+    end
+    VPP->>Cnt: run_workspace "make test-config"
+    Cnt-->>VPP: test-config passes (visible host-scoped note)
+    VPP-->>Dev: verification passed
+```
+
 ## Seams
 
 ### Seam 1: Engine Detection Boundary
@@ -308,6 +394,44 @@ Explicitly NOT in first release:
 - Constraint: Requires real container running (not mock-based)
 
 **Test:** Real acceptance verification on started Podman container.
+
+### Seam 7: Tool-Pin Parity Boundary
+
+**Location:** `scripts/check-pin-sync.sh` (parse_reference / parse_dockerfile) + the tool-pin reference (`.mise.toml [tools]` and/or `scripts/pins.env`)
+
+**Contract:**
+
+- Input: reference pins for node, pnpm, opencode, bun + `Dockerfile.dev` ARG declarations
+- Output: `ok:` / `fail:` lines + summary; exit precedence `2 (INFRA) > 1 (mismatch) > 0 (match)`
+- Constraint: report-ALL (never fail-fast); exactly four comparisons
+- Constraint: adding the new reference pins MUST NOT break `make check-tools` (unscoped `mise install`)
+
+**Test:** `scripts/__tests__/check-pin-sync.bats` (4-pin FAKE-mock matrix) at this seam.
+
+### Seam 8: Healthcheck Probe Boundary
+
+**Location:** `Dockerfile.dev` HEALTHCHECK CMD string
+
+**Contract:**
+
+- Probe: `node --version >/dev/null 2>&1 || exit 1`
+- Constraint: MUST NOT reference `opencode`; no `gosu` wrapper required
+
+**Test:** `scripts/__tests__/verify-pre-commit-uid-mismatch.bats` Dockerfile assertion at this seam.
+
+### Seam 9: Host-Side Compose-Config Gate Boundary
+
+**Location:** `scripts/check-compose-config.sh` + `check-compose-config` Makefile target + `scripts/verify-pre-push.sh` host path
+
+**Contract:**
+
+- Input: host engine CLI availability
+- Command: `<engine> compose config --quiet` via `scripts/container-engine.sh`
+- Output: exit 0 when the merged config validates; non-zero with actionable guidance when the engine CLI is unavailable
+- Constraint: MUST NOT silently skip; client-side validation needs no daemon
+- Constraint: in-container `make test-config` reports the check as host-scoped and still passes
+
+**Test:** `scripts/__tests__/check-compose-config.bats` (mock CLI absent -> hard fail; present -> pass) at this seam.
 
 ## Test Strategy
 
@@ -439,12 +563,21 @@ Explicitly NOT in first release:
 4. Verify `opencode --version` identical on both platforms
 5. Collect evidence
 
-### Phase 4: Retirement (After 7-Day Threshold)
+### Phase 4: Retirement (COMPLETE — commit 63d6478)
 
 1. Reviewer audit
 2. ai-auditor audit
 3. Explicit confirmations from both developers
 4. Physical deletion of `tools/opencode-docker/`
+
+Superseded-by-direction (DIA-260824-8k62): the legacy runtime was retired before the threshold under explicit developer direction, and PHASE 3 is recorded COMPLETE in ADR 11. The original 7-day/3-day threshold requirement is therefore removed from the delta spec.
+
+### Phase 5: Container-Merge Completion (PHASES 2, 4, 5 — this extension)
+
+1. PHASE 2: extend the pin gate to four pairs and add the reference pins (verify-then-branch; `make check-tools` must not break)
+2. PHASE 4: decouple the healthcheck from opencode (node probe) and update the regression test
+3. PHASE 5: add the host `check-compose-config` gate, remove the Docker CLI from the image, and update the in-container `test-config` line
+4. Reconcile the delta spec (REMOVE legacy-launcher preservation; MODIFY rollback; ADD the three new requirements)
 
 ## Rollback Plan
 

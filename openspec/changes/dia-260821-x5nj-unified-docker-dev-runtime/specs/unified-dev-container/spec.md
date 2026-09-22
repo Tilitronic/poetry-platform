@@ -257,40 +257,6 @@ The unified container SHALL preserve existing launch commands as compatible alte
 **Then** the command continues to work as before
 **And** it opens a bash shell in the unified container.
 
-### Requirement: Legacy Launcher Preservation
-
-The `tools/opencode-docker/` directory SHALL remain unchanged during the unified container implementation.
-
-#### Scenario: Legacy Launcher Unchanged
-
-**Given** the unified container is implemented
-**When** a developer accesses `tools/opencode-docker/`
-**Then** the directory is unchanged from before the unified container
-**And** `tools/opencode-docker/bin/opencode-docker` continues to work
-**And** it can be used for immediate rollback.
-
-#### Scenario: Retirement Threshold
-
-**Given** the unified container has been deployed
-**When** 7 consecutive days pass with both developers using it successfully
-**And** reviewer audit passes
-**And** ai-auditor audit passes
-**And** both developers provide explicit confirmation
-**Then** `tools/opencode-docker/` may be physically deleted.
-
-### Requirement: Rollback
-
-The unified container implementation SHALL support immediate rollback.
-
-#### Scenario: Immediate Rollback
-
-**Given** the unified container shows problems
-**When** a developer needs to rollback
-**Then** they can use `tools/opencode-docker/bin/opencode-docker` directly
-**Or** they can `git revert` the implementation commits
-**And** remove the new engine-specific compose override files (`docker-compose.podman.yml`, `docker-compose.rootless-docker.yml`, `docker-compose.wsl.yml`)
-**And** the legacy launcher remains functional.
-
 ### Requirement: Secrets Ownership Preflight
 
 The unified container SHALL refuse to start if `secrets/` ownership or mode is unsafe, with actionable diagnostics. Decision: `secure-secrets-ownership-option-a-selected`.
@@ -367,6 +333,122 @@ The unified container SHALL verify that Podman `keep-id` recreation creates secr
 **Then** the keep-id recreation test is included in the test suite (Podman engine only)
 **And** it requires real Podman container running (not mock-based).
 
+### Requirement: Shared Tool-Pin Parity
+
+The project SHALL enforce parity between the tool-pin reference and the `Dockerfile.dev` ARG declarations for the shared pins node, pnpm, opencode, and bun, so that each shared pin has exactly one edit site and drift is caught by a gate. Authority: `.sdd/dev-infra/architecture.md` ADR 11 line 99.
+
+#### Scenario: Four-Pin Parity Check
+
+**Given** the reference and `Dockerfile.dev` agree on all four shared pins
+**When** a developer runs `make check-pin-sync`
+**Then** the gate performs exactly four comparisons
+**And** it prints `summary: 4 ok, 0 fail`
+**And** it exits 0.
+
+#### Scenario: Drift Detected (Report-All)
+
+**Given** one or more shared pins differ between the reference and `Dockerfile.dev`
+**When** the gate runs
+**Then** it reports every mismatched pin on stderr
+**And** it does not fail fast
+**And** it exits 1.
+
+#### Scenario: Reference Source Defective
+
+**Given** the reference declares a duplicate or missing key for a shared pin
+**Or** `Dockerfile.dev` declares a duplicate or missing ARG for a shared pin
+**When** the gate runs
+**Then** it exits 2 with an INFRA diagnostic
+**And** it does not report a parity verdict.
+
+#### Scenario: Reference-Only Pins Do Not Break Tool Integrity
+
+**Given** mise cannot install a pinned tool in the dev container
+**When** the pin reference is added for the parity gate
+**Then** the entry is a reference-only pin for the gate
+**And** `make check-tools` MUST NOT fail because of it (the unscoped `mise install` must still resolve every `[tools]` entry).
+
+### Requirement: Healthcheck Independence from OpenCode
+
+The dev container healthcheck SHALL NOT depend on the opencode binary, because one developer workflow never uses the in-container opencode binary. Authority: `.sdd/dev-infra/architecture.md` ADR 11 line 99.
+
+#### Scenario: Node Probe
+
+**Given** the dev image is built from `Dockerfile.dev`
+**When** the container runtime evaluates the healthcheck
+**Then** the probe runs `node --version >/dev/null 2>&1 || exit 1`
+**And** the container is reported healthy only when the probe succeeds.
+
+#### Scenario: No OpenCode Dependency
+
+**Given** the dev image healthcheck definition
+**When** it is inspected
+**Then** it MUST NOT reference `opencode`
+**And** it is unaffected by an opencode version bump.
+
+### Requirement: Host-Side Compose-Config Gate
+
+The project SHALL validate the merged Compose configuration on the host, and the dev image SHALL NOT contain the Docker CLI. Authority: `.sdd/dev-infra/architecture.md` ADR 11 and DIA-260824-iirx decision 3 (no engine socket; infrastructure orchestration remains host-side).
+
+#### Scenario: Host Check Runs on Every Push
+
+**Given** a push is attempted
+**When** the pre-push verification runs on the host
+**Then** the compose-config check runs host-side before any delegation
+**And** it runs even when the dev stack is down (client-side `compose config` needs no daemon)
+**And** the documented "offline dev stack never blocks" contract is preserved.
+
+#### Scenario: Engine CLI Unavailable (Hard Fail)
+
+**Given** the host container-engine CLI is unavailable
+**When** the compose-config check runs
+**Then** it exits non-zero with actionable guidance
+**And** it MUST NOT silently skip the check.
+
+#### Scenario: In-Container test-config
+
+**Given** `make test-config` runs inside the dev container
+**When** the recipe executes
+**Then** the relocated compose-config check is explicitly reported as host-scoped and skipped in-container
+**And** the skip is visible, never a silent drop
+**And** `make test-config` still exits 0.
+
+#### Scenario: Docker CLI Absent from the Image
+
+**Given** the dev image is built after this change
+**When** the container filesystem is inspected
+**Then** the `docker` binary is absent
+**And** the image size is reduced relative to the pre-removal image.
+
+## MODIFIED Requirements
+
+### Requirement: Rollback
+
+The unified container implementation SHALL support immediate rollback.
+
+#### Scenario: Immediate Rollback
+
+**Given** the unified container shows problems
+**When** a developer needs to rollback
+**Then** they can `git revert` the implementation commits
+**And** remove the engine-specific compose override files (`docker-compose.podman.yml`, `docker-compose.rootless-docker.yml`, `docker-compose.wsl.yml`) and the relocated host check if the change is reverted whole
+**And** the legacy launcher is NOT an available rollback path (retired in PHASE 3, commit 63d6478).
+
+#### Scenario: Pin Gate Rollback
+
+**Given** the extended four-pair pin gate must be reverted
+**When** a developer reverts it
+**Then** the gate returns to the two-pair (node/pnpm) form
+**And** the added reference pins are removed.
+
+## REMOVED Requirements
+
+### Requirement: Legacy Launcher Preservation
+
+**Reason:** `tools/opencode-docker/` was physically retired in PHASE 3 (commit 63d6478) under explicit developer direction; the requirement is falsified by the working tree, and its 7-day retirement threshold is moot.
+
+**Migration:** The unified runtime (`Dockerfile.dev` + `scripts/container-engine.sh` + `scripts/compose-env.sh`) is the sole dev runtime. No legacy launcher path remains; rollback is via `git revert` only (see MODIFIED Rollback).
+
 ## Constraints
 
 ### Constraint: Bash-3 Compatibility
@@ -389,9 +471,9 @@ WSL-specific settings MUST be applied as a separate overlay on top of the select
 
 Mock-based bats tests verify command behavior but do NOT prove runtime version consistency or UID mapping behavior. Real acceptance verification on started containers is required.
 
-### Constraint: Planning-Only (This Ticket)
+### Constraint: Artifacts-Only for This Lane
 
-This ticket delivers OpenSpec artifacts only. No Dockerfile, compose, or config files are modified. Implementation follows in a separate ticket.
+This lane delivers OpenSpec artifacts only. No Dockerfile, compose, Makefile, or script changes are made here; implementation is `@coder`'s lane against this change's `tasks.md`. The earlier "planning-only, implementation follows in a separate ticket" framing is superseded: PHASES 1 and 3 were implemented in-flight under this change, and PHASES 2, 4 and 5 are specified here for the same treatment.
 
 ### Constraint: Secrets Ownership Preflight
 
@@ -404,6 +486,14 @@ The preflight script MUST NOT interfere with SSH-agent socket forwarding. SSH-ag
 ### Constraint: No Broad Read Permission
 
 Each secret file MUST remain mode `0600` (owner read/write only). No group/other read bits. `secrets/` MUST NOT be tracked by Git (already in `.gitignore`).
+
+### Constraint: Tool-Integrity Preservation
+
+Adding reference pins for the parity gate MUST NOT break `make check-tools`. The unscoped `mise install` in `scripts/check-tools.sh` must still resolve every `[tools]` entry; where mise cannot install a pin, that entry is reference-only for the gate.
+
+### Constraint: Host-Side Gate Is Never Silent
+
+The host compose-config check MUST fail non-zero with actionable guidance when the engine CLI is unavailable; it MUST NOT silently skip. The in-container skip is explicit and visible.
 
 ## Test Seams
 
@@ -501,3 +591,46 @@ Each secret file MUST remain mode `0600` (owner read/write only). No group/other
 8. Keep-id recreation verification: secret mountpoints created, git index write succeeds, API secret readable only by intended dev process (Podman engine)
 
 **Evidence:** Collected and attached to implementation ticket.
+
+### Tool-Pin Parity Tests (Seam 7)
+
+**File:** `scripts/__tests__/check-pin-sync.bats` (extended)
+
+**Coverage:**
+
+- Four-pin FAKE-mock matrix (node, pnpm, opencode, bun) with `summary: 4 ok, 0 fail` on the clean case
+- Single and multiple drift cases (report-ALL, exit 1)
+- Missing/duplicate reference key and missing/duplicate Dockerfile ARG (INFRA, exit 2)
+- Quote/whitespace/CRLF variants for the new keys
+- Real-`.mise.toml` structural case updated for the added reference pins
+
+**Pattern:** FAKE-mock fixtures via `setup_pin_sync_tree`; behavior never reads the real repo files except the documented S4 structural case.
+
+**Limitation:** Does NOT prove the reference pins are mise-installable; that is covered by the `make check-tools` verification step.
+
+### Healthcheck Probe Tests (Seam 8)
+
+**File:** `scripts/__tests__/verify-pre-commit-uid-mismatch.bats` (updated Dockerfile case)
+
+**Coverage:**
+
+- The `Dockerfile.dev` HEALTHCHECK uses `node --version`
+- No `opencode` reference remains in the HEALTHCHECK
+- The superseded gosu variant is absent
+
+**Pattern:** Static Dockerfile assertion (host-runnable, no daemon).
+
+### Host-Side Compose-Config Gate Tests (Seam 9)
+
+**File:** `scripts/__tests__/check-compose-config.bats` (new)
+
+**Coverage:**
+
+- Engine CLI present + valid compose file -> exit 0
+- Engine CLI absent -> non-zero with actionable guidance (hard fail, not skip)
+- No code path reports success while skipping the check
+- In-container `make test-config` prints the visible host-scoped note and exits 0
+
+**Pattern:** Mock the engine CLI via PATH; assert exit codes and messages.
+
+**Limitation:** Does NOT prove the real merged config is valid; the host run on a real engine provides that evidence.

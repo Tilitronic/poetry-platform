@@ -2,7 +2,7 @@
 
 - [ ] 1.1 Remove `USER ${USER_UID}:${USER_GID}` directive (line 340) so the entrypoint runs as root
 - [ ] 1.2 Add `gosu` to the apt-get install block (after `dbus`, before `&& rm -rf /var/lib/apt/lists/*`)
-- [ ] 1.3 Update HEALTHCHECK to run as dev user (via `gosu dev opencode --version` or add `USER dev` before HEALTHCHECK)
+- [ ] 1.3 Update HEALTHCHECK to run as dev user (via `gosu dev opencode --version` or add `USER dev` before HEALTHCHECK) — **SUPERSEDED-BY `openspec/changes/dia-260821-x5nj-unified-docker-dev-runtime` (2026-09-22, DIA-260922-cp0m PHASE 4)**: the healthcheck is being decoupled from opencode entirely (probe `node --version`), so the `gosu dev opencode --version` form is moot. Do not implement this task; the superseding change owns the HEALTHCHECK line.
 - [ ] 1.4 Verify the Dockerfile builds successfully: `docker compose build dev`
 
 ## 2. dev-entrypoint.sh Modifications

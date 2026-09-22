@@ -1,5 +1,9 @@
 # Proposal: Unified Docker Development Runtime for Fedora and WSL
 
+## Why
+
+Two developers on divergent hosts (Fedora Linux and Windows/WSL) must share one repository and one toolchain, but the project shipped two dev images whose OpenCode pins and duplicated toolchain pins drifted apart, producing irreproducible behavior between entry points. The container merge eliminates that drift; the remaining ADR-11 phases (single pin source, healthcheck decoupling, Docker CLI removal) close it completely.
+
 ## Problem Statement
 
 Two developers (Fedora Linux host and WSL host) require the same development runtime, but the project currently ships divergent Dockerfiles with version drift:
@@ -8,6 +12,20 @@ Two developers (Fedora Linux host and WSL host) require the same development run
 - `tools/opencode-docker/Dockerfile`: OpenCode 1.18.4, 226 lines, lighter wrapper focused on SSH agent forwarding
 
 This causes irreproducible behavior between entry points and violates the user constraint that both developers get the same dev runtime.
+
+### Container-Merge Progress (2026-09-22)
+
+The two-dev-image drift described above has been resolved in-flight under this change rather than under a separate ticket:
+
+- **PHASE 1 COMPLETE (commit 07c0513):** the opencode install block was moved to the last Docker layer; measured ~85% reduction in invalidated layers per opencode bump (13 -> 3).
+- **PHASE 3 COMPLETE (commit 63d6478):** the legacy `tools/opencode-docker` runtime was retired; only one Dockerfile remains in the repository.
+- **PHASES 2, 4 and 5 REMAIN:** consolidate the shared tool pins to one gated source, decouple the dev healthcheck from opencode, and remove the Docker CLI (relocating the compose-config gate host-side). These are ADDED to this change because the container-merge decision is one unit of work.
+
+Authority: `.sdd/dev-infra/architecture.md` ADR 11 (Accepted). Tracking ticket: DIA-260922-cp0m.
+
+Cross-change supersession: `openspec/changes/dia-260824-opencode-log-permission-fix` task 1.3 (`gosu dev opencode --version`) is SUPERSEDED-BY this change (PHASE 4). Decoupling the healthcheck from opencode makes the gosu wrapper form moot; that change must not implement task 1.3.
+
+Out-of-scope follow-ups owned by other lanes (recorded here for traceability, not actioned by this change): the orphaned change `dia-260821-aoag-socket-mount-opt-in` should be marked ABANDONED (its sentinel/`--with-engine` implementer is retired); the DIA-260922-cp0m ticket body needs hygiene (its early "Audit + Verification Findings" block still claims the legacy runtime is retained and that `check-pin-sync.sh` does 4 comparisons, both falsified by PHASE 3) and its `gate_state`/`gate_triggers`/`gate_waivers` frontmatter needs the grilled update.
 
 ## User Constraint
 
@@ -88,6 +106,33 @@ After keep-id recreation, verify:
 
 3. **Status quo (keep separate Dockerfiles)**: Rejected because version drift already exists (1.18.18 vs 1.18.4) and causes irreproducible behavior.
 
+## What Changes
+
+- Completes the container merge in-flight: PHASES 2, 4 and 5 are added to this change.
+- PHASE 2: extend the pin-parity gate to four pairs (node, pnpm, opencode, bun), one reference edit site per pin.
+- PHASE 4: decouple the dev healthcheck from the opencode binary (probe `node --version`).
+- PHASE 5 **BREAKING (container tooling)**: remove the Docker CLI from the dev image and relocate the compose-config check host-side as `check-compose-config`.
+- Reconcile the delta spec: ADD three requirements; REMOVE `Legacy Launcher Preservation`; REMOVE the `container-engine-socket-selection` capability; MODIFY `Rollback`.
+- DEFER Slice 0 (hook-execution inversion) and mark the superseded `opencode-log-permission-fix` task 1.3.
+
+## Capabilities
+
+### New Capabilities
+
+- **`unified-dev-container`** — the single development image, engine-specific Compose overrides, the unified launch command, secrets preflight, and (added 2026-09-22) shared tool-pin parity, healthcheck independence from opencode, and the host-side compose-config gate. Delta: `specs/unified-dev-container/spec.md`.
+
+### Modified Capabilities
+
+- **`container-engine-socket-selection`** — the capability's requirements are REMOVED: they describe the retired `tools/opencode-docker` launcher's socket probe, which has no surviving implementer. The unified runtime supersedes socket-based engine selection. Delta: `specs/container-engine-socket-selection/spec.md`.
+
+## Impact
+
+- Specs: `specs/unified-dev-container/spec.md` (ADDED / MODIFIED / REMOVED); `specs/container-engine-socket-selection/spec.md` (REMOVED, whole capability).
+- Implementation (downstream `@coder`, not this lane): `Dockerfile.dev`, `.mise.toml`, `scripts/check-pin-sync.sh`, `scripts/check-tools.sh`, `scripts/check-compose-config.sh` (new), `scripts/verify-pre-push.sh`, `Makefile`, and the affected bats suites.
+- Design authority: `.sdd/dev-infra/architecture.md` ADR 11 (a one-clause Consequence addition is owned by another lane).
+- Cross-change: `openspec/changes/dia-260824-opencode-log-permission-fix` task 1.3 superseded.
+- Out-of-scope follow-ups owned elsewhere: `dia-260821-aoag-socket-mount-opt-in` to be marked ABANDONED; DIA-260922-cp0m ticket hygiene.
+
 ## Scope
 
 ### First-Release Integration
@@ -121,7 +166,7 @@ Integrate from `tools/opencode-docker` into `Dockerfile.dev`:
    - `make test-infra` (host-side)
    - `make test-config` (host-side or CI)
    - `make test-shell`
-   - Pre-commit/pre-push hooks execute directly inside container (no delegation)
+   - Pre-commit/pre-push hooks execute directly inside container (no delegation) — **DEFERRED (DIA-260922-cp0m):** host delegation is the approved current reality (`scripts/container-engine.sh`; `scripts/verify-pre-push.sh:53-70,161`). The hook-execution inversion (Slice 0, T0.1-T0.6) is out of scope for this change's completion.
 2. SSH agent forwarding works for `git push` on both platforms (auto-detect)
 3. Chromium launches without shared-memory errors on both platforms
 4. `opencode --version` identical for both engine overrides
@@ -136,6 +181,10 @@ Integrate from `tools/opencode-docker` into `Dockerfile.dev`:
 13. Serve mode works: `--serve` flag enables remote access (Tailscale/Android)
 14. Docker CLI removed from container (~90MB savings)
 15. NO engine socket mounted (minimal attack surface)
+16. Shared tool-pin parity: `make check-pin-sync` gates four pairs (node, pnpm, opencode, bun) and reports `summary: 4 ok, 0 fail` on a clean tree; a single pin drift exits 1; a defective reference or `Dockerfile.dev` exits 2
+17. Tool integrity preserved: `make check-tools` still resolves every `[tools]` entry after the new reference pins are added (the unscoped `mise install` is not broken)
+18. Healthcheck independence: the dev HEALTHCHECK probes `node --version` and does not reference `opencode`
+19. Host-side compose-config gate: `make check-compose-config` validates the merged Compose file host-side on every push (including when the stack is down) and HARD FAILS when the engine CLI is unavailable; the dev image no longer contains the Docker CLI; in-container `make test-config` passes and explicitly reports the relocated check as host-scoped (never a silent skip)
 
 ## Retirement Threshold
 
@@ -215,17 +264,18 @@ On started containers (Fedora + WSL, each with their selected engine), prove:
 
 This ticket delivers:
 
-- OpenSpec artifacts (proposal, design, tasks, specs)
+- OpenSpec artifacts (proposal, design, tasks, specs) for the unified runtime
 - Decision record with evidence-backed comparison
 - Compatibility evidence for Fedora + WSL
 - Rollback plan
 - Contract-test specification
+- The container-merge completion scope (PHASES 2, 4, 5) added 2026-09-22 (DIA-260922-cp0m)
 
-This ticket does NOT deliver:
+This ticket does NOT itself implement:
 
 - Dockerfile modifications
 - Compose file modifications
-- Implementation code
 - Container changes
+- Implementation code
 
-Implementation follows in a separate ticket.
+Those are implemented downstream by `@coder` against this change's `tasks.md`, under the normal feature workflow. The earlier "planning-only / implementation follows in a separate ticket" framing is superseded: PHASES 1 and 3 were already implemented in-flight under this change, and PHASES 2, 4 and 5 are specified here for the same treatment.
