@@ -143,13 +143,13 @@ FAKEUV
   # so an out-of-scope path is one outside the two Python packages — it must be
   # skipped with a diagnostic, not forwarded to ruff as an unresolvable path
   # (that previously blocked pre-commit)
-  run bash "$TREE/scripts/lint-python-files.sh" tools/opencode-docker/bootstrap.py
+  run bash "$TREE/scripts/lint-python-files.sh" docs/dev-infra-audit/inventory.md
 
   assert_status 0
   # the diagnostic goes to stderr; bats 1.x splits stdout/stderr, older bats
-  # merges them into $output — check both so the assertion is version-agnostic
+  # merges them into $output -- check both so the assertion is version-agnostic
   local combined="${output}${stderr:-}"
-  [[ "$combined" == *"lint-python-files: skipping out-of-scope path: tools/opencode-docker/bootstrap.py"* ]] || {
+  [[ "$combined" == *"lint-python-files: skipping out-of-scope path: docs/dev-infra-audit/inventory.md"* ]] || {
     echo "expected skip diagnostic, got:" >&2
     echo "--- stdout ---" >&2
     printf '%s\n' "$output" >&2

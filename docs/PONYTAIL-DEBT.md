@@ -10,40 +10,41 @@ lessons.md L880) are excluded per the skill's comment-prefix rule.
 Row schema: location - what was deferred. ceiling: the limit named. upgrade:
 the trigger to revisit. status: DIA-183 disposition.
 
-## tools/opencode-docker/bin/opencode-docker
+## tools/opencode-docker/bin/opencode-docker (CLOSED-BY-DELETION, DIA-260824-8k62)
+
+All four rows below are closed: the file was deleted in PHASE 3 retirement.
 
 - :59 - block workspace=$HOME because a :Z relabel of the home dir fails on
   SELinux. ceiling: $HOME cannot be the docker workspace. upgrade: none named
   (implicit: revisit when SELinux relabel of $HOME works) -> no-trigger.
-  status: kept-as-is (content verified accurate).
+  status: closed-by-deletion.
 - :114 - copy gitconfig into .opencode-docker so :Z works (home dir blocks
   relabel). ceiling: gitconfig must be staged into the container dir.
   upgrade: none named (same SELinux ceiling as :59) -> no-trigger.
-  status: kept-as-is.
+  status: closed-by-deletion.
 - :120 - mount ponytail plugin from host if present. ceiling: legacy fallback
   path only; canonical install is the project plugin array
   (@dietrichgebert/ponytail, DIA-183). upgrade: drop the host mount when the
-  host-side checkout-copy use case is obsolete; MUST stay while
-  ssh-agent-forward.bats asserts this source in the allowed mount-source set.
-  status: kept-as-is (comment updated by the DIA-183 plugin commit).
+  host-side checkout-copy use case is obsolete.
+  status: closed-by-deletion.
 - :131 - mount host container socket read-only so docker compose works inside
   the container. ceiling: rootless podman socket exposes only the host user's
   own containers; missing socket -> warn but still launch. upgrade: none
-  named -> no-trigger (accepted warn-but-launch behavior). status: kept-as-is.
+  named -> no-trigger (accepted warn-but-launch behavior). status: closed-by-deletion.
 
-## tools/opencode-docker/Dockerfile
+## tools/opencode-docker/Dockerfile (CLOSED-BY-DELETION, DIA-260824-8k62)
 
 - :199 - touch pre-creates the bind target because podman cannot create a
   mountpoint on a --read-only rootfs at start. ceiling: placeholder file is
   replaced by the socket bind mount at run time. upgrade: none named ->
   no-trigger (implicit: revisit when podman supports creating mountpoints on
-  read-only rootfs). status: kept-as-is.
+  read-only rootfs). status: closed-by-deletion.
 
-## tools/opencode-docker/scripts/collect-runtime-deps.sh
+## tools/opencode-docker/scripts/collect-runtime-deps.sh (CLOSED-BY-DELETION, DIA-260824-8k62)
 
 - :87 - keep dash in the image for Node.js child_process.spawn. ceiling: dash
   is extra size on top of the base. upgrade: none named -> no-trigger
-  (implicit: revisit if the image size budget tightens). status: kept-as-is.
+  (implicit: revisit if the image size budget tightens). status: closed-by-deletion.
 
 ## .opencode/oh-my-opencode-slim/src/ (reference-only, not runtime-loaded)
 
@@ -77,7 +78,7 @@ reference (DIA-183 disposition).
 ---
 
 Summary: 9 `ponytail:` markers + 1 TODO(ponytail) variant = 10 ledger rows;
-7 rows carry no explicit upgrade trigger (no-trigger tags: opencode-docker
-:59, :114, :131, Dockerfile :199, collect-runtime-deps.sh :87,
-preset-manager.ts :220, session-manager.ts :620). 3 rows name their upgrade
-trigger (opencode-docker :120, foreground-fallback :46, example-store :1).
+6 rows closed-by-deletion (opencode-docker :59, :114, :120, :131, Dockerfile
+:199, collect-runtime-deps.sh :87), 3 rows carry no explicit upgrade trigger
+(preset-manager.ts :220, session-manager.ts :620, example-store :1), 1 row
+names its upgrade trigger (foreground-fallback :46).

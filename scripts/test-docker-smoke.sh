@@ -209,11 +209,6 @@ if grep -qiE 'volta-cli|VOLTA_VERSION|volta-shim|volta-migrate|volta\.tar|volta 
   exit 1
 fi
 echo "ok: no volta install remnants in Dockerfile.dev"
-if grep -qiE 'volta-cli|VOLTA_VERSION|volta-shim|volta-migrate|volta\.tar|volta --version' tools/opencode-docker/Dockerfile; then
-  echo "error: tools/opencode-docker/Dockerfile still references a volta install" >&2
-  exit 1
-fi
-echo "ok: no volta install remnants in tools/opencode-docker/Dockerfile"
 
 echo "-> verifying secrets passthrough (M2/H5)..."
 # H5: compose exec shells do not inherit the entrypoint's exported vars; the

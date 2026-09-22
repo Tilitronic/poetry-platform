@@ -42,7 +42,7 @@ assert_stderr_contains() {
 }
 
 @test "check-pin-sync: T1 all pins match -> exit 0 + two ok lines + summary: 2 ok, 0 fail" {
-  tree="$(setup_pin_sync_tree 1 1 1 "24.18.0" "10.33.0" "24.18.0" "10.33.0" "24.18.0" "10.33.0")"
+  tree="$(setup_pin_sync_tree 1 1 "24.18.0" "10.33.0" "24.18.0" "10.33.0")"
 
   run bash "$tree/scripts/check-pin-sync.sh"
 
@@ -53,7 +53,7 @@ assert_stderr_contains() {
 }
 
 @test "check-pin-sync: T2 single pin mismatch (node, Dockerfile.dev) -> exit 1 + fail line + summary: 1 ok, 1 fail" {
-  tree="$(setup_pin_sync_tree 1 1 1 "24.18.0" "10.33.0" "24.19.0" "10.33.0" "24.18.0" "10.33.0")"
+  tree="$(setup_pin_sync_tree 1 1 "24.18.0" "10.33.0" "24.19.0" "10.33.0")"
 
   run --separate-stderr bash "$tree/scripts/check-pin-sync.sh"
 
@@ -63,7 +63,7 @@ assert_stderr_contains() {
 }
 
 @test "check-pin-sync: T3 multiple pin mismatches (report-ALL) -> exit 1 + all fail lines" {
-  tree="$(setup_pin_sync_tree 1 1 1 "24.18.0" "10.33.0" "24.19.0" "10.34.0" "24.18.0" "10.33.0")"
+  tree="$(setup_pin_sync_tree 1 1 "24.18.0" "10.33.0" "24.19.0" "10.34.0")"
 
   run --separate-stderr bash "$tree/scripts/check-pin-sync.sh"
 
@@ -74,7 +74,7 @@ assert_stderr_contains() {
 }
 
 @test "check-pin-sync: T4 .mise.toml missing -> exit 2 (INFRA) + source-defective fail line" {
-  tree="$(setup_pin_sync_tree 0 1 1 "24.18.0" "10.33.0" "24.18.0" "10.33.0" "24.18.0" "10.33.0")"
+  tree="$(setup_pin_sync_tree 0 1 "24.18.0" "10.33.0" "24.18.0" "10.33.0")"
 
   run --separate-stderr bash "$tree/scripts/check-pin-sync.sh"
 
@@ -84,7 +84,7 @@ assert_stderr_contains() {
 }
 
 @test "check-pin-sync: T5 Dockerfile.dev missing -> exit 2 (INFRA) + source-defective fail line" {
-  tree="$(setup_pin_sync_tree 1 0 1 "24.18.0" "10.33.0" "24.18.0" "10.33.0" "24.18.0" "10.33.0")"
+  tree="$(setup_pin_sync_tree 1 0 "24.18.0" "10.33.0" "24.18.0" "10.33.0")"
 
   run --separate-stderr bash "$tree/scripts/check-pin-sync.sh"
 
@@ -94,7 +94,7 @@ assert_stderr_contains() {
 }
 
 @test "check-pin-sync: T6 duplicate [tools] key in .mise.toml -> exit 2 (INFRA) + duplicate-key fail line" {
-  tree="$(setup_pin_sync_tree 1 1 1 "24.18.0" "10.33.0" "24.18.0" "10.33.0" "24.18.0" "10.33.0" "dup-mise")"
+  tree="$(setup_pin_sync_tree 1 1 "24.18.0" "10.33.0" "24.18.0" "10.33.0" "dup-mise")"
 
   run --separate-stderr bash "$tree/scripts/check-pin-sync.sh"
 
@@ -104,7 +104,7 @@ assert_stderr_contains() {
 }
 
 @test "check-pin-sync: T7 duplicate ARG in Dockerfile.dev -> exit 2 (INFRA) + duplicate-ARG fail line" {
-  tree="$(setup_pin_sync_tree 1 1 1 "24.18.0" "10.33.0" "24.18.0" "10.33.0" "24.18.0" "10.33.0" "dup-docker")"
+  tree="$(setup_pin_sync_tree 1 1 "24.18.0" "10.33.0" "24.18.0" "10.33.0" "dup-docker")"
 
   run --separate-stderr bash "$tree/scripts/check-pin-sync.sh"
 
@@ -114,7 +114,7 @@ assert_stderr_contains() {
 }
 
 @test "check-pin-sync: T8 quote variations (single/double/unquoted) -> exit 0 after stripping" {
-  tree="$(setup_pin_sync_tree 1 1 1 "24.18.0" "10.33.0" "24.18.0" "10.33.0" "24.18.0" "10.33.0" "quotes")"
+  tree="$(setup_pin_sync_tree 1 1 "24.18.0" "10.33.0" "24.18.0" "10.33.0" "quotes")"
 
   run bash "$tree/scripts/check-pin-sync.sh"
 
@@ -125,7 +125,7 @@ assert_stderr_contains() {
 }
 
 @test "check-pin-sync: T9 CRLF line endings -> exit 0 after stripping" {
-  tree="$(setup_pin_sync_tree 1 1 1 "24.18.0" "10.33.0" "24.18.0" "10.33.0" "24.18.0" "10.33.0" "crlf")"
+  tree="$(setup_pin_sync_tree 1 1 "24.18.0" "10.33.0" "24.18.0" "10.33.0" "crlf")"
 
   run bash "$tree/scripts/check-pin-sync.sh"
 
@@ -136,7 +136,7 @@ assert_stderr_contains() {
 }
 
 @test "check-pin-sync: T10 whitespace variations (extra spaces around =) -> exit 0 after stripping" {
-  tree="$(setup_pin_sync_tree 1 1 1 "24.18.0" "10.33.0" "24.18.0" "10.33.0" "24.18.0" "10.33.0" "whitespace")"
+  tree="$(setup_pin_sync_tree 1 1 "24.18.0" "10.33.0" "24.18.0" "10.33.0" "whitespace")"
 
   run bash "$tree/scripts/check-pin-sync.sh"
 

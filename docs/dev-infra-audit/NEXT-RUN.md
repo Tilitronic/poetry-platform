@@ -218,7 +218,7 @@ The table above is the **archived** history — DIA-003 / DIA-006 / DIA-030 /
 DIA-034 were CLOSED and archived 2026-08-03 (owner directive; dispositions in
 `tickets/archive/`). DIA-030's migration directive was executed 2026-08-03 via
 `openspec/changes/volta-to-mise` (Volta v2.0.2 → SHA256-verified mise v2026.8.0
-in `Dockerfile.dev` + `tools/opencode-docker/Dockerfile`; `.mise.toml` is the new
+in `Dockerfile.dev`; `.mise.toml` is the new
 single source of node/pnpm pins). DIA-007 was archived in the 2026-08-03 cleanup (git
 history).
 

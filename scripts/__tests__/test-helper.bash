@@ -305,24 +305,22 @@ setup_check_tools_tree() {
 #   <docker_dev_node_pin> <docker_dev_pnpm_pin> <docker_oc_node_pin>
 #   <docker_oc_pnpm_pin> [variant]
 # Copies check-pin-sync.sh into an isolated tree and plants controlled
-# .mise.toml / Dockerfile.dev / tools/opencode-docker/Dockerfile fixtures.
-# The optional variant selects fixture formatting (applies per source):
+# .mise.toml / Dockerfile.dev fixtures. The optional variant selects fixture
+# formatting (applies per source):
 #   default       — node = "<pin>", pnpm = "<pin>", ARG NODE_VERSION=<pin>
 #   quotes        — mixed single/double/unquoted spellings
 #   crlf          — CRLF line endings in all fixture files
 #   whitespace    — extra spaces around '=' and inside values
 #   dup-mise      — duplicate node key under [tools] (INFRA fixture)
 #   dup-docker    — duplicate ARG NODE_VERSION in Dockerfile.dev (INFRA fixture)
-#   dup-docker-oc — duplicate ARG NODE_VERSION in tools/opencode-docker/Dockerfile
 # Echoes the tree root.
 setup_pin_sync_tree() {
-  local with_mise="${1:-1}" with_docker_dev="${2:-1}" with_docker_oc="${3:-1}"
-  local mise_node="${4:-24.18.0}" mise_pnpm="${5:-10.33.0}"
-  local docker_dev_node="${6:-24.18.0}" docker_dev_pnpm="${7:-10.33.0}"
-  local docker_oc_node="${8:-24.18.0}" docker_oc_pnpm="${9:-10.33.0}"
-  local variant="${10:-}"
+  local with_mise="${1:-1}" with_docker_dev="${2:-1}"
+  local mise_node="${3:-24.18.0}" mise_pnpm="${4:-10.33.0}"
+  local docker_dev_node="${5:-24.18.0}" docker_dev_pnpm="${6:-10.33.0}"
+  local variant="${7:-}"
   local tree="$BATS_TEST_TMPDIR/pin-sync"
-  mkdir -p "$tree/scripts" "$tree/tools/opencode-docker"
+  mkdir -p "$tree/scripts"
   cp "$REPO_ROOT/scripts/check-pin-sync.sh" "$tree/scripts/check-pin-sync.sh"
   if [ "$with_mise" = "1" ]; then
     case "$variant" in
@@ -381,35 +379,6 @@ EOF
         cat > "$tree/Dockerfile.dev" <<EOF
 ARG NODE_VERSION=$docker_dev_node
 ARG PNPM_VERSION=$docker_dev_pnpm
-EOF
-        ;;
-    esac
-  fi
-  if [ "$with_docker_oc" = "1" ]; then
-    case "$variant" in
-      dup-docker-oc)
-        cat > "$tree/tools/opencode-docker/Dockerfile" <<EOF
-ARG NODE_VERSION=$docker_oc_node
-ARG NODE_VERSION=$docker_oc_node
-ARG PNPM_VERSION=$docker_oc_pnpm
-EOF
-        ;;
-      quotes)
-        cat > "$tree/tools/opencode-docker/Dockerfile" <<EOF
-ARG NODE_VERSION=$docker_oc_node
-ARG PNPM_VERSION="$docker_oc_pnpm"
-EOF
-        ;;
-      whitespace)
-        printf '  ARG NODE_VERSION=%s\nARG PNPM_VERSION=%s   \n' "$docker_oc_node" "$docker_oc_pnpm" > "$tree/tools/opencode-docker/Dockerfile"
-        ;;
-      crlf)
-        printf 'ARG NODE_VERSION=%s\r\nARG PNPM_VERSION=%s\r\n' "$docker_oc_node" "$docker_oc_pnpm" > "$tree/tools/opencode-docker/Dockerfile"
-        ;;
-      *)
-        cat > "$tree/tools/opencode-docker/Dockerfile" <<EOF
-ARG NODE_VERSION=$docker_oc_node
-ARG PNPM_VERSION=$docker_oc_pnpm
 EOF
         ;;
     esac

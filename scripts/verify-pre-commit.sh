@@ -66,20 +66,13 @@ if is_in_dev_container; then
 else
   # Strict 3-stage DIA-094 gate via the engine adapter. On failure the gate's
   # own diagnostic is printed first (it names the selected engine and the
-  # failed stage); the hook adds only the remediation pointer that matches the
-  # failure, preserving the DIA-260821-aoag distinction between "engine socket
-  # unavailable" (--with-engine inside opencode-docker) and "stack is down"
-  # (`make up`). The OPENCODE_DOCKER sentinel is exported by the launcher.
+  # failed stage); the hook adds only the remediation pointer.
   gate_out="$(bash "$ENGINE_ADAPTER" gate 2>&1)" && gate_rc=0 || gate_rc=$?
   if [ "$gate_rc" -ne 0 ]; then
     echo "$gate_out" >&2
     case "$gate_out" in
       *engine-reachability*)
-        if [ "${OPENCODE_DOCKER:-}" = "1" ]; then
-          echo "!! Container engine socket not mounted. Relaunch opencode-docker with --with-engine (or start the container engine) to enable in-container git hooks." >&2
-        else
-          echo "!! dev container not running — start with 'make up', then commit again." >&2
-        fi
+        echo "!! dev container not running — start with 'make up', then commit again." >&2
         ;;
     esac
     exit 1

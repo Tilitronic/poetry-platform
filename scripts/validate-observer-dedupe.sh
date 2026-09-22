@@ -47,7 +47,6 @@ CONFIGS=(
   "$ROOT/.opencode/opencode.jsonc"
   "$ROOT/.opencode/oh-my-opencode-slim.jsonc"
   "$ROOT/.opencode/tui.json"
-  "$ROOT/tools/opencode-docker/config/opencode.json"
 )
 
 # Emit the plugin array (array of strings) as JSON. JSONC comment-stripping via
@@ -83,7 +82,11 @@ plugin_array() {
 
 fail=0
 for cfg in "${CONFIGS[@]}"; do
-  [ -f "$cfg" ] || continue
+  if [ ! -f "$cfg" ]; then
+    echo "FAIL  listed config layer not found: $cfg" >&2
+    fail=1
+    continue
+  fi
   arr_json="$(plugin_array "$cfg")"
   # Resolve each entry to a canonical basename and flag duplicates:
   #   within_dup  - same basename twice in this array

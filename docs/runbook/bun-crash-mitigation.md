@@ -77,22 +77,21 @@ restart wrapper would become useful and should be revisited then.
 
 ## 4. Version pin strategy
 
-Bun is pinned in TWO Dockerfiles. Both must stay in lockstep:
+Bun is pinned in the surviving `Dockerfile.dev`:
 
 - `Dockerfile.dev:35` -- `ARG BUN_VERSION=1.4.2` (dev workstation image).
-- `tools/opencode-docker/Dockerfile:8` -- `ARG BUN_VERSION=1.4.2`
-  (opencode-docker image).
+
+The legacy `tools/opencode-docker/Dockerfile` was retired in DIA-260824-8k62
+(PHASE 3). Only one Dockerfile now carries the Bun pin.
 
 Rules:
 
-- Do NOT bump one file without the other. A split pin means host and
-  container runtimes diverge and crash reports become uncomparable.
 - Do NOT bump Bun as a mitigation for this crash without an explicit
   decision recorded in DIA-260831-ezyv (newer Bun may fix it or may carry
   its own regressions -- the bump is a tracked change, not an ad-hoc edit).
-- When a bump IS approved: change both ARG lines to the same version,
-  rebuild both images, run `bun --version` in each rebuilt image plus the
-  standard pre-commit/config gates, and record the new version in the ticket.
+- When a bump IS approved: change the ARG line, rebuild the image, run
+  `bun --version` in the rebuilt image plus the standard pre-commit/config
+  gates, and record the new version in the ticket.
 - Until then: 1.4.2 stays pinned. This runbook mitigates operationally
   around the pinned version.
 
