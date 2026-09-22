@@ -62,6 +62,19 @@ What NOT to do:
 - Do not implement an automated watcher in this runbook step -- that is
   follow-up work (see ticket Verification: session-context guard decision).
 
+Why restart loops do NOT help (DIA-260920-cry5):
+
+A restart loop for `opencode serve` (headless server) would be safe and
+useful -- the server is stateless and restart restores service. However,
+this project launches opencode ONLY as an interactive TUI (`make opencode`
+runs `opencode` inside the Docker dev container with `-it`). A crash in
+interactive mode destroys the in-memory conversation, context window, and
+agent state. A restart loop would restart a fresh shell, not restore the
+session. The manual session-guard practice (section 3) -- bounded chunks,
+written handoffs, RSS/elapsed checkpoints -- is the correct mitigation for
+interactive TUI usage. If `opencode serve` is added in the future, a
+restart wrapper would become useful and should be revisited then.
+
 ## 4. Version pin strategy
 
 Bun is pinned in TWO Dockerfiles. Both must stay in lockstep:
@@ -82,6 +95,26 @@ Rules:
   standard pre-commit/config gates, and record the new version in the ticket.
 - Until then: 1.3.14 stays pinned. This runbook mitigates operationally
   around the pinned version.
+
+## 4a. Version landscape (updated 2026-09-20)
+
+Bun 1.3.14 is the runtime embedded in all opencode releases through at
+least v1.18.32 (the latest available as of this writing). Upgrading
+opencode does NOT upgrade Bun -- the Bun binary is bundled at build time
+and has remained 1.3.14 across opencode releases.
+
+- opencode PR #44946 attempted to bump Bun but is blocked on an upstream
+  Bun 1.4.x regression (different failure mode). No merge date is known.
+- No env var, flag, or `--disable-native-addons` option exists to avoid
+  the crash path (napi_module_register / process_dlopen).
+- The crash is non-deterministic and correlates with long sessions plus
+  high subprocess-spawn count (opencode issues #40219, #40812 -- both
+  OPEN as of 2026-09-20).
+
+Bottom line: there is no Bun version upgrade path available today. The
+manual session-guard practices in section 3 remain the only operational
+mitigation until either (a) Bun 1.4.x stabilizes and opencode merges the
+bump, or (b) Bun ships a fix for the napi crash in a 1.3.x point release.
 
 ## 5. External tracking
 

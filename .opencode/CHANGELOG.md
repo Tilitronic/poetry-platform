@@ -1145,3 +1145,15 @@
 - **Change:** Variant B muse-balanced retarget plus F6 header truth: hardcoded promo preset tuples retargeted to muse-balanced, drift gate default + fixtures + workspace bats updated, 8-space indent fixed to 4-space, headers now state true 4-preset inventory with promo-union-alpha + free explicitly unaudited
 - **Files:** scripts/test-interview-enforcement.sh - scripts/check-orchestrator-prompt-drift.sh - scripts/__tests__/check-orchestrator-prompt-drift.bats - scripts/__tests__/workspace-preset-selection.bats - .opencode/oh-my-opencode-slim.jsonc
 - **Verification:** manual
+
+## 2026-09-22 - DIA-260827-8la4: config
+
+- **Change:** muse-balanced preset rewritten to ZDR-only opencode-go-only fleet; code-navigator moved off the Zen free provider (fixes 'free tier can only be used from within OpenCode'); every non-escalated lane gains a 2-element fallback chain; registry lane lists reconciled; learnings registered
+- **Files:** .opencode/oh-my-opencode-slim.jsonc - knowledge/model-registry.yaml - .opencode/learnings/external-patterns/2026-09-20-dia-260827-8la4-preset-stability-zdr-routing.md
+- **Verification:** manual
+
+## 2026-09-22 - DIA-260920-cry5: infra
+
+- **Change:** Bun crash triage: standalone CLI bumped 1.3.14 -> 1.4.2; opencode pin 1.18.18 -> 1.18.32 with refreshed SHA256 digests; runbook documents that the embedded Bun 1.3.14 crash is unfixed upstream (PR #44946 open, blocked on a Bun 1.4.x splitting regression) and that a restart loop is not a valid mitigation for the interactive TUI
+- **Files:** Dockerfile.dev - scripts/validate-plugin-loads.sh - tools/opencode-docker/Dockerfile - docs/runbook/bun-crash-mitigation.md
+- **Verification:** manual

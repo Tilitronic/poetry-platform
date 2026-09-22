@@ -9,8 +9,8 @@ if command -v bun >/dev/null 2>&1; then
   BUN_BIN="$(command -v bun)"
 elif [ -x "$HOME/.bun/bin/bun" ]; then
   BUN_BIN="$HOME/.bun/bin/bun"
-elif [ -x "/tmp/bun-1.3.14" ]; then
-  BUN_BIN="/tmp/bun-1.3.14"
+elif [ -x "/tmp/bun-1.4.2" ]; then
+  BUN_BIN="/tmp/bun-1.4.2"
 else
   echo "bun not found; running node fallback check"
   node --experimental-strip-types -e "import('$(pwd)/.opencode/plugins/delegation-observer.ts').then(m=>{if(typeof m.default!=='function'){console.error('FAIL');process.exit(1)};console.log('OK (node)')})"

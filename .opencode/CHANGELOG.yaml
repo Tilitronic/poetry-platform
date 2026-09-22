@@ -4818,3 +4818,31 @@
     inventory with promo-union-alpha + free explicitly unaudited'
   verification: manual
   area: config
+- date: '2026-09-22'
+  ticket: DIA-260827-8la4
+  scope: config
+  files:
+  - .opencode/oh-my-opencode-slim.jsonc
+  - knowledge/model-registry.yaml
+  - .opencode/learnings/external-patterns/2026-09-20-dia-260827-8la4-preset-stability-zdr-routing.md
+  summary: muse-balanced preset rewritten to ZDR-only opencode-go-only fleet; code-navigator
+    moved off the Zen free provider (fixes 'free tier can only be used from within
+    OpenCode'); every non-escalated lane gains a 2-element fallback chain; registry
+    lane lists reconciled; learnings registered
+  verification: manual
+  area: opencode-config
+- date: '2026-09-22'
+  ticket: DIA-260920-cry5
+  scope: infra
+  files:
+  - Dockerfile.dev
+  - scripts/validate-plugin-loads.sh
+  - tools/opencode-docker/Dockerfile
+  - docs/runbook/bun-crash-mitigation.md
+  summary: 'Bun crash triage: standalone CLI bumped 1.3.14 -> 1.4.2; opencode pin
+    1.18.18 -> 1.18.32 with refreshed SHA256 digests; runbook documents that the embedded
+    Bun 1.3.14 crash is unfixed upstream (PR #44946 open, blocked on a Bun 1.4.x splitting
+    regression) and that a restart loop is not a valid mitigation for the interactive
+    TUI'
+  verification: manual
+  area: docker
