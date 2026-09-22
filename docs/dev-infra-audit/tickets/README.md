@@ -318,9 +318,14 @@
 | DIA-260917-knz2 | preset fork promo vs promo-union-alpha strip union-alpha from promo | config | Medium | CLOSED | [DIA-260917-knz2-preset-fork-promo-vs-promo-union-alpha-strip-union-alpha-from-promo.md](DIA-260917-knz2-preset-fork-promo-vs-promo-union-alpha-strip-union-alpha-from-promo.md) |
 | DIA-260917-mqjs | warning hygiene permission deny scope and legacy archive precedent | config | Low | OPEN | [DIA-260917-mqjs-warning-hygiene-permission-deny-scope-and-legacy-archive-precedent.md](DIA-260917-mqjs-warning-hygiene-permission-deny-scope-and-legacy-archive-precedent.md) |
 | DIA-260917-s95f | promo preset union-alpha variants enumeration | config | Medium | OPEN | [DIA-260917-s95f-promo-preset-union-alpha-variants-enumeration.md](DIA-260917-s95f-promo-preset-union-alpha-variants-enumeration.md) |
+| DIA-260918-czsi | promo preset refresh | scripts | Medium | OPEN | [DIA-260918-czsi-promo-preset-refresh.md](DIA-260918-czsi-promo-preset-refresh.md) |
 | DIA-260918-mm2u | retire or repoint promo-preset-apply stale promo target plus overcapture | scripts | Medium | OPEN | [DIA-260918-mm2u-retire-or-repoint-promo-preset-apply-stale-promo-target-plus-overcapture.md](DIA-260918-mm2u-retire-or-repoint-promo-preset-apply-stale-promo-target-plus-overcapture.md) |
 | DIA-260918-rbqk | promo-registry promoted_preset still promo vs tree muse-balanced | config | Medium | OPEN | [DIA-260918-rbqk-promo-registry-promoted-preset-still-promo-vs-tree-muse-balanced.md](DIA-260918-rbqk-promo-registry-promoted-preset-still-promo-vs-tree-muse-balanced.md) |
 | DIA-260918-ubxv | ADR supersession promo two-preset pointer vs 4-preset muse-balanced tree | config | Medium | OPEN | [DIA-260918-ubxv-adr-supersession-promo-two-preset-pointer-vs-4-preset-muse-balanced-tree.md](DIA-260918-ubxv-adr-supersession-promo-two-preset-pointer-vs-4-preset-muse-balanced-tree.md) |
+| DIA-260920-2w0o | fetch pull and verify main updates | scripts | Major | OPEN | [DIA-260920-2w0o-fetch-pull-and-verify-main-updates.md](DIA-260920-2w0o-fetch-pull-and-verify-main-updates.md) |
+| DIA-260920-cry5 | Bun 1.3.14 segfault + illegal instruction in opencode sub-agent process | docker | Major | OPEN | [DIA-260920-cry5-bun-1-3-14-segfault-illegal-instruction-in-opencode-sub-agent-process.md](DIA-260920-cry5-bun-1-3-14-segfault-illegal-instruction-in-opencode-sub-agent-process.md) |
+| DIA-260920-ffuj | docker auto-start fails inside WSL2 Ubuntu - docker-desktop Stopped | docker | Major | OPEN | [DIA-260920-ffuj-docker-auto-start-fails-inside-wsl2-ubuntu-docker-desktop-stopped.md](DIA-260920-ffuj-docker-auto-start-fails-inside-wsl2-ubuntu-docker-desktop-stopped.md) |
+| DIA-260920-jh6q | host gate environment drift rust-analyzer version bun missing docker unavailable | scripts | Major | OPEN | [DIA-260920-jh6q-host-gate-environment-drift-rust-analyzer-version-bun-missing-docker-unavailable.md](DIA-260920-jh6q-host-gate-environment-drift-rust-analyzer-version-bun-missing-docker-unavailable.md) |
 
 ## Status summary
 
@@ -328,8 +333,8 @@
 | -------- | ----- |
 | Blocker  | 9     |
 | Critical | 16    |
-| Major    | 73    |
-| Medium   | 167   |
+| Major    | 77    |
+| Medium   | 168   |
 | Minor    | 1     |
 | Low      | 31    |
 | Info     | 2     |
@@ -337,7 +342,7 @@
 
 | Status      | Count |
 | ----------- | ----- |
-| OPEN        | 77    |
+| OPEN        | 82    |
 | DONE        | 4     |
 | VALIDATE    | 0     |
 | E2E         | 0     |

@@ -3043,3 +3043,29 @@ verification evidence (DIA-260909-csds, 2026-09-09)
   approve line as sufficient would have left known notes unaddressed.
 - Preventive rule: on APPROVE-WITH-NOTES, list each note with accept/reject
   + evidence in the ticket before closing. No silent notes.
+
+## L20260920-2w0o-001 - Host-side gate FAILs are environment drift, not code regressions; "new updates" recon came back empty (DIA-260920-2w0o, 2026-09-20)
+
+- Recon verdict (session-scoped, not re-derivable from a fresh clone without
+  re-running the probes): nothing to pull. origin/omo-slim-changes 0 ahead /
+  0 behind; origin/main is an ANCESTOR of HEAD; refs/pull/1/head SHA ==
+  HEAD and refs/pull/1/merge carries a tree IDENTICAL to HEAD (empty diff
+  --stat), so PR #1 holds zero new content. The "new updates" report that
+  triggered this campaign does not exist on any remote ref.
+- Diagnostic lesson (the durable part): host-side gate FAILs in THIS WSL2
+  distro are environment drift, not regressions. make test-config hard-fails
+  at compose config (docker CLI absent); make test-shell hard-fails at
+  check-host-lsp (rust-analyzer 1.83.0 on PATH vs expected 1.97.1); direct
+  bats is 694 ok / 23 not ok, clustered as ~7 compose/engine-override (no
+  docker), ~8 preset-store (no bun on host PATH), plus verify-pre-push
+  command-not-found 127s. Baseline was 8 failures (7 pre-existing + test
+  313); current is 23 from drift, and test 313 NOW PASSES. Do NOT attribute
+  these 23 to code changes on this host.
+- Preventive rule: before opening a regression ticket off host-gate red,
+  classify each failure against the drift clusters above; file drift (not
+  regression) and track remediation separately. Drift tracked in
+  DIA-260920-jh6q.
+- Why irrecoverable: the drift-vs-regression attribution and the
+  empty-recon verdict are session verification outcomes; re-running the
+  gates reproduces the numbers but not the classification decision.
+- Cross-reference: DIA-260920-2w0o (campaign), DIA-260920-jh6q (drift).
