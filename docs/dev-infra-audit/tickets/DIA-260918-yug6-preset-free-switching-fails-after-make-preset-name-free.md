@@ -41,15 +41,36 @@ files and line references where known.>
 
 ## Verification
 
-<Acceptance criteria as checkboxes - how to prove the ticket is done.>
+- [x] Commit bcb6f26a present in git log (durable project-local preset store plus loud degrade plus docs).
+- [x] Commit 9cd078fa present in git log (rev-1 fixes: Makefile degrade, save self-heal, preset none, changelog narrow, ASCII).
+- [x] Commit e50c1de0 present in git log (changelog narrow diff plus scratch note).
+- [x] Architector design persisted verbatim in ticket (Architector Design section below, session arc-1).
+- [x] Preset switching bats pass: workspace-preset-selection.bats 10/10 plus preset-single-path.bats 6/6 (2026-09-22, exit 0).
+- [x] make test-config exit 0 (2026-09-22, 79 PASS lines, structural gates PASS).
+- [ ] Container-matrix R-5 launch-path evidence re-run in this lane (commit e50c1de0 cites test-omo 1409 pass from 2026-09-18; not re-run here).
+- [ ] End-to-end `make preset NAME=free` switching re-verified on current tree (superseded: DIA-260918-vsq8 replaced the multi-path launch with single-path `make opencode PRESET=<name>`; see UNTICKED note).
 
 ## Fix
 
-> To be filled at fix time.
+Shipped in three commits (all in git log, subjects verified 2026-09-22):
+
+- bcb6f26a "DIA-260918-yug6 durable project-local preset store plus loud degrade plus docs" - project-local store .opencode/state/workspace-preset.json schema v2 replaces the host-global identity-keyed store the container never read; single five-tier resolver (PRESET, deprecated bridge, project store, config preset, none); loader degrades loudly to no preset instead of FATAL init failure; doctor defers to the resolver; lock file removed (tmp+rename+verify); bridge gets a distinct source with explicit Makefile forwarding; preset-switching docs rewritten; muse-balanced active via tier 4 (was silently none).
+- 9cd078fa "DIA-260918-yug6 rev-1 fixes: Makefile degrade plus save self-heal plus preset none plus changelog narrow plus ASCII" - Makefile opencode launches bare with Effective line on resolve failure, exit 1 only for missing args; saveWorkspacePreset self-heals corrupt stores; /preset none clears via clearWorkspacePreset; CHANGELOG diff narrowed to the appended entry; Unicode markers replaced with ASCII.
+- e50c1de0 "DIA-260918-yug6 changelog narrow diff plus scratch note" - hand-appended single entry scope oh-my-opencode-slim, rendered MD, validate plus render exit 0; carried test-omo 1409 pass plus test-config exit 0 from 2026-09-18.
+
+Design pointer: Architector Design section below (session arc-1, persisted per DIA-174 R2, no implementation in that lane). Implementer note rev-1 F6 inside the design supersedes the Makefile forwarding line (stored-plus-bridge via OPENCODE_WORKSPACE_PRESET, override-plus-declared via PRESET).
+
+Note: later campaign DIA-260918-vsq8 superseded the multi-path launch with single-path `make opencode PRESET=<name>` (only OH_MY_OPENCODE_SLIM_PRESET forwarded). This ticket stays OPEN; no status change in this lane.
 
 ## Re-verify
 
-> To be filled at re-verify time.
+Evidence collected 2026-09-22 in backfill lane (no code changes, ticket file only):
+
+- `bats scripts/__tests__/workspace-preset-selection.bats` -> 10/10 ok, exit 0.
+- `bats scripts/__tests__/preset-single-path.bats` -> 6/6 ok, exit 0.
+- `make test-config` -> exit 0, 79 PASS lines, `validate-plugin-structure.sh: all structural gates PASS`.
+- `git show -s` confirms all three subjects: bcb6f26a, 9cd078fa, e50c1de0.
+- NOT re-run in this lane: test-omo suite and R-5 container matrix (prior evidence cited in e50c1de0 message only); end-to-end free-switching on current tree (superseded by vsq8 single-path).
 
 ## Architector Design (arc-1 ses_f4b8bbe5dffek2VbfdOxeAx7sH)
 
