@@ -26,5 +26,12 @@ load test-helper
   # P2: the test-config recipe must print a visible @echo noting that
   # compose-config validation is host-scoped and runs host-side. This prevents
   # silent coverage shrinkage (the PHASE 3 false-green lesson).
-  assert_file_contains "$REPO_ROOT/Makefile" "compose config validation is host-scoped"
+  #
+  # Discriminating pin: `make -n` (dry-run) outputs recipe lines but NOT
+  # comments. The old `# NOTE:` comment form produces ZERO matches in
+  # `make -n` output; the `@echo` form produces exactly one. This assertion
+  # would FAIL against the unfixed Makefile.
+  local dry_run_output
+  dry_run_output="$(make -n test-config 2>/dev/null)"
+  echo "$dry_run_output" | grep -q "compose config validation is host-scoped"
 }

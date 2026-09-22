@@ -25,26 +25,20 @@ MISE_TOML="${ROOT_DIR}/.mise.toml"
 
 # Read expected pins from .mise.toml [tools] section (the single source of
 # truth). Each pin is extracted by grepping for the exact key and stripping
-# the TOML syntax. Fails loud if the file or a key is missing.
+# the TOML syntax. Fails loud if the file is missing or a key is absent.
 parse_mise_pin() {
   local key="$1"
-  grep -m1 "^${key}" "${MISE_TOML}" | sed "s/.*['\"]\\(.*\\)['\"].*/\\1/"
+  grep -m1 "^${key}" "${MISE_TOML}" 2>/dev/null | sed "s/.*['\"]\\(.*\\)['\"].*/\\1/"
 }
-NODE_PIN="$(parse_mise_pin node)" || { echo "error: cannot read node pin from ${MISE_TOML}" >&2; exit 2; }
-PNPM_PIN="$(parse_mise_pin pnpm)" || { echo "error: cannot read pnpm pin from ${MISE_TOML}" >&2; exit 2; }
-OPENCODE_PIN="$(parse_mise_pin opencode)" || { echo "error: cannot read opencode pin from ${MISE_TOML}" >&2; exit 2; }
-BUN_PIN="$(parse_mise_pin bun)" || { echo "error: cannot read bun pin from ${MISE_TOML}" >&2; exit 2; }
+NODE_PIN="$(parse_mise_pin node)" || { echo "error: cannot read node pin from ${MISE_TOML} (file missing or key absent)" >&2; exit 2; }
+PNPM_PIN="$(parse_mise_pin pnpm)" || { echo "error: cannot read pnpm pin from ${MISE_TOML} (file missing or key absent)" >&2; exit 2; }
+OPENCODE_PIN="$(parse_mise_pin opencode)" || { echo "error: cannot read opencode pin from ${MISE_TOML} (file missing or key absent)" >&2; exit 2; }
+BUN_PIN="$(parse_mise_pin bun)" || { echo "error: cannot read bun pin from ${MISE_TOML} (file missing or key absent)" >&2; exit 2; }
 
 # Step 1 — mise must be on PATH. mise ships inside the dev container, so running
 # this on a host without mise is an expected error path, not a bug.
 if ! command -v mise >/dev/null 2>&1; then
   echo "error: mise not found on PATH. Run 'make build' first — mise ships inside the dev container." >&2
-  exit 1
-fi
-
-# Step 2 — the single source of tool pins must exist at the repo root.
-if [ ! -f "${MISE_TOML}" ]; then
-  echo "error: no .mise.toml at repo root (expected ${MISE_TOML})." >&2
   exit 1
 fi
 

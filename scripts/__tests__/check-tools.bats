@@ -41,6 +41,8 @@ REPO_ROOT="$(cd "$(dirname "$BATS_TEST_FILENAME")/../.." && pwd)"
   # is absent, not a tool-mismatch (exit 1).
   assert_status 2
   assert_output_contains "cannot read node pin"
+  # The message must name the file path for operator clarity
+  assert_output_contains ".mise.toml"
 }
 
 @test "check-tools: mise which fails (shim not active) -> exit 1" {

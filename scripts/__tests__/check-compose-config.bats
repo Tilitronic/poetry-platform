@@ -78,12 +78,11 @@ EOF
   local tree
   tree="$(setup_compose_config_tree)"
 
-  # S4: drive REAL CLI absence via COMPOSE_ENGINE=podman with no podman on PATH.
-  # On Docker Desktop WSL, docker symlinks exist at /usr/bin AND /bin, so
-  # PATH manipulation alone cannot exclude docker. Using COMPOSE_ENGINE=podman
-  # forces container_engine_select to return "podman"; since no podman binary
-  # exists on the hermetic PATH, the command-v check (P3) catches it.
-  run env COMPOSE_ENGINE=podman PATH="/bin:/usr/bin" bash "$tree/scripts/check-compose-config.sh"
+  # S4 + Obs-3: drive REAL CLI absence via COMPOSE_ENGINE=podman.
+  # On this host, podman is not installed (command -v podman fails), so the
+  # P3 command-v check catches it. This is deterministic: the test asserts
+  # the precondition that podman is not resolvable.
+  run env COMPOSE_ENGINE=podman bash "$tree/scripts/check-compose-config.sh"
 
   assert_status 1
   # P3: the message must name the missing engine and tell the developer to install
@@ -97,6 +96,9 @@ EOF
 
 @test "check-compose-config: compose config validation fails -> non-zero exit" {
   [ -f "$REPO_ROOT/scripts/check-compose-config.sh" ] || skip "script not yet implemented"
+  # ponytail: duplicate fake retained for a targeted compose-config-failure
+  # path, extend mock_docker with FAKE_DOCKER_COMPOSE_CONFIG_FAIL if a third
+  # consumer appears.
   # Plant a docker fake that succeeds on everything except `compose config`.
   # This is more targeted than mock_docker_down: it proves the compose-config
   # failure path specifically, not just "every probe fails".
@@ -132,13 +134,16 @@ FAKEDOCKER
 
 @test "check-compose-config: in-container path prints visible host-scoped skip note" {
   [ -f "$REPO_ROOT/scripts/check-compose-config.sh" ] || skip "script not yet implemented"
+  # Obs-2: mock_docker initializes FAKE_DOCKER_LOG so the negative assertion
+  # is meaningful (not a vacuous read of an unset variable).
+  mock_docker
   local tree
   tree="$(setup_compose_config_tree)"
 
   # Simulate in-container: the script detects in-container by hostname
   # (check-compose-config.sh sources in-container.sh: hostname = "poetry-dev").
   # Override the hostname command with a fake that returns "poetry-dev".
-  local fakebin="$BATS_TEST_TMPDIR/fakebin"
+  local fakebin="$BATS_TEST_TMPDIR/fakebin2"
   mkdir -p "$fakebin"
   cat > "$fakebin/hostname" <<'FAKEHOST'
 #!/usr/bin/env bash
@@ -146,11 +151,11 @@ printf '%s\n' "poetry-dev"
 FAKEHOST
   chmod +x "$fakebin/hostname"
 
-  run env PATH="$fakebin:/usr/bin:/bin" bash "$tree/scripts/check-compose-config.sh"
+  run env PATH="$fakebin:$PATH" bash "$tree/scripts/check-compose-config.sh"
 
   # The output must contain a visible note about host-scoping
   assert_output_contains "host"
-  # Must NOT invoke the engine adapter (no docker calls)
+  # Must NOT invoke the engine adapter (no docker calls logged)
   [ ! -s "$FAKE_DOCKER_LOG" ] || {
     echo "check-compose-config: FAIL -- adapter invoked during in-container path" >&2
     return 1
