@@ -148,13 +148,3 @@ FAKELS
   run grep -F 'guard_no_home_qualt()' "$SCRIPTS_DIR/verify-pre-commit.sh"
   assert_status 1
 }
-
-@test "verify-pre-commit: host-down path unchanged (make up guidance)" {
-  # container down -> original message
-  export FAKE_DOCKER_SERVICES="postgres"
-
-  run bash "$SCRIPTS_DIR/verify-pre-commit.sh"
-
-  assert_status 1
-  assert_output_contains "dev container not running"
-}

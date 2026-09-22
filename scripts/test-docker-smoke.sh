@@ -198,12 +198,13 @@ bash "$ENGINE_ADAPTER" compose exec -T dev bash -c '[ -n "${MISE_TRUSTED_CONFIG_
   exit 1
 }
 echo "ok: MISE_TRUSTED_CONFIG_PATHS set"
-# Static source assertions: no volta install remnants in the image definitions
-# (AC1/AC2). POSIX grep (not rg) — this script must run on hosts without
+# Static source assertions: no volta install remnants in the Dockerfile
+# (AC1/AC2). POSIX grep (not rg) -- this script must run on hosts without
 # ripgrep. The probe targets install tokens, NOT the historical "replaces
-# Volta" mention in the design-sanctioned section header (design.md §2.4
-# skeleton comment) — see the volta-to-mise implementation report for the
+# Volta" mention in the design-sanctioned section header (design.md section 2.4
+# skeleton comment) -- see the volta-to-mise implementation report for the
 # deviation note on AC1's literal `grep -i volta` reading.
+[ -f Dockerfile.dev ] || { echo "error: Dockerfile.dev not found at $(pwd)/Dockerfile.dev" >&2; exit 1; }
 if grep -qiE 'volta-cli|VOLTA_VERSION|volta-shim|volta-migrate|volta\.tar|volta --version' Dockerfile.dev; then
   echo "error: Dockerfile.dev still references a volta install (DIA-030 not fully closed)" >&2
   exit 1

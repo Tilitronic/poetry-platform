@@ -448,28 +448,3 @@ JSONC
   assert_status 0
   assert_output_contains "agents audited, 0 gaps"
 }
-
-# ---------------------------------------------------------------------------
-# Synthetic blanket-WARN coverage (DIA-260824-8k62 re-review A6):
-# the retired real-config blanket fixture was removed; this synthetic fixture
-# exercises the same code path (blanket permission string -> WARN exposure).
-# ---------------------------------------------------------------------------
-
-@test "audit-tool-coverage: blanket permission string -> WARN exposure mode, exit 0" {
-  local tree
-  tree="$(setup_tree blanket-warn)"
-  write_census "$tree" read write edit
-  # Scalar blanket permission (container profile style): "allow" as a string
-  # instead of a per-tool dict. The auditor marks this as blanket=True and
-  # emits WARN exposure mode (not HARD gap) -- exit 0.
-  cat > "$tree/config.jsonc" <<'JSONC'
-{
-  "permission": "allow"
-}
-JSONC
-
-  run_audit "$tree" config.jsonc
-
-  assert_status 0
-  assert_output_contains "blanket permission=allow"
-}

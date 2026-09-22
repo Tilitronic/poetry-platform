@@ -458,7 +458,7 @@
 
 **Tasks:**
 
-- [x] **T8.1** Collect acceptance evidence — SUPERSEDED-BY-DIRECTION (DIA-260824-8k62 UPDATE 2026-09-22: developer inverted the acceptance chain; T8.6 executed before T8.1-T8.5)
+- [ ] **T8.1** Collect acceptance evidence — SUPERSEDED-BY-DIRECTION (DIA-260824-8k62 UPDATE 2026-09-22: developer inverted the acceptance chain; T8.6 executed before T8.1-T8.5)
   - Gate results from T7.1, T7.2
   - SSH push results from T7.3, T7.4
   - Chromium results from T7.5, T7.6
@@ -467,7 +467,7 @@
   - Depends on: T7.7
   - Blocks: T8.2
 
-- [x] **T8.2** Start 3-day retirement countdown — SUPERSEDED-BY-DIRECTION (DIA-260824-8k62 UPDATE 2026-09-22)
+- [ ] **T8.2** Start 3-day retirement countdown — SUPERSEDED-BY-DIRECTION (DIA-260824-8k62 UPDATE 2026-09-22)
   - Document start date
   - Both developers use unified container exclusively
   - Track any issues
@@ -475,21 +475,21 @@
   - Depends on: T8.1
   - Blocks: T8.3
 
-- [x] **T8.3** Reviewer audit — SUPERSEDED-BY-DIRECTION (DIA-260824-8k62 UPDATE 2026-09-22)
+- [ ] **T8.3** Reviewer audit — SUPERSEDED-BY-DIRECTION (DIA-260824-8k62 UPDATE 2026-09-22)
   - Dispatch `@reviewer` for two-axis review (Standards + Spec fidelity)
   - Review unified container implementation
   - Acceptance: Reviewer approves
   - Depends on: T8.2
   - Blocks: T8.4
 
-- [x] **T8.4** ai-auditor audit — SUPERSEDED-BY-DIRECTION (DIA-260824-8k62 UPDATE 2026-09-22)
+- [ ] **T8.4** ai-auditor audit — SUPERSEDED-BY-DIRECTION (DIA-260824-8k62 UPDATE 2026-09-22)
   - Dispatch `@ai-auditor` for config audit
   - Review compose overrides, command interface, documentation
   - Acceptance: ai-auditor approves
   - Depends on: T8.3
   - Blocks: T8.5
 
-- [x] **T8.5** Explicit developer confirmations — SUPERSEDED-BY-DIRECTION (DIA-260824-8k62 UPDATE 2026-09-22)
+- [ ] **T8.5** Explicit developer confirmations — SUPERSEDED-BY-DIRECTION (DIA-260824-8k62 UPDATE 2026-09-22)
   - Fedora developer confirms unified container works
   - WSL developer confirms unified container works
   - Both confirm no issues during 3-day period

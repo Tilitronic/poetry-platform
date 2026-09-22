@@ -5,9 +5,9 @@ Status legend: `[x]` done · `[~]` in progress (own session) · `[ ]` pending
 
 ## ✅ What's done well (no action needed)
 
-- **Docker-контейнер OpenCode** (`tools/opencode-docker/`): multi-stage build (3 stages),
+- **Docker dev container** (`Dockerfile.dev`): multi-stage build,
   read-only rootfs, `--cap-drop=ALL`, non-root user, SHA256-pinned base image + installer,
-  file-based secrets з `ALLOWED_SECRETS` whitelist, instance lock, healthcheck,
+  file-based secrets with `ALLOWED_SECRETS` whitelist, instance lock, healthcheck,
   `.dockerignore`, Xvfb + Playwright.
 - **Monorepo tooling**: pnpm workspaces, Turborepo pipeline, `pnpm-lock.yaml`.
   - **OpenCode config**: MCP (context7 + gh_grep), команди, memory shelf.
@@ -26,7 +26,7 @@ Status legend: `[x]` done · `[~]` in progress (own session) · `[ ]` pending
       PID1; (b) `pnpm dev` запускає лише author-studio (publishing-platform без `dev`-скрипта,
       api-server — Python, не turbo).
       → закомітити результати.
-- [x] **C2 — OMO slim в Docker** — `tools/opencode-docker/config/opencode.json` тепер містить
+- [x] **C2 — OMO slim** — `.opencode/opencode.jsonc` plugin entry
       envsitter-guard@0.0.4, opencode-telemetry@0.1.19, OMO slim (`file:///workspace/.opencode/oh-my-opencode-slim`)
   - gh_grep MCP. Перевірено у dev-контейнері: opencode 1.18.4, пакети плагінів у кеші,
     boss-агент (OMO slim) активний, telemetry DB пише.
@@ -92,7 +92,7 @@ Status legend: `[x]` done · `[~]` in progress (own session) · `[ ]` pending
       реалізатором, йому потрібні edit/bash (dev build, lint, tests) та task для підлеглих
       агентів; будь-який deny ламає його основну функцію. Намір задокументовано коментарем
       над блоком `coder` у `.opencode/opencode.jsonc`.
-- [x] **M3 — gh_grep MCP в Docker config** — додано до `tools/opencode-docker/config/opencode.json`
+- [x] **M3 — gh_grep MCP в config** — додано до `.opencode/opencode.jsonc`
       (https://mcp.grep.app).
 - [ ] **M4 — «Привиди»** — `code-navigator` та `researcher` визначені в `opencode.json`
       (рядки 40-47), але ніколи не диспатчаться. → прибрати або задокументувати.

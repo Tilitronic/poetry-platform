@@ -138,7 +138,7 @@ bump, or (b) Bun ships a fix for the napi crash in a 1.3.x point release.
 - [ ] RSS / elapsed checkpoints observed on long orchestrator runs.
 - [ ] Every crash captured with its bun.report URL and context in the ticket.
 - [ ] Upstream Bun issue filed or no-file decision recorded.
-- [ ] Bun pins in both Dockerfiles verified equal (`grep BUN_VERSION`).
+- [ ] Bun pin in Dockerfile.dev verified (`grep BUN_VERSION Dockerfile.dev`).
 - [ ] Session-context guard follow-up decided (separate ticket or documented
       no-go) per ticket Verification.
 

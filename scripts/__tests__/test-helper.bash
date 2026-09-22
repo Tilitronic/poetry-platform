@@ -301,9 +301,8 @@ setup_check_tools_tree() {
 }
 
 # setup_pin_sync_tree <with_mise_toml 0|1> <with_dockerfile_dev 0|1>
-#   <with_dockerfile_oc 0|1> <mise_node_pin> <mise_pnpm_pin>
-#   <docker_dev_node_pin> <docker_dev_pnpm_pin> <docker_oc_node_pin>
-#   <docker_oc_pnpm_pin> [variant]
+#   <mise_node_pin> <mise_pnpm_pin>
+#   <docker_dev_node_pin> <docker_dev_pnpm_pin> [variant]
 # Copies check-pin-sync.sh into an isolated tree and plants controlled
 # .mise.toml / Dockerfile.dev fixtures. The optional variant selects fixture
 # formatting (applies per source):

@@ -13,7 +13,8 @@
 # validate-opencode-config.sh). The resolution + duplicate logic is pure jq, so
 # no new dependency is introduced beyond node (already required by test-config).
 #
-# Exit codes: 0 no duplicate registration, 1 duplicate found, 2 infra error.
+# Exit codes: 0 no duplicate registration, 1 duplicate found or listed config
+# missing, 2 infra error.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"

@@ -50,8 +50,7 @@ Rules enforced by `scripts/worktrees.sh create`:
 
 ## Worktree location
 
-Worktrees live under `.worktrees/` at the repo root (git-ignored; matches the
-existing `tools/opencode-docker/.worktrees/` precedent). Path mapping:
+Worktrees live under `.worktrees/` at the repo root (git-ignored). Path mapping:
 branch slashes become dashes, so every lane is a direct child:
 
 ```text
