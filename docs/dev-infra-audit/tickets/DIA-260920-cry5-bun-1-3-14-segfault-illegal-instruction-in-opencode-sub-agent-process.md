@@ -133,3 +133,7 @@ Before declaring a crash, run:
 5. Only then classify as Class 1 (real crash) or Class 2 (self-update).
 
 All gates are now green: `make test-config` exit 0, `make test-shell` exit 0 (717 ok / 0 not-ok).
+
+## Recurrence Log
+
+- **2026-09-22**: Bun v1.3.14 (0d9b296a) Linux x64 (baseline) SIGSEGV, `panic(main thread): Segmentation fault at address 0x10`, occurred while opencode build ran on WSL Kernel 6.18.33 / glibc 2.43 after ~2461100ms elapsed (~41 min). bun.report: https://bun.report/1.3.14/0d9b296a. Killed an in-flight delegation (DIA-260824-8k62 resume lane, parent crash SIGSEGV via Bun). No self-update marker text (`upgraded method=`) present in the log -- this is the Bun-panic class (Class 1), not the self-update class (Class 2). Recurrence of the already-documented defect; still blocked on upstream PRs #44946 / #48397.
