@@ -23,12 +23,13 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 MISE_TOML="${ROOT_DIR}/.mise.toml"
 
-# Hardcoded expected pins — mirrors .mise.toml + Dockerfile.dev ARGs (node
-# 24.18.0, pnpm 10.33.0) at spec-author time (2026-08-03). There is no automated
-# sync (see the .mise.toml header comment); bumping either version requires
-# updating BOTH sources.
+# Hardcoded expected pins — mirrors .mise.toml + Dockerfile.dev ARGs.
+# Bumping any version requires updating BOTH the ARG in Dockerfile.dev and the
+# corresponding [tools] entry in .mise.toml.
 NODE_PIN="24.18.0"
 PNPM_PIN="10.33.0"
+OPENCODE_PIN="1.18.32"
+BUN_PIN="1.4.2"
 
 # Step 1 — mise must be on PATH. mise ships inside the dev container, so running
 # this on a host without mise is an expected error path, not a bug.
@@ -94,5 +95,7 @@ probe_tool() {
 
 probe_tool node "${NODE_PIN}" "--version" 1
 probe_tool pnpm "${PNPM_PIN}" "--version" 0
+probe_tool opencode "${OPENCODE_PIN}" "--version" 0
+probe_tool bun "${BUN_PIN}" "--version" 0
 
 exit "${status}"

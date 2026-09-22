@@ -1,9 +1,9 @@
 #!/usr/bin/env bats
 # Unit tests for scripts/check-pin-sync.sh (seam: validator script).
 #
-# 10-case FAKE-mock matrix (T1-T10) covering every branch of the validator
-# against Dockerfile.dev (2 comparisons: 2 pins x 1 Dockerfile):
-#   T1  all pins match                          -> exit 0 + two ok lines
+# 18-case FAKE-mock matrix (T1-T18) covering every branch of the validator
+# against Dockerfile.dev (4 comparisons: 4 pins x 1 Dockerfile):
+#   T1  all pins match                          -> exit 0 + four ok lines
 #   T2  single pin mismatch (node, Dockerfile.dev) -> exit 1 + fail line
 #   T3  multiple pin mismatches (report-ALL)     -> exit 1 + all fail lines
 #   T4  .mise.toml missing                      -> exit 2 (INFRA)
@@ -13,6 +13,14 @@
 #   T8  quote variations                        -> exit 0 after stripping
 #   T9  CRLF line endings                       -> exit 0 after stripping
 #   T10 whitespace variations                   -> exit 0 after stripping
+#   T11 single opencode mismatch (Dockerfile.dev) -> exit 1 + fail line
+#   T12 single bun mismatch (Dockerfile.dev)       -> exit 1 + fail line
+#   T13 duplicate opencode key in .mise.toml    -> exit 2 (INFRA)
+#   T14 duplicate OPENCODE_VERSION ARG           -> exit 2 (INFRA)
+#   T15 missing opencode key in .mise.toml       -> exit 2 (INFRA)
+#   T16 missing OPENCODE_VERSION ARG             -> exit 2 (INFRA)
+#   T17 missing BUN_VERSION ARG                  -> exit 2 (INFRA)
+#   T18 report-ALL: all four pins drift          -> exit 1 + four fail lines
 #
 # Legacy T11-T13 (tools/opencode-docker/Dockerfile tests) removed:
 # DIA-260824-8k62 PHASE 3 retired the legacy runtime; check-pin-sync.sh
@@ -41,38 +49,44 @@ assert_stderr_contains() {
   }
 }
 
-@test "check-pin-sync: T1 all pins match -> exit 0 + two ok lines + summary: 2 ok, 0 fail" {
-  tree="$(setup_pin_sync_tree 1 1 "24.18.0" "10.33.0" "24.18.0" "10.33.0")"
+# ---- T1: all 4 pins match ------------------------------------------------
+@test "check-pin-sync: T1 all 4 pins match -> exit 0 + four ok lines + summary: 4 ok, 0 fail" {
+  tree="$(setup_pin_sync_tree 1 1 "24.18.0" "10.33.0" "24.18.0" "10.33.0" "" "1.18.32" "1.4.2" "1.18.32" "1.4.2")"
 
   run bash "$tree/scripts/check-pin-sync.sh"
 
   assert_status 0
   assert_output_contains "ok: node 24.18.0 (parity @ Dockerfile.dev)"
   assert_output_contains "ok: pnpm 10.33.0 (parity @ Dockerfile.dev)"
-  assert_output_contains "summary: 2 ok, 0 fail"
+  assert_output_contains "ok: opencode 1.18.32 (parity @ Dockerfile.dev)"
+  assert_output_contains "ok: bun 1.4.2 (parity @ Dockerfile.dev)"
+  assert_output_contains "summary: 4 ok, 0 fail"
 }
 
-@test "check-pin-sync: T2 single pin mismatch (node, Dockerfile.dev) -> exit 1 + fail line + summary: 1 ok, 1 fail" {
-  tree="$(setup_pin_sync_tree 1 1 "24.18.0" "10.33.0" "24.19.0" "10.33.0")"
+# ---- T2: single node mismatch ---------------------------------------------
+@test "check-pin-sync: T2 single pin mismatch (node, Dockerfile.dev) -> exit 1 + fail line + summary: 3 ok, 1 fail" {
+  tree="$(setup_pin_sync_tree 1 1 "24.18.0" "10.33.0" "24.19.0" "10.33.0" "" "1.18.32" "1.4.2" "1.18.32" "1.4.2")"
 
   run --separate-stderr bash "$tree/scripts/check-pin-sync.sh"
 
   assert_status 1
   assert_stderr_contains "fail: node — .mise.toml=24.18.0 Dockerfile.dev=24.19.0"
-  assert_output_contains "summary: 1 ok, 1 fail"
+  assert_output_contains "summary: 3 ok, 1 fail"
 }
 
+# ---- T3: multiple pin mismatches (report-ALL) -----------------------------
 @test "check-pin-sync: T3 multiple pin mismatches (report-ALL) -> exit 1 + all fail lines" {
-  tree="$(setup_pin_sync_tree 1 1 "24.18.0" "10.33.0" "24.19.0" "10.34.0")"
+  tree="$(setup_pin_sync_tree 1 1 "24.18.0" "10.33.0" "24.19.0" "10.34.0" "" "1.18.32" "1.4.2" "1.18.32" "1.4.2")"
 
   run --separate-stderr bash "$tree/scripts/check-pin-sync.sh"
 
   assert_status 1
   assert_stderr_contains "fail: node — .mise.toml=24.18.0 Dockerfile.dev=24.19.0"
   assert_stderr_contains "fail: pnpm — .mise.toml=10.33.0 Dockerfile.dev=10.34.0"
-  assert_output_contains "summary: 0 ok, 2 fail"
+  assert_output_contains "summary: 2 ok, 2 fail"
 }
 
+# ---- T4: .mise.toml missing (INFRA) --------------------------------------
 @test "check-pin-sync: T4 .mise.toml missing -> exit 2 (INFRA) + source-defective fail line" {
   tree="$(setup_pin_sync_tree 0 1 "24.18.0" "10.33.0" "24.18.0" "10.33.0")"
 
@@ -83,6 +97,7 @@ assert_stderr_contains() {
   assert_output_contains "summary: 0 ok, 0 fail (infra)"
 }
 
+# ---- T5: Dockerfile.dev missing (INFRA) -----------------------------------
 @test "check-pin-sync: T5 Dockerfile.dev missing -> exit 2 (INFRA) + source-defective fail line" {
   tree="$(setup_pin_sync_tree 1 0 "24.18.0" "10.33.0" "24.18.0" "10.33.0")"
 
@@ -93,6 +108,7 @@ assert_stderr_contains() {
   assert_output_contains "summary: 0 ok, 0 fail (infra)"
 }
 
+# ---- T6: duplicate node key in .mise.toml (INFRA) -------------------------
 @test "check-pin-sync: T6 duplicate [tools] key in .mise.toml -> exit 2 (INFRA) + duplicate-key fail line" {
   tree="$(setup_pin_sync_tree 1 1 "24.18.0" "10.33.0" "24.18.0" "10.33.0" "dup-mise")"
 
@@ -103,6 +119,7 @@ assert_stderr_contains() {
   assert_output_contains "summary: 0 ok, 0 fail (infra)"
 }
 
+# ---- T7: duplicate NODE_VERSION ARG (INFRA) -------------------------------
 @test "check-pin-sync: T7 duplicate ARG in Dockerfile.dev -> exit 2 (INFRA) + duplicate-ARG fail line" {
   tree="$(setup_pin_sync_tree 1 1 "24.18.0" "10.33.0" "24.18.0" "10.33.0" "dup-docker")"
 
@@ -113,39 +130,184 @@ assert_stderr_contains() {
   assert_output_contains "summary: 0 ok, 0 fail (infra)"
 }
 
+# ---- T8: quote variations -------------------------------------------------
 @test "check-pin-sync: T8 quote variations (single/double/unquoted) -> exit 0 after stripping" {
-  tree="$(setup_pin_sync_tree 1 1 "24.18.0" "10.33.0" "24.18.0" "10.33.0" "quotes")"
+  tree="$(setup_pin_sync_tree 1 1 "24.18.0" "10.33.0" "24.18.0" "10.33.0" "quotes" "1.18.32" "1.4.2" "1.18.32" "1.4.2")"
 
   run bash "$tree/scripts/check-pin-sync.sh"
 
   assert_status 0
   assert_output_contains "ok: node 24.18.0 (parity @ Dockerfile.dev)"
   assert_output_contains "ok: pnpm 10.33.0 (parity @ Dockerfile.dev)"
-  assert_output_contains "summary: 2 ok, 0 fail"
+  assert_output_contains "ok: opencode 1.18.32 (parity @ Dockerfile.dev)"
+  assert_output_contains "ok: bun 1.4.2 (parity @ Dockerfile.dev)"
+  assert_output_contains "summary: 4 ok, 0 fail"
 }
 
+# ---- T9: CRLF line endings ------------------------------------------------
 @test "check-pin-sync: T9 CRLF line endings -> exit 0 after stripping" {
-  tree="$(setup_pin_sync_tree 1 1 "24.18.0" "10.33.0" "24.18.0" "10.33.0" "crlf")"
+  tree="$(setup_pin_sync_tree 1 1 "24.18.0" "10.33.0" "24.18.0" "10.33.0" "crlf" "1.18.32" "1.4.2" "1.18.32" "1.4.2")"
 
   run bash "$tree/scripts/check-pin-sync.sh"
 
   assert_status 0
   assert_output_contains "ok: node 24.18.0 (parity @ Dockerfile.dev)"
   assert_output_contains "ok: pnpm 10.33.0 (parity @ Dockerfile.dev)"
-  assert_output_contains "summary: 2 ok, 0 fail"
+  assert_output_contains "ok: opencode 1.18.32 (parity @ Dockerfile.dev)"
+  assert_output_contains "ok: bun 1.4.2 (parity @ Dockerfile.dev)"
+  assert_output_contains "summary: 4 ok, 0 fail"
 }
 
+# ---- T10: whitespace variations -------------------------------------------
 @test "check-pin-sync: T10 whitespace variations (extra spaces around =) -> exit 0 after stripping" {
-  tree="$(setup_pin_sync_tree 1 1 "24.18.0" "10.33.0" "24.18.0" "10.33.0" "whitespace")"
+  tree="$(setup_pin_sync_tree 1 1 "24.18.0" "10.33.0" "24.18.0" "10.33.0" "whitespace" "1.18.32" "1.4.2" "1.18.32" "1.4.2")"
 
   run bash "$tree/scripts/check-pin-sync.sh"
 
   assert_status 0
   assert_output_contains "ok: node 24.18.0 (parity @ Dockerfile.dev)"
   assert_output_contains "ok: pnpm 10.33.0 (parity @ Dockerfile.dev)"
-  assert_output_contains "summary: 2 ok, 0 fail"
+  assert_output_contains "ok: opencode 1.18.32 (parity @ Dockerfile.dev)"
+  assert_output_contains "ok: bun 1.4.2 (parity @ Dockerfile.dev)"
+  assert_output_contains "summary: 4 ok, 0 fail"
 }
 
+# ---- T11: single opencode mismatch ----------------------------------------
+@test "check-pin-sync: T11 single opencode mismatch (Dockerfile.dev) -> exit 1 + fail line + summary: 3 ok, 1 fail" {
+  tree="$(setup_pin_sync_tree 1 1 "24.18.0" "10.33.0" "24.18.0" "10.33.0" "" "1.18.32" "1.4.2" "1.18.99" "1.4.2")"
+
+  run --separate-stderr bash "$tree/scripts/check-pin-sync.sh"
+
+  assert_status 1
+  assert_stderr_contains "fail: opencode — .mise.toml=1.18.32 Dockerfile.dev=1.18.99"
+  assert_output_contains "summary: 3 ok, 1 fail"
+}
+
+# ---- T12: single bun mismatch ---------------------------------------------
+@test "check-pin-sync: T12 single bun mismatch (Dockerfile.dev) -> exit 1 + fail line + summary: 3 ok, 1 fail" {
+  tree="$(setup_pin_sync_tree 1 1 "24.18.0" "10.33.0" "24.18.0" "10.33.0" "" "1.18.32" "1.4.2" "1.18.32" "1.99.0")"
+
+  run --separate-stderr bash "$tree/scripts/check-pin-sync.sh"
+
+  assert_status 1
+  assert_stderr_contains "fail: bun — .mise.toml=1.4.2 Dockerfile.dev=1.99.0"
+  assert_output_contains "summary: 3 ok, 1 fail"
+}
+
+# ---- T13: duplicate opencode key in .mise.toml (INFRA) --------------------
+@test "check-pin-sync: T13 duplicate opencode key in .mise.toml -> exit 2 (INFRA)" {
+  tree="$(setup_pin_sync_tree 1 1 "24.18.0" "10.33.0" "24.18.0" "10.33.0" "dup-opencode-mise")"
+
+  run --separate-stderr bash "$tree/scripts/check-pin-sync.sh"
+
+  assert_status 2
+  assert_stderr_contains "fail: source defective: .mise.toml has duplicate key 'opencode' under [tools]"
+  assert_output_contains "summary: 0 ok, 0 fail (infra)"
+}
+
+# ---- T14: duplicate OPENCODE_VERSION ARG (INFRA) --------------------------
+@test "check-pin-sync: T14 duplicate OPENCODE_VERSION ARG in Dockerfile.dev -> exit 2 (INFRA)" {
+  tree="$(setup_pin_sync_tree 1 1 "24.18.0" "10.33.0" "24.18.0" "10.33.0" "dup-opencode-docker")"
+
+  run --separate-stderr bash "$tree/scripts/check-pin-sync.sh"
+
+  assert_status 2
+  assert_stderr_contains "fail: source defective: Dockerfile.dev has duplicate ARG 'OPENCODE_VERSION'"
+  assert_output_contains "summary: 0 ok, 0 fail (infra)"
+}
+
+# ---- T15: missing opencode key in .mise.toml (INFRA) ----------------------
+@test "check-pin-sync: T15 missing opencode key in .mise.toml -> exit 2 (INFRA)" {
+  # Plant .mise.toml with ONLY node/pnpm (no opencode) + Dockerfile with all 4 ARGs
+  local tree="$BATS_TEST_TMPDIR/pin-sync"
+  mkdir -p "$tree/scripts"
+  cp "$REPO_ROOT/scripts/check-pin-sync.sh" "$tree/scripts/check-pin-sync.sh"
+  cat > "$tree/.mise.toml" <<'EOF'
+[tools]
+node = "24.18.0"
+pnpm = "10.33.0"
+EOF
+  cat > "$tree/Dockerfile.dev" <<'EOF'
+ARG NODE_VERSION=24.18.0
+ARG PNPM_VERSION=10.33.0
+ARG OPENCODE_VERSION=1.18.32
+ARG BUN_VERSION=1.4.2
+EOF
+
+  run --separate-stderr bash "$tree/scripts/check-pin-sync.sh"
+
+  assert_status 2
+  assert_stderr_contains "fail: source defective: .mise.toml is missing key 'opencode' under [tools]"
+  assert_output_contains "summary: 0 ok, 0 fail (infra)"
+}
+
+# ---- T16: missing OPENCODE_VERSION ARG (INFRA) ----------------------------
+@test "check-pin-sync: T16 missing OPENCODE_VERSION ARG in Dockerfile.dev -> exit 2 (INFRA)" {
+  # Plant .mise.toml with all 4 keys + Dockerfile with only node/pnpm/bun ARGs
+  local tree="$BATS_TEST_TMPDIR/pin-sync"
+  mkdir -p "$tree/scripts"
+  cp "$REPO_ROOT/scripts/check-pin-sync.sh" "$tree/scripts/check-pin-sync.sh"
+  cat > "$tree/.mise.toml" <<'EOF'
+[tools]
+node = "24.18.0"
+pnpm = "10.33.0"
+opencode = "1.18.32"
+bun = "1.4.2"
+EOF
+  cat > "$tree/Dockerfile.dev" <<'EOF'
+ARG NODE_VERSION=24.18.0
+ARG PNPM_VERSION=10.33.0
+ARG BUN_VERSION=1.4.2
+EOF
+
+  run --separate-stderr bash "$tree/scripts/check-pin-sync.sh"
+
+  assert_status 2
+  assert_stderr_contains "fail: source defective: Dockerfile.dev is missing ARG 'OPENCODE_VERSION'"
+  assert_output_contains "summary: 0 ok, 0 fail (infra)"
+}
+
+# ---- T17: missing BUN_VERSION ARG (INFRA) ---------------------------------
+@test "check-pin-sync: T17 missing BUN_VERSION ARG in Dockerfile.dev -> exit 2 (INFRA)" {
+  # Plant .mise.toml with all 4 keys + Dockerfile with only node/pnpm/opencode ARGs
+  local tree="$BATS_TEST_TMPDIR/pin-sync"
+  mkdir -p "$tree/scripts"
+  cp "$REPO_ROOT/scripts/check-pin-sync.sh" "$tree/scripts/check-pin-sync.sh"
+  cat > "$tree/.mise.toml" <<'EOF'
+[tools]
+node = "24.18.0"
+pnpm = "10.33.0"
+opencode = "1.18.32"
+bun = "1.4.2"
+EOF
+  cat > "$tree/Dockerfile.dev" <<'EOF'
+ARG NODE_VERSION=24.18.0
+ARG PNPM_VERSION=10.33.0
+ARG OPENCODE_VERSION=1.18.32
+EOF
+
+  run --separate-stderr bash "$tree/scripts/check-pin-sync.sh"
+
+  assert_status 2
+  assert_stderr_contains "fail: source defective: Dockerfile.dev is missing ARG 'BUN_VERSION'"
+  assert_output_contains "summary: 0 ok, 0 fail (infra)"
+}
+
+# ---- T18: all 4 pins drift (report-ALL) -----------------------------------
+@test "check-pin-sync: T18 all 4 pins drift (report-ALL) -> exit 1 + four fail lines + summary: 0 ok, 4 fail" {
+  tree="$(setup_pin_sync_tree 1 1 "24.18.0" "10.33.0" "24.19.0" "10.34.0" "" "1.18.32" "1.4.2" "1.18.99" "1.99.0")"
+
+  run --separate-stderr bash "$tree/scripts/check-pin-sync.sh"
+
+  assert_status 1
+  assert_stderr_contains "fail: node — .mise.toml=24.18.0 Dockerfile.dev=24.19.0"
+  assert_stderr_contains "fail: pnpm — .mise.toml=10.33.0 Dockerfile.dev=10.34.0"
+  assert_stderr_contains "fail: opencode — .mise.toml=1.18.32 Dockerfile.dev=1.18.99"
+  assert_stderr_contains "fail: bun — .mise.toml=1.4.2 Dockerfile.dev=1.99.0"
+  assert_output_contains "summary: 0 ok, 4 fail"
+}
+
+# ---- S4: real .mise.toml structural integrity ------------------------------
 @test "check-pin-sync: real .mise.toml structural integrity (S4)" {
   # S4-style structural assertion -- the ONE case that reads the real repo file
   # (documented exception to the FAKE-mock invariant; mirrors check-tools.bats).
@@ -153,4 +315,7 @@ assert_stderr_contains() {
   assert_file_contains "$REPO_ROOT/.mise.toml" 'node = "24.18.0"'
   assert_file_contains "$REPO_ROOT/.mise.toml" 'pnpm = "10.33.0"'
   assert_file_contains "$REPO_ROOT/.mise.toml" "derived from Dockerfile.dev ARGs"
+  # PHASE 2: the opencode and bun reference pins MUST be present for 4-pin parity
+  assert_file_contains "$REPO_ROOT/.mise.toml" 'opencode = "1.18.32"'
+  assert_file_contains "$REPO_ROOT/.mise.toml" 'bun = "1.4.2"'
 }

@@ -25,7 +25,7 @@
 #   make session-analytics  canned analytics over native OpenCode telemetry (opencode stats/db; ARGS pass-through)
 #   make test-harness  C5 scenario replay (bats) + bun plugin tests (requires Docker)
 
-.PHONY: build up shell opencode preset dev stack install db-psql logs down clean check-pin-sync check-tools check-host-jq check-host-lsp gen-jsconfig test-shell test-python test-infra test-config test-omo test-interview test-skills eval-lite audit-python context7-docs jsonl-stats session-log-render jsonl-cross-check session-query session-analytics test-harness worktree-gc
+.PHONY: build up shell opencode preset dev stack install db-psql logs down clean check-pin-sync check-compose-config check-tools check-host-jq check-host-lsp gen-jsconfig test-shell test-python test-infra test-config test-omo test-interview test-skills eval-lite audit-python context7-docs jsonl-stats session-log-render jsonl-cross-check session-query session-analytics test-harness worktree-gc
 
 # Engine-aware compose stack (DIA-260826-766f + DIA-260912-y2uo): every bare
 # `docker compose` target below routes through scripts/container-engine.sh,
@@ -87,11 +87,19 @@ clean:
 	$(COMPOSE) down -v
 
 # Standalone source-parity validator (scripts/check-pin-sync.sh). Asserts
-# .mise.toml ↔ Dockerfile.dev parity for node/pnpm. Exit precedence 2>1>0
-# (INFRA>mismatch>match). 2 comparisons (2 pins × 1 Dockerfile). See
-# openspec/changes/dev-infra-pin-sync/.
+# .mise.toml ↔ Dockerfile.dev parity for node/pnpm/opencode/bun. Exit
+# precedence 2>1>0 (INFRA>mismatch>match). 4 comparisons (4 pins x 1
+# Dockerfile). See openspec/changes/dev-infra-pin-sync/.
 check-pin-sync:
 	bash scripts/check-pin-sync.sh
+
+# Host-only compose-config validation (scripts/check-compose-config.sh). Runs
+# `<engine> compose config --quiet` via container-engine.sh. Client-side, no
+# daemon needed. HARD-FAILS when the engine CLI is unavailable (never silently
+# skips). Wired into pre-push (verify-pre-push.sh) above the container-down
+# early-exit.
+check-compose-config:
+	bash scripts/check-compose-config.sh
 
 # Host-runnable tool integrity check (seam S2; scripts/check-tools.sh). Verifies
 # mise is on PATH, .mise.toml exists, `mise install` resolves the pins, and the
@@ -199,14 +207,15 @@ test-skills:
 # scripts/schemas/changelog.schema.json - the second YAML artifact under
 # contract, extension of the Deliverable-A pattern) + DIA mention format
 # gate (DIA-234: scripts/validate-dia-mentions.sh, warn-not-fail on
-# grandfathered bare references) + docker-compose.yml syntax (DIA-124: `docker compose config
-# --quiet` so compose drift fails the config gate without the heavy
-# test-infra). Invariant: test-config passes
-# iff no HARD write-capable gaps remain — WARN-only gaps (the ~440 unlisted
+# grandfathered bare references) + compose-config validation is HOST-SCOPED
+# (PHASE 5: check-compose-config.sh runs host-side via verify-pre-push.sh,
+# removed from in-container test-config recipe). Invariant: test-config passes
+# iff no HARD write-capable gaps remain -- WARN-only gaps (the ~440 unlisted
 # default-allow non-write-capable tools) do NOT break the gate (Decision 6
 # scoping; see scripts/audit-agent-tool-coverage.sh).
 test-config: test-interview test-skills
-	$(COMPOSE) config --quiet
+	# NOTE: compose config validation is host-scoped (PHASE 5, T12.4). It runs
+	# host-side via `make check-compose-config` / verify-pre-push.sh, not here.
 	bash .opencode/scripts/validate-opencode-config.sh
 	bash scripts/check-omo-version-sync.sh
 	bash scripts/validate-agent-names.sh

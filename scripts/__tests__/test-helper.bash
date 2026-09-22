@@ -240,8 +240,8 @@ setup_dev_stack_tree() {
 # check-tools.sh / check-pin-sync.sh fixtures (FAKE-mock seam)
 # ---------------------------------------------------------------------------
 
-# install_check_tools_fakes <dir>: plants fake mise/node/pnpm in <dir> and
-# prepends it to PATH. Behavior is driven by env (set per test):
+# install_check_tools_fakes <dir>: plants fake mise/node/pnpm/opencode/bun in
+# <dir> and prepends it to PATH. Behavior is driven by env (set per test):
 #   FAKE_MISE_WHICH_FAIL=1          mise which exits 1 (shim not active)
 #   FAKE_MISE_CURRENT_MISMATCH=1    mise current reports a wrong version
 #   FAKE_NODE_MISMATCH=1            node --version reports a wrong version
@@ -267,6 +267,8 @@ case "${1:-}" in
     case "${2:-}" in
       node) printf '%s\n' "24.18.0" ;;
       pnpm) printf '%s\n' "10.33.0" ;;
+      opencode) printf '%s\n' "1.18.32" ;;
+      bun) printf '%s\n' "1.4.2" ;;
       *) exit 1 ;;
     esac
     ;;
@@ -283,7 +285,15 @@ FAKENODE
 [ "${FAKE_PNPM_MISMATCH:-}" = "1" ] && { printf '%s\n' "99.0.0"; exit 0; }
 printf '%s\n' "10.33.0"
 FAKEPNPM
-  chmod +x "$dir/mise" "$dir/node" "$dir/pnpm"
+  cat > "$dir/opencode" <<'FAKEOPENCODE'
+#!/usr/bin/env bash
+printf '%s\n' "1.18.32"
+FAKEOPENCODE
+  cat > "$dir/bun" <<'FAKEBUN'
+#!/usr/bin/env bash
+printf '%s\n' "1.4.2"
+FAKEBUN
+  chmod +x "$dir/mise" "$dir/node" "$dir/pnpm" "$dir/opencode" "$dir/bun"
   PATH="$dir:$PATH"
   export PATH
 }
@@ -303,21 +313,28 @@ setup_check_tools_tree() {
 # setup_pin_sync_tree <with_mise_toml 0|1> <with_dockerfile_dev 0|1>
 #   <mise_node_pin> <mise_pnpm_pin>
 #   <docker_dev_node_pin> <docker_dev_pnpm_pin> [variant]
+#   [<mise_opencode_pin> <mise_bun_pin>
+#    <docker_dev_opencode_pin> <docker_dev_bun_pin>]
 # Copies check-pin-sync.sh into an isolated tree and plants controlled
 # .mise.toml / Dockerfile.dev fixtures. The optional variant selects fixture
 # formatting (applies per source):
-#   default       — node = "<pin>", pnpm = "<pin>", ARG NODE_VERSION=<pin>
-#   quotes        — mixed single/double/unquoted spellings
-#   crlf          — CRLF line endings in all fixture files
-#   whitespace    — extra spaces around '=' and inside values
-#   dup-mise      — duplicate node key under [tools] (INFRA fixture)
-#   dup-docker    — duplicate ARG NODE_VERSION in Dockerfile.dev (INFRA fixture)
+#   default       -- node = "<pin>", pnpm = "<pin>", ARG NODE_VERSION=<pin>
+#   quotes        -- mixed single/double/unquoted spellings
+#   crlf          -- CRLF line endings in all fixture files
+#   whitespace    -- extra spaces around '=' and inside values
+#   dup-mise      -- duplicate node key under [tools] (INFRA fixture)
+#   dup-docker    -- duplicate ARG NODE_VERSION in Dockerfile.dev (INFRA fixture)
+# Positions $8-$11 are the opencode/bun pins for 4-pin fixtures (PHASE 2).
+# When absent, the defaults match the Dockerfile.dev pin values so existing
+# 2-pin callers produce matching opencode/bun entries without changes.
 # Echoes the tree root.
 setup_pin_sync_tree() {
   local with_mise="${1:-1}" with_docker_dev="${2:-1}"
   local mise_node="${3:-24.18.0}" mise_pnpm="${4:-10.33.0}"
   local docker_dev_node="${5:-24.18.0}" docker_dev_pnpm="${6:-10.33.0}"
   local variant="${7:-}"
+  local mise_opencode="${8:-1.18.32}" mise_bun="${9:-1.4.2}"
+  local docker_dev_opencode="${10:-1.18.32}" docker_dev_bun="${11:-1.4.2}"
   local tree="$BATS_TEST_TMPDIR/pin-sync"
   mkdir -p "$tree/scripts"
   cp "$REPO_ROOT/scripts/check-pin-sync.sh" "$tree/scripts/check-pin-sync.sh"
@@ -329,6 +346,18 @@ setup_pin_sync_tree() {
 node = "$mise_node"
 node = "$mise_node"
 pnpm = "$mise_pnpm"
+opencode = "$mise_opencode"
+bun = "$mise_bun"
+EOF
+        ;;
+      dup-opencode-mise)
+        cat > "$tree/.mise.toml" <<EOF
+[tools]
+node = "$mise_node"
+pnpm = "$mise_pnpm"
+opencode = "$mise_opencode"
+opencode = "$mise_opencode"
+bun = "$mise_bun"
 EOF
         ;;
       quotes)
@@ -336,19 +365,23 @@ EOF
 [tools]
 node="$mise_node"
 pnpm='$mise_pnpm'
+opencode="$mise_opencode"
+bun='$mise_bun'
 EOF
         ;;
       whitespace)
-        printf '[tools]\nnode   =   "%s"\npnpm = "%s"\n' "$mise_node" "$mise_pnpm" > "$tree/.mise.toml"
+        printf '[tools]\nnode   =   "%s"\npnpm = "%s"\nopencode = "%s"\nbun   =   "%s"\n' "$mise_node" "$mise_pnpm" "$mise_opencode" "$mise_bun" > "$tree/.mise.toml"
         ;;
       crlf)
-        printf '[tools]\r\nnode = "%s"\r\npnpm = "%s"\r\n' "$mise_node" "$mise_pnpm" > "$tree/.mise.toml"
+        printf '[tools]\r\nnode = "%s"\r\npnpm = "%s"\r\nopencode = "%s"\r\nbun = "%s"\r\n' "$mise_node" "$mise_pnpm" "$mise_opencode" "$mise_bun" > "$tree/.mise.toml"
         ;;
       *)
         cat > "$tree/.mise.toml" <<EOF
 [tools]
 node = "$mise_node"
 pnpm = "$mise_pnpm"
+opencode = "$mise_opencode"
+bun = "$mise_bun"
 EOF
         ;;
     esac
@@ -360,24 +393,39 @@ EOF
 ARG NODE_VERSION=$docker_dev_node
 ARG NODE_VERSION=$docker_dev_node
 ARG PNPM_VERSION=$docker_dev_pnpm
+ARG OPENCODE_VERSION=$docker_dev_opencode
+ARG BUN_VERSION=$docker_dev_bun
+EOF
+        ;;
+      dup-opencode-docker)
+        cat > "$tree/Dockerfile.dev" <<EOF
+ARG NODE_VERSION=$docker_dev_node
+ARG PNPM_VERSION=$docker_dev_pnpm
+ARG OPENCODE_VERSION=$docker_dev_opencode
+ARG OPENCODE_VERSION=$docker_dev_opencode
+ARG BUN_VERSION=$docker_dev_bun
 EOF
         ;;
       quotes)
         cat > "$tree/Dockerfile.dev" <<EOF
 ARG NODE_VERSION=$docker_dev_node
 ARG PNPM_VERSION="$docker_dev_pnpm"
+ARG OPENCODE_VERSION=$docker_dev_opencode
+ARG BUN_VERSION="$docker_dev_bun"
 EOF
         ;;
       whitespace)
-        printf '  ARG NODE_VERSION=%s\nARG PNPM_VERSION=%s   \n' "$docker_dev_node" "$docker_dev_pnpm" > "$tree/Dockerfile.dev"
+        printf '  ARG NODE_VERSION=%s\nARG PNPM_VERSION=%s   \nARG OPENCODE_VERSION=%s\n  ARG BUN_VERSION=  %s\n' "$docker_dev_node" "$docker_dev_pnpm" "$docker_dev_opencode" "$docker_dev_bun" > "$tree/Dockerfile.dev"
         ;;
       crlf)
-        printf 'ARG NODE_VERSION=%s\r\nARG PNPM_VERSION=%s\r\n' "$docker_dev_node" "$docker_dev_pnpm" > "$tree/Dockerfile.dev"
+        printf 'ARG NODE_VERSION=%s\r\nARG PNPM_VERSION=%s\r\nARG OPENCODE_VERSION=%s\r\nARG BUN_VERSION=%s\r\n' "$docker_dev_node" "$docker_dev_pnpm" "$docker_dev_opencode" "$docker_dev_bun" > "$tree/Dockerfile.dev"
         ;;
       *)
         cat > "$tree/Dockerfile.dev" <<EOF
 ARG NODE_VERSION=$docker_dev_node
 ARG PNPM_VERSION=$docker_dev_pnpm
+ARG OPENCODE_VERSION=$docker_dev_opencode
+ARG BUN_VERSION=$docker_dev_bun
 EOF
         ;;
     esac

@@ -128,6 +128,14 @@ else
   fi
 fi
 
+# Host-side compose-config validation (PHASE 5, T12.3): client-side compose
+# validation runs above the container-down early-exit. It needs no daemon, so
+# the "offline dev stack never blocks" contract holds. A missing CLI blocks
+# the push with actionable guidance.
+if ! is_in_dev_container; then
+  bash "$ROOT/scripts/check-compose-config.sh" || exit 1
+fi
+
 if is_in_dev_container; then
   echo "== poetry-platform pre-push: running inside dev container =="
 else

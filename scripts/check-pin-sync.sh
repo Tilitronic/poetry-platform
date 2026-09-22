@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # check-pin-sync.sh — .mise.toml ↔ Dockerfile.dev pin-parity validator (Gate B).
-# WHY: node/pnpm pins live in .mise.toml [tools] (single source of truth,
-# volta-to-mise §2.1) and in the ARG declarations of Dockerfile.dev; asserts
-# parity (2 comparisons: 2 pins x 1 Dockerfile), reads only. MISE_VERSION
+# WHY: node/pnpm/opencode/bun pins live in .mise.toml [tools] (single source of
+# truth, ADR 11 line 99) and in the ARG declarations of Dockerfile.dev; asserts
+# parity (4 comparisons: 4 pins x 1 Dockerfile), reads only. MISE_VERSION
 # parity is out of scope. Legacy tools/opencode-docker/Dockerfile removed
 # (DIA-260824-8k62 PHASE 3 retirement).
 # Exit precedence 2>1>0: 0 match; 1 parity violated; 2 INFRA (missing/dup). Bash-3.
@@ -23,30 +23,49 @@ infra_summary() { # INFRA summary on both streams, exit 2
   exit 2
 }
 
-# parse_reference <file>: [tools] node/pnpm -> MISE_NODE/MISE_PNPM. Dup => INFRA.
+# parse_reference <file>: [tools] node/pnpm/opencode/bun ->
+# MISE_NODE/MISE_PNPM/MISE_OPENCODE/MISE_BUN. Dup => INFRA. Missing key => INFRA.
 parse_reference() {
-  local file="$1" tools node_count pnpm_count
+  local file="$1" tools node_count pnpm_count opencode_count bun_count
   tools="$(awk '/^\[tools\]/ { in_tools=1; next } /^\[/ { in_tools=0 } in_tools { print }' "$file")"
   node_count="$(printf '%s\n' "$tools" | grep -c '^node[[:space:]]*=' || true)"
   pnpm_count="$(printf '%s\n' "$tools" | grep -c '^pnpm[[:space:]]*=' || true)"
+  opencode_count="$(printf '%s\n' "$tools" | grep -c '^opencode[[:space:]]*=' || true)"
+  bun_count="$(printf '%s\n' "$tools" | grep -c '^bun[[:space:]]*=' || true)"
   [ "${node_count}" -le 1 ] || { echo "fail: source defective: .mise.toml has duplicate key 'node' under [tools]" >&2; return 1; }
   [ "${pnpm_count}" -le 1 ] || { echo "fail: source defective: .mise.toml has duplicate key 'pnpm' under [tools]" >&2; return 1; }
+  [ "${opencode_count}" -le 1 ] || { echo "fail: source defective: .mise.toml has duplicate key 'opencode' under [tools]" >&2; return 1; }
+  [ "${bun_count}" -le 1 ] || { echo "fail: source defective: .mise.toml has duplicate key 'bun' under [tools]" >&2; return 1; }
+  [ "${node_count}" -eq 1 ] || { echo "fail: source defective: .mise.toml is missing key 'node' under [tools]" >&2; return 1; }
+  [ "${pnpm_count}" -eq 1 ] || { echo "fail: source defective: .mise.toml is missing key 'pnpm' under [tools]" >&2; return 1; }
+  [ "${opencode_count}" -eq 1 ] || { echo "fail: source defective: .mise.toml is missing key 'opencode' under [tools]" >&2; return 1; }
+  [ "${bun_count}" -eq 1 ] || { echo "fail: source defective: .mise.toml is missing key 'bun' under [tools]" >&2; return 1; }
   MISE_NODE="$(strip_value "$(printf '%s\n' "$tools" | grep -m1 '^node[[:space:]]*=' | sed 's/^node[[:space:]]*=[[:space:]]*//' || true)")"
   MISE_PNPM="$(strip_value "$(printf '%s\n' "$tools" | grep -m1 '^pnpm[[:space:]]*=' | sed 's/^pnpm[[:space:]]*=[[:space:]]*//' || true)")"
+  MISE_OPENCODE="$(strip_value "$(printf '%s\n' "$tools" | grep -m1 '^opencode[[:space:]]*=' | sed 's/^opencode[[:space:]]*=[[:space:]]*//' || true)")"
+  MISE_BUN="$(strip_value "$(printf '%s\n' "$tools" | grep -m1 '^bun[[:space:]]*=' | sed 's/^bun[[:space:]]*=[[:space:]]*//' || true)")"
 }
 
-# parse_dockerfile <file> <label>: ARG NODE_VERSION=/PNPM_VERSION= ->
-# DOCKER_NODE/DOCKER_PNPM. Dup/missing ARG is INFRA (last-wins documented).
+# parse_dockerfile <file> <label>: ARG NODE_VERSION=/PNPM_VERSION=/OPENCODE_VERSION=/BUN_VERSION= ->
+# DOCKER_NODE/DOCKER_PNPM/DOCKER_OPENCODE/DOCKER_BUN. Dup/missing ARG is INFRA.
 parse_dockerfile() {
-  local file="$1" label="$2" node_count pnpm_count
+  local file="$1" label="$2" node_count pnpm_count opencode_count bun_count
   node_count="$(grep -cE '^[[:space:]]*ARG[[:space:]]+NODE_VERSION=' "$file" || true)"
   pnpm_count="$(grep -cE '^[[:space:]]*ARG[[:space:]]+PNPM_VERSION=' "$file" || true)"
+  opencode_count="$(grep -cE '^[[:space:]]*ARG[[:space:]]+OPENCODE_VERSION=' "$file" || true)"
+  bun_count="$(grep -cE '^[[:space:]]*ARG[[:space:]]+BUN_VERSION=' "$file" || true)"
   [ "${node_count}" -le 1 ] || { echo "fail: source defective: ${label} has duplicate ARG 'NODE_VERSION'" >&2; return 1; }
   [ "${pnpm_count}" -le 1 ] || { echo "fail: source defective: ${label} has duplicate ARG 'PNPM_VERSION'" >&2; return 1; }
+  [ "${opencode_count}" -le 1 ] || { echo "fail: source defective: ${label} has duplicate ARG 'OPENCODE_VERSION'" >&2; return 1; }
+  [ "${bun_count}" -le 1 ] || { echo "fail: source defective: ${label} has duplicate ARG 'BUN_VERSION'" >&2; return 1; }
   [ "${node_count}" -eq 1 ] || { echo "fail: source defective: ${label} is missing ARG 'NODE_VERSION'" >&2; return 1; }
   [ "${pnpm_count}" -eq 1 ] || { echo "fail: source defective: ${label} is missing ARG 'PNPM_VERSION'" >&2; return 1; }
+  [ "${opencode_count}" -eq 1 ] || { echo "fail: source defective: ${label} is missing ARG 'OPENCODE_VERSION'" >&2; return 1; }
+  [ "${bun_count}" -eq 1 ] || { echo "fail: source defective: ${label} is missing ARG 'BUN_VERSION'" >&2; return 1; }
   DOCKER_NODE="$(strip_value "$(grep -m1 '^[[:space:]]*ARG[[:space:]]\+NODE_VERSION=' "$file" | sed 's/^[^=]*=//' || true)")"
   DOCKER_PNPM="$(strip_value "$(grep -m1 '^[[:space:]]*ARG[[:space:]]\+PNPM_VERSION=' "$file" | sed 's/^[^=]*=//' || true)")"
+  DOCKER_OPENCODE="$(strip_value "$(grep -m1 '^[[:space:]]*ARG[[:space:]]\+OPENCODE_VERSION=' "$file" | sed 's/^[^=]*=//' || true)")"
+  DOCKER_BUN="$(strip_value "$(grep -m1 '^[[:space:]]*ARG[[:space:]]\+BUN_VERSION=' "$file" | sed 's/^[^=]*=//' || true)")"
 }
 
 # compare <tool> <mise_val> <docker_val> <label>: normalize both, emit ok:/fail:
@@ -80,4 +99,6 @@ parse_dockerfile "${DOCKERFILE_DEV}" "Dockerfile.dev" || infra_summary
 
 compare node "${MISE_NODE}" "${DOCKER_NODE}" "Dockerfile.dev" || true
 compare pnpm "${MISE_PNPM}" "${DOCKER_PNPM}" "Dockerfile.dev" || true
+compare opencode "${MISE_OPENCODE}" "${DOCKER_OPENCODE}" "Dockerfile.dev" || true
+compare bun "${MISE_BUN}" "${DOCKER_BUN}" "Dockerfile.dev" || true
 aggregate

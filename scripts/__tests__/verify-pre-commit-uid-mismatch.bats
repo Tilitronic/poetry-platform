@@ -125,8 +125,14 @@ FAKEGOSU
   assert_file_contains "$FAKE_CHOWN_LOG" "/home/dev/.npm"
 }
 
-@test "Dockerfile healthcheck runs opencode directly as the configured user" {
-  assert_file_contains "$REPO_ROOT/Dockerfile.dev" "CMD opencode --version"
+@test "Dockerfile healthcheck probes node (not opencode) -- PHASE 4 contract (ADR 11 line 99)" {
+  # PHASE 4: healthcheck MUST use node probe, not opencode.
+  # Rationale: node is a core runtime unaffected by opencode pin bumps;
+  # one developer workflow never uses the in-container opencode binary.
+  assert_file_contains "$REPO_ROOT/Dockerfile.dev" "CMD node --version"
+  # No opencode reference in any HEALTHCHECK or CMD line
+  ! grep -Fq "CMD opencode --version" "$REPO_ROOT/Dockerfile.dev"
+  # Superseded gosu variant (DIA-260824-opencode-log-permission-fix) must be absent
   ! grep -Fq "CMD gosu dev opencode --version" "$REPO_ROOT/Dockerfile.dev"
 }
 
