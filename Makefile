@@ -103,10 +103,10 @@ check-compose-config:
 
 # Host-runnable tool integrity check (seam S2; scripts/check-tools.sh). Verifies
 # mise is on PATH, .mise.toml exists, `mise install` resolves the pins, and the
-# mise-managed node/pnpm match the pinned versions. Deliberately NOT wired into
-# test-shell/test-infra (design.md §2.8): it requires mise on PATH — the dev
-# container or a host mise install — so it is a developer convenience, not a CI
-# gate.
+# mise-managed node/pnpm/opencode/bun match the pinned versions. Deliberately NOT
+# wired into test-shell/test-infra (design.md §2.8): it requires mise on PATH —
+# the dev container or a host mise install — so it is a developer convenience,
+# not a CI gate.
 check-tools:
 	bash scripts/check-tools.sh
 
@@ -214,8 +214,7 @@ test-skills:
 # default-allow non-write-capable tools) do NOT break the gate (Decision 6
 # scoping; see scripts/audit-agent-tool-coverage.sh).
 test-config: test-interview test-skills
-	# NOTE: compose config validation is host-scoped (PHASE 5, T12.4). It runs
-	# host-side via `make check-compose-config` / verify-pre-push.sh, not here.
+	@echo "NOTE: compose config validation is host-scoped (PHASE 5, T12.4). It runs host-side via make check-compose-config / verify-pre-push.sh, not here."
 	bash .opencode/scripts/validate-opencode-config.sh
 	bash scripts/check-omo-version-sync.sh
 	bash scripts/validate-agent-names.sh

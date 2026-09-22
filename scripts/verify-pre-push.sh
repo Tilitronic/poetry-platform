@@ -40,9 +40,8 @@ COMMANDS_DIR="${POETRY_COMMANDS_DIR:-$ROOT/.opencode/commands}"
 # the selected native compose command. No direct docker/podman invocation.
 ENGINE_ADAPTER="$ROOT/scripts/container-engine.sh"
 
-is_in_dev_container() {
-  [ "$(hostname)" = "poetry-dev" ]
-}
+# Source shared in-container detection (S6, DIA-260922-cp0m).
+source "$ROOT/scripts/in-container.sh"
 
 container_running() {
   bash "$ENGINE_ADAPTER" dev-running

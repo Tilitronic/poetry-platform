@@ -129,7 +129,7 @@ After keep-id recreation, verify:
 
 - Specs: `specs/unified-dev-container/spec.md` (ADDED / MODIFIED / REMOVED); `specs/container-engine-socket-selection/spec.md` (REMOVED, whole capability).
 - Implementation (downstream `@coder`, not this lane): `Dockerfile.dev`, `.mise.toml`, `scripts/check-pin-sync.sh`, `scripts/check-tools.sh`, `scripts/check-compose-config.sh` (new), `scripts/verify-pre-push.sh`, `Makefile`, and the affected bats suites.
-- Design authority: `.sdd/dev-infra/architecture.md` ADR 11 (a one-clause Consequence addition is owned by another lane).
+- Design authority: `.sdd/dev-infra/architecture.md` ADR 11 (the implementation commit edited ADR 11's Consequence clause and implementation-status section directly).
 - Cross-change: `openspec/changes/dia-260824-opencode-log-permission-fix` task 1.3 superseded.
 - Out-of-scope follow-ups owned elsewhere: `dia-260821-aoag-socket-mount-opt-in` to be marked ABANDONED; DIA-260922-cp0m ticket hygiene.
 

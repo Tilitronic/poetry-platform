@@ -31,14 +31,16 @@ REPO_ROOT="$(cd "$(dirname "$BATS_TEST_FILENAME")/../.." && pwd)"
   assert_output_contains "'make build' first"
 }
 
-@test "check-tools: .mise.toml missing -> exit 1 with clear message" {
+@test "check-tools: .mise.toml missing -> exit 2 with clear message" {
   install_check_tools_fakes "$BATS_TEST_TMPDIR/fakes"
   tree="$(setup_check_tools_tree 0)"
 
   run bash "$tree/scripts/check-tools.sh"
 
-  assert_status 1
-  assert_output_contains "no .mise.toml at repo root"
+  # S2: missing .mise.toml is an INFRA error (exit 2) because the pin source
+  # is absent, not a tool-mismatch (exit 1).
+  assert_status 2
+  assert_output_contains "cannot read node pin"
 }
 
 @test "check-tools: mise which fails (shim not active) -> exit 1" {

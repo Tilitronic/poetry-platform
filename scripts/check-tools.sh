@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # check-tools.sh — host-runnable tool integrity check (seam S2; `make check-tools`).
 #
-# WHY: the dev-container toolchain pins node/pnpm in TWO places — the
-# Dockerfile.dev ARGs (tarball installs) and the repo-root .mise.toml (mise
-# declares). This script verifies both agree and that the mise-managed tools are
-# actually active on this machine. It is a developer convenience, NOT a CI gate
+# WHY: the dev-container toolchain pins node/pnpm/opencode/bun in the repo-root
+# .mise.toml (mise declares). This script verifies .mise.toml pins match the
+# Dockerfile.dev ARGs and that the mise-managed tools are actually active on
+# this machine. It is a developer convenience, NOT a CI gate
 # (design.md §2.8: check-tools is deliberately NOT wired into test-shell or
 # test-infra — it requires mise on PATH, which means the dev container or a host
 # mise install, both out of scope for this change).
@@ -23,13 +23,17 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 MISE_TOML="${ROOT_DIR}/.mise.toml"
 
-# Hardcoded expected pins — mirrors .mise.toml + Dockerfile.dev ARGs.
-# Bumping any version requires updating BOTH the ARG in Dockerfile.dev and the
-# corresponding [tools] entry in .mise.toml.
-NODE_PIN="24.18.0"
-PNPM_PIN="10.33.0"
-OPENCODE_PIN="1.18.32"
-BUN_PIN="1.4.2"
+# Read expected pins from .mise.toml [tools] section (the single source of
+# truth). Each pin is extracted by grepping for the exact key and stripping
+# the TOML syntax. Fails loud if the file or a key is missing.
+parse_mise_pin() {
+  local key="$1"
+  grep -m1 "^${key}" "${MISE_TOML}" | sed "s/.*['\"]\\(.*\\)['\"].*/\\1/"
+}
+NODE_PIN="$(parse_mise_pin node)" || { echo "error: cannot read node pin from ${MISE_TOML}" >&2; exit 2; }
+PNPM_PIN="$(parse_mise_pin pnpm)" || { echo "error: cannot read pnpm pin from ${MISE_TOML}" >&2; exit 2; }
+OPENCODE_PIN="$(parse_mise_pin opencode)" || { echo "error: cannot read opencode pin from ${MISE_TOML}" >&2; exit 2; }
+BUN_PIN="$(parse_mise_pin bun)" || { echo "error: cannot read bun pin from ${MISE_TOML}" >&2; exit 2; }
 
 # Step 1 — mise must be on PATH. mise ships inside the dev container, so running
 # this on a host without mise is an expected error path, not a bug.

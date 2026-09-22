@@ -514,10 +514,10 @@
 
 **Tasks:**
 
-- [ ] **T10.0** Verify mise registry support for `opencode` and `bun` (branch selector)
-  - Run in the dev container: `mise registry` and confirm whether `opencode` and `bun` resolve
-  - Record the outcome and select branch A/B/C (design.md "PHASE 2 — Single Tool-Pin Source" table)
-  - Acceptance: the selected branch is recorded; `make check-tools` is not broken by the decision
+- [x] **T10.0** Verify mise registry support for `opencode` and `bun` (branch selector) — BRANCH A (2026-09-22)
+  - Ran in the dev container: `mise registry | grep -iE "^(opencode|bun)"` -> both resolve: `bun core:bun`, `opencode aqua:anomalyco/opencode`
+  - `make check-tools` in-container exits 0 with all 4 tools ok
+  - Selected Branch A: both under `[tools]` in `.mise.toml`; `check-tools.sh` `probe_tool` extended to cover the new keys
   - Depends on: none
   - Blocks: T10.1, T10.3
 
@@ -690,7 +690,7 @@ T8.2 → T8.3
 T8.3 → T8.4
 T8.4 → T8.5
 T8.5 → T8.6
-T0.9 → T12.4 (gate: the relocated host compose-config check must land first)
+T12.4 → T0.9 (gate: the relocated host compose-config check must land first)
 T10.0 → T10.1, T10.3
 T10.1 → T10.2, T10.3
 T10.2 → T10.4, T10.5
@@ -708,7 +708,7 @@ T12.6 → T12.7
 
 ## Critical Path
 
-T0.9 → T1.1 → T1.2 → T1.4 → T3.1 → T4.1 → T4.3 → T5.1 → T6.1 → T6.3 → T0.1 → T0.3 → T0.5 → T7.1 → T7.2 → T7.4 → T7.6 → T7.7 → T8.1 → T8.2 → T8.3 → T8.4 → T8.5 → T0.7 → T8.6
+T1.1 → T1.2 → T1.4 → T3.1 → T4.1 → T4.3 → T5.1 → T6.1 → T6.3 → T0.1 → T0.3 → T0.5 → T7.1 → T7.2 → T7.4 → T7.6 → T7.7 → T8.1 → T8.2 → T8.3 → T8.4 → T8.5 → T0.7 → T8.6
 
 **Container-merge completion critical path (2026-09-22, DIA-260922-cp0m):**
 

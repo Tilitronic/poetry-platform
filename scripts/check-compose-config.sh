@@ -14,10 +14,13 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ENGINE_ADAPTER="$ROOT_DIR/scripts/container-engine.sh"
 
-# Detect in-container: hostname "poetry-dev" or absence of the engine adapter's
-# target binaries signals the in-container path. When running in-container, print
-# a visible host-scoped note instead of silently passing.
-if [ "$(hostname 2>/dev/null)" = "poetry-dev" ]; then
+# Source shared in-container detection (S6, DIA-260922-cp0m).
+source "$ROOT_DIR/scripts/in-container.sh"
+
+# Detect in-container: hostname "poetry-dev" signals the in-container path.
+# When running in-container, print a visible host-scoped note instead of
+# silently passing.
+if is_in_dev_container; then
   echo "NOTE: compose config validation is host-scoped and runs host-side via check-compose-config (see verify-pre-push.sh). Skipped in-container."
   exit 0
 fi
@@ -28,6 +31,16 @@ engine="$(bash "$ENGINE_ADAPTER" select 2>/dev/null)" || {
   echo "Install Docker or Podman, or ensure COMPOSE_ENGINE is set. See docs/docker-dev.md for setup instructions." >&2
   exit 1
 }
+
+# Verify the resolved engine binary is actually on PATH (P3, DIA-260922-cp0m).
+# container_engine_select autodetects "docker" even when the binary is absent
+# (line 69 of container-engine.sh: it returns "docker" as the default). The
+# actual failure would come from `compose config` with a misleading message,
+# so we fail early with correct guidance.
+if ! command -v "$engine" >/dev/null 2>&1; then
+  echo "FAIL: ${engine} not found on PATH. Install ${engine} or set COMPOSE_ENGINE to an available engine. See docs/docker-dev.md for setup instructions." >&2
+  exit 1
+fi
 
 # Run compose config --quiet through the engine adapter. Client-side only, no daemon.
 if ! bash "$ENGINE_ADAPTER" compose config --quiet 2>/dev/null; then

@@ -130,8 +130,11 @@ FAKEGOSU
   # Rationale: node is a core runtime unaffected by opencode pin bumps;
   # one developer workflow never uses the in-container opencode binary.
   assert_file_contains "$REPO_ROOT/Dockerfile.dev" "CMD node --version"
-  # No opencode reference in any HEALTHCHECK or CMD line
-  ! grep -Fq "CMD opencode --version" "$REPO_ROOT/Dockerfile.dev"
+  # P4: no opencode token at all in the HEALTHCHECK stanza (not just no CMD
+  # variant -- a re-spaced or /usr/local/bin/opencode form must also fail).
+  local healthcheck_line
+  healthcheck_line="$(grep -A2 '^HEALTHCHECK' "$REPO_ROOT/Dockerfile.dev")"
+  ! echo "$healthcheck_line" | grep -qi "opencode"
   # Superseded gosu variant (DIA-260824-opencode-log-permission-fix) must be absent
   ! grep -Fq "CMD gosu dev opencode --version" "$REPO_ROOT/Dockerfile.dev"
 }

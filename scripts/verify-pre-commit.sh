@@ -27,9 +27,8 @@ WORKSPACE="${POETRY_WORKSPACE:-/workspace}"
 # dir (mirror of the WORKSPACE/POETRY_WORKSPACE seam above).
 COMMANDS_DIR="${POETRY_COMMANDS_DIR:-$ROOT/.opencode/commands}"
 
-is_in_dev_container() {
-  [ "$(hostname)" = "poetry-dev" ]
-}
+# Source shared in-container detection (S6, DIA-260922-cp0m).
+source "$ROOT/scripts/in-container.sh"
 
 # Host-side engine contract (DIA-260912-y2uo). Resolves COMPOSE_ENGINE
 # (authoritative) or autodetects and exposes the selected native compose

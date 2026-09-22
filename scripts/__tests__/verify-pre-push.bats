@@ -375,6 +375,7 @@ EOF
   cp "$SCRIPTS_DIR/verify-pre-push.sh" "$tree/scripts/verify-pre-push.sh"
   cp "$SCRIPTS_DIR/check-budget-gate.sh" "$tree/scripts/check-budget-gate.sh"
   cp "$SCRIPTS_DIR/guards/home-qualt.sh" "$tree/scripts/guards/home-qualt.sh"
+  cp "$SCRIPTS_DIR/in-container.sh" "$tree/scripts/in-container.sh"
   seq 1 10 > "$tree/.opencode/plugins/delegation-observer.ts"
   seq 1 10 > "$tree/.opencode/plugins/lib/util.ts"
   cat > "$tree/scripts/budget-baselines.json" <<'EOF'
@@ -427,4 +428,15 @@ Budget-Scope: refactor"
   # reached (P-3 pattern from the home-qualt test above; -s is missing-safe
   # because a pre-container block leaves the log file uncreated)
   [ ! -s "$FAKE_DOCKER_LOG" ]
+}
+
+@test "verify-pre-push: compose-config host check precedes the container-down early exit (P6, T12.3 ordering pin)" {
+  # P6: the host-side compose-config validation (check-compose-config.sh)
+  # must run BEFORE the container-down skip, matching the home-qualt and
+  # budget-range ordering pins. Moving it below the exit breaks this pin.
+  local compose_config_line skip_line
+  compose_config_line="$(grep -n 'check-compose-config.sh' "$SCRIPTS_DIR/verify-pre-push.sh" | head -n 1 | cut -d: -f1)"
+  skip_line="$(grep -n "pre-push verification skipped" "$SCRIPTS_DIR/verify-pre-push.sh" | head -n 1 | cut -d: -f1)"
+  [ -n "$compose_config_line" ] && [ -n "$skip_line" ]
+  [ "$compose_config_line" -lt "$skip_line" ]
 }

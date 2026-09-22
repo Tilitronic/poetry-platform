@@ -21,3 +21,10 @@ load test-helper
   # Pre-existing baseline preserved: validate-opencode-config.sh still wired.
   assert_file_contains "$REPO_ROOT/Makefile" "bash .opencode/scripts/validate-opencode-config.sh"
 }
+
+@test "test-config wiring: Makefile emits visible host-scoped skip note (P2, DIA-260922-cp0m)" {
+  # P2: the test-config recipe must print a visible @echo noting that
+  # compose-config validation is host-scoped and runs host-side. This prevents
+  # silent coverage shrinkage (the PHASE 3 false-green lesson).
+  assert_file_contains "$REPO_ROOT/Makefile" "compose config validation is host-scoped"
+}
