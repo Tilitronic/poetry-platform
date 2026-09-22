@@ -3069,3 +3069,17 @@ verification evidence (DIA-260909-csds, 2026-09-09)
   empty-recon verdict are session verification outcomes; re-running the
   gates reproduces the numbers but not the classification decision.
 - Cross-reference: DIA-260920-2w0o (campaign), DIA-260920-jh6q (drift).
+
+## L20260921-wsl-false-blocker - WSL interop false blocker: Docker Desktop auto-start (DIA-260920-ffuj, 2026-09-21)
+
+- Do NOT declare a Windows-side-only blocker before testing WSL Windows-interop.
+  Launching the Windows .exe directly from WSL via the interop path works:
+  nohup "/mnt/c/Program Files/Docker/Docker/Docker Desktop.exe" & disown
+- Use docker info (not wsl.exe -l -v) as the readiness signal. wsl.exe -l -v
+  does NOT list docker-desktop as Running even when the engine is up.
+- Cost: commits were blocked and the developer was asked to do a manual step
+  that was not necessary. The earlier claim that this REQUIRED manual
+  Windows-side action was WRONG.
+- Recurrence: engine went down twice in one day (2026-09-20, 2026-09-21),
+  identical symptoms, no repo-side cause.
+- Cross-reference: DIA-260920-ffuj.
