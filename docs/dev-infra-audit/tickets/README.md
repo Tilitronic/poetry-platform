@@ -174,7 +174,7 @@
 | DIA-260821-mzk7 | diagnose active OpenCode preset routing mismatch after restart | opencode-config | Major | CLOSED | [DIA-260821-mzk7-diagnose-active-opencode-preset-routing-mismatch-after-restart.md](DIA-260821-mzk7-diagnose-active-opencode-preset-routing-mismatch-after-restart.md) |
 | DIA-260821-n8sq | Add runtime config test (make test-runtime-config in clean HOME) | scripts | Medium | OPEN | [DIA-260821-n8sq-add-runtime-config-test-make-test-runtime-config-in-clean-home.md](DIA-260821-n8sq-add-runtime-config-test-make-test-runtime-config-in-clean-home.md) |
 | DIA-260821-qw29 | Verify opencode-go Hy3 x8 promo and whether to swap from mimo-v2.5 in the cebula preset | opencode-config | Info | CLOSED | [DIA-260821-qw29-verify-opencode-go-hy3-x8-promo-and-whether-to-swap-from-mimo-v2-5-in-the-cebula-preset.md](DIA-260821-qw29-verify-opencode-go-hy3-x8-promo-and-whether-to-swap-from-mimo-v2-5-in-the-cebula-preset.md) |
-| DIA-260821-x5nj | unified Docker development runtime plan for Fedora Linux and WSL developers | docker | Medium | OPEN | [DIA-260821-x5nj-unified-docker-development-runtime-plan-for-fedora-linux-and-wsl-developers.md](DIA-260821-x5nj-unified-docker-development-runtime-plan-for-fedora-linux-and-wsl-developers.md) |
+| DIA-260821-x5nj | unified Docker development runtime plan for Fedora Linux and WSL developers | docker | Medium | CLOSED | [DIA-260821-x5nj-unified-docker-development-runtime-plan-for-fedora-linux-and-wsl-developers.md](DIA-260821-x5nj-unified-docker-development-runtime-plan-for-fedora-linux-and-wsl-developers.md) |
 | DIA-260822-fksf | Stale stall-sweep startup protection - suppress already-stale boot-time emissions | opencode-config | Major | OPEN | [DIA-260822-fksf-stale-stall-sweep-startup-protection-suppress-already-stale-boot-time-emissions.md](DIA-260822-fksf-stale-stall-sweep-startup-protection-suppress-already-stale-boot-time-emissions.md) |
 | DIA-260822-m035 | Investigate OpenCode restart crash-storm alerts | scripts | Medium | CLOSED | [DIA-260822-m035-investigate-opencode-restart-crash-storm-alerts.md](DIA-260822-m035-investigate-opencode-restart-crash-storm-alerts.md) |
 | DIA-260822-medh | Research and advisory audit: session handoffs, context thresholds, auto-compaction, orchestrator-model choices | opencode-config | Major | OPEN | [DIA-260822-medh-research-and-advisory-audit-session-handoffs-context-thresholds-auto-compaction-orchestrator-model-choices.md](DIA-260822-medh-research-and-advisory-audit-session-handoffs-context-thresholds-auto-compaction-orchestrator-model-choices.md) |
@@ -185,7 +185,7 @@
 | DIA-260824-1c3e | Add cebula-ox-alpha OpenCode preset | opencode-config | Medium | CLOSED | [DIA-260824-1c3e-add-cebula-ox-alpha-opencode-preset.md](DIA-260824-1c3e-add-cebula-ox-alpha-opencode-preset.md) |
 | DIA-260824-8k62 | retire legacy tools/opencode-docker only after unified-runtime acceptance | docker | Medium | OPEN | [DIA-260824-8k62-retire-legacy-tools-opencode-docker-only-after-unified-runtime-acceptance.md](DIA-260824-8k62-retire-legacy-tools-opencode-docker-only-after-unified-runtime-acceptance.md) |
 | DIA-260824-a3mk | make opencode fails: PermissionDenied opening /home/dev/.local/share/opencode/log/opencode.log | docker | Blocker | CLOSED | [DIA-260824-a3mk-make-opencode-fails-permissiondenied-opening-home-dev-local-share-opencode-log-opencode-log.md](DIA-260824-a3mk-make-opencode-fails-permissiondenied-opening-home-dev-local-share-opencode-log-opencode-log.md) |
-| DIA-260824-ifcf | persistent developer Git identity and config propagation for unified poetry-dev workstation | git-hooks | Medium | OPEN | [DIA-260824-ifcf-persistent-developer-git-identity-and-config-propagation-for-unified-poetry-dev-workstation.md](DIA-260824-ifcf-persistent-developer-git-identity-and-config-propagation-for-unified-poetry-dev-workstation.md) |
+| DIA-260824-ifcf | persistent developer Git identity and config propagation for unified poetry-dev workstation | git-hooks | Medium | CLOSED | [DIA-260824-ifcf-persistent-developer-git-identity-and-config-propagation-for-unified-poetry-dev-workstation.md](DIA-260824-ifcf-persistent-developer-git-identity-and-config-propagation-for-unified-poetry-dev-workstation.md) |
 | DIA-260824-iirx | Analysis of gaps and migration plan for one unified OpenCode dev container for Fedora and WSL Ubuntu/Debian replacing legacy dual containers | docker | Major | OPEN | [DIA-260824-iirx-analysis-of-gaps-and-migration-plan-for-one-unified-opencode-dev-container-for-fedora-and-wsl-ubuntu-debian-replacing-legacy-dual-containers.md](DIA-260824-iirx-analysis-of-gaps-and-migration-plan-for-one-unified-opencode-dev-container-for-fedora-and-wsl-ubuntu-debian-replacing-legacy-dual-containers.md) |
 | DIA-260824-p3hf | Repair DIA-217 task ticket ID schema pass-through | scripts | Medium | CLOSED | [DIA-260824-p3hf-repair-dia-217-task-ticket-id-schema-pass-through.md](DIA-260824-p3hf-repair-dia-217-task-ticket-id-schema-pass-through.md) |
 | DIA-260825-aapj | remove scaffold workspaces example-store stress-lang-core publishing-platform coordinated | scripts | Medium | CLOSED | [DIA-260825-aapj-remove-scaffold-workspaces-example-store-stress-lang-core-publishing-platform-coordinated.md](DIA-260825-aapj-remove-scaffold-workspaces-example-store-stress-lang-core-publishing-platform-coordinated.md) |
@@ -343,7 +343,7 @@
 
 | Status      | Count |
 | ----------- | ----- |
-| OPEN        | 83    |
+| OPEN        | 81    |
 | DONE        | 4     |
 | VALIDATE    | 0     |
 | E2E         | 0     |
@@ -352,7 +352,7 @@
 | FIXED       | 1     |
 | IMPLEMENTED | 0     |
 | VERIFIED    | 28    |
-| CLOSED      | 206   |
+| CLOSED      | 208   |
 | BLOCKED     | 0     |
 | DISPATCHED  | 0     |
 | RUNNING     | 0     |

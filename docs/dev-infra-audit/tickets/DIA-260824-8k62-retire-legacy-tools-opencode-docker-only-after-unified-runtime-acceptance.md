@@ -7,7 +7,7 @@ title: "retire legacy tools/opencode-docker only after unified-runtime acceptanc
 area: docker
 severity: Medium
 status: OPEN
-blocked_by: [DIA-260821-x5nj] # DIA-NNN refs, or empty
+blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: DIA-260824-iirx
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
 gate_triggers: [] # new-module | cross-boundary | schema-state | new-public-api | cross-cutting | hard-to-reverse | new-ui-component
@@ -59,4 +59,4 @@ Blocking edges reduced by developer disposition:
 - DIA-260821-aoag - already CLOSED (blocker cleared).
 - DIA-260824-ifcf - CLOSED as obsolete placeholder (see that ticket).
 - DIA-260821-n8sq - DECOUPLED by developer disposition 2026-09-22: it is independent scripts/CI test work (its `test-runtime-config` make target is verified ABSENT - `grep -n "test-runtime-config" Makefile` exits 1, no match in scripts/). It stays OPEN as independent work but no longer gates this ticket.
-- DIA-260821-x5nj - RETAINED. Its substantive criteria were verified 6/7 SATISFIED (lane cod-2, session ses_f37350954ffeHKJRXubvEUp1it) against openspec/changes/dia-260821-x5nj-unified-docker-dev-runtime/ and .sdd/dev-infra/architecture.md:94-104 (ADR 11). Criterion (g) 'no Dockerfile/compose/config file modified' is PARTIAL (x5nj-era commits created 4 compose overlays). Formal disposition is pending an analysis report; this edge is retained until that disposition lands.
+- DIA-260821-x5nj - EDGE CLEARED 2026-09-22: x5nj was CLOSED with criterion (g) superseded by Accepted ADR 11 (see that ticket and knowledge/ana-260922-4fod-x5nj-scope-breach-disposition/). This ticket is now unblocked; PHASE 3 (retire tools/opencode-docker, delete docker-compose.fedora.yml, drop the test-opencode-docker target) executes under it.

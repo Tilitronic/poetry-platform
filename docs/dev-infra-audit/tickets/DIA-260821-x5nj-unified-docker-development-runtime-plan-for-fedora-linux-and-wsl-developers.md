@@ -6,7 +6,7 @@ id: DIA-260821-x5nj
 title: "unified Docker development runtime plan for Fedora Linux and WSL developers"
 area: docker
 severity: Medium
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: DIA-260821-bqy7
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
@@ -17,7 +17,7 @@ discovered: 2026-08-21
 source: inventory
 date: 2026-08-21
 created: 2026-08-21
-updated: 2026-08-21
+updated: 2026-09-22
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -95,3 +95,14 @@ spec, then implementation follows in a separate ticket.
 ## Re-verify
 
 > To be filled at re-verify time.
+
+## UPDATE 2026-09-22 - CLOSED (criterion (g) superseded by ADR 11)
+
+Developer delegated the disposition to an analysis lane; verdict V1.
+
+- Substantive criteria (a)-(f) verified SATISFIED against openspec/changes/dia-260821-x5nj-unified-docker-dev-runtime/ and .sdd/dev-infra/architecture.md:94-104 (lane cod-2, session ses_f37350954ffeHKJRXubvEUp1it).
+- Criterion (g) 'no Dockerfile/compose/config file modified' is SUPERSEDED, not waived. Accepted ADR 11 'Container Topology' (.sdd/dev-infra/architecture.md:94-104) explicitly ratifies compose overlays as the engine/OS-difference mechanism ('Engine differences ... are expressed only as compose overlays selected by scripts/compose-env.sh; OS differences as an optional WSL overlay'). The overlay set this ticket shipped IS that ratified design.
+- Compose surface today: 5 files = base + 4 overlays, of which 3 are live (podman keep-id + label=disable; rootless-docker user 0:0; WSL no-op stub) selected by scripts/compose-env.sh:70-84. tasks.md Slice 2 (T2.1-T2.3, lines 150-172) planned exactly those 3.
+- docker-compose.fedora.yml is DEAD: comment-only duplicate of docker-compose.podman.yml (body md5 identical, 8f4ee13e...), selected by no script, Makefile target, or test; bats:19 already labels it OBSOLETE. Its deletion is already ticketed under DIA-260922-cp0m (lines 106/140), so no new ticket is needed.
+- Analysis artifact: knowledge/ana-260922-4fod-x5nj-scope-breach-disposition/ana-260922-4fod-x5nj-scope-breach-disposition-report.md (method OODA + MECE).
+- Known defect noted: all 79 checkboxes in this change's tasks.md are unchecked despite shipped slices (stale tracking).
