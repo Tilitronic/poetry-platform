@@ -3083,3 +3083,19 @@ verification evidence (DIA-260909-csds, 2026-09-09)
 - Recurrence: engine went down twice in one day (2026-09-20, 2026-09-21),
   identical symptoms, no repo-side cause.
 - Cross-reference: DIA-260920-ffuj.
+
+## L20260922-env-fact - Windows/WSL host-vs-container opencode runtime (DIA-260920-cry5, 2026-09-22)
+
+- Environment fact: on Windows, opencode runs on the WSL host, NEVER inside the
+  dev container. Container sessions are Linux-only (make opencode / docker compose
+  exec). Consequence: rebuilding the dev image does NOT affect the Windows/WSL
+  crash exposure -- host-side versions (opencode binary, embedded Bun) are what
+  matter there.
+- Diagnostic: check /.dockerenv (absent = host/WSL) + /proc/1/cgroup (host shows
+  "0::/init.scope") + hostname before reasoning about which runtime a lane uses.
+- Implication for DIA-260920-cry5: the Bun 1.3.14 segfault happens in the HOST
+  (WSL) opencode process for the Windows workflow. The effective fix is a host
+  opencode build embedding Bun >= 1.4.0 (PR #44946 + companion #48397). The
+  container image rebuild (bun 1.4.2 / opencode 1.18.32) is still correct for
+  Linux container sessions but is orthogonal for Windows users.
+- Cross-reference: DIA-260920-cry5 (Fix section), ses_f37b8d93dffeCt29mlT42pi2n2.

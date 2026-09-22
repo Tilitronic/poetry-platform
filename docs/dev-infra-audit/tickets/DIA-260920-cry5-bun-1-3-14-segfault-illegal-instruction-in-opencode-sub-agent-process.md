@@ -91,3 +91,26 @@ Major: runtime instability affecting all lanes.
 ## Re-verify
 
 > To be filled at re-verify time.
+
+## Fix
+
+Environment fact (2026-09-22, ses_f37b8d93dffeCt29mlT42pi2n2):
+
+On Windows, opencode runs on the WSL host -- NEVER inside the dev
+container. Only on Linux does opencode run inside the container.
+
+Implications:
+
+1. The reported Bun crash happens in the HOST (WSL) opencode process,
+   NOT in the container image. Rebuilding the container image does NOT
+   change crash exposure for the Windows/WSL workflow.
+2. The relevant fix for the developer's crashes is a HOST opencode build
+   that embeds Bun >= 1.4.0 (i.e. waiting for the release that includes
+   PR #44946 + companion #48397). The container pin bump is orthogonal
+   for Windows users.
+3. Container rebuilds (bun 1.4.2 / opencode 1.18.32) are still correct
+   and useful for Linux container sessions but do NOT mitigate the crash
+   on Windows/WSL.
+
+Evidence: /.dockerenv absent, /proc/1/cgroup = "0::/init.scope",
+hostname = "wn", host opencode 1.18.32, host bun 1.4.0.

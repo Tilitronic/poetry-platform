@@ -153,3 +153,36 @@ bump, or (b) Bun ships a fix for the napi crash in a 1.3.x point release.
   matters for the upstream report.
 - Any data loss on crash: prioritize recovery from last checkpoint, then
   report. Do not attempt in-place repair of the crashed session state.
+
+## 8. Where opencode runs on Windows vs Linux (2026-09-22)
+
+On Windows, opencode executes on the WSL host -- NEVER inside the dev
+container. Only on Linux does opencode run inside the container
+(make opencode / docker compose exec).
+
+### Why this matters
+
+The Bun crash (section 1) happens in the HOST (WSL) opencode process
+for the Windows/WSL workflow. Rebuilding the container image (bun 1.4.2 /
+opencode 1.18.32) does NOT change crash exposure on Windows -- the host
+opencode binary embeds its own Bun version (1.3.14 as of this writing).
+
+### How to tell which runtime you are in
+
+- `/.dockerenv` absent + `/proc/1/cgroup` shows "0::/init.scope" =
+  host/WSL session.
+- `/.dockerenv` present + `/proc/1/cgroup` shows docker = container
+  session.
+- Container sessions are Linux-only. Host sessions can be WSL (Windows)
+  or native Linux.
+
+### Fix path
+
+The effective fix for the Windows/WSL crash is a HOST opencode build
+that embeds Bun >= 1.4.0 (waiting for the release that includes PR
+#44946 + companion #48397). The container pin bump is orthogonal for
+Windows users.
+
+Do NOT claim the container rebuild mitigates the crash on Windows/WSL.
+The container rebuild IS correct and useful for Linux container sessions
+(make opencode workflows) but has no effect on the host-side crash.
