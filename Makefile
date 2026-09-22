@@ -13,7 +13,6 @@
 #   make clean        stop containers + wipe volumes (postgres data, pnpm store)
 #
 #   make test-shell   unit-test dev-infra shell scripts (bats; Docker mocked)
-#   make test-opencode-docker  static integrity gate for tools/opencode-docker (wired into test-shell)
 #   make check-tools  host-runnable tool integrity check (mise vs node/pnpm pins)
 #   make test-infra   test-shell + full Docker compose smoke test (heavy)
 #   make test-config  validate OpenCode JSONC config syntax + interview + skills gate + docker-compose.yml
@@ -26,7 +25,7 @@
 #   make session-analytics  canned analytics over native OpenCode telemetry (opencode stats/db; ARGS pass-through)
 #   make test-harness  C5 scenario replay (bats) + bun plugin tests (requires Docker)
 
-.PHONY: build up shell opencode preset dev stack install db-psql logs down clean check-pin-sync check-tools check-host-jq check-host-lsp gen-jsconfig test-shell test-opencode-docker test-python test-infra test-config test-omo test-interview test-skills eval-lite audit-python context7-docs jsonl-stats session-log-render jsonl-cross-check session-query session-analytics test-harness worktree-gc
+.PHONY: build up shell opencode preset dev stack install db-psql logs down clean check-pin-sync check-tools check-host-jq check-host-lsp gen-jsconfig test-shell test-python test-infra test-config test-omo test-interview test-skills eval-lite audit-python context7-docs jsonl-stats session-log-render jsonl-cross-check session-query session-analytics test-harness worktree-gc
 
 # Engine-aware compose stack (DIA-260826-766f + DIA-260912-y2uo): every bare
 # `docker compose` target below routes through scripts/container-engine.sh,
@@ -88,9 +87,9 @@ clean:
 	$(COMPOSE) down -v
 
 # Standalone source-parity validator (scripts/check-pin-sync.sh). Asserts
-# .mise.toml ↔ Dockerfile parity (Dockerfile.dev + tools/opencode-docker/Dockerfile)
-# for node/pnpm. Exit precedence 2>1>0 (INFRA>mismatch>match). 4 comparisons
-# total (2 pins × 2 Dockerfiles). See openspec/changes/dev-infra-pin-sync/.
+# .mise.toml ↔ Dockerfile.dev parity for node/pnpm. Exit precedence 2>1>0
+# (INFRA>mismatch>match). 2 comparisons (2 pins × 1 Dockerfile). See
+# openspec/changes/dev-infra-pin-sync/.
 check-pin-sync:
 	bash scripts/check-pin-sync.sh
 
@@ -104,16 +103,6 @@ check-tools:
 	bash scripts/check-tools.sh
 
 # --- Test infrastructure (dev-infra artifacts) --------------------------------
-# Static integrity gate for the tools/opencode-docker subproject (DIA-044).
-# Host-runnable (no podman/docker daemon needed): asserts the subproject's
-# required files exist, its shell artifacts pass bash -n, bootstrap.py parses,
-# config/opencode.json is valid JSON, and its Makefile declares the canonical
-# targets. Wired into test-shell so BOTH `make test-shell` and `make test-infra`
-# (which pulls in test-shell) exercise it — the subproject can no longer drift
-# with zero automated signal.
-test-opencode-docker:
-	bash scripts/check-opencode-docker.sh
-
 # Host-runnable LSP integrity check (scripts/check-host-lsp.sh). Verifies the
 # three LS binaries (TS/Python/Rust) are on PATH at the pinned versions from
 # scripts/lsp-versions.env. Wired into test-shell so `make test-shell` fails
@@ -133,7 +122,7 @@ check-host-jq:
 
 # bats unit tests for scripts/dev-stack.sh + dev-entrypoint.sh. Docker is
 # mocked (never started); bats is vendored on first run if not installed.
-test-shell: check-pin-sync check-host-jq check-host-lsp test-opencode-docker
+test-shell: check-pin-sync check-host-jq check-host-lsp
 	bash scripts/__tests__/bats-wrapper.sh
 
 # Eval-lite harness (scripts/eval-lite.sh, change dia-086 task 8.1; design.md
@@ -233,7 +222,6 @@ test-config: test-interview test-skills
 	bash scripts/validate-changelog.sh
 	bash scripts/validate-dia-mentions.sh
 	bash scripts/audit-agent-tool-coverage.sh .opencode/opencode.jsonc
-	bash scripts/audit-agent-tool-coverage.sh tools/opencode-docker/config/opencode.json
 	# DIA-134 item 2: persistent behavioral suite (replaces DIA-132 throwaway
 	# /tmp tests). Tracked since DIA-136 F2 - design.md DD2's gitignore rationale
 	# (session-local reconstruction) did not hold: the suite asserts committed

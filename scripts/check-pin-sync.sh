@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
-# check-pin-sync.sh — .mise.toml ↔ Dockerfile pin-parity validator (Gate B).
+# check-pin-sync.sh — .mise.toml ↔ Dockerfile.dev pin-parity validator (Gate B).
 # WHY: node/pnpm pins live in .mise.toml [tools] (single source of truth,
-# volta-to-mise §2.1) and in the ARG declarations of BOTH Dockerfile.dev and
-# tools/opencode-docker/Dockerfile; asserts parity (4 comparisons: 2 pins x 2
-# Dockerfiles), reads only. MISE_VERSION parity is out of scope.
+# volta-to-mise §2.1) and in the ARG declarations of Dockerfile.dev; asserts
+# parity (2 comparisons: 2 pins x 1 Dockerfile), reads only. MISE_VERSION
+# parity is out of scope. Legacy tools/opencode-docker/Dockerfile removed
+# (DIA-260824-8k62 PHASE 3 retirement).
 # Exit precedence 2>1>0: 0 match; 1 parity violated; 2 INFRA (missing/dup). Bash-3.
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 MISE_TOML="${ROOT_DIR}/.mise.toml"
 DOCKERFILE_DEV="${ROOT_DIR}/Dockerfile.dev"
-DOCKERFILE_OC="${ROOT_DIR}/tools/opencode-docker/Dockerfile"
 
 ok=0 fail=0
 strip_value() { # remove quotes, CR, surrounding whitespace
@@ -74,17 +74,10 @@ aggregate() {
 # Preflight: sources must exist before parsing (INFRA short-circuit).
 [ -f "${MISE_TOML}" ] || { echo "fail: source defective: .mise.toml not found at ${MISE_TOML}" >&2; infra_summary; }
 [ -f "${DOCKERFILE_DEV}" ] || { echo "fail: source defective: Dockerfile.dev not found at ${DOCKERFILE_DEV}" >&2; infra_summary; }
-[ -f "${DOCKERFILE_OC}" ] || { echo "fail: source defective: tools/opencode-docker/Dockerfile not found at ${DOCKERFILE_OC}" >&2; infra_summary; }
 
 parse_reference "${MISE_TOML}" || infra_summary
 parse_dockerfile "${DOCKERFILE_DEV}" "Dockerfile.dev" || infra_summary
-DOCKER_DEV_NODE="${DOCKER_NODE}" DOCKER_DEV_PNPM="${DOCKER_PNPM}"
 
-parse_dockerfile "${DOCKERFILE_OC}" "tools/opencode-docker/Dockerfile" || infra_summary
-DOCKER_OC_NODE="${DOCKER_NODE}" DOCKER_OC_PNPM="${DOCKER_PNPM}"
-
-compare node "${MISE_NODE}" "${DOCKER_DEV_NODE}" "Dockerfile.dev" || true
-compare pnpm "${MISE_PNPM}" "${DOCKER_DEV_PNPM}" "Dockerfile.dev" || true
-compare node "${MISE_NODE}" "${DOCKER_OC_NODE}" "tools/opencode-docker/Dockerfile" || true
-compare pnpm "${MISE_PNPM}" "${DOCKER_OC_PNPM}" "tools/opencode-docker/Dockerfile" || true
+compare node "${MISE_NODE}" "${DOCKER_NODE}" "Dockerfile.dev" || true
+compare pnpm "${MISE_PNPM}" "${DOCKER_PNPM}" "Dockerfile.dev" || true
 aggregate

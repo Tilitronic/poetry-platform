@@ -423,12 +423,13 @@ JSONC
 # T6 — Makefile wiring + integration (test 14)
 # ---------------------------------------------------------------------------
 
-@test "audit-tool-coverage: real configs audited via make test-config exit 0" {
-  # The Makefile wires the auditor into test-config for BOTH
-  # .opencode/opencode.jsonc and tools/opencode-docker/config/opencode.json.
+@test "audit-tool-coverage: real config audited via make test-config exit 0" {
+  # The Makefile wires the auditor into test-config for
+  # .opencode/opencode.jsonc (legacy tools/opencode-docker/config/opencode.json
+  # retired DIA-260824-8k62).
   # Hermeticity: the census mirrors the REAL runtime tool universe. Note the
   # real config comment: "edit is path-scoped ... (covers write+apply_patch per
-  # OpenCode docs — flat `write` key removed)" — so the runtime census has NO
+  # OpenCode docs -- flat `write` key removed)" -- so the runtime census has NO
   # separate `write` tool; write-capable coverage is via edit/bash/webfetch/
   # task/envsitter_* which the fleet covers globally + per-agent. Including a
   # phantom `write` tool here would fabricate HARD gaps the runtime cannot have.
@@ -439,16 +440,11 @@ JSONC
     envsitter_set envsitter_delete envsitter_format envsitter_reorder \
     envsitter_unset envsitter_add envsitter_copy list lsp skill
 
-  # Run only the audit recipe lines the Makefile adds (invoked for both config
-  # profiles), not the full test-config target (which needs node+opencode and
-  # is covered by the project's own CI). This asserts the wiring contract:
-  # both configs audit clean with zero HARD write-capable gaps.
+  # Run the audit recipe line the Makefile adds, not the full test-config
+  # target (which needs node+opencode and is covered by the project's own CI).
+  # This asserts the wiring contract: the config audits clean with zero HARD
+  # write-capable gaps.
   AUDIT_TOOL_CENSUS_FILE="$tree/census.json" run bash "$AUDIT_SCRIPT" "$REPO_ROOT/.opencode/opencode.jsonc"
   assert_status 0
   assert_output_contains "agents audited, 0 gaps"
-
-  AUDIT_TOOL_CENSUS_FILE="$tree/census.json" run bash "$AUDIT_SCRIPT" "$REPO_ROOT/tools/opencode-docker/config/opencode.json"
-  assert_status 0
-  # docker profile is blanket-form -> WARN exposure mode, still exit 0
-  assert_output_contains "blanket permission=allow"
 }

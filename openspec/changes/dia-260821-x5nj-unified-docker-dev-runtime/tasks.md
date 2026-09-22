@@ -497,7 +497,7 @@
   - Depends on: T8.4
   - Blocks: T8.6
 
-- [ ] **T8.6** Retire `tools/opencode-docker/` (DIA-260824-8k62)
+- [x] **T8.6** Retire `tools/opencode-docker/` (DIA-260824-8k62)
   - Physical deletion of `tools/opencode-docker/` directory
   - Delete `bootstrap.py` (superseded by `dev-entrypoint.sh`)
   - Update documentation to remove legacy references

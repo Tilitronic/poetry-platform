@@ -219,7 +219,6 @@ flowchart TB
   subgraph ShellChecks["test-shell checks"]
     Pins["check-pin-sync"]
     Host["check-host-jq / check-host-lsp"]
-    Legacy["test-opencode-docker\nstatic legacy integrity"]
     Bats["Bats suites for scripts,\nworktrees, tickets, hooks"]
   end
 
@@ -269,7 +268,6 @@ flowchart TB
 | `make test-infra`      | Runs the heavier integration path: shell gate, harness, compose smoke, and Python coverage.                                                      |
 | `verify-pre-commit.sh` | Requires the development container and prevents commits that bypass the project gate.                                                            |
 | `verify-pre-push.sh`   | Runs the selected fast gates before a push. It is not a substitute for the full infra path.                                                      |
-| `test-opencode-docker` | Static compatibility coverage for the retained legacy `tools/opencode-docker` files. It does not require retaining a legacy container image.     |
 
 ## 5. Agent responsibilities
 

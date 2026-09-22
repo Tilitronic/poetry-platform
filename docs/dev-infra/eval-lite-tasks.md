@@ -12,7 +12,6 @@
 DIA-096	make test-config	0	DIA ledger	DIA-096	no
 DIA-063	bash scripts/test-ticket-gate.sh	0	DIA ledger	DIA-063	no
 DIA-052	bash .opencode/scripts/validate-skills.sh	0	DIA ledger	DIA-052	no
-DIA-044	bash scripts/check-opencode-docker.sh	0	DIA ledger	DIA-044	no
 DIA-066	bash scripts/audit-agent-tool-coverage.sh .opencode/opencode.jsonc	0	DIA ledger	DIA-066	no
 vitest-editor-engine	pnpm --filter @poetry/editor-engine test	0	vitest editor-engine	editor-engine vitest suite (91 tests)	no
 vitest-phonetics-core	pnpm --filter @poetry/phonetics-core test	0	vitest phonetics-core	phonetics-core vitest suite (25 tests)	no

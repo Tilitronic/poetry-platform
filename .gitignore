@@ -62,16 +62,6 @@ coverage/
 # === Test infra: vendored bats-core (cloned on demand by make test-shell) ===
 scripts/__tests__/vendor/
 
-# === OpenCode Docker tool ===
-tools/opencode-docker/workspace/
-tools/opencode-docker/homebase/
-tools/opencode-docker/secrets/
-tools/opencode-docker/.worktrees/
-tools/opencode-docker/worktrees/
-tools/opencode-docker/opencode.json
-tools/opencode-docker/.opencode/
-tools/opencode-docker/.cache/opencode/
-
 # === Dev container ===
 # Secrets catch-all (M7): every file in secrets/ is ignored so future-named
 # key files are never accidentally committed; only README.md is allowed.
