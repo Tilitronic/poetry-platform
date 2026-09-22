@@ -170,6 +170,11 @@ run_workspace "make test-omo"
 echo "==> bun test dia189 desktop-toast (host-local, DIA-260827-36ht)"
 (cd "$ROOT/.opencode/plugins/__tests__" && bun test needs-input-observer.dia189.test.mjs -t "desktop toast|Cyrillic|control chars|single quotes|180 chars|C1 control")
 run_workspace "pnpm verify:python"
-run_workspace "make test-shell"
+# PHASE 5 / ADR 11: test-shell is host-runnable bats (Docker mocked) and the
+# compose-overrides suite needs the REAL docker CLI, which the dev image no
+# longer carries after PHASE 5. Run it directly on the host (or directly
+# if already in-container) instead of delegating through the container engine.
+echo "==> make test-shell (host-local, PHASE 5 / ADR 11)"
+(cd "$ROOT" && make test-shell)
 
 echo "== poetry-platform pre-push: verification passed =="

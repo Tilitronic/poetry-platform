@@ -36,6 +36,8 @@
 load test-helper
 
 REPO_ROOT="$(cd "$(dirname "$BATS_TEST_FILENAME")/../.." && pwd)"
+# Source shared in-container detection (S6, DIA-260922-cp0m).
+source "$REPO_ROOT/scripts/in-container.sh"
 PODMAN_OVERRIDE="$REPO_ROOT/docker-compose.podman.yml"
 ROOTLESS_OVERRIDE="$REPO_ROOT/docker-compose.rootless-docker.yml"
 WSL_OVERRIDE="$REPO_ROOT/docker-compose.wsl.yml"
@@ -59,9 +61,17 @@ assert_file_lacks_keys() {
 }
 
 setup() {
-  # Capture the real docker before the fake is installed on PATH, so the
-  # `docker compose config` merge tests talk to the real daemon in GREEN.
-  REAL_DOCKER="$(command -v docker)"
+  # PHASE 5 / ADR 11: compose validation is host-scoped. The dev image no
+  # longer ships the Docker CLI, so this suite cannot run in-container.
+  if is_in_dev_container; then
+    skip "compose validation is host-scoped (PHASE 5 / ADR 11): the dev image no longer ships the Docker CLI"
+  fi
+  # Host-side: the real docker CLI is required (not skippable).
+  REAL_DOCKER="$(command -v docker)" || {
+    echo "FATAL: docker CLI not found on PATH. compose-overrides tests require the real docker binary." >&2
+    echo "Install Docker or Podman and ensure 'docker' is on your PATH." >&2
+    return 1
+  }
   export REAL_DOCKER
   FAKE_DOCKER_SERVICES=""
   mock_docker

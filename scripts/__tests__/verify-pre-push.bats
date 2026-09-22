@@ -16,6 +16,85 @@ load test-helper
 
 setup() {
   mock_docker
+  # PHASE 5 / ADR 11: make test-shell now runs on the host (not delegated),
+  # so check-host-lsp's container probes hit the fake docker via
+  # container-engine.sh. Overwrite the fake docker with a version that
+  # responds to LSP version probes so the prerequisite checks pass in the
+  # hermetic test environment. Other exec commands still exit 0 with no
+  # output (original behavior for delegation assertions).
+  local docker_bin="$BATS_TEST_TMPDIR/bin/docker"
+  cat > "$docker_bin" <<'FAKEDOCKER'
+#!/usr/bin/env bash
+# Fake docker CLI for unit tests. Records every call; canned answers only.
+# Extended with LSP container probe responses (PHASE 5 / ADR 11).
+printf '%s\n' "$*" >> "${FAKE_DOCKER_LOG:?FAKE_DOCKER_LOG not set}"
+
+case "${1:-}" in
+  info)
+    [ "${FAKE_DOCKER_DAEMON_UP:-yes}" = "yes" ] && exit 0 || exit 1
+    ;;
+  compose)
+    shift
+    # consume global compose flags (-f <file>)
+    if [ "${1:-}" = "-f" ]; then shift 2; fi
+    case "${1:-}" in
+      exec)
+        shift
+        # consume flags (-T/-it/--/--user <user>) until the container name
+        while [ $# -gt 0 ]; do
+          case "$1" in
+            --user) shift 2 ;;
+            -T|-it|--|--) shift ;;
+            *) break ;;
+          esac
+        done
+        shift # container name
+        if [ -n "${FAKE_DOCKER_FAIL_STEP:-}" ] && [[ "$*" == *"$FAKE_DOCKER_FAIL_STEP"* ]]; then
+          exit 1
+        fi
+        case "$*" in
+          "test -x node_modules/.bin/turbo")
+            [ "${FAKE_DOCKER_TURBO_INSTALLED:-yes}" = "yes" ] && exit 0 || exit 1
+            ;;
+          *rust-analyzer*--version*)
+            printf '%s\n' "rust-analyzer 1.97.1 (hash)"
+            exit 0
+            ;;
+          *pyright*--version*)
+            printf '%s\n' "pyright 1.1.411"
+            exit 0
+            ;;
+          *yaml-language-server*--version*)
+            printf '%s\n' "yaml-language-server 1.24.0"
+            exit 0
+            ;;
+          *typescript-language-server*--version*)
+            printf '%s\n' "typescript-language-server 5.3.0"
+            exit 0
+            ;;
+        esac
+        exit 0
+        ;;
+      ps)
+        printf '%s\n' "${FAKE_DOCKER_SERVICES:-}"
+        exit 0
+        ;;
+    esac
+    exit 0
+    ;;
+esac
+exit 0
+FAKEDOCKER
+  chmod +x "$docker_bin"
+  # PHASE 5 / ADR 11: make test-shell runs on the host via (cd "$ROOT" &&
+  # make test-shell). In the test environment, a fake make on PATH exits
+  # immediately so unit tests don't run the full 711-test bats suite. The
+  # test verifies the host-local path via the script's stdout marker.
+  cat > "$BATS_TEST_TMPDIR/bin/make" <<'FAKEMAKE'
+#!/usr/bin/env bash
+exit 0
+FAKEMAKE
+  chmod +x "$BATS_TEST_TMPDIR/bin/make"
   # Hermetic engine selection (DIA-260909-9api precedent): an inherited
   # COMPOSE_ENGINE would reroute the adapter past the docker fake these tests
   # assert on. Unset it; engine-specific coverage lives in container-engine.bats.
@@ -64,7 +143,7 @@ setup() {
   [ "$output" = "0" ]
 }
 
-@test "verify-pre-push: delegates every verification step in fast-to-fail order, make test-shell last" {
+@test "verify-pre-push: delegates every verification step in fast-to-fail order, make test-shell host-local last" {
   export FAKE_DOCKER_SERVICES="dev"
 
   run bash "$SCRIPTS_DIR/verify-pre-push.sh"
@@ -72,19 +151,18 @@ setup() {
   assert_status 0
   assert_output_contains "delegating to dev container"
   assert_output_contains "verification passed"
-  # F-1 (DIA-139): all six steps are still delegated -- the fast pnpm gates
-  # and the config validator first, the slow bats suite (make test-shell)
-  # LAST so a format/typecheck failure surfaces in ~1.2 s instead of ~25 s.
-  # F-1 ORDER: each step must appear EXACTLY once, in ladder order. The log's
-  # first line is the container_running `compose ps` probe, so assert on the
-  # per-step match count and the relative index order of the single matches.
-  # End-anchored matching: the delegated command is the last arg of the
-  # `bash -lc` invocation, so `verify:js$` matches only the js line, never the
-  # js-tests line (which ends in `verify:js-tests`). A duplicate step or a
-  # swapped pair now fails the count/order check instead of being masked by
-  # first-occurrence grep (FALSIFICATION-3, DIA-139).
+  # PHASE 5 / ADR 11: test-shell must have run on the host (visible host-local
+  # marker in output). Check this BEFORE any subsequent `run` overwrites $output.
+  assert_output_contains "make test-shell (host-local, PHASE 5 / ADR 11)"
+  # F-1 (DIA-139): five steps are delegated via run_workspace -- the fast pnpm
+  # gates and the config validator first, then verify:python. The slow bats
+  # suite (make test-shell) runs HOST-LOCAL last (PHASE 5 / ADR 11: the dev
+  # image no longer ships the Docker CLI, so compose-overrides needs the real
+  # docker on the host). End-anchored matching: each step must appear EXACTLY
+  # once, in ladder order. A duplicate step or a swapped pair now fails the
+  # count/order check instead of being masked by first-occurrence grep.
   local prev=0 step count line
-  for step in "verify:format" "verify:js" "verify:js-tests" "make test-config" "verify:python" "make test-shell"; do
+  for step in "verify:format" "verify:js" "verify:js-tests" "make test-config" "verify:python"; do
     count="$(grep -cE -- "${step}\$" "$FAKE_DOCKER_LOG")"
     [ "$count" -eq 1 ] || {
       echo "count assertion: expected exactly 1 occurrence of '$step', got $count in $FAKE_DOCKER_LOG" >&2
@@ -97,6 +175,9 @@ setup() {
     }
     prev="$line"
   done
+  # PHASE 5 / ADR 11: test-shell must NOT be delegated (no docker exec).
+  run grep -c "make test-shell" "$FAKE_DOCKER_LOG"
+  [ "$output" = "0" ]
 }
 
 @test "verify-pre-push: wires host-local dia189 toast leg between make test-omo and pnpm verify:python, no test-harness line (DIA-260827-36ht)" {
@@ -179,7 +260,17 @@ setup() {
 
 @test "verify-pre-push: aborts (exit 1) when make test-shell fails, after all faster gates ran" {
   export FAKE_DOCKER_SERVICES="dev"
-  export FAKE_DOCKER_FAIL_STEP="test-shell"
+  # PHASE 5 / ADR 11: test-shell runs host-local (not delegated), so make it
+  # fail by shadowing `make` with a fake that rejects the test-shell target.
+  local bindir="$BATS_TEST_TMPDIR/fakemakebin"
+  mkdir -p "$bindir"
+  cat > "$bindir/make" <<'FAKEMAKE'
+#!/usr/bin/env bash
+echo "make: *** [test-shell] Error 1 (simulated failure)" >&2
+exit 1
+FAKEMAKE
+  chmod +x "$bindir/make"
+  export PATH="$bindir:$PATH"
 
   run bash "$SCRIPTS_DIR/verify-pre-push.sh"
 
