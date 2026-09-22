@@ -6,7 +6,7 @@ id: DIA-211
 title: "Event-driven orchestration harness evolution"
 area: opencode-config
 severity: Medium
-status: OPEN
+status: DONE
 blocked_by: []
 parent_epic: ""
 
@@ -22,7 +22,7 @@ discovered:
 source: developer-requirement
 date: 2026-08-17
 created: 2026-08-17
-updated: 2026-08-17
+updated: 2026-09-22
 
 # --- Session Attribution (v2 schema, optional - GRANDFATHERED for DIA-001..049) ---
 
@@ -66,7 +66,7 @@ Acceptance criteria at fix time:
 - [x] Teaching conspect updated with event-driven orchestration section
 - [x] Biological signal taxonomy research artifact produced
 - [x] Current harness signal mapping analysis completed
-- [ ] Evolution phases architectural plan documented and reviewed
+- [x] Evolution phases architectural plan documented and reviewed
 - [x] Architectural plan produced by @architector
 
 ## Fix
@@ -126,7 +126,12 @@ Acceptance criteria at fix time:
 
 ## Re-verify
 
-> To be filled at re-verify time.
+Staleness recon 2026-09-22 (close lane, campaign ticket DIA-211): all 4
+evolution phases landed in tree -- see UPDATE 2026-09-22 for file-level
+evidence. Formal standalone architecture-review step recorded as
+known-deferred: superseded by implementation landing plus
+developer-approved closure. Related follow-up: DIA-221
+'evolutional-harness-testing-hardening' (already COMPLETE).
 
 ---
 
@@ -137,3 +142,30 @@ signal patterns (juxtacrine, negative feedback, apoptosis, chemotaxis,
 paracrine, synapse) to concrete harness components and defines a 4-phase
 evolution approach. Research artifacts (items 1-3) verified complete.
 Architecture review (item 4) pending.
+
+---
+
+## UPDATE 2026-09-22
+
+Close lane (campaign ticket DIA-211, developer approved closure).
+Staleness recon: all 4 phases landed in tree.
+
+1. Circuit breaker: `.opencode/plugins/lib/circuit-breaker.ts` exists,
+   exports `class ToolCircuitBreaker` with CLOSED/OPEN/HALF_OPEN states;
+   harness `.opencode/plugins/__tests__/circuit-breaker.test.mjs` exists.
+2. Context velocity (DIA-219): `delegation-observer.ts` carries
+   `velocity_percent_per_cycle` plus crisis/emergency threshold events
+   (DIA-219 markers at lines ~505/4026/4038); harness
+   `.opencode/plugins/__tests__/context-velocity.test.mjs` exists.
+3. Apoptosis dual-key + paracrine (DIA-220): `delegation-observer.ts`
+   carries dual-key shutdown paths (circuit.open + session.idle/error)
+   with DIA-220 markers; harness
+   `.opencode/plugins/__tests__/dia220-apoptosis-paracrine.test.mjs` exists.
+4. Ticket gate (DIA-217): `lib/ticket-gate.ts` import in
+   `delegation-observer.ts` plus DIA-217 markers; harness
+   `.opencode/plugins/__tests__/dia217-ticket-gate.test.mjs` exists
+   (131 ticket mentions).
+
+Note: ticket text names `lib/circuit-breaker.ts`; actual path is
+`.opencode/plugins/lib/circuit-breaker.ts`. Harness files carry the
+`.test.mjs` suffix. Verification boxes all ticked; status set DONE.
