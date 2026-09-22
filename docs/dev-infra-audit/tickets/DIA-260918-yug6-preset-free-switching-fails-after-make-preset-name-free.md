@@ -6,7 +6,7 @@ id: DIA-260918-yug6
 title: "preset free switching fails after make preset NAME=free"
 area: scripts
 severity: Medium
-status: OPEN
+status: DONE
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: ""
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
@@ -17,7 +17,7 @@ discovered: 2026-09-18
 source: inventory
 date: 2026-09-18
 created: 2026-09-18
-updated: 2026-09-18
+updated: 2026-09-22
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -60,7 +60,7 @@ Shipped in three commits (all in git log, subjects verified 2026-09-22):
 
 Design pointer: Architector Design section below (session arc-1, persisted per DIA-174 R2, no implementation in that lane). Implementer note rev-1 F6 inside the design supersedes the Makefile forwarding line (stored-plus-bridge via OPENCODE_WORKSPACE_PRESET, override-plus-declared via PRESET).
 
-Note: later campaign DIA-260918-vsq8 superseded the multi-path launch with single-path `make opencode PRESET=<name>` (only OH_MY_OPENCODE_SLIM_PRESET forwarded). This ticket stays OPEN; no status change in this lane.
+Note: later campaign DIA-260918-vsq8 superseded the multi-path launch with single-path `make opencode PRESET=<name>` (only OH_MY_OPENCODE_SLIM_PRESET forwarded). Developer approved closure with residual notes below; status set DONE 2026-09-22.
 
 ## Re-verify
 
@@ -98,3 +98,8 @@ References:
 
 - Analyzer artifact: knowledge/ana-260918-6ac2-preset-free-switching/ana-260918-6ac2-preset-free-switching-report.md
 - Learnings: .opencode/learnings/external-patterns/2026-09-18-preset-workspace-bridge.md
+
+## Close residual notes (2026-09-22, developer approved)
+
+- (a) Container-matrix re-run not repeated in close lane. Prior evidence from e50c1de0 (2026-09-18) cited as-is.
+- (b) End-to-end free-switching on old make preset path untestable. Path superseded by DIA-260918-vsq8 single-path launch.
