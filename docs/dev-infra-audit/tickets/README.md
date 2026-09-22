@@ -183,7 +183,7 @@
 | DIA-260822-wr2e | Evidence-based audit of five proposed delegation-observer plugin fixes | opencode | Major | OPEN | [DIA-260822-wr2e-evidence-based-audit-of-five-proposed-delegation-observer-plugin-fixes.md](DIA-260822-wr2e-evidence-based-audit-of-five-proposed-delegation-observer-plugin-fixes.md) |
 | DIA-260823-v9di | simplify skill duplicate: project vs global tree ownership/remedy | opencode-config | Medium | CLOSED | [DIA-260823-v9di-simplify-skill-duplicate-project-vs-global-tree-ownership-remedy.md](DIA-260823-v9di-simplify-skill-duplicate-project-vs-global-tree-ownership-remedy.md) |
 | DIA-260824-1c3e | Add cebula-ox-alpha OpenCode preset | opencode-config | Medium | CLOSED | [DIA-260824-1c3e-add-cebula-ox-alpha-opencode-preset.md](DIA-260824-1c3e-add-cebula-ox-alpha-opencode-preset.md) |
-| DIA-260824-8k62 | retire legacy tools/opencode-docker only after unified-runtime acceptance | docker | Medium | OPEN | [DIA-260824-8k62-retire-legacy-tools-opencode-docker-only-after-unified-runtime-acceptance.md](DIA-260824-8k62-retire-legacy-tools-opencode-docker-only-after-unified-runtime-acceptance.md) |
+| DIA-260824-8k62 | retire legacy tools/opencode-docker only after unified-runtime acceptance | docker | Medium | CLOSED | [DIA-260824-8k62-retire-legacy-tools-opencode-docker-only-after-unified-runtime-acceptance.md](DIA-260824-8k62-retire-legacy-tools-opencode-docker-only-after-unified-runtime-acceptance.md) |
 | DIA-260824-a3mk | make opencode fails: PermissionDenied opening /home/dev/.local/share/opencode/log/opencode.log | docker | Blocker | CLOSED | [DIA-260824-a3mk-make-opencode-fails-permissiondenied-opening-home-dev-local-share-opencode-log-opencode-log.md](DIA-260824-a3mk-make-opencode-fails-permissiondenied-opening-home-dev-local-share-opencode-log-opencode-log.md) |
 | DIA-260824-ifcf | persistent developer Git identity and config propagation for unified poetry-dev workstation | git-hooks | Medium | CLOSED | [DIA-260824-ifcf-persistent-developer-git-identity-and-config-propagation-for-unified-poetry-dev-workstation.md](DIA-260824-ifcf-persistent-developer-git-identity-and-config-propagation-for-unified-poetry-dev-workstation.md) |
 | DIA-260824-iirx | Analysis of gaps and migration plan for one unified OpenCode dev container for Fedora and WSL Ubuntu/Debian replacing legacy dual containers | docker | Major | OPEN | [DIA-260824-iirx-analysis-of-gaps-and-migration-plan-for-one-unified-opencode-dev-container-for-fedora-and-wsl-ubuntu-debian-replacing-legacy-dual-containers.md](DIA-260824-iirx-analysis-of-gaps-and-migration-plan-for-one-unified-opencode-dev-container-for-fedora-and-wsl-ubuntu-debian-replacing-legacy-dual-containers.md) |
@@ -343,7 +343,7 @@
 
 | Status      | Count |
 | ----------- | ----- |
-| OPEN        | 81    |
+| OPEN        | 80    |
 | DONE        | 4     |
 | VALIDATE    | 0     |
 | E2E         | 0     |
@@ -352,7 +352,7 @@
 | FIXED       | 1     |
 | IMPLEMENTED | 0     |
 | VERIFIED    | 28    |
-| CLOSED      | 208   |
+| CLOSED      | 209   |
 | BLOCKED     | 0     |
 | DISPATCHED  | 0     |
 | RUNNING     | 0     |

@@ -6,7 +6,7 @@ id: DIA-260824-8k62
 title: "retire legacy tools/opencode-docker only after unified-runtime acceptance"
 area: docker
 severity: Medium
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: DIA-260824-iirx
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
