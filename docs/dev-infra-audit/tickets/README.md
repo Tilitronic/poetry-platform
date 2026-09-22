@@ -341,8 +341,8 @@
 
 | Status      | Count |
 | ----------- | ----- |
-| OPEN        | 76    |
-| DONE        | 9     |
+| OPEN        | 70    |
+| DONE        | 15    |
 | VALIDATE    | 0     |
 | E2E         | 0     |
 | DEFERRED    | 1     |

@@ -6,7 +6,7 @@ id: DIA-260827-uv
 title: "Routing-order regression suite copies logic and is orphaned"
 area: scripts
 severity: Medium
-status: OPEN
+status: DONE
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: DIA-260827-wfcx
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
@@ -17,7 +17,7 @@ discovered: 2026-08-27
 source: baseline
 date: 2026-08-27
 created: 2026-08-27
-updated: 2026-08-27
+updated: 2026-09-22
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -73,3 +73,7 @@ RE-VERIFY EVIDENCE (2026-09-22):
 - scripts/validate-plugin-structure.sh: all structural gates PASS
 - grep dcp.jsonc over both production regexes + seam + suite: zero regex hits
   (only the seam's explanatory comment mentions dcp)
+
+CLOSE (2026-09-22, developer approved): evidence re-confirmed fresh on this
+date -- suite 36/36 exit 0, make test-config exit 0, make test-shell exit 0,
+Makefile wiring + zero-dcp-regex verified. Status OPEN -> DONE.
