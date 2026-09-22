@@ -6,7 +6,7 @@ id: DIA-260917-mqjs
 title: "warning hygiene permission deny scope and legacy archive precedent"
 area: config
 severity: Low
-status: OPEN
+status: DONE
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: ""
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
@@ -80,3 +80,12 @@ commit 60740412 (2026-09-17): 18 files changed, 316 insertions, 58 deletions.
 >   this ticket; (3) original warning-hygiene acceptance criteria NOT ticked -
 >   body was template-empty, so no contemporaneous criteria exist to verify
 >   against.
+
+## Close notes (2026-09-22, developer-approved closure with residuals)
+
+- (a) Per-agent deny x4 detail is unassertable from this lane: the 60740412
+  jsonc hunk holds only 3 "deny" mentions, so x4 cannot be verified.
+- (b) Original warning-hygiene acceptance criteria never existed: the ticket
+  body was template-empty at creation, so closure rests on the archive
+  work actually landed (13 files, rollup diff, test-config exit 0), not
+  on criteria verification.
