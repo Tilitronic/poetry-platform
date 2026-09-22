@@ -4849,3 +4849,13 @@
     V1 Go-routing pending approval'
   verification: manual
   area: scripts
+- date: '2026-09-22'
+  ticket: DIA-186
+  scope: s
+  files:
+  - .opencode/opencode-overnight.jsonc
+  - scripts/__tests__/overnight.bats
+  summary: 'Overnight profile: read/edit allows moved .slim/worktrees to .worktrees,
+    added podman compose/ps allows (19 allow entries)'
+  verification: manual
+  area: config

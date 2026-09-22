@@ -26,7 +26,7 @@ discovered: 2026-08-15
 source: developer-report
 date: 2026-08-15
 created: 2026-08-15
-updated: 2026-08-15
+updated: 2026-09-22
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -142,10 +142,60 @@ How to reproduce / confirm the defect:
    `make test-*`, `git worktree add|remove|commit`, and writes under
    `.slim/worktrees/*` are `allow`-listed or fall through to `ask`/`deny`.
 
+## Verification status 2026-09-22 (implement lane, DIA-186 F2/F3)
+
+- [x] Step 3 static config-gap check: SUPPORTED. `make test-shell` exit 0
+      (742 ok, 0 not-ok; overnight suite 11/11 incl. S1 15-rule v2 payload
+      proof + S2 fail-closed tests). `make test-config` exit 0 (all structural
+      gates PASS). `scripts/validate-changelog.sh` 1 passed, 0 failed.
+- [ ] Step 1 live reproduce: NOT SUPPORTED in this lane. Needs a
+      human-supervised overnight window with unattended lanes; pending.
+- [ ] Step 2 log confirm: NOT SUPPORTED in this lane. Pending the same
+      overnight window (grep permission_asked_logged / permission_auto_rejected
+      rows after it runs).
+
 ## Fix
 
-> To be filled at fix time.
+> Filled 2026-09-22 (implement lane, developer-approved F2 baseline v2 +
+> F3 out-of-band approval with comment update).
+
+Profile (`.opencode/opencode-overnight.jsonc`): deny baseline bumped
+v1 -> v2 (11 -> 15 rules). The 4 DIA-186 podman mirrors are
+`podman volume rm *`, `podman system prune *`, `podman system prune -af*`
+(1:1 mirrors of the docker keys, same glob shape, placed after the docker
+keys in the baseline block) plus `podman compose down -v`. Rule 12 lives
+in the guard-denies section AFTER the allows, not in the baseline block:
+it overlaps the `podman compose *` allow, and last-match-wins evaluation
+would let the allow win from the baseline position (same reason the git
+branch/worktree/push guards sit after the allows). S2 validation is
+order-insensitive (presence + "deny"), so rule 12 is still baseline-v2
+enforced. Allow-list comment rewritten to the approved set: 19 entries
+(docker/podman compose, docker/podman ps, make, git worktree/commit/push/
+add/status/diff/log/branch, pnpm, npm, node, prettier) + deny v2.
+
+Launcher (`scripts/overnight.sh`): `OVERNIGHT_DENY_BASELINE` extended with
+the same 4 podman keys (that is the v2 bump - the array IS the assertion;
+no exact-count check exists to weaken, nothing weakened). Usage text,
+echo lines, and header comments moved v1/11 -> v2/15 coherently.
+
+Tests (`scripts/__tests__/overnight.bats`): `OVERNIGHT_BASELINE_RULES`
++4 podman keys (S1 oracle now proves all 15 deny in the exported
+payload); `OVERNIGHT_ALLOW_RULES` +2 podman allows (oracle gap from the
+prior lane closed); `.slim` -> `.worktrees` assertion (F1); v2 echo/S1
+strings updated. No new test cases needed - the subset-presence arrays
+extend the existing S1/TUI tests.
+
+Changelog (F4): DIA-186 entry appended via `scripts/changelog-add`,
+validated + rendered (159 entries).
+
+Committed as `DIA-186 ...` (profile + launcher + bats + changelog +
+this ticket), pre-commit hook enforced (no --no-verify).
 
 ## Re-verify
 
-> To be filled at re-verify time.
+> Filled 2026-09-22. Overnight S2 shape validation re-run against the v2
+> payload still pending human/long-run confirmation: the automated S1/S2
+> bats proofs pass in-tree (see Verification status above), but an
+> end-to-end `scripts/overnight.sh` launch asserting 15/15 deny in a live
+> overnight window has not been observed by a human. Status stays OPEN
+> until that long-run re-verification completes.

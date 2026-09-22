@@ -1163,3 +1163,9 @@
 - **Change:** Console free-tier gate finding: provider-side gate rejects -free models, V1 Go-routing pending approval
 - **Files:** docs/dev-infra-audit/tickets/DIA-260921-6o4i-console-free-tier-gate-rejects-free-models.md - .opencode/learnings/external-patterns/2026-09-21-console-free-tier-gate.md - knowledge/ana-260921-0f9i-free-tier-gate/ana-260921-0f9i-free-tier-gate-report.md
 - **Verification:** manual
+
+## 2026-09-22 - DIA-186: s
+
+- **Change:** Overnight profile: read/edit allows moved .slim/worktrees to .worktrees, added podman compose/ps allows (19 allow entries)
+- **Files:** .opencode/opencode-overnight.jsonc - scripts/__tests__/overnight.bats
+- **Verification:** manual
