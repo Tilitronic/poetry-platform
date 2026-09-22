@@ -1,0 +1,11 @@
+https://github.com/npm/registry/blob/master/docs/responses/package-metadata.md
+https://docs.npmjs.com/policies/crawlers/
+https://trafilatura.readthedocs.io/en/latest/settings.html
+https://trafilatura.readthedocs.io/en/latest/troubleshooting.html
+https://docs.crawl4ai.com/core/browser-crawler-config/
+https://github.com/unclecode/crawl4ai
+https://docs.npmjs.org/policies/open-source-terms
+https://registry.npmjs.org/opencode-telemetry
+https://registry.npmjs.org/opencode-token-monitor
+https://www.npmjs.com/package/@devtheops/opencode-plugin-otel
+https://ccusage.com/guide/opencode/

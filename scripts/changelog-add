@@ -1,0 +1,103 @@
+#!/usr/bin/env bash
+# changelog-add - one-call append to .opencode/CHANGELOG.yaml (AGENTS.md 2.5
+# step 7 register step).
+#
+# Builds the entry with python3+PyYAML (DIA-137: never string-concat YAML),
+# appends preserving existing entries, then runs scripts/validate-changelog.sh
+# and scripts/changelog-render automatically. Required schema fields
+# (scripts/schemas/changelog.schema.json): date, ticket, scope, files, summary,
+# verification. Defaults: date=today (UTC), files=[] (--files f1,f2 comma-
+# split), verification="manual" (warned - replace after real verification).
+# scope comes from --scope or is derived from --area; neither -> usage error,
+# no write. Missing --ticket/--summary -> usage error, no write.
+#
+# Usage: changelog-add --ticket DIA-NNN --summary "..." [--scope s] [--area a] [--files f1,f2]
+#
+# Permission model (DIA-126a): orchestrator has bash deny - run via @coder
+# dispatch (scripts/* allow) or the developer.
+#
+# Env override (bats hermetic seam): CHANGELOG_FILE (same override name as
+# validate-changelog.sh); propagated to changelog-render as CHANGELOG_YAML.
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CHANGELOG_FILE="${CHANGELOG_FILE:-$SCRIPT_DIR/../.opencode/CHANGELOG.yaml}"
+
+usage() {
+  echo 'usage: changelog-add --ticket DIA-NNN --summary "..." [--scope s] [--area a] [--files f1,f2]' >&2
+  exit 2
+}
+
+ticket="" summary="" scope="" area="" files_arg=""
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --ticket)  [ $# -ge 2 ] || usage; ticket="$2"; shift 2 ;;
+    --summary) [ $# -ge 2 ] || usage; summary="$2"; shift 2 ;;
+    --scope)   [ $# -ge 2 ] || usage; scope="$2"; shift 2 ;;
+    --area)    [ $# -ge 2 ] || usage; area="$2"; shift 2 ;;
+    --files)   [ $# -ge 2 ] || usage; files_arg="$2"; shift 2 ;;
+    *) usage ;;
+  esac
+done
+
+[ -n "$ticket" ] || { echo "error: --ticket is required" >&2; usage; }
+[ -n "$summary" ] || { echo "error: --summary is required" >&2; usage; }
+if [ -z "$scope" ]; then
+  [ -n "$area" ] || { echo "error: scope required: pass --scope or --area (to derive scope from)" >&2; usage; }
+  scope="$area"
+fi
+
+# DIA-079: reject non-ASCII input loudly instead of letting PyYAML silently
+# escape it into the ledger (allow_unicode=False would mangle, not reject).
+if printf '%s' "$ticket$summary$scope$area$files_arg" | LC_ALL=C grep -qP '[^\x00-\x7F]'; then
+  echo "error: non-ASCII input rejected (DIA-079): use ASCII-only text" >&2
+  exit 2
+fi
+
+echo "warn: verification defaults to 'manual' - replace after real verification" >&2
+
+CHANGELOG="$CHANGELOG_FILE" TICKET="$ticket" SUMMARY="$summary" SCOPE="$scope" \
+AREA="$area" FILES_ARG="$files_arg" TODAY="$(date -u +%F)" \
+python3 - <<'PYEOF'
+import os
+import sys
+
+import yaml
+
+path = os.environ["CHANGELOG"]
+entry = {
+    "date": os.environ["TODAY"],
+    "ticket": os.environ["TICKET"],
+    "scope": os.environ["SCOPE"],
+    "files": [f for f in os.environ["FILES_ARG"].split(",") if f],
+    "summary": os.environ["SUMMARY"],
+    "verification": "manual",
+}
+if os.environ["AREA"]:
+    entry["area"] = os.environ["AREA"]
+
+with open(path) as f:
+    ledger = yaml.safe_load(f)
+if ledger is None:
+    ledger = []
+if not isinstance(ledger, list):
+    print("error: %s is not a YAML array - refusing to append" % path, file=sys.stderr)
+    sys.exit(1)
+ledger.append(entry)
+
+tmp = path + ".tmp"
+with open(tmp, "w") as f:
+    # allow_unicode=False keeps the ledger ASCII-only (DIA-079).
+    yaml.safe_dump(ledger, f, sort_keys=False, allow_unicode=False, default_flow_style=False)
+os.replace(tmp, path)
+print("ok: appended entry for %s to %s" % (entry["ticket"], path))
+PYEOF
+
+export CHANGELOG_FILE
+export CHANGELOG_YAML="$CHANGELOG_FILE"
+# Derive the derived-view target from the ledger path so overriding
+# CHANGELOG_FILE alone (tests, alternate trees) never writes the real repo MD.
+export CHANGELOG_MD="${CHANGELOG_MD:-${CHANGELOG_FILE%.yaml}.md}"
+# Invoke via bash: sibling scripts are not guaranteed the exec bit.
+bash "$SCRIPT_DIR/validate-changelog.sh"
+bash "$SCRIPT_DIR/changelog-render"

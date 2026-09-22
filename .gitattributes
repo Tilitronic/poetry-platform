@@ -1,0 +1,22 @@
+# Normalize line endings to LF for all text files.
+# Checked-in files are LF; working tree stays LF (Linux-only project).
+* text=auto eol=lf
+
+# Binary assets must never be normalized.
+*.bin binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.pdf binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.dat binary
+*.gz binary
+*.zip binary
+
+# Lockfiles: keep normalized (LF) even if a tool writes CRLF.
+*.lock text eol=lf

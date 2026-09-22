@@ -13,12 +13,14 @@ export class OpusState {
     return this.lines.get(id);
   }
 
-  getLineAt(index: number): LineAtom | undefined {
-    const id = this.order.value[index];
-    return id ? this.lines.get(id) : undefined;
-  }
-
   addLine(id: string, text = '', index?: number): LineAtom {
+    const existing = this.lines.get(id);
+    if (existing) {
+      // upsert without re-appending: preserve uniqueness invariant, avoid
+      // orphaning the prior atom and duplicating the id in order
+      if (text !== undefined) existing.update({ text });
+      return existing;
+    }
     const atom_ = new LineAtom(id, text);
     this.lines.set(id, atom_);
     const order = [...this.order.value];
@@ -33,12 +35,6 @@ export class OpusState {
 
   removeLine(id: string): void {
     this.lines.delete(id);
-    this.order.set(this.order.value.filter((lid) => lid !== id));
-  }
-
-  moveLine(id: string, toIndex: number): void {
-    const order = this.order.value.filter((lid) => lid !== id);
-    order.splice(toIndex, 0, id);
-    this.order.set(order);
+    this.order.set(this.order.value.filter((lid: string) => lid !== id));
   }
 }

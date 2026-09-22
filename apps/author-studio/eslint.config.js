@@ -1,13 +1,10 @@
 import baseConfig from '../../eslint.base.config.js';
 import pluginQuasar from '@quasar/app-vite/eslint';
 import globals from 'globals';
-import { defineConfigWithVueTs, vueTsConfigs } from '@vue/eslint-config-typescript';
-import prettierSkipFormatting from '@vue/eslint-config-prettier/skip-formatting';
 
-export default defineConfigWithVueTs(
+export default [
   ...baseConfig,
-  pluginQuasar.configs.recommended(),
-  vueTsConfigs.recommendedTypeChecked,
+  ...pluginQuasar.configs.recommended(),
   {
     languageOptions: {
       globals: {
@@ -27,5 +24,4 @@ export default defineConfigWithVueTs(
       },
     },
   },
-  prettierSkipFormatting,
-);
+];

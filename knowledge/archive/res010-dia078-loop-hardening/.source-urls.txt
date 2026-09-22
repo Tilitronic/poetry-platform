@@ -1,0 +1,12 @@
+https://opencode.ai/docs/permissions
+https://github.com/joeyism/opencode-anti-loop
+https://langsight.dev/blog/ai-agent-loop-detection/
+https://www.agentpatternscatalog.org/patterns/degenerate-output-detection/
+https://hidekazu-c.com/
+https://docs.openclaw.ai/tools/loop-detection
+https://github.com/anomalyco/opencode/issues/28596
+https://github.com/anomalyco/opencode/pull/12623
+
+# NOT ARCHIVED (all methods exhausted): https://langsight.dev/blog/ai-agent-loop-detection/
+# NOT ARCHIVED (all methods exhausted): https://hidekazu-c.com/
+# NOT ARCHIVED (all methods exhausted): https://docs.openclaw.ai/tools/loop-detection

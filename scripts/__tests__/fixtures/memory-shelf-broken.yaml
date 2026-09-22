@@ -1,0 +1,13 @@
+shelf:
+  conspects:
+    - description: Missing the required name and path keys.
+      created: 2026-08-15
+    - name: Bad Type Entry
+      description: Has an unknown key and a non-ISO date that must be rejected.
+      path: knowledge/res998-broken/res998-broken-conspect.md
+      created: not-a-date
+      bogus_key: value
+  analyses: not-a-list
+  adrs: []
+  specs: []
+  architectures: []

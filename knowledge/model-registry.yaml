@@ -1,0 +1,250 @@
+# DIA-133 dispatch routing registry (ADR-DIA-133, approved 2026-08-13). Evidence: res013/016/017 (source_ref per score). No self-benchmark figures (ana014). Registry owner: ai-specialist research -> coder edit (developer decision 2026-08-13).
+schema_version: "1.0"
+models:
+  - model_id: "deepseek-v4-flash"
+    role: "multi-lane-primary"
+    price_in_1m: 0.22
+    price_out_1m: 0.66
+    req_per_month: 18900  # ESTIMATE (per res024 sec 3.3)
+    swe_bench_verified: 73.7
+    source_ref: "res013, res030"
+    lane: ["coder", "reviewer", "analyzer", "researcher", "conspecter", "openspec-plan", "orchestrator", "memory-manager", "code-navigator"]
+    fallback: ["opencode/mimo-v2.5-free", "opencode/big-pickle"]
+    quota_notes: "Promo primary for orchestrator + fallback for coder/reviewer/analyzer/researcher/conspecter/openspec-plan/memory-manager/code-navigator (DIA-260901-s4ij); peak $0.44/$1.32 01:00-04:00+06:00-10:00 UTC"
+    active: true
+
+  - model_id: "opencode-go/deepseek-v4.1-flash"
+    role: "multi-lane-primary (reasoning lanes via 4x promo)"
+    price_in_1m: 0.15
+    price_out_1m: 0.60
+    req_per_month: 130000  # ESTIMATE under 4x promo ($60 bucket, ends 2026-09-27)
+    swe_bench_verified: null  # no archived benchmark yet - benchmark conspect pending (separate ticket)
+    source_ref: "DIA-260827-bry9 gate 2026-09-17 (Go-exclusive); promo verified 2026-09-20 from https://opencode.ai/docs/go/"
+    lane: ["orchestrator", "architector", "openspec-plan", "reviewer", "ai-specialist", "coder-escalated", "analyzer-escalated", "ai-auditor"]
+    fallback: ["opencode-go/mimo-v2.5", "opencode-go/deepseek-v4-flash"]
+    quota_notes: "4x promo: $60/130,000 req/mo, ends 2026-09-27 (verified from opencode.ai/docs/go/ 2026-09-20); post-promo: $15/32,500 req/mo ($0.15/$0.60). muse-balanced reasoning lanes (orchestrator/architector/openspec-plan/reviewer/ai-specialist) + coder-escalated/analyzer-escalated + ai-auditor primary. Fallback chain: mimo-v2.5 (volume) + deepseek-v4-flash (non-promo reasoning)."
+    active: true
+
+  - model_id: "mimo-v2.5"
+    role: "coder-default-volume"
+    price_in_1m: 0.14
+    price_out_1m: 0.28
+    req_per_month: 150400  # ESTIMATE (per res024 sec 3.3)
+    swe_bench_verified: null  # vendor-only, benchmark gap per res017
+    source_ref: "res030"
+    lane: ["coder", "code-navigator", "researcher", "conspecter", "observer", "resource-manager", "memory-manager"]
+    fallback: []
+    quota_notes: "New volume king 2026-08-17: $0.14/$0.28, 150,400 req/mo, $60 bucket (res030)"
+    active: true
+
+  - model_id: "opencode-go/hy3"
+    role: "retired (was multi-lane-primary)"
+    price_in_1m: 0.14
+    price_out_1m: 0.58
+    req_per_month: 21500  # res030 quota
+    swe_bench_verified: "no independent reproduction archived (res030 pricing only)"
+    source_ref: "res030"
+    lane: ["coder","reviewer","conspecter","resource-manager","memory-manager","code-navigator","researcher"]
+    fallback: ["opencode-go/mimo-v2.5","opencode/big-pickle"]
+    quota_notes: "$60 bucket, 4,300 req/5h, 21,500 req/mo, 256K ctx - retired DIA-260901-s4ij, replaced by opencode-go/deepseek-v4-flash"
+    active: false
+
+  - model_id: "opencode-go/muse-spark-1.2-contributor"
+    role: "multi-lane-primary"
+    price_in_1m: 0.10
+    price_out_1m: 0.20
+    req_per_month: 226600
+    swe_bench_verified: null
+    source_ref: "res041"
+    lane: ["coder", "reviewer", "analyzer", "researcher", "conspecter", "openspec-plan"]
+    fallback: ["opencode-go/deepseek-v4-flash", "opencode-go/mimo-v2.5"]
+    quota_notes: "Cheapest input ($0.10) + highest Intelligence (56.8) of promo trio, 1.05M ctx; 100 RPM = 144k/day vs workload 120 dispatches/day max (ana036); ADMITTED per DIA-260828-qtsi (privacy cleared by developer: no sensitive traffic)"
+    privacy_notes: "Meta Contributor tier trains on prompts/completions; developer cleared (no sensitive traffic) per DIA-260828-qtsi; region-limited availability"
+    variant_support: true
+    active: true
+
+  - model_id: "opencode-go/muse-spark-1.3-contributor"
+    role: "multi-lane-primary"
+    price_in_1m: 0.10
+    price_out_1m: 0.20
+    req_per_month: 226600
+    swe_bench_verified: null  # benchmark-pending (UNVERIFIED, inherits 1.2 terms; benchmark conspect pending separate ticket)
+    source_ref: "DIA-260909-tp5e 2026-09-09 (mirror 1.2 res041)"
+    lane: []  # DIA-260827-8la4 (2026-09-20): removed from the active muse-balanced preset (trains-on-data, NOT ZDR); retained only as a promo-union-alpha fallback seat
+    fallback: ["opencode-go/deepseek-v4-flash", "opencode/mimo-v2.5-free"]
+    quota_notes: "Mirror 1.2 ($0.10/$0.20 226600/mo 1.05M ctx); ADMITTED per DIA-260828-qtsi privacy cleared (no sensitive traffic), 1.3 admission basis DIA-260909-tp5e; 100 RPM = 144k/day vs 120/day max (ana036). Decision: 1.3 does NOT supersede 1.2 globally - promo retains 1.2 primary; muse-qwen-balanced uses 1.3 on coder/researcher/conspecter primary + analyzer/openspec-plan fallback (lane-containment)."
+    privacy_notes: "trains-on-data NOT-ZDR region-limited (Meta Contributor tier trains on prompts/completions; developer cleared per DIA-260828-qtsi; region-limited availability)"
+    variant_support: true
+    active: true
+
+  - model_id: "qwen3.8-flash"
+    role: "arch/analyzer"
+    price_in_1m: 0.15
+    price_out_1m: 0.47
+    req_per_month: 27000
+    swe_bench_verified: null  # no archived benchmark yet - benchmark conspect pending (separate ticket)
+    source_ref: "res016"
+    lane: ["analyzer", "designer"]
+    fallback: []
+    quota_notes: "$30 bucket, 27K req/mo, pricing $0.15/$0.47 per 1M; benchmark conspect pending (separate ticket). RETAINED for council seat + inactive presets (opencode-go, cebula, promo, free) after Variant A DIA-260909-18f4 - no longer primary in muse-qwen-balanced."
+    active: true
+
+  - model_id: "opencode-go/deepseek-v4-flash"
+    role: "retired (was reasoning-primary, lanes moved to v4.1-flash promo)"
+    price_in_1m: 0.15
+    price_out_1m: 0.60
+    req_per_month: 65000
+    swe_bench_verified: 73.7  # inherited from deepseek-v4-flash (same model, Go-proxied)
+    source_ref: "DIA-260827-8la4 design 2026-09-20 (Tier-2 https://opencode.ai/docs/go/)"
+    lane: []  # DIA-260827-8la4 2026-09-21: orchestrator/architector/openspec-plan/reviewer/ai-specialist moved to opencode-go/deepseek-v4.1-flash (4x promo through 2026-09-27); retained as fallback alternative
+    fallback: ["opencode-go/mimo-v2.5", "opencode-go/deepseek-v4.1-flash"]
+    quota_notes: "$30 bucket, 65K req/mo, $0.15/$0.60 pricing (Go-proxied DeepSeek V4 Flash); no lanes use as primary as of 2026-09-21 (v4.1-flash promo preferred through 2026-09-27)"
+    active: true
+
+  - model_id: "opencode-go/glm-5.3-flash"
+    role: "audit-independence"
+    price_in_1m: 0.15
+    price_out_1m: 0.50
+    req_per_month: 31580
+    swe_bench_verified: null
+    source_ref: "DIA-260827-8la4 design 2026-09-20 (Tier-2 https://opencode.ai/docs/go/)"
+    lane: ["ai-auditor"]
+    fallback: ["opencode-go/deepseek-v4-flash"]
+    quota_notes: "$60 bucket, 31,580 req/mo, $0.15/$0.50 pricing (Go-proxied GLM 5.3 Flash); ai-auditor independence from ai-specialist (different model family)"
+    active: true
+
+  - model_id: "openai/gpt-5.6-terra"
+    role: "analysis-primary"
+    price_in_1m: 2.00
+    price_out_1m: 12.00
+    req_per_month: null  # pay-as-you-go (no monthly request cap)
+    swe_bench_verified: null  # no archived benchmark yet - benchmark conspect pending (separate ticket)
+    source_ref: "DIA-260909-18f4 2026-09-09"
+    lane: ["openspec-plan", "reviewer", "analyzer", "ai-specialist", "analyzer-escalated", "coder-escalated"]  # coder-escalated added per DIA-260911-rqmw (Terra High paid escalation, one-shot).
+    fallback: ["opencode-go/muse-spark-1.3-contributor", "opencode-go/deepseek-v4-flash", "opencode-go/deepseek-v4-pro", "github-copilot/gpt-5.3-codex", "opencode/big-pickle"]
+    quota_notes: "Direct OpenAI pricing short-context <=272K $2.00/$12.00 per 1M; over-272K long-context $4.00/$18.00 per 1M (res013); 429 history per DIA-260827-qc59; live PASS 2026-09-09 probe TERRA-PROBE-OK; Variant A primary in muse-qwen-balanced (accepts full high/max ladder); coder-escalated one-shot no-retry, developer-gated paid escalation (DIA-260911-rqmw)"
+    active: true
+
+  - model_id: "openai/gpt-5.6-sol"
+    role: "audit-primary"
+    price_in_1m: 4.00
+    price_out_1m: 20.00
+    req_per_month: null  # pay-as-you-go (no monthly request cap)
+    swe_bench_verified: null  # no archived benchmark yet - benchmark conspect pending (separate ticket)
+    source_ref: "DIA-260909-uv53 2026-09-09"
+    lane: ["ai-auditor"]
+    fallback: ["github-copilot/gemini-3.1-pro-preview", "opencode/big-pickle"]
+    quota_notes: "Direct OpenAI pricing short-context $4.00/$20.00 per 1M; over-272K long-context $8.00/$30.00 per 1M (2x in, 1.5x out); ai-auditor primary in muse-qwen-balanced (variant medium, default; accepts none/low/medium/high/xhigh/max ladder); NOTE gpt-5.6 is model alias, -medium is OMO variant not model ID; same flagship reasoning family as Terra (ai-specialist) - provider overlap, gemini fallback kept for 429-degrade"
+    active: true
+
+  - model_id: "kimi-k3"
+    role: "retired (was coder-escalated)"
+    price_in_1m: 3.00
+    price_out_1m: 15.00
+    req_per_month: 490  # ESTIMATE (per res024 sec 3.3)
+    swe_bench_verified: 93.40
+    source_ref: "res016"
+    lane: "coder-escalated"
+    fallback: ["deepseek-v4-pro", "mimo-v2.5-pro"]
+    quota_notes: "Binding cap 490 req/mo - RETIRED per DIA-260911-rqmw, superseded by openai/gpt-5.6-terra high (paid one-shot escalation)"
+    active: false
+
+  - model_id: "gpt-5.6-luna"
+    role: "analyzer-escalated"
+    price_in_1m: 0.20
+    price_out_1m: 1.20
+    req_per_month: 10250  # ESTIMATE (per res024 sec 3.3)
+    swe_bench_verified: null
+    source_ref: "res016"
+    lane: "analyzer-escalated"
+    fallback: []
+    quota_notes: "Subagent-weak caveat"
+    active: true
+
+  - model_id: "deepseek-v4-pro"
+    role: "fallback"
+    price_in_1m: 0.66
+    price_out_1m: 1.98
+    req_per_month: 5200  # ESTIMATE (per res024 sec 3.3)
+    swe_bench_verified: 74.0
+    source_ref: "res017, res030"
+    lane: "coder-escalated"
+    fallback: []
+    quota_notes: "Independent CAISI evidence; price corrected 2026-08-17 (res030 sec 7: res013's $0.435/$0.87 was a transcription collision with mimo-v2.5-pro; fresh $0.66/$1.98 off-peak / $1.32/$3.96 peak)"
+    active: true
+
+  - model_id: "mimo-v2.5-pro"
+    role: "fallback-2"
+    price_in_1m: 0.435
+    price_out_1m: 0.87
+    req_per_month: 16300  # ESTIMATE (per res024 sec 3.3)
+    swe_bench_verified: null
+    source_ref: "res017"
+    lane: "coder-escalated"
+    fallback: []
+    quota_notes: "Vendor-only benchmark; benchmark-gap OPEN"
+    active: true
+
+  - model_id: "gpt-5.3-codex"
+    role: "reviewer"
+    price_in_1m: 1.75
+    price_out_1m: 14.00
+    req_per_month: null  # ESTIMATE (per res024 sec 3.3)
+    swe_bench_verified: 85.0
+    source_ref: "res013"
+    lane: "reviewer"
+    fallback: []
+    quota_notes: "Copilot credits - skip guard"
+    active: true
+
+routing_table:
+  - rung: "Rung0"
+    signal: "Start / routine work"
+    lane: "coder"
+    model: "mimo-v2.5"
+    quota_guarded: false
+  - rung: "Rung1"
+    signal: "Verify-fail #1 / Minor finding"
+    lane: "coder"
+    model: "mimo-v2.5"
+    quota_guarded: false
+  - rung: "Rung2"
+    signal: "Verify-fail #2"
+    lane: "coder"
+    model: "qwen3.8-flash"  # Intentional divergence per DIA-260909-18f4 Variant A: Rung2 stays qwen3.8-flash (coder volume lane, cost); Terra is analysis-primary only.
+    quota_guarded: false
+  - rung: "Rung3"
+    signal: "2x failed re-review loops OR Critical severity"
+    lane: "coder-escalated"
+    model: "openai/gpt-5.6-terra"  # DIA-260911-rqmw: Terra High paid escalation, one-shot no-retry (developer-gated, no auto-retry).
+    quota_guarded: true
+  - rung: "Rung3-fallback"
+    signal: "Terra escalation failed AND developer approved fallback via wait_for_user (one-shot rule)"
+    lane: "coder-escalated"
+    model: "deepseek-v4-pro"
+    quota_guarded: true
+  - rung: "Rung3-fallback-2"
+    signal: "deepseek-v4-pro quota exhausted or SILENT_FAILURE"
+    lane: "coder-escalated"
+    model: "mimo-v2.5-pro"
+    quota_guarded: true
+  - rung: "Rung4"
+    signal: "Re-review after fixes"
+    lane: "reviewer"
+    model: "gpt-5.3-codex"
+    quota_guarded: false
+  - rung: "Analyzer"
+    signal: "Default analysis"
+    lane: "analyzer"
+    model: "openai/gpt-5.6-terra"  # Aligned per DIA-260909-18f4 Variant A: matches muse-qwen-balanced analyzer primary (high).
+    quota_guarded: false
+  - rung: "Analyzer-escalated"
+    signal: "cannot comprehend domain OR abort-on-complexity"
+    lane: "analyzer-escalated"
+    model: "gpt-5.6-luna"
+    quota_guarded: true
+  - rung: "Analyzer-route-back"
+    signal: "After escalated pass"
+    lane: "analyzer"
+    model: "openai/gpt-5.6-terra"  # Aligned per DIA-260909-18f4 Variant A: matches muse-qwen-balanced analyzer primary (high).
+    quota_guarded: false
