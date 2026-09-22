@@ -14,7 +14,7 @@ id: DIA-187
 title: "OMO slim 2.2.14 update evaluation - research what is new, decide safety/worth for the project"
 area: opencode-config
 severity: Medium
-status: OPEN
+status: DONE
 blocked_by: [] # no blockers
 parent_epic: ""
 
@@ -30,7 +30,7 @@ discovered:
 source: developer request
 date: 2026-08-15
 created: 2026-08-15
-updated: 2026-08-15
+updated: 2026-09-22
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -268,3 +268,14 @@ variant A (UPDATE NOW) recorded in the UPDATE block above.
 ## Re-verify
 
 > To be filled at re-verify time.
+
+## Stale-close (2026-09-22, developer approved)
+
+CLOSED AS STALE. This ticket evaluated the 2.2.14 update; the tree has moved
+past it. Current pins are 2.2.19 in all three declaration sources:
+Dockerfile.dev line 32 (ARG OMO_VERSION=2.2.19), .opencode/opencode.jsonc
+line 724 ("oh-my-opencode-slim@2.2.19"), .opencode/tui.json line 2
+("plugin": ["oh-my-opencode-slim@2.2.19"]). The NON-REGRESSIBLE items named
+in Description (conspecter permission hardening, agent-name lockstep S1-S4,
+skill-sync behavior) already landed per the current tree. No further action
+on 2.2.14. Developer approval 2026-09-22 (bounded close-as-stale lane).
