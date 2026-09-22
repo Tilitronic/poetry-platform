@@ -71,18 +71,22 @@ Note: These are navigational facts to help future humans find the infra/test art
   safe/destructive mapping, cleanup, conflict escalation, session isolation,
   orchestrator dispatch templates) are in
   `docs/dev-infra-audit/worktree-conventions.md`. Worktrees materialize under
-  `.worktrees/` at the repo root (git-ignored; also mirrored in
-  `tools/opencode-docker/`). This is a navigational pointer only; the mechanics
-  themselves are recoverable from those tracked files.
+  `.worktrees/` at the repo root (git-ignored). The `tools/` directory is
+  empty; `tools/opencode-docker/` was retired in PHASE 3 (commit 63d6478).
+  This is a navigational pointer only; the mechanics themselves are
+  recoverable from those tracked files.
 
-- Executable-bit management (DIA-118, 2026-08-12): the repo sets
+- Executable-bit management (DIA-118, 2026-08-12; RECURRENCE 2026-09-22): the repo sets
   `core.filemode=false` in `.git/config` (repo-local, not committed), so plain
   `chmod +x` on a tracked file is silently dropped at commit time. Any new
   executable script (e.g. scripts/worktrees.sh, which must stay 100755) must be
   staged with `git update-index --chmod=+x <file>` and verified via
   `git ls-files -s <file>`. This config value is not recoverable from the repo
-  tree, so future authors must know it is set. Cross-reference: lessons.md S18
-  core.filemode=false chmod trap.
+  tree, so future authors must know it is set. This is the 3rd recorded
+  instance; detection method: read the COMMIT MODE (`git ls-files -s`), not
+  the working-tree `ls -la` (which shows the correct bit on disk regardless).
+  Cross-reference: lessons.md S18 core.filemode=false chmod trap,
+  lessons.md L20260922-cp0m-003.
 
 - Bats hermetic-sandbox seeding pattern (DIA-162, 2026-08-12): bats cases in
   `scripts/__tests__/verify-pre-push.bats` and `verify-pre-commit.bats` that fake

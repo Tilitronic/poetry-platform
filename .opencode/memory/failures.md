@@ -18,7 +18,7 @@ Failed-loop lessons & preventive actions
 - Failure mode: Double-/api base URL composition bug escaped mocked tests and caused live runs to 404. Root cause: mock-mode used a different base composition than real API. Preventive action: add a real-API smoke run (gated) and a URL-join helper for base + path to avoid double prefixing.
 
 - Failure mode: MCP header-name mismatch risk (opencode.jsonc configured CONTEXT7_API_KEY header literal). Root cause: naming mismatch between env var and accepted server header names. Preventive action: update MCP mapping to Authorization: Bearer or X-Context7-API-Key and include an MCP integration smoke test.
-  Resolution: Fixed by updating the Context7 MCP registration in .opencode/opencode.jsonc and tools/opencode-docker/config/opencode.json to use "Authorization: Bearer {env:CONTEXT7_API_KEY}", set "oauth": false to avoid false OAuth detection, and increase MCP timeout to 15000ms to accommodate remote latency. See .opencode/learnings/external-patterns/2026-08-02-context7-mcp-registration.md for source-verified details. Keep this failure entry for historical context; mark as resolved by the above config updates.
+  Resolution: Fixed by updating the Context7 MCP registration in .opencode/opencode.jsonc (and formerly tools/opencode-docker/config/opencode.json, now retired — tools/ empty since PHASE 3 commit 63d6478) to use "Authorization: Bearer {env:CONTEXT7_API_KEY}", set "oauth": false to avoid false OAuth detection, and increase MCP timeout to 15000ms to accommodate remote latency. See .opencode/learnings/external-patterns/2026-08-02-context7-mcp-registration.md for source-verified details. Keep this failure entry for historical context; mark as resolved by the above config updates.
 
 - Failure mode: pre-commit hook blocks local commits (2026-08-09)
   - Symptom: `git commit` fails with a husky pre-commit script exit (code 1) and message: "!! dev container not running — start with 'make up', then commit again." Observed twice during this campaign when attempting local commits outside the running dev container.
@@ -627,3 +627,48 @@ Failed-loop lessons & preventive actions
     the evidence section silently empty.
   - Why irrecoverable: engine-down at finalize time is transient host state,
     not reconstructible from commits.
+
+- Failure mode (2026-09-22, DIA-260922-cp0m): lane killed mid-dispatch
+  (process kill, NOT crash) -- file changes landed but uncommitted, result
+  never returned
+  - Symptom: a coder lane was killed by a process kill (NOT a crash or
+    session error) mid-verification. Its file changes had LANDED on disk
+    but were uncommitted, and its result was never returned to the
+    orchestrator. The lane appeared to vanish without error or empty
+    result.
+  - Distinguishing signatures (the forensic fingerprints):
+    1. ABSENCE of `upgraded method=curl target=` in the log -- that string
+       means an opencode self-update, not a kill.
+    2. ABSENCE of SIGSEGV/panic/step-cap markers in a 533-line log.
+    3. NULL-byte log tail (killed mid-write to the log file) followed by a
+       clean boot on the next session.
+  - Recovery pattern that worked (in order):
+    1. **Read-only forensic lane first**: a dedicated read-only lane
+       established the TRUE failure class BEFORE any recovery was attempted.
+       The distinguishing signatures above were discovered here, not from
+       the orchestrator's high-level view.
+    2. **Classify work state**: nothing-landed / partially-landed-uncommitted
+       / landed-committed / corrupt. In this case: landed-uncommitted (files
+       on disk, not staged, not committed).
+    3. **Fresh verify-first lane**: dispatched a FRESH lane that verified the
+       landed work against the spec -- did NOT re-apply the landed work.
+       The fresh lane read the code, confirmed it was correct, and committed
+       it.
+    4. **Container rebuild**: the pre-commit hook hard-fails when the dev
+       container is down (DIA-094), so the container had to be brought back
+       up and the image rebuilt before commits could proceed.
+  - Preventive action: after ANY process-kill (not crash, not session error)
+    of a writer lane, follow the same verify-first ordering as for empty
+    results (failures.md line 260) and crashed lanes (failures.md line 253):
+    recon FIRST to establish what was actually written, classify the work
+    state, then dispatch recovery. The kill signature (NULL-byte log tail +
+    absence of crash markers) is the discriminator for this class.
+  - Why irrecoverable: the process-kill recovery ordering, the forensic
+    fingerprints, and the container-rebuild requirement are runtime/session
+    behavior not stated in any commit; git shows only the final committed
+    state, not the kill-detection and recovery path.
+  - Cross-reference: failures.md line 253 (DIA-177 crash recovery, same
+    verify-first pattern); failures.md line 260 (empty-result ambiguity);
+    failures.md line 418 (DIA-260824-a3mk empty-result, state-inspection
+    before re-dispatch); lessons.md L20260922-cp0m entries; DIA-094
+    (container required for pre-commit).

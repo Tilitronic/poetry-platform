@@ -820,6 +820,14 @@ shelf:
     path: knowledge/ana-260903-qh9y-plugin-test-debloat-audit/ana-260903-qh9y-plugin-test-debloat-audit-report.md
     created: 2026-09-03
     task_ref: DIA-260903-o7n0
+  - name: "Scope Breach Disposition Analysis (DIA-260922-cp0m)"
+    description: "Analysis of scope-breach disposition for the container-merge\
+      \ campaign (DIA-260922-cp0m). Evaluates whether observed deviations from\
+      \ the original spec constitute genuine scope breaches or acceptable implementation\
+      \ drift, with disposition recommendations for each finding."
+    path: knowledge/ana-260922-4fod-x5nj-scope-breach-disposition/ana-260922-4fod-x5nj-scope-breach-disposition-report.md
+    created: 2026-09-22
+    task_ref: DIA-260922-cp0m
   adrs:
   - name: Memory Storage Strategy
     description: 'Evaluation of Claude-Mem, Honcho, and current hand-written memory

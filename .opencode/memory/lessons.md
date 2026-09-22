@@ -3105,3 +3105,84 @@ verification evidence (DIA-260909-csds, 2026-09-09)
 - Cross-reference: DIA-260920-cry5 (Fix section), ses_f37b8d93dffeCt29mlT42pi2n2.
 
 - Distinguish a real Bun crash from an opencode self-update restart (2026-09-22): opencode self-updates (always-on, no config toggle). A self-update restart looks like a crash to the user: the session dies and the version changes. Discriminator: crash markers (`Bun has crashed`, `Segmentation fault`, `Illegal instruction`, bun.report URL, stack napi_module_register/process_dlopen) + clean dmesg + empty /var/crash + no core dumps = NOT a crash; presence of `upgraded method=curl target=` plus a new `creating instance` run id = self-update. Do not file or escalate a crash ticket without this check. Cross-reference DIA-260920-cry5 and ses_f377d6331ffeDBVEpwc5FT2Ehl.
+
+## L20260922-cp0m-001 - Review failure class: "evidence narrower than the claim it supports" (DIA-260922-cp0m, 2026-09-22)
+
+A test that passes for a reason other than the property it names is a
+false-green. Two concrete instances this session:
+
+1. **TAUTOLOGY pin**: a test grepped the Makefile for a substring that the
+   pre-fix COMMENT already contained (e.g. grepping for `@echo` in a line
+   that was `# @echo ...`). The test could not distinguish a working echo
+   from a commented-out one. Fixed by asserting EMISSION via `make -n`
+   dry-run rather than substring presence.
+
+2. **HOST-CALIBRATED GREEN**: a test asserted engine-CLI absence while
+   relying on the ambient PATH, so it passed only on hosts without podman
+   installed. On a host with podman, the test passed for the wrong reason
+   (podman was found, satisfying the test's internal check despite the
+   invariant claiming the CLI should be absent). Fixed by building a
+   hermetic PATH (fakes-only, no host system dirs) and asserting the
+   precondition.
+
+**Generalisable rule**: before accepting a GREEN test, verify
+DISCRIMINATION -- state explicitly how the test would fail against the
+pre-fix code. A test that cannot fail against the broken state is not
+testing the property it names. This is the same class as the
+hermetic-PATH leak pattern (lessons.md "Observed hermetic-PATH leak
+pattern") but applies broader: any test whose evidence is narrower than
+its claim.
+
+- Why irrecoverable: the tautology and the host-calibration are
+  test-environment-specific interactions; the final committed test code
+  shows the fix but not the pre-fix false-green reasoning.
+- Cross-reference: DIA-260922-cp0m review findings S1-S6/P1-P8,
+  lessons.md "Observed hermetic-PATH leak pattern" (2026-08-12).
+
+## L20260922-cp0m-002 - Verify-then-branch decision gates must leave a record (DIA-260922-cp0m, 2026-09-22)
+
+A spec step whose whole purpose is to de-risk a choice (T10.0: run
+Branch A and Branch B, compare outcomes, pick the better one) must
+produce a record of the branch outcome. An unrecorded branch result is
+indistinguishable from a guess: a future reviewer or auditor cannot tell
+whether the choice was empirically grounded or arbitrarily picked.
+
+This session, T10.0 ran Branch A (single merged container) and the result
+was confirmed only during the review/fix cycle -- no explicit record
+existed at the time of the design decision. The outcome happened to be
+correct, but the absence of a record meant the confirmation had to be
+reconstructed from session logs (gitignored, ephemeral).
+
+**Rule**: when a spec mandates a verify-then-branch step, the branch
+outcome MUST be persisted in a tracked artifact (the ticket's Fix
+section, the design.md, or a committed verification log) before the
+design proceeds. A branch that runs but leaves no record is as risky as
+a branch that never ran.
+
+- Why irrecoverable: the T10.0 outcome was confirmed in-session but not
+  persisted to a tracked artifact until review; the gap between
+  confirmation and persistence is a workflow ordering lesson not visible
+  in the final commits.
+- Cross-reference: DIA-260922-cp0m, openspec/changes/ container-merge
+  tasks.md T10.0.
+
+## L20260922-cp0m-003 - DIA-118 exec-bit trap RECURRENCE (3rd instance, DIA-260922-cp0m, 2026-09-22)
+
+The core.filemode=false chmod trap recurred for the third time: a new
+script was created with `chmod +x` on disk but committed as 100644
+because `core.filemode=false` silently drops permission changes at commit
+time. The reviewer caught it by reading the COMMIT MODE (100644), not
+the working-tree `ls -la` (which showed 100755).
+
+This is the 3rd recorded instance (DIA-118 2026-08-12 was the 1st; the
+2nd was in a parallel lane). The existing entries at repo.md:78-85 and
+lessons.md:405-419 already cover the pattern -- this entry adds the
+recurrence count and the specific detection method (read COMMIT MODE, not
+working tree) as the durable discriminator.
+
+- Why irrecoverable: the recurrence count (3) and the detection method
+  (commit-mode vs working-tree) are not stated in the existing entries;
+  without this note, future reviewers will not know to check the commit
+  mode specifically.
+- Cross-reference: repo.md:78-85, lessons.md:405-419, DIA-118,
+  DIA-260922-cp0m review findings.
