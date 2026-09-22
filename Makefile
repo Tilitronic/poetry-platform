@@ -255,6 +255,9 @@ test-config: test-interview test-skills
 	# files only, so a fresh clone must be able to run it. Regenerate the suite
 	# when the plugin/config invariants it asserts evolve.
 	node scripts/__tests__/batch-d-infra.test.mjs
+	# DIA-260827-uv: routing-order gate suite (imports the real production
+	# seam .opencode/plugins/lib/routing-gate.ts, not local copies).
+	node scripts/__tests__/routing-order-gate.test.mjs
 	# DIA-260821-5r03: observer duplicate-registration dedupe gate. Enforces
 	# single-source-of-truth (observers load via auto-discovery of
 	# .opencode/plugins/; no explicit plugin-array entry for an auto-discovered

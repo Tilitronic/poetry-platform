@@ -92,6 +92,11 @@ import {
   CB_ERROR_THRESHOLD,
   ToolCircuitBreaker,
 } from "./lib/circuit-breaker.ts"
+import {
+  CONFIG_WORK_PATTERN,
+  evaluateRoutingGate,
+  buildRoutingGateError,
+} from "./lib/routing-gate.ts"
 export { CAPABILITY_SECRET, mintCapabilityToken, verifyCapabilityToken }
 export { TICKET_ID_RE, TICKET_ID_FIND_RE, TICKET_ID_FILENAME_RE }
 
@@ -2438,57 +2443,21 @@ const delegationObserver: Plugin = async (ctx) => {
           }
 
           // === DIA-230: Routing-order gate (blocking) ===
+          // Decision logic lives in ./lib/routing-gate.ts (DIA-260827-uv:
+          // single source of truth shared with the node:test suite).
           // Runs BEFORE the ticket-gate early returns so it fires for ALL
           // task() calls where subagent_type is coder/coder-escalated and
           // prompt contains config-work paths. BLOCKING: the dispatch is
           // rejected when @ai-specialist gate review has not been completed
           // in this session. Matching the §10 edit gate pattern.
-          //
-          // Config-work path pattern: matches .opencode/ config directories,
-          // config files, and agent instruction files listed in AGENTS.md
-          // section 2.5. Deliberately excludes .opencode/session/* and
-          // .opencode/learnings/* (runtime artifacts, not config).
-          const CONFIG_WORK_PATTERN =
-            /(\.opencode\/plugins\/|\.opencode\/oh-my-opencode-slim|orchestrator_append\.md|\.opencode\/agents\/|\.opencode\/skills\/|\.opencode\/commands\/|\.opencode\/rules\/|opencode\.jsonc|dcp\.jsonc|AGENTS\.md|practice-protected\.md)/i
-          if (
-            subagentType === "coder" ||
-            subagentType === "coder-escalated"
-          ) {
-            const isConfigWork = CONFIG_WORK_PATTERN.test(dispatchText)
-            if (isConfigWork) {
-              // Scan messages.jsonl for a prior @ai-specialist dispatch in
-              // this session. Delegation rows (event_type "delegation") do
-              // not carry session_id in their payload, so we match the
-              // paracrine dispatch.started signal emitted by emitStateSignal
-              // before the delegation row (DIA-220) -- it carries both
-              // session_id and the agent name. The routing order requires
-              // @ai-specialist before @coder on config-work, so we check
-              // for a specific ai-specialist dispatch, not just any prior
-              // task().
-              let hasAiSpecialist = false
-              try {
-                if (existsSync(messagesPath)) {
-                  const lines = readFileSync(messagesPath, "utf-8")
-                    .split("\n")
-                    .filter(Boolean)
-                  hasAiSpecialist = lines.some((line) => {
-                    try {
-                      const row = JSON.parse(line) as Record<string, unknown>
-                      return (
-                        row.session_id === input.sessionID &&
-                        row.agent === "ai-specialist" &&
-                        row.event_type === "paracrine" &&
-                        row.signal_type === "dispatch.started"
-                      )
-                    } catch {
-                      return false
-                    }
-                  })
-                }
-              } catch {
-                // Fail-closed: scan error -> hasAiSpecialist=false -> hard block (ROUTING_VIOLATION)
-              }
-              if (!hasAiSpecialist) {
+          {
+            const gateResult = evaluateRoutingGate({
+              subagentType,
+              dispatchText,
+              messagesPath,
+              sessionId: input.sessionID,
+            })
+            if (gateResult.violation) {
                 registry.appendRow({
                   event: "ROUTING_VIOLATION",
                   dispatch_state: "BLOCKED",
@@ -2520,15 +2489,7 @@ const delegationObserver: Plugin = async (ctx) => {
                   input.sessionID
                 )
                 rollbackAdaptiveDispatch(input.callID)
-                throw new Error(
-                  "ROUTING GATE: @coder dispatched on config-work without prior @ai-specialist gate review.\n" +
-                  "AGENTS.md section 2.5 requires:\n" +
-                  "  1. @ai-specialist gate research -> findings registered in .opencode/learnings/external-patterns/\n" +
-                  "  2. User reviews & approves findings\n" +
-                  "  3. THEN @coder implementation can proceed\n" +
-                  "Action: dispatch @ai-specialist first."
-                )
-              }
+                throw buildRoutingGateError()
             }
           }
 

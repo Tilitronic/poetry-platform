@@ -228,7 +228,7 @@ const CLOSED_TICKET_RE = /closed[- ]ticket/
 // NEVER bypasses - fields must be checked separately (hook prod path).
 const SHELL_SPECIAL_RE = /[\r\n;&|><`$]|\b(curl|wget|rm|delete)\b/
 const CONFIG_PATH_RE =
-  /\.opencode\/|opencode\.jsonc|dcp\.jsonc|agents\.md|practice-protected|\bplugin\b|\bskill\b/i
+  /\.opencode\/|opencode\.jsonc|agents\.md|practice-protected|\bplugin\b|\bskill\b/i
 const DIA_ID_TOKEN_RE = /\bdia-[0-9a-z]+(?:-[0-9a-z]+)?\b/g
 // Anchored to command position (field start, optional [meta-task] marker and
 // leading please/just/run): a prose mention such as "reference
