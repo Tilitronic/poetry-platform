@@ -32,6 +32,6 @@ load test-helper
   # `make -n` output; the `@echo` form produces exactly one. This assertion
   # would FAIL against the unfixed Makefile.
   local dry_run_output
-  dry_run_output="$(make -n test-config 2>/dev/null)"
+  dry_run_output="$(make -C "$REPO_ROOT" -n test-config 2>/dev/null)"
   echo "$dry_run_output" | grep -q "compose config validation is host-scoped"
 }

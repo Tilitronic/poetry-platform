@@ -78,11 +78,24 @@ EOF
   local tree
   tree="$(setup_compose_config_tree)"
 
-  # S4 + Obs-3: drive REAL CLI absence via COMPOSE_ENGINE=podman.
-  # On this host, podman is not installed (command -v podman fails), so the
-  # P3 command-v check catches it. This is deterministic: the test asserts
-  # the precondition that podman is not resolvable.
-  run env COMPOSE_ENGINE=podman bash "$tree/scripts/check-compose-config.sh"
+  # S4 + Obs-3: genuinely hermetic PATH. Build a temp bin with ONLY the
+  # binaries the script's code path invokes (bash, hostname) and deliberately
+  # NO docker, NO podman. When COMPOSE_ENGINE=podman, container_engine_select
+  # returns "podman" immediately (no command -v / readlink needed); the script's
+  # P3 guard then checks `command -v podman` which fails under this PATH.
+  local hermetic_bin="$BATS_TEST_TMPDIR/hermetic-bin"
+  mkdir -p "$hermetic_bin"
+  ln -sf "$(command -v bash)" "$hermetic_bin/bash"
+  ln -sf "$(command -v hostname)" "$hermetic_bin/hostname"
+  ln -sf "$(command -v dirname)" "$hermetic_bin/dirname"
+  # Precondition assertion: prove podman is NOT in the hermetic bin.
+  # If this ever fails, the test must fail LOUDLY — never silently revert.
+  [ ! -x "$hermetic_bin/podman" ] || {
+    echo "PRECONDITION FAILED: podman found in hermetic bin — cannot test CLI-absence path" >&2
+    return 1
+  }
+
+  run env COMPOSE_ENGINE=podman PATH="$hermetic_bin" bash "$tree/scripts/check-compose-config.sh"
 
   assert_status 1
   # P3: the message must name the missing engine and tell the developer to install

@@ -42,7 +42,7 @@ if ! command -v mise >/dev/null 2>&1; then
   exit 1
 fi
 
-# Step 3 — trust + resolve the [tools] pins. `mise trust` is idempotent (exit 0
+# Step 2 — trust + resolve the [tools] pins. `mise trust` is idempotent (exit 0
 # on repeat); failing fast here avoids a later `mise install` that prompts or
 # hangs on an untrusted config in a non-interactive shell.
 if ! mise trust "${MISE_TOML}" >/dev/null 2>&1; then
@@ -54,7 +54,7 @@ if ! mise install >/dev/null 2>&1; then
   exit 1
 fi
 
-# Step 4+5 — probe each pinned tool. Per flag-a resolution: `mise which` asserts
+# Step 3 — probe each pinned tool. Per flag-a resolution: `mise which` asserts
 # the mise-managed tool is active (it fails loudly when not), and both the mise
 # declaration (`mise current`) and the real binary on PATH (<tool> --version)
 # must match the pin.
