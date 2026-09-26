@@ -48,6 +48,23 @@ EOF
   echo "$tree"
 }
 
+# plant_non_container_hostname <dir>: writes a fake `hostname` script into
+# <dir> that echoes a NON-container name. Prepends <dir> to PATH so that
+# is_in_dev_container (sourced from in-container.sh) evaluates to FALSE
+# regardless of the real hostname. This lets these tests run on ANY host
+# AND inside the container without skipping.
+plant_non_container_hostname() {
+  local dir="$1"
+  mkdir -p "$dir"
+  cat > "$dir/hostname" <<'FAKEHOSTNAME'
+#!/usr/bin/env bash
+printf '%s\n' "test-host"
+FAKEHOSTNAME
+  chmod +x "$dir/hostname"
+  PATH="$dir:$PATH"
+  export PATH
+}
+
 # ---------------------------------------------------------------------------
 # Tests
 # ---------------------------------------------------------------------------
@@ -65,9 +82,7 @@ EOF
 
 @test "check-compose-config: engine CLI present + valid config -> exit 0" {
   [ -f "$REPO_ROOT/scripts/check-compose-config.sh" ] || skip "script not yet implemented"
-  if is_in_dev_container; then
-    skip "host-scoped: check-compose-config.sh short-circuits in-container per ADR-14; run on the host for full coverage"
-  fi
+  plant_non_container_hostname "$BATS_TEST_TMPDIR/bin"
   mock_docker
   local tree
   tree="$(setup_compose_config_tree)"
@@ -81,9 +96,6 @@ EOF
 
 @test "check-compose-config: engine CLI absent -> HARD FAIL with actionable message" {
   [ -f "$REPO_ROOT/scripts/check-compose-config.sh" ] || skip "script not yet implemented"
-  if is_in_dev_container; then
-    skip "host-scoped: check-compose-config.sh short-circuits in-container per ADR-14; run on the host for full coverage"
-  fi
   local tree
   tree="$(setup_compose_config_tree)"
 
@@ -95,7 +107,14 @@ EOF
   local hermetic_bin="$BATS_TEST_TMPDIR/hermetic-bin"
   mkdir -p "$hermetic_bin"
   ln -sf "$(command -v bash)" "$hermetic_bin/bash"
-  ln -sf "$(command -v hostname)" "$hermetic_bin/hostname"
+  # Plant a fake hostname that returns a NON-container name so is_in_dev_container
+  # evaluates to FALSE. The real hostname returns "poetry-dev" in-container, which
+  # would trigger the host-scoped skip guard. This mock keeps the test hermetic.
+  cat > "$hermetic_bin/hostname" <<'FAKEHOSTNAME'
+#!/usr/bin/env bash
+printf '%s\n' "test-host"
+FAKEHOSTNAME
+  chmod +x "$hermetic_bin/hostname"
   ln -sf "$(command -v dirname)" "$hermetic_bin/dirname"
   # Precondition assertion: prove podman is NOT in the hermetic bin.
   # If this ever fails, the test must fail LOUDLY — never silently revert.
@@ -118,9 +137,6 @@ EOF
 
 @test "check-compose-config: compose config validation fails -> non-zero exit" {
   [ -f "$REPO_ROOT/scripts/check-compose-config.sh" ] || skip "script not yet implemented"
-  if is_in_dev_container; then
-    skip "host-scoped: check-compose-config.sh short-circuits in-container per ADR-14; run on the host for full coverage"
-  fi
   # ponytail: duplicate fake retained for a targeted compose-config-failure
   # path, extend mock_docker with FAKE_DOCKER_COMPOSE_CONFIG_FAIL if a third
   # consumer appears.
@@ -146,6 +162,13 @@ esac
 exit 0
 FAKEDOCKER
   chmod +x "$bindir/docker"
+  # Fake hostname: returns non-container name so is_in_dev_container is FALSE.
+  # The run() call passes PATH="$bindir:$PATH" so this mock takes precedence.
+  cat > "$bindir/hostname" <<'FAKEHOSTNAME'
+#!/usr/bin/env bash
+printf '%s\n' "test-host"
+FAKEHOSTNAME
+  chmod +x "$bindir/hostname"
   PATH="$bindir:$PATH"
   export PATH
   local tree
