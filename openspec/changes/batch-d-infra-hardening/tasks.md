@@ -134,6 +134,7 @@ files). S5 runs last after all four slices are complete.
     - **Rule R1 (Ticket-ID token in dispatch/resume prompts):** every `task()` dispatch AND every resume prompt MUST contain the literal ticket ID (e.g., "DIA-174"). Resumes without the ticket ID are BLOCKED by the DIA-063 gate; the rule ensures the token is always present so the gate passes naturally. Required phrases in the rule text: "every dispatch", "every resume prompt", "literal ticket ID", "DIA-063 gate".
     - **Rule R2 (Architector design persistence):** after each `@architector` design dispatch, the orchestrator MUST persist the design text into the DIA ticket (or a `.sdd` draft) BEFORE implementation dispatch. Required phrases: "persist the design text", "DIA ticket", "before implementation".
     - **Rule R3 (Merge-gate container evidence):** the merge phase may only start with recorded `docker compose ps` evidence showing the dev service running; the session log MUST record container state before merge dispatch. Required phrases: "docker compose ps", "dev service", "before merge dispatch", "session log".
+      > **SUPERSESSION (DIA-260922-cp0m):** R3's required phrase "docker compose ps" is superseded. The probe is now `scripts/check-stack-ready.sh` (STACK_READY token). The orchestrator_append.md R3 text has been rewritten.
   - **Acceptance criteria:**
     - All 3 rules are present in the file.
     - Each rule contains its required phrases (see above).

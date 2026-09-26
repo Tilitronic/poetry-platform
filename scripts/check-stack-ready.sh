@@ -22,6 +22,7 @@
 #   database host and port come from DATABASE_URL (same source the app uses)
 #   explicit bounded timeout (no retry loops)
 #   the "not running inside the dev container" case yields STACK_NOT_READY
+#   sources scripts/in-container.sh for hostname-based detection
 #
 # Usage:
 #   scripts/check-stack-ready.sh              # normal: reads DATABASE_URL
@@ -32,6 +33,16 @@
 #                  DATABASE_URL is ignored. Used by bats tests to exercise
 #                  the negative path without stopping postgres.
 set -euo pipefail
+
+# In-container detection: this script MUST run inside the dev container.
+# When invoked outside (e.g. on the host), emit STACK_NOT_READY immediately.
+# Sourced, not executed -- provides is_in_dev_container().
+source "$(dirname "${BASH_SOURCE[0]}")/in-container.sh"
+if ! is_in_dev_container; then
+  diag "not running inside the dev container (hostname != poetry-dev)"
+  emit "STACK_NOT_READY"
+  exit 1
+fi
 
 # Emit exactly one token on stdout and exit. Stderr goes to the caller.
 emit() {

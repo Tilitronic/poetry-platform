@@ -2560,6 +2560,14 @@ recorded here). Irrecoverable process lessons:
 - Cross-reference: AGENTS.md section 6 (pre-work gates), DIA-174 merge
   gate R3, scripts/verify-pre-commit.sh, poetry-dev container architecture.
 
+**SUPERSESSION (DIA-260922-cp0m, 2026-09-26):** the above workaround
+(accept pre-commit-hook exit 0 as implicit evidence) is superseded by the
+in-container TCP probe (scripts/check-stack-ready.sh). R3 is now PROSE-ONLY:
+its enforcement is the orchestrator reading the script output token; no
+mechanical consumer of the token exists. The probe replaces `docker compose ps`
+as merge-gate evidence and runs inside the dev container where OpenCode
+executes.
+
 ## L20260910-c3d4-003 - Reviewer false-positive pattern: Spec-axis not-implemented findings against explicit design-only/spec-only constraints need developer disposition, not fix loops (DIA-260831-x3y4, 2026-09-10)
 
 - Observation: the reviewer's Spec axis flagged "not implemented" findings

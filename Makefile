@@ -16,7 +16,7 @@
 #
 #   make test-shell   unit-test dev-infra shell scripts (bats; Docker mocked)
 #   make check-tools  host-runnable tool integrity check (mise vs node/pnpm/opencode/bun pins)
-#   make test-infra   test-shell + full Docker compose smoke test (heavy)
+#   make test-infra   test-shell + full container-engine compose smoke test (heavy)
 #   make test-config  validate OpenCode JSONC config syntax + interview + skills gate
 #   make test-omo      bun test + typecheck for embedded OMO suite (.opencode/oh-my-opencode-slim, DIA-260827-6wvm)
 #   make test-interview  run scripts/test-interview-enforcement.sh (5 checks)

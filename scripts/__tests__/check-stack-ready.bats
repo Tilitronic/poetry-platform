@@ -4,6 +4,17 @@
 
 setup() {
   SCRIPT="$BATS_TEST_DIRNAME/../check-stack-ready.sh"
+  # Mock hostname to return "poetry-dev" so the in-container check passes
+  # (tests run on the host, not inside the dev container).
+  MOCK_DIR="$(mktemp -d)"
+  echo '#!/bin/sh' > "$MOCK_DIR/hostname"
+  echo 'echo poetry-dev' >> "$MOCK_DIR/hostname"
+  chmod +x "$MOCK_DIR/hostname"
+  export PATH="$MOCK_DIR:$PATH"
+}
+
+teardown() {
+  rm -rf "$MOCK_DIR"
 }
 
 @test "check-stack-ready: missing DATABASE_URL and CHECK_TARGET yields STACK_NOT_READY" {
@@ -11,6 +22,18 @@ setup() {
   [ "$status" -ne 0 ]
   # stdout is exactly STACK_READY or STACK_NOT_READY; stderr diagnostics
   # are captured separately by bats run.
+  [[ "$output" == *"STACK_NOT_READY"* ]]
+}
+
+@test "check-stack-ready: not inside dev container yields STACK_NOT_READY" {
+  # Override hostname mock to return a non-poetry-dev name.
+  cat > "$MOCK_DIR/hostname" <<'SH'
+#!/bin/sh
+echo some-other-host
+SH
+  chmod +x "$MOCK_DIR/hostname"
+  run env DATABASE_URL="postgresql://x:x@localhost:5432/test" "$SCRIPT"
+  [ "$status" -ne 0 ]
   [[ "$output" == *"STACK_NOT_READY"* ]]
 }
 

@@ -74,6 +74,10 @@ the dev service running (commit the gate output into the merge report); the
 session log MUST record container state before merge dispatch. Eliminates the
 DIA-172 double-attempt-against-down-container failure mode.
 
+> **SUPERSESSION (DIA-260922-cp0m):** Item 6 is superseded. `docker compose ps`
+> is not runnable from inside the dev container. The merge-gate evidence is now
+> `scripts/check-stack-ready.sh` output (STACK_READY token), per R3 rewrite.
+
 ## Capabilities
 
 ### New Capabilities

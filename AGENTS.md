@@ -180,7 +180,7 @@ Full setup docs: `docs/docker-dev.md`.
     make down                     # stop containers (keep data)
     make clean                    # stop containers + wipe volumes
 
-### Gates that REQUIRE the container running
+### Gates that require the container running (detect by hostname)
 
 | Gate            | Command                        | Notes                                                      |
 | --------------- | ------------------------------ | ---------------------------------------------------------- |

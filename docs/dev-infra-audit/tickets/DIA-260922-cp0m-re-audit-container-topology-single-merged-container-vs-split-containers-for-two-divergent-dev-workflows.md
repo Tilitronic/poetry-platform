@@ -247,6 +247,16 @@ lessons file carried an undocumented workaround (lessons.md:2531-2561:
 accept the pre-commit hook exit 0 as implicit evidence) not in any
 committed gate text. This defect is now resolved by option (b).
 
+**Supersession (Fix item 3):** the original R3 requirement for `docker
+compose ps` evidence is superseded by option (b). Fix item 3 in the
+original audit is CLOSED as superseded.
+
+**PROSE-ONLY enforcement note:** R3's enforcement is PROSE-ONLY. The
+orchestrator reads the STACK_READY token from the script output and
+records it in the merge report. No mechanical consumer (CI gate, hook,
+or automated check) parses the token. This is an accepted ceiling: the
+gate relies on agent discipline to run and record the probe.
+
 ### Implementation complete (2026-09-26)
 
 **Commit:** c1b1429
