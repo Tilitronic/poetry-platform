@@ -39,6 +39,14 @@ evidence: []
 <To be filled at creation time: what is wrong / what to build, with exact
 files and line references where known.>
 
+### Problem: in-container engine probes are wrong by construction (2026-09-26)
+
+- The AGENTS.md section 6 Docker-gate wording (DIA-094) tells the agent to treat "a running docker dev container" as a precondition to verify. From inside the container there is no daemon and no socket (the dev service deliberately has no engine socket mounted), so that instruction induces a guaranteed false blocker. A coder lane hit exactly this on 2026-09-26 while fixing the Makefile test-infra teardown, and correctly refused to proceed.
+- The pre-commit hook does NOT probe a socket: it detects the container by hostname (scripts/in-container.sh:10-12, hostname == poetry-dev; scripts/verify-pre-commit.sh:63), so in-container commits work. The false premise is in the PROSE, not in the code.
+- The same failure is already documented as lesson L20260901-003 (.opencode/memory/lessons.md:2297-2299) yet recurs, because the rule wording was never corrected.
+- Repo prose is also stale on the engine: AGENTS.md says "runs inside Docker" while the code is engine-neutral (scripts/container-engine.sh:11-18, .env.example:31 COMPOSE_ENGINE=podman, docker-compose.podman.yml).
+- Additional lock-in found: scripts/**tests**/batch-d-infra.test.mjs:457 asserts AGENTS.md literally contains "docker compose ps", which freezes the DIA-174 R3 merge-gate wording and asserts no behavior.
+
 ## Verification
 
 <Acceptance criteria as checkboxes - how to prove the ticket is done.>
@@ -144,3 +152,119 @@ Verified green (ses_f375702edffe36XpGy4yluTINz):
 ### STATUS
 
 OPEN (phases 2-5 remaining; legacy still present; OPENCODE_VERSION diverged).
+
+### Fix: make the container rules detection-based and engine-neutral
+
+1. AGENTS.md section 6 - replace the DIA-094 block with a context-aware, ENGLISH paragraph: the agent determines its location the way the hook does (hostname == poetry-dev). Inside: the container is up by construction and is self-evident; NEVER start a container and NEVER probe for a daemon or engine socket (docker info, docker compose ps, /var/run/docker.sock) from inside - none is visible and any such probe is wrong by construction. On the host: the host-path checks apply. If container status is genuinely required, ASK THE DEVELOPER to run the command on the host and paste the output. What remains of DIA-094: commits still route through the husky pre-commit autofix gate, which detects in-container by hostname and needs no daemon; never bypass with --no-verify.
+
+2. AGENTS.md gates table (around lines 183-189) - retitle so it does not imply the agent must verify a running container; note that `make test-infra` genuinely needs a live engine and is therefore run by the developer on the host.
+
+3. AGENTS.md merge-gate bullet (DIA-174 R3, around line 74) - KEEP the guarantee (recorded evidence of the dev service being Up before a merge phase) but change the EVIDENCE SOURCE to host-side, and make it engine-neutral (docker compose ps OR podman compose ps, or the developer-pasted output). The guarantee must not be silently dropped.
+
+4. ~~NEW RULE (developer request, 2026-09-26) - agents COMMIT only; `git push` is performed by the DEVELOPER from the host.~~ **WITHDRAWN (2026-09-26).** Rules and permissions stay unchanged; host-side push is a session practice only, not a new rule. The developer pushes from the host because the agent cannot push from inside the container -- that is a session practice, not a new rule to codify.
+
+5. docs/docker-dev.md (around lines 104-106) - add that the hooks detect the container by hostname and need no daemon.
+
+6. scripts/**tests**/batch-d-infra.test.mjs:457 - remove the assertion that AGENTS.md contains the literal "docker compose ps", or refactor it so it asserts no wording. If removing it makes the test fail elsewhere, refactor rather than delete the whole test. Developer decision: this assertion is meaningless.
+
+7. Cross-link this ticket with DIA-260925-td9h (the session that produced the findings) and with DIA-174 R3 / DIA-094 for traceability.
+
+### Legacy orphan cleanup (2026-09-26)
+
+- The functional retirement under DIA-260824-8k62 (CLOSED, commit 63d6478) was already complete: Dockerfile, scripts, bin/, the Makefile target, the bats tests, docker-compose.fedora.yml and the test-shell wiring are gone; no pin divergence remains (single Dockerfile.dev ARG OPENCODE_VERSION).
+- A single orphan remained OUTSIDE 8k62's scope: tools/opencode-docker/config/ (node_modules ~62 MB, package.json, package-lock.json, .gitignore, **pycache**) - the former Context7 MCP config now living in .opencode/opencode.jsonc. Zero executable references existed.
+- Action: removed the orphan directory. git ls-files reported ZERO tracked paths (entire directory was untracked/ignored). No commit needed (nothing tracked to remove).
+- test-shell: exit 1. 3 failures in check-compose-config (tests 98-100) -- HOST-scoped compose validation tests that require a Docker/Podman engine, which is unavailable inside the container. NOT caused by this change.
+- test-config: exit 0. All structural gates PASS.
+- Documentary references in tickets, knowledge/, openspec/ and CHANGELOG are historical records and were intentionally LEFT UNCHANGED.
+
+### WSL in-container path verified COMPLETE (2026-09-26)
+
+Entry points for a Windows/WSL developer, all from the WSL host terminal:
+
+- .devcontainer/devcontainer.json:3-4 (VS Code "Reopen in Container",
+  dockerComposeFile=../docker-compose.yml, service=dev)
+- `make up && make opencode`
+- `make up && make shell`
+- `make up && make dev`
+- raw `docker compose exec dev ...`
+
+Engine auto-detection covers WSL: scripts/compose-env.sh:64 detects WSL
+via /proc/version and appends docker-compose.wsl.yml. No remaining gap
+was found; the bare-host opencode path is NOT required for anything.
+
+**STALE CLAIM ANNOTATION:** The claim at line 61 of this ticket
+("Developer: Windows. Runs opencode on the WSL HOST, never inside the
+container") is STALE. It reflected the developer's session practice at
+the time (2026-09-22), not a constraint on the container path. The
+container path is fully functional on WSL. Current truth: BOTH developers
+work inside the Poetry Dev container (developer on Linux+Podman, colleague
+on Windows+WSL). This annotation does not rewrite the historical text.
+
+### R3 decision (2026-09-26)
+
+**Enforcement inventory:** R3 is enforced ONLY by string-presence
+assertions that assert no behaviour:
+
+- scripts/**tests**/batch-d-infra.test.mjs:431-432 asserts
+  /docker compose ps/ in orchestrator_append
+- :434-435 asserts /dev service/
+- :437-438 asserts /before merge dispatch/
+- :440-441 asserts /session log/
+- :457-458 asserts /docker compose ps/ in AGENTS.md
+
+Rule text: .opencode/oh-my-opencode-slim/orchestrator_append.md:448-453
+and AGENTS.md ~line 74.
+
+**Options evaluated:**
+(a) Keep R3, re-source evidence to host (developer pastes). Loses:
+nothing, but requires a manual developer step on every merge.
+(b) Replace `docker compose ps` with an in-container readiness/health
+evidence line (TCP probe). Strictly stronger than `docker compose ps`
+because it proves reachability, not just that the engine listed the
+service as Up. No engine socket required.
+(c) Delete R3 entirely. Loses: the original motivation (a merge once
+proceeded without evidence the stack was up, per DIA-172).
+
+**CHOSEN: option (b).** The in-container TCP probe was verified as
+VIABLE from inside the dev container (see learnings addendum Part 7).
+Verified command:
+
+python3 -c "import socket; s=socket.socket(); s.settimeout(3);
+s.connect(('postgres',5432)); print('REACHABLE'); s.close()"
+
+This replaces the `docker compose ps` requirement with a strictly
+stronger check: the agent verifies that postgres is reachable from
+inside the dev container, proving both the network path AND the service
+are up -- no engine socket, no compose binary required.
+
+**Status-quo defect (recorded):** R3 was a rule that looked enforced
+but could not be satisfied from the most common execution context. The
+lessons file carried an undocumented workaround (lessons.md:2531-2561:
+accept the pre-commit hook exit 0 as implicit evidence) not in any
+committed gate text. This defect is now resolved by option (b).
+
+### Implementation complete (2026-09-26)
+
+**Commit:** c1b1429
+
+**Changed files:**
+
+- scripts/check-stack-ready.sh (NEW - real postgres protocol probe)
+- scripts/**tests**/check-stack-ready.bats (NEW - bats tests)
+- .opencode/oh-my-opencode-slim/orchestrator_append.md (R3 rewritten)
+- AGENTS.md (Docker-gate detection-based, gates table retitled, merge-gate re-sourced)
+- docs/docker-dev.md (hostname-detection + check-stack-ready note)
+- scripts/**tests**/batch-d-infra.test.mjs (docker compose ps assertions replaced)
+- .opencode/memory/lessons.md (append-only correction near L20260922-env-fact)
+- .opencode/learnings/external-patterns/2026-09-26-in-container-engine-probes-wrong-by-construction.md (Addendum 2 frozen design)
+
+**Verification:**
+
+- check-stack-ready.sh positive case: exit 0, stdout STACK_READY
+- check-stack-ready.sh negative case (CHECK_TARGET override): exit 1, stdout STACK_NOT_READY
+- check-stack-ready.sh no-URL case: exit 1, stdout STACK_NOT_READY
+- make test-config: exit 0 (57 tests, 56 pass, 1 pre-existing orchestrator_append line-wrap fix applied)
+- make test-shell: 3 pre-existing check-compose-config failures (host-scoped, no engine reachable from inside the container); no new failures
+
+**IMPORTANT:** An OpenCode RESTART is required for the orchestrator-prompt change (R3 in orchestrator_append.md) to take effect. The new R3 rule requires check-stack-ready.sh output as merge evidence instead of docker compose ps.
