@@ -3,14 +3,19 @@
 #
 # WHY: the old R3 merge-gate rule required `docker compose ps` output, which
 # an agent inside the container cannot run. This script replaces it with a
-# real postgres protocol exchange via python3 (the only client available in
-# the image -- pg_isready, psql, nc, curl are NOT present). It proves
-# postgres actually accepts a connection, not merely that a port is open.
+# postgres wire-protocol exchange via python3 (the only client available in
+# the image -- pg_isready, psql, nc, curl are NOT present).
+#
+# WHAT IS PROVEN: the target speaks the postgres wire protocol (the first
+# response byte is R auth-request, E error, S parameter-status, or N notice).
+# This rules out SSH banners, SMTP greetings, or any other byte-emitting
+# listener that would pass a len(resp) > 0 check. It does NOT prove
+# authentication will succeed or that the target database exists.
 #
 # FROZEN CONTRACT (DIA-260922-cp0m):
 #   exit 0  => stdout is exactly the single token STACK_READY
 #   exit !=0 => stdout is exactly the single token STACK_NOT_READY
-#   stderr carries diagnostics only and is NEVER parsed
+#   stderr carries one diagnostic line (failure class) and is NEVER parsed
 #   no other exit codes
 #   no engine/compose invocation
 #   no pg_isready/psql/nc/curl used for readiness
@@ -31,6 +36,11 @@ set -euo pipefail
 # Emit exactly one token on stdout and exit. Stderr goes to the caller.
 emit() {
   printf '%s\n' "$1"
+}
+
+# Diagnostic on stderr -- one line per failure class, never parsed.
+diag() {
+  printf 'check-stack-ready: %s\n' "$1" >&2
 }
 
 # Parse DATABASE_URL to extract host and port.
@@ -54,48 +64,70 @@ if [ -n "${CHECK_TARGET:-}" ]; then
 elif [ -n "${DATABASE_URL:-}" ]; then
   parse_db_url "$DATABASE_URL"
 else
+  diag "no target: neither CHECK_TARGET nor DATABASE_URL is set"
   emit "STACK_NOT_READY"
   exit 1
 fi
 
 # Validate we have both parts
 if [ -z "$DB_HOST" ] || [ -z "$DB_PORT" ]; then
+  diag "URL parse failure: could not extract host and port from target"
   emit "STACK_NOT_READY"
   exit 1
 fi
 
 # python3 IS present in the Dockerfile.dev image; pg_isready/psql/nc/curl
-# are NOT. The startup-message exchange proves postgres actually speaks the
-# wire protocol, not merely that a TCP port is open (a dead-but-listening
-# port would pass a TCP-only check but fail here).
+# are NOT. We send a minimal postgres startup message to provoke an auth
+# response or error, then validate the first response byte is one of
+# R (auth-request), E (error), S (parameter-status), or N (notice) -- the
+# four bytes a real postgres server emits. Anything else (SSH banner, SMTP
+# greeting, random bytes) is rejected as NOT_READY.
+#
+# DB_HOST and DB_PORT are passed as argv to avoid shell injection through
+# untrusted URL content.
 if python3 -c "
-import socket, sys
+import socket, sys, struct
+
+host = sys.argv[1]
+port = int(sys.argv[2])
 timeout = 5
+
 try:
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.settimeout(timeout)
-    s.connect(('${DB_HOST}', int(${DB_PORT})))
-    # Send postgres startup message to prove the server speaks the protocol.
-    # The startup message format: length(4) + protocol version 3.0(4) + params.
-    # We send a minimal invalid startup to provoke an auth response or error;
-    # either proves the server is a real postgres instance.
-    import struct
+    s.connect((host, port))
+    # Minimal postgres startup: length + protocol version 3.0 + params.
     user = b'x\x00'
     database = b'database\x00test\x00'
     body = struct.pack('!II', 196608, 0) + user + database
     s.send(struct.pack('!I', len(body) + 4) + body)
-    # Read response -- any bytes means postgres is speaking the protocol
     resp = s.recv(1024)
     s.close()
-    if len(resp) > 0:
-        sys.exit(0)
-    else:
+    if len(resp) == 0:
+        print('connection failure: server closed connection without response', file=sys.stderr)
         sys.exit(1)
-except (socket.timeout, ConnectionRefusedError, OSError, struct.error):
+    # Validate first byte is a real postgres message type.
+    first = chr(resp[0])
+    if first not in ('R', 'E', 'S', 'N'):
+        print(f'non-postgres response: first byte 0x{resp[0]:02x} ({first!r}), not R/E/S/N', file=sys.stderr)
+        sys.exit(1)
+    sys.exit(0)
+except socket.timeout:
+    print(f'connection failure: timeout after {timeout}s connecting to {host}:{port}', file=sys.stderr)
     sys.exit(1)
-except Exception:
+except ConnectionRefusedError:
+    print(f'connection failure: refused by {host}:{port}', file=sys.stderr)
     sys.exit(1)
-" 2>/dev/null; then
+except OSError as e:
+    print(f'connection failure: {e}', file=sys.stderr)
+    sys.exit(1)
+except struct.error:
+    print('connection failure: protocol framing error', file=sys.stderr)
+    sys.exit(1)
+except Exception as e:
+    print(f'connection failure: {e}', file=sys.stderr)
+    sys.exit(1)
+" -- "$DB_HOST" "$DB_PORT"; then
   emit "STACK_READY"
   exit 0
 else
