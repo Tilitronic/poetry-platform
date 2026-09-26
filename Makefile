@@ -173,9 +173,13 @@ gen-jsconfig:
 # F-3, DIA-139) -- it is the sole bring-up; there is no second up --build.
 # Requires a running container engine (Docker or Podman).
 test-infra: gen-jsconfig test-shell test-harness
-	SMOKE_LEAVE_UP=1 bash scripts/test-docker-smoke.sh
-	$(MAKE) test-python
-	$(COMPOSE) down
+	@orig_rc=0; \
+	trap 'bash scripts/container-engine.sh compose down 2>/dev/null || true' EXIT; \
+	SMOKE_LEAVE_UP=1 bash scripts/test-docker-smoke.sh || orig_rc=$$?; \
+	if [ $$orig_rc -eq 0 ]; then \
+	  $(MAKE) test-python || orig_rc=$$?; \
+	fi; \
+	exit $$orig_rc
 
 # Unit tests for the Python packages (pytest): apps/api-server + the
 # analytics-pipeline (DIA-013 — it was previously outside all Python gates)

@@ -34,16 +34,6 @@
 #                  the negative path without stopping postgres.
 set -euo pipefail
 
-# In-container detection: this script MUST run inside the dev container.
-# When invoked outside (e.g. on the host), emit STACK_NOT_READY immediately.
-# Sourced, not executed -- provides is_in_dev_container().
-source "$(dirname "${BASH_SOURCE[0]}")/in-container.sh"
-if ! is_in_dev_container; then
-  diag "not running inside the dev container (hostname != poetry-dev)"
-  emit "STACK_NOT_READY"
-  exit 1
-fi
-
 # Emit exactly one token on stdout and exit. Stderr goes to the caller.
 emit() {
   printf '%s\n' "$1"
@@ -53,6 +43,16 @@ emit() {
 diag() {
   printf 'check-stack-ready: %s\n' "$1" >&2
 }
+
+# In-container detection: this script MUST run inside the dev container.
+# When invoked outside (e.g. on the host), emit STACK_NOT_READY immediately.
+# Sourced, not executed -- provides is_in_dev_container().
+source "$(dirname "${BASH_SOURCE[0]}")/in-container.sh"
+if ! is_in_dev_container; then
+  diag "not running inside the dev container (hostname != poetry-dev)"
+  emit "STACK_NOT_READY"
+  exit 1
+fi
 
 # Parse DATABASE_URL to extract host and port.
 # Format: postgresql://user:pass@host:port/dbname
@@ -138,7 +138,7 @@ except struct.error:
 except Exception as e:
     print(f'connection failure: {e}', file=sys.stderr)
     sys.exit(1)
-" -- "$DB_HOST" "$DB_PORT"; then
+" "$DB_HOST" "$DB_PORT"; then
   emit "STACK_READY"
   exit 0
 else

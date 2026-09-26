@@ -60,8 +60,9 @@ with open('/tmp/csr_test_port', 'w') as f:
 def handle(conn):
     try:
         conn.recv(1024)
-        # Auth-request: length=12, type='R', auth-ok(0)
-        msg = struct.pack('!II', 12, 82) + struct.pack('!I', 0)
+        # Auth-request response: type='R' (0x52), length=8, auth-ok(0)
+        # Response messages have type byte FIRST (unlike startup messages).
+        msg = struct.pack('!BI', 82, 8) + struct.pack('!I', 0)
         conn.send(msg)
     except:
         pass

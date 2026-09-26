@@ -51,3 +51,13 @@ Wrap bring-up/test/teardown in one shell with an EXIT trap that preserves the or
 ## Re-verify
 
 > To be filled at re-verify time.
+
+### Completion note (DIA-260922-cp0m, 2026-09-26)
+
+Makefile test-infra recipe (~line 175) rewritten as one shell invocation with
+an EXIT trap that always runs `compose down` and preserves the original failure
+exit code. Routed through engine-neutral `scripts/container-engine.sh compose`
+path. No dependency on check-stack-ready.sh. No cross-engine fallback.
+
+Verification: `make test-shell` passes; `make test-infra` requires host-side
+engine access (cannot be verified from inside the container -- this is expected).
