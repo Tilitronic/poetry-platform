@@ -16,6 +16,9 @@ bats_require_minimum_version 1.5.0
 
 REPO_ROOT="$(cd "$(dirname "$BATS_TEST_FILENAME")/../.." && pwd)"
 
+# Source shared in-container detection (S6, DIA-260922-cp0m).
+source "$REPO_ROOT/scripts/in-container.sh"
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -62,6 +65,9 @@ EOF
 
 @test "check-compose-config: engine CLI present + valid config -> exit 0" {
   [ -f "$REPO_ROOT/scripts/check-compose-config.sh" ] || skip "script not yet implemented"
+  if is_in_dev_container; then
+    skip "host-scoped: check-compose-config.sh short-circuits in-container per ADR-14; run on the host for full coverage"
+  fi
   mock_docker
   local tree
   tree="$(setup_compose_config_tree)"
@@ -75,6 +81,9 @@ EOF
 
 @test "check-compose-config: engine CLI absent -> HARD FAIL with actionable message" {
   [ -f "$REPO_ROOT/scripts/check-compose-config.sh" ] || skip "script not yet implemented"
+  if is_in_dev_container; then
+    skip "host-scoped: check-compose-config.sh short-circuits in-container per ADR-14; run on the host for full coverage"
+  fi
   local tree
   tree="$(setup_compose_config_tree)"
 
@@ -109,6 +118,9 @@ EOF
 
 @test "check-compose-config: compose config validation fails -> non-zero exit" {
   [ -f "$REPO_ROOT/scripts/check-compose-config.sh" ] || skip "script not yet implemented"
+  if is_in_dev_container; then
+    skip "host-scoped: check-compose-config.sh short-circuits in-container per ADR-14; run on the host for full coverage"
+  fi
   # ponytail: duplicate fake retained for a targeted compose-config-failure
   # path, extend mock_docker with FAKE_DOCKER_COMPOSE_CONFIG_FAIL if a third
   # consumer appears.
