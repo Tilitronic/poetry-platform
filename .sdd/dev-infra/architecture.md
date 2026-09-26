@@ -101,23 +101,50 @@ This document defines the architectural boundaries and operational mechanics of 
 
 #### Implementation status (2026-09-22)
 
-Decision ACCEPTED by the developer. PHASE 1 COMPLETE (commit 07c0513): the opencode install block was moved to the last layer, immediately before the OMO cache layer. Measured ~85% reduction in invalidated layers per opencode bump (13 -> 3). PHASE-1 verification: test-shell 734 ok / 0 not-ok; opencode 1.18.32 + bun 1.4.2; binary ownership 1001:1001 preserved. The DNS misdiagnosis correction (plain docker compose build dev works, no --network=host needed) is recorded in the DIA-260922-cp0m ticket. PHASE 3 COMPLETE (commit 63d6478): the legacy tools/opencode-docker runtime was retired. PHASES 2/4/5 COMPLETE (commits 68b0283 + f67a97b): pins consolidated to 4-pair parity (check-pin-sync.sh), healthcheck decoupled from opencode (node probe), Docker CLI removed from image, host-side compose-config gate added. Last full run: test-shell 704 ok / 0 not-ok.
+Decision ACCEPTED by the developer. PHASE 1 COMPLETE (commit 07c0513): the opencode install block was moved to the last layer, immediately before the OMO cache layer. Measured ~85% reduction in invalidated layers per opencode bump (13 -> 3). PHASE-1 verification: test-shell 734 ok / 0 not-ok; opencode 1.18.32 + bun 1.4.2; binary ownership 1001:1001 preserved. The DNS misdiagnosis correction (plain docker compose build dev works, no --network=host needed) is recorded in the DIA-260922-cp0m ticket. PHASE 3 COMPLETE (commit 63d6478): the legacy tools/opencode-docker runtime was retired. PHASES 2/4/5 COMPLETE (commits 68b0283 + f67a97b): pins consolidated to 4-pair parity (check-pin-sync.sh), healthcheck decoupled from opencode (node probe), Docker CLI removed from image, host-side compose-config gate added. Last full run: test-shell 704 ok / 0 not-ok. PHASE 6 COMPLETE (commit c1b1429): merge-gate evidence replaced with in-container TCP probe (DIA-260922-cp0m).
+
+### ADR 12: Merge-Gate Evidence Primitive (check-stack-ready.sh)
+
+- **Status:** Accepted
+- **Context:** DIA-174 R3 required `docker compose ps` output as merge-gate evidence, but this command is not runnable from inside the dev container (no engine CLI or socket mounted). The merge gate was unsatisfiable from the most common execution context.
+- **Decision:** Replace `docker compose ps` with a real postgres wire-protocol exchange via `scripts/check-stack-ready.sh`. The script sends a minimal postgres startup message and validates the first response byte is one of R/E/S/N (auth-request, error, parameter-status, notice). Host and port are passed via argv (not shell-interpolated). The frozen contract: exit 0 => stdout `STACK_READY`; exit !=0 => stdout `STACK_NOT_READY`; one stderr diagnostic line per failure class.
+- **Consequences:** The merge gate is now satisfiable from inside the dev container. The probe proves postgres is reachable from the container's network namespace -- it does NOT prove authentication will succeed or that the target database exists. R3 enforcement is PROSE-ONLY (no mechanical consumer of the token).
+- **Alternatives Considered:** Keep `docker compose ps` with host-side fallback (rejected: adds complexity, still requires developer intervention); use `pg_isready` (rejected: not installed in the image).
+
+### ADR 13: In-Container Detection Primitive (in-container.sh)
+
+- **Status:** Accepted (fail-open ceiling accepted)
+- **Context:** Multiple scripts needed to detect whether they are running inside the dev container. The hostname "poetry-dev" was repeated as a raw primitive in three scripts (check-compose-config.sh, verify-pre-push.sh, verify-pre-commit.sh).
+- **Decision:** Extract hostname-based detection into `scripts/in-container.sh` providing `is_in_dev_container()`. All container-detection scripts source this helper. Failure mode: if `hostname` command fails or is unavailable, `is_in_dev_container` returns false (fail-closed for the merge gate -- probe is skipped, STACK_NOT_READY emitted). This is the ACCEPTED CEILING: the detection is hostname-based and cannot distinguish "inside poetry-dev with a different hostname" from "outside the container entirely."
+- **Consequences:** Single source of truth for container detection. The hostname check is a pragmatic heuristic, not a cryptographic attestation -- it can be fooled by a host with hostname set to "poetry-dev", but this is an accepted risk in a single-developer dev environment.
+- **Alternatives Considered:** Check for `/.dockerenv` file (rejected: not reliable in all container runtimes); check cgroup markers (rejected: too fragile across kernel versions).
+
+### ADR 14: Execution-Context Contract
+
+- **Status:** Accepted
+- **Context:** Scripts in `scripts/` have implicit execution-context requirements (must run on host, must run in container, must have engine access). Violations produce confusing errors or silent wrong behavior.
+- **Decision:** Each script with an execution-context requirement documents it in its header comment and enforces it at runtime where feasible. The contract is: (1) `check-stack-ready.sh` MUST run inside the dev container (enforced via in-container.sh); (2) `check-compose-config.sh` MUST run on the host (enforced via in-container.sh negation); (3) `verify-pre-commit.sh` runs inside the container (enforced by husky); (4) `test-docker-smoke.sh` runs on the host with engine access. Violations emit a clear diagnostic and exit non-zero.
+- **Consequences:** Scripts fail fast with actionable messages instead of producing cryptic errors. The contract is documented, not mechanically enforced across all callers -- a script invoked from an unexpected context will catch itself if it checks, but an unchecked caller can still invoke incorrectly.
+- **Alternatives Considered:** Mechanical enforcement via wrapper scripts (rejected: over-engineered for the current script count); CI-only validation (rejected: doesn't help local development).
 
 ## Traceability Table
 
-| ADR | Topic                     | Origin Ticket                    | Implementation Evidence                                                   |
-| --- | ------------------------- | -------------------------------- | ------------------------------------------------------------------------- |
-| 1   | Worktrees-Only Model      | DIA-073, DIA-100                 | `scripts/worktrees.sh`                                                    |
-| 2   | Branch Naming             | DIA-074, DIA-100                 | `validate_branch` in `scripts/worktrees.sh`                               |
-| 3   | Squash-Merge Strategy     | DIA-100                          | `docs/dev-infra-audit/worktree-conventions.md`                            |
-| 4   | Session Isolation         | DIA-100                          | `cmd_create` isolation check in `worktrees.sh`                            |
-| 5   | DIA-096 Boundary          | DIA-096, DIA-100                 | `cmd_remove` force guard in `worktrees.sh`                                |
-| 6   | Conflict Escalation       | DIA-100                          | `worktree-conventions.md`                                                 |
-| 7   | Worktree Location         | DIA-100                          | `WORKTREES_DIR` default in `worktrees.sh`                                 |
-| 8   | Bash-3 / Remote Bounds    | DIA-100                          | `timeout 5 git ls-remote` in `worktrees.sh`                               |
-| 9   | Worktree Husky Shim       | DIA-174                          | `cmd_create` husky shim copy in `worktrees.sh`                            |
-| 10  | Batch-D Suite Persistence | DIA-174 DD2, DIA-176             | `scripts/__tests__/batch-d-infra.test.mjs` (tracked) + `make test-config` |
-| 11  | Container Topology        | DIA-260922-cp0m, DIA-260821-x5nj | `Dockerfile.dev` + `docker-compose.yml` (two services: dev, postgres)     |
+| ADR | Topic                      | Origin Ticket                    | Implementation Evidence                                                          |
+| --- | -------------------------- | -------------------------------- | -------------------------------------------------------------------------------- |
+| 1   | Worktrees-Only Model       | DIA-073, DIA-100                 | `scripts/worktrees.sh`                                                           |
+| 2   | Branch Naming              | DIA-074, DIA-100                 | `validate_branch` in `scripts/worktrees.sh`                                      |
+| 3   | Squash-Merge Strategy      | DIA-100                          | `docs/dev-infra-audit/worktree-conventions.md`                                   |
+| 4   | Session Isolation          | DIA-100                          | `cmd_create` isolation check in `worktrees.sh`                                   |
+| 5   | DIA-096 Boundary           | DIA-096, DIA-100                 | `cmd_remove` force guard in `worktrees.sh`                                       |
+| 6   | Conflict Escalation        | DIA-100                          | `worktree-conventions.md`                                                        |
+| 7   | Worktree Location          | DIA-100                          | `WORKTREES_DIR` default in `worktrees.sh`                                        |
+| 8   | Bash-3 / Remote Bounds     | DIA-100                          | `timeout 5 git ls-remote` in `worktrees.sh`                                      |
+| 9   | Worktree Husky Shim        | DIA-174                          | `cmd_create` husky shim copy in `worktrees.sh`                                   |
+| 10  | Batch-D Suite Persistence  | DIA-174 DD2, DIA-176             | `scripts/__tests__/batch-d-infra.test.mjs` (tracked) + `make test-config`        |
+| 11  | Container Topology         | DIA-260922-cp0m, DIA-260821-x5nj | `Dockerfile.dev` + `docker-compose.yml` (two services: dev, postgres)            |
+| 12  | Merge-Gate Evidence        | DIA-260922-cp0m                  | `scripts/check-stack-ready.sh` + `scripts/__tests__/check-stack-ready.bats`      |
+| 13  | In-Container Detection     | DIA-260922-cp0m                  | `scripts/in-container.sh` (sourced by check-stack-ready, verify-pre-\*)          |
+| 14  | Execution-Context Contract | DIA-260922-cp0m                  | Script headers + runtime checks in check-stack-ready.sh, check-compose-config.sh |
 
 ## Module Boundaries
 
