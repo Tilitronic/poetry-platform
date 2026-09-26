@@ -449,12 +449,16 @@ diff verbatim claims against a repo-visible source.
 
 The merge phase may start only with recorded output of
 `scripts/check-stack-ready.sh` showing the token STACK_READY, committed into
-the merge report. The session log must record the script output before merge dispatch; no merge attempt happens without the evidence line. This is
-strictly stronger than the former `docker compose ps` requirement: the script
-runs inside the dev container and performs a real postgres protocol exchange,
-proving the database is reachable from the container's network namespace.
-`docker compose ps` only proved the engine listed the service as Up, not that
-postgres was actually accepting connections (DIA-172, DIA-174).
+the merge report. The session log must record the script output before merge dispatch; no merge attempt happens without the evidence line. `docker compose
+ps` is not runnable from inside the dev container: neither the container-engine
+CLI nor its socket is mounted into the dev service, so it must never be
+prescribed for in-container verification. If OpenCode is active, it IS already
+running inside the dev container (`poetry-dev`), so the dev service being up is
+self-evident and needs no probe. What needs verifying is the OTHER half of the
+stack: that the database is reachable from the container's network namespace.
+That is exactly what `scripts/check-stack-ready.sh` proves with a real postgres
+protocol exchange -- and its token is the merge-gate evidence (DIA-172,
+DIA-174).
 
 ### R4 - Instance separation (DIA-175)
 

@@ -220,9 +220,10 @@ and AGENTS.md ~line 74.
 (a) Keep R3, re-source evidence to host (developer pastes). Loses:
 nothing, but requires a manual developer step on every merge.
 (b) Replace `docker compose ps` with an in-container readiness/health
-evidence line (TCP probe). Strictly stronger than `docker compose ps`
-because it proves reachability, not just that the engine listed the
-service as Up. No engine socket required.
+evidence line (TCP probe). `docker compose ps` is not runnable from
+inside the dev container at all -- neither the container-engine CLI nor
+its socket is mounted -- so it was never a valid option; the in-container
+TCP probe is the only viable check. No engine socket required.
 (c) Delete R3 entirely. Loses: the original motivation (a merge once
 proceeded without evidence the stack was up, per DIA-172).
 
@@ -233,8 +234,10 @@ Verified command:
 python3 -c "import socket; s=socket.socket(); s.settimeout(3);
 s.connect(('postgres',5432)); print('REACHABLE'); s.close()"
 
-This replaces the `docker compose ps` requirement with a strictly
-stronger check: the agent verifies that postgres is reachable from
+This replaces the `docker compose ps` requirement. `docker compose ps`
+is not runnable from inside the dev container (neither the engine CLI nor
+its socket is mounted), so the in-container TCP probe is the only viable
+merge-gate evidence: the agent verifies that postgres is reachable from
 inside the dev container, proving both the network path AND the service
 are up -- no engine socket, no compose binary required.
 

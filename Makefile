@@ -25,7 +25,7 @@
 #   make context7-docs  fetch library docs from Context7 (requires CONTEXT7_API_KEY; dry-run without it)
 #   make session-query  read-only SQL query over session records (node:sqlite :memory:; ARGS pass-through)
 #   make session-analytics  canned analytics over native OpenCode telemetry (opencode stats/db; ARGS pass-through)
-#   make test-harness  C5 scenario replay (bats) + bun plugin tests (requires Docker)
+#   make test-harness  C5 scenario replay (bats) + bun plugin tests (requires a running container engine)
 
 .PHONY: build up shell opencode preset presets dev stack install db-psql logs down clean check-pin-sync check-compose-config check-tools check-host-jq check-host-lsp gen-jsconfig test-shell test-python test-infra test-config test-omo test-interview test-skills eval-lite audit-python context7-docs jsonl-stats session-log-render jsonl-cross-check session-query session-analytics test-harness worktree-gc
 
@@ -171,7 +171,7 @@ gen-jsconfig:
 # fix; test-python used to run as a prerequisite on a cold start and failed).
 # Single rebuild: smoke test leaves the stack up for test-python (SMOKE_LEAVE_UP=1,
 # F-3, DIA-139) -- it is the sole bring-up; there is no second up --build.
-# Requires a running Docker daemon.
+# Requires a running container engine (Docker or Podman).
 test-infra: gen-jsconfig test-shell test-harness
 	SMOKE_LEAVE_UP=1 bash scripts/test-docker-smoke.sh
 	$(MAKE) test-python

@@ -160,18 +160,20 @@ container is up), which is not in any committed gate text.
     pastes); loses: nothing, but requires a manual developer step.
 (b) replace the `docker compose ps` requirement with an in-container
     readiness/health evidence line (the probe verified in Part 1 of this
-    addendum); strictly stronger than `docker compose ps` because it
-    proves reachability, not just that the engine listed the service as
-    Up; loses: nothing -- strictly stronger guarantee.
+    addendum). `docker compose ps` is not runnable from inside the dev
+    container at all -- neither the container-engine CLI nor its socket is
+    mounted -- so it was never a valid option; the in-container TCP probe
+    is the only viable check; loses: nothing.
 (c) delete R3 entirely; loses: the original motivation (a merge once
     proceeded without evidence the stack was up, per the DIA-172
     retrospective).
 
 CHOSEN: option (b). The in-container TCP probe is viable (see Part 1
-results below). This replaces `docker compose ps` with a strictly
-stronger check: the agent verifies that postgres is reachable from
-inside the dev container, which proves the network path AND the service
-are up -- no engine socket required.
+results below). `docker compose ps` is not runnable from inside the dev
+container (no engine CLI or socket mounted), so the in-container TCP
+probe is the only viable merge-gate evidence: the agent verifies that
+postgres is reachable from inside the dev container, proving both the
+network path AND the service are up -- no engine socket required.
 
 ### 6. DEVELOPER DECISIONS (2026-09-26)
 
@@ -258,7 +260,10 @@ THE FROZEN CONTRACT (verbatim):
     STACK_NOT_READY (one case, one signal -- for the merge gate both
     mean "no evidence").
 
-RATIONALE vs the old rule: `docker compose ps` only proves the engine
-listed the service as Up; the probe proves postgres actually accepts a
-connection, and the dev container's own liveness is self-evident because
-the probe executes inside it.
+RATIONALE vs the old rule: `docker compose ps` is not runnable from
+inside the dev container (neither the engine CLI nor its socket is
+mounted), so it must never be prescribed for in-container verification.
+The dev container's own liveness is self-evident because the probe
+executes inside it. What needs verifying is that the database is
+reachable from the container's network namespace -- exactly what the
+probe proves.

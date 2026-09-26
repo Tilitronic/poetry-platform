@@ -165,7 +165,7 @@ See `.opencode/practice-protected.md` for zones where agents must ask guiding qu
 
 ## 6. Project Ops Quick Reference
 
-The project runs inside Docker. One dev workstation container
+The project runs inside a container engine (Docker or Podman). One dev workstation container
 (`poetry-dev`) + one stateful postgres container (`poetry-postgres`).
 Full setup docs: `docs/docker-dev.md`.
 
@@ -182,11 +182,11 @@ Full setup docs: `docs/docker-dev.md`.
 
 ### Gates that REQUIRE the container running
 
-| Gate            | Command                        | Notes                                       |
-| --------------- | ------------------------------ | ------------------------------------------- |
-| Pre-commit hook | `scripts/verify-pre-commit.sh` | HARD-FAILS when container is down (DIA-094) |
-| Python tests    | `make test-python`             | pytest inside dev container                 |
-| Full infra test | `make test-infra`              | host-run; needs Docker daemon               |
+| Gate            | Command                        | Notes                                                      |
+| --------------- | ------------------------------ | ---------------------------------------------------------- |
+| Pre-commit hook | `scripts/verify-pre-commit.sh` | HARD-FAILS when container is down (DIA-094)                |
+| Python tests    | `make test-python`             | pytest inside dev container                                |
+| Full infra test | `make test-infra`              | host-run; needs a live container engine (Docker or Podman) |
 
 ### Gates that run on the host (no container needed)
 

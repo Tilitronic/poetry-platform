@@ -123,7 +123,12 @@ browser automation under a virtual X display (Xvfb).
 ### Detecting whether you are inside the dev container
 
 The canonical check is `hostname = poetry-dev` (see `scripts/in-container.sh`).
-The merge-gate evidence script `scripts/check-stack-ready.sh` replaces the old
-`docker compose ps` requirement: it runs a real postgres protocol exchange from
-inside the container, proving database reachability without needing the engine
-socket or compose binary.
+The merge-gate evidence script `scripts/check-stack-ready.sh` runs a real
+postgres protocol exchange from inside the container, proving database
+reachability. `docker compose ps` is not runnable from inside the dev
+container: neither the container-engine CLI nor its socket is mounted into the
+dev service, so it must never be prescribed for in-container verification. If
+OpenCode is active, it IS already running inside the dev container, so the dev
+service being up is self-evident. What needs verifying is that the database is
+reachable from the container's network namespace -- exactly what
+`check-stack-ready.sh` proves.
