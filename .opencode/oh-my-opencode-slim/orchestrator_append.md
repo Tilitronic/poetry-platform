@@ -447,10 +447,14 @@ diff verbatim claims against a repo-visible source.
 
 ### R3 - Merge-Gate Container Evidence
 
-The merge phase may start only with recorded `docker compose ps` output
-showing the dev service Up, committed into the merge report. The session log
-must record container state before merge dispatch; no merge attempt happens
-without the evidence line.
+The merge phase may start only with recorded output of
+`scripts/check-stack-ready.sh` showing the token STACK_READY, committed into
+the merge report. The session log must record the script output before merge dispatch; no merge attempt happens without the evidence line. This is
+strictly stronger than the former `docker compose ps` requirement: the script
+runs inside the dev container and performs a real postgres protocol exchange,
+proving the database is reachable from the container's network namespace.
+`docker compose ps` only proved the engine listed the service as Up, not that
+postgres was actually accepting connections (DIA-172, DIA-174).
 
 ### R4 - Instance separation (DIA-175)
 

@@ -119,3 +119,11 @@ browser automation under a virtual X display (Xvfb).
 - **Warning:** `make clean` wipes the named volumes — including PostgreSQL data
   (`pgdata`) and the pnpm store. Back up first if you need to keep them. This
   is the only supported rollback if the permission migration goes wrong.
+
+### Detecting whether you are inside the dev container
+
+The canonical check is `hostname = poetry-dev` (see `scripts/in-container.sh`).
+The merge-gate evidence script `scripts/check-stack-ready.sh` replaces the old
+`docker compose ps` requirement: it runs a real postgres protocol exchange from
+inside the container, proving database reachability without needing the engine
+socket or compose binary.

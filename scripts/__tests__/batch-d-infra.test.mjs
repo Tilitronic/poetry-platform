@@ -428,11 +428,11 @@ describe('S3 NEW DIA-174 TARGETS (RED now)', () => {
     assert.match(orchAppend, /before implementation/);
   });
   // R3: merge-gate container evidence
-  it('orchestrator_append.md R3: "docker compose ps"', () => {
-    assert.match(orchAppend, /docker compose ps/);
+  it('orchestrator_append.md R3: "check-stack-ready.sh"', () => {
+    assert.match(orchAppend, /check-stack-ready\.sh/);
   });
-  it('orchestrator_append.md R3: "dev service"', () => {
-    assert.match(orchAppend, /dev service/);
+  it('orchestrator_append.md R3: "STACK_READY"', () => {
+    assert.match(orchAppend, /STACK_READY/);
   });
   it('orchestrator_append.md R3: "before merge dispatch"', () => {
     assert.match(orchAppend, /before merge dispatch/);
@@ -454,8 +454,8 @@ describe('S3 NEW DIA-174 TARGETS (RED now)', () => {
   it('AGENTS.md S4: "persist the design text"', () => {
     assert.match(agentsMd, /persist the design text/);
   });
-  it('AGENTS.md S4: "docker compose ps"', () => {
-    assert.match(agentsMd, /docker compose ps/);
+  it('AGENTS.md S4: "check-stack-ready"', () => {
+    assert.match(agentsMd, /check-stack-ready/);
   });
   it('AGENTS.md S4: "before merge dispatch"', () => {
     assert.match(agentsMd, /before merge dispatch/);

@@ -71,7 +71,7 @@ After the developer disposes review findings (accept/reject per practice-protect
 
 `openspec-plan` is blocked from editing implementation code.
 
-- **Merge-gate container evidence (DIA-174):** the merge phase may start only with recorded `docker compose ps` output showing the dev service Up, committed into the merge report, and the session log must record container state before merge dispatch.
+- **Merge-gate container evidence (DIA-174):** the merge phase may start only with recorded `scripts/check-stack-ready.sh` output showing STACK_READY, committed into the merge report, and the session log must record the probe result before merge dispatch.
 - **Same-session fixes (DIA-175):** fix-loop dispatches MUST resume the SAME coder session that wrote the code (resume by task_id/session_id per A2), never a fresh instance - fixes need the implementer's context.
 
 ### 2.4 Dev-Infrastructure Changes (scripts/, Docker, Makefile, CI)
@@ -182,11 +182,11 @@ Full setup docs: `docs/docker-dev.md`.
 
 ### Gates that REQUIRE the container running
 
-| Gate            | Command                        | Notes                                         |
-| --------------- | ------------------------------ | --------------------------------------------- |
-| Pre-commit hook | `scripts/verify-pre-commit.sh` | HARD-FAILS when container is down (DIA-094)   |
-| Python tests    | `make test-python`             | pytest inside dev container                   |
-| Full infra test | `make test-infra`              | needs Docker daemon; smoke test + test-python |
+| Gate            | Command                        | Notes                                       |
+| --------------- | ------------------------------ | ------------------------------------------- |
+| Pre-commit hook | `scripts/verify-pre-commit.sh` | HARD-FAILS when container is down (DIA-094) |
+| Python tests    | `make test-python`             | pytest inside dev container                 |
+| Full infra test | `make test-infra`              | host-run; needs Docker daemon               |
 
 ### Gates that run on the host (no container needed)
 
@@ -198,9 +198,11 @@ Full setup docs: `docs/docker-dev.md`.
 ### Pre-work gates (MANDATORY)
 
 1. **Docker gate (DIA-094):** implementation work AND commits MUST NOT
-   proceed without a running docker dev container. The pre-commit hook
-   HARD-FAILS when the container is down. Never bypass with
-   `--no-verify` or manual host checks.
+   proceed without a running dev container. Detection: the hostname must
+   be `poetry-dev` (see `scripts/in-container.sh`); never start a
+   container or probe a daemon/socket from inside. Ask the developer to
+   run host-side commands and paste output. Commits still route through
+   the husky pre-commit autofix gate, never `--no-verify`.
 2. **Ticket gate (DIA-063):** no engineering work starts without a DIA
    ticket.
 3. **ASCII-only protocol (DIA-079):** all lane dispatch payloads and
