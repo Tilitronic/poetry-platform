@@ -1181,3 +1181,9 @@
 - **Change:** Overnight profile: read/edit allows moved .slim/worktrees to .worktrees, added podman compose/ps allows (19 allow entries)
 - **Files:** .opencode/opencode-overnight.jsonc - scripts/__tests__/overnight.bats
 - **Verification:** manual
+
+## 2026-09-26 - DIA-260926-n49u: config: muse-balanced preset model swap v2.5 -> v2.6-flash
+
+- **Change:** muse-balanced preset: swap opencode-go/mimo-v2.5 -> opencode-go/mimo-v2.6-flash (12 occurrences) + registry entry + learnings gate file
+- **Files:** .opencode/oh-my-opencode-slim.jsonc - knowledge/model-registry.yaml - .opencode/learnings/external-patterns/2026-09-26-mimo-v26-flash-preset-gate.md
+- **Verification:** manual

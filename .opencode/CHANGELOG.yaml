@@ -4887,3 +4887,14 @@
     added podman compose/ps allows (19 allow entries)'
   verification: manual
   area: config
+- date: '2026-09-26'
+  ticket: DIA-260926-n49u
+  scope: 'config: muse-balanced preset model swap v2.5 -> v2.6-flash'
+  files:
+  - .opencode/oh-my-opencode-slim.jsonc
+  - knowledge/model-registry.yaml
+  - .opencode/learnings/external-patterns/2026-09-26-mimo-v26-flash-preset-gate.md
+  summary: 'muse-balanced preset: swap opencode-go/mimo-v2.5 -> opencode-go/mimo-v2.6-flash
+    (12 occurrences) + registry entry + learnings gate file'
+  verification: manual
+  area: opencode-config

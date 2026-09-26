@@ -37,6 +37,18 @@ models:
     quota_notes: "New volume king 2026-08-17: $0.14/$0.28, 150,400 req/mo, $60 bucket (res030)"
     active: true
 
+  - model_id: "mimo-v2.6-flash"
+    role: "coder-default-volume (successor to mimo-v2.5)"
+    price_in_1m: 0.14
+    price_out_1m: 0.28
+    req_per_month: 150400  # identical pricing/bucket to mimo-v2.5
+    swe_bench_verified: null
+    source_ref: "DIA-260926-n49u gate 2026-09-26 (Tier-2 https://opencode.ai/docs/go/)"
+    lane: ["coder", "code-navigator", "researcher", "conspecter", "observer", "resource-manager", "memory-manager"]
+    fallback: ["opencode-go/mimo-v2.5"]
+    quota_notes: "$0.14/$0.28, 150,400 req/mo, $60 bucket, 1,048,576 ctx - identical to mimo-v2.5; direct successor released 2026-09-22; ZDR (Not used / 0 days)"
+    active: true
+
   - model_id: "opencode-go/hy3"
     role: "retired (was multi-lane-primary)"
     price_in_1m: 0.14
