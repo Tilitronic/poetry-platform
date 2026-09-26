@@ -431,6 +431,116 @@ shelf:
     path: "knowledge/res-260921-fo7q-unified-dev-container/res-260921-fo7q-unified-dev-container-conspect.md"
     created: 2026-09-21
     task_ref: DIA-260824-iirx
+  - name: Graft repo-mapping tool
+    description: 'Conspect on Graft (NanoNets/Graft, now trailhq/Graft): two-tier
+      context layer for coding agents (deterministic tree-sitter structural tier
+      + optional LLM concept tier), hooks-over-MCP delivery, regenerable gitignored
+      graph cache, provider-neutral. Benchmarks vendor-only (SWE-bench Verified
+      54->66% on 50 instances, 42% fewer tokens). Complaints: benchmark cherry-picking
+      controversy, OOM on large monorepos (~2900+ files), grammar bugs, machine-wide
+      side effects from init, pre-1.0 maturity. Disambiguates from amaar-mc/graft
+      (PageRank MCP) and flyingrobots/graft (context governor).'
+    path: "knowledge/res-260925-ind7-graft/res-260925-ind7-graft-conspect.md"
+    created: 2026-09-25
+    task_ref: DIA-260925-td9h
+  - name: GitNexus code-intelligence graph
+    description: 'Conspect on GitNexus: graph-powered code intelligence platform
+      indexing codebases into a KuzuDB property graph with MCP tool exposure (16
+      tools, 4 agent skills). Pipeline: walk/parse tree-sitter/resolve imports/trace
+      calls/community detection/embedding/load graph. Benchmarks vendor-only (Satapathy
+      case study: 88% fewer tool calls; Ilzam: 25% cheaper, 68% fewer tool calls).
+      Critical license constraint: PolyForm Noncommercial 1.0.0 (NOT open source).
+      Complaints: npm 11 install crashes, large-repo OOM (>10K files), no real-time
+      index updates, bus factor. CodeGraphContext (MIT) is the commercial-safe alternative.'
+    path: "knowledge/res-260925-k08j-gitnexus/res-260925-k08j-gitnexus-conspect.md"
+    created: 2026-09-25
+    task_ref: DIA-260925-td9h
+  - name: Tree-sitter repo map + ast-grep
+    description: 'Conspect on tree-sitter-based repository mapping tools (Aider repo
+      map, Codebase-Memory, Skeletree, repo-map MCP, repomap-mcp, skyhook-graph,
+      cymbal, dekko) and ast-grep (structural search/rewrite CLI). Shared pipeline:
+      walk/parse/extract/rank-PageRank/render-token-budget. Benchmarks vendor-only.
+      Limitations: grammar version skew, dynamic-language blind spots, monorepo
+      scaling, build weight. ast-grep is complementary (pattern search vs structural
+      overview); both share tree-sitter foundation. MCP integration surfaces documented
+      for both tool families.'
+    path: "knowledge/res-260925-o6uw-tree-sitter-repo-map-ast-grep/res-260925-o6uw-tree-sitter-repo-map-ast-grep-conspect.md"
+    created: 2026-09-25
+    task_ref: DIA-260925-td9h
+  - name: Aider Repo Map + reimplementations
+    description: 'Conspect on Aider repo map architecture (tree-sitter parsing,
+      networkx MultiDiGraph, personalized PageRank, binary-search token fitting
+      with 15% tolerance, grep-ast rendering) and standalone reimplementations
+      (RepoMapper Python/MIT, agentmap TypeScript, lean-ctx Rust). Exact ranking
+      multipliers documented (chat files x50, mentioned idents x10, private x0.1).
+      User complaints: soft token limit surprising (Issue 752), full function bodies
+      instead of signatures (Issue 3932), .aiderignore not respected (Issue 3902),
+      monorepo symbol collisions (MeetsMore). No isolated benchmark of repo-map
+      effect on LLM task success exists.'
+    path: "knowledge/res-260925-53kk-aider-repo-map/res-260925-53kk-aider-repo-map-conspect.md"
+    created: 2026-09-25
+    task_ref: DIA-260925-td9h
+  - name: codebase-memory-mcp C-native MCP code knowledge graph
+    description: 'Conspect on codebase-memory-mcp (DeusData): C-native MCP server
+      indexing codebases into a persistent knowledge graph via tree-sitter parsing
+      and SQLite-backed graph store. High-performance compiled alternative to JS/TS
+      MCP knowledge-graph servers; MCP protocol native tool exposure for AI coding
+      agents.'
+    path: "knowledge/res-260925-70v6-codebase-memory-mcp/res-260925-70v6-codebase-memory-mcp-conspect.md"
+    created: 2026-09-25
+    task_ref: DIA-260925-td9h
+  - name: CodeGraph pre-indexed code knowledge graph
+    description: 'Conspect on CodeGraph (colbymchenry/codegraph): pre-indexed code
+      knowledge graph distributed as an MCP server for AI coding agents. Pipeline
+      builds a persistent graph index offline; agents query the pre-built graph
+      rather than parsing source at query time. Disambiguates from unrelated projects
+      sharing the CodeGraph name.'
+    path: "knowledge/res-260925-sbtm-codegraph/res-260925-sbtm-codegraph-conspect.md"
+    created: 2026-09-25
+    task_ref: DIA-260925-td9h
+  - name: Serena LSP-backed agent symbol/editing server
+    description: 'Conspect on Serena (oraios/serena): MCP server wrapping language
+      servers (LSP) to expose symbol navigation, code editing, and project structure
+      to AI coding agents. GPL-3.0-or-later copyleft license. Provides structured
+      access to language intelligence (completions, references, definitions) via MCP
+      protocol without requiring agents to implement LSP clients directly.'
+    path: "knowledge/res-260925-oa4y-serena/res-260925-oa4y-serena-conspect.md"
+    created: 2026-09-25
+    task_ref: DIA-260925-td9h
+  - name: Graphify multi-modal knowledge graph builder
+    description: 'Conspect on Graphify (multimodal-graph/graphify): multi-modal
+      knowledge graph builder for AI coding agents. Pipeline ingests code repositories
+      into a graph structure combining code entities, documentation, and cross-modal
+      relationships. License discrepancy flagged (Apache-2.0 in repo vs MIT claimed
+      on website). 12 archived sources, 0 failures.'
+    path: "knowledge/res-260925-2t1l-graphify/res-260925-2t1l-graphify-conspect.md"
+    created: 2026-09-25
+    task_ref: DIA-260925-td9h
+  - name: lean-ctx context compression layer
+    description: 'Conspect on lean-ctx (yvgude/lean-ctx): Rust-based context compression
+      / context-intelligence layer for AI coding agents. Compresses codebase context
+      into token-efficient representations to fit more relevant information into LLM
+      context windows. Apache 2.0 license. 9 archived sources, 0 failures.'
+    path: "knowledge/res-260925-09iu-lean-ctx/res-260925-09iu-lean-ctx-conspect.md"
+    created: 2026-09-25
+    task_ref: DIA-260925-td9h
+  - name: greppy drop-in grep plus code navigation CLI
+    description: 'Conspect on greppy (metric-space-ai/greppy): Rust CLI providing
+      deterministic symbol graph, semantic search, compact briefings, and byte-exact
+      real-grep passthrough for local code navigation by AI coding agents. Dual license
+      (Apache 2.0 code, Gemma TOU + Apache 2.0 bundled model weights). 6 archived
+      sources, 0 failures.'
+    path: "knowledge/res-260925-f9qs-greppy/res-260925-f9qs-greppy-conspect.md"
+    created: 2026-09-25
+    task_ref: DIA-260925-td9h
+  - name: Repomix repository-to-single-file context packer
+    description: 'Conspect on Repomix (yamadashy/repomix): repository-to-single-file
+      context packer that compresses an entire codebase into one file optimized for
+      LLM consumption. Supports multiple output formats and token-aware packing.
+      14 archived sources, 0 failures.'
+    path: "knowledge/res-260925-50gj-repomix/res-260925-50gj-repomix-conspect.md"
+    created: 2026-09-25
+    task_ref: DIA-260925-td9h
   analyses:
   - name: Agent Alignment Audit
     description: "MECE inventory of all agent definitions across OMO Slim, native\
@@ -888,6 +998,19 @@ shelf:
     path: "knowledge/ana-260921-fm96-unified-dev-container/ana-260921-fm96-unified-dev-container-report.md"
     created: 2026-09-21
     task_ref: DIA-260824-iirx
+  - name: Repo-Mapping and Code-Context Tooling Evaluation
+    description: "Evaluation of 11 repo-mapping / code-context tools for adoption\
+      \ into the OpenCode multi-agent workflow (DIA-260925-td9h). 7 primary dossiers\
+      \ (Graft, GitNexus, tree-sitter repo map+ast-grep, Aider Repo Map, codebase-memory-mcp,\
+      \ CodeGraph, Serena) + 4 secondary (Graphify, lean-ctx, greppy, Repomix), all\
+      \ from 11 archived conspects under knowledge/res-260925-*. Evidence-graded (G1-G4),\
+      \ vendor vs independent benchmarks labelled. Verdict: no single tool replaces\
+      \ existing grep+AST patterns; Graft and tree-sitter repo map are strongest candidates\
+      \ for selective adoption; copyleft/non-commercial licenses block CodeGraph and\
+      \ Serena. Read-only analysis; no implementation."
+    path: "knowledge/ana-260925-5v4r-repo-mapping-tools-evaluation/ana-260925-5v4r-repo-mapping-tools-evaluation-report.md"
+    created: 2026-09-25
+    task_ref: DIA-260925-td9h
   adrs:
   - name: Memory Storage Strategy
     description: 'Evaluation of Claude-Mem, Honcho, and current hand-written memory

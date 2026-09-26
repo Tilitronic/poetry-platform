@@ -332,6 +332,8 @@
 | DIA-260918-yug6 | preset free switching fails after make preset NAME=free | scripts | Medium | OPEN | [DIA-260918-yug6-preset-free-switching-fails-after-make-preset-name-free.md](DIA-260918-yug6-preset-free-switching-fails-after-make-preset-name-free.md) |
 | DIA-260921-6o4i | Console free-tier gate rejects -free models | scripts | Major | OPEN | [DIA-260921-6o4i-console-free-tier-gate-rejects-free-models.md](DIA-260921-6o4i-console-free-tier-gate-rejects-free-models.md) |
 | DIA-260922-tscn | Docker CLI unavailable to non-interactive WSL shells after host reboot: Docker Desktop WSL integration must be enabled for THIS distro, forcing a manual GUI re-enable on every reboot | dev-infra | Major | OPEN | [DIA-260922-tscn-docker-cli-unavailable-to-non-interactive-wsl-shells-after-host-reboot-docker-desktop-wsl-integration-must-be-enabled-for-this-distro-forcing-a-manual-gui-re-enable-on-every-reboot.md](DIA-260922-tscn-docker-cli-unavailable-to-non-interactive-wsl-shells-after-host-reboot-docker-desktop-wsl-integration-must-be-enabled-for-this-distro-forcing-a-manual-gui-re-enable-on-every-reboot.md) |
+| DIA-260925-td9h | evaluate repo-mapping tools for adoption (graft, gitnexus, tree-sitter repo map + ast-grep, aider repo map) | dev-infra | Medium | OPEN | [DIA-260925-td9h-evaluate-repo-mapping-tools-for-adoption-graft-gitnexus-tree-sitter-repo-map-ast-grep-aider-repo-map.md](DIA-260925-td9h-evaluate-repo-mapping-tools-for-adoption-graft-gitnexus-tree-sitter-repo-map-ast-grep-aider-repo-map.md) |
+| DIA-260926-kksa | shell script standards: documented convention + shellcheck/shfmt adoption | scripts | Major | OPEN | [DIA-260926-kksa-shell-script-standards-documented-convention-shellcheck-shfmt-adoption.md](DIA-260926-kksa-shell-script-standards-documented-convention-shellcheck-shfmt-adoption.md) |
 
 ## Status summary
 
@@ -339,8 +341,8 @@
 | -------- | ----- |
 | Blocker  | 9     |
 | Critical | 16    |
-| Major    | 80    |
-| Medium   | 171   |
+| Major    | 81    |
+| Medium   | 172   |
 | Minor    | 1     |
 | Low      | 31    |
 | Info     | 2     |
@@ -348,7 +350,7 @@
 
 | Status      | Count |
 | ----------- | ----- |
-| OPEN        | 74    |
+| OPEN        | 76    |
 | DONE        | 15    |
 | VALIDATE    | 0     |
 | E2E         | 0     |
