@@ -13,8 +13,18 @@
  *
  * RUN: bun test plugin-harness.mock-child-process.test.mjs
  */
-import { test, expect } from "bun:test"
+import { test, expect, afterAll } from "bun:test"
 import { mockChildProcess } from "./helpers/plugin-harness.mjs"
+
+// DIA-260926-ch1d: Bun mock.module is process-global across one non-isolated
+// `bun test` run. Hold ONE file-scope handle so afterAll can re-register the
+// real child_process module on file exit (the leak was the deliberate
+// end-of-file mock re-registrations, now removed below).
+const fileScopeHandle = mockChildProcess("porcelain")
+
+afterAll(() => {
+  fileScopeHandle.restore()
+})
 
 // Mirrors the production dirty check at delegation-observer.ts:834.
 function isDirty(stdout) {
@@ -94,8 +104,8 @@ test("consumer cleanup hands originals to the next consumer (cross-consumer cont
   const res = consumerB.spawnSync("git", ["--version"], { encoding: "utf-8" })
   expect(res.status).toBe(0)
   expect(String(res.stdout)).toMatch(/git version/)
-  // Leave-no-trace: re-register the file end-state behavior.
-  mockChildProcess("porcelain")
+  // DIA-260926-ch1d: no end-of-file mock re-registration here - that WAS the
+  // cross-file leak. afterAll restores the real module on file exit.
 })
 
 test("second mockChildProcess registration replaces the first", async () => {
@@ -125,7 +135,6 @@ test("mock cleanup restores real module behavior (isolation contract)", async ()
   const res = real.spawnSync("git", ["--version"], { encoding: "utf-8" })
   expect(res.status).toBe(0)
   expect(String(res.stdout)).toMatch(/git version/)
-  // Leave-no-trace: re-register the entry-state behavior so later files see
-  // a mock registration, exactly as before this test ran.
-  mockChildProcess("porcelain")
+  // DIA-260926-ch1d: no end-of-file mock re-registration - afterAll restores
+  // the real module on file exit instead of leaking porcelain to later files.
 })

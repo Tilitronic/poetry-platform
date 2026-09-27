@@ -49,7 +49,7 @@
  *
  *   cd .opencode/plugins/__tests__ && bun test needs-input-observer.platform-gate.test.mjs
  */
-import { mock, test, expect, beforeEach, afterEach } from "bun:test"
+import { mock, test, expect, beforeEach, afterEach, afterAll } from "bun:test"
 import { createTempWorkspace, mockOpencodePlugin, mockChildProcess } from "./helpers/plugin-harness.mjs"
 
 mockOpencodePlugin()
@@ -100,6 +100,14 @@ mock.module("node:fs", () => ({
     return realExistsSync(p)
   },
 }))
+
+// DIA-260926-ch1d: mock.module is process-global across one `bun test` run.
+// Re-register the real node:fs namespace on file exit so later files never
+// see the virtual WSL markers (child_process is already torn down per-test
+// by the afterEach above; node:fs had no teardown at all).
+afterAll(() => {
+  mock.module("node:fs", () => ({ ...realFsModule, existsSync: realExistsSync }))
+})
 
 // Import AFTER mock.module registration.
 const { default: createNeedsInputObserver } = await import(

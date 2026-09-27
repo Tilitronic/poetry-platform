@@ -40,7 +40,7 @@
  * RUN COMMAND (bun 1.3.14, host or poetry-dev container):
  *   cd /workspace/.opencode/plugins/__tests__ && bun test reviewer-immutable-git-envelope.test.mjs
  */
-import { test, expect, mock, afterEach } from "bun:test"
+import { test, expect, mock, afterEach, afterAll } from "bun:test"
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import {
@@ -89,6 +89,14 @@ afterEach(() => {
       }
     }
   }
+})
+
+// DIA-260926-ch1d: mock.module is process-global across one `bun test` run.
+// Re-register the REAL child_process namespace on file exit so later files
+// never see this file's recording wrapper. Spread of the pre-mock snapshot
+// (DIA-260911-y52j), never a live-namespace ref.
+afterAll(() => {
+  mock.module("node:child_process", () => ({ ...realCp }))
 })
 
 // ---------------------------------------------------------------------------
