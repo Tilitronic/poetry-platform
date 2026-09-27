@@ -1187,3 +1187,27 @@
 - **Change:** muse-balanced preset: swap opencode-go/mimo-v2.5 -> opencode-go/mimo-v2.6-flash (12 occurrences) + registry entry + learnings gate file
 - **Files:** .opencode/oh-my-opencode-slim.jsonc - knowledge/model-registry.yaml - .opencode/learnings/external-patterns/2026-09-26-mimo-v26-flash-preset-gate.md
 - **Verification:** manual
+
+## 2026-09-27 - DIA-260926-ch1d: s
+
+- **Change:** plugin test isolation (6bbbef28): three test files now restore the real mock.module namespace on file exit via the harness helper's existing restore(), and the two deliberate end-of-file mock re-registrations that leaked Bun's process-global mock registry were deleted. Plugin suite 10 failures -> 3.
+- **Files:** .opencode/plugins/__tests__/needs-input-observer.platform-gate.test.mjs - .opencode/plugins/__tests__/plugin-harness.mock-child-process.test.mjs - .opencode/plugins/__tests__/reviewer-immutable-git-envelope.test.mjs
+- **Verification:** manual
+
+## 2026-09-27 - DIA-260926-ch1d: s
+
+- **Change:** plugin test isolation (8e57fb2d): delegation-observer.stale-boot-sweep.test.mjs now captures the real Date before mocking and restores through the captured reference (the old restore() used the bare identifier Date, which resolved to the swapped-in mock, so the real clock was never restored); plus an eager node:fs snapshot in needs-input-observer.platform-gate.test.mjs. Plugin suite 3 failures -> 1.
+- **Files:** .opencode/plugins/__tests__/delegation-observer.stale-boot-sweep.test.mjs - .opencode/plugins/__tests__/needs-input-observer.platform-gate.test.mjs
+- **Verification:** manual
+
+## 2026-09-27 - DIA-260926-ch1d: s
+
+- **Change:** empty-result detector (9ff8bb48, also covers DIA-260927-uevh): detector now keys on an EMPTY <task_result> body instead of zero file edits, failing open when no result text was captured (measured false-positive rate before the fix: 263/265 = 99.2%); event name empty_result_detected kept, new dispatch_state: EMPTY_RESULT / status: NO_TEXT_RESULT; the genuine silent-failure detector keeps SILENT_FAILURE alone. Also restored the 'handoff archived: <sid>' info app.log line that the b35229f8 seam extraction dropped and never re-homed. Plugin suite 1 failure -> 0.
+- **Files:** .opencode/plugins/__tests__/empty-result-detection.test.mjs - .opencode/plugins/__tests__/failure-cap.test.mjs - .opencode/plugins/__tests__/harness-scenarios/empty-result-silent-failure.scenario.mjs - .opencode/plugins/delegation-observer.ts - scripts/__tests__/harness-scenario-replay.bats
+- **Verification:** manual
+
+## 2026-09-27 - DIA-260926-ch1d: s
+
+- **Change:** section 2.5 step 6 audit follow-up (0518c9e4): the restored log message now reproduces the DIA-204 literal byte-for-byte; a zvu4 test fixture now emits an empty <task_result> envelope so its exemption assertion is no longer vacuous; the restored app.log call is guarded with .catch(() => {}) since the SDK returns a promise; stale prompt text in orchestrator_append.md that described the retired zero-edit mechanism was corrected.
+- **Files:** .opencode/oh-my-opencode-slim/orchestrator_append.md - .opencode/plugins/__tests__/empty-result-detection.test.mjs - .opencode/plugins/delegation-observer.ts
+- **Verification:** manual
