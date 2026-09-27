@@ -173,8 +173,14 @@ FAKEHOSTNAME
   export PATH
   local tree
   tree="$(setup_compose_config_tree)"
+  # Plant an INVALID compose file so the test's intent (validation FAILS)
+  # does not depend solely on the fake rejecting it. Defense-in-depth
+  # against any real engine that might leak through.
+  cat > "$tree/docker-compose.yml" <<'INVALID'
+services: [
+INVALID
 
-  run bash "$tree/scripts/check-compose-config.sh"
+  run env COMPOSE_ENGINE=docker bash "$tree/scripts/check-compose-config.sh"
 
   assert_status 1
   assert_output_contains "compose config --quiet failed"
