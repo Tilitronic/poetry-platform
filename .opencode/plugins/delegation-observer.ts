@@ -545,6 +545,16 @@ const delegationObserver: Plugin = async (ctx) => {
   // that completed with no file edits (empty result signal D1/D2/D5).
   const sessionEditCount = new Map<string, number>()
 
+  // DIA-260926-ch1d: per-child <task_result> BODY length, captured in
+  // tool.execute.after and read once in session.idle. Keyed by the child
+  // session id parsed from the task() output (the same id session.idle
+  // reports). `undefined` means no envelope was captured, and the
+  // empty-result predicate then FAILS OPEN (never fires) instead of falling
+  // back to the zero-edit proxy, which measured the wrong signal: 263/265
+  // flagged sessions had returned real text, so read-only lanes were
+  // mislabelled silent failures.
+  const sessionResultTextLen = new Map<string, number>()
+
   // DIA-260826-zvu4: child sessions dispatched with a verification-only
   // marker phrase ("verification-only", "read-only verification",
   // "verify-only") in the task() description/prompt. Zero file edits is the
@@ -2930,6 +2940,18 @@ const delegationObserver: Plugin = async (ctx) => {
       // no wrapper is present (backward-compatible edge case).
       const taskResultBody =
         /<task_result>\s*([\s\S]*?)\s*<\/task_result>/i.exec(text)
+      // DIA-260926-ch1d: record the <task_result> BODY length keyed by the
+      // child session id, for the session.idle empty-result predicate. The
+      // BODY only -- never the wrapper: <task> carries state= even when the
+      // result itself is genuinely empty, so a wrapper-length measurement
+      // would make every result look non-empty. No envelope -> measure the
+      // whole output (fail-open fallback, not a zero-edit proxy).
+      if (taskId) {
+        sessionResultTextLen.set(
+          taskId,
+          (taskResultBody ? taskResultBody[1] : text).trim().length
+        )
+      }
       const flagText = taskResultBody ? taskResultBody[1] : text
       if (
         isResearcherLane &&
@@ -3264,27 +3286,44 @@ const delegationObserver: Plugin = async (ctx) => {
           // mandates redispatch on this signal (see orchestrator_append.md).
           // Detection does NOT auto-dispatch -- orchestrator retains control.
           // Covers DIA-099 detection signals D1 (empty result), D2 (no file
-          // edits), D5 (no meaningful output). Sessions that produced file
-          // edits are excluded even if their text output was empty (the agent
-          // did work, just not file-touching work).
-          const edits = sessionEditCount.get(sessionID) ?? 0
+          // edits), D5 (no meaningful output).
+          //
+          // DIA-260926-ch1d: the predicate measures the SIGNAL IT NAMES --
+          // absent TEXT, not zero file edits. The old `edits === 0` proxy was
+          // a measurement bug: 263/265 flagged sessions had returned real
+          // text, so read-only/report lanes were labelled silent failures.
+          // FAILS OPEN: no captured <task_result> body -> never fire, because
+          // an unknown result is not evidence of an empty one. Accepted
+          // consequence (owner-recorded): a lane that EDITS files but returns
+          // no text now fires, where the edit proxy silently excluded it.
+          const resultLen = sessionResultTextLen.get(sessionID)
+          const hasKnownResult = resultLen !== undefined
           const agentName = childSessionAgent.get(sessionID) ?? "subagent"
           const isReadOnly = READ_ONLY_LANES.has(agentName)
-          // DIA-260826-zvu4: verification-only lanes expect zero edits.
+          // DIA-260826-zvu4: verification-only lanes are exempt (they are
+          // dispatched to confirm, not to return a report).
           if (
-            edits === 0 &&
+            hasKnownResult &&
+            resultLen === 0 &&
             !isReadOnly &&
             !verificationOnlySessions.has(sessionID)
           ) {
             registry.appendRow({
               event: "empty_result_detected",
               session_id: sessionID,
-              dispatch_state: "SILENT_FAILURE",
-              status: "EMPTY_RESULT",
-              file_edit_count: 0,
+              // DIA-260926-ch1d label decision: KEEP the event name (the
+              // scripts/lane-resume consumer keys on it) but stop reusing the
+              // shared SILENT_FAILURE label -- the separate genuine
+              // silent-failure detector (~:1599) still owns that status, and
+              // conflating the two hid a 99.2% false-positive rate behind a
+              // real alarm. EMPTY_RESULT/NO_TEXT_RESULT is the lower-severity
+              // "returned nothing to read" signal.
+              dispatch_state: "EMPTY_RESULT",
+              status: "NO_TEXT_RESULT",
+              file_edit_count: sessionEditCount.get(sessionID) ?? 0,
               agent: childSessionAgent.get(sessionID) ?? "subagent",
               alert_note:
-                "child session completed with zero file edits (DIA-224 D3 empty-result detection)",
+                "child session completed with an empty <task_result> body (DIA-224 D3 / DIA-260926-ch1d text predicate)",
               writer: "plugin",
             })
             registry.appendMessageRow(
@@ -3293,7 +3332,7 @@ const delegationObserver: Plugin = async (ctx) => {
                 "gen_ai.agent.name": childSessionAgent.get(sessionID) ?? "subagent",
                 from: "orchestrator",
                 event_type: "crisis",
-                task_ref: "empty result -- child session completed with no file edits",
+                task_ref: "empty result -- child session returned no result text",
                 resolution_status: "escalated",
                 content_ref: "empty-result-requires-redispatch",
                 "gen_ai.agent.id": sessionID,
@@ -3332,11 +3371,17 @@ const delegationObserver: Plugin = async (ctx) => {
               )
             }
           } else {
-            // DIA-225: non-empty result resets the failure cap counter.
+            // DIA-225: a result that is NOT an empty text body (text present,
+            // no captured envelope, or an exempt/read-only lane) resets the
+            // failure cap counter.
             failureCap.delete(sessionID)
           }
           // Clean up edit counter for completed sessions.
           sessionEditCount.delete(sessionID)
+          // DIA-260926-ch1d: consume the captured result-text length too --
+          // the envelope is per-dispatch, so a reused session id must not
+          // inherit a stale measurement.
+          sessionResultTextLen.delete(sessionID)
           // DIA-260826-zvu4: exemption is per-dispatch, not permanent.
           verificationOnlySessions.delete(sessionID)
           return
@@ -3426,6 +3471,8 @@ const delegationObserver: Plugin = async (ctx) => {
           logStallResolutionIfStalled(sessionID, "resolved_by_error")
           // DIA-224: clean up edit counter for errored sessions.
           sessionEditCount.delete(sessionID)
+          // DIA-260926-ch1d: drop the captured result-text length as well.
+          sessionResultTextLen.delete(sessionID)
           // DIA-260826-zvu4: errored sessions must not keep the exemption.
           verificationOnlySessions.delete(sessionID)
 
@@ -3629,6 +3676,22 @@ const delegationObserver: Plugin = async (ctx) => {
                   checksum,
                   prognosis,
                 })
+
+              // DIA-260927-uevh: the archive TELEMETRY was dropped when the
+              // seam extraction (b35229f8, DIA-260902-eqgg) moved the archive
+              // behaviour into lib/handoff.ts -- a pure helper with no ctx, so
+              // it cannot log. Re-homed at the caller, guarded so a FIRST
+              // write (no prior slot) stays silent (DIA-204 info-level,
+              // message shape preserved: "handoff archived: <sid> -> archive/..").
+              if (writeResult?.archived_prior) {
+                ctx.client.app.log({
+                  body: {
+                    service: "delegation-observer",
+                    level: "info",
+                    message: `[delegation-observer] handoff archived: ${handoffSessionId} -> ${writeResult.archived_prior}`,
+                  },
+                })
+              }
 
               // DIA-211 Phase 2: stigmergic active.json -- on terminal handoff
               // events with a next_action, update the workflow state file so

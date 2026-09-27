@@ -39,13 +39,14 @@ run_scenario() {
 }
 
 # ---------------------------------------------------------------------------
-# Scenario 1 (DIA-130 class): empty-result SILENT_FAILURE detection
+# Scenario 1 (DIA-130 class): empty-result detection
 # ---------------------------------------------------------------------------
-# Regression: coder-escalated returns empty result. The plugin's session.idle
-# handler must emit a SILENT_FAILURE row in registry.jsonl when a child
-# session completes with zero file edits.
+# Regression: coder-escalated returns an EMPTY <task_result> body. The
+# plugin's session.idle handler must emit an empty_result_detected row with
+# dispatch_state EMPTY_RESULT in registry.jsonl (DIA-260926-ch1d: absent TEXT,
+# not the retired zero-file-edit proxy).
 
-@test "C5 scenario-1: empty-result session.idle emits SILENT_FAILURE in registry" {
+@test "C5 scenario-1: empty-result session.idle emits EMPTY_RESULT in registry" {
   run_scenario "empty-result-silent-failure"
 }
 

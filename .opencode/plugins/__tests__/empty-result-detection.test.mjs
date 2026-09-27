@@ -2,16 +2,18 @@
  * DIA-225 C3 regression test: empty-result detection in session.idle handler.
  *
  * Verifies DIA-224 D3 empty-result detection: when a child session completes
- * with zero file edits, a SILENT_FAILURE registry row is emitted. Sessions
- * that produced file edits are excluded even if their text output was empty.
+ * with an EMPTY <task_result> body, an empty_result_detected row is emitted
+ * with dispatch_state EMPTY_RESULT / status NO_TEXT_RESULT (DIA-260926-ch1d
+ * label split from the shared SILENT_FAILURE status).
  *
- * Covers DIA-099 detection signals D1 (empty result), D2 (no file edits),
- * D5 (no meaningful output).
- *
- * DIA-260826-zvu4 extends coverage: coder lanes dispatched with a
- * verification-only marker phrase in the prompt must NOT trip SILENT_FAILURE
- * on zero edits (RED phase -- these tests fail against current code until a
- * separate implementer adds the verificationOnlySessions exemption).
+ * DIA-260926-ch1d re-anchors this suite from the old ZERO-FILE-EDIT proxy to
+ * the ABSENT-TEXT predicate:
+ *   - the detector measures the <task_result> BODY, so every fire case must
+ *     dispatch a task() whose body trims to zero;
+ *   - a lane that returned text does NOT fire (the old proxy fired on 263 of
+ *     265 sessions that had returned real reports);
+ *   - read-only lanes stay exempt via READ_ONLY_LANES, and file edits are no
+ *     longer a suppression signal (an editing lane with no result text fires).
  *
  * Hermetic: every harness gets a fresh mkdtemp workspace. No real project
  * files are touched.
@@ -110,30 +112,35 @@ function countMessages(ctx) { const messagesPath = join(ctx.directory, ".opencod
 // Tests
 // ---------------------------------------------------------------------------
 
-describe("DIA-225 C3: empty-result detection", () => { test("session.idle with zero file edits emits SILENT_FAILURE", async () => { const { hooks, ctx } = await makeHarness()
+describe("DIA-225 C3: empty-result detection", () => { test("empty <task_result> body -> EMPTY_RESULT row with NO_TEXT_RESULT status", async () => { const { hooks, ctx } = await makeHarness()
     const sessionID = "ses_c3_empty_1"
 
     // Register child session via session.created.
     await driveEvent(hooks, { event: { type: "session.created",
         properties: { info: { id: sessionID, parentID: "ses_parent", title: "test" }, }, }, })
 
+    // DIA-260926-ch1d: the detector measures the <task_result> BODY, so the
+    // dispatch that records a zero-length body must precede the idle.
+    await driveTaskDispatch(hooks, { parentID: "ses_parent",
+      childID: sessionID,
+      agent: "coder",
+      prompt: "implement feature X against tasks.md", })
+
     const rowsBefore = countRows(ctx)
     const msgsBefore = countMessages(ctx)
 
-    // Fire session.idle -- no edits were made, so detection should fire.
+    // Fire session.idle -- the captured body trims to zero, so detection fires.
     await driveEvent(hooks, { event: { type: "session.idle",
         properties: { sessionID }, }, })
 
-    // Registry should contain an empty_result_detected row with SILENT_FAILURE.
+    // Registry should contain an empty_result_detected row under the new
+    // label pair (event name unchanged -- scripts/lane-resume keys on it).
     const newRows = readNewRows(ctx, rowsBefore)
-    const silentRow = newRows.find(
-      (r) =>
-        r.event === "empty_result_detected" &&
-        r.dispatch_state === "SILENT_FAILURE"
-    )
-    expect(silentRow).toBeDefined()
-    expect(silentRow.session_id).toBe(sessionID)
-    expect(silentRow.file_edit_count).toBe(0)
+    const emptyRow = findEmptyResultRow(newRows)
+    expect(emptyRow).toBeDefined()
+    expect(emptyRow.session_id).toBe(sessionID)
+    expect(emptyRow.status).toBe("NO_TEXT_RESULT")
+    expect(emptyRow.file_edit_count).toBe(0)
 
     // Messages should contain the empty_result_detected warning.
     const newMsgs = readNewMessages(ctx, msgsBefore)
@@ -143,38 +150,87 @@ describe("DIA-225 C3: empty-result detection", () => { test("session.idle with z
     expect(warningMsg).toBeDefined()
     expect(warningMsg["gen_ai.agent.id"]).toBe(sessionID) })
 
-  test("session.idle with file edits does NOT emit SILENT_FAILURE", async () => { const { hooks, ctx } = await makeHarness()
-    const sessionID = "ses_c3_edits_1"
+  test("lane that returned <task_result> text does NOT emit empty_result_detected", async () => { const { hooks, ctx } = await makeHarness()
+    const sessionID = "ses_c3_report_1"
 
     // Register child session.
     await driveEvent(hooks, { event: { type: "session.created",
-        properties: { info: { id: sessionID, parentID: "ses_parent", title: "test" }, }, }, })
+        properties: { info: { id: sessionID, parentID: "ses_parent", title: "report" }, }, }, })
 
-    // Simulate a file edit before idle.
-    await driveToolEdit(hooks, ctx, { sessionID })
+    // analyzer is the reported false-positive lane: it returns a full report
+    // and edits no implementation files, so the zero-edit proxy flagged it.
+    await driveTaskDispatch(hooks, { parentID: "ses_parent",
+      childID: sessionID,
+      agent: "analyzer",
+      prompt: "produce the analysis report",
+      resultBody: "Full analysis: 12 findings, 3 critical. See knowledge/ana-x.", })
 
     const rowsBefore = countRows(ctx)
     const msgsBefore = countMessages(ctx)
 
-    // Fire session.idle -- edits were made, so detection should NOT fire.
     await driveEvent(hooks, { event: { type: "session.idle",
         properties: { sessionID }, }, })
 
-    // Registry should NOT contain an empty_result_detected SILENT_FAILURE row.
     const newRows = readNewRows(ctx, rowsBefore)
-    const silentRow = newRows.find(
-      (r) =>
-        r.event === "empty_result_detected" &&
-        r.dispatch_state === "SILENT_FAILURE"
-    )
-    expect(silentRow).toBeUndefined()
+    expect(findEmptyResultRow(newRows)).toBeUndefined()
 
-    // Messages should NOT contain the empty_result_detected warning.
     const newMsgs = readNewMessages(ctx, msgsBefore)
     const warningMsg = newMsgs.find(
       (m) => m["gen_ai.operation.name"] === "empty_result_detected"
     )
-    expect(warningMsg).toBeUndefined() }) })
+    expect(warningMsg).toBeUndefined() })
+
+  test("read-only lane with an empty <task_result> body is exempt (READ_ONLY_LANES)", async () => { const { hooks, ctx } = await makeHarness()
+    const sessionID = "ses_c3_readonly_1"
+
+    await driveEvent(hooks, { event: { type: "session.created",
+        properties: { info: { id: sessionID, parentID: "ses_parent", title: "readonly" }, }, }, })
+
+    await driveTaskDispatch(hooks, { parentID: "ses_parent",
+      childID: sessionID,
+      agent: "researcher",
+      prompt: "research topic X", })
+
+    const rowsBefore = countRows(ctx)
+    const msgsBefore = countMessages(ctx)
+
+    await driveEvent(hooks, { event: { type: "session.idle",
+        properties: { sessionID }, }, })
+
+    const newRows = readNewRows(ctx, rowsBefore)
+    expect(findEmptyResultRow(newRows)).toBeUndefined()
+
+    const newMsgs = readNewMessages(ctx, msgsBefore)
+    const warningMsg = newMsgs.find(
+      (m) => m["gen_ai.operation.name"] === "empty_result_detected"
+    )
+    expect(warningMsg).toBeUndefined() })
+
+  test("file edits no longer suppress: edits + empty <task_result> body -> fires", async () => { const { hooks, ctx } = await makeHarness()
+    const sessionID = "ses_c3_edit_empty_1"
+
+    await driveEvent(hooks, { event: { type: "session.created",
+        properties: { info: { id: sessionID, parentID: "ses_parent", title: "edits+no text" }, }, }, })
+
+    // Accepted consequence of DIA-260926-ch1d (owner-recorded): edits and
+    // result text are independent quantities, so a lane that touched files
+    // but returned nothing to read still fires.
+    await driveToolEdit(hooks, ctx, { sessionID })
+    await driveTaskDispatch(hooks, { parentID: "ses_parent",
+      childID: sessionID,
+      agent: "coder",
+      prompt: "implement feature X against tasks.md", })
+
+    const rowsBefore = countRows(ctx)
+
+    await driveEvent(hooks, { event: { type: "session.idle",
+        properties: { sessionID }, }, })
+
+    const newRows = readNewRows(ctx, rowsBefore)
+    const emptyRow = findEmptyResultRow(newRows)
+    expect(emptyRow).toBeDefined()
+    // The row reports the REAL edit count -- it is telemetry, not the gate.
+    expect(emptyRow.file_edit_count).toBe(1) }) })
 
 // ---------------------------------------------------------------------------
 // DIA-260826-zvu4: verification-only coder exemption (RED phase tests)
@@ -185,22 +241,29 @@ describe("DIA-225 C3: empty-result detection", () => { test("session.idle with z
  * lane in childSessionAgent and links the child session id parsed from the
  * task output. Mirrors the proven driveTaskAfter pattern from
  * dia220-apoptosis-paracrine.test.mjs.
+ *
+ * DIA-260926-ch1d: the output carries a <task_result> envelope whose BODY is
+ * `resultBody` (default: empty, i.e. the 98-char empty-envelope case). The
+ * detector measures that body, so this parameter is what arms/suppresses it.
  */
-async function driveTaskDispatch(hooks, { parentID, childID, agent, prompt }) { await hooks["tool.execute.after"](
+async function driveTaskDispatch(hooks, { parentID, childID, agent, prompt, resultBody = "" }) { await hooks["tool.execute.after"](
     { tool: "task",
       sessionID: parentID,
       callID: "call_dispatch_" + childID,
       args: { subagent_type: agent, prompt }, },
-    { output: `<task id="${childID}"><state>completed</state></task>` }
+    { output: `<task id="${childID}"><state>completed</state><task_result>${resultBody}</task_result></task>` }
   ) }
 
-function findSilentRow(rows) { return rows.find(
+function findEmptyResultRow(rows) { return rows.find(
     (r) =>
       r.event === "empty_result_detected" &&
-      r.dispatch_state === "SILENT_FAILURE"
+      r.dispatch_state === "EMPTY_RESULT"
   ) }
 
-describe("DIA-260826-zvu4: verification-only coder exemption", () => { test("coder dispatch with 'verification-only' marker + zero edits -> NO SILENT_FAILURE", async () => { const { hooks, ctx } = await makeHarness()
+describe("DIA-260826-zvu4: verification-only coder exemption", () => { // DIA-260926-ch1d: every case below now dispatches an EMPTY
+  // <task_result> body, so each "NO detection" assertion is anchored to the
+  // verification-only exemption rather than to the retired zero-edit proxy.
+  test("coder dispatch with 'verification-only' marker + empty result -> NO empty_result_detected", async () => { const { hooks, ctx } = await makeHarness()
     const parentID = "ses_zvu4_parent_1"
     const childID = "ses_zvu4_verif_1"
 
@@ -218,12 +281,13 @@ describe("DIA-260826-zvu4: verification-only coder exemption", () => { test("cod
     const rowsBefore = countRows(ctx)
     const msgsBefore = countMessages(ctx)
 
-    // Fire session.idle -- zero edits, but marker exempts the session.
+    // Fire session.idle -- the result body is empty, but the marker exempts
+    // the session (without the exemption this case WOULD fire).
     await driveEvent(hooks, { event: { type: "session.idle",
         properties: { sessionID: childID }, }, })
 
     const newRows = readNewRows(ctx, rowsBefore)
-    expect(findSilentRow(newRows)).toBeUndefined()
+    expect(findEmptyResultRow(newRows)).toBeUndefined()
 
     const newMsgs = readNewMessages(ctx, msgsBefore)
     const crisisMsg = newMsgs.find(
@@ -231,7 +295,7 @@ describe("DIA-260826-zvu4: verification-only coder exemption", () => { test("cod
     )
     expect(crisisMsg).toBeUndefined() })
 
-  test("coder dispatch WITHOUT marker + zero edits -> SILENT_FAILURE preserved", async () => { const { hooks, ctx } = await makeHarness()
+  test("coder dispatch WITHOUT marker + empty result -> EMPTY_RESULT preserved", async () => { const { hooks, ctx } = await makeHarness()
     const parentID = "ses_zvu4_parent_2"
     const childID = "ses_zvu4_impl_1"
 
@@ -250,12 +314,14 @@ describe("DIA-260826-zvu4: verification-only coder exemption", () => { test("cod
     await driveEvent(hooks, { event: { type: "session.idle",
         properties: { sessionID: childID }, }, })
 
-    // Existing behavior must be preserved: zero-edit coder -> SILENT_FAILURE.
+    // Existing behavior must be preserved: a coder whose <task_result> body
+    // is empty still raises the detection, now under the new label pair.
     const newRows = readNewRows(ctx, rowsBefore)
-    const silentRow = findSilentRow(newRows)
-    expect(silentRow).toBeDefined()
-    expect(silentRow.session_id).toBe(childID)
-    expect(silentRow.file_edit_count).toBe(0)
+    const emptyRow = findEmptyResultRow(newRows)
+    expect(emptyRow).toBeDefined()
+    expect(emptyRow.session_id).toBe(childID)
+    expect(emptyRow.status).toBe("NO_TEXT_RESULT")
+    expect(emptyRow.file_edit_count).toBe(0)
 
     const newMsgs = readNewMessages(ctx, msgsBefore)
     const crisisMsg = newMsgs.find(
@@ -265,7 +331,7 @@ describe("DIA-260826-zvu4: verification-only coder exemption", () => { test("cod
     )
     expect(crisisMsg).toBeDefined() })
 
-  test("coder dispatch with marker + file edits -> NO SILENT_FAILURE", async () => { const { hooks, ctx } = await makeHarness()
+  test("coder dispatch with marker + file edits -> NO empty_result_detected", async () => { const { hooks, ctx } = await makeHarness()
     const parentID = "ses_zvu4_parent_3"
     const childID = "ses_zvu4_verif_edits_1"
 
@@ -277,7 +343,9 @@ describe("DIA-260826-zvu4: verification-only coder exemption", () => { test("cod
       agent: "coder",
       prompt: "verification-only: extend the test file, run bun test", })
 
-    // The session DID produce edits (test files are edits too).
+    // The session DID produce edits (test files are edits too). DIA-260926-ch1d
+    // made edits irrelevant to the gate -- the MARKER is what exempts here,
+    // and the empty result body is what would otherwise fire.
     await driveToolEdit(hooks, ctx, { sessionID: childID })
 
     const rowsBefore = countRows(ctx)
@@ -286,7 +354,7 @@ describe("DIA-260826-zvu4: verification-only coder exemption", () => { test("cod
         properties: { sessionID: childID }, }, })
 
     const newRows = readNewRows(ctx, rowsBefore)
-    expect(findSilentRow(newRows)).toBeUndefined() })
+    expect(findEmptyResultRow(newRows)).toBeUndefined() })
 
   test("marker variants 'read-only verification' and 'verify-only' are exempt", async () => { for (const [label, prompt] of [
       [
@@ -313,7 +381,7 @@ describe("DIA-260826-zvu4: verification-only coder exemption", () => { test("cod
           properties: { sessionID: childID }, }, })
 
       const newRows = readNewRows(ctx, rowsBefore)
-      expect(findSilentRow(newRows)).toBeUndefined()
+      expect(findEmptyResultRow(newRows)).toBeUndefined()
 
       const newMsgs = readNewMessages(ctx, msgsBefore)
       const crisisMsg = newMsgs.find(
@@ -339,7 +407,7 @@ describe("DIA-260826-zvu4: verification-only coder exemption", () => { test("cod
     await driveEvent(hooks, { event: { type: "session.idle", properties: { sessionID: childID } }, })
 
     const newRows = readNewRows(ctx, rowsBefore)
-    expect(findSilentRow(newRows)).toBeUndefined()
+    expect(findEmptyResultRow(newRows)).toBeUndefined()
 
     const newMsgs = readNewMessages(ctx, msgsBefore)
     const crisisMsg = newMsgs.find(
@@ -372,7 +440,7 @@ describe("DIA-260826-zvu4: verification-only coder exemption", () => { test("cod
     await driveEvent(hooks, { event: { type: "session.idle", properties: { sessionID: childID } }, })
 
     const newRows = readNewRows(ctx, rowsBefore)
-    expect(findSilentRow(newRows)).toBeUndefined()
+    expect(findEmptyResultRow(newRows)).toBeUndefined()
 
     const newMsgs = readNewMessages(ctx, msgsBefore)
     const crisisMsg = newMsgs.find(

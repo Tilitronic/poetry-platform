@@ -1,10 +1,17 @@
 /**
  * DIA-225 C4 regression test: failure cap for consecutive empty results.
  *
- * Verifies the D4 failure cap: after 3 consecutive SILENT_FAILURE detections
+ * Verifies the D4 failure cap: after 3 consecutive empty-result detections
  * within a 10-minute cooldown window, a failure_cap_reached warning event is
- * emitted to messages.jsonl. Counter resets on non-empty result or cooldown
+ * emitted to messages.jsonl. Counter resets on a non-empty result or cooldown
  * expiry. WARNING ONLY -- never auto-dispatch or auto-block.
+ *
+ * DIA-260926-ch1d: the cap contract is unchanged, but the detection it counts
+ * is now the ABSENT-TEXT predicate, so each idle cycle drives a task()
+ * dispatch whose <task_result> body is captured (empty -> counts, text ->
+ * resets). The capture is consumed on idle, hence one dispatch per cycle.
+ * The DIA-225 3-consecutive-failure cap and the DIA-260826-zvu4 exemptions
+ * are re-anchored here, never weakened.
  *
  * Hermetic: every harness gets a fresh mkdtemp workspace. No real project
  * files are touched.
@@ -65,14 +72,18 @@ async function makeHarness() { const ctx = freshCtx()
 async function driveEvent(hooks, { event }) { await hooks.event({ event }) }
 
 /**
- * Drive tool.execute.after to register a file edit for a session.
+ * Drive a task() dispatch whose <task_result> BODY is `resultBody`
+ * (DIA-260926-ch1d: that body is the only signal the empty-result predicate
+ * reads). The child session id is parsed from the task output, which is the
+ * key the session.idle lookup uses.
  */
-async function driveToolEdit(hooks, ctx, { sessionID, tool, callID }) { await hooks["tool.execute.after"](
-    { tool: tool ?? "edit",
-      sessionID,
-      callID: callID ?? "call_edit",
-      args: {}, },
-    { output: "ok" }
+async function driveResultDispatch(hooks, sessionID, resultBody = "") { await hooks["tool.execute.after"](
+    { tool: "task",
+      sessionID: "ses_parent",
+      callID: "call_cap_" + sessionID,
+      args: { subagent_type: "coder",
+        prompt: "implement feature X against tasks.md", }, },
+    { output: `<task id="${sessionID}"><state>completed</state><task_result>${resultBody}</task_result></task>` }
   ) }
 
 /**
@@ -94,15 +105,22 @@ async function registerChild(hooks, sessionID) { await driveEvent(hooks, { event
       properties: { info: { id: sessionID, parentID: "ses_parent", title: "test" }, }, }, }) }
 
 /**
- * Fire session.idle with zero file edits (empty result).
+ * Fire session.idle on an EMPTY result: dispatch first so the zero-length
+ * <task_result> body is captured, then idle (the capture is consumed there).
  */
-async function idleEmpty(hooks, sessionID) { await driveEvent(hooks, { event: { type: "session.idle",
+async function idleEmpty(hooks, sessionID) { await driveResultDispatch(hooks, sessionID)
+  await driveEvent(hooks, { event: { type: "session.idle",
       properties: { sessionID }, }, }) }
 
 /**
- * Fire session.idle after a file edit was made (non-empty result).
+ * Fire session.idle on a NON-EMPTY result: the returned text is what resets
+ * the DIA-225 counter under the DIA-260926-ch1d text predicate.
  */
-async function idleWithEdit(hooks, ctx, sessionID) { await driveToolEdit(hooks, ctx, { sessionID })
+async function idleWithResultText(hooks, sessionID) { await driveResultDispatch(
+    hooks,
+    sessionID,
+    "Done: implemented feature X, all tests pass."
+  )
   await driveEvent(hooks, { event: { type: "session.idle",
       properties: { sessionID }, }, }) }
 
@@ -142,8 +160,8 @@ describe("DIA-225 C4: failure cap", () => { test("3 consecutive empty results wi
     await idleEmpty(hooks, sid)
     await idleEmpty(hooks, sid)
 
-    // 1 non-empty result (file edit made).
-    await idleWithEdit(hooks, ctx, sid)
+    // 1 non-empty result (<task_result> body carries text).
+    await idleWithResultText(hooks, sid)
 
     // 2 more empty results -- counter was reset, so only 2 consecutive
     // failures, below the 3 threshold.
