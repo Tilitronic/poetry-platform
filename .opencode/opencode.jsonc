@@ -371,9 +371,10 @@
           "git checkout .*": "deny",
           "git branch -D *": "deny",
           "git branch -D": "deny",
-          // Re-stated from the global baseline for local clarity: this
-          // agent-level map does NOT inherit global denies (no "*" catch-all
-          // here), so destructive forms must be denied in-map.
+          // DIA-260926-5vin: this agent-level map MERGES after the global rules; the LAST matching
+          // rule wins (verified with `opencode debug agent coder`: global rules load first, agent
+          // rules are appended, findLast decides) - so an agent allow can out-rank a global ask
+          // only for its targeted patterns; all other forms still inherit the global asks.
           "git reset --hard *": "deny",
           "git reset --hard": "deny",
           "git clean -f*": "deny",

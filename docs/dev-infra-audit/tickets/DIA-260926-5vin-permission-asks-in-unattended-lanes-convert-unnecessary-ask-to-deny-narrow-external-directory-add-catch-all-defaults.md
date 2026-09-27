@@ -75,3 +75,27 @@ evidence: []
 ## Fix
 
 > To be completed when the fix is implemented.
+
+## UPDATE (2026-09-27) - CAUSE B fix landed (f6c84a5); audit SOUND-with-conditions; overnight softening ACCEPTED
+
+Developer decision (2026-09-27): ACCEPT the narrow overnight softening - the new
+agent-level `.scratch` allows out-rank the overnight profile's `rm *` deny for
+coder lanes' sanctioned scratch deletions only; every other `rm` stays denied.
+Residual risk, accepted knowingly: `scripts/overnight.sh` validates only the
+global payload (overnight.jsonc:10-15), so this agent-level softening is
+invisible to the DIA-134 gate and will not trip it. Alternatives taken off the
+table by the same decision: a DIA-134 baseline bump, and the wrapper variant
+(b) (scratch-cleanup script riding the existing `scripts/*` allow).
+
+Audit (independent, commit f6c84a527a9afd9582fb27b439764f4ecf43526d):
+SOUND-with-conditions. Conditions C1-C3 enacted in this close-out: C1 stale
+merge-semantics comment at `.opencode/opencode.jsonc` corrected (agent map
+merges after global rules, last matching rule wins); C2 this UPDATE block; C3
+changelog registration (AGENTS.md 2.5 step 7). Worktree residual (absolute
+scratch path under a batch-D worktree root is not covered by the anchored
+allows) deferred to its own ticket per developer decision.
+
+Status stays OPEN: the ticket's own scope items are NOT all satisfied -
+`external_directory` narrowing (item 2 / acceptance criterion 3) and the
+catch-all defaults (item 3 / criterion 4) are untouched by the CAUSE B fix,
+and criterion 6 (stall-sweep waiting-lane awareness) is also open.

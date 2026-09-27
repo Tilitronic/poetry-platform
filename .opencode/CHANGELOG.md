@@ -1211,3 +1211,9 @@
 - **Change:** section 2.5 step 6 audit follow-up (0518c9e4): the restored log message now reproduces the DIA-204 literal byte-for-byte; a zvu4 test fixture now emits an empty <task_result> envelope so its exemption assertion is no longer vacuous; the restored app.log call is guarded with .catch(() => {}) since the SDK returns a promise; stale prompt text in orchestrator_append.md that described the retired zero-edit mechanism was corrected.
 - **Files:** .opencode/oh-my-opencode-slim/orchestrator_append.md - .opencode/plugins/__tests__/empty-result-detection.test.mjs - .opencode/plugins/delegation-observer.ts
 - **Verification:** manual
+
+## 2026-09-27 - DIA-260926-5vin: opencode-config
+
+- **Change:** anchored .scratch rm/rmdir allows remove the CAUSE B permission-ask stall; stale merge-semantics comment corrected; overnight softening accepted
+- **Files:** .opencode/opencode.jsonc
+- **Verification:** manual

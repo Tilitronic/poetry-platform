@@ -4958,3 +4958,12 @@
     zero-edit mechanism was corrected.'
   verification: manual
   area: plugin
+- date: '2026-09-27'
+  ticket: DIA-260926-5vin
+  scope: opencode-config
+  files:
+  - .opencode/opencode.jsonc
+  summary: anchored .scratch rm/rmdir allows remove the CAUSE B permission-ask stall;
+    stale merge-semantics comment corrected; overnight softening accepted
+  verification: manual
+  area: opencode-config
