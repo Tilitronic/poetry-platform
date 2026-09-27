@@ -977,3 +977,64 @@ EOF
   assert_output_not_contains "FAIL:"
   assert_output_not_contains "bash version unknown"
 }
+
+# --- DIA-260926-ch1d: locale regression test for bash-version detection -----
+# Validates the fix in commit 64d40b49: the bash --version probe uses
+# `LC_ALL=C bash --version` so the English word "version" in the regex matches
+# even when the host locale emits a localized word (e.g. Fedora uk_UA emits
+# "версія" instead of "version").
+#
+# The fake bash emits a NON-ENGLISH version line when LC_ALL != C, and the
+# English line when LC_ALL == C. The production script's `LC_ALL=C` override
+# forces C locale so the regex matches. Without the override the regex fails
+# and the script reports "bash version unknown".
+#
+# ASCII-only source (DIA-079): the Ukrainian word is emitted via printf byte
+# escapes, never as raw UTF-8 literals in the .bats source.
+@test "validate-skills: locale-independent bash version detection (DIA-260926-ch1d)" {
+  local stubbin="$BATS_TEST_TMPDIR/stubbin"
+  mkdir -p "$stubbin"
+
+  # Fake bash: emits a NON-ENGLISH version line when the ambient locale is not
+  # C (simulating Fedora uk_UA: "bash --version" => "...версія 5.3.9(1)"),
+  # and the English line when LC_ALL=C. The production script's `LC_ALL=C bash
+  # --version` probe forces C locale so the regex matches regardless of the
+  # host locale.
+  cat > "$stubbin/bash" << EOF
+#!$BASH_BIN
+if [ "\${1:-}" = "--version" ]; then
+  if [ "\$LC_ALL" = "C" ]; then
+    echo "GNU bash, version 5.3.9(1)-release (x86_64-redhat-linux-gnu)"
+  else
+    # Non-English: Ukrainian "версія" (UTF-8) instead of "version".
+    # Byte-escaped to stay ASCII-only in the .bats source (DIA-079).
+    printf 'GNU bash, \xd0\xb2\xd0\xb5\xd1\x80\xd1\x81\xd1\x96\xd1\x8f 5.3.9(1)-release (x86_64-redhat-linux-gnu)\n'
+  fi
+  exit 0
+fi
+exec "$BASH_BIN" "\$@"
+EOF
+  chmod +x "$stubbin/bash"
+
+  write_skill "locale-ok" '---
+name: locale-ok
+description: Skill for locale regression test. Use when testing.
+license: MIT
+requires_bash: "4.0"
+---
+
+Use when testing.
+'
+
+  # Run with a non-C locale. The production script overrides with LC_ALL=C
+  # inside the bash --version probe, so the fake bash sees LC_ALL=C and emits
+  # the English line. Without LC_ALL=C, the fake bash would emit the Ukrainian
+  # line and the regex would fail (the pre-fix regression scenario).
+  SKILLS_ROOT="$FIXTURES" LC_ALL=en_US.UTF-8 PATH="$stubbin:$PATH" run bash "$SKILLS_SCRIPT"
+
+  assert_status 0
+  assert_output_not_contains "bash version unknown"
+  assert_output_not_contains "FAIL:"
+  assert_output_contains "ok:"
+  assert_output_contains "passed"
+}
