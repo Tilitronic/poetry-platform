@@ -47,6 +47,16 @@ afterEach(() => {
 // ---- @opencode-ai/plugin mock (registered BEFORE the plugin import) ----
 mockOpencodePlugin()
 
+// DIA-260926-ch1d: preload lib/capability.ts BEFORE any fake clock installs.
+// lib/capability's default instance captures `Date.now` into its closure at
+// MODULE LOAD (buildApi: deps.now ?? Date.now). createHarness() below pulls in
+// delegation-observer.ts (which statically imports lib/capability.ts) from
+// inside a test, i.e. while this file's mock clock is installed - that would
+// pin a fake clock into mintCapabilityToken for the rest of the process and
+// fail capability.test.mjs's "exp ~5 min in future" assertion in any run where
+// this file executes first (bun file order is not the CLI arg order).
+await import("../lib/capability.ts")
+
 
 // ---------------------------------------------------------------------------
 // Harness plumbing
@@ -101,31 +111,35 @@ function captureSweepInstall() { let captured = null
   return { get: () => captured,
     restore: () => { globalThis.setInterval = orig }, } }
 
+// DIA-260926-ch1d: capture the REAL Date and Date.now at module scope,
+// BEFORE any mock is installed. The restore/set/advance closures below must
+// go through these captured references: once globalThis.Date is swapped to
+// MockDate, a bare `Date` identifier inside them resolves to the MOCK, so
+// restore() would patch the mock instead of the real clock and the fake
+// clock would leak into every later test file in the same `bun test` process.
+const OrigDate = Date
+const origDateNow = Date.now
+
 // Mock Date.now to a fixed fake time. Restores on restore().
 // new Date() without args delegates to Date.now in V8/Bun, so mocking Date.now
 // is sufficient for processStartedAt capture and sweep now.
-function mockDateNow(fakeNowMs) { const orig = Date.now
-  Date.now = () => fakeNowMs
+function mockDateNow(fakeNowMs) { OrigDate.now = () => fakeNowMs
   // Also mock Date constructor for ISO string: new Date().toISOString() will
   // use the mocked Date.now via the internal slot. Verify by patching Date.
-  const OrigDate = globalThis.Date
   const MockDate = class extends OrigDate { constructor(...args) { if (args.length === 0) super(fakeNowMs)
       else super(...args) }
     static now() { return fakeNowMs } }
   // Copy static members
   Object.setPrototypeOf(MockDate, OrigDate)
   // Keep original Date for parsing but ensure no-arg construction is mocked.
-  // Instead of replacing global Date (risky), we only replace Date.now and
-  // also ensure new Date().toISOString() uses mocked time by checking that
-  // `new Date()` without args in the plugin will go through our MockDate.
   // Safer: replace global Date with MockDate.
   globalThis.Date = MockDate
-  return { restore: () => { Date.now = orig
+  return { restore: () => { OrigDate.now = origDateNow
       globalThis.Date = OrigDate },
     advance: (deltaMs) => { fakeNowMs += deltaMs
-      Date.now = () => fakeNowMs },
+      OrigDate.now = () => fakeNowMs },
     set: (newMs) => { fakeNowMs = newMs
-      Date.now = () => fakeNowMs },
+      OrigDate.now = () => fakeNowMs },
     get: () => fakeNowMs, } }
 
 // Helper: create a handles bundle per test (ctx + hooks + captured sweep + date mock)

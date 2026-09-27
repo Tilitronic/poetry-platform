@@ -92,6 +92,10 @@ let spawnCalls = childMock.spawnCalls
 // override can never self-reference through the swapped registry.
 const realFsModule = await import("node:fs")
 const realExistsSync = realFsModule.existsSync
+// DIA-260926-ch1d: build the restore namespace EAGERLY at capture time.
+// realFsModule is a live namespace object - spreading it later (at afterAll
+// restore time) can pick up whatever the mock registry holds by then.
+const realFsRestore = { ...realFsModule, existsSync: realExistsSync }
 const wslMarkers = new Set()
 mock.module("node:fs", () => ({
   ...realFsModule,
@@ -106,7 +110,7 @@ mock.module("node:fs", () => ({
 // see the virtual WSL markers (child_process is already torn down per-test
 // by the afterEach above; node:fs had no teardown at all).
 afterAll(() => {
-  mock.module("node:fs", () => ({ ...realFsModule, existsSync: realExistsSync }))
+  mock.module("node:fs", () => realFsRestore)
 })
 
 // Import AFTER mock.module registration.
