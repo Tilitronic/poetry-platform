@@ -10,7 +10,7 @@
 #
 # Isolation: each test builds a temp fixture tree mirroring
 # .opencode/skills/<name>/SKILL.md under $BATS_TEST_TMPDIR and runs the script
-# against it via the SKILLS_ROOT env override — the real .opencode/skills/ is
+# against it via the SKILLS_ROOT env override - the real .opencode/skills/ is
 # never touched (T5 smoke-tests the real tree separately).
 
 load test-helper
@@ -24,7 +24,7 @@ setup() {
   mkdir -p "$GLOBAL_FIXTURES"
   # DIA-052 (T1): the validator now also consults the global skills tree
   # (GLOBAL_SKILLS_ROOT, default $HOME/.config/opencode/skills). Point it at
-  # an empty per-test temp dir so the pre-existing tests stay hermetic — the
+  # an empty per-test temp dir so the pre-existing tests stay hermetic - the
   # real global tree is never read, and an empty global root skips dup checks.
   export GLOBAL_SKILLS_ROOT="$GLOBAL_FIXTURES"
   # DIA-086 (task 4.2): validate-skills.sh hard-requires the two Socratic
@@ -101,7 +101,7 @@ Example: what is the most important thing to verify first?
 
   assert_status 0
   assert_output_contains "ok:"
-  # C1: the summary line's exact counts/format are an implementation detail —
+  # C1: the summary line's exact counts/format are an implementation detail -
   # assert the stable words (passed/failed/warnings) so a cosmetic summary
   # change doesn't break the test. The zero-warning claim is covered by the
   # not-contains "warn:" assertion below.
@@ -113,7 +113,7 @@ Example: what is the most important thing to verify first?
 }
 
 @test "validate-skills: broken YAML inside delimiters exits 1 and names the file" {
-  # C3: this fixture exercises the PyYAML path only — `[unclosed` is a YAML
+  # C3: this fixture exercises the PyYAML path only - `[unclosed` is a YAML
   # ScannerError (unclosed flow sequence). The fallback subset parser would
   # treat `[unclosed` as a plain scalar value, so this test is PyYAML-only by
   # construction and is skipped implicitly on hosts without PyYAML (where the
@@ -235,7 +235,7 @@ This skill explains itself differently.
 
   assert_status 0
   assert_output_contains "no activation phrase found"
-  # C1: stable-word assertion — the exact "N passed, 0 failed, 1 warnings"
+  # C1: stable-word assertion - the exact "N passed, 0 failed, 1 warnings"
   # summary string is an implementation detail.
   assert_output_contains "passed"
   assert_output_contains "warnings"
@@ -254,7 +254,7 @@ Use when testing.
 
   assert_status 0
   assert_output_contains "no license declared"
-  # C1: stable-word assertion — the exact "N passed, 0 failed, 1 warnings"
+  # C1: stable-word assertion - the exact "N passed, 0 failed, 1 warnings"
   # summary string is an implementation detail.
   assert_output_contains "passed"
   assert_output_contains "warnings"
@@ -273,7 +273,7 @@ Use when testing.
   assert_status 1
   assert_output_contains "missing or empty: name"
   assert_output_contains "missing or empty: description"
-  # C1: stable-word assertion — the "1 failed" count is an implementation
+  # C1: stable-word assertion - the "1 failed" count is an implementation
   # detail; collect-all within the file is proven by the two errors above.
   assert_output_contains "failed"
 }
@@ -299,7 +299,7 @@ Use when testing.
   assert_status 1
   assert_output_contains "broken-a/SKILL.md"
   assert_output_contains "broken-b/SKILL.md"
-  # C1: stable-word assertion — the "2 failed" count is an implementation
+  # C1: stable-word assertion - the "2 failed" count is an implementation
   # detail; collect-all across the tree is proven by the two per-file errors.
   assert_output_contains "failed"
 }
@@ -369,7 +369,7 @@ Use when testing.
   SKILLS_ROOT="$FIXTURES" run bash "$SKILLS_SCRIPT"
 
   assert_status 0
-  # C1: stable-word assertions — the exact "N passed, M failed, K warnings"
+  # C1: stable-word assertions - the exact "N passed, M failed, K warnings"
   # summary string is an implementation detail.
   assert_output_contains "passed"
   assert_output_contains "failed"
@@ -511,7 +511,7 @@ Use when running the validation suite.
 # registry). Defaults are the real configs; fixtures below always override
 # all three so the real tree is never read.
 
-# write_compat_manifests: fixed fixture manifests — one preset, one inline
+# write_compat_manifests: fixed fixture manifests - one preset, one inline
 # config command, one command file, one agent. Everything else dangles.
 write_compat_manifests() {
   cat > "$BATS_TEST_TMPDIR/compat-presets.json" <<'EOF'
@@ -729,7 +729,7 @@ Use when testing compat.
 
 @test "compat: higher patch on equal major.minor does not satisfy requires_bash" {
   # Stubbed PATH: fake `bash` reports 5.1.0 exactly (same stub pattern as the
-  # impossible-bash test). Demanding 5.1.999 must FAIL — the floor compares
+  # impossible-bash test). Demanding 5.1.999 must FAIL - the floor compares
   # the full major.minor.patch tuple, not just major.minor.
   local stubbin="$BATS_TEST_TMPDIR/stubbin"
   mkdir -p "$stubbin"
@@ -891,7 +891,7 @@ Use when running the validation suite.
 }
 
 # --- DIA-260926-ch1d: SIGPIPE regression test for bash-version detection ---
-# Validates the FAILURE 2 fix: under 'set -euo pipefail' the old pipe-to-head
+# Guards the FAILURE 2 fix: under 'set -euo pipefail' the old pipe-to-head
 # form `bash --version 2>/dev/null | head -n 1` can fail with exit 141 (SIGPIPE)
 # when bash --version writes output in multiple write() calls and head -n 1
 # closes the pipe early. The fix extracts the first line in-shell via
@@ -901,6 +901,24 @@ Use when running the validation suite.
 # with a sleep between them, so head -n 1 can read line 1 and close the pipe
 # before line 2 is written. Python's SIGPIPE is reset to SIG_DFL so the
 # process dies with exit 141 instead of raising BrokenPipeError.
+#
+# DIA-260927-w3og (RO-1): the original three-part test could NOT fail when
+# the production fix was reverted, for three independent reasons: PART 1 ran
+# the pipe-to-head pattern inside the TEST (never the production script),
+# PART 2 re-implemented the fixed in-shell extraction inside the TEST (never
+# the production script), and PART 3 did run the real script but with a
+# fixture that declared no `requires_bash:` - and the script only consults
+# its bash-version probe when a skill declares that floor, so a reverted
+# probe still ended in exit 0. Reshaped to two parts:
+#   PART 1 fixture self-check - the stub must still reproduce exit 141
+#     through the pipe-to-head pattern; if it stops, the production
+#     assertion below would pass vacuously (a reverted fix no longer
+#     detectable), so the test fails loudly here instead.
+#   PART 2 production guard - the REAL script with the stub on PATH and a
+#     fixture that DECLARES requires_bash, the only consumer of the probe.
+#     Reverted fix => probe dies with SIGPIPE inside the pipe => version
+#     unknown => FAIL "bash version unknown" => script exit 1 =>
+#     assert_status 0 below genuinely fails.
 @test "validate-skills: SIGPIPE on bash --version pipe does not break version detection" {
   # Guard: the fake bash stub requires python3 for deterministic SIGPIPE
   # (os.write + time.sleep + signal.SIG_DFL). Skip cleanly if unavailable.
@@ -939,36 +957,44 @@ exec python3 "$stubbin/fake-bash.py" "\$@"
 EOF
   chmod +x "$stubbin/bash"
 
-  # PART 1: Demonstrate the PRE-FIX pipe-to-head pattern FAILS.
-  # Under 'set -euo pipefail' the pipeline `bash --version 2>/dev/null | head -n 1`
-  # gets exit 141 (SIGPIPE) because the stub writes line 2 after head has
-  # closed the pipe. This is the exact host failure mode that caused
-  # "bash version unknown".
+  # PART 1 (fixture self-check): the pipe-to-head pattern MUST fail with this
+  # stub (exit 141). This proves the fixture still reproduces the host
+  # failure mode; it asserts nothing about the production script. If this
+  # ever stops being true the fixture is broken and PART 2 would pass even
+  # with the fix reverted, so the test fails here instead of going green.
+  #
+  # Option hygiene: toggle ONLY pipefail, only around the pipeline, and keep
+  # the pipeline in a `||` list. errexit is never touched - bats runs tests
+  # with errexit ON and detects assert_* failures through it. The original
+  # test's `set +euo pipefail` switched errexit OFF for everything after it,
+  # so assertion failures printed their messages and the test still reported
+  # ok (DIA-260927-w3og).
   local pre_fix_rc=0
-  set -euo pipefail
-  if ! bash_line="$("$stubbin/bash" --version 2>/dev/null | head -n 1)"; then
-    pre_fix_rc=$?
-  fi
-  set +euo pipefail 2>/dev/null || true
+  set -o pipefail
+  "$stubbin/bash" --version 2>/dev/null | head -n 1 >/dev/null || pre_fix_rc=$?
+  set +o pipefail
   [ "$pre_fix_rc" -eq 141 ]
 
-  # PART 2: The current in-shell extraction WORKS with the same stub.
-  # No pipe, no SIGPIPE -- the full multi-line output is captured in a
-  # variable and the first line is extracted via parameter expansion.
-  local post_fix_output=""
-  set -euo pipefail
-  if bash_line="$("$stubbin/bash" --version 2>/dev/null)"; then
-    bash_line="${bash_line%%$'\n'*}"
-    post_fix_output="$bash_line"
-  fi
-  set +euo pipefail 2>/dev/null || true
-  [[ "$post_fix_output" == *"5.1.0"* ]]
+  # PART 2 (production guard): run the REAL validate-skills.sh with the stub
+  # on PATH and a fixture that DECLARES requires_bash - the only code path
+  # that consumes the script's `bash --version` probe (validate-skills.sh
+  # emits FAIL "... bash version unknown" when detection comes back empty).
+  # With the fix present the probe captures the full multi-line output in
+  # shell and extracts line 1 by parameter expansion, resolves 5.1.0, the
+  # 4.0 floor passes, and the script exits 0. With the fix reverted the pipe
+  # to `head -n 1` dies with SIGPIPE (141) under the script's own
+  # 'set -euo pipefail', the version stays unknown, this declaration FAILs,
+  # and the script exits 1 - which every assertion below detects.
+  write_skill "sigpipe-ok" '---
+name: sigpipe-ok
+description: Skill declaring a bash floor so the version probe is consumed. Use when testing.
+license: MIT
+requires_bash: "4.0"
+---
 
-  # PART 3: The full validate-skills script passes with the stub on PATH.
-  # The script's own bash-version detection (lines 469-477) uses the same
-  # in-shell extraction pattern, so it resolves 5.1.0 and the compat check
-  # succeeds. A valid skill fixture ensures the script exits 0.
-  valid_skill "sigpipe-ok"
+Use when testing.
+'
+
   SKILLS_ROOT="$FIXTURES" PATH="$stubbin:$PATH" run bash "$SKILLS_SCRIPT"
 
   assert_status 0
@@ -982,7 +1008,7 @@ EOF
 # Validates the fix in commit 64d40b49: the bash --version probe uses
 # `LC_ALL=C bash --version` so the English word "version" in the regex matches
 # even when the host locale emits a localized word (e.g. Fedora uk_UA emits
-# "версія" instead of "version").
+# "versiya" instead of "version").
 #
 # The fake bash emits a NON-ENGLISH version line when LC_ALL != C, and the
 # English line when LC_ALL == C. The production script's `LC_ALL=C` override
@@ -996,7 +1022,7 @@ EOF
   mkdir -p "$stubbin"
 
   # Fake bash: emits a NON-ENGLISH version line when the ambient locale is not
-  # C (simulating Fedora uk_UA: "bash --version" => "...версія 5.3.9(1)"),
+  # C (simulating Fedora uk_UA: "bash --version" => "...versiya 5.3.9(1)"),
   # and the English line when LC_ALL=C. The production script's `LC_ALL=C bash
   # --version` probe forces C locale so the regex matches regardless of the
   # host locale.
@@ -1006,7 +1032,7 @@ if [ "\${1:-}" = "--version" ]; then
   if [ "\$LC_ALL" = "C" ]; then
     echo "GNU bash, version 5.3.9(1)-release (x86_64-redhat-linux-gnu)"
   else
-    # Non-English: Ukrainian "версія" (UTF-8) instead of "version".
+    # Non-English: Ukrainian "versiya" (UTF-8) instead of "version".
     # Byte-escaped to stay ASCII-only in the .bats source (DIA-079).
     printf 'GNU bash, \xd0\xb2\xd0\xb5\xd1\x80\xd1\x81\xd1\x96\xd1\x8f 5.3.9(1)-release (x86_64-redhat-linux-gnu)\n'
   fi
