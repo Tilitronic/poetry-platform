@@ -897,10 +897,12 @@ Use when running the validation suite.
 # closes the pipe early. The fix extracts the first line in-shell via
 # parameter expansion, avoiding the pipe entirely.
 #
-# The fake bash writes its --version output in two separate os.write() calls
-# with a sleep between them, so head -n 1 can read line 1 and close the pipe
-# before line 2 is written. Python's SIGPIPE is reset to SIG_DFL so the
-# process dies with exit 141 instead of raising BrokenPipeError.
+# The fake bash writes --version line 1, then waits (read-then-close
+# handshake, bounded by a 1s hang-guard) until the pipe reader is gone
+# before writing line 2 - so the SIGPIPE outcome no longer depends on the
+# reader being scheduled within a sleep window (DIA-260927-w3og OBS-2).
+# Python's SIGPIPE is reset to SIG_DFL so the process dies with exit 141
+# instead of raising BrokenPipeError.
 #
 # DIA-260927-w3og (RO-1): the original three-part test could NOT fail when
 # the production fix was reverted, for three independent reasons: PART 1 ran
@@ -921,7 +923,8 @@ Use when running the validation suite.
 #     assert_status 0 below genuinely fails.
 @test "validate-skills: SIGPIPE on bash --version pipe does not break version detection" {
   # Guard: the fake bash stub requires python3 for deterministic SIGPIPE
-  # (os.write + time.sleep + signal.SIG_DFL). Skip cleanly if unavailable.
+  # (os.write + poll-based reader-close handshake + signal.SIG_DFL). Skip
+  # cleanly if unavailable.
   if ! command -v python3 >/dev/null 2>&1; then
     skip "python3 required for SIGPIPE stub"
   fi
@@ -929,20 +932,40 @@ Use when running the validation suite.
   local stubbin="$BATS_TEST_TMPDIR/stubbin"
   mkdir -p "$stubbin"
 
-  # Python script: writes --version in two separate os.write() calls with a
-  # sleep between them, emulating the host write() behavior that triggers
-  # SIGPIPE when a reader (head -n 1) closes the pipe after the first line.
-  # signal.SIG_DFL ensures the process dies with 141 instead of catching
-  # BrokenPipeError.
+  # Python script: writes --version line 1 immediately, then applies a
+  # read-then-close handshake before line 2: it waits (bounded) until the
+  # pipe reader is gone - reported as POLLERR/POLLHUP on the write end - and
+  # only then writes line 2. If the reader already closed (head -n 1), that
+  # write raises SIGPIPE and the process dies with 141 (SIG_DFL, never a
+  # caught BrokenPipeError); if the reader is still attached (the production
+  # capture path), line 2 lands normally. No timing window exists: line 2 is
+  # never written while the reader may still be open, so the self-check
+  # cannot false-fail on a slow reader (DIA-260927-w3og OBS-2). The 1s bound
+  # is a hang-guard only - head closes within milliseconds of reading line 1.
   #
   # The non-version fallback uses $BASH_BIN (absolute, from setup()) for
   # execvp to avoid recursive PATH resolution through the stub itself.
   cat > "$stubbin/fake-bash.py" << PYEOF
-import sys, signal, os, time
+import sys, signal, os, time, select
 signal.signal(signal.SIGPIPE, signal.SIG_DFL)
+
+def wait_reader_close(fd, timeout_s):
+    poller = select.poll()
+    poller.register(fd, 0)
+    deadline = time.monotonic() + timeout_s
+    while True:
+        remaining_ms = int((deadline - time.monotonic()) * 1000)
+        if remaining_ms <= 0:
+            return False
+        if remaining_ms > 100:
+            remaining_ms = 100
+        for _fd, events in poller.poll(remaining_ms):
+            if events & (select.POLLERR | select.POLLHUP | select.POLLNVAL):
+                return True
+
 if len(sys.argv) > 1 and sys.argv[1] == "--version":
     os.write(1, b"GNU bash, version 5.1.0(1)-release (x86_64-pc-linux-gnu)\\n")
-    time.sleep(0.2)
+    wait_reader_close(1, 1.0)
     os.write(1, b"Copyright (C) 2020 Free Software Foundation, Inc.\\n")
     sys.exit(0)
 os.execvp("$BASH_BIN", ["$BASH_BIN"] + sys.argv[1:])
@@ -969,10 +992,20 @@ EOF
   # test's `set +euo pipefail` switched errexit OFF for everything after it,
   # so assertion failures printed their messages and the test still reported
   # ok (DIA-260927-w3og).
+  #
+  # pipefail is captured before and restored to exactly that state afterwards
+  # (DIA-260927-w3og OBS-3): a future harness that runs this suite with
+  # pipefail ON must not be silently switched off by this block.
   local pre_fix_rc=0
+  local pipefail_was_on=0
+  if [[ -o pipefail ]]; then pipefail_was_on=1; fi
   set -o pipefail
   "$stubbin/bash" --version 2>/dev/null | head -n 1 >/dev/null || pre_fix_rc=$?
-  set +o pipefail
+  if [ "$pipefail_was_on" -eq 1 ]; then
+    set -o pipefail
+  else
+    set +o pipefail
+  fi
   [ "$pre_fix_rc" -eq 141 ]
 
   # PART 2 (production guard): run the REAL validate-skills.sh with the stub

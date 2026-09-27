@@ -6,7 +6,7 @@ id: DIA-260927-w3og
 title: "re-review fix: strengthen the SIGPIPE regression test and de-ASCII its comments (RO-1/RO-2)"
 area: scripts
 severity: Medium
-status: OPEN
+status: VERIFIED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: ""
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
@@ -49,13 +49,20 @@ Sequencing: after both items land, dispatch review cycle 2/2 at the fixed point 
 - [x] the rewritten test PASSES with the fix present (evidence: bats run output plus exit code 0)
 - [x] zero non-ASCII bytes remain in the touched test file (evidence: grep -P '[^\x00-\x7F]' on the file returns empty)
 - [x] the three independent reasons the old test could not fail are enumerated in the Fix section
-- [ ] review cycle 2/2 recorded at fixed point fd7e64e2 with exactly one FIXED_POINT marker (orchestrator action, not this lane)
+- [x] review cycle 2/2 recorded at fixed point fd7e64e2 with exactly one FIXED_POINT marker
 
 ## Fix
 
-Scope: `scripts/__tests__/validate-skills.bats` only. Nothing committed; all
-changes left in the working tree. Line numbers below for the "old test" refer
-to the pre-edit file (blob 24d5265c, 1040 lines).
+Scope: `scripts/__tests__/validate-skills.bats` only. Commit state (corrected
+per re-review OBS-1): the RO-1/RO-2 changes ARE COMMITTED - they are part of
+the reviewed artifact commit 7b3025f9 (review range: fixed point fd7e64e2 ..
+7b3025f9). What lived only in the working tree was the reverse-verification
+revert of the PRODUCTION script: `.opencode/scripts/validate-skills.sh` was
+temporarily reverted during verification and then restored, ending at 0 diff
+lines - that revert was never committed, and it was restored by direct edit
+because `git checkout -- <path>` is permission-denied in this environment.
+Line numbers below for the "old test" refer to the pre-edit file (blob
+24d5265c, 1040 lines).
 
 ### RO-1: three independent reasons the old test could not fail
 
@@ -142,6 +149,39 @@ tree when this lane started, confirmed by
 - `grep -P '[^\x00-\x7F]' scripts/__tests__/validate-skills.bats` -> empty,
   exit 1 (no non-ASCII bytes)
 
+### Follow-up after re-review (three accepted-to-fix observations, this change)
+
+- OBS-1: corrected the Scope/commit-state narrative above (committed artifact
+  7b3025f9 vs the never-committed working-tree revert/restore of the
+  production script at 0 diff lines).
+- OBS-2 (PART 1 flakiness ceiling): the stub no longer races a 0.2s sleep. It
+  writes line 1, waits for the pipe reader to actually close (select.poll
+  POLLERR/POLLHUP on the write end, 1s hang-guard), and only then writes
+  line 2, so the SIGPIPE-triggering write can never land before head closes;
+  a false self-check fail would need head to hold the pipe open for >1s
+  (it closes within milliseconds of reading line 1). Fixture self-check
+  only, never a production claim.
+- OBS-3 (pipefail restoration): PART 1 captures `[[ -o pipefail ]]` before
+  toggling and restores exactly that prior state instead of unconditionally
+  switching pipefail off.
+
 ## Re-verify
 
-> To be filled at re-verify time.
+- Verdict: all-closed - both prior findings verified-closed:
+  - RO-1 (test could not fail when the production fix is reverted):
+    verified-closed.
+  - RO-2 (non-ASCII Cyrillic in test comments): verified-closed.
+- Fixed point: fd7e64e2.
+- Reviewed artifact commit: 7b3025f9.
+- Reviewing lane session id: ses_f1b2db65effeBqr5nL8NY1KCYZ.
+- New observations from that re-review, developer disposition ACCEPTED TO FIX,
+  all three landed in this change:
+  - OBS-1 [Minor] ticket narrative drift ("nothing committed" vs the
+    committed artifact) - fixed: Scope paragraph corrected above.
+  - OBS-2 [Suggestion] PART 1 flakiness ceiling (0.2s sleep race could
+    false-fail) - fixed: read-then-close handshake in the stub.
+  - OBS-3 [Suggestion] `set +o pipefail` restored pipefail to OFF
+    unconditionally - fixed: prior state captured and restored exactly.
+- Residual notes dispositioned as accepted-risk: none recorded for this
+  ticket, and none are invented here (no developer accepted-risk disposition
+  was given to this lane).
