@@ -245,7 +245,7 @@
 | DIA-260827-txq2 | Inherited obsolete and duplicate plugins from base OMO config | opencode-config | High | OPEN | [DIA-260827-txq2-inherited-obsolete-and-duplicate-plugins-from-base-omo-config.md](DIA-260827-txq2-inherited-obsolete-and-duplicate-plugins-from-base-omo-config.md) |
 | DIA-260827-uqw0 | [CRITICAL] Cross-session handoff corruption via process-global parentSessionId (DUPLICATE of y9n9; CLOSED) | opencode-config | Critical | CLOSED | [DIA-260827-uqw0-critical-cross-session-handoff-corruption-via-process-global-parentsessionid.md](DIA-260827-uqw0-critical-cross-session-handoff-corruption-via-process-global-parentsessionid.md) |
 | DIA-260827-uv | Routing-order regression suite copies logic and is orphaned | scripts | Medium | OPEN | [DIA-260827-uv-routing-order-regression-suite-copies-logic-and-is-orphaned.md](DIA-260827-uv-routing-order-regression-suite-copies-logic-and-is-orphaned.md) |
-| DIA-260827-wawy | Heavy infra cleanup not guaranteed after test failure | docker | Medium | OPEN | [DIA-260827-wawy-heavy-infra-cleanup-not-guaranteed-after-test-failure.md](DIA-260827-wawy-heavy-infra-cleanup-not-guaranteed-after-test-failure.md) |
+| DIA-260827-wawy | Heavy infra cleanup not guaranteed after test failure | docker | Medium | CLOSED | [DIA-260827-wawy-heavy-infra-cleanup-not-guaranteed-after-test-failure.md](DIA-260827-wawy-heavy-infra-cleanup-not-guaranteed-after-test-failure.md) |
 | DIA-260827-wfcx | full repository four-lane audit tests agents code skills plugins | opencode-config | Major | CLOSED | [DIA-260827-wfcx-full-repository-four-lane-audit-tests-agents-code-skills-plugins.md](DIA-260827-wfcx-full-repository-four-lane-audit-tests-agents-code-skills-plugins.md) |
 | DIA-260827-y9n9 | [CRITICAL] Cross-session handoff corruption via process-global parentSessionId | opencode-config | Critical | CLOSED | [DIA-260827-y9n9-critical-cross-session-handoff-corruption-via-process-global-parentsessionid.md](DIA-260827-y9n9-critical-cross-session-handoff-corruption-via-process-global-parentsessionid.md) |
 | DIA-260828-qtsi | promo preset infrastructure: opencode-go promotion-optimized preset with json patch + skill (2-week review, weekend coding) | opencode-config | Major | CLOSED | [DIA-260828-qtsi-promo-preset-infrastructure-opencode-go-promotion-optimized-preset-with-json-patch-skill-2-week-review-weekend-coding.md](DIA-260828-qtsi-promo-preset-infrastructure-opencode-go-promotion-optimized-preset-with-json-patch-skill-2-week-review-weekend-coding.md) |
@@ -333,7 +333,22 @@
 | DIA-260921-6o4i | Console free-tier gate rejects -free models | scripts | Major | OPEN | [DIA-260921-6o4i-console-free-tier-gate-rejects-free-models.md](DIA-260921-6o4i-console-free-tier-gate-rejects-free-models.md) |
 | DIA-260922-tscn | Docker CLI unavailable to non-interactive WSL shells after host reboot: Docker Desktop WSL integration must be enabled for THIS distro, forcing a manual GUI re-enable on every reboot | dev-infra | Major | OPEN | [DIA-260922-tscn-docker-cli-unavailable-to-non-interactive-wsl-shells-after-host-reboot-docker-desktop-wsl-integration-must-be-enabled-for-this-distro-forcing-a-manual-gui-re-enable-on-every-reboot.md](DIA-260922-tscn-docker-cli-unavailable-to-non-interactive-wsl-shells-after-host-reboot-docker-desktop-wsl-integration-must-be-enabled-for-this-distro-forcing-a-manual-gui-re-enable-on-every-reboot.md) |
 | DIA-260925-td9h | evaluate repo-mapping tools for adoption (graft, gitnexus, tree-sitter repo map + ast-grep, aider repo map) | dev-infra | Medium | OPEN | [DIA-260925-td9h-evaluate-repo-mapping-tools-for-adoption-graft-gitnexus-tree-sitter-repo-map-ast-grep-aider-repo-map.md](DIA-260925-td9h-evaluate-repo-mapping-tools-for-adoption-graft-gitnexus-tree-sitter-repo-map-ast-grep-aider-repo-map.md) |
+| DIA-260926-3mts | test-body-routing | scripts | Medium | OPEN | [DIA-260926-3mts-test-body-routing.md](DIA-260926-3mts-test-body-routing.md) |
+| DIA-260926-40bb | context/handoff thresholds: stale design.md + dead resource-pressure code + the 15/25 vs 60/75 policy question | scripts | Medium | OPEN | [DIA-260926-40bb-context-handoff-thresholds-stale-design-md-dead-resource-pressure-code-the-15-25-vs-60-75-policy-question.md](DIA-260926-40bb-context-handoff-thresholds-stale-design-md-dead-resource-pressure-code-the-15-25-vs-60-75-policy-question.md) |
+| DIA-260926-5vin | permission asks in unattended lanes: convert unnecessary ask to deny, narrow external_directory, add catch-all defaults | scripts | Major | OPEN | [DIA-260926-5vin-permission-asks-in-unattended-lanes-convert-unnecessary-ask-to-deny-narrow-external-directory-add-catch-all-defaults.md](DIA-260926-5vin-permission-asks-in-unattended-lanes-convert-unnecessary-ask-to-deny-narrow-external-directory-add-catch-all-defaults.md) |
+| DIA-260926-9p7x | surface blocked lanes: orchestrator reads ticker.json on wake and resumes via DIA-099 instead of silent death | scripts | Major | OPEN | [DIA-260926-9p7x-surface-blocked-lanes-orchestrator-reads-ticker-json-on-wake-and-resumes-via-dia-099-instead-of-silent-death.md](DIA-260926-9p7x-surface-blocked-lanes-orchestrator-reads-ticker-json-on-wake-and-resumes-via-dia-099-instead-of-silent-death.md) |
+| DIA-260926-ch1d | host test-shell failures: check-compose-config + validate-skills | scripts | Medium | CLOSED | [DIA-260926-ch1d-host-test-shell-failures-check-compose-config-validate-skills.md](DIA-260926-ch1d-host-test-shell-failures-check-compose-config-validate-skills.md) |
+| DIA-260926-k8ej | scripts/tickets CLI has no Description/Verification setter - bodies land under Fix and only a direct file edit can repair them | scripts | Medium | OPEN | [DIA-260926-k8ej-scripts-tickets-cli-has-no-description-verification-setter-bodies-land-under-fix-and-only-a-direct-file-edit-can-repair-them.md](DIA-260926-k8ej-scripts-tickets-cli-has-no-description-verification-setter-bodies-land-under-fix-and-only-a-direct-file-edit-can-repair-them.md) |
 | DIA-260926-kksa | shell script standards: documented convention + shellcheck/shfmt adoption | scripts | Major | OPEN | [DIA-260926-kksa-shell-script-standards-documented-convention-shellcheck-shfmt-adoption.md](DIA-260926-kksa-shell-script-standards-documented-convention-shellcheck-shfmt-adoption.md) |
+| DIA-260926-n49u | muse-balanced preset: swap mimo-v2.5 -> mimo-v2.6-flash | scripts | Medium | OPEN | [DIA-260926-n49u-muse-balanced-preset-swap-mimo-v2-5-mimo-v2-6-flash.md](DIA-260926-n49u-muse-balanced-preset-swap-mimo-v2-5-mimo-v2-6-flash.md) |
+| DIA-260927-0zii | test-python: collapse per-package compose exec into a single exec | tests-infra | Low | OPEN | [DIA-260927-0zii-test-python-collapse-per-package-compose-exec-into-a-single-exec.md](DIA-260927-0zii-test-python-collapse-per-package-compose-exec-into-a-single-exec.md) |
+| DIA-260927-h5xs | test-python: parallelize the 3x uv pip install | tests-infra | Low | OPEN | [DIA-260927-h5xs-test-python-parallelize-the-3x-uv-pip-install.md](DIA-260927-h5xs-test-python-parallelize-the-3x-uv-pip-install.md) |
+| DIA-260927-hwl9 | turbo: add package.json to the test task inputs (stale-green fix) | tests-infra | Low | OPEN | [DIA-260927-hwl9-turbo-add-package-json-to-the-test-task-inputs-stale-green-fix.md](DIA-260927-hwl9-turbo-add-package-json-to-the-test-task-inputs-stale-green-fix.md) |
+| DIA-260927-k8nh | test-suite speedups: compose exec, parallel validators, turbo inputs, parallel pip | tests-infra | Low | OPEN | [DIA-260927-k8nh-test-suite-speedups-compose-exec-parallel-validators-turbo-inputs-parallel-pip.md](DIA-260927-k8nh-test-suite-speedups-compose-exec-parallel-validators-turbo-inputs-parallel-pip.md) |
+| DIA-260927-ltum | openspec: reconcile dia-206 empty-return-recovery VP-2 and tasks with the shipped text-based empty-result predicate | scripts | Low | OPEN | [DIA-260927-ltum-openspec-reconcile-dia-206-empty-return-recovery-vp-2-and-tasks-with-the-shipped-text-based-empty-result-predicate.md](DIA-260927-ltum-openspec-reconcile-dia-206-empty-return-recovery-vp-2-and-tasks-with-the-shipped-text-based-empty-result-predicate.md) |
+| DIA-260927-shgj | test-config: run the read-only validators in parallel | tests-infra | Low | OPEN | [DIA-260927-shgj-test-config-run-the-read-only-validators-in-parallel.md](DIA-260927-shgj-test-config-run-the-read-only-validators-in-parallel.md) |
+| DIA-260927-uevh | plugin: restore the dropped handoff-archived app.log line (regression from b35229f8 seam extraction) | scripts | Major | OPEN | [DIA-260927-uevh-plugin-restore-the-dropped-handoff-archived-app-log-line-regression-from-b35229f8-seam-extraction.md](DIA-260927-uevh-plugin-restore-the-dropped-handoff-archived-app-log-line-regression-from-b35229f8-seam-extraction.md) |
+| DIA-260927-vmpa | dev-infra: tee the full make test-infra output (stdout and stderr) to a gitignored orchestrator-readable log at .opencode/session/test-infra.log | scripts | Low | OPEN | [DIA-260927-vmpa-dev-infra-tee-the-full-make-test-infra-output-stdout-and-stderr-to-a-gitignored-orchestrator-readable-log-at-opencode-session-test-infra-log.md](DIA-260927-vmpa-dev-infra-tee-the-full-make-test-infra-output-stdout-and-stderr-to-a-gitignored-orchestrator-readable-log-at-opencode-session-test-infra-log.md) |
 
 ## Status summary
 
@@ -341,16 +356,16 @@
 | -------- | ----- |
 | Blocker  | 9     |
 | Critical | 16    |
-| Major    | 81    |
-| Medium   | 172   |
+| Major    | 84    |
+| Medium   | 177   |
 | Minor    | 1     |
-| Low      | 31    |
+| Low      | 38    |
 | Info     | 2     |
 | High     | 20    |
 
 | Status      | Count |
 | ----------- | ----- |
-| OPEN        | 76    |
+| OPEN        | 89    |
 | DONE        | 15    |
 | VALIDATE    | 0     |
 | E2E         | 0     |
@@ -359,7 +374,7 @@
 | FIXED       | 1     |
 | IMPLEMENTED | 0     |
 | VERIFIED    | 28    |
-| CLOSED      | 209   |
+| CLOSED      | 211   |
 | BLOCKED     | 0     |
 | DISPATCHED  | 0     |
 | RUNNING     | 0     |
