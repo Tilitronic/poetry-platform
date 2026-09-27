@@ -66,6 +66,17 @@ FAKEHOSTNAME
 }
 
 # ---------------------------------------------------------------------------
+# Setup
+# ---------------------------------------------------------------------------
+
+setup() {
+  # Hermetic engine selection (DIA-260909-9api, container-engine.bats:32):
+  # ignore any inherited COMPOSE_ENGINE; tests that need an override export
+  # it explicitly.
+  unset COMPOSE_ENGINE
+}
+
+# ---------------------------------------------------------------------------
 # Tests
 # ---------------------------------------------------------------------------
 
@@ -173,12 +184,6 @@ FAKEHOSTNAME
   export PATH
   local tree
   tree="$(setup_compose_config_tree)"
-  # Plant an INVALID compose file so the test's intent (validation FAILS)
-  # does not depend solely on the fake rejecting it. Defense-in-depth
-  # against any real engine that might leak through.
-  cat > "$tree/docker-compose.yml" <<'INVALID'
-services: [
-INVALID
 
   run env COMPOSE_ENGINE=docker bash "$tree/scripts/check-compose-config.sh"
 

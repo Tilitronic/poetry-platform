@@ -463,6 +463,9 @@ compat_bash_actual=""
 compat_bash_major=0
 compat_bash_minor=0
 compat_bash_patch=0
+# Do not pipe to head: under 'set -euo pipefail' an early pipe close can
+# SIGPIPE bash --version (141), which would falsely report the version as
+# unknown. (declare -A below requires bash 4.0+, so no bash-3.2 concern.)
 if bash_line="$(bash --version 2>/dev/null)"; then
   bash_line="${bash_line%%$'\n'*}"
   if [[ "$bash_line" =~ version\ ([0-9]+)\.([0-9]+)(\.([0-9]+))? ]]; then
