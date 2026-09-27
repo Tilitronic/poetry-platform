@@ -367,13 +367,18 @@ addressing the empty result.
 **Verification-only marker convention (DIA-260826-zvu4):** A coder dispatch
 whose description or prompt carries one of the marker phrases
 "verification-only", "read-only verification", or "verify-only" is exempt
-from plugin SILENT_FAILURE detection: a zero-file-edit result from that lane
-is a legitimate outcome (read/verify/report work), not a crisis, and no
-empty-result re-dispatch is required. The marker must be present in the
-task() description/prompt AT DISPATCH TIME - the plugin classifies the lane
-when task() returns and cannot see later prompt edits. Use the marker only
-for genuinely read-only verification lanes; implementation lanes without it
-keep full empty-result detection.
+from plugin empty-result detection (event `empty_result_detected`): an EMPTY
+`<task_result>` body from that lane is a legitimate outcome (read/verify/report
+work), not a crisis, and no empty-result re-dispatch is required. The
+detector fires on an empty `<task_result>` body, NOT on zero file edits; the
+row carries `dispatch_state: "EMPTY_RESULT"` and `status: "NO_TEXT_RESULT"`.
+The genuine silent-failure alarm is a SEPARATE detector and owns
+`SILENT_FAILURE` alone. A lane whose agent is in the plugin's read-only set
+is exempt on the same terms, regardless of edits. The marker must be present
+in the task() description/prompt AT DISPATCH TIME - the plugin classifies the
+lane when task() returns and cannot see later prompt edits. Use the marker
+only for genuinely read-only verification lanes; implementation lanes
+without it keep full empty-result detection.
 
 ## Changelog Read Protocol (DIA-194)
 

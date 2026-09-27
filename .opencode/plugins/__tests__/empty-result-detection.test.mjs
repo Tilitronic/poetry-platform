@@ -424,6 +424,9 @@ describe("DIA-260826-zvu4: verification-only coder exemption", () => { // DIA-26
 
     // Marker lives ONLY in the description channel; prompt is marker-free.
     // Mirrors driveTaskDispatch but passes description instead of prompt.
+    // DIA-260926-ch1d F2: the envelope must be present and EMPTY, otherwise
+    // the fail-open fallback (no captured envelope -> never fire) would make
+    // this assertion pass regardless of the marker exemption.
     await hooks["tool.execute.after"](
       { tool: "task",
         sessionID: parentID,
@@ -431,7 +434,7 @@ describe("DIA-260826-zvu4: verification-only coder exemption", () => { // DIA-26
         args: { subagent_type: "coder",
           description: "verification-only recon",
           prompt: "implement feature X against tasks.md", }, },
-      { output: `<task id="${childID}"><state>completed</state></task>` }
+      { output: `<task id="${childID}"><state>completed</state><task_result></task_result></task>` }
     )
 
     const rowsBefore = countRows(ctx)

@@ -3681,16 +3681,20 @@ const delegationObserver: Plugin = async (ctx) => {
               // seam extraction (b35229f8, DIA-260902-eqgg) moved the archive
               // behaviour into lib/handoff.ts -- a pure helper with no ctx, so
               // it cannot log. Re-homed at the caller, guarded so a FIRST
-              // write (no prior slot) stays silent (DIA-204 info-level,
-              // message shape preserved: "handoff archived: <sid> -> archive/..").
+              // write (no prior slot) stays silent (DIA-204 info-level).
+              // The produced string reproduces the DIA-204 literal verbatim:
+              // "handoff archived: <sid> prior slot -> archive/<name>".
               if (writeResult?.archived_prior) {
+                // app.log returns an SDK promise (verified: RequestResult is
+                // Promise-backed). Telemetry must never surface as an
+                // unhandled rejection inside the handoff path.
                 ctx.client.app.log({
                   body: {
                     service: "delegation-observer",
                     level: "info",
-                    message: `[delegation-observer] handoff archived: ${handoffSessionId} -> ${writeResult.archived_prior}`,
+                    message: `[delegation-observer] handoff archived: ${handoffSessionId} prior slot -> ${writeResult.archived_prior}`,
                   },
-                })
+                }).catch(() => {})
               }
 
               // DIA-211 Phase 2: stigmergic active.json -- on terminal handoff
