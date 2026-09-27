@@ -174,24 +174,31 @@ gen-jsconfig:
 # Requires a running container engine (Docker or Podman).
 # DIA-260927-vmpa: tee the COMPLETE run (prereqs + body, stdout + stderr) to
 # .opencode/session/test-infra.log (gitignored) so the orchestrator can read
-# it directly instead of a chat paste. Console stays identical: the
-# 2>&1 1>&3 fd juggle gives each stream its own tee; `set -o pipefail`
-# (recipe shell is dash, which supports it) carries the inner exit code past
-# both tees. Prereqs move into a submake so they sit inside the wrap;
-# --no-print-directory keeps that submake console-identical to the old
-# direct prereqs (flag does not leak to the test-python submake below).
+# it directly instead of a chat paste. Console stays identical: the wrapper
+# (scripts/test-infra-log.sh) holds the 2>&1 1>&3 fd juggle so each stream
+# gets its own tee, and it runs under bash so `set -o pipefail` carries the
+# inner exit code past both tees. The interpreter is pinned at the call site
+# (`bash scripts/...`) rather than left to the recipe's /bin/sh: a /bin/sh
+# without pipefail (dash < 0.5.12) either dies at `set -o pipefail` before
+# the wrapper runs or continues with pipefail unset, in which case the
+# trailer would record tee's 0 over a FAILED run (review FIX 1). Prereqs
+# move into a submake so they sit inside the wrap; --no-print-directory
+# keeps that submake console-identical to the old direct prereqs. The flag
+# propagates to every recursed submake through MAKEFLAGS (verified:
+# MAKEFLAGS=[ --no-print-directory] in the child), so the test-python
+# submake below inherits it too - it prints no directory banners, matching
+# the old direct-prereq layout.
 test-infra:
-	@set -o pipefail; log=.opencode/session/test-infra.log; mkdir -p .opencode/session || exit 1; : >"$$log" || exit 1; \
-	{ { $(MAKE) --no-print-directory gen-jsconfig test-shell test-harness && { \
+	@bash scripts/test-infra-log.sh .opencode/session/test-infra.log \
+	bash -c '{ $(MAKE) --no-print-directory gen-jsconfig test-shell test-harness && { \
 	  orig_rc=0; \
-	  trap 'bash scripts/container-engine.sh compose down 2>/dev/null || true' EXIT; \
+	  trap "bash scripts/container-engine.sh compose down 2>/dev/null || true" EXIT; \
 	  SMOKE_LEAVE_UP=1 bash scripts/test-docker-smoke.sh || orig_rc=$$?; \
 	  if [ $$orig_rc -eq 0 ]; then \
 	    $(MAKE) test-python || orig_rc=$$?; \
 	  fi; \
 	  exit $$orig_rc; \
-	}; } 2>&1 1>&3 3>&- | tee -a "$$log" >&2; } 3>&1 | tee -a "$$log"; rc=$$?; \
-	echo "==> test-infra exit code: $$rc" | tee -a "$$log"; exit $$rc
+	}; }'
 
 # Unit tests for the Python packages (pytest): apps/api-server + the
 # analytics-pipeline (DIA-013 — it was previously outside all Python gates)

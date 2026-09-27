@@ -654,3 +654,69 @@ describe('S7 DIA-260821-5r03: project observer plugins have one registration sou
     }
   });
 });
+
+// ============================================================================
+// S8 DIA-260927-vmpa - test-infra log wrapper wiring (review FIX 2a).
+// The exit-code-carrying wrapper body (truncate, fd/tee juggle, trailer line,
+// bash pinning) lives in scripts/test-infra-log.sh; the ^test-infra: recipe
+// delegates to it, because a wrapper that rests on the recipe's /bin/sh
+// honouring `set -o pipefail` can log a green 0 over a FAILED run (FIX 1).
+// These assertions pin BOTH ends of that seam: the recipe must route through
+// the helper with the canonical log path, and the helper - the code that
+// actually runs - must hold every mechanic the recipe no longer spells out
+// inline (the S4 assertions above keep covering the recipe-side invariants).
+// ============================================================================
+describe('S8 DIA-260927-vmpa: test-infra log wrapper (review FIX 1/2a)', () => {
+  const recipe = testInfraRecipe();
+  const wrapper = readRoot('scripts/test-infra-log.sh');
+
+  it('Makefile: test-infra recipe invokes scripts/test-infra-log.sh as its shell command (call-site shell pin)', () => {
+    assert.match(
+      recipe,
+      /^\t@bash scripts\/test-infra-log\.sh /m,
+      'test-infra recipe must run the wrapper helper under an explicit bash',
+    );
+  });
+
+  it('Makefile: test-infra recipe references the canonical log path', () => {
+    assert.match(
+      recipe,
+      /\.opencode\/session\/test-infra\.log/,
+      'test-infra recipe must pass the canonical log path to the wrapper',
+    );
+  });
+
+  it('helper: truncates the log before writing (a rerun never appends to the old evidence)', () => {
+    assert.match(
+      wrapper,
+      /: >"\$log" \|\| exit 1/,
+      'test-infra-log.sh must truncate the log before the run',
+    );
+  });
+
+  it('helper: emits the trailing "==> test-infra exit code:" line', () => {
+    assert.match(
+      wrapper,
+      /==> test-infra exit code: \$rc/,
+      'test-infra-log.sh must record the final exit code in the log',
+    );
+  });
+
+  it('helper: pins bash + pipefail so the exit code cannot depend on /bin/sh (FIX 1)', () => {
+    assert.match(wrapper, /^#!\/usr\/bin\/env bash$/m, 'wrapper must be a bash script');
+    assert.match(
+      wrapper,
+      /^\[ -n "\$\{BASH_VERSION:-\}" \] \|\| /m,
+      'wrapper must fail loud if invoked through a non-bash shell',
+    );
+    assert.match(wrapper, /^set -o pipefail$/m, 'wrapper must carry the exit code via pipefail');
+  });
+
+  it('helper: inner tee closes fd 3 so it cannot hold the outer tee pipe open (FIX 3)', () => {
+    assert.match(
+      wrapper,
+      /tee -a "\$log" 3>&- >&2/,
+      'inner tee must not inherit the outer tee pipe write end',
+    );
+  });
+});
