@@ -172,14 +172,26 @@ gen-jsconfig:
 # Single rebuild: smoke test leaves the stack up for test-python (SMOKE_LEAVE_UP=1,
 # F-3, DIA-139) -- it is the sole bring-up; there is no second up --build.
 # Requires a running container engine (Docker or Podman).
-test-infra: gen-jsconfig test-shell test-harness
-	@orig_rc=0; \
-	trap 'bash scripts/container-engine.sh compose down 2>/dev/null || true' EXIT; \
-	SMOKE_LEAVE_UP=1 bash scripts/test-docker-smoke.sh || orig_rc=$$?; \
-	if [ $$orig_rc -eq 0 ]; then \
-	  $(MAKE) test-python || orig_rc=$$?; \
-	fi; \
-	exit $$orig_rc
+# DIA-260927-vmpa: tee the COMPLETE run (prereqs + body, stdout + stderr) to
+# .opencode/session/test-infra.log (gitignored) so the orchestrator can read
+# it directly instead of a chat paste. Console stays identical: the
+# 2>&1 1>&3 fd juggle gives each stream its own tee; `set -o pipefail`
+# (recipe shell is dash, which supports it) carries the inner exit code past
+# both tees. Prereqs move into a submake so they sit inside the wrap;
+# --no-print-directory keeps that submake console-identical to the old
+# direct prereqs (flag does not leak to the test-python submake below).
+test-infra:
+	@set -o pipefail; log=.opencode/session/test-infra.log; mkdir -p .opencode/session || exit 1; : >"$$log" || exit 1; \
+	{ { $(MAKE) --no-print-directory gen-jsconfig test-shell test-harness && { \
+	  orig_rc=0; \
+	  trap 'bash scripts/container-engine.sh compose down 2>/dev/null || true' EXIT; \
+	  SMOKE_LEAVE_UP=1 bash scripts/test-docker-smoke.sh || orig_rc=$$?; \
+	  if [ $$orig_rc -eq 0 ]; then \
+	    $(MAKE) test-python || orig_rc=$$?; \
+	  fi; \
+	  exit $$orig_rc; \
+	}; } 2>&1 1>&3 3>&- | tee -a "$$log" >&2; } 3>&1 | tee -a "$$log"; rc=$$?; \
+	echo "==> test-infra exit code: $$rc" | tee -a "$$log"; exit $$rc
 
 # Unit tests for the Python packages (pytest): apps/api-server + the
 # analytics-pipeline (DIA-013 — it was previously outside all Python gates)
