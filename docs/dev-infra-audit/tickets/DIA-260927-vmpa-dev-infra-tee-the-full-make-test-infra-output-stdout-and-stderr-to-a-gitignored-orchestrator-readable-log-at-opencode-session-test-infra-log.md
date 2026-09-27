@@ -53,8 +53,8 @@ Files:
 
 - Makefile - the test-infra recipe now delegates to the wrapper
 - scripts/test-infra-log.sh - new helper (truncate, fd/tee juggle, trailer line, bash pin)
-- scripts/**tests**/test-infra-log.bats - new, 4 tests
-- scripts/**tests**/batch-d-infra.test.mjs - S8 wiring assertions on the recipe-to-helper seam
+- `scripts/__tests__/test-infra-log.bats` - new, 4 tests
+- `scripts/__tests__/batch-d-infra.test.mjs` - S8 wiring assertions on the recipe-to-helper seam
 
 ## Verification
 
