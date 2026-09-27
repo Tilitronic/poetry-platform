@@ -889,3 +889,91 @@ Use when running the validation suite.
   assert_output_contains "FAIL: duplicate skill 'dup-b'"
   assert_output_contains "failed"
 }
+
+# --- DIA-260926-ch1d: SIGPIPE regression test for bash-version detection ---
+# Validates the FAILURE 2 fix: under 'set -euo pipefail' the old pipe-to-head
+# form `bash --version 2>/dev/null | head -n 1` can fail with exit 141 (SIGPIPE)
+# when bash --version writes output in multiple write() calls and head -n 1
+# closes the pipe early. The fix extracts the first line in-shell via
+# parameter expansion, avoiding the pipe entirely.
+#
+# The fake bash writes its --version output in two separate os.write() calls
+# with a sleep between them, so head -n 1 can read line 1 and close the pipe
+# before line 2 is written. Python's SIGPIPE is reset to SIG_DFL so the
+# process dies with exit 141 instead of raising BrokenPipeError.
+@test "validate-skills: SIGPIPE on bash --version pipe does not break version detection" {
+  # Guard: the fake bash stub requires python3 for deterministic SIGPIPE
+  # (os.write + time.sleep + signal.SIG_DFL). Skip cleanly if unavailable.
+  if ! command -v python3 >/dev/null 2>&1; then
+    skip "python3 required for SIGPIPE stub"
+  fi
+
+  local stubbin="$BATS_TEST_TMPDIR/stubbin"
+  mkdir -p "$stubbin"
+
+  # Python script: writes --version in two separate os.write() calls with a
+  # sleep between them, emulating the host write() behavior that triggers
+  # SIGPIPE when a reader (head -n 1) closes the pipe after the first line.
+  # signal.SIG_DFL ensures the process dies with 141 instead of catching
+  # BrokenPipeError.
+  #
+  # The non-version fallback uses $BASH_BIN (absolute, from setup()) for
+  # execvp to avoid recursive PATH resolution through the stub itself.
+  cat > "$stubbin/fake-bash.py" << PYEOF
+import sys, signal, os, time
+signal.signal(signal.SIGPIPE, signal.SIG_DFL)
+if len(sys.argv) > 1 and sys.argv[1] == "--version":
+    os.write(1, b"GNU bash, version 5.1.0(1)-release (x86_64-pc-linux-gnu)\\n")
+    time.sleep(0.2)
+    os.write(1, b"Copyright (C) 2020 Free Software Foundation, Inc.\\n")
+    sys.exit(0)
+os.execvp("$BASH_BIN", ["$BASH_BIN"] + sys.argv[1:])
+PYEOF
+  chmod +x "$stubbin/fake-bash.py"
+
+  # Wrapper: absolute shebang (never /usr/bin/env bash) to avoid recursive
+  # stub resolution when stubbin is first on PATH.
+  cat > "$stubbin/bash" << EOF
+#!$BASH_BIN
+exec python3 "$stubbin/fake-bash.py" "\$@"
+EOF
+  chmod +x "$stubbin/bash"
+
+  # PART 1: Demonstrate the PRE-FIX pipe-to-head pattern FAILS.
+  # Under 'set -euo pipefail' the pipeline `bash --version 2>/dev/null | head -n 1`
+  # gets exit 141 (SIGPIPE) because the stub writes line 2 after head has
+  # closed the pipe. This is the exact host failure mode that caused
+  # "bash version unknown".
+  local pre_fix_rc=0
+  set -euo pipefail
+  if ! bash_line="$("$stubbin/bash" --version 2>/dev/null | head -n 1)"; then
+    pre_fix_rc=$?
+  fi
+  set +euo pipefail 2>/dev/null || true
+  [ "$pre_fix_rc" -eq 141 ]
+
+  # PART 2: The current in-shell extraction WORKS with the same stub.
+  # No pipe, no SIGPIPE -- the full multi-line output is captured in a
+  # variable and the first line is extracted via parameter expansion.
+  local post_fix_output=""
+  set -euo pipefail
+  if bash_line="$("$stubbin/bash" --version 2>/dev/null)"; then
+    bash_line="${bash_line%%$'\n'*}"
+    post_fix_output="$bash_line"
+  fi
+  set +euo pipefail 2>/dev/null || true
+  [[ "$post_fix_output" == *"5.1.0"* ]]
+
+  # PART 3: The full validate-skills script passes with the stub on PATH.
+  # The script's own bash-version detection (lines 469-477) uses the same
+  # in-shell extraction pattern, so it resolves 5.1.0 and the compat check
+  # succeeds. A valid skill fixture ensures the script exits 0.
+  valid_skill "sigpipe-ok"
+  SKILLS_ROOT="$FIXTURES" PATH="$stubbin:$PATH" run bash "$SKILLS_SCRIPT"
+
+  assert_status 0
+  assert_output_contains "ok:"
+  assert_output_contains "passed"
+  assert_output_not_contains "FAIL:"
+  assert_output_not_contains "bash version unknown"
+}
