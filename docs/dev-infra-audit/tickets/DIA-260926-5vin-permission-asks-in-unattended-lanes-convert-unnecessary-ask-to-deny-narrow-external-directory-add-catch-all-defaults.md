@@ -30,7 +30,16 @@ attempts: 0
 lease_expires_at: "" # ISO-8601; set on DISPATCHED, cleared on COMPLETE
 files_touched: []
 artifacts: []
-evidence: []
+evidence:
+
+- C4 smoke 2026-09-28 (f6c84a5 .scratch allows) - canonical cleanup PASS, zero permission asks
+- C4 two-argument probe NO_ASK, reproduced in two lanes - 'rm -rf .scratch/A .scratch/B' allowed, zero new registry rows
+- C4 two-argument rmdir probe ASK - 'rmdir .scratch/A .scratch/B' produced permission_asked_logged (asymmetry vs rm is the anomaly)
+- escaped delete CONFIRMED - 'rm -rf .scratch/c4-esc-keep /tmp/c4-outside-esc' raised no rm ask and deleted BOTH targets; the only ask was the earlier mkdir external_directory gate for /tmp/\*
+- decisive eval line 1 - evaluated permission=bash pattern="rm -rf .scratch/c4-repro-a .scratch/c4-repro-b" action.pattern="rm \*" action.action=allow
+- decisive eval line 2 - bash pattern="rm -rf .scratch/c4-esc-keep /tmp/c4-outside-esc" action.pattern="rm \*" action.action=allow (no asking line at delete time)
+- finding ticket - DIA-260928-rzty 'permission: anchored .scratch two-argument ask guards do not take effect; a second rm path rides along on the broad rm \* allow (escaped delete confirmed)'
+- finding ticket - DIA-260928-rzty - permission anchored .scratch two-argument ask guards do not take effect, second rm path rides the broad rm \* allow (severity Major, dispatch requested High)
 
 ---
 

@@ -62,7 +62,16 @@ Related ledger entries to reconcile before implementing: DIA-260926-n49u (muse-b
 
 ## Fix
 
-> To be filled at fix time.
+Implemented 2026-09-28. Eight files, 44 insertions / 44 deletions.
+Decisions (developer, recorded): rename the active preset muse-balanced -> mimo-balanced; architector primary -> opencode-go/kimi-k3 keeping variant high; ai-auditor primary -> opencode-go/kimi-k3 with variant medium, replacing opencode-go/glm-5.3-flash.
+Rationale: knowledge/model-registry.yaml:125 requires ai-auditor on a different model family from ai-specialist; the informal DeepSeek Flash V4.1 target would have collided with ai-specialist on deepseek-v4.1-flash, so kimi-k3 was chosen. Live catalog confirmed opencode-go/kimi-k3 resolves (opencode models probe, recorded in the learnings entry).
+Surfaces retargeted: preset root pointer and key plus header comment; scripts/check-orchestrator-prompt-drift.sh default PRESETS; scripts/test-interview-enforcement.sh tuple and messages; three bats suites; docs/dev-infra/preset-single-path.md; live preset-name comments in knowledge/model-registry.yaml. check-orchestrator-prompt-drift.bats was cohered only after it failed, because its fixtures pinned the old name.
+Registry: architector and ai-auditor removed from the deepseek-v4.1-flash lane list; glm-5.3-flash lane list emptied; the stale kimi-k3 entry corrected from active:false retired to active:true with role and lane updated.
+Surgical safety: opencode-go/deepseek-v4.1-flash remains unchanged in the six sibling lanes that share it (orchestrator, openspec-plan, reviewer, ai-specialist, coder-escalated, analyzer-escalated). No other preset touched.
+Evidence (implementer-asserted, not independently re-run): make test-config exit 0; make test-shell exit 0 with TAP 1..723 all ok; scoped grep for muse-balanced over the config, scripts/, the preset doc and the registry returns no matches; JSONC parses with root preset = mimo-balanced. 75 hits remain in historical surfaces and were deliberately not rewritten.
+Independent audit (section 2.5 Phase 6): SOUND-with-conditions, advisory. Conditions accepted: register this changelog entry; keep the ticket OPEN until restart-verify evidence exists; optionally ticket the fallback carve-out.
+Developer disposition: ACCEPT, changelog only. The ai-auditor fallback (opencode-go/deepseek-v4-flash at .opencode/oh-my-opencode-slim.jsonc:415) is ACCEPTED AS-IS as a known carve-out: independence holds at primary and only weakens on failover. Recorded, not fixed.
+Remaining open items (ticket stays OPEN): (1) restart-verify - a fresh interactive launch must show the renamed preset and the new per-lane primaries; no lane can perform this. (2) The resolved-model debug line for architector and ai-auditor has not been captured. (3) Minor: knowledge/model-registry.yaml kimi-k3 model_id is bare while the config id is prefixed, and its fallback field still lists the old coder-escalated chain. (4) Minor: .opencode/oh-my-opencode-slim.jsonc:11 carries a DIA-260827-8la4 comment that still calls the preset name historical.
 
 ## Re-verify
 

@@ -6,7 +6,7 @@ id: DIA-260926-n49u
 title: "muse-balanced preset: swap mimo-v2.5 -> mimo-v2.6-flash"
 area: scripts
 severity: Medium
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: ""
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
@@ -17,7 +17,7 @@ discovered: 2026-09-26
 source: inventory
 date: 2026-09-26
 created: 2026-09-26
-updated: 2026-09-26
+updated: 2026-09-28
 
 # --- Session Attribution (v2 schema, optional) ---
 

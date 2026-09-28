@@ -333,22 +333,32 @@
 | DIA-260921-6o4i | Console free-tier gate rejects -free models | scripts | Major | OPEN | [DIA-260921-6o4i-console-free-tier-gate-rejects-free-models.md](DIA-260921-6o4i-console-free-tier-gate-rejects-free-models.md) |
 | DIA-260922-tscn | Docker CLI unavailable to non-interactive WSL shells after host reboot: Docker Desktop WSL integration must be enabled for THIS distro, forcing a manual GUI re-enable on every reboot | dev-infra | Major | OPEN | [DIA-260922-tscn-docker-cli-unavailable-to-non-interactive-wsl-shells-after-host-reboot-docker-desktop-wsl-integration-must-be-enabled-for-this-distro-forcing-a-manual-gui-re-enable-on-every-reboot.md](DIA-260922-tscn-docker-cli-unavailable-to-non-interactive-wsl-shells-after-host-reboot-docker-desktop-wsl-integration-must-be-enabled-for-this-distro-forcing-a-manual-gui-re-enable-on-every-reboot.md) |
 | DIA-260925-td9h | evaluate repo-mapping tools for adoption (graft, gitnexus, tree-sitter repo map + ast-grep, aider repo map) | dev-infra | Medium | OPEN | [DIA-260925-td9h-evaluate-repo-mapping-tools-for-adoption-graft-gitnexus-tree-sitter-repo-map-ast-grep-aider-repo-map.md](DIA-260925-td9h-evaluate-repo-mapping-tools-for-adoption-graft-gitnexus-tree-sitter-repo-map-ast-grep-aider-repo-map.md) |
-| DIA-260926-3mts | test-body-routing | scripts | Medium | OPEN | [DIA-260926-3mts-test-body-routing.md](DIA-260926-3mts-test-body-routing.md) |
+| DIA-260926-3mts | test-body-routing | scripts | Medium | CLOSED | [DIA-260926-3mts-test-body-routing.md](DIA-260926-3mts-test-body-routing.md) |
 | DIA-260926-40bb | context/handoff thresholds: stale design.md + dead resource-pressure code + the 15/25 vs 60/75 policy question | scripts | Medium | OPEN | [DIA-260926-40bb-context-handoff-thresholds-stale-design-md-dead-resource-pressure-code-the-15-25-vs-60-75-policy-question.md](DIA-260926-40bb-context-handoff-thresholds-stale-design-md-dead-resource-pressure-code-the-15-25-vs-60-75-policy-question.md) |
 | DIA-260926-5vin | permission asks in unattended lanes: convert unnecessary ask to deny, narrow external_directory, add catch-all defaults | scripts | Major | OPEN | [DIA-260926-5vin-permission-asks-in-unattended-lanes-convert-unnecessary-ask-to-deny-narrow-external-directory-add-catch-all-defaults.md](DIA-260926-5vin-permission-asks-in-unattended-lanes-convert-unnecessary-ask-to-deny-narrow-external-directory-add-catch-all-defaults.md) |
 | DIA-260926-9p7x | surface blocked lanes: orchestrator reads ticker.json on wake and resumes via DIA-099 instead of silent death | scripts | Major | OPEN | [DIA-260926-9p7x-surface-blocked-lanes-orchestrator-reads-ticker-json-on-wake-and-resumes-via-dia-099-instead-of-silent-death.md](DIA-260926-9p7x-surface-blocked-lanes-orchestrator-reads-ticker-json-on-wake-and-resumes-via-dia-099-instead-of-silent-death.md) |
 | DIA-260926-ch1d | host test-shell failures: check-compose-config + validate-skills | scripts | Medium | CLOSED | [DIA-260926-ch1d-host-test-shell-failures-check-compose-config-validate-skills.md](DIA-260926-ch1d-host-test-shell-failures-check-compose-config-validate-skills.md) |
 | DIA-260926-k8ej | scripts/tickets CLI has no Description/Verification setter - bodies land under Fix and only a direct file edit can repair them | scripts | Medium | OPEN | [DIA-260926-k8ej-scripts-tickets-cli-has-no-description-verification-setter-bodies-land-under-fix-and-only-a-direct-file-edit-can-repair-them.md](DIA-260926-k8ej-scripts-tickets-cli-has-no-description-verification-setter-bodies-land-under-fix-and-only-a-direct-file-edit-can-repair-them.md) |
 | DIA-260926-kksa | shell script standards: documented convention + shellcheck/shfmt adoption | scripts | Major | OPEN | [DIA-260926-kksa-shell-script-standards-documented-convention-shellcheck-shfmt-adoption.md](DIA-260926-kksa-shell-script-standards-documented-convention-shellcheck-shfmt-adoption.md) |
-| DIA-260926-n49u | muse-balanced preset: swap mimo-v2.5 -> mimo-v2.6-flash | scripts | Medium | OPEN | [DIA-260926-n49u-muse-balanced-preset-swap-mimo-v2-5-mimo-v2-6-flash.md](DIA-260926-n49u-muse-balanced-preset-swap-mimo-v2-5-mimo-v2-6-flash.md) |
+| DIA-260926-n49u | muse-balanced preset: swap mimo-v2.5 -> mimo-v2.6-flash | scripts | Medium | CLOSED | [DIA-260926-n49u-muse-balanced-preset-swap-mimo-v2-5-mimo-v2-6-flash.md](DIA-260926-n49u-muse-balanced-preset-swap-mimo-v2-5-mimo-v2-6-flash.md) |
 | DIA-260927-0zii | test-python: collapse per-package compose exec into a single exec | tests-infra | Low | OPEN | [DIA-260927-0zii-test-python-collapse-per-package-compose-exec-into-a-single-exec.md](DIA-260927-0zii-test-python-collapse-per-package-compose-exec-into-a-single-exec.md) |
 | DIA-260927-h5xs | test-python: parallelize the 3x uv pip install | tests-infra | Low | OPEN | [DIA-260927-h5xs-test-python-parallelize-the-3x-uv-pip-install.md](DIA-260927-h5xs-test-python-parallelize-the-3x-uv-pip-install.md) |
 | DIA-260927-hwl9 | turbo: add package.json to the test task inputs (stale-green fix) | tests-infra | Low | OPEN | [DIA-260927-hwl9-turbo-add-package-json-to-the-test-task-inputs-stale-green-fix.md](DIA-260927-hwl9-turbo-add-package-json-to-the-test-task-inputs-stale-green-fix.md) |
 | DIA-260927-k8nh | test-suite speedups: compose exec, parallel validators, turbo inputs, parallel pip | tests-infra | Low | OPEN | [DIA-260927-k8nh-test-suite-speedups-compose-exec-parallel-validators-turbo-inputs-parallel-pip.md](DIA-260927-k8nh-test-suite-speedups-compose-exec-parallel-validators-turbo-inputs-parallel-pip.md) |
 | DIA-260927-ltum | openspec: reconcile dia-206 empty-return-recovery VP-2 and tasks with the shipped text-based empty-result predicate | scripts | Low | OPEN | [DIA-260927-ltum-openspec-reconcile-dia-206-empty-return-recovery-vp-2-and-tasks-with-the-shipped-text-based-empty-result-predicate.md](DIA-260927-ltum-openspec-reconcile-dia-206-empty-return-recovery-vp-2-and-tasks-with-the-shipped-text-based-empty-result-predicate.md) |
+| DIA-260927-s1gd | preset: rename Muse Balanced to Mimo Balanced, swap the architector model, move ai-auditor off GLM-5.3-Flash | scripts | Medium | OPEN | [DIA-260927-s1gd-preset-rename-muse-balanced-to-mimo-balanced-swap-the-architector-model-move-ai-auditor-off-glm-5-3-flash.md](DIA-260927-s1gd-preset-rename-muse-balanced-to-mimo-balanced-swap-the-architector-model-move-ai-auditor-off-glm-5-3-flash.md) |
 | DIA-260927-shgj | test-config: run the read-only validators in parallel | tests-infra | Low | OPEN | [DIA-260927-shgj-test-config-run-the-read-only-validators-in-parallel.md](DIA-260927-shgj-test-config-run-the-read-only-validators-in-parallel.md) |
 | DIA-260927-uevh | plugin: restore the dropped handoff-archived app.log line (regression from b35229f8 seam extraction) | scripts | Major | OPEN | [DIA-260927-uevh-plugin-restore-the-dropped-handoff-archived-app-log-line-regression-from-b35229f8-seam-extraction.md](DIA-260927-uevh-plugin-restore-the-dropped-handoff-archived-app-log-line-regression-from-b35229f8-seam-extraction.md) |
 | DIA-260927-vmpa | dev-infra: tee the full make test-infra output (stdout and stderr) to a gitignored orchestrator-readable log at .opencode/session/test-infra.log | scripts | Low | OPEN | [DIA-260927-vmpa-dev-infra-tee-the-full-make-test-infra-output-stdout-and-stderr-to-a-gitignored-orchestrator-readable-log-at-opencode-session-test-infra-log.md](DIA-260927-vmpa-dev-infra-tee-the-full-make-test-infra-output-stdout-and-stderr-to-a-gitignored-orchestrator-readable-log-at-opencode-session-test-infra-log.md) |
+| DIA-260927-vw0o | permission: worktree .scratch cleanup still raises an ask (CAUSE B residual) | scripts | Medium | OPEN | [DIA-260927-vw0o-permission-worktree-scratch-cleanup-still-raises-an-ask-cause-b-residual.md](DIA-260927-vw0o-permission-worktree-scratch-cleanup-still-raises-an-ask-cause-b-residual.md) |
+| DIA-260927-w3og | re-review fix: strengthen the SIGPIPE regression test and de-ASCII its comments (RO-1/RO-2) | scripts | Medium | OPEN | [DIA-260927-w3og-re-review-fix-strengthen-the-sigpipe-regression-test-and-de-ascii-its-comments-ro-1-ro-2.md](DIA-260927-w3og-re-review-fix-strengthen-the-sigpipe-regression-test-and-de-ascii-its-comments-ro-1-ro-2.md) |
+| DIA-260928-bdvi | Review: architecture and AI-agentic audit of unpushed commit range | scripts | Medium | OPEN | [DIA-260928-bdvi-review-architecture-and-ai-agentic-audit-of-unpushed-commit-range.md](DIA-260928-bdvi-review-architecture-and-ai-agentic-audit-of-unpushed-commit-range.md) |
+| DIA-260928-e5vz | evidence sweep: scan registry.jsonl since commit f6c84a5 for traversal-shaped, variable-expanded or multi-argument .scratch rows (auditor condition C-B) | scripts | Medium | OPEN | [DIA-260928-e5vz-evidence-sweep-scan-registry-jsonl-since-commit-f6c84a5-for-traversal-shaped-variable-expanded-or-multi-argument-scratch-rows-auditor-condition-c-b.md](DIA-260928-e5vz-evidence-sweep-scan-registry-jsonl-since-commit-f6c84a5-for-traversal-shaped-variable-expanded-or-multi-argument-scratch-rows-auditor-condition-c-b.md) |
+| DIA-260928-f3c4 | tooling: pending-gate-clear cannot clear a plugin-written conspect flag (writer/reader schema mismatch) | scripts | Medium | OPEN | [DIA-260928-f3c4-tooling-pending-gate-clear-cannot-clear-a-plugin-written-conspect-flag-writer-reader-schema-mismatch.md](DIA-260928-f3c4-tooling-pending-gate-clear-cannot-clear-a-plugin-written-conspect-flag-writer-reader-schema-mismatch.md) |
+| DIA-260928-gpcc | tooling: no typecheck target covers .opencode/plugins and missing @types/node makes the repo-convention per-file tsc fail on untouched plugin files | scripts | Medium | OPEN | [DIA-260928-gpcc-tooling-no-typecheck-target-covers-opencode-plugins-and-missing-types-node-makes-the-repo-convention-per-file-tsc-fail-on-untouched-plugin-files.md](DIA-260928-gpcc-tooling-no-typecheck-target-covers-opencode-plugins-and-missing-types-node-makes-the-repo-convention-per-file-tsc-fail-on-untouched-plugin-files.md) |
+| DIA-260928-nm2u | permission stall hardening: make an unanswered ask resolve non-fatally so no ask class ends a lane with an empty envelope | scripts | Major | OPEN | [DIA-260928-nm2u-permission-stall-hardening-make-an-unanswered-ask-resolve-non-fatally-so-no-ask-class-ends-a-lane-with-an-empty-envelope.md](DIA-260928-nm2u-permission-stall-hardening-make-an-unanswered-ask-resolve-non-fatally-so-no-ask-class-ends-a-lane-with-an-empty-envelope.md) |
+| DIA-260928-rzty | permission: anchored .scratch two-argument ask guards do not take effect; a second rm path rides along on the broad rm \* allow (escaped delete confirmed) | scripts | Major | OPEN | [DIA-260928-rzty-permission-anchored-scratch-two-argument-ask-guards-do-not-take-effect-a-second-rm-path-rides-along-on-the-broad-rm-allow-escaped-delete-confirmed.md](DIA-260928-rzty-permission-anchored-scratch-two-argument-ask-guards-do-not-take-effect-a-second-rm-path-rides-along-on-the-broad-rm-allow-escaped-delete-confirmed.md) |
+| DIA-260928-tcdd | permission: git clean deny bypass via flag permutations (-xdf, -df, -d -f escape the -f-anchored deny patterns) | scripts | Medium | OPEN | [DIA-260928-tcdd-permission-git-clean-deny-bypass-via-flag-permutations-xdf-df-d-f-escape-the-f-anchored-deny-patterns.md](DIA-260928-tcdd-permission-git-clean-deny-bypass-via-flag-permutations-xdf-df-d-f-escape-the-f-anchored-deny-patterns.md) |
 
 ## Status summary
 
@@ -356,8 +366,8 @@
 | -------- | ----- |
 | Blocker  | 9     |
 | Critical | 16    |
-| Major    | 84    |
-| Medium   | 177   |
+| Major    | 86    |
+| Medium   | 185   |
 | Minor    | 1     |
 | Low      | 38    |
 | Info     | 2     |
@@ -365,16 +375,16 @@
 
 | Status      | Count |
 | ----------- | ----- |
-| OPEN        | 89    |
+| OPEN        | 95    |
 | DONE        | 15    |
 | VALIDATE    | 0     |
 | E2E         | 0     |
 | DEFERRED    | 1     |
 | MONITOR     | 1     |
 | FIXED       | 1     |
-| IMPLEMENTED | 0     |
-| VERIFIED    | 28    |
-| CLOSED      | 211   |
+| IMPLEMENTED | 1     |
+| VERIFIED    | 29    |
+| CLOSED      | 213   |
 | BLOCKED     | 0     |
 | DISPATCHED  | 0     |
 | RUNNING     | 0     |
