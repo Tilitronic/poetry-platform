@@ -213,6 +213,7 @@ fi
 
 export OPENCODE_CONFIG="$OVERNIGHT_CONFIG"
 export OPENCODE_PERMISSION="$PERMISSION_JSON"
+export OPENCODE_UNATTENDED=1
 
 echo "=== overnight opencode session (DIA-126(a) + DIA-134 hardened profile) ==="
 echo "profile : $OVERNIGHT_CONFIG"

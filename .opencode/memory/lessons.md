@@ -3322,6 +3322,209 @@ working tree) as the durable discriminator.
   before assuming no lane runs, check task_status for the pending dispatch; do
   not rely on the job board alone to determine whether a server-side lane
   exists. If blocked as duplicate, cancel any stale server-side lifecycle before
-  re-dispatching. Why irrecoverable: the job-board-vs-server-side divergence and
+  re-dispatching.   Why irrecoverable: the job-board-vs-server-side divergence and
   the duplicate-block on retry are runtime lifecycle behaviour not visible in
   any committed artifact.
+
+## L20260927-k8nh - large multi-part dispatch briefs produce lone-intro-sentence lane deaths (second occurrence, 2026-09-27)
+
+- Observation: a code-navigator lane (ses_f1eaecb1effeJ6MbY540967X5Z)
+  received a large 5-section recon brief and returned a LONE INTRO SENTENCE
+  with no body ("Let me count bats test files and test cases, and get
+  runtime evidence."). DIA-099 flagged it; a narrowed single-concern resume
+  to the SAME session also stopped with no result. A SEPARATE narrow
+  single-concern lane (ses_f1ea8e1b2ffe0gZKORW1VGf23E, same agent) completed
+  the analysis successfully on the first attempt.
+- Pattern: this is the SECOND observed occurrence of large multi-part briefs
+  producing lane deaths while single-concern briefs succeed (first: 2026-09-26
+  handoff prognosis line h). The previous handoff already noted "every large
+  multi-part brief this session ended in a lane death, and every narrowed
+  rerun succeeded."
+- Preventive rule (generalizable): for code-navigator (and likely any
+  recon lane), ALWAYS dispatch with a single-concern brief -- one question,
+  one file scope, one deliverable. Large multi-part briefs (multiple
+  sections, multiple concerns in one dispatch) reliably produce lone-intro-
+  sentence deaths. Split multi-part recon into separate single-concern
+  dispatches. Do NOT attempt a second narrow resume to the SAME dead session;
+  dispatch a FRESH narrow single-concern lane instead.
+- Why irrecoverable: the specific failure (5-section brief -> lone intro
+  sentence, narrow resume also dead, fresh narrow lane succeeded) is a
+  session-behavior fact. The previous handoff captured the observation but
+  not the preventive rule as a durable lessons entry. This second occurrence
+  confirms the pattern and the generalizable countermeasure.
+- Cross-reference: DIA-260927-k8nh, DIA-260926-ch1d (parent epic),
+  ses_f266d949cffemhG1FZy44w0GLI handoff prognosis line h,
+  L20260816-002 (DIA-099 truncated-researcher recovery, adjacent).
+
+## L20260927-ch1d session-close persistence (2026-09-27)
+
+- LANE-ROLE SEPARATION (developer correction, explicit): @coder is for NARROW,
+  CONCRETE implementation tasks ONLY. Investigation / research / root-cause
+  belongs to @analyzer, @code-navigator, @architector, or @ai-auditor.
+  Violating this produced a chain of failed returns on ONE root-cause task:
+  cod-3 (coder) truncated, cod-7 (coder, resume) truncated, cod-8 (coder)
+  empty, cod-9 (code-navigator) empty. The same task was then fully solved by
+  @code-navigator (cod-10) and completely cracked by @analyzer (ana-1). Why
+  irrecoverable: the failure chain and the corrective routing decision are
+  session-behavior knowledge not present in any commit; git diffs show eventual
+  fixes but not the lane-role mismatch that caused the cascade.
+
+- BRIEF SHAPE: broad multi-part briefs die; narrow single-concern briefs
+  succeed. Give investigation briefs an explicit READ + TOOL-CALL BUDGET.
+  cod-7 died after reading ~2,750 lines across 9 files; cod-8/cod-9 died after
+  reading exactly the right 4-6 files and returning nothing. Why irrecoverable:
+  the brief-shape vs outcome correlation is a session-behavior observation not
+  stated in any ticket or commit.
+
+- PERSISTED-ARTIFACT PATTERN: for investigation lanes prefer @analyzer, which
+  writes a report under knowledge/<ana-id>-<topic>/. The artifact survives an
+  empty/truncated return channel - observed twice this session. ALWAYS verify
+  ground truth (git log, target file, read-list) after any empty lane BEFORE
+  re-dispatching; several empty lanes had already done the work. Why
+  irrecoverable: the artifact-survival observation and the verify-before-
+  re-dispatch habit are session-behavior knowledge not stated in any commit.
+
+- SECTION 2.5 ROUTING GATE IS NOT WAIVABLE: the plugin HARD-BLOCKS a @coder
+  config-work dispatch that has no prior @ai-specialist lane in the session. A
+  developer request to skip the gate cannot be honored; run the @ai-specialist
+  lane first (narrowly, for speed), register the findings, then dispatch
+  @coder. Why irrecoverable: the gate hard-block is a plugin runtime behavior
+  observed in-session; the "developer asked to skip" framing is a process
+  decision not stated in any committed file.
+
+- REVIEWER ENVELOPE: the @reviewer dispatch MUST contain exactly one explicit
+  FIXED_POINT: <base-ref> marker (branch, tag, or commit OID) or the lane
+  refuses with a review-envelope error. Why irrecoverable: the envelope-
+  required marker is a plugin runtime constraint observed in-session; the
+  specific error message and the corrective action (add the marker) are not
+  stated in any ticket or spec.
+
+- LOCALE-DEPENDENT OUTPUT PARSING (new failure class): scripts that parse
+  command output for an ENGLISH WORD are locale-fragile. Real incident:
+  .opencode/scripts/validate-skills.sh parsed `bash --version` for the literal
+  "version"; on a uk_UA Fedora host, bash emits "versiya 5.3.9" instead, so
+  the version parse returned empty and the script reported a FALSE "bash version
+  unknown" failure. Fix: force LC_ALL=C on the probe (locale-independent for
+  ALL locales - es/de/ja/etc.), or parse a non-translatable source such as
+  $BASH_VERSION. In-container the locale is English, so this class only ever
+  reproduces on a non-English host. Why irrecoverable: the locale-dependent
+  parse failure is a host-environment-specific runtime behavior not visible in
+  any committed file; the LC_ALL=C fix pattern is a transferable technique not
+  stated in any spec.
+
+- SIGPIPE-UNDER-PIPEFAIL (related latent class): `... | head -n 1` under
+  `set -euo pipefail` can kill the upstream with SIGPIPE (141) and invert an
+  `if` condition. Fixed in .opencode/scripts/validate-skills.sh. Three further
+  candidates were reported: scripts/validate-output-contracts.sh:66,
+  scripts/test-builtin-containment.sh:136,
+  scripts/__tests__/check-bats-vendor-drift.sh:76. Why irrecoverable: the
+  SIGPIPE-under-pipefail interaction is a shell runtime behavior; the three
+  candidate locations are session-discovered latent instances not stated in any
+  committed file.
+
+- HOST-ONLY vs IN-CONTAINER: `make test-shell` runs in-container but self-skips
+  the engine-dependent tests ("selected container engine unavailable"), so
+  host-only defects stay invisible there. `make test-infra` is host-only by
+  design - the dev container mounts neither the engine CLI nor its socket
+  (DIA-174 R3). Do not claim a host-only fix is verified from in-container
+  evidence. Why irrecoverable: the self-skip behavior and the host-only design
+  boundary are runtime/infrastructure facts not stated in any committed file;
+  claiming verification from in-container evidence is a process error that
+  produced a false-confidence incident in this session.
+
+## Workflow lessons - DIA-260927-s1gd (2026-09-28)
+
+- Config-work brief phrasing rule (routing gate): a config-work brief that
+  merely MENTIONS reading the OpenCode config surface can be hard-blocked by
+  the routing gate even when the lane's actual job is behavioural
+  verification of an already-gated change. Reusable phrasing rule: frame the
+  brief as a pure RUNTIME PROBE (no config reading in scope) and move the
+  config-reading step to a separate lane. The reframe cleared the block.
+
+- Grant persistence distorts permission probes: an "Always allow" answer to
+  an EARLIER permission prompt can silently cover LATER unrelated probes in
+  the same configuration, producing a false no-ask. A probe family with no
+  prior grant (a different command, e.g. `rmdir`) is needed to discriminate
+  grant-persistence from a genuine allow-rule match. The first interpretation
+  of the two-argument `rm -rf .scratch/... /tmp/...` probe was WRONG for
+  exactly this reason (it read the no-ask as rule behaviour when a prior
+  grant may have covered it).
+
+- Capture permission EVALUATION lines, not just ask/reject events: the
+  plugin's session event log records per-evaluation lines naming the WINNING
+  permission pattern (form: `evaluated permission=bash pattern=...
+  action.pattern=... action.action=...`). A behavioural probe that greps
+  only for ask/reject event kinds can miss the decisive evidence; capture
+  the evaluation lines too. This finding converted a hypothesis into a
+  confirmed result (winning rule `rm *` = allow, no asking line).
+
+## Workflow lessons - DIA-260928-nm2u (2026-09-28)
+
+- DIA-217 ticket gate applies to RESUME dispatches too: continuing an
+  existing lane session without re-stating the governing `campaign ticket
+  DIA-NNN` token in the new prompt gets hard-blocked BEFORE the session is
+  reached. Always restate the ticket token on every resume, not just on the
+  first dispatch. Confirms and extends LESSON-3 (DIA-063 gate, 2026-08-13),
+  which stated the same rule for the DIA-063 gate. Why irrecoverable: the
+  hard-block occurs in plugin gate logic at dispatch time; neither the gate
+  code nor the ticket states that resumes are in scope.
+
+- The architecture lane is READ-ONLY in this repo - asked to persist its own
+  design it returned `NO_WRITE_PERMISSION`. The documented flow is correct:
+  the orchestrator routes the artifact write to a coder lane as a verbatim
+  transcription. Instruct the lane to declare the permission failure as a
+  SINGLE MARKER instead of re-emitting a huge design into the orchestrator's
+  context (the re-emit burns context for content the orchestrator already
+  holds). Cross-reference: analyzer "write-less" entry and resource-manager
+  toolset-gap entry (same class, different lane). Why irrecoverable: the
+  architector's write-denial and the marker-instead-of-re-emit instruction
+  are session-observed lane behaviour not stated in any agent file.
+
+- A lane that searches outside `/workspace` (e.g. a global package cache
+  path) aborts with an environment error before doing any work. Scope every
+  read/search to the repo and SAY SO in the brief; a path example in the
+  prompt that points outside the repo silently kills the lane at start.
+  Why irrecoverable: the abort is an environment-layer behaviour observed
+  in-session; the brief-scoping countermeasure is a prompt practice not in
+  any spec.
+
+- Long tool-result payloads can arrive HEAD-TRUNCATED at the orchestrator;
+  when the load-bearing sections are missing, resume the SAME completed lane
+  session and ask it to re-emit ONLY the missing sections rather than
+  re-running the whole discovery. Why irrecoverable: transport-level
+  truncation of lane results is an environment behaviour; the re-emit-only-
+  missing-sections recovery (cheaper than a re-run, no new session) is an
+  operational choice not recorded in any commit. Cross-reference: the
+  transport-level empty/truncation entries (2026-09-03 F campaign) and the
+  exact-instance resume success pattern.
+
+- The independent audit lane has NO shell, so it can read files but cannot
+  reproduce exit codes - it can only assess implementer-claimed evidence for
+  plausibility. Treat "audited SOUND" as weaker than "independently re-run"
+  for anything evidenced by an exit code; route the reproduction to a
+  shell-capable lane. Cross-reference: code-navigator no-shell entry
+  (L20260909-csds-001), same capability gap in a different lane. Why
+  irrecoverable: the ai-auditor toolset gap is a runtime agent property not
+  stated in any config file, and the SOUND-vs-re-run evidence grading rule
+  is a review standard not present in any doc.
+
+- When an audit's condition demands an exit-code claim be verified, the
+  verification can itself surface a PRE-EXISTING environment regression: the
+  repo-convention per-file `tsc` over `.opencode/plugins` exits 2 even on
+  untouched sibling files (missing `@types/node`, plus strict errors in
+  untouched `lib/registry.ts`), so no plugin file can currently pass a type
+  gate, and a CHANGELOG entry claiming exit 0 for one of them in 2026-08 is
+  no longer reproducible. Now ticketed as DIA-260928-gpcc. Why irrecoverable:
+  the broken type-gate baseline and the non-reproducible historical CHANGELOG
+  claim are environment/toolchain state; git shows the old claim, not that
+  it cannot be reproduced today.
+
+- Test-author and implementer separation worked cleanly via the TDD seam: the
+  RED suite was written from the persisted design doc's test list by one
+  coder instance and implemented by a DIFFERENT one, with one test (the
+  interactive-absence pin) legitimately passing before implementation. A pin
+  is not a false-positive, but SAY SO EXPLICITLY in the RED report so it is
+  not mistaken for a green test. Why irrecoverable: the DIA-175 separation
+  outcome and the pin-vs-green reporting nuance are session-process facts;
+  the test files themselves do not record which instance wrote which part or
+  why one test was already green.

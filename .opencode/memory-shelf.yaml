@@ -1011,6 +1011,11 @@ shelf:
     path: "knowledge/ana-260925-5v4r-repo-mapping-tools-evaluation/ana-260925-5v4r-repo-mapping-tools-evaluation-report.md"
     created: 2026-09-25
     task_ref: DIA-260925-td9h
+  - name: host-only test-shell compose config failure (ana-260927-8yqj)
+    description: "Root-cause analysis of host-only failure of scripts/__tests__/check-compose-config.bats:179. The test planted a fake docker binary but a host-exported COMPOSE_ENGINE=podman is honored by container-engine.sh:46-50 via an override branch that skips the PATH probe, bypassing the fake so the real host podman validates a valid config and returns exit 0. Verdict: PRE-EXISTING (introduced at commit 1a168d77); fixed in cebf6f31."
+    path: knowledge/ana-260927-8yqj-host-test-shell-compose-config-failure/ana-260927-8yqj-host-test-shell-compose-config-failure-report.md
+    created: 2026-09-27
+    task_ref: DIA-260926-ch1d
   adrs:
   - name: Memory Storage Strategy
     description: 'Evaluation of Claude-Mem, Honcho, and current hand-written memory
@@ -1436,6 +1441,16 @@ shelf:
     description: "Module architecture for capability-based authorization of multi-agent ticket gates: HMAC Stateless Capability (Pattern 1) + TTL Auto-Expiry (Pattern 8) formalizing log_decision + session handoff, per res035. Implemented and tested."
     path: .sdd/capability-authorization/architecture.md
     created: 2026-08-26
+    status: Accepted
+  - name: scratch-lifecycle
+    description: "Module architecture for .scratch cleanup policy (anchored rm/rmdir allows as ask-suppression, O1-O5 option analysis, the stall-side invariant). ADR-001 status: superseded (partial) by .sdd/permission-stall-hardening/architecture.md on 2026-09-28 - its multi-argument-rm containment invariant was falsified by runtime probes (open ticket DIA-260928-rzty) and the stall-side invariant moved to the new module doc. Registered from a prior handoff."
+    path: .sdd/scratch-lifecycle/architecture.md
+    created: 2026-09-27
+    status: superseded (partial)
+  - name: permission-stall-hardening (DIA-260928-nm2u)
+    description: "Module architecture for permission-ask stall hardening: ADR-001..004 all accepted 2026-09-28. Unattended runs resolve a pending ask within milliseconds (reply once for a narrow allow-sublist of bash and single non-flag rm targets under .scratch/, else reject) gated on OPENCODE_UNATTENDED=1 exported by scripts/overnight.sh; the 300 s auto-reject is kept as a last-resort backstop; an observer-side envelope guard prevents a zero-length task_result envelope; permission.ask hook is a migration target only."
+    path: .sdd/permission-stall-hardening/architecture.md
+    created: 2026-09-28
     status: Accepted
 
   rag_bases: []

@@ -749,3 +749,116 @@ Failed-loop lessons & preventive actions
     unnecessary recovery dispatch triggered by the stale prognosis.
   - Cross-reference: L20260817-005 (stale handoff duplicate filing),
     failures.md line 141 (stale handoff vs landed sibling work).
+
+- Failure mode (2026-09-28, DIA-260927-s1gd): design invariant falsified at
+  runtime - scratch-lifecycle ADR-001 multi-argument rm containment
+  - Symptom: `.sdd/scratch-lifecycle/architecture.md` (ADR-001) claims the
+    anchored `.scratch` allows + two-argument ask guards stop a
+    multi-argument `rm` from escaping `.scratch` scope. Probe table A-E
+    (2026-09-28) showed the winning runtime rule for
+    `rm -rf .scratch/... /tmp/...` was `rm *` = allow, NO asking line,
+    and BOTH targets were deleted.
+  - Root cause: the design invariant was asserted without a runtime
+    probe; the actual permission evaluation does not scope multi-argument
+    commands to the first target.
+  - Preventive action: record as CONTRADICTED in adr.md; a future change
+    corrects ADR-001 or the permission rules. Evidence lives in
+    .opencode/learnings/external-patterns/2026-09-28-permission-guard-ineffective-multi-argument-rm.md
+    (the .sdd file was deliberately NOT edited).
+  - Why irrecoverable: the probe outcome is runtime behaviour not present
+    in git or the .sdd text; only the learnings file and this entry
+    record the falsification.
+  - Cross-reference: adr.md "FALSIFIED design invariant" entry,
+    DIA-260927-s1gd, DIA-260926-5vin.
+
+- Failure mode (2026-09-28, DIA-260927-s1gd): ticket-writing lane errored
+  before returning - irreplaceable probe evidence at risk
+  - Symptom: a coder session with objective "create finding tickets +
+    evidence" (permissions finding) errored before returning a result;
+    nothing landed.
+  - Recovery that worked: the probe evidence had been written into a
+    learnings file FIRST, so it survived; no evidence was lost.
+  - Preventive action: for irreplaceable probe evidence, persist it to a
+    learnings file BEFORE attempting ticket bookkeeping. Ticket bookkeeping
+    can be redone; lost probe evidence cannot.
+  - Why irrecoverable: the lane error and the ordering of persistence vs
+    bookkeeping are runtime/session behaviour, not in any commit.
+  - Cross-reference: DIA-260927-s1gd,
+    .opencode/learnings/external-patterns/2026-09-28-permission-guard-ineffective-multi-argument-rm.md.
+
+- Failure mode (2026-09-28, DIA-260927-s1gd): changelog-registration lane
+  stopped without a terminal result - duplicate-entry risk on re-run
+  - Symptom: a changelog-registration lane stopped without a terminal
+    result; whether its entry had landed was unknown.
+  - Recovery that worked: a follow-up lane did a VERIFY-FIRST read (is the
+    changelog entry present? is the ticket Fix block still a placeholder?)
+    and only then completed the missing pieces - avoiding a duplicate
+    changelog entry.
+  - Preventive action: after an interrupted bookkeeping lane, always
+    verify-first rather than re-running the write; apply only the missing
+    delta (same rule as the 2026-08-13 idempotent re-dispatch pattern).
+  - Why irrecoverable: the interrupted lane state is runtime/session
+    behaviour; the verification ordering is the lesson, not the final
+    diff.
+  - Cross-reference: DIA-260927-s1gd, failures.md 2026-08-13 "aborted
+    commit-lane dispatch left partial ticket-status edits".
+
+## Lane-failure patterns - DIA-260928-nm2u (2026-09-28)
+
+- Failure mode (2026-09-28, DIA-260928-nm2u): architecture lane aborted
+  pre-work on an out-of-repo search path
+  - Symptom: an @architector lane aborted with an environment error before
+    doing any work; its search path pointed outside /workspace (a global
+    package cache path named in the brief).
+  - Cause: briefs that cite out-of-repo example paths make the lane search
+    outside the workspace, which the environment rejects at start.
+  - Mitigation that worked: a repo-scoping clause in the brief ("scope every
+    read/search to /workspace") plus dispatching a FRESH instance - errored
+    sessions are not reusable.
+  - Why irrecoverable: the abort is runtime/session behaviour; the
+    repo-scoping brief clause is the countermeasure, not present in any
+    commit.
+  - Cross-reference: lessons.md DIA-260928-nm2u out-of-repo search lesson;
+    failures.md 2026-08-16 cod-12 errored-session-not-reusable rule.
+
+- Failure mode (2026-09-28, DIA-260928-nm2u): coder lane cancelled
+  mid-flight on an account limit
+  - Symptom: a coder lane was cancelled mid-flight when an account usage
+    limit hit; nothing had landed in the working tree.
+  - Cause: account/provider limit exhaustion cancels the lane before any
+    write; the cancellation receipt says nothing about whether work exists.
+  - Mitigation that worked: verify-first (confirm nothing landed), then
+    re-dispatch the SAME brief to a FRESH instance once limits are raised.
+  - Why irrecoverable: the cancellation cause (account limit) and the
+    verify-before-redispatch ordering are runtime/session behaviour, not
+    recoverable from git or tickets.
+  - Cross-reference: failures.md 2026-09-03 cancel-receipt entries (check
+    status before retrying), 2026-08-14 empty-result verify-first rule.
+
+- Failure mode (2026-09-28, DIA-260928-nm2u): audit lane stopped by limits
+  with no terminal result
+  - Symptom: an audit lane was stopped by account limits and returned no
+    terminal result; its verdict was unconfirmed.
+  - Cause: limit-induced stop leaves the session without a completed output -
+    an UNCONFIRMED state, neither success nor a clean failure.
+  - Mitigation that worked: repeat the DISPATCH (fresh instance); do NOT
+    resume the stopped session.
+  - Why irrecoverable: the stopped-unconfirmed recovery choice is a
+    session-lifecycle decision not stated in any commit.
+  - Cross-reference: failures.md 2026-09-11 "stopped memory lanes and
+    cancelled auditor lanes" (same rule: stopped = unconfirmed, do not
+    blindly resume).
+
+- Failure mode (2026-09-28, DIA-260928-nm2u): stop/halt mid-lane leaves work
+  unlanded
+  - Symptom: a stop/halt issued mid-lane left the work unlanded; the
+    dispatch result could not be trusted as a record of what was written.
+  - Cause: a halt cuts the lane off before its persistence/commit step, so
+    the target files may be untouched, partial, or complete-but-uncommitted.
+  - Mitigation that worked: always RE-READ the target files to confirm what
+    actually landed before re-dispatching (apply only the missing delta).
+  - Why irrecoverable: the pre-re-dispatch ground-truth read is the lesson;
+    final diffs show only the eventual state, not the halted state that
+    prompted it.
+  - Cross-reference: failures.md 2026-08-13 idempotent re-dispatch pattern,
+    2026-08-17 DIA-177 recon-before-re-dispatch rule.

@@ -2458,3 +2458,153 @@ does not explain.
 - Created: 2026-09-21
 - Related: DIA-260918-ok9m, openspec/changes/dia-260918-ok9m-s1-switchmodel-guard/,
   .opencode/plugins/preset-model-guard.ts
+
+## ADR: Preset rename + lane model swaps honoring auditor independence (DIA-260927-s1gd)
+
+### Status
+
+Accepted - 2026-09-28
+
+### Context
+
+The active OpenCode preset was renamed `muse-balanced` -> `mimo-balanced`, and
+two lane primaries were swapped inside it: architector -> `opencode-go/kimi-k3`
+(variant high), ai-auditor -> `opencode-go/kimi-k3` (variant medium, replacing
+`opencode-go/glm-5.3-flash`). The developer's informal target for ai-auditor was
+"DeepSeek Flash V4.1" (i.e. `opencode-go/deepseek-v4.1-flash`), but
+`knowledge/model-registry.yaml:125` records an invariant that ai-auditor must
+run on a DIFFERENT model family from ai-specialist; deepseek-v4.1-flash is the
+ai-specialist family, so that choice would have violated the invariant. Lane
+invocation data (`make session-analytics`, 2026-08-12..2026-09-28, 727
+sessions: ai-specialist 49, ai-auditor 23, architector 10) justified giving
+the new model to ai-auditor, the less-invoked of the two audit-family lanes,
+at variant medium.
+
+### Decision
+
+Route ai-auditor to `opencode-go/kimi-k3` (variant medium) instead of the
+informal deepseek-v4.1-flash target, preserving the model-registry family
+independence invariant. Accepted residual: the ai-auditor FALLBACK stays
+`opencode-go/deepseek-v4-flash` (ai-specialist family), so the independence
+invariant holds only at PRIMARY and weakens on failover. The developer
+explicitly accepted this as a known carve-out.
+
+### Rationale
+
+- The registry invariant is a hard constraint; the informal model name was a
+  preference. kimi-k3 satisfies both the "move off glm-5.3-flash" intent and
+  the family-independence rule.
+- Independent audit verdict (advisory): SOUND-with-conditions - rename
+  live-surface clean, model swaps surgical (six sibling lanes on
+  deepseek-v4.1-flash untouched), registry corrections consistent.
+
+### Consequences
+
+- Future change should either move the ai-auditor fallback to a THIRD family
+  or record an explicit carve-out in knowledge/model-registry.yaml; until then
+  failover silently restores same-family exposure.
+
+### Metadata
+
+- Created: 2026-09-28
+- Related: DIA-260927-s1gd, knowledge/model-registry.yaml:125,
+  .opencode/learnings/external-patterns/2026-09-28-s1gd-preset-swap-surface-and-auditor-independence.md
+
+## ADR: FALSIFIED design invariant - scratch-lifecycle ADR-001 multi-argument rm guard (DIA-260927-s1gd)
+
+### Status
+
+CONTRADICTED (superseded) - 2026-09-28. Do NOT edit the .sdd file; this entry
+records the contradiction so a future change corrects it.
+
+### Context
+
+The scratch-lifecycle ADR recorded at `.sdd/scratch-lifecycle/architecture.md`
+(ADR-001, transcribed from ticket DIA-260926-5vin) asserts a testable
+invariant to the effect that the anchored `.scratch` allows plus the
+two-argument ask guards prevent a multi-argument `rm` from escaping the
+`.scratch` scope.
+
+### Decision (falsification record)
+
+Runtime probes on 2026-09-28 FALSIFIED that invariant. Evidence is in
+`.opencode/learnings/external-patterns/2026-09-28-permission-guard-ineffective-multi-argument-rm.md`
+(probe table A-E): for a two-argument `rm -rf .scratch/... /tmp/...` the
+winning runtime rule was `rm *` = allow with NO asking line, and BOTH targets
+were deleted. The invariant is contradicted by observed runtime behaviour.
+
+### Consequences
+
+- A future change must correct ADR-001's claim (or the permission rules it
+  describes); until then do not rely on the anchored `.scratch` allows as
+  containment against multi-argument `rm`.
+- RESOLUTION (2026-09-28, DIA-260928-nm2u): ADR-001's status line in the .sdd
+  file now reads `superseded (partial)` and the stall-side invariant moved to
+  `.sdd/permission-stall-hardening/architecture.md`; see the companion ADR
+  entry "Permission-ask stall hardened at the STALL side".
+
+### Metadata
+
+- Created: 2026-09-28
+- Related: DIA-260927-s1gd, DIA-260926-5vin, .sdd/scratch-lifecycle/architecture.md (ADR-001),
+  .opencode/learnings/external-patterns/2026-09-28-permission-guard-ineffective-multi-argument-rm.md
+
+## ADR: Permission-ask stall hardened at the STALL side, not by bound tuning (DIA-260928-nm2u)
+
+### Status
+
+Accepted - 2026-09-28
+
+### Context
+
+The four-arm probe matrix on coder-lane permission asks isolated the fatal
+arm: it is the UNANSWERED window, not the reject decision. An auto-reject
+landing at +300 s is followed by a zero-length `<task_result>` envelope and
+the lane dies; a human REJECT at 28 s survives with text. The reject decision
+is exonerated; the LATE automatic one is the killer. Tuning the bound there-
+fore cannot fix the shape: any reject landing after the session goes idle
+risks the empty envelope, so the failure is timing-relative-to-idle, not the
+absolute bound value.
+
+### Decision (2026-09-28, ticket DIA-260928-nm2u)
+
+1. Harden at the STALL side, not by tuning the bound. Unattended runs resolve
+   a pending ask within milliseconds of observing it: reply `once` for a
+   narrow single-entry allow-sublist (`bash`, `rm` with exactly one non-flag
+   target under `.scratch/`), otherwise `reject`. The fast path is gated on
+   `OPENCODE_UNATTENDED=1` exported by `scripts/overnight.sh`; absent/unset
+   (or any other value) means interactive, and the fast path is behaviorally
+   compiled out.
+2. The existing 300 s auto-reject is KEPT as a last-resort backstop. It is
+   not removed and not re-tuned; it fires only when the fast path fails
+   (SDK error, plugin restart mid-flight).
+3. An ungated observer-side envelope guard (needs-input-observer) prevents a
+   stall-terminated lane from emitting a zero-length `<task_result>`: it
+   synthesizes a non-empty diagnostic body and always emits an audited
+   registry row, regardless of whether the output mutation is honored.
+
+### Rationale (irrecoverable context)
+
+- The four-arm probe matrix showed the fatal arm is the UNANSWERED window
+  (auto-reject at +300 s then an empty envelope) while a human reject at 28 s
+  survives; the reject decision is exonerated, the LATE automatic one is the
+  killer. The probe outcomes (cod-8 death vs cod-12 survival) are session
+  evidence, not derivable from code or git.
+- The allow-sublist is answerable without a human; a per-ask auditable
+  decision keeps interactive sessions byte-identical. An `always` grant was
+  rejected because it persists and silently widens the permission surface.
+
+### Supersession
+
+- `.sdd/scratch-lifecycle/architecture.md` ADR-001 is now `superseded
+  (partial)` by the new module doc `.sdd/permission-stall-hardening/architecture.md`.
+- Its multi-argument-rm containment invariant was falsified earlier (open
+  ticket DIA-260928-rzty; recorded in this file as "FALSIFIED design
+  invariant - scratch-lifecycle ADR-001 multi-argument rm guard") and the
+  stall-side invariant moved to the new doc.
+
+### Metadata
+
+- Created: 2026-09-28
+- Related: DIA-260928-nm2u, .sdd/permission-stall-hardening/architecture.md (ADR-001..004, all accepted 2026-09-28),
+  .sdd/scratch-lifecycle/architecture.md (ADR-001), DIA-260928-rzty

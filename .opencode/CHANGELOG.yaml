@@ -4967,3 +4967,44 @@
     stale merge-semantics comment corrected; overnight softening accepted
   verification: manual
   area: opencode-config
+- date: '2026-09-28'
+  ticket: DIA-260927-s1gd
+  scope: opencode-config
+  files:
+  - .opencode/oh-my-opencode-slim.jsonc
+  - scripts/check-orchestrator-prompt-drift.sh
+  - scripts/test-interview-enforcement.sh
+  - scripts/__tests__/preset-single-path.bats
+  - scripts/__tests__/workspace-preset-selection.bats
+  - scripts/__tests__/check-orchestrator-prompt-drift.bats
+  - docs/dev-infra/preset-single-path.md
+  - knowledge/model-registry.yaml
+  summary: 'Rename the active preset muse-balanced -> mimo-balanced and swap two lane
+    primaries in it: architector -> opencode-go/kimi-k3 (variant high), ai-auditor
+    -> opencode-go/kimi-k3 (variant medium), replacing opencode-go/glm-5.3-flash.
+    Rationale: knowledge/model-registry.yaml:125 requires ai-auditor on a different
+    model family from ai-specialist, so the informal DeepSeek-V4.1 target was rejected
+    in favour of kimi-k3, which was confirmed resolvable live via opencode models.
+    Rename locked in across the four live gates (check-orchestrator-prompt-drift.sh,
+    test-interview-enforcement.sh, three bats suites, docs/dev-infra/preset-single-path.md)
+    plus the preset root pointer and key. Historical muse-balanced references in CHANGELOG/learnings/memory/tickets
+    were deliberately NOT rewritten (DIA-194 policy). Live status is implementer-asserted;
+    restart-verify still PENDING.'
+  verification: manual
+  area: opencode-config
+- date: '2026-09-28'
+  ticket: DIA-260928-nm2u
+  scope: plugins
+  files:
+  - .opencode/plugins/needs-input-observer.ts
+  - .opencode/plugins/lib/permission-fast-resolve.ts
+  - .opencode/plugins/__tests__/needs-input-observer.fast-resolve.test.mjs
+  - scripts/overnight.sh
+  - scripts/__tests__/overnight.bats
+  - .sdd/permission-stall-hardening/architecture.md
+  - .sdd/scratch-lifecycle/architecture.md
+  summary: O-B fast ask resolution gated on OPENCODE_UNATTENDED=1 (exported by scripts/overnight.sh,
+    single-entry allow-sublist) plus the ungated O-D non-empty task_result envelope
+    guard, closing the 300s unanswered-ask fatal window; new pure lib .opencode/plugins/lib/permission-fast-resolve.ts
+  verification: manual
+  area: plugins

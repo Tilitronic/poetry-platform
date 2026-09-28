@@ -6,7 +6,8 @@ Status: proposed
 
 # ADR-001: Scratch cleanup is a convention; the reliability invariant lives on the stall path
 
-**Status:** proposed
+**Status:** superseded (partial) by .sdd/permission-stall-hardening/architecture.md
+**Note:** its multi-argument-rm containment invariant was falsified by runtime probes (open ticket DIA-260928-rzty); the stall-side invariant moved to the new module doc.
 **Module:** scratch-lifecycle
 
 **Context.** The four anchored .scratch rm/rmdir allows (commit f6c84a5, mirrored

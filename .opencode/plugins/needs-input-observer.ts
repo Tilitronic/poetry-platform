@@ -62,6 +62,15 @@ import type { Hooks, Plugin } from "@opencode-ai/plugin"
 // node --experimental-strip-types as individual files (no bundler).
 import { errorMessage } from "./lib/errors.ts"
 import { createRegistry } from "./lib/registry.ts"
+// O-B fast path + O-D guard (permission-stall-hardening ADR-001..003,
+// DIA-260928-nm2u). Explicit .ts extension like the siblings above
+// (plugins load via node --experimental-strip-types as individual files).
+import {
+  buildStallDiagnostic,
+  createFastResolve,
+  unattendedMode,
+} from "./lib/permission-fast-resolve.ts"
+import type { StallRecord } from "./lib/permission-fast-resolve.ts"
 
 // ---------------------------------------------------------------------------
 // DIA-189 word-pair naming: deterministically maps a session_id to a
@@ -401,6 +410,43 @@ const needsInputObserver: Plugin = async (ctx) => {
     if (permissionAsks.delete(key) || droppedRow) persist()
   }
 
+  // === O-D envelope guard state (ADR-003, DIA-260928-nm2u) ===
+  // Consumed-on-use stall records keyed by the CHILD session id: set when a
+  // pending ask is resolved (fast_resolved or auto_rejected), taken (and
+  // deleted) by stallEnvelopeGuard when a stall-terminated child's task
+  // envelope comes back with an empty <task_result> body. 10-minute TTL (the
+  // task output arrives seconds after the decision - cod-8: +69 ms), lazily
+  // pruned on access (the recentRenames pattern).
+  const stallRecords = new Map<string, StallRecord>()
+  const STALL_RECORD_TTL_MS = 10 * 60_000
+  // ponytail: stall records are in-memory per process - a plugin restart
+  // mid-stall loses the record and the empty envelope falls through to the
+  // existing empty-result detector (accepted ADR-003 ceiling). Upgrade
+  // path: persist records into the ticker.json permissions entries if
+  // registry archaeology shows cross-restart stall losses.
+  function pruneStallRecords(nowMs: number): void {
+    for (const [key, rec] of [...stallRecords]) {
+      if (nowMs - rec.at > STALL_RECORD_TTL_MS) stallRecords.delete(key)
+    }
+  }
+  /** Consume the record for a parsed child task id (miss -> undefined). */
+  function takeStallRecord(childId: string): StallRecord | undefined {
+    pruneStallRecords(Date.now())
+    const rec = stallRecords.get(childId)
+    if (rec) stallRecords.delete(childId)
+    return rec
+  }
+  /** No-envelope fallback: consume ONLY when exactly one record is pending. */
+  function takeOnlyStallRecord(): StallRecord | undefined {
+    pruneStallRecords(Date.now())
+    if (stallRecords.size !== 1) return undefined
+    const key = stallRecords.keys().next().value
+    if (key === undefined) return undefined
+    const rec = stallRecords.get(key)
+    stallRecords.delete(key)
+    return rec
+  }
+
   /**
    * DIA-098 R3: timer expiry — no human reply within the threshold. Auto-
    * reject via the SDK permission endpoint (ana016 section 6.3), then write
@@ -457,6 +503,17 @@ const needsInputObserver: Plugin = async (ctx) => {
       reason: "no_human_response_within_threshold",
     })
 
+    // 2b. O-D stall record (ADR-003): auto-rejected resolutions carry a
+    // record too, so a late empty envelope can be synthesized with
+    // decision_source "auto_rejected" (the cod-8 death signature).
+    stallRecords.set(sessionID, {
+      sessionID,
+      permissionID,
+      decision: "reject",
+      source: "auto_rejected",
+      at: Date.now(),
+    })
+
     // 3. Ticker CLEAR (scoped): the persisted record + waiting row for THIS
     //    permission key are already dropped above — the reason lives in the
     //    audit rows, ticker entries carry no clear-reason field. Single
@@ -475,6 +532,76 @@ const needsInputObserver: Plugin = async (ctx) => {
       content_ref: `permission_auto_rejected_after_${Math.round(timeoutSeconds / 60)}min`,
       next_action: "re-dispatch or fail-fast",
       "gen_ai.agent.id": sessionID,
+    })
+  }
+
+  // === O-B fast path (ADR-001/002, DIA-260928-nm2u) ===
+  // DI'd seam (lib/stall-sweep style): the lib captures no ctx - this
+  // plugin injects the SDK reply call, the watchdog-state closures, the
+  // journal writers and the O-D stall-record sink. Fail-soft contract: the
+  // returned function never throws (internal try/catch + console.warn).
+  const fastResolveAsk = createFastResolve({
+    reply: (sessionID, permissionID, response) =>
+      ctx.client.postSessionIdPermissionsPermissionId({
+        body: { response },
+        path: { id: sessionID, permissionID },
+      }),
+    getAsk: (sessionID, permissionID) =>
+      permissionAsks.get(permissionKey(sessionID, permissionID)),
+    clearWatch: clearPermissionWatch,
+    appendRegistryRow,
+    appendMessageRow,
+    recordStall: (rec) => {
+      pruneStallRecords(Date.now())
+      stallRecords.set(rec.sessionID, rec)
+    },
+  })
+
+  /**
+   * O-D envelope guard (ADR-003): a stall-terminated child whose task
+   * envelope came back with an EMPTY <task_result> body (cod-8 death
+   * signature) gets a synthesized, non-empty diagnostic body. Deliberately
+   * UNGATED: interactively a human answers inside the bound, so no stall
+   * record exists and the guard is inert; the one interactive case with a
+   * record is the cod-8 case itself, where synthesis is the fix. Non-stall
+   * empty envelopes carry no record and are left to the existing
+   * empty-result detector.
+   */
+  function stallEnvelopeGuard(output: { output: string } | undefined): void {
+    const text = typeof output?.output === "string" ? output.output : ""
+    const body = /<task_result>\s*([\s\S]*?)\s*<\/task_result>/i.exec(text)
+    if (body && body[1].trim().length > 0) return // healthy: pass through
+    const idMatch = /<task[^>]*\bid="([^"]+)"/i.exec(text)
+    const childId = idMatch?.[1]
+    const rec = childId ? takeStallRecord(childId) : takeOnlyStallRecord()
+    if (!rec) return // not stall-terminated: leave to empty_result_detected
+    const diagnostic = buildStallDiagnostic(rec)
+    // Shape-preserving rewrap: keep the original envelope (id/state) and
+    // replace only the empty body; a full minimal envelope when none is
+    // parseable.
+    const synthesized = body
+      ? text.replace(
+          /<task_result>[\s\S]*?<\/task_result>/i,
+          `<task_result>${diagnostic}</task_result>`
+        )
+      : `<task id="${childId ?? "unknown"}"><state>completed</state>` +
+        `<task_result>${diagnostic}</task_result></task>`
+    try {
+      if (output) output.output = synthesized
+    } catch (err) {
+      console.warn(
+        `[needs-input-observer] stall envelope mutation failed: ${errorMessage(err)}`
+      )
+    }
+    // ALWAYS audited, regardless of whether core honors the mutation: the
+    // diagnostic rides this row when the fallback path is the one running.
+    appendRegistryRow({
+      event: "permission_stall_envelope_synthesized",
+      session_id: childId ?? "unknown",
+      decision_source: rec.source,
+      mutation_attempted: true,
+      diagnostic_len: diagnostic.length,
+      diagnostic,
     })
   }
 
@@ -1173,6 +1300,30 @@ const needsInputObserver: Plugin = async (ctx) => {
 
   seedFromDisk()
 
+  // ADR-001 item 3 (DIA-260928-nm2u): on boot in unattended mode,
+  // fast-resolve the re-armed pending asks too - a restart does not
+  // resurrect the human. Fire-and-forget: fastResolveAsk is fail-soft
+  // internally, its step-1 record guard stands down if the re-armed
+  // backstop already resolved the ask, and the backstop timer still bounds
+  // resolution if the SDK call fails. The persisted record carries no
+  // permission name, so boot asks classify fail-closed (reject) unless the
+  // sublist ever grows a nameless match.
+  if (unattendedMode()) {
+    try {
+      for (const record of [...permissionAsks.values()]) {
+        void fastResolveAsk({
+          sessionID: record.session_id,
+          permissionID: record.permission_id,
+          patterns: record.patterns,
+        })
+      }
+    } catch (err) {
+      console.warn(
+        `[needs-input-observer] boot fast-resolve pass failed: ${errorMessage(err)}`
+      )
+    }
+  }
+
   // DIA-260821-5r03 guard 4: mark the ticker as boot-seeded this process so an
   // in-process reload does not re-walk the permission list / double-seed
   // timers. Set here (not inside seedFromDisk) so it is armed even when
@@ -1207,14 +1358,23 @@ const needsInputObserver: Plugin = async (ctx) => {
 
     // parentSessionId derivation (same as delegation-observer): the session
     // that calls task() IS the orchestrator. Also feeds the idle-ENTER
-    // delegation counter.
-    "tool.execute.after": async (input) => {
+    // delegation counter. DIA-260928-nm2u: additionally the O-D envelope
+    // guard seam - narrow trigger (empty <task_result> + consumed-on-use
+    // stall record), fail-soft (a guard failure must never fail the hook).
+    "tool.execute.after": async (input, output) => {
       if (input.tool !== "task") return
       parentSessionId ??= input.sessionID
       delegationsSinceIdle.set(
         input.sessionID,
         (delegationsSinceIdle.get(input.sessionID) ?? 0) + 1
       )
+      try {
+        stallEnvelopeGuard(output)
+      } catch (err) {
+        console.warn(
+          `[needs-input-observer] stall envelope guard failed: ${errorMessage(err)}`
+        )
+      }
     },
 
     // CLEAR on genuine user messages only. The compaction auto-continue
@@ -1403,6 +1563,22 @@ const needsInputObserver: Plugin = async (ctx) => {
               : { note: "permission_id absent - watchdog timer not armed" }),
             timestamp: new Date().toISOString(),
           })
+          // O-B fast path (ADR-001/002, DIA-260928-nm2u): unattended mode
+          // answers NOW, deliberately AFTER enterPermission + the asked row -
+          // the persisted record must exist BEFORE the SDK call so a crash
+          // between ask and resolve is recovered by the boot rule. Gate
+          // evaluated per ask on the live env (never cached); gate off =
+          // interactive behavior byte-identical (RED-4 pins it). The await
+          // mirrors the existing await notify(...) precedent above; one SDK
+          // call is the same order of latency as that toast call.
+          if (unattendedMode() && typeof permissionID === "string" && permissionID) {
+            await fastResolveAsk({
+              sessionID,
+              permissionID,
+              permission: typeof p?.permission === "string" ? p.permission : undefined,
+              patterns: Array.isArray(p?.patterns) ? p.patterns : undefined,
+            })
+          }
           return
         }
 

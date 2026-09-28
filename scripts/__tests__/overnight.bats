@@ -372,3 +372,28 @@ JSONC
   assert_output_contains 'overnight.sh: payload deny rule "docker volume rm *" is "ask" (not "deny") - refusing to launch'
   assert_output_not_contains "ARGS:"
 }
+
+# --- DIA-260928-nm2u: unattended gate env export (permission-stall-hardening ADR-002) ---
+
+@test "overnight: exports OPENCODE_UNATTENDED=1 before exec (fast-resolve gate)" {
+  # The plugin fast path (permission-stall-hardening) gates per-ask on
+  # OPENCODE_UNATTENDED === "1"; this launcher is the sanctioned unattended
+  # entry point and must export it before exec'ing opencode. Self-contained
+  # fake (argv + the gate var) because install_fake_opencode's fake predates
+  # the contract; env -u keeps the assertion hermetic against the runner env.
+  require_node
+  fakes="$BATS_TEST_TMPDIR/fakes-unattended-gate"
+  mkdir -p "$fakes"
+  cat > "$fakes/opencode" <<'FAKEOPENCODE'
+#!/usr/bin/env bash
+printf 'ARGS: %s\n' "$*"
+printf 'OPENCODE_UNATTENDED=%s\n' "${OPENCODE_UNATTENDED:-}"
+FAKEOPENCODE
+  chmod +x "$fakes/opencode"
+  tree="$(setup_tree)"
+
+  run env -u OPENCODE_UNATTENDED PATH="$fakes:/usr/bin:/bin" NODE_BIN="$NODE_BIN" bash "$tree/scripts/overnight.sh"
+
+  assert_status 0
+  assert_output_contains "OPENCODE_UNATTENDED=1"
+}
