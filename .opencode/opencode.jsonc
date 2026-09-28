@@ -404,7 +404,13 @@
           "rm -rf /workspace/.scratch/*": "allow",
           "rm -rf .scratch/*": "allow",
           "rmdir /workspace/.scratch/*": "allow",
-          "rmdir .scratch/*": "allow"
+          "rmdir .scratch/*": "allow",
+          // DIA-260926-5vin: two-or-more-argument forms fall back to ask. The anchored
+          // allows above match on the raw command string, and `*` spans spaces, so a
+          // second argument would otherwise ride along on the allow. Last match wins.
+          "rm -rf * *": "ask",
+          "rm * *": "ask",
+          "rmdir * *": "ask"
         }
       }
     },
@@ -490,7 +496,13 @@
           "rm -rf /workspace/.scratch/*": "allow",
           "rm -rf .scratch/*": "allow",
           "rmdir /workspace/.scratch/*": "allow",
-          "rmdir .scratch/*": "allow"
+          "rmdir .scratch/*": "allow",
+          // DIA-260926-5vin: two-or-more-argument forms fall back to ask. The anchored
+          // allows above match on the raw command string, and `*` spans spaces, so a
+          // second argument would otherwise ride along on the allow. Last match wins.
+          "rm -rf * *": "ask",
+          "rm * *": "ask",
+          "rmdir * *": "ask"
         },
         "task": "deny"
       },
