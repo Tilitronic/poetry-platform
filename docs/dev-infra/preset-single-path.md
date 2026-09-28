@@ -10,7 +10,7 @@ List names, then launch:
 
     make presets
     make opencode PRESET=free
-    make opencode PRESET=muse-balanced
+    make opencode PRESET=mimo-balanced
 
 `make presets` prints the sorted keys of `presets` in
 `.opencode/oh-my-opencode-slim.jsonc` (python3 stdlib only, no new
@@ -25,7 +25,7 @@ PRESET is a one-run override, not stored state:
 
 1. `make opencode PRESET=free` (uses `free` for this session only)
 2. Exit opencode.
-3. `make opencode PRESET=muse-balanced` (next session uses `muse-balanced`)
+3. `make opencode PRESET=mimo-balanced` (next session uses `mimo-balanced`)
 
 No file is written, so there is nothing to clear between switches. A bare
 `make opencode` (no PRESET) forwards no override and the runtime `preset`
@@ -58,7 +58,7 @@ launch. Clear it once to avoid confusion:
 Unknown-name failure looks like this (make exit 2, no container started):
 
     Unknown preset "typo". Available presets: free,
-    muse-balanced, openai-first-cost-balanced, promo-union-alpha
+    mimo-balanced, openai-first-cost-balanced, promo-union-alpha
 
 ## Slash preset (out of scope)
 

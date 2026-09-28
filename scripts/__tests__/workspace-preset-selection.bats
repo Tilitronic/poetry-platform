@@ -14,11 +14,11 @@ load test-helper
 REPO_ROOT="$(cd "$(dirname "$BATS_TEST_FILENAME")/../.." && pwd)"
 HELPER="$REPO_ROOT/scripts/presets.py"
 
-@test "list prints a sorted non-empty registry including free and muse-balanced" {
+@test "list prints a sorted non-empty registry including free and mimo-balanced" {
   run python3 "$HELPER" list
   assert_status 0
   assert_output_contains "free"
-  assert_output_contains "muse-balanced"
+  assert_output_contains "mimo-balanced"
   [ -n "$output" ]
   sorted="$(printf '%s\n' "$output" | LC_ALL=C sort)"
   [ "$output" = "$sorted" ]
@@ -35,7 +35,7 @@ HELPER="$REPO_ROOT/scripts/presets.py"
   [ "$status" -ne 0 ]
   assert_output_contains "does-not-exist"
   assert_output_contains "Available presets"
-  assert_output_contains "muse-balanced"
+  assert_output_contains "mimo-balanced"
 }
 
 @test "check rejects a near-miss name (exact match only, no fuzzy fallback)" {

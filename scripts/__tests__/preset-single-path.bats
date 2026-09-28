@@ -25,15 +25,15 @@ run_make() {
     COMPOSE_ENGINE=docker COMPOSE_OS=native make -C "$REPO_ROOT" "$@"
 }
 
-@test "make presets lists a non-empty registry including free and muse-balanced" {
+@test "make presets lists a non-empty registry including free and mimo-balanced" {
   run_make presets
   assert_status 0
   assert_output_contains "free"
-  assert_output_contains "muse-balanced"
+  assert_output_contains "mimo-balanced"
 }
 
 @test "make preset stub exits 2, names the single path, writes nothing" {
-  run_make preset NAME=muse-balanced
+  run_make preset NAME=mimo-balanced
   assert_status 2
   assert_output_contains "make opencode PRESET="
   assert_output_contains "make presets"
@@ -78,7 +78,7 @@ run_make() {
   assert_status 2
   assert_output_contains "does-not-exist"
   assert_output_contains "Available presets"
-  assert_output_contains "muse-balanced"
+  assert_output_contains "mimo-balanced"
   if grep -qF "compose exec" "$FAKE_DOCKER_LOG"; then
     echo "invalid PRESET must abort before container setup" >&2
     return 1
