@@ -365,6 +365,7 @@
 | DIA-260929-bgnw | ai-specialist gate token ownership under edit deny | scripts | Medium | OPEN | [DIA-260929-bgnw-ai-specialist-gate-token-ownership-under-edit-deny.md](DIA-260929-bgnw-ai-specialist-gate-token-ownership-under-edit-deny.md) |
 | DIA-260929-nc6w | agent-role consolidation study: conspecter+memory-manager, resource-manager, reviewer+analyzer, ai-specialist+ai-auditor | scripts | Medium | OPEN | [DIA-260929-nc6w-agent-role-consolidation-study-conspecter-memory-manager-resource-manager-reviewer-analyzer-ai-specialist-ai-auditor.md](DIA-260929-nc6w-agent-role-consolidation-study-conspecter-memory-manager-resource-manager-reviewer-analyzer-ai-specialist-ai-auditor.md) |
 | DIA-260929-sjwm | Remove all live SNIP traces: docker binary install, plugin declarations, dormant deny rules, comments, tests, docs and package manifests | scripts | Medium | CLOSED | [DIA-260929-sjwm-remove-all-live-snip-traces-docker-binary-install-plugin-declarations-dormant-deny-rules-comments-tests-docs-and-package-manifests.md](DIA-260929-sjwm-remove-all-live-snip-traces-docker-binary-install-plugin-declarations-dormant-deny-rules-comments-tests-docs-and-package-manifests.md) |
+| DIA-260929-syg0 | scripts/**tests**/test-infra-log.bats: non-bash guard case assumes /bin/sh is not bash and fails where sh is bash, blocking the pre-push make test-shell gate | scripts | Medium | OPEN | [DIA-260929-syg0-scripts-tests-test-infra-log-bats-non-bash-guard-case-assumes-bin-sh-is-not-bash-and-fails-where-sh-is-bash-blocking-the-pre-push-make-test-shell-gate.md](DIA-260929-syg0-scripts-tests-test-infra-log-bats-non-bash-guard-case-assumes-bin-sh-is-not-bash-and-fails-where-sh-is-bash-blocking-the-pre-push-make-test-shell-gate.md) |
 | DIA-260929-wjir | model swap: architector and ai-auditor kimi-k3 to grok-4.7 (variants preserved), analyzer to deepseek-v4.1-flash variant high | scripts | Medium | OPEN | [DIA-260929-wjir-model-swap-architector-and-ai-auditor-kimi-k3-to-grok-4-7-variants-preserved-analyzer-to-deepseek-v4-1-flash-variant-high.md](DIA-260929-wjir-model-swap-architector-and-ai-auditor-kimi-k3-to-grok-4-7-variants-preserved-analyzer-to-deepseek-v4-1-flash-variant-high.md) |
 | DIA-260929-yanz | ai-auditor websearch MCP drift: network access in a repo-truth-only audit lane | scripts | Medium | OPEN | [DIA-260929-yanz-ai-auditor-websearch-mcp-drift-network-access-in-a-repo-truth-only-audit-lane.md](DIA-260929-yanz-ai-auditor-websearch-mcp-drift-network-access-in-a-repo-truth-only-audit-lane.md) |
 | DIA-260929-yhmd | make test-harness: skip the engine-dependent phase in-container instead of exiting 2 | scripts | Medium | OPEN | [DIA-260929-yhmd-make-test-harness-skip-the-engine-dependent-phase-in-container-instead-of-exiting-2.md](DIA-260929-yhmd-make-test-harness-skip-the-engine-dependent-phase-in-container-instead-of-exiting-2.md) |
@@ -376,7 +377,7 @@
 | Blocker  | 9     |
 | Critical | 16    |
 | Major    | 86    |
-| Medium   | 194   |
+| Medium   | 195   |
 | Minor    | 1     |
 | Low      | 38    |
 | Info     | 2     |
@@ -384,7 +385,7 @@
 
 | Status      | Count |
 | ----------- | ----- |
-| OPEN        | 101   |
+| OPEN        | 102   |
 | DONE        | 15    |
 | VALIDATE    | 0     |
 | E2E         | 0     |

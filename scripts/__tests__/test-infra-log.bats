@@ -49,9 +49,18 @@ setup() {
 }
 
 @test "wrapper: fails loud through a non-bash shell (pipefail guarantee must not be assumed)" {
-  # `sh script` bypasses the shebang; without the BASH_VERSION guard a
-  # pipefail-less /bin/sh could mask the exit code - see the header comment.
-  run sh "$WRAPPER" "$LOG" bash -c 'exit 0'
+  # The guard is reachable only where the interpreter is NOT bash: when
+  # /bin/sh IS bash, `sh script` is bash in POSIX mode, pipefail works, and
+  # the guard correctly does not fire (see the wrapper's header comment).
+  # Prefer a real non-bash shell; skip only where none exists.
+  if command -v dash >/dev/null 2>&1; then
+    nonbash=dash
+  elif sh -c 'test -n "${BASH_VERSION:-}"' >/dev/null 2>&1; then
+    skip "/bin/sh is bash here and dash is unavailable; the non-bash guard path is unreachable"
+  else
+    nonbash=sh
+  fi
+  run $nonbash "$WRAPPER" "$LOG" bash -c 'exit 0'
   assert_status 2
   assert_output_contains "bash required"
 }
