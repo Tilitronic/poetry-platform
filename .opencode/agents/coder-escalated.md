@@ -31,7 +31,6 @@ Your permission contract is an exact clone of the base coder PLUS `task: deny`:
 
 ```
 doom_loop: deny
-bash: snip / snip * (deny)
 task: deny   # quota protection — escalated lane never delegates further
 ```
 

@@ -1,0 +1,314 @@
+---
+ownership:
+  substance: developer
+  structure: AI
+  interview_depth: compressed
+  interview_reason: 'DIA-104 cross-boundary/cross-cutting/hard-to-reverse triggers; developer pre-resolved scope decisions 1-3 as the authoritative compressed grill.'
+campaign_ticket: DIA-260929-sjwm
+---
+
+## Context
+
+See [proposal.md](proposal.md) for motivation. The live SNIP surface was
+re-verified by direct file reads (not trusted from the prior recon):
+
+- `Dockerfile.dev`: comment line 5; `ARG SNIP_VERSION=0.22.0` line 36;
+  "snip/uv" comments lines 44 and 92; install block lines 128-135; "snip/uv
+  installs" comment line 141; `SNIP_VERSION` listed in the trafilatura comment
+  line 170; "node/snip/uv/mise" comment line 290.
+- `.opencode/opencode.jsonc`: comment block lines 317-322 (including the
+  "DO NOT remove these rules" line 322); coder denies lines 329-330;
+  coder-escalated denies lines 435-436. The project plugin array (lines
+  749-760) contains only `oh-my-opencode-slim@2.2.19`,
+  `@dietrichgebert/ponytail`, and `envsitter-guard@0.0.4` - no snip entry, so
+  no project plugin edit is needed.
+- `.opencode/agents/coder-escalated.md` line 34:
+  `bash: snip / snip * (deny)` in the runtime-permissions block.
+- `docs/dev-infra-audit/inventory.md` line 51: `snip 0.22.0` in the pinned
+  Dockerfile ARG list.
+- `docs/dev-infra-audit-plan.md` line 47: `opencode-snip` named in the
+  historical C5 global-plugin audit checklist (all items already `[x]`).
+
+Out-of-repo (not under version control): the user-global OpenCode config
+plugin array entry `opencode-snip@latest` (prior recorded path
+`/home/mimic/.config/opencode/opencode.jsonc` line 4), and the orphaned
+user-home `~/.config/snip/config.toml` plus the `snip` binary on PATH. This is
+the origin of the startup warning; the repository cannot silence it.
+
+This change spans two AGENTS.md change classes: Docker/infra (section 2.4) and
+OpenCode config (section 2.5). Both classes route through `@openspec-plan`
+(this artifact set), then `@coder`; the config class additionally requires the
+section 2.5 ai-specialist gate before the coder config dispatch and the
+ai-auditor independent review afterwards.
+
+Governing `.sdd/` documents (referenced, not overridden):
+
+- `.sdd/dev-infra/architecture.md` ADR 11 (one dev-toolchain container +
+  postgres) and ADR 14 (execution-context contract) govern `Dockerfile.dev`
+  changes; the `snip` install block is a dev-image toolchain layer, removed
+  within that boundary. No ADR change is required - this is not a topology or
+  boundary decision.
+- `.sdd/opencode-config/architecture.md` governs the OpenCode config surface
+  (batch pattern, instance separation); the deny-rule removal is a permission
+  value edit inside that boundary, not a new pattern. No `@architector`
+  escalation is needed.
+- Root `architecture.md` is not affected (no snip reference found).
+
+## Goals / Non-Goals
+
+**Goals:**
+
+- Remove every live SNIP trace from the repository's live surface.
+- Remove the out-of-repo user-global OpenCode plugin declaration that emits the
+  startup warning, with the path re-confirmed and a restore artifact captured
+  before editing.
+- Keep all historical SNIP records byte-identical.
+- Prove absence with a repo token scan and prove integrity with
+  `make test-config` and `make test-infra`.
+
+**Non-Goals:**
+
+- No change to `.opencode/CHANGELOG.yaml` / `.opencode/CHANGELOG.md`, CLOSED
+  ticket docs, `knowledge/archive/**`, `.opencode/memory/lessons.md`,
+  `.opencode/memory/failures.md`, the ticket README index, learnings files, or
+  point-in-time analysis reports. These are historical record.
+- No rewrite of `doom_loop: deny` or any other permission rule - only the
+  snip-specific pair is removed.
+- No new validator, no new test harness, no new `.sdd/` document.
+- No application code, package manifest, lockfile, Makefile, or script change.
+- No commit or push of any artifact as part of this spec-authoring task.
+
+## Decisions
+
+### D1: Delete snip lines; do not neutralize or comment them out
+
+**Choice:** physically delete the Dockerfile install block, the `ARG
+SNIP_VERSION` pin, the four deny rules, the DORMANT comment block, the
+coder-escalated doc line, and the live comments at all eight Dockerfile sites.
+Comments that merely cite snip as a comparison in unrelated installs (lines 44,
+92, 141, 170, 290) are reworded to name only the surviving pattern (for example
+"the pinned SHA256-verified binary-install pattern used by uv/tini") so no
+"snip" token remains as a live reference.
+
+**Rationale:** the developer directed "nothing must remain" and "nothing must
+interfere or generate errors". A commented-out install or a renamed variable
+would remain a trace; deletion is the only complete-cleanup form. Reworded
+comments keep the surviving rationale (why uv/tini are SHA256-verified) without
+naming a removed tool.
+
+**Alternatives considered:** comment-out the lines (rejected: still a live
+trace and can be re-enabled); rename `SNIP_VERSION`/`SNIP_ARCH` (rejected: the
+install still exists).
+
+### D2: Remove the dormant deny rules (reverses the DIA-092 council position)
+
+**Choice:** delete the `snip` / `snip *` deny rules and their "do NOT remove
+these rules" comment from both the `coder` and `coder-escalated` permission
+blocks.
+
+**Rationale:** per developer decision 3, the guard has no subject once the
+global declaration and the binary are gone. The DIA-092 council-5/5 dormancy
+rationale (zero-cost hallucination guardrail) applied while snip could still be
+re-primed by a global plugin; with the global declaration removed the priming
+source is gone. The `doom_loop: deny` rule is unrelated and stays.
+
+**Alternatives considered:** keep the rules dormant (rejected: developer
+decision 3; a comment that resists removal is itself a live trace and
+contradicts the cleanup); keep the rules but drop only the comment (rejected:
+half-measure leaves live deny tokens).
+
+### D3: No delta spec (`skip_specs: true`)
+
+**Choice:** mark the change `skip_specs: true`; produce proposal + design +
+tasks only.
+
+**Rationale:** there is no existing `openspec/specs/` capability for snip, and
+removing dead tooling plus a dormant guard does not define or change an
+observable behavior contract. The proposal is explicit that no capability is
+added or modified. Matches the `dia-260827-docker-omo-pin-drift` precedent
+(`skip_specs: true` for a config-value change).
+
+### D4: Two-class routing - section 2.5 ai-specialist gate before the config coder dispatch, ai-auditor review after
+
+**Choice:** the OpenCode config portion (opencode.jsonc + coder-escalated.md)
+is routed through the AGENTS.md section 2.5 chain: (1) ai-specialist read-only
+gate/dispatch BEFORE any `@coder` config dispatch, with findings registered in
+`.opencode/learnings/external-patterns/`; (2) developer review of the gate
+findings; (3) `@coder` applies the approved edit; (4) `make test-config` +
+JSONC validity + restart smoke; (5) `@ai-auditor` independent review; (6) the
+CHANGELOG entry is appended via `scripts/changelog-add`. The Docker/infra
+portion follows section 2.4 (same spec, `@coder`, `make test-infra`,
+`@reviewer`, memory-manager).
+
+**Rationale:** AGENTS.md section 2.5 requires the ai-specialist gate for
+`.opencode/*` config changes, and ai-auditor is the independent reviewer for
+config changes (dev-infra uses `@reviewer`). Routing both classes under one
+change does not merge their review matrices.
+
+**Alternatives considered:** treat the deny-rule deletion as dev-infra only
+(rejected: `.opencode/opencode.jsonc` and agent docs are the opencode-config
+class); skip the ai-specialist gate because the edit is a deletion (rejected:
+section 2.5 has no deletion exemption).
+
+### D5: Out-of-repo cleanup only after path re-confirmation and with a restore artifact
+
+**Choice:** a delegated lane holding `external_directory` permission performs
+the user-global edit. Before editing it MUST: (a) re-confirm the actual global
+config path on the current machine (the prior path `/home/mimic/.config/opencode/opencode.jsonc`
+is a recorded observation only - the developer's machine was just updated);
+(b) capture the pre-edit content (backup file or exact diff) into the session
+evidence; (c) edit only the plugin-array entry; (d) also inspect and report the
+orphaned `~/.config/snip/` user-home config and the `snip` binary path.
+
+**Rationale:** the edit is irreversible via Git and the path may have moved.
+Re-confirming first prevents editing a stale or wrong file; capturing the
+pre-edit content gives a manual restore path.
+
+**Alternatives considered:** assume the recorded path (rejected: explicit
+developer decision 1 requires re-confirmation); edit without a backup (rejected:
+no rollback path for a non-versioned file).
+
+## Seams
+
+**Test/verification seams (all pre-existing or trivial):**
+
+- **`make test-config`** - config parse + JSONC validity + agent-name lockstep +
+  observer-dedupe + EBDV/grilling validators. Proves `.opencode/opencode.jsonc`
+  and `.opencode/agents/coder-escalated.md` remain valid after the deny/doc
+  removal.
+- **`make test-infra`** - builds the dev image and runs the docker smoke; proves
+  `Dockerfile.dev` still builds without the snip layer and the container still
+  boots.
+- **Repo live-token scan** - a grep for the live surface (excluding the
+  preserved historical paths) returns zero live hits. The scan is evidence, not
+  a new committed validator.
+- **Global-config evidence seam** - the delegated lane's re-confirmed path +
+  pre-edit backup + post-edit `opencode debug` / startup-log evidence that the
+  `[snip] ... plugin disabled` warning is gone.
+
+**Public boundaries:**
+
+- `Dockerfile.dev` image build contract (dev toolchain layer).
+- `.opencode/opencode.jsonc` permission object + project plugin array (config
+  surface).
+- User-global OpenCode config plugin array (out-of-repo config surface).
+
+**No new production module boundaries.** No `.sdd/` architecture document needs
+updating.
+
+## Test strategy
+
+This is a removal change; the correct verification is absence plus regression of
+the existing gates, not new tests.
+
+1. **Absence (repo live surface):** after the edits, a scoped scan for `snip`
+   over the live files (`Dockerfile.dev`, `.opencode/opencode.jsonc`,
+   `.opencode/agents/coder-escalated.md`, `docs/dev-infra-audit/inventory.md`,
+   `docs/dev-infra-audit-plan.md`) returns zero live-tooling hits. False
+   positives (`snippet`, `totalSnippets`, docs scrape "snippet" prose) are
+   documented and excluded by path, so the scan is not confused with them.
+2. **Config validity:** `make test-config` exits 0 (JSONC parse, agent-name
+   lockstep, observer-dedupe, validators).
+3. **Image regression:** `make test-infra` exits 0 (image builds, smoke passes,
+   `snip` is absent from the image: `command -v snip` fails inside the
+   container).
+4. **Dockerfile hygiene:** `docker compose config --quiet` still succeeds, and
+   the Dockerfile contains no `SNIP_VERSION`, no `SNIP_ARCH`, and no
+   `edouard-claude/snip` URL.
+5. **Historical preservation:** `git status` / `git diff` shows the preserved
+   paths (CHANGELOG, CLOSED tickets, `knowledge/archive/**`, memory files) are
+   unmodified.
+6. **Out-of-repo (delegated lane, manual evidence):** the re-confirmed global
+   path shows no `opencode-snip` entry; the pre-edit backup exists; a restart
+   smoke no longer prints the `[snip]` warning; the orphaned `~/.config/snip/`
+   and binary path are reported (removed or explicitly left with a reason).
+7. **Spec gate:** `openspec validate dia-260929-sjwm-remove-live-snip-traces`
+   exits 0.
+8. **Independent review:** `@ai-auditor` (config portion) and `@reviewer`
+   (dev-infra portion) two-axis review; no Critical findings; diff scope
+   matches this design.
+
+## Rollback plan
+
+- **In-repo edits:** one Git-tracked commit; `git revert` of that commit
+  restores the `snip` install block, the `ARG SNIP_VERSION` pin, the four deny
+  rules, the DORMANT comment, the coder-escalated doc line, the reworded
+  comments, and `docs/dev-infra-audit/inventory.md`. No data migration, no
+  side effects.
+- **Out-of-repo edit:** NOT under version control. The delegated lane MUST
+  capture the pre-edit file content (backup next to the original, or an exact
+  diff in session evidence) before editing. Rollback is manual: restore the
+  captured content, then restart OpenCode. If the pre-edit content was not
+  captured, the edit must not proceed.
+- **Orphaned user-home `~/.config/snip/`:** left in place unless the developer
+  explicitly approves removal; it is inert once the binary and plugin are gone.
+  If removed, its content must be backed up first.
+- **Image rollback:** rebuilding the image from the reverted Dockerfile
+  restores `snip` in the container. No image-layer migration is involved.
+
+## Risks / Trade-offs
+
+- **Risk:** a model re-invents the `snip` prefix after the deny rules are gone.
+  -> **Mitigation:** developer decision 3 accepts this; the priming source (the
+  global plugin) is removed, and `doom_loop: deny` still halts the
+  identical-command loop class. Accepted residual risk.
+- **Risk:** the user-global config path changed after the machine update and a
+  wrong file is edited.
+  -> **Mitigation:** D5 mandatory path re-confirmation before editing; abort if
+  no `opencode.jsonc` plugin array is found at the confirmed path.
+- **Risk:** the out-of-repo edit has no Git rollback.
+  -> **Mitigation:** mandatory pre-edit content capture; edit only the plugin
+  array entry.
+- **Risk:** the repo scan misses a live reference hidden in an unexpected file
+  or trips on "snippet" false positives.
+  -> **Mitigation:** scan the whole repo, then classify each hit as live /
+  historical / false-positive by path; the design records the known false
+  positives.
+- **Trade-off:** removing the dormant guardrail lowers defense-in-depth for a
+  hypothetical future `snip` hallucination. Acceptable per developer decision 3.
+
+## Migration Plan
+
+1. **In-repo:** apply the Dockerfile edits (slice 1) and, after the section 2.5
+   ai-specialist gate, the config/agent-doc edits (slice 2).
+2. **Docs:** update `docs/dev-infra-audit/inventory.md`; record the
+   `docs/dev-infra-audit-plan.md` disposition (slice 3).
+3. **Out-of-repo:** delegated lane re-confirms the path, captures a restore
+   artifact, edits the global plugin array, and reports orphaned user-home
+   paths (slice 4).
+4. **Validate + review + register:** `make test-config`, `make test-infra`,
+   `openspec validate`, ai-auditor + reviewer, then `scripts/changelog-add`
+   (slice 5).
+5. **Rollback:** `git revert` the repo commit; restore the captured global
+   config content by hand; restart OpenCode.
+
+## Open Questions
+
+None that block the approach or task breakdown. The scope-boundary treatment of
+point-in-time `knowledge/ana*` / `res*` reports and of
+`docs/dev-infra-audit-plan.md` (historical vs live) is explicitly resolved in
+favor of preservation: only `docs/dev-infra-audit/inventory.md` is a live-state
+document and is updated; every dated analysis/research/planning record is kept
+byte-identical. This is flagged to the developer in the handoff in case a
+broader sweep is wanted.
+
+## DIA-104 gate check (recorded)
+
+- **gate_state:** grilled
+- **gate_triggers:** cross-boundary, cross-cutting, hard-to-reverse
+  - cross-boundary: spans the dev-infra class (Dockerfile) and the
+    opencode-config class (opencode.jsonc + agent doc) plus an out-of-repo
+    user-global config edit.
+  - cross-cutting: the removal crosses the image build, the permission config,
+    agent policy docs, and live documentation/inventory.
+  - hard-to-reverse: the user-global config edit is outside Git and cannot be
+    reverted with `git revert`.
+- **gate_waivers:** none apply (not a hotfix; not a pure no-behavior-change
+  refactor; not a disposable spike; not a clean increment to a module whose
+  grill already covers these new trade-offs, because this change reverses the
+  DIA-092 council dormancy decision).
+- **gate_override:** "" (none)
+- **Grill basis:** the developer pre-resolved scope decisions 1-3 (out-of-repo
+  path re-confirmation, historical-record preservation, dormant deny removal)
+  constitute the compressed grill transcript for this change; the spec is
+  synthesized from that transcript only.

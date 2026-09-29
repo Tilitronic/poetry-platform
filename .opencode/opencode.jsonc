@@ -314,20 +314,17 @@
     // coder deliberately has minimal permission restrictions (unlike architector/analyzer/
     // reviewer). It is the implementer: it must edit files, run bash (dev build, lint,
     // tests) and dispatch subagents. Denying any of these breaks its core function.
-    // Two restrictions (DIA-078, 2026-08-10): "doom_loop": "deny" is a mechanical halt on
-    // 3x-identical calls to break the snip-prefix repeat loop; bash snip deny (DIA-078,
-    // ai--1 §10 gate) forbids the snip wrapper entirely — it is a display-trimming TUI
-    // helper with zero legitimate agent use (fork/exec + SyntaxError breaks workflows).
+    // One restriction (DIA-078, 2026-08-10): "doom_loop": "deny" is a mechanical halt on
+    // 3x-identical calls so a lane cannot keep repeating the same failing command
+    // (identical-command loop class, DIA-075/DIA-078 recurrence).
     // M2 decision (2026-08-01): document intent instead of restricting.
-    // DORMANT post-snip-removal (2026-08-11): rules kept as zero-cost hallucination guardrail per council 5/5; plugin opencode-snip@1.6.1 removed from global plugin array - do NOT remove these rules.
+    // Retirement marker (2026-09-29): the two dormant bash deny rules added by DIA-078 were retired under campaign ticket DIA-260929-sjwm because their subject was removed and they must not be reintroduced.
     "coder": {
       "mode": "subagent",
       "color": "#3B82F6",
       "permission": {
         "doom_loop": "deny",
         "bash": {
-          "snip": "deny",
-          "snip *": "deny",
           "yq *": "allow",
           "npx *": "allow",
           "turbo *": "allow",
@@ -432,8 +429,6 @@
       "permission": {
         "doom_loop": "deny",
         "bash": {
-          "snip": "deny",
-          "snip *": "deny",
           "yq *": "allow",
           "npx *": "allow",
           "turbo *": "allow",

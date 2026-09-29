@@ -2,7 +2,7 @@
 #
 # ONE container that holds everything for development:
 #   - opencode + OMO slim plugins
-#   - Node 24, pnpm, bun, uv, mise, snip
+#   - Node 24, pnpm, bun, uv, mise
 #   - Python 3 + uv for the FastAPI api-server
 #   - Rust toolchain (kept for the future W1 re-scaffold: stress-lang-core was
 #     deleted 2026-08-25 as a throwing stub; architecture.md is the seam of
@@ -33,7 +33,6 @@ ARG OPENCODE_VERSION=1.18.32
 ARG OMO_VERSION=2.2.19
 ARG PNPM_VERSION=10.33.0
 ARG BUN_VERSION=1.4.2
-ARG SNIP_VERSION=0.22.0
 ARG OPENSPEC_VERSION=1.7.0
 ARG UV_VERSION=0.11.29
 ARG RUST_VERSION=1.83.0
@@ -41,7 +40,7 @@ ARG RUST_VERSION=1.83.0
 # verified image build. Keep both architecture digests aligned with this pin.
 ARG RUSTUP_VERSION=1.28.2
 # tini: minimal init for PID 1 zombie reaping (see M9); pinned and
-# SHA256-verified like snip/uv below.
+# SHA256-verified like uv below.
 ARG TINI_VERSION=0.19.0
 # Language server versions (pinned; see openspec/changes/dev-infra-language-servers)
 # keep in sync with scripts/lsp-versions.env — the single source of truth for host + container LS versions; T7-T10
@@ -89,7 +88,7 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
 # Docker's default PID 1 does not reap orphaned children; playwright/crawl4ai
 # spawn short-lived processes that would accumulate as zombies. tini-static is
 # glibc-independent (no version drift on debian:13) and matches the project's
-# pinned + SHA256-verified binary-install pattern (snip/uv). The release
+# pinned + SHA256-verified binary-install pattern (uv). The release
 # publishes a per-binary .sha256sum file; grep|sed|sha256sum -c - verifies the
 # exact artifact we downloaded (same shape as the uv install below).
 RUN TINI_ARCH=$(case "${TARGETARCH:-$(uname -m)}" in x86_64|amd64) echo "amd64" ;; aarch64|arm64) echo "arm64" ;; esac) && \
@@ -125,20 +124,11 @@ RUN npm install -g pnpm@${PNPM_VERSION} bun@${BUN_VERSION} \
     pyright@${PYRIGHT_VERSION} \
     yaml-language-server@${YAML_LS_VERSION}
 
-# === snip — command runner (checksum-verified) ===
-RUN SNIP_ARCH=$(case "${TARGETARCH:-$(uname -m)}" in x86_64|amd64) echo "amd64" ;; aarch64|arm64) echo "arm64" ;; esac) && \
-    curl -fsSL "https://github.com/edouard-claude/snip/releases/download/v${SNIP_VERSION}/snip_${SNIP_VERSION}_linux_${SNIP_ARCH}.tar.gz" -o /tmp/snip.tar.gz && \
-    curl -fsSL "https://github.com/edouard-claude/snip/releases/download/v${SNIP_VERSION}/checksums.txt" -o /tmp/checksums.txt && \
-    grep "snip_${SNIP_VERSION}_linux_${SNIP_ARCH}.tar.gz" /tmp/checksums.txt | sed "s|snip_${SNIP_VERSION}_linux_${SNIP_ARCH}.tar.gz|/tmp/snip.tar.gz|" | sha256sum -c - && \
-    tar xzf /tmp/snip.tar.gz -C /usr/local/bin/ snip && \
-    rm -f /tmp/snip.tar.gz /tmp/checksums.txt && \
-    snip --version
-
 # === mise — JS tool manager (replaces Volta; DIA-030 closure) ===
 # SEC-DOCKER-001: restored — the mise release publishes a SHASUMS256.txt
 # manifest alongside every release. MISE_VERSION is pinned in concert with the
 # manifest, which is fetched from the same release and verified before
-# extraction (same grep|sed|sha256sum -c - shape as the snip/uv installs).
+# extraction (same grep|sed|sha256sum -c - shape as the tini/uv installs).
 # Resolved at implementation time (design flag b): v2026.8.0 — x64
 # 64183603854f319b78658305c545aacae935e0959a3a894b77a0f9416eab047b, arm64
 # 6d888ba3d0b5d78f676771a84846885b7f685fb4d1533f2927079eb9b75633a8.
@@ -167,7 +157,7 @@ RUN UV_ARCH=$(case "${TARGETARCH:-$(uname -m)}" in x86_64|amd64) echo "x86_64" ;
 
 # === trafilatura — source-capture CLI for @conspecter Phase A (DIA-067) ===
 # Version pinned via ARG for deterministic builds (same pattern as UV_VERSION,
-# RUST_VERSION, MISE_VERSION, SNIP_VERSION).
+# RUST_VERSION, MISE_VERSION).
 # FALLBACK APPLIED (2026-08-08): Option C (`uv tool install` + ENV
 # UV_TOOL_BIN_DIR=/usr/local/bin) proved broken at runtime — the launcher
 # symlink landed in /usr/local/bin but the tool environment stayed under
@@ -287,7 +277,7 @@ RUN git config --system --add safe.directory /workspace && git config --system -
 # refs/heads/dev/install) and performs NO sha256 verification of the binary it
 # downloads - pinning the script's own digest (the old fc3c1b2... pattern) was
 # stale/unstable. Direct binary download + digest verification matches the
-# node/snip/uv/mise pattern used elsewhere in this file. Repo relocated
+# node/uv/mise pattern used elsewhere in this file. Repo relocated
 # sst/opencode -> anomalyco/opencode (res028). Digests pinned from the v1.18.32
 # GitHub release assets (downloaded + sha256sum, 2026-09-22).
 # DIA-260922-cp0m: moved to LAST layer so version bumps stop rebuilding the
