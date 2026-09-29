@@ -318,7 +318,9 @@
     // 3x-identical calls so a lane cannot keep repeating the same failing command
     // (identical-command loop class, DIA-075/DIA-078 recurrence).
     // M2 decision (2026-08-01): document intent instead of restricting.
-    // Retirement marker (2026-09-29): the two dormant bash deny rules added by DIA-078 were retired under campaign ticket DIA-260929-sjwm because their subject was removed and they must not be reintroduced.
+    // Retirement marker (2026-09-29): the two dormant bash deny rules
+    // added by DIA-078 were retired under campaign ticket DIA-260929-sjwm
+    // because their subject was removed and they must not be reintroduced.
     "coder": {
       "mode": "subagent",
       "color": "#3B82F6",

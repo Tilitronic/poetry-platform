@@ -39,8 +39,8 @@ ARG RUST_VERSION=1.83.0
 # Archive URL prevents the rustup installer bytes from changing underneath a
 # verified image build. Keep both architecture digests aligned with this pin.
 ARG RUSTUP_VERSION=1.28.2
-# tini: minimal init for PID 1 zombie reaping (see M9); pinned and
-# SHA256-verified like uv below.
+# tini: minimal init for PID 1 zombie reaping (see M9); follows
+# the pinned SHA256-verified binary-install pattern (tini/uv).
 ARG TINI_VERSION=0.19.0
 # Language server versions (pinned; see openspec/changes/dev-infra-language-servers)
 # keep in sync with scripts/lsp-versions.env — the single source of truth for host + container LS versions; T7-T10
@@ -87,10 +87,10 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
 # === tini — PID 1 init for zombie reaping ===
 # Docker's default PID 1 does not reap orphaned children; playwright/crawl4ai
 # spawn short-lived processes that would accumulate as zombies. tini-static is
-# glibc-independent (no version drift on debian:13) and matches the project's
-# pinned + SHA256-verified binary-install pattern (uv). The release
-# publishes a per-binary .sha256sum file; grep|sed|sha256sum -c - verifies the
-# exact artifact we downloaded (same shape as the uv install below).
+# glibc-independent (no version drift on debian:13) and matches
+# the pinned SHA256-verified binary-install pattern (tini/uv). The release
+# publishes a per-binary .sha256sum file; grep|sed|sha256sum -c - verifies
+# the exact artifact we downloaded.
 RUN TINI_ARCH=$(case "${TARGETARCH:-$(uname -m)}" in x86_64|amd64) echo "amd64" ;; aarch64|arm64) echo "arm64" ;; esac) && \
     curl -fsSL "https://github.com/krallin/tini/releases/download/v${TINI_VERSION}/tini-static-${TINI_ARCH}" -o "/tmp/tini-static-${TINI_ARCH}" && \
     curl -fsSL "https://github.com/krallin/tini/releases/download/v${TINI_VERSION}/tini-static-${TINI_ARCH}.sha256sum" -o /tmp/tini.sha256 && \
@@ -128,7 +128,7 @@ RUN npm install -g pnpm@${PNPM_VERSION} bun@${BUN_VERSION} \
 # SEC-DOCKER-001: restored — the mise release publishes a SHASUMS256.txt
 # manifest alongside every release. MISE_VERSION is pinned in concert with the
 # manifest, which is fetched from the same release and verified before
-# extraction (same grep|sed|sha256sum -c - shape as the tini/uv installs).
+# extraction via the pinned SHA256-verified binary-install pattern (tini/uv).
 # Resolved at implementation time (design flag b): v2026.8.0 — x64
 # 64183603854f319b78658305c545aacae935e0959a3a894b77a0f9416eab047b, arm64
 # 6d888ba3d0b5d78f676771a84846885b7f685fb4d1533f2927079eb9b75633a8.

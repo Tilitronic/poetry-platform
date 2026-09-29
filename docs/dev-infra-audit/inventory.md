@@ -48,7 +48,7 @@ dev-stack.sh (host bootstrap: .env from example → docker-info gate → compose
 ## 7. Docker
 
 - docker-compose.yml: dev service (Dockerfile.dev, ports 9000/8000/3000, volumes .:/workspace:Z + pnpm_store/dev_state/dev_cache, env DATABASE_URL + 5 API keys, 5 file secrets → /run/secrets, depends_on postgres healthy, tty, restart unless-stopped) + postgres service (postgres:16-alpine, pg_isready healthcheck 5s/10 retries, pgdata volume).
-- Dockerfile.dev: debian:13-slim @ SHA256; pinned ARGs (node 24.18.0, opencode 1.18.4, pnpm 10.33.0, bun 1.3.14, openspec 1.7.0, uv 0.11.29, mise v2026.8.0, rust 1.83.0, tini 0.19.0, TS-LS 5.3.0, pyright 1.1.411); SHA256-verified installs; Xvfb/xclip/rg/jq/make/dbus; Playwright+crawl4ai PLAYWRIGHT_BROWSERS_PATH=/opt/ms-playwright; non-root dev UID 1000; healthcheck opencode --version; ENTRYPOINT tini -- /usr/local/bin/dev-entrypoint.sh; CMD bash.
+- Dockerfile.dev: debian:13-slim @ SHA256; pinned ARGs (node 24.18.0, opencode 1.18.32, pnpm 10.33.0, bun 1.4.2, openspec 1.7.0, uv 0.11.29, mise v2026.8.0, rust 1.83.0, tini 0.19.0, TS-LS 5.3.0, pyright 1.1.411); SHA256-verified installs; Xvfb/xclip/rg/jq/make/dbus; Playwright+crawl4ai PLAYWRIGHT_BROWSERS_PATH=/opt/ms-playwright; non-root dev UID 1000; healthcheck opencode --version; ENTRYPOINT tini -- /usr/local/bin/dev-entrypoint.sh; CMD bash.
 - dev-entrypoint.sh: load 5 whitelisted secrets -> env; Xvfb :99 -ac -noreset; exec "$@". Whitelist must stay in sync with dev-secrets-profile.sh + compose secrets (smoke-tested).
 - .dockerignore: .git, node_modules, dist, .turbo, .venv, .env*, secrets/, docs/knowledge/*.md.
 - tools/opencode-docker/ was retired in DIA-260824-8k62 (PHASE 3, commit 63d6478). Only Dockerfile.dev is maintained.
