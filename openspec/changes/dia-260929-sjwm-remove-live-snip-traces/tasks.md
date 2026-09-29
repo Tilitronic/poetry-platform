@@ -3,7 +3,7 @@ ownership:
   substance: developer
   structure: AI
   interview_depth: compressed
-  interview_reason: 'DIA-104 cross-boundary/cross-cutting/hard-to-reverse triggers; developer pre-resolved scope decisions 1-3 as the authoritative compressed grill.'
+  interview_reason: 'DIA-104 cross-boundary/cross-cutting/hard-to-reverse triggers; developer pre-resolved scope decisions as the authoritative compressed grill; the out-of-repo slice was later transferred to DIA-260827-txq2 (OQ1 resolved).'
 campaign_ticket: DIA-260929-sjwm
 ---
 
@@ -14,7 +14,7 @@ campaign_ticket: DIA-260929-sjwm
       `ARG SNIP_VERSION=0.22.0` (line 36), drop `snip` from the header comment
       (line 5), and reword the comparison comments (lines 44, 92, 141, 170, 290) to name only the surviving pattern (uv/tini/node) so no `snip` token
       remains. Touch nothing else in the file. **Acceptance:** `grep -in snip
-  Dockerfile.dev` returns zero matches; `docker compose config --quiet`
+Dockerfile.dev` returns zero matches; `docker compose config --quiet`
       still exits 0; no `SNIP_VERSION`, `SNIP_ARCH`, or `edouard-claude/snip`
       token remains. **Blocks:** 3.1, 5.1.
 
@@ -55,30 +55,19 @@ campaign_ticket: DIA-260929-sjwm
       `.opencode/memory/failures.md`, `docs/dev-infra-audit/tickets/*`).
       **Blocks:** 5.1.
 
-## 4. Out-of-repo user-global cleanup (delegated external_directory lane)
+## 4. Out-of-repo user-global cleanup (TRANSFERRED OUT - no task)
 
-- [ ] 4.1 Blocking edges: none. Dispatch a delegated lane holding
-      `external_directory` permission. It MUST first RE-CONFIRM the actual
-      user-global OpenCode config path on the current machine (the prior path
-      `/home/mimic/.config/opencode/opencode.jsonc` is a recorded observation
-      only, per developer decision 1); capture the pre-edit content as a
-      restore artifact; then remove only the `opencode-snip@latest` entry from
-      the plugin array. Abort if no `opencode.jsonc` plugin array is found at
-      the confirmed path. **Acceptance:** re-confirmed path + pre-edit backup
-      recorded in session evidence; the plugin array no longer contains
-      `opencode-snip`; no other key is edited. **Blocks:** 4.2, 5.1.
-- [ ] 4.2 Blocking edges: 4.1. Inspect and report the orphaned user-home
-      `~/.config/snip/` config and the `snip` binary on PATH; remove them only
-      if the developer explicitly approves (back up first if removing).
-      Perform a restart smoke and confirm the
-      `[snip] snip binary not found in PATH - plugin disabled` warning no
-      longer appears. **Acceptance:** orphan paths reported with a
-      keep/remove decision; restart smoke shows no `[snip]` warning.
-      **Blocks:** 5.1.
+Slice 4 (removal of the user-global `opencode-snip@latest` plugin declaration
+and the orphaned host paths) is NOT performed by this change. It is transferred
+to DIA-260827-txq2
+'inherited-obsolete-and-duplicate-plugins-from-base-omo-config', which already
+owns that regression. No lane reachable from the container can see or edit the
+host user-global config (probe rationale in design.md "Slice 4 transfer
+record"), so DIA-260929-sjwm closes repo-only. No tasks here.
 
 ## 5. Validation, review, registration (one context window)
 
-- [ ] 5.1 Blocking edges: 1.1, 2.2, 3.1, 4.1. Run the gates:
+- [ ] 5.1 Blocking edges: 1.1, 2.2, 3.1. Run the gates:
       `make test-config` (exit 0), `make test-infra` (exit 0; image builds,
       smoke passes, `command -v snip` fails inside the container), and
       `openspec validate dia-260929-sjwm-remove-live-snip-traces` (exit 0).

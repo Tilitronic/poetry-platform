@@ -3,29 +3,38 @@ ownership:
   substance: developer
   structure: AI
   interview_depth: compressed
-  interview_reason: 'DIA-104 cross-boundary/cross-cutting/hard-to-reverse triggers; developer pre-resolved scope decisions 1-3 (global cleanup, history kept, dormant deny removal) as the authoritative compressed grill.'
+  interview_reason: 'DIA-104 cross-boundary/cross-cutting/hard-to-reverse triggers; developer pre-resolved scope decisions (history kept, dormant deny removal) as the authoritative compressed grill; the out-of-repo slice was later transferred to DIA-260827-txq2 (OQ1 resolved).'
 campaign_ticket: DIA-260929-sjwm
 ---
 
 ## Why
 
-SNIP has been fully abandoned, but live traces remain in the repository and in
-the user-global OpenCode config. `Dockerfile.dev` still installs the `snip`
-binary and pins `SNIP_VERSION`; `.opencode/opencode.jsonc` still carries a
-four-rule dormant `snip` / `snip *` deny block plus a comment that says
-"do NOT remove these rules"; `.opencode/agents/coder-escalated.md` still
-documents that deny in its permission ground-truth block; and
-`docs/dev-infra-audit/inventory.md` still lists `snip 0.22.0` as a live image
-pin.
+SNIP has been fully abandoned, but live traces remain in the repository.
+`Dockerfile.dev` still installs the `snip` binary and pins `SNIP_VERSION`;
+`.opencode/opencode.jsonc` still carries a four-rule dormant `snip` / `snip *`
+deny block plus a comment that says "do NOT remove these rules";
+`.opencode/agents/coder-escalated.md` still documents that deny in its
+permission ground-truth block; and `docs/dev-infra-audit/inventory.md` still
+lists `snip 0.22.0` as a live image pin.
 
 The startup warning `[snip] snip binary not found in PATH - plugin disabled`
-does NOT originate in any repository file. It originates in the user-global
-OpenCode config plugin array (prior recorded path
-`/home/mimic/.config/opencode/opencode.jsonc` line 4, entry
-`opencode-snip@latest`), evidenced by DIA-260827-txq2 line 41 and
+does NOT originate in any repository file; it originates in the user-global
+OpenCode config plugin declaration, recorded against DIA-260827-txq2 line 41 and
 `knowledge/ana-260831-6w4y-full-repository-four-lane-reaudit/ana-260831-6w4y-full-repository-four-lane-reaudit-report.md`
-line 385. The repository cleanup alone therefore cannot silence the warning;
-the out-of-repo global declaration must be removed too.
+line 385.
+
+**Slice 4 transfer record (this amendment):** the out-of-repo user-global
+cleanup is REMOVED from this change and TRANSFERRED to DIA-260827-txq2
+'inherited-obsolete-and-duplicate-plugins-from-base-omo-config', which already
+owns that regression. DIA-260929-sjwm closes REPO-ONLY. Rationale: three
+read-only probes falsified slice 4's premise - the `/workspace` bind source is a
+single subdirectory
+(`/dev/nvme0n1p6[/home/mimic/Documents/Coddding/poetry-platform]`), there is no
+bind for `/home/dev/.config`, `/proc/self/mounts` shows no such bind, the
+recorded host paths (`/home/mimic/...`, `/home/qualt/...`) do not exist
+in-container, and `OPENCODE_CONFIG_DIR` resolves to the container overlay. No
+lane reachable from the container can see or edit the host user-global config.
+OQ1 is resolved; full detail in design.md "Slice 4 transfer record".
 
 Governing ticket: DIA-260929-sjwm 'Remove all live SNIP traces' (OPEN, area
 scripts, severity Medium).
@@ -41,11 +50,10 @@ scripts, severity Medium).
   317-322) that instructs "do NOT remove these rules".
 - **Agent policy doc:** remove the `bash: snip / snip * (deny)` line from
   `.opencode/agents/coder-escalated.md` (line 34).
-- **Out-of-repo user-global config (delegated lane):** remove the
-  `opencode-snip@latest` entry from the user-global OpenCode plugin array, and
-  inspect the orphaned user-home `~/.config/snip/` config plus the `snip`
-  binary on PATH. The exact global config path MUST be RE-CONFIRMED before any
-  edit; the prior path is a recorded observation, not an assumption.
+- **Out-of-repo user-global config (TRANSFERRED OUT):** slice 4 - removal of the
+  user-global `opencode-snip@latest` plugin declaration and the orphaned host
+  paths - is transferred to DIA-260827-txq2. This change does not edit any
+  out-of-repo path; DIA-260929-sjwm closes repo-only.
 - **Live documentation:** update `docs/dev-infra-audit/inventory.md` (line 51)
   so the Dockerfile ARG list no longer names `snip 0.22.0`; record the
   disposition of `docs/dev-infra-audit-plan.md` (line 47).
@@ -80,9 +88,6 @@ behavior contract. `.openspec.yaml` sets `skip_specs: true`.
 - **Changed files:** `Dockerfile.dev`; `.opencode/opencode.jsonc`;
   `.opencode/agents/coder-escalated.md`; `docs/dev-infra-audit/inventory.md`;
   `docs/dev-infra-audit-plan.md` (disposition only); three OpenSpec artifacts.
-- **Out-of-repo change:** the user-global OpenCode config plugin array
-  (path re-confirmed at execution time) and, if present, the orphaned
-  `~/.config/snip/` user-home config and the `snip` binary on PATH.
 - **Dependencies:** removes a third-party binary dependency (`snip`,
   github.com/edouard-claude/snip). No dependency is added. No package manifest
   (`package.json`, `bun.lock`, `pnpm-lock.yaml`, `.mise.toml`) references snip.
@@ -107,37 +112,39 @@ the deny rules are deleted, not replaced.
 
 Full plan lives in `design.md` (Rollback plan). In brief: the in-repo edits are
 Git-tracked and revert with one `git revert` of the change commit, restoring
-the pinned `snip` install and the dormant deny rules. The out-of-repo global
-config edit is NOT under version control and MUST have its pre-edit content
-captured (backup or exact diff) before editing so the developer can restore it
-by hand.
+the pinned `snip` install and the dormant deny rules. No host-side step is part
+of this change (the out-of-repo slice is transferred to DIA-260827-txq2).
 
 ## Alternatives considered
 
-- **Variant A - full live-surface removal (repo + out-of-repo global config):**
-  chosen. Evidence: developer instruction "remove everything connected with it
-  ... complete cleanup"; DIA-260827-txq2 line 41 and
+- **Variant A - full live-surface removal (repo + out-of-repo global config in
+  one change):** rejected/moved. Three read-only probes show no container lane
+  can reach the host user-global config (design.md "Slice 4 transfer record"),
+  and the startup warning is unconfirmed in poetry-dev. The out-of-repo surface
+  is transferred to DIA-260827-txq2, which already owns that regression.
+- **Variant B - repository traces only; transfer the global declaration to
+  DIA-260827-txq2:** chosen. The repository cleanup is fully executable and
+  verifiable in-container; the host edit is owned where it is reachable.
+  Evidence: DIA-260827-txq2 line 41 and
   `knowledge/ana-260831-6w4y-full-repository-four-lane-reaudit/ana-260831-6w4y-full-repository-four-lane-reaudit-report.md`
-  line 385 record the global declaration as the source of the live warning.
-- **Variant B - remove repository traces only, leave the global declaration:**
-  rejected. The startup warning and the plugin load originate out-of-repo, so
-  this variant leaves the reported symptom live. Evidence: Tier-1 DIA-260827-txq2
-  line 41; ana-260831-6w4y line 385.
+  line 385 record the global declaration as the source of the warning, and that
+  regression is DIA-260827-txq2's.
 - **Variant C - keep the four deny rules as a dormant guardrail (the DIA-092
   council 5/5 position):** rejected. The developer explicitly reversed that
-  position in decision 3; once the global declaration and the binary are gone
-  the guard has no subject, and a rule that instructs "do NOT remove" against
+  position in decision 3; once the binary is gone and the global declaration is
+  transferred for removal the guard has no subject, and a rule that instructs
+  "do NOT remove" against
   the developer's cleanup intent is itself a live trace. Evidence: Tier-1
   `docs/dev-infra-audit/tickets/DIA-092-snip-plugin-removal-s10.md` (council
   reversal, dormant-rule rationale); developer decision 3 (this dispatch).
-- **Status-quo / do nothing:** rejected. It leaves a third-party binary and
-  orphan config in the image, a stale inventory claim, and a live startup
-  warning. Evidence: Tier-1 live reads of `Dockerfile.dev:36`,
+- **Status-quo / do nothing:** rejected. It leaves a third-party binary in the
+  image, a stale inventory claim, and a dormant deny guard with no subject.
+  Evidence: Tier-1 live reads of `Dockerfile.dev:36`,
   `.opencode/opencode.jsonc:329-330`, `docs/dev-infra-audit/inventory.md:51`.
 
-Chosen option: Variant A - because the developer directed a complete cleanup
-and the only evidence-backed way to silence the live SNIP warning is to remove
-both the repository traces and the user-global plugin declaration.
+Chosen option: Variant B - because the repository traces are fully removable and
+verifiable in-container, while the out-of-repo global declaration is unreachable
+from this container and is already owned by DIA-260827-txq2.
 
 ## Ticket linkage
 
@@ -145,4 +152,11 @@ both the repository traces and the user-global plugin declaration.
 - **Evidence refs:** DIA-260827-txq2 line 41;
   `knowledge/ana-260831-6w4y-full-repository-four-lane-reaudit` line 385;
   `docs/dev-infra-audit/tickets/DIA-092-snip-plugin-removal-s10.md`.
+- **Probe evidence (amendment):** design.md "Slice 4 transfer record"
+  (read-only probes falsifying the delegated-lane mechanism).
+- **Slice 4 transfer (amendment):** the out-of-repo global cleanup moves to
+  DIA-260827-txq2
+  'inherited-obsolete-and-duplicate-plugins-from-base-omo-config' (OQ1 resolved;
+  DIA-260929-sjwm closes repo-only). Probe evidence: design.md "Slice 4 transfer
+  record".
 - **History preserved:** DIA-092, DIA-075, DIA-078, DIA-093 (CLOSED).

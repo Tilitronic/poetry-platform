@@ -3,7 +3,7 @@ ownership:
   substance: developer
   structure: AI
   interview_depth: compressed
-  interview_reason: 'DIA-104 cross-boundary/cross-cutting/hard-to-reverse triggers; developer pre-resolved scope decisions 1-3 as the authoritative compressed grill.'
+  interview_reason: 'DIA-104 cross-boundary/cross-cutting/hard-to-reverse triggers; developer pre-resolved scope decisions as the authoritative compressed grill; the out-of-repo slice was later transferred to DIA-260827-txq2 (OQ1 resolved).'
 campaign_ticket: DIA-260929-sjwm
 ---
 
@@ -30,10 +30,32 @@ re-verified by direct file reads (not trusted from the prior recon):
   historical C5 global-plugin audit checklist (all items already `[x]`).
 
 Out-of-repo (not under version control): the user-global OpenCode config
-plugin array entry `opencode-snip@latest` (prior recorded path
-`/home/mimic/.config/opencode/opencode.jsonc` line 4), and the orphaned
-user-home `~/.config/snip/config.toml` plus the `snip` binary on PATH. This is
-the origin of the startup warning; the repository cannot silence it.
+plugin array entry `opencode-snip@latest` and the orphaned user-home
+`~/.config/snip/config.toml` plus the `snip` binary on PATH. This surface is
+NOT edited by this change - slice 4 is transferred to DIA-260827-txq2 (see
+"Slice 4 transfer record" below). DIA-260929-sjwm is repo-only.
+
+### Slice 4 transfer record (out-of-repo global config, now out of scope)
+
+Slice 4 - removal of the user-global `opencode-snip@latest` plugin declaration
+and the orphaned `~/.config/snip/` home config plus `snip` binary - is REMOVED
+from DIA-260929-sjwm and TRANSFERRED to DIA-260827-txq2
+'inherited-obsolete-and-duplicate-plugins-from-base-omo-config', which already
+owns that regression. DIA-260929-sjwm closes REPO-ONLY: no lane and no manual
+step edits any host path under this change. OQ1 is resolved by this transfer.
+
+Probe rationale (read-only probes, recorded basis). The `/workspace` bind source
+is a single subdirectory
+(`/dev/nvme0n1p6[/home/mimic/Documents/Coddding/poetry-platform]`), there is no
+bind for `/home/dev/.config`, `/proc/self/mounts` shows no such bind, the
+recorded host paths (`/home/mimic/...`, `/home/qualt/...`) do not exist
+in-container, and `OPENCODE_CONFIG_DIR` resolves to the container overlay with
+no `opencode.json(c)`. No lane reachable from this container can see or edit the
+host user-global config, so this change cannot own that edit.
+
+The startup warning `[snip] snip binary not found in PATH - plugin disabled` has
+never been observed in poetry-dev; the recorded host-config observation and the
+unconfirmed-warning evidence move with slice 4 to DIA-260827-txq2.
 
 This change spans two AGENTS.md change classes: Docker/infra (section 2.4) and
 OpenCode config (section 2.5). Both classes route through `@openspec-plan`
@@ -59,9 +81,6 @@ Governing `.sdd/` documents (referenced, not overridden):
 **Goals:**
 
 - Remove every live SNIP trace from the repository's live surface.
-- Remove the out-of-repo user-global OpenCode plugin declaration that emits the
-  startup warning, with the path re-confirmed and a restore artifact captured
-  before editing.
 - Keep all historical SNIP records byte-identical.
 - Prove absence with a repo token scan and prove integrity with
   `make test-config` and `make test-infra`.
@@ -107,10 +126,11 @@ these rules" comment from both the `coder` and `coder-escalated` permission
 blocks.
 
 **Rationale:** per developer decision 3, the guard has no subject once the
-global declaration and the binary are gone. The DIA-092 council-5/5 dormancy
-rationale (zero-cost hallucination guardrail) applied while snip could still be
-re-primed by a global plugin; with the global declaration removed the priming
-source is gone. The `doom_loop: deny` rule is unrelated and stays.
+binary is gone and the global declaration is transferred for removal to
+DIA-260827-txq2. The DIA-092 council-5/5 dormancy rationale (zero-cost
+hallucination guardrail) applied while snip could still be re-primed by a global
+plugin; that priming source is owned by DIA-260827-txq2. The `doom_loop: deny`
+rule is unrelated and stays.
 
 **Alternatives considered:** keep the rules dormant (rejected: developer
 decision 3; a comment that resists removal is itself a live trace and
@@ -150,23 +170,28 @@ change does not merge their review matrices.
 class); skip the ai-specialist gate because the edit is a deletion (rejected:
 section 2.5 has no deletion exemption).
 
-### D5: Out-of-repo cleanup only after path re-confirmation and with a restore artifact
+### D5: Out-of-repo global cleanup is transferred to DIA-260827-txq2; this change is repo-only
 
-**Choice:** a delegated lane holding `external_directory` permission performs
-the user-global edit. Before editing it MUST: (a) re-confirm the actual global
-config path on the current machine (the prior path `/home/mimic/.config/opencode/opencode.jsonc`
-is a recorded observation only - the developer's machine was just updated);
-(b) capture the pre-edit content (backup file or exact diff) into the session
-evidence; (c) edit only the plugin-array entry; (d) also inspect and report the
-orphaned `~/.config/snip/` user-home config and the `snip` binary path.
+**Choice:** slice 4 - the out-of-repo user-global OpenCode config cleanup - is
+REMOVED from DIA-260929-sjwm and transferred to DIA-260827-txq2
+'inherited-obsolete-and-duplicate-plugins-from-base-omo-config', which already
+owns the inherited/duplicate global-plugin regression. DIA-260929-sjwm closes
+REPO-ONLY: no lane and no manual step edits any host path under this change.
 
-**Rationale:** the edit is irreversible via Git and the path may have moved.
-Re-confirming first prevents editing a stale or wrong file; capturing the
-pre-edit content gives a manual restore path.
+**Rationale:** three read-only probes falsified slice 4's premise. The
+`/workspace` bind source is a single subdirectory
+(`/dev/nvme0n1p6[/home/mimic/Documents/Coddding/poetry-platform]`), there is no
+bind for `/home/dev/.config`, `/proc/self/mounts` shows no such bind, the
+recorded host paths (`/home/mimic/...`, `/home/qualt/...`) do not exist
+in-container, and `OPENCODE_CONFIG_DIR` resolves to the container overlay. No
+lane reachable from the container can see or edit the host user-global config,
+so a repo-scoped change cannot own or verify that edit.
 
-**Alternatives considered:** assume the recorded path (rejected: explicit
-developer decision 1 requires re-confirmation); edit without a backup (rejected:
-no rollback path for a non-versioned file).
+**Alternatives considered:** keep slice 4 as a manual developer host action in
+this change (rejected: OQ1 resolved against it - the change cannot verify a host
+edit and the warning is unconfirmed in poetry-dev); delegate a lane holding
+`external_directory` permission (rejected: FALSIFIED by the probe results - it
+would edit a wrong overlay path or find nothing).
 
 ## Seams
 
@@ -182,16 +207,12 @@ no rollback path for a non-versioned file).
 - **Repo live-token scan** - a grep for the live surface (excluding the
   preserved historical paths) returns zero live hits. The scan is evidence, not
   a new committed validator.
-- **Global-config evidence seam** - the delegated lane's re-confirmed path +
-  pre-edit backup + post-edit `opencode debug` / startup-log evidence that the
-  `[snip] ... plugin disabled` warning is gone.
 
 **Public boundaries:**
 
 - `Dockerfile.dev` image build contract (dev toolchain layer).
 - `.opencode/opencode.jsonc` permission object + project plugin array (config
   surface).
-- User-global OpenCode config plugin array (out-of-repo config surface).
 
 **No new production module boundaries.** No `.sdd/` architecture document needs
 updating.
@@ -218,13 +239,9 @@ the existing gates, not new tests.
 5. **Historical preservation:** `git status` / `git diff` shows the preserved
    paths (CHANGELOG, CLOSED tickets, `knowledge/archive/**`, memory files) are
    unmodified.
-6. **Out-of-repo (delegated lane, manual evidence):** the re-confirmed global
-   path shows no `opencode-snip` entry; the pre-edit backup exists; a restart
-   smoke no longer prints the `[snip]` warning; the orphaned `~/.config/snip/`
-   and binary path are reported (removed or explicitly left with a reason).
-7. **Spec gate:** `openspec validate dia-260929-sjwm-remove-live-snip-traces`
+6. **Spec gate:** `openspec validate dia-260929-sjwm-remove-live-snip-traces`
    exits 0.
-8. **Independent review:** `@ai-auditor` (config portion) and `@reviewer`
+7. **Independent review:** `@ai-auditor` (config portion) and `@reviewer`
    (dev-infra portion) two-axis review; no Critical findings; diff scope
    matches this design.
 
@@ -235,14 +252,6 @@ the existing gates, not new tests.
   rules, the DORMANT comment, the coder-escalated doc line, the reworded
   comments, and `docs/dev-infra-audit/inventory.md`. No data migration, no
   side effects.
-- **Out-of-repo edit:** NOT under version control. The delegated lane MUST
-  capture the pre-edit file content (backup next to the original, or an exact
-  diff in session evidence) before editing. Rollback is manual: restore the
-  captured content, then restart OpenCode. If the pre-edit content was not
-  captured, the edit must not proceed.
-- **Orphaned user-home `~/.config/snip/`:** left in place unless the developer
-  explicitly approves removal; it is inert once the binary and plugin are gone.
-  If removed, its content must be backed up first.
 - **Image rollback:** rebuilding the image from the reverted Dockerfile
   restores `snip` in the container. No image-layer migration is involved.
 
@@ -250,15 +259,9 @@ the existing gates, not new tests.
 
 - **Risk:** a model re-invents the `snip` prefix after the deny rules are gone.
   -> **Mitigation:** developer decision 3 accepts this; the priming source (the
-  global plugin) is removed, and `doom_loop: deny` still halts the
-  identical-command loop class. Accepted residual risk.
-- **Risk:** the user-global config path changed after the machine update and a
-  wrong file is edited.
-  -> **Mitigation:** D5 mandatory path re-confirmation before editing; abort if
-  no `opencode.jsonc` plugin array is found at the confirmed path.
-- **Risk:** the out-of-repo edit has no Git rollback.
-  -> **Mitigation:** mandatory pre-edit content capture; edit only the plugin
-  array entry.
+  user-global plugin declaration) is owned by DIA-260827-txq2, and
+  `doom_loop: deny` still halts the identical-command loop class. Accepted
+  residual risk.
 - **Risk:** the repo scan misses a live reference hidden in an unexpected file
   or trips on "snippet" false positives.
   -> **Mitigation:** scan the whole repo, then classify each hit as live /
@@ -273,42 +276,48 @@ the existing gates, not new tests.
    ai-specialist gate, the config/agent-doc edits (slice 2).
 2. **Docs:** update `docs/dev-infra-audit/inventory.md`; record the
    `docs/dev-infra-audit-plan.md` disposition (slice 3).
-3. **Out-of-repo:** delegated lane re-confirms the path, captures a restore
-   artifact, edits the global plugin array, and reports orphaned user-home
-   paths (slice 4).
-4. **Validate + review + register:** `make test-config`, `make test-infra`,
+3. **Validate + review + register:** `make test-config`, `make test-infra`,
    `openspec validate`, ai-auditor + reviewer, then `scripts/changelog-add`
    (slice 5).
-5. **Rollback:** `git revert` the repo commit; restore the captured global
-   config content by hand; restart OpenCode.
+4. **Rollback:** `git revert` the repo commit and rebuild the dev image as
+   needed. No host-side step is part of this change.
 
 ## Open Questions
 
-None that block the approach or task breakdown. The scope-boundary treatment of
-point-in-time `knowledge/ana*` / `res*` reports and of
-`docs/dev-infra-audit-plan.md` (historical vs live) is explicitly resolved in
+None. OQ1 is RESOLVED (developer-decided).
+
+### OQ1 (RESOLVED): Does slice 4 (out-of-repo global cleanup) belong in this change?
+
+**Status:** RESOLVED - slice 4 is REMOVED from this change and transferred to
+DIA-260827-txq2 'inherited-obsolete-and-duplicate-plugins-from-base-omo-config',
+which already owns the inherited/duplicate global-plugin regression.
+DIA-260929-sjwm closes repo-only. Rationale: no lane reachable from the container
+can see or edit the host user-global config (probe evidence in Context), and the
+startup warning has never been observed in poetry-dev.
+
+The scope-boundary treatment of point-in-time `knowledge/ana*` / `res*` reports
+and of `docs/dev-infra-audit-plan.md` (historical vs live) remains resolved in
 favor of preservation: only `docs/dev-infra-audit/inventory.md` is a live-state
 document and is updated; every dated analysis/research/planning record is kept
-byte-identical. This is flagged to the developer in the handoff in case a
-broader sweep is wanted.
+byte-identical.
 
 ## DIA-104 gate check (recorded)
 
 - **gate_state:** grilled
 - **gate_triggers:** cross-boundary, cross-cutting, hard-to-reverse
   - cross-boundary: spans the dev-infra class (Dockerfile) and the
-    opencode-config class (opencode.jsonc + agent doc) plus an out-of-repo
-    user-global config edit.
+    opencode-config class (opencode.jsonc + agent doc).
   - cross-cutting: the removal crosses the image build, the permission config,
     agent policy docs, and live documentation/inventory.
-  - hard-to-reverse: the user-global config edit is outside Git and cannot be
-    reverted with `git revert`.
+  - hard-to-reverse: the change reverses the DIA-092 council dormancy decision
+    and removes an image-layer install; a partial revert would leave the deny
+    guard and the removed binary inconsistent.
 - **gate_waivers:** none apply (not a hotfix; not a pure no-behavior-change
   refactor; not a disposable spike; not a clean increment to a module whose
   grill already covers these new trade-offs, because this change reverses the
   DIA-092 council dormancy decision).
 - **gate_override:** "" (none)
-- **Grill basis:** the developer pre-resolved scope decisions 1-3 (out-of-repo
-  path re-confirmation, historical-record preservation, dormant deny removal)
-  constitute the compressed grill transcript for this change; the spec is
-  synthesized from that transcript only.
+- **Grill basis:** the developer pre-resolved scope decisions (historical-record
+  preservation, dormant deny removal) plus the later OQ1 decision (slice 4
+  transferred to DIA-260827-txq2) constitute the compressed grill transcript for
+  this change; the spec is synthesized from that transcript only.
