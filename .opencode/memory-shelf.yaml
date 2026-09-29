@@ -1016,6 +1016,41 @@ shelf:
     path: knowledge/ana-260927-8yqj-host-test-shell-compose-config-failure/ana-260927-8yqj-host-test-shell-compose-config-failure-report.md
     created: 2026-09-27
     task_ref: DIA-260926-ch1d
+  - name: Conspecter and memory-manager lane merge verdict (ana-260929-lmhb)
+    description: "Should the conspecter and memory-manager lanes merge into one agent (DIA-260929-nc6w agent-role consolidation study, lane 1 of 4). Verdict: NO - keep both lanes. The merge's saving is ~1 dispatch hop on a lane invoked 23 times in 7.5 weeks; its cost is dissolving the D7 no-bash air gap around untrusted-source synthesis, a write scope the orchestrator reads back (.opencode/memory/), and ~12 config/code/validator touchpoints keyed on the two lane names. Methods: contract comparison, inversion, MECE invariant inventory, invocation-frequency measurement, EBDV."
+    path: knowledge/ana-260929-lmhb-conspecter-memory-manager-merge/ana-260929-lmhb-conspecter-memory-manager-merge-report.md
+    created: 2026-09-29
+    task_ref: DIA-260929-nc6w
+  - name: resource-manager origin, ownership, and usage (ana-260929-17rl)
+    description: "Provenance, usage, and ownership analysis of the resource-manager lane (DIA-260929-nc6w). Verdict: ZERO recorded dispatches across the full retained session-registry history (2026-08-06 through 2026-09-29, 131,163 rows); its one unique write target (ai-assist-sources.yaml + OMO knowledge dir) has been maintained exclusively by developer/coder commits, never by the lane; its two designed distinguishing capabilities (sub-dispatch, curl/wget caching) were found non-functional at runtime by two lessons entries. Recommendation: merge into the researcher lane, with keep-but-narrow as the interim option (which also closes stale OPEN ticket DIA-260827-ic3r)."
+    path: knowledge/ana-260929-17rl-resource-manager-origin-and-ownership/ana-260929-17rl-resource-manager-origin-and-ownership-report.md
+    created: 2026-09-29
+    task_ref: DIA-260929-nc6w
+  - name: Reviewer versus analyzer scope and invocation (ana-260929-lchi)
+    description: "Do both the reviewer and analyzer lanes need to exist (DIA-260929-nc6w)? Verdict: KEEP BOTH - the merge recommendation is declined with evidence. Method: MECE contract split (purpose, permissions, artifacts, triggers, models), inversion test (what capability loses its home if one lane dies), and invocation-frequency evidence from session logs reduced in-worker per the data-reducer threshold rule."
+    path: knowledge/ana-260929-lchi-reviewer-versus-analyzer-scope/ana-260929-lchi-reviewer-versus-analyzer-scope-report.md
+    created: 2026-09-29
+    task_ref: DIA-260929-nc6w
+  - name: ai-specialist versus ai-auditor split (ana-260929-inpt)
+    description: "Difference, invocation frequency, and merge risk of the ai-specialist and ai-auditor lanes (DIA-260929-nc6w). Verdict: KEEP BOTH - same tier (read-only pure-analyst) but different jobs (ai-specialist = Phase 1-5 research/gate lane; ai-auditor = Phase 6 independent-review lane). The split exists because the combined arrangement demonstrably failed: on 2026-08-10 an ai-specialist dispatch asked to also do Phase-6 review returned a fabricated stub verdict with zero persisted findings, while the honest ai-auditor re-run produced REJECT. Plus small hardening follow-ups."
+    path: knowledge/ana-260929-inpt-ai-specialist-versus-ai-auditor/ana-260929-inpt-ai-specialist-versus-ai-auditor-report.md
+    created: 2026-09-29
+    task_ref: DIA-260929-nc6w
+  - name: Knowledge lane trio argument A (ana-260929-23go)
+    description: "Do researcher/conspecter/analyzer need to be three lanes (DIA-260929-nc6w question set 2, argument-a, independence protocol)? Verdict: KEEP ALL THREE (V0). The only hop-saving pairing (researcher+conspecter) deletes the fleet's single capability-enforced grounding invariant (D7 air gap, the exact defect class DIA-135 was closed for) while the invariant costs only $0.09 lifetime and 23 dispatches to keep, and every merge route pays a fixed 8-machine, 12+-site lockstep migration with miss-prone history. Forced two-lane fallback: researcher+analyzer plus a post-hoc citation validator - grounding downgraded from guaranteed-before-writing to audited-after-writing."
+    path: knowledge/ana-260929-23go-knowledge-lane-trio-argument-a/ana-260929-23go-knowledge-lane-trio-argument-a-report.md
+    created: 2026-09-29
+    task_ref: DIA-260929-nc6w
+  - name: Knowledge lane trio argument B (ana-260929-8t6u)
+    description: "Three lanes or two for researcher/conspecter/analyzer (DIA-260929-nc6w question set 2, argument-b)? Verdict: KEEP THREE (V1 status quo). The recurring saving of a merge is cents and one hop on a low-traffic tail (three-lane total 94 delegations in 5.5 weeks vs coder 1101; $0.93 lifetime db cost), while each candidate merge deletes a named mechanical invariant (V2 deletes the only air-gapped artifact writer D7; V3 deletes the read-only fan-out class plus the retrieval/analysis routing split), and the one-time merge cost over ~194 name references and two plugin lane-sets exceeds years of savings. If a hard two-lane constraint is imposed: V3 (conspecter+analyzer survive) is least-damaging; losing the analyzer is worst."
+    path: knowledge/ana-260929-8t6u-knowledge-lane-trio-argument-b/ana-260929-8t6u-knowledge-lane-trio-argument-b-report.md
+    created: 2026-09-29
+    task_ref: DIA-260929-nc6w
+  - name: Knowledge lane trio argument C (ana-260929-lw7b)
+    description: "Three-lane contract, dependency, and merge-feasibility analysis of researcher/conspecter/analyzer (DIA-260929-nc6w question set 2, argument-c). Verdict: PREFER OPTION A status quo (keep three lanes) unless hop/token reduction is explicitly prioritized over grounding verification - merge blast radius (~6 enforced surfaces + SS2.5 chain) exceeds measured runtime savings (conspecter $0.09 / 14 sessions whole DB window), and the air gap is a declared invariant (practice-protected SS7 / DIA-135 D7). If consolidating anyway: Option B - retire conspecter, fold synthesis into researcher - as a single coordinated merge (analyzer highest-traffic at 53 delegations / 27 sessions, unique multi-method + visualization capability, must survive)."
+    path: knowledge/ana-260929-lw7b-knowledge-lane-trio-argument-c/ana-260929-lw7b-knowledge-lane-trio-argument-c-report.md
+    created: 2026-09-29
+    task_ref: DIA-260929-nc6w
   adrs:
   - name: Memory Storage Strategy
     description: 'Evaluation of Claude-Mem, Honcho, and current hand-written memory
