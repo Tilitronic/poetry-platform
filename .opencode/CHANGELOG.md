@@ -1229,3 +1229,21 @@
 - **Change:** O-B fast ask resolution gated on OPENCODE_UNATTENDED=1 (exported by scripts/overnight.sh, single-entry allow-sublist) plus the ungated O-D non-empty task_result envelope guard, closing the 300s unanswered-ask fatal window; new pure lib .opencode/plugins/lib/permission-fast-resolve.ts
 - **Files:** .opencode/plugins/needs-input-observer.ts - .opencode/plugins/lib/permission-fast-resolve.ts - .opencode/plugins/__tests__/needs-input-observer.fast-resolve.test.mjs - scripts/overnight.sh - scripts/__tests__/overnight.bats - .sdd/permission-stall-hardening/architecture.md - .sdd/scratch-lifecycle/architecture.md
 - **Verification:** manual
+
+## 2026-09-29 - DIA-260929-sjwm: config
+
+- **Change:** Remove all live SNIP traces from the Dockerfile, config, docs and tests; slice 4 (host user-global config) transferred out to DIA-260827-txq2, change closes repo-only
+- **Files:** Dockerfile.dev - .opencode/opencode.jsonc - .opencode/agents/coder-escalated.md - docs/dev-infra-audit/inventory.md - .opencode/learnings/external-patterns/2026-09-29-dia-260929-sjwm-snip-deny-retirement-gate.md - openspec/changes/dia-260929-sjwm-remove-live-snip-traces/design.md - openspec/changes/dia-260929-sjwm-remove-live-snip-traces/proposal.md - openspec/changes/dia-260929-sjwm-remove-live-snip-traces/tasks.md
+- **Verification:** manual
+
+## 2026-09-29 - DIA-260929-wjir: presets
+
+- **Change:** Swap architector and ai-auditor primaries to opencode-go/grok-4.7 and the analyzer to opencode-go/deepseek-v4.1-flash in the mimo-balanced preset; register grok-4.7 in the model registry
+- **Files:** .opencode/oh-my-opencode-slim.jsonc - knowledge/model-registry.yaml
+- **Verification:** manual
+
+## 2026-09-29 - DIA-260929-5c6m: promo-preset
+
+- **Change:** Retire the promo-union-alpha and free presets; convert scripts/promo-preset-apply into an explicit no-op reporter that exits 0 for every historical flag
+- **Files:** .opencode/oh-my-opencode-slim.jsonc - scripts/promo-preset-apply - .opencode/skills/promo-review/SKILL.md - docs/dev-infra/preset-single-path.md - scripts/__tests__/preset-single-path.bats - scripts/__tests__/workspace-preset-selection.bats - .opencode/plugins/__tests__/preset-model-guard.dia260918-t5.test.mjs
+- **Verification:** manual
