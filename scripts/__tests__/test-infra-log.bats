@@ -60,7 +60,7 @@ setup() {
   else
     nonbash=sh
   fi
-  run $nonbash "$WRAPPER" "$LOG" bash -c 'exit 0'
+  run "$nonbash" "$WRAPPER" "$LOG" bash -c 'exit 0'
   assert_status 2
   assert_output_contains "bash required"
 }

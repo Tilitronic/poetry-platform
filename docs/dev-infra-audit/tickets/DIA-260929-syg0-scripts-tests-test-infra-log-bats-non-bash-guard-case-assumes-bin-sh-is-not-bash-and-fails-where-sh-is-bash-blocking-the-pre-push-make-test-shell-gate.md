@@ -56,10 +56,13 @@ evidence: []
 
 ## Verification
 
-- [ ] The case exercises a non-bash interpreter on hosts that provide one,
-      and still asserts exit 2 plus "bash required".
-- [ ] Where no non-bash shell exists, the case skips with an explicit reason
-      (never a false green) instead of failing.
+- [x] The case exercises a non-bash interpreter on hosts that provide one,
+      and still asserts exit 2 plus "bash required". Evidenced by the
+      single-file bats run below (dash branch taken, 4 ok / 0 not ok).
+- [x] Where no non-bash shell exists, the case skips with an explicit reason
+      (never a false green) instead of failing. Satisfied by the skip branch
+      in the case (reason string above, Fix section); its proving run is
+      DEFERRED - see S-C below.
 - [x] EVIDENCED - single bats file run: `bats
 scripts/__tests__/test-infra-log.bats` exits 0 with 4 ok / 0 not ok, the
       guard branch taken = dash (dash present at /usr/bin/dash, busybox absent,
@@ -83,6 +86,24 @@ scripts/__tests__/test-infra-log.bats` exits 0 with 4 ok / 0 not ok, the
   run line became `run $nonbash "$WRAPPER" ...`; the assertions (status 2,
   "bash required") are unchanged.
 - commit: see git log for this ticket id
+
+## Deferred (accepted, not fixed in this commit, re-review da8f30cc cycle 1)
+
+- S-B (Standards, Minor): the pre-commit prettier pass rewrote the dunder path
+  `scripts/__tests__/test-infra-log.bats` to `scripts/**tests**/...` in this
+  ticket's H1, its frontmatter `title`, and the tickets README index row.
+  Tooling is unaffected (slugify/fm_field/YAML fine); the human-readable
+  title names a path that does not exist. Repo-wide prettier behaviour, not
+  novel to this ticket - fix belongs in a dedicated change (backticks around
+  the path in H1 plus escaping the title value, or a prettier-ignore), not
+  here.
+- S-C (Spec, Minor): the new skip branch has no proving run - the supplied
+  evidence covers only the dash branch ("no skip"). A host with no dash and
+  bash-as-`sh` takes the skip path, so the guard's only behavioural coverage
+  is absent on exactly the host class that reported the original failure.
+  Follow-up: add a hermetic case that forces the no-dash path (shadow PATH
+  with a fake `sh` exporting BASH_VERSION) and asserts a reported skip, or
+  record a real run on a bash-as-`sh` host.
 
 ## Re-verify
 
