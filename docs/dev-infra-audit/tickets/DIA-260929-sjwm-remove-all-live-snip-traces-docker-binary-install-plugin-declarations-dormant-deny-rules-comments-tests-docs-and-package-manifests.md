@@ -6,7 +6,7 @@ id: DIA-260929-sjwm
 title: "Remove all live SNIP traces: docker binary install, plugin declarations, dormant deny rules, comments, tests, docs and package manifests"
 area: scripts
 severity: Medium
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: ""
 gate_state: "grilled" # grilled | waived | bypassed | partial | skipped
@@ -30,7 +30,14 @@ attempts: 0
 lease_expires_at: "" # ISO-8601; set on DISPATCHED, cleared on COMPLETE
 files_touched: []
 artifacts: []
-evidence: []
+evidence:
+
+- commit 25eb9289, 24bc3f0a (Dockerfile/config/docs snip removal + pin reconcile); 719fd4bf (openspec OQ1 resolution); 9d081d00, bd421a57, bf85f4a (tickets, knowledge reports, memory shelf, changelog)
+- HEAD bf85f4a6: make test-config exit 0; make test-shell exit 0 in-container with 724/724 and 0 failures; openspec validate --strict exit 0; snip scan of the three live files = 0 hits
+- F5 CLOSED by host evidence: docker compose config --quiet exit 0
+- F6 recorded: docs/dev-infra-audit-plan.md:47 preserved historical, alongside researcher.md:15 false positive
+- Slice 4 TRANSFERRED to DIA-260827-txq2; OQ1 resolved; this change closes REPO-ONLY
+- KNOWN RESIDUAL: F3 (real image build) NOT evidenced - no engine reachable in-container, host run aborted on pre-existing host-only test 451; host-side verification remains owed
 
 ---
 
@@ -49,4 +56,9 @@ files and line references where known.>
 
 ## Re-verify
 
-> To be filled at re-verify time.
+- Commits: 25eb9289, 24bc3f0a (Dockerfile/config/docs snip removal + pin reconcile); 719fd4bf (openspec OQ1 resolution); 9d081d00, bd421a57, bf85f4a (tickets, knowledge reports, memory shelf, changelog).
+- Evidence at HEAD bf85f4a6: make test-config exit 0; make test-shell exit 0 in-container with 724/724 and 0 failures; openspec validate --strict exit 0; snip scan of the three live files = 0 hits.
+- F5 CLOSED by host evidence: `docker compose config --quiet` exit 0.
+- F6 recorded: the durable scan classification must name docs/dev-infra-audit-plan.md:47 (preserved historical), alongside the researcher.md:15 false positive.
+- Slice 4 TRANSFERRED to DIA-260827-txq2; OQ1 resolved; this change closes REPO-ONLY.
+- KNOWN RESIDUAL (must be stated, not hidden): F3 (real image build) is NOT evidenced - no engine is reachable in-container and the host run aborted on the pre-existing host-only test 451. Host-side verification remains owed.

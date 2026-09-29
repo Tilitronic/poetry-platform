@@ -364,7 +364,7 @@
 | DIA-260929-6339 | audit-independence validator: enforce distinct model families for ai-specialist and ai-auditor | scripts | Medium | OPEN | [DIA-260929-6339-audit-independence-validator-enforce-distinct-model-families-for-ai-specialist-and-ai-auditor.md](DIA-260929-6339-audit-independence-validator-enforce-distinct-model-families-for-ai-specialist-and-ai-auditor.md) |
 | DIA-260929-bgnw | ai-specialist gate token ownership under edit deny | scripts | Medium | OPEN | [DIA-260929-bgnw-ai-specialist-gate-token-ownership-under-edit-deny.md](DIA-260929-bgnw-ai-specialist-gate-token-ownership-under-edit-deny.md) |
 | DIA-260929-nc6w | agent-role consolidation study: conspecter+memory-manager, resource-manager, reviewer+analyzer, ai-specialist+ai-auditor | scripts | Medium | OPEN | [DIA-260929-nc6w-agent-role-consolidation-study-conspecter-memory-manager-resource-manager-reviewer-analyzer-ai-specialist-ai-auditor.md](DIA-260929-nc6w-agent-role-consolidation-study-conspecter-memory-manager-resource-manager-reviewer-analyzer-ai-specialist-ai-auditor.md) |
-| DIA-260929-sjwm | Remove all live SNIP traces: docker binary install, plugin declarations, dormant deny rules, comments, tests, docs and package manifests | scripts | Medium | OPEN | [DIA-260929-sjwm-remove-all-live-snip-traces-docker-binary-install-plugin-declarations-dormant-deny-rules-comments-tests-docs-and-package-manifests.md](DIA-260929-sjwm-remove-all-live-snip-traces-docker-binary-install-plugin-declarations-dormant-deny-rules-comments-tests-docs-and-package-manifests.md) |
+| DIA-260929-sjwm | Remove all live SNIP traces: docker binary install, plugin declarations, dormant deny rules, comments, tests, docs and package manifests | scripts | Medium | CLOSED | [DIA-260929-sjwm-remove-all-live-snip-traces-docker-binary-install-plugin-declarations-dormant-deny-rules-comments-tests-docs-and-package-manifests.md](DIA-260929-sjwm-remove-all-live-snip-traces-docker-binary-install-plugin-declarations-dormant-deny-rules-comments-tests-docs-and-package-manifests.md) |
 | DIA-260929-wjir | model swap: architector and ai-auditor kimi-k3 to grok-4.7 (variants preserved), analyzer to deepseek-v4.1-flash variant high | scripts | Medium | OPEN | [DIA-260929-wjir-model-swap-architector-and-ai-auditor-kimi-k3-to-grok-4-7-variants-preserved-analyzer-to-deepseek-v4-1-flash-variant-high.md](DIA-260929-wjir-model-swap-architector-and-ai-auditor-kimi-k3-to-grok-4-7-variants-preserved-analyzer-to-deepseek-v4-1-flash-variant-high.md) |
 | DIA-260929-yanz | ai-auditor websearch MCP drift: network access in a repo-truth-only audit lane | scripts | Medium | OPEN | [DIA-260929-yanz-ai-auditor-websearch-mcp-drift-network-access-in-a-repo-truth-only-audit-lane.md](DIA-260929-yanz-ai-auditor-websearch-mcp-drift-network-access-in-a-repo-truth-only-audit-lane.md) |
 | DIA-260929-yhmd | make test-harness: skip the engine-dependent phase in-container instead of exiting 2 | scripts | Medium | OPEN | [DIA-260929-yhmd-make-test-harness-skip-the-engine-dependent-phase-in-container-instead-of-exiting-2.md](DIA-260929-yhmd-make-test-harness-skip-the-engine-dependent-phase-in-container-instead-of-exiting-2.md) |
@@ -384,7 +384,7 @@
 
 | Status      | Count |
 | ----------- | ----- |
-| OPEN        | 103   |
+| OPEN        | 102   |
 | DONE        | 15    |
 | VALIDATE    | 0     |
 | E2E         | 0     |
@@ -393,7 +393,7 @@
 | FIXED       | 1     |
 | IMPLEMENTED | 1     |
 | VERIFIED    | 29    |
-| CLOSED      | 214   |
+| CLOSED      | 215   |
 | BLOCKED     | 0     |
 | DISPATCHED  | 0     |
 | RUNNING     | 0     |

@@ -1234,16 +1234,16 @@
 
 - **Change:** Remove all live SNIP traces from the Dockerfile, config, docs and tests; slice 4 (host user-global config) transferred out to DIA-260827-txq2, change closes repo-only
 - **Files:** Dockerfile.dev - .opencode/opencode.jsonc - .opencode/agents/coder-escalated.md - docs/dev-infra-audit/inventory.md - .opencode/learnings/external-patterns/2026-09-29-dia-260929-sjwm-snip-deny-retirement-gate.md - openspec/changes/dia-260929-sjwm-remove-live-snip-traces/design.md - openspec/changes/dia-260929-sjwm-remove-live-snip-traces/proposal.md - openspec/changes/dia-260929-sjwm-remove-live-snip-traces/tasks.md
-- **Verification:** manual
+- **Verification:** make test-config exit 0; make test-shell exit 0 in-container (724/724, 0 failures); openspec validate --strict exit 0; git grep snip over Dockerfile.dev, .opencode/opencode.jsonc and .opencode/agents/coder-escalated.md returns 0 hits. F3 (real container image build) NOT exercised: no container engine binary or socket exists in-container, and the host make test-infra run aborted earlier in the mocked-bats phase on the pre-existing host-only test 451.
 
 ## 2026-09-29 - DIA-260929-wjir: presets
 
 - **Change:** Swap architector and ai-auditor primaries to opencode-go/grok-4.7 and the analyzer to opencode-go/deepseek-v4.1-flash in the mimo-balanced preset; register grok-4.7 in the model registry
 - **Files:** .opencode/oh-my-opencode-slim.jsonc - knowledge/model-registry.yaml
-- **Verification:** manual
+- **Verification:** in-container make test-config exit 0; preset-inventory gates and the strengthened fixture tests pass; model registry and preset inventory agree. Runtime model probe and the options.thinking property acceptance on the grok-4.7 responses transport are NOT yet verified and remain outstanding.
 
 ## 2026-09-29 - DIA-260929-5c6m: promo-preset
 
 - **Change:** Retire the promo-union-alpha and free presets; convert scripts/promo-preset-apply into an explicit no-op reporter that exits 0 for every historical flag
 - **Files:** .opencode/oh-my-opencode-slim.jsonc - scripts/promo-preset-apply - .opencode/skills/promo-review/SKILL.md - docs/dev-infra/preset-single-path.md - scripts/__tests__/preset-single-path.bats - scripts/__tests__/workspace-preset-selection.bats - .opencode/plugins/__tests__/preset-model-guard.dia260918-t5.test.mjs
-- **Verification:** manual
+- **Verification:** preset-inventory equality plus explicit rejection assertions for the removed preset names; fixture suites green; make test-shell exit 0 in-container (724/724, 0 failures).
