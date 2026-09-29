@@ -6,7 +6,7 @@ id: DIA-260927-s1gd
 title: "preset: rename Muse Balanced to Mimo Balanced, swap the architector model, move ai-auditor off GLM-5.3-Flash"
 area: scripts
 severity: Medium
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: ""
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
@@ -17,7 +17,7 @@ discovered: 2026-09-27
 source: inventory
 date: 2026-09-27
 created: 2026-09-27
-updated: 2026-09-27
+updated: 2026-09-29
 
 # --- Session Attribution (v2 schema, optional) ---
 

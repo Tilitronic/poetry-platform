@@ -346,7 +346,7 @@
 | DIA-260927-hwl9 | turbo: add package.json to the test task inputs (stale-green fix) | tests-infra | Low | OPEN | [DIA-260927-hwl9-turbo-add-package-json-to-the-test-task-inputs-stale-green-fix.md](DIA-260927-hwl9-turbo-add-package-json-to-the-test-task-inputs-stale-green-fix.md) |
 | DIA-260927-k8nh | test-suite speedups: compose exec, parallel validators, turbo inputs, parallel pip | tests-infra | Low | OPEN | [DIA-260927-k8nh-test-suite-speedups-compose-exec-parallel-validators-turbo-inputs-parallel-pip.md](DIA-260927-k8nh-test-suite-speedups-compose-exec-parallel-validators-turbo-inputs-parallel-pip.md) |
 | DIA-260927-ltum | openspec: reconcile dia-206 empty-return-recovery VP-2 and tasks with the shipped text-based empty-result predicate | scripts | Low | OPEN | [DIA-260927-ltum-openspec-reconcile-dia-206-empty-return-recovery-vp-2-and-tasks-with-the-shipped-text-based-empty-result-predicate.md](DIA-260927-ltum-openspec-reconcile-dia-206-empty-return-recovery-vp-2-and-tasks-with-the-shipped-text-based-empty-result-predicate.md) |
-| DIA-260927-s1gd | preset: rename Muse Balanced to Mimo Balanced, swap the architector model, move ai-auditor off GLM-5.3-Flash | scripts | Medium | OPEN | [DIA-260927-s1gd-preset-rename-muse-balanced-to-mimo-balanced-swap-the-architector-model-move-ai-auditor-off-glm-5-3-flash.md](DIA-260927-s1gd-preset-rename-muse-balanced-to-mimo-balanced-swap-the-architector-model-move-ai-auditor-off-glm-5-3-flash.md) |
+| DIA-260927-s1gd | preset: rename Muse Balanced to Mimo Balanced, swap the architector model, move ai-auditor off GLM-5.3-Flash | scripts | Medium | CLOSED | [DIA-260927-s1gd-preset-rename-muse-balanced-to-mimo-balanced-swap-the-architector-model-move-ai-auditor-off-glm-5-3-flash.md](DIA-260927-s1gd-preset-rename-muse-balanced-to-mimo-balanced-swap-the-architector-model-move-ai-auditor-off-glm-5-3-flash.md) |
 | DIA-260927-shgj | test-config: run the read-only validators in parallel | tests-infra | Low | OPEN | [DIA-260927-shgj-test-config-run-the-read-only-validators-in-parallel.md](DIA-260927-shgj-test-config-run-the-read-only-validators-in-parallel.md) |
 | DIA-260927-uevh | plugin: restore the dropped handoff-archived app.log line (regression from b35229f8 seam extraction) | scripts | Major | OPEN | [DIA-260927-uevh-plugin-restore-the-dropped-handoff-archived-app-log-line-regression-from-b35229f8-seam-extraction.md](DIA-260927-uevh-plugin-restore-the-dropped-handoff-archived-app-log-line-regression-from-b35229f8-seam-extraction.md) |
 | DIA-260927-vmpa | dev-infra: tee the full make test-infra output (stdout and stderr) to a gitignored orchestrator-readable log at .opencode/session/test-infra.log | scripts | Low | OPEN | [DIA-260927-vmpa-dev-infra-tee-the-full-make-test-infra-output-stdout-and-stderr-to-a-gitignored-orchestrator-readable-log-at-opencode-session-test-infra-log.md](DIA-260927-vmpa-dev-infra-tee-the-full-make-test-infra-output-stdout-and-stderr-to-a-gitignored-orchestrator-readable-log-at-opencode-session-test-infra-log.md) |
@@ -375,7 +375,7 @@
 
 | Status      | Count |
 | ----------- | ----- |
-| OPEN        | 95    |
+| OPEN        | 94    |
 | DONE        | 15    |
 | VALIDATE    | 0     |
 | E2E         | 0     |
@@ -384,7 +384,7 @@
 | FIXED       | 1     |
 | IMPLEMENTED | 1     |
 | VERIFIED    | 29    |
-| CLOSED      | 213   |
+| CLOSED      | 214   |
 | BLOCKED     | 0     |
 | DISPATCHED  | 0     |
 | RUNNING     | 0     |
