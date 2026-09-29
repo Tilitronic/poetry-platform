@@ -6,7 +6,7 @@ id: DIA-260918-mm2u
 title: "retire or repoint promo-preset-apply stale promo target plus overcapture"
 area: scripts
 severity: Medium
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: ""
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
@@ -17,7 +17,7 @@ discovered: 2026-09-18
 source: inventory
 date: 2026-09-18
 created: 2026-09-18
-updated: 2026-09-18
+updated: 2026-09-29
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -30,7 +30,14 @@ attempts: 0
 lease_expires_at: "" # ISO-8601; set on DISPATCHED, cleared on COMPLETE
 files_touched: []
 artifacts: []
-evidence: []
+evidence:
+
+- commit 0123f4c5 (git merge-base --is-ancestor 0123f4c5 HEAD = yes)
+- scripts/promo-preset-apply:12,16-17,44-46 (retire decision + no-op, no file IO)
+- python3 scripts/promo-preset-apply --dry-run/--config/--registry/--help all exit 0
+- scripts/**tests**/workspace-preset-selection.bats:29-34 and preset-single-path.bats:40-45 reject free and promo-union-alpha
+- make test-config exit 0 at HEAD 8944c0c5 (in-container)
+- make test-shell exit 0, 724 ok / 0 not-ok at HEAD 8944c0c5 (in-container)
 
 ---
 
@@ -58,4 +65,14 @@ to a live target, then fix the overcapture. DO NOT run the script until fixed.
 
 ## Re-verify
 
-> To be filled at re-verify time.
+Substantively resolved by the retirement of the promo-preset-apply transform cascade in commit 0123f4c5: the stale literal promo target and its overcapture are gone, the generator is now an explicit no-op reporter that exits 0 for every historical flag, and the removed presets are positively rejected by the strengthened fixture tests. make test-config exit 0 and make test-shell exit 0 in-container (724/724, 0 failures) at HEAD 8944c0c5.
+
+Criterion-by-criterion re-verify (2026-09-29, container poetry-dev, HEAD 8944c0c5):
+
+- retire-vs-repoint decision recorded: MET - scripts/promo-preset-apply:12 "The developer chose to RETIRE rather than repair the anchor on 2026-09-29"; landed in 0123f4c5 (`git merge-base --is-ancestor 0123f4c5 HEAD` = yes).
+- do-not-run guard held until the fix landed: MET - no invoker of scripts/promo-preset-apply exists in Makefile, .github, .husky or scripts/\*.sh (grep: no matches outside docs/knowledge/.scratch prose); and the script performs no file IO at all (scripts/promo-preset-apply:16-17, :44-46), so even a stray run mutates nothing.
+- make test-config exit 0 after the fix: MET - `make test-config` exit 0 in-container at HEAD 8944c0c5.
+- stale literal promo target / overcapture gone: MET - grep for find_preset_block, find_promo_region, ROUTING table and the `free` anchor in scripts/promo-preset-apply matches only the retirement prose at lines 7-11; no transform cascade, no write path remains.
+- exits 0 for every historical flag: MET - `python3 scripts/promo-preset-apply --dry-run` -> 0; `--dry-run --config X --registry Y` -> 0; `--help` -> 0; unknown flags still exit 2 via argparse. Mode stays 100644 as before 0123f4c5, so no invocation-mode regression.
+- removed presets positively rejected: MET - scripts/**tests**/workspace-preset-selection.bats:29-34 asserts 'Unknown preset "free"' and 'Unknown preset "promo-union-alpha"'; scripts/**tests**/preset-single-path.bats:40-45 asserts the same two names; both green inside make test-shell (724 ok, 0 not-ok).
+- make test-shell: MET - exit 0, 724 ok / 0 not-ok (log: .scratch/test-shell.log, "1..724" at line 22).

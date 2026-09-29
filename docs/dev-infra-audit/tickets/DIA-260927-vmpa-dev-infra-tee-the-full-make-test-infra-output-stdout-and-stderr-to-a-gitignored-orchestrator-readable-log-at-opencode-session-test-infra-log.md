@@ -6,7 +6,7 @@ id: DIA-260927-vmpa
 title: "dev-infra: tee the full make test-infra output (stdout and stderr) to a gitignored orchestrator-readable log at .opencode/session/test-infra.log"
 area: scripts
 severity: Low
-status: IMPLEMENTED
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: ""
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
@@ -17,7 +17,7 @@ discovered: 2026-09-27
 source: inventory
 date: 2026-09-27
 created: 2026-09-27
-updated: 2026-09-27
+updated: 2026-09-29
 
 # --- Session Attribution (v2 schema, optional) ---
 
