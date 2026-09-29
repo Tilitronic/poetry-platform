@@ -3532,3 +3532,69 @@ working tree) as the durable discriminator.
 ## 2026-09-29 - per-lane dispatch counting: registry.jsonl agent column is unreliable (DIA-260929-nc6w)
 
 Two independent lanes of the agent-role consolidation study hit the same methodological trap: counting per-lane dispatch frequency by grouping the `agent` column of `.opencode/session/registry.jsonl`. One lane measured 131,163 rows in which the agent column carried literal `"subagent"` values instead of lane names (0 usable agent values); another counted rows per agent from the same file without error - so the column's semantics vary across row classes and blind grouping yields a wrong or unusable count SILENTLY (no exception, plausible-looking total). Reliable sources for per-lane dispatch frequency: (a) delegation rows in `.opencode/session/messages.jsonl`, and (b) `scripts/session-analytics.sh --view agents` (default view). Guard: before grouping any session-log column, histogram its values and confirm the lane-name vocabulary is present; if the distinct values are not lane names, switch source instead of forcing the count. Why irrecoverable: the column-shape quirk lives in gitignored ephemeral session state, not in any committed doc, and invocation-frequency analysis recurs (role studies, quota guards, analytics). Cross-reference: the "Verify filter assumptions against ground truth" lesson (naive `writer == "plugin"` discriminator was a NO-OP).
+
+## Workflow lessons - DIA-260901-91qy (2026-09-29)
+
+- PARALLEL-WRITER DETECTION (undispatched writer, same git identity): a second
+  writer committed into the same worktree mid-session (commit 0123f4c5, 15
+  files) using the SAME git author and committer identity as every other
+  commit, so author identity cannot discriminate it from this session's own
+  lanes. Detection signals: (a) unexpected HEAD movement between two
+  `git status` / `git rev-parse --short HEAD` samples, (b) committed file
+  SCOPE matching no lane this session dispatched, (c) reflog timing where both
+  entries are plain `commit:` with no reset/merge/cherry-pick. Guard: sample
+  `git rev-parse --short HEAD` before and after every long lane and treat any
+  unexplained advance as a parallel-writer signal BEFORE staging anything.
+  Why irrecoverable: git log records the commit normally (indistinguishable by
+  author); the HEAD-sampling guard and the scope/reflog discrimination order
+  are session discipline not stated in any commit. Cross-reference:
+  failures.md 2026-09-03 cancel-receipt-but-running (same-file parallel
+  writes, but own-lane duplication after a cancel receipt - different cause);
+  DIA-260918-mm2u (content of the observed commit).
+
+- changelog-add has NO --verification setter (tool gap): scripts/changelog-add
+  accepts --ticket/--summary/--scope/--area/--files, hardcodes
+  `"verification": "manual"` and warns "replace after real verification", but
+  provides no flag or subcommand to replace it - the warn is a dead end. The
+  only working path is the AGENTS.md section 2.5 manual fallback: text-edit
+  the single entry, then `scripts/validate-changelog.sh` and
+  `scripts/changelog-render`. Same family as open DIA-260926-k8ej (tickets CLI
+  has no Description/Verification setter). Why irrecoverable: the
+  no-setter-anywhere dead end is discovered by trying, and the cross-ticket
+  family pattern is not stated in any single file (the script shows the
+  hardcode, AGENTS.md shows the fallback, neither links them). Cross-reference:
+  DIA-260926-k8ej, AGENTS.md section 2.5, repo.md changelog entries.
+
+- HOST-ONLY TEST CLASS AND ITS BLAST RADIUS: scripts/__tests__/test-infra-log.bats
+  test 4 ("wrapper: fails loud through a non-bash shell") hardcodes literal
+  `sh` as the stand-in for a non-bash shell. On a host whose /bin/sh is bash
+  it goes RED (the ${BASH_VERSION:-} guard legitimately passes and the wrapper
+  correctly exits 0, so assert_status 2 fails); in the dev container /bin/sh
+  is dash so it is GREEN. BLAST RADIUS: `make test-infra` chains
+  gen-jsconfig/test-shell/test-harness fail-fast (`&&`) before the
+  smoke/test-python phase, so that ONE red test aborts the whole target in
+  the mocked-bats phase - a host `make test-infra` run can never produce
+  image-build evidence until the test is fixed. Do not treat such a run as
+  build verification. Why irrecoverable: the environment-dependent RED/GREEN
+  flip and the abort-before-smoke blast radius are host-runtime behavior;
+  neither the test file nor the Makefile states them. Cross-reference:
+  lessons.md HOST-ONLY vs IN-CONTAINER entry (opposite direction: in-container
+  self-skip), scripts/__tests__/test-infra-log.bats test 4, Makefile
+  test-infra target.
+
+- SECTION 2.5 GATE TRIGGER SURFACE (config path names in commit-lane prompts):
+  the DIA-063 section 2.5 routing gate fires on config PATH NAMES appearing in
+  a dispatch prompt, even when the dispatch is a plain commit lane whose only
+  mention of those paths is a "confirm untouched" instruction. Commit-lane
+  prompts that enumerate config paths will be hard-blocked. The compliant
+  response is to run the @ai-specialist gate lane IN-SESSION (the gate is
+  SESSION-scoped and is satisfied by the session gate token), never to reword
+  the prompt to slip past the gate. Why irrecoverable: the path-name trigger
+  surface and session-scoped satisfaction rule are runtime plugin behavior
+  (delegation-observer.ts gate token), and the "confirm untouched" irony (a
+  non-modification assertion trips the gate) is a session observation.
+  Cross-reference: failures.md DIA-260909-zeik (path-pattern trigger +
+  run-gate-first remedy), lessons.md L20260825-002 (keyword trigger +
+  explicit classification), lessons.md DIA-260927-s1gd phrasing rule (the
+  runtime-probe reframe applies only when config work is genuinely out of
+  scope, not as a way to slip past a genuine config-path mention).
