@@ -20,9 +20,9 @@ models:
     req_per_month: 130000  # ESTIMATE under 4x promo ($60 bucket, ends 2026-09-27)
     swe_bench_verified: null  # no archived benchmark yet - benchmark conspect pending (separate ticket)
     source_ref: "DIA-260827-bry9 gate 2026-09-17 (Go-exclusive); promo verified 2026-09-20 from https://opencode.ai/docs/go/"
-    lane: ["orchestrator", "openspec-plan", "reviewer", "ai-specialist", "coder-escalated", "analyzer-escalated"]  # DIA-260927-s1gd 2026-09-28: architector + ai-auditor moved to opencode-go/kimi-k3.
+    lane: ["orchestrator", "openspec-plan", "reviewer", "ai-specialist", "analyzer", "coder-escalated", "analyzer-escalated"]  # DIA-260929-wjir 2026-09-29: analyzer added (from qwen3.8-flash); architector + ai-auditor now on opencode-go/grok-4.7 (were kimi-k3 per DIA-260927-s1gd).
     fallback: ["opencode-go/mimo-v2.5", "opencode-go/deepseek-v4-flash"]
-    quota_notes: "4x promo: $60/130,000 req/mo, ends 2026-09-27 (verified from opencode.ai/docs/go/ 2026-09-20); post-promo: $15/32,500 req/mo ($0.15/$0.60). mimo-balanced reasoning lanes (orchestrator/openspec-plan/reviewer/ai-specialist) + coder-escalated/analyzer-escalated (architector + ai-auditor moved to opencode-go/kimi-k3, DIA-260927-s1gd). Fallback chain: mimo-v2.5 (volume) + deepseek-v4-flash (non-promo reasoning)."
+    quota_notes: "4x promo: $60/130,000 req/mo, ends 2026-09-27 (verified from opencode.ai/docs/go/ 2026-09-20); post-promo: $15/32,500 req/mo ($0.15/$0.60). mimo-balanced reasoning lanes (orchestrator/openspec-plan/reviewer/ai-specialist/analyzer) + coder-escalated/analyzer-escalated (architector + ai-auditor moved to opencode-go/grok-4.7, DIA-260929-wjir). Fallback chain: mimo-v2.5 (volume) + deepseek-v4-flash (non-promo reasoning)."
     active: true
 
   - model_id: "mimo-v2.5"
@@ -82,7 +82,7 @@ models:
     req_per_month: 226600
     swe_bench_verified: null  # benchmark-pending (UNVERIFIED, inherits 1.2 terms; benchmark conspect pending separate ticket)
     source_ref: "DIA-260909-tp5e 2026-09-09 (mirror 1.2 res041)"
-    lane: []  # DIA-260827-8la4 (2026-09-20): removed from the active mimo-balanced preset (trains-on-data, NOT ZDR); retained only as a promo-union-alpha fallback seat
+    lane: []  # DIA-260827-8la4 (2026-09-20): removed from the active mimo-balanced preset (trains-on-data, NOT ZDR); no lane seat remains - its only seat was promo-union-alpha, whose preset was deleted DIA-260929-5c6m (2026-09-29)
     fallback: ["opencode-go/deepseek-v4-flash", "opencode/mimo-v2.5-free"]
     quota_notes: "Mirror 1.2 ($0.10/$0.20 226600/mo 1.05M ctx); ADMITTED per DIA-260828-qtsi privacy cleared (no sensitive traffic), 1.3 admission basis DIA-260909-tp5e; 100 RPM = 144k/day vs 120/day max (ana036). Decision: 1.3 does NOT supersede 1.2 globally - promo retains 1.2 primary; muse-qwen-balanced uses 1.3 on coder/researcher/conspecter primary + analyzer/openspec-plan fallback (lane-containment)."
     privacy_notes: "trains-on-data NOT-ZDR region-limited (Meta Contributor tier trains on prompts/completions; developer cleared per DIA-260828-qtsi; region-limited availability)"
@@ -90,15 +90,15 @@ models:
     active: true
 
   - model_id: "qwen3.8-flash"
-    role: "arch/analyzer"
+    role: "designer"
     price_in_1m: 0.15
     price_out_1m: 0.47
     req_per_month: 27000
     swe_bench_verified: null  # no archived benchmark yet - benchmark conspect pending (separate ticket)
     source_ref: "res016"
-    lane: ["analyzer", "designer"]
+    lane: ["designer"]  # DIA-260929-wjir 2026-09-29: analyzer moved to opencode-go/deepseek-v4.1-flash; designer (and council seat) retained.
     fallback: []
-    quota_notes: "$30 bucket, 27K req/mo, pricing $0.15/$0.47 per 1M; benchmark conspect pending (separate ticket). RETAINED for council seat + inactive presets (opencode-go, cebula, promo, free) after Variant A DIA-260909-18f4 - no longer primary in muse-qwen-balanced."
+    quota_notes: "$30 bucket, 27K req/mo, pricing $0.15/$0.47 per 1M; benchmark conspect pending (separate ticket). RETAINED for council seat + designer lane after Variant A DIA-260909-18f4 - no longer primary in muse-qwen-balanced; its inactive presets promo/free were deleted DIA-260929-5c6m (2026-09-29)."
     active: true
 
   - model_id: "opencode-go/deepseek-v4-flash"
@@ -150,15 +150,27 @@ models:
     active: true
 
   - model_id: "kimi-k3"
-    role: "multi-lane-primary (architector + ai-auditor via opencode-go/kimi-k3)"
+    role: "retired (was multi-lane-primary for architector + ai-auditor)"
     price_in_1m: 3.00
     price_out_1m: 15.00
     req_per_month: 490  # ESTIMATE (per res024 sec 3.3)
     swe_bench_verified: 93.40
     source_ref: "res016"
-    lane: ["architector", "ai-auditor"]  # DIA-260927-s1gd 2026-09-28: config primary opencode-go/kimi-k3 (architector variant high, ai-auditor variant medium)
+    lane: []  # DIA-260929-wjir 2026-09-29: architector + ai-auditor moved to opencode-go/grok-4.7 (variants high/medium preserved) - no remaining lane users.
     fallback: ["deepseek-v4-pro", "mimo-v2.5-pro"]
-    quota_notes: "Binding cap 490 req/mo - coder-escalated seat RETIRED per DIA-260911-rqmw, superseded by openai/gpt-5.6-terra high (paid one-shot escalation); REACTIVATED 2026-09-28 DIA-260927-s1gd - opencode-go/kimi-k3 resolves live (opencode models probe) and is now mimo-balanced primary for architector + ai-auditor"
+    quota_notes: "Binding cap 490 req/mo - coder-escalated seat RETIRED per DIA-260911-rqmw, superseded by openai/gpt-5.6-terra high (paid one-shot escalation); REACTIVATED 2026-09-28 DIA-260927-s1gd as mimo-balanced primary for architector + ai-auditor, then vacated 2026-09-29 DIA-260929-wjir (both lanes to opencode-go/grok-4.7). Entry retained with zero lane users - active-flag/deletion decision is a follow-up."
+    active: true
+
+  - model_id: "opencode-go/grok-4.7"
+    role: "multi-lane-primary (architector + ai-auditor via opencode-go/grok-4.7)"
+    price_in_1m: 2.00
+    price_out_1m: 6.00
+    req_per_month: 845  # ESTIMATE ($15 bucket at live OpenCode Go pricing, DIA-260929-wjir gate 2026-09-29)
+    swe_bench_verified: null  # no archived benchmark yet - benchmark conspect pending (separate ticket)
+    source_ref: "DIA-260929-wjir gate 2026-09-29 (Tier-2 https://opencode.ai/docs/go/, https://models.dev/model/opencode-go/grok-4.7)"
+    lane: ["architector", "ai-auditor"]  # DIA-260929-wjir 2026-09-29: replaced opencode-go/kimi-k3 (variants preserved: architector high, ai-auditor medium).
+    fallback: ["opencode-go/mimo-v2.6-flash", "opencode-go/deepseek-v4-flash"]  # architector fallback mimo-v2.6-flash; ai-auditor fallback deepseek-v4-flash (config fallback arrays untouched per DIA-260929-wjir)
+    quota_notes: "Upstream xai/grok-4.7, released 2026-09-21; 500K ctx, reasoning + tool calls; live Go pricing $2.00/$6.00 per 1M <=200K context, $4.00/$12.00 per 1M above 200K; ~845 req/mo on $15 bucket (vs kimi-k3 490 cap); family separation retained: ai-auditor (xAI) is a different model family from ai-specialist deepseek-v4.1-flash (DeepSeek)."
     active: true
 
   - model_id: "gpt-5.6-luna"
@@ -248,7 +260,7 @@ routing_table:
   - rung: "Analyzer"
     signal: "Default analysis"
     lane: "analyzer"
-    model: "openai/gpt-5.6-terra"  # Aligned per DIA-260909-18f4 Variant A: matches muse-qwen-balanced analyzer primary (high).
+    model: "opencode-go/deepseek-v4.1-flash"  # DIA-260929-wjir: matches mimo-balanced analyzer primary (variant high).
     quota_guarded: false
   - rung: "Analyzer-escalated"
     signal: "cannot comprehend domain OR abort-on-complexity"
@@ -258,5 +270,5 @@ routing_table:
   - rung: "Analyzer-route-back"
     signal: "After escalated pass"
     lane: "analyzer"
-    model: "openai/gpt-5.6-terra"  # Aligned per DIA-260909-18f4 Variant A: matches muse-qwen-balanced analyzer primary (high).
+    model: "opencode-go/deepseek-v4.1-flash"  # DIA-260929-wjir: matches mimo-balanced analyzer primary (variant high).
     quota_guarded: false

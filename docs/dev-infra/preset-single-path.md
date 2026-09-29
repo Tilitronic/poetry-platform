@@ -9,8 +9,8 @@ forgotten. Nothing is persisted. (Campaign ticket DIA-260918-vsq8.)
 List names, then launch:
 
     make presets
-    make opencode PRESET=free
     make opencode PRESET=mimo-balanced
+    make opencode PRESET=openai-first-cost-balanced
 
 `make presets` prints the sorted keys of `presets` in
 `.opencode/oh-my-opencode-slim.jsonc` (python3 stdlib only, no new
@@ -23,7 +23,7 @@ available list (make exit 2), and nothing is launched. The launch prints
 
 PRESET is a one-run override, not stored state:
 
-1. `make opencode PRESET=free` (uses `free` for this session only)
+1. `make opencode PRESET=openai-first-cost-balanced` (uses `openai-first-cost-balanced` for this session only)
 2. Exit opencode.
 3. `make opencode PRESET=mimo-balanced` (next session uses `mimo-balanced`)
 
@@ -57,8 +57,7 @@ launch. Clear it once to avoid confusion:
 
 Unknown-name failure looks like this (make exit 2, no container started):
 
-    Unknown preset "typo". Available presets: free,
-    mimo-balanced, openai-first-cost-balanced, promo-union-alpha
+    Unknown preset "typo". Available presets: mimo-balanced, openai-first-cost-balanced
 
 ## Slash preset (out of scope)
 

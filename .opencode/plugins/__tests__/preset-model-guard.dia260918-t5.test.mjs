@@ -4,11 +4,17 @@
  *
  * Reviewer-found production-contract gaps pinned here (unique ses_t5* IDs,
  * same bun:test harness family via the shared fixture):
- *   T5a preset-NAME env (e.g. OH_MY_OPENCODE_SLIM_PRESET=free, no slash)
- *      with a divergent newborn -> ONE switchModel call carrying the preset
- *      mapped model. The mapped model is read live from the repo config
- *      (presets.free.orchestrator.model, first array entry), so the
+ *   T5a preset-NAME env (e.g. OH_MY_OPENCODE_SLIM_PRESET=
+ *      openai-first-cost-balanced, no slash) with a divergent newborn -> ONE
+ *      switchModel call carrying the preset mapped model. The mapped model
+ *      is read live from the repo config
+ *      (presets.openai-first-cost-balanced.orchestrator.model), so the
  *      expectation tracks the presets block instead of a hardcoded copy.
+ *      DIA-260929-5c6m removed the historical `free` preset;
+ *      openai-first-cost-balanced is the surviving NON-ACTIVE switchable
+ *      preset (mimo-balanced is the active default), so a passing lookup
+ *      proves the named key was read - an active-default or first-key
+ *      fallback would resolve mimo-balanced instead and fail here.
  *      Pinned rule for GREEN: a slash-less env value resolves as a preset
  *      name through presets[<name>].orchestrator.model; the "provider/model"
  *      spelling from T1 keeps working unchanged.
@@ -73,15 +79,19 @@ const { loadHooks } = await createGuardHandle()
 const { stripJsoncComments } = await import("../preset-model-guard.ts")
 
 // Preset-NAME intent source of truth, read live from the repo config:
-// presets.free.orchestrator.model, first entry on array form ("a/b" split
-// gives {providerID, id}; a plain string works the same way).
-function resolveFreeOrchestratorModel() {
+// presets.openai-first-cost-balanced.orchestrator.model (plain-string form
+// here; an array form would take its first entry the same way; "a/b" split
+// gives {providerID, id}). openai-first-cost-balanced is the surviving
+// non-active switchable preset (DIA-260929-5c6m removed `free`; mimo-balanced
+// is the active default), so resolving THIS key proves the named-key lookup
+// rather than an active-default/first-key fallback.
+function resolvePresetOrchestratorModel() {
   const raw = readFileSync(new URL("../../oh-my-opencode-slim.jsonc", import.meta.url), "utf-8")
   const config = JSON.parse(stripJsoncComments(raw))
-  const entry = config?.presets?.free?.orchestrator?.model
+  const entry = config?.presets?.["openai-first-cost-balanced"]?.orchestrator?.model
   const ref = Array.isArray(entry) ? entry[0] : entry
   if (typeof ref !== "string" || !ref.includes("/")) {
-    throw new Error(`T5a setup: presets.free.orchestrator.model has no usable ref, got ${JSON.stringify(ref)}`)
+    throw new Error(`T5a setup: presets.openai-first-cost-balanced.orchestrator.model has no usable ref, got ${JSON.stringify(ref)}`)
   }
   const slash = ref.indexOf("/")
   return { providerID: ref.slice(0, slash), id: ref.slice(slash + 1) }
@@ -89,11 +99,11 @@ function resolveFreeOrchestratorModel() {
 
 describe("DIA-260918-ok9m T5: preset-name intent, drift visibility, concurrent fire-once", () => {
   test("T5a preset-NAME env resolves via presets block and switches divergent newborn once", async () => {
-    const mapped = resolveFreeOrchestratorModel()
+    const mapped = resolvePresetOrchestratorModel()
     if (mapped.providerID === DIVERGENT_MODEL.providerID && mapped.id === DIVERGENT_MODEL.id) {
-      throw new Error("T5a setup: mapped free model collides with DIVERGENT_MODEL, pick another divergent model")
+      throw new Error("T5a setup: mapped preset model collides with DIVERGENT_MODEL, pick another divergent model")
     }
-    process.env[ENV_KEY] = "free"
+    process.env[ENV_KEY] = "openai-first-cost-balanced"
     const sessionID = "ses_t5a_preset_name"
     const { ctx, switchModelCalls } = await makeGuardCtx(workspaces, sessionID, DIVERGENT_MODEL)
     const hooks = await loadHooks(ctx)

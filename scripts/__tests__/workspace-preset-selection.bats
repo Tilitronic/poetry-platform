@@ -14,20 +14,33 @@ load test-helper
 REPO_ROOT="$(cd "$(dirname "$BATS_TEST_FILENAME")/../.." && pwd)"
 HELPER="$REPO_ROOT/scripts/presets.py"
 
-@test "list prints a sorted non-empty registry including free and mimo-balanced" {
+@test "list prints exactly the current registry (mimo-balanced and openai-first-cost-balanced)" {
   run python3 "$HELPER" list
   assert_status 0
-  assert_output_contains "free"
   assert_output_contains "mimo-balanced"
+  assert_output_contains "openai-first-cost-balanced"
   [ -n "$output" ]
   sorted="$(printf '%s\n' "$output" | LC_ALL=C sort)"
   [ "$output" = "$sorted" ]
+  # Exact inventory (DIA-260929-5c6m removed promo-union-alpha and free).
+  [ "$output" = "$(printf 'mimo-balanced\nopenai-first-cost-balanced')" ]
+  # Strengthened: the removed presets are rejected as unknown, not merely
+  # absent from the list - the registry validates names both ways.
+  run python3 "$HELPER" check free
+  [ "$status" -ne 0 ]
+  assert_output_contains 'Unknown preset "free"'
+  run python3 "$HELPER" check promo-union-alpha
+  [ "$status" -ne 0 ]
+  assert_output_contains 'Unknown preset "promo-union-alpha"'
 }
 
-@test "check accepts an exact registry name" {
-  run python3 "$HELPER" check free
+@test "check accepts each current registry name exactly" {
+  run python3 "$HELPER" check mimo-balanced
   assert_status 0
-  assert_output_contains "free"
+  assert_output_contains "mimo-balanced"
+  run python3 "$HELPER" check openai-first-cost-balanced
+  assert_status 0
+  assert_output_contains "openai-first-cost-balanced"
 }
 
 @test "check rejects an unknown name loudly with the available list" {

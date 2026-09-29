@@ -53,11 +53,10 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SLIM_JSONC="${SLIM_JSONC:-$ROOT/.opencode/oh-my-opencode-slim.jsonc}"
 # The 2 presets whose orchestrator prompts are under audit (DIA-097).
-# Inventory truth (DIA-260917-s95f): the config carries 4 prompt-bearing
-# presets (promo-union-alpha, mimo-balanced, free,
-# openai-first-cost-balanced). The gate audits mimo-balanced +
-# openai-first-cost-balanced only; promo-union-alpha + free are explicitly
-# unaudited during the preview window (pre-existing 2-preset scope).
+# Inventory truth (DIA-260929-5c6m, 2026-09-29): the config carries exactly
+# these 2 prompt-bearing presets. The two preview-window presets that were
+# previously listed as explicitly unaudited (promo-union-alpha, free) were
+# deleted, so this 2-preset audit scope is now the full inventory.
 PRESETS="${PRESETS:-mimo-balanced openai-first-cost-balanced}"
 
 # Fixed required-marker contract (see header). Matched as fixed strings;

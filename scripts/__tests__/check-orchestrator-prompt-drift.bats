@@ -6,9 +6,9 @@
 # The script greps the 2 audited preset orchestrator prompts (mimo-balanced /
 # openai-first-cost-balanced) in oh-my-opencode-slim.jsonc for REQUIRED
 # delegation-rule markers and fails the config gate when any marker is
-# missing from any prompt. (Inventory truth DIA-260917-s95f: the config
-# carries 4 prompt-bearing presets; promo-union-alpha + free are explicitly
-# unaudited during the preview window - pre-existing 2-preset scope.)
+# missing from any prompt. (Inventory truth DIA-260929-5c6m, 2026-09-29: the
+# config carries exactly 2 prompt-bearing presets - promo-union-alpha and free
+# were deleted - so this 2-preset audit scope is now the full inventory.)
 #
 # Isolation strategy (validate-decision-variants.bats / validate-agent-names
 # .bats conventions): every test builds a throwaway fixture JSONC under

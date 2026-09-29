@@ -359,6 +359,15 @@
 | DIA-260928-nm2u | permission stall hardening: make an unanswered ask resolve non-fatally so no ask class ends a lane with an empty envelope | scripts | Major | OPEN | [DIA-260928-nm2u-permission-stall-hardening-make-an-unanswered-ask-resolve-non-fatally-so-no-ask-class-ends-a-lane-with-an-empty-envelope.md](DIA-260928-nm2u-permission-stall-hardening-make-an-unanswered-ask-resolve-non-fatally-so-no-ask-class-ends-a-lane-with-an-empty-envelope.md) |
 | DIA-260928-rzty | permission: anchored .scratch two-argument ask guards do not take effect; a second rm path rides along on the broad rm \* allow (escaped delete confirmed) | scripts | Major | OPEN | [DIA-260928-rzty-permission-anchored-scratch-two-argument-ask-guards-do-not-take-effect-a-second-rm-path-rides-along-on-the-broad-rm-allow-escaped-delete-confirmed.md](DIA-260928-rzty-permission-anchored-scratch-two-argument-ask-guards-do-not-take-effect-a-second-rm-path-rides-along-on-the-broad-rm-allow-escaped-delete-confirmed.md) |
 | DIA-260928-tcdd | permission: git clean deny bypass via flag permutations (-xdf, -df, -d -f escape the -f-anchored deny patterns) | scripts | Medium | OPEN | [DIA-260928-tcdd-permission-git-clean-deny-bypass-via-flag-permutations-xdf-df-d-f-escape-the-f-anchored-deny-patterns.md](DIA-260928-tcdd-permission-git-clean-deny-bypass-via-flag-permutations-xdf-df-d-f-escape-the-f-anchored-deny-patterns.md) |
+| DIA-260929-3ydp | resource-manager retirement: merge ai-assist-sources curation into the researcher lane | scripts | Medium | OPEN | [DIA-260929-3ydp-resource-manager-retirement-merge-ai-assist-sources-curation-into-the-researcher-lane.md](DIA-260929-3ydp-resource-manager-retirement-merge-ai-assist-sources-curation-into-the-researcher-lane.md) |
+| DIA-260929-5c6m | remove promo-union-alpha and free presets: stale presets with non-working model assignments | scripts | Medium | OPEN | [DIA-260929-5c6m-remove-promo-union-alpha-and-free-presets-stale-presets-with-non-working-model-assignments.md](DIA-260929-5c6m-remove-promo-union-alpha-and-free-presets-stale-presets-with-non-working-model-assignments.md) |
+| DIA-260929-6339 | audit-independence validator: enforce distinct model families for ai-specialist and ai-auditor | scripts | Medium | OPEN | [DIA-260929-6339-audit-independence-validator-enforce-distinct-model-families-for-ai-specialist-and-ai-auditor.md](DIA-260929-6339-audit-independence-validator-enforce-distinct-model-families-for-ai-specialist-and-ai-auditor.md) |
+| DIA-260929-bgnw | ai-specialist gate token ownership under edit deny | scripts | Medium | OPEN | [DIA-260929-bgnw-ai-specialist-gate-token-ownership-under-edit-deny.md](DIA-260929-bgnw-ai-specialist-gate-token-ownership-under-edit-deny.md) |
+| DIA-260929-nc6w | agent-role consolidation study: conspecter+memory-manager, resource-manager, reviewer+analyzer, ai-specialist+ai-auditor | scripts | Medium | OPEN | [DIA-260929-nc6w-agent-role-consolidation-study-conspecter-memory-manager-resource-manager-reviewer-analyzer-ai-specialist-ai-auditor.md](DIA-260929-nc6w-agent-role-consolidation-study-conspecter-memory-manager-resource-manager-reviewer-analyzer-ai-specialist-ai-auditor.md) |
+| DIA-260929-sjwm | Remove all live SNIP traces: docker binary install, plugin declarations, dormant deny rules, comments, tests, docs and package manifests | scripts | Medium | OPEN | [DIA-260929-sjwm-remove-all-live-snip-traces-docker-binary-install-plugin-declarations-dormant-deny-rules-comments-tests-docs-and-package-manifests.md](DIA-260929-sjwm-remove-all-live-snip-traces-docker-binary-install-plugin-declarations-dormant-deny-rules-comments-tests-docs-and-package-manifests.md) |
+| DIA-260929-wjir | model swap: architector and ai-auditor kimi-k3 to grok-4.7 (variants preserved), analyzer to deepseek-v4.1-flash variant high | scripts | Medium | OPEN | [DIA-260929-wjir-model-swap-architector-and-ai-auditor-kimi-k3-to-grok-4-7-variants-preserved-analyzer-to-deepseek-v4-1-flash-variant-high.md](DIA-260929-wjir-model-swap-architector-and-ai-auditor-kimi-k3-to-grok-4-7-variants-preserved-analyzer-to-deepseek-v4-1-flash-variant-high.md) |
+| DIA-260929-yanz | ai-auditor websearch MCP drift: network access in a repo-truth-only audit lane | scripts | Medium | OPEN | [DIA-260929-yanz-ai-auditor-websearch-mcp-drift-network-access-in-a-repo-truth-only-audit-lane.md](DIA-260929-yanz-ai-auditor-websearch-mcp-drift-network-access-in-a-repo-truth-only-audit-lane.md) |
+| DIA-260929-yhmd | make test-harness: skip the engine-dependent phase in-container instead of exiting 2 | scripts | Medium | OPEN | [DIA-260929-yhmd-make-test-harness-skip-the-engine-dependent-phase-in-container-instead-of-exiting-2.md](DIA-260929-yhmd-make-test-harness-skip-the-engine-dependent-phase-in-container-instead-of-exiting-2.md) |
 
 ## Status summary
 
@@ -367,7 +376,7 @@
 | Blocker  | 9     |
 | Critical | 16    |
 | Major    | 86    |
-| Medium   | 185   |
+| Medium   | 194   |
 | Minor    | 1     |
 | Low      | 38    |
 | Info     | 2     |
@@ -375,7 +384,7 @@
 
 | Status      | Count |
 | ----------- | ----- |
-| OPEN        | 94    |
+| OPEN        | 103   |
 | DONE        | 15    |
 | VALIDATE    | 0     |
 | E2E         | 0     |

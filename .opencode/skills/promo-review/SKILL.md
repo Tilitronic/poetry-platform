@@ -11,9 +11,10 @@ metadata:
 
 Activated by the orchestrator when: (a) the user explicitly asks to review
 promotions / model pricing, or (b) 14 days have passed since `last_reviewed`
-in `.opencode/promo-registry.json`. The promo preset is a pointer-swap clone
-of the active preset with DeepSeek V4 Flash promo routing (see `scripts/promo-preset-apply`); this skill checks whether
-the underlying promo economics still justify it.
+in `.opencode/promo-registry.json`. Promo preset generation is RETIRED
+(2026-09-29, DIA-260929-5c6m): `scripts/promo-preset-apply` is now a no-op
+reporter that reads and writes nothing. This skill checks whether the
+underlying promo economics still justify a routing change.
 
 ## Data classification (P1)
 
@@ -52,7 +53,7 @@ overnight). Fetch from ALL THREE live sources every review (see Procedure 3).
 ## Inputs (P3)
 
 1. `.opencode/promo-registry.json` - current promos, `last_reviewed`, `next_review`.
-2. `.opencode/oh-my-opencode-slim.jsonc` - the generated `promo` preset (read-only here).
+2. `.opencode/oh-my-opencode-slim.jsonc` - preset routing (read-only here). There is no generated `promo` preset: promo preset generation was retired 2026-09-29 (DIA-260929-5c6m).
 3. `knowledge/model-registry.yaml` - dispatch routing + quota guards.
 4. `knowledge/ana036-weekend-coding-preset-efficiency` - the routing rationale (ana036 R7 = Muse privacy exclusion).
 5. `knowledge/res041-opencode-go-promo-benchmarks/res041-opencode-go-promo-benchmarks-conspect.md` - STABLE benchmarks. READ FIRST, before any web fetch. If a newer `res*` conspect supersedes res041, read that instead.
@@ -98,7 +99,7 @@ For each model present in `promo-registry.json`:
   and the effective-price gap exceeds 2x (threshold: >2x only). Example: under
   Hy3 x8, promo-Hy3 effective ~$0.02/$0.07 is ~7x cheaper than mimo-v2.5
   ($0.14/$0.28); if the preset still routes worker traffic to mimo-v2.5, that
-  is a ROUTING-INVERSION (>2x) - flag it. Do NOT activate the promo preset as-is.
+  is a ROUTING-INVERSION (>2x) - flag it. Do NOT flip the active preset as-is.
 
 ### 6. Muse Spark explicit comparison (developer-raised)
 Muse Spark 1.2 Contributor is the CHEAPEST input ($0.10) and HIGHEST
@@ -130,9 +131,11 @@ only; re-exclude if sensitive traffic appears).
 Any NEW / EXPIRED / >20% CHANGE / ROUTING-INVERSION / privacy-status change
 MUST be routed through `@ai-specialist` (read-only gate, AGENTS.md section 2.5
 Phase 1) before any config edit. This skill NEVER edits `oh-my-opencode-slim.jsonc`
-pricing/routing or the promo preset. The specialist re-evaluates, then the
-orchestrator dispatches `@coder` to update `scripts/promo-preset-apply` ROUTING
-and re-run it.
+pricing/routing. Promo preset generation is RETIRED as of 2026-09-29
+(DIA-260929-5c6m): `scripts/promo-preset-apply` is an explicit no-op that
+reads and writes nothing, so there is no ROUTING table to update and no
+re-run. An accepted routing delta is applied by `@coder` directly to the
+active preset in `oh-my-opencode-slim.jsonc` under the section 2.5 chain.
 
 ### 9. Update review timestamps (boundary)
 After a completed review (even if "no change"), update `last_reviewed = today`
@@ -154,7 +157,7 @@ Return a report with these sections:
 
 ## Constraints
 - ASCII-only output (DIA-079). No em-dashes, smart quotes, or non-ASCII punctuation.
-- Never set the promo preset active from here; activation is a developer decision.
+- Never apply a promo routing from here; activation is a developer decision (promo preset generation retired DIA-260929-5c6m).
 - muse-spark ADMITTED 2026-08-28 for non-sensitive traffic (privacy cleared DIA-260828-qtsi, no sensitive traffic confirmed) - primary for 6 lanes [coder,reviewer,analyzer,researcher,conspecter,openspec-plan] with DeepSeek V4 Flash fallback; still document exclusion rationale + admission condition.
 - Skill writes ONLY `last_reviewed` / `next_review` timestamps. Pricing/routing
   changes route via @ai-specialist -> @coder.
