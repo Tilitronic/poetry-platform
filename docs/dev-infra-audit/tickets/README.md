@@ -369,6 +369,8 @@
 | DIA-260929-wjir | model swap: architector and ai-auditor kimi-k3 to grok-4.7 (variants preserved), analyzer to deepseek-v4.1-flash variant high | scripts | Medium | OPEN | [DIA-260929-wjir-model-swap-architector-and-ai-auditor-kimi-k3-to-grok-4-7-variants-preserved-analyzer-to-deepseek-v4-1-flash-variant-high.md](DIA-260929-wjir-model-swap-architector-and-ai-auditor-kimi-k3-to-grok-4-7-variants-preserved-analyzer-to-deepseek-v4-1-flash-variant-high.md) |
 | DIA-260929-yanz | ai-auditor websearch MCP drift: network access in a repo-truth-only audit lane | scripts | Medium | OPEN | [DIA-260929-yanz-ai-auditor-websearch-mcp-drift-network-access-in-a-repo-truth-only-audit-lane.md](DIA-260929-yanz-ai-auditor-websearch-mcp-drift-network-access-in-a-repo-truth-only-audit-lane.md) |
 | DIA-260929-yhmd | make test-harness: skip the engine-dependent phase in-container instead of exiting 2 | scripts | Medium | OPEN | [DIA-260929-yhmd-make-test-harness-skip-the-engine-dependent-phase-in-container-instead-of-exiting-2.md](DIA-260929-yhmd-make-test-harness-skip-the-engine-dependent-phase-in-container-instead-of-exiting-2.md) |
+| DIA-261006-ldfs | read-only lane permission hardening: deny task to non-orchestrator lanes, deny ast_grep_replace fleet-wide, explicit ast_grep_search allow | scripts | Medium | OPEN | [DIA-261006-ldfs-read-only-lane-permission-hardening-deny-task-to-non-orchestrator-lanes-deny-ast-grep-replace-fleet-wide-explicit-ast-grep-search-allow.md](DIA-261006-ldfs-read-only-lane-permission-hardening-deny-task-to-non-orchestrator-lanes-deny-ast-grep-replace-fleet-wide-explicit-ast-grep-search-allow.md) |
+| DIA-261006-y72h | at-sign agent-mention hygiene: strip leading at-sign from agent mentions on the instruction surface, codify the dispatch-payload mention rule, reconcile CAUSE A | scripts | Medium | OPEN | [DIA-261006-y72h-at-sign-agent-mention-hygiene-strip-leading-at-sign-from-agent-mentions-on-the-instruction-surface-codify-the-dispatch-payload-mention-rule-reconcile-cause-a.md](DIA-261006-y72h-at-sign-agent-mention-hygiene-strip-leading-at-sign-from-agent-mentions-on-the-instruction-surface-codify-the-dispatch-payload-mention-rule-reconcile-cause-a.md) |
 
 ## Status summary
 
@@ -377,7 +379,7 @@
 | Blocker  | 9     |
 | Critical | 16    |
 | Major    | 86    |
-| Medium   | 195   |
+| Medium   | 197   |
 | Minor    | 1     |
 | Low      | 38    |
 | Info     | 2     |
@@ -385,7 +387,7 @@
 
 | Status      | Count |
 | ----------- | ----- |
-| OPEN        | 100   |
+| OPEN        | 102   |
 | DONE        | 15    |
 | VALIDATE    | 0     |
 | E2E         | 0     |

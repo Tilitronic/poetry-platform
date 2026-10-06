@@ -22,8 +22,19 @@
   },
 
   // Global permission baseline — the project overrides for team consistency.
+  // DIA-261006-ldfs: OpenCode's built-in baseline is rule [0] `* allow *`, so an
+  // UNDECLARED key resolves to ALLOW on every agent. Agent rules are appended AFTER
+  // this block and findLast decides — these two entries are therefore a DEFAULT, not
+  // a lock (a later per-agent entry with the same pattern still wins).
   "permission": {
     "edit": "allow",
+    // Write-capable AST rewrite (OMO plugin tool): never ask()-gated, never
+    // path-scopable, shells out to `sg` — deny fleet-wide.
+    "ast_grep_replace": "deny",
+    // Read-only AST search (same plugin, same `sg` binary): allowed fleet-wide
+    // EXPLICITLY rather than by inherited baseline default. Per-agent denies live
+    // on orchestrator (knows nothing about the codebase) and conspecter (pure synthesis).
+    "ast_grep_search": "allow",
     "bash": {
       "*": "allow",
       "git push *": "allow",
@@ -213,7 +224,10 @@
           "openspec/*": "allow",
           ".opencode/skills/*": "allow"
         },
+        // DIA-261006-ldfs: agent deny beats the global `ast_grep_search: allow` —
+        // the orchestrator reads nothing by design (grep is already denied above).
         "grep": "deny",
+        "ast_grep_search": "deny",
         "task": {
           "*": "deny",
           "coder": "allow",
@@ -311,8 +325,14 @@
       }
     },
     // coder deliberately has minimal permission restrictions (unlike architector/analyzer/
-    // reviewer). It is the implementer: it must edit files, run bash (dev build, lint,
-    // tests) and dispatch subagents. Denying any of these breaks its core function.
+    // reviewer). It is the implementer: it must edit files and run bash (dev build, lint,
+    // tests). Denying either breaks its core function.
+    // coder does NOT dispatch: delegation is the orchestrator's monopoly (DIA-261006-ldfs).
+    // Its prompt only ever says "escalate to orchestrator" - a return message, not a task()
+    // call - and `opencode debug agent coder` had resolved task=true purely because no task
+    // key was declared below (built-in rule [0] `* allow *`). The "task": "deny" entry closes
+    // that. Note OpenCode's subagent_depth default of 1 already failed nested spawns at
+    // runtime, so this is a config-truth fix, not a behavior change.
     // One restriction (DIA-078, 2026-08-10): "doom_loop": "deny" is a mechanical halt on
     // 3x-identical calls so a lane cannot keep repeating the same failing command
     // (identical-command loop class, DIA-075/DIA-078 recurrence).
@@ -325,6 +345,7 @@
       "color": "#3B82F6",
       "permission": {
         "doom_loop": "deny",
+        "task": "deny",
         "bash": {
           "yq *": "allow",
           "npx *": "allow",
@@ -511,7 +532,8 @@
       "color": "#06B6D4",
       "permission": {
         "edit": "deny",
-        "bash": "deny"
+        "bash": "deny",
+        "task": "deny"
       }
     },
     // researcher — external research + Phase A source capture (DIA-135 D5/D6).
@@ -543,16 +565,23 @@
         "task": "deny"
       }
     },
+    // designer — DIA-261006-ldfs: this block previously had NO permission key at all, so
+    // task AND bash inherited the `* allow *` baseline. Only task is closed here; the
+    // designer bash gap is a DEFERRED drift routed to the follow-up ticket.
     "designer": {
       "mode": "subagent",
-      "color": "#EC4899"
+      "color": "#EC4899",
+      "permission": {
+        "task": "deny"
+      }
     },
     "observer": {
       "mode": "subagent",
       "color": "#A855F7",
       "permission": {
         "edit": "deny",
-        "bash": "deny"
+        "bash": "deny",
+        "task": "deny"
       }
     },
     // DIA-199 (2026-08-16): trailing * glob required - OpenCode edit-permission
@@ -567,7 +596,8 @@
           ".opencode/memory/*": "allow",
           ".opencode/memory-shelf.yaml*": "allow",
           ".opencode/learnings/external-patterns/*": "allow"
-        }
+        },
+        "task": "deny"
       }
     },
     // conspecter - pure-synthesis conspect authoring (DIA-135 D7).
@@ -589,6 +619,9 @@
         },
         "bash": "deny",
         "webfetch": "deny",
+        // DIA-261006-ldfs: agent deny beats the global `ast_grep_search: allow` —
+        // pure synthesis of already-archived sources/, no search step in the workflow.
+        "ast_grep_search": "deny",
         "task": "deny"
       }
     },
@@ -612,10 +645,15 @@
         "task": "deny"
       }
     },
-    // Council subagents — read-only
+    // Council subagents — read-only. Council is SYNTHESIS-ONLY: its prompt states
+    // "You do NOT dispatch councillors yourself - the orchestrator handles dispatch",
+    // and OMO's Council Mode fan-out (task(subagent_type='councillor-*') + the final
+    // task(subagent_type='council')) runs from the ORCHESTRATOR prompt. DIA-261006-ldfs
+    // makes that structural fact a permission: task deny.
     "council": {
       "permission": {
         "edit": "deny",
+        "task": "deny",
         "bash": {
           "*": "deny"
         }
