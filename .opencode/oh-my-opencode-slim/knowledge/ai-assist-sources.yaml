@@ -233,7 +233,7 @@ model_selection_guidelines:
     researcher: "DS V4 Flash (Go) — volume research"
     conspecter: "DS V4 Flash (Go) — volume synthesis"
     analyzer: "Qwen3.7 Plus (Go) — 90.3% GPQA for analysis"
-    observer: "Kimi K2.7 Code (Go) — multimodal primary; Copilot fallback: GPT-5 mini; tail: big-pickle"
+    observer: "Qwen3.8 Flash (Go) - vision-capable (image; live PNG exact-match probe 6/6); fallback: Kimi K2.7 Code (Go) - vision-capable"
     ai-specialist: "Qwen3.7 Plus (Go) — research agent"
 
   rules:

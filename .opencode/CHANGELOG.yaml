@@ -5088,3 +5088,15 @@
     scripts/validate-changelog.sh exit 0 and scripts/changelog-render exit 0 (173
     entries). Commit and restart still pending.
   area: opencode-config
+- date: '2026-10-06'
+  ticket: DIA-260929-nc6w
+  scope: .opencode
+  files:
+  - .opencode/oh-my-opencode-slim.jsonc
+  - knowledge/model-registry.yaml
+  - .opencode/oh-my-opencode-slim/knowledge/ai-assist-sources.yaml
+  summary: Re-route @observer in the active mimo-balanced preset to vision-capable
+    opencode-go/qwen3.8-flash (fallback opencode-go/kimi-k2.7-code); align model-registry
+    lane arrays and ai-assist-sources role_mapping; probe-validated (PNG exact-match
+    6/6)
+  verification: make test-config exit 0; PNG exact-match probe 6/6 (no-image control 0/2) on opencode-go/qwen3.8-flash; Phase-6 audit advisory PASS
