@@ -469,3 +469,30 @@ Note: These are navigational facts to help future humans find the infra/test art
   @ai-specialist remains read-only analyst and holds the curation methodology
   (ai-assist-sources.yaml evaluation_rules). Rationale + rule: adr.md
   "resource-manager lane retired ... reversal of the DIA-007 split".
+
+- SECURITY: resolved-config read-only gap (opencode debug agent sweep,
+  2026-10-06, DIA-260929-nc6w / ana-261006-63z3): runtime-RESOLVED tools show
+  `ast_grep_replace: True` on 6 of 7 read-only-ish lanes - code-navigator,
+  observer, reviewer, ai-specialist, architector, conspecter (only @ai-auditor
+  is tight) - plus `task: True` on code-navigator and observer. These lanes are
+  advertised read-only yet expose a mutation escape-hatch (`ast_grep_replace`
+  rewrites files; `task` spawns subagents). Persisted because it is a
+  runtime-resolved property NOT recoverable from declared config (the deny
+  blocks in .opencode/opencode.jsonc do not cover these tools) or from git.
+  Fleet-wide fix scope: deny `task` + `ast_grep_replace` across those six
+  lanes; @ai-auditor is the tight template. Authority: knowledge/
+  ana-261006-63z3-code-navigator-necessity/ section 5.1 + 10 (Gap 3).
+
+- oh-my-opencode-slim.jsonc is a RUNTIME-LOADED orchestrator instruction
+  surface (2026-10-06, DIA-261006-y72h): the per-agent `orchestratorPrompt`
+  values and the inline orchestrator prompt inside
+  `.opencode/oh-my-opencode-slim.jsonc` are injected into the orchestrator
+  context at runtime - their string content appears verbatim in the
+  orchestrator prompt. The project also ships `orchestrator_append.md` as a
+  separate prompt file. The dispatch-payload mention-hygiene rule (no literal
+  at-sign agent mentions; see lessons.md DIA-261006-y72h) is deliberately
+  present in BOTH the .jsonc and orchestrator_append.md so the rule loads
+  regardless of inline-vs-file precedence. The two-axis review of this change
+  flagged the .jsonc as the previously MISSED prompt surface - config edits
+  that touch orchestrator instructions must sweep both carriers, not just
+  orchestrator_append.md.

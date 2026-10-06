@@ -3622,3 +3622,58 @@ Two independent lanes of the agent-role consolidation study hit the same methodo
     (overnight guard-denies last-match-wins ADR),
     .opencode/learnings/external-patterns/2026-10-06-ft3z-rzty-permission-gate-findings.md
     (full evidence, section 1).
+
+## 2026-10-06 - analyzer lane can die as bare "Task cancelled" with zero artifacts and a NON-REUSABLE session; fresh full-spec re-dispatch required (DIA-260929-nc6w)
+
+- Observation: analyzer dispatch ana-1 (session ses_eeddd8aebffeC67J6D8sQhXpJT,
+  DIA-260929-nc6w Analysis A code-navigator necessity) returned a bare
+  "Task cancelled" status; the session stopped (unconfirmed) before any terminal
+  task result, with ZERO artifacts on disk under
+  knowledge/ana-261006-63z3-code-navigator-necessity/. The session is not
+  resumable/reusable for this work.
+- Why distinct from existing entries (all adjacent, none duplicative): the
+  reviewer empty-result rule (resume the exact prior instance by task_id,
+  lessons.md rev-1/rev-2) does NOT apply because the session is terminal; the
+  DIA-260918-ok9m "Task cancelled" lessons blame an author-written
+  IMMUTABLE_GIT_ENVELOPE block (different cause, FIXED_POINT remedy); the
+  L20260827-001 fresh-session-full-context rule is stated for the coder
+  fix-loop; L20260816-006 covers endpoint-dead sessions whose partial-results
+  records are trusted over the job board.
+- Operational rule: when a dispatch comes back cancelled/stopped-unconfirmed
+  with zero on-disk artifacts AND the session cannot be resumed, run the DIA-099
+  preserve step (write the partial-results record) and then dispatch a FRESH
+  lane with the FULL original spec - never an abbreviated "continue" prompt.
+  Partial-results record for this incident:
+  .opencode/session/partial-results/ana-1.json (task_id ana-1, agent analyzer,
+  status empty, detection_signal "Task cancelled ... zero artifacts on disk",
+  scope_hash knowledge/ana-261006-63z3-code-navigator-necessity/).
+- Why irrecoverable: the cancelled-with-zero-artifacts status is a runtime
+  server-side event; without the preserved record a fresh agent cannot tell
+  "analysis never happened" from "analysis happened elsewhere", and would
+  waste a re-dispatch on a resume that cannot succeed. Cross-reference:
+  DIA-099 empty-result protocol (preserve step), lessons.md L20260816-006,
+  L20260827-001, DIA-260918-ok9m, L20260927-k8nh (fresh lane over dead-session
+  resume), .opencode/session/partial-results/ana-1.json.
+
+## 2026-10-06 - never write a literal agent mention in a dispatch payload: core injects an invisible synthetic "call the task tool with subagent: <name>" child-prompt part (DIA-261006-y72h)
+
+- Mechanism: OpenCode core appends a synthetic, UI-invisible text part reading
+  "call the task tool with subagent: <name>" to a CHILD prompt whenever the
+  dispatch payload contains a leading at-sign immediately before an agent
+  name. Observed consequence: a `task: deny` child historically bailed at
+  step 1 on that injected part; in the 2026-10-06 agent-role-consolidation
+  study such lanes ignored it and completed (severity is version/context
+  dependent, so treat the injection as guaranteed and the failure as possible).
+- Mitigation: NEVER write a literal agent mention (at-sign + agent name) in a
+  dispatch payload; refer to lanes descriptively or by internal name without
+  the at-sign. The rule now lives on four durable surfaces: orchestrator_append.md
+  (subsection A8), AGENTS.md section 6 gate 4, and BOTH inline orchestrator
+  prompts in oh-my-opencode-slim.jsonc (rule 5).
+- Durable rationale: .opencode/learnings/external-patterns/
+  2026-10-06-opencode-core-synthetic-task-tool-append.md.
+- Why it kept recurring: before this ticket the rule existed only in
+  gitignored session carriers (.opencode/session/handoffs/ and
+  coder-lane-early-termination-synthesis.md), so every fresh session lost it
+  and the same failure reappeared. Lesson: rules that govern dispatch
+  behavior must live in tracked prompt surfaces, not in gitignored session
+  state.
