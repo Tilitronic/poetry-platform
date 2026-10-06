@@ -159,8 +159,8 @@ bun run build
 # "plugin": ["file:///path/to/oh-my-opencode-slim"]
 
 # 3. Launch test tasks
-code-navigator count files in src/
-researcher search for Bun documentation
+dispatch the code-navigator lane with: count files in src/
+dispatch the researcher lane with: search for Bun documentation
 
 # 4. Verify no orphans
 ps aux | grep "opencode attach" | grep -v grep
