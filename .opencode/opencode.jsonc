@@ -227,7 +227,6 @@
           "researcher": "allow",
           "observer": "allow",
           "memory-manager": "allow",
-          "resource-manager": "allow",
           "ai-specialist": "allow",
           "ai-auditor": "allow",
           "conspecter": "allow",
@@ -520,14 +519,19 @@
     // LAST-RESORT only) into knowledge/<resid>-<topic>/sources/ plus the
     // per-source relevance/reliability manifest (.source-urls.txt). Bash
     // allow-list (deny-first per DIA-126 findLast pattern, matching conspecter's
-    // former map); edit scoped to knowledge/*. Task denied (read-only lane).
+    // former map); edit scoped to knowledge/* plus the OMO knowledge dir
+    // (.opencode/oh-my-opencode-slim/knowledge/*) for ai-assist-sources.yaml
+    // curation + Tier-1 cache maintenance absorbed from the retired
+    // knowledge-source curation lane (DIA-260929-3ydp). Task denied because
+    // the lane does not delegate (artifact-producer tier, not read-only).
     "researcher": {
       "mode": "subagent",
       "color": "#84CC16",
       "permission": {
         "edit": {
           "*": "deny",
-          "knowledge/*": "allow"
+          "knowledge/*": "allow",
+          ".opencode/oh-my-opencode-slim/knowledge/*": "allow"
         },
         "bash": {
           "*": "deny",
@@ -615,29 +619,6 @@
         "bash": {
           "*": "deny"
         }
-      }
-    },
-    // resource-manager — knowledge-source curation lane (DIA-007 split).
-    // Artifact-producer tier (practice-protected.md §5): edit scoped to the OMO
-    // knowledge/ dir ONLY; bash limited to curl/wget/trafilatura for Tier-1
-    // Markdown caching + Tier-2 re-fetch. May dispatch @researcher/@conspecter
-    // (task: allow) to gather curation evidence (star counts, pricing, terms).
-    "resource-manager": {
-      "description": "Curates ai-assist-sources.yaml and Tier-1 knowledge caches (Markdown), re-fetches Tier-2 volatile sources, and evaluates awesome-opencode tools by star count (<100 experimental, 100-500 reasonable, 500+ established). Artifact-producer — edit scoped to knowledge/ only.",
-      "mode": "subagent",
-      "color": "#0891B2",
-      "permission": {
-        "edit": {
-          "*": "deny",
-          ".opencode/oh-my-opencode-slim/knowledge/*": "allow"
-        },
-        "bash": {
-          "*": "deny",
-          "curl *": "allow",
-          "wget *": "allow",
-          "trafilatura *": "allow"
-        },
-        "task": "allow"
       }
     },
     "ai-specialist": {

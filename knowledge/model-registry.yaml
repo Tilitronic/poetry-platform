@@ -32,7 +32,7 @@ models:
     req_per_month: 150400  # ESTIMATE (per res024 sec 3.3)
     swe_bench_verified: null  # vendor-only, benchmark gap per res017
     source_ref: "res030"
-    lane: ["coder", "code-navigator", "researcher", "conspecter", "observer", "resource-manager", "memory-manager"]
+    lane: ["coder", "code-navigator", "researcher", "conspecter", "observer", "memory-manager"]
     fallback: []
     quota_notes: "New volume king 2026-08-17: $0.14/$0.28, 150,400 req/mo, $60 bucket (res030)"
     active: true
@@ -44,7 +44,7 @@ models:
     req_per_month: 150400  # identical pricing/bucket to mimo-v2.5
     swe_bench_verified: null
     source_ref: "DIA-260926-n49u gate 2026-09-26 (Tier-2 https://opencode.ai/docs/go/)"
-    lane: ["coder", "code-navigator", "researcher", "conspecter", "observer", "resource-manager", "memory-manager"]
+    lane: ["coder", "code-navigator", "researcher", "conspecter", "observer", "memory-manager"]
     fallback: ["opencode-go/mimo-v2.5"]
     quota_notes: "$0.14/$0.28, 150,400 req/mo, $60 bucket, 1,048,576 ctx - identical to mimo-v2.5; direct successor released 2026-09-22; ZDR (Not used / 0 days)"
     active: true
@@ -56,7 +56,7 @@ models:
     req_per_month: 21500  # res030 quota
     swe_bench_verified: "no independent reproduction archived (res030 pricing only)"
     source_ref: "res030"
-    lane: ["coder","reviewer","conspecter","resource-manager","memory-manager","code-navigator","researcher"]
+    lane: ["coder","reviewer","conspecter","memory-manager","code-navigator","researcher"]
     fallback: ["opencode-go/mimo-v2.5","opencode/big-pickle"]
     quota_notes: "$60 bucket, 4,300 req/5h, 21,500 req/mo, 256K ctx - retired DIA-260901-s4ij, replaced by opencode-go/deepseek-v4-flash"
     active: false

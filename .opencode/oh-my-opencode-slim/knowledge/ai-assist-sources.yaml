@@ -235,7 +235,6 @@ model_selection_guidelines:
     analyzer: "Qwen3.7 Plus (Go) — 90.3% GPQA for analysis"
     observer: "Kimi K2.7 Code (Go) — multimodal primary; Copilot fallback: GPT-5 mini; tail: big-pickle"
     ai-specialist: "Qwen3.7 Plus (Go) — research agent"
-    resource-manager: "DS V4 Flash (Go) — fast curation of sources.yaml, Tier-1 caching, cheap"
 
   rules:
     - "Always check current pricing from web before recommending — Go and Copilot rates change"

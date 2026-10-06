@@ -1071,6 +1071,12 @@ shelf:
       on WSL2 - full lesson in external-patterns 2026-08-12).'
     path: .opencode/memory/adr.md
     created: 2026-08-13
+  - name: resource-manager lane retired, ai-assist-sources curation merged into @researcher (DIA-260929-3ydp)
+    description: 'Accepted 2026-10-06. Reverses the 2026-08-03 DIA-007 read-only-curator split: resource-manager had no persisted curation outcome (retained registry 2026-08-06..09-29), near-total scope overlap with @researcher (one edit glob apart), and both designed differentiators documented broken (no bash, subagent_depth=1). Retired from S1/S2/S3/presets/docs/model-registry; researcher edit map gains .opencode/oh-my-opencode-slim/knowledge/*; ai-specialist stays pure-analyst and single-homes the curation methodology. Establishes the rule: a lane earns existence by retained usage plus non-overlapping scope; designed differentiators must be runtime-verified. DIA-260827-ic3r resolved-by-deletion.'
+    path: ".opencode/memory/adr.md"
+    created: 2026-10-06
+    task_ref: DIA-260929-3ydp
+    status: accepted
   specs:
   - name: workspace-preset-selection
     description: 'Superseded-archived 2026-09-18: durable workspace-keyed preset selection replaced by single-path contract (DIA-260918-vsq8). Prior DIA-260916-gv9i stale 0/6 tasks will-not-do; stale gv9i SHALLs contradicted single-path. Archived to openspec/changes/archive/2026-09-18-workspace-preset-selection/; source of truth docs/dev-infra/preset-single-path.md; archive holds proposal/design/tasks/specs plus ARCHIVE-NOTE.md.'

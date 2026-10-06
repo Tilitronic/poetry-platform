@@ -455,3 +455,17 @@ Note: These are navigational facts to help future humans find the infra/test art
   active. Full chain: 793d40b revert, fe29b95d single-path, 8690921 rev-3,
   d59e9fc slash warning, 84b58f4 artifacts, 8903970 shelf fix, f2656c6
   forward fix. No fork; clean npm track.
+
+- Agent inventory is 26 names; resource-manager retired; researcher is the
+  knowledge-writer (DIA-260929-3ydp, 2026-10-06): `scripts/validate-agent-names.sh`
+  reports 26 passed (S1 = AGENTS.md table, baseline was 27) and the
+  .opencode/opencode.jsonc `agent` block holds 22 config-defined keys. The
+  `resource-manager` lane was retired this date: it resolves in NO source now
+  (grep finds zero matches in opencode.jsonc, oh-my-opencode-slim.jsonc, AGENTS.md
+  table, practice-protected.md, knowledge/model-registry.yaml) - do not
+  dispatch it or add it back to any S1-S4 surface. The writer of
+  `.opencode/oh-my-opencode-slim/knowledge/*` is now @researcher (edit
+  allow-list at .opencode/agents/researcher.md, alongside `knowledge/*`);
+  @ai-specialist remains read-only analyst and holds the curation methodology
+  (ai-assist-sources.yaml evaluation_rules). Rationale + rule: adr.md
+  "resource-manager lane retired ... reversal of the DIA-007 split".

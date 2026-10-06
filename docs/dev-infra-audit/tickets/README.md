@@ -235,7 +235,7 @@
 | DIA-260827-gnrr | Several gates assert source text instead of behavior | tests | Medium | OPEN | [DIA-260827-gnrr-several-gates-assert-source-text-instead-of-behavior.md](DIA-260827-gnrr-several-gates-assert-source-text-instead-of-behavior.md) |
 | DIA-260827-gnsv | [MEDIUM] Concurrent permission asks lose ticker visibility | opencode-config | Medium | CLOSED | [DIA-260827-gnsv-medium-concurrent-permission-asks-lose-ticker-visibility.md](DIA-260827-gnsv-medium-concurrent-permission-asks-lose-ticker-visibility.md) |
 | DIA-260827-gt8l | No enforced CI and pre-push gate fails open | config | High | OPEN | [DIA-260827-gt8l-no-enforced-ci-and-pre-push-gate-fails-open.md](DIA-260827-gt8l-no-enforced-ci-and-pre-push-gate-fails-open.md) |
-| DIA-260827-ic3r | [MEDIUM] Resource-manager can delegate any lane (task allow unrestricted) | opencode-config | Medium | OPEN | [DIA-260827-ic3r-medium-resource-manager-can-delegate-any-lane-task-allow-unrestricted.md](DIA-260827-ic3r-medium-resource-manager-can-delegate-any-lane-task-allow-unrestricted.md) |
+| DIA-260827-ic3r | [MEDIUM] Resource-manager can delegate any lane (task allow unrestricted) | opencode-config | Medium | IMPLEMENTED | [DIA-260827-ic3r-medium-resource-manager-can-delegate-any-lane-task-allow-unrestricted.md](DIA-260827-ic3r-medium-resource-manager-can-delegate-any-lane-task-allow-unrestricted.md) |
 | DIA-260827-jtvl | Reviewer and playwright-browser skill contracts broken | opencode-config | High | OPEN | [DIA-260827-jtvl-reviewer-and-playwright-browser-skill-contracts-broken.md](DIA-260827-jtvl-reviewer-and-playwright-browser-skill-contracts-broken.md) |
 | DIA-260827-ld2l | [MEDIUM] Memory-manager and designer over-granted permissions | opencode-config | Medium | OPEN | [DIA-260827-ld2l-medium-memory-manager-and-designer-over-granted-permissions.md](DIA-260827-ld2l-medium-memory-manager-and-designer-over-granted-permissions.md) |
 | DIA-260827-mgfv | [HIGH] Universal ticket gate allows nonexistent and closed tickets | opencode-config | High | CLOSED | [DIA-260827-mgfv-high-universal-ticket-gate-allows-nonexistent-and-closed-tickets.md](DIA-260827-mgfv-high-universal-ticket-gate-allows-nonexistent-and-closed-tickets.md) |
@@ -359,7 +359,7 @@
 | DIA-260928-nm2u | permission stall hardening: make an unanswered ask resolve non-fatally so no ask class ends a lane with an empty envelope | scripts | Major | OPEN | [DIA-260928-nm2u-permission-stall-hardening-make-an-unanswered-ask-resolve-non-fatally-so-no-ask-class-ends-a-lane-with-an-empty-envelope.md](DIA-260928-nm2u-permission-stall-hardening-make-an-unanswered-ask-resolve-non-fatally-so-no-ask-class-ends-a-lane-with-an-empty-envelope.md) |
 | DIA-260928-rzty | permission: anchored .scratch two-argument ask guards do not take effect; a second rm path rides along on the broad rm \* allow (escaped delete confirmed) | scripts | Major | OPEN | [DIA-260928-rzty-permission-anchored-scratch-two-argument-ask-guards-do-not-take-effect-a-second-rm-path-rides-along-on-the-broad-rm-allow-escaped-delete-confirmed.md](DIA-260928-rzty-permission-anchored-scratch-two-argument-ask-guards-do-not-take-effect-a-second-rm-path-rides-along-on-the-broad-rm-allow-escaped-delete-confirmed.md) |
 | DIA-260928-tcdd | permission: git clean deny bypass via flag permutations (-xdf, -df, -d -f escape the -f-anchored deny patterns) | scripts | Medium | OPEN | [DIA-260928-tcdd-permission-git-clean-deny-bypass-via-flag-permutations-xdf-df-d-f-escape-the-f-anchored-deny-patterns.md](DIA-260928-tcdd-permission-git-clean-deny-bypass-via-flag-permutations-xdf-df-d-f-escape-the-f-anchored-deny-patterns.md) |
-| DIA-260929-3ydp | resource-manager retirement: merge ai-assist-sources curation into the researcher lane | scripts | Medium | OPEN | [DIA-260929-3ydp-resource-manager-retirement-merge-ai-assist-sources-curation-into-the-researcher-lane.md](DIA-260929-3ydp-resource-manager-retirement-merge-ai-assist-sources-curation-into-the-researcher-lane.md) |
+| DIA-260929-3ydp | resource-manager retirement: merge ai-assist-sources curation into the researcher lane | scripts | Medium | IMPLEMENTED | [DIA-260929-3ydp-resource-manager-retirement-merge-ai-assist-sources-curation-into-the-researcher-lane.md](DIA-260929-3ydp-resource-manager-retirement-merge-ai-assist-sources-curation-into-the-researcher-lane.md) |
 | DIA-260929-5c6m | remove promo-union-alpha and free presets: stale presets with non-working model assignments | scripts | Medium | OPEN | [DIA-260929-5c6m-remove-promo-union-alpha-and-free-presets-stale-presets-with-non-working-model-assignments.md](DIA-260929-5c6m-remove-promo-union-alpha-and-free-presets-stale-presets-with-non-working-model-assignments.md) |
 | DIA-260929-6339 | audit-independence validator: enforce distinct model families for ai-specialist and ai-auditor | scripts | Medium | OPEN | [DIA-260929-6339-audit-independence-validator-enforce-distinct-model-families-for-ai-specialist-and-ai-auditor.md](DIA-260929-6339-audit-independence-validator-enforce-distinct-model-families-for-ai-specialist-and-ai-auditor.md) |
 | DIA-260929-bgnw | ai-specialist gate token ownership under edit deny | scripts | Medium | OPEN | [DIA-260929-bgnw-ai-specialist-gate-token-ownership-under-edit-deny.md](DIA-260929-bgnw-ai-specialist-gate-token-ownership-under-edit-deny.md) |
@@ -385,14 +385,14 @@
 
 | Status      | Count |
 | ----------- | ----- |
-| OPEN        | 102   |
+| OPEN        | 100   |
 | DONE        | 15    |
 | VALIDATE    | 0     |
 | E2E         | 0     |
 | DEFERRED    | 1     |
 | MONITOR     | 1     |
 | FIXED       | 1     |
-| IMPLEMENTED | 0     |
+| IMPLEMENTED | 2     |
 | VERIFIED    | 29    |
 | CLOSED      | 217   |
 | BLOCKED     | 0     |

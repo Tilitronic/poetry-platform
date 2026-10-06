@@ -3598,3 +3598,27 @@ Two independent lanes of the agent-role consolidation study hit the same methodo
   explicit classification), lessons.md DIA-260927-s1gd phrasing rule (the
   runtime-probe reframe applies only when config work is genuinely out of
   scope, not as a way to slip past a genuine config-path mention).
+
+- OPENCODE PERMISSION MATCHER SEMANTICS - MERGE ORDER DELTA (2026-10-06,
+  DIA-260929-3ydp ai-specialist gate; findLast / last-match-wins itself was
+  already recorded at lessons.md:588-610 and adr.md:806-818, so it is NOT
+  restated here):
+  - MERGE ORDER: the evaluated rule array is assembled defaults -> global
+    config -> per-agent config, then session approvals. Two consequences that
+    no single config file shows: (a) AGENT-level rules win over global rules
+    for the same tool; (b) session "always" approvals are appended LAST (the
+    `approved` ruleset) and therefore outrank ALL config rules.
+  - Diagnostic consequence: a runtime allow with NO matching config rule is a
+    session "always" grant, not a phantom config entry - probe the merged array
+    (`opencode debug agent <name>`) before hunting for config that does not
+    exist (this reconciled the DIA-260928-rzty probes A-E).
+  - Why irrecoverable: merge order and session-approval precedence are runtime
+    evaluation behavior; the diff/config show only per-source rules. Three repo
+    docs wrongly claimed longest-pattern-wins
+    (skills/git-permissions/SKILL.md:21, learnings 2026-08-11-git-permission-pattern-matching.md:19,
+    opencode.jsonc comment at :358), so the docs themselves are an unreliable
+    source for this semantic.
+  - Cross-reference: lessons.md:588 (catch-all-ordering findLast trap), adr.md
+    (overnight guard-denies last-match-wins ADR),
+    .opencode/learnings/external-patterns/2026-10-06-ft3z-rzty-permission-gate-findings.md
+    (full evidence, section 1).

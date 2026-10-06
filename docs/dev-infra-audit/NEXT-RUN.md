@@ -154,7 +154,7 @@ with a read-only task) to report the current contents of:
 - **DELEGATION MAP**: research→@researcher, analysis→@analyzer, inventory→@code-navigator,
   implementation→@coder (after @openspec-plan spec; tdd-craftsman), review→@reviewer,
   architecture→@architector, opencode-config research/review→@ai-specialist,
-  knowledge-source curation→@resource-manager, knowledge persist→@memory-manager,
+  knowledge-source curation→@researcher, knowledge persist→@memory-manager,
   docs/mechanical→@coder, visual→@designer/@observer.
 - **STRICT WORKFLOW**: engineering work goes through the interview-first gate
   (openspec-plan) unless fast-path approved by the user; OpenCode-config changes

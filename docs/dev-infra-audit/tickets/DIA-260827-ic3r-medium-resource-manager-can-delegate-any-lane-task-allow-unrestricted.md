@@ -6,7 +6,7 @@ id: DIA-260827-ic3r
 title: "[MEDIUM] Resource-manager can delegate any lane (task allow unrestricted)"
 area: opencode-config
 severity: Medium
-status: OPEN
+status: IMPLEMENTED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: ""
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
@@ -17,7 +17,7 @@ discovered: 2026-08-27
 source: inventory
 date: 2026-08-27
 created: 2026-08-27
-updated: 2026-08-27
+updated: 2026-10-06
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -32,6 +32,7 @@ files_touched: []
 artifacts: []
 evidence:
 
+- resolved-by-deletion under DIA-260929-3ydp (2026-10-06)
 - .opencode/opencode.jsonc:581-602
 
 ---
@@ -49,6 +50,21 @@ resource-manager cannot delegate lanes other than researcher/conspecter; deny-fi
 Detail: "task":"allow" is unrestricted although the contract names only researcher and conspecter.
 
 Fix: deny \*, allow only those two.
+
+RESOLVED BY DELETION under DIA-260929-3ydp 'resource-manager retirement:
+merge ai-assist-sources curation into the researcher lane' (2026-10-06).
+
+The agent was retired instead of repaired: the `resource-manager` block in
+`.opencode/opencode.jsonc` (including its unrestricted `"task": "allow"`
+permission) was removed together with the lane, so the delegate-any-lane
+capability no longer exists and there is nothing left to narrow to
+researcher/conspecter. The deny-first rework this ticket prescribed is
+moot; the curation duty moved to `@researcher`, whose `task` permission
+stays `"*": "deny"` (artifact-producer tier, no delegation).
+
+Evidence: `rg resource-manager .opencode/opencode.jsonc` returns no hits;
+`scripts/validate-agent-names.sh` 26 passed, 0 failed;
+`make test-config` exit 0.
 
 ## Re-verify
 

@@ -269,7 +269,6 @@ Canonical display→internal mapping for every agent the project declares (activ
 | `@openspec-plan`      | `openspec-plan`      | Spec authoring (Socratic, practice-protected)                                                          |
 | `@ai-specialist`      | `ai-specialist`      | OpenCode system research & config (read-only)                                                          |
 | `@ai-auditor`         | `ai-auditor`         | Read-only config/skill surface auditor (documentation-only; never writes)                              |
-| `@resource-manager`   | `resource-manager`   | Knowledge-source curation (ai-assist-sources.yaml, Tier-1 caching)                                     |
 | `@designer`           | `designer`           | UI/UX design                                                                                           |
 | `@observer`           | `observer`           | Visual/media analysis                                                                                  |
 | `@memory-manager`     | `memory-manager`     | Knowledge persistence                                                                                  |

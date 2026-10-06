@@ -175,7 +175,7 @@ After all subagents return results:
 | Dev-infra (scripts/Makefile, no Docker) | `@coder` | `@reviewer` | `make test-shell` |
 | Dev-infra (Docker / compose) | `@coder` | `@reviewer` | `make test-infra` |
 | OpenCode config | gate `@ai-specialist` -> `@coder` (implement) | `@ai-auditor` (independent review, AGENTS.md section 2.5) | `make test-config` + restart-verify |
-| Knowledge-source curation (ai-assist-sources.yaml, Tier-1 cache) | `@resource-manager` | `@ai-specialist` (independent review) | YAML validity + cache-file check |
+| Knowledge-source curation (ai-assist-sources.yaml, Tier-1 cache) | `@researcher` | `@ai-specialist` (independent review) | YAML validity + cache-file check |
 | Feature code (packages/apps) | `@coder` | `@reviewer` | existing test suites |
 
 ## Grounded Dispatch Discipline
@@ -396,8 +396,7 @@ block actually allows bash + read of the ledger - in the current config
 global "*": allow baseline), @coder-escalated, @analyzer, @analyzer-escalated,
 @designer, or @memory-manager. NOT eligible: read-only lanes with
 bash: "deny" (@code-navigator, @reviewer, @observer, @conspecter, @council,
-@ai-specialist, @ai-auditor) and @resource-manager (bash allow-list covers
-only curl/wget/trafilatura - no python3/yq). The orchestrator dispatches
+@ai-specialist, @ai-auditor). The orchestrator dispatches
 the exact query below, the lane runs it and returns only the matching
 entry text. The orchestrator never pastes the full file into a prompt; it
 only forwards the query + ticket id.

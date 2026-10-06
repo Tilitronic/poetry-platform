@@ -285,7 +285,6 @@ flowchart LR
   Conspect["@conspecter\nsource synthesis"]
   Memory["@memory-manager\nknowledge persistence"]
 
-  Resource["@resource-manager\nsource curation"]
   Nav["@code-navigator\nlocal recon"]
   Analyzer["@analyzer\nstructured analysis"]
   Council["@council\ncrisis-only consensus"]
@@ -299,7 +298,6 @@ flowchart LR
   Orch --> Research
   Orch --> Conspect
   Orch --> Memory
-  Orch --> Resource
   Orch --> Nav
   Orch --> Analyzer
   Orch --> Council

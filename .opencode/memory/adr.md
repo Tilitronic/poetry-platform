@@ -2608,3 +2608,87 @@ absolute bound value.
 - Created: 2026-09-28
 - Related: DIA-260928-nm2u, .sdd/permission-stall-hardening/architecture.md (ADR-001..004, all accepted 2026-09-28),
   .sdd/scratch-lifecycle/architecture.md (ADR-001), DIA-260928-rzty
+
+## ADR: resource-manager lane retired, ai-assist-sources curation merged into @researcher - reversal of the DIA-007 split (DIA-260929-3ydp)
+
+### Status
+
+Accepted - 2026-10-06. Supersedes the reasoning behind the 2026-08-03 DIA-007
+split that created the lane as a separate read-only curator.
+
+### Context
+
+On 2026-08-03 the DIA-007 campaign split curation out of @researcher into a new
+`resource-manager` lane, on the design principle that the fetch/artifact
+producer (@researcher) must stay separated from the read-only analyst/curator of
+`.opencode/oh-my-opencode-slim/knowledge/ai-assist-sources.yaml`. The origin and
+ownership of that decision were re-analyzed in
+knowledge/ana-260929-17rl-resource-manager-origin-and-ownership/ (report). The
+re-audit found:
+
+1. ZERO retained dispatches for the lane (retained registry covers 2026-08-06
+   through 2026-09-29; the 2026-08-03..06 window is unobservable, so the honest
+   phrasing is "no persisted curation outcome", never "never used").
+2. Near-total scope overlap with @researcher: same fetch toolchain minus crwl,
+   same artifact-producer tier, differing by exactly one edit glob.
+3. Its two designed differentiators documented broken: no bash callable-tool
+   (lessons.md:209-214), subagent_depth=1 blocking nested dispatch
+   (lessons.md:220), plus a catch-all deny that hid bash entirely
+   (lessons.md:589-599).
+4. Its one unique duty (sources.yaml curation) was always executed by
+   developer/coder commits anyway.
+
+### Decision (2026-10-06, ticket DIA-260929-3ydp)
+
+1. RETIRE the `resource-manager` agent. Removed from S1 (AGENTS.md table),
+   S2 (.opencode/opencode.jsonc agent block), S3 (oh-my-opencode-slim.jsonc
+   agents/presets/disabled lists), both presets, the orchestrator prompt,
+   practice-protected.md, docs, and knowledge/model-registry.yaml.
+2. MERGE the curation duty into @researcher: its edit allow-list gains
+   `.opencode/oh-my-opencode-slim/knowledge/*` (agents/researcher.md), and every
+   referral surface that pointed at @resource-manager is redirected.
+3. Preserve the 2026-08-03 analyst/curator separation by other means:
+   @ai-specialist stays the pure-analyst (read-only) lane; @researcher becomes
+   the write-capable curator. Curation methodology (star-count / Tier-2
+   evaluation) deliberately stays single-homed in @ai-specialist +
+   ai-assist-sources.yaml evaluation_rules.
+4. DIA-260827-ic3r ("resource-manager can delegate any lane, task allow
+   unrestricted") is resolved-by-deletion: its permission block was removed
+   with the lane.
+5. Executed through the full AGENTS.md section 2.5 chain (ai-specialist gate ->
+   learnings registration -> owner confirmation -> coder implementation ->
+   make test-config + validate-agent-names (26 passed, baseline 27) ->
+   ai-auditor Phase 6 accept-with-conditions -> owner disposition (F1-F4
+   accepted, F5 deferred) -> same-session fixes -> targeted re-review cycle 1/2
+   all-closed -> CHANGELOG entry + tickets IMPLEMENTED).
+
+### Rationale (irrecoverable context)
+
+- THE RULE THIS ESTABLISHES: a lane earns existence by (a) retained usage and
+  (b) non-overlapping scope. Design intent alone is insufficient; a lane whose
+  dispatch registry shows no persisted outcome AND whose scope is a strict
+  subset-plus-one-glob of an existing lane should be merged back, not kept alive
+  by the design document that created it.
+- Corollary: designed differentiators must be RUNTIME-verified (manifest probe),
+  not asserted from config. Both differentiators here were broken from day one
+  and no test caught it, because the lane was never dispatched.
+- The analysis rationale (zero retained dispatches, overlap audit, broken
+  differentiators) is NOT derivable from the diff: the diff shows removal, not
+  the usage evidence or the failed design claims. The origin report and the two
+  2026-10-06 learnings files carry the evidence trail.
+
+### Supersession
+
+- Supersedes the DIA-007 split reasoning of 2026-08-03 (read-only curator
+  separated from the producer). The separation PRINCIPLE survives, relocated:
+  analyst purity is @ai-specialist's, curation writes are @researcher's.
+- Supersedes nothing in .sdd/ (no resource-manager module doc exists - itself
+  evidence the lane never matured).
+
+### Metadata
+
+- Created: 2026-10-06
+- Related: DIA-260929-3ydp, DIA-260827-ic3r (resolved-by-deletion), DIA-007,
+  knowledge/ana-260929-17rl-resource-manager-origin-and-ownership/ (report),
+  .opencode/learnings/external-patterns/2026-10-06-resource-manager-retirement-gate-findings.md,
+  .opencode/learnings/external-patterns/2026-10-06-ft3z-rzty-permission-gate-findings.md

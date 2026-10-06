@@ -56,7 +56,7 @@ All agents fall into one of three permission tiers. New agents must declare thei
 | Tier | Permissions | Produces | Examples |
 |------|------------|----------|----------|
 | **pure-analyst** | `read_files` only | Output in conversation only | @architector, @ai-specialist, @reviewer |
-| **artifact-producer** | Write+Bash, scoped to `knowledge/` | Structured reports, conspects, analyses | @analyzer, @conspecter, @resource-manager, @openspec-plan |
+| **artifact-producer** | Write+Bash, scoped to `knowledge/` (@researcher also writes `.opencode/oh-my-opencode-slim/knowledge/*`) | Structured reports, conspects, analyses | @analyzer, @conspecter, @researcher, @openspec-plan |
 | **executor** | Full Write+Bash | Implementation, refactoring, scribe work | @coder, @designer |
 
 **Rule:** If a pure-analyst agent's output needs to be persisted as a file, the
@@ -69,12 +69,6 @@ and never modify source files.
 > **Note (ai-specialist):** Classified pure-analyst (read-only). It is granted
 > `bash: curl/wget` for read-only web research (fetching docs); it never writes
 > files and never dispatches subagents (`edit: deny`, `task: deny`).
-
-> **Note (resource-manager):** Classified artifact-producer (DIA-007). Its `edit`
-> permission is scoped to `.opencode/oh-my-opencode-slim/knowledge/*` ONLY — it
-> curates ai-assist-sources.yaml, Tier-1 Markdown caches, and per-source review
-> terms, and never modifies source files or config. It may dispatch
-> @researcher/@conspecter (`task: allow`) to gather curation evidence.
 
 ## 8. Artifact Ownership Tracking
 

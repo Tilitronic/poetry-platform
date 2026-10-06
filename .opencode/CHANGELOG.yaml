@@ -5023,12 +5023,12 @@
   summary: Remove all live SNIP traces from the Dockerfile, config, docs and tests;
     slice 4 (host user-global config) transferred out to DIA-260827-txq2, change closes
     repo-only
-  verification: "make test-config exit 0; make test-shell exit 0 in-container (724/724,
+  verification: 'make test-config exit 0; make test-shell exit 0 in-container (724/724,
     0 failures); openspec validate --strict exit 0; git grep snip over Dockerfile.dev,
     .opencode/opencode.jsonc and .opencode/agents/coder-escalated.md returns 0 hits.
     F3 (real container image build) NOT exercised: no container engine binary or socket
     exists in-container, and the host make test-infra run aborted earlier in the mocked-bats
-    phase on the pre-existing host-only test 451."
+    phase on the pre-existing host-only test 451.'
 - date: '2026-09-29'
   ticket: DIA-260929-wjir
   scope: presets
@@ -5038,10 +5038,10 @@
   summary: Swap architector and ai-auditor primaries to opencode-go/grok-4.7 and the
     analyzer to opencode-go/deepseek-v4.1-flash in the mimo-balanced preset; register
     grok-4.7 in the model registry
-  verification: "in-container make test-config exit 0; preset-inventory gates and the
+  verification: in-container make test-config exit 0; preset-inventory gates and the
     strengthened fixture tests pass; model registry and preset inventory agree. Runtime
     model probe and the options.thinking property acceptance on the grok-4.7 responses
-    transport are NOT yet verified and remain outstanding."
+    transport are NOT yet verified and remain outstanding.
 - date: '2026-09-29'
   ticket: DIA-260929-5c6m
   scope: promo-preset
@@ -5055,6 +5055,36 @@
   - .opencode/plugins/__tests__/preset-model-guard.dia260918-t5.test.mjs
   summary: Retire the promo-union-alpha and free presets; convert scripts/promo-preset-apply
     into an explicit no-op reporter that exits 0 for every historical flag
-  verification: "preset-inventory equality plus explicit rejection assertions for the
-    removed preset names; fixture suites green; make test-shell exit 0 in-container (724/724,
-    0 failures)."
+  verification: preset-inventory equality plus explicit rejection assertions for the
+    removed preset names; fixture suites green; make test-shell exit 0 in-container
+    (724/724, 0 failures).
+- date: '2026-10-06'
+  ticket: DIA-260929-3ydp
+  scope: resource-manager retirement - Option A merge into researcher
+  files:
+  - AGENTS.md
+  - .opencode/opencode.jsonc
+  - .opencode/oh-my-opencode-slim.jsonc
+  - .opencode/oh-my-opencode-slim/orchestrator_append.md
+  - .opencode/practice-protected.md
+  - .opencode/agents/ai-specialist.md
+  - .opencode/agents/ai-auditor.md
+  - .opencode/agents/researcher.md
+  - .opencode/oh-my-opencode-slim/knowledge/ai-assist-sources.yaml
+  - .opencode/oh-my-opencode-slim/knowledge/opencode-best-practices.md
+  - docs/dev-infra-audit/NEXT-RUN.md
+  - docs/onboarding.md
+  - docs/dev-infra-audit/opencode-infrastructure.md
+  - knowledge/model-registry.yaml
+  - .opencode/learnings/external-patterns/2026-10-06-resource-manager-retirement-gate-findings.md
+  summary: Retire the resource-manager agent; merge ai-assist-sources curation into
+    @researcher. Researcher edit map gains .opencode/oh-my-opencode-slim/knowledge/*;
+    referrals redirected; lane removed from all S1/S2/S3 surfaces, both presets, orchestrator
+    prompt, practice-protected, docs and model-registry. Resolves DIA-260827-ic3r
+    by deletion (its unrestricted task:allow block no longer exists).
+  verification: make test-config exit 0; scripts/validate-agent-names.sh 26 passed,
+    0 failed; ai-auditor Phase-6 verdict accept-with-conditions, then targeted re-review
+    cycle 1/2 all prior findings resolved (F1-F4 verified-closed; F5 deferred by developer);
+    scripts/validate-changelog.sh exit 0 and scripts/changelog-render exit 0 (173
+    entries). Commit and restart still pending.
+  area: opencode-config
