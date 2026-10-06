@@ -82,6 +82,8 @@ Reproduce: token-aware grep for a leading at-sign before any canonical agent nam
 
 CAUSE A, originally diagnosed in DIA-260926-ch1d (CLOSED), is recorded durably at the learnings path above and reconciled here.
 
+Re-review observations fixed in this pass: (Minor) stale section-9 wording - the AGENTS.md intro now reads "Canonical agent-name mapping ... (mention form -> internal name)" and the Contract note now scopes Source-1 to the Internal name column; (Suggestion) rule-5 parity - both inline .jsonc orchestrator prompts now use the same softened bail clause as A8 and gate 4.
+
 ## Re-verify
 
 > To be filled at re-verify time.

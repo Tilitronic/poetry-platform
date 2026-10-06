@@ -1259,3 +1259,9 @@
 - **Change:** Re-route @observer in the active mimo-balanced preset to vision-capable opencode-go/qwen3.8-flash (fallback opencode-go/kimi-k2.7-code); align model-registry lane arrays and ai-assist-sources role_mapping; probe-validated (PNG exact-match 6/6)
 - **Files:** .opencode/oh-my-opencode-slim.jsonc - knowledge/model-registry.yaml - .opencode/oh-my-opencode-slim/knowledge/ai-assist-sources.yaml
 - **Verification:** make test-config exit 0; PNG exact-match probe 6/6 (no-image control 0/2) on opencode-go/qwen3.8-flash; Phase-6 audit advisory PASS
+
+## 2026-10-06 - DIA-261006-y72h: .opencode
+
+- **Change:** Codify dispatch-payload agent-mention hygiene: OpenCode core silently appends a synthetic call-the-task-tool part when a payload carries a leading at-sign before an agent name. Stripped 236 leading at-sign agent mentions across 23 instruction-surface .md files plus 98 in oh-my-opencode-slim.jsonc; added the rule to orchestrator_append.md (A8), AGENTS.md section 6 gate 4, and both inline .jsonc orchestrator prompts; renamed AGENTS.md section 9 column to Mention form; registered the durable learnings record.
+- **Files:** AGENTS.md - .opencode/oh-my-opencode-slim.jsonc - .opencode/oh-my-opencode-slim/orchestrator_append.md - .opencode/learnings/external-patterns/2026-10-06-opencode-core-synthetic-task-tool-append.md
+- **Verification:** make test-config exit 0; scripts/validate-agent-names.sh exit 0 (26 passed); token-aware negative grep over .opencode/oh-my-opencode-slim.jsonc and the 23-file manifest == 0; .jsonc parses with rule 5 in both inline orchestrator prompts
