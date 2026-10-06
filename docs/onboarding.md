@@ -186,7 +186,7 @@ Turbo ensures the **build order** is correct — tests never run on stale builds
 
 > `/tdd-cycle` and `/test-package` were REMOVED (DIA-260831-h3i4): their
 > direct `agent:coder` bindings bypassed the DIA-217 ticket gate. TDD now
-> runs through @coder lane dispatch with an OPEN ticket (tdd-craftsman
+> runs through coder lane dispatch with an OPEN ticket (tdd-craftsman
 > skill); package tests via `make test-*`.
 
 **MCP servers** (live AI tool access):
@@ -209,7 +209,7 @@ This is the **most important layer**. It's documented in `AGENTS.md` (see §1 Ar
 3. No tests = unowned code — don't commit it
 4. No speculative abstractions (YAGNI)
 5. Architecture > cleverness
-6. Every change gets a `@reviewer` pass before commit
+6. Every change gets a `reviewer` pass before commit
 
 **The motto:** _"Write code that your future self can debug at 2 AM six months from now, after you've forgotten everything about this feature."_
 
@@ -225,7 +225,7 @@ YOU: "Add heteronym resolution to the editor"
      │
      ▼
 ┌──────────────────────────────────────────────────────┐
-│ 1. SPEC PHASE (@openspec-plan)                       │
+│ 1. SPEC PHASE (openspec-plan)                       │
 │    reads architecture.md + .sdd/ constraints          │
 │    Socratic interview — one question at a time:       │
 │      "What's in scope?"                              │
@@ -241,8 +241,8 @@ YOU: "Add heteronym resolution to the editor"
      ▼ CONFIRMED
      │
 ┌──────────────────────────────────────────────────────┐
-│ 2. TDD CYCLE (@coder + tdd-craftsman)                │
-│    @coder implements tasks.md as vertical slices     │
+│ 2. TDD CYCLE (coder + tdd-craftsman)                │
+│    coder implements tasks.md as vertical slices     │
 │    test-first via the tdd-craftsman skill            │
 │                                                      │
 │    RED:    write a failing test at the pre-agreed    │
@@ -258,8 +258,8 @@ YOU: "Add heteronym resolution to the editor"
      │
      ▼
 ┌──────────────────────────────────────────────────────┐
-│ 3. REVIEW PHASE (@reviewer)                          │
-│    @reviewer runs the two-axis review:               │
+│ 3. REVIEW PHASE (reviewer)                          │
+│    reviewer runs the two-axis review:               │
 │      (a) Standards — SOLID, JSDoc, test coverage     │
 │      (b) Spec fidelity — matches proposal/design     │
 └──────────────────────────────────────────────────────┘
@@ -268,7 +268,7 @@ YOU: "Add heteronym resolution to the editor"
      COMMIT (or fix issues and repeat)
 ```
 
-**Total time:** You answer the interview questions once, then `@coder` implements the slices. The interview prevents "vibe coding" — building something that looks right but misses all the edge cases.
+**Total time:** You answer the interview questions once, then `coder` implements the slices. The interview prevents "vibe coding" — building something that looks right but misses all the edge cases.
 
 ---
 
@@ -316,7 +316,7 @@ YOU: "Add heteronym resolution to the editor"
 | `/code-ownership <path>` | You want to evaluate code quality and maintainability  |
 
 > `/tdd-cycle` and `/test-package` were REMOVED (DIA-260831-h3i4): TDD via
-> @coder lane dispatch with ticket (tdd-craftsman skill), tests via `make test-*`.
+> coder lane dispatch with ticket (tdd-craftsman skill), tests via `make test-*`.
 
 ---
 

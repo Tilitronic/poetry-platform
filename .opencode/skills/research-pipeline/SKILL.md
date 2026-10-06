@@ -11,10 +11,10 @@ The orchestrator uses this skill when standalone research should produce persist
 ## Workflow Phases
 
 ### Phase 1: ID Pre-Allocation
-Before dispatching `@researcher`, run `scripts/allocate-id res <slug>` to obtain a collision-resistant datetime ID (format: res-YYMMDD-<rand4>-<slug>). Pass the returned ID in the dispatch payload: "Write to knowledge/<returned-id>/sources/". Never let the researcher or conspecter self-allocate. Never scan knowledge/ for highest existing IDs — that pattern is retired (DIA-260831-9zq6).
+Before dispatching `researcher`, run `scripts/allocate-id res <slug>` to obtain a collision-resistant datetime ID (format: res-YYMMDD-<rand4>-<slug>). Pass the returned ID in the dispatch payload: "Write to knowledge/<returned-id>/sources/". Never let the researcher or conspecter self-allocate. Never scan knowledge/ for highest existing IDs — that pattern is retired (DIA-260831-9zq6).
 
 ### Phase 2: Research + Phase A Source Capture (researcher-owned, D5/D6)
-Dispatch `@researcher` with a specific question, scope, the pre-allocated `res<id>`, and output format requirements. The researcher OWNS Phase A source capture: it fetches every source URL ONCE into `knowledge/res<id>-<topic>/sources/` using the 3-tier fallback chain, evaluates each source, and returns structured findings. This single-fetch ownership structurally eliminates the double-fetch defect (no second trafilatura pass by a conspecter).
+Dispatch `researcher` with a specific question, scope, the pre-allocated `res<id>`, and output format requirements. The researcher OWNS Phase A source capture: it fetches every source URL ONCE into `knowledge/res<id>-<topic>/sources/` using the 3-tier fallback chain, evaluates each source, and returns structured findings. This single-fetch ownership structurally eliminates the double-fetch defect (no second trafilatura pass by a conspecter).
 
 **3-tier fetch chain (by URL class):**
 - **Tier 1 — npm registry JSON API:** `registry.npmjs.org/<package>` -> `curl -s "https://registry.npmjs.org/<package>" > sources/<slug>.json` (the JSON response IS the archive; richer than HTML, no trafilatura needed)
@@ -35,7 +35,7 @@ Dispatch `@researcher` with a specific question, scope, the pre-allocated `res<i
 Before accepting the researcher's return, the orchestrator MUST verify
 `knowledge/res<id>-<topic>/sources/.source-urls.txt` exists. If missing:
 - REJECT the return
-- Re-dispatch @researcher with explicit Phase A instructions:
+- Re-dispatch researcher with explicit Phase A instructions:
   "Phase A checkpoint failed: sources/.source-urls.txt not found.
   You MUST complete Phase A steps 1-4 before returning findings."
 
@@ -56,12 +56,12 @@ If NONE met OR researcher flagged `PERSISTENCE_RECOMMENDED: false` → conspect 
 There is no developer-facing KEEP/DELETE decision. Conspect creation is automatic after successful Phase 2.
 
 ### Phase 4: Conspect Synthesis (conspecter = pure synthesis, D7)
-Dispatch `@conspecter` with:
+Dispatch `conspecter` with:
 1. **The pre-allocated ID + topic** — `knowledge/res<id>-<topic>/` (already created by the researcher's Phase A capture)
 2. **Naming** — the `<id>` was pre-allocated in Phase 1; the conspecter must NOT re-derive it
 3. **ID verbatim guard** - `scripts/allocate-id` already returns the full ID including the slug (format: res-YYMMDD-XXXX-<slug>). Use the returned ID verbatim as `knowledge/<returned-id>/`. Do NOT append `-<topic>` again. The generic `res<id>-<topic>` form used in this file is a template placeholder only, not a double-suffix instruction.
 
-The conspecter is a PURE SYNTHESIS lane: it reads ONLY the archived sources under `sources/` (NO network fetch — curl/trafilatura/crwl/playwright are revoked), synthesizes the MLA-cited conspect, and reports artifact path; @memory-manager registers in memory-shelf. It must cite ONLY sources that pass the researcher's evaluation; excluded sources are listed under Unarchived/Excluded with reason.
+The conspecter is a PURE SYNTHESIS lane: it reads ONLY the archived sources under `sources/` (NO network fetch — curl/trafilatura/crwl/playwright are revoked), synthesizes the MLA-cited conspect, and reports artifact path; memory-manager registers in memory-shelf. It must cite ONLY sources that pass the researcher's evaluation; excluded sources are listed under Unarchived/Excluded with reason.
 
 Wait for conspecter to complete. Verify:
 - `knowledge/res<id>-<topic>/sources/` has .md files
@@ -69,11 +69,11 @@ Wait for conspecter to complete. Verify:
 - `.source-urls.txt` has all URLs with per-source ratings
 
 ### Phase 5: Analysis Gate (D4)
-Analysis is BLOCKED until the conspect is verified. When the conspecter completes, the delegation-observer plugin drops `.opencode/session/analysis-pending.json` with `{ "status": "pending_verification" }`. Before dispatching `@analyzer`:
+Analysis is BLOCKED until the conspect is verified. When the conspecter completes, the delegation-observer plugin drops `.opencode/session/analysis-pending.json` with `{ "status": "pending_verification" }`. Before dispatching `analyzer`:
 1. Verify the conspect artifacts (sources/, conspect file, memory-shelf entry) via a delegated read lane
 2. Edit `.opencode/session/analysis-pending.json` to `{ "status": "verified" }` to clear the gate
    (or delete it via `scripts/pending-gate-clear analysis-pending`, DIA-260825-fjnc)
-3. Only then dispatch `@analyzer` — analysis consumes the conspect, NOT raw findings
+3. Only then dispatch `analyzer` — analysis consumes the conspect, NOT raw findings
 
 The developer can explicitly skip analysis by setting `status: "skipped"`.
 
@@ -81,7 +81,7 @@ The developer can explicitly skip analysis by setting `status: "skipped"`.
 - **Conspect is automatic** — Phase 3 is a quality gate (auto-proceed), not a developer decision
 - **No orphaned sources** — if conspecter fails, sources/ may exist but no conspect; flag to developer
 - **No duplicate IDs** — IDs are pre-allocated by the orchestrator in Phase 1; always check existing res* directories before assigning
-- **Analysis blocked until verified** — Phase 5 gate; never dispatch @analyzer while analysis-pending.json is present and unverified
+- **Analysis blocked until verified** — Phase 5 gate; never dispatch analyzer while analysis-pending.json is present and unverified
 - **Quick lookups skip this skill** — single-source fact checks, general programming questions, ephemeral findings do not trigger this pipeline
 
 ## Archive-Before-Claim Policy
@@ -93,7 +93,7 @@ The developer can explicitly skip analysis by setting `status: "skipped"`.
 
 ## Delegation Rules
 - Phase 1: Orchestrator (ID pre-allocation)
-- Phase 2: `@researcher` (owns research + Phase A source capture; writes knowledge/<resid>-<topic>/sources/)
+- Phase 2: `researcher` (owns research + Phase A source capture; writes knowledge/<resid>-<topic>/sources/)
 - Phase 3: Orchestrator (quality check, auto-proceed — no developer decision)
-- Phase 4: `@conspecter` (pure synthesis; writes conspect; reports artifact path; @memory-manager registers in memory-shelf)
+- Phase 4: `conspecter` (pure synthesis; writes conspect; reports artifact path; memory-manager registers in memory-shelf)
 - Phase 5: Orchestrator verification (delegated read lane if needed) + developer skip option

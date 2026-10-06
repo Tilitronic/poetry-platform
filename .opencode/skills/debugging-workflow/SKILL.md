@@ -25,41 +25,41 @@ Debugging follows a **6-stage multi-agent pipeline**. Each stage produces output
 User Bug Report
   │
   ▼
-Stage 1 — Reproduce & Capture    (@coder + debugging-workflow skill)
+Stage 1 — Reproduce & Capture    (coder + debugging-workflow skill)
   │  - Create minimal reproduction
   │  - Capture exact inputs, env, versions
   │  - Add structured logging at key points
   │  - Output: annotated bug note + debug artifacts
   ▼
-Stage 1.5 — Build a Feedback Loop (@coder + debugging-workflow skill)
+Stage 1.5 — Build a Feedback Loop (coder + debugging-workflow skill)
   │  - One red-capable, deterministic, fast, agent-runnable command before any theory
   │  - Tighten the loop (faster, sharper signal, more deterministic)
   │  - Output: a command that fails on the bug
   ▼
-Stage 2 — Isolate Root Cause      (@coder + debugging-workflow skill)
+Stage 2 — Isolate Root Cause      (coder + debugging-workflow skill)
   │  - Strategic breakpoints at critical junctions
   │  - Binary search on code path
   │  - git bisect for regressions
   │  - Ranked hypotheses before testing
   │  - Output: narrowed scope (file/function/line)
   ▼
-Stage 3 — Analyze Causality       (@analyzer)
+Stage 3 — Analyze Causality       (analyzer)
   │  - Apply 5-Whys or Fishbone to findings
   │  - Trace cause-effect chain
   │  - Output: root cause analysis report
   ▼
-Stage 4 — Design Solution          (@architector or council)
+Stage 4 — Design Solution          (architector or council)
   │  - Evaluate fix options
   │  - Consider spec compliance
   │  - Output: fix specification
   ▼
-Stage 5 — Implement & Verify      (@coder)
+Stage 5 — Implement & Verify      (coder)
   │  - Apply the minimum fix
   │  - Write regression test
   │  - Verify no regressions; confirm the correct test seam
   │  - Output: fixed code + test
   ▼
-Stage 6 — Cleanup + Post-mortem   (@coder)
+Stage 6 — Cleanup + Post-mortem   (coder)
   │  - Repro no longer reproduces
   │  - All [DEBUG-*] instrumentation removed
   │  - Throwaway prototypes deleted
@@ -304,7 +304,7 @@ set(CMAKE_LINKER_FLAGS_DEBUG "${CMAKE_LINKER_FLAGS_DEBUG} -fsanitize=address -fs
 1. **Remove all debug code** — breakpoints, dbg!(), temporary logging, debugger statements
 2. **Write a regression test** — it should fail without the fix and pass with it
 3. **Document the root cause** — what was the bug, what was the fix, how was it found
-4. **Notify the @analyzer** if the root cause reveals a systemic issue — RCA may prevent future bugs
+4. **Notify the analyzer** if the root cause reveals a systemic issue — RCA may prevent future bugs
 
 ## Stage 5: Implement & Verify
 
@@ -321,4 +321,4 @@ Before declaring the fix done:
 1. **Original repro no longer reproduces** — run the Stage 1.5 feedback-loop command and confirm it is now green.
 2. **All `[DEBUG-*]` instrumentation removed** — every tagged log/breakpoint from Stage 2 is gone. Grep for `DEBUG-` to confirm.
 3. **Throwaway prototypes deleted** — harnesses, scratch scripts, and temp files created during debugging are removed (or moved to a clearly-labelled scratch area if genuinely reusable).
-4. **Post-mortem** — write down what would have prevented this bug: a missing test? a missing invariant? a tooling gap? If the root cause reveals a systemic issue, notify @analyzer for RCA.
+4. **Post-mortem** — write down what would have prevented this bug: a missing test? a missing invariant? a tooling gap? If the root cause reveals a systemic issue, notify analyzer for RCA.

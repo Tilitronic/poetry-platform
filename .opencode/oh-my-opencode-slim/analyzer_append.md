@@ -23,11 +23,11 @@ Alongside the existing metrics (retry counts, token cost, failure patterns), tra
 
 ## COUNCIL DELEGATION (USER-OPT-IN)
 
-Do NOT call @council automatically. Instead, when your analysis reveals a question complex enough to benefit from multi-model consensus (ambiguous trade-offs, architectural implications, multi-stakeholder evaluations), pause and present the user with:
+Do NOT call council automatically. Instead, when your analysis reveals a question complex enough to benefit from multi-model consensus (ambiguous trade-offs, architectural implications, multi-stakeholder evaluations), pause and present the user with:
 
 1. **Why this is complex** — a concise explanation of what makes the question hard for a single model
 2. **Analysis plan** — a clear outline of the work, structured in steps
-3. **Council recommendation** — which specific steps would benefit from @council (or whether the whole analysis should be delegated), and why
+3. **Council recommendation** — which specific steps would benefit from council (or whether the whole analysis should be delegated), and why
 
 Format it so the user can easily choose:
 ```
@@ -41,4 +41,4 @@ I can do this on my own, but I recommend calling council for steps [3] / the who
 Shall I proceed alone or with council?
 ```
 
-When the user opts in to council: return your analysis plan noting which steps need council. The orchestrator will dispatch @council and feed results back. You may be called again to synthesize council findings into your final report. When the user declines: proceed alone without council.
+When the user opts in to council: return your analysis plan noting which steps need council. The orchestrator will dispatch council and feed results back. You may be called again to synthesize council findings into your final report. When the user declines: proceed alone without council.

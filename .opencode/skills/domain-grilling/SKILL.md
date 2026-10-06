@@ -78,7 +78,7 @@ Only offer to create an ADR when **all three** are true:
 
 If any of the three is missing, skip the ADR.
 
-**Where ADRs live (project convention):** append ADR sections to `.sdd/<module>/architecture.md` — NOT `docs/adr/`. If the module has no `.sdd/` document yet, flag the gap and propose one to @architector rather than creating a parallel doc. Use our ADR format:
+**Where ADRs live (project convention):** append ADR sections to `.sdd/<module>/architecture.md` — NOT `docs/adr/`. If the module has no `.sdd/` document yet, flag the gap and propose one to architector rather than creating a parallel doc. Use our ADR format:
 
 ```md
 ## ADR: <Title>
@@ -95,4 +95,4 @@ This skill touches a practice-protected zone (see `.opencode/practice-protected.
 
 ## OpenSpec Integration
 
-If this session is part of an OpenSpec change, the interview transcript feeds @openspec-plan's artifact synthesis. Do not synthesize artifacts yourself.
+If this session is part of an OpenSpec change, the interview transcript feeds openspec-plan's artifact synthesis. Do not synthesize artifacts yourself.

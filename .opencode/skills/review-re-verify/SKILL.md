@@ -9,7 +9,7 @@ metadata:
 
 # Re-Review Protocol — Targeted Findings Verification
 
-Activated when the orchestrator dispatches @reviewer for a re-review (cycle N/2) with prior findings context.
+Activated when the orchestrator dispatches reviewer for a re-review (cycle N/2) with prior findings context.
 
 ## Mode: Targeted Re-Review
 

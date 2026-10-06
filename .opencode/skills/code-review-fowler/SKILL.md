@@ -1,6 +1,6 @@
 ---
 name: code-review-fowler
-description: Use when reviewing code against the Fowler code-smell baseline — the twelve labelled heuristics the @reviewer applies on the Standards axis of the two-axis review.
+description: Use when reviewing code against the Fowler code-smell baseline — the twelve labelled heuristics the reviewer applies on the Standards axis of the two-axis review.
 compatibility: opencode
 metadata:
   audience: reviewers
@@ -31,4 +31,4 @@ The twelve Fowler code smells from Martin Fowler's *Refactoring*, each with a on
 
 ## Usage
 
-When a finding maps to one of these smells, label it with the smell name and cite the fix direction. Distinguish hard violations (documented-standard breaches) from judgement calls (baseline smells). The @reviewer's `orchestratorPrompt` references this skill for the full baseline; the names-only list stays in the prompt to respect its character budget.
+When a finding maps to one of these smells, label it with the smell name and cite the fix direction. Distinguish hard violations (documented-standard breaches) from judgement calls (baseline smells). The reviewer's `orchestratorPrompt` references this skill for the full baseline; the names-only list stays in the prompt to respect its character budget.

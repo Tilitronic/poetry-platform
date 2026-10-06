@@ -13,7 +13,7 @@ When invoked to implement a feature using TDD, I execute the full
 **RED → GREEN** cycle in vertical slices, language-agnostically, across this
 monorepo's Python, Rust, C/C++, and TypeScript packages. I write failing
 tests first, implement the minimal code to pass them, one slice at a time,
-then hand off cleanup to the `@reviewer` pass — orchestrated through
+then hand off cleanup to the `reviewer` pass — orchestrated through
 Turborepo so the same gate sequence applies regardless of which package
 the change lives in.
 
@@ -198,7 +198,7 @@ deliberately isn't yet). This is the ownership checkpoint from section 0.
 - Write the MINIMUM code to pass the tests. No speculative features.
 - Prefer simple conditionals over abstraction.
 - If the test passes with a trivial implementation, that's fine —
-  optimization belongs to the `@reviewer` pass, not this cycle.
+  optimization belongs to the `reviewer` pass, not this cycle.
 
 ### Language-specific GREEN discipline
 
@@ -222,7 +222,7 @@ package scope per Turborepo convention.
 
 This is the **one commit per RED-GREEN cycle**: the failing test and the
 minimal implementation that satisfies it land together. Cleanup has no
-commit of its own here — it belongs to the `@reviewer` pass (§3).
+commit of its own here — it belongs to the `reviewer` pass (§3).
 
 Per the Ownership Protocol: the commit body includes the one-line
 rationale for any non-obvious approach.
@@ -232,7 +232,7 @@ rationale for any non-obvious approach.
 ## 3. Refactoring Belongs to Review — Not the Loop
 
 Refactoring is deliberately NOT part of the RED-GREEN loop. Cleanup, renaming,
-extraction, and performance optimization happen in the `@reviewer` pass, which
+extraction, and performance optimization happen in the `reviewer` pass, which
 uses a different model family to challenge structural choices the coder would
 never question. RED-GREEN proves the spec; refactoring inside the same loop
 would let the author rewrite their own code unchecked and risk breaking the
@@ -425,7 +425,7 @@ A failed gate routes back to a phase — it is never a signal to suppress
 the error:
 
 - **Gate 1–2 fail** → back to GREEN: the implementation is incomplete or wrong.
-- **Gate 3 fails (benchmark regression)** → route to `@reviewer` with the
+- **Gate 3 fails (benchmark regression)** → route to `reviewer` with the
   benchmark regression flagged; do not relax the threshold to pass.
 - **Gate 4 fails (type/static check)** → fix the actual type/contract.
   Never silence with `as any`, `# type: ignore`, `unwrap_or_default()`
@@ -461,7 +461,7 @@ GREEN:    implement minimum, rationale comment      ──→  turbo run test  �
                                                       │
           repeat for the next vertical slice (one test → one implementation)
                                                       │
-REVIEW:   @reviewer two-axis pass                    ──→  Standards (repo + Fowler baseline)
+REVIEW:   reviewer two-axis pass                    ──→  Standards (repo + Fowler baseline)
                                                            Spec (fidelity to originating spec)
                                                            turbo run bench    → PASS (if 3a)
                                                            turbo run typecheck → PASS

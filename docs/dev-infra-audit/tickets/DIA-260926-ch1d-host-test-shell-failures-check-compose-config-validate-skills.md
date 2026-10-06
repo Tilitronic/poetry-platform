@@ -62,3 +62,5 @@ F2 - validate-skills.bats:561 host-only failure. Root cause: the Fedora host run
 ## Re-verify
 
 > To be filled at re-verify time.
+
+See also: DIA-261006-y72h - CAUSE A (synthetic task-tool append) durable record.

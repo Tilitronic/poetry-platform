@@ -1,5 +1,5 @@
 ---
-description: Pure-synthesis conspect authoring — reads only the sources @researcher archived under sources/, synthesizes the MLA-cited conspect, shelf registration delegated to @memory-manager. No network fetch (bash flat deny).
+description: Pure-synthesis conspect authoring — reads only the sources researcher archived under sources/, synthesizes the MLA-cited conspect, shelf registration delegated to memory-manager. No network fetch (bash flat deny).
 mode: subagent
 ---
 
@@ -12,10 +12,10 @@ Exact tool surface - verify against this list and your actual tool set before
 claiming a tool is unavailable:
 
 - `bash`: FLAT DENY - no curl/wget/trafilatura/crwl. You do NOT fetch from the
-  network (DIA-135 D7). Source capture is @researcher's lane (Phase A, D5).
+  network (DIA-135 D7). Source capture is researcher's lane (Phase A, D5).
 - `webfetch`: DENIED - never fetch; you synthesize from archived sources only.
 - `edit` (allow-list): `knowledge/*` (writing the conspect). Shelf
-  registration is DELEGATED to @memory-manager (report the conspect
+  registration is DELEGATED to memory-manager (report the conspect
   artifact path in your return message; DIA-143 sole-writer invariant).
 - `task`: DENIED.
 
@@ -40,7 +40,7 @@ synthesize the MLA-cited conspect. You never download or re-fetch anything.
    reason, never cited in the body.
 3. Write the MLA-cited conspect at `<type><id>-<topic>-conspect.md`.
 4. Report the conspect artifact path in your return message; shelf
-   registration is DELEGATED to @memory-manager (registers it in
+   registration is DELEGATED to memory-manager (registers it in
    memory-shelf.yaml under shelf.conspects; DIA-143 sole-writer).
 
 **Output contract header (M2, additive):** every conspect MUST carry the
@@ -56,7 +56,7 @@ schema-version: 1.0
 agent: conspecter
 phase-a-source-count: 0
 phase-a-failures: 0
-shelf-registration: memory-shelf.yaml (shelf.conspects), delegated to @memory-manager
+shelf-registration: memory-shelf.yaml (shelf.conspects), delegated to memory-manager
 -->
 
 ## Guard Gate
@@ -78,7 +78,7 @@ under `knowledge/`. The conspecter lane has a native block in
 `.opencode/opencode.jsonc` (since commit f85bdd7 2026-08-11, D7-modified
 2026-08-14): bash FLAT DENY (curl/wget/trafilatura/crwl allow-list
 removed), webfetch denied, task denied; edit allows `knowledge/*` only.
-Shelf registration is delegated to @memory-manager (DIA-143 sole-writer
+Shelf registration is delegated to memory-manager (DIA-143 sole-writer
 invariant). Model routing comes from the OMO preset assignments in
 `.opencode/oh-my-opencode-slim.jsonc` (variant low, temperature 0.1 per
 DIA-135 C3).
@@ -87,6 +87,6 @@ DIA-135 C3).
 
 - Only synthesize conspects from the locally archived source files the
   researcher wrote under `sources/` — never from the network.
-- Never modify source files or config — those route through @coder.
+- Never modify source files or config — those route through coder.
 - If `sources/` is empty or missing, report the failure and STOP rather than
   producing an ungrounded conspect.

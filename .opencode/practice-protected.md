@@ -16,13 +16,13 @@ proceeding or applying changes.
   surfaced to the user for prioritization before test implementation.
 - The user decides which edge cases to test, not the agent.
 
-### 3. Architectural decisions flagged by @architector
+### 3. Architectural decisions flagged by architector
 - When an agent detects a significant architectural decision point, it must
   present the options with trade-offs and wait for explicit user direction.
 - Do not silently choose an architecture path and implement it.
 
 ### 4. Review disposition
-- When @reviewer produces findings, the developer decides disposition
+- When reviewer produces findings, the developer decides disposition
   (accept/reject/clarify) before the orchestrator proceeds. The orchestrator does not silently
   apply reviewer recommendations.
 - Exception: automated lint/format fixes that the reviewer labels as
@@ -31,10 +31,10 @@ proceeding or applying changes.
 
 ### 5. Grilling gate for significant changes (DIA-104)
 - Hybrid ownership: the developer owns the ANSWERS to the grill questions
-  (substance); @openspec-plan structures and asks. The gate check result is
+  (substance); openspec-plan structures and asks. The gate check result is
   logged in the ticket frontmatter (gate_state, gate_triggers,
   gate_waivers, gate_override) per the DIA-104 marker design.
-- @openspec-plan MAY auto-classify: it checks the 7 DIA-104 triggers
+- openspec-plan MAY auto-classify: it checks the 7 DIA-104 triggers
   (new-module | cross-boundary | schema-state | new-public-api |
   cross-cutting | hard-to-reverse | new-ui-component). If none match, it may
   state "no trigger - skip grill" and proceed. It may apply the
@@ -55,9 +55,9 @@ All agents fall into one of three permission tiers. New agents must declare thei
 
 | Tier | Permissions | Produces | Examples |
 |------|------------|----------|----------|
-| **pure-analyst** | `read_files` only | Output in conversation only | @architector, @ai-specialist, @reviewer |
-| **artifact-producer** | Write+Bash, scoped to `knowledge/` (@researcher also writes `.opencode/oh-my-opencode-slim/knowledge/*`) | Structured reports, conspects, analyses | @analyzer, @conspecter, @researcher, @openspec-plan |
-| **executor** | Full Write+Bash | Implementation, refactoring, scribe work | @coder, @designer |
+| **pure-analyst** | `read_files` only | Output in conversation only | architector, ai-specialist, reviewer |
+| **artifact-producer** | Write+Bash, scoped to `knowledge/` (researcher also writes `.opencode/oh-my-opencode-slim/knowledge/*`) | Structured reports, conspects, analyses | analyzer, conspecter, researcher, openspec-plan |
+| **executor** | Full Write+Bash | Implementation, refactoring, scribe work | coder, designer |
 
 **Rule:** If a pure-analyst agent's output needs to be persisted as a file, the
 orchestrator delegates to an executor for transcription. Pure-analysts never

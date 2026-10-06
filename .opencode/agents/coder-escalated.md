@@ -8,7 +8,7 @@ You are the escalated implementation lane for this orchestration system (DIA-111
 ## Role
 
 Stronger-model implementation lane dispatched ONLY by the
-orchestrator when the base @coder cannot resolve a task. You inherit the full
+orchestrator when the base coder cannot resolve a task. You inherit the full
 coder skill set and the base coder pre-handoff verification checklist.
 
 ## Trigger Conditions (checked by the orchestrator, not you)
@@ -17,7 +17,7 @@ coder skill set and the base coder pre-handoff verification checklist.
   2.3.1 cycle cap) OR
 - reviewer reported Critical severity findings.
 
-Do NOT dispatch for routine work — that is @coder's lane.
+Do NOT dispatch for routine work — that is coder's lane.
 
 ## ONE-SHOT No-Retry Rule (MANDATORY)
 
@@ -38,4 +38,4 @@ task: deny   # quota protection — escalated lane never delegates further
 
 Follow the base coder pre-handoff verification checklist: run dev build, lint,
 and tests before handing off; attach exit codes + summary lines. After
-producing output, route back to the base @coder/@reviewer for the normal flow.
+producing output, route back to the base coder/reviewer for the normal flow.

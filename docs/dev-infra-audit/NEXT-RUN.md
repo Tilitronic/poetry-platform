@@ -48,7 +48,7 @@ Read these files **in this order** when a session starts:
    implement anything inside them).
 
 Then check the ledger state via a **delegated read lane** (per rule 2 you may not read
-repo files yourself): dispatch a read-only lane (e.g. `@code-navigator` or `@coder`
+repo files yourself): dispatch a read-only lane (e.g. `code-navigator` or `coder`
 with a read-only task) to report the current contents of:
 
 - `docs/dev-infra-audit/README.md` (campaign overview + Current State)
@@ -151,11 +151,11 @@ with a read-only task) to report the current contents of:
   Detection: after a plugin-logged delegation row whose result contains
   DONE/COMPLETE/PASS for an implementation/review/commit lane, log the fresh handoff within
   the same delegation cycle.
-- **DELEGATION MAP**: research→@researcher, analysis→@analyzer, inventory→@code-navigator,
-  implementation→@coder (after @openspec-plan spec; tdd-craftsman), review→@reviewer,
-  architecture→@architector, opencode-config research/review→@ai-specialist,
-  knowledge-source curation→@researcher, knowledge persist→@memory-manager,
-  docs/mechanical→@coder, visual→@designer/@observer.
+- **DELEGATION MAP**: research→researcher, analysis→analyzer, inventory→code-navigator,
+  implementation→coder (after openspec-plan spec; tdd-craftsman), review→reviewer,
+  architecture→architector, opencode-config research/review→ai-specialist,
+  knowledge-source curation→researcher, knowledge persist→memory-manager,
+  docs/mechanical→coder, visual→designer/observer.
 - **STRICT WORKFLOW**: engineering work goes through the interview-first gate
   (openspec-plan) unless fast-path approved by the user; OpenCode-config changes
   route through AGENTS.md section 2.5 (ai-specialist gate → user decision →
@@ -191,7 +191,7 @@ Before ANY escalated dispatch to a quota-metered lane, the orchestrator MUST:
 
 ## 3. Audit Rerun Flow
 
-Run gates **in order** by DELEGATING verification-only lanes to @coder
+Run gates **in order** by DELEGATING verification-only lanes to coder
 (delegations are plugin-logged automatically; gate outcomes go through `log_decision`):
 
 1. `make test-config`
@@ -202,7 +202,7 @@ Run gates **in order** by DELEGATING verification-only lanes to @coder
 6. `make test-infra` (needs Docker; ends with stack down)
 7. container pytest (`.opencode/scripts`)
 
-Any failure → create/update ticket in `docs/dev-infra-audit/tickets/` (via @coder
+Any failure → create/update ticket in `docs/dev-infra-audit/tickets/` (via coder
 docs lane) → fix via delegation → re-verify. Repeat until the full cycle is CLEAN.
 
 ## 4. Open Tickets to Close
@@ -260,7 +260,7 @@ This section is the orchestrator-operating summary of the protocol.
 At cycle termination (clean / crisis / exhausted / manual-halt), the outgoing session MUST:
 
 0. **PRE-HANDOFF VERIFICATION GATE (exit semantics):** before terminating, confirm the
-   exit-gate evidence is in hand — verification results from @coder/@reviewer (relevant
+   exit-gate evidence is in hand — verification results from coder/reviewer (relevant
    `make test-*` suite exit 0, lint clean, typecheck clean, `openspec validate` if
    applicable), review disposition complete (all findings accepted/rejected by developer),
    `git status` shows no unrelated changes. Gate failure ⇒ exit_state "manual-halt" (never
@@ -370,7 +370,7 @@ to record, NOT a blocker; the gate proceeds per the normal flow.
    predecessor was supposed to be resolved but wasn't, C5 fires (design.md §1).
 7. **LANE-0 CHECKSUM DELEGATION (automatic; no waiver menu; VERIFICATION ONLY — DIA-093,
    DIA-120).** Immediately after batch approval and BEFORE any verification_request item,
-   dispatch @coder on a single-task brief to compute the DIA-061 canonical checksum of the
+   dispatch coder on a single-task brief to compute the DIA-061 canonical checksum of the
    RESOLVED SLOT (path from the step-0 chain - the slot
    `.opencode/session/handoffs/<session-id>.json`, NOT the legacy file unless the chain
    fell back to it):

@@ -13,25 +13,25 @@ Architecture → Specification → Implementation:
 ### 2.1 System Architecture (RARE — only when architecture evolves)
 
 1. **Trigger**: New module, cross-cutting technology decision, or module boundary change
-2. **Dispatch** `@architector` — produces `.sdd/<module>/architecture.md` with ADRs
+2. **Dispatch** `architector` — produces `.sdd/<module>/architecture.md` with ADRs
 3. **Frequency**: Not per-feature. Architecture is stable; features work within it.
 
 ### 2.2 Feature Specification (per feature)
 
 1. **Pre-flight**: Read relevant `.sdd/` documents for governing constraints
-2. **Dispatch** `@openspec-plan` — guides Socratic authoring of `proposal.md`, `design.md`, `tasks.md` under `openspec/changes/<name>/`
+2. **Dispatch** `openspec-plan` — guides Socratic authoring of `proposal.md`, `design.md`, `tasks.md` under `openspec/changes/<name>/`
 3. **Constraint**: `design.md` references `.sdd/` but never overrides it. Practice-protected: agent guides, user writes.
-4. **Escalation**: If the feature discovers an architecture gap (new module boundary needed, technology decision not yet made), PAUSE spec flow, dispatch `@architector` to create the `.sdd/` document, then resume.
+4. **Escalation**: If the feature discovers an architecture gap (new module boundary needed, technology decision not yet made), PAUSE spec flow, dispatch `architector` to create the `.sdd/` document, then resume.
 
 ### 2.3 Implementation (per feature)
 
-- **Ticket-ID token (DIA-174):** every dispatch AND every resume prompt MUST carry the literal ticket ID (e.g. "DIA-174") as best practice across all lanes. Because OpenCode's native `task` schema has no `ticket_id` field, label the governing ID in task text as `campaign ticket DIA-NNN` (or the datetime DIA form); the DIA-217 hook materializes it before validation. The DIA-063 gate enforces correlation for config-work lanes (any @ai-specialist dispatch and any dispatch whose text signals .opencode/ config work): an explicit DIA-id that resolves to no OPEN ticket hard-blocks, while a no-id dispatch passes via a session-owned or keyword-correlated open ticket or warns-and-allows (weak correlation).
+- **Ticket-ID token (DIA-174):** every dispatch AND every resume prompt MUST carry the literal ticket ID (e.g. "DIA-174") as best practice across all lanes. Because OpenCode's native `task` schema has no `ticket_id` field, label the governing ID in task text as `campaign ticket DIA-NNN` (or the datetime DIA form); the DIA-217 hook materializes it before validation. The DIA-063 gate enforces correlation for config-work lanes (any ai-specialist dispatch and any dispatch whose text signals .opencode/ config work): an explicit DIA-id that resolves to no OPEN ticket hard-blocks, while a no-id dispatch passes via a session-owned or keyword-correlated open ticket or warns-and-allows (weak correlation).
 - **DIA-217 ticket gate bypass paths (DIA-260820-jlu0, narrowed DIA-260831-h3i4 F3/F5, enforced procedurally cycle 2):** the DIA-217 hook hard-blocks any `task()` dispatch that cannot resolve to an unambiguous governing DIA ticket ID. Two no-ticket-ID escape hatches exist, each emitting an audit row (`capability_used` / `meta_task_bypass`) plus a TUI warn: (1) a pre-minted `[CAPABILITY: CAP-...]` token (scope `ticket-creation` / `ai-infra-application` / `bootstrap`), minted by the orchestrator via the `mint_capability` tool - closed-ticket bookkeeping may use either path; (2) a procedural-only carve-out that fires ONLY when the dispatch text carries the literal `scripts/tickets new` invocation (or the verified bookkeeping + closed-ticket pair) AND contains no engineering/config-work signals outside quoted `--title` spans - mixed engineering + procedural text hard-blocks. The carve-out removes the chicken-and-egg deadlock (a fresh ticket's ID is unknown at creation time) and returns BEFORE ticket_id resolution so a stray literal DIA id in the text is never attributed. The bare `[META-TASK]` marker ALONE authorizes nothing, and natural-language substrings (`create ticket`, `procedural authorization`) are NOT bypass signals - they occur inside ordinary engineering text. Bootstrap / ai-infra-application stay on the capability-token path (not chicken-and-egg). Every bypass is auditable; legitimate ticket-gated work is unchanged.
-- **Architector design persistence (DIA-174):** after each @architector design dispatch, persist the design text into the DIA ticket (or a `.sdd` draft) before implementation starts, so reviewers can diff verbatim claims.
+- **Architector design persistence (DIA-174):** after each architector design dispatch, persist the design text into the DIA ticket (or a `.sdd` draft) before implementation starts, so reviewers can diff verbatim claims.
 - **Instance separation (DIA-175):** RED test-writing and GREEN implementation for the same slice MUST be dispatched to DIFFERENT coder instances; the test-author never implements the slice it tested.
 
 1. **Pre-flight**: Check `.sdd/` and `openspec/` for governing constraints before touching code
-2. **Dispatch** `@coder` — implements against `tasks.md`, within architectural constraints
+2. **Dispatch** `coder` — implements against `tasks.md`, within architectural constraints
    - Optionally run `to-tickets` first to publish the tasks as DIA tickets in `docs/dev-infra-audit/tickets/` — use `scripts/tickets new` (not raw writes) to create each ticket (DIA-229)
    - **Ticket reference format:** when referencing DIA tickets in any user-facing output (session summaries, handoff prognoses, batch approvals), ALWAYS quote ID + human-readable slug from the filename (e.g., "DIA-100 'git worktrees for parallel dev sessions'"), not bare ID alone. Derive the slug from DIA-NNN-<descriptor>.md filenames or the README index.
 
@@ -47,16 +47,16 @@ Architecture → Specification → Implementation:
    When referencing DIA tickets in prose, always use `DIA-NNN 'slug'` or `DIA-YYMMDD-XXXX 'slug'` with the human-readable slug from the filename. Never use bare IDs without the slug.
 
 3. **Post-flight**: Run dev build, lint, tests before handing off. Coder MUST include verification evidence (exit codes + summary lines) — see §2.3.1
-4. **Review**: Dispatch `@reviewer` (two-axis: Standards + Spec fidelity)
-5. **Fix → Re-review loop** (§2.3.1): after developer disposition and coder fixes, re-dispatch `@reviewer` for targeted re-verification (max 2 cycles)
-6. **Persist**: After feature completion or ≥2 failed loops, dispatch `@memory-manager` to capture ADRs, lessons, and failure patterns in `.opencode/memory/`
+4. **Review**: Dispatch `reviewer` (two-axis: Standards + Spec fidelity)
+5. **Fix → Re-review loop** (§2.3.1): after developer disposition and coder fixes, re-dispatch `reviewer` for targeted re-verification (max 2 cycles)
+6. **Persist**: After feature completion or ≥2 failed loops, dispatch `memory-manager` to capture ADRs, lessons, and failure patterns in `.opencode/memory/`
 
 #### 2.3.1 Re-Review Loop (fix → re-verify → re-review)
 
-After the developer disposes review findings (accept/reject per practice-protected §4) and `@coder` applies accepted fixes:
+After the developer disposes review findings (accept/reject per practice-protected §4) and `coder` applies accepted fixes:
 
 1. **Coder handoff** must include verification evidence: test/lint/typecheck exit codes + summary lines for each fix applied.
-2. **Orchestrator re-dispatches `@reviewer`** with:
+2. **Orchestrator re-dispatches `reviewer`** with:
    - Same fixed point (commit/branch/tag)
    - Prior findings list (only the developer-accepted ones)
    - Coder's fixes-applied summary + verification evidence
@@ -78,23 +78,23 @@ After the developer disposes review findings (accept/reject per practice-protect
 
 - **Scope**: shell scripts (`scripts/*.sh`), Docker (`docker-compose.yml`, `Dockerfile.dev`, `dev-entrypoint.sh`), Makefile, `.devcontainer/`, CI config.
 - **Workflow**: same chain as features:
-  1. **Spec** — for changes >~20 lines dispatch `@openspec-plan` to author `openspec/changes/<name>/{proposal,design,tasks}.md`; `design.md` must include test strategy + rollback plan. Practice-protected: user writes substance.
-  2. **Implement** — dispatch `@coder`, tests written alongside (tdd-craftsman), test infra created if missing for the artifact type (bats for shell, pytest for python, smoke-test for docker).
+  1. **Spec** — for changes >~20 lines dispatch `openspec-plan` to author `openspec/changes/<name>/{proposal,design,tasks}.md`; `design.md` must include test strategy + rollback plan. Practice-protected: user writes substance.
+  2. **Implement** — dispatch `coder`, tests written alongside (tdd-craftsman), test infra created if missing for the artifact type (bats for shell, pytest for python, smoke-test for docker).
   3. **Test gate** — tests must exist and pass (`make test-shell` / `make test-infra` / `make test-config`).
-  4. **Review** — dispatch `@reviewer` (two-axis: Standards + Spec fidelity).
-  5. **Persist** — `@memory-manager`.
-- **Escalation**: if change reveals an architecture gap, dispatch `@architector` and pause.
+  4. **Review** — dispatch `reviewer` (two-axis: Standards + Spec fidelity).
+  5. **Persist** — `memory-manager`.
+- **Escalation**: if change reveals an architecture gap, dispatch `architector` and pause.
 
 ### 2.5 OpenCode Configuration Changes
 
 - **Scope**: `.opencode/*` (opencode.jsonc, oh-my-opencode-slim.jsonc, `agents/*.md`, `skills/*/SKILL.md`, `commands/`), AGENTS.md edits, practice-protected.md.
 - **Workflow**: routed through the AI Devtools Modernization Workflow (AGENTS.md section 2.5):
-  1. **Gate** — dispatch `@ai-specialist` (read-only research); the orchestrator registers its findings in `.opencode/learnings/external-patterns/`.
+  1. **Gate** — dispatch `ai-specialist` (read-only research); the orchestrator registers its findings in `.opencode/learnings/external-patterns/`.
   2. **User reviews & decides** (practice-protected — orchestrator does not silently apply).
-  3. **Design** — if non-trivial, `@architector`; every decision traces to a best-practice rule.
-  4. **Implement** — `@coder` applies approved design.
+  3. **Design** — if non-trivial, `architector`; every decision traces to a best-practice rule.
+  4. **Implement** — `coder` applies approved design.
   5. **Validate** — config validation (`make test-config`), schema/JSONC validity, restart OpenCode + functional smoke test.
-  6. **Independent review** — `@ai-auditor` reviews the implemented change against best practices + AIHero patterns. ai-auditor is THE independent reviewer for config changes.
+  6. **Independent review** — `ai-auditor` reviews the implemented change against best practices + AIHero patterns. ai-auditor is THE independent reviewer for config changes.
   7. **Register** — append the changelog entry to `.opencode/CHANGELOG.yaml`
      (the YAML ledger is the source of truth; `.opencode/CHANGELOG.md` is the
      derived view). One-call path: `scripts/changelog-add --ticket DIA-NNN --summary "..." [--scope s] [--area a] [--files f1,f2]`
@@ -108,7 +108,7 @@ After the developer disposes review findings (accept/reject per practice-protect
      Partial reads only, e.g. the per-DIA query
      `python3 -c "import yaml,json,sys; [print(json.dumps(e,indent=2,default=str)) for e in yaml.safe_load(open('.opencode/CHANGELOG.yaml')) if e.get('ticket')=='DIA-NNN']"`
      (DIA-194).
-- **Review matrix**: dev-infra → `@reviewer`; opencode config → `@ai-auditor`.
+- **Review matrix**: dev-infra → `reviewer`; opencode config → `ai-auditor`.
 
 ### Evidence-Backed Decision Variants (EBDV, DIA-115)
 
@@ -132,12 +132,12 @@ See `.opencode/practice-protected.md` for zones where agents must ask guiding qu
 
 - OpenSpec proposal.md / design.md authoring
 - TDD edge-case identification
-- Architectural decisions flagged by @architector
+- Architectural decisions flagged by architector
 
 ## 5. Skill Integration
 
 - When writing tests: invoke the `tdd-craftsman` skill at the start of the workflow.
-- For new features: dispatch `@openspec-plan` to gather specs and author the OpenSpec change (`openspec/changes/<name>/{proposal,design,tasks}.md`). It is the spec-interview role.
+- For new features: dispatch `openspec-plan` to gather specs and author the OpenSpec change (`openspec/changes/<name>/{proposal,design,tasks}.md`). It is the spec-interview role.
 
 ### 5.1 Ponytail convention (DIA-183)
 
@@ -208,6 +208,12 @@ Full setup docs: `docs/docker-dev.md`.
 3. **ASCII-only protocol (DIA-079):** all lane dispatch payloads and
    reports use ASCII-only text (no em-dashes, no smart quotes, no
    non-ASCII punctuation) to prevent JSON serialization failures.
+4. **Dispatch-payload mention hygiene (DIA-261006-y72h):** never write
+   a literal agent mention - an at-sign immediately followed by an
+   agent name - in a dispatch payload or brief. OpenCode core appends
+   a synthetic "call the task tool with subagent: <name>" part to the
+   child prompt, and a task: deny child bails at step 1. Refer to
+   lanes descriptively or by internal name without the at-sign.
 
 ### Session-end handoff (DIA-124)
 
@@ -254,33 +260,33 @@ The `README.md` rollup in the tickets directory is a static snapshot that can dr
 
 Canonical display→internal mapping for every agent the project declares (active or disabled). This table is S1 of the 4-source agent-name lockstep contract (`scripts/validate-agent-names.sh`): the "Internal name" column must stay in equality with the `.opencode/opencode.jsonc` `agent` block keys, the `.opencode/oh-my-opencode-slim.jsonc` `agents`/preset/`disabled_agents` keys, and the `.opencode/agents/*.md` filename stems.
 
-| Display name          | Internal name        | Lane                                                                                                   |
-| --------------------- | -------------------- | ------------------------------------------------------------------------------------------------------ |
-| `@orchestrator`       | `orchestrator`       | Orchestrator (OMO primary)                                                                             |
-| `@architector`        | `architector`        | Architecture & strategy                                                                                |
-| `@analyzer`           | `analyzer`           | Analysis reports & visualization                                                                       |
-| `@analyzer-escalated` | `analyzer-escalated` | Escalated analysis for 'cannot comprehend domain' cases (GPT-5.6 Luna, orchestrator-only, hidden)      |
-| `@reviewer`           | `reviewer`           | Code review & QA                                                                                       |
-| `@coder`              | `coder`              | Bounded implementation                                                                                 |
-| `@coder-escalated`    | `coder-escalated`    | Escalated implementation for complex problem-fix tasks (GPT-5.6 Terra High, orchestrator-only, hidden) |
-| `@code-navigator`     | `code-navigator`     | Fast codebase recon                                                                                    |
-| `@researcher`         | `researcher`         | External research                                                                                      |
-| `@conspecter`         | `conspecter`         | Research conspect authoring                                                                            |
-| `@openspec-plan`      | `openspec-plan`      | Spec authoring (Socratic, practice-protected)                                                          |
-| `@ai-specialist`      | `ai-specialist`      | OpenCode system research & config (read-only)                                                          |
-| `@ai-auditor`         | `ai-auditor`         | Read-only config/skill surface auditor (documentation-only; never writes)                              |
-| `@designer`           | `designer`           | UI/UX design                                                                                           |
-| `@observer`           | `observer`           | Visual/media analysis                                                                                  |
-| `@memory-manager`     | `memory-manager`     | Knowledge persistence                                                                                  |
-| `@council`            | `council`            | Multi-model consensus                                                                                  |
-| `@explore`            | `explore`            | Built-in OpenCode explorer (disabled)                                                                  |
-| `@general`            | `general`            | Built-in OpenCode general agent (disabled)                                                             |
-| `@build`              | `build`              | Built-in OpenCode builder (disabled, DIA-260831-h3i4)                                                  |
-| `@plan`               | `plan`               | Built-in OpenCode planner (disabled, DIA-260831-h3i4)                                                  |
-| `@scout`              | `scout`              | Native scout guard (disabled, DIA-260831-h3i4)                                                         |
-| `@oracle`             | `oracle`             | OMO native alias (disabled)                                                                            |
-| `@fixer`              | `fixer`              | OMO native alias (disabled)                                                                            |
-| `@explorer`           | `explorer`           | OMO native alias (disabled)                                                                            |
-| `@librarian`          | `librarian`          | OMO native alias (disabled)                                                                            |
+| Display name         | Internal name        | Lane                                                                                                   |
+| -------------------- | -------------------- | ------------------------------------------------------------------------------------------------------ |
+| `orchestrator`       | `orchestrator`       | Orchestrator (OMO primary)                                                                             |
+| `architector`        | `architector`        | Architecture & strategy                                                                                |
+| `analyzer`           | `analyzer`           | Analysis reports & visualization                                                                       |
+| `analyzer-escalated` | `analyzer-escalated` | Escalated analysis for 'cannot comprehend domain' cases (GPT-5.6 Luna, orchestrator-only, hidden)      |
+| `reviewer`           | `reviewer`           | Code review & QA                                                                                       |
+| `coder`              | `coder`              | Bounded implementation                                                                                 |
+| `coder-escalated`    | `coder-escalated`    | Escalated implementation for complex problem-fix tasks (GPT-5.6 Terra High, orchestrator-only, hidden) |
+| `code-navigator`     | `code-navigator`     | Fast codebase recon                                                                                    |
+| `researcher`         | `researcher`         | External research                                                                                      |
+| `conspecter`         | `conspecter`         | Research conspect authoring                                                                            |
+| `openspec-plan`      | `openspec-plan`      | Spec authoring (Socratic, practice-protected)                                                          |
+| `ai-specialist`      | `ai-specialist`      | OpenCode system research & config (read-only)                                                          |
+| `ai-auditor`         | `ai-auditor`         | Read-only config/skill surface auditor (documentation-only; never writes)                              |
+| `designer`           | `designer`           | UI/UX design                                                                                           |
+| `observer`           | `observer`           | Visual/media analysis                                                                                  |
+| `memory-manager`     | `memory-manager`     | Knowledge persistence                                                                                  |
+| `council`            | `council`            | Multi-model consensus                                                                                  |
+| `explore`            | `explore`            | Built-in OpenCode explorer (disabled)                                                                  |
+| `general`            | `general`            | Built-in OpenCode general agent (disabled)                                                             |
+| `build`              | `build`              | Built-in OpenCode builder (disabled, DIA-260831-h3i4)                                                  |
+| `plan`               | `plan`               | Built-in OpenCode planner (disabled, DIA-260831-h3i4)                                                  |
+| `scout`              | `scout`              | Native scout guard (disabled, DIA-260831-h3i4)                                                         |
+| `oracle`             | `oracle`             | OMO native alias (disabled)                                                                            |
+| `fixer`              | `fixer`              | OMO native alias (disabled)                                                                            |
+| `explorer`           | `explorer`           | OMO native alias (disabled)                                                                            |
+| `librarian`          | `librarian`          | OMO native alias (disabled)                                                                            |
 
 > **Contract note:** this table is Source-1 of the agent-name cross-reference contract enforced by `scripts/validate-agent-names.sh` — S2: `.opencode/opencode.jsonc` `agent` block keys; S3: `.opencode/oh-my-opencode-slim.jsonc` `agents`/preset/`disabled_agents`/`council` keys; S4: `.opencode/agents/*.md` filename stems. Every internal name in this table must resolve in at least one of S2/S3/S4 — or be exempt (`explore`, `general`, `oracle`, `fixer`, `explorer`, `librarian`, whose S4 absence is correct) — and every name declared in S2/S3 must appear in this table. Containment, not set-equality: a config-defined agent need not have a `.opencode/agents/*.md` file. Drift fails `make test-config`. Disabled entries are intentionally listed: disabled agents are still validated (Q2 ruling) so re-enabling one never breaks dispatch by name drift. `explore`/`general`/`build`/`plan`/`scout` are OpenCode built-ins disabled in `.opencode/opencode.jsonc` (build/plan/scout per DIA-260831-h3i4); `oracle`/`fixer`/`explorer`/`librarian` are OMO native aliases renamed in the C4 pass and disabled via `disabled_agents`.

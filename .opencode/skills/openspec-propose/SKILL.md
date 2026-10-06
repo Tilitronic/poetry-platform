@@ -31,7 +31,7 @@ Propose a new change — interview-first, then synthesize. I will NOT generate s
    - Example question: What problem does this change solve for the user, and what would 'done' look like?
    - What is the primary hypothesis this feature/design validates, and how will you know if it is falsified?
 
-   Dispatch **@openspec-plan** for the structured Socratic interview BEFORE any artifact work. The interview protocol:
+   Dispatch **openspec-plan** for the structured Socratic interview BEFORE any artifact work. The interview protocol:
    - One question at a time, each with the model's recommended answer ("My recommendation: [answer]. Agree, or what should change?")
    - Look up facts in the codebase rather than asking the developer — explore and report findings
    - Gate check (DIA-104, Phase 0a - before Depth Mode selection): check the 7
@@ -45,7 +45,7 @@ Propose a new change — interview-first, then synthesize. I will NOT generate s
      gate_override). Full gate definition: DIA-104 ticket.
    - Numerical-invariants battery when the feature involves phonetics / metrics / stress / scientific computation (IPA, stress, syllabification; meter, foot, caesura; intonation contours, tonal patterns; idempotence, conservation, monotonicity; numerical tolerance and reference implementation)
    - Depth mode selection: **Full** (default) / **Compressed** (≤5 questions) / **Skip** (requires explicit developer opt-in with a stated reason)
-   - Research/analysis needs found during the interview → dispatch @researcher / @analyzer inline and feed results back
+   - Research/analysis needs found during the interview → dispatch researcher / analyzer inline and feed results back
    - Practice-protected: the developer writes the substance; you structure, challenge, and synthesize but never draft on the developer's behalf.
 
    Output of this step: the interview transcript in conversation. Do NOT proceed to artifact synthesis without it.

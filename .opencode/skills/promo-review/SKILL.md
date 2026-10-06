@@ -68,7 +68,7 @@ and stop. Otherwise proceed.
 ### 2. Load STABLE from shelf (P3, P5)
 Read Input #5 (res041 or newer). These benchmarks are the STABLE baseline.
 Do NOT re-fetch them from the web. If the shelf file is MISSING (SHELF-GAP),
-flag it and route to `@memory-manager` to re-persist the benchmarks (do not
+flag it and route to `memory-manager` to re-persist the benchmarks (do not
 guess). While the shelf exists, never load STABLE twice in one review.
 
 ### 3. Fetch VOLATILE LIVE - ALL THREE sources (P2)
@@ -122,19 +122,19 @@ only; re-exclude if sensitive traffic appears).
 
 ### 7. Persistence (P5)
 - STABLE: never re-fetch if the shelf exists; do not load twice. If SHELF-GAP,
-  fetch missing benchmarks and persist via `@memory-manager`.
+  fetch missing benchmarks and persist via `memory-manager`.
 - VOLATILE: do NOT persist as durable truth. If any volatile data is written to
   `promo-registry.json`, stamp it with `fetched_at` + a 7-day stale marker so
   the next review knows it is suspect.
 
-### 8. Route to @ai-specialist (boundary)
+### 8. Route to ai-specialist (boundary)
 Any NEW / EXPIRED / >20% CHANGE / ROUTING-INVERSION / privacy-status change
-MUST be routed through `@ai-specialist` (read-only gate, AGENTS.md section 2.5
+MUST be routed through `ai-specialist` (read-only gate, AGENTS.md section 2.5
 Phase 1) before any config edit. This skill NEVER edits `oh-my-opencode-slim.jsonc`
 pricing/routing. Promo preset generation is RETIRED as of 2026-09-29
 (DIA-260929-5c6m): `scripts/promo-preset-apply` is an explicit no-op that
 reads and writes nothing, so there is no ROUTING table to update and no
-re-run. An accepted routing delta is applied by `@coder` directly to the
+re-run. An accepted routing delta is applied by `coder` directly to the
 active preset in `oh-my-opencode-slim.jsonc` under the section 2.5 chain.
 
 ### 9. Update review timestamps (boundary)
@@ -152,7 +152,7 @@ Return a report with these sections:
 - urgency: LOW | MEDIUM | HIGH (weekend-coding cadence, ana036 section 4).
 - muse: explicit row - benchmarks, exclusion reason, admission path.
 - recommendation: "no change" | "<routing delta summary>".
-- routed_to: "@ai-specialist" (if any flag) | "none".
+- routed_to: "ai-specialist" (if any flag) | "none".
 - next_review: <date>.
 
 ## Constraints
@@ -160,4 +160,4 @@ Return a report with these sections:
 - Never apply a promo routing from here; activation is a developer decision (promo preset generation retired DIA-260929-5c6m).
 - muse-spark ADMITTED 2026-08-28 for non-sensitive traffic (privacy cleared DIA-260828-qtsi, no sensitive traffic confirmed) - primary for 6 lanes [coder,reviewer,analyzer,researcher,conspecter,openspec-plan] with DeepSeek V4 Flash fallback; still document exclusion rationale + admission condition.
 - Skill writes ONLY `last_reviewed` / `next_review` timestamps. Pricing/routing
-  changes route via @ai-specialist -> @coder.
+  changes route via ai-specialist -> coder.

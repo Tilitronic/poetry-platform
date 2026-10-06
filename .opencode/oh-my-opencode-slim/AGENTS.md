@@ -159,8 +159,8 @@ bun run build
 # "plugin": ["file:///path/to/oh-my-opencode-slim"]
 
 # 3. Launch test tasks
-@code-navigator count files in src/
-@researcher search for Bun documentation
+code-navigator count files in src/
+researcher search for Bun documentation
 
 # 4. Verify no orphans
 ps aux | grep "opencode attach" | grep -v grep
@@ -203,11 +203,11 @@ OpenCode has a built-in `/review` command that automatically performs comprehens
 /review <pr-url-or-number>
 ```
 
-**Why use `/review` instead of asking @reviewer manually?**
+**Why use `/review` instead of asking reviewer manually?**
 - Standardized review process with consistent focus areas (bugs, structure, performance)
 - Automatically handles git operations (diff, status, etc.)
 - Context-aware: reads full files and convention files (AGENTS.md, etc.)
-- Delegates to specialized @build subagent with proper permissions
+- Delegates to specialized build subagent with proper permissions
 - Provides actionable, matter-of-fact feedback
 
 ### Workflow Before Pushing

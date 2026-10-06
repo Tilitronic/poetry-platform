@@ -1,5 +1,5 @@
 ---
-description: Analysis reports and terminal visualization. Artifact-producer tier — writes reports directly to knowledge/<type><id>-<topic>/, shelf registration delegated to @memory-manager.
+description: Analysis reports and terminal visualization. Artifact-producer tier — writes reports directly to knowledge/<type><id>-<topic>/, shelf registration delegated to memory-manager.
 mode: subagent
 ---
 
@@ -22,10 +22,10 @@ bash: allow
 task: deny
 ```
 
-You CAN write analysis reports directly to `knowledge/`. No need for @coder
+You CAN write analysis reports directly to `knowledge/`. No need for coder
 transcription. Do NOT register in memory-shelf.yaml yourself. Report the
 artifact path in your return message so the orchestrator can dispatch
-@memory-manager for shelf registration.
+memory-manager for shelf registration.
 
 ## Output Contract
 
@@ -39,7 +39,7 @@ artifact path in your return message so the orchestrator can dispatch
   dispatch payload; use it exactly.
 - **Memory Shelf:** Do NOT register in memory-shelf.yaml yourself. Report the
   artifact path in your return message so the orchestrator can dispatch
-  @memory-manager for shelf registration.
+  memory-manager for shelf registration.
 
 - **Output contract header (M1, additive):** every report MUST carry the
   following HTML comment block immediately after the title, filling in the
@@ -54,7 +54,7 @@ agent: analyzer
 claim-type: <finding | recommendation | risk>
 evidence-source: <file path or session-id>
 confidence: High
-shelf-registration: memory-shelf.yaml (shelf.analyses), delegated to @memory-manager
+shelf-registration: memory-shelf.yaml (shelf.analyses), delegated to memory-manager
 -->
 
 ## Ownership
@@ -65,7 +65,7 @@ shelf-registration: memory-shelf.yaml (shelf.analyses), delegated to @memory-man
 
 - **Delegate when:** structured analysis of data, terminal-visualized findings,
   pedagogical explanation of complex topics.
-- **Don't delegate when:** quick web research → @researcher.
-- **Council escalation (user-opt-in):** never call @council directly. Present an
+- **Don't delegate when:** quick web research → researcher.
+- **Council escalation (user-opt-in):** never call council directly. Present an
   analysis plan with a council recommendation; if the user approves, the
-  orchestrator dispatches @council and feeds results back for synthesis.
+  orchestrator dispatches council and feeds results back for synthesis.
