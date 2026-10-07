@@ -1,0 +1,13 @@
+# Re-review 1/2 FIX-1 fixture: `files: []` must pass BOTH layers. The schema
+# declares files as an array with no minItems, so an empty list is valid - the
+# committed ledger legitimately has empty files lists (e.g. DIA-189b, whose
+# source prose had no Files block). Pre-fix the structural fallback rejected
+# [] via a truthiness check; this fixture pins the parity.
+- date: '2026-08-15'
+  ticket: 'DIA-189b'
+  scope: 'pty title rename + boot retro pass (prose-only section, no Files block)'
+  files: []
+  summary: >
+    Change: prose-only section with no Files block in the legacy MD.
+  verification: >
+    make test-config exit 0.

@@ -1,0 +1,250 @@
+# Multiplexer Integration Guide
+
+Use tmux, Zellij, or Herdr to watch subagents work in live panes while OpenCode keeps running in your main session.
+
+## Table of Contents
+
+- [Overview](#overview)
+- [Quick Start](#quick-start)
+- [Configuration](#configuration)
+- [Layouts](#layouts)
+- [Troubleshooting](#troubleshooting)
+- [Advanced Usage](#advanced-usage)
+
+---
+
+## Overview
+
+When OpenCode launches child agent sessions, oh-my-opencode-slim can open panes for those sessions automatically.
+
+- **Real-time visibility** into agent activity
+- **Automatic pane management** while tasks run
+- **Easy debugging** by jumping into live sessions
+- **Support for multiple projects** on different sessions or ports
+
+![Tmux multiplexer view](../img/tmux.png)
+
+*OpenCode running in tmux with live subagent panes.*
+
+> ⚠️ **Current workaround:** Start OpenCode with `--port` to enable multiplexer integration. The port must match the `OPENCODE_PORT` environment variable. This is required until [opencode#9099](https://github.com/anomalyco/opencode/issues/9099) is resolved.
+
+If you open multiple OpenCode sessions, use a random high port for each launch instead of hard-coding `4096`.
+
+**Bash helper:**
+
+```bash
+omos() {
+  local port
+  port=$(jot -r 1 49152 65535)
+  OPENCODE_PORT="$port" \
+  opencode --port "$port" "$@"
+}
+```
+
+---
+
+## Quick Start
+
+### 1. Enable the multiplexer
+
+Edit `~/.config/opencode/oh-my-opencode-slim.json` (or `.jsonc`):
+
+**Auto-detect (recommended):**
+
+```jsonc
+{
+  "multiplexer": {
+    "type": "auto",
+    "layout": "main-vertical",
+    "main_pane_size": 60
+  }
+}
+```
+
+**Tmux only:**
+
+```jsonc
+{
+  "multiplexer": {
+    "type": "tmux",
+    "layout": "main-vertical",
+    "main_pane_size": 60
+  }
+}
+```
+
+**Zellij only:**
+
+```jsonc
+{
+  "multiplexer": {
+    "type": "zellij"
+  }
+}
+```
+
+**Herdr only:**
+
+```jsonc
+{
+  "multiplexer": {
+    "type": "herdr"
+  }
+}
+```
+
+### 2. Start OpenCode inside tmux, Zellij, or Herdr
+
+**Tmux:**
+
+```bash
+tmux
+opencode --port 4096
+```
+
+**Zellij:**
+
+```bash
+zellij
+opencode --port 4096
+```
+
+**Herdr:**
+
+```bash
+herdr
+opencode --port 4096
+```
+
+### 3. Trigger delegated work
+
+Ask OpenCode to do something that launches subagents. New panes should appear automatically.
+
+Example:
+
+```text
+Please analyze this codebase and create a documentation structure.
+```
+
+---
+
+## Configuration
+
+### Multiplexer Settings
+
+```jsonc
+{
+  "multiplexer": {
+    "type": "auto",
+    "layout": "main-vertical",
+    "main_pane_size": 60
+  }
+}
+```
+
+| Setting | Type | Default | Description |
+|---------|------|---------|-------------|
+| `type` | string | `"none"` | `"auto"`, `"tmux"`, `"zellij"`, `"herdr"`, or `"none"` |
+| `layout` | string | `"main-vertical"` | Layout preset for tmux; mapped to Zellij/Herdr pane directions where possible |
+| `main_pane_size` | number | `60` | Main pane size percentage for tmux only (`20`-`80`); ignored by Zellij and Herdr |
+| `zellij_pane_mode` | string | `"agent-tab"` | Zellij pane placement: `"agent-tab"` creates/reuses a dedicated tab; `"current-tab"` opens panes in the tab containing the parent OpenCode pane |
+
+### Supported Multiplexers
+
+| Multiplexer | Status | Notes |
+|-------------|--------|-------|
+| **Tmux** | ✅ Supported | Full layout control with `main-vertical`, `main-horizontal`, `tiled`, and more |
+| **Zellij** | ✅ Supported | Creates a dedicated `opencode-agents` tab by default; can open panes in the parent OpenCode tab with `zellij_pane_mode: "current-tab"`; maps `main-*` layouts to pane directions |
+| **Herdr** | ✅ Supported | Splits panes in the current Herdr workspace; maps `main-vertical`/`even-horizontal`/`tiled` layouts to right splits and `main-horizontal`/`even-vertical` to down splits; no layout rebalancing (like Zellij) |
+
+**Example: open Zellij subagents in the parent OpenCode tab**
+
+```jsonc
+{
+  "multiplexer": {
+    "type": "zellij",
+    "zellij_pane_mode": "current-tab"
+  }
+}
+```
+
+In `current-tab` mode, panes are targeted to the tab that contains the parent
+OpenCode pane, even if another Zellij tab is focused when a subagent starts.
+If the parent pane cannot be resolved, it falls back to the currently focused
+tab.
+
+### Legacy tmux config
+
+Older configs still work:
+
+```jsonc
+{
+  "tmux": {
+    "enabled": true,
+    "layout": "main-vertical",
+    "main_pane_size": 60
+  }
+}
+```
+
+This is converted automatically to `multiplexer.type: "tmux"`.
+
+---
+
+## Layouts
+
+Tmux supports full layout control and main pane sizing. Zellij and Herdr map
+only the `main-*` layout settings to pane creation directions; exact
+`main_pane_size` rebalancing is tmux-only.
+
+| Layout | Description |
+|--------|-------------|
+| `main-vertical` | Your session on the left, agents stacked on the right |
+| `main-horizontal` | Your session on top, agents stacked below |
+| `tiled` | All panes in an equal-sized grid |
+| `even-horizontal` | All panes side by side |
+| `even-vertical` | All panes stacked vertically |
+
+For Zellij:
+
+| Layout | Zellij behavior |
+|--------|-----------------|
+| `main-vertical` | Opens new subagent panes to the right |
+| `main-horizontal` | Opens new subagent panes down |
+| `even-horizontal` | Uses Zellij's native pane placement |
+| `even-vertical` | Uses Zellij's native pane placement |
+| `tiled` | Uses Zellij's native pane placement |
+
+For Herdr:
+
+| Layout | Herdr behavior |
+|--------|-----------------|
+| `main-vertical` | Opens new subagent panes to the right |
+| `main-horizontal` | Opens new subagent panes down |
+| `even-horizontal` | Opens new subagent panes to the right |
+| `even-vertical` | Opens new subagent panes down |
+| `tiled` | Opens new subagent panes to the right |
+
+**Example: wide-screen layout**
+
+```jsonc
+{
+  "multiplexer": {
+    "type": "tmux",
+    "layout": "main-horizontal",
+    "main_pane_size": 50
+  }
+}
+```
+
+**Example: maximum parallel visibility**
+
+```jsonc
+{
+  "multiplexer": {
+    "type": "tmux",
+    "layout": "tiled",
+    "main_pane_size": 50
+  }
+}
+```

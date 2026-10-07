@@ -42,7 +42,9 @@ from typing import Optional
 
 class AtlasCorruptionError(Exception):
     """Raised when the atlas binary is structurally corrupted."""
+
     pass
+
 
 # ---------------------------------------------------------------------------
 # FlatBuffers Python bindings (flatc-generated from phonetic_atlas.fbs)
@@ -53,22 +55,26 @@ class AtlasCorruptionError(Exception):
 #   - The package is installed via pip -e or the dist-info is present
 # ---------------------------------------------------------------------------
 try:
-    from PhoneticAtlas import PhoneticAtlas  # type: ignore[import-not-found]
-    from PhonemeEntry import PhonemeEntry  # type: ignore[import-not-found]
-    from FeatureVector import FeatureVector  # type: ignore[import-not-found]
     from AtlasMetadata import AtlasMetadata  # type: ignore[import-not-found]
+    from FeatureVector import FeatureVector  # type: ignore[import-not-found]
+    from PhoneticAtlas import PhoneticAtlas  # type: ignore[import-not-found]
 except ImportError:
-    # Fallback: try to find generated bindings relative to this file
-    _PKG_DIR = os.path.normpath(
-        os.path.join(os.path.dirname(__file__), "..", "..", "dist", "python")
-    )
-    if os.path.isdir(_PKG_DIR):
+    # Fallback: try to find generated bindings relative to this file.
+    # Search in order: dist/python (codegen output), scripts/generated/python (checked-in)
+    _CANDIDATE_DIRS = [
+        os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "..", "dist", "python")),
+        os.path.normpath(
+            os.path.join(os.path.dirname(__file__), "..", "..", "scripts", "generated", "python")
+        ),
+    ]
+    _PKG_DIR = next((d for d in _CANDIDATE_DIRS if os.path.isdir(d)), None)
+    if _PKG_DIR is not None:
         import sys
+
         sys.path.insert(0, _PKG_DIR)
-        from PhoneticAtlas import PhoneticAtlas  # type: ignore[import-not-found]
-        from PhonemeEntry import PhonemeEntry  # type: ignore[import-not-found]
-        from FeatureVector import FeatureVector  # type: ignore[import-not-found]
         from AtlasMetadata import AtlasMetadata  # type: ignore[import-not-found]
+        from FeatureVector import FeatureVector  # type: ignore[import-not-found]
+        from PhoneticAtlas import PhoneticAtlas  # type: ignore[import-not-found]
     else:
         raise ImportError(
             "FlatBuffers generated Python bindings not found. "
@@ -96,16 +102,21 @@ class AtlasMetadataInfo:
     """Metadata extracted from the FlatBuffers atlas header."""
 
     __slots__ = (
-        "source_name", "source_version",
-        "generator_name", "generator_version",
-        "generated_at", "content_hash",
-        "total_segments", "total_bases",
+        "source_name",
+        "source_version",
+        "generator_name",
+        "generator_version",
+        "generated_at",
+        "content_hash",
+        "total_segments",
+        "total_bases",
         "feature_count",
     )
 
     def __init__(self, meta: AtlasMetadata) -> None:
         def _s(b: Optional[bytes]) -> str:
             return b.decode("utf-8") if b else ""
+
         self.source_name = _s(meta.SourceName())
         self.source_version = _s(meta.SourceVersion())
         self.generator_name = _s(meta.GeneratorName())
@@ -126,8 +137,13 @@ class PhoneticAtlasIndex:
     the memory-mapped buffer without intermediate allocations.
     """
 
-    def __init__(self, atlas: PhoneticAtlas) -> None:
+    def __init__(self, atlas: PhoneticAtlas, _mmap: mmap.mmap | None = None) -> None:
         self._atlas = atlas
+        # Keep mmap alive for the lifetime of this index. The FlatBuffers
+        # Table holds a reference to the buffer, but we also retain it
+        # explicitly so the mmap is not GC'd if the Table implementation
+        # does not hold a strong reference. See ticket DIA-260827-48iw.
+        self._mmap = _mmap
         # Build IPA → index dict for O(1) lookup
         # C1: All IPA symbols are NFC-normalized. This ensures composed
         # and decomposed forms of the same symbol map to the same entry.
@@ -147,6 +163,7 @@ class PhoneticAtlasIndex:
             ipa = unicodedata.normalize("NFC", ipa_bytes.decode("utf-8"))
             if ipa in self._index:
                 import warnings
+
                 warnings.warn(
                     f"Duplicate NFC-normalized IPA: '{ipa}' at index {i} "
                     f"(overwrites index {self._index[ipa]})"
@@ -171,23 +188,26 @@ class PhoneticAtlasIndex:
             AtlasCorruptionError: if the file lacks the "PHAT" identifier
                 or is too small to be a valid FlatBuffer.
         """
+        # Handle empty files before mmap (mmap fails on 0-length)
+        file_size = os.path.getsize(path)
+        if file_size < 8:
+            raise AtlasCorruptionError(
+                f"File too small for FlatBuffers: {path} ({file_size} bytes)."
+            )
         with open(path, "rb") as f:
             mm = mmap.mmap(f.fileno(), 0, access=mmap.ACCESS_READ)
 
         # C7: Validate "PHAT" file identifier before parsing
         if len(mm) < 8:
+            size = len(mm)
             mm.close()
-            raise AtlasCorruptionError(
-                f"File too small for FlatBuffers: {path} ({len(mm)} bytes)."
-            )
+            raise AtlasCorruptionError(f"File too small for FlatBuffers: {path} ({size} bytes).")
         if not PhoneticAtlas.PhoneticAtlasBufferHasIdentifier(mm, 0):
             mm.close()
-            raise AtlasCorruptionError(
-                f"File does not have the 'PHAT' identifier: {path}"
-            )
+            raise AtlasCorruptionError(f"File does not have the 'PHAT' identifier: {path}")
 
         atlas = PhoneticAtlas.GetRootAsPhoneticAtlas(mm, 0)
-        return cls(atlas)
+        return cls(atlas, _mmap=mm)
 
     # -------------------------------------------------------------------
     # Metadata
@@ -248,8 +268,7 @@ class PhoneticAtlasIndex:
         fv = p.Features()
         if fv is None:
             raise AtlasCorruptionError(
-                f"Null feature vector at phoneme index {index}. "
-                f"Atlas binary is corrupt."
+                f"Null feature vector at phoneme index {index}. Atlas binary is corrupt."
             )
         ipa_bytes = p.Ipa()
         if ipa_bytes is None:
@@ -275,8 +294,7 @@ class PhoneticAtlasIndex:
         fv = p.Features()
         if fv is None:
             raise AtlasCorruptionError(
-                f"Null feature vector at phoneme index {index}. "
-                f"Atlas binary is corrupt."
+                f"Null feature vector at phoneme index {index}. Atlas binary is corrupt."
             )
         ipa_bytes = p.Ipa()
         if ipa_bytes is None:
@@ -295,22 +313,24 @@ class PhoneticAtlasIndex:
 # Convenience factory
 # ---------------------------------------------------------------------------
 
+
 def load_phonetic_atlas(path: Optional[str] = None) -> PhoneticAtlasIndex:
     """
     Load the Phonetic Atlas from disk.
 
     Args:
         path: Path to phonetic_atlas.bin. If None, auto-resolves relative
-              to this package's dist/ directory.
+              to this package (dist/ or src/atlas/).
 
     Returns:
         A ready-to-use PhoneticAtlasIndex.
     """
     if path is None:
-        path = os.path.normpath(
-            os.path.join(
-                os.path.dirname(__file__),
-                "..", "..", "dist", "phonetic_atlas.bin"
-            )
-        )
+        candidates = [
+            os.path.normpath(
+                os.path.join(os.path.dirname(__file__), "..", "..", "dist", "phonetic_atlas.bin")
+            ),
+            os.path.normpath(os.path.join(os.path.dirname(__file__), "phonetic_atlas.bin")),
+        ]
+        path = next((c for c in candidates if os.path.isfile(c)), candidates[0])
     return PhoneticAtlasIndex.from_path(path)

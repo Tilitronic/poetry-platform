@@ -179,7 +179,7 @@ Has only `chat` + `edit` roles, no `apply`. May be intentional (model doesn't su
 
 ### Finding 12: Inconsistent capitalization in AGENTS.md
 
-AGENTS.md writes `@Designer` (capital D) while all other agent mentions use `snake_case` (`@code_explorer`, `@web_scout`, etc.). Inconsistent.
+AGENTS.md writes `@Designer` (capital D) while all other agent mentions use `snake_case` (`@code-navigator`, `@web_scout`, etc.). Inconsistent.
 
 ### Finding 13: No weekly review mechanism for AGENTS.md
 

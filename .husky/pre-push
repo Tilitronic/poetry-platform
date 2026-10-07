@@ -1,0 +1,5 @@
+#!/usr/bin/env sh
+# Block the push until the full verification gate passes (prettier, eslint,
+# typecheck, JS tests, python pytest). The gate lives in
+# scripts/verify-pre-push.sh, which handles host vs dev-container execution.
+bash scripts/verify-pre-push.sh

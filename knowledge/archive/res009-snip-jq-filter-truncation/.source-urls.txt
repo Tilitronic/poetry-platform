@@ -1,0 +1,4 @@
+https://github.com/edouard-claude/snip/wiki/Configuration
+https://github.com/VincentHardouin/opencode-snip
+https://github.com/VincentHardouin/opencode-snip/issues/8
+https://github.com/VincentHardouin/opencode-snip/pull/14

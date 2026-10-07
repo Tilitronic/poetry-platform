@@ -1,0 +1,11 @@
+shelf:
+  conspects:
+    - name: '   '
+      description: 'Whitespace-only name passes per the minLength: 1 contract
+        (option (i), re-review 1/2) - must PASS identically on both layers.'
+      path: knowledge/res996-whitespace-name/res996-whitespace-name-conspect.md
+      created: 2026-08-15
+  analyses: []
+  adrs: []
+  specs: []
+  architectures: []

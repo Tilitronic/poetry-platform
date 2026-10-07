@@ -1,6 +1,7 @@
 # OpenSpec project configuration
 # Created: 2026-07-13
 # Based on: ana001-openspec-workflow-analysis recommendations
+# Updated: 2026-08-01 — AIHero vertical-slice TDD alignment (ana003)
 
 schema: spec-driven
 
@@ -11,23 +12,53 @@ context: |
   System overview: architecture.md (root — loaded as system instruction)
   Technical specs: .tss/ (API contracts, data schemas — future)
   See .sdd/README.md for the design authority layer model
+  Design authority: architecture.md serves as the project CONTEXT.md — domain
+  vocabulary, ADRs, and seam map for test naming and interface design
 
 rules:
   proposal:
     - Reference relevant .sdd/ documents if the change touches an existing module
-    - Flag if the change requires a new architectural decision (escalate to @code_architect)
+    - Flag if the change requires a new architectural decision (escalate to @architector)
     - Include rollback plan for risky changes
+    - Include a Testing Decisions section that states what makes a good test for
+      this change, which modules will be tested, and the prior art in the codebase
   design:
-    - Before writing: read .sdd/<module>/architecture.md for governing constraints
+    - "Before writing: read .sdd/<module>/architecture.md for governing constraints"
     - design.md contains IMPLEMENTATION design (which files, what patterns, how data
       flows within existing module boundaries)
-    - Do NOT make system architecture decisions in design.md — escalate to @code_architect
-      if a new module boundary, technology choice, or cross-cutting concern is needed
+    - "Do NOT make system architecture decisions in design.md — escalate to @architector
+      if a new module boundary, technology choice, or cross-cutting concern is needed"
     - Reference .sdd/ documents in the Approach section
     - Include sequence diagrams for complex data flows
+    - "Include a Seams section listing the pre-agreed public boundaries where tests
+      will live. Prefer existing seams; propose new ones only at the highest level
+      necessary. Confirm seams with the user before any test is written"
   specs:
     - Use Given/When/Then format for scenarios
     - Cross-reference .tss/ contracts where applicable (future)
+    - "Each scenario references the seam (public boundary) it exercises"
   tasks:
-    - Break down into verifiable, independently testable steps
+    - "Tasks are VERTICAL SLICES (tracer bullets): each cuts a narrow but complete
+      path through every layer (schema, state, API, UI, tests) and is demoable or
+      verifiable on its own"
+    - "Each task declares its blocking edges — the other tasks that must complete
+      before it can start. A task with no blockers can start immediately"
+    - "Each task carries acceptance criteria from the user's perspective, not a
+      layer-by-layer implementation list. Avoid specific file paths — they go stale"
+    - "Size each task to fit a single fresh context window"
+    - "Wide refactors (one mechanical change whose blast radius fans across the
+      codebase) use expand-contract sequencing, not vertical slices"
     - Annotate boundary-crossing tasks with the .sdd/ document they depend on
+
+operations:
+  apply:
+    guidance:
+      - "For each task, invoke the tdd-craftsman skill. Write the failing test BEFORE
+        any production code"
+      - "Work one slice at a time — do not batch tests or implementations across tasks"
+      - "Tests live at the seams listed in design.md. No test is written at an
+        unconfirmed seam"
+      - "Run typecheck and the affected test file after each task; run the full suite
+        once at the end"
+      - "Do NOT refactor during RED-GREEN cycles. Refactoring belongs to the @reviewer
+        pass"

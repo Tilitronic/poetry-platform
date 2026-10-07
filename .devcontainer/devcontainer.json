@@ -1,0 +1,30 @@
+{
+  "name": "Poetry Platform Dev",
+  "dockerComposeFile": "../docker-compose.yml",
+  "service": "dev",
+  "workspaceFolder": "/workspace",
+  "shutdownAction": "stopCompose",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "dbaeumer.vscode-eslint",
+        "Vue.volar",
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "rust-lang.rust-analyzer",
+        "esbenp.prettier-vscode",
+        "EditorConfig.EditorConfig"
+      ],
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "bash"
+      }
+    }
+  },
+  "postCreateCommand": [
+    "bash",
+    "-c",
+    "pnpm install && bash scripts/gen-jsconfig.sh > jsconfig.json"
+  ],
+  "forwardPorts": [9000, 8000, 3000],
+  "remoteUser": "dev"
+}

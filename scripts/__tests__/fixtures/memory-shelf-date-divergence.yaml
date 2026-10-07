@@ -1,0 +1,12 @@
+shelf:
+  conspects:
+    - name: Divergence Conspect
+      description: Entry with a malformed optional date field - must fail BOTH
+        schema and structural layers (re-review 1/2 divergence fixture).
+      path: knowledge/res997-divergence/res997-divergence-conspect.md
+      created: 2026-08-15
+      date: Aug 15 2026
+  analyses: []
+  adrs: []
+  specs: []
+  architectures: []

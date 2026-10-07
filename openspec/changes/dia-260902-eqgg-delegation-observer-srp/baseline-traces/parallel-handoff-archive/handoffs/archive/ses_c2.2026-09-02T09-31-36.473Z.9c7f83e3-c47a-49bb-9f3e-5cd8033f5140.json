@@ -1,0 +1,19 @@
+{
+  "status": "done",
+  "session_id": "ses_c2",
+  "cycle_id": "c-ses_c2",
+  "timestamp": "<TIMESTAMP>",
+  "checksum": "966e7811d4d8d1e134e2ffd1e186c01db0f3a43dadb27d2c0196c6ccf402c5c7",
+  "prognosis": {
+    "resume_instructions": "first write",
+    "open_tickets": [
+      "DIA-223"
+    ],
+    "fixes_applied": [],
+    "verification_request": [],
+    "session_summary": {
+      "note": "first",
+      "completed": []
+    }
+  }
+}

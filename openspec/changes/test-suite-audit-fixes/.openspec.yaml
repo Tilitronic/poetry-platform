@@ -1,0 +1,4 @@
+schema: spec-driven
+created: 2026-08-14
+goal: Fix findings F1-F7 from ana021 full test-suite audit
+skip_specs: true

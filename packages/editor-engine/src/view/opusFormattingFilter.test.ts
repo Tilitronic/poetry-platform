@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { EditorState } from '@codemirror/state';
+import { EditorState, EditorSelection, StateEffect, Transaction } from '@codemirror/state';
 import { opusFormattingFilter } from './opusFormattingFilter';
 
 // ---------------------------------------------------------------------------
@@ -10,15 +10,6 @@ import { opusFormattingFilter } from './opusFormattingFilter';
 function createState(doc = ''): EditorState {
   return EditorState.create({
     doc,
-    extensions: [opusFormattingFilter()],
-  });
-}
-
-/** Create state with cursor at a given position. */
-function stateWithCursor(doc: string, pos: number): EditorState {
-  return EditorState.create({
-    doc,
-    selection: { anchor: pos },
     extensions: [opusFormattingFilter()],
   });
 }
@@ -42,12 +33,7 @@ function insertAt(state: EditorState, pos: number, text: string) {
 /**
  * Simulate replacing a selection range with text (e.g. paste over selection).
  */
-function replaceRange(
-  state: EditorState,
-  from: number,
-  to: number,
-  text: string,
-) {
+function replaceRange(state: EditorState, from: number, to: number, text: string) {
   const withSelection = state.update({
     selection: { anchor: from, head: to },
   }).state;
@@ -167,9 +153,9 @@ describe('opusFormattingFilter — no leading space at line start', () => {
     // Simulate: user types "hello" + Enter (→ "hello \n"), then tries
     // to type space on the new line before typing text
     let state = createState('');
-    state = insertAt(state, 0, 'hello').state;     // → "hello"
-    state = insertAt(state, 5, '\n').state;        // → "hello \n"
-    state = insertAt(state, 7, ' ').state;         // → space BLOCKED
+    state = insertAt(state, 0, 'hello').state; // → "hello"
+    state = insertAt(state, 5, '\n').state; // → "hello \n"
+    state = insertAt(state, 7, ' ').state; // → space BLOCKED
     expect(doc(state)).toBe('hello \n');
   });
 
@@ -315,9 +301,9 @@ describe('opusFormattingFilter — live typing: newline (Enter)', () => {
     // Simulate "hello \n\nworld" — the blank-line scenario
     let state = createState('');
     state = insertAt(state, 0, 'hello').state;
-    state = insertAt(state, 5, '\n').state;  // → "hello \n"
-    state = insertAt(state, 7, '\n').state;  // → "hello \n\n"
-    state = insertAt(state, 8, 'world').state;// → "hello \n\nworld"
+    state = insertAt(state, 5, '\n').state; // → "hello \n"
+    state = insertAt(state, 7, '\n').state; // → "hello \n\n"
+    state = insertAt(state, 8, 'world').state; // → "hello \n\nworld"
     expect(doc(state)).toBe('hello \n\nworld');
     const lines = doc(state).split('\n');
     expect(lines).toHaveLength(3);
@@ -328,11 +314,11 @@ describe('opusFormattingFilter — live typing: newline (Enter)', () => {
 
   it('full flow: word + Enter + Enter + Enter → triple blocked', () => {
     let state = createState('');
-    state = insertAt(state, 0, 'a').state;     // → "a"
-    state = insertAt(state, 1, '\n').state;    // → "a \n"
-    state = insertAt(state, 3, '\n').state;    // → "a \n\n"
-    state = insertAt(state, 4, '\n').state;    // → "a \n\n" (blocked!)
-    state = insertAt(state, 4, '\n').state;    // → "a \n\n" (blocked!)
+    state = insertAt(state, 0, 'a').state; // → "a"
+    state = insertAt(state, 1, '\n').state; // → "a \n"
+    state = insertAt(state, 3, '\n').state; // → "a \n\n"
+    state = insertAt(state, 4, '\n').state; // → "a \n\n" (blocked!)
+    state = insertAt(state, 4, '\n').state; // → "a \n\n" (blocked!)
     expect(doc(state)).toBe('a \n\n');
     expect(doc(state).split('\n').length).toBeLessThanOrEqual(3);
   });
@@ -537,87 +523,41 @@ describe('opusFormattingFilter — paste / multi-char insert', () => {
 describe('opusFormattingFilter — double punctuation', () => {
   // ── Live typing: single punctuation is allowed ──────────────────────
 
-  it('allows single comma', () => {
+  it.each([
+    ['comma', ','],
+    ['colon', ':'],
+    ['semicolon', ';'],
+    ['hyphen', '-'],
+    ['English apostrophe', "'"],
+    ['Ukrainian apostrophe', '’'],
+  ])('allows single %s', (_label, punct) => {
     const state = createState('a');
-    const tr = insertAt(state, 1, ',');
-    expect(doc(tr.state)).toBe('a,');
-  });
-
-  it('allows single colon', () => {
-    const state = createState('a');
-    const tr = insertAt(state, 1, ':');
-    expect(doc(tr.state)).toBe('a:');
-  });
-
-  it('allows single semicolon', () => {
-    const state = createState('a');
-    const tr = insertAt(state, 1, ';');
-    expect(doc(tr.state)).toBe('a;');
-  });
-
-  it('allows single hyphen', () => {
-    const state = createState('a');
-    const tr = insertAt(state, 1, '-');
-    expect(doc(tr.state)).toBe('a-');
-  });
-
-  it('allows single English apostrophe', () => {
-    const state = createState('a');
-    const tr = insertAt(state, 1, "'");
-    expect(doc(tr.state)).toBe("a'");
-  });
-
-  it('allows single Ukrainian apostrophe', () => {
-    const state = createState('a');
-    const tr = insertAt(state, 1, '’');
-    expect(doc(tr.state)).toBe('a’');
+    const tr = insertAt(state, 1, punct);
+    expect(doc(tr.state)).toBe(`a${punct}`);
   });
 
   // ── Live typing: double punctuation is blocked ──────────────────────
 
-  it('blocks double comma', () => {
-    const state = createState('a,');
-    const tr = insertAt(state, 2, ',');
-    expect(doc(tr.state)).toBe('a,');
-  });
-
-  it('blocks double colon', () => {
-    const state = createState('a:');
-    const tr = insertAt(state, 2, ':');
-    expect(doc(tr.state)).toBe('a:');
-  });
-
-  it('blocks double semicolon', () => {
-    const state = createState('a;');
-    const tr = insertAt(state, 2, ';');
-    expect(doc(tr.state)).toBe('a;');
-  });
-
-  it('blocks double hyphen', () => {
-    const state = createState('a-');
-    const tr = insertAt(state, 2, '-');
-    expect(doc(tr.state)).toBe('a-');
-  });
-
-  it('blocks double English apostrophe', () => {
-    const state = createState("a'");
-    const tr = insertAt(state, 2, "'");
-    expect(doc(tr.state)).toBe("a'");
-  });
-
-  it('blocks double Ukrainian apostrophe', () => {
-    const state = createState('a’');
-    const tr = insertAt(state, 2, '’');
-    expect(doc(tr.state)).toBe('a’');
+  it.each([
+    ['comma', ','],
+    ['colon', ':'],
+    ['semicolon', ';'],
+    ['hyphen', '-'],
+    ['English apostrophe', "'"],
+    ['Ukrainian apostrophe', '’'],
+  ])('blocks double %s', (_label, punct) => {
+    const state = createState(`a${punct}`);
+    const tr = insertAt(state, 2, punct);
+    expect(doc(tr.state)).toBe(`a${punct}`);
   });
 
   // ── Live typing: triple punctuation is blocked (key repeat) ─────────
 
   it('blocks triple comma', () => {
     const state = createState('a,');
-    const t1 = insertAt(state, 2, ',');  // blocked → 'a,'
+    const t1 = insertAt(state, 2, ','); // blocked → 'a,'
     expect(doc(t1.state)).toBe('a,');
-    const t2 = insertAt(t1.state, 2, ',');  // still blocked
+    const t2 = insertAt(t1.state, 2, ','); // still blocked
     expect(doc(t2.state)).toBe('a,');
   });
 
@@ -683,8 +623,8 @@ describe('opusFormattingFilter — double punctuation', () => {
 
   it('allows single comma at start of new line after Enter', () => {
     let state = createState('hello');
-    state = insertAt(state, 5, '\n').state;  // → "hello \n"
-    state = insertAt(state, 7, ',').state;   // → "hello \n,"
+    state = insertAt(state, 5, '\n').state; // → "hello \n"
+    state = insertAt(state, 7, ',').state; // → "hello \n,"
     expect(doc(state)).toBe('hello \n,');
   });
 });
@@ -755,5 +695,107 @@ describe('opusFormattingFilter — edge cases', () => {
     // This test verifies that editing such a doc works.
     const tr = insertAt(state, 0, 'x');
     expect(doc(tr.state)).toBe('x   \n   \n   ');
+  });
+});
+
+// ============================================================================
+// Suite: Transaction semantics — multi-cursor + effects/scroll preservation
+// (Regression for DIA-260831-i9j0: filter must not collapse to single cursor
+//  nor drop StateEffects/annotations/scrollIntoView)
+// ============================================================================
+describe('opusFormattingFilter — transaction semantics (DIA-260831-i9j0)', () => {
+  it('preserves multi-cursor ranges when filtering a two-cursor edit', () => {
+    // Two cursors at positions 2 and 8 in "hello world" (len 11)
+    const state = EditorState.create({
+      doc: 'hello world',
+      selection: EditorSelection.create([EditorSelection.cursor(2), EditorSelection.cursor(8)]),
+      extensions: [opusFormattingFilter(), EditorState.allowMultipleSelections.of(true)],
+    });
+
+    // Insert ",," at both cursors — paste path collapses to single ","
+    // This forces the filter's anyModified path with multiSegment handling
+    const tr = state.update({
+      changes: [
+        { from: 2, insert: ',,' },
+        { from: 8, insert: ',,' },
+      ],
+    });
+
+    // Doc should have single commas (filtered), not double
+    expect(tr.state.doc.toString()).toBe('he,llo wo,rld');
+    // Both cursors must survive — not collapsed to one
+    expect(tr.state.selection.ranges).toHaveLength(2);
+    // Each cursor should be after its inserted comma (mapPos assoc 1)
+    // First insert at 2: cursor after "," => 3; second at 8 original => 9 after both inserts
+    // Use ChangeSet mapping to avoid hard-coding brittle numbers: just verify distinct and after insert
+    const [r0, r1] = tr.state.selection.ranges;
+    expect(r0.empty).toBe(true);
+    expect(r1.empty).toBe(true);
+    expect(r0.head).not.toBe(r1.head);
+    // Verify ordering and that they moved forward (not staying at original)
+    expect(r0.head).toBeGreaterThan(2);
+    expect(r1.head).toBeGreaterThan(8);
+  });
+
+  it('preserves StateEffects, scrollIntoView and userEvent through filtered transaction', () => {
+    const myEffect = StateEffect.define<number>();
+    const state = EditorState.create({
+      doc: 'hello world',
+      selection: EditorSelection.create([EditorSelection.cursor(1), EditorSelection.cursor(6)]),
+      extensions: [opusFormattingFilter(), EditorState.allowMultipleSelections.of(true)],
+    });
+
+    // Filtered changes (double commas -> single) plus effects/scroll/userEvent
+    const tr = state.update({
+      changes: [
+        { from: 1, insert: ',,' },
+        { from: 6, insert: ',,' },
+      ],
+      effects: myEffect.of(42),
+      scrollIntoView: true,
+      userEvent: 'input.type',
+    });
+
+    // Effects must survive the filter (old bug dropped them)
+    expect(tr.effects).toHaveLength(1);
+    expect(tr.effects[0].is(myEffect)).toBe(true);
+    expect(tr.effects[0].value).toBe(42);
+
+    // scrollIntoView must survive
+    expect(tr.scrollIntoView).toBe(true);
+
+    // userEvent annotation must survive
+    expect(tr.annotation(Transaction.userEvent)).toBe('input.type');
+
+    // Multi-cursor still preserved even with effects/scroll
+    expect(tr.state.selection.ranges).toHaveLength(2);
+    expect(tr.state.doc.toString()).toBe('h,ello ,world');
+    expect(tr.state.doc.toString()).not.toContain(',,');
+  });
+
+  it('preserves multiple ranges with filtered paste and effects (combined regression)', () => {
+    const effect = StateEffect.define<string>();
+    const state = EditorState.create({
+      doc: 'ab ab ab',
+      selection: EditorSelection.create([EditorSelection.cursor(2), EditorSelection.cursor(5)]),
+      extensions: [opusFormattingFilter(), EditorState.allowMultipleSelections.of(true)],
+    });
+
+    const tr = state.update({
+      changes: [
+        { from: 2, insert: '  hello' },
+        { from: 5, insert: '  hello' },
+      ],
+      effects: effect.of('test'),
+      scrollIntoView: true,
+      annotations: Transaction.userEvent.of('input.paste'),
+    });
+
+    // Filter should collapse double leading spaces to single (original spaces remain)
+    expect(tr.state.doc.toString()).toBe('ab hello ab hello ab');
+    expect(tr.effects).toHaveLength(1);
+    expect(tr.scrollIntoView).toBe(true);
+    expect(tr.annotation(Transaction.userEvent)).toBe('input.paste');
+    expect(tr.state.selection.ranges).toHaveLength(2);
   });
 });

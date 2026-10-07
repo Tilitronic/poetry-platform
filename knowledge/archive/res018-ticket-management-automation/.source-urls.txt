@@ -1,0 +1,29 @@
+# Source URLs for res018-ticket-management-automation
+# Archive date: 2026-08-13. All 22 URLs archived via webfetch markdown extraction (no failures).
+# NOTE: trafilatura/curl CLI were not available in the conspecter lane environment;
+# the webfetch tool performed the same HTML-to-markdown extraction and results were
+# written verbatim into sources/. github-mcp-server.md extraction was truncated by the
+# harness at ~49KB; full output preserved at /home/qualt/.local/share/opencode/tool-output/tool_ff844b85100110GU9Wg2e5eN4L
+
+https://github.com/github/github-mcp-server
+https://docs.github.com/en/copilot/how-tos/provide-context/use-mcp-in-your-ide/set-up-the-github-mcp-server
+https://linear.app/docs/mcp
+https://github.com/gyfis/linear-local-mcp
+https://github.com/ch-raph/linear-cache-mcp
+https://github.com/makeplane/plane
+https://github.com/makeplane/plane-mcp-server
+https://developers.plane.so/
+https://github.com/go-vikunja/vikunja
+https://github.com/0xK3vin/vikunja-mcp
+https://github.com/shichao402/vikunja-mcp
+https://github.com/mattermost-community/focalboard
+https://github.com/opf/openproject
+https://github.com/redmine/redmine
+https://github.com/Leantime/leantime
+https://github.com/git-bug/git-bug
+https://github.com/steviee/git-issues
+https://github.com/timonburkard/git-issue
+https://opencode.ai/docs/mcp-servers/
+https://github.com/jackblanc/opencode-linear-agent
+https://openspec.dev/docs/core-concepts
+https://openspec.dev/docs/opsx

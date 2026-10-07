@@ -1,0 +1,220 @@
+#!/usr/bin/env bash
+# session-log — CLI for the orchestrator session log (ana007 Option E, Phase 2).
+#
+# WHY: silent session logging makes messages.jsonl the canonical, plugin-written
+# source of truth (delegation-observer writes it via appendFileSync — zero chat
+# pollution). messages.md is now a DERIVED VIEW regenerated from messages.jsonl
+# instead of being hand-maintained by the orchestrator (kills the dual-maintained
+# .md + .jsonl anti-pattern: drift, double token cost, confusion).
+#
+# Subcommands:
+#   render              regenerate messages.md (default .opencode/session/messages.md)
+#                       from messages.jsonl — atomic write via <output>.tmp + mv.
+#   stats               session rollup (rows by event_type / agent / lane / cycle /
+#                       resolution status) — mirrors .opencode/scripts/jsonl-stats.sh
+#                       but inline (that script uses bash-4 [[ ]] and is not
+#                       bash-3 portable).
+#   tail [N]            show the last N formatted rows (default 20).
+#
+# Flags: --file <path> (default .opencode/session/messages.jsonl),
+#        --output <path> (default .opencode/session/messages.md).
+#
+# Bash-3 compatible (macOS stock bash 3.2) — no associative arrays, no [[ ]],
+# no ${!var} (same contract as scripts/check-host-jq.sh). Requires jq for every
+# subcommand (render/tail parse JSON; stats aggregates) — fail-loud if absent.
+# Exit 0/1 only; all errors are fail-loud messages on stderr.
+set -euo pipefail
+
+FILE=".opencode/session/messages.jsonl"
+OUTPUT=".opencode/session/messages.md"
+SUB=""
+N="20"
+
+fail() {
+  echo "error: $*" >&2
+  exit 1
+}
+
+require_file() {
+  [ -f "$FILE" ] || fail "$FILE not found — run session-log from the repo root (or pass --file)"
+}
+
+require_jq() {
+  command -v jq >/dev/null 2>&1 || \
+    fail "jq required (not found on PATH) — install jq (e.g. sudo apt install jq, brew install jq, or mise install jq)"
+}
+
+# emit_rows <file>: one formatted markdown row (cells pipe-joined, trailing
+# empty cells trimmed) per valid jsonl line. Row # = row_id when present, else
+# the 1-based LINE number (legacy rows lacking row_id — preserves the legacy
+# "continue from the last row #" numbering). Malformed lines are DROPPED here
+# (the caller emits the skip warning via warn_malformed).
+#
+# Columns: the legacy 7-column header is preserved verbatim (# | timestamp |
+# from | to | lane/ticket | result | next-action); decision/handoff/crisis rows
+# (the VP 9-column shape) additionally carry the extended columns (channel /
+# content_ref / cycle_id / evidence / prognosis_ref / resolution_status) as
+# appended cells, matching the existing messages.md VP rows.
+emit_rows() {
+  local f="$1"
+  # shellcheck disable=SC2016
+  jq -nrR '
+    [ inputs | { line: input_line_number, raw: . } ]
+    | map(select(.raw | length > 0))
+    | map(. as $r | ($r.raw | fromjson?) as $p | $r + { parsed: $p })
+    | map(
+        . as $r | $r.parsed as $p
+        | (if ($p.event_type == "decision" or $p.event_type == "handoff" or $p.event_type == "crisis") then
+            [ ($p.channel // ""), ($p.content_ref // ""), ($p.cycle_id // ""), ($p.evidence // ""), ($p.prognosis_ref // ""), ($p.resolution_status // "") ]
+          else
+            [ "", "", "", "", "", "" ]
+          end) as $ext
+        | [ (($p.row_id // $r.line) | tostring),
+            ($p.timestamp // ""),
+            ($p.from // ""),
+            ($p."gen_ai.agent.name" // ""),
+            (($p.lane_id // $p.ticket_id) // ""),
+            (($p.task_ref // "") + (if ($p.result_ref // "") != "" then " — " + $p.result_ref else "" end) + (if ($p.resolution_status // "") != "" then " [" + $p.resolution_status + "]" else "" end)),
+            ($p.next_action // "")
+          ] + $ext
+        | map(gsub("\\|"; "\\|"))
+        | join(" | ")
+        | gsub("( \\| )+$"; "")
+      )
+    | .[]
+  ' "$f"
+}
+
+# valid_json_lines <file>: re-emit only parseable JSON lines (compact), with
+# empty lines dropped — the skip half of the skip + warn policy. Malformed
+# lines are excluded so downstream jq aggregations never abort on them.
+valid_json_lines() {
+  local f="$1"
+  jq -Rrc 'if length == 0 then empty else try fromjson catch empty end' "$f"
+}
+
+# warn_malformed <file>: skip + warn policy for malformed JSON lines — one
+# jq -R pass classifies every line (OK/BAD), BAD line numbers are printed as
+# warnings on stderr; malformed rows never crash the render and never appear
+# in the derived view.
+warn_malformed() {
+  local f="$1"
+  local bad
+  bad="$(jq -Rr 'if length == 0 then "OK" else try (fromjson | "OK") catch "BAD" end' "$f" \
+    | grep -n '^BAD$' \
+    | sed 's/:BAD$//' || true)"
+  if [ -n "$bad" ]; then
+    echo "$bad" | while read -r n; do
+      echo "warning: $f line $n is malformed JSON — skipped" >&2
+    done
+  fi
+}
+
+render() {
+  require_file
+  require_jq
+  local tmp="${OUTPUT}.tmp"
+  # Atomic-write contract: write to <output>.tmp then mv. The EXIT trap
+  # removes any leftover .tmp on failure so a .tmp is never left behind.
+  trap 'rm -f "${OUTPUT}.tmp"' EXIT
+  warn_malformed "$FILE"
+  {
+    echo "# Orchestrator Session Messages Log"
+    echo
+    echo "> DERIVED VIEW — generated from .opencode/session/messages.jsonl by"
+    echo "> \`scripts/session-log render\`. Do not edit directly."
+    echo
+    echo "## Columns"
+    echo
+    echo "\`# | timestamp | from | to | lane/ticket | result | next-action\`"
+    echo
+    echo "## Log"
+    echo
+    echo "| # | timestamp | from | to | lane/ticket | result | next-action |"
+    echo "| - | --------- | ---- | -- | ----------- | ------ | ----------- |"
+    emit_rows "$FILE" | while IFS= read -r line; do
+      printf '| %s |\n' "$line"
+    done
+  } > "$tmp"
+  mv "$tmp" "$OUTPUT"
+  echo "ok: regenerated $OUTPUT from $FILE"
+}
+
+# rollup <label> <jq-expr>: count rows grouped by <jq-expr> value (stats).
+rollup() {
+  local label="$1"
+  local expr="$2"
+  echo "## $label"
+  # shellcheck disable=SC2016
+  valid_json_lines "$FILE" | jq -r "$expr" | sort | uniq -c | sort -rn
+  echo
+}
+
+stats() {
+  require_file
+  require_jq
+  warn_malformed "$FILE"
+  local total
+  total="$(valid_json_lines "$FILE" | jq -s 'length')"
+  echo "=== Session Log Stats: $FILE ==="
+  echo
+  echo "Total events: $total"
+  echo
+  rollup "Events by type" '.event_type // "unknown"'
+  rollup "Events by agent" '."gen_ai.agent.name" // "unknown"'
+  rollup "Events by lane" '.lane_id // "no-lane"'
+  rollup "Cycle attribution" '.cycle_id // "no-cycle"'
+  rollup "Resolution status" '.resolution_status // "unset"'
+  echo "=== End Stats ==="
+}
+
+tail_rows() {
+  require_file
+  require_jq
+  echo "=== Last ${N} rows of $FILE ==="
+  echo
+  emit_rows "$FILE" | command tail -n "$N"
+}
+
+# --- argument parsing: subcommand first; tail takes an optional N; flags anywhere.
+while [ $# -gt 0 ]; do
+  case "$1" in
+    render|stats|tail)
+      SUB="$1"
+      ;;
+    --file)
+      shift
+      [ $# -gt 0 ] || fail "--file requires a value"
+      FILE="$1"
+      ;;
+    --output)
+      shift
+      [ $# -gt 0 ] || fail "--output requires a value"
+      OUTPUT="$1"
+      ;;
+    *)
+      if [ "$SUB" = "tail" ]; then
+        case "$1" in
+          ''|*[!0-9]*)
+            fail "tail N must be a positive integer (got: $1)"
+            ;;
+          *)
+            N="$1"
+            ;;
+        esac
+      else
+        fail "unknown argument: $1"
+      fi
+      ;;
+  esac
+  shift
+done
+
+case "$SUB" in
+  render) render ;;
+  stats) stats ;;
+  tail) tail_rows ;;
+  *)
+    fail "usage: session-log <render|stats|tail> [N] [--file <path>] [--output <path>]"
+    ;;
+esac

@@ -1,0 +1,21 @@
+# Source URLs for res019-omo-slim-version-gate
+# Archive date: 2026-08-13. DIA-127 Step B (OMO slim 2.2.13 version-gate research persistence)
+# + DIA-126 re-verify (wildcard bash curl/wget/trafilatura permissions, post-restart opencode).
+# Archival tool per source is recorded in the conspect report and the Phase A table.
+
+https://github.com/alvinunreal/oh-my-opencode-slim/releases
+https://github.com/alvinunreal/oh-my-opencode-slim/releases/tag/v2.2.11
+https://github.com/alvinunreal/oh-my-opencode-slim/releases/tag/v2.2.9
+https://github.com/alvinunreal/oh-my-opencode-slim/releases/tag/v2.2.13
+https://github.com/alvinunreal/oh-my-opencode-slim/releases/tag/v2.2.12
+https://github.com/alvinunreal/oh-my-opencode-slim/compare/v2.2.8...v2.2.13
+https://www.npmjs.com/package/oh-my-opencode-slim
+# NOT ARCHIVED (all methods exhausted): npmjs.com SPA shell (42 bytes) via trafilatura b/c; crwl fallback failed (DIA-129 chromium not provisioned). Claims covered by npm-registry-json.json instead.
+https://raw.githubusercontent.com/alvinunreal/oh-my-opencode-slim/v2.2.13/package.json
+# Archived via curl raw as sources/package-json-v2213.json (raw-file endpoint, strategy-a analog: response IS the archive; trafilatura b/c produced 0 bytes on raw JSON; crwl d failed DIA-129 chromium).
+
+https://github.com/alvinunreal/oh-my-opencode-slim/pull/936
+https://github.com/alvinunreal/oh-my-opencode-slim/pull/979
+https://www.npmjs.com/package/oh-my-opencode-slim?activeTab=versions
+# NOT ARCHIVED (all methods exhausted): npmjs.com SPA shell (42 bytes) via trafilatura b/c; crwl fallback failed (DIA-129 chromium not provisioned). Claims covered by npm-registry-json.json instead.
+https://registry.npmjs.org/oh-my-opencode-slim

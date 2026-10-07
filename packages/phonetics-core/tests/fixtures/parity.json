@@ -1,0 +1,33 @@
+{
+  "p": {
+    "syl": 2,
+    "cons": 1,
+    "voi": 2,
+    "lab": 1
+  },
+  "a": {
+    "syl": 1,
+    "son": 1,
+    "cons": 2,
+    "voi": 1,
+    "lo": 1
+  },
+  "m": {
+    "nas": 1,
+    "cons": 1,
+    "voi": 1,
+    "lab": 1
+  },
+  "s": {
+    "cont": 1,
+    "strid": 1,
+    "voi": 2,
+    "cor": 1
+  },
+  "__metadata__": {
+    "totalSegments": 6367,
+    "totalBases": 147,
+    "featureCount": 24,
+    "sourceName": "Panphon"
+  }
+}

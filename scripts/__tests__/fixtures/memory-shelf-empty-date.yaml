@@ -1,0 +1,12 @@
+shelf:
+  conspects:
+    - name: Empty Date Conspect
+      description: 'Entry with an empty-string optional date - must FAIL both
+        layers (OBS-1 parity fixture: schema pattern applies to empty strings).'
+      path: knowledge/res995-empty-date/res995-empty-date-conspect.md
+      created: 2026-08-15
+      date: ''
+  analyses: []
+  adrs: []
+  specs: []
+  architectures: []

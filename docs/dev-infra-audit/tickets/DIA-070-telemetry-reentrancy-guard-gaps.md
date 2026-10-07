@@ -1,0 +1,132 @@
+# DIA-070 — Telemetry plugin P2/P4 re-entrancy guard gaps (DIA-056(b) residuals)
+
+<!-- From ana009 — Telemetry Re-Entrancy Audit (DIA-056(b) sub-audit, 2026-08-08,
+     knowledge/ana009-telemetry-reentrancy-audit/). Recursive
+     telemetry/re-entrancy root-cause investigation residuals: no active
+     infinite loops, but P1-P4 guard coverage is incomplete across both
+     telemetry plugins. -->
+
+---
+
+id: DIA-070
+title: "Telemetry plugin P2/P4 re-entrancy guard gaps (DIA-056(b) residuals)"
+area: opencode-config
+severity: Medium
+status: CLOSED
+blocked_by: []
+discovered: 2026-08-08
+source: ana009
+date: 2026-08-08
+created: 2026-08-08
+updated: 2026-08-08
+
+# --- Session Attribution (v2 schema, optional) ---
+
+session_id: "ses_0200a17c0ffeRVJVeE5YZPIVsM"
+lane_id: ""
+agent: "coder"
+model: ""
+parent_session_id: ""
+attempts: 0
+lease_expires_at: ""
+files_touched: []
+artifacts: ["knowledge/ana009-telemetry-reentrancy-audit/ana009-telemetry-reentrancy-audit-report.md"]
+evidence: ["ses_0200a17c0ffeRVJVeE5YZPIVsM (ana009 analysis lane)", "knowledge/ana009-telemetry-reentrancy-audit/ana009-telemetry-reentrancy-audit-report.md"]
+
+---
+
+## Description
+
+Recursive telemetry/re-entrancy guard coverage across the telemetry plugins is
+incomplete (residuals of the DIA-056(b) root-cause sub-audit —
+`knowledge/ana009-telemetry-reentrancy-audit/`):
+
+- `opencode-telemetry@0.1.19` implements **P4** (seenMessageIds, in-memory set)
+  but LACKS **P1/P2/P3**.
+- `opencode-token-monitor@0.5.0` implements **P1** (inFlightSessions) but LACKS
+  **P2/P3/P4**.
+- **BOTH lack P2** (context suppression) — critical if the OpenCode dispatcher
+  re-enters: the re-entrant message would be processed as if new.
+
+**Finding:** NO active infinite loops — MEDIUM-HIGH confidence normal-operation
+is safe. The DIA-056 stacking incident signature is not reproduced by a
+deterministic plugin loop; guards remain a defense-in-depth gap.
+
+**Anomaly (audit note):** `opencode-subagent-output` is NOT LOADED at runtime —
+its cache dir is empty and it is absent from BOTH plugin arrays. It is an audit
+target that is expected but missing; investigate whether it should be removed
+from audit scope (or restored to the plugin arrays).
+
+## Verification
+
+1. Inspect plugin source for guard coverage per the P1-P4 matrix above
+   (`~/.cache/opencode/packages/opencode-telemetry@0.1.19/`,
+   `opencode-token-monitor@0.5.0/`).
+2. Dispatch-storm / restart smoke: rapid re-entrant dispatches — assert NO
+   duplicate DB inserts / duplicate toasts.
+3. Check runtime plugin load: `git status` cache dirs + both plugin arrays for
+   `opencode-subagent-output`.
+
+## Fix
+
+**Fix direction (superseded by implementation — plugin-local Sets):**
+
+- **(P2, HIGH)** plugin-local in-flight suppression Sets in BOTH plugin
+  handlers — telemetry `inFlightMessageIds` (src/handlers.ts), token-monitor
+  `seenMessageIds` (dist/plugin.js) — **IMPLEMENTED**. Note: an earlier draft
+  recommended a context-carried suppression flag, but `EventMessageUpdated`
+  carries no re-entry marker (learnings finding 2 — API constraint), so fixes
+  are plugin-local state by design; the flag approach is superseded.
+- **(P2)** persist telemetry `seenMessageIds` to SQLite (or use message-id as
+  primary key) so the set survives restart — **IMPLEMENTED** as migration v6
+  `idx_turns_message_id` UNIQUE partial index.
+- **(P3)** token-monitor message-level dedup `Set` — **IMPLEMENTED** as P2b
+  `seenMessageIds`.
+
+**§10 routing note:** plugin/config territory — per global AGENTS.md §10,
+route through @ai-specialist gate → design → @coder → independent review →
+restart + smoke.
+
+**Implemented 2026-08-08 (Phase 4 — @coder, design approved verbatim by developer):**
+
+Three vendored patches in the volatile npm cache (NO tracked repo source files
+modified; `.bak-dia070` backups created for all three files before editing):
+
+- **Patch 1 — Migration v6 (opencode-telemetry@0.1.19 `src/db.ts`):** P4 persistence — `UNIQUE` partial index `idx_turns_message_id` on `turns(message_id) WHERE message_id IS NOT NULL` (SQLite UNIQUE allows multiple NULLs but rejects duplicate non-NULL values). Pre-check detects existing duplicate message_ids, warns, and deduplicates (keep `MIN(id)`) before index creation. Appended to `MIGRATIONS[]` as v6, style-matched (`{ version, up(db) }`).
+- **Patch 2 — P2a in-flight guard (opencode-telemetry@0.1.19 `src/handlers.ts`):** `inFlightMessageIds` Set declared after `seenMessageIds`; `message.updated` handler entry order now inFlight-check → seenMessageIds-check → `time.completed` check → add to BOTH sets; turn-processing logic wrapped in `try { ... } finally { inFlightMessageIds.delete(msg.id); }`.
+- **Patch 3 — P2b seenMessageIds (opencode-token-monitor@0.5.0 `dist/plugin.js`):** `seenMessageIds` Set declared after `inFlightSessions`; `message.updated` handler entry order: assistant-role filter → `inFlightSessions` gate (return BEFORE adding to seen set) → `seenMessageIds` check (return if seen) → `seenMessageIds.add(msgInfo.id)` (only when proceeding) → `inFlightSessions.add(sessionID)` → existing processing (no finally — pure P4 semantics).
+
+**Verification evidence (Phase 4, pre-restart static checks):**
+
+- `node --check` on token-monitor `dist/plugin.js` → exit 0 (syntax).
+- TypeScript check on the telemetry src closure (repo tsc 5.9.3; `bun` unavailable in this environment) → exit 0, zero diagnostics. Command: `/home/qualt/Projects/poetry-platform/node_modules/.bin/tsc -p /tmp/opencode/dia070-tscheck/tsconfig.json` over `src/{index,db,handlers,commands,paths,pricing,types}.ts` with minimal ambient stubs for `bun:sqlite`/`fs`/`path`/`os`/`process`/`console`/`Buffer`/`ImportMeta.dir` (no bun-types/@types/node installed here). Node-API `ts.getPreEmitDiagnostics` run also reports DIAG_COUNT=0.
+- `.bak-dia070` backups present for all 3 files (db.ts, handlers.ts, plugin.js). Deltas vs backups confirmed scoped: db.ts +36/-0 lines (includes `version: 6`), handlers.ts +53 lines (includes try/finally re-indent), plugin.js +3 lines.
+- DIA-069 artifacts untouched: `commands.ts` / `index.ts` and both `.bak-dia069` backups have unchanged mtimes (2026-08-08 18:55 / 2026-07-27 08:50 — pre-run; this lane's edits are 22:11-22:12).
+
+**Phase 5 restart PASSED** — runtime proof below. **Phase 6 @ai-auditor independent review COMPLETED** — 3 patches SOUND/ISSUES-FOUND; Patch-3 ordering defect fixed (see Re-verify); registration fidelity reconciled; shadow-copy risk documented; doc-drift AGENTS.md §2.5 deferred as a future §10 change.
+
+**Upstream status:** follow-up upstream PR tickets (opencode-telemetry P4 migration + P2a; opencode-token-monitor P2b) NOT created — out of scope for this lane.
+
+## Re-verify
+
+**Phase 5 runtime proof — PASSED (2026-08-08).** P4 persistence is restart-durable via the v6 `idx_turns_message_id` UNIQUE partial index (DB layer); P2a/P2b Sets are per-plugin-process in-memory and re-seed on plugin load.
+
+- Restart evidence: process PID 106897 started 21:09:18Z — AFTER the vendored patch applied 20:11Z (patched code live in the running process).
+- `schema_version='6'` confirmed via the `_meta` table.
+- Partial unique index `idx_turns_message_id` LIVE in the telemetry DB.
+- 0 duplicate `message_id` rows present.
+- `make test-config` exit 0 (all suites).
+- `git status --short` clean except untracked `openspec/changes/dia-071-host-lsp-tolerance/` (DIA-071 lane, untouched).
+
+1. Dispatch storm + restart smoke — no duplicate DB inserts/toasts.
+2. Restart persistence check: P2/P4 sets survive restart.
+
+**Phase 6 audit disposition (2026-08-08) — SOUND/ISSUES-FOUND:**
+
+- 3 patches audited: SOUND overall; findings dispositioned below.
+- **Patch-3 ordering defect (FOUND → FIXED):** `seenMessageIds.add(msgInfo.id)` executed BEFORE the `inFlightSessions` check in token-monitor `dist/plugin.js` — if the session was already in flight, the handler returned early and the message ID stayed "seen", potentially suppressing later first-time processing for that ID. Fixed: entry order now role filter → `inFlightSessions` check (return WITHOUT adding) → `seenMessageIds` check (return if seen) → `seenMessageIds.add` (only when proceeding) → existing processing unchanged. Backup `.bak-dia070-fix` (original `.bak-dia070` untouched); `node --check` exit 0.
+- **Registration fidelity reconciled:** learnings entry + index row updated from "deferred" to "applied/implemented" (3 patches, `.bak-dia070` backups, commit 3ac8c0f, Phase 5 runtime proof PASSED).
+- **Shadow-copy risk (documented finding; mitigation NOT implemented):** stale unpatched copies exist at `~/.config/opencode/node_modules/opencode-telemetry` (migrations only to v5 — no `idx_turns_message_id`, no `inFlightMessageIds`) and under cache aliases (`@latest`/unscoped) for both opencode-telemetry and opencode-token-monitor. If `~/.cache/opencode/packages/` is cleared, the duplicate-turn bug silently regresses. Mitigation: durable runtime source-of-truth for patched plugin bits OR a startup fingerprint/checksum guard; re-apply patches to stale copies if cache churn occurs.
+- **Residual runtime risk (documented; developer ACCEPTED 2026-08-08):** `seenMessageIds.add()` runs before downstream fetch/processing success and the `finally` block only clears `inFlightSessions` (not seen IDs) — a transient processing failure could mark a message seen without full processing. Rationale for acceptance: the telemetry-side P2a guard (primary protection) is unaffected and cleans up in try/finally; the token-monitor seen-set is a secondary symmetry guard and the transient-failure window is tolerable.
+- **Deferred:** AGENTS.md §2.5 doc-drift (implementation-phase narrative there still says fixes "deferred" / Phase 5 "PENDING") — future §10 change.
+- Status **CLOSED** (2026-08-08) — closing note: implementation (3 vendored patches) + Phase 5 runtime proof PASS (process-level restart, schema v6, `idx_turns_message_id` live, 0 duplicates, `make test-config` exit 0) + Phase 6 audit + re-verify + developer dispositions complete (incl. Patch-3 ordering fix and residual-risk ACCEPT above).

@@ -1,0 +1,5 @@
+#!/usr/bin/env sh
+# commit-msg hook: enforce the F binding budget (campaign ticket DIA-260903-o7n0).
+# Blocking gate over the Budget-Scope / Budget-Exception trailers; see
+# scripts/check-budget-gate.sh and openspec/changes/f-budget-gate-blocking.
+bash scripts/check-budget-gate.sh "$1"

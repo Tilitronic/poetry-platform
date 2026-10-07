@@ -1,0 +1,50 @@
+#!/usr/bin/env python3
+# scripts/promo-preset-apply - RETIRED no-op (DIA-260929-5c6m, 2026-09-29).
+#
+# This script used to clone the active OMO preset into a "promo" preset with
+# ana036 promo routing, preserving JSONC comments (DIA-260828-qtsi). It is
+# retired because both of its write paths are dead:
+#   - the insert path anchored on the `free` preset key, which was deleted
+#     from .opencode/oh-my-opencode-slim.jsonc (DIA-260929-5c6m), and
+#   - the replace path targeted a preset key literally named "promo", which
+#     never existed in the tree - the real key was `promo-union-alpha`, also
+#     deleted (DIA-260918-mm2u tracks the stale target).
+# The developer chose to RETIRE rather than repair the anchor on 2026-09-29.
+#
+# The CLI surface is kept so existing invocations keep working: argparse
+# exits 2 on unknown flags, so dropping --dry-run/--config/--registry would
+# turn every historical call into an exit-2 failure. Nothing is read or
+# written anymore; the script only reports the retired state and exits 0.
+#
+# Usage:
+#   scripts/promo-preset-apply [--dry-run] [--config PATH] [--registry PATH]
+#   scripts/promo-preset-apply --help
+
+import argparse
+import os
+import sys
+
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+REPO_ROOT = os.path.dirname(SCRIPT_DIR)
+CONFIG_DEFAULT = os.path.join(REPO_ROOT, ".opencode", "oh-my-opencode-slim.jsonc")
+REGISTRY_DEFAULT = os.path.join(REPO_ROOT, ".opencode", "promo-registry.json")
+
+
+def main():
+    ap = argparse.ArgumentParser(
+        description="RETIRED (DIA-260929-5c6m): promo preset generation is a no-op.")
+    ap.add_argument("--dry-run", action="store_true",
+                    help="accepted for compatibility; the script never writes")
+    ap.add_argument("--config", default=CONFIG_DEFAULT,
+                    help="path to oh-my-opencode-slim.jsonc (reported, not modified)")
+    ap.add_argument("--registry", default=REGISTRY_DEFAULT,
+                    help="path to promo-registry.json (unused since retirement)")
+    args = ap.parse_args()
+
+    print("retired: promo preset generation was retired on 2026-09-29 (DIA-260929-5c6m).")
+    print("no-op: %s was not read or modified." % args.config)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
