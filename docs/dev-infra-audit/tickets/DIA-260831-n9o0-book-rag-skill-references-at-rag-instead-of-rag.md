@@ -6,7 +6,7 @@ id: DIA-260831-n9o0
 title: "Book-rag skill references at-rag instead of rag"
 area: skills
 severity: Low
-status: OPEN
+status: CLOSED
 blocked_by: []
 parent_epic: DIA-260827-wfcx
 gate_state: "skipped"
@@ -17,7 +17,7 @@ discovered: 2026-08-31
 source: inventory
 date: 2026-08-31
 created: 2026-08-31
-updated: 2026-08-31
+updated: 2026-10-13
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -30,7 +30,10 @@ attempts: 0
 lease_expires_at: ""
 files_touched: []
 artifacts: []
-evidence: []
+evidence:
+
+- .opencode/scripts/validate-skills.sh#L614
+- scripts/**tests**/validate-skills.bats#plain-command-cases
 
 ---
 
@@ -44,8 +47,8 @@ grep the skill for @rag returns nothing; the command-reference validator flags a
 
 ## Fix
 
-Fix the book-rag skill reference from @rag to /rag and add a command-reference validator that rejects references to non-existent commands.
+The skills validator now resolves slash-command references in both backticked and plain text body forms against the command manifest. It excludes slash-prefixed filesystem paths such as /tmp/path and ignores command-like text inside fenced code.
 
 ## Re-verify
 
-> To be filled at re-verify time.
+The focused validate-skills.bats suite in poetry-dev passed 42/42, covering known and unknown backticked/plain commands and filesystem-path exclusion. make test-config exited 0. The existing /rag reference in book-rag is valid.

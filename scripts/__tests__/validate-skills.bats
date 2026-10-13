@@ -625,6 +625,98 @@ Use when testing compat.
   assert_output_contains "__dangling_cmd_zzz__"
 }
 
+@test "body command reference: known backticked command passes" {
+  write_compat_manifests
+  write_skill "body-command-user" '---
+name: body-command-user
+description: Skill using a known slash command. Use when testing command references.
+license: MIT
+---
+
+Prefer the `/fixture-file-cmd` command.
+'
+
+  SKILLS_ROOT="$FIXTURES" COMPAT_PRESETS_FILE="$BATS_TEST_TMPDIR/compat-presets.json" COMPAT_CONFIG_FILE="$BATS_TEST_TMPDIR/compat-config.json" COMPAT_COMMANDS_DIR="$BATS_TEST_TMPDIR/compat-commands" run bash "$SKILLS_SCRIPT"
+
+  assert_status 0
+  assert_output_not_contains "FAIL:"
+}
+
+@test "body command reference: known plain slash command passes" {
+  write_compat_manifests
+  write_skill "plain-body-command-user" '---
+name: plain-body-command-user
+description: Skill naming a plain slash command. Use when testing command references.
+license: MIT
+---
+
+Prefer /fixture-file-cmd as the OpenCode slash command.
+'
+
+  SKILLS_ROOT="$FIXTURES" COMPAT_PRESETS_FILE="$BATS_TEST_TMPDIR/compat-presets.json" COMPAT_CONFIG_FILE="$BATS_TEST_TMPDIR/compat-config.json" COMPAT_COMMANDS_DIR="$BATS_TEST_TMPDIR/compat-commands" run bash "$SKILLS_SCRIPT"
+
+  assert_status 0
+  assert_output_not_contains "FAIL:"
+}
+
+@test "body command reference: unknown backticked command fails clearly" {
+  write_compat_manifests
+  write_skill "body-command-user" '---
+name: body-command-user
+description: Skill using an unknown slash command. Use when testing command references.
+license: MIT
+---
+
+Prefer the `/__dangling_body_cmd_zzz__` command.
+'
+
+  SKILLS_ROOT="$FIXTURES" COMPAT_PRESETS_FILE="$BATS_TEST_TMPDIR/compat-presets.json" COMPAT_CONFIG_FILE="$BATS_TEST_TMPDIR/compat-config.json" COMPAT_COMMANDS_DIR="$BATS_TEST_TMPDIR/compat-commands" run bash "$SKILLS_SCRIPT"
+
+  assert_status 1
+  assert_output_contains "FAIL:"
+  assert_output_contains "body-command-user"
+  assert_output_contains "__dangling_body_cmd_zzz__"
+}
+
+@test "body command reference: unknown plain slash command fails clearly" {
+  write_compat_manifests
+  write_skill "plain-body-command-user" '---
+name: plain-body-command-user
+description: Skill naming an unknown plain slash command. Use when testing command references.
+license: MIT
+---
+
+Prefer /__dangling_plain_cmd_zzz__ as the OpenCode slash command.
+'
+
+  SKILLS_ROOT="$FIXTURES" COMPAT_PRESETS_FILE="$BATS_TEST_TMPDIR/compat-presets.json" COMPAT_CONFIG_FILE="$BATS_TEST_TMPDIR/compat-config.json" COMPAT_COMMANDS_DIR="$BATS_TEST_TMPDIR/compat-commands" run bash "$SKILLS_SCRIPT"
+
+  assert_status 1
+  assert_output_contains "FAIL:"
+  assert_output_contains "plain-body-command-user"
+  assert_output_contains "__dangling_plain_cmd_zzz__"
+}
+
+@test "body command reference: filesystem paths are not treated as commands" {
+  write_compat_manifests
+  write_skill "body-path-user" '---
+name: body-path-user
+description: Skill mentioning a filesystem path. Use when testing command references.
+license: MIT
+---
+
+See /tmp/path for the temporary artifact.
+Use <planningHome.changesDir>/archive as the target.
+ADRs live in .sdd/<module>/architecture.md.
+The rename notation is FROM:/TO:.
+'
+
+  SKILLS_ROOT="$FIXTURES" COMPAT_PRESETS_FILE="$BATS_TEST_TMPDIR/compat-presets.json" COMPAT_CONFIG_FILE="$BATS_TEST_TMPDIR/compat-config.json" COMPAT_COMMANDS_DIR="$BATS_TEST_TMPDIR/compat-commands" run bash "$SKILLS_SCRIPT"
+
+  assert_status 0
+  assert_output_not_contains "FAIL:"
+}
+
 @test "compat: unknown agent exits 1 with a deterministic FAIL" {
   write_compat_manifests
   write_skill "agent-user" '---

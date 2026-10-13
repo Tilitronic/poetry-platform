@@ -611,6 +611,29 @@ for skill_dir in "$SKILLS_ROOT"/*/; do
         file_failed=1
       fi
     done
+    while IFS= read -r reference; do
+      if [ "${reference:0:2}" = '`/' ]; then
+        command_name="${reference:2:${#reference}-3}"
+      else
+        command_name="${reference#/}"
+      fi
+      if [ -z "${compat_commands[$command_name]:-}" ]; then
+        echo "FAIL: skill '$skill_name': command '$command_name' not found in command manifest (class body command reference in $skill_file)" >&2
+        compat_fails=$((compat_fails + 1))
+        file_failed=1
+      fi
+    done < <(
+      {
+        grep -oE '`/[[:alnum:]_][[:alnum:]_-]*`' "$body_tmp" || true
+        awk '
+          /^```/ { in_fence = !in_fence; next }
+          !in_fence { print }
+        ' "$body_tmp" |
+          sed -E 's/`[^`]*`//g' |
+          grep -oE '(^|[^[:alnum:]_`/$:>])/[[:alnum:]_][[:alnum:]_-]*([^[:alnum:]_`/-]|$)' |
+          sed -E 's/^[^/]*//; s/[^[:alnum:]_-]*$//' || true
+      } | sort -u
+    )
     for entry in "${compat_agent_entries[@]}"; do
       if [ -z "${compat_agents[$entry]:-}" ]; then
         echo "FAIL: skill '$skill_name': agent '$entry' not found in agent manifest (class agent, declaration 'agents' in $skill_file)" >&2
