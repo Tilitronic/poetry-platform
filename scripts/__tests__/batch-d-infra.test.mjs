@@ -545,6 +545,14 @@ describe('S5 DIA-139 SLICE B (F-2): turbo base test task default', () => {
     );
   });
 
+  it('base test task must include package.json in its cache inputs', () => {
+    const inputs = turbo.tasks.test.inputs;
+    assert.ok(
+      Array.isArray(inputs) && inputs.includes('package.json'),
+      `expected package.json in test task inputs, got ${JSON.stringify(inputs)}`,
+    );
+  });
+
   it('per-package #test override block for the four verified packages is removed', () => {
     for (const key of LEGACY_OVERRIDES) {
       assert.equal(
