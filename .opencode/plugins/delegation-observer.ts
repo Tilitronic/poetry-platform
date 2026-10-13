@@ -837,7 +837,7 @@ const delegationObserver: Plugin = async (ctx) => {
       )
       return
     }
-    if ((probe.stdout ?? "").trim().length > 0) {
+    if ((probe.stdout?.length ?? 0) > 0) {
       tuiSafeWarn(
         `[delegation-observer] apoptosis kept DIRTY worktree ${wtPath} (developer decides)`,
         {
@@ -3666,16 +3666,22 @@ const delegationObserver: Plugin = async (ctx) => {
               // first-place process-global orchestrator capture made a second
               // parallel session write - and archive - the FIRST session's
               // slot, and pointed active.json at the wrong identity.
-              // args.lane_id stays as a model-supplied fallback only for calls
-              // that arrive without tool context; "unidentified-session" is
-              // the last resort (DIA-222 F-3: never the "unknown" sentinel).
-              const handoffSessionId =
-                context?.sessionID ?? args.lane_id ?? "unidentified-session"
-              writeResult = libAtomicWriteHandoff({ slotsDir: handoffSlotsDir, archiveDir: handoffArchiveDir, pointerPath: handoffPointerPath, legacyPath: handoffLegacyPath, reconciledPath: handoffReconciledPath }, handoffSessionId, {
-                  status, session_id: handoffSessionId, cycle_id: args.cycle_id ?? null, timestamp: new Date().toISOString(),
-                  checksum,
-                  prognosis,
-                })
+              const handoffSessionId = context?.sessionID
+              if (handoffSessionId) {
+                writeResult = libAtomicWriteHandoff({ slotsDir: handoffSlotsDir, archiveDir: handoffArchiveDir, pointerPath: handoffPointerPath, legacyPath: handoffLegacyPath, reconciledPath: handoffReconciledPath }, handoffSessionId, {
+                    status, session_id: handoffSessionId, cycle_id: args.cycle_id ?? null, timestamp: new Date().toISOString(),
+                    checksum,
+                    prognosis,
+                  })
+              } else {
+                ctx.client.app.log({
+                  body: {
+                    service: "delegation-observer",
+                    level: "error",
+                    message: "[delegation-observer] handoff slot write skipped: runtime session ID is missing",
+                  },
+                }).catch(() => {})
+              }
 
               // DIA-260927-uevh: the archive TELEMETRY was dropped when the
               // seam extraction (b35229f8, DIA-260902-eqgg) moved the archive

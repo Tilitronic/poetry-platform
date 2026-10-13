@@ -593,6 +593,28 @@ test("S1 reserved-path guard: session id 'active' cannot clobber active.json", a
   expect(rows[rows.length - 1].lane_id).toBe("active")
 })
 
+test("DIA-260827-5blh: untrusted handoff identity cannot write outside handoffs", async () => {
+  const attacks = [
+    { laneId: "../active", context: {} },
+    { laneId: "../../active", context: {} },
+    { laneId: "ses_someone_else", context: {} },
+    { laneId: "ses_safe", context: { sessionID: "../../active" } },
+  ]
+  for (const { laneId, context } of attacks) {
+    const { hooks, paths } = await makeHarness()
+
+    await hooks.tool.log_decision.execute(
+      terminalHandoffArgs(laneId, prognosisA()),
+      context
+    )
+
+    expect(existsSync(join(paths.sessionDir, "active.json"))).toBe(false)
+    expect(existsSync(join(paths.sessionDir, "active.json.tmp"))).toBe(false)
+    expect(existsSync(join(paths.sessionDir, "..", "active.json"))).toBe(false)
+    expect(existsSync(paths.slotPath("ses_someone_else"))).toBe(false)
+  }
+})
+
 /** Simulate a session's first task() dispatch (the root-session capture). */
 async function driveTaskDispatch(hooks, sessionID, callID = "call_1") {
   await hooks["tool.execute.after"](

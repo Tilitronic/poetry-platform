@@ -22,7 +22,7 @@ import {
   unlinkSync as fsUnlinkSync,
   writeFileSync as fsWriteFileSync,
 } from "node:fs"
-import { join } from "node:path"
+import { isAbsolute, join, relative, resolve, sep } from "node:path"
 
 // ---------------------------------------------------------------------------
 // computeChecksum — verbatim (jq -c stable order, top-level sort only)
@@ -64,6 +64,23 @@ export type HandoffDeps = {
 type NormalizedDeps = Required<Pick<HandoffDeps, "writeFileSync" | "openSync" | "fsyncSync" | "closeSync" | "renameSync" | "mkdirSync" | "existsSync" | "randomUUID" | "now">> &
   Pick<HandoffDeps, "readFileSync" | "unlinkSync" | "statSync">
 
+const SAFE_SESSION_ID = /^[A-Za-z0-9_-]+$/
+
+function resolveWithinDirectory(directory: string, filename: string): string {
+  const resolvedDirectory = resolve(directory)
+  const resolvedPath = resolve(resolvedDirectory, filename)
+  const relativePath = relative(resolvedDirectory, resolvedPath)
+  if (
+    !relativePath ||
+    relativePath === ".." ||
+    relativePath.startsWith(`..${sep}`) ||
+    isAbsolute(relativePath)
+  ) {
+    throw new Error("[handoff] path escapes its target directory")
+  }
+  return resolvedPath
+}
+
 function resolveDeps(partial?: HandoffDeps | null): NormalizedDeps {
   return {
     writeFileSync: partial?.writeFileSync ?? (fsWriteFileSync as unknown as (p: string, d: string) => void),
@@ -90,10 +107,15 @@ function coreAtomicWrite(
   content: Record<string, unknown>,
   deps: NormalizedDeps,
 ): { ok: boolean; archived_prior: string | null; error?: string } {
+  if (!SAFE_SESSION_ID.test(sessionId)) {
+    throw new Error("[handoff] invalid session id")
+  }
+
+  const slotPath = resolveWithinDirectory(paths.slotsDir, `${sessionId}.json`)
+  const slotTmpPath = resolveWithinDirectory(paths.slotsDir, `.${sessionId}.json.tmp`)
+
   deps.mkdirSync(paths.slotsDir, { recursive: true })
   deps.mkdirSync(paths.archiveDir, { recursive: true })
-
-  const slotPath = join(paths.slotsDir, `${sessionId}.json`)
 
   if (
     (paths.legacyPath && slotPath === paths.legacyPath) ||
@@ -108,7 +130,7 @@ function coreAtomicWrite(
     const iso = new Date(deps.now()).toISOString().replace(/:/g, "-")
     const uuid = deps.randomUUID()
     const archiveName = `${sessionId}.${iso}.${uuid}.json`
-    const archivePath = join(paths.archiveDir, archiveName)
+    const archivePath = resolveWithinDirectory(paths.archiveDir, archiveName)
     try {
       deps.renameSync(slotPath, archivePath)
       archivedPrior = `archive/${archiveName}`
@@ -117,7 +139,6 @@ function coreAtomicWrite(
     }
   }
 
-  const slotTmpPath = join(paths.slotsDir, `.${sessionId}.json.tmp`)
   try {
     const json = JSON.stringify(content, null, 2) + "\n"
     deps.writeFileSync(slotTmpPath, json)

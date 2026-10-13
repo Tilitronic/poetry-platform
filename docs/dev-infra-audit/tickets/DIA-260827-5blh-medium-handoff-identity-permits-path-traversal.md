@@ -6,7 +6,7 @@ id: DIA-260827-5blh
 title: "[MEDIUM] Handoff identity permits path traversal"
 area: opencode-config
 severity: Medium
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: ""
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
@@ -17,7 +17,7 @@ discovered: 2026-08-27
 source: inventory
 date: 2026-08-27
 created: 2026-08-27
-updated: 2026-08-27
+updated: 2026-10-13
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -32,6 +32,8 @@ files_touched: []
 artifacts: []
 evidence:
 
+- .opencode/plugins/delegation-observer.ts#L3672
+- .opencode/plugins/**tests**/parallel-handoff.test.mjs#DIA-260827-5blh
 - .opencode/plugins/delegation-observer.ts:1678-1713,1746,4446-4448
 
 ---
@@ -46,10 +48,8 @@ A lane_id of '../active' cannot escape the handoffs directory; resolved path con
 
 ## Fix
 
-Detail: raw sessionId/lane_id is joined into paths without containment validation; lane_id="../active" can overwrite session workflow state.
-
-Fix: use runtime session IDs and enforce anchored ID plus resolved-path containment.
+Handoff slot selection now uses only the trusted runtime context.sessionID. If it is missing, the plugin skips the slot write and logs the condition; args.lane_id is never used as a file identity. The handoff writer also validates session IDs and resolves slot/temp/archive paths within their target directories.
 
 ## Re-verify
 
-> To be filled at re-verify time.
+In poetry-dev, bun test parallel-handoff.test.mjs passed 13/13 (102 assertions), including traversal inputs and lane_id ses_someone_else with no runtime ID. make test-config exited 0, and TypeScript diagnostics for delegation-observer.ts were clear.
