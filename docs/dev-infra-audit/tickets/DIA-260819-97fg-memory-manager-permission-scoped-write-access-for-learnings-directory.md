@@ -6,7 +6,7 @@ id: DIA-260819-97fg
 title: "memory-manager permission: scoped write access for learnings directory"
 area: opencode-config
 severity: Low
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: ""
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
@@ -17,7 +17,7 @@ discovered: 2026-08-19
 source: inventory
 date: 2026-08-19
 created: 2026-08-19
-updated: 2026-08-19
+updated: 2026-10-13
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -30,7 +30,9 @@ attempts: 0
 lease_expires_at: "" # ISO-8601; set on DISPATCHED, cleared on COMPLETE
 files_touched: []
 artifacts: []
-evidence: []
+evidence:
+
+- .opencode/opencode.jsonc#memory-manager
 
 ---
 
@@ -50,8 +52,8 @@ The `memory-manager` agent tries to use the `write` tool to create files in `.op
 
 ## Fix
 
-> To be filled at fix time.
+No implementation change was needed. The existing memory-manager permission grants edit access to .opencode/learnings/external-patterns/\* while the general edit pattern is denied. No other agent permissions were changed.
 
 ## Re-verify
 
-> To be filled at re-verify time.
+opencode debug agent memory-manager resolved the scoped edit allow for .opencode/learnings/external-patterns/\*. make test-config exited 0. The ticket's requested behavior was already satisfied by the existing configuration.

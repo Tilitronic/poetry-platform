@@ -154,7 +154,7 @@
 | DIA-235 | Orchestrator bugs analysis and fix | opencode-config | Critical | CLOSED | [DIA-235-orchestrator-bugs-analysis.md](DIA-235-orchestrator-bugs-analysis.md) |
 | DIA-260819-880v | Orchestrator not using todowrite for planned items | opencode-config | Low | CLOSED | [DIA-260819-880v-orchestrator-not-using-todowrite-for-planned-items.md](DIA-260819-880v-orchestrator-not-using-todowrite-for-planned-items.md) |
 | DIA-260819-8kwm | unified ID generation: all artifact types should use same datetime-based pattern | dev-infra | Medium | CLOSED | [DIA-260819-8kwm-unified-id-generation-all-artifact-types-should-use-same-datetime-based-pattern.md](DIA-260819-8kwm-unified-id-generation-all-artifact-types-should-use-same-datetime-based-pattern.md) |
-| DIA-260819-97fg | memory-manager permission: scoped write access for learnings directory | opencode-config | Low | OPEN | [DIA-260819-97fg-memory-manager-permission-scoped-write-access-for-learnings-directory.md](DIA-260819-97fg-memory-manager-permission-scoped-write-access-for-learnings-directory.md) |
+| DIA-260819-97fg | memory-manager permission: scoped write access for learnings directory | opencode-config | Low | CLOSED | [DIA-260819-97fg-memory-manager-permission-scoped-write-access-for-learnings-directory.md](DIA-260819-97fg-memory-manager-permission-scoped-write-access-for-learnings-directory.md) |
 | DIA-260819-mh6p | Agentic workflow compliance analysis and fixes | opencode-config | Critical | COMPLETE | [DIA-260819-mh6p-agentic-workflow-compliance-analysis-and-fixes.md](DIA-260819-mh6p-agentic-workflow-compliance-analysis-and-fixes.md) |
 | DIA-260819-9oxi | DCP plugin still injecting system-reminders despite DIA-197 V2 config | opencode-config | Medium | CLOSED | [DIA-260819-9oxi-dcp-plugin-still-injecting-system-reminders-despite-dia-197-v2-config.md](DIA-260819-9oxi-dcp-plugin-still-injecting-system-reminders-despite-dia-197-v2-config.md) |
 | DIA-260819-mq4h | ticket system comparison: custom bash vs proven solutions | dev-infra | Medium | CLOSED | [DIA-260819-mq4h-ticket-system-comparison-custom-bash-vs-proven-solutions.md](DIA-260819-mq4h-ticket-system-comparison-custom-bash-vs-proven-solutions.md) |
@@ -219,7 +219,7 @@
 | DIA-260827-48iw | Python phonetics-core atlas loader has no test or lint gate | tests | High | CLOSED | [DIA-260827-48iw-python-phonetics-core-atlas-loader-has-no-test-or-lint-gate.md](DIA-260827-48iw-python-phonetics-core-atlas-loader-has-no-test-or-lint-gate.md) |
 | DIA-260827-4aqb | Agent routing bypasses tdd-craftsman RED-GREEN workflow | opencode-config | High | OPEN | [DIA-260827-4aqb-agent-routing-bypasses-tdd-craftsman-red-green-workflow.md](DIA-260827-4aqb-agent-routing-bypasses-tdd-craftsman-red-green-workflow.md) |
 | DIA-260827-4q3h | [HIGH] Reviewer cannot acquire its required diff (bash denied) | opencode-config | High | CLOSED | [DIA-260827-4q3h-high-reviewer-cannot-acquire-its-required-diff-bash-denied.md](DIA-260827-4q3h-high-reviewer-cannot-acquire-its-required-diff-bash-denied.md) |
-| DIA-260827-5blh | [MEDIUM] Handoff identity permits path traversal | opencode-config | Medium | OPEN | [DIA-260827-5blh-medium-handoff-identity-permits-path-traversal.md](DIA-260827-5blh-medium-handoff-identity-permits-path-traversal.md) |
+| DIA-260827-5blh | [MEDIUM] Handoff identity permits path traversal | opencode-config | Medium | CLOSED | [DIA-260827-5blh-medium-handoff-identity-permits-path-traversal.md](DIA-260827-5blh-medium-handoff-identity-permits-path-traversal.md) |
 | DIA-260827-5lvx | Shell test execution not runner-reproducible across machines | scripts | Medium | OPEN | [DIA-260827-5lvx-shell-test-execution-not-runner-reproducible-across-machines.md](DIA-260827-5lvx-shell-test-execution-not-runner-reproducible-across-machines.md) |
 | DIA-260827-6g6r | OpenSpec CLI commands unreachable from skills and agents | opencode-config | High | OPEN | [DIA-260827-6g6r-openspec-cli-commands-unreachable-from-skills-and-agents.md](DIA-260827-6g6r-openspec-cli-commands-unreachable-from-skills-and-agents.md) |
 | DIA-260827-6mhp | Docs overstate pnpm test as all tests | docs | Low | CLOSED | [DIA-260827-6mhp-docs-overstate-pnpm-test-as-all-tests.md](DIA-260827-6mhp-docs-overstate-pnpm-test-as-all-tests.md) |
@@ -265,7 +265,7 @@
 | DIA-260831-k1l2 | Editor orchestrator equal-revision overwrite breaks user priority | js-tooling | High | OPEN | [DIA-260831-k1l2-editor-orchestrator-equal-revision-overwrite-breaks-user-priority.md](DIA-260831-k1l2-editor-orchestrator-equal-revision-overwrite-breaks-user-priority.md) |
 | DIA-260831-l7m8 | Orchestrator wildcard all skills including implementation | opencode-config | Medium | OPEN | [DIA-260831-l7m8-orchestrator-wildcard-all-skills-including-implementation.md](DIA-260831-l7m8-orchestrator-wildcard-all-skills-including-implementation.md) |
 | DIA-260831-m3n4 | PoetryDataContract types schema not payload instance | js-tooling | High | OPEN | [DIA-260831-m3n4-poetrydatacontract-types-schema-not-payload-instance.md](DIA-260831-m3n4-poetrydatacontract-types-schema-not-payload-instance.md) |
-| DIA-260831-n9o0 | Book-rag skill references at-rag instead of rag | skills | Low | OPEN | [DIA-260831-n9o0-book-rag-skill-references-at-rag-instead-of-rag.md](DIA-260831-n9o0-book-rag-skill-references-at-rag-instead-of-rag.md) |
+| DIA-260831-n9o0 | Book-rag skill references at-rag instead of rag | skills | Low | CLOSED | [DIA-260831-n9o0-book-rag-skill-references-at-rag-instead-of-rag.md](DIA-260831-n9o0-book-rag-skill-references-at-rag-instead-of-rag.md) |
 | DIA-260831-p5q6 | PoetryState duplicate line ids corrupt map order invariant | js-tooling | High | CLOSED | [DIA-260831-p5q6-poetrystate-duplicate-line-ids-corrupt-map-order-invariant.md](DIA-260831-p5q6-poetrystate-duplicate-line-ids-corrupt-map-order-invariant.md) |
 | DIA-260831-r7s8 | Python atlas adapter unimportable from fresh checkout | python-tooling | Medium | OPEN | [DIA-260831-r7s8-python-atlas-adapter-unimportable-from-fresh-checkout.md](DIA-260831-r7s8-python-atlas-adapter-unimportable-from-fresh-checkout.md) |
 | DIA-260831-t9u0 | Atlas sha256 sidecar not raw binary digest | python-tooling | Medium | OPEN | [DIA-260831-t9u0-atlas-sha256-sidecar-not-raw-binary-digest.md](DIA-260831-t9u0-atlas-sha256-sidecar-not-raw-binary-digest.md) |
@@ -343,7 +343,7 @@
 | DIA-260926-n49u | muse-balanced preset: swap mimo-v2.5 -> mimo-v2.6-flash | scripts | Medium | CLOSED | [DIA-260926-n49u-muse-balanced-preset-swap-mimo-v2-5-mimo-v2-6-flash.md](DIA-260926-n49u-muse-balanced-preset-swap-mimo-v2-5-mimo-v2-6-flash.md) |
 | DIA-260927-0zii | test-python: collapse per-package compose exec into a single exec | tests-infra | Low | OPEN | [DIA-260927-0zii-test-python-collapse-per-package-compose-exec-into-a-single-exec.md](DIA-260927-0zii-test-python-collapse-per-package-compose-exec-into-a-single-exec.md) |
 | DIA-260927-h5xs | test-python: parallelize the 3x uv pip install | tests-infra | Low | OPEN | [DIA-260927-h5xs-test-python-parallelize-the-3x-uv-pip-install.md](DIA-260927-h5xs-test-python-parallelize-the-3x-uv-pip-install.md) |
-| DIA-260927-hwl9 | turbo: add package.json to the test task inputs (stale-green fix) | tests-infra | Low | OPEN | [DIA-260927-hwl9-turbo-add-package-json-to-the-test-task-inputs-stale-green-fix.md](DIA-260927-hwl9-turbo-add-package-json-to-the-test-task-inputs-stale-green-fix.md) |
+| DIA-260927-hwl9 | turbo: add package.json to the test task inputs (stale-green fix) | tests-infra | Low | CLOSED | [DIA-260927-hwl9-turbo-add-package-json-to-the-test-task-inputs-stale-green-fix.md](DIA-260927-hwl9-turbo-add-package-json-to-the-test-task-inputs-stale-green-fix.md) |
 | DIA-260927-k8nh | test-suite speedups: compose exec, parallel validators, turbo inputs, parallel pip | tests-infra | Low | OPEN | [DIA-260927-k8nh-test-suite-speedups-compose-exec-parallel-validators-turbo-inputs-parallel-pip.md](DIA-260927-k8nh-test-suite-speedups-compose-exec-parallel-validators-turbo-inputs-parallel-pip.md) |
 | DIA-260927-ltum | openspec: reconcile dia-206 empty-return-recovery VP-2 and tasks with the shipped text-based empty-result predicate | scripts | Low | OPEN | [DIA-260927-ltum-openspec-reconcile-dia-206-empty-return-recovery-vp-2-and-tasks-with-the-shipped-text-based-empty-result-predicate.md](DIA-260927-ltum-openspec-reconcile-dia-206-empty-return-recovery-vp-2-and-tasks-with-the-shipped-text-based-empty-result-predicate.md) |
 | DIA-260927-s1gd | preset: rename Muse Balanced to Mimo Balanced, swap the architector model, move ai-auditor off GLM-5.3-Flash | scripts | Medium | CLOSED | [DIA-260927-s1gd-preset-rename-muse-balanced-to-mimo-balanced-swap-the-architector-model-move-ai-auditor-off-glm-5-3-flash.md](DIA-260927-s1gd-preset-rename-muse-balanced-to-mimo-balanced-swap-the-architector-model-move-ai-auditor-off-glm-5-3-flash.md) |
@@ -387,7 +387,7 @@
 
 | Status      | Count |
 | ----------- | ----- |
-| OPEN        | 102   |
+| OPEN        | 98    |
 | DONE        | 15    |
 | VALIDATE    | 0     |
 | E2E         | 0     |
@@ -396,7 +396,7 @@
 | FIXED       | 1     |
 | IMPLEMENTED | 2     |
 | VERIFIED    | 29    |
-| CLOSED      | 217   |
+| CLOSED      | 221   |
 | BLOCKED     | 0     |
 | DISPATCHED  | 0     |
 | RUNNING     | 0     |
