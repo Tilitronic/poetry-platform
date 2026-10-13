@@ -37,5 +37,15 @@
   },
   "python.analysis.typeCheckingMode": "basic",
   "rust-analyzer.check.command": "clippy",
-  "typescript.tsdk": "node_modules/typescript/lib"
+  "typescript.tsdk": "node_modules/typescript/lib",
+  "chat.tools.terminal.autoApprove": {
+    "/^node scripts/__tests__/batch-d-infra\\.test\\.mjs$/": {
+      "approve": true,
+      "matchCommandLine": true
+    },
+    "/^bash scripts/container-engine\\.sh compose exec --user dev dev hostname$/": {
+      "approve": true,
+      "matchCommandLine": true
+    }
+  }
 }
