@@ -1265,3 +1265,21 @@
 - **Change:** Codify dispatch-payload agent-mention hygiene: OpenCode core silently appends a synthetic call-the-task-tool part when a payload carries a leading at-sign before an agent name. Stripped 236 leading at-sign agent mentions across 23 instruction-surface .md files plus 98 in oh-my-opencode-slim.jsonc; added the rule to orchestrator_append.md (A8), AGENTS.md section 6 gate 4, and both inline .jsonc orchestrator prompts; renamed AGENTS.md section 9 column to Mention form; registered the durable learnings record.
 - **Files:** AGENTS.md - .opencode/oh-my-opencode-slim.jsonc - .opencode/oh-my-opencode-slim/orchestrator_append.md - .opencode/learnings/external-patterns/2026-10-06-opencode-core-synthetic-task-tool-append.md
 - **Verification:** make test-config exit 0; scripts/validate-agent-names.sh exit 0 (26 passed); token-aware negative grep over .opencode/oh-my-opencode-slim.jsonc and the 23-file manifest == 0; .jsonc parses with rule 5 in both inline orchestrator prompts
+
+## 2026-10-21 - DIA-260827-5blh: opencode-config
+
+- **Change:** Handoff slot identity now uses only the trusted runtime context.sessionID; the writer validates session-id grammar and resolves slot/temp/archive paths within their target directories (path-traversal fix).
+- **Files:** .opencode/plugins/delegation-observer.ts - .opencode/plugins/lib/handoff.ts - .opencode/plugins/__tests__/parallel-handoff.test.mjs
+- **Verification:** manual
+
+## 2026-10-21 - DIA-260831-n9o0: opencode-config
+
+- **Change:** Skills validator now resolves body slash-command references against the command manifest union allow-list: backticked first-token HARD, plain-text and at-sign WARN-only, fenced blocks never scanned.
+- **Files:** .opencode/scripts/validate-skills.sh - scripts/__tests__/validate-skills.bats
+- **Verification:** manual
+
+## 2026-10-21 - DIA-261021-t8bh: opencode-config
+
+- **Change:** Review of 5 unpushed commits: gate active.json on a landed handoff slot (L20260817-010 split-brain fix) and tighten command-reference validation precision (DIA-261021-t8bh).
+- **Files:** .opencode/plugins/delegation-observer.ts - .opencode/scripts/validate-skills.sh - .opencode/plugins/__tests__/parallel-handoff.test.mjs - scripts/__tests__/validate-skills.bats - .opencode/learnings/external-patterns/2026-10-21-dia-261021-t8bh-config-gate-verdict.md
+- **Verification:** manual

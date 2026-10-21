@@ -28,9 +28,12 @@ model: ""
 parent_session_id: ""
 attempts: 0
 lease_expires_at: ""
-files_touched: []
-artifacts: []
-evidence:
+files_touched:
+
+- .opencode/scripts/validate-skills.sh
+- scripts/**tests**/validate-skills.bats
+  artifacts: []
+  evidence:
 
 - .opencode/scripts/validate-skills.sh#L614
 - scripts/**tests**/validate-skills.bats#plain-command-cases
@@ -43,7 +46,7 @@ Reaudit (DIA-260827-wfcx, 2026-08-31; S-L1) evidence: .opencode/skills/book-rag/
 
 ## Verification
 
-grep the skill for @rag returns nothing; the command-reference validator flags any non-existent command reference.
+grep the skill for @rag returns nothing; the command-reference validator HARD-fails on backticked slash commands not in the manifest union allow-list, and WARNs (without changing the exit status) on plain-text and at-sign references that do not resolve. Fenced code blocks (including indented fences) are never scanned, and the allow-list covers OpenCode built-ins plus the ponytail plugin family (DIA-261021-t8bh correction).
 
 ## Fix
 

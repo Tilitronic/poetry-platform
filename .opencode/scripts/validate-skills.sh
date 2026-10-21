@@ -48,6 +48,18 @@
 # never inferred. Empty optional lists (absent key, `key:`, or `key: []`)
 # are valid.
 #
+#   BODY-REF (body command references, DIA-261021-t8bh) — validated outside
+# fenced code blocks, which are NEVER scanned (including fences indented with
+# leading spaces; one fence-stripped body feeds both streams):
+#     12. HARD — each backticked span whose first whitespace-delimited token
+#         starts with a slash must name a command in the command manifest
+#         unioned with the documented built-in/ponytail allow-list; unknown
+#         => FAIL (trailing arguments in the span are not validated).
+#         WARN — plain-text (non-backticked) slash references and at-sign
+#         references that do not resolve are reported to stderr but never
+#         change the exit status (prose such as "See /workspace" must not
+#         hard-fail; at-sign file references are legitimate command syntax).
+#
 # Exit codes: 0 all HARD pass (SOFT warnings may print), 1 HARD failure,
 # 2 infrastructure failure (python3 missing / skills root missing /
 # sha256sum missing while the global skills tree is present).
@@ -82,6 +94,7 @@ workdir="$(mktemp -d)"
 trap 'rm -rf "$workdir"' EXIT
 fm_tmp="$workdir/frontmatter.yaml"
 body_tmp="$workdir/body.txt"
+body_scan_tmp="$workdir/body-scan.txt"
 py_out="$workdir/py.out"
 py_err="$workdir/py.err"
 
@@ -459,6 +472,19 @@ else
   compat_snapshot_ok=0
 fi
 
+# ---------------------------------------------------------------------------
+# Documented body-reference allow-list (DIA-261021-t8bh): command names that
+# are valid references WITHOUT a manifest entry - the OpenCode built-in
+# commands and the ponytail plugin command family. This is THE one place that
+# list lives; body backticked slash references (HARD class) and frontmatter
+# `commands:` declarations resolve against manifest UNION this list.
+# ---------------------------------------------------------------------------
+for compat_allowed_command in \
+  init undo redo help compact share unshare models agents exit editor details export theme \
+  ponytail ponytail-review ponytail-audit ponytail-debt ponytail-gain ponytail-help; do
+  compat_commands["$compat_allowed_command"]=1
+done
+
 compat_bash_actual=""
 compat_bash_major=0
 compat_bash_minor=0
@@ -611,27 +637,60 @@ for skill_dir in "$SKILLS_ROOT"/*/; do
         file_failed=1
       fi
     done
-    while IFS= read -r reference; do
-      if [ "${reference:0:2}" = '`/' ]; then
-        command_name="${reference:2:${#reference}-3}"
-      else
-        command_name="${reference#/}"
+    # DIA-261021-t8bh body command-reference class. ONE fence-stripped body
+    # feeds BOTH extraction streams, so fenced code blocks are never scanned
+    # in either class - including fences indented with leading spaces (the
+    # anchor tolerates leading whitespace).
+    awk '/^[[:space:]]*```/ { in_fence = !in_fence; next } !in_fence { print }' "$body_tmp" > "$body_scan_tmp"
+    # HARD class: backticked spans. Validate the FIRST whitespace-delimited
+    # token of each span when it starts with a slash; trailing arguments in
+    # the span are not validated (this closes the multi-token blind spot).
+    while IFS= read -r span; do
+      span_content="${span#\`}"
+      span_content="${span_content%\`}"
+      token="${span_content%%[[:space:]]*}"
+      if [ "${token:0:1}" != "/" ]; then
+        continue
+      fi
+      command_name="${token#/}"
+      if [ -z "$command_name" ]; then
+        continue
       fi
       if [ -z "${compat_commands[$command_name]:-}" ]; then
         echo "FAIL: skill '$skill_name': command '$command_name' not found in command manifest (class body command reference in $skill_file)" >&2
         compat_fails=$((compat_fails + 1))
         file_failed=1
       fi
+    done < <(grep -oE '`[^`]+`' "$body_scan_tmp" | sort -u || true)
+    # WARN class: plain-text (non-backticked) slash references and at-sign
+    # references that do not resolve. Reported to stderr, never affecting the
+    # exit status - prose such as "See /workspace" must not hard-fail, and
+    # at-sign file references are legitimate command syntax.
+    while IFS= read -r reference; do
+      case "$reference" in
+        @*)
+          command_name="${reference#@}"
+          if [ -n "${compat_commands[$command_name]:-}" ]; then
+            continue
+          fi
+          echo "warn: skill '$skill_name': at-sign reference '$reference' not in command manifest (class body command reference in $skill_file)" >&2
+          file_warned=$((file_warned + 1))
+          ;;
+        *)
+          if [ -n "${compat_commands[$reference]:-}" ]; then
+            continue
+          fi
+          echo "warn: skill '$skill_name': plain-text slash reference '/$reference' not in command manifest (class body command reference in $skill_file)" >&2
+          file_warned=$((file_warned + 1))
+          ;;
+      esac
     done < <(
       {
-        grep -oE '`/[[:alnum:]_][[:alnum:]_-]*`' "$body_tmp" || true
-        awk '
-          /^```/ { in_fence = !in_fence; next }
-          !in_fence { print }
-        ' "$body_tmp" |
-          sed -E 's/`[^`]*`//g' |
-          grep -oE '(^|[^[:alnum:]_`/$:>])/[[:alnum:]_][[:alnum:]_-]*([^[:alnum:]_`/-]|$)' |
+        sed -E 's/`[^`]*`//g' "$body_scan_tmp" |
+          grep -oE '(^|[^[:alnum:]_`/$:>])/[[:alnum:]_][[:alnum:]_-]*' |
           sed -E 's/^[^/]*//; s/[^[:alnum:]_-]*$//' || true
+        grep -oE '(^|[^[:alnum:]_@.])@[[:alnum:]_][[:alnum:]_-]*' "$body_scan_tmp" |
+          sed -E 's/^[^@]*//' || true
       } | sort -u
     )
     for entry in "${compat_agent_entries[@]}"; do

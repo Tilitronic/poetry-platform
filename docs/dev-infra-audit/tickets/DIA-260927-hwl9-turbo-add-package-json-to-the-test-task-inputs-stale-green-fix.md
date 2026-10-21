@@ -28,9 +28,12 @@ model: ""
 parent_session_id: ""
 attempts: 0
 lease_expires_at: "" # ISO-8601; set on DISPATCHED, cleared on COMPLETE
-files_touched: []
-artifacts: []
-evidence:
+files_touched:
+
+- turbo.json
+- scripts/**tests**/batch-d-infra.test.mjs
+  artifacts: []
+  evidence:
 
 - turbo.json#tasks.test.inputs
 - scripts/**tests**/batch-d-infra.test.mjs#package-json-input

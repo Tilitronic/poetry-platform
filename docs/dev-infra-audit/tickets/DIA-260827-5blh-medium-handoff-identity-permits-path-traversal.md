@@ -28,9 +28,12 @@ model: ""
 parent_session_id: ""
 attempts: 0
 lease_expires_at: "" # ISO-8601; set on DISPATCHED, cleared on COMPLETE
-files_touched: []
-artifacts: []
-evidence:
+files_touched:
+
+- .opencode/plugins/delegation-observer.ts
+- .opencode/plugins/**tests**/parallel-handoff.test.mjs
+  artifacts: []
+  evidence:
 
 - .opencode/plugins/delegation-observer.ts#L3672
 - .opencode/plugins/**tests**/parallel-handoff.test.mjs#DIA-260827-5blh

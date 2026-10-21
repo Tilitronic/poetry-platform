@@ -678,7 +678,7 @@ Prefer the `/__dangling_body_cmd_zzz__` command.
   assert_output_contains "__dangling_body_cmd_zzz__"
 }
 
-@test "body command reference: unknown plain slash command fails clearly" {
+@test "body command reference: unknown plain slash command warns, does not fail (DIA-261021-t8bh expectation change)" {
   write_compat_manifests
   write_skill "plain-body-command-user" '---
 name: plain-body-command-user
@@ -691,10 +691,16 @@ Prefer /__dangling_plain_cmd_zzz__ as the OpenCode slash command.
 
   SKILLS_ROOT="$FIXTURES" COMPAT_PRESETS_FILE="$BATS_TEST_TMPDIR/compat-presets.json" COMPAT_CONFIG_FILE="$BATS_TEST_TMPDIR/compat-config.json" COMPAT_COMMANDS_DIR="$BATS_TEST_TMPDIR/compat-commands" run bash "$SKILLS_SCRIPT"
 
-  assert_status 1
-  assert_output_contains "FAIL:"
-  assert_output_contains "plain-body-command-user"
+  # DIA-261021-t8bh expectation change (was: exit 1 + FAIL): plain-text
+  # (non-backticked) slash references moved from the HARD FAIL class to the
+  # WARN class - prose is indistinguishable from a filesystem path without
+  # backticks, so an unknown plain slash token is reported but must never
+  # change the exit status. Backticked unknown commands stay HARD (see the
+  # "unknown backticked command fails clearly" test above).
+  assert_status 0
   assert_output_contains "__dangling_plain_cmd_zzz__"
+  assert_output_contains "warn:"
+  assert_output_not_contains "FAIL:"
 }
 
 @test "body command reference: filesystem paths are not treated as commands" {
@@ -1188,4 +1194,159 @@ Use when testing.
   assert_output_not_contains "FAIL:"
   assert_output_contains "ok:"
   assert_output_contains "passed"
+}
+
+# --- DIA-261021-t8bh: body command-reference validator precision ------------
+# Pins the post-fix contract for the body slash-reference scanner:
+#   a) fenced code blocks are NEVER scanned (both classes), including fences
+#      indented with leading spaces;
+#   b) backticked references are the HARD class: validate the FIRST
+#      whitespace-delimited token of the span if it starts with a slash;
+#      unknown command => FAIL, exit 1;
+#   c) plain-text (non-backticked) slash references are the WARN class -
+#      reported, never changing the exit status;
+#   d) at-sign references are the WARN class, never a hard failure;
+#   e) the command manifest is unioned with the documented OpenCode
+#      built-in + ponytail allow-list.
+
+@test "body command reference: backticked reference inside a column-0 fenced block is ignored (DIA-261021-t8bh)" {
+  write_compat_manifests
+  write_skill "fence-user" '---
+name: fence-user
+description: Skill with a column-0 fenced code block. Use when testing fences.
+license: MIT
+---
+
+Use when testing fences.
+
+```
+Prefer the `/__dangling_fence_cmd_zzz__` command.
+```
+'
+
+  SKILLS_ROOT="$FIXTURES" COMPAT_PRESETS_FILE="$BATS_TEST_TMPDIR/compat-presets.json" COMPAT_CONFIG_FILE="$BATS_TEST_TMPDIR/compat-config.json" COMPAT_COMMANDS_DIR="$BATS_TEST_TMPDIR/compat-commands" run bash "$SKILLS_SCRIPT"
+
+  # Pre-fix RED: the backticked grep scans the whole body (no fence
+  # exclusion) so the in-fence reference FAILed with exit 1.
+  assert_status 0
+  assert_output_not_contains "FAIL:"
+  assert_output_not_contains "__dangling_fence_cmd_zzz__"
+}
+
+@test "body command reference: reference inside an indented fenced block is ignored (DIA-261021-t8bh)" {
+  write_compat_manifests
+  write_skill "indent-fence-user" '---
+name: indent-fence-user
+description: Skill with an indented fenced code block. Use when testing fences.
+license: MIT
+---
+
+Use when testing fences.
+
+  ```
+  Prefer the `/__dangling_indented_cmd_zzz__` command.
+  ```
+'
+
+  SKILLS_ROOT="$FIXTURES" COMPAT_PRESETS_FILE="$BATS_TEST_TMPDIR/compat-presets.json" COMPAT_CONFIG_FILE="$BATS_TEST_TMPDIR/compat-config.json" COMPAT_COMMANDS_DIR="$BATS_TEST_TMPDIR/compat-commands" run bash "$SKILLS_SCRIPT"
+
+  # Pre-fix RED: the fence anchor /^```/ does not tolerate leading
+  # whitespace AND the backticked grep scans the whole body, so the
+  # in-fence reference FAILed with exit 1.
+  assert_status 0
+  assert_output_not_contains "FAIL:"
+  assert_output_not_contains "__dangling_indented_cmd_zzz__"
+}
+
+@test "body command reference: multi-token inline code with unknown FIRST token fails (DIA-261021-t8bh)" {
+  write_compat_manifests
+  write_skill "multi-token-user" '---
+name: multi-token-user
+description: Skill with a multi-token inline code span. Use when testing command references.
+license: MIT
+---
+
+Use when testing command references.
+
+Prefer `/__dangling_multi_cmd_zzz__ <arg>` to run it.
+'
+
+  SKILLS_ROOT="$FIXTURES" COMPAT_PRESETS_FILE="$BATS_TEST_TMPDIR/compat-presets.json" COMPAT_CONFIG_FILE="$BATS_TEST_TMPDIR/compat-config.json" COMPAT_COMMANDS_DIR="$BATS_TEST_TMPDIR/compat-commands" run bash "$SKILLS_SCRIPT"
+
+  # Pre-fix RED: the backticked grep only matches single-token spans
+  # (`/name`) and the plain path strips inline code first, so the multi-token
+  # span was silently skipped (exit 0). Post-fix the FIRST token is validated
+  # and must FAIL naming the command.
+  assert_status 1
+  assert_output_contains "FAIL:"
+  assert_output_contains "__dangling_multi_cmd_zzz__"
+}
+
+@test "body command reference: backticked built-in command /init passes via allow-list (DIA-261021-t8bh)" {
+  write_compat_manifests
+  write_skill "builtin-user" '---
+name: builtin-user
+description: Skill referencing an OpenCode built-in command. Use when testing command references.
+license: MIT
+---
+
+Use when testing command references.
+
+Start with `/init` to bootstrap the workspace.
+'
+
+  SKILLS_ROOT="$FIXTURES" COMPAT_PRESETS_FILE="$BATS_TEST_TMPDIR/compat-presets.json" COMPAT_CONFIG_FILE="$BATS_TEST_TMPDIR/compat-config.json" COMPAT_COMMANDS_DIR="$BATS_TEST_TMPDIR/compat-commands" run bash "$SKILLS_SCRIPT"
+
+  # Pre-fix RED: /init is not in the fixture manifest, so the validator
+  # FAILed with exit 1. Post-fix it resolves through the documented
+  # built-in allow-list.
+  assert_status 0
+  assert_output_not_contains "FAIL:"
+}
+
+@test "body command reference: plain prose single-segment path is not a hard failure (DIA-261021-t8bh)" {
+  write_compat_manifests
+  write_skill "prose-path-user" '---
+name: prose-path-user
+description: Skill mentioning a plain single-segment path. Use when testing command references.
+license: MIT
+---
+
+Use when testing command references.
+
+See /workspace for details.
+'
+
+  SKILLS_ROOT="$FIXTURES" COMPAT_PRESETS_FILE="$BATS_TEST_TMPDIR/compat-presets.json" COMPAT_CONFIG_FILE="$BATS_TEST_TMPDIR/compat-config.json" COMPAT_COMMANDS_DIR="$BATS_TEST_TMPDIR/compat-commands" run bash "$SKILLS_SCRIPT"
+
+  # Pre-fix RED: the plain-text scanner matched /workspace as a command
+  # reference and FAILed with exit 1. Post-fix plain-text slash references
+  # are the WARN class - reported at most, never changing the exit status.
+  assert_status 0
+  assert_output_not_contains "FAIL:"
+}
+
+@test "body command reference: at-sign reference is WARN class, never a hard failure (DIA-261021-t8bh)" {
+  write_compat_manifests
+  write_skill "at-sign-user" '---
+name: at-sign-user
+description: Skill using an at-sign command reference. Use when testing command references.
+license: MIT
+---
+
+Use when testing command references.
+
+Use @__dangling_at_cmd_zzz__ instead.
+'
+
+  SKILLS_ROOT="$FIXTURES" COMPAT_PRESETS_FILE="$BATS_TEST_TMPDIR/compat-presets.json" COMPAT_CONFIG_FILE="$BATS_TEST_TMPDIR/compat-config.json" COMPAT_COMMANDS_DIR="$BATS_TEST_TMPDIR/compat-commands" run bash "$SKILLS_SCRIPT"
+
+  # Pre-fix RED: at-sign references were not reported at all (the scanner
+  # only looked for slash-prefixed tokens), so the WARN assertion below
+  # fails today. Post-fix they surface as WARN - at-sign file references
+  # are legitimate command syntax and must never hard-fail.
+  assert_status 0
+  assert_output_contains "warn:"
+  assert_output_contains "__dangling_at_cmd_zzz__"
+  assert_output_not_contains "FAIL:"
 }

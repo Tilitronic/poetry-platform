@@ -9,7 +9,7 @@
  *
  * After the fix:
  *   - log_decision handoff path (precedence as of DIA-260827-y9n9):
- *     context?.sessionID ?? lane_id ?? "unidentified-session"
+ *     trusted context.sessionID only; lane_id is an audit field
  *   - The literal "unknown" is never used as a slot key
  *
  * RUN COMMAND (bun in poetry-dev container):

@@ -700,3 +700,65 @@ test("DIA-260827-y9n9: a second parallel session's terminal handoff does not clo
   // prognosis under B's identity - no cross-session misattribution.
   expect(readJson(paths.pointerPath).active_session_id).toBe("ses_B")
 })
+
+// ---------------------------------------------------------------------------
+// DIA-261021-t8bh contract 1: active.json (the DIA-211 workflow-state file at
+// .opencode/session/active.json) must be updated ONLY when the handoff slot
+// actually landed. The shared terminalHandoffArgs fixture does NOT set
+// next_action, which is why the pre-existing regression tests could never
+// observe the next_action block (it is gated on args.next_action) - these
+// tests add next_action so the block is genuinely exercised.
+// ---------------------------------------------------------------------------
+
+test("DIA-261021-t8bh: skipped slot write must not write active.json", async () => {
+  const { hooks, paths } = await makeHarness()
+
+  // No runtime sessionID (empty context): the slot write is skipped. Pre-fix,
+  // control still fell through to the next_action block, which wrote
+  // .opencode/session/active.json with workflow_state/next_agent despite the
+  // slot never landing - the defect this pins.
+  await hooks.tool.log_decision.execute(
+    { ...terminalHandoffArgs("ses_safe", prognosisA()), next_action: "review" },
+    {}
+  )
+
+  expect(existsSync(paths.slotPath("ses_safe"))).toBe(false)
+  // active.json here is the DIA-211 file at .opencode/session/active.json,
+  // NOT the DIA-085 pointer at handoffs/active.json.
+  expect(existsSync(join(paths.sessionDir, "active.json"))).toBe(false)
+})
+
+test("DIA-261021-t8bh: successful slot write still writes active.json", async () => {
+  const { hooks, paths } = await makeHarness()
+
+  // Positive control: with a real context sessionID the slot lands, so the
+  // next_action block MUST still write active.json (post-fix the ok/success
+  // branch keeps this behaviour).
+  await hooks.tool.log_decision.execute(
+    { ...terminalHandoffArgs("ses_pos", prognosisA()), next_action: "review" },
+    { sessionID: "ses_pos" }
+  )
+
+  expect(existsSync(paths.slotPath("ses_pos"))).toBe(true)
+  expect(existsSync(join(paths.sessionDir, "active.json"))).toBe(true)
+})
+
+test("DIA-261021-t8bh: failed slot write must not write active.json", async () => {
+  const { hooks, paths } = await makeHarness()
+
+  // Filesystem seam (no production refactor needed): a DIRECTORY squatting on
+  // the slot temp path .ses_fail.json.tmp makes the lib's slot writeFileSync
+  // fail with EISDIR - a returned { ok: false } from the lib's inner try,
+  // NOT a thrown error (a throw would skip the next_action block via the
+  // outer catch and pass vacuously). Pre-fix, the next_action block ignored
+  // writeResult.ok and still wrote active.json.
+  mkdirSync(join(paths.handoffsDir, ".ses_fail.json.tmp"), { recursive: true })
+
+  await hooks.tool.log_decision.execute(
+    { ...terminalHandoffArgs("ses_fail", prognosisA()), next_action: "review" },
+    { sessionID: "ses_fail" }
+  )
+
+  expect(existsSync(paths.slotPath("ses_fail"))).toBe(false)
+  expect(existsSync(join(paths.sessionDir, "active.json"))).toBe(false)
+})

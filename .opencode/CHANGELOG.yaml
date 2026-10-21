@@ -5116,8 +5116,45 @@
     (A8), AGENTS.md section 6 gate 4, and both inline .jsonc orchestrator prompts;
     renamed AGENTS.md section 9 column to Mention form; registered the durable learnings
     record.'
-  verification: make test-config exit 0; scripts/validate-agent-names.sh exit
-    0 (26 passed); token-aware negative grep over .opencode/oh-my-opencode-slim.jsonc
-    and the 23-file manifest == 0; .jsonc parses with rule 5 in both inline orchestrator
+  verification: make test-config exit 0; scripts/validate-agent-names.sh exit 0 (26
+    passed); token-aware negative grep over .opencode/oh-my-opencode-slim.jsonc and
+    the 23-file manifest == 0; .jsonc parses with rule 5 in both inline orchestrator
     prompts
+  area: opencode-config
+- date: '2026-10-21'
+  ticket: DIA-260827-5blh
+  scope: opencode-config
+  files:
+  - .opencode/plugins/delegation-observer.ts
+  - .opencode/plugins/lib/handoff.ts
+  - .opencode/plugins/__tests__/parallel-handoff.test.mjs
+  summary: Handoff slot identity now uses only the trusted runtime context.sessionID;
+    the writer validates session-id grammar and resolves slot/temp/archive paths within
+    their target directories (path-traversal fix).
+  verification: manual
+  area: opencode-config
+- date: '2026-10-21'
+  ticket: DIA-260831-n9o0
+  scope: opencode-config
+  files:
+  - .opencode/scripts/validate-skills.sh
+  - scripts/__tests__/validate-skills.bats
+  summary: 'Skills validator now resolves body slash-command references against the
+    command manifest union allow-list: backticked first-token HARD, plain-text and
+    at-sign WARN-only, fenced blocks never scanned.'
+  verification: manual
+  area: opencode-config
+- date: '2026-10-21'
+  ticket: DIA-261021-t8bh
+  scope: opencode-config
+  files:
+  - .opencode/plugins/delegation-observer.ts
+  - .opencode/scripts/validate-skills.sh
+  - .opencode/plugins/__tests__/parallel-handoff.test.mjs
+  - scripts/__tests__/validate-skills.bats
+  - .opencode/learnings/external-patterns/2026-10-21-dia-261021-t8bh-config-gate-verdict.md
+  summary: 'Review of 5 unpushed commits: gate active.json on a landed handoff slot
+    (L20260817-010 split-brain fix) and tighten command-reference validation precision
+    (DIA-261021-t8bh).'
+  verification: manual
   area: opencode-config

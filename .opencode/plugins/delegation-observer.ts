@@ -3638,7 +3638,7 @@ const delegationObserver: Plugin = async (ctx) => {
           // terminal handoff registry row below when an archive happened (null
           // when no prior slot existed -> optional field omitted, so the row
           // stays backward-compatible).
-          let writeResult: { archived_prior: string | null } | null = null
+          let writeResult: { ok: boolean; archived_prior: string | null; error?: string } | null = null
           if (
             args.event_type === "handoff" &&
             typeof args.prognosis === "string" &&
@@ -3706,83 +3706,108 @@ const delegationObserver: Plugin = async (ctx) => {
               // DIA-211 Phase 2: stigmergic active.json -- on terminal handoff
               // events with a next_action, update the workflow state file so
               // the orchestrator can read it on wake and route to the next
-              // agent. Written INSIDE the handoff success path so active.json
-              // is only updated when the handoff slot actually landed.
-              // Fail-soft: if it fails, the handoff is still valid.
+              // agent. Invariant enforced here (L20260817-010,
+              // DIA-261021-t8bh): active.json is updated ONLY when the
+              // handoff slot write actually succeeded -- a routing hint
+              // (workflow_state/next_agent) plus a stale context.session_id
+              // with no handoffs/<sid>.json is the split-brain state this
+              // gate forbids. Fail-soft: if the active.json write itself
+              // fails, the handoff is still valid.
               if (typeof args.next_action === "string" && args.next_action) {
-                try {
-                  const ACTION_MAP: Record<
-                    string,
-                    { workflow_state: string; next_agent: string | null }
-                  > = {
-                    review: { workflow_state: "review", next_agent: "reviewer" },
-                    implement: {
-                      workflow_state: "implementation",
-                      next_agent: "coder",
-                    },
-                    plan: { workflow_state: "planning", next_agent: "openspec-plan" },
-                    research: {
-                      workflow_state: "research",
-                      next_agent: "researcher",
-                    },
-                    analyze: { workflow_state: "analysis", next_agent: "analyzer" },
-                    "investigate and re-dispatch": {
-                      workflow_state: "investigation",
-                      next_agent: null,
-                    },
-                    continue: {
-                      workflow_state: "current",
-                      next_agent: null,
-                    },
-                    escalate: {
-                      workflow_state: "escalation",
-                      next_agent: null,
-                    },
-                  }
-                  const mapping = ACTION_MAP[args.next_action]
-                  // Read current active.json to preserve fields we don't
-                  // update (e.g. stale context from a prior handoff).
-                  let current: Record<string, unknown> = {}
-                  if (existsSync(ACTIVE_JSON_PATH)) {
-                    try {
-                      current = JSON.parse(
-                        readFileSync(ACTIVE_JSON_PATH, "utf-8")
-                      ) as Record<string, unknown>
-                    } catch {
-                      // Corrupted file -- start fresh.
-                    }
-                  }
-                  const active: Record<string, unknown> = {
-                    schema_version: 1,
-                    ...current,
-                    workflow_state: mapping?.workflow_state ?? args.next_action,
-                    next_agent: mapping?.next_agent ?? null,
-                    next_action: args.next_action,
-                    context: {
-                      ...(typeof current.context === "object" &&
-                      current.context !== null
-                        ? (current.context as Record<string, unknown>)
-                        : {}),
-                      ...(args.ticket_id ? { ticket_id: args.ticket_id } : {}),
-                      ...(args.cycle_id ? { fixed_point: args.cycle_id } : {}),
-                      ...(context?.sessionID
-                        ? { session_id: context.sessionID }
-                        : {}),
-                    },
-                    updated_at: new Date().toISOString(),
-                    updated_by: "delegation-observer",
-                  }
-                  mkdirSync(handoffDir, { recursive: true })
-                  atomicWriteJson(ACTIVE_JSON_PATH, active)
-                } catch (err) {
-                  // Active.json is dispensable -- warn and continue.
+                // The slot landed only when the writer was actually called
+                // AND returned ok === true. writeResult stays null when the
+                // write was skipped (missing runtime sessionID); the writer
+                // returns { ok: false } when its inner atomic write failed.
+                const slotLanded = writeResult !== null && writeResult.ok === true
+                if (!slotLanded) {
+                  // One error line naming the reason; the log promise must
+                  // never surface as an unhandled rejection.
+                  const reason =
+                    writeResult === null
+                      ? "handoff slot write skipped (runtime session ID is missing)"
+                      : `handoff slot write failed${writeResult.error ? `: ${writeResult.error}` : ""}`
                   ctx.client.app.log({
                     body: {
                       service: "delegation-observer",
-                      level: "warn",
-                      message: `[delegation-observer] active.json write failed: ${errorMessage(err)}`,
+                      level: "error",
+                      message: `[delegation-observer] active.json update skipped: ${reason}`,
                     },
-                  })
+                  }).catch(() => {})
+                } else {
+                  try {
+                    const ACTION_MAP: Record<
+                      string,
+                      { workflow_state: string; next_agent: string | null }
+                    > = {
+                      review: { workflow_state: "review", next_agent: "reviewer" },
+                      implement: {
+                        workflow_state: "implementation",
+                        next_agent: "coder",
+                      },
+                      plan: { workflow_state: "planning", next_agent: "openspec-plan" },
+                      research: {
+                        workflow_state: "research",
+                        next_agent: "researcher",
+                      },
+                      analyze: { workflow_state: "analysis", next_agent: "analyzer" },
+                      "investigate and re-dispatch": {
+                        workflow_state: "investigation",
+                        next_agent: null,
+                      },
+                      continue: {
+                        workflow_state: "current",
+                        next_agent: null,
+                      },
+                      escalate: {
+                        workflow_state: "escalation",
+                        next_agent: null,
+                      },
+                    }
+                    const mapping = ACTION_MAP[args.next_action]
+                    // Read current active.json to preserve fields we don't
+                    // update (e.g. stale context from a prior handoff).
+                    let current: Record<string, unknown> = {}
+                    if (existsSync(ACTIVE_JSON_PATH)) {
+                      try {
+                        current = JSON.parse(
+                          readFileSync(ACTIVE_JSON_PATH, "utf-8")
+                        ) as Record<string, unknown>
+                      } catch {
+                        // Corrupted file -- start fresh.
+                      }
+                    }
+                    const active: Record<string, unknown> = {
+                      schema_version: 1,
+                      ...current,
+                      workflow_state: mapping?.workflow_state ?? args.next_action,
+                      next_agent: mapping?.next_agent ?? null,
+                      next_action: args.next_action,
+                      context: {
+                        ...(typeof current.context === "object" &&
+                        current.context !== null
+                          ? (current.context as Record<string, unknown>)
+                          : {}),
+                        ...(args.ticket_id ? { ticket_id: args.ticket_id } : {}),
+                        ...(args.cycle_id ? { fixed_point: args.cycle_id } : {}),
+                        ...(context?.sessionID
+                          ? { session_id: context.sessionID }
+                          : {}),
+                      },
+                      updated_at: new Date().toISOString(),
+                      updated_by: "delegation-observer",
+                    }
+                    mkdirSync(handoffDir, { recursive: true })
+                    atomicWriteJson(ACTIVE_JSON_PATH, active)
+                  } catch (err) {
+                    // Active.json is dispensable -- warn and continue.
+                    ctx.client.app.log({
+                      body: {
+                        service: "delegation-observer",
+                        level: "warn",
+                        message: `[delegation-observer] active.json write failed: ${errorMessage(err)}`,
+                      },
+                    }).catch(() => {})
+                  }
                 }
               }
             } catch (err) {
@@ -3795,7 +3820,7 @@ const delegationObserver: Plugin = async (ctx) => {
                   level: "error",
                   message: `[delegation-observer] handoff atomic write failed: ${errorMessage(err)}`,
                 },
-              })
+              }).catch(() => {})
               // Fall through: still log the message row below. A lost handoff
               // file is recoverable (orchestrator can retry), but a lost log
               // row means the event is invisible.
