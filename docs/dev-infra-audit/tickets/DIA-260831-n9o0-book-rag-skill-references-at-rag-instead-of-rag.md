@@ -31,12 +31,12 @@ lease_expires_at: ""
 files_touched:
 
 - .opencode/scripts/validate-skills.sh
-- scripts/**tests**/validate-skills.bats
+- scripts/`__tests__`/validate-skills.bats
   artifacts: []
   evidence:
 
 - .opencode/scripts/validate-skills.sh#L614
-- scripts/**tests**/validate-skills.bats#plain-command-cases
+- scripts/`__tests__`/validate-skills.bats#plain-command-cases
 
 ---
 
@@ -50,8 +50,8 @@ grep the skill for @rag returns nothing; the command-reference validator HARD-fa
 
 ## Fix
 
-The skills validator now resolves slash-command references in both backticked and plain text body forms against the command manifest. It excludes slash-prefixed filesystem paths such as /tmp/path and ignores command-like text inside fenced code.
+The skills validator scans one fence-stripped body (fences of either delimiter - three-or-more backticks or tildes, indented or column-0 - are never scanned by either class). HARD applies only to COMMAND-SHAPED backticked tokens (^/[A-Za-z0-9_-]+$, single segment) resolved against the command manifest unioned with the documented built-in/ponytail allow-list; unknown => FAIL. Path-shaped backticked tokens (further slash, dot, or ".."), plain-text slash references, and bare at-sign references are WARN-only and never change the exit status; a plain-text token immediately followed by "/" or an at-sign token immediately followed by "/" is never even warned (multi-segment path segments and scoped package specs).
 
 ## Re-verify
 
-The focused validate-skills.bats suite in poetry-dev passed 42/42, covering known and unknown backticked/plain commands and filesystem-path exclusion. make test-config exited 0. The existing /rag reference in book-rag is valid.
+The focused validate-skills.bats suite in poetry-dev passed 53/53 (DIA-261021-t8bh + DIA-261021-51pm blocks included), covering known/unknown single-segment backticked commands, multi-token first-token validation, path-shaped backticked tokens, multi-segment plain-text paths, scoped package at-sign specs, and backtick/tilde/4-backtick fence exclusion. The plain-text and at-sign classes are WARN-only. Real-repo run: exit 0, 26 passed, 41 warnings. make test-config exit 0. The existing /rag reference in book-rag is valid.

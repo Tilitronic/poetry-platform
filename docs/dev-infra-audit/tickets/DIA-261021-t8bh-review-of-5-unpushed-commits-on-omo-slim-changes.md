@@ -4,7 +4,7 @@
 
 id: DIA-261021-t8bh
 title: "review of 5 unpushed commits on omo-slim-changes"
-area: scripts
+area: opencode-config
 severity: Medium
 status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
@@ -32,10 +32,10 @@ files_touched:
 
 - .opencode/plugins/delegation-observer.ts
 - .opencode/scripts/validate-skills.sh
-- .opencode/plugins/**tests**/parallel-handoff.test.mjs
-- scripts/**tests**/validate-skills.bats
-- .opencode/plugins/**tests**/handoff-slot-identity.test.mjs
-- .opencode/plugins/**tests**/handoff-archive-collision.test.mjs
+- .opencode/plugins/`__tests__`/parallel-handoff.test.mjs
+- scripts/`__tests__`/validate-skills.bats
+- .opencode/plugins/`__tests__`/handoff-slot-identity.test.mjs
+- .opencode/plugins/`__tests__`/handoff-archive-collision.test.mjs
 - .opencode/learnings/external-patterns/2026-10-21-dia-261021-t8bh-config-gate-verdict.md
 - .opencode/learnings/index.md
 - docs/dev-infra-audit/tickets/DIA-260827-5blh-medium-handoff-identity-permits-path-traversal.md
@@ -47,8 +47,8 @@ files_touched:
 
 - .opencode/plugins/delegation-observer.ts#next_action-slot-landed-gate
 - .opencode/scripts/validate-skills.sh#body-command-reference
-- scripts/**tests**/validate-skills.bats#DIA-261021-t8bh
-- .opencode/plugins/**tests**/parallel-handoff.test.mjs#DIA-261021-t8bh
+- scripts/`__tests__`/validate-skills.bats#DIA-261021-t8bh
+- .opencode/plugins/`__tests__`/parallel-handoff.test.mjs#DIA-261021-t8bh
 
 ---
 
@@ -63,7 +63,7 @@ Post-hoc review of the 5 unpushed commits on omo-slim-changes (2c3ce945..aae3987
 - [x] bash .opencode/scripts/validate-skills.sh on the real repo: exit 0 (26 passed, 0 failed; no SKILL.md edited)
 - [x] make test-config: exit 0 (includes changelog schema validation)
 - [x] make test-shell: exit 0
-- [x] node --test scripts/**tests**/batch-d-infra.test.mjs: exit 0
+- [x] node --test scripts/`__tests__`/batch-d-infra.test.mjs: exit 0
 - [x] active.json invariant: updated only when the handoff slot write succeeded; skip path logs one error line naming the reason
 
 ## Fix
@@ -72,4 +72,4 @@ delegation-observer.ts: captured whether the slot landed (writer called AND retu
 
 ## Re-verify
 
-All gates green (see Verification). Bookkeeping: stale contract comments fixed in handoff-slot-identity.test.mjs and handoff-archive-collision.test.mjs; verdict recorded at .opencode/learnings/external-patterns/2026-10-21-dia-261021-t8bh-config-gate-verdict.md and indexed; **tests** evidence paths repaired in DIA-260827-5blh, DIA-260831-n9o0, DIA-260927-hwl9 (files_touched filled, n9o0 Verification rewritten to the true HARD/WARN scope); changelog entries added for DIA-260827-5blh, DIA-260831-n9o0, and this ticket. Status: CLOSED.
+All gates green (see Verification). Bookkeeping: stale contract comments fixed in handoff-slot-identity.test.mjs and handoff-archive-collision.test.mjs; verdict recorded at .opencode/learnings/external-patterns/2026-10-21-dia-261021-t8bh-config-gate-verdict.md and indexed; `__tests__` evidence paths repaired in DIA-260827-5blh, DIA-260831-n9o0, DIA-260927-hwl9 (files_touched filled, n9o0 Verification rewritten to the true HARD/WARN scope); changelog entries added for DIA-260827-5blh, DIA-260831-n9o0, and this ticket. Status: CLOSED.

@@ -5131,7 +5131,7 @@
   summary: Handoff slot identity now uses only the trusted runtime context.sessionID;
     the writer validates session-id grammar and resolves slot/temp/archive paths within
     their target directories (path-traversal fix).
-  verification: manual
+  verification: make test-config exit 0; bun parallel-handoff 16/16; bats validate-skills 53/53; real-repo validate-skills exit 0 with 41 warns
   area: opencode-config
 - date: '2026-10-21'
   ticket: DIA-260831-n9o0
@@ -5142,7 +5142,7 @@
   summary: 'Skills validator now resolves body slash-command references against the
     command manifest union allow-list: backticked first-token HARD, plain-text and
     at-sign WARN-only, fenced blocks never scanned.'
-  verification: manual
+  verification: make test-config exit 0; bun parallel-handoff 16/16; bats validate-skills 53/53; real-repo validate-skills exit 0 with 41 warns
   area: opencode-config
 - date: '2026-10-21'
   ticket: DIA-261021-t8bh
@@ -5156,5 +5156,5 @@
   summary: 'Review of 5 unpushed commits: gate active.json on a landed handoff slot
     (L20260817-010 split-brain fix) and tighten command-reference validation precision
     (DIA-261021-t8bh).'
-  verification: manual
+  verification: make test-config exit 0; bun parallel-handoff 16/16; bats validate-skills 53/53; real-repo validate-skills exit 0 with 41 warns
   area: opencode-config

@@ -1270,16 +1270,16 @@
 
 - **Change:** Handoff slot identity now uses only the trusted runtime context.sessionID; the writer validates session-id grammar and resolves slot/temp/archive paths within their target directories (path-traversal fix).
 - **Files:** .opencode/plugins/delegation-observer.ts - .opencode/plugins/lib/handoff.ts - .opencode/plugins/__tests__/parallel-handoff.test.mjs
-- **Verification:** manual
+- **Verification:** make test-config exit 0; bun parallel-handoff 16/16; bats validate-skills 53/53; real-repo validate-skills exit 0 with 41 warns
 
 ## 2026-10-21 - DIA-260831-n9o0: opencode-config
 
 - **Change:** Skills validator now resolves body slash-command references against the command manifest union allow-list: backticked first-token HARD, plain-text and at-sign WARN-only, fenced blocks never scanned.
 - **Files:** .opencode/scripts/validate-skills.sh - scripts/__tests__/validate-skills.bats
-- **Verification:** manual
+- **Verification:** make test-config exit 0; bun parallel-handoff 16/16; bats validate-skills 53/53; real-repo validate-skills exit 0 with 41 warns
 
 ## 2026-10-21 - DIA-261021-t8bh: opencode-config
 
 - **Change:** Review of 5 unpushed commits: gate active.json on a landed handoff slot (L20260817-010 split-brain fix) and tighten command-reference validation precision (DIA-261021-t8bh).
 - **Files:** .opencode/plugins/delegation-observer.ts - .opencode/scripts/validate-skills.sh - .opencode/plugins/__tests__/parallel-handoff.test.mjs - scripts/__tests__/validate-skills.bats - .opencode/learnings/external-patterns/2026-10-21-dia-261021-t8bh-config-gate-verdict.md
-- **Verification:** manual
+- **Verification:** make test-config exit 0; bun parallel-handoff 16/16; bats validate-skills 53/53; real-repo validate-skills exit 0 with 41 warns

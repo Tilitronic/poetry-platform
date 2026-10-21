@@ -31,12 +31,12 @@ lease_expires_at: "" # ISO-8601; set on DISPATCHED, cleared on COMPLETE
 files_touched:
 
 - .opencode/plugins/delegation-observer.ts
-- .opencode/plugins/**tests**/parallel-handoff.test.mjs
+- .opencode/plugins/`__tests__`/parallel-handoff.test.mjs
   artifacts: []
   evidence:
 
 - .opencode/plugins/delegation-observer.ts#L3672
-- .opencode/plugins/**tests**/parallel-handoff.test.mjs#DIA-260827-5blh
+- .opencode/plugins/`__tests__`/parallel-handoff.test.mjs#DIA-260827-5blh
 - .opencode/plugins/delegation-observer.ts:1678-1713,1746,4446-4448
 
 ---

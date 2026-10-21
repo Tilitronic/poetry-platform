@@ -48,17 +48,24 @@
 # never inferred. Empty optional lists (absent key, `key:`, or `key: []`)
 # are valid.
 #
-#   BODY-REF (body command references, DIA-261021-t8bh) — validated outside
-# fenced code blocks, which are NEVER scanned (including fences indented with
-# leading spaces; one fence-stripped body feeds both streams):
-#     12. HARD — each backticked span whose first whitespace-delimited token
-#         starts with a slash must name a command in the command manifest
-#         unioned with the documented built-in/ponytail allow-list; unknown
-#         => FAIL (trailing arguments in the span are not validated).
-#         WARN — plain-text (non-backticked) slash references and at-sign
-#         references that do not resolve are reported to stderr but never
-#         change the exit status (prose such as "See /workspace" must not
-#         hard-fail; at-sign file references are legitimate command syntax).
+#   BODY-REF (body command references, DIA-261021-t8bh / DIA-261021-51pm) —
+# validated outside fenced code blocks, which are NEVER scanned by either
+# class: fences are indented or column-0, opened by three-or-more backticks
+# OR three-or-more tildes, and are tracked by delimiter and run length (a
+# 4-backtick fence is not closed by an inner 3-backtick line). One
+# fence-stripped body feeds both streams:
+#     12. HARD — a backticked span is a command reference only when its
+#         first whitespace-delimited token is COMMAND-SHAPED
+#         (^/[A-Za-z0-9_-]+$: single segment, no dot, no second slash, no
+#         ".."). Unknown command => FAIL against the command manifest
+#         unioned with the documented built-in/ponytail allow-list;
+#         trailing arguments in the span are not validated.
+#         WARN-only (never FAIL, never affect the exit status) —
+#         path-shaped backticked tokens (further slash, dot, or ".."),
+#         plain-text slash tokens NOT immediately followed by "/" (so the
+#         first segment of a multi-segment path is never warned), and bare
+#         at-sign tokens NOT immediately followed by "/" (a followed-by-slash
+#         at-sign token is a scoped package spec, never warned).
 #
 # Exit codes: 0 all HARD pass (SOFT warnings may print), 1 HARD failure,
 # 2 infrastructure failure (python3 missing / skills root missing /
@@ -637,14 +644,34 @@ for skill_dir in "$SKILLS_ROOT"/*/; do
         file_failed=1
       fi
     done
-    # DIA-261021-t8bh body command-reference class. ONE fence-stripped body
-    # feeds BOTH extraction streams, so fenced code blocks are never scanned
-    # in either class - including fences indented with leading spaces (the
-    # anchor tolerates leading whitespace).
-    awk '/^[[:space:]]*```/ { in_fence = !in_fence; next } !in_fence { print }' "$body_tmp" > "$body_scan_tmp"
-    # HARD class: backticked spans. Validate the FIRST whitespace-delimited
-    # token of each span when it starts with a slash; trailing arguments in
-    # the span are not validated (this closes the multi-token blind spot).
+    # DIA-261021-t8bh/51pm body command-reference class. ONE fence-stripped
+    # body feeds BOTH extraction streams, so fenced code blocks are never
+    # scanned in either class. Fences are indented or column-0, opened by
+    # three-or-more backticks OR three-or-more tildes, and tracked by
+    # delimiter + run length: a 4-backtick fence stays open across an inner
+    # 3-backtick line (only a same-delimiter run >= the opener closes it).
+    awk '
+      {
+        line = $0
+        sub(/^[[:space:]]*/, "", line)
+        d = substr(line, 1, 1)
+        if (d == "`" || d == "~") {
+          n = 0
+          while (substr(line, n + 1, 1) == d) { n++ }
+          if (n >= 3) {
+            if (!in_fence) { in_fence = 1; fc = d; fl = n; next }
+            if (d == fc && n >= fl) { in_fence = 0; next }
+            next
+          }
+        }
+        if (in_fence) { next }
+        print
+      }
+    ' "$body_tmp" > "$body_scan_tmp"
+    # HARD class: backticked spans whose FIRST whitespace-delimited token is
+    # command-shaped - ^/[A-Za-z0-9_-]+$ (single segment, no dot, no second
+    # slash, no ".."). Unknown => FAIL. Trailing arguments are not validated.
+    # Path-shaped first tokens are WARN-only, never a FAIL (DIA-261021-51pm R1).
     while IFS= read -r span; do
       span_content="${span#\`}"
       span_content="${span_content%\`}"
@@ -653,7 +680,11 @@ for skill_dir in "$SKILLS_ROOT"/*/; do
         continue
       fi
       command_name="${token#/}"
-      if [ -z "$command_name" ]; then
+      if [[ ! "$command_name" =~ ^[A-Za-z0-9_-]+$ ]]; then
+        # Path-shaped (further slash / dot / "..") - not a command reference:
+        # report at warn level, never FAIL, never change the exit status.
+        echo "warn: skill '$skill_name': path-shaped backticked token '$token' is not a command reference (class body command reference in $skill_file)" >&2
+        file_warned=$((file_warned + 1))
         continue
       fi
       if [ -z "${compat_commands[$command_name]:-}" ]; then
@@ -662,10 +693,14 @@ for skill_dir in "$SKILLS_ROOT"/*/; do
         file_failed=1
       fi
     done < <(grep -oE '`[^`]+`' "$body_scan_tmp" | sort -u || true)
-    # WARN class: plain-text (non-backticked) slash references and at-sign
-    # references that do not resolve. Reported to stderr, never affecting the
-    # exit status - prose such as "See /workspace" must not hard-fail, and
-    # at-sign file references are legitimate command syntax.
+    # WARN class: plain-text (non-backticked) slash references and bare
+    # at-sign references that do not resolve. Reported to stderr, never
+    # affecting the exit status. Trailing-context guards (DIA-261021-51pm R2):
+    #   - a slash token IMMEDIATELY followed by "/" is the first segment of a
+    #     multi-segment path - never warned (the trailing class excludes both
+    #     "/" and token characters so backtracking cannot defeat it);
+    #   - an at-sign token IMMEDIATELY followed by "/" is a scoped package
+    #     spec - never warned. Bare at-sign tokens stay WARN-only.
     while IFS= read -r reference; do
       case "$reference" in
         @*)
@@ -687,10 +722,10 @@ for skill_dir in "$SKILLS_ROOT"/*/; do
     done < <(
       {
         sed -E 's/`[^`]*`//g' "$body_scan_tmp" |
-          grep -oE '(^|[^[:alnum:]_`/$:>])/[[:alnum:]_][[:alnum:]_-]*' |
+          grep -oE '(^|[^[:alnum:]_`/$:>])/[[:alnum:]_][[:alnum:]_-]*([^[:alnum:]_/-]|$)' |
           sed -E 's/^[^/]*//; s/[^[:alnum:]_-]*$//' || true
-        grep -oE '(^|[^[:alnum:]_@.])@[[:alnum:]_][[:alnum:]_-]*' "$body_scan_tmp" |
-          sed -E 's/^[^@]*//' || true
+        grep -oE '(^|[^[:alnum:]_@.])@[[:alnum:]_][[:alnum:]_-]*([^[:alnum:]_/-]|$)' "$body_scan_tmp" |
+          sed -E 's/^[^@]*//; s/[^[:alnum:]_-]*$//' || true
       } | sort -u
     )
     for entry in "${compat_agent_entries[@]}"; do

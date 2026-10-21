@@ -1350,3 +1350,141 @@ Use @__dangling_at_cmd_zzz__ instead.
   assert_output_contains "__dangling_at_cmd_zzz__"
   assert_output_not_contains "FAIL:"
 }
+
+# --- DIA-261021-51pm: cycle-2 regressions of the command-reference validator -
+# The cycle-1 fix (bd9f8f79) introduced three regressions the re-review found;
+# pins the corrected contract on top of the DIA-261021-t8bh tests above:
+#   R1 backticked MULTI-SEGMENT paths (absolute workspace paths in inline
+#      code) must not be HARD failures - a path-shaped first token (further
+#      slash, dot, "..", ".") is at most WARN;
+#   R2 WARN noise: scoped npm specs (npx @scope/cli) must not warn, and the
+#      plain-text scan must only candidate a token NOT followed by "/" (so
+#      multi-segment prose paths are never warned);
+#   R3 tilde (~~~) fences and 4+ backtick fences are fences too - their
+#      contents are never scanned by either class.
+# The bare at-sign WARN test above (DIA-261021-t8bh) stays as-is: a bare
+# at-sign token with no following slash remains WARN-only after the fix.
+
+@test "body command reference: backticked multi-segment path is WARN, not FAIL (DIA-261021-51pm)" {
+  write_compat_manifests
+  write_skill "path-span-user" '---
+name: path-span-user
+description: Skill with an inline-code absolute path. Use when testing command references.
+license: MIT
+---
+
+Use when testing command references.
+
+Prefer `/workspace/.opencode/skills/book-rag` for RAG queries.
+'
+
+  SKILLS_ROOT="$FIXTURES" COMPAT_PRESETS_FILE="$BATS_TEST_TMPDIR/compat-presets.json" COMPAT_CONFIG_FILE="$BATS_TEST_TMPDIR/compat-config.json" COMPAT_COMMANDS_DIR="$BATS_TEST_TMPDIR/compat-commands" run bash "$SKILLS_SCRIPT"
+
+  # R1 RED: the HARD class took the first token of ANY backticked span
+  # starting with a slash, so the multi-segment workspace path FAILed with
+  # exit 1. Post-fix a path-shaped first token is never a HARD failure.
+  assert_status 0
+  assert_output_not_contains "FAIL:"
+}
+
+@test "body command reference: scoped package at-sign reference is not warned (DIA-261021-51pm)" {
+  write_compat_manifests
+  write_skill "scoped-pkg-user" '---
+name: scoped-pkg-user
+description: Skill naming a scoped npm package. Use when testing command references.
+license: MIT
+---
+
+Use when testing command references.
+
+Install with `npx @__scope_zzz__/cli` in a terminal.
+'
+
+  SKILLS_ROOT="$FIXTURES" COMPAT_PRESETS_FILE="$BATS_TEST_TMPDIR/compat-presets.json" COMPAT_CONFIG_FILE="$BATS_TEST_TMPDIR/compat-config.json" COMPAT_COMMANDS_DIR="$BATS_TEST_TMPDIR/compat-commands" run bash "$SKILLS_SCRIPT"
+
+  # R2 RED: the at-sign scan matched @__scope_zzz__ inside the inline-code
+  # span (the trailing /cli is outside the grep match), so a warn line
+  # named the scope. Post-fix an at-sign token FOLLOWED by "/" is a scoped
+  # package spec, not a command reference - never warned.
+  assert_status 0
+  assert_output_not_contains "FAIL:"
+  assert_output_not_contains "@__scope_zzz__"
+}
+
+@test "body command reference: multi-segment plain-text path is not warned (DIA-261021-51pm)" {
+  write_compat_manifests
+  write_skill "prose-multiseg-user" '---
+name: prose-multiseg-user
+description: Skill mentioning a multi-segment prose path. Use when testing command references.
+license: MIT
+---
+
+Use when testing command references.
+
+See /__tmp_zzz__/__file_zzz__ for details.
+'
+
+  SKILLS_ROOT="$FIXTURES" COMPAT_PRESETS_FILE="$BATS_TEST_TMPDIR/compat-presets.json" COMPAT_CONFIG_FILE="$BATS_TEST_TMPDIR/compat-config.json" COMPAT_COMMANDS_DIR="$BATS_TEST_TMPDIR/compat-commands" run bash "$SKILLS_SCRIPT"
+
+  # R2 RED: the plain-text scan had no not-followed-by-/ guard, so the first
+  # segment /__tmp_zzz__ of the multi-segment path was warned. Post-fix only
+  # a token NOT followed by "/" is a candidate - multi-segment paths are
+  # never warned.
+  assert_status 0
+  assert_output_not_contains "FAIL:"
+  assert_output_not_contains "__tmp_zzz__"
+}
+
+@test "body command reference: tilde fence contents are ignored (DIA-261021-51pm)" {
+  write_compat_manifests
+  write_skill "tilde-fence-user" '---
+name: tilde-fence-user
+description: Skill with a tilde fenced code block. Use when testing fences.
+license: MIT
+---
+
+Use when testing fences.
+
+~~~
+Prefer the `/__dangling_tilde_cmd_zzz__` command.
+~~~
+'
+
+  SKILLS_ROOT="$FIXTURES" COMPAT_PRESETS_FILE="$BATS_TEST_TMPDIR/compat-presets.json" COMPAT_CONFIG_FILE="$BATS_TEST_TMPDIR/compat-config.json" COMPAT_COMMANDS_DIR="$BATS_TEST_TMPDIR/compat-commands" run bash "$SKILLS_SCRIPT"
+
+  # R3 RED: the fence anchor only matched backtick fences, so the tilde
+  # fence was transparent and its inline-code command FAILed with exit 1.
+  # Post-fix three-or-more-tilde fences are fences - contents never scanned.
+  assert_status 0
+  assert_output_not_contains "FAIL:"
+  assert_output_not_contains "__dangling_tilde_cmd_zzz__"
+}
+
+@test "body command reference: four-backtick fence contents are ignored (DIA-261021-51pm)" {
+  write_compat_manifests
+  write_skill "quad-fence-user" '---
+name: quad-fence-user
+description: Skill with a four-backtick fenced block. Use when testing fences.
+license: MIT
+---
+
+Use when testing fences.
+
+````
+This block nests a plain fence:
+```
+Prefer the `/__dangling_quad_cmd_zzz__` command.
+```
+````
+'
+
+  SKILLS_ROOT="$FIXTURES" COMPAT_PRESETS_FILE="$BATS_TEST_TMPDIR/compat-presets.json" COMPAT_CONFIG_FILE="$BATS_TEST_TMPDIR/compat-config.json" COMPAT_COMMANDS_DIR="$BATS_TEST_TMPDIR/compat-commands" run bash "$SKILLS_SCRIPT"
+
+  # R3 RED: the anchor toggled on the 4-backtick opener but the INNER
+  # triple-backtick line toggled it off again, so the fenced content was
+  # scanned and FAILed with exit 1. Post-fix 4+-backtick fences enclose
+  # their content (nested triple-backtick lines included) - never scanned.
+  assert_status 0
+  assert_output_not_contains "FAIL:"
+  assert_output_not_contains "__dangling_quad_cmd_zzz__"
+}

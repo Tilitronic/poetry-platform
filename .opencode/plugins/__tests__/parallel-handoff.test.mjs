@@ -735,12 +735,25 @@ test("DIA-261021-t8bh: successful slot write still writes active.json", async ()
   // next_action block MUST still write active.json (post-fix the ok/success
   // branch keeps this behaviour).
   await hooks.tool.log_decision.execute(
-    { ...terminalHandoffArgs("ses_pos", prognosisA()), next_action: "review" },
+    {
+      ...terminalHandoffArgs("ses_pos", prognosisA()),
+      next_action: "review",
+      ticket_id: "DIA-261021-51pm",
+    },
     { sessionID: "ses_pos" }
   )
 
   expect(existsSync(paths.slotPath("ses_pos"))).toBe(true)
-  expect(existsSync(join(paths.sessionDir, "active.json"))).toBe(true)
+  const activePath = join(paths.sessionDir, "active.json")
+  expect(existsSync(activePath)).toBe(true)
+  // DIA-261021-51pm payload pin: the now-gated branch must keep the
+  // ACTION_MAP behaviour - next_action "review" maps to workflow_state
+  // "review" / next_agent "reviewer", and args.ticket_id flows into
+  // context.ticket_id (routing hints the orchestrator reads on wake).
+  const active = readJson(activePath)
+  expect(active.workflow_state).toBe("review")
+  expect(active.next_agent).toBe("reviewer")
+  expect(active.context?.ticket_id).toBe("DIA-261021-51pm")
 })
 
 test("DIA-261021-t8bh: failed slot write must not write active.json", async () => {

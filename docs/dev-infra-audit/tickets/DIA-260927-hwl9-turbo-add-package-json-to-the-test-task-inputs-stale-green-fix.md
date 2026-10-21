@@ -31,12 +31,12 @@ lease_expires_at: "" # ISO-8601; set on DISPATCHED, cleared on COMPLETE
 files_touched:
 
 - turbo.json
-- scripts/**tests**/batch-d-infra.test.mjs
+- scripts/`__tests__`/batch-d-infra.test.mjs
   artifacts: []
   evidence:
 
 - turbo.json#tasks.test.inputs
-- scripts/**tests**/batch-d-infra.test.mjs#package-json-input
+- scripts/`__tests__`/batch-d-infra.test.mjs#package-json-input
 
 ---
 
@@ -50,7 +50,7 @@ turbo.json:27 test task inputs are `["src/**","vitest.config.ts","tsconfig*.json
 
 ## Fix
 
-Added package.json to the base test task inputs in turbo.json. Added a regression assertion in scripts/**tests**/batch-d-infra.test.mjs requiring package.json in test.inputs.
+Added package.json to the base test task inputs in turbo.json. Added a regression assertion in scripts/`__tests__`/batch-d-infra.test.mjs requiring package.json in test.inputs.
 
 ## Re-verify
 
