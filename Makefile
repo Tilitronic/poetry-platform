@@ -253,7 +253,7 @@ test-skills:
 # scoping; see scripts/audit-agent-tool-coverage.sh).
 test-typecheck:
 	@echo "==> typecheck .opencode/plugins"
-	@npx tsc --noEmit -p .opencode/plugins/tsconfig.json
+	@npx --no-install tsc --noEmit -p .opencode/plugins/tsconfig.json
 
 test-config: test-interview test-skills
 	@echo "NOTE: compose config validation is host-scoped (PHASE 5, T12.4). It runs host-side via make check-compose-config / verify-pre-push.sh, not here."
