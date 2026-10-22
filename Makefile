@@ -18,6 +18,7 @@
 #   make check-tools  host-runnable tool integrity check (mise vs node/pnpm/opencode/bun pins)
 #   make test-infra   test-shell + full container-engine compose smoke test (heavy)
 #   make test-config  validate OpenCode JSONC config syntax + interview + skills gate
+#   make test-typecheck  typecheck the plugin surface (requires node_modules)
 #   make test-omo      bun test + typecheck for embedded OMO suite (.opencode/oh-my-opencode-slim, DIA-260827-6wvm)
 #   make test-interview  run scripts/test-interview-enforcement.sh (5 checks)
 #   make test-skills  validate .opencode/skills/*/SKILL.md frontmatter (DIA-037)
@@ -251,10 +252,6 @@ test-skills:
 # iff no HARD write-capable gaps remain -- WARN-only gaps (the ~440 unlisted
 # default-allow non-write-capable tools) do NOT break the gate (Decision 6
 # scoping; see scripts/audit-agent-tool-coverage.sh).
-test-typecheck:
-	@echo "==> typecheck .opencode/plugins"
-	@npx --no-install tsc --noEmit -p .opencode/plugins/tsconfig.json
-
 test-config: test-interview test-skills
 	@echo "NOTE: compose config validation is host-scoped (PHASE 5, T12.4). It runs host-side via make check-compose-config / verify-pre-push.sh, not here."
 	bash .opencode/scripts/validate-opencode-config.sh
@@ -289,6 +286,11 @@ test-config: test-interview test-skills
 	# DIA-260902-eqgg S10: structural gate — every retained lib/*.ts has a production importer,
 	# no duplicate shell definitions for extracted seams, tests on production interface.
 	bash scripts/validate-plugin-structure.sh
+
+# Typecheck the plugin surface (requires node_modules); NOT yet a prerequisite of test-config -- a later step wires it.
+test-typecheck:
+	@echo "==> typecheck .opencode/plugins"
+	@npx --no-install tsc --noEmit -p .opencode/plugins/tsconfig.json
 
 # Python dependency vulnerability audit via pip-audit (DIA-028). Exports the
 # locked runtime dependency set per package with uv (exact pins + hashes) and
