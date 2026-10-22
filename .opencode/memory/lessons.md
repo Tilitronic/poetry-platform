@@ -3409,6 +3409,12 @@ working tree) as the durable discriminator.
   required marker is a plugin runtime constraint observed in-session; the
   specific error message and the corrective action (add the marker) are not
   stated in any ticket or spec.
+  ANNOTATION 2026-10-22 (DIA-261021-cs3v): that FIXED_POINT base ref must be
+  the PARENT commit (or an older ref), never HEAD, because the gate resolves
+  the ref, computes the merge-base, and then requires a NON-EMPTY range - so
+  smoke tests and any "review the last commit" request must pin the parent, as
+  a HEAD base threw "REVIEWER ENVELOPE: empty range: <oid>..HEAD has no
+  commits and no changes (nothing to review)" live on 2026-10-22.
 
 - LOCALE-DEPENDENT OUTPUT PARSING (new failure class): scripts that parse
   command output for an ENGLISH WORD are locale-fragile. Real incident:

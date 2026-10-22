@@ -371,6 +371,14 @@
 | DIA-260929-yhmd | make test-harness: skip the engine-dependent phase in-container instead of exiting 2 | scripts | Medium | OPEN | [DIA-260929-yhmd-make-test-harness-skip-the-engine-dependent-phase-in-container-instead-of-exiting-2.md](DIA-260929-yhmd-make-test-harness-skip-the-engine-dependent-phase-in-container-instead-of-exiting-2.md) |
 | DIA-261006-ldfs | read-only lane permission hardening: deny task to non-orchestrator lanes, deny ast_grep_replace fleet-wide, explicit ast_grep_search allow | scripts | Medium | OPEN | [DIA-261006-ldfs-read-only-lane-permission-hardening-deny-task-to-non-orchestrator-lanes-deny-ast-grep-replace-fleet-wide-explicit-ast-grep-search-allow.md](DIA-261006-ldfs-read-only-lane-permission-hardening-deny-task-to-non-orchestrator-lanes-deny-ast-grep-replace-fleet-wide-explicit-ast-grep-search-allow.md) |
 | DIA-261006-y72h | at-sign agent-mention hygiene: strip leading at-sign from agent mentions on the instruction surface, codify the dispatch-payload mention rule, reconcile CAUSE A | scripts | Medium | OPEN | [DIA-261006-y72h-at-sign-agent-mention-hygiene-strip-leading-at-sign-from-agent-mentions-on-the-instruction-surface-codify-the-dispatch-payload-mention-rule-reconcile-cause-a.md](DIA-261006-y72h-at-sign-agent-mention-hygiene-strip-leading-at-sign-from-agent-mentions-on-the-instruction-surface-codify-the-dispatch-payload-mention-rule-reconcile-cause-a.md) |
+| DIA-261021-51pm | re-review cycle 1/2 and push gate for the 5 unpushed omo-slim-changes commits | scripts | Medium | OPEN | [DIA-261021-51pm-re-review-cycle-1-2-and-push-gate-for-the-5-unpushed-omo-slim-changes-commits.md](DIA-261021-51pm-re-review-cycle-1-2-and-push-gate-for-the-5-unpushed-omo-slim-changes-commits.md) |
+| DIA-261021-cs3v | Dispatch gate warnings on compliant dispatches: satisfy FIXED_POINT and config-work routing checks up front | opencode-config | Major | OPEN | [DIA-261021-cs3v-dispatch-gate-warnings-on-compliant-dispatches-satisfy-fixed-point-and-config-work-routing-checks-up-front.md](DIA-261021-cs3v-dispatch-gate-warnings-on-compliant-dispatches-satisfy-fixed-point-and-config-work-routing-checks-up-front.md) |
+| DIA-261021-t8bh | review of 5 unpushed commits on omo-slim-changes | opencode-config | Medium | CLOSED | [DIA-261021-t8bh-review-of-5-unpushed-commits-on-omo-slim-changes.md](DIA-261021-t8bh-review-of-5-unpushed-commits-on-omo-slim-changes.md) |
+| DIA-261022-5fbg | .vscode chat.tools.terminal.autoApprove: repository-controlled script execution without a governing ticket | opencode-config | Medium | OPEN | [DIA-261022-5fbg-vscode-chat-tools-terminal-autoapprove-repository-controlled-script-execution-without-a-governing-ticket.md](DIA-261022-5fbg-vscode-chat-tools-terminal-autoapprove-repository-controlled-script-execution-without-a-governing-ticket.md) |
+| DIA-261022-6vcz | Verify OpenCode Go model IDs and update main preset mimo-balanced | scripts | Medium | OPEN | [DIA-261022-6vcz-verify-opencode-go-model-ids-and-update-main-preset-mimo-balanced.md](DIA-261022-6vcz-verify-opencode-go-model-ids-and-update-main-preset-mimo-balanced.md) |
+| DIA-261022-m6l8 | delegation-observer: two app.log promises near the handoff path remain unawaited | opencode-config | Low | OPEN | [DIA-261022-m6l8-delegation-observer-two-app-log-promises-near-the-handoff-path-remain-unawaited.md](DIA-261022-m6l8-delegation-observer-two-app-log-promises-near-the-handoff-path-remain-unawaited.md) |
+| DIA-261022-mho5 | handoff apoptosis dirty-check: whitespace-only status output is now classified DIRTY (delegation-observer:840) | opencode-config | Medium | OPEN | [DIA-261022-mho5-handoff-apoptosis-dirty-check-whitespace-only-status-output-is-now-classified-dirty-delegation-observer-840.md](DIA-261022-mho5-handoff-apoptosis-dirty-check-whitespace-only-status-output-is-now-classified-dirty-delegation-observer-840.md) |
+| DIA-261022-zjci | handoff writer error channel: coreAtomicWrite throws on an invalid session id while every other failure returns ok:false | opencode-config | Medium | OPEN | [DIA-261022-zjci-handoff-writer-error-channel-coreatomicwrite-throws-on-an-invalid-session-id-while-every-other-failure-returns-ok-false.md](DIA-261022-zjci-handoff-writer-error-channel-coreatomicwrite-throws-on-an-invalid-session-id-while-every-other-failure-returns-ok-false.md) |
 
 ## Status summary
 
@@ -378,16 +386,16 @@
 | -------- | ----- |
 | Blocker  | 9     |
 | Critical | 16    |
-| Major    | 86    |
-| Medium   | 197   |
+| Major    | 87    |
+| Medium   | 203   |
 | Minor    | 1     |
-| Low      | 38    |
+| Low      | 39    |
 | Info     | 2     |
 | High     | 20    |
 
 | Status      | Count |
 | ----------- | ----- |
-| OPEN        | 98    |
+| OPEN        | 105   |
 | DONE        | 15    |
 | VALIDATE    | 0     |
 | E2E         | 0     |
@@ -396,7 +404,7 @@
 | FIXED       | 1     |
 | IMPLEMENTED | 2     |
 | VERIFIED    | 29    |
-| CLOSED      | 221   |
+| CLOSED      | 222   |
 | BLOCKED     | 0     |
 | DISPATCHED  | 0     |
 | RUNNING     | 0     |
