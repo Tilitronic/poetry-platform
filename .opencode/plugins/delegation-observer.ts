@@ -96,6 +96,7 @@ import {
   CONFIG_WORK_PATTERN,
   evaluateRoutingGate,
   buildRoutingGateError,
+  VERIFICATION_ONLY_PATTERN,
 } from "./lib/routing-gate.ts"
 export { CAPABILITY_SECRET, mintCapabilityToken, verifyCapabilityToken }
 export { TICKET_ID_RE, TICKET_ID_FIND_RE, TICKET_ID_FILENAME_RE }
@@ -2800,15 +2801,11 @@ const delegationObserver: Plugin = async (ctx) => {
         ).slice(0, 300)
       if (taskId) childSessionAgent.set(taskId, agentName)
       // DIA-260826-zvu4: capture verification-only marker at dispatch time.
-      // The trailing \b after "verif" needs \w* because the phrase is
-      // usually "read-only verification" (word continues past "verif").
+      // Regex shared with the routing gate (DIA-261021-cs3v): one source of
+      // truth for the marker vocabulary.
       if (taskId) {
         const dispatchText = `${taskArgs.description ?? ""}\n${taskArgs.prompt ?? ""}`
-        if (
-          /\b(verification.only|read.only.verif\w*|verify.only)\b/i.test(
-            dispatchText
-          )
-        ) {
+        if (VERIFICATION_ONLY_PATTERN.test(dispatchText)) {
           verificationOnlySessions.add(taskId)
         }
       }

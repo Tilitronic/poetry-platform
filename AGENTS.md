@@ -47,7 +47,7 @@ Architecture → Specification → Implementation:
    When referencing DIA tickets in prose, always use `DIA-NNN 'slug'` or `DIA-YYMMDD-XXXX 'slug'` with the human-readable slug from the filename. Never use bare IDs without the slug.
 
 3. **Post-flight**: Run dev build, lint, tests before handing off. Coder MUST include verification evidence (exit codes + summary lines) — see §2.3.1
-4. **Review**: Dispatch `reviewer` (two-axis: Standards + Spec fidelity)
+4. **Review**: Dispatch `reviewer` (two-axis: Standards + Spec fidelity) - the dispatch prompt carries exactly one `FIXED_POINT: <ref>` line (see orchestrator_append.md dispatch payload contract)
 5. **Fix → Re-review loop** (§2.3.1): after developer disposition and coder fixes, re-dispatch `reviewer` for targeted re-verification (max 2 cycles)
 6. **Persist**: After feature completion or ≥2 failed loops, dispatch `memory-manager` to capture ADRs, lessons, and failure patterns in `.opencode/memory/`
 
@@ -57,7 +57,7 @@ After the developer disposes review findings (accept/reject per practice-protect
 
 1. **Coder handoff** must include verification evidence: test/lint/typecheck exit codes + summary lines for each fix applied.
 2. **Orchestrator re-dispatches `reviewer`** with:
-   - Same fixed point (commit/branch/tag)
+   - Same fixed point (commit/branch/tag): the re-review dispatch carries exactly one `FIXED_POINT: <ref>` line, reusing cycle 1's base ref (the envelope gate fires on every reviewer dispatch, cycle N/2 included)
    - Prior findings list (only the developer-accepted ones)
    - Coder's fixes-applied summary + verification evidence
    - Cycle counter: `re-review cycle N/2`
@@ -216,6 +216,10 @@ Full setup docs: `docs/docker-dev.md`.
    step 1 (in the 2026-10-06 study such lanes ignored it and
    completed). Refer to lanes descriptively or by internal name
    without the at-sign.
+5. **Dispatch payload contract (DIA-261021-cs3v):** a reviewer dispatch
+   carries exactly one `FIXED_POINT: <ref>` line; a coder verification
+   lane carries the verification-only marker (canonical contract:
+   orchestrator_append.md dispatch payload contract).
 
 ### Session-end handoff (DIA-124)
 

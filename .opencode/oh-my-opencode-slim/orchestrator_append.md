@@ -383,6 +383,59 @@ lane when task() returns and cannot see later prompt edits. Use the marker
 only for genuinely read-only verification lanes; implementation lanes
 without it keep full empty-result detection.
 
+## Dispatch payload contract (DIA-261021-cs3v)
+
+Canonical reference for the dispatch payload. Two tiers: what the plugin
+gates hard-throw on, and the orchestrator discipline that avoids the throws.
+
+### GATE-ENFORCED (hard throw, no child spawned)
+
+- Reviewer envelope: exactly one `FIXED_POINT: <ref>` match across
+  description + prompt COMBINED (zero or two-or-more matches throw - so a
+  marker written in both fields throws); the base ref must resolve in the
+  lane worktree; HEAD must resolve; a merge-base must exist; the diff/log
+  capture must succeed and the resolved range must be non-empty. On success
+  the plugin injects the immutable git envelope into the child prompt; the
+  reviewer never runs git - the envelope is its only evidence.
+- Config-work routing gate: a coder/coder-escalated dispatch naming a
+  config path throws UNLESS a verification-only marker ("verification-only",
+  "read-only verification", "verify-only") is present in the dispatch text,
+  OR a prior ai-specialist PARACRINE dispatch.started row exists in the
+  SAME session (a plain delegation row does not count).
+
+### ORCHESTRATOR DISCIPLINE (not enforced - these are how you avoid the throws)
+
+- Reviewer: put `FIXED_POINT: <ref>` on its own line in the PROMPT, exactly
+  once, bare ref with no backticks, quotes, or trailing punctuation (the
+  capture is (\S+): punctuation is absorbed into the ref and rev-parse then
+  fails with a confusing range error, not a punctuation error). Re-review
+  reuses cycle 1's base ref (no code checks this - discipline).
+- Verification / run-gates: the marker phrases above are a DECLARATION of
+  read-only work; never stamp one on a lane that edits config (routing gate
+  is fail-open by design - the diff still passes reviewer + ai-auditor).
+- Config implementation: requires the prior ai-specialist dispatch (gate row
+  above); registering the findings in .opencode/learnings/ remains the
+  process obligation.
+
+Templates (copy-pasteable, adjust <...>):
+
+    # review
+    Review the diff from base <sha-or-tag>.
+    FIXED_POINT: <sha-or-tag>
+    Spec: openspec/changes/<name>/. Cycle <N>/2 if re-review.
+
+    # verification / run-gates (no edits)
+    verification-only: run make test-config and the routing-order-gate
+    suite under scripts/__tests__/, report exit codes. No file edits.
+
+    # config implementation (ai-specialist gate already done this session)
+    campaign ticket DIA-<id>. Implement <change> in <config path>.
+    Findings registered in .opencode/learnings/external-patterns/.
+
+    # analysis / research
+    campaign ticket DIA-<id>. Read-only research on <topic>.
+    Return findings; write nothing outside knowledge/.
+
 ## Changelog Read Protocol (DIA-194)
 
 .opencode/CHANGELOG.yaml is the machine-first changelog ledger (source of

@@ -17,7 +17,7 @@ This is NOT a full review. You are verifying that specific prior findings were r
 
 ## Inputs (from orchestrator dispatch)
 
-1. **Fixed point** — same commit/branch/tag as the original review
+1. **Fixed point** — same commit/branch/tag as the original review; the dispatch must carry exactly one `FIXED_POINT: <ref>` line reusing cycle 1's base ref (the envelope gate fires on every reviewer dispatch, cycle N/2 included)
 2. **Prior findings** — the list of findings the developer accepted for fixing (finding-id, severity, file:line, description)
 3. **Fixes-applied summary** — coder's description of what was changed
 4. **Verification evidence** — coder's test/lint/typecheck exit codes + summary lines

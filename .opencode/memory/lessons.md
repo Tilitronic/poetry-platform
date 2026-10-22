@@ -3391,6 +3391,17 @@ working tree) as the durable discriminator.
   @coder. Why irrecoverable: the gate hard-block is a plugin runtime behavior
   observed in-session; the "developer asked to skip" framing is a process
   decision not stated in any committed file.
+  ANNOTATION 2026-10-21 (DIA-261021-cs3v): the gate remains blocking for
+  config EDITS with no prior ai-specialist paracrine dispatch.started row in
+  the same session. Since 2026-10-21 (DIA-261021-cs3v) a dispatch carrying the
+  verification-only marker ("verification-only", "read-only verification",
+  "verify-only") is exempt BEFORE the config-path check, because the exemption
+  exists for verification/run-gates lanes that merely NAME a config path (for
+  example running the test suite under .opencode/plugins/). The exemption is
+  self-declared and therefore fail-open by design; the resulting diff still
+  goes through reviewer + ai-auditor. The canonical payload contract is now on
+  a boot-loaded surface (orchestrator_append.md), not only here; this file is
+  post-hoc memory, not read at boot.
 
 - REVIEWER ENVELOPE: the @reviewer dispatch MUST contain exactly one explicit
   FIXED_POINT: <base-ref> marker (branch, tag, or commit OID) or the lane

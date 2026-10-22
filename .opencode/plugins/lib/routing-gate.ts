@@ -28,6 +28,18 @@ export function isConfigWorkDispatch(dispatchText: string): boolean {
   return CONFIG_WORK_PATTERN.test(dispatchText)
 }
 
+// DIA-261021-cs3v: verification-only marker vocabulary (DIA-260826-zvu4),
+// exported so the routing gate and the delegation-observer empty-result
+// detector share one source of truth. The trailing \b after "verif" needs
+// \w* because the phrase is usually "read-only verification" (the word
+// continues past "verif").
+// ponytail: marker is self-declared, so a brief could stamp it on a real
+// config edit; the resulting diff still passes reviewer + ai-auditor.
+// Upgrade path: drop the exemption if a stamped marker is ever observed on
+// an actual config edit.
+export const VERIFICATION_ONLY_PATTERN =
+  /\b(verification.only|read.only.verif\w*|verify.only)\b/i
+
 /** Check if a subagent type is a coder variant. */
 export function isCoderAgent(subagentType: string): boolean {
   return subagentType === "coder" || subagentType === "coder-escalated"
@@ -99,6 +111,9 @@ export type RoutingGateResult = {
  * no prior @ai-specialist dispatch in this session => violation.
  * Mirrors the tool.execute.before control flow in delegation-observer.ts
  * (fires BEFORE any ticket-gate early return).
+ * DIA-261021-cs3v: a coder dispatch carrying the verification-only marker
+ * is exempt (read/verify/report lanes naming a config path, e.g. running
+ * the test suite under .opencode/plugins/, are not config implementation).
  */
 export function evaluateRoutingGate(
   input: RoutingGateInput,
@@ -106,6 +121,9 @@ export function evaluateRoutingGate(
 ): RoutingGateResult {
   if (!isCoderAgent(input.subagentType)) {
     return { violation: false, reason: "not a coder agent" }
+  }
+  if (VERIFICATION_ONLY_PATTERN.test(input.dispatchText)) {
+    return { violation: false, reason: "verification-only lane" }
   }
   if (!isConfigWorkDispatch(input.dispatchText)) {
     return { violation: false, reason: "no config-work paths detected" }

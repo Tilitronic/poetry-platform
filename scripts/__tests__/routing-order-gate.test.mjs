@@ -2,13 +2,15 @@
 /**
  * DIA-230: Routing-order gate tests (F1/F2/F3/F4 fixes).
  *
- * Tests the advisory routing-order check logic extracted from the
- * delegation-observer plugin. These tests validate:
+ * Tests the BLOCKING routing-order gate logic (hard throw, not advisory)
+ * extracted from the delegation-observer plugin. These tests validate:
  *
  * F1: Routing check fires BEFORE ticket-gate early returns
  * F2: Prior @ai-specialist check scans messages.jsonl (paracrine dispatch.started)
  * F3: Config-work pattern coverage (commands/, rules/)
  * F4: Integration tests simulating full hook control flow
+ * DIA-261021-cs3v: verification-only marker exempts a coder dispatch that
+ * merely names a config path; the same text without the marker still violates.
  *
  * Plain node ESM, zero npm deps. Imports the REAL production seam
  * (.opencode/plugins/lib/routing-gate.ts, shared with
@@ -291,6 +293,30 @@ describe('DIA-230: Full routing gate simulation (F4)', () => {
       sessionId: 'ses_123',
     });
     assert.equal(result.violation, false, result.reason);
+  });
+
+  it('NO VIOLATION: coder + config path + verification-only marker (DIA-261021-cs3v)', () => {
+    writeFileSync(messagesPath, '');
+    const result = simulateRoutingGate({
+      subagentType: 'coder',
+      dispatchText:
+        'verification-only: run the test suite under .opencode/plugins/ and report exit codes. No file edits.',
+      messagesPath,
+      sessionId: 'ses_123',
+    });
+    assert.equal(result.violation, false, result.reason);
+  });
+
+  it('VIOLATION: same config-path text WITHOUT the verification-only marker (DIA-261021-cs3v)', () => {
+    writeFileSync(messagesPath, '');
+    const result = simulateRoutingGate({
+      subagentType: 'coder',
+      dispatchText:
+        'Run the test suite under .opencode/plugins/ and report exit codes. No file edits.',
+      messagesPath,
+      sessionId: 'ses_123',
+    });
+    assert.ok(result.violation, result.reason);
   });
 
   it('NO VIOLATION: ai-specialist + config-work + no ai-specialist', () => {
