@@ -216,6 +216,36 @@ describe("RED-D — registry locked stall compare-and-append", () => {
       "named RED-E: compare-and-append failures must preserve their actual stage",
     )
   })
+
+  it("compareAndAppendStall reports reserved_id when the index refresh fails after reservation", () => {
+    // Real-fs seam (makeFakeFs lacks readSync, so refresh always fails
+    // pre-reservation there): seed one active open row and bound the
+    // projection at 1, so the post-reservation apply of a second identity
+    // throws the projection bound after the counter has been reserved.
+    const root = nodeFs.mkdtempSync(nodeJoin(tmpdir(), "tqor-stall-index-"))
+    const session = nodeJoin(root, ".opencode/session")
+    nodeFs.mkdirSync(session, { recursive: true })
+    const registryPath = nodeJoin(session, "registry.jsonl")
+    nodeFs.writeFileSync(registryPath, JSON.stringify({ seq: 1, session_id: "ses_existing", lifecycle_generation: 1, event: "dispatch", dispatch_state: "running" }) + "\n")
+    try {
+      const registry = mod.createRegistry({
+        directory: root,
+        registryPath,
+        messagesPath: nodeJoin(session, "messages.jsonl"),
+        messagesMdPath: nodeJoin(session, "messages.md"),
+        registrySeqPath: nodeJoin(session, "registry.seq"),
+        messagesRowIdPath: nodeJoin(session, "messages.row-id"),
+        journalLockPath: nodeJoin(session, "journal.lock"),
+        activeLifecycleMaxEntries: 1,
+      })
+      const result = registry.compareAndAppendStall(candidate(7))
+      assert.equal(result.ok, false)
+      assert.equal(result.stage, "index")
+      assert.equal(typeof result.reserved_id, "number", "post-reservation index failure must expose the reserved sequence")
+    } finally {
+      nodeFs.rmSync(root, { recursive: true, force: true })
+    }
+  })
 })
 
 // ---------------------------------------------------------------------------

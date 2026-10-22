@@ -144,10 +144,11 @@ function projectLifecycleRow(row: LifecycleRow): LifecycleRow {
     "last_stall_timestamp", "last_dead_timestamp",
   ] as const
   const projected: LifecycleRow = {}
-  // Record view of the same object: a union-keyed write into LifecycleRow narrows the
-  // slot type to an intersection that excludes the values, but every allowed key IS a
-  // LifecycleRow key, so writing through the Record<string, unknown> index is legal
-  // by construction and runtime-identical.
+  // The string-indexed write below is safe because every entry in the private
+  // `allowed` list is a key accepted by LifecycleRow's index signature.
+  // Per-key value types are NOT checked here: the source row is unvalidated
+  // JSON. Any future addition to `allowed` must be verified by a human,
+  // not the compiler.
   const slots: Record<string, unknown> = projected
   for (const key of allowed) {
     if (row[key] !== undefined) slots[key] = row[key]
@@ -474,13 +475,21 @@ export function createRegistry(deps: RegistryDeps = {}) {
   const opencodeVersion: string | undefined = deps.opencodeVersion ?? (process.env.OPENCODE_VERSION as string | undefined)
 
   type AppendResult = JournalResult | {
+    // Index failed before any sequence was reserved (compareAndAppendStall's
+    // pre-reservation refresh early return).
     ok: false
     stage: "index"
     retryable: false
     error: string
-    // Absent when the index refresh fails before any sequence is reserved
-    // (compareAndAppendStall's early return); present on post-reservation index failures.
-    reserved_id?: number
+    reserved_id?: never
+  } | {
+    // Index failed after the sequence was reserved (post-reservation index
+    // apply failures in appendRow/compareAndAppendStall).
+    ok: false
+    stage: "index"
+    retryable: false
+    error: string
+    reserved_id: number
   }
   let registryCounter: number | undefined
   let messagesCounter: number | undefined
