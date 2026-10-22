@@ -50,7 +50,7 @@ function tryFactory(deps) {
 // RED-D: canonical durable stall compare-and-append boundary
 // ---------------------------------------------------------------------------
 describe("RED-D — registry locked stall compare-and-append", () => {
-  function realRegistry(root) {
+  function realRegistry(root, extra = {}) {
     const session = nodeJoin(root, ".opencode/session")
     nodeFs.mkdirSync(session, { recursive: true })
     return mod.createRegistry({
@@ -61,6 +61,7 @@ describe("RED-D — registry locked stall compare-and-append", () => {
       registrySeqPath: nodeJoin(session, "registry.seq"),
       messagesRowIdPath: nodeJoin(session, "messages.row-id"),
       journalLockPath: nodeJoin(session, "journal.lock"),
+      ...extra,
     })
   }
 
@@ -217,31 +218,69 @@ describe("RED-D — registry locked stall compare-and-append", () => {
     )
   })
 
-  it("compareAndAppendStall reports reserved_id when the index refresh fails after reservation", () => {
+  it("compareAndAppendStall reports reserved_id when the post-reservation index apply fails", () => {
     // Real-fs seam (makeFakeFs lacks readSync, so refresh always fails
     // pre-reservation there): seed one active open row and bound the
     // projection at 1, so the post-reservation apply of a second identity
     // throws the projection bound after the counter has been reserved.
     const root = nodeFs.mkdtempSync(nodeJoin(tmpdir(), "tqor-stall-index-"))
-    const session = nodeJoin(root, ".opencode/session")
-    nodeFs.mkdirSync(session, { recursive: true })
-    const registryPath = nodeJoin(session, "registry.jsonl")
-    nodeFs.writeFileSync(registryPath, JSON.stringify({ seq: 1, session_id: "ses_existing", lifecycle_generation: 1, event: "dispatch", dispatch_state: "running" }) + "\n")
     try {
-      const registry = mod.createRegistry({
-        directory: root,
-        registryPath,
-        messagesPath: nodeJoin(session, "messages.jsonl"),
-        messagesMdPath: nodeJoin(session, "messages.md"),
-        registrySeqPath: nodeJoin(session, "registry.seq"),
-        messagesRowIdPath: nodeJoin(session, "messages.row-id"),
-        journalLockPath: nodeJoin(session, "journal.lock"),
-        activeLifecycleMaxEntries: 1,
-      })
+      const session = nodeJoin(root, ".opencode/session")
+      nodeFs.mkdirSync(session, { recursive: true })
+      nodeFs.writeFileSync(nodeJoin(session, "registry.jsonl"), JSON.stringify({ seq: 1, session_id: "ses_existing", lifecycle_generation: 1, event: "dispatch", dispatch_state: "running" }) + "\n")
+      const registry = realRegistry(root, { activeLifecycleMaxEntries: 1 })
       const result = registry.compareAndAppendStall(candidate(7))
       assert.equal(result.ok, false)
       assert.equal(result.stage, "index")
       assert.equal(typeof result.reserved_id, "number", "post-reservation index failure must expose the reserved sequence")
+    } finally {
+      nodeFs.rmSync(root, { recursive: true, force: true })
+    }
+  })
+
+  it("appendRow reports reserved_id when the post-reservation index apply fails", () => {
+    // Same real-fs projection-bound seam: one open identity is active and
+    // the bound is 1, so appendRow's post-append apply of a DIFFERENT
+    // identity throws after the sequence has been reserved and persisted.
+    const root = nodeFs.mkdtempSync(nodeJoin(tmpdir(), "tqor-append-index-"))
+    try {
+      const session = nodeJoin(root, ".opencode/session")
+      nodeFs.mkdirSync(session, { recursive: true })
+      const registryPath = nodeJoin(session, "registry.jsonl")
+      nodeFs.writeFileSync(registryPath, JSON.stringify({ seq: 1, session_id: "ses_existing", lifecycle_generation: 1, event: "dispatch", dispatch_state: "running" }) + "\n")
+      const registry = realRegistry(root, { activeLifecycleMaxEntries: 1 })
+      const result = registry.appendRow({ event: "dispatch", dispatch_state: "running", session_id: "ses_other", lifecycle_generation: 2 })
+      assert.equal(result.ok, false)
+      assert.equal(result.stage, "index")
+      assert.equal(typeof result.reserved_id, "number", "post-reservation index apply failure must expose the reserved sequence")
+      const lastRow = nodeFs.readFileSync(registryPath, "utf8").trim().split("\n").at(-1)
+      assert.equal(JSON.parse(lastRow).seq, result.reserved_id, "reserved_id must be the sequence of the persisted row")
+    } finally {
+      nodeFs.rmSync(root, { recursive: true, force: true })
+    }
+  })
+
+  it("appendRow reports reserved_id when the active index is already dirty", () => {
+    // Bootstrap two open identities against a projection bound of 1: index
+    // construction fails, the registry starts dirty, and appendRow's
+    // post-append dirty check must still report the reserved sequence.
+    const root = nodeFs.mkdtempSync(nodeJoin(tmpdir(), "tqor-append-dirty-"))
+    try {
+      const session = nodeJoin(root, ".opencode/session")
+      nodeFs.mkdirSync(session, { recursive: true })
+      const registryPath = nodeJoin(session, "registry.jsonl")
+      nodeFs.writeFileSync(registryPath, [
+        JSON.stringify({ seq: 1, session_id: "ses_a", lifecycle_generation: 1, event: "dispatch", dispatch_state: "running" }),
+        JSON.stringify({ seq: 2, session_id: "ses_b", lifecycle_generation: 2, event: "dispatch", dispatch_state: "running" }),
+        "",
+      ].join("\n"))
+      const registry = realRegistry(root, { activeLifecycleMaxEntries: 1 })
+      const result = registry.appendRow({ event: "note", session_id: "ses_c" })
+      assert.equal(result.ok, false)
+      assert.equal(result.stage, "index")
+      assert.equal(typeof result.reserved_id, "number", "dirty-index rejection must expose the reserved sequence")
+      const lastRow = nodeFs.readFileSync(registryPath, "utf8").trim().split("\n").at(-1)
+      assert.equal(JSON.parse(lastRow).seq, result.reserved_id, "reserved_id must be the sequence of the persisted row")
     } finally {
       nodeFs.rmSync(root, { recursive: true, force: true })
     }
