@@ -5131,8 +5131,8 @@
   summary: Handoff slot identity now uses only the trusted runtime context.sessionID;
     the writer validates session-id grammar and resolves slot/temp/archive paths within
     their target directories (path-traversal fix).
-  verification: 'bun parallel-handoff 16 pass / 0 fail (111 expect; incl. skip /
-    ok:false / positive-control cases); make test-config exit 0'
+  verification: bun parallel-handoff 16 pass / 0 fail (111 expect; incl. skip / ok:false
+    / positive-control cases); make test-config exit 0
   area: opencode-config
 - date: '2026-10-21'
   ticket: DIA-260831-n9o0
@@ -5143,8 +5143,8 @@
   summary: 'Skills validator now resolves body slash-command references against the
     command manifest union allow-list: backticked first-token HARD, plain-text and
     at-sign WARN-only, fenced blocks never scanned.'
-  verification: 'bats validate-skills 55 ok / 0 not ok; real-repo validate-skills
-    exit 0 (26 passed, 0 failed, 42 warnings); make test-config exit 0'
+  verification: bats validate-skills 55 ok / 0 not ok; real-repo validate-skills exit
+    0 (26 passed, 0 failed, 42 warnings); make test-config exit 0
   area: opencode-config
 - date: '2026-10-21'
   ticket: DIA-261021-t8bh
@@ -5158,9 +5158,9 @@
   summary: 'Review of 5 unpushed commits: gate active.json on a landed handoff slot
     (L20260817-010 split-brain fix) and tighten command-reference validation precision
     (DIA-261021-t8bh).'
-  verification: 'bun parallel-handoff 16 pass / 0 fail; bats validate-skills 55 ok /
-    0 not ok; real-repo validate-skills exit 0 (26 passed, 0 failed, 42 warnings);
-    make test-config exit 0; make test-shell exit 0 (742 ok / 0 not ok)'
+  verification: bun parallel-handoff 16 pass / 0 fail; bats validate-skills 55 ok
+    / 0 not ok; real-repo validate-skills exit 0 (26 passed, 0 failed, 42 warnings);
+    make test-config exit 0; make test-shell exit 0 (742 ok / 0 not ok)
   area: opencode-config
 - date: '2026-10-21'
   ticket: DIA-261021-cs3v
@@ -5194,9 +5194,73 @@
     the dropped remainder stays unscanned and is now visible; header contract check
     12 documents it. Review bookkeeping: follow-ups (a)-(e) given governing tickets,
     turbo cache experiment closed by content-change hash proof.'
-  verification: 'bats validate-skills 55 ok / 0 not ok (cases 54-55 pin the diagnostic);
+  verification: bats validate-skills 55 ok / 0 not ok (cases 54-55 pin the diagnostic);
     real-repo validate-skills exit 0 (26 passed, 0 failed, 42 warnings - mermaid-diagramming
-    unterminated fence surfaced); make test-config exit 0; make test-shell exit 0 (742
-    ok / 0 not ok); bun parallel-handoff 16 pass / 0 fail; turbo hash changed b3837c03a1b746d7
-    -> 90aa98d8d19cb976 on package.json content change'
+    unterminated fence surfaced); make test-config exit 0; make test-shell exit 0
+    (742 ok / 0 not ok); bun parallel-handoff 16 pass / 0 fail; turbo hash changed
+    b3837c03a1b746d7 -> 90aa98d8d19cb976 on package.json content change
+  area: opencode-config
+- date: '2026-10-22'
+  ticket: DIA-261022-6vcz
+  scope: opencode-config
+  files:
+  - .opencode/oh-my-opencode-slim.jsonc
+  - knowledge/model-registry.yaml
+  - .opencode/learnings/external-patterns/2026-10-22-opencode-go-model-id-drift.md
+  summary: 'mimo-balanced preset model-ID refresh: ai-auditor moved to opencode-go/longcat-2.0
+    + opencode-go/minimax-m3 (Meituan family, BRANCH B - longcat-2.5-preview-free
+    listed but not dispatchable); ai-specialist moved to opencode-go/mimo-v2.6-pro
+    (Xiaomi family) with deepseek-v4.1-flash fallback, inert variant keys removed
+    on both lanes; reviewer variant high retained on opencode-go/deepseek-v4.1-flash
+    (ladder low|high|max); non-existent opencode-go/deepseek-v4-flash purged from
+    all 7 fallback slots (models.dev 404 + absent from live Go catalog), replaced
+    by opencode-go/mimo-v2.5 / opencode-go/mimo-v2.6-flash'
+  verification: manual
+  area: opencode-config
+- date: '2026-10-22'
+  ticket: DIA-261022-6vcz
+  scope: opencode-config
+  files:
+  - .opencode/oh-my-opencode-slim.jsonc
+  - knowledge/model-registry.yaml
+  - .opencode/learnings/external-patterns/2026-10-22-opencode-go-model-id-drift.md
+  summary: 'Round 2 follow-ups on mimo-balanced: ai-auditor primary -> opencode-go/gemini-4-argon-contributor
+    (probe BRANCH A, dispatch PASS) with NOT-ZDR waiver developer-cleared 2026-10-22
+    under the DIA-260828-qtsi Muse precedent, recorded as registry privacy_notes and
+    header-invariant exception; coder-escalated variant medium -> high (invalid rung
+    corrected for the deepseek-v4.1-flash low|high|max ladder); registry grok-4.7
+    fallback dead id replaced with opencode-go/deepseek-v4.1-flash (intended at variant
+    max)'
+  verification: manual
+  area: opencode-config
+- date: '2026-10-22'
+  ticket: DIA-261022-6vcz
+  scope: opencode-config
+  files:
+  - .opencode/oh-my-opencode-slim.jsonc
+  - knowledge/model-registry.yaml
+  - .opencode/learnings/external-patterns/2026-10-22-opencode-go-model-id-drift.md
+  summary: 'Round 3 follow-ups on mimo-balanced: architector primary moved opencode-go/grok-4.7
+    -> opencode-go/gemini-4-argon-contributor at variant high (MAX_RUNG, the highest
+    member of that model''s declared low|medium|high ladder read from ''opencode models
+    --verbose''; no ''max''/''xhigh'' rung exists on this id), fallback opencode-go/mimo-v2.6-flash
+    and the reasoningEffort/thinking options block untouched; ai-auditor on the same
+    model at variant medium (MEDIUM_RUNG, ladder rung verified as declared); header
+    ZDR-only invariant exception widened from one lane to two - every architector
+    and ai-auditor dispatch is non-ZDR traffic under the single developer-cleared
+    2026-10-22 waiver (DIA-261022-6vcz, DIA-260828-qtsi precedent); registry gemini-4-argon-contributor
+    lane [architector, ai-auditor] + privacy_notes widened, grok-4.7 lane [] (zero
+    lane users, entry retained); learnings F8 variant-ladder rule added'
+  verification: manual
+  area: opencode-config
+- date: '2026-10-22'
+  ticket: DIA-261022-6vcz
+  scope: opencode-config
+  files:
+  - knowledge/model-registry.yaml
+  - .opencode/learnings/external-patterns/2026-10-22-opencode-go-model-id-drift.md
+  summary: 'documentation-only: records the Argon-vs-Grok cost analysis (cache-read
+    economics, 98% cache profile, 5.5x request headroom under promo, ~3x after), the
+    ZDR trade, and both throughput estimates for grok-4.7'
+  verification: manual
   area: opencode-config

@@ -1,4 +1,5 @@
 # DIA-133 dispatch routing registry (ADR-DIA-133, approved 2026-08-13). Evidence: res013/016/017 (source_ref per score). No self-benchmark figures (ana014). Registry owner: ai-specialist research -> coder edit (developer decision 2026-08-13).
+# DIA-261022-6vcz (2026-10-22): ai-auditor -> opencode-go/gemini-4-argon-contributor (Not-ZDR waiver, DIA-260828-qtsi Muse precedent, see privacy_notes); ai-specialist -> opencode-go/mimo-v2.6-pro (Xiaomi family); reviewer variant high retained (deepseek-v4.1-flash ladder is low|high|max); opencode-go/deepseek-v4-flash purged as non-existent. Full longcat/mimo-v2.6-pro registry entries pending a pricing/benchmark gate.
 schema_version: "1.0"
 models:
   - model_id: "deepseek-v4-flash"
@@ -162,15 +163,51 @@ models:
     active: true
 
   - model_id: "opencode-go/grok-4.7"
-    role: "multi-lane-primary (architector + ai-auditor via opencode-go/grok-4.7)"
+    role: "retired (was multi-lane-primary for architector)"
     price_in_1m: 2.00
     price_out_1m: 6.00
-    req_per_month: 845  # ESTIMATE ($15 bucket at live OpenCode Go pricing, DIA-260929-wjir gate 2026-09-29)
+    req_per_month: 845  # docs baseline ESTIMATE ($15 bucket at live OpenCode Go pricing, DIA-260929-wjir gate 2026-09-29); second developer estimate ~390 req/mo in quota_notes
     swe_bench_verified: null  # no archived benchmark yet - benchmark conspect pending (separate ticket)
-    source_ref: "DIA-260929-wjir gate 2026-09-29 (Tier-2 https://opencode.ai/docs/go/, https://models.dev/model/opencode-go/grok-4.7)"
-    lane: ["architector", "ai-auditor"]  # DIA-260929-wjir 2026-09-29: replaced opencode-go/kimi-k3 (variants preserved: architector high, ai-auditor medium).
-    fallback: ["opencode-go/mimo-v2.6-flash", "opencode-go/deepseek-v4-flash"]  # architector fallback mimo-v2.6-flash; ai-auditor fallback deepseek-v4-flash (config fallback arrays untouched per DIA-260929-wjir)
-    quota_notes: "Upstream xai/grok-4.7, released 2026-09-21; 500K ctx, reasoning + tool calls; live Go pricing $2.00/$6.00 per 1M <=200K context, $4.00/$12.00 per 1M above 200K; ~845 req/mo on $15 bucket (vs kimi-k3 490 cap); family separation retained: ai-auditor (xAI) is a different model family from ai-specialist deepseek-v4.1-flash (DeepSeek)."
+    source_ref: "DIA-260929-wjir gate 2026-09-29 (Tier-2 https://opencode.ai/docs/go/, https://models.dev/model/opencode-go/grok-4.7); cache/allowance/second-estimate economics DEVELOPER-SUPPLIED 2026-10-22"
+    lane: []  # DIA-261022-6vcz 2026-10-22: architector moved to opencode-go/gemini-4-argon-contributor - no remaining lane users (ai-auditor already moved off per DIA-261022-6vcz, 2026-10-22). Entry retained like kimi-k3; deletion is a separate decision.
+    fallback: ["opencode-go/mimo-v2.6-flash", "opencode-go/deepseek-v4.1-flash"]  # architector fallback mimo-v2.6-flash; deepseek-v4.1-flash intended at variant max (DIA-261022-6vcz 2026-10-22; replaces the non-existent deepseek-v4-flash id)
+    quota_notes: "Upstream xai/grok-4.7, released 2026-09-21; 500K ctx, reasoning + tool calls; live Go pricing $2.00/$6.00 per 1M <=200K context, $4.00/$12.00 per 1M above 200K; cached read $0.50 per 1M <=200K and $1.00 per 1M above 200K (DEVELOPER-SUPPLIED 2026-10-22, https://opencode.ai/v2/docs/console/go/, not gate-verified); allowance $15.00 monthly pool, $3.00 per 5h slice (same source, same provenance). Throughput, TWO estimates with different assumptions, both recorded, neither gate-verified: (a) docs baseline estimate ~845 req/mo on the $15 bucket (vs kimi-k3 490 cap; assumes no cache-read discount); (b) DEVELOPER-SUPPLIED 2026-10-22 figure ~78-80 req/5h and ~390 req/mo under the agentic request profile of 410 new input + 71,300 cached + 310 output tokens per request (~98% cache reads), from https://opencode.ai/v2/docs/console/go/ - see cost-analysis comment block. Family separation retained: ai-auditor (xAI) is a different model family from ai-specialist deepseek-v4.1-flash (DeepSeek)."
+    active: true
+
+# COST ANALYSIS (DIA-261022-6vcz, 2026-10-22): why opencode-go/gemini-4-argon-contributor
+# beats opencode-go/grok-4.7 on a Go subscription despite a 3.3x more expensive output
+# price. All figures DEVELOPER-SUPPLIED 2026-10-22, quoted from the official OpenCode Go
+# billing table https://opencode.ai/v2/docs/console/go/ - NOT gate-verified; where they
+# conflict with an earlier registry figure, both are recorded with their assumptions.
+#
+# Agentic OpenCode sessions are cache-read dominated: the representative request profile
+# is 410 NEW input tokens + 71,300 CACHED tokens + 310 output tokens (~98% of input
+# traffic is cache reads). The cache-read price, not the output price, therefore drives
+# cost per request:
+#   - grok-4.7 at $0.50 per 1M cache: 71,300 cached tokens cost ~$0.0356, plus small
+#     new-input and output terms, ~$0.0383 per request. Against the $3.00 per-5h slice
+#     that is ~78 requests; against the $15.00 monthly pool, ~390 requests.
+#   - gemini-4-argon-contributor at $0.20 per 1M cache: the same 71,300 cached tokens
+#     cost ~$0.0142, ~$0.022-0.027 per request. Against the $12.00 per-5h slice that is
+#     ~440 requests; against the $60.00 promo pool, ~2,200 requests.
+# CONCLUSION: on the Go subscription Argon gives roughly 5.5x the request headroom of
+# grok-4.7, and still roughly 3x after the 2x promo ends and the pool reverts to $30.00.
+# The single scenario where grok-4.7 wins: closed-source work under NDA where Zero Data
+# Retention is mandatory - the Contributor tier of Gemini 4 Argon is NOT ZDR (it trains
+# on prompts and completions). This is exactly the trade already accepted in the header
+# waiver for the architector and ai-auditor lanes (see privacy_notes on the gemini entry).
+
+  - model_id: "opencode-go/gemini-4-argon-contributor"
+    role: "multi-lane-primary (architector + ai-auditor, Not-ZDR waiver)"
+    price_in_1m: 4.00  # Go plan price (direct-API list price is 2.00); DEVELOPER-SUPPLIED 2026-10-22, not gate-verified
+    price_out_1m: 20.00  # Go plan price (direct-API list price is 10.00); DEVELOPER-SUPPLIED 2026-10-22, not gate-verified
+    req_per_month: 2200  # ESTIMATE under 2x promo; DEVELOPER-SUPPLIED 2026-10-22, not gate-verified
+    swe_bench_verified: null
+    source_ref: "DIA-261022-6vcz probe 2026-10-22 (live Go catalog listed + dispatch probe PASS 'OK'); economics DEVELOPER-SUPPLIED 2026-10-22"
+    lane: ["architector", "ai-auditor"]  # DIA-261022-6vcz 2026-10-22: architector moved here from opencode-go/grok-4.7 (variant high = max rung); ai-auditor added round 2 (variant medium).
+    fallback: ["opencode-go/longcat-2.0", "opencode-go/minimax-m3"]
+    quota_notes: "DEVELOPER-SUPPLIED 2026-10-22, quoted from official OpenCode Go billing table https://opencode.ai/v2/docs/console/go/ - NOT gate-verified (every economic figure in this note is developer-supplied on that date from that URL; where they conflict with any earlier figure, both are recorded with their assumptions rather than overwritten). Go plan price $4.00/$20.00 per 1M (direct-API list price is $2.00/$10.00 - Go plan is 2x list). Cached read: $0.20 per 1M (no dedicated cache field in this registry). Allowance: monthly pool $60.00 under the current 2x promo, $30.00 base; 5h slice $12.00 ($6.00 base). Throughput: ~440 req/5h under promo (~220 without), ~2,200 req/mo under promo. Cache-read economics vs opencode-go/grok-4.7: see cost-analysis comment block between the grok-4.7 and gemini entries."
+    privacy_notes: "NOT-ZDR: Gemini 4 Argon Contributor (Contributor tier) trains on prompts/completions; developer-cleared 2026-10-22 under DIA-261022-6vcz on the no-sensitive-traffic basis, mirroring the DIA-260828-qtsi Muse precedent. The single waiver covers BOTH lanes on this model - architector and ai-auditor - so every architector and ai-auditor dispatch is non-ZDR traffic. Any lane on a trains-on-data model requires such an explicit registry waiver, never a silent exception."
     active: true
 
   - model_id: "gpt-5.6-luna"

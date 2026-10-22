@@ -1295,3 +1295,27 @@
 - **Change:** Skills validator emits exactly one warn when EOF lands inside an unterminated code fence (O-4 diagnostic, DIA-261021-51pm item 5): warn-only, exit status unchanged, the dropped remainder stays unscanned and is now visible; header contract check 12 documents it. Review bookkeeping: follow-ups (a)-(e) given governing tickets, turbo cache experiment closed by content-change hash proof.
 - **Files:** .opencode/scripts/validate-skills.sh - scripts/__tests__/validate-skills.bats
 - **Verification:** bats validate-skills 55 ok / 0 not ok (cases 54-55 pin the diagnostic); real-repo validate-skills exit 0 (26 passed, 0 failed, 42 warnings - mermaid-diagramming unterminated fence surfaced); make test-config exit 0; make test-shell exit 0 (742 ok / 0 not ok); bun parallel-handoff 16 pass / 0 fail; turbo hash changed b3837c03a1b746d7 -> 90aa98d8d19cb976 on package.json content change
+
+## 2026-10-22 - DIA-261022-6vcz: opencode-config
+
+- **Change:** mimo-balanced preset model-ID refresh: ai-auditor moved to opencode-go/longcat-2.0 + opencode-go/minimax-m3 (Meituan family, BRANCH B - longcat-2.5-preview-free listed but not dispatchable); ai-specialist moved to opencode-go/mimo-v2.6-pro (Xiaomi family) with deepseek-v4.1-flash fallback, inert variant keys removed on both lanes; reviewer variant high retained on opencode-go/deepseek-v4.1-flash (ladder low|high|max); non-existent opencode-go/deepseek-v4-flash purged from all 7 fallback slots (models.dev 404 + absent from live Go catalog), replaced by opencode-go/mimo-v2.5 / opencode-go/mimo-v2.6-flash
+- **Files:** .opencode/oh-my-opencode-slim.jsonc - knowledge/model-registry.yaml - .opencode/learnings/external-patterns/2026-10-22-opencode-go-model-id-drift.md
+- **Verification:** manual
+
+## 2026-10-22 - DIA-261022-6vcz: opencode-config
+
+- **Change:** Round 2 follow-ups on mimo-balanced: ai-auditor primary -> opencode-go/gemini-4-argon-contributor (probe BRANCH A, dispatch PASS) with NOT-ZDR waiver developer-cleared 2026-10-22 under the DIA-260828-qtsi Muse precedent, recorded as registry privacy_notes and header-invariant exception; coder-escalated variant medium -> high (invalid rung corrected for the deepseek-v4.1-flash low|high|max ladder); registry grok-4.7 fallback dead id replaced with opencode-go/deepseek-v4.1-flash (intended at variant max)
+- **Files:** .opencode/oh-my-opencode-slim.jsonc - knowledge/model-registry.yaml - .opencode/learnings/external-patterns/2026-10-22-opencode-go-model-id-drift.md
+- **Verification:** manual
+
+## 2026-10-22 - DIA-261022-6vcz: opencode-config
+
+- **Change:** Round 3 follow-ups on mimo-balanced: architector primary moved opencode-go/grok-4.7 -> opencode-go/gemini-4-argon-contributor at variant high (MAX_RUNG, the highest member of that model's declared low|medium|high ladder read from 'opencode models --verbose'; no 'max'/'xhigh' rung exists on this id), fallback opencode-go/mimo-v2.6-flash and the reasoningEffort/thinking options block untouched; ai-auditor on the same model at variant medium (MEDIUM_RUNG, ladder rung verified as declared); header ZDR-only invariant exception widened from one lane to two - every architector and ai-auditor dispatch is non-ZDR traffic under the single developer-cleared 2026-10-22 waiver (DIA-261022-6vcz, DIA-260828-qtsi precedent); registry gemini-4-argon-contributor lane [architector, ai-auditor] + privacy_notes widened, grok-4.7 lane [] (zero lane users, entry retained); learnings F8 variant-ladder rule added
+- **Files:** .opencode/oh-my-opencode-slim.jsonc - knowledge/model-registry.yaml - .opencode/learnings/external-patterns/2026-10-22-opencode-go-model-id-drift.md
+- **Verification:** manual
+
+## 2026-10-22 - DIA-261022-6vcz: opencode-config
+
+- **Change:** documentation-only: records the Argon-vs-Grok cost analysis (cache-read economics, 98% cache profile, 5.5x request headroom under promo, ~3x after), the ZDR trade, and both throughput estimates for grok-4.7
+- **Files:** knowledge/model-registry.yaml - .opencode/learnings/external-patterns/2026-10-22-opencode-go-model-id-drift.md
+- **Verification:** manual

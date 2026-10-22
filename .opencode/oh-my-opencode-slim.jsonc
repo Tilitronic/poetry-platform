@@ -11,7 +11,7 @@
     // DIA-260827-8la4: the value below is intentionally unchanged (the pointer mechanism is not reliable enough to carry the fix); the preset NAME is historical. If OH_MY_OPENCODE_SLIM_PRESET is set in the environment it overrides this value - verify it is unset before any smoke test.
     // Clones promo skeleton (all 17 agents; researcher orchestratorPrompt verbatim; orchestrator prompt BYTE-IDENTICAL to promo 15/25 text).
     // Muse 1.3 admission basis DIA-260828-qtsi.
-    // Composition (DIA-260827-8la4, 2026-09-21; model swaps DIA-260927-s1gd, 2026-09-28): ZDR-only, opencode-go-only. Volume lanes (coder, code-navigator, researcher, conspecter, memory-manager) on opencode-go/mimo-v2.6-flash; reasoning lanes (orchestrator, openspec-plan, reviewer, ai-specialist) on opencode-go/deepseek-v4.1-flash (preferred while 4x promo runs, ends 2026-09-27; fallback mimo-v2.5 covers post-promo reversion); architector on opencode-go/grok-4.7 (variant high) + coder-escalated + analyzer-escalated on opencode-go/deepseek-v4.1-flash; analyzer on opencode-go/deepseek-v4.1-flash + designer on opencode-go/qwen3.8-flash; ai-auditor on opencode-go/grok-4.7 (variant medium, different model family from ai-specialist per knowledge/model-registry.yaml independence invariant). observer routes on opencode-go/qwen3.8-flash with opencode-go/kimi-k2.7-code as fallback (vision lane, DIA-260929-nc6w). No openai/* hits (DIA-260916-7jek invariant retained) and no opencode/* Zen ids. The preset NAME was renamed to mimo-balanced (DIA-260927-s1gd); Muse routing was removed 2026-09-20 because Muse Spark trains on prompts/completions and is not ZDR. openai-first-cost-balanced remains the separate openai-only preset.
+    // Composition (DIA-260827-8la4, 2026-09-21; model swaps DIA-260927-s1gd, 2026-09-28; DIA-261022-6vcz, 2026-10-22): opencode-go-only and ZDR-only EXCEPT the ai-auditor AND architector lanes, which both run the NOT-ZDR model opencode-go/gemini-4-argon-contributor (trains on prompts/completions); that single waiver is developer-cleared on 2026-10-22 under DIA-261022-6vcz on the same no-sensitive-traffic basis as the DIA-260828-qtsi Muse precedent (waiver recorded as privacy_notes in knowledge/model-registry.yaml), and the practical consequence is that every architector and ai-auditor dispatch is non-ZDR traffic. Volume lanes (coder, code-navigator, researcher, conspecter, memory-manager) on opencode-go/mimo-v2.6-flash with opencode-go/mimo-v2.5 as fallback; reasoning lanes (orchestrator, openspec-plan, reviewer, ai-specialist, analyzer) on opencode-go/deepseek-v4.1-flash; architector on opencode-go/gemini-4-argon-contributor (variant high, top rung of its low|medium|high ladder) with opencode-go/mimo-v2.6-flash fallback; coder-escalated + analyzer-escalated on opencode-go/deepseek-v4.1-flash; analyzer on opencode-go/deepseek-v4.1-flash + designer on opencode-go/qwen3.8-flash; ai-auditor on opencode-go/gemini-4-argon-contributor (variant medium, NOT-ZDR waiver above) with opencode-go/longcat-2.0 + opencode-go/minimax-m3 fallback (different model family from ai-specialist per knowledge/model-registry.yaml independence invariant); ai-specialist on opencode-go/mimo-v2.6-pro (Xiaomi family) with opencode-go/deepseek-v4.1-flash fallback; reviewer unchanged on opencode-go/deepseek-v4.1-flash variant high (deepseek-v4.1-flash ladder is low|high|max). The non-existent deepseek v4-flash id was purged from all fallback slots (models.dev 404 + absent from live Go catalog; exact dead id recorded in ticket DIA-261022-6vcz and its learnings file). observer routes on opencode-go/qwen3.8-flash with opencode-go/kimi-k2.7-code as fallback (vision lane, DIA-260929-nc6w). No openai/* hits (DIA-260916-7jek invariant retained) and no opencode/* Zen ids. The preset NAME was renamed to mimo-balanced (DIA-260927-s1gd); Muse routing was removed 2026-09-20 because Muse Spark trains on prompts/completions and is not ZDR. openai-first-cost-balanced remains the separate openai-only preset.
     "mimo-balanced": {
       "orchestrator": {
         "model": [
@@ -32,7 +32,7 @@
       },
       "architector": {
         "model": [
-          "opencode-go/grok-4.7",
+          "opencode-go/gemini-4-argon-contributor",
           "opencode-go/mimo-v2.6-flash"
         ],
         "variant": "high",
@@ -73,7 +73,7 @@
       "coder": {
         "model": [
           "opencode-go/mimo-v2.6-flash",
-          "opencode-go/deepseek-v4-flash"
+          "opencode-go/mimo-v2.5"
         ],
         "variant": "medium",
         "skills": [
@@ -104,7 +104,7 @@
       "analyzer": {
         "model": [
           "opencode-go/deepseek-v4.1-flash",
-          "opencode-go/deepseek-v4-flash"
+          "opencode-go/mimo-v2.6-flash"
         ],
         "variant": "high",
         "skills": [
@@ -134,7 +134,7 @@
       "conspecter": {
         "model": [
           "opencode-go/mimo-v2.6-flash",
-          "opencode-go/deepseek-v4-flash"
+          "opencode-go/mimo-v2.5"
         ],
         "variant": "medium",
         "mcps": [],
@@ -150,10 +150,9 @@
       },
       "ai-specialist": {
         "model": [
-          "opencode-go/deepseek-v4.1-flash",
-          "opencode-go/mimo-v2.6-flash"
+          "opencode-go/mimo-v2.6-pro",
+          "opencode-go/deepseek-v4.1-flash"
         ],
-        "variant": "high",
         "skills": [
           "teaching"
         ],
@@ -163,8 +162,9 @@
       },
       "ai-auditor": {
         "model": [
-          "opencode-go/grok-4.7",
-          "opencode-go/deepseek-v4-flash"
+          "opencode-go/gemini-4-argon-contributor",
+          "opencode-go/longcat-2.0",
+          "opencode-go/minimax-m3"
         ],
         "variant": "medium",
         "skills": [
@@ -177,7 +177,7 @@
       "memory-manager": {
         "model": [
           "opencode-go/mimo-v2.6-flash",
-          "opencode-go/deepseek-v4-flash"
+          "opencode-go/mimo-v2.5"
         ],
         "variant": "medium",
         "skills": [
@@ -189,7 +189,7 @@
       "code-navigator": {
         "model": [
           "opencode-go/mimo-v2.6-flash",
-          "opencode-go/deepseek-v4-flash"
+          "opencode-go/mimo-v2.5"
         ],
         "variant": "medium",
         "skills": [],
@@ -198,7 +198,7 @@
       "researcher": {
         "model": [
           "opencode-go/mimo-v2.6-flash",
-          "opencode-go/deepseek-v4-flash"
+          "opencode-go/mimo-v2.5"
         ],
         "variant": "medium",
         "temperature": 0.3,
@@ -215,7 +215,7 @@
       },
       "coder-escalated": {
         "model": "opencode-go/deepseek-v4.1-flash",
-        "variant": "medium",
+        "variant": "high",
         "temperature": 0.1,
         "skills": [
           "playwright-browser",
