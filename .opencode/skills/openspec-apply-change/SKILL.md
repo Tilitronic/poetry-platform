@@ -25,7 +25,7 @@ Implement tasks from an OpenSpec change.
 - Tests live at the seams listed in design.md. No test is written at an
   unconfirmed seam.
 - Run typecheck and the affected test file after each task; run the full suite
-  once at the end.
+  once at the end. For slices that touch `.opencode/plugins`, the typecheck is `make test-typecheck` (turbo typecheck covers packages and apps only).
 - Do NOT refactor during RED-GREEN cycles. Refactoring belongs to the reviewer
   pass.
 
