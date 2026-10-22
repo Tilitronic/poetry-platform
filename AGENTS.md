@@ -46,7 +46,7 @@ Architecture → Specification → Implementation:
 
    When referencing DIA tickets in prose, always use `DIA-NNN 'slug'` or `DIA-YYMMDD-XXXX 'slug'` with the human-readable slug from the filename. Never use bare IDs without the slug.
 
-3. **Post-flight**: Run dev build, lint, tests before handing off. Coder MUST include verification evidence (exit codes + summary lines) — see §2.3.1
+3. **Post-flight**: Run dev build, lint, typecheck, tests before handing off. Coder MUST include verification evidence (exit codes + summary lines) — see §2.3.1
 4. **Review**: Dispatch `reviewer` (two-axis: Standards + Spec fidelity) - the dispatch prompt carries exactly one `FIXED_POINT: <ref>` line (see orchestrator_append.md dispatch payload contract)
 5. **Fix → Re-review loop** (§2.3.1): after developer disposition and coder fixes, re-dispatch `reviewer` for targeted re-verification (max 2 cycles)
 6. **Persist**: After feature completion or ≥2 failed loops, dispatch `memory-manager` to capture ADRs, lessons, and failure patterns in `.opencode/memory/`
@@ -55,7 +55,7 @@ Architecture → Specification → Implementation:
 
 After the developer disposes review findings (accept/reject per practice-protected §4) and `coder` applies accepted fixes:
 
-1. **Coder handoff** must include verification evidence: test/lint/typecheck exit codes + summary lines for each fix applied.
+1. **Coder handoff** must include verification evidence: test/lint/typecheck exit codes + summary lines for each fix applied (`pnpm typecheck` for packages and apps, `make test-typecheck` for the plugin surface, or `make test-config` which now includes it).
 2. **Orchestrator re-dispatches `reviewer`** with:
    - Same fixed point (commit/branch/tag): the re-review dispatch carries exactly one `FIXED_POINT: <ref>` line, reusing cycle 1's base ref (the envelope gate fires on every reviewer dispatch, cycle N/2 included)
    - Prior findings list (only the developer-accepted ones)
@@ -93,7 +93,7 @@ After the developer disposes review findings (accept/reject per practice-protect
   2. **User reviews & decides** (practice-protected — orchestrator does not silently apply).
   3. **Design** — if non-trivial, `architector`; every decision traces to a best-practice rule.
   4. **Implement** — `coder` applies approved design.
-  5. **Validate** — config validation (`make test-config`), schema/JSONC validity, restart OpenCode + functional smoke test.
+  5. **Validate** — config validation (`make test-config`), schema/JSONC validity, restart OpenCode + functional smoke test. The config gate now includes the plugin-surface typecheck (already a prerequisite), so no separate command is needed.
   6. **Independent review** — `ai-auditor` reviews the implemented change against best practices + AIHero patterns. ai-auditor is THE independent reviewer for config changes.
   7. **Register** — append the changelog entry to `.opencode/CHANGELOG.yaml`
      (the YAML ledger is the source of truth; `.opencode/CHANGELOG.md` is the
@@ -190,10 +190,10 @@ Full setup docs: `docs/docker-dev.md`.
 
 ### Gates that run on the host (no container needed)
 
-| Gate              | Command                                 |
-| ----------------- | --------------------------------------- |
-| Config validation | `make test-config`                      |
-| Shell unit tests  | `make test-shell` (bats, docker mocked) |
+| Gate              | Command                                                                                                                |
+| ----------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| Config validation | `make test-config` (needs `node_modules` present - typescript/esbuild; a bare host checkout must `make install` first) |
+| Shell unit tests  | `make test-shell` (bats, docker mocked)                                                                                |
 
 ### Pre-work gates (MANDATORY)
 
