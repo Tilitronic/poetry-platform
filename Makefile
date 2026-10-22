@@ -252,7 +252,7 @@ test-skills:
 # iff no HARD write-capable gaps remain -- WARN-only gaps (the ~440 unlisted
 # default-allow non-write-capable tools) do NOT break the gate (Decision 6
 # scoping; see scripts/audit-agent-tool-coverage.sh).
-test-config: test-interview test-skills
+test-config: test-interview test-skills test-typecheck
 	@echo "NOTE: compose config validation is host-scoped (PHASE 5, T12.4). It runs host-side via make check-compose-config / verify-pre-push.sh, not here."
 	bash .opencode/scripts/validate-opencode-config.sh
 	bash scripts/check-omo-version-sync.sh
@@ -287,7 +287,7 @@ test-config: test-interview test-skills
 	# no duplicate shell definitions for extracted seams, tests on production interface.
 	bash scripts/validate-plugin-structure.sh
 
-# Typecheck the plugin surface (requires node_modules); NOT yet a prerequisite of test-config -- a later step wires it.
+# Typecheck the plugin surface (requires node_modules), run as a test-config prerequisite.
 test-typecheck:
 	@echo "==> typecheck .opencode/plugins"
 	@npx --no-install tsc --noEmit -p .opencode/plugins/tsconfig.json

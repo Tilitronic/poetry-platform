@@ -2,15 +2,15 @@
 # Wiring regression for the `make test-typecheck` target (campaign
 # DIA-260928-gpcc, task T5). Static grep over the root Makefile with fixed
 # strings: the target must exist, use the pinned npx form scoped to the
-# plugin tsconfig, stay in .PHONY, and the project file must exist.
-# Deliberately NOT asserted: whether test-config depends on this target
-# (that dependency is wired in a later step; pinning it now would freeze
-# a false state).
+# plugin tsconfig, stay in .PHONY, the project file must exist, and
+# test-config lists it as a prerequisite (wired in DIA-260928-gpcc T6).
 
 load test-helper
 
 @test "typecheck wiring: Makefile declares pinned test-typecheck target" {
   run grep -Fq 'test-typecheck:' "$REPO_ROOT/Makefile"
+  [ "$status" -eq 0 ]
+  run grep -Fq 'test-config: test-interview test-skills test-typecheck' "$REPO_ROOT/Makefile"
   [ "$status" -eq 0 ]
   run grep -Fq 'npx --no-install tsc --noEmit -p .opencode/plugins/tsconfig.json' "$REPO_ROOT/Makefile"
   [ "$status" -eq 0 ]
