@@ -144,8 +144,13 @@ function projectLifecycleRow(row: LifecycleRow): LifecycleRow {
     "last_stall_timestamp", "last_dead_timestamp",
   ] as const
   const projected: LifecycleRow = {}
+  // Record view of the same object: a union-keyed write into LifecycleRow narrows the
+  // slot type to an intersection that excludes the values, but every allowed key IS a
+  // LifecycleRow key, so writing through the Record<string, unknown> index is legal
+  // by construction and runtime-identical.
+  const slots: Record<string, unknown> = projected
   for (const key of allowed) {
-    if (row[key] !== undefined) projected[key] = row[key]
+    if (row[key] !== undefined) slots[key] = row[key]
   }
   return projected
 }
@@ -473,7 +478,9 @@ export function createRegistry(deps: RegistryDeps = {}) {
     stage: "index"
     retryable: false
     error: string
-    reserved_id: number
+    // Absent when the index refresh fails before any sequence is reserved
+    // (compareAndAppendStall's early return); present on post-reservation index failures.
+    reserved_id?: number
   }
   let registryCounter: number | undefined
   let messagesCounter: number | undefined
@@ -719,6 +726,11 @@ export function createRegistry(deps: RegistryDeps = {}) {
     retainedActive: number
     malformedRows: number
     checksum: string
+    // Telemetry on the full-rotation path; omitted by the empty-registry early success.
+    sourceBytes?: number
+    archiveBytes?: number
+    registrySeq?: number
+    messageRowId?: number
   } | { ok: false; stage: string; error: string } {
     let acquired = journal.acquireJournalLock()
     for (let attempt = 0; acquired.ok === false && attempt < 100; attempt += 1) {
