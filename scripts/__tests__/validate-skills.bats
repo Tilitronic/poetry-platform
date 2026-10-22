@@ -1488,3 +1488,64 @@ Prefer the `/__dangling_quad_cmd_zzz__` command.
   assert_output_not_contains "FAIL:"
   assert_output_not_contains "__dangling_quad_cmd_zzz__"
 }
+
+# --- DIA-261021-51pm item 5: unterminated fence diagnostic (re-review O-4) ---
+# The fence stripper is a single awk pass; when EOF is reached while still
+# inside a fence the remainder of the body is dropped WITHOUT a diagnostic -
+# a malformed skill silently disables body command-reference checking for it.
+# Required contract: exactly one warn line naming the skill and file, exit
+# status unchanged (a warn is never fatal).
+
+@test "body command reference: unterminated fence emits a warn and does not scan the remainder (DIA-261021-51pm)" {
+  write_compat_manifests
+  # Fixture dir deliberately avoids the substring "unterminated" so the
+  # assert_output_contains "unterminated" below can only match the
+  # diagnostic line itself, never this file's own ok:/warn: path output.
+  write_skill "open-fence-user" '---
+name: open-fence-user
+description: Skill whose body opens a fence that never closes. Use when testing fences.
+license: MIT
+---
+
+Use when testing fences.
+
+```
+Run the `/__dangling_unterminated_cmd_zzz__` command.
+'
+
+  SKILLS_ROOT="$FIXTURES" COMPAT_PRESETS_FILE="$BATS_TEST_TMPDIR/compat-presets.json" COMPAT_CONFIG_FILE="$BATS_TEST_TMPDIR/compat-config.json" COMPAT_COMMANDS_DIR="$BATS_TEST_TMPDIR/compat-commands" run bash "$SKILLS_SCRIPT"
+
+  # O-4 RED: the awk stripper drops the post-opener remainder silently, so
+  # no "unterminated" diagnostic exists today. Not-FAIL + exit 0 pass only
+  # BECAUSE of the silent drop - the assertions together pin warn-only
+  # visibility of the truncation (remainder still never scanned).
+  assert_status 0
+  assert_output_contains "unterminated"
+  assert_output_contains "warn:"
+  assert_output_not_contains "FAIL:"
+  assert_output_not_contains "__dangling_unterminated_cmd_zzz__"
+}
+
+@test "body command reference: properly closed fence emits no unterminated warn (DIA-261021-51pm)" {
+  write_compat_manifests
+  write_skill "closed-fence-user" '---
+name: closed-fence-user
+description: Skill whose fenced code block is properly closed. Use when testing fences.
+license: MIT
+---
+
+Use when testing fences.
+
+```
+Run the `/__dangling_closed_cmd_zzz__` command.
+```
+'
+
+  SKILLS_ROOT="$FIXTURES" COMPAT_PRESETS_FILE="$BATS_TEST_TMPDIR/compat-presets.json" COMPAT_CONFIG_FILE="$BATS_TEST_TMPDIR/compat-config.json" COMPAT_COMMANDS_DIR="$BATS_TEST_TMPDIR/compat-commands" run bash "$SKILLS_SCRIPT"
+
+  # Positive control: a properly closed fence must stay silent - the
+  # unterminated diagnostic may only fire on genuine EOF-in-fence.
+  assert_status 0
+  assert_output_not_contains "FAIL:"
+  assert_output_not_contains "unterminated"
+}

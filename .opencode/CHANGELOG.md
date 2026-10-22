@@ -1270,16 +1270,28 @@
 
 - **Change:** Handoff slot identity now uses only the trusted runtime context.sessionID; the writer validates session-id grammar and resolves slot/temp/archive paths within their target directories (path-traversal fix).
 - **Files:** .opencode/plugins/delegation-observer.ts - .opencode/plugins/lib/handoff.ts - .opencode/plugins/__tests__/parallel-handoff.test.mjs
-- **Verification:** make test-config exit 0; bun parallel-handoff 16/16; bats validate-skills 53/53; real-repo validate-skills exit 0 with 41 warns
+- **Verification:** bun parallel-handoff 16 pass / 0 fail (111 expect; incl. skip / ok:false / positive-control cases); make test-config exit 0
 
 ## 2026-10-21 - DIA-260831-n9o0: opencode-config
 
 - **Change:** Skills validator now resolves body slash-command references against the command manifest union allow-list: backticked first-token HARD, plain-text and at-sign WARN-only, fenced blocks never scanned.
 - **Files:** .opencode/scripts/validate-skills.sh - scripts/__tests__/validate-skills.bats
-- **Verification:** make test-config exit 0; bun parallel-handoff 16/16; bats validate-skills 53/53; real-repo validate-skills exit 0 with 41 warns
+- **Verification:** bats validate-skills 55 ok / 0 not ok; real-repo validate-skills exit 0 (26 passed, 0 failed, 42 warnings); make test-config exit 0
 
 ## 2026-10-21 - DIA-261021-t8bh: opencode-config
 
 - **Change:** Review of 5 unpushed commits: gate active.json on a landed handoff slot (L20260817-010 split-brain fix) and tighten command-reference validation precision (DIA-261021-t8bh).
 - **Files:** .opencode/plugins/delegation-observer.ts - .opencode/scripts/validate-skills.sh - .opencode/plugins/__tests__/parallel-handoff.test.mjs - scripts/__tests__/validate-skills.bats - .opencode/learnings/external-patterns/2026-10-21-dia-261021-t8bh-config-gate-verdict.md
-- **Verification:** make test-config exit 0; bun parallel-handoff 16/16; bats validate-skills 53/53; real-repo validate-skills exit 0 with 41 warns
+- **Verification:** bun parallel-handoff 16 pass / 0 fail; bats validate-skills 55 ok / 0 not ok; real-repo validate-skills exit 0 (26 passed, 0 failed, 42 warnings); make test-config exit 0; make test-shell exit 0 (742 ok / 0 not ok)
+
+## 2026-10-21 - DIA-261021-cs3v: opencode-config
+
+- **Change:** Dispatch payload contract plus routing-gate verification-only exemption: reviewer FIXED_POINT rule and the config-work routing gate are now first-attempt-correct (canonical contract in orchestrator_append.md, pointer rule in both orchestrator prompts, corrected reviewer card, AGENTS.md review and re-review checklist, review-re-verify skill), and evaluateRoutingGate honours the DIA-260826-zvu4 verification-only marker; ai-auditor ACCEPT after 3 conditions (prose overclaim narrowed, lessons annotation, re-review checklist)
+- **Files:** .opencode/oh-my-opencode-slim.jsonc - .opencode/oh-my-opencode-slim/orchestrator_append.md - AGENTS.md - .opencode/plugins/lib/routing-gate.ts - .opencode/plugins/delegation-observer.ts - scripts/__tests__/routing-order-gate.test.mjs - .opencode/memory/lessons.md - .opencode/skills/review-re-verify/SKILL.md
+- **Verification:** manual
+
+## 2026-10-22 - DIA-261021-51pm: opencode-config
+
+- **Change:** Skills validator emits exactly one warn when EOF lands inside an unterminated code fence (O-4 diagnostic, DIA-261021-51pm item 5): warn-only, exit status unchanged, the dropped remainder stays unscanned and is now visible; header contract check 12 documents it. Review bookkeeping: follow-ups (a)-(e) given governing tickets, turbo cache experiment closed by content-change hash proof.
+- **Files:** .opencode/scripts/validate-skills.sh - scripts/__tests__/validate-skills.bats
+- **Verification:** bats validate-skills 55 ok / 0 not ok (cases 54-55 pin the diagnostic); real-repo validate-skills exit 0 (26 passed, 0 failed, 42 warnings - mermaid-diagramming unterminated fence surfaced); make test-config exit 0; make test-shell exit 0 (742 ok / 0 not ok); bun parallel-handoff 16 pass / 0 fail; turbo hash changed b3837c03a1b746d7 -> 90aa98d8d19cb976 on package.json content change

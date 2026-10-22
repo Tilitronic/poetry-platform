@@ -30,25 +30,24 @@ attempts: 0
 lease_expires_at: "" # ISO-8601; set on DISPATCHED, cleared on COMPLETE
 files_touched:
 
-- .opencode/plugins/delegation-observer.ts
-- .opencode/scripts/validate-skills.sh
-- .opencode/plugins/`__tests__`/parallel-handoff.test.mjs
-- scripts/`__tests__`/validate-skills.bats
-- .opencode/plugins/`__tests__`/handoff-slot-identity.test.mjs
-- .opencode/plugins/`__tests__`/handoff-archive-collision.test.mjs
-- .opencode/learnings/external-patterns/2026-10-21-dia-261021-t8bh-config-gate-verdict.md
-- .opencode/learnings/index.md
-- docs/dev-infra-audit/tickets/DIA-260827-5blh-medium-handoff-identity-permits-path-traversal.md
-- docs/dev-infra-audit/tickets/DIA-260831-n9o0-book-rag-skill-references-at-rag-instead-of-rag.md
-- docs/dev-infra-audit/tickets/DIA-260927-hwl9-turbo-add-package-json-to-the-test-task-inputs-stale-green-fix.md
-- .opencode/CHANGELOG.yaml
+- '.opencode/plugins/delegation-observer.ts'
+- '.opencode/scripts/validate-skills.sh'
+- '.opencode/plugins/**tests**/parallel-handoff.test.mjs'
+- 'scripts/**tests**/validate-skills.bats'
+- '.opencode/plugins/**tests**/handoff-slot-identity.test.mjs'
+- '.opencode/plugins/**tests**/handoff-archive-collision.test.mjs'
+- '.opencode/learnings/external-patterns/2026-10-21-dia-261021-t8bh-config-gate-verdict.md'
+- '.opencode/learnings/index.md'
+- 'docs/dev-infra-audit/tickets/DIA-260827-5blh-medium-handoff-identity-permits-path-traversal.md'
+- 'docs/dev-infra-audit/tickets/DIA-260831-n9o0-book-rag-skill-references-at-rag-instead-of-rag.md'
+- 'docs/dev-infra-audit/tickets/DIA-260927-hwl9-turbo-add-package-json-to-the-test-task-inputs-stale-green-fix.md'
+- '.opencode/CHANGELOG.yaml'
   artifacts: []
   evidence:
-
-- .opencode/plugins/delegation-observer.ts#next_action-slot-landed-gate
-- .opencode/scripts/validate-skills.sh#body-command-reference
-- scripts/`__tests__`/validate-skills.bats#DIA-261021-t8bh
-- .opencode/plugins/`__tests__`/parallel-handoff.test.mjs#DIA-261021-t8bh
+- '.opencode/plugins/delegation-observer.ts#next_action-slot-landed-gate'
+- '.opencode/scripts/validate-skills.sh#body-command-reference'
+- 'scripts/**tests**/validate-skills.bats#DIA-261021-t8bh'
+- '.opencode/plugins/**tests**/parallel-handoff.test.mjs#DIA-261021-t8bh'
 
 ---
 

@@ -30,13 +30,12 @@ attempts: 0
 lease_expires_at: ""
 files_touched:
 
-- .opencode/scripts/validate-skills.sh
-- scripts/`__tests__`/validate-skills.bats
+- '.opencode/scripts/validate-skills.sh'
+- 'scripts/**tests**/validate-skills.bats'
   artifacts: []
   evidence:
-
-- .opencode/scripts/validate-skills.sh#L614
-- scripts/`__tests__`/validate-skills.bats#plain-command-cases
+- '.opencode/scripts/validate-skills.sh#L614'
+- 'scripts/**tests**/validate-skills.bats#plain-command-cases'
 
 ---
 

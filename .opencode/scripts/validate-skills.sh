@@ -66,6 +66,11 @@
 #         first segment of a multi-segment path is never warned), and bare
 #         at-sign tokens NOT immediately followed by "/" (a followed-by-slash
 #         at-sign token is a scoped package spec, never warned).
+#         Unterminated-fence diagnostic (DIA-261021-51pm item 5): reaching
+#         EOF while still inside a fence means the stripper dropped the
+#         remainder of that body, so exactly one line is emitted —
+#         warn: skill '<name>': unterminated code fence in <file>; remainder
+#         of body not scanned — warn-only, exit status unchanged.
 #
 # Exit codes: 0 all HARD pass (SOFT warnings may print), 1 HARD failure,
 # 2 infrastructure failure (python3 missing / skills root missing /
@@ -102,6 +107,10 @@ trap 'rm -rf "$workdir"' EXIT
 fm_tmp="$workdir/frontmatter.yaml"
 body_tmp="$workdir/body.txt"
 body_scan_tmp="$workdir/body-scan.txt"
+# Sentinel file: the fence stripper writes a "1" to it when EOF lands inside
+# an unterminated fence (DIA-261021-51pm item 5); bash turns that into exactly
+# one stderr warn line plus one warning count.
+unterm_tmp="$workdir/unterminated.fence"
 py_out="$workdir/py.out"
 py_err="$workdir/py.err"
 
@@ -650,7 +659,11 @@ for skill_dir in "$SKILLS_ROOT"/*/; do
     # three-or-more backticks OR three-or-more tildes, and tracked by
     # delimiter + run length: a 4-backtick fence stays open across an inner
     # 3-backtick line (only a same-delimiter run >= the opener closes it).
-    awk '
+    # DIA-261021-51pm item 5: EOF while a fence is still open means the
+    # remainder of this body was dropped by the stripper - drop the sentinel
+    # so bash can surface exactly one warn line (warn-only, exit unchanged).
+    rm -f "$unterm_tmp"
+    awk -v diag="$unterm_tmp" '
       {
         line = $0
         sub(/^[[:space:]]*/, "", line)
@@ -667,7 +680,15 @@ for skill_dir in "$SKILLS_ROOT"/*/; do
         if (in_fence) { next }
         print
       }
+      END {
+        if (in_fence) { print "1" > diag }
+      }
     ' "$body_tmp" > "$body_scan_tmp"
+    if [ -s "$unterm_tmp" ]; then
+      echo "warn: skill '$skill_name': unterminated code fence in $skill_file; remainder of body not scanned" >&2
+      file_warned=$((file_warned + 1))
+      rm -f "$unterm_tmp"
+    fi
     # HARD class: backticked spans whose FIRST whitespace-delimited token is
     # command-shaped - ^/[A-Za-z0-9_-]+$ (single segment, no dot, no second
     # slash, no ".."). Unknown => FAIL. Trailing arguments are not validated.
