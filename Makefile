@@ -27,7 +27,7 @@
 #   make session-analytics  canned analytics over native OpenCode telemetry (opencode stats/db; ARGS pass-through)
 #   make test-harness  C5 scenario replay (bats) + bun plugin tests (requires a running container engine)
 
-.PHONY: build up shell opencode preset presets dev stack install db-psql logs down clean check-pin-sync check-compose-config check-tools check-host-jq check-host-lsp gen-jsconfig test-shell test-python test-infra test-config test-omo test-interview test-skills eval-lite audit-python context7-docs jsonl-stats session-log-render jsonl-cross-check session-query session-analytics test-harness worktree-gc
+.PHONY: build up shell opencode preset presets dev stack install db-psql logs down clean check-pin-sync check-compose-config check-tools check-host-jq check-host-lsp gen-jsconfig test-shell test-python test-infra test-config test-typecheck test-omo test-interview test-skills eval-lite audit-python context7-docs jsonl-stats session-log-render jsonl-cross-check session-query session-analytics test-harness worktree-gc
 
 # Engine-aware compose stack (DIA-260826-766f + DIA-260912-y2uo): every bare
 # `docker compose` target below routes through scripts/container-engine.sh,
@@ -251,6 +251,10 @@ test-skills:
 # iff no HARD write-capable gaps remain -- WARN-only gaps (the ~440 unlisted
 # default-allow non-write-capable tools) do NOT break the gate (Decision 6
 # scoping; see scripts/audit-agent-tool-coverage.sh).
+test-typecheck:
+	@echo "==> typecheck .opencode/plugins"
+	@npx tsc --noEmit -p .opencode/plugins/tsconfig.json
+
 test-config: test-interview test-skills
 	@echo "NOTE: compose config validation is host-scoped (PHASE 5, T12.4). It runs host-side via make check-compose-config / verify-pre-push.sh, not here."
 	bash .opencode/scripts/validate-opencode-config.sh
