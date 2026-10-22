@@ -22,7 +22,7 @@ Before implementing, check project design constraints (see AGENTS.md Design Auth
 Before handing off to reviewer, confirm ALL:
 - [ ] `make test-*` (or relevant test suite) exit 0 — attach pass/fail count
 - [ ] Lint clean (exit 0) — attach summary
-- [ ] Typecheck clean (exit 0) — attach summary
+- [ ] Typecheck clean (exit 0) - `pnpm typecheck` for packages/apps, `make test-typecheck` for `.opencode/plugins` - attach summary
 - [ ] `git status` shows no unrelated changes — list only files you intended to change
 - [ ] Verification evidence summary attached (exit codes + key output lines)
 If any gate fails, fix before handoff. If you cannot fix, escalate to orchestrator with the failure evidence.

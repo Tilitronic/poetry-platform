@@ -131,7 +131,7 @@ The orchestrator does NOT run verification itself. Verification is performed by 
    orchestrator MUST confirm ALL of:
    (a) `make test-*` relevant suite exit 0 — evidence from coder;
    (b) lint clean exit 0 — evidence from coder;
-   (c) typecheck clean exit 0 — evidence from coder;
+   (c) typecheck clean exit 0 - `pnpm typecheck` (packages and apps) plus `make test-typecheck` (plugin surface, also folded into `make test-config`) - evidence from coder;
    (d) `openspec validate` (if applicable) exit 0 — evidence from validation lane;
    (e) `git status` shows no unrelated changes — evidence from coder;
    (f) review disposition complete (all findings accepted/rejected by developer) —
@@ -174,7 +174,7 @@ After all subagents return results:
 | Feature / implementation | `openspec-plan` (interview → spec) → `coder` (implement) | `reviewer` (two-axis) | existing test suites |
 | Dev-infra (scripts/Makefile, no Docker) | `coder` | `reviewer` | `make test-shell` |
 | Dev-infra (Docker / compose) | `coder` | `reviewer` | `make test-infra` |
-| OpenCode config | gate `ai-specialist` -> `coder` (implement) | `ai-auditor` (independent review, AGENTS.md section 2.5) | `make test-config` + restart-verify |
+| OpenCode config | gate `ai-specialist` -> `coder` (implement) | `ai-auditor` (independent review, AGENTS.md section 2.5) | `make test-config` (now includes the plugin typecheck) + restart-verify |
 | Knowledge-source curation (ai-assist-sources.yaml, Tier-1 cache) | `researcher` | `ai-specialist` (independent review) | YAML validity + cache-file check |
 | Feature code (packages/apps) | `coder` | `reviewer` | existing test suites |
 
