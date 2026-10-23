@@ -98,6 +98,7 @@ import {
   buildRoutingGateError,
   VERIFICATION_ONLY_PATTERN,
 } from "./lib/routing-gate.ts"
+import { evaluateEnvelopeDuplication } from "./lib/envelope-gate.ts"
 export { CAPABILITY_SECRET, mintCapabilityToken, verifyCapabilityToken }
 export { TICKET_ID_RE, TICKET_ID_FIND_RE, TICKET_ID_FILENAME_RE }
 
@@ -1830,10 +1831,12 @@ const delegationObserver: Plugin = async (ctx) => {
             : ""
         const reviewPrompt =
           typeof taskArgRecord.prompt === "string" ? taskArgRecord.prompt : ""
+        // Single pre-injection source for BOTH the marker scan and the
+        // authored-envelope gate below: the description+prompt text the
+        // dispatch author actually wrote (DIA-261023-d6b9 hoist).
+        const authoredDispatchText = `${reviewDescription}\n${reviewPrompt}`
         const fixedPoints = [
-          ...`${reviewDescription}\n${reviewPrompt}`.matchAll(
-            /FIXED_POINT:\s*(\S+)/gi
-          ),
+          ...authoredDispatchText.matchAll(/FIXED_POINT:\s*(\S+)/gi),
         ]
         const failEnvelope = (detail: string): never => {
           registry.appendRow({
@@ -1849,6 +1852,17 @@ const delegationObserver: Plugin = async (ctx) => {
               "Action: include exactly one 'FIXED_POINT: <base-ref>' marker " +
               "(branch, tag, or commit OID) in the reviewer dispatch so the " +
               "range can be pinned before review starts."
+          )
+        }
+        // DIA-261023-d6b9 Variant A: zero authored envelope blocks. Counted
+        // PRE-injection - the one legitimate block is appended to
+        // taskArgRecord.prompt below, after this gate, so any line-anchored
+        // fence opener in the authored text is hand-written. Count==1 is the
+        // defect here, so it throws; no advisory path.
+        const authoredEnvelope = evaluateEnvelopeDuplication(authoredDispatchText)
+        if (authoredEnvelope.violation) {
+          failEnvelope(
+            `authored reviewer dispatch contains ${authoredEnvelope.count} hand-written IMMUTABLE_GIT_ENVELOPE fence block(s). Action: the payload must carry zero envelope text - author only the single bare 'FIXED_POINT: <base-ref>' marker line; the hook supplies the envelope`
           )
         }
         if (fixedPoints.length === 0) {
