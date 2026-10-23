@@ -394,7 +394,9 @@ gates hard-throw on, and the orchestrator discipline that avoids the throws.
   description + prompt COMBINED (zero or two-or-more matches throw - so a
   marker written in both fields throws); the base ref must resolve in the
   lane worktree; HEAD must resolve; a merge-base must exist; the diff/log
-  capture must succeed and the resolved range must be non-empty. On success
+  capture must succeed and the resolved range must be non-empty; zero
+  column-0 IMMUTABLE_GIT_ENVELOPE fence openers (triple-backtick form) in
+  the authored description and prompt. On success
   the plugin injects the immutable git envelope into the child prompt; the
   reviewer never runs git - the envelope is its only evidence.
 - Config-work routing gate: a coder/coder-escalated dispatch naming a
@@ -412,10 +414,10 @@ gates hard-throw on, and the orchestrator discipline that avoids the throws.
   reuses cycle 1's base ref (no code checks this - discipline).
 - **Envelope provenance.** Your dispatch payload carries ZERO envelope text.
   The pre-spawn hook appends the envelope to the CHILD prompt after the marker
-  resolves; because it mutates the task args in place, the envelope can appear
-  inside your own prior dispatch when you re-read the transcript. That block
-  was not authored by you - author only the bare marker line and never
-  reproduce the envelope.
+  resolves; because the hook mutates the task args in place, the injected
+  block may be visible in your prior dispatch if the transcript renders
+  post-hook args; never copy or author such a block (a column-0 fence opener
+  hard-throws) - author only the bare marker line.
 - Verification / run-gates: the marker phrases above are a DECLARATION of
   read-only work; never stamp one on a lane that edits config (routing gate
   is fail-open by design - the diff still passes reviewer + ai-auditor).

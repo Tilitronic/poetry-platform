@@ -1927,9 +1927,11 @@ const delegationObserver: Plugin = async (ctx) => {
         }
         const envelope = [
           "```IMMUTABLE_GIT_ENVELOPE",
-          // Provenance line: the transcript shows this injected block inside the
-          // author's own prior dispatch (the hook mutates task args in place),
-          // so the fence carries an unmistakable "not authored text" marker.
+          // Provenance line: because the hook mutates task args in place, the
+          // injected block may be visible in the author's own prior dispatch if
+          // the transcript renders post-hook args (that render path is NOT
+          // verified - OpenCode core ships as a compiled binary), so the fence
+          // carries an unmistakable "not authored text" marker.
           // Constraints: ASCII, no backticks, and only the colon-free spellings
           // of the scan tokens (marker scan, WORKTREE extraction, ticket gate)
           // - this diff rides into future reviewer envelopes, so a colon-form

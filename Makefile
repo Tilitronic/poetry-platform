@@ -277,6 +277,9 @@ test-config: test-interview test-skills test-typecheck
 	# DIA-260827-uv: routing-order gate suite (imports the real production
 	# seam .opencode/plugins/lib/routing-gate.ts, not local copies).
 	node scripts/__tests__/routing-order-gate.test.mjs
+	# DIA-261023-d6b9: envelope-duplication gate suite (imports the real
+	# production seam .opencode/plugins/lib/envelope-gate.ts, not local copies).
+	node scripts/__tests__/envelope-gate.test.mjs
 	# DIA-260821-5r03: observer duplicate-registration dedupe gate. Enforces
 	# single-source-of-truth (observers load via auto-discovery of
 	# .opencode/plugins/; no explicit plugin-array entry for an auto-discovered
