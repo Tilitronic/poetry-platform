@@ -2692,3 +2692,43 @@ re-audit found:
   knowledge/ana-260929-17rl-resource-manager-origin-and-ownership/ (report),
   .opencode/learnings/external-patterns/2026-10-06-resource-manager-retirement-gate-findings.md,
   .opencode/learnings/external-patterns/2026-10-06-ft3z-rzty-permission-gate-findings.md
+
+## ADR: Budget-Exception flow superseded by deletion (DIA-261023-jdx3)
+
+### Status
+
+Superseded - 2026-10-23
+
+### Context
+
+The commit budget gate (scripts/check-budget-gate.sh, campaign DIA-260903-o7n0)
+shipped with a Budget-Exception trailer protocol: an approved exception ticket
+(reason/delta/paths/applicability fields, commit- or expiry-scoped) could rescue
+a budget-violating commit after scope and manifest backing resolved. A git
+history audit on 2026-10-23 found ZERO `Budget-Exception:` trailers ever used
+by a real commit: the protocol was dead weight carrying ~180 lines of gate
+code and a dozen battery tests.
+
+### Decision
+
+The exception flow is superseded by deletion (DIA-261023-jdx3): the trailer is
+no longer parsed, the Exception-* field checks and commit/expiry applicability
+rules are gone, and a Budget-Exception trailer is now just an unknown trailer
+(scope absent). Budget violations on backed refactor commits block outright;
+the only authorizations that remain are an approved OPEN-ticket campaign entry
+(backing for A/C) and the BUDGET_GATE_MODE=report hook-only kill-switch.
+
+### Rationale (irrecoverable context)
+
+- Never-used in production is the lane-retirement test this repo applies
+  elsewhere (cf. resource-manager resolved-by-deletion): designed
+  differentiators that never ran are liabilities, not safety nets.
+- Removing it also deleted the last non-pipefail-safe grep -q call sites,
+  letting the M3 pipefail-suspension pattern be applied uniformly at the two
+  retained "| grep -q" pipelines.
+
+### Metadata
+
+- Created: 2026-10-23
+- Related: DIA-261023-jdx3, DIA-260903-o7n0, scripts/check-budget-gate.sh,
+  openspec/changes/f-budget-gate-blocking/specs/commit-budget-gate/spec.md

@@ -8,6 +8,10 @@ pure-refactor/test-debloat work from feature work via an explicit scope trailer
 backed by a ticket-bound baseline manifest, so de-bloat gains cannot silently
 regress while normal feature work is never blocked by LOC ceilings.
 
+The `Budget-Exception` trailer flow described in earlier revisions was removed
+on 2026-10-23 under DIA-261023-jdx3 as never-used (zero `Budget-Exception:`
+trailers in git history).
+
 ## ADDED Requirements
 
 ### Requirement: Commit scope trailer contract
@@ -61,8 +65,8 @@ Seam: baseline manifest file consumed by the gate CLI.
 - **GIVEN** a staged change to the baseline manifest
 - **WHEN** the commit message lacks a well-formed pure-refactor
   `Budget-Scope` trailer with a matching ticket
-- **THEN** the gate blocks the commit, and a `Budget-Exception` trailer alone
-  never authorizes a manifest edit (no bootstrap bypass)
+- **THEN** the gate blocks the commit (no trailer-only bootstrap bypass; with
+  the exception flow removed, only a backed refactor-family trailer authorizes)
 
 ### Requirement: Production-LOC budgets are scope-gated
 
@@ -123,45 +127,6 @@ Seam: commit-msg hook (staged tree over scoped test paths).
 - **WHEN** the commit is gated
 - **THEN** the detector counts the file as a match and the commit is blocked
   (negative fixture (d))
-
-### Requirement: Exception flow requires scope, manifest, and an approval record
-
-A `Budget-Exception: DIA-NNN` trailer SHALL exempt a commit from blocking only
-after a well-formed `Budget-Scope` trailer and matching approved manifest
-backing have both resolved successfully; the exception never rescues a
-missing, malformed, or mismatched scope claim. Every exception - including for
-unconditional duplication blocks - SHALL require an explicit valid scope
-trailer; trailer-less commits SHALL have no exception path. The referenced
-ticket SHALL exist and SHALL contain a developer-approved exception record with
-reason, allowed delta, scoped paths, and one-commit or expiry applicability;
-existence and status alone SHALL NOT suffice. An accepted exception applies
-only per its recorded applicability (this commit, or until expiry).
-
-Seam: commit-msg hook (message file + ticket ledger + staged tree).
-
-#### Scenario: Approved exception passes
-
-- **GIVEN** a manifest-backed refactor commit that exceeds a budget, carrying
-  `Budget-Exception: DIA-NNN` whose ticket holds a complete approval record
-  covering the commit's paths and delta
-- **WHEN** the gate evaluates the commit
-- **THEN** the gate exits 0 with a report line noting the applied exception
-  (negative fixture (c))
-
-#### Scenario: Exception without scope trailer is blocked
-
-- **GIVEN** a commit violating the duplication budget and carrying
-  `Budget-Exception: DIA-NNN` with a valid ticket
-- **WHEN** the commit message has no `Budget-Scope` trailer
-- **THEN** the gate blocks the commit
-
-#### Scenario: Exception ticket without approval record is blocked
-
-- **GIVEN** a commit with valid scope and manifest backing and a
-  `Budget-Exception: DIA-NNN` trailer
-- **WHEN** the referenced ticket lacks any required approval-record field
-  (reason, allowed delta, scoped paths, or applicability)
-- **THEN** the gate blocks the commit
 
 ### Requirement: The gate measures staged content, not the working tree
 

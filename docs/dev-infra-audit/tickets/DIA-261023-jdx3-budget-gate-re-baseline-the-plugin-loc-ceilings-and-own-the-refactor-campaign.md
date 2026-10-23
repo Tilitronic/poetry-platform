@@ -78,7 +78,26 @@ never-used Budget-Exception flow.
 
 ## Fix
 
-> To be filled at fix time.
+Shrink landed 2026-10-23 (this ticket's follow-up scope):
+
+- `scripts/check-budget-gate.sh`: 735 lines (pre-shrink, including the
+  DIA-261022 pipefail fix) -> 139 lines. The ~55-60 line target was NOT met:
+  the nine preserved behaviors (both measurement sets, hook + range modes with
+  tree-first ticket resolution, the unconditional duplication detector with
+  its pipefail-suspension pattern, the manifest-edit guard, OPEN-ticket
+  backing, the pre-manifest range exemption, the report kill-switch, the
+  exit-code contract, the BUDGET_PLUGIN_ROOT fixture seam) plus the
+  home-qualt guard and the fail-closed jq schema check need 139 lines of
+  honest shell; nothing was dropped to chase the number.
+- DELETED: the entire Budget-Exception flow (try_exception, TRY_EXCEPTION_LINE,
+  the four Exception-\* field checks, commit/expiry applicability rules,
+  ~180 lines) - never used by a real commit (zero `Budget-Exception:` in git
+  history - also drops the dead ZERO_SHA constant.
+- Tests: `budget-gate.bats` (664 lines / 37 cases) +
+  `budget-gate-range-exemption.bats` (249 lines / 6 cases) -> single
+  `budget-gate.bats` of 161 lines / 10 cases (613 total lines folded away);
+  the 6 range cases fold in, both SIGPIPE regressions retained (hook-mode
+  > 64KB early match, range-mode in-tree ticket with opening match), all green.
 
 ## Re-verify
 

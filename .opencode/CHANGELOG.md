@@ -1307,3 +1307,9 @@
 - **Change:** re-baseline the plugin LOC ceilings to 7800/4300 and open the budget-owner campaign
 - **Files:** scripts/budget-baselines.json
 - **Verification:** manual
+
+## 2026-10-23 - DIA-261023-jdx3: dev-infra
+
+- **Change:** shrink check-budget-gate.sh 735 -> 139 lines by deleting the never-used Budget-Exception flow; fold the two budget-gate bats files into one 161-line 10-case battery (all preserved behaviors kept: both measurement sets, hook/range modes, duplication detector with pipefail suspension, manifest-edit guard, OPEN-ticket backing, pre-manifest exemption, report kill-switch, exit contract, plugin-root seam)
+- **Files:** scripts/check-budget-gate.sh - scripts/__tests__/budget-gate.bats - scripts/__tests__/budget-gate-range-exemption.bats - openspec/changes/f-budget-gate-blocking/specs/commit-budget-gate/spec.md - .opencode/memory/adr.md
+- **Verification:** manual
