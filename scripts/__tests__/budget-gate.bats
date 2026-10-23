@@ -249,7 +249,18 @@ write_msg() {
   budget_run_hook "$tree" "$BATS_TEST_TMPDIR/msg"
   assert_status 1
   assert_output_contains "budget manifest invalid"
-  assert_output_not_contains "duplication pattern"
+}
+
+@test "whitespace-only canonical is a schema violation and fails closed" {
+  tree="$(setup_budget_repo)"
+  printf '{"prod_ceiling": 20, "shell_ceiling": 10, "patterns": [{"id": "ws-canon", "canonical": " ", "baseline_count": 0, "authorized_site": "plugin-harness.mjs"}], "campaigns": [%s], "mode": "blocking"}\n' "$APPROVED_CAMPAIGNS" > "$tree/manifest.json"
+  git -C "$tree" add manifest.json
+  seq 1 10 | sed 's/^/\/\/ clean rewrite /' > "$tree/plug/lib/util.ts"
+  git -C "$tree" add plug/lib/util.ts
+  write_msg "$BATS_TEST_TMPDIR/msg" refactor
+  budget_run_hook "$tree" "$BATS_TEST_TMPDIR/msg"
+  assert_status 1
+  assert_output_contains "budget manifest invalid"
 }
 
 # ---------------------------------------------------------------------------

@@ -100,7 +100,7 @@ manifest_load() { # fail-closed on any defect; content always from the evaluated
     manifest_err="budget manifest not found in evaluated tree: $MANIFEST"
     return 1
   }
-  printf '%s' "$manifest_content" | jq -e '(.prod_ceiling|type=="number") and (.shell_ceiling|type=="number") and (.patterns|type=="array") and (.campaigns|type=="array") and ([.patterns[]|(.id|type=="string") and (.canonical|type=="string") and (.canonical|length>0) and (.baseline_count|type=="number") and (.authorized_site|type=="string")]|all) and ([.campaigns[]|(.ticket|type=="string") and (.ticket|length>0) and (.scope|type=="string") and (.status|type=="string")]|all)' >/dev/null 2>&1 || {
+  printf '%s' "$manifest_content" | jq -e '(.prod_ceiling|type=="number") and (.shell_ceiling|type=="number") and (.patterns|type=="array") and (.campaigns|type=="array") and ([.patterns[]|(.id|type=="string") and (.canonical|type=="string") and (.canonical|gsub("\\s";"")|length>0) and (.baseline_count|type=="number") and (.authorized_site|type=="string")]|all) and ([.campaigns[]|(.ticket|type=="string") and (.ticket|length>0) and (.scope|type=="string") and (.status|type=="string")]|all)' >/dev/null 2>&1 || {
     manifest_err="budget manifest invalid (not JSON or schema violation): $MANIFEST"
     return 1
   }
