@@ -65,7 +65,7 @@ dev-stack.sh (host bootstrap: .env from example → docker-info gate → compose
 - .opencode/agents/memory-manager.md: writes adr.md/lessons.md/repo.md/failures.md.
 - .opencode/commands/: opsx-propose/new/continue/update/sync/apply/archive/explore + rag + telemetry-inspect/telemetry-report.
 - .opencode/skills/ (15): book-rag, console-charting, debugging-workflow, frontend-design, git-diff, mermaid-diagramming, openspec-apply-change/archive-change/explore/propose/sync-specs/update-change, playwright-browser, teaching, writing-skills.
-- .opencode/scripts/: validate-opencode-config.sh (make test-config), query_rag.py, query_web.py, test_query_rag.py, test_query_web.py.
+- .opencode/scripts/: validate-opencode-config.sh (make test-config), query_rag.py, test_query_rag.py.
 - .opencode/CHANGELOG.md: 2026-08-02 context7 MCP fix, P1–P9/N1–N5 config audit, orchestrator-first default, cebula cleanup, interview-first enforcement.
 
 ## 9. Test Infrastructure

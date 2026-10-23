@@ -200,7 +200,7 @@ Run gates **in order** by DELEGATING verification-only lanes to coder
 4. `bash scripts/verify-python.sh`
 5. `make audit-python`
 6. `make test-infra` (needs Docker; ends with stack down)
-7. container pytest (`.opencode/scripts`)
+7. container pytest (`.opencode/scripts/test_query_rag.py`)
 
 Any failure → create/update ticket in `docs/dev-infra-audit/tickets/` (via coder
 docs lane) → fix via delegation → re-verify. Repeat until the full cycle is CLEAN.
