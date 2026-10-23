@@ -380,8 +380,11 @@
 | DIA-261022-m6l8 | delegation-observer: two app.log promises near the handoff path remain unawaited | opencode-config | Low | CLOSED | [DIA-261022-m6l8-delegation-observer-two-app-log-promises-near-the-handoff-path-remain-unawaited.md](DIA-261022-m6l8-delegation-observer-two-app-log-promises-near-the-handoff-path-remain-unawaited.md) |
 | DIA-261022-mho5 | handoff apoptosis dirty-check: whitespace-only status output is now classified DIRTY (delegation-observer:840) | opencode-config | Medium | CLOSED | [DIA-261022-mho5-handoff-apoptosis-dirty-check-whitespace-only-status-output-is-now-classified-dirty-delegation-observer-840.md](DIA-261022-mho5-handoff-apoptosis-dirty-check-whitespace-only-status-output-is-now-classified-dirty-delegation-observer-840.md) |
 | DIA-261022-zjci | handoff writer error channel: coreAtomicWrite throws on an invalid session id while every other failure returns ok:false | opencode-config | Medium | OPEN | [DIA-261022-zjci-handoff-writer-error-channel-coreatomicwrite-throws-on-an-invalid-session-id-while-every-other-failure-returns-ok-false.md](DIA-261022-zjci-handoff-writer-error-channel-coreatomicwrite-throws-on-an-invalid-session-id-while-every-other-failure-returns-ok-false.md) |
+| DIA-261023-d3rw | WORKTREE marker collision: the injected envelope worktree field breaks after-hook worktree tracking | opencode-config | Medium | OPEN | [DIA-261023-d3rw-worktree-marker-collision-the-injected-envelope-worktree-field-breaks-after-hook-worktree-tracking.md](DIA-261023-d3rw-worktree-marker-collision-the-injected-envelope-worktree-field-breaks-after-hook-worktree-tracking.md) |
 | DIA-261023-d6b9 | dispatch guard: reject a task payload that carries more than one envelope block | opencode-config | Major | OPEN | [DIA-261023-d6b9-dispatch-guard-reject-a-task-payload-that-carries-more-than-one-envelope-block.md](DIA-261023-d6b9-dispatch-guard-reject-a-task-payload-that-carries-more-than-one-envelope-block.md) |
+| DIA-261023-fuvx | validate-plugin-structure Gate A does not enumerate newer lib helpers (envelope-gate, routing-gate) | scripts | Minor | OPEN | [DIA-261023-fuvx-validate-plugin-structure-gate-a-does-not-enumerate-newer-lib-helpers-envelope-gate-routing-gate.md](DIA-261023-fuvx-validate-plugin-structure-gate-a-does-not-enumerate-newer-lib-helpers-envelope-gate-routing-gate.md) |
 | DIA-261023-jdx3 | budget gate: re-baseline the plugin LOC ceilings and own the refactor campaign | scripts | Medium | OPEN | [DIA-261023-jdx3-budget-gate-re-baseline-the-plugin-loc-ceilings-and-own-the-refactor-campaign.md](DIA-261023-jdx3-budget-gate-re-baseline-the-plugin-loc-ceilings-and-own-the-refactor-campaign.md) |
+| DIA-261023-kkjr | deliver the reviewer git envelope post-spawn instead of mutating the task args | opencode-config | Medium | OPEN | [DIA-261023-kkjr-deliver-the-reviewer-git-envelope-post-spawn-instead-of-mutating-the-task-args.md](DIA-261023-kkjr-deliver-the-reviewer-git-envelope-post-spawn-instead-of-mutating-the-task-args.md) |
 
 ## Status summary
 
@@ -390,15 +393,15 @@
 | Blocker  | 9     |
 | Critical | 16    |
 | Major    | 88    |
-| Medium   | 205   |
-| Minor    | 1     |
+| Medium   | 207   |
+| Minor    | 2     |
 | Low      | 39    |
 | Info     | 2     |
 | High     | 20    |
 
 | Status      | Count |
 | ----------- | ----- |
-| OPEN        | 99    |
+| OPEN        | 102   |
 | DONE        | 15    |
 | VALIDATE    | 0     |
 | E2E         | 0     |
