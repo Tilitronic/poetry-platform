@@ -28,7 +28,7 @@ model: ""
 parent_session_id: ""
 attempts: 0
 lease_expires_at: "" # ISO-8601; set on DISPATCHED, cleared on COMPLETE
-files_touched: [".opencode/plugins/tsconfig.json", "Makefile", "package.json", "pnpm-lock.yaml", ".opencode/plugins/lib/registry.ts", ".opencode/plugins/__tests__/registry.test.mjs"]
+files_touched: [".opencode/plugins/tsconfig.json", "Makefile", "package.json", "pnpm-lock.yaml", ".opencode/plugins/lib/registry.ts", ".opencode/plugins/__tests__/registry.test.mjs", "scripts/__tests__/test-config-wiring.bats", "scripts/__tests__/typecheck-target.bats", ".opencode/oh-my-opencode-slim/orchestrator_append.md", ".opencode/oh-my-opencode-slim/coder.md", "AGENTS.md", "openspec/config.yaml", ".opencode/skills/openspec-apply-change/SKILL.md", "docs/dev-infra-audit/tickets/DIA-260928-gpcc-tooling-no-typecheck-target-covers-opencode-plugins-and-missing-types-node-makes-the-repo-convention-per-file-tsc-fail-on-untouched-plugin-files.md"]
 artifacts: []
 evidence: ["make test-typecheck exit 0", "plugin suite 570 pass / 1 skip / 0 fail", "make test-config exit 0", "make test-shell exit 0", "first make test-config after the registry change saw one transient failure in the skills validator, attributed to a concurrent session writing ticket files; green on clean re-run", "follow-up round: make test-typecheck exit 0 over a 305-file program; plugin suite 570 pass / 1 skip / 0 fail; make test-config exit 0 with the typecheck step visible in the run; make test-shell exit 0 with 746 ok; probes - dry-run grep exit 0, empty input exit 1, retired substring technique matched a commented-out line with exit 0"]
 
@@ -96,12 +96,15 @@ of the file.
 Follow-up round after `041206a3`: `ded71b2d` enabled `isolatedModules`
 on the plugin typecheck project; `7aabc18b` replaced the exclude with the
 scratch tree; `a24b8e27` pinned tsc to `npx --no-install`; `e5b504c7`
-moved the target out of the test-config doc block; `3558d82e` added the
-first bats case for the wiring; `048a1238` made `test-typecheck` a
+moved the target out of the test-config doc block; `3558d82e` added a
+dedicated suite at `scripts/__tests__/typecheck-target.bats`; `048a1238`
+made `test-typecheck` a
 `test-config` prerequisite; `1ac5316d`/`b51c4296`/`0e83d1e8`/`b8c2f925`
 carried the gate text across the instruction surfaces; `280539aa`
 rewrote the guard to assert behaviour (the dry-run) and to parse the
-tsconfig, and removed the duplicate suite; `d2b23570` respelled the
+tsconfig, retired `scripts/__tests__/typecheck-target.bats`, and merged
+its coverage into `scripts/__tests__/test-config-wiring.bats`;
+`d2b23570` respelled the
 scratch exclusion as an explicit recursive glob; `86a9e265` added
 `erasableSyntaxOnly`. Measured: `make test-typecheck` exit 0 with a
 305-file program; plugin suite 570 pass / 1 skip / 0 fail; `make
@@ -184,7 +187,8 @@ The final wiring step IS done: `048a1238` made `test-typecheck` a
 prerequisite of `test-config`, so `make -n test-config` schedules the
 typecheck as part of the documented gate chain, and the wiring is now
 pinned by behaviour in `scripts/__tests__/test-config-wiring.bats`, which
-asserts the dry-run output rather than a text substring.
+asserts a substring of make's expanded recipe graph (the `make -n` dry-run
+output), not a substring of the Makefile's source text.
 
 Deferred (still true): the single line in
 `docs/dev-infra-audit/NEXT-RUN.md` duplicating gate item (c) remains

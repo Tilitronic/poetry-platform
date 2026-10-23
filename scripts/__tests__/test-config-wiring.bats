@@ -48,11 +48,12 @@ load test-helper
 
 @test "typecheck wiring: scoped project pins isolatedModules and excludes .scratch (DIA-260928-gpcc)" {
   # The two established values of the plugin tsconfig, asserted by PARSING the
-  # JSON rather than by text matching: the invariant is "isolatedModules is on"
-  # and "the scratch tree is excluded", so a future `.scratch` ->
+  # JSON rather than by text matching: the invariant is "the two syntax-model
+  # flags (isolatedModules and erasableSyntaxOnly) are on" and "the scratch
+  # tree is excluded", so a future `.scratch` ->
   # `**/.scratch` spelling change keeps the test green.
   cd "$REPO_ROOT" # the snippet below uses a relative path; pin the CWD
-  run python3 -c "import json,sys; c=json.load(open('.opencode/plugins/tsconfig.json')); assert c['compilerOptions']['isolatedModules'] is True; ex=c['exclude']; assert any(e.endswith('.scratch') for e in ex)"
+  run python3 -c "import json,sys; c=json.load(open('.opencode/plugins/tsconfig.json')); co=c['compilerOptions']; assert co['isolatedModules'] is True; assert co['erasableSyntaxOnly'] is True; ex=c['exclude']; assert any(e.endswith('.scratch') for e in ex)"
   [ "$status" -eq 0 ]
   # Real invariant kept from the retired suite: test-typecheck stays listed in
   # .PHONY (same idiom: pin the single .PHONY line, then fixed-string grep).
