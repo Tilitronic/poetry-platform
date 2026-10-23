@@ -17,7 +17,7 @@ discovered: 2026-09-28
 source: inventory
 date: 2026-09-28
 created: 2026-09-28
-updated: 2026-10-22
+updated: 2026-10-23
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -30,7 +30,7 @@ attempts: 0
 lease_expires_at: "" # ISO-8601; set on DISPATCHED, cleared on COMPLETE
 files_touched: [".opencode/plugins/tsconfig.json", "Makefile", "package.json", "pnpm-lock.yaml", ".opencode/plugins/lib/registry.ts", ".opencode/plugins/__tests__/registry.test.mjs"]
 artifacts: []
-evidence: ["make test-typecheck exit 0", "plugin suite 570 pass / 1 skip / 0 fail", "make test-config exit 0", "make test-shell exit 0", "first make test-config after the registry change saw one transient failure in the skills validator, attributed to a concurrent session writing ticket files; green on clean re-run"]
+evidence: ["make test-typecheck exit 0", "plugin suite 570 pass / 1 skip / 0 fail", "make test-config exit 0", "make test-shell exit 0", "first make test-config after the registry change saw one transient failure in the skills validator, attributed to a concurrent session writing ticket files; green on clean re-run", "follow-up round: make test-typecheck exit 0 over a 305-file program; plugin suite 570 pass / 1 skip / 0 fail; make test-config exit 0 with the typecheck step visible in the run; make test-shell exit 0 with 746 ok; probes - dry-run grep exit 0, empty input exit 1, retired substring technique matched a commented-out line with exit 0"]
 
 ---
 
@@ -76,6 +76,39 @@ test and moved test setup inside the guarded region.
 Note for future readers: the union split does NOT enforce anything at the
 write site, because both members share the same discriminant, so the
 regression tests are the real guard.
+
+Instruction surfaces updated after the make target existed: `AGENTS.md`
+(post-flight list, handoff evidence sentence, section 2.5 validate step,
+host-gate table caveat), `.opencode/oh-my-opencode-slim/orchestrator_append.md`
+(pre-handoff gate item c and the change-routing test-requirement cell),
+`.opencode/oh-my-opencode-slim/coder.md` (pre-handoff checklist and intro),
+and `openspec/config.yaml` with its mirrored
+`openspec-apply-change/SKILL.md` - commits `1ac5316d`, `b51c4296`,
+`0e83d1e8`, `b8c2f925`.
+
+Formatter disclosure: the `openspec/config.yaml` diff in `0e83d1e8`
+changed 46 lines of which only one carried content - the rest was
+prettier quote normalisation run by the pre-commit hook, which the commit
+body does not say; history is not to be rewritten, so it is recorded
+here, and the hook would re-apply that normalisation on any future touch
+of the file.
+
+Follow-up round after `041206a3`: `ded71b2d` enabled `isolatedModules`
+on the plugin typecheck project; `7aabc18b` replaced the exclude with the
+scratch tree; `a24b8e27` pinned tsc to `npx --no-install`; `e5b504c7`
+moved the target out of the test-config doc block; `3558d82e` added the
+first bats case for the wiring; `048a1238` made `test-typecheck` a
+`test-config` prerequisite; `1ac5316d`/`b51c4296`/`0e83d1e8`/`b8c2f925`
+carried the gate text across the instruction surfaces; `280539aa`
+rewrote the guard to assert behaviour (the dry-run) and to parse the
+tsconfig, and removed the duplicate suite; `d2b23570` respelled the
+scratch exclusion as an explicit recursive glob; `86a9e265` added
+`erasableSyntaxOnly`. Measured: `make test-typecheck` exit 0 with a
+305-file program; plugin suite 570 pass / 1 skip / 0 fail; `make
+test-config` exit 0 with the typecheck step visible in the run; `make
+test-shell` exit 0 with 746 ok; sensitivity probes - the dry-run grep
+exits 0, an empty input exits 1, and the retired substring technique
+matched a commented-out line with exit 0.
 
 ## The gap
 
@@ -131,6 +164,9 @@ regression since that date, not a defect of any one change.
       3 remaining errors were fixed, and no known-noise list was
       introduced - fixing the baseline rather than carving it out was the
       chosen policy, since the ticket asked for that decision.
+- [x] `make test-config` runs the plugin typecheck as a prerequisite, and
+      that wiring is pinned by a test. (`048a1238` wires it; the assertion
+      lives in `scripts/__tests__/test-config-wiring.bats` as of `280539aa`.)
 
 ## Relations
 
@@ -144,11 +180,15 @@ step.
 
 ## Remaining work
 
-The final wiring step was NOT done: `test-config` does not yet depend on
-`test-typecheck`, so a green typecheck is still an ad-hoc run rather than
-part of the documented gate chain. The one line in
-`docs/dev-infra-audit/NEXT-RUN.md` recording this is deferred until the
-concurrent session commits that file.
+The final wiring step IS done: `048a1238` made `test-typecheck` a
+prerequisite of `test-config`, so `make -n test-config` schedules the
+typecheck as part of the documented gate chain, and the wiring is now
+pinned by behaviour in `scripts/__tests__/test-config-wiring.bats`, which
+asserts the dry-run output rather than a text substring.
+
+Deferred (still true): the single line in
+`docs/dev-infra-audit/NEXT-RUN.md` duplicating gate item (c) remains
+unapplied because that file was owned by a concurrent session at the time.
 
 ## Follow-ups (deferred, not blocking)
 
