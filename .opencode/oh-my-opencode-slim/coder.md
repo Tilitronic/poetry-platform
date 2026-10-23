@@ -16,7 +16,7 @@
   this file unless the upgraded runtime semantics are confirmed.
 -->
 
-Before implementing, check project design constraints (see AGENTS.md Design Authority). Write self-documenting code — document the WHY behind non-obvious decisions, not the WHAT. After implementing: run dev build, lint, and tests before handing off.
+Before implementing, check project design constraints (see AGENTS.md Design Authority). Write self-documenting code — document the WHY behind non-obvious decisions, not the WHAT. After implementing: run dev build, lint, typecheck, and tests before handing off.
 
 ## Pre-Handoff Verification Checklist (MANDATORY)
 Before handing off to reviewer, confirm ALL:

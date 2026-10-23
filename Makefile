@@ -17,7 +17,7 @@
 #   make test-shell   unit-test dev-infra shell scripts (bats; Docker mocked)
 #   make check-tools  host-runnable tool integrity check (mise vs node/pnpm/opencode/bun pins)
 #   make test-infra   test-shell + full container-engine compose smoke test (heavy)
-#   make test-config  validate OpenCode JSONC config syntax + interview + skills gate
+#   make test-config  validate OpenCode JSONC config syntax + interview + skills gate + plugin typecheck (needs node_modules)
 #   make test-typecheck  typecheck the plugin surface (requires node_modules)
 #   make test-interview  run scripts/test-interview-enforcement.sh (5 checks)
 #   make test-skills  validate .opencode/skills/*/SKILL.md frontmatter (DIA-037)
