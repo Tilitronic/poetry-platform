@@ -1298,24 +1298,6 @@
 
 ## 2026-10-22 - DIA-261022-6vcz: opencode-config
 
-- **Change:** mimo-balanced preset model-ID refresh: ai-auditor moved to opencode-go/longcat-2.0 + opencode-go/minimax-m3 (Meituan family, BRANCH B - longcat-2.5-preview-free listed but not dispatchable); ai-specialist moved to opencode-go/mimo-v2.6-pro (Xiaomi family) with deepseek-v4.1-flash fallback, inert variant keys removed on both lanes; reviewer variant high retained on opencode-go/deepseek-v4.1-flash (ladder low|high|max); non-existent opencode-go/deepseek-v4-flash purged from all 7 fallback slots (models.dev 404 + absent from live Go catalog), replaced by opencode-go/mimo-v2.5 / opencode-go/mimo-v2.6-flash
+- **Change:** mimo-balanced preset model-ID refresh (final state; 4 round entries collapsed into this one per DIA-261022-5n2v): architector and ai-auditor both on opencode-go/gemini-4-argon-contributor - architector at variant high (MAX_RUNG, highest member of the declared low|medium|high ladder) with fallback opencode-go/mimo-v2.6-flash and its reasoningEffort/thinking options untouched, ai-auditor at variant medium (MEDIUM_RUNG) - under the single developer-cleared 2026-10-22 non-ZDR waiver (DIA-260828-qtsi Muse precedent) recorded as registry privacy_notes plus a two-lane header-invariant exception; ai-specialist on opencode-go/mimo-v2.6-pro (Xiaomi family) with opencode-go/deepseek-v4.1-flash fallback and inert variant keys removed (that id exposes no ladder); reviewer variant high retained on opencode-go/deepseek-v4.1-flash (valid low|high|max rung); coder-escalated variant corrected medium -> high for the same ladder; non-existent opencode-go/deepseek-v4-flash purged from all 7 fallback slots (models.dev 404 + absent from live Go catalog, replaced by opencode-go/mimo-v2.5 / opencode-go/mimo-v2.6-flash) and the dead grok-4.7 registry fallback replaced with opencode-go/deepseek-v4.1-flash; registry gemini-4-argon-contributor lane [architector, ai-auditor], grok-4.7 retained with empty lane list; learnings file carries F1-F8 including the variant-ladder rule and the Argon-vs-Grok cost analysis (cache-read economics, ~3x post-promo headroom, ZDR trade, throughput estimates)
 - **Files:** .opencode/oh-my-opencode-slim.jsonc - knowledge/model-registry.yaml - .opencode/learnings/external-patterns/2026-10-22-opencode-go-model-id-drift.md
-- **Verification:** manual
-
-## 2026-10-22 - DIA-261022-6vcz: opencode-config
-
-- **Change:** Round 2 follow-ups on mimo-balanced: ai-auditor primary -> opencode-go/gemini-4-argon-contributor (probe BRANCH A, dispatch PASS) with NOT-ZDR waiver developer-cleared 2026-10-22 under the DIA-260828-qtsi Muse precedent, recorded as registry privacy_notes and header-invariant exception; coder-escalated variant medium -> high (invalid rung corrected for the deepseek-v4.1-flash low|high|max ladder); registry grok-4.7 fallback dead id replaced with opencode-go/deepseek-v4.1-flash (intended at variant max)
-- **Files:** .opencode/oh-my-opencode-slim.jsonc - knowledge/model-registry.yaml - .opencode/learnings/external-patterns/2026-10-22-opencode-go-model-id-drift.md
-- **Verification:** manual
-
-## 2026-10-22 - DIA-261022-6vcz: opencode-config
-
-- **Change:** Round 3 follow-ups on mimo-balanced: architector primary moved opencode-go/grok-4.7 -> opencode-go/gemini-4-argon-contributor at variant high (MAX_RUNG, the highest member of that model's declared low|medium|high ladder read from 'opencode models --verbose'; no 'max'/'xhigh' rung exists on this id), fallback opencode-go/mimo-v2.6-flash and the reasoningEffort/thinking options block untouched; ai-auditor on the same model at variant medium (MEDIUM_RUNG, ladder rung verified as declared); header ZDR-only invariant exception widened from one lane to two - every architector and ai-auditor dispatch is non-ZDR traffic under the single developer-cleared 2026-10-22 waiver (DIA-261022-6vcz, DIA-260828-qtsi precedent); registry gemini-4-argon-contributor lane [architector, ai-auditor] + privacy_notes widened, grok-4.7 lane [] (zero lane users, entry retained); learnings F8 variant-ladder rule added
-- **Files:** .opencode/oh-my-opencode-slim.jsonc - knowledge/model-registry.yaml - .opencode/learnings/external-patterns/2026-10-22-opencode-go-model-id-drift.md
-- **Verification:** manual
-
-## 2026-10-22 - DIA-261022-6vcz: opencode-config
-
-- **Change:** documentation-only: records the Argon-vs-Grok cost analysis (cache-read economics, 98% cache profile, 5.5x request headroom under promo, ~3x after), the ZDR trade, and both throughput estimates for grok-4.7
-- **Files:** knowledge/model-registry.yaml - .opencode/learnings/external-patterns/2026-10-22-opencode-go-model-id-drift.md
 - **Verification:** manual

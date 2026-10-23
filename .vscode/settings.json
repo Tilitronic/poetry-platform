@@ -38,6 +38,9 @@
   "python.analysis.typeCheckingMode": "basic",
   "rust-analyzer.check.command": "clippy",
   "typescript.tsdk": "node_modules/typescript/lib",
+  // Governing record for this block: DIA-261022-5fbg (repo-controlled script
+  // execution via chat.tools.terminal.autoApprove). Do not add entries without
+  // updating that ticket.
   "chat.tools.terminal.autoApprove": {
     "/^node scripts/__tests__/batch-d-infra\\.test\\.mjs$/": {
       "approve": true,

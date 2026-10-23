@@ -49,12 +49,13 @@
 
       "git reset --hard *": "deny",
       "git reset --hard": "deny",
-      "git clean -fdx *": "deny",
-      "git clean -fdx": "deny",
-      "git clean -fd *": "deny",
-      "git clean -fd": "deny",
-      "git clean -f *": "deny",
-      "git clean -f": "deny",
+      // DIA-260928-tcdd (via rzty): verb-level deny - covers every flag
+      // spelling (-xdf, -df, -d -f, ...) that escaped the old -f-anchored
+      // patterns; only the harmless dry-run forms are allowed (last match
+      // wins, same as every paired rule here).
+      "git clean *": "deny",
+      "git clean -n*": "allow",
+      "git clean --dry-run*": "allow",
       "git checkout -- .": "deny",
       "git restore .": "deny",
       "git restore --staged .": "deny",
@@ -396,10 +397,11 @@
           // only for its targeted patterns; all other forms still inherit the global asks.
           "git reset --hard *": "deny",
           "git reset --hard": "deny",
-          "git clean -f*": "deny",
-          "git clean -fdx": "deny",
-          "git clean -fd": "deny",
-          "git clean -f": "deny",
+          // Verb-level git clean deny + dry-run allows; lockstep with the
+          // base map (DIA-260928-tcdd via rzty - see comment there).
+          "git clean *": "deny",
+          "git clean -n*": "allow",
+          "git clean --dry-run*": "allow",
           // DIA-260825-nts7 re-audit residual batch (developer-approved):
           // O1 - long-form branch delete, exact equivalent of denied -D
           // (same trailing-space gotcha: bare form paired with starred form).
@@ -423,13 +425,11 @@
           "rm -rf /workspace/.scratch/*": "allow",
           "rm -rf .scratch/*": "allow",
           "rmdir /workspace/.scratch/*": "allow",
-          "rmdir .scratch/*": "allow",
-          // DIA-260926-5vin: two-or-more-argument forms fall back to ask. The anchored
-          // allows above match on the raw command string, and `*` spans spaces, so a
-          // second argument would otherwise ride along on the allow. Last match wins.
-          "rm -rf * *": "ask",
-          "rm * *": "ask",
-          "rmdir * *": "ask"
+          "rmdir .scratch/*": "allow"
+          // DIA-260928-rzty (applied via DIA-261022-5n2v): the two-or-more-
+          // argument ask guards that used to live here were FALSIFIED - they
+          // never took effect, so they only looked protective. Removed; the
+          // single-target .scratch allows above remain (they work).
         }
       }
     },
@@ -492,10 +492,11 @@
           "git branch -D": "deny",
           "git reset --hard *": "deny",
           "git reset --hard": "deny",
-          "git clean -f*": "deny",
-          "git clean -fdx": "deny",
-          "git clean -fd": "deny",
-          "git clean -f": "deny",
+          // Verb-level git clean deny + dry-run allows; lockstep with the
+          // base map (DIA-260928-tcdd via rzty - see comment there).
+          "git clean *": "deny",
+          "git clean -n*": "allow",
+          "git clean --dry-run*": "allow",
           // DIA-260825-nts7 re-audit residual batch (O1+O3): identical to the
           // base coder additions - see comment there for WHY.
           "git branch --delete --force *": "deny",
@@ -513,13 +514,11 @@
           "rm -rf /workspace/.scratch/*": "allow",
           "rm -rf .scratch/*": "allow",
           "rmdir /workspace/.scratch/*": "allow",
-          "rmdir .scratch/*": "allow",
-          // DIA-260926-5vin: two-or-more-argument forms fall back to ask. The anchored
-          // allows above match on the raw command string, and `*` spans spaces, so a
-          // second argument would otherwise ride along on the allow. Last match wins.
-          "rm -rf * *": "ask",
-          "rm * *": "ask",
-          "rmdir * *": "ask"
+          "rmdir .scratch/*": "allow"
+          // DIA-260928-rzty (applied via DIA-261022-5n2v): the two-or-more-
+          // argument ask guards that used to live here were FALSIFIED - they
+          // never took effect, so they only looked protective. Removed; the
+          // single-target .scratch allows above remain (they work).
         },
         "task": "deny"
       },
@@ -595,7 +594,8 @@
           "*": "deny",
           ".opencode/memory/*": "allow",
           ".opencode/memory-shelf.yaml*": "allow",
-          ".opencode/learnings/external-patterns/*": "allow"
+          ".opencode/learnings/external-patterns/*": "allow",
+          ".opencode/learnings/index.md*": "allow"
         },
         "task": "deny"
       }

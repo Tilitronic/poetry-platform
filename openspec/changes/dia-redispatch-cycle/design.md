@@ -33,7 +33,7 @@ A cycle is **in crisis** when any one of the following triggers fires. Triggers 
 | **C1**  | ≥3 consecutive failures on the **same task** (same T-row in tasks.md)                                                                                                                              | End of each failed attempt; counter resets on success             |
 | **C2**  | ≥2 architector re-plans within the same cycle (design.md rewritten)                                                                                                                                | Each `openspec update-change` that rewrites design.md             |
 | **C3**  | ≥5 tool calls with **no observable state change** (no file written, no test status changed, no git diff)                                                                                           | After each tool call; state diff is empty for 5 consecutive calls |
-| **C4**  | Context overflow or truncation detected (model reports token limit hit, output truncated, or context-window rerun triggered at ≥50%)                                                               | Model/runtime signal                                              |
+| **C4**  | Context overflow or truncation detected (model reports token limit hit, output truncated, or context-window rerun past the NEXT-RUN.md threshold)                                                  | Model/runtime signal                                              |
 | **C5**  | Prognosis block (HANDOFF.md "Prognosis for next cycle" section) **unresolved for 1 full cycle** — the successor session did not address a ticket marked as blocking in the predecessor's prognosis | Start of each cycle's batch-approval review                       |
 
 ### Trigger semantics
@@ -41,7 +41,7 @@ A cycle is **in crisis** when any one of the following triggers fires. Triggers 
 - **C1 (same-task failure loop):** The counter is per-task, not per-cycle. If T2 fails 3 times across cycles 1 and 2, C1 fires at the third failure. The counter resets only when T2 succeeds, not when the cycle changes.
 - **C2 (re-plan churn):** A re-plan is counted when design.md is substantively rewritten (not minor edits like typo fixes). The threshold is 2 within a single cycle — one re-plan is a course correction, two is a signal the approach is unstable.
 - **C3 (tool-call stagnation):** "No observable state change" means the git working tree is unchanged AND no test file's pass/fail status changed AND no new file was created. Tool calls that only read (search, read, glob) do not count unless 5 consecutive reads produce no subsequent write.
-- **C4 (context overflow):** Includes both hard overflow (model refuses to continue) and soft overflow (output truncated, context-window rerun triggered). The ≥50% context rerun threshold is the soft signal — if a cycle reruns ≥50% of its context, C4 is flagged but not yet fired; C4 fires on actual truncation or hard overflow.
+- **C4 (context overflow):** Includes both hard overflow (model refuses to continue) and soft overflow (output truncated, context-window rerun triggered). The context-rerun threshold is owned by docs/dev-infra-audit/NEXT-RUN.md (single source) — a rerun past it flags C4 without firing; C4 fires on actual truncation or hard overflow.
 - **C5 (prognosis debt):** If cycle N's HANDOFF.md contains a `verification_request` or `open_ticket` marked `[BLOCKING]`, and cycle N+1's batch-approval review does not address it (either resolves or explicitly defers with rationale), C5 fires at the start of cycle N+2.
 
 ### Crisis response (not in scope of rule text, but normative)
@@ -264,10 +264,10 @@ Format: `c-YYYYMMDD-HHMMss` UTC
 
 ### Budget accounting
 
-- The budget increments **only on full audit pass** — a cycle that ends due to ≥50% context rerun does NOT increment the budget counter unless a full audit pass was completed.
+- The budget increments **only on full audit pass** — a cycle that ends due to a context rerun past the NEXT-RUN.md threshold does NOT increment the budget counter unless a full audit pass was completed.
 - "Full audit pass" means the cycle produced a complete HANDOFF.md with all five subsections populated, and the successor session acknowledged receipt via the batch-approval protocol.
-- Context reruns at ≥50% are tracked separately (in messages.md evidence) but do not consume budget unless the cycle terminates.
-- **CLARIFICATION (2026-08-03, handoff-protocol modernization):** the ≥50% context threshold is now a **SAFETY-NET**; the primary SELF-RERUN trigger is **30%** plus campaign milestones (see NEXT-RUN.md §2). Native compaction (`compaction.auto`, opencode.jsonc) handles raw context pressure. Budget accounting is unchanged — only full audit passes increment.
+- Context reruns at the NEXT-RUN.md threshold are tracked separately (in messages.md evidence) but do not consume budget unless the cycle terminates.
+- **CLARIFICATION (2026-08-03, handoff-protocol modernization):** context-rerun thresholds are owned by docs/dev-infra-audit/NEXT-RUN.md §2 as the single source (stale inline numbers removed per DIA-260926-40bb). Native compaction (`compaction.auto`, opencode.jsonc) handles raw context pressure. Budget accounting is unchanged — only full audit passes increment.
 
 ### Exit states
 
@@ -474,7 +474,7 @@ All seams are **new** — this protocol did not exist before this change. Justif
   - **C1 drill:** Simulate T2 failing 3 times across cycles 1–2. Verify C1 fires at third failure.
   - **C2 drill:** Simulate design.md rewritten twice in cycle 1. Verify C2 fires at second rewrite.
   - **C3 drill:** Simulate 5 tool calls with no file writes, no test changes, no git diff. Verify C3 fires.
-  - **C4 drill:** Simulate context truncation event. Verify C4 fires. Simulate ≥50% context rerun without truncation. Verify C4 does NOT fire (only flagged, not fired).
+  - **C4 drill:** Simulate context truncation event. Verify C4 fires. Simulate a context rerun at the NEXT-RUN.md threshold without truncation. Verify C4 does NOT fire (only flagged, not fired).
   - **C5 drill:** Simulate cycle N HANDOFF.md with `[BLOCKING]` ticket. Simulate cycle N+1 not addressing it. Verify C5 fires at start of cycle N+2.
 - **Acceptance:** Each drill produces the expected trigger (or non-trigger for C4 soft case).
 
@@ -492,7 +492,7 @@ All seams are **new** — this protocol did not exist before this change. Justif
   - max-cycles=3 (default): 3 cycles used, not clean → exhaustion.
   - max-cycles=10, override clamping: set max-cycles=15 → clamped to 10 with warning.
   - max-cycles=1: rejected with error message.
-  - ≥50% context rerun without termination: budget NOT incremented.
+  - Context rerun at the NEXT-RUN.md threshold without termination: budget NOT incremented.
 - **Acceptance:** Each edge case produces the expected behavior.
 
 ### VP-5: Independence guarantee

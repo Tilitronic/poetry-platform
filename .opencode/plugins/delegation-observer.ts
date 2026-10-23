@@ -1433,76 +1433,6 @@ const delegationObserver: Plugin = async (ctx) => {
   // Load bio-state at startup
   loadRoutingState()
 
-  // ============================================================
-  // RESOURCE PRESSURE ADAPTATION (Phase 3c)
-  // Modulates dispatch based on context usage — the "allosteric
-  // modulation" pattern: the same signal (dispatch) produces
-  // different responses based on environmental pressure.
-  // ============================================================
-
-  const CONTEXT_PRESSURE_THRESHOLDS = {
-    NORMAL: 0.5,     // <50%: normal behavior (no modification)
-    STRESSED: 0.5,   // 50-80%: append YAGNI constraints to prompt
-    CRITICAL: 0.8,   // >80%: block non-critical dispatches
-    BLOCKING: 0.95,  // >95%: block all dispatches
-  }
-
-  const YAGNI_CONSTRAINT =
-    "\n\n[YAGNI MODE: Write only the minimum code needed. No abstractions, no speculation, no boilerplate. One function, one file, one purpose.]"
-
-  /**
-   * Read current context pressure (0-1 fraction). PLACEHOLDER — returns 0
-   * (normal) by default. The real implementation will be wired when OpenCode
-   * exposes a context_usage API callable from plugin hooks. Currently the
-   * context_usage tool uses ctx.client.session.messages() + provider.list()
-   * but that async path is too expensive for the synchronous before-hook;
-   * the placeholder keeps the module idempotent and testable.
-   */
-  function getContextPressure(): number {
-    // Future: read from ctx.client.session.messages() or a lightweight
-    // signal. For now, the plugin does not have a synchronous context
-    // usage API, so we return 0 (NORMAL behavior).
-    return 0
-  }
-
-  /**
-   * Apply resource pressure modulation to a dispatch. Four tiers:
-   *   - NORMAL (<50%): no modification
-   *   - STRESSED (50-80%): append YAGNI constraints to prompt
-   *   - CRITICAL (>80%): block non-critical dispatches
-   *   - BLOCKING (>95%): block all dispatches
-   *
-   * Throws on critical/blocking pressure for non-critical dispatches so the
-   * caller can propagate the block. Modifies dispatch.prompt in-place for the
-   * stressed tier.
-   */
-  function applyResourcePressure(
-    dispatch: { subagentType: string; prompt?: string; description?: string }
-  ): void {
-    const pressure = getContextPressure()
-
-    if (pressure > CONTEXT_PRESSURE_THRESHOLDS.BLOCKING) {
-      throw new Error(
-        `Resource pressure blocking (${(pressure * 100).toFixed(0)}%). All dispatches blocked.`
-      )
-    }
-
-    if (pressure > CONTEXT_PRESSURE_THRESHOLDS.CRITICAL) {
-      const text = `${dispatch.description || ""}${dispatch.prompt || ""}`
-      const isCritical =
-        /handoff|apoptosis|circuit-breaker|ticket-gate/i.test(text)
-      if (!isCritical) {
-        throw new Error(
-          `Resource pressure critical (${(pressure * 100).toFixed(0)}%). Non-critical dispatch blocked.`
-        )
-      }
-    }
-
-    if (pressure > CONTEXT_PRESSURE_THRESHOLDS.STRESSED) {
-      dispatch.prompt = (dispatch.prompt || "") + YAGNI_CONSTRAINT
-    }
-  }
-
   /**
    * Check whether `filePath` (absolute or relative) is under a protected
    * directory or equals a protected file. Resolves against the workspace root.
@@ -2073,14 +2003,6 @@ const delegationObserver: Plugin = async (ctx) => {
           subagentType: taskSubagent ?? "coder",
           prompt: bioPrompt,
           description: bioDescription,
-        }
-        applyResourcePressure(dispatch)
-        // Propagate YAGNI constraint back to actual args (FINDING 2 fix):
-        // applyResourcePressure mutates dispatch.prompt, but dispatch is a
-        // local copy — the real task payload lives in output.args.prompt.
-        // Write back so the constraint reaches the child session.
-        if (dispatch.prompt !== bioPrompt) {
-          taskArgRecord.prompt = dispatch.prompt
         }
         adaptiveDispatch(dispatch, input.callID)
       }
@@ -2959,18 +2881,22 @@ const delegationObserver: Plugin = async (ctx) => {
           mkdirSync(join(ctx.directory, ".opencode/session"), {
             recursive: true,
           })
+          // DIA-260928-f3c4: carry the knowledge/<res-id>/ artifact id on the
+          // flag payload so scripts/pending-gate-clear can verify the conspect
+          // artifacts (it already reads .res_id). Extracted from the result
+          // body; if absent, omit the key - the reader keeps refusing rather
+          // than guessing (its never-guess rule is unchanged).
+          const payload: Record<string, string> = {
+            session_id: taskId ?? "",
+            agent: childSessionAgent.get(taskId ?? "") ?? "researcher",
+            detected_at: new Date().toISOString(),
+            flag: "PERSISTENCE_RECOMMENDED: true",
+          }
+          const resIdMatch = flagText.match(/knowledge\/([A-Za-z0-9._-]+)\//)
+          if (resIdMatch) payload.res_id = resIdMatch[1]
           writeFileSync(
             join(ctx.directory, ".opencode/session/conspect-pending.json"),
-            JSON.stringify(
-              {
-                session_id: taskId ?? "",
-                agent: childSessionAgent.get(taskId ?? "") ?? "researcher",
-                detected_at: new Date().toISOString(),
-                flag: "PERSISTENCE_RECOMMENDED: true",
-              },
-              null,
-              2
-            )
+            JSON.stringify(payload, null, 2)
           )
           // TUI-safe logging (res007 / external-patterns/2026-08-09-tui-plugin-
           // stdout-corruption.md): raw console.* writes from plugins interleave
