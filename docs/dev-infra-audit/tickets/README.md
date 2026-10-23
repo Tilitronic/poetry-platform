@@ -380,6 +380,7 @@
 | DIA-261022-m6l8 | delegation-observer: two app.log promises near the handoff path remain unawaited | opencode-config | Low | CLOSED | [DIA-261022-m6l8-delegation-observer-two-app-log-promises-near-the-handoff-path-remain-unawaited.md](DIA-261022-m6l8-delegation-observer-two-app-log-promises-near-the-handoff-path-remain-unawaited.md) |
 | DIA-261022-mho5 | handoff apoptosis dirty-check: whitespace-only status output is now classified DIRTY (delegation-observer:840) | opencode-config | Medium | CLOSED | [DIA-261022-mho5-handoff-apoptosis-dirty-check-whitespace-only-status-output-is-now-classified-dirty-delegation-observer-840.md](DIA-261022-mho5-handoff-apoptosis-dirty-check-whitespace-only-status-output-is-now-classified-dirty-delegation-observer-840.md) |
 | DIA-261022-zjci | handoff writer error channel: coreAtomicWrite throws on an invalid session id while every other failure returns ok:false | opencode-config | Medium | OPEN | [DIA-261022-zjci-handoff-writer-error-channel-coreatomicwrite-throws-on-an-invalid-session-id-while-every-other-failure-returns-ok-false.md](DIA-261022-zjci-handoff-writer-error-channel-coreatomicwrite-throws-on-an-invalid-session-id-while-every-other-failure-returns-ok-false.md) |
+| DIA-261023-d6b9 | dispatch guard: reject a task payload that carries more than one envelope block | opencode-config | Major | OPEN | [DIA-261023-d6b9-dispatch-guard-reject-a-task-payload-that-carries-more-than-one-envelope-block.md](DIA-261023-d6b9-dispatch-guard-reject-a-task-payload-that-carries-more-than-one-envelope-block.md) |
 
 ## Status summary
 
@@ -387,7 +388,7 @@
 | -------- | ----- |
 | Blocker  | 9     |
 | Critical | 16    |
-| Major    | 87    |
+| Major    | 88    |
 | Medium   | 204   |
 | Minor    | 1     |
 | Low      | 39    |
@@ -396,7 +397,7 @@
 
 | Status      | Count |
 | ----------- | ----- |
-| OPEN        | 97    |
+| OPEN        | 98    |
 | DONE        | 15    |
 | VALIDATE    | 0     |
 | E2E         | 0     |
