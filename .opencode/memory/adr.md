@@ -2697,7 +2697,7 @@ re-audit found:
 
 ### Status
 
-Superseded - 2026-10-23
+Accepted (supersedes the exception-flow section of the budget-gate design) - 2026-10-23
 
 ### Context
 
@@ -2717,6 +2717,13 @@ rules are gone, and a Budget-Exception trailer is now just an unknown trailer
 (scope absent). Budget violations on backed refactor commits block outright;
 the only authorizations that remain are an approved OPEN-ticket campaign entry
 (backing for A/C) and the BUDGET_GATE_MODE=report hook-only kill-switch.
+
+This ADR supersedes the design.md sections "Exception ticket record
+(machine-checkable)" and hook-mode resolution step 6 ("If any budget fails,
+check `Budget-Exception: DIA-NNN`..."), the proposal.md exception-flow bullet,
+and the design decision "Exception never rescues scope/manifest state" - the
+decision that an approved exception ticket could rescue a budget violation
+after scope and manifest resolved.
 
 ### Rationale (irrecoverable context)
 

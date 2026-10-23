@@ -87,8 +87,13 @@ Shrink landed 2026-10-23 (this ticket's follow-up scope):
   its pipefail-suspension pattern, the manifest-edit guard, OPEN-ticket
   backing, the pre-manifest range exemption, the report kill-switch, the
   exit-code contract, the BUDGET_PLUGIN_ROOT fixture seam) plus the
-  home-qualt guard and the fail-closed jq schema check need 139 lines of
-  honest shell; nothing was dropped to chase the number.
+  home-qualt guard and the fail-closed jq schema check need ~121 lines of
+  functional shell; the 139 included ~18 lines of compression indirection
+  (semicolon-packed statements, 1-2 letter names) which the review-fix pass
+  spelled out. Corrected floor statement (review finding S6): ~55 is
+  unreachable without dropping the report kill-switch, the jq schema check,
+  the pre-manifest skip, tree-first ticket reads, or the double measurement
+  modes - that is the honest floor.
 - DELETED: the entire Budget-Exception flow (try_exception, TRY_EXCEPTION_LINE,
   the four Exception-\* field checks, commit/expiry applicability rules,
   ~180 lines) - never used by a real commit (zero `Budget-Exception:` in git
@@ -98,6 +103,43 @@ Shrink landed 2026-10-23 (this ticket's follow-up scope):
   `budget-gate.bats` of 161 lines / 10 cases (613 total lines folded away);
   the 6 range cases fold in, both SIGPIPE regressions retained (hook-mode
   > 64KB early match, range-mode in-tree ticket with opening match), all green.
+
+Review-fix pass (same session, developer-accepted findings, 2026-10-23):
+
+- P1 (critical): the shrink had dropped the empty-pattern-set guard - a
+  manifest with `"patterns": []` made the B loop run once with an empty
+  canonical, and `grep -qF -- ""` matched every scoped .mjs, blanket-blocking
+  every evaluated commit. Guarded (`[ -n "$normalized_canonical" ] || continue`)
+  with a fixture proving `patterns: []` + clean backed refactor exits 0;
+  RED-without-guard / GREEN-with-guard both captured.
+- P2: the openspec package (proposal.md, design.md, tasks.md 3.1) and the
+  `.husky/commit-msg` comment still promised the deleted exception flow ->
+  struck/annotated everywhere, `## REMOVED Requirements` block with Reason +
+  Migration added to the delta spec per the schema.
+- P3/P5: restored the design-mandated fail-closed coverage (feature-growth
+  pass, malformed/missing manifest, staged-vs-loosened-disk manifest,
+  unresolvable BUDGET_PLUGIN_ROOT, CLOSED in-tree ticket) plus both range
+  boundaries (present-but-malformed manifest fails closed with no
+  pre-gate-history line; outside-ledger warn asserted).
+- P4: `manifest_load` moved inside `eval_commit` after the fast path (the
+  fast path now genuinely never reads the manifest); range mode consumes an
+  explicit return-2 skip signal carrying the mandatory pre-gate-history warn.
+- S1: cryptic names spelled out (`manifest_touched`, `shell_lines`,
+  `is_observer`, `match_status`, `scope_raw`, `pattern_canonical`,
+  `pattern_baseline`, `pattern_authorized_site`, `pattern_id`,
+  `plugin_root_ok`, `manifest_rel`, `tickets_rel`, ...); worst packed lines
+  split. Script 139 -> 292 lines (renames + splits + P4 plumbing; the "~+20"
+  estimate undercounted the unpacking the finding itself mandated).
+- Battery rewritten one-action-per-line (S4): 161 -> 354 lines, 10 -> 18
+  cases, all green. S9: home-qualt guard copy dropped from
+  `setup_budget_repo`, kept only in the `_in_repo` fixtures.
+- S5/S6/S7: CHANGELOG entry wording corrected (no blanket "all preserved
+  behaviors kept" claim) + fix entry carries verification commands with exit
+  codes; ticket floor statement corrected (~121 functional lines; ~55
+  unreachable without dropping the kill-switch, jq schema check, pre-manifest
+  skip, tree-first ticket reads, or double measurement); ADR status set to
+  Accepted (supersedes the exception-flow section of the budget-gate design)
+  and names the superseded decision.
 
 ## Re-verify
 

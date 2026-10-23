@@ -181,3 +181,18 @@ Seam: commit-msg hook (environment).
 - **WHEN** the hook runs
 - **THEN** the commit is allowed, and the output contains both the violation
   report and an explicit kill-switch warning line
+
+## REMOVED Requirements
+
+### Requirement: Exception flow requires scope, manifest, and an approval record
+
+**Reason**: Never used by a real commit (zero `Budget-Exception:` trailers in
+git history); removed 2026-10-23 under DIA-261023-jdx3 along with the
+`try_exception` implementation, the four `Exception-*` approval-record field
+checks, and the commit/expiry applicability rules.
+
+**Migration**: No replacement - budget violations on backed refactor commits
+block outright. The surviving authorizations are an approved OPEN-ticket
+campaign entry (backing for A/C) and the `BUDGET_GATE_MODE=report` hook-only
+kill-switch. A `Budget-Exception:` trailer is now an unknown trailer (scope
+absent); manifest edits require a backed refactor-family trailer as before.

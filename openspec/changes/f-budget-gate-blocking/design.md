@@ -45,8 +45,9 @@ Hook-mode resolution order (`specs/commit-budget-gate/spec.md` behaviors):
 
 1. Fast path: staged file list (`git diff --cached --name-only -z`) contains
    no scoped path -> exit 0 without reading the manifest.
-2. Parse `Budget-Scope:` / `Budget-Exception:` trailers from the message
-   file (strict ASCII `Key: value` lines; last occurrence wins).
+2. Parse the `Budget-Scope:` trailer from the message file (strict ASCII
+   `Key: value` lines; last occurrence wins). (The `Budget-Exception:`
+   trailer was removed under DIA-261023-jdx3 - never used by a real commit.)
 3. Load `scripts/budget-baselines.json` with jq. Load failure (missing,
    invalid JSON, schema violation) blocks any commit that reached step 2
    with scope and any commit touching scoped paths (fail closed); the fast
@@ -57,10 +58,9 @@ Hook-mode resolution order (`specs/commit-budget-gate/spec.md` behaviors):
 5. Measure A/C from the staged tree via per-file `git show :<path> | wc -l`
    over the scoped production set; measure B by normalize-then-match over
    the staged tree for scoped test paths.
-6. If any budget fails, check `Budget-Exception: DIA-NNN` only after scope
-   and manifest have resolved (no rescue); validate the ticket record;
-   valid applicability turns block into exit 0 with an exception report
-   line.
+6. REMOVED under DIA-261023-jdx3 (never used by a real commit): the
+   `Budget-Exception: DIA-NNN` rescue check after scope and manifest
+   resolved. Budget violations block outright once backing is established.
 7. `BUDGET_GATE_MODE=report` (hook mode only): never blocks; prints every
    measurement, every violation, plus the explicit kill-switch warning.
 
@@ -116,22 +116,14 @@ No regex, no similarity scoring anywhere in this path.
 # call-shape match. Trigger: an observed real bypass, not a hypothetical one.
 ```
 
-### Exception ticket record (machine-checkable)
+### Exception ticket record (REMOVED under DIA-261023-jdx3)
 
-`Budget-Exception: DIA-NNN` resolves the ticket by filename prefix
-(`docs/dev-infra-audit/tickets/DIA-<id>*.md`, both sequential and datetime ID
-formats) and requires frontmatter `status: OPEN` plus all four literal lines
-in the ticket body (exact ASCII prefixes):
-
-```text
-Exception-Reason: <free text, one line>
-Exception-Delta: <budget letter and LOC, e.g. "A +120">
-Exception-Paths: <space-separated scoped paths>
-Exception-Applicability: commit <sha-prefix> | expiry <YYYY-MM-DD>
-```
-
-Applicability `commit` covers the single commit; `expiry` covers commits until
-the date (inclusive). Any missing line = malformed record = block.
+The `Budget-Exception` approval-record format described in earlier revisions
+(`Exception-Reason` / `Exception-Delta` / `Exception-Paths` /
+`Exception-Applicability` lines, commit- or expiry-scoped applicability) was
+removed on 2026-10-23 under DIA-261023-jdx3: zero `Budget-Exception:` trailers
+ever appeared in git history. See the REMOVED Requirement in
+`specs/commit-budget-gate/spec.md`.
 
 ## Sequence: commit-msg evaluation
 
@@ -144,17 +136,12 @@ sequenceDiagram
     participant T as ticket ledger
     H->>G: message file path ($1)
     G->>G: list staged paths; no scoped path? exit 0
-    G->>G: parse Budget-Scope / Budget-Exception trailers
+    G->>G: parse Budget-Scope trailer
     G->>M: load + schema-check (jq); fail = block
     G->>M: refactor/test-debloat? require campaign entry; none = block
     G->>S: wc -l production + shell sets (A/C); normalize+match test set (B)
     alt budget fail
-        G->>T: exception trailer + scope + manifest resolved? validate record
-        alt record complete and applicable
-            G-->>H: exit 0 (exception noted)
-        else
-            G-->>H: exit 1 (FAIL lines to stderr)
-        end
+        G-->>H: exit 1 (FAIL lines to stderr)
     else budgets pass
         G-->>H: exit 0 (ok line to stdout)
     end
@@ -175,9 +162,10 @@ sequenceDiagram
 - **Unconditional B / scope-gated A+C** (Q2 Reading 2): copying a scaffold
   into new test files is scope-independent damage; production-LOC growth is
   the feature-blocking risk the approval constrains.
-- **Exception never rescues scope/manifest state** (Q3): one bypass-shaped
-  trailer covering two failure classes would silently redefine what the
-  ticket approved.
+- **Exception never rescues scope/manifest state** (Q3) - the exception flow
+  itself was removed under DIA-261023-jdx3 (never used); its surviving core
+  invariant is that only a backed refactor-family trailer authorizes a
+  manifest edit, and no other trailer can bootstrap one.
 - **Range mode always blocking, switch-ignoring** (Q6c): `git commit
 --no-verify` skips hooks entirely; the pushed-range re-check closes that
   hole at push time.
@@ -202,8 +190,9 @@ implementing lane confirms with the developer before writing tests):
 3. **Manifest seam** (`scripts/budget-baselines.json` + `BUDGET_MANIFEST`
    override): seeded ceilings/counts, malformed-manifest fail-closed.
 4. **Ticket-ledger seam** (`docs/dev-infra-audit/tickets/` +
-   `TICKETS_DIR` override): ticket resolution, approval-record field checks,
-   applicability handling.
+   `TICKETS_DIR` override): ticket resolution and OPEN-status backing
+   (approval-record field checks were removed with the exception flow under
+   DIA-261023-jdx3).
 
 ## Test strategy
 
@@ -215,11 +204,15 @@ plugin-root override so fixtures stay small. Coverage maps 1:1 to
 `specs/commit-budget-gate/spec.md` scenarios:
 
 - Mandated battery: (a) manifest-backed refactor + LOC growth -> block;
-  (b) feature growth -> exit 0 + report; (c) complete exception record ->
-  exit 0 + exception line; (d) re-indented/quote-flipped/line-split duplicate
-  -> counted + blocked.
-- Fail-closed edges: trailer without backing; malformed manifest;
-  exception without scope; exception record missing any field; expiry past.
+  (b) feature growth -> exit 0 + report; (c) REMOVED with the exception flow
+  under DIA-261023-jdx3; (d) re-indented/quote-flipped/line-split duplicate
+  -> counted + blocked; plus an empty-pattern-set manifest -> clean backed
+  refactor passes.
+- Fail-closed edges: trailer without backing; malformed manifest (staged
+  index, and present-but-malformed in a range commit with no pre-gate
+  exemption); missing manifest; unresolvable BUDGET_PLUGIN_ROOT; CLOSED
+  in-tree ticket fails a range refactor; loosened unstaged disk manifest
+  does not weaken the staged ceilings.
 - Boundary edges: counts exactly at baseline pass; untouched-path commit
   exits 0 without manifest reads; unstaged drift ignored.
 - Kill-switch: `BUDGET_GATE_MODE=report` allows + warns; `--range` mode
@@ -239,8 +232,9 @@ Rollout (dev-infra rule: spec, implement, test gate, review, persist):
    `worktrees.sh` copy-list addition. The wired hook is the only behavior
    change; everything before it is inert.
 2. Seed the manifest from the post-D4 measured tree; manifest init commit
-   carries the normal refactor trailer + DIA-260903-o7n0 reference (never
-   Budget-Exception as bootstrap).
+   carries the normal refactor trailer + DIA-260903-o7n0 reference (a
+   Budget-Exception bootstrap never existed in practice; the exception flow
+   was removed under DIA-261023-jdx3).
 3. `make test-shell` + `make test-config` green, reviewer pass, then push
    (the pre-push range line defends `--no-verify` from day one).
 
@@ -268,9 +262,8 @@ Rollback:
   safe toward NOT blocking features; B still catches test-side copying;
   dishonest scope is a review matter, same as the ticket-gate today.
 - [Risk] Strict approval-record syntax rejects a substantively approved but
-  misformatted ticket. -> Deliberate: exact ASCII prefixes are cheaper to
-  fix than an ambiguous approval is to audit; failure message names the
-  missing line.
+  misformatted ticket. -> REMOVED with the exception flow under
+  DIA-261023-jdx3 (never used); no approval-record syntax remains.
 - [Risk] Hook does not run where hooks are absent (fresh worktrees before
   this change, `--no-verify`). -> worktrees.sh copy-list addition +
   pre-push range mode as the backstop.

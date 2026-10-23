@@ -14,13 +14,18 @@ blocking edge of each task is stated inline.
 - [ ] 2.1 Measure production and shell LOC from staged content against the manifest ceilings (blocks: 1.2). Done when: from a developer's view, a manifest-backed refactor commit that grows production LOC is refused with a FAIL line naming the ceiling (fixture a), while a feature commit with the same growth is allowed with a printed report (fixture b), and unstaged working-tree drift changes no verdict.
 - [ ] 2.2 Detect newly-introduced scaffold duplication by normalize-then-fixed-string matching (blocks: 1.1). Done when: a third copy of a known scaffold is refused even on a feature commit, a re-indented quote-flipped line-split copy is still counted and refused (fixture d), counts exactly at baseline pass, and the authorized helper site never counts.
 
-## 3. Exception flow
+## 3. Exception flow (REMOVED under DIA-261023-jdx3)
 
-- [ ] 3.1 Validate exception trailers against approval records after scope and manifest resolve (blocks: 1.2). Done when: a complete approval record (reason, delta, paths, applicability) lets its commit through with an exception report line (fixture c), while an exception without a scope trailer, with any record field missing, or stacked on broken scope/manifest state is refused (no rescue); manifest edits demand the normal refactor trailer and never accept an exception as bootstrap.
+- [x] 3.1 REMOVED 2026-10-23 with the flow itself: exception-trailer
+      validation against approval records was never used by a real commit (zero
+      `Budget-Exception:` trailers in git history). The surviving clause of the
+      original task - manifest edits demand the normal backed refactor trailer
+      and never accept a bootstrap bypass - lives on as the manifest-edit guard
+      (task 1.2 / spec "Manifest edit without proper scope trailer is blocked").
 
 ## 4. Hook wiring and defense-in-depth
 
-- [ ] 4.1 Enforce blocking in the commit-msg hook, leaving pre-commit and test-config untouched (blocks: 2.1, 2.2, 3.1). Done when: real commits driven through the hook are refused or allowed exactly per the spec verdicts, and the hook follows the sibling-hook sourcing convention.
+- [ ] 4.1 Enforce blocking in the commit-msg hook, leaving pre-commit and test-config untouched (blocks: 2.1, 2.2; 3.1 removed under DIA-261023-jdx3). Done when: real commits driven through the hook are refused or allowed exactly per the spec verdicts, and the hook follows the sibling-hook sourcing convention.
 - [ ] 4.2 Re-check pushed ranges in always-blocking mode that ignores the kill-switch (blocks: 4.1). Done when: a budget-violating commit created with hook bypass is refused at push time even with report-only mode set locally.
 - [ ] 4.3 Propagate the commit-msg hook into fresh worktrees (blocks: 4.1; .sdd/dev-infra governs hook distribution). Done when: a newly created worktree contains the hook so the gate cannot be silently lost.
 

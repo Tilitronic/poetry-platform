@@ -29,12 +29,11 @@ test-shell` prerequisite).
   stripped, quote variants folded) over approved, semantically narrow patterns
   from the manifest; violation = matched-file count strictly above the
   per-pattern baseline (newly-introduced only).
-- Exception flow: `Budget-Exception: DIA-NNN` trailer, valid only after a
-  well-formed `Budget-Scope` trailer and a matching approved manifest have both
-  resolved (no rescue); the exception ticket must carry a developer-approved
-  record (reason, allowed delta, scoped paths, one-commit or expiry
-  applicability). Manifest init/edit commits require the normal refactor trailer
-  plus matching ticket, never Budget-Exception as bootstrap bypass.
+- REMOVED under DIA-261023-jdx3 (2026-10-23, never used by a real commit):
+  the `Budget-Exception: DIA-NNN` trailer flow (approval-record fields,
+  one-commit/expiry applicability, no-bootstrap-bypass clause). Manifest
+  init/edit commits require the normal backed refactor trailer - that
+  requirement survives on its own.
 - Measurement target: staged content via `git show :<path>` over the bounded
   scoped file set - the gate measures exactly what becomes history.
 - Defense-in-depth: the gate gains a `--range <revs>` mode wired into the
@@ -55,8 +54,8 @@ test-shell` prerequisite).
 
 - `commit-budget-gate`: Commit-time enforcement of the F binding budget -
   scope-trailer contract, baseline-manifest authority, fail-closed rules,
-  duplication detection semantics, exception flow, kill-switch and
-  defense-in-depth range checking.
+  duplication detection semantics, kill-switch and defense-in-depth range
+  checking (the exception flow was removed under DIA-261023-jdx3).
 
 ### Modified Capabilities
 
@@ -73,8 +72,9 @@ untouched by this change)
   the push chain.
 - `scripts/worktrees.sh`: hook-copy list gains the commit-msg hook (fresh
   worktrees otherwise silently bypass commit gates - the DIA-094 precedent).
-- `docs/dev-infra-audit/tickets/`: exception tickets must carry the structured
-  approval record; no ledger schema change (free-text section convention).
+- `docs/dev-infra-audit/tickets/`: (REMOVED under DIA-261023-jdx3 - no
+  exception tickets exist) no ledger schema change (free-text section
+  convention).
 - Not affected: plugin production/test code itself, `make test-config` gates,
   the delegation-observer runtime.
 
@@ -99,8 +99,9 @@ exits 0 and an injected violation exits non-zero - the R-B acceptance the
 ticket already requires of the budget gate. Modules tested: trailer parsing and
 scope resolution, manifest backing (fail-closed on missing/malformed/mismatch),
 staged measurement of A/C, normalize-then-fixed-string detection of B
-(including the reformat-evasion fixture), exception validation (approval-record
-fields, scope-required rule), kill-switch warning behavior, and `--range` mode.
+(including the reformat-evasion fixture and the empty-pattern-set guard),
+kill-switch warning behavior, and `--range` mode. (Exception validation was
+removed with the flow under DIA-261023-jdx3.)
 Prior art: `scripts/__tests__/post-push.bats` (hermetic fixture repo + hook
 copy pattern), `scripts/__tests__/check-orchestrator-prompt-drift.bats`
 (Makefile/hook wiring assertions), `scripts/validate-grilling-gate.sh` /

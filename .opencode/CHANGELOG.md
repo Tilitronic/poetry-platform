@@ -1310,6 +1310,12 @@
 
 ## 2026-10-23 - DIA-261023-jdx3: dev-infra
 
-- **Change:** shrink check-budget-gate.sh 735 -> 139 lines by deleting the never-used Budget-Exception flow; fold the two budget-gate bats files into one 161-line 10-case battery (all preserved behaviors kept: both measurement sets, hook/range modes, duplication detector with pipefail suspension, manifest-edit guard, OPEN-ticket backing, pre-manifest exemption, report kill-switch, exit contract, plugin-root seam)
+- **Change:** shrink check-budget-gate.sh 735 -> 139 lines by deleting the never-used Budget-Exception flow; fold the two budget-gate bats files into one 161-line 10-case battery (measurement sets, hook/range modes, duplication detector with pipefail suspension, manifest-edit guard, OPEN-ticket backing, pre-manifest exemption, report kill-switch, exit contract, plugin-root seam kept; the same-session review pass corrected this entry: the shrink had dropped the empty-pattern-set guard and the fail-closed test coverage, both restored in the follow-up commit)
 - **Files:** scripts/check-budget-gate.sh - scripts/__tests__/budget-gate.bats - scripts/__tests__/budget-gate-range-exemption.bats - openspec/changes/f-budget-gate-blocking/specs/commit-budget-gate/spec.md - .opencode/memory/adr.md
 - **Verification:** manual
+
+## 2026-10-23 - DIA-261023-jdx3: dev-infra
+
+- **Change:** review fixes for the shrunk budget gate: guard the empty pattern set (P1: patterns [] no longer blanket-blocks), restore design-mandated fail-closed coverage + two range boundaries (P3/P5), move manifest_load after the fast path with an explicit range skip signal (P4), spell out variable names and split packed lines (S1), stop the openspec package + commit-msg comment promising the deleted exception flow (P2), correct ADR status/ticket floor statement/CHANGELOG wording (S5-S7)
+- **Files:** scripts/check-budget-gate.sh - scripts/__tests__/budget-gate.bats - openspec/changes/f-budget-gate-blocking/specs/commit-budget-gate/spec.md - openspec/changes/f-budget-gate-blocking/proposal.md - openspec/changes/f-budget-gate-blocking/design.md - openspec/changes/f-budget-gate-blocking/tasks.md - .husky/commit-msg - .opencode/memory/adr.md
+- **Verification:** bats-wrapper --filter budget-gate: 18 ok / 0 not-ok, exit 0; P1 RED-without-guard (exit 1, empty pattern matched every scoped .mjs) / GREEN-with-guard (exit 0) proven; make test-shell exit 0; make test-config exit 0
