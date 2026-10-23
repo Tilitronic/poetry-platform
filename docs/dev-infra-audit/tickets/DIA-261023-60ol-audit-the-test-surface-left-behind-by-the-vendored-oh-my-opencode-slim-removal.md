@@ -123,8 +123,71 @@ Acceptance criteria (a single audit artifact must satisfy all):
 
 ## Fix
 
-> To be filled at fix time.
+Cleanup commit 7048c576 "DIA-261023-60ol: prune orphaned worktree residue,
+fix stale prose test counts" landed on branch omo-slim-changes.
+
+Worktree residue pruned: 15 orphaned `.worktrees/` directories removed,
+489,408,432 bytes freed, 0 directories kept, 0 uncertain. Each directory
+passed a per-directory safety gate before deletion: a `git worktree list`
+membership check (dir not registered as a live worktree), a not-in-HEAD file
+classification (no file inside the dir existed in HEAD), and a branch /
+unpushed-work check (no live branch or unpushed commits tied to the dir).
+After the prune `git worktree list` reports only /workspace, `.worktrees/`
+is empty, and `git status --short` shows no deletions of tracked files.
+
+Four prose corrections (stale or hard-coded test counts):
+
+- `scripts/__tests__/bats-wrapper.sh`: "240 tests ... ~25 s floor" replaced
+  with "the full suite, ~99 s as of 2026-10-23; live totals print at end of
+  run".
+- `scripts/__tests__/verify-pre-push.bats`: "the full 711-test bats suite"
+  replaced with "the full bats suite" (hard number removed).
+- `scripts/verify-pre-push.sh`: "100+ tests" replaced with "728 tests as of
+  2026-10-23" (dated hard number).
+- `docs/dev-infra/eval-lite-tasks.md`: analytics-pipeline pytest suite
+  description corrected from "(4 tests)" to "(2 tests)".
+
+No tracked file was deleted and no test case was deleted by this cleanup.
 
 ## Re-verify
 
-> To be filled at re-verify time.
+Independent verification lane (2026-10-23, branch omo-slim-changes):
+
+- Observed HEAD: 7048c576 "DIA-261023-60ol: prune orphaned worktree
+  residue, fix stale prose test counts".
+- `git show --stat 7048c576`: exactly 4 files changed, 6 insertions(+),
+  6 deletions(-), zero tracked files deleted. File list matches the Fix
+  record: docs/dev-infra/eval-lite-tasks.md, scripts/**tests**/bats-wrapper.sh,
+  scripts/**tests**/verify-pre-push.bats, scripts/verify-pre-push.sh.
+- Deletion outcome re-checked: 0 `.worktrees/*/` directories, `.worktrees`
+  size 0, `git worktree list` shows only /workspace, no deletions in
+  `git status --short`.
+
+Gate results (own reported totals, UTC 2026-10-23T23:37:33Z):
+
+- `make test-config`: exit 0. Reported: 22 agents audited, 0 gaps, 362
+  warnings; node suites 64/64, 38/38, 5/5 pass, 0 fail; plugin
+  structural gates all PASS.
+- `bash scripts/__tests__/bats-wrapper.sh`: exit 0. Runner's own totals:
+  728 ok, 0 not ok (plan line `1..728`; 728 `ok` lines counted, zero
+  `not ok`). Warning observed (pre-existing, non-fatal): vendored bats
+  version mismatch, v1.11.0 vs pinned v1.14.0 (DIA-121 drift check).
+
+pytest and vitest were NOT re-measured by this verification lane (they
+require the dev container); their figures below remain as recorded by the
+audit lanes.
+
+### Count discrepancies left unresolved
+
+Cross-lane discrepancies recorded by the audit (left unresolved; the
+settling rule is: take the runners' own reported counts, never occurrence
+greps):
+
+- files: 109 vs 110
+- cases: 1536 vs 1603
+- pytest: 28 vs 64
+- vitest: 120 vs 132
+- line delta: -101334 vs -92428
+
+Current runner-truth observed today: bats wrapper 728; `make test-config`
+exit 0. pytest/vitest not re-measured by this lane.
