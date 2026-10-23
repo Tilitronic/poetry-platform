@@ -262,7 +262,7 @@ manifest_load() {
 # backing, so the scope claim fails closed.
 has_backing() {
   [ -n "${1:-}" ] || return 1
-  local scope="$1" line c_scope c_status c_ticket tfile tpath
+  local scope="$1" line c_scope c_status c_ticket tfile tpath _open
   while IFS= read -r line; do
     [ -n "$line" ] || continue
     c_scope="$(printf '%s' "$line" | cut -f1)"
@@ -275,8 +275,15 @@ has_backing() {
       # keep the disk OPEN requirement.
       if [ "$EVAL_MODE" = "range" ] && [ -n "${TICKETS_REL:-}" ]; then
         tpath="$(ticket_tree_first "$c_ticket")"
-        if [ -n "${tpath:-}" ] && ticket_text "$tpath" | grep -q '^status: *OPEN'; then
-          return 0
+        if [ -n "${tpath:-}" ]; then
+          # Suspend pipefail (M3): grep -q SIGPIPEs git show upstream (141).
+          set +o pipefail
+          ticket_text "$tpath" | grep -q '^status: *OPEN'
+          _open=$?
+          set -o pipefail
+          if [ "$_open" -eq 0 ]; then
+            return 0
+          fi
         fi
         continue
       fi
@@ -498,7 +505,7 @@ try_exception() {
     TRY_EXCEPTION_LINE="Budget-Exception $exc_id without an explicit Budget-Scope trailer is refused"
     return 1
   fi
-  local ticket
+  local ticket _status
   # Range mode with an in-repo ledger resolves the record in the evaluated
   # commit tree (authoritative: no disk fallback, so CLOSED-at-commit cannot
   # pass on today's OPEN). Hook mode and outside-repo ledgers keep the disk
@@ -517,13 +524,23 @@ try_exception() {
     fi
     return 1
   fi
-  if ! ticket_text "$ticket" | grep -q '^status: *OPEN'; then
+  # Suspend pipefail (M3): grep -q SIGPIPEs git show upstream (141).
+  set +o pipefail
+  ticket_text "$ticket" | grep -q '^status: *OPEN'
+  _status=$?
+  set -o pipefail
+  if [ "$_status" -ne 0 ]; then
     TRY_EXCEPTION_LINE="Budget-Exception $exc_id ticket is not OPEN: $ticket"
     return 1
   fi
   local field
   for field in Reason Delta Paths Applicability; do
-    if ! ticket_text "$ticket" | grep -q "^Exception-$field:"; then
+    # Suspend pipefail (M3): grep -q SIGPIPEs git show upstream (141).
+    set +o pipefail
+    ticket_text "$ticket" | grep -q "^Exception-$field:"
+    _status=$?
+    set -o pipefail
+    if [ "$_status" -ne 0 ]; then
       TRY_EXCEPTION_LINE="exception record $ticket missing Exception-$field: line"
       return 1
     fi

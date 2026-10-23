@@ -585,6 +585,62 @@ Budget-Scope: refactor"
   assert_output_contains "prod 20/20 shell 10/10"
 }
 
+# seed_in_tree_ticket <tree> <status>: in-tree record with the status match at
+# line 2 then >64KB filler, so `| grep -q` SIGPIPEs git show (141) unless
+# pipefail is suspended around the pipeline (the fix under test).
+seed_in_tree_ticket() {
+  mkdir -p "$1/docs/tickets"
+  {
+    printf -- '---\nstatus: %s\n---\n# in-tree campaign fixture\n' "$2"
+    seq 1 12000 | sed 's/^/filler /'
+  } > "$1/docs/tickets/DIA-260903-o7n0-zz-campaign.md"
+}
+
+@test "regression-7 (T1): in-tree OPEN ticket with early match backs a range refactor" {
+  tree="$(setup_budget_repo)"
+  seed_in_tree_ticket "$tree" OPEN
+  seq 1 10 | sed 's/^/\/\/ rewritten /' > "$tree/plug/lib/util.ts"
+  git -C "$tree" add -A
+  git -C "$tree" commit -q -m "clean refactor" -m "Budget-Scope: refactor"
+
+  budget_run_range "$tree" "HEAD~1..HEAD" "TICKETS_DIR=$tree/docs/tickets"
+
+  assert_status 0
+  assert_output_not_contains "no approved backing campaign"
+  assert_output_contains "scope refactor backed"
+}
+
+@test "regression-8 (T2): CLOSED in-tree ticket still fails closed for a range refactor" {
+  tree="$(setup_budget_repo)"
+  seed_in_tree_ticket "$tree" CLOSED
+  seq 1 10 | sed 's/^/\/\/ rewritten /' > "$tree/plug/lib/util.ts"
+  git -C "$tree" add -A
+  git -C "$tree" commit -q -m "clean refactor" -m "Budget-Scope: refactor"
+
+  budget_run_range "$tree" "HEAD~1..HEAD" "TICKETS_DIR=$tree/docs/tickets"
+
+  assert_status 1
+  assert_output_contains "no approved backing campaign"
+}
+
+@test "regression-9 (T3): range over the manifest-introducing commit no longer fails on the SIGPIPE path" {
+  tree="$(setup_budget_repo)"
+  git -C "$tree" rm -q manifest.json
+  git -C "$tree" commit -q -m "drop manifest (pre-gate-history parent)"
+  seed_in_tree_ticket "$tree" OPEN
+  budget_write_manifest "$tree" 20 10 1 "$APPROVED_CAMPAIGNS"
+  seq 1 10 | sed 's/^/\/\/ rewritten /' > "$tree/plug/lib/util.ts"
+  git -C "$tree" add -A
+  git -C "$tree" commit -q -m "introduce manifest" -m "Budget-Scope: refactor"
+
+  budget_run_range "$tree" "HEAD~1..HEAD" "TICKETS_DIR=$tree/docs/tickets"
+
+  # no legitimate LOC failure either: the refactor stays exactly at ceilings
+  assert_status 0
+  assert_output_not_contains "no approved backing campaign"
+  assert_output_contains "scope refactor backed"
+}
+
 # ---------------------------------------------------------------------------
 # Wiring assertions (real repo, read-only)
 # ---------------------------------------------------------------------------
