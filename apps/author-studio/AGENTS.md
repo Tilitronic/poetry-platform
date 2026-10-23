@@ -39,8 +39,6 @@ src/
 │   └── w2-phonetics.ts      # Future W2 wrapper (target dep returns when W2 wiring lands)
 ├── stores/                  # Pinia (createPinia in index.ts)
 ├── router/                  # Hash mode (quasar.config.ts:47)
-├── boot/                    # i18n.ts (vue-i18n 11, composition API)
-├── i18n/                    # en-US locale
 └── css/app.scss             # Global styles + quasar.variables.scss
 ```
 
