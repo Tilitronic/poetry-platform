@@ -14,8 +14,8 @@
 # the test suite (cheap, and bats errors are less readable than bash -n's).
 #
 # --quick mode (DIA-179 F-4): a fast tier for shell-edit iteration - the bats
-# monolith (240 tests in one pass, ~25 s floor) has no quick subset, so every
-# `.sh` edit paid the full cost. `bats-wrapper.sh --quick` runs two tiers and
+# monolith (the full suite, ~99 s as of 2026-10-23; live totals print at end
+# of run) has no quick subset, so every `.sh` edit paid the full cost. `bats-wrapper.sh --quick` runs two tiers and
 # exits 0 only if BOTH pass:
 #   1. syntax tier: `bash -n` over every *.sh under scripts/ and
 #      .opencode/scripts/ (the same auto-discovered set as the default run) +

@@ -19,7 +19,7 @@ vitest-editor-engine-typecheck	pnpm --filter @poetry/editor-engine typecheck	0	v
 vitest-phonetics-core-typecheck	pnpm --filter @poetry/phonetics-core typecheck	0	vitest phonetics-core	phonetics-core typecheck	no
 vitest-editor-engine-lint	pnpm --filter @poetry/editor-engine lint	0	vitest editor-engine	editor-engine lint	no
 pytest-api-server	docker compose exec -T dev bash -c 'cd /workspace/apps/api-server && .venv/bin/python -m pytest'	0	pytest api-server	api-server pytest suite (2 tests)	yes
-pytest-analytics-pipeline	docker compose exec -T dev bash -c 'cd /workspace/packages/analytics-pipeline && .venv/bin/python -m pytest'	0	pytest analytics-pipeline	analytics-pipeline pytest suite (4 tests)	yes
+pytest-analytics-pipeline	docker compose exec -T dev bash -c 'cd /workspace/packages/analytics-pipeline && .venv/bin/python -m pytest'	0	pytest analytics-pipeline	analytics-pipeline pytest suite (2 tests)	yes
 make-test-python	make test-python	0	pytest api-server + analytics-pipeline	Makefile test-python target (both pytest suites)	yes
 ruff-api-server	docker compose exec -T dev bash -c 'cd /workspace/apps/api-server && .venv/bin/ruff check .'	0	pytest api-server	api-server ruff lint	yes
 ruff-analytics-pipeline	docker compose exec -T dev bash -c 'cd /workspace/packages/analytics-pipeline && .venv/bin/ruff check .'	0	pytest analytics-pipeline	analytics-pipeline ruff lint	yes

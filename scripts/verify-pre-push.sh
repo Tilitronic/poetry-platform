@@ -150,8 +150,8 @@ fi
 # test-shell LAST. The four fast pnpm gates and the OpenCode config validator
 # (make test-config: agent-name drift, JSONC, skill frontmatter) surface a
 # regression in ~1.2 s instead of ~25 s; the slow bats suite (make test-shell,
-# 100+ tests) is the final step so a format/typecheck failure aborts before it
-# ever runs. The dia189 desktop-toast leg sits after test-config and before
+# 728 tests as of 2026-10-23) is the final step so a format/typecheck failure
+# aborts before it ever runs. The dia189 desktop-toast leg sits after test-config and before
 # python so the plugin behavioral gate blocks pushes while the slow bats suite
 # stays last. It runs host-local via bun (no Docker, no run_workspace):
 # nested Docker delegation broke the design.md:24 warn-and-pass contract, and

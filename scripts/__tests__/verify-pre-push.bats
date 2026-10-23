@@ -88,7 +88,7 @@ FAKEDOCKER
   chmod +x "$docker_bin"
   # PHASE 5 / ADR 11: make test-shell runs on the host via (cd "$ROOT" &&
   # make test-shell). In the test environment, a fake make on PATH exits
-  # immediately so unit tests don't run the full 711-test bats suite. The
+  # immediately so unit tests don't run the full bats suite. The
   # test verifies the host-local path via the script's stdout marker.
   cat > "$BATS_TEST_TMPDIR/bin/make" <<'FAKEMAKE'
 #!/usr/bin/env bash
