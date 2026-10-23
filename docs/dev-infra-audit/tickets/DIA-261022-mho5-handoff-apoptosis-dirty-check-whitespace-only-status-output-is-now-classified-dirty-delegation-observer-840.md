@@ -6,7 +6,7 @@ id: DIA-261022-mho5
 title: "handoff apoptosis dirty-check: whitespace-only status output is now classified DIRTY (delegation-observer:840)"
 area: opencode-config
 severity: Medium
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: ""
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
@@ -75,3 +75,4 @@ mean clean - risk: irreversible removal on anomalous output.
 ## Re-verify
 
 > To be filled at re-verify time.
+> Closed as no-op: the live predicate at .opencode/plugins/delegation-observer.ts:841 is already fail-safe (keeps the worktree); this ticket would change zero lines.

@@ -6,7 +6,7 @@ id: DIA-260827-15xv
 title: "Full ponytail whole-repo over-engineering audit via analyzer-escalated"
 area: scripts
 severity: Medium
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: ""
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
@@ -17,7 +17,7 @@ discovered: 2026-08-27
 source: inventory
 date: 2026-08-27
 created: 2026-08-27
-updated: 2026-08-27
+updated: 2026-10-22
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -50,3 +50,4 @@ files and line references where known.>
 ## Re-verify
 
 > To be filled at re-verify time.
+> Closed as duplicate whole-repo over-engineering audit, superseded by DIA-261022-5n2v.

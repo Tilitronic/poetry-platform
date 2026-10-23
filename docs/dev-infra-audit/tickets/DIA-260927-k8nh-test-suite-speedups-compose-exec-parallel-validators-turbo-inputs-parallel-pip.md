@@ -6,7 +6,7 @@ id: DIA-260927-k8nh
 title: "test-suite speedups: compose exec, parallel validators, turbo inputs, parallel pip"
 area: tests-infra
 severity: Low
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: DIA-260926-ch1d
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
@@ -17,7 +17,7 @@ discovered: 2026-09-27
 source: inventory
 date: 2026-09-27
 created: 2026-09-27
-updated: 2026-09-27
+updated: 2026-10-22
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -75,3 +75,4 @@ This ticket stays OPEN until all four children close.
 ## Re-verify
 
 > To be filled at re-verify time.
+> Closed as umbrella duplicating its child tickets; children remain the trackers (DIA-260927-0zii, DIA-260927-shgj, DIA-260927-hwl9 closed, DIA-260927-h5xs).

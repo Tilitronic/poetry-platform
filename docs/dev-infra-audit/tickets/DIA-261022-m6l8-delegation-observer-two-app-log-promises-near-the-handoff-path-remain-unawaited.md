@@ -6,7 +6,7 @@ id: DIA-261022-m6l8
 title: "delegation-observer: two app.log promises near the handoff path remain unawaited"
 area: opencode-config
 severity: Low
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: ""
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
@@ -76,3 +76,4 @@ then route these call sites through it (broader sweep - ticket separately).
 ## Re-verify
 
 > To be filled at re-verify time.
+> Merged into DIA-261022-zjci: same handoff seam in delegation-observer.ts; .catch(() => {}) is already the neighbouring convention.

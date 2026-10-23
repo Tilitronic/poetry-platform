@@ -62,7 +62,7 @@ evidence: []
 - [x] Where no non-bash shell exists, the case skips with an explicit reason
       (never a false green) instead of failing. Satisfied by the skip branch
       in the case (reason string above, Fix section); its proving run is
-      DEFERRED - see S-C below.
+      DROPPED - see S-C below.
 - [x] EVIDENCED - single bats file run: `bats
 scripts/__tests__/test-infra-log.bats` exits 0 with 4 ok / 0 not ok, the
       guard branch taken = dash (dash present at /usr/bin/dash, busybox absent,
@@ -97,13 +97,13 @@ scripts/__tests__/test-infra-log.bats` exits 0 with 4 ok / 0 not ok, the
   novel to this ticket - fix belongs in a dedicated change (backticks around
   the path in H1 plus escaping the title value, or a prettier-ignore), not
   here.
-- S-C (Spec, Minor): the new skip branch has no proving run - the supplied
-  evidence covers only the dash branch ("no skip"). A host with no dash and
-  bash-as-`sh` takes the skip path, so the guard's only behavioural coverage
-  is absent on exactly the host class that reported the original failure.
-  Follow-up: add a hermetic case that forces the no-dash path (shadow PATH
-  with a fake `sh` exporting BASH_VERSION) and asserts a reported skip, or
-  record a real run on a bash-as-`sh` host.
+- S-C (Spec, Minor): DROPPED 2026-10-22 (DIA-261022-5n2v audit application),
+  previously deferred. Rationale: the skip branch can only ever produce an
+  explicit bats skip - the worst achievable outcome is a reported skip with a
+  reason string, never a false green - and the original defect this ticket
+  fixed was a false FAIL on bash-as-`sh` hosts. A mock-PATH fake-sh harness to
+  force the no-dash path would only prove that bats can report a skip, which
+  is not worth the harness. No code change.
 
 ## Re-verify
 

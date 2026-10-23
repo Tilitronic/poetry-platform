@@ -3694,3 +3694,11 @@ Two independent lanes of the agent-role consolidation study hit the same methodo
   and the same failure reappeared. Lesson: rules that govern dispatch
   behavior must live in tracked prompt surfaces, not in gitignored session
   state.
+
+## 2026-10-22 - over-engineering audit behavioural lessons (DIA-261022-5n2v)
+
+- L1 - an audit of a plan must be verified against the live tree and git history, never against the ticket text alone. Evidence: this campaign's own audit proposed deleting seven "duplicate" copies of the dispatch-payload mention-hygiene rule; every copy is boot-loaded and load-bearing, and the deletion would have reverted audited commit 0bdd2baf and re-created the exact root cause that commit fixed. Cross-reference: .opencode/learnings/external-patterns/2026-10-22-overengineering-audit-findings.md section (c).
+
+- L2 - any "remaining work" claim in a ticket expires fast: verify before dispatching a builder. Evidence: a findings file written at 12:46:28Z claimed the plugin typecheck baseline was red; commit 0a4caf7a fixed it at 13:02:47Z, 16 minutes later, turning a "defer" into a one-line simplification. Cross-reference: same learnings file, S2/gpcc correction.
+
+- L3 - a handoff's prose fields can contradict its own session_summary; trust the enumerated list. Evidence: the same handoff slot said "three commits landed this campaign" in its branch field while its session_summary listed four; the true count was four (five after the next commit).

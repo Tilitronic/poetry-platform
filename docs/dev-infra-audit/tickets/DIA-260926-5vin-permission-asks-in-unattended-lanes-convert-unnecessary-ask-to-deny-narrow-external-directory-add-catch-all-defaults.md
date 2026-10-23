@@ -6,7 +6,7 @@ id: DIA-260926-5vin
 title: "permission asks in unattended lanes: convert unnecessary ask to deny, narrow external_directory, add catch-all defaults"
 area: scripts
 severity: Major
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: ""
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
@@ -17,7 +17,7 @@ discovered: 2026-09-26
 source: inventory
 date: 2026-09-26
 created: 2026-09-26
-updated: 2026-09-26
+updated: 2026-10-22
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -108,3 +108,4 @@ Status stays OPEN: the ticket's own scope items are NOT all satisfied -
 `external_directory` narrowing (item 2 / acceptance criterion 3) and the
 catch-all defaults (item 3 / criterion 4) are untouched by the CAUSE B fix,
 and criterion 6 (stall-sweep waiting-lane awareness) is also open.
+Merged into DIA-260928-rzty: same opencode.jsonc catch-all hunk.

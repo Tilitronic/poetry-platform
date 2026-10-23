@@ -6,7 +6,7 @@ id: DIA-260928-tcdd
 title: "permission: git clean deny bypass via flag permutations (-xdf, -df, -d -f escape the -f-anchored deny patterns)"
 area: scripts
 severity: Medium
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: ""
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
@@ -17,7 +17,7 @@ discovered: 2026-09-28
 source: inventory
 date: 2026-09-28
 created: 2026-09-28
-updated: 2026-09-28
+updated: 2026-10-22
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -56,3 +56,4 @@ Why a literal-spelling deny is structurally fragile: the deny patterns are ancho
 ## Re-verify
 
 > To be filled at re-verify time.
+> Merged into DIA-260928-rzty: same opencode.jsonc permission-rule probe and same pass.

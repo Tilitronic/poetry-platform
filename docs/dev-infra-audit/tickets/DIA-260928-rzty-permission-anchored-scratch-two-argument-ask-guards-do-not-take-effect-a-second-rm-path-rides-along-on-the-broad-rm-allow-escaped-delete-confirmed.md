@@ -75,3 +75,4 @@ Durable-evidence note: `.opencode/learnings/external-patterns/2026-09-28-permiss
 ## Re-verify
 
 > To be filled at re-verify time.
+> Absorbed scope (audit DIA-261022-5n2v): DIA-260928-tcdd (git clean verb-level deny probe) and DIA-260926-5vin (opencode.jsonc catch-all hunk) - same permission-rule file and same enforcement pass as this ticket.

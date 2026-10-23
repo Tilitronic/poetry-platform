@@ -49,3 +49,12 @@ Adopt a single canonical generated path, ship the Python adapter as an installab
 ## Re-verify
 
 > To be filled at re-verify time.
+
+## Audit correction (DIA-261022-5n2v)
+
+Verdict: UNSAFE_AS_SPECIFIED - the repo over-engineering audit's P2 proposal (delete the whole phonetic-atlas loader chain) self-breaks; blocking prerequisites before any deletion:
+
+- packages/phonetics-core/package.json:6-27 makes src/atlas/load-atlas.ts the package main/types/exports and packages/editor-engine/package.json:20 + tsconfig.json:6 depend on it; scripts/gen-jsconfig.sh:119 hard-errors inside make test-infra on a missing declared entry.
+- scripts/generate_phonetic_atlas.py:138-139,323-330,485-494 imports the generated Python bindings the proposal deletes (plus flatbuffers/pandas/panphon); test_parity.py/test_load_atlas.py are the only FlatBuffers schema-drift guard.
+- The two .bin copies are not redundant (package.json:23-24 vs load_atlas.py:331 vs turbo.json:10 vs .gitignore:13).
+  Honest cost: ~3,095 lines, but every part is load-bearing today (package main, test-infra gate, schema-drift guard); net zero until the prerequisites land.

@@ -6,7 +6,7 @@ id: DIA-260929-wjir
 title: "model swap: architector and ai-auditor kimi-k3 to grok-4.7 (variants preserved), analyzer to deepseek-v4.1-flash variant high"
 area: scripts
 severity: Medium
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: ""
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
@@ -17,7 +17,7 @@ discovered: 2026-09-29
 source: inventory
 date: 2026-09-29
 created: 2026-09-29
-updated: 2026-09-29
+updated: 2026-10-22
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -98,3 +98,4 @@ Decision record:
 ## Re-verify
 
 > To be filled at re-verify time.
+> Closed as superseded by DIA-261022-6vcz: executing it now would reintroduce the dead model id opencode-go/deepseek-v4-flash; live config already runs gemini-4-argon-contributor (architector/ai-auditor) and deepseek-v4.1-flash (analyzer).

@@ -62,3 +62,11 @@ whole-history materialization or quadratic state updates.
 ## Re-verify
 
 > To be filled at re-verify time.
+
+## Audit correction (DIA-261022-5n2v)
+
+Verdict: UNSAFE_AS_SPECIFIED - the repo over-engineering audit's P8 proposal (delete scripts/session-log + .opencode/scripts/jsonl-stats.sh as duplicate readers) is wrong on two counts; blocking prerequisites before any deletion:
+
+- The named replacement is itself a deletion target: Makefile:329-330 runs `bash scripts/session-log render`, so deleting session-log breaks `make session-log-render` unless that target is relocated first.
+- .opencode/scripts/jsonl-stats.sh:69-128 implements the A3 dangling-delegation and C3 orphan-dispatch detectors over the append-only registry; scripts/session-query.mjs cannot express them - port or retain before deleting.
+  Honest cost: ~351 lines, but they are not duplicates (Makefile dependency + two unique detectors); deletion as specified breaks a make target and drops two checks.

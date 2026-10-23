@@ -6,7 +6,7 @@ id: DIA-260929-6339
 title: "audit-independence validator: enforce distinct model families for ai-specialist and ai-auditor"
 area: scripts
 severity: Medium
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: ""
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
@@ -17,7 +17,7 @@ discovered: 2026-09-29
 source: inventory
 date: 2026-09-29
 created: 2026-09-29
-updated: 2026-09-29
+updated: 2026-10-22
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -50,3 +50,4 @@ files and line references where known.>
 ## Re-verify
 
 > To be filled at re-verify time.
+> Closed as not proportionate: proposed a new validator script plus a permanent model-family lookup table to enforce two static config keys. Reopen path if ever needed: a 5-line assertion inside the existing scripts/validate-opencode-config.sh.

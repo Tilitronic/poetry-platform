@@ -81,3 +81,4 @@ public API.
 ## Re-verify
 
 > To be filled at re-verify time.
+> Absorbed scope (audit DIA-261022-5n2v): DIA-261022-m6l8 - the two unawaited app.log promises at this same handoff seam; .catch(() => {}) is already the neighbouring convention, so no separate ticket.
