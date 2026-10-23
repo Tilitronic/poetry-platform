@@ -5276,3 +5276,19 @@
     (exit 1, empty pattern matched every scoped .mjs) / GREEN-with-guard (exit 0)
     proven; make test-shell exit 0; make test-config exit 0'
   area: scripts
+- date: '2026-10-23'
+  ticket: DIA-261023-d6b9
+  scope: opencode-config
+  files:
+  - .opencode/plugins/lib/envelope-gate.ts
+  - .opencode/plugins/delegation-observer.ts
+  - .opencode/oh-my-opencode-slim/orchestrator_append.md
+  - scripts/__tests__/envelope-gate.test.mjs
+  - .opencode/plugins/__tests__/reviewer-immutable-git-envelope.test.mjs
+  - Makefile
+  - .opencode/learnings/external-patterns/2026-10-23-envelope-duplication-guard-gate.md
+  summary: 'guard against a hand-written reviewer envelope: pre-spawn authored-fence
+    rejection, provenance line in the injected block, contract alignment, and a unit
+    suite wired into the config gate'
+  verification: manual
+  area: plugins

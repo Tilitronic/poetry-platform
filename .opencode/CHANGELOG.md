@@ -1319,3 +1319,9 @@
 - **Change:** review fixes for the shrunk budget gate: guard the empty pattern set (P1: patterns [] no longer blanket-blocks), restore design-mandated fail-closed coverage + two range boundaries (P3/P5), move manifest_load after the fast path with an explicit range skip signal (P4), spell out variable names and split packed lines (S1), stop the openspec package + commit-msg comment promising the deleted exception flow (P2), correct ADR status/ticket floor statement/CHANGELOG wording (S5-S7)
 - **Files:** scripts/check-budget-gate.sh - scripts/__tests__/budget-gate.bats - openspec/changes/f-budget-gate-blocking/specs/commit-budget-gate/spec.md - openspec/changes/f-budget-gate-blocking/proposal.md - openspec/changes/f-budget-gate-blocking/design.md - openspec/changes/f-budget-gate-blocking/tasks.md - .husky/commit-msg - .opencode/memory/adr.md
 - **Verification:** bats-wrapper --filter budget-gate: 18 ok / 0 not-ok, exit 0; P1 RED-without-guard (exit 1, empty pattern matched every scoped .mjs) / GREEN-with-guard (exit 0) proven; make test-shell exit 0; make test-config exit 0
+
+## 2026-10-23 - DIA-261023-d6b9: opencode-config
+
+- **Change:** guard against a hand-written reviewer envelope: pre-spawn authored-fence rejection, provenance line in the injected block, contract alignment, and a unit suite wired into the config gate
+- **Files:** .opencode/plugins/lib/envelope-gate.ts - .opencode/plugins/delegation-observer.ts - .opencode/oh-my-opencode-slim/orchestrator_append.md - scripts/__tests__/envelope-gate.test.mjs - .opencode/plugins/__tests__/reviewer-immutable-git-envelope.test.mjs - Makefile - .opencode/learnings/external-patterns/2026-10-23-envelope-duplication-guard-gate.md
+- **Verification:** manual
