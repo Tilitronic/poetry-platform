@@ -1,6 +1,6 @@
 {
-  "prod_ceiling": 5900,
-  "shell_ceiling": 4037,
+  "prod_ceiling": 7800,
+  "shell_ceiling": 4300,
   "patterns": [
     {
       "id": "opencode-mock",
@@ -12,7 +12,8 @@
   "campaigns": [
     { "ticket": "DIA-260903-o7n0", "scope": "refactor", "status": "approved" },
     { "ticket": "DIA-260903-o7n0", "scope": "test-debloat", "status": "approved" },
-    { "ticket": "DIA-260909-zeik", "scope": "test-debloat", "status": "approved" }
+    { "ticket": "DIA-260909-zeik", "scope": "test-debloat", "status": "approved" },
+    { "ticket": "DIA-261023-jdx3", "scope": "refactor", "status": "approved" }
   ],
   "mode": "blocking"
 }

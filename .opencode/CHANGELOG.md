@@ -1301,3 +1301,9 @@
 - **Change:** mimo-balanced preset model-ID refresh (final state; 4 round entries collapsed into this one per DIA-261022-5n2v): architector and ai-auditor both on opencode-go/gemini-4-argon-contributor - architector at variant high (MAX_RUNG, highest member of the declared low|medium|high ladder) with fallback opencode-go/mimo-v2.6-flash and its reasoningEffort/thinking options untouched, ai-auditor at variant medium (MEDIUM_RUNG) - under the single developer-cleared 2026-10-22 non-ZDR waiver (DIA-260828-qtsi Muse precedent) recorded as registry privacy_notes plus a two-lane header-invariant exception; ai-specialist on opencode-go/mimo-v2.6-pro (Xiaomi family) with opencode-go/deepseek-v4.1-flash fallback and inert variant keys removed (that id exposes no ladder); reviewer variant high retained on opencode-go/deepseek-v4.1-flash (valid low|high|max rung); coder-escalated variant corrected medium -> high for the same ladder; non-existent opencode-go/deepseek-v4-flash purged from all 7 fallback slots (models.dev 404 + absent from live Go catalog, replaced by opencode-go/mimo-v2.5 / opencode-go/mimo-v2.6-flash) and the dead grok-4.7 registry fallback replaced with opencode-go/deepseek-v4.1-flash; registry gemini-4-argon-contributor lane [architector, ai-auditor], grok-4.7 retained with empty lane list; learnings file carries F1-F8 including the variant-ladder rule and the Argon-vs-Grok cost analysis (cache-read economics, ~3x post-promo headroom, ZDR trade, throughput estimates)
 - **Files:** .opencode/oh-my-opencode-slim.jsonc - knowledge/model-registry.yaml - .opencode/learnings/external-patterns/2026-10-22-opencode-go-model-id-drift.md
 - **Verification:** manual
+
+## 2026-10-23 - DIA-261022-5n2v: dev-infra
+
+- **Change:** re-baseline the plugin LOC ceilings to 7800/4300 and open the budget-owner campaign
+- **Files:** scripts/budget-baselines.json
+- **Verification:** manual
