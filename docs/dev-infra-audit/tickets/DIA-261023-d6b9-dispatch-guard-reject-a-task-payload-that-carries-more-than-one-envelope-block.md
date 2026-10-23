@@ -34,6 +34,15 @@ evidence: []
 
 ---
 
+## Chosen variant (EBDV DIA-115)
+
+- **Variant A chosen** over B (post-injection count at >1) and C (status quo / intent rule only).
+- **Because** the authored dispatch text carries ZERO envelope text - the hook writes the token only into the outbound child prompt at `delegation-observer.ts:1927` - so any authored fence is hand-written by definition. Counting the AUTHORED text before injection is the only form immune to envelope diff/log contamination, and it detects all three recorded occurrences.
+- **Threshold correction (off-by-one in the original wording):** "more than one" counts the POST-injection prompt (authored 1 + injected 1 = 2). Counted over the AUTHORED text each of the three occurrences had exactly ONE hand-written block, so the implemented threshold is `count >= 1`, not `> 1`.
+- **Scope:** reviewer-only, matching the existing reviewer-only block at `:1826`; a non-reviewer payload never legitimately carries the token.
+- **Dropped:** a `count == 1` advisory warn (under pre-injection counting that state IS the defect; under post-injection counting it is the normal state and would fire on every reviewer dispatch).
+- The filename retains the original title; the threshold above supersedes it.
+
 ## Description
 
 The reviewer dispatch path has exactly one legitimate envelope: the one the
@@ -67,17 +76,12 @@ reviewer prompt contract.
 
 ## Acceptance criteria
 
-- [ ] A reviewer dispatch carrying two envelope blocks fails before a child
-      session is created, with an error naming the count.
-- [ ] A dispatch carrying exactly one block (the normal case) still spawns a
-      child and receives the injected envelope.
-- [ ] A test covers both cases through the same seam the existing
-      routing-gate suite uses (the cli/content is what the hook sees), including
-      the negative case.
-- [ ] `make test-config` exits 0 and the routing-gate suite still passes at
-      its current count.
-- [ ] Restart-verify confirms the guard is live in a fresh session (the
-      plugin loads at boot).
+1. A reviewer dispatch whose authored description+prompt contains a line-anchored envelope fence opener throws via the existing `failEnvelope` closure - `REVIEWER ENVELOPE:` prefix, the count in the message, the prompt left unchanged, rollback still fired, `reviewer_envelope_blocked` row still written.
+2. The pattern is line-anchored, not a bare-substring search, so a review range whose diff or log quotes the token does not trip the guard.
+3. A non-reviewer dispatch carrying envelope text is untouched (existing inert behaviour preserved).
+4. A new `node:test` suite in the routing-order-gate style covers the pure helper, and one new scenario in `.opencode/plugins/__tests__/reviewer-immutable-git-envelope.test.mjs` covers the hook path.
+5. `make test-config` exit 0.
+6. Restart-verify confirms the guard is live in a fresh session (the plugin loads at boot).
 
 ## Routing note
 
