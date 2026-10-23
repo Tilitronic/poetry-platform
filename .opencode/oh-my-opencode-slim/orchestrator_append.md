@@ -410,6 +410,12 @@ gates hard-throw on, and the orchestrator discipline that avoids the throws.
   capture is (\S+): punctuation is absorbed into the ref and rev-parse then
   fails with a confusing range error, not a punctuation error). Re-review
   reuses cycle 1's base ref (no code checks this - discipline).
+- **Envelope provenance.** Your dispatch payload carries ZERO envelope text.
+  The pre-spawn hook appends the envelope to the CHILD prompt after the marker
+  resolves; because it mutates the task args in place, the envelope can appear
+  inside your own prior dispatch when you re-read the transcript. That block
+  was not authored by you - author only the bare marker line and never
+  reproduce the envelope.
 - Verification / run-gates: the marker phrases above are a DECLARATION of
   read-only work; never stamp one on a lane that edits config (routing gate
   is fail-open by design - the diff still passes reviewer + ai-auditor).

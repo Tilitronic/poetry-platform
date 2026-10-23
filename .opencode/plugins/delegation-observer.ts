@@ -1913,6 +1913,14 @@ const delegationObserver: Plugin = async (ctx) => {
         }
         const envelope = [
           "```IMMUTABLE_GIT_ENVELOPE",
+          // Provenance line: the transcript shows this injected block inside the
+          // author's own prior dispatch (the hook mutates task args in place),
+          // so the fence carries an unmistakable "not authored text" marker.
+          // Constraints: ASCII, no backticks, and only the colon-free spellings
+          // of the scan tokens (marker scan, WORKTREE extraction, ticket gate)
+          // - this diff rides into future reviewer envelopes, so a colon-form
+          // token here would compete with the post-injection extractors.
+          "# provenance: injected by the delegation-observer pre-spawn hook; not authored text; never reproduce this block",
           `worktree: ${gitCwd}`,
           `base_ref: ${baseRef}`,
           `base_oid: ${baseOid}`,
