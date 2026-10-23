@@ -101,6 +101,18 @@ write_msg() {
   assert_output_contains "ok:"
 }
 
+@test "fast path: untouched-path commit exits 0 without reading the manifest" {
+  tree="$(setup_budget_repo)"
+  printf 'docs\n' > "$tree/README.md"
+  git -C "$tree" add README.md
+  write_msg "$BATS_TEST_TMPDIR/msg" refactor
+  # nonexistent manifest can only stay harmless if the fast path returns
+  # BEFORE any manifest read (P4 invariant)
+  BUDGET_MANIFEST_OVERRIDE="$BATS_TEST_TMPDIR/nonexistent.json" budget_run_hook "$tree" "$BATS_TEST_TMPDIR/msg"
+  assert_status 0
+  assert_output_contains "no scoped paths touched"
+}
+
 @test "hook: loosened unstaged disk manifest does not weaken the staged ceilings" {
   tree="$(setup_budget_repo)"
   seq 1 15 > "$tree/plug/lib/util.ts"
@@ -126,6 +138,23 @@ write_msg() {
   budget_run_hook "$tree" "$BATS_TEST_TMPDIR/msg"
   assert_status 1
   assert_output_contains "failed to load"
+}
+
+@test "hook: manifest valid on disk but broken in the index fails closed" {
+  tree="$(setup_budget_repo)"
+  seq 1 15 > "$tree/plug/lib/util.ts"
+  git -C "$tree" add plug/lib/util.ts
+  printf '{broken json\n' > "$tree/manifest.json"
+  git -C "$tree" add manifest.json
+  # restore a VALID manifest on disk; the index keeps the broken blob, so only
+  # an index read (git show :path) can fail closed here - a disk read would
+  # instead measure staged growth against disk ceiling 20 and name the ceiling
+  budget_write_manifest "$tree" 20 10 1 "$APPROVED_CAMPAIGNS"
+  write_msg "$BATS_TEST_TMPDIR/msg" refactor
+  budget_run_hook "$tree" "$BATS_TEST_TMPDIR/msg"
+  assert_status 1
+  assert_output_contains "budget manifest invalid"
+  assert_output_not_contains "exceeds prod ceiling"
 }
 
 @test "hook: missing manifest fails closed for a scoped commit" {
@@ -207,6 +236,19 @@ write_msg() {
   budget_run_hook "$tree" "$BATS_TEST_TMPDIR/msg"
   assert_status 0
   assert_output_contains "scope refactor backed"
+  assert_output_not_contains "duplication pattern"
+}
+
+@test "empty canonical in a pattern is a schema violation and fails closed" {
+  tree="$(setup_budget_repo)"
+  printf '{"prod_ceiling": 20, "shell_ceiling": 10, "patterns": [{"id": "empty-canon", "canonical": "", "baseline_count": 0, "authorized_site": "plugin-harness.mjs"}], "campaigns": [%s], "mode": "blocking"}\n' "$APPROVED_CAMPAIGNS" > "$tree/manifest.json"
+  git -C "$tree" add manifest.json
+  seq 1 10 | sed 's/^/\/\/ clean rewrite /' > "$tree/plug/lib/util.ts"
+  git -C "$tree" add plug/lib/util.ts
+  write_msg "$BATS_TEST_TMPDIR/msg" refactor
+  budget_run_hook "$tree" "$BATS_TEST_TMPDIR/msg"
+  assert_status 1
+  assert_output_contains "budget manifest invalid"
   assert_output_not_contains "duplication pattern"
 }
 

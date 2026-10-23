@@ -58,7 +58,7 @@ plugin_rel="${PLUGIN_ROOT#"$ROOT"/}"
 COMMANDS_DIR="${POETRY_COMMANDS_DIR:-$ROOT/.opencode/commands}"
 source "$CWD_ROOT/scripts/guards/home-qualt.sh" 2>/dev/null || true # shared /home/qualt guard (DIA-179)
 EVAL_MODE="hook"; EVAL_SHA=""; SKIP_WARN=""; MSGFILE=""; CHANGED=""; EVAL_FAILS=""; EVAL_OK=""
-manifest_ok=0; manifest_err=""; PROD_CEIL=""; SHELL_CEIL=""; PATTERNS_TSV=""; CAMPAIGNS_TSV=""
+manifest_err=""; PROD_CEIL=""; SHELL_CEIL=""; PATTERNS_TSV=""; CAMPAIGNS_TSV=""
 # tree_show <repo-rel-path>: blob bytes of the EVALUATED tree (staged index in hook mode
 # via "git show :path", commit tree in range mode via "git show $EVAL_SHA:path") -- never disk.
 tree_show() {
@@ -95,13 +95,12 @@ find_ticket() {
   return 0
 }
 manifest_load() { # fail-closed on any defect; content always from the evaluated tree, never worktree disk
-  manifest_ok=0
   local manifest_content
   manifest_content="$(tree_show "$manifest_rel")" || {
     manifest_err="budget manifest not found in evaluated tree: $MANIFEST"
     return 1
   }
-  printf '%s' "$manifest_content" | jq -e '(.prod_ceiling|type=="number") and (.shell_ceiling|type=="number") and (.patterns|type=="array") and (.campaigns|type=="array") and ([.patterns[]|(.id|type=="string") and (.canonical|type=="string") and (.baseline_count|type=="number") and (.authorized_site|type=="string")]|all) and ([.campaigns[]|(.ticket|type=="string") and (.ticket|length>0) and (.scope|type=="string") and (.status|type=="string")]|all)' >/dev/null 2>&1 || {
+  printf '%s' "$manifest_content" | jq -e '(.prod_ceiling|type=="number") and (.shell_ceiling|type=="number") and (.patterns|type=="array") and (.campaigns|type=="array") and ([.patterns[]|(.id|type=="string") and (.canonical|type=="string") and (.canonical|length>0) and (.baseline_count|type=="number") and (.authorized_site|type=="string")]|all) and ([.campaigns[]|(.ticket|type=="string") and (.ticket|length>0) and (.scope|type=="string") and (.status|type=="string")]|all)' >/dev/null 2>&1 || {
     manifest_err="budget manifest invalid (not JSON or schema violation): $MANIFEST"
     return 1
   }
@@ -109,7 +108,6 @@ manifest_load() { # fail-closed on any defect; content always from the evaluated
   SHELL_CEIL="$(jq -r .shell_ceiling <<<"$manifest_content")"
   PATTERNS_TSV="$(jq -r '.patterns[]|[.id,.canonical,(.baseline_count|tostring),.authorized_site]|join("\t")' <<<"$manifest_content")"
   CAMPAIGNS_TSV="$(jq -r '.campaigns[]|[.scope,.status,.ticket]|join("\t")' <<<"$manifest_content")"
-  manifest_ok=1
 }
 has_backing() { # <scope>: approved campaign entry whose named ticket shows status OPEN
   [ -n "${1:-}" ] || return 1
@@ -263,7 +261,7 @@ range_mode() { # check-budget-gate.sh --range <rev> (pre-push/CI; always blockin
   [ -n "$tickets_rel" ] || warn "budget gate: TICKETS_DIR outside gated repo ($TICKETS_DIR); range mode falling back to disk ledger (historical ticket status not per-commit; no warn per commit)"
   tmp_msg="$(mktemp)"
   for sha in $rev_list; do
-    EVAL_SHA="$sha" # manifest_ok resets inside manifest_load; a prior commit's verdict cannot mask this one
+    EVAL_SHA="$sha" # each iteration re-reads the manifest from this commit's own tree; if ! manifest_load decides per-commit, so a prior commit's verdict cannot mask this one
     git -C "$ROOT" log -1 --format=%B "$sha" > "$tmp_msg" 2>/dev/null
     MSGFILE="$tmp_msg"
     CHANGED="$(git -C "$ROOT" diff-tree --no-commit-id --name-only -r --root "$sha" 2>/dev/null)"
