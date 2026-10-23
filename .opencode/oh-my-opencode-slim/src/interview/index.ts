@@ -1,1 +1,0 @@
-export { createInterviewManager } from './manager';

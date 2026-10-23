@@ -1,3 +1,11 @@
-# REFERENCE-ONLY -- not the running plugin
+# REFERENCE-ONLY -- live prompt-override layer
 
-The fork SOURCE (src/) is NOT loaded at runtime -- no package.json/dist, do not build or edit it as the live plugin. The RUNNING plugin is the npm-installed `oh-my-opencode-slim@2.2.19` declared in the project `.opencode/opencode.jsonc` plugin array (`tui.json` aligned to the same pin). However, this directory IS the live OMO prompt-override dir: the npm plugin sets `PROMPTS_DIR_NAME="oh-my-opencode-slim"` and reads `<agent>.md` / `<agent>_append.md` files and `knowledge/` from here at runtime. Keep this checkout for diff/reference only.
+This directory is ONLY the live OMO prompt-override dir plus curated knowledge.
+The upstream source snapshot (src/, dist/, companion/, docs/, build scaffolding)
+was removed on 2026-10-22 (DIA-261022-5n2v) because it was 8 releases behind the
+runtime. The running plugin is npm `oh-my-opencode-slim@2.2.19`, pinned in
+`.opencode/opencode.jsonc` (tui.json aligned to the same pin). Prompt discovery
+is by filename convention at (1) <project>/<preset>/, (2) <project>/,
+(3) user config dirs -- a miss silently falls back to the built-in prompt.
+To consult upstream source use the npm cache package or the clonedeps skill,
+never a vendored copy.

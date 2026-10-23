@@ -46,26 +46,26 @@ All four rows below are closed: the file was deleted in PHASE 3 retirement.
   is extra size on top of the base. upgrade: none named -> no-trigger
   (implicit: revisit if the image size budget tightens). status: closed-by-deletion.
 
-## .opencode/oh-my-opencode-slim/src/ (reference-only, not runtime-loaded)
+## .opencode/oh-my-opencode-slim/src/ (CLOSED-BY-DELETION, DIA-261022-5n2v)
 
-The vendored OMO source checkout is reference-only (see
-.opencode/oh-my-opencode-slim/REFERENCE-ONLY.md): src/ is not loaded at
-runtime, the running plugin is the npm-installed package. These rows are
-informational; they cannot be actioned here without diverging the vendored
-reference (DIA-183 disposition).
+The vendored OMO source checkout was removed on 2026-10-22
+(DIA-261022-5n2v) -- it was 8 releases behind the runtime, so no row here
+could be actioned without diverging from the npm package that actually runs
+(see .opencode/oh-my-opencode-slim/REFERENCE-ONLY.md). Rows kept for
+history; the referenced files no longer exist in this tree.
 
 - src/hooks/foreground-fallback/index.ts:46 - transient server errors are
   mixed into the retry regex list. ceiling: list grows unboundedly. upgrade:
   rename to isRetryableError and split from rate-limit detection when the
-  list grows further (named in the comment). status: reference-only.
+  list grows further (named in the comment). status: closed-by-deletion (DIA-261022-5n2v).
 - src/tools/preset-manager.ts:220 - clarify that orchestratorPrompt is the
   config key name, not the agent name, in the excluded-fields doc. ceiling:
   field-mapping doc could mislead. upgrade: none named -> no-trigger
   (implicit: revisit on prompt/orchestratorPrompt field mapping change).
-  status: reference-only.
+  status: closed-by-deletion (DIA-261022-5n2v).
 - src/multiplexer/session-manager.ts:620 - intent-revealing query wrapper
   around backgroundJobBoard.isRunning. ceiling: thin wrapper, negligible.
-  upgrade: none named -> no-trigger (rot risk). status: reference-only.
+  upgrade: none named -> no-trigger (rot risk). status: closed-by-deletion (DIA-261022-5n2v).
 
 ## apps/author-studio/src/stores/example-store.test.ts
 

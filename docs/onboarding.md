@@ -305,8 +305,8 @@ YOU: "Add heteronym resolution to the editor"
 > Note: `pnpm test` covers only the workspace JS suites (vitest via turbo:
 > author-studio, data-contracts, editor-engine, phonetics-core). It does not
 > cover shell/config (`make test-shell`, `make test-config`), Python
-> (`make test-python`), plugins, or the embedded OMO suites (`make test-omo`).
-> For the full gate, run `pnpm test && make test-infra && make test-config && make test-omo`.
+> (`make test-python`), or plugins. For the full gate, run
+> `pnpm test && make test-infra && make test-config`.
 
 ### OpenCode Custom Commands (Ctrl+K)
 
@@ -337,7 +337,7 @@ poetry-platform-monorepo/
 │   ├── agents/                 Project-specific agent prompt overrides
 │   ├── commands/               Project-specific AI commands (Ctrl+K)
 │   ├── skills/                 Project-specific AI skills (22)
-│   ├── scripts/                Python bridge scripts (query_rag.py, query_web.py)
+│   ├── scripts/                Python bridge scripts (query_rag.py)
 │   └── memory-shelf.yaml       Central index of RAG KBs, conspects, specs
 ├── apps/
 │   ├── author-studio/          Vue 3 / Quasar SPA
