@@ -3702,3 +3702,18 @@ Two independent lanes of the agent-role consolidation study hit the same methodo
 - L2 - any "remaining work" claim in a ticket expires fast: verify before dispatching a builder. Evidence: a findings file written at 12:46:28Z claimed the plugin typecheck baseline was red; commit 0a4caf7a fixed it at 13:02:47Z, 16 minutes later, turning a "defer" into a one-line simplification. Cross-reference: same learnings file, S2/gpcc correction.
 
 - L3 - a handoff's prose fields can contradict its own session_summary; trust the enumerated list. Evidence: the same handoff slot said "three commits landed this campaign" in its branch field while its session_summary listed four; the true count was four (five after the next commit).
+
+## L20261023-60ol-001 - sweep_orphaned_dirs is NOT a safe orphan-directory deleter on its own; orphan residue needs a pre-deletion classification gate (DIA-261023-60ol, 2026-10-23)
+
+- Observation: scripts/worktrees.sh `sweep_orphaned_dirs` (function anchor ~line 599) verifies worktree registration, a dead gitdir pointer, and a feature/*-named branch, but it is NOT safe as an orphan-directory deleter on its own. Gaps: (a) it never classifies files that exist only inside the orphan, so unique uncommitted work is invisible to it; (b) it matches branch names only under refs/heads/feature/, so dirs named dia-* are skipped; (c) it does not look for nested .git directories; (d) the full `cleanup` command also deletes branches, which is out of scope when the goal is only residue removal.
+- Required pre-deletion gate for orphan residue: worktree-registration check + classify every file not in `git ls-tree -r --name-only HEAD` (vendored copy / build artifact / log or cache, else UNCERTAIN = keep) + branch-ancestry check (`merge-base --is-ancestor` vs HEAD) + nested .git probe. Content preservation can be evidenced two ways: blob reachable from a live ref (`git rev-list --objects --all` then `git cat-file -e`), or byte-identical copy still present in the main working tree (`cmp` / `diff -r`).
+- Applied 2026-10-23 (B cleanup): 15 orphaned dirs, 489,408,432 bytes freed, 0 kept, 0 uncertain.
+- Why irrecoverable: the safety-gap analysis and the classification gate are reasoning about what the tool does NOT check; the script source shows only its existing checks, and the applied-run evidence is absent from the cleanup commit message (7048c576, subject only).
+- Cross-reference: lessons.md DIA-177 section (worktrees.sh cleanup / post-squash-merge teardown - adjacent, distinct: that entry covers BRANCH teardown being an operational step; this entry covers orphan-DIR residue deletion safety), repo.md "Git worktrees parallel-dev" (DIA-100 navigational pointer), scripts/worktrees.sh:599.
+
+## L20261023-60ol-002 - git commit with no -m fails in this dev container ("unable to start editor"); always pass -m (DIA-261023-60ol, 2026-10-23)
+
+- Observation: `git commit` with no -m fails in this dev container with "unable to start editor". Always pass -m (or use the project commit helper).
+- Distinct from the wrapper lesson earlier in this file (Environment wrapper lesson, code-executor/coder lanes): that entry is about long -m messages being corrupted by shell wrappers (mitigation there: git commit -F <message-file>); THIS entry is about omitting -m entirely, which tries to launch an editor that cannot start in the container.
+- Why irrecoverable: the editor-unavailability is a dev-container environment fact, not present in any commit or config.
+- Cross-reference: lessons.md "Environment wrapper lesson (code-executor/coder lanes)".
