@@ -6,7 +6,7 @@ id: DIA-261023-60ol
 title: "audit the test surface left behind by the vendored oh-my-opencode-slim removal"
 area: tests-infra
 severity: Medium
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: ""
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
@@ -17,7 +17,7 @@ discovered: 2026-10-23
 source: inventory
 date: 2026-10-23
 created: 2026-10-23
-updated: 2026-10-23
+updated: 2026-10-24
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -110,15 +110,15 @@ Acceptance criteria (a single audit artifact must satisfy all):
 - [ ] Per-test classification covering every surviving test/gate/fixture/
       Makefile target touched by the removal batch: each marked dead /
       load-bearing / rework, with file:line or test-case-name evidence.
-- [ ] Counts per file and per test case, split into the three buckets of
+- [x] Counts per file and per test case, split into the three buckets of
       open question 2.
-- [ ] Reuse assessment (open question 4): helpers/fixtures that survive even
+- [x] Reuse assessment (open question 4): helpers/fixtures that survive even
       if their surrounding tests are dead.
 - [ ] Coverage-loss list (open question 3): behaviours of the trimmed
       override layer no longer exercised by any surviving test.
-- [ ] Explicit disposition recommendation for `check-omo-version-sync.sh`
+- [x] Explicit disposition recommendation for `check-omo-version-sync.sh`
       and its bats suite (open question 5).
-- [ ] No test is deleted before the developer dispositions the audit's
+- [x] No test is deleted before the developer dispositions the audit's
       recommendation.
 
 ## Fix
@@ -191,3 +191,86 @@ greps):
 
 Current runner-truth observed today: bats wrapper 728; `make test-config`
 exit 0. pytest/vitest not re-measured by this lane.
+
+## Close disposition
+
+Developer disposition: close the ticket on 2026-10-24. Status set to
+CLOSED via `scripts/tickets update` (the ledger's canonical terminal
+value: the frontier logic treats any non-OPEN status as out-of-frontier
+and the CLI help documents the pair "OPEN, CLOSED"; DONE/COMPLETE exist
+only as minor variants).
+
+### Delivered
+
+- Audit artifact: knowledge/ana-261023-07sa-omo-slim-dead-test-surface/
+  ana-261023-07sa-omo-slim-dead-test-surface-report.md (analyzer lane,
+  2026-10-23; present in the working tree, untracked by git as of this
+  close).
+- B cleanup: commit 7048c576 (15 orphaned worktree directories pruned,
+  489,408,432 bytes freed; four stale prose test counts corrected; zero
+  tracked files and zero test cases deleted).
+- Independent re-verify evidence: commit d2340a45 (this ticket's Fix and
+  Re-verify sections; gates re-run by the verifying lane: bats wrapper
+  728 ok / 0 not ok exit 0, `make test-config` exit 0).
+- Lessons: commit 84443e9b (memory lane; .opencode/memory/lessons.md
+  entries L20261023-60ol-001 and L20261023-60ol-002).
+
+### Acceptance criteria disposition
+
+- Criterion 1, per-test classification of everything the removal batch
+  touched: NOT TICKED (partial). The report classifies the 10 surviving
+  OMO-touching files with per-file case counts (report section 1.4), the
+  kind-3 items with file:line refs (section 2), and the 0/0 dead-tracked
+  totals (section 1), but verify-pre-push.bats (surviving, modified by
+  4f233a0e per this ticket's verified context) receives no classification
+  line anywhere in the report, verify-pre-push.sh gets only its stale
+  comment noted (section 3) rather than a dead/load-bearing/rework mark,
+  and the report labels itself a FIRST PASS with the gate-execution audit
+  (Q1, Q2) deferred to section 7, so the load-bearing marks are
+  conditional on gates actually running.
+- Criterion 2, counts per file and per case in the three buckets:
+  TICKED. Section 1.4 (per-file OMO/total counts, totals 78 of 1,603),
+  section 2 (subject-deleted 0 files / 0 cases, vacuous-absence 0 cases
+  with grep evidence, vestigial 1 case plus 2 embedded assertions at
+  named lines), sections 1.2-1.3 (before/after totals).
+- Criterion 3, reuse assessment: TICKED. Section 5 lists four
+  reusable-as-is helpers with file:line, the JSONC stripper duplication
+  gap, and the deleted-file pattern table.
+- Criterion 4, coverage-loss list: NOT TICKED (partial). Exactly one
+  evidenced loss item exists (section 3: the DIA-260827-6wvm
+  visible-alias regression, explicitly "not, in this repo" guarded); Q5
+  (whether upstream 2.2.19 carries that fix) and Q7 (whether
+  captureConfigLoadSignal is consumed or write-only) remain unanswered
+  inside the artifact, and section 7 defers them to other lanes. No
+  systematic enumerated coverage-loss list was produced.
+- Criterion 5, disposition for check-omo-version-sync.sh and its bats
+  suite: TICKED. Section 1.4 row 1 (what the 7 cases now compare),
+  section 2 (positive contracts that fail on a real edit, not vacuous),
+  options C and E rows plus section 6 (keep, extend with the
+  anti-revendor invariant).
+- Criterion 6, no test deleted before developer disposition: TICKED.
+  Fix section (no tracked file, no test case deleted), Re-verify
+  (7048c576 stat: 4 files, 6 insertions, 6 deletions, zero deletions;
+  bats wrapper re-run 728 ok), and the audit's recommended option E was
+  explicitly designed as "Do not touch a single test case".
+
+### Deferred by developer disposition
+
+These are NOT satisfied, NOT started, and NOT tracked by any other
+ticket. The next reader must not assume any coverage exists for them.
+
+- C invariant (make the removal permanent): a gate that fails if the
+  vendored src tree is ever re-vendored (no .opencode/oh-my-opencode-slim
+  src tree), plus the REFERENCE-ONLY.md presence check, plus no file://
+  plugin entry pointing at the override directory. NOT satisfied; NOT
+  tracked by any other ticket.
+- D gate-hardening agenda (campaign audit findings, items 4-12): NOT
+  satisfied; NOT started; NOT tracked by any other ticket. The item-level
+  enumeration lives in the campaign audit-findings record, not in this
+  ledger.
+
+### Count discrepancies
+
+Unresolved cross-lane count discrepancies are recorded under
+"Count discrepancies left unresolved" (subsection of Re-verify above);
+not repeated here.

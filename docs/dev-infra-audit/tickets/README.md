@@ -380,7 +380,7 @@
 | DIA-261022-m6l8 | delegation-observer: two app.log promises near the handoff path remain unawaited | opencode-config | Low | CLOSED | [DIA-261022-m6l8-delegation-observer-two-app-log-promises-near-the-handoff-path-remain-unawaited.md](DIA-261022-m6l8-delegation-observer-two-app-log-promises-near-the-handoff-path-remain-unawaited.md) |
 | DIA-261022-mho5 | handoff apoptosis dirty-check: whitespace-only status output is now classified DIRTY (delegation-observer:840) | opencode-config | Medium | CLOSED | [DIA-261022-mho5-handoff-apoptosis-dirty-check-whitespace-only-status-output-is-now-classified-dirty-delegation-observer-840.md](DIA-261022-mho5-handoff-apoptosis-dirty-check-whitespace-only-status-output-is-now-classified-dirty-delegation-observer-840.md) |
 | DIA-261022-zjci | handoff writer error channel: coreAtomicWrite throws on an invalid session id while every other failure returns ok:false | opencode-config | Medium | OPEN | [DIA-261022-zjci-handoff-writer-error-channel-coreatomicwrite-throws-on-an-invalid-session-id-while-every-other-failure-returns-ok-false.md](DIA-261022-zjci-handoff-writer-error-channel-coreatomicwrite-throws-on-an-invalid-session-id-while-every-other-failure-returns-ok-false.md) |
-| DIA-261023-60ol | audit the test surface left behind by the vendored oh-my-opencode-slim removal | tests-infra | Medium | OPEN | [DIA-261023-60ol-audit-the-test-surface-left-behind-by-the-vendored-oh-my-opencode-slim-removal.md](DIA-261023-60ol-audit-the-test-surface-left-behind-by-the-vendored-oh-my-opencode-slim-removal.md) |
+| DIA-261023-60ol | audit the test surface left behind by the vendored oh-my-opencode-slim removal | tests-infra | Medium | CLOSED | [DIA-261023-60ol-audit-the-test-surface-left-behind-by-the-vendored-oh-my-opencode-slim-removal.md](DIA-261023-60ol-audit-the-test-surface-left-behind-by-the-vendored-oh-my-opencode-slim-removal.md) |
 | DIA-261023-d3rw | WORKTREE marker collision: the injected envelope worktree field breaks after-hook worktree tracking | opencode-config | Medium | OPEN | [DIA-261023-d3rw-worktree-marker-collision-the-injected-envelope-worktree-field-breaks-after-hook-worktree-tracking.md](DIA-261023-d3rw-worktree-marker-collision-the-injected-envelope-worktree-field-breaks-after-hook-worktree-tracking.md) |
 | DIA-261023-d6b9 | dispatch guard: reject a task payload that carries more than one envelope block | opencode-config | Major | OPEN | [DIA-261023-d6b9-dispatch-guard-reject-a-task-payload-that-carries-more-than-one-envelope-block.md](DIA-261023-d6b9-dispatch-guard-reject-a-task-payload-that-carries-more-than-one-envelope-block.md) |
 | DIA-261023-fuvx | validate-plugin-structure Gate A does not enumerate newer lib helpers (envelope-gate, routing-gate) | scripts | Minor | OPEN | [DIA-261023-fuvx-validate-plugin-structure-gate-a-does-not-enumerate-newer-lib-helpers-envelope-gate-routing-gate.md](DIA-261023-fuvx-validate-plugin-structure-gate-a-does-not-enumerate-newer-lib-helpers-envelope-gate-routing-gate.md) |
@@ -402,7 +402,7 @@
 
 | Status      | Count |
 | ----------- | ----- |
-| OPEN        | 103   |
+| OPEN        | 102   |
 | DONE        | 15    |
 | VALIDATE    | 0     |
 | E2E         | 0     |
@@ -411,7 +411,7 @@
 | FIXED       | 1     |
 | IMPLEMENTED | 2     |
 | VERIFIED    | 29    |
-| CLOSED      | 231   |
+| CLOSED      | 232   |
 | BLOCKED     | 0     |
 | DISPATCHED  | 0     |
 | RUNNING     | 0     |
