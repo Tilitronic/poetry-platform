@@ -1,0 +1,38 @@
+shelf:
+  conspects:
+    - name: Fixture Conspect
+      description: Minimal conspect entry exercising the shared shelf-entry shape.
+      path: knowledge/res999-fixture/res999-fixture-conspect.md
+      created: 2026-08-15
+  analyses:
+    - name: Fixture Analysis
+      description: Analysis entry with the optional task_ref and status extras.
+      path: knowledge/ana999-fixture/ana999-fixture-report.md
+      created: 2026-08-15
+      task_ref: DIA-999
+      status: completed
+    - id: ana998
+      name: Superset Analysis Entry
+      title: Superset analysis entry (id/title/date extras)
+      description: Mirrors the real shelf entry carrying id, title, and date.
+      path: knowledge/ana998-fixture/ana998-fixture-report.md
+      created: 2026-08-15
+      date: 2026-08-15
+  adrs:
+    - name: Fixture ADR
+      description: ADR entry pointing at the shared adr ledger.
+      path: .opencode/memory/adr.md
+      created: 2026-07-20
+  specs:
+    - name: fixture-change
+      description: OpenSpec change entry with status.
+      path: openspec/changes/fixture-change/
+      created: 2026-08-15
+      status: implemented
+  architectures:
+    - name: fixture-module
+      description: Design-authority entry with Accepted status.
+      path: .sdd/fixture-module/architecture.md
+      created: 2026-08-15
+      status: Accepted
+  rag_bases: []

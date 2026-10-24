@@ -1,0 +1,3 @@
+# Empty changelog ledger fixture - no entries. Structurally valid (empty
+# array) for the render script's empty-view behavior; the validator accepts
+# it because an empty ledger has nothing to violate.

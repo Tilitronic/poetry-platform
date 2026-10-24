@@ -1,0 +1,11 @@
+### Introduction
+CodeMirror is an in-browser code editor component.
+
+Source: https://codemirror.net/docs
+
+### Usage overview
+```js
+import { EditorView, basicSetup } from 'codemirror';
+
+new EditorView({ doc: 'hello', extensions: [basicSetup], parent: document.body });
+```

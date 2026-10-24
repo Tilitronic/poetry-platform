@@ -1,0 +1,11 @@
+https://opencode.ai/docs/cli/
+https://opencode.ai/docs/tools/
+https://opencode.ai/docs/permissions/
+https://opencode.ai/v2/docs/permissions
+https://opencode.ai/docs/plugins/
+https://github.com/anomalyco/opencode/blob/2a33addd/packages/opencode/src/cli/cmd/debug/agent.handler.ts
+https://github.com/anomalyco/opencode/blob/7daea69e/packages/opencode/src/agent/agent.ts
+https://github.com/sst/opencode/issues/1142
+https://github.com/anomalyco/opencode/pull/9980
+https://www.npmjs.com/package/@adrianlzt/opencode-show-tools
+https://www.opencodebook.xyz/en/chapter_09_permission_control_system/9.1_permission_model_design

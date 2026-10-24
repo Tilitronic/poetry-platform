@@ -1,0 +1,18 @@
+{
+  "results": [
+    {
+      "id": "/owner/fetchmoved",
+      "title": "Fetch Moved",
+      "description": "Library whose context fetch returns 301 without a redirect target",
+      "branch": "main",
+      "lastUpdateDate": "2026-07-15T00:00:00Z",
+      "state": "finalized",
+      "totalTokens": 1000,
+      "totalSnippets": 10,
+      "stars": 10,
+      "trustScore": 90,
+      "benchmarkScore": 80,
+      "versions": ["1.0.0"]
+    }
+  ]
+}

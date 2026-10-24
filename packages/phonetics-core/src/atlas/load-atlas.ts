@@ -133,9 +133,7 @@ export class PhoneticAtlasIndex {
         // marks ipa as (required), so this should never happen with a
         // valid atlas. We throw rather than silently skipping — a
         // corrupted atlas should fail loudly, not silently lose entries.
-        throw new AtlasCorruptionError(
-          `Null IPA at phoneme index ${i}. Atlas binary is corrupt.`,
-        );
+        throw new AtlasCorruptionError(`Null IPA at phoneme index ${i}. Atlas binary is corrupt.`);
       }
 
       // C1: NFC normalization — all IPA symbols stored as NFC.
@@ -149,7 +147,7 @@ export class PhoneticAtlasIndex {
         // to the same string. Last-write wins — log a warning.
         console.warn(
           `[PhoneticAtlas] Duplicate NFC-normalized IPA: "${nfcIpa}" ` +
-          `at index ${i} (overwrites index ${idx.get(nfcIpa)})`,
+            `at index ${i} (overwrites index ${idx.get(nfcIpa)})`,
         );
       }
       idx.set(nfcIpa, i);
@@ -183,7 +181,7 @@ export class PhoneticAtlasIndex {
     if (!PhoneticAtlas.bufferHasIdentifier(new flatbuffers.ByteBuffer(bytes))) {
       throw new AtlasCorruptionError(
         'Buffer does not have the "PHAT" file identifier. ' +
-        'Expected a valid Phonetic Atlas FlatBuffers binary.',
+          'Expected a valid Phonetic Atlas FlatBuffers binary.',
       );
     }
 

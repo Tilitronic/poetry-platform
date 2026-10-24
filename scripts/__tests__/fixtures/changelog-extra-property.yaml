@@ -1,0 +1,10 @@
+- date: '2026-08-16'
+  ticket: 'DIA-183'
+  scope: 'extra property present'
+  files:
+    - 'AGENTS.md'
+  summary: >
+    Change: entry carries a key the schema does not declare.
+  verification: >
+    make test-config exit 0.
+  reviewer_note: 'not in the schema'

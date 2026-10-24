@@ -156,6 +156,7 @@ Mermaid diagrams must render readably in BOTH light and dark VS Code themes. Eve
   'activationBorderColor': '#5b8def', 'activationBkgColor': '#2d3a5c'
 }}}
 %%```
+```
 
 **Why this works:** `theme: 'base'` with `darkMode: true` and explicit `themeVariables` overrides ALL color defaults. The diagram uses a dark-neutral background (`#1e1e2e`) with light text (`#e0e0e0`) and vivid accent strokes (`#5b8def`). This palette renders readably in both light and dark theme contexts — in dark mode it blends naturally, in light mode it reads as distinct dark cards with ~10:1 contrast ratio.
 

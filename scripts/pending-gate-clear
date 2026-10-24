@@ -1,0 +1,125 @@
+#!/usr/bin/env bash
+# pending-gate-clear <flag-name> - verified clearing of research-pipeline
+# pending flags (DIA-260825-fjnc, gate Candidate A).
+#
+# WHY: delegation-observer.ts drops conspect-pending.json /
+# analysis-pending.json as verification gates; nothing cleared them
+# mechanically, so stale flags re-triggered pipeline work every boot. This
+# script clears a flag ONLY after encoding the same artifact verification the
+# gate exists to enforce (gate finding 2: never bypass) - sources/ + conspect
+# file + memory-shelf entry. It is a standalone script, NOT a plugin hook:
+# delegation-observer.ts is hot and hook-based auto-clear would weaken the
+# gate (BLOCK verdict on candidates B/C).
+#
+# Flag semantics:
+#   persistence-pending  legacy orphan (renamed to conspect-pending per
+#                        DIA-260819-qibv) - warn + delete WITHOUT verification
+#   analysis-pending     status=verified|skipped -> already cleared by the
+#                        orchestrator's verified edit - delete. Any other
+#                        status -> same artifact verification as below.
+#   conspect-pending     artifact verification required:
+#                          (i)   knowledge/<res>/sources/ with >=1 .md file
+#                          (ii)  the NAMED conspect file
+#                                knowledge/<res>/<res>-conspect.md (or at
+#                                least one *conspect*.md there) - a stray
+#                                unrelated .md does NOT pass (fix cycle 2)
+#                          (iii) shelf.conspects entry referencing that res
+#                        The res directory comes from the flag JSON
+#                        (res | res_id | res_dir key). If absent -> refuse,
+#                        never guess.
+#
+# Outcomes: ok: cleared <flag-name> (exit 0) | refused: missing <artifact>
+# (exit 1, no delete) | info/error + exit 2 (missing/unknown flag).
+#
+# Permission model (DIA-126a): orchestrator has bash deny - run via @coder
+# dispatch (scripts/* allow) or the developer. ASCII-only output (DIA-079).
+#
+# Env overrides (bats hermetic seam): SESSION_DIR, SHELF_FILE, KNOWLEDGE_DIR.
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+SESSION_DIR="${SESSION_DIR:-$ROOT/.opencode/session}"
+SHELF_FILE="${SHELF_FILE:-$ROOT/.opencode/memory-shelf.yaml}"
+KNOWLEDGE_DIR="${KNOWLEDGE_DIR:-$ROOT/knowledge}"
+
+usage() {
+  echo "usage: pending-gate-clear <conspect-pending|analysis-pending|persistence-pending>" >&2
+  exit 2
+}
+
+[ $# -eq 1 ] || usage
+name="$1"
+case "$name" in
+  conspect-pending|analysis-pending|persistence-pending) ;;
+  *) echo "error: unknown flag name '$name'" >&2; usage ;;
+esac
+
+flag="$SESSION_DIR/$name.json"
+if [ ! -f "$flag" ]; then
+  echo "info: no such flag"
+  exit 2
+fi
+
+clear_flag() {
+  rm "$flag"
+  echo "ok: cleared $name"
+}
+
+if [ "$name" = "persistence-pending" ]; then
+  # Legacy orphan from before the DIA-260819-qibv rename: no gate semantics
+  # attach to it anymore, so no verification applies.
+  echo "warn: persistence-pending is legacy (renamed to conspect-pending per DIA-260819-qibv); deleting without verification" >&2
+  clear_flag
+  exit 0
+fi
+
+status="$(jq -r '.status // empty' "$flag")"
+if [ "$name" = "analysis-pending" ] && { [ "$status" = "verified" ] || [ "$status" = "skipped" ]; }; then
+  # Already cleared by the orchestrator's verified edit / explicit skip.
+  clear_flag
+  exit 0
+fi
+
+# --- Artifact verification (conspect-pending and unverified analysis-pending)
+res="$(jq -r '.res // .res_id // .res_dir // empty' "$flag")"
+
+missing=""
+if [ -z "$res" ]; then
+  missing="res directory (no res/res_id/res_dir key in flag JSON)"
+elif printf '%s' "$res" | LC_ALL=C grep -qE '[^A-Za-z0-9._-]'; then
+  # POSIX-safe guard (grep -P is GNU-only): blocks path traversal like
+  # "../escape" and absolute paths before anything is touched on disk.
+  missing="safe res directory name (got '$res')"
+else
+  res_dir="$KNOWLEDGE_DIR/$res"
+  if [ ! -d "$res_dir/sources" ] || ! ls "$res_dir"/sources/*.md >/dev/null 2>&1; then
+    missing="sources/ with at least one .md file ($res_dir/sources/)"
+  fi
+  if ! { [ -f "$res_dir/$res-conspect.md" ] || ls "$res_dir"/*conspect*.md >/dev/null 2>&1; }; then
+    [ -n "$missing" ] && missing="$missing; "
+    missing="${missing}named conspect file ($res_dir/$res-conspect.md)"
+  fi
+  if ! SHELF_FILE="$SHELF_FILE" RES="$res" python3 - <<'PYEOF' >/dev/null 2>&1; then
+import os
+import sys
+
+import yaml
+
+with open(os.environ["SHELF_FILE"]) as f:
+    shelf = yaml.safe_load(f)
+needle = "knowledge/%s/" % os.environ["RES"]
+entries = (shelf or {}).get("shelf", {}).get("conspects", []) or []
+ok = any(needle in str(e.get("path", "")) for e in entries)
+sys.exit(0 if ok else 1)
+PYEOF
+    [ -n "$missing" ] && missing="$missing; "
+    missing="${missing}memory-shelf shelf.conspects entry for $res"
+  fi
+fi
+
+if [ -n "$missing" ]; then
+  echo "refused: missing $missing"
+  exit 1
+fi
+
+clear_flag

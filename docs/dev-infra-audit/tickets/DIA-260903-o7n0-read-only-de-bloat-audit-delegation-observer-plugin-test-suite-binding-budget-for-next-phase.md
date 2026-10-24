@@ -1,0 +1,577 @@
+# DIA-260903-o7n0 - read-only de-bloat audit: delegation-observer plugin test suite + binding budget for next phase
+
+---
+
+id: DIA-260903-o7n0
+title: "read-only de-bloat audit: delegation-observer plugin test suite + binding budget for next phase"
+area: opencode-config
+severity: Major
+status: CLOSED
+blocked_by: [] # DIA-NNN refs, or empty
+parent_epic: ""
+gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
+gate_triggers: [] # new-module | cross-boundary | schema-state | new-public-api | cross-cutting | hard-to-reverse | new-ui-component
+gate_waivers: [] # hotfix | incremental-to-grilled-module | spike-poc | refactor-no-behavior-change
+gate_override: "" # free-text: developer signal + reason; empty = no override
+discovered: 2026-09-03
+source: inventory
+date: 2026-09-03
+created: 2026-09-03
+updated: 2026-09-09
+
+# --- Session Attribution (v2 schema, optional) ---
+
+session_id: ""
+lane_id: ""
+agent: ""
+model: ""
+parent_session_id: ""
+attempts: 0
+lease_expires_at: "" # ISO-8601; set on DISPATCHED, cleared on COMPLETE
+files_touched: []
+artifacts: []
+evidence:
+
+- knowledge/ana-260903-qh9y-plugin-test-debloat-audit/ana-260903-qh9y-plugin-test-debloat-audit-report.md
+
+---
+
+## Description
+
+Read-only de-bloat audit of the delegation-observer plugin test suite (~5.4k tests): (1) find duplicated fake-FS, timer, registry, and import scaffolds across tests; (2) extract only genuinely shared test helpers; (3) remove RED-scaffold compatibility leftovers and excessive fallback call-shapes; (4) deletion test on each of the 7 lib modules - hide complexity vs pass-through interface; (5) evaluate whether both raw and normalized copies of all baseline traces are needed; (6) separate generated/ledger churn from code commits; (7) set a binding budget for the next phase.
+
+## Verification
+
+<Acceptance criteria as checkboxes - how to prove the ticket is done.>
+
+## Fix
+
+Read-only de-bloat audit (ana-260903-qh9y-plugin-test-debloat-audit) - PASS, no files modified.
+
+1. DUPLICATED SCAFFOLDS: 5 patterns hit 14-21 files (60-72% of 29-file suite), ~515 LOC duplicated (opencode mock 16f/150loc, mkdtemp 21f/60loc, harness 14f/52loc, bun:test 19f, tmpdir 21f, 7 RED factory probes 120loc, child_process mock 4f/54loc).
+2. SHARED HELPERS: 3 scaffolds justify one helper file (.opencode/plugins/**tests**/helpers/plugin-harness.ts ~100 LOC replacing ~385 LOC); child_process mock consolidatable; RED factory probes are deletes-not-extracts; readRegistry/fakeTimer stay local.
+3. RED-SCAFFOLD LEFTOVERS: ~86 LOC dead compat surface (normalizeGateArgs 44loc - 0 shell users, readdirSync probe 14loc, registry ClockDeps aliases 14loc, handoff overload guard 6loc, circuit-breaker clock aliases 8loc) + ~30 LOC Wy .server/PluginInput guards.
+4. DELETION TEST: 0 PASS-THROUGH of 7 lib modules - 5 HIDES-COMPLEXITY (registry 373loc, ticket-gate 366loc, stall-sweep 284loc, formatter 258loc, handoff 206loc), 2 MIXED-keep (capability trust-boundary, circuit-breaker state machine), errors 97loc consolidation module.
+5. BASELINE TRACES: raw + normalized both load-bearing (audit truth vs byte-equal gate); only 2 identical archive-listing pairs redundant.
+6. GENERATED/LEDGER CHURN: 9 runtime artifacts correctly gitignored under .opencode/session/; ANOMALY: .opencode/session/partial-results/ai--2.json tracked at HEAD (needs git rm --cached); tickets README co-mingled with unrelated config edit.
+7. BINDING BUDGET (decision): pure-refactor production net LOC <= 0 unless growth separately agreed (baseline 5900 = 4037 shell + 1863 lib); forbid test scaffolding duplication (515 LOC baseline); shell LOC measured as real acceptance gate (4037 baseline).
+   Artifact: knowledge/ana-260903-qh9y-plugin-test-debloat-audit/ana-260903-qh9y-plugin-test-debloat-audit-report.md
+
+## Re-verify
+
+## Re-verify -- Slice A disposition + Section 2.5 gate corrections (2026-09-03)
+
+Developer disposition (2026-09-03, fast-path approved pure-refactor):
+
+A untrack-runtime-artifact: ACCEPT with amendment - git rm --cached only, no .gitignore change.
+B archive-listing-pairs: DEFER - zero savings; identical content does not prove filenames unneeded by harness.
+C red-probes: ACCEPT - delete dead scaffolding, do not centralize.
+D shared-helper: ACCEPT, split D1-D4 (createTempWorkspace, mockOpencodePlugin, createHarness, mockChildProcess), one pattern per commit, .mjs not .ts, 4 exports max not target.
+E production-leftovers: ACCEPT - -86 LOC, requires production caller check + tests + ai-auditor.
+F binding-budget: ACCEPT with amendment - report-only first, blocking after false-positive check.
+G wy-guards: DEFER - until legacy loader actually removed.
+
+Section 2.5 gate corrections (approved with adjustments):
+
+C1: .mjs rationale corrected - NOT strip-types (Bun transpiles TS natively; plugin .mjs tests already import .ts). True reason: repo-wide node-runnable test convention + surface consistency.
+C2: helper file imports ONLY mock from bun:test, never test/expect (harness-scenario files run under bun run).
+C3: mockOpencodePlugin() idempotent and callable multiple times per file.
+C4: createTempWorkspace keeps one module-level temp-dir registry + exactly one process.on("exit") handler as FAIL-SAFE ONLY; returns explicit cleanup handle or paired cleanupTempWorkspace(); tests clean up in afterEach/finally; successful explicit cleanup removes path from registry; exit handler is NOT the primary cleanup lifecycle.
+R-C: no committed log-on-hit instrumentation, no new registry/message event for normalizeGateArgs; verify callers via static search + focused characterization tests first; temporary UNCOMMITTED instrumentation allowed only if dynamic usage uncertain, removed before commit; delete normalizeGateArgs only after full plugin suite + runtime smoke show zero dependency.
+R-A/R-B/R-D/R-E accepted (per-file mock re-registration; no global child_process mock; budget gate validated both directions; // keep: Wy loader contract annotation after E; both Bun + harness gates after each D migration).
+
+Slice A execution (2026-09-03):
+
+- Ran: git rm --cached .opencode/session/partial-results/ai--2.json (kept working-tree copy).
+- No .gitignore change: .opencode/session/ already ignored at .gitignore line 82.
+- Verified: git ls-files returns empty; git check-ignore confirms ignore rule.
+- Commit staged ONLY the removal + this ticket update; other working-tree changes left unstaged.
+
+ASCII-only per DIA-079 (no em-dashes, no smart quotes, no non-ASCII punctuation).
+
+## Re-verify -- Slice C ground truth correction (2026-09-03, commit 75e813f)
+
+Slice C ground truth correction (2026-09-03, commit 75e813f):
+
+- The 7 factory-probe helpers were EXERCISED, not dead (each has 1..many test call sites).
+- Only dead alias/fallback branches inside the helpers were removed (e.g. ?? mod.create ?? mod.default, createStallSweeper/createSweep/default aliases, clock alias deps, second no-arg factory() try).
+- Actual delta: -110 test LOC, not -120 (capability -16, registry -5, handoff -4, stall-sweep -19, ticket-gate -18, circuit-breaker -40, formatter -8; 5131 -> 5021).
+- Cumulative conservative test target adjusted by +10 LOC: 12,419 -> 12,429 (cumulative test reduction -395 net instead of -405).
+
+Commit 75e813f evidence: 7 files, +26/-136. Focused tests 270 pass / 0 fail exit 0. Full plugin suite 443 pass / 1 skip / 7 fail - verified PRE-EXISTING baseline (identical 443/7 before/after via git stash --keep-index round-trip; 6x needs-input-observer.dia189 powershell.exe spawn not captured + 1x parallel-handoff archived check). Pre-commit hook exit 0. Lane errors: none.
+
+## Re-verify -- F budget gate promotion approval (2026-09-09)
+
+F report-only PASS reconciled: prod 5814 (-86 from 5900 baseline), shell 4037 monotonic (unchanged, acceptance gate holds), no-dup PASS, test 12206 (-618 cumulative), R-B both-directions validated RED->GREEN.
+
+Promotion report-only -> blocking APPROVED IN PRINCIPLE for pure-refactor/test-debloat scope only (no feature work). Baselines/exceptions require explicit DIA ticket + developer approval.
+
+BLOCKING ENABLE DEFERRED: D4 review missing (D4 commit 2350ee8 exists, no D4 review verdict found). Blocking may start only after D4 review is verified. No scripts or CI enforcement created in this lane; status record only.
+
+ASCII-only per DIA-079 (no em-dashes, no smart quotes, no non-ASCII punctuation).
+
+## Re-verify -- D4 fix lane fix-1 (2026-09-09, on top of 2350ee8)
+
+Rev-1 verdict: PASS-WITH-FINDINGS (section 2.5 review GO-WITH-CONDITIONS).
+
+Developer disposition: ACCEPT 5 findings (items 1-5 below); DEFER dia220:299
+em-dash, cleanup-block duplication x4, B archive pairs, G wy-guards (untouched
+in this lane).
+
+Gate conditions obeyed: 4 helper exports max (no new exports); fail-loud
+behavior allowlist; predicate pinned to delegation-observer.ts:817-819;
+contract tests in test file not helper; ASCII-only per DIA-079; staged only
+fix files + this ticket update.
+
+(1) Evidence gap closed via worktree baseline (NO git stash):
+baseline = worktree at 2350ee8^ (77c4ca1), after = worktree at 2350ee8.
+Focused (4 files: dia220-apoptosis-paracrine, needs-input dia189,
+platform-gate, ticker-expiry):
+baseline: 54 pass 6 fail exit 1
+after: 54 pass 6 fail exit 1
+Full plugin suite (26 files):
+baseline: 442 pass 1 skip 7 fail exit 1
+after: 442 pass 1 skip 7 fail exit 1
+Fail-set identity (identical before/after, DO NOT FIX - pre-existing):
+6x dia189 powershell WSL artifact ("no powershell.exe spawn captured"):
+A2, A3, A3b, A3c, A3d, A3e; plus 1x parallel-handoff S1
+archive-on-overwrite (full suite only).
+Commands (run in .opencode/plugins/**tests** of each worktree):
+bun test dia220-apoptosis-paracrine.test.mjs
+needs-input-observer.dia189.test.mjs
+needs-input-observer.platform-gate.test.mjs
+needs-input-observer.ticker-expiry.test.mjs
+bun test
+Harness: 3/3 scenario files exit 0 (empty-result-silent-failure,
+parallel-handoff-archive, slot-identity-no-clobber).
+
+Fixes (2)-(5):
+(2) mockChildProcess throws on unknown behavior (allowlist "porcelain" /
+"needs-input"); valid/invalid cases tested in the new contract file.
+(3) getPorcelain deleted from live return and node stub; zero callers
+confirmed via repo search; suite rerun.
+(4) Porcelain predicate pinned to production shape
+spawnSync("git", ["-C", wtPath, "status", "--porcelain"]) (cmd "git",
+args.length 4, args[0] "-C", args[2] "status", args[3] "--porcelain");
+near-miss arg cases plus empty/whitespace-only/newline-only/real-output
+stdout cases tested.
+(5) Second-registration contract test added (second registration wins,
+first handle orphaned).
+
+Verification after fix (workdir .opencode/plugins/**tests**):
+new contract file: 6 pass 0 fail exit 0
+focused (5 files incl new): 60 pass 6 fail exit 1 (6 = known dia189 set)
+full suite (27 files): 448 pass 1 skip 7 fail exit 1 (same 7 pre-existing)
+harness: 3/3 exit 0
+
+Budget: prod 5814 unchanged (shell 4037 unchanged, acceptance gate holds);
+test 12314 (+108 = +95 contract file, +13 helper hardening; new coverage,
+not duplication). Method: wc -l over plugin test mjs files.
+
+ASCII-only per DIA-079 (no em-dashes, no smart quotes, no non-ASCII punctuation).
+
+## Re-verify -- D4 fix lane fix-2 (2026-09-09, on top of 921394d)
+
+Scope: 2 auditor findings, both accepted as real defects by developer.
+Untouched: cleanup-block duplication, dia220:299 em-dash, B archive pairs,
+G wy-guards, 7 known environment failures.
+
+FAIL-1 mock.module isolation (plugin-harness.mjs): premise verified by probe
+(mock.restore() does NOT undo mock.module() in Bun 1.3.14 - registry kept
+returning the mock after restore). Strategy (A) implemented, smallest
+preserving current topology: pristine fn-ref snapshot ({...namespace},
+captured at helper load before any mock can exist) plus explicit restore()
+on the mock handle (no new helper exports; per-file mock re-registration
+preserved; no global child_process mock, no global shared spy). Snapshot
+must be spread refs, not the namespace: mock.module patches the live
+namespace in place, so only pre-mock refs restore real behavior (probe:
+re-registering the patched namespace kept the mock; re-registering the
+spread snapshot returned real git version 2.47.3, status 0).
+Regression test proves post-restore import runs real spawnSync
+(git --version, status 0) and leaves no trace (re-registers entry behavior).
+
+FAIL-2 loud spawn (plugin-harness.mjs): porcelain-mode async spawn() now
+throws "spawn not mocked in porcelain mode (production uses spawnSync)",
+mirroring the spawnSync fail-loud. Safe: delegation-observer.ts imports only
+spawnSync (never async spawn). Sync porcelain/spawnSync path unchanged.
+Focused test proves the throw is observable.
+
+Verification (workdir .opencode/plugins/**tests** unless noted):
+new contract file: 8 pass 0 fail exit 0
+focused (5 files): 62 pass 6 fail exit 1 (6 = known dia189 set)
+full suite (27 files): 450 pass 1 skip 7 fail exit 1
+fail-set identical to fix-1 baseline: 6x dia189 A2/A3/A3b/A3c/A3d/A3e
+("no powershell.exe spawn captured" WSL artifact) + 1x parallel-handoff
+S1 archive-on-overwrite
+harness replay (repo workdir): 3/3 exit 0
+structural Bats (repo workdir, make test-shell): exit 0, 614 ok, 0 not ok
+eslint on 2 touched js files: exit 0; prettier --check: exit 0
+
+Budget: prod 5814 unchanged (shell 4037 unchanged, acceptance gate holds);
+test 12352 (+38 = +20 contract tests, +18 helper isolation + fail-loud;
+new coverage, not duplication). Method: wc -l over plugin test mjs files.
+
+ASCII-only per DIA-079 (no em-dashes, no smart quotes, no non-ASCII punctuation).
+
+## Re-verify -- D4 close-out: FAIL-1 restore-handle adoption (2026-09-09, on top of e3744fa)
+
+Scope: auditor FAIL-1 restore-handle adoption ONLY. Untouched:
+cleanup-block duplication, dia220:299 em-dash, B archive pairs, G wy-guards,
+7 known environment failures, helper (no new options/exports, 4 max kept).
+
+Adoption (uniform file-local pattern, no global registry, no global
+child_process mock): each of the four consumers holds a file-local
+`childMock`, re-installs a fresh mock in beforeEach (rebinding the
+`spawnCalls`/`setPorcelain` lets use sites use), and calls
+`childMock.restore()` at the top of the existing afterEach - which runs
+even when a test throws, so a failure cannot leak a mock. Uses
+handle.restore() (pristine-snapshot re-registration), never mock.restore()
+alone. Files: dia220-apoptosis-paracrine (+beforeEach import),
+needs-input-observer.dia189, needs-input-observer.platform-gate,
+needs-input-observer.ticker-expiry (discarded handle now captured).
+Contract file: +1 cross-consumer regression (consumer A installs mock and
+observes mocked throw, A cleanup runs, consumer B observes real
+git --version status 0; ends with leave-no-trace re-registration).
+
+Verification (workdir .opencode/plugins/**tests** unless noted):
+new cross-consumer test file total: 9 pass 0 fail exit 0
+focused (4 consumers + contract): 63 pass 6 fail exit 1 (6 = known dia189)
+full suite (27 files): 451 pass 1 skip 7 fail exit 1
+fail-set identical to fix-2 baseline: 6x dia189 A2/A3/A3b/A3c/A3d/A3e
+("no powershell.exe spawn captured" WSL artifact) + 1x parallel-handoff
+S1 archive-on-overwrite
+harness replay (repo workdir): 3/3 exit 0
+structural Bats (repo workdir, make test-shell): exit 0, 614 ok, 0 not ok
+eslint on 5 touched test files: exit 0; prettier --check: exit 0
+added lines ASCII-only (pre-existing Cyrillic test data + deferred
+em-dash untouched)
+
+Budget: prod 5814 unchanged (shell 4037 unchanged, acceptance gate holds);
+test 12416 (+64 restore adoption + cross-consumer test; new coverage, not
+duplication). Method: wc -l over plugin test mjs files.
+
+ASCII-only per DIA-079 (no em-dashes, no smart quotes, no non-ASCII punctuation).
+
+## Re-verify -- Auditor FAIL-1 close-out verdict (2026-09-09, docs-only lane)
+
+CLOSE-OUT VERDICT: CLOSED on commit a1fffb2. All four consumers consume
+childMock.restore() in afterEach (dia220:29-35,66-73; dia189:114-120,146-165;
+platform-gate:58-64,87-88,203-207; ticker-expiry:29-35,56-68 - ranges
+verified live against the committed tree). Cleanup re-registers the pristine
+snapshot (never mock.restore() alone). Cross-consumer regression proves
+A-mock / A-cleanup / B-real. Helper still 4 exports, no global surface.
+
+D4 chain (2350ee8 + 921394d + e3744fa + a1fffb2) is D4-review-verified,
+satisfying the F blocking-enable precondition for the developer decision
+(see "F budget gate promotion approval" block above: blocking may start only
+after D4 review is verified).
+
+ASCII-only per DIA-079 (no em-dashes, no smart quotes, no non-ASCII punctuation).
+
+## Re-verify -- GREEN gate-script lane cod-4 resume (2026-09-09, impl lane)
+
+Resume per DIA-099 (prior GREEN result empty D1 suspect). Verify-first:
+no GREEN commit landed after c130692 (RED battery commit); gate files
+present on disk uncommitted (prior instance work, reporting artifact only).
+Battery run against that tree: 17/26 pass, 9 fail, all "no scoped paths
+touched" skip -- root cause: gate derived the repo from cwd
+(git rev-parse --show-toplevel) while hermetic fixtures run from the caller
+checkout with BUDGET_PLUGIN_ROOT pointing into the isolated fixture repo,
+so staged fixture paths never matched the plugin root.
+
+Fix (this lane): gated-repo discovery follows an explicit
+BUDGET_PLUGIN_ROOT to its containing repo (unset = caller checkout,
+unchanged production behavior; unresolvable = fallback, still fail-closed).
+Plus: hoisted the verify-pre-push range backstop out of run_workspace() to
+run once at hook entry (stdin consumed exactly once; was per-step), and
+repaired the mangled comment lines.
+
+Verification (repo workdir, ASCII-only per DIA-079):
+budget-gate.bats: 26/26 pass exit 0 (fail-set identity: prior 9 fixed: 1-10
+minus boundary/staged-pass cases, 14-16, 18, 20-22)
+budget-gate + verify-pre-push targeted: 37/37 pass exit 0
+make test-shell: exit 0, 640 ok, 0 not ok
+make test-config: exit 0 (structural gates PASS)
+prettier --check scripts/budget-baselines.json: exit 0
+bats-wrapper --quick on both touched .sh files: exit 0
+bash -n on both touched .sh files: exit 0
+Baselines confirmed live: prod 5814 <= 5900, shell 4037 = 4037 (exact,
+-gt boundary passes), B pattern count 0 = baseline 0 (only
+helpers/plugin-harness.mjs holds the canonical, authorized site excluded).
+scripts/**tests**/budget-gate.bats NOT edited (RED contract owned by test lane).
+
+Files: scripts/check-budget-gate.sh (new), scripts/budget-baselines.json
+(new), .husky/commit-msg (new), scripts/verify-pre-push.sh (range wiring),
+scripts/worktrees.sh (hook copy entry).
+
+ASCII-only per DIA-079 (no em-dashes, no smart quotes, no non-ASCII punctuation).
+
+## Re-verify -- GREEN fix loop C1+M1-M5 (2026-09-09, on top of f9ec224)
+
+Scope: ONLY the 1 Critical + 5 Majors from the two-axis review of f9ec224.
+DEFERRED untouched (recorded as follow-ups, no code): ls-glob trailer
+validation, is_refactor_family predicate, dead no-op conditionals, ZERO_SHA
+copy, empty-then inversion, hook-mode commit-applicability warn, lazy
+manifest_load fast path, range real-PASS case.
+scripts/**tests**/budget-gate.bats NOT edited (RED contract owned by test
+lane; M4 behavior change reported below, not silently extended).
+
+Fixes:
+(C1) verify-pre-push.sh: budget range backstop moved ABOVE the
+container-down early exit (now runs right after the home-qualt guard), so
+offline pushes still hit the always-blocking range check.
+(M1) check-budget-gate.sh: PLUGIN_ROOT absolutized via the existing \_PR
+(CWD_ROOT-anchored, same as lines 70-73); hook mode always warn_emits when
+BUDGET_PLUGIN_ROOT is set (silent gate-off closed).
+(M2) manifest_load reads the evaluated tree only (hook: git show
+:MANIFEST_REL; range: git show $EVAL_SHA:MANIFEST_REL via per-commit reload
+inside the rev loop), never working-tree disk.
+(M3) B-detector suspends pipefail around the tree_show | normalize | grep -qF
+pipeline and branches on grep status alone (early-match SIGPIPE undercount
+closed).
+(M4) has_backing additionally resolves the manifest campaign ticket through
+the ledger (filename prefix + status OPEN minimum, same lookup as
+try_exception); self-asserted manifest approval no longer backs a scope.
+(M5) check-budget-gate.sh sets COMMANDS_DIR (POETRY_COMMANDS_DIR seam,
+mirroring siblings) and sources scripts/guards/home-qualt.sh; hook_mode
+calls guard_no_home_qualt before any budget evaluation. range_mode does not
+call it (history evaluation has no worktree meaning; the pre-push path is
+already guarded by verify-pre-push.sh). No waiver needed (not blocked).
+
+Verification (repo workdir unless noted):
+battery scripts/**tests**/budget-gate.bats: 24 pass / 2 fail, exit 1.
+fail-set identity vs f9ec224 baseline (26/26): exactly 2, both M4 backing
+behavior change, both FAIL "no approved backing campaign" (no ticket file in
+the hermetic TICKETS_DIR):
+
+- fixture-a (expects ceiling FAIL; got backing FAIL instead)
+- manifest-edit with refactor trailer (expects ok; got backing block)
+  RED follow-ups (report-first, bats NOT extended here): fixtures need campaign
+  ticket records in TICKETS_DIR (prefix DIA-260903-o7n0, status OPEN) for the
+  manifest-backed refactor paths; boundary/range/report/wiring tests unaffected.
+  verify-pre-push.bats + guards-home-qualt.bats: 15/15 pass, exit 0.
+  make test-shell (full): 620 pass / 2 fail (the same M4 pair), exit 1.
+  make test-config: exit 0 (structural gates PASS).
+  bash -n on both touched .sh files: exit 0.
+  prettier --check on this ticket file: exit 0 (.sh files have no prettier
+  parser; no JS touched so eslint/typecheck N/A).
+  M5 not blocked: implemented directly, no developer waiver recorded.
+
+Files: scripts/check-budget-gate.sh, scripts/verify-pre-push.sh, this ticket.
+
+ASCII-only per DIA-079 (no em-dashes, no smart quotes, no non-ASCII punctuation).
+
+## Re-verify -- RED extension battery: C1+M1-M5 regressions + M4 fixtures (2026-09-09, test-author lane)
+
+Scope: scripts/**tests**/budget-gate.bats ONLY (RED contract owned by this
+lane; gate script/manifest/hooks untouched). Locks the fix-loop df4b55c
+(C1+M1-M5) in as regression tests and closes the two M4 fixture gaps the
+fix loop reported (24/26 fail-set).
+
+M4 fixtures: setup_budget_repo now seeds an OPEN DIA-260903-o7n0 campaign
+record into the hermetic TICKETS_DIR (filename prefix + status OPEN, the
+exact has_backing lookup), so manifest-backed refactor paths resolve REAL
+ledger backing. File named ...-zz-campaign.md DELIBERATELY so it sorts
+AFTER the ...-test-exception.md exception-record fixtures: has_backing and
+try_exception both resolve DIA-260903-o7n0\* by sorted head -1, and a real
+exception record must win when present. Fixture also mirrors the shared
+home-qualt guard into the fixture tree so CWD=repo invocations source it
+cleanly. Result: fixture-a and manifest-edit-with-refactor now PASS for the
+intended reason (ceiling FAIL / backed ok), not the phantom no-backing block.
+
+New regression tests (each sub-gate both directions):
+
+- regression-1 (C1): container-down simulated by a recording fake docker on
+  PATH that fails every probe; budget-violating --range still exits 1 with
+  FAIL and the docker log stays empty (range eval never consults container
+  state).
+- regression-2: BUDGET_GATE_MODE=report does not weaken --range (exit 1,
+  FAIL, no "report active" warn line).
+- regression-3 (M2): staged growth + loosened UNSTAGED disk manifest
+  (ceiling 9999) still blocks on the STAGED ceiling 20.
+- regression-3r (M2-range): disk manifest loosened AFTER the violating
+  commit; --range still blocks on the committed ceiling 20.
+- regression-4 (M3): ~180KB normalized test file with the pattern on the
+  first line is still counted (grep -q early exit SIGPIPEs upstream tr past
+  the 64KB pipe buffer; only grep status may decide) -> blocked.
+- regression-5a (M1): RELATIVE BUDGET_PLUGIN_ROOT run from the fixture repo
+  CWD absolutizes against the checkout, still enforces (FAIL) and emits the
+  BUDGET_PLUGIN_ROOT override warn.
+- regression-6: real valid range over a clean backed refactor commit
+  (prod 20/20 shell 10/10) exits 0 with ok: scope refactor backed.
+
+Verification (repo workdir, ASCII-only per DIA-079):
+
+- budget-gate.bats: 33 pass / 1 fail, exit 1 (34 tests total).
+- make test-shell (full monolith): 1 fail only (the same regression-5b),
+  all other suites green.
+
+GATE-BUG (reported, RED until GREEN fixes; test left in battery):
+
+- regression-5b: UNRESOLVABLE BUDGET_PLUGIN_ROOT (nonexistent path or
+  non-git dir) still DISABLES the gate. Repro: repo with staged
+  plug/lib/util.ts growth (prod 25 vs committed ceiling 20) run with
+  BUDGET_PLUGIN_ROOT=no-such-plug + Budget-Scope: refactor message ->
+  actual exit 0 "ok: no scoped paths touched; budget gate skipped" (warn
+  only). The gate's own contract comment (check-budget-gate.sh, repo
+  discovery block) promises "Unresolvable override falls back to the
+  caller's checkout (fail-closed verdicts still apply per commit)", but
+  PLUGIN_ROOT stays pinned to the unresolvable path, so no staged path is
+  ever scoped and the fast path passes everything. Expected fix direction:
+  when the override does not resolve to a git tree, fall PLUGIN_ROOT back
+  to the default tree under the caller checkout (or fail closed); the M1
+  warn alone does not enforce. Per dispatch, no further cases extended past
+  this finding.
+
+Files: scripts/**tests**/budget-gate.bats, this ticket.
+
+ASCII-only per DIA-079 (no em-dashes, no smart quotes, no non-ASCII punctuation).
+
+## Re-verify -- GREEN regression-5b fix (2026-09-09, on top of df4b55c)
+
+Scope: ONE genuine GATE-BUG (regression-5b). scripts/**tests**/budget-gate.bats
+NOT edited (RED-owned). Relative-path handling (5a, green) untouched.
+
+Root cause: with BUDGET_PLUGIN_ROOT set but unresolvable, PLUGIN_ROOT stayed
+pinned to the nonexistent path, so no staged path ever scoped and the fast
+path passed everything ("no scoped paths touched") with only the M1 warn.
+
+Fix (fail-closed arm of the RED direction; fallback-to-default alone cannot
+enforce since a typo'd root still scopes nothing under the default tree):
+\_repo-discovery tracks \_PR_OK (1 only when the override resolves to a git
+tree); PLUGIN_ROOT uses \_PR only when resolved, else the default tree (keeps
+all downstream paths absolute and in-repo); eval_commit refuses BEFORE the
+fast path when the override is set-but-unresolvable ("BUDGET_PLUGIN_ROOT
+does not resolve to a git tree ... refusing to guess scope"). Hook report
+mode still softens to warn+allow per convention; range mode stays blocking.
+M1 warn line kept; unset-override and resolvable (absolute + relative)
+behavior unchanged.
+
+Verification (repo workdir, ASCII-only per DIA-079):
+battery scripts/**tests**/budget-gate.bats: 34 pass / 0 fail, exit 0
+(regression-5b now exits 1 + FAIL + warn; 5a still enforces + warns).
+verify-pre-push.bats + guards-home-qualt.bats: 15/15 pass, exit 0.
+make test-shell equivalent (full bats monolith): 630 tests, 0 not ok.
+make test-config: exit 0 (structural gates PASS).
+bash -n scripts/check-budget-gate.sh: exit 0.
+prettier --check on this ticket file: exit 0 (below).
+
+Files: scripts/check-budget-gate.sh, this ticket.
+
+ASCII-only per DIA-079 (no em-dashes, no smart quotes, no non-ASCII punctuation).
+
+## Re-verify -- GREEN fix cycle 2/2 (2026-09-09, on top of 6549060)
+
+Scope: developer-accepted items from the rev-2 re-review observations only.
+scripts/**tests**/budget-gate.bats NOT edited (RED-owned); the obs1
+regression test lives in a new GREEN-owned companion file instead.
+
+(1) [MAJOR obs1] range-mode pre-gate-history exemption: range_mode now skips
+WITH a mandatory warn line any commit whose tree lacks
+scripts/budget-baselines.json (manifest_absent_from_tree via git cat-file -e
+$EVAL_SHA:$MANIFEST_REL; guarded to in-repo manifest paths so an
+outside-repo override still fails closed). Commits whose tree HAS the
+manifest keep fail-closed behavior (missing/invalid still blocks per commit).
+New test scripts/**tests**/budget-gate-range-exemption.bats proves a range
+mixing a pre-manifest scoped refactor commit + a clean backed commit exits 0
+with the warn naming pre-gate-history (verified RED before the fix: the old
+code blocked the pre-manifest commit).
+(2) C1 ordering pins in scripts/**tests**/verify-pre-push.bats: static
+line-order pin (check-budget-gate invocation precedes the container-down
+skip message) + behavioral pin (copied hermetic hook tree, container-down
+fake docker, real violating fixture history pushed as ref lines -> exit 1
+"pre-push blocked", docker log untouched). Both proven meaningful: reverting
+the C1 move fails the behavioral pin (exit 0 skip) and the static pin.
+Latent bug found and fixed by the behavioral pin: the range read loop used
+"IFS= read", which stuffed all four ref fields into the first variable and
+skipped every pushed ref; now a bare split read (comment documents why).
+(3) scripts/verify-pre-push.sh header comment corrected (lines 9-12 area):
+offline pushes CAN be blocked by the host-local budget backstop; only the
+delegated verification steps warn-and-pass.
+(4) Ticket notes (this block): campaign-transition procedure (obs4) - a NEW
+campaign needs a new OPEN ticket first, then the manifest campaigns edit
+with a normal Budget-Scope refactor trailer (never a Budget-Exception
+bootstrap; M4 ledger binding makes the ticket resolvable before the edit
+lands). Evidence-count basis (obs6): the 630 figure is the full bats
+monolith under make test-shell (bats-wrapper default run over
+scripts/**tests**/\*.bats + .opencode/scripts suites); the 648 figure seen
+elsewhere additionally counts --quick and/or filtered invocations and the
+new files here (633 now) - always quote which runner/invocation a count
+comes from.
+(5) One-line comment in check-budget-gate.sh at TICKETS_DIR: the ledger is
+deliberately read from disk, never the evaluated tree (approvals are
+present-tense human state, not versioned history).
+
+Verification (repo workdir, ASCII-only per DIA-079):
+budget-gate.bats + budget-gate-range-exemption.bats: 35 pass / 0 fail,
+exit 0 (34 RED + 1 new exemption).
+verify-pre-push.bats + guards-home-qualt.bats: 17 pass / 0 fail, exit 0
+(13 in verify-pre-push.bats = 11 prior + 2 new C1 pins, plus 4
+guards-home-qualt = 17 total).
+make test-shell equivalent (full bats monolith): plan 1..633, 0 not ok.
+make test-config: exit 0 (structural gates PASS).
+bash -n on both touched .sh files: exit 0.
+prettier --check on this ticket file: exit 0 (.bats files have no prettier
+parser and no lint-staged rule - repo convention; they are validated by the
+bats runner itself).
+
+Files: scripts/check-budget-gate.sh, scripts/verify-pre-push.sh,
+scripts/**tests**/verify-pre-push.bats (C1 pins),
+scripts/**tests**/budget-gate-range-exemption.bats (new, GREEN-owned), this ticket.
+
+ASCII-only per DIA-079 (no em-dashes, no smart quotes, no non-ASCII punctuation).
+
+## Re-verify -- notes lane (2026-09-09, on top of 2b85757)
+
+Tiny docs/test scope; no gate behavior change except documented text.
+
+(O-3) New range-mode case in the GREEN-owned companion file
+scripts/**tests**/budget-gate-range-exemption.bats (budget-gate.bats
+untouched): a range commit whose tree HAS the manifest but MALFORMED
+(broken JSON committed alongside scoped growth) must NOT take the obs1
+exemption - it fails closed. Proves exit non-zero, no "pre-gate-history"
+skip, FAIL names the load failure. Passes on the current gate (2/2 in the
+companion file).
+(NOTE) check-budget-gate.sh usage block (header lines 13-21) now documents
+the narrow pre-gate-history exception in range mode (skip WITH warn only
+when the manifest is ABSENT from the commit tree; any present manifest keeps
+fail-closed behavior). Docs fidelity only.
+(O-1) Evidence breakdown corrected above in the cycle-2/2 block: 13 in
+verify-pre-push.bats = 11 prior + 2 new C1 pins; plus 4 guards-home-qualt =
+17 total.
+(O-2) Accepted residual risk under the obs1 ruling (skip vectors, both
+covered by the mandatory warn line, none silent): (a) a commit that DELETES
+scripts/budget-baselines.json is indistinguishable from pre-gate history -
+its tree lacks the manifest, so the exemption skips it with a warn instead
+of blocking the manifest-deleting commit; (b) an in-repo BUDGET_MANIFEST
+override pointing at a nonexistent path (e.g. BUDGET_MANIFEST=scripts/
+nonexistent.json) makes every range commit look manifest-absent, so range
+mode exempts the whole range with per-commit warns (hook mode still fails
+closed on the same override; an OUT-of-repo override path is exempt from the
+exemption and fails closed in both modes).
+(O-4) Trivial follow-up recorded (NO code fix per dispatch): the comment at
+scripts/verify-pre-push.sh:136 says "six steps" but the delegated ladder has
+run SEVEN commands since make test-omo was added (verify:format, verify:js,
+verify:js-tests, make test-config, make test-omo, verify:python, make
+test-shell). Fix the stale count/order text in a future trivial commit.
+
+Verification (repo workdir, ASCII-only per DIA-079):
+budget-gate-range-exemption.bats (GREEN-owned companion): 2 pass / 0 fail,
+exit 0 (existing exemption + new malformed-present case).
+budget-gate.bats (untouched RED battery): 34 pass / 0 fail, exit 0.
+verify-pre-push.bats + guards-home-qualt.bats: 17 pass / 0 fail, exit 0.
+make test-shell equivalent (full bats monolith): plan 1..634, 0 not ok.
+make test-config: exit 0 (structural gates PASS).
+bash -n on the touched .sh file: exit 0.
+prettier --check on this ticket file: exit 0 (the touched .bats file has no
+prettier parser / lint-staged rule; validated by the bats runner at test
+time - see the cycle-2/2 correction).
+
+Files: scripts/check-budget-gate.sh (usage text only),
+scripts/**tests**/budget-gate-range-exemption.bats (O-3 case), this ticket.
+
+ASCII-only per DIA-079 (no em-dashes, no smart quotes, no non-ASCII punctuation).
+
+## Close (2026-09-09)
+
+Closed: verified complete through 7fa7aae cycle; follow-ups: O-4 stale six-steps, retain-via-chains for tp5e/oj59/observer.

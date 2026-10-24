@@ -1,0 +1,25 @@
+{
+  "status": "done",
+  "session_id": "ses_pre_B",
+  "cycle_id": "c-ses_pre_B",
+  "timestamp": "<TIMESTAMP>",
+  "checksum": "b80977cb6a6a4a5ae85418f2380f28a61daa25fe6650610693a1b12a53a8b33c",
+  "prognosis": {
+    "resume_instructions": "resume from session B",
+    "open_tickets": [
+      "DIA-085"
+    ],
+    "fixes_applied": [
+      "fix-b"
+    ],
+    "verification_request": [
+      "bun test"
+    ],
+    "session_summary": {
+      "note": "session B summary",
+      "completed": [
+        "T4.1"
+      ]
+    }
+  }
+}

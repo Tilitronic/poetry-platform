@@ -1,0 +1,7 @@
+https://github.com/agostinilabsrl/opencode-telemetry
+https://raw.githubusercontent.com/agostinilabsrl/opencode-telemetry/main/src/commands.ts
+https://github.com/agostinilabsrl/opencode-telemetry/issues
+https://github.com/agostinilabsrl/opencode-telemetry/issues?q=is%3Aissue+command
+https://github.com/agostinilabsrl/opencode-telemetry/pulls
+https://opencode.ai/docs/plugins/
+https://opencode.ai/docs/commands/

@@ -1,0 +1,13 @@
+# Poetry Platform — rootless Podman compose override (DIA-260821-x5nj, Slice 2 / T2.1).
+#
+# Engine-specific UID/GID mapping for rootless Podman. Base docker-compose.yml
+# remains the single source of truth for volumes/ports/environment/secrets —
+# this file adds ONLY the two Podman runtime flags (no duplication).
+#
+# - userns_mode: keep-id        -> rootless Podman UID/GID mapping (res040 §2)
+# - security_opt: label=disable -> SELinux connectto denial workaround (Fedora)
+services:
+  dev:
+    userns_mode: keep-id
+    security_opt:
+      - label=disable

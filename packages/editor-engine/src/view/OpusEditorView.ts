@@ -1,4 +1,11 @@
-import { EditorView, ViewUpdate, lineNumbers, keymap, highlightWhitespace, highlightActiveLineGutter } from '@codemirror/view';
+import {
+  EditorView,
+  lineNumbers,
+  keymap,
+  highlightWhitespace,
+  highlightActiveLineGutter,
+} from '@codemirror/view';
+import type { ViewUpdate } from '@codemirror/view';
 import { EditorState } from '@codemirror/state';
 import type { Extension } from '@codemirror/state';
 import { defaultKeymap } from '@codemirror/commands';
@@ -40,8 +47,7 @@ const encyclopedicDarkTheme = EditorView.theme(
     // highlightWhitespace marks spaces with .cm-highlightSpace.
     // A small sharp radial gradient creates a crisp faint circle.
     '.cm-highlightSpace': {
-      backgroundImage:
-        'radial-gradient(circle at 50% 50%, #888 15%, transparent 16%)',
+      backgroundImage: 'radial-gradient(circle at 50% 50%, #888 15%, transparent 16%)',
     },
   },
   { dark: true },

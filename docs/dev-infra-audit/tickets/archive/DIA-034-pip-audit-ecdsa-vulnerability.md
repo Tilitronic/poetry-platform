@@ -1,0 +1,56 @@
+# DIA-034 — pip-audit finding: ecdsa 0.19.2 PYSEC-2026-1325
+
+---
+
+id: DIA-034
+title: "pip-audit finding: apps/api-server ecdsa 0.19.2 PYSEC-2026-1325 (transitive via python-jose), NO fix version"
+area: deps
+severity: Medium
+status: CLOSED
+blocked_by: []
+discovered:
+source: fix-lane
+date: 2026-08-02
+created: 2026-08-02
+updated: 2026-08-03
+
+---
+
+## Description
+
+`make audit-python` (DIA-028) surfaces one finding: `apps/api-server` resolves
+`ecdsa 0.19.2` (transitive via `python-jose`) with advisory `PYSEC-2026-1325`.
+**No fix version has been published** — the finding cannot be remediated by a bump
+or override today, so the audit gate cannot reach zero findings until upstream
+releases a patched `ecdsa` (or `python-jose` drops the vulnerable pin). Medium
+because it is a real advisory with no available fix, tracked as a monitor item.
+
+## Verification
+
+1. `make audit-python` → reports `ecdsa 0.19.2` / `PYSEC-2026-1325` for
+   `apps/api-server`.
+2. Check PyPI for a newer `ecdsa` release → none fixes the advisory.
+
+## Fix
+
+> Monitor only — no fix version published for `ecdsa` (PYSEC-2026-1325); upstream
+> (tlsfuzzer/python-ecdsa) has declared the vulnerability out of scope with no
+> planned fix, so "wait for upstream" is a dead end. Unblock condition: drop
+> `python-jose` (remove it, or migrate to PyJWT when JWT lands) and re-run
+> `make audit-python` — or an ecdsa fix release (contrary to upstream policy) is
+> published.
+
+## Re-verify
+
+> **Re-verify (2026-08-03):** advisory status unchanged — PYSEC-2026-1325 (= CVE-2024-23342 / GHSA-wj6h-64fc-37mp) still lists **no fixed version**; ecdsa 0.19.2 remains the latest PyPI release (2026-03-26) and is itself listed as affected. Upstream (tlsfuzzer/python-ecdsa) explicitly declares side-channel attacks **out of scope — no planned fix**, so "wait for upstream" is a dead end. python-jose's constraint (`ecdsa!=0.15`, python-jose 3.5.0) is permissive, but no newer ecdsa exists to satisfy it. **Actionable path (recommended for next fix lane):** api-server has no JWT implementation yet (`app/core/auth.py` is a placeholder; python-jose unused) — remove `python-jose[cryptography]` from `apps/api-server/pyproject.toml` (or migrate to PyJWT when JWT lands) to drop ecdsa and zero `make audit-python`. Until then **stays MONITOR**; the unblock condition is now "python-jose removed/migrated or an ecdsa fix release (contrary to upstream policy) published."
+
+## Disposition
+
+CLOSED 2026-08-03 (owner directive after upstream recheck). MONITOR unblock
+condition NOT met — no fixed ecdsa release (0.19.2 of 2026-03-26 still latest and
+affected); python-jose 3.5.0 unchanged; upstream will not develop side-channel
+fixes (SECURITY.md; PR #366 closed/rejected). Accept-with-justification:
+python-jose/ecdsa is UNUSED in api-server (no JWT yet), practical risk low.
+Mitigation documented: any future JWT work MUST use PyJWT[crypto] /
+python-jose[cryptography] backend (avoids vulnerable native-python ecdsa path).
+Re-open trigger: JWT work begins or a fix ships. Archived per archive policy.

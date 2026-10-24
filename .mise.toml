@@ -1,0 +1,13 @@
+# .mise.toml — Tool versions pinned for the poetry-platform dev environment.
+#
+# The versions here are derived from Dockerfile.dev ARGs. Parity enforced by
+# scripts/check-pin-sync.sh (4 comparisons). Bumping any version requires
+# updating BOTH sources:
+#   - The ARG in Dockerfile.dev
+#   - The [tools] entry below
+
+[tools]
+node = "24.18.0"
+pnpm = "10.33.0"
+opencode = "1.18.32"
+bun = "1.4.2"

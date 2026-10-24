@@ -1,0 +1,10 @@
+https://opencode.ai/docs/plugins
+https://code.claude.com/docs/en/hooks
+https://code.claude.com/docs/en/agent-sdk/session-storage
+https://www.anthropic.com/engineering/building-effective-agents
+https://github.com/open-telemetry/semantic-conventions-genai
+https://stripe.com/blog/canonical-log-lines
+https://libredevops.org/docs/documents/logging-standards/
+https://learn.microsoft.com/en-us/azure/architecture/patterns/event-sourcing
+https://docs.langchain.com/langsmith/observability-concepts
+https://contextfoundry.dev/quiet-agents.html

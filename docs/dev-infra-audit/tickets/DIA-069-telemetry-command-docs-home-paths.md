@@ -1,0 +1,127 @@
+# DIA-069 — opencode-telemetry registerCommands() rewrites command docs with literal $HOME paths
+
+<!-- Root-caused during DIA-068 investigations 2026-08-08 (ai-specialist
+     ses_0200df912ffe5VwuSwQs6bgSJ4): the recurring dirty telemetry command
+     docs (.opencode/commands/telemetry-{report,inspect}.md showing /home/qualt
+     paths) are NOT hand edits — the opencode-telemetry plugin rewrites them on
+     EVERY plugin load. Portability bug + working-tree pollution. -->
+<!-- CLOSED 2026-08-09: root cause eliminated by the plugin-removal campaign
+     (commits 4216406/0af6b6e/58cddc6) — the plugins opencode-telemetry +
+     opencode-token-monitor were removed from the configuration per developer
+     decision following the usage audit (res006-telemetry-plugin-alternatives).
+     The opencode-telemetry plugin no longer exists to rewrite command docs.
+     Status CLOSED. -->
+
+---
+
+id: DIA-069
+title: "opencode-telemetry registerCommands() rewrites command docs with literal $HOME paths"
+area: opencode-config
+severity: Major
+status: CLOSED
+blocked_by: []
+discovered: 2026-08-08
+source: ai-specialist investigation
+date: 2026-08-08
+created: 2026-08-08
+updated: 2026-08-09
+
+# --- Session Attribution (v2 schema, optional) ---
+
+session_id: "ses_0200df912ffe5VwuSwQs6bgSJ4"
+lane_id: ""
+agent: "ai-specialist"
+model: ""
+parent_session_id: ""
+attempts: 0
+lease_expires_at: ""
+files_touched: []
+artifacts: []
+evidence: ["ses_0200df912ffe5VwuSwQs6bgSJ4 (ai-specialist root-cause investigation)"]
+
+---
+
+## Description
+
+The opencode-telemetry plugin (`opencode-telemetry@0.1.19`) rewrites
+`.opencode/commands/telemetry-report.md` and
+`.opencode/commands/telemetry-inspect.md` with literal `/home/qualt` paths on
+EVERY plugin load — the committed `$HOME`-portable baseline is clobbered on
+every OpenCode start.
+
+**Root cause** (ai-specialist investigation
+ses_0200df912ffe5VwuSwQs6bgSJ4):
+
+- `~/.cache/opencode/packages/opencode-telemetry@0.1.19/node_modules/opencode-telemetry/src/commands.ts`
+  L6: `scriptsDir = path.resolve(pluginSrcDir, "..", "scripts")` — embeds an
+  absolute path.
+- L17/L29: `bun run ${JSON.stringify(path.join(scriptsDir, "report.ts"))}` —
+  absolute script path baked into the command body.
+- L33-34: unconditional `fs.writeFileSync` to
+  `.opencode/commands/telemetry-{report,inspect}.md` on EVERY plugin load
+  (`src/index.ts` L7 `registerCommands(import.meta.dir, ctx.directory)`).
+
+**Impact:**
+
+- Working-tree pollution on every OpenCode start — the recurring dirty
+  telemetry docs (`git status` shows both files modified with `/home/qualt`
+  deltas).
+- Portability break — if the repo is moved/cloned to a different path or user,
+  the rewritten docs embed a wrong absolute path.
+
+**Workaround in use (2026-08-08):** `git restore` after startup
+(`docs/tickets mechanical lane`). The package already ships portable
+`command/*.md` templates that `registerCommands()` ignores — the upstream fix
+should honor them instead of hard-coding absolute script paths.
+
+## Verification
+
+1. Restart OpenCode (plugin loads at startup).
+2. `grep '/home/qualt' .opencode/commands/telemetry-report.md .opencode/commands/telemetry-inspect.md`
+   — expected ≥1 match after startup (proves the rewrite happened).
+3. `git status --short .opencode/commands/` — both files modified.
+4. Post-fix (see Fix direction): repeat step 1; `grep '/home/qualt'` → 0
+   matches; `grep '\$HOME'` → 1 per file.
+
+## Fix
+
+**Fix direction:**
+
+- **Upstream patch (preferred):** emit portable `$HOME`/`~` form — the package
+  already ships portable `command/*.md` templates that `registerCommands()`
+  ignores; make the plugin honor them (or `path.relative` / `$HOME`-expand the
+  script path before writing).
+- **Local workaround (interim):** post-startup restore script that `git
+restores` the two command docs (already done manually by the docs lane).
+- **Fork — fragile; not recommended.**
+
+**§10 routing note:** upstream plugin change territory — per global AGENTS.md
+§10 (AI Devtools Modernization Workflow), route through @ai-specialist gate →
+design → @coder → independent review → restart + smoke.
+
+**Implemented 2026-08-08 (commit 8e75259 — interim guard + vendored plugin patch):**
+
+- **Portable baseline:** `.opencode/commands/telemetry-{report,inspect}.md` replaced with the SHIPPED portable octm-template form (verbatim copy from the package `command/*.md` — byte-identical; the new committed baseline).
+- **Restore guard:** `scripts/restore-telemetry-commands.sh` + `make restore-telemetry-commands` restores the baseline when the plugin re-pollutes (run BETWEEN restart and verification).
+- **Verify guard:** `scripts/verify-telemetry-guard.sh` + `make test-telemetry-guard` — 5 automated assertions (A1 no `/home/qualt`; A2 portable runtime-resolved form present; A3 git status clean for the two docs; A4 `make test-config` exit 0; A5 frontmatter valid YAML).
+- **Watcher ignore:** `watcher.ignore` for the two docs in `.opencode/opencode.jsonc` (removable when the upstream patch lands).
+- **Vendored plugin patch (opencode-telemetry@0.1.19, npm cache):** respect-existing guard — `src/commands.ts:41` `fs.existsSync` skip; `copyFileSync` of the shipped templates; package root passed from `index.ts`; no `writeFileSync` remains; `.bak-dia069` backups present. Cache-path volatile — durability depends on upstream merge.
+
+**Verification evidence (Phase 5):** restart-twice validation — after two developer OpenCode restarts the patched vendored plugin did NOT rewrite the two command docs (zero `/home/qualt` literals); `make test-telemetry-guard` 5/5 (A1-A5) both times WITHOUT restore; `make test-config` exit 0.
+
+**Upstream status:** PR to agostinilabsrl/opencode-telemetry NOT yet submitted; staging clone `/tmp/opencode-telemetry-upstream` LOST on host (possibly still inside the dev container; Docker unreachable from this WSL host to confirm) — patch regeneration is a separate pending step.
+
+## Re-verify
+
+**Phase 5 restart-twice (2026-08-08) — PASS, both passes:**
+
+- **Pass 1:** developer OpenCode restart → patched vendored plugin (opencode-telemetry@0.1.19) did NOT rewrite `.opencode/commands/telemetry-{report,inspect}.md` — zero `/home/qualt` literals; `make test-telemetry-guard` 5/5 (A1-A5) WITHOUT restore; `make test-config` exit 0.
+- **Pass 2:** second developer OpenCode restart → same result: zero `/home/qualt` literals; `make test-telemetry-guard` 5/5 (A1-A5) WITHOUT restore; `make test-config` exit 0.
+
+**Phase 6 @ai-auditor independent review (2026-08-08):** verdict SOUND-WITH-CAVEATS, no blockers. Confirmed: portable baseline matches shipped templates; restore guard + verify guard A1-A5 implemented and passing; watcher.ignore applied; learnings registration present; vendored patch has respect-existing guard (commands.ts:41 `fs.existsSync` skip, `copyFileSync` of shipped templates, package root passed from index.ts, no `writeFileSync` remains, `.bak-dia069` backups present). Caveats (informational, accepted): cache-path volatility of the vendored patch; watcher-ignore temporary-by-design; one-time manual restore needed for previously-polluted files (covered by `make restore-telemetry-commands`).
+
+**Deferred by developer scope decision:** DIA-070, DIA-071 (not implemented, do not reopen).
+
+1. Restart-verify: fresh session → `grep '/home/qualt' .opencode/commands/*.md`
+   → 0 matches.
+2. `git status --short .opencode/commands/` — clean after restart.

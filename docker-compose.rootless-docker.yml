@@ -1,0 +1,11 @@
+# Poetry Platform — rootless Docker compose override (DIA-260821-x5nj, Slice 2 / T2.2).
+#
+# Engine-specific UID/GID mapping for rootless Docker. Base docker-compose.yml
+# remains the single source of truth for volumes/ports/environment/secrets —
+# this file adds ONLY the rootless-Docker user mapping (no duplication).
+#
+# - user: "0:0" -> rootless Docker maps the container root to the host user
+#   (res040 §1, §4)
+services:
+  dev:
+    user: '0:0'

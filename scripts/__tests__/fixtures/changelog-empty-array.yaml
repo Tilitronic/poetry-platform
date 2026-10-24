@@ -1,0 +1,3 @@
+# Explicit empty ledger: `[]` is the valid empty-array spelling (a
+# comment-only file parses to None and fails the schema's top-level array).
+[]
