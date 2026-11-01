@@ -245,7 +245,10 @@ test-skills:
 # scripts/schemas/changelog.schema.json - the second YAML artifact under
 # contract, extension of the Deliverable-A pattern) + DIA mention format
 # gate (DIA-234: scripts/validate-dia-mentions.sh, warn-not-fail on
-# grandfathered bare references) + compose-config validation is HOST-SCOPED
+# grandfathered bare references) + model-ID catalog gate (DIA-261022-6vcz:
+# scripts/validate-model-ids.sh cross-references every dispatch-actuating
+# model ID against `opencode models`; SKIP-clean exit 0 when the catalog is
+# unavailable so a cold checkout never hard-fails) + compose-config validation is HOST-SCOPED
 # (PHASE 5: check-compose-config.sh runs host-side via verify-pre-push.sh,
 # removed from in-container test-config recipe). Invariant: test-config passes
 # iff no HARD write-capable gaps remain -- WARN-only gaps (the ~440 unlisted
@@ -267,6 +270,7 @@ test-config: test-interview test-skills test-typecheck
 	bash scripts/validate-memory-shelf.sh
 	bash scripts/validate-changelog.sh
 	bash scripts/validate-dia-mentions.sh
+	bash scripts/validate-model-ids.sh
 	bash scripts/audit-agent-tool-coverage.sh .opencode/opencode.jsonc
 	# DIA-134 item 2: persistent behavioral suite (replaces DIA-132 throwaway
 	# /tmp tests). Tracked since DIA-136 F2 - design.md DD2's gitignore rationale
