@@ -286,7 +286,22 @@
           "*": "deny",
           "knowledge/*": "allow"
         },
-        "bash": "allow",
+        "bash": {
+          // Deny-first allow-list (DIA-260827-ft3z): a trailing flat "allow"
+          // outranks the global deny list under findLast, leaving it dead.
+          // Catch-all MUST stay FIRST - if the last bash rule were
+          // {"*": "deny"}, disabled() would hide the bash tool entirely (DIA-126).
+          "*": "deny",
+          "jq *": "allow",
+          "rg *": "allow",
+          "wc *": "allow",
+          "bash scripts/data-reduce.sh *": "allow",
+          "scripts/data-reduce.sh *": "allow",
+          "scripts/session-log *": "allow",
+          // Fixed-path interpreter only: free python3 is a universal write
+          // primitive that would reopen this ticket's hole.
+          "python3 .opencode/scripts/query_rag.py *": "allow"
+        },
         "task": "deny"
       }
     },
@@ -310,7 +325,22 @@
           "*": "deny",
           "knowledge/*": "allow"
         },
-        "bash": "allow",
+        "bash": {
+          // Deny-first allow-list (DIA-260827-ft3z): a trailing flat "allow"
+          // outranks the global deny list under findLast, leaving it dead.
+          // Catch-all MUST stay FIRST - if the last bash rule were
+          // {"*": "deny"}, disabled() would hide the bash tool entirely (DIA-126).
+          "*": "deny",
+          "jq *": "allow",
+          "rg *": "allow",
+          "wc *": "allow",
+          "bash scripts/data-reduce.sh *": "allow",
+          "scripts/data-reduce.sh *": "allow",
+          "scripts/session-log *": "allow",
+          // Fixed-path interpreter only: free python3 is a universal write
+          // primitive that would reopen this ticket's hole.
+          "python3 .opencode/scripts/query_rag.py *": "allow"
+        },
         "task": "deny"
       },
       // steps cap (DIA-132): max agentic iterations before forcing text-only response.
