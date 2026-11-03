@@ -147,7 +147,7 @@ bar({'A': 10, 'B': 20, 'C': 15}, title='Distribution')
 
 ## termatplotlib (Python) — 28 Chart Types, Zero Deps
 
-Most comprehensive terminal charting library. CLI tool included (`termtplotlib`). Supports log axes, error bars, themes.
+Most comprehensive terminal charting library. CLI tool included (`termatplotlib`). Supports log axes, error bars, themes.
 
 ```python
 python -c "
@@ -199,7 +199,7 @@ sparkline = ''.join('▁▂▃▄▅▆▇█'[int(v * 7 / max(series))] for v i
 | Scatter plots / correlations | **Plotext scatter()** | termatplotlib | Already installed |
 | Histograms / distributions | **Plotext hist()** | termatplotlib | Already installed |
 | Heatmap / confusion matrix | **termplotx heatmap()** | shade-glyph `░▒▓█` | Has NO_COLOR fallback to shade glyphs |
-| Comprehensive charts (28 types) | **termplotlib** | Plotext | One lib for many chart types |
+| Comprehensive charts (28 types) | **termatplotlib** | Plotext | One lib for many chart types |
 | Sparklines (inline trends) | **Unicode block mapping** `▁▂▃▄▅▆▇█` | asciichartpy inline | ~10 lines, drops into chat |
 | Tabular data, comparison matrices | **Rich table** (`show_lines=True`) | markdown table | Terminal-native, styled columns |
 | Hierarchies / taxonomies | **Rich tree** | ASCII tree inline | Indented structure |

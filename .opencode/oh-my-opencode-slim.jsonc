@@ -41,7 +41,6 @@
           "teaching",
           "book-rag",
           "mermaid-diagramming",
-          "console-charting",
           "domain-grilling"
         ],
         "mcps": [],
@@ -112,7 +111,6 @@
           "book-rag",
           "openspec-explore",
           "mermaid-diagramming",
-          "console-charting",
           "data-reducer",
           "debugging-workflow"
         ],
@@ -236,7 +234,6 @@
           "book-rag",
           "openspec-explore",
           "mermaid-diagramming",
-          "console-charting",
           "data-reducer",
           "debugging-workflow"
         ],
@@ -279,14 +276,14 @@
       "analyzer": {
         "model": "openai/gpt-5.6-terra",
         "variant": "medium",
-        "skills": ["teaching", "book-rag", "openspec-explore", "mermaid-diagramming", "console-charting", "data-reducer", "debugging-workflow"],
+        "skills": ["teaching", "book-rag", "openspec-explore", "mermaid-diagramming", "data-reducer", "debugging-workflow"],
         "mcps": ["websearch"]
       },
       "architector": {
         "model": "openai/gpt-5.6-sol",
         "variant": "medium",
         "temperature": 0.1,
-        "skills": ["teaching", "book-rag", "mermaid-diagramming", "console-charting", "domain-grilling"],
+        "skills": ["teaching", "book-rag", "mermaid-diagramming", "domain-grilling"],
         "mcps": [],
         "options": {"reasoningEffort": "high", "thinking": {"type": "enabled"}}
       },
@@ -300,7 +297,7 @@
       "analyzer-escalated": {
         "model": "openai/gpt-5.6-sol",
         "variant": "high",
-        "skills": ["teaching", "book-rag", "openspec-explore", "mermaid-diagramming", "console-charting", "data-reducer", "debugging-workflow"],
+        "skills": ["teaching", "book-rag", "openspec-explore", "mermaid-diagramming", "data-reducer", "debugging-workflow"],
         "mcps": ["websearch"]
       },
       "ai-specialist": {"model": "openai/gpt-5.6-terra", "variant": "high", "skills": ["teaching"], "mcps": ["websearch"]},
