@@ -13,10 +13,13 @@
 #
 # Isolation: each test builds a hermetic fixture tree under $BATS_TEST_TMPDIR
 # and points the validator at it via the MODEL_IDS_ROOT env override - the
-# real project config is never touched (the invalid case is a FIXTURE, not an
-# injection into the real config). A fake `opencode` on PATH serves a canned
-# 4-model catalog so cases (a)/(b) do not depend on the live CLI; case (c)
-# runs with a PATH on which opencode cannot resolve at all.
+# real project config is never touched (every invalid case is a FIXTURE, not
+# an injection into the real config). A fake `opencode` on PATH serves a
+# canned 4-model catalog so the pass/fail cases do not depend on the live
+# CLI; the skip case runs with a PATH on which opencode cannot resolve at
+# all. Negative cases (dead fallback at index >= 1, dead scalar, missing
+# prefix, missing source file, comment stripping, typo'd vs allowlisted
+# provider) pin each failure class from the DIA-261022-6vcz audit.
 
 load test-helper
 
@@ -44,12 +47,14 @@ FAKE
   export PATH
 }
 
-# write_fixture <name> <primary-id>: minimal fixture tree whose preset array
-# element 0 is <primary-id> (the ID under test). Element 1, the council seat,
-# and the opencode.jsonc agent entry are always valid canned-catalog IDs, so
-# a pass means element 0 validated too, and a fail isolates exactly element 0.
+# write_fixture <name> <id> [id2]: minimal fixture tree whose preset array
+# element 0 is <id> (the ID under test); element 1 defaults to a valid
+# canned-catalog ID and may be overridden via the optional third arg (dead
+# fallback at index >= 1). The council seat and the opencode.jsonc agent
+# entry are always valid canned-catalog IDs, so a pass means the non-target
+# slots validated too, and a fail isolates exactly the target slot.
 write_fixture() {
-  local name="$1" id="$2"
+  local name="$1" id="$2" id2="${3:-opencode-go/mimo-v2.6-flash}"
   local tree="$BATS_TEST_TMPDIR/$name"
   mkdir -p "$tree/.opencode"
   cat > "$tree/.opencode/oh-my-opencode-slim.jsonc" <<JSONC
@@ -59,7 +64,7 @@ write_fixture() {
       "architector": {
         "model": [
           "$id",
-          "opencode-go/mimo-v2.6-flash"
+          "$id2"
         ]
       }
     }
@@ -123,4 +128,169 @@ JSONC
 
   assert_status 0
   assert_output_contains "SKIPPED: opencode models unavailable"
+}
+
+# --- Negative cases pinning the failure classes (DIA-261022-6vcz audit) -------
+# The historical incident was SEVEN dead fallback slots; element-0-only
+# coverage let dead IDs at index >= 1 slip through. Each case below uses the
+# same hermetic fixture style (fake opencode + MODEL_IDS_ROOT tree) - the
+# real project config is never touched.
+
+@test "validate-model-ids: dead fallback ID at array index 1 exits 1" {
+  install_fake_opencode
+  # opencode-go/deepseek-v4-flash is the historical dead ID, absent from the
+  # canned catalog but on a KNOWN provider (dead-ID path, not typo path).
+  local tree
+  tree="$(write_fixture deadfallback opencode-go/gemini-4-argon opencode-go/deepseek-v4-flash)"
+
+  MODEL_IDS_ROOT="$tree" run bash "$VALIDATOR"
+
+  assert_status 1
+  assert_output_contains "FAIL:"
+  assert_output_contains "opencode-go/deepseek-v4-flash"
+  assert_output_contains "3 passed, 1 failed"
+}
+
+@test "validate-model-ids: dead single-line scalar model entry exits 1" {
+  install_fake_opencode
+  local tree="$BATS_TEST_TMPDIR/deadscalar"
+  mkdir -p "$tree/.opencode"
+  cat > "$tree/.opencode/oh-my-opencode-slim.jsonc" <<JSONC
+{
+  "council": {
+    "presets": {
+      "default": {
+        "deepseek": { "model": "opencode-go/gemini-4-argon-contributor" }
+      }
+    }
+  }
+}
+JSONC
+  cat > "$tree/.opencode/opencode.jsonc" <<JSONC
+{
+  "agent": { "coder": { "model": "opencode-go/deepseek-v4.1-flash" } }
+}
+JSONC
+
+  MODEL_IDS_ROOT="$tree" run bash "$VALIDATOR"
+
+  assert_status 1
+  assert_output_contains "FAIL:"
+  assert_output_contains "opencode-go/gemini-4-argon-contributor"
+  assert_output_contains "1 passed, 1 failed"
+}
+
+@test "validate-model-ids: model ID with no provider prefix fails" {
+  install_fake_opencode
+  local tree
+  tree="$(write_fixture noprefix mimo-v2.6-flash)"
+
+  MODEL_IDS_ROOT="$tree" run bash "$VALIDATOR"
+
+  assert_status 1
+  assert_output_contains "has no provider prefix"
+  assert_output_contains "'mimo-v2.6-flash'"
+  assert_output_contains "3 passed, 1 failed"
+}
+
+@test "validate-model-ids: missing watched config file exits 2" {
+  install_fake_opencode
+  local tree="$BATS_TEST_TMPDIR/missingcfg"
+  mkdir -p "$tree/.opencode"
+  # slim present; opencode.jsonc deliberately absent.
+  cat > "$tree/.opencode/oh-my-opencode-slim.jsonc" <<JSONC
+{
+  "council": {
+    "presets": {
+      "default": {
+        "deepseek": { "model": "opencode-go/deepseek-v4.1-flash" }
+      }
+    }
+  }
+}
+JSONC
+
+  MODEL_IDS_ROOT="$tree" run bash "$VALIDATOR"
+
+  assert_status 2
+  assert_output_contains "missing source"
+  assert_output_contains "opencode.jsonc"
+}
+
+@test "validate-model-ids: inline // and /* */ comments neither hide a dead ID nor leak quoted strings" {
+  install_fake_opencode
+  local tree="$BATS_TEST_TMPDIR/commented"
+  mkdir -p "$tree/.opencode"
+  # A dead ID with a trailing inline // comment must still be checked; the
+  # quoted IDs inside the comment and inside the block comment must NOT be
+  # extracted (they are absent from the canned catalog, so any leak would
+  # add a second FAIL and break the exact-count assertions below).
+  cat > "$tree/.opencode/oh-my-opencode-slim.jsonc" <<JSONC
+{
+  "presets": {
+    "fixture": {
+      "architector": {
+        "model": [
+          "opencode-go/gemini-4-argon",
+          "opencode-go/deepseek-v4-flash", // "opencode-go/not-a-real-model" inline comment
+          /* "opencode-go/block-comment-dead" block comment */
+          "opencode-go/mimo-v2.6-flash"
+        ]
+      }
+    }
+  },
+  "council": {
+    "presets": {
+      "default": {
+        "deepseek": { "model": "opencode-go/deepseek-v4.1-flash" }
+      }
+    }
+  }
+}
+JSONC
+  cat > "$tree/.opencode/opencode.jsonc" <<JSONC
+{
+  "agent": { "coder": { "model": "opencode-go/deepseek-v4.1-flash" } }
+}
+JSONC
+
+  MODEL_IDS_ROOT="$tree" run bash "$VALIDATOR"
+
+  assert_status 1
+  assert_output_contains "opencode-go/deepseek-v4-flash"
+  # Exactly one failure: the comment-quoted IDs contributed nothing.
+  assert_output_contains "4 passed, 1 failed"
+  assert_output_not_contains "not-a-real-model"
+  assert_output_not_contains "block-comment-dead"
+}
+
+@test "validate-model-ids: typo'd provider prefix FAILS (not the old warn path)" {
+  install_fake_opencode
+  # opencode-goo is a typo of opencode-go: provider absent AND not allowlisted
+  # -> hard failure (the pre-audit behavior was warn + exit 0).
+  local tree
+  tree="$(write_fixture typo opencode-goo/gemini-4-argon)"
+
+  MODEL_IDS_ROOT="$tree" run bash "$VALIDATOR"
+
+  assert_status 1
+  assert_output_contains "FAIL:"
+  assert_output_contains "'opencode-goo/gemini-4-argon'"
+  assert_output_contains "opencode-goo"
+  assert_output_not_contains "unverifiable"
+  assert_output_contains "3 passed, 1 failed"
+}
+
+@test "validate-model-ids: allowlisted github-copilot seat stays WARN + exit 0" {
+  install_fake_opencode
+  local tree
+  tree="$(write_fixture copilot github-copilot/gpt-5.3-codex)"
+
+  MODEL_IDS_ROOT="$tree" run bash "$VALIDATOR"
+
+  assert_status 0
+  assert_output_contains "warn:"
+  assert_output_contains "github-copilot"
+  assert_output_not_contains "FAIL:"
+  assert_output_contains "3 passed, 0 failed"
 }

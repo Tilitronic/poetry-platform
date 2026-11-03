@@ -42,3 +42,9 @@ date: 2026-10-22
 ## Outcome
 
 - Registered 2026-10-22; fixes applied same day per DIA-261022-6vcz (see ticket Fix section + CHANGELOG entry). Full longcat/mimo-v2.6-pro registry pricing/benchmark entries pending a separate gate.
+
+## CORRECTION (2026-11-01, DIA-260827-ft3z)
+
+- The `opencode-go/gemini-4-argon-contributor` slug recorded in this file (F7, F8, F9) is DEAD as of 2026-11-01; the live standard ID is `opencode-go/gemini-4-argon`.
+- The Contributor-tier training/retention claims recorded above (F7: trains on prompts/completions, NOT-ZDR) describe a tier that is NOT the one in use. The standard-tier training and retention terms are UNVERIFIED pending developer re-confirmation.
+- The prices recorded above are the Contributor-tier ones ($4.00/$20.00 per 1M input/output, cache read $0.20); they are superseded by the current half-price standard tier ($2.00/$10.00, cache read $0.10).

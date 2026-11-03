@@ -21,9 +21,9 @@ models:
     req_per_month: 130000  # ESTIMATE under 4x promo ($60 bucket, ends 2026-09-27)
     swe_bench_verified: null  # no archived benchmark yet - benchmark conspect pending (separate ticket)
     source_ref: "DIA-260827-bry9 gate 2026-09-17 (Go-exclusive); promo verified 2026-09-20 from https://opencode.ai/docs/go/"
-    lane: ["orchestrator", "openspec-plan", "reviewer", "ai-specialist", "analyzer", "coder-escalated", "analyzer-escalated"]  # DIA-260929-wjir 2026-09-29: analyzer added (from qwen3.8-flash); architector + ai-auditor now on opencode-go/grok-4.7 (were kimi-k3 per DIA-260927-s1gd).
+    lane: ["orchestrator", "openspec-plan", "reviewer", "ai-specialist", "analyzer", "coder-escalated", "analyzer-escalated"]  # DIA-260929-wjir 2026-09-29: analyzer added (from qwen3.8-flash); architector + ai-auditor now on opencode-go/gemini-4-argon (DIA-261022-6vcz; were kimi-k3 per DIA-260927-s1gd).
     fallback: ["opencode-go/mimo-v2.5", "opencode-go/deepseek-v4-flash"]
-    quota_notes: "4x promo: $60/130,000 req/mo, ends 2026-09-27 (verified from opencode.ai/docs/go/ 2026-09-20); post-promo: $15/32,500 req/mo ($0.15/$0.60). mimo-balanced reasoning lanes (orchestrator/openspec-plan/reviewer/ai-specialist/analyzer) + coder-escalated/analyzer-escalated (architector + ai-auditor moved to opencode-go/grok-4.7, DIA-260929-wjir). Fallback chain: mimo-v2.5 (volume) + deepseek-v4-flash (non-promo reasoning)."
+    quota_notes: "4x promo: $60/130,000 req/mo, ends 2026-09-27 (verified from opencode.ai/docs/go/ 2026-09-20); post-promo: $15/32,500 req/mo ($0.15/$0.60). mimo-balanced reasoning lanes (orchestrator/openspec-plan/reviewer/ai-specialist/analyzer) + coder-escalated/analyzer-escalated (architector + ai-auditor moved to opencode-go/gemini-4-argon, DIA-261022-6vcz). Fallback chain: mimo-v2.5 (volume) + deepseek-v4-flash (non-promo reasoning)."
     active: true
 
   - model_id: "mimo-v2.5"
