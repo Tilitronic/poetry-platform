@@ -11,7 +11,7 @@ metadata:
 
 **When to use Mermaid vs console text diagrams:**
 - **Use Mermaid** for diagrams with >7 elements, C4 architecture boundaries, sequence diagrams with alt/par/loop, or when the output will be rendered by VS Code/GitHub/docs site.
-- **Use console text** (Rich tree, PHART, hascii, ASCII inline via the `console-charting` skill) for ≤7 elements, quick sketches in chat/terminal, simple hierarchies, or any plain-text context.
+- **Use console text** (Rich tree, PHART, hascii, ASCII inline) for ≤7 elements, quick sketches in chat/terminal, simple hierarchies, or any plain-text context.
 - **Rule of thumb:** If it needs subgraphs, boundaries, or branching with >2 paths → Mermaid. If it fits in one terminal screen as a tree or ASCII box → console text.
 
 ## Diagram Type Selection

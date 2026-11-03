@@ -386,6 +386,7 @@
 | DIA-261023-fuvx | validate-plugin-structure Gate A does not enumerate newer lib helpers (envelope-gate, routing-gate) | scripts | Minor | OPEN | [DIA-261023-fuvx-validate-plugin-structure-gate-a-does-not-enumerate-newer-lib-helpers-envelope-gate-routing-gate.md](DIA-261023-fuvx-validate-plugin-structure-gate-a-does-not-enumerate-newer-lib-helpers-envelope-gate-routing-gate.md) |
 | DIA-261023-jdx3 | budget gate: re-baseline the plugin LOC ceilings and own the refactor campaign | scripts | Medium | OPEN | [DIA-261023-jdx3-budget-gate-re-baseline-the-plugin-loc-ceilings-and-own-the-refactor-campaign.md](DIA-261023-jdx3-budget-gate-re-baseline-the-plugin-loc-ceilings-and-own-the-refactor-campaign.md) |
 | DIA-261023-kkjr | deliver the reviewer git envelope post-spawn instead of mutating the task args | opencode-config | Medium | OPEN | [DIA-261023-kkjr-deliver-the-reviewer-git-envelope-post-spawn-instead-of-mutating-the-task-args.md](DIA-261023-kkjr-deliver-the-reviewer-git-envelope-post-spawn-instead-of-mutating-the-task-args.md) |
+| DIA-261103-bxj0 | de-scope console-charting from agent skill lists; fix termatplotlib naming in the skill | scripts | Medium | FIXED | [DIA-261103-bxj0-de-scope-console-charting-from-agent-skill-lists-fix-termatplotlib-naming-in-the-skill.md](DIA-261103-bxj0-de-scope-console-charting-from-agent-skill-lists-fix-termatplotlib-naming-in-the-skill.md) |
 
 ## Status summary
 
@@ -394,7 +395,7 @@
 | Blocker  | 9     |
 | Critical | 16    |
 | Major    | 88    |
-| Medium   | 208   |
+| Medium   | 209   |
 | Minor    | 2     |
 | Low      | 39    |
 | Info     | 2     |
@@ -408,7 +409,7 @@
 | E2E         | 0     |
 | DEFERRED    | 1     |
 | MONITOR     | 1     |
-| FIXED       | 1     |
+| FIXED       | 2     |
 | IMPLEMENTED | 2     |
 | VERIFIED    | 29    |
 | CLOSED      | 232   |

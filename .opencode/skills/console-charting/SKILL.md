@@ -218,7 +218,7 @@ sparkline = ''.join('▁▂▃▄▅▆▇█'[int(v * 7 / max(series))] for v i
 | **asciichartpy** | ✅ Installed | `pip install asciichartpy` |
 | **termgraph** | ✅ Installed | `pip install termgraph` |
 | **termplotx** | ✅ Installed | `pip install termplotx` |
-| **termatplotlib** | ✅ Installed | `pip install termatplotlib` |
+| **termatplotlib** | ⬜ Optional | `pip install termatplotlib` |
 | **PHART** | ⬜ Optional | `pip install phart` (adds NetworkX) |
 | **hascii** | ⬜ Optional | `pip install hascii` |
 | **textcharts** | ⬜ Optional | `pip install textcharts` |
