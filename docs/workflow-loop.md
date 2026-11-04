@@ -19,7 +19,6 @@
 | #   | Tool                  | Type  | Purpose                                          | Status       |
 | --- | --------------------- | ----- | ------------------------------------------------ | ------------ |
 | 1   | `mermaid-diagramming` | Skill | Architecture diagrams (C4, sequence, flowcharts) | ✅ ESSENTIAL |
-| 2   | `teaching`            | Skill | Explain WHY in ADRs (skip if <3 sentences)       | ✅ ESSENTIAL |
 
 ## ② OpenSpec
 
@@ -53,11 +52,10 @@ Break the idea into specific features. Write specs for each feature. Each featur
 
 **Coder (Mode 2)** implements code. Tests become **green** (passing).
 
-| Tool                 | Type  | Purpose                             | Status          | Architector Review                                                                                                                                                                     |
-| -------------------- | ----- | ----------------------------------- | --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `tdd-craftsman`      | Skill | Polyglot RED-GREEN-REFACTOR TDD     | ✅ ESSENTIAL    | Визначає GREEN constraints: мінімальний код, без speculative features, verification gates (test → typecheck → lint → build → ASan). Ownership checkpoint: "one-line rationale comment" |
-| `teaching`           | Skill | Pedagogical explanation of patterns | 🔶 Nice-to-have | Якщо implementer не розуміє WHY. Але ownership checkpoint ("one-line rationale comment") вже покриває це — якщо не можеш написати одне речення, не розумієш достатньо                  |
-| `playwright-browser` | Skill | Browser automation for E2E testing  | 🔶 Nice-to-have | Тільки для browser-based features (React, CM6 extensions). Для Python/Rust/C++ packages — ні. Per skill itself: "For unit/integration tests, use tdd-craftsman instead"                |
+| Tool                 | Type  | Purpose                            | Status          | Architector Review                                                                                                                                                                     |
+| -------------------- | ----- | ---------------------------------- | --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `tdd-craftsman`      | Skill | Polyglot RED-GREEN-REFACTOR TDD    | ✅ ESSENTIAL    | Визначає GREEN constraints: мінімальний код, без speculative features, verification gates (test → typecheck → lint → build → ASan). Ownership checkpoint: "one-line rationale comment" |
+| `playwright-browser` | Skill | Browser automation for E2E testing | 🔶 Nice-to-have | Тільки для browser-based features (React, CM6 extensions). Для Python/Rust/C++ packages — ні. Per skill itself: "For unit/integration tests, use tdd-craftsman instead"                |
 
 ## ④ Review
 
@@ -69,8 +67,6 @@ Break the idea into specific features. Write specs for each feature. Each featur
 | Tool                               | Type  | Purpose                     | Status            | Architector Review                                                                                                                                                        |
 | ---------------------------------- | ----- | --------------------------- | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `reflect`                          | Skill | Review recent work patterns | ✅ ESSENTIAL      | Для покращення самого процесу Review. Виявляє workflow-level issues (наприклад, "reviewer consistently misses type bugs"). One = code, other = process                    |
-| `teaching`                         | Skill | Pedagogical feedback        | 🔶 Nice-to-have   | Pedagogical feedback для junior devs. Too verbose для senior. book-rag для верифікації, teaching для пояснення                                                            |
-| `book-rag`                         | Skill | Grounded review via RAG     | 🔶 Nice-to-have   | Для верифікації чи pattern є anti-pattern. Requires textbooks loaded. Complementary до teaching                                                                           |
 | 🆕 Correctness/Security/Perf tools | Skill | Bug/security/perf detection | 🆕 MISSING (HIGH) | Two-axis review не перевіряє bugs, security vulnerabilities, performance issues. Review incomplete без них. Потрібні: correctness oracle, security scanner, perf profiler |
 
 ## ⑤ Debug and Fix

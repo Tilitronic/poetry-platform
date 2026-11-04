@@ -25,24 +25,24 @@ repo.
 
 ### Project-pinned skills (22)
 
-These resolve in this repo regardless of where the repo is cloned or run. Five
-skills (`tdd-craftsman`, `teaching`, `mermaid-diagramming`, `console-charting`)
+These resolve in this repo regardless of where the repo is cloned or run. Three
+skills (`tdd-craftsman`, `mermaid-diagramming`, `console-charting`)
 were **pinned at project level** from the global tree on 2026-08-11
 so they load in CI / containers / other machines without this user's home
-directory. Four overlapping skills (`book-rag`, `debugging-workflow`,
+directory. Three overlapping skills (`debugging-workflow`,
 `git-diff`, `playwright-browser`) keep **project copies only** — the global
 copies were deleted so the project versions load (the global copy of
 `debugging-workflow` referenced disabled agents and shadowed the project
 version — DIA-084 URGENT fix).
 
 ```
-book-rag, code-review-fowler, console-charting, data-reducer,
+code-review-fowler, console-charting, data-reducer,
 debugging-workflow, domain-grilling, git-diff, git-permissions,
 mermaid-diagramming, openspec-apply-change, openspec-archive-change,
 openspec-explore, openspec-propose, openspec-sync-specs,
-openspec-update-change, playwright-browser, research-pipeline,
-resolving-merge-conflicts, review-re-verify, tdd-craftsman,
-teaching, to-tickets
+openspec-update-change, playwright-browser, promo-review,
+research-pipeline, resolving-merge-conflicts, resume-truncated-lane,
+review-re-verify, tdd-craftsman, to-tickets
 ```
 
 ### Global-only skills (9, accepted as non-load-bearing)

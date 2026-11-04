@@ -7,7 +7,7 @@ Last updated: 2026-08-26
 ## Knowledge Sources
 
 - **Dynamic experience:** This directory (`.opencode/learnings/`)
-- **Static curated literature:** `book-rag` skill (`#rag` queries)
+- **Static curated literature:** none — the RAG-backed skill that served this role was deleted under DIA-260827-ft3z after zero recorded loads
 
 ## External Patterns
 

@@ -37,7 +37,13 @@ File-based commands under the commands directory resolve as `/name`;
 inline `command` objects in the config are the only registry that could
 back a "registered in opencode.json(c)" claim, and `rag` is absent there.
 
-## Approved correction (for coder lane, NOT applied here)
+## Approved correction (for coder lane, NOT applied here - SUPERSEDED 2026-11-04)
+
+> **Superseded (DIA-260827-ft3z):** the correction target no longer exists.
+> `.opencode/skills/book-rag/`, `.opencode/commands/rag.md` and
+> `.opencode/scripts/query_rag.py` were all deleted, so there is nothing left
+> to correct and nothing for a coder lane to apply. The text below is kept as
+> history only - it is not a standing instruction.
 
 In `.opencode/skills/book-rag/SKILL.md` lines 41-43, replace:
 
@@ -57,5 +63,6 @@ configs, tickets, changelog, or memory-shelf.
 
 ## Outcome
 
-REGISTERED 2026-09-10. Awaiting coder fix lane + ai-auditor review per
-AGENTS.md section 2.5 steps 4-6. No code changed in this step.
+REGISTERED 2026-09-10. The coder fix lane never ran - the whole surface was
+deleted under DIA-260827-ft3z (2026-11-04) instead, so the finding is closed
+as moot. No code was ever changed under it.

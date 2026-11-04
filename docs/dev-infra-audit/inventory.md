@@ -63,9 +63,9 @@ dev-stack.sh (host bootstrap: .env from example → docker-info gate → compose
 - .opencode/practice-protected.md: 4 zones (spec authoring, TDD edge cases, architector decisions, review disposition) + 3-tier permission classification + ownership tracking.
 - .opencode/memory-shelf.yaml: res001 conspect, ana002/ana004 analyses, 1 ADR, spec context7-docs-pipeline (implemented).
 - .opencode/agents/memory-manager.md: writes adr.md/lessons.md/repo.md/failures.md.
-- .opencode/commands/: opsx-propose/new/continue/update/sync/apply/archive/explore + rag + telemetry-inspect/telemetry-report.
-- .opencode/skills/ (15): book-rag, console-charting, debugging-workflow, frontend-design, git-diff, mermaid-diagramming, openspec-apply-change/archive-change/explore/propose/sync-specs/update-change, playwright-browser, teaching, writing-skills.
-- .opencode/scripts/: validate-opencode-config.sh (make test-config), query_rag.py, test_query_rag.py.
+- .opencode/commands/: frontier, opsx-propose/new/continue/update/sync/apply/archive/explore.
+- .opencode/skills/ (22): code-review-fowler, console-charting, data-reducer, debugging-workflow, domain-grilling, git-diff, git-permissions, mermaid-diagramming, openspec-apply-change/archive-change/explore/propose/sync-specs/update-change, playwright-browser, promo-review, research-pipeline, resolving-merge-conflicts, resume-truncated-lane, review-re-verify, tdd-craftsman, to-tickets.
+- .opencode/scripts/: validate-opencode-config.sh, validate-skills.sh (make test-config / test-skills), jsonl-stats.sh, jsonl-cross-check.sh, test_query_rag.py.
 - .opencode/CHANGELOG.md: 2026-08-02 context7 MCP fix, P1–P9/N1–N5 config audit, orchestrator-first default, cebula cleanup, interview-first enforcement.
 
 ## 9. Test Infrastructure

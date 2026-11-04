@@ -56,7 +56,7 @@ All agents fall into one of three permission tiers. New agents must declare thei
 | Tier | Permissions | Produces | Examples |
 |------|------------|----------|----------|
 | **pure-analyst** | `read_files` only | Output in conversation only | architector, ai-specialist, reviewer |
-| **artifact-producer** | Write+Bash, scoped to `knowledge/` (researcher also writes `.opencode/oh-my-opencode-slim/knowledge/*`) | Structured reports, conspects, analyses | analyzer, conspecter, researcher, openspec-plan |
+| **artifact-producer** | Write to `knowledge/` only, no shell (researcher also writes `.opencode/oh-my-opencode-slim/knowledge/*`; shell is granted per agent, never as a tier capability) | Structured reports, conspects, analyses | analyzer, conspecter, researcher, openspec-plan |
 | **executor** | Full Write+Bash | Implementation, refactoring, scribe work | coder, designer |
 
 **Rule:** If a pure-analyst agent's output needs to be persisted as a file, the

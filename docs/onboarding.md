@@ -146,13 +146,11 @@ Skills are like **cookbook recipes** the AI follows to the letter.
 | `openspec-explore`        | Project (`.opencode/skills/`) | Thinking-partner mode for exploring ideas/requirements            |
 | `openspec-archive-change` | Project (`.opencode/skills/`) | Archive a completed change                                        |
 | `openspec-sync-specs`     | Project (`.opencode/skills/`) | Sync delta specs to main specs                                    |
-| `book-rag`                | Project (`.opencode/skills/`) | Query local engineering textbooks via OpenWebUI RAG               |
 | `console-charting`        | Project (`.opencode/skills/`) | Terminal charts/tables for data-driven reports                    |
 | `debugging-workflow`      | Project (`.opencode/skills/`) | Language-specific debugging tools and techniques                  |
 | `git-diff`                | Project (`.opencode/skills/`) | Inject current git status + diff context                          |
 | `mermaid-diagramming`     | Project (`.opencode/skills/`) | Mermaid diagram best practices                                    |
 | `playwright-browser`      | Project (`.opencode/skills/`) | Browser automation for acceptance/E2E tests                       |
-| `teaching`                | Project (`.opencode/skills/`) | Pedagogical explanations (mental models, worked examples)         |
 
 **Why skills instead of just telling the AI?** The AI can "forget" a step or take shortcuts. Skills are structured documents it must follow — they make the workflow repeatable and auditable.
 
@@ -337,7 +335,7 @@ poetry-platform-monorepo/
 │   ├── agents/                 Project-specific agent prompt overrides
 │   ├── commands/               Project-specific AI commands (Ctrl+K)
 │   ├── skills/                 Project-specific AI skills (22)
-│   ├── scripts/                Python bridge scripts (query_rag.py)
+│   ├── scripts/                Config/skill validators and session-log helpers
 │   └── memory-shelf.yaml       Central index of RAG KBs, conspects, specs
 ├── apps/
 │   ├── author-studio/          Vue 3 / Quasar SPA

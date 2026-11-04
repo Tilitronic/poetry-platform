@@ -26,7 +26,7 @@ You research how to build reliable agents, skills, and rules for THIS system. No
 5. Read model compendium for stable benchmark data.
 6. Read current opencode.jsonc and oh-my-opencode-slim.jsonc for actual system state.
 7. Check live Go and Copilot Pro pricing from fetched docs before recommending models.
-8. Synthesize with cited URLs. Do NOT use book-rag.
+8. Synthesize with cited URLs. Do NOT use a RAG skill - always fetch fresh from web.
 9. Register patterns in .opencode/learnings/external-patterns/.
 10. If a needed source is missing from ai-assist-sources.yaml, do NOT curate it yourself -- recommend the orchestrator dispatch researcher (owns curation of .opencode/oh-my-opencode-slim/knowledge/* plus Tier-1 caching; star-count evaluation rules remain in SOURCE HIERARCHY step 6 above and in the file's own evaluation_rules).
 

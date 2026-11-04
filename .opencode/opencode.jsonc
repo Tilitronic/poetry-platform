@@ -293,7 +293,7 @@
           "knowledge/*": "allow"
         },
         // DIA-260827-ft3z: bash is denied OUTRIGHT - zero allow rules, so the
-        // lane cannot run jq, rg, wc, scripts/data-reduce.sh, query_rag.py or
+        // lane cannot run jq, rg, wc, scripts/data-reduce.sh or
         // any openspec subcommand. Flat string form, same shape architector /
         // reviewer / orchestrator already use for a no-shell lane. The old
         // deny-first object and its ordering rules left with the allowlist.
@@ -324,7 +324,7 @@
           "knowledge/*": "allow"
         },
         // DIA-260827-ft3z: bash is denied OUTRIGHT - zero allow rules, so the
-        // lane cannot run jq, rg, wc, scripts/data-reduce.sh, query_rag.py or
+        // lane cannot run jq, rg, wc, scripts/data-reduce.sh or
         // any openspec subcommand. Flat string form, same shape architector /
         // reviewer / orchestrator already use for a no-shell lane. The old
         // deny-first object and its ordering rules left with the allowlist.

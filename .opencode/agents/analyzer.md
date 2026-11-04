@@ -20,8 +20,8 @@ Your permission contract in `.opencode/opencode.jsonc` is **artifact-producer**:
 edit: knowledge/* (allow), else deny
 bash: deny - deny-first with no allow rules, so this lane has no shell at
       all (DIA-260827-ft3z closed the write-scope class outright instead of
-      narrowing it again: jq, rg, wc, scripts/data-reduce.sh,
-      query_rag.py and every openspec subcommand are gone)
+      narrowing it again: jq, rg, wc, scripts/data-reduce.sh and every
+      openspec subcommand are gone)
 task: deny
 ```
 
