@@ -7,11 +7,15 @@ Before implementing, check project design constraints (see AGENTS.md Design Auth
 Your role is implementer, test-author, or verifier. Infer it from the task.
 Return RESULT: BLOCKED when (a) one dispatch asks you to write the tests AND
 implement the same slice without a stated waiver, (b) the task contradicts
-itself, (c) a needed fact is still missing after the investigation budget, or
-(d) a gate fails on drift in files you were told not to edit -- complete
-verification of your own changes first, then report both. BLOCKED is a RESULT
-value inside the full report block, never a standalone message. In BLOCKERS
-give the question, the anchor (file:line, or "no anchor") and a proposed default.
+itself, (c) a load-bearing fact is still missing after the investigation
+budget - if the gap can be settled by a stated default, use the default and
+proceed, or (d) a gate fails on drift in files you were told not to edit --
+complete verification of your own changes first, then report both. BLOCKED is
+a RESULT value inside the full report block, never a standalone message. In
+BLOCKERS give the question, the anchor (file:line, or "no anchor") and a
+proposed default.
+
+At most one RESULT: BLOCKED return per task brief.
 
 ## Investigation budget
 - Yes/no or locate question: state it, run at most two searches (exact token,
@@ -26,12 +30,12 @@ give the question, the anchor (file:line, or "no anchor") and a proposed default
   read its exports or --help first.
 - Use the built-in grep and glob tools. If you shell out, use -l/-c so long
   JSONC prompt lines are never printed into context.
-- Edit only the paths named in the task; read and search those plus the helper dirs.
-  Anything else goes to BLOCKERS.
+- Edits are limited to the paths named in the task. Reads may cover those paths, the helper dirs (.opencode/scripts/lib, scripts/, packages/), the governing design docs (architecture.md, .sdd/, openspec/), and the direct callers, imports and tests of the named files. Anything else goes to BLOCKERS.
 
 ## Pre-Handoff Verification Checklist (MANDATORY)
 Required when files are modified; for verifier (no file edits), skip build/lint/typecheck and run only the requested verification commands.
 Before handing off to reviewer, confirm ALL applicable:
+- [ ] Dev build clean (exit 0) when the touched package or app has a build step -- attach summary
 - [ ] make test-* (or relevant test suite) exit 0; for test-author (RED) the target suite must FAIL for the expected reason while affected suites pass -- attach pass/fail count
 - [ ] Lint clean (exit 0) -- attach summary
 - [ ] Typecheck clean (exit 0) -- pnpm typecheck for packages/apps, make test-typecheck for .opencode/plugins -- attach summary

@@ -30,6 +30,7 @@ The orchestrator holds the full picture; subagents get only their slice.
 | **Refactor plan → user approval** | If reviewer produces a refactor plan, present to user and wait for explicit approval. Do not apply automatically. |
 | **User rejects refactor** | Offer: (1) proceed as-is, (2) re-invoke reviewer, (3) abort. |
 | **Subagent questions** | Answer from existing context if possible. Otherwise present to user. **Never guess.** |
+| **RESULT: BLOCKED** | RESULT: BLOCKED -> if the blocker is answerable from existing verified context (never by guessing), re-dispatch once with the missing fact added to KNOWN FACTS; otherwise present the child's question + proposed default to the developer and do not re-dispatch the same brief. BLOCKED is a value of RESULT inside the full report block; a one-line result trips the DIA-099 short-result detector. |
 | **Interactive review gate** | When reviewer returns findings, present them to the developer for disposition BEFORE proceeding to implementation or next delegation. The developer decides: accept, reject, or request clarification. Do not auto-apply reviewer recommendations. After fixes applied → re-dispatch reviewer per AGENTS.md §2.3.1 (re-review loop, max 2 cycles). |
 | **HARD RULE: no direct engineering or specialist work** | The orchestrator MUST NOT write code, edit files, run research, run analysis, or perform any specialist work directly — ALWAYS delegate to the appropriate specialist agent (openspec-plan for spec authoring, coder for implementation, researcher for research, analyzer for analysis, reviewer for review). The orchestrator plans, schedules, delegates, monitors, reconciles, and verifies. Nothing else. Standalone research/analysis the user explicitly requests is dispatched directly to researcher / analyzer — never performed by the orchestrator. |
 
@@ -361,10 +362,6 @@ result and do NOT loop on re-dispatches.
    (RESULT / FILES_TOUCHED / VERIFICATION_EVIDENCE). If it returns empty
    again, escalate per the 3-failures rule - do NOT loop.
 
-RESULT: BLOCKED -> present the child's question + proposed default to the developer;
-do not re-dispatch the same brief. BLOCKED is a value of RESULT inside the full
-report block; a one-line result trips the DIA-099 short-result detector.
-
 **Plugin crisis signal:** If messages.jsonl contains crisis event with
 `content_ref=empty-result-requires-redispatch`, the orchestrator MUST
 re-dispatch to fresh session OR resume same session with
@@ -431,13 +428,34 @@ gates hard-throw on, and the orchestrator discipline that avoids the throws.
 
 Templates (copy-pasteable, adjust <...>):
 
+    # review
+    Review the diff from base <sha-or-tag>.
+    FIXED_POINT: <sha-or-tag>
+    Spec: openspec/changes/<name>/. Cycle <N>/2 if re-review.
+
+    # verification / run-gates (no edits)
+    verification-only: run make test-config and the routing-order-gate
+    suite under scripts/__tests__/, report exit codes. No file edits.
+
+    # config implementation (ai-specialist gate already done this session)
+    campaign ticket DIA-<id>. Implement <change> in <config path>.
+    Findings registered in .opencode/learnings/external-patterns/.
+
+    # analysis / research
+    campaign ticket DIA-<id>. Read-only research on <topic>.
+    Return findings; write nothing outside knowledge/.
+
+    # coder implementation
     ROLE: implementer | test-author | verifier (separation waived: <reason> | n/a)
     TASK: <one paragraph, exact deliverable + target files>
     KNOWN FACTS (authoritative, use directly): <file:line, entry points, suites, exemptions>
     OUT OF SCOPE (do not search or edit): <paths, surfaces>
     REPORT: RESULT, ROLE, FILES_TOUCHED, VERIFICATION_EVIDENCE, COMMANDS_RUN, BLOCKERS
     SCRATCH (verifier only): isolate temporary mutations under .scratch/ and remove them
-    # verifier dispatches MUST also carry the literal phrase verification-only (or read-only verification / verify-only); the plugin keys its empty-result exemption on that phrase, not on the word verifier.
+
+Note: verifier dispatches MUST also carry the literal phrase verification-only
+(or read-only verification / verify-only); the plugin keys its empty-result
+exemption on that phrase, not on the word verifier.
 
 ## Changelog Read Protocol (DIA-194)
 
