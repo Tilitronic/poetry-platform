@@ -37,7 +37,7 @@ does not fetch subject content itself.
 
 ## Execution Requirements
 
-**Step 0 — Acquire pedagogical grounding (always run first):**
+**Step 0 — Acquire pedagogical grounding (UNAVAILABLE unless your lane can run `python3`):**
 
 Query the `#teaching` knowledge base to retrieve relevant didactic strategies,
 worked-example patterns, or notional machine templates for the topic at hand.
@@ -46,8 +46,17 @@ worked-example patterns, or notional machine templates for the topic at hand.
 python3 .opencode/scripts/query_rag.py "#teaching <topic or concept>"
 ```
 
+> **Availability (DIA-260827-ft3z):** the step needs a `bash` map that admits
+> `python3`. Every lane assigned this skill is in that denial now (orchestrator,
+> architector, ai-specialist, ai-auditor, analyzer, analyzer-escalated on flat
+> `bash: deny`; openspec-plan allows `openspec *` only), so do NOT attempt the
+> call in lane — skip Step 0 and work from the source priority below, or ask the
+> orchestrator to run the query in a `python3`-allow lane (coder) and pass the
+> results back.
+
 Use the results to inform your choice of examples, analogies, and scaffolding
-structure throughout the explanation.
+structure throughout the explanation (when Step 0 ran; otherwise start from the
+source priority below).
 
 > **Source priority for subject matter (caller's responsibility, not this skill's):**
 > 1. Curated knowledge bases (`book-rag`) — preferred; hand-picked, high-quality

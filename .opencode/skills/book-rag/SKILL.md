@@ -42,11 +42,15 @@ Prefer the `/rag` OpenCode slash command, defined by .opencode/commands/rag.md i
 of calling the script directly. It passes flags like `--list` / `--books` / `--stats`
 through to the script. Use direct bash calls only when the command is unavailable.
 
-> **Subagent lanes (analyzer / analyzer-escalated):** their bash allowlist
-> permits exactly one invocation form, the fixed path from the repo root:
-> `python3 .opencode/scripts/query_rag.py <args>`. The `rag <args>`
-> shorthand and the relative `python3 ../../scripts/query_rag.py` form
-> below are NOT available to them (DIA-260827-ft3z).
+> **Who can run this (DIA-260827-ft3z):** execution needs a `bash` map that
+> admits `python3`. The lanes that hold this skill — orchestrator, architector,
+> reviewer — all have `bash: deny`, and `/rag` ends in the same
+> `python3 .opencode/scripts/query_rag.py` call, so no skill-holder can execute
+> it in lane today; the analyzer lanes no longer hold the skill at all (their
+> shell was removed). Route the query through the orchestrator: it hands the
+> fixed-path call to a `python3`-allow lane (coder) and returns the answer.
+> The `rag <args>` shorthand and the relative `python3 ../../scripts/query_rag.py`
+> form are unavailable to every subagent lane.
 
 ---
 
@@ -353,10 +357,9 @@ User query received with #rag or #tag
   ```bash
   python3 .opencode/scripts/query_rag.py "#csc OOP"
   ```
-- **Linux / macOS:** Use `python3` and the relative path from the skill base:
-  ```bash
-  python3 ../../scripts/query_rag.py "#csc OOP"
-  ```
+  (Only a lane whose `bash` map admits `python3` can run this; the relative
+  `python3 ../../scripts/query_rag.py` variant was removed — no lane may run
+  it. Human-only otherwise, DIA-260827-ft3z.)
 - **Authentication:** The script supports two auth methods:
   1. **API key:** Set `OPENWEBUI_API_KEY` env var (not currently configured — developer must set this).
   2. **JWT auto-minting:** Reads OpenWebUI's `.key` file to forge an admin token (requires PyJWT).

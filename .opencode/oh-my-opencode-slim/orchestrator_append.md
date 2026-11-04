@@ -473,17 +473,18 @@ block actually allows bash + read of the ledger - in the current config
 bash map whose `python3 *` allow admits the lookup directly, not merely the
 global "*": allow baseline) or coder-escalated (the same map). NOT eligible:
 designer or memory-manager - neither declares a bash key, so their bash
-resolves to the global "*": allow baseline, an open over-grant tracked as
-deferred permission drift under DIA-261006-ldfs (the id cited by the designer
-config comment in .opencode/opencode.jsonc). Listing them as lookup lanes
+resolves to the global "*": allow baseline, an open over-grant tracked under
+DIA-260827-ld2l ("memory-manager and designer over-granted permissions";
+DIA-261006-ldfs is only the deferral origin, and the id the designer config
+comment in .opencode/opencode.jsonc cites). Listing them as lookup lanes
 would entrench that bug and break the moment it is fixed, so they stay off
 this list until their maps are closed. NOT eligible: read-only lanes with
 bash: "deny" (code-navigator, reviewer, observer, conspecter, council,
-ai-specialist, ai-auditor). Also NOT eligible: analyzer and
-analyzer-escalated - their enumerated bash map allows jq, rg, wc, the
-data-reduce wrapper, the fixed-path query_rag.py helper and four read-only
-openspec subcommands, but no free python3, so the lookup below fails
-deterministically there (DIA-260827-ft3z). The orchestrator dispatches
+ai-specialist, ai-auditor, architector) - none can run python3. NOT
+eligible: openspec-plan - its deny-first map admits `openspec *` only, no
+free python3. Also NOT eligible: analyzer and analyzer-escalated - their
+bash is denied outright (no shell at all since DIA-260827-ft3z), so the
+lookup below fails deterministically there. The orchestrator dispatches
 the exact query below, the lane runs it and returns only the matching
 entry text. The orchestrator never pastes the full file into a prompt; it
 only forwards the query + ticket id.

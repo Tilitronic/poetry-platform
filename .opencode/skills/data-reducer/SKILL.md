@@ -36,9 +36,10 @@ through the script.
 
 ## Worker options (chosen per data shape)
 
-For the WIRED lanes (analyzer / analyzer-escalated, DIA-260826-6mhy) the
-grant holds no interpreter and no project-script command, so only these
-options are usable there — use them and the wrapper:
+For a lane whose grant holds no interpreter and no project-script command
+(the narrow shape analyzer / analyzer-escalated carried under DIA-260826-6mhy)
+only these options are usable — and since DIA-260827-ft3z those two lanes hold
+no shell at all, so they run neither these nor the wrapper:
 
 - `jq` — JSON / JSONL shapes: projection, selection, aggregation.
 - `rg` — line-oriented logs: filtering, counting, context extraction.
@@ -46,9 +47,13 @@ options are usable there — use them and the wrapper:
 - `scripts/data-reduce.sh` — the wrapper above, which meters any of the
   three and prints the savings line.
 
+**Where reduction happens now:** a no-shell lane never reduces itself. A
+bash-allow lane (coder / coder-escalated) runs the reduction and passes only
+the compact result to the analyzer lane.
+
 Lanes WITH interpreter / project-script access (coder and other bash-allow
-lanes — explicitly NOT the wired analyzer lanes, so these do not apply
-here):
+lanes — explicitly NOT the analyzer lanes, which have no shell at all, so
+these do not apply there):
 
 - `python3` — aggregation, filtering, JSON/CSV parsing, statistics. Use
   `python3 -c '...'` reading `sys.stdin`, or a reducer script file
@@ -63,7 +68,8 @@ here):
 > file because `python3 - <<PY` feeds the SCRIPT via stdin, which collides
 > with the data also needing stdin — the data and the script cannot share
 > the same stream. Like the python3 bullet above, this is an
-> interpreter-lane option and does not apply to the wired analyzer lanes.
+> interpreter-lane option and does not apply to the analyzer lanes — they
+> hold no interpreter, and after DIA-260827-ft3z no shell at all.
 
 ## Output contract
 
@@ -94,11 +100,16 @@ capture.
 
 ## Applicability (which lanes)
 
-Worker lanes that can actually run a reducer: **coder / analyzer /
-analyzer-escalated**. The reduction runs IN the worker (the orchestrator has
+Worker lanes that can actually run a reducer: **coder / coder-escalated, i.e.
+any bash-allow lane**. The reduction runs IN the worker (the orchestrator has
 bash denied) and only the small result returns to the orchestrator.
-code-navigator has no bash at all and researcher's bash is allow-listed to
-curl / wget / trafilatura / crwl only - neither can run one, so neither is a
-worker lane for this skill.
+analyzer / analyzer-escalated lost their shell outright (DIA-260827-ft3z:
+jq, rg, wc and the wrapper are all gone), so they RECEIVE reductions, they do
+not run them. code-navigator has no bash at all and researcher's bash is
+allow-listed to curl / wget / trafilatura / crwl only - none of the three is
+a worker lane for this skill.
 
-Currently wired: analyzer / analyzer-escalated only (DIA-260826-6mhy).
+Currently wired: no lane (the former wiring, analyzer / analyzer-escalated
+under DIA-260826-6mhy, ended with their shell). The orchestrator routes an
+oversized input to a bash-allow lane for reduction before dispatching it to
+a no-shell lane.
