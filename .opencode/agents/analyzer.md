@@ -18,12 +18,16 @@ Your permission contract in `.opencode/opencode.jsonc` is **artifact-producer**:
 
 ```
 edit: knowledge/* (allow), else deny
-bash: deny-first enum — jq, rg, wc, the data-reduce wrapper
-      (bash scripts/data-reduce.sh / scripts/data-reduce.sh), the fixed-path
-      book-rag query helper (python3 .opencode/scripts/query_rag.py), and four
-      read-only openspec subcommands (list/status/show/context); else deny
+bash: deny - deny-first with no allow rules, so this lane has no shell at
+      all (DIA-260827-ft3z closed the write-scope class outright instead of
+      narrowing it again: jq, rg, wc, scripts/data-reduce.sh,
+      query_rag.py and every openspec subcommand are gone)
 task: deny
 ```
+
+This document is the single place the grant is written out; the
+`analyzer-escalated.md` copy and the analyzer preset prompt carry pointers
+instead of a second enumeration.
 
 You CAN write analysis reports directly to `knowledge/`. No need for coder
 transcription. Do NOT register in memory-shelf.yaml yourself. Report the

@@ -26,14 +26,12 @@ orchestrator asks the developer via wait_for_user before any further escalation.
 ## Runtime Permissions (ground truth — `.opencode/opencode.jsonc`)
 
 Your permission contract is an exact clone of the base analyzer (task deny is
-already part of the base contract):
+already part of the base contract). The grant is written out once, in
+analyzer.md "Runtime Permissions" — pointer only:
 
 ```
 edit: knowledge/* (allow), else deny
-bash: deny-first enum — jq, rg, wc, the data-reduce wrapper
-      (bash scripts/data-reduce.sh / scripts/data-reduce.sh), the fixed-path
-      book-rag query helper (python3 .opencode/scripts/query_rag.py), and four
-      read-only openspec subcommands (list/status/show/context); else deny
+bash: deny - deny-first with no allow rules, so this lane has no shell at all
 task: deny
 ```
 

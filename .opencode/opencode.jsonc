@@ -276,10 +276,14 @@
     },
     // analyzer — artifact-producer tier (DIA-057/F3 fix).
     // Writes analysis reports to knowledge/<type><id>-<topic>/
-    // shelf registration delegated to @memory-manager (DIA-143). Bash is an
-    // enumerated deny-first contract (jq/rg/wc, the data-reduce wrapper, the
-    // fixed-path book-rag query helper, four read-only openspec subcommands);
-    // edit scoped to output dirs only.
+    // shelf registration delegated to @memory-manager (DIA-143).
+    // bash: deny - this lane has NO shell at all (DIA-260827-ft3z). This is
+    // the closure of the write-scope class, not another narrowing: the
+    // deny-first enum (jq/rg/wc, data-reduce wrapper, fixed-path query_rag.py,
+    // four read-only openspec subcommands) was abandoned rather than extended,
+    // on measured grounds recorded in
+    // .opencode/learnings/external-patterns/2026-11-01-permission-pattern-semantics-and-three-analyzer-map-defects.md.
+    // edit scoped to output dirs only; task denied.
     "analyzer": {
       "mode": "subagent",
       "color": "#14B8A6",
@@ -288,62 +292,12 @@
           "*": "deny",
           "knowledge/*": "allow"
         },
-        "bash": {
-          // Enumerated deny-first contract (DIA-260827-ft3z): a trailing flat
-          // "allow" outranks the global deny list under findLast, leaving it
-          // dead. Catch-all MUST stay FIRST - if the last bash rule were
-          // {"*": "deny"}, disabled() would hide the bash tool entirely (DIA-126).
-          // The four openspec subcommands are the read-only subset these
-          // lanes use (list/status/show/context); the openspec-explore skill
-          // body exercises list and status, and the writing subcommands stay
-          // denied. scripts/session-log
-          // was removed: neither this lane's skills nor its prompt names it,
-          // and its --output path is a pure write grant that buys nothing.
-          // The coder map was deliberately NOT borrowed: it is an
-          // implementation lane's map with write-capable commands and would
-          // over-grant this artifact lane.
-          "*": "deny",
-          "jq *": "allow",
-          "rg *": "allow",
-          "wc *": "allow",
-          "bash scripts/data-reduce.sh *": "allow",
-          "scripts/data-reduce.sh *": "allow",
-          // Fixed-path interpreter only: free python3 is a universal write
-          // primitive that would reopen this ticket's hole.
-          "python3 .opencode/scripts/query_rag.py *": "allow",
-          // Bare + starred openspec forms both exist on purpose (F7b): under
-          // whole-value wildcard matching the star REQUIRES a trailing
-          // argument, so bare `openspec list` would fall through to the
-          // catch-all deny while every document says these four read-only
-          // subcommands are available. Keep both spellings.
-          "openspec list": "allow",
-          "openspec list *": "allow",
-          "openspec status": "allow",
-          "openspec status *": "allow",
-          "openspec show": "allow",
-          "openspec show *": "allow",
-          "openspec context": "allow",
-          "openspec context *": "allow",
-          // rg preprocessor deny block (S1, DIA-260827-ft3z): these MUST stay
-          // AFTER the "rg *" allow above - permission resolution is
-          // last-match-wins, so a deny placed before the allow is shadowed
-          // and worthless. Both spellings per flag are required and are NOT
-          // redundant: with whole-value wildcard matching, `rg --pre bash x`
-          // does not match "rg * --pre *" (nothing precedes the flag) and
-          // `rg -n --pre bash x` does not match "rg --pre *" - so they cover
-          // flag-first AND mid-command positions, space-separated AND
-          // `=`-separated. Known false positive (accepted trade for a
-          // security deny): a search ITSELF containing the text " --pre "
-          // is blocked too.
-          "rg --pre *": "deny",
-          "rg --pre=*": "deny",
-          "rg * --pre *": "deny",
-          "rg * --pre=*": "deny",
-          "rg --pre-glob *": "deny",
-          "rg --pre-glob=*": "deny",
-          "rg * --pre-glob *": "deny",
-          "rg * --pre-glob=*": "deny"
-        },
+        // DIA-260827-ft3z: bash is denied OUTRIGHT - zero allow rules, so the
+        // lane cannot run jq, rg, wc, scripts/data-reduce.sh, query_rag.py or
+        // any openspec subcommand. Flat string form, same shape architector /
+        // reviewer / orchestrator already use for a no-shell lane. The old
+        // deny-first object and its ordering rules left with the allowlist.
+        "bash": "deny",
         "task": "deny"
       }
     },
@@ -355,7 +309,8 @@
     // still works (S2 orchestrator allow-list includes it). Permissions are an
     // exact clone of the base analyzer (edit scoped to knowledge/* only,
     // shelf registration delegated to @memory-manager (DIA-162 sole-writer
-    // invariant), bash enumerated deny-first contract, task deny). After
+    // invariant), bash denied outright with no allow rules - no shell at all,
+    // DIA-260827-ft3z - task deny). After
     // producing output, routes back to the base analyzer/reviewer for normal
     // flow.
     "analyzer-escalated": {
@@ -368,59 +323,12 @@
           "*": "deny",
           "knowledge/*": "allow"
         },
-        "bash": {
-          // Enumerated deny-first contract (DIA-260827-ft3z), exact clone of
-          // the base analyzer map above: a trailing flat "allow" outranks the
-          // global deny list under findLast, leaving it dead. Catch-all MUST
-          // stay FIRST - if the last bash rule were {"*": "deny"},
-          // disabled() would hide the bash tool entirely (DIA-126).
-          // openspec list/status/show/context are the read-only subset
-          // these lanes use (the openspec-explore skill body exercises
-          // list and status); scripts/session-log was removed
-          // (unreferenced by these lanes, pure write grant); the coder map was
-          // deliberately NOT borrowed (write-capable, would over-grant).
-          "*": "deny",
-          "jq *": "allow",
-          "rg *": "allow",
-          "wc *": "allow",
-          "bash scripts/data-reduce.sh *": "allow",
-          "scripts/data-reduce.sh *": "allow",
-          // Fixed-path interpreter only: free python3 is a universal write
-          // primitive that would reopen this ticket's hole.
-          "python3 .opencode/scripts/query_rag.py *": "allow",
-          // Bare + starred openspec forms both exist on purpose (F7b): under
-          // whole-value wildcard matching the star REQUIRES a trailing
-          // argument, so bare `openspec list` would fall through to the
-          // catch-all deny while every document says these four read-only
-          // subcommands are available. Keep both spellings.
-          "openspec list": "allow",
-          "openspec list *": "allow",
-          "openspec status": "allow",
-          "openspec status *": "allow",
-          "openspec show": "allow",
-          "openspec show *": "allow",
-          "openspec context": "allow",
-          "openspec context *": "allow",
-          // rg preprocessor deny block (S1, DIA-260827-ft3z): these MUST stay
-          // AFTER the "rg *" allow above - permission resolution is
-          // last-match-wins, so a deny placed before the allow is shadowed
-          // and worthless. Both spellings per flag are required and are NOT
-          // redundant: with whole-value wildcard matching, `rg --pre bash x`
-          // does not match "rg * --pre *" (nothing precedes the flag) and
-          // `rg -n --pre bash x` does not match "rg --pre *" - so they cover
-          // flag-first AND mid-command positions, space-separated AND
-          // `=`-separated. Known false positive (accepted trade for a
-          // security deny): a search ITSELF containing the text " --pre "
-          // is blocked too.
-          "rg --pre *": "deny",
-          "rg --pre=*": "deny",
-          "rg * --pre *": "deny",
-          "rg * --pre=*": "deny",
-          "rg --pre-glob *": "deny",
-          "rg --pre-glob=*": "deny",
-          "rg * --pre-glob *": "deny",
-          "rg * --pre-glob=*": "deny"
-        },
+        // DIA-260827-ft3z: bash is denied OUTRIGHT - zero allow rules, so the
+        // lane cannot run jq, rg, wc, scripts/data-reduce.sh, query_rag.py or
+        // any openspec subcommand. Flat string form, same shape architector /
+        // reviewer / orchestrator already use for a no-shell lane. The old
+        // deny-first object and its ordering rules left with the allowlist.
+        "bash": "deny",
         "task": "deny"
       },
       // steps cap (DIA-132): max agentic iterations before forcing text-only response.
