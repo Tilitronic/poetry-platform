@@ -388,7 +388,7 @@
 | DIA-261023-kkjr | deliver the reviewer git envelope post-spawn instead of mutating the task args | opencode-config | Medium | OPEN | [DIA-261023-kkjr-deliver-the-reviewer-git-envelope-post-spawn-instead-of-mutating-the-task-args.md](DIA-261023-kkjr-deliver-the-reviewer-git-envelope-post-spawn-instead-of-mutating-the-task-args.md) |
 | DIA-261103-bxj0 | de-scope console-charting from agent skill lists; fix termatplotlib naming in the skill | scripts | Medium | FIXED | [DIA-261103-bxj0-de-scope-console-charting-from-agent-skill-lists-fix-termatplotlib-naming-in-the-skill.md](DIA-261103-bxj0-de-scope-console-charting-from-agent-skill-lists-fix-termatplotlib-naming-in-the-skill.md) |
 | DIA-261104-dexw | Coder lane contract hardening: bounded investigation, role-scoped checklist, explicit BLOCKED path | opencode-config | Major | CLOSED | [DIA-261104-dexw-coder-lane-contract-hardening-bounded-investigation-role-scoped-checklist-explicit-blocked-path.md](DIA-261104-dexw-coder-lane-contract-hardening-bounded-investigation-role-scoped-checklist-explicit-blocked-path.md) |
-| DIA-261104-xw9y | Check B doc-drift gate misses the OMO prompt-override directory | opencode-config | Major | OPEN | [DIA-261104-xw9y-check-b-doc-drift-gate-misses-the-omo-prompt-override-directory.md](DIA-261104-xw9y-check-b-doc-drift-gate-misses-the-omo-prompt-override-directory.md) |
+| DIA-261104-xw9y | Check B doc-drift gate misses the OMO prompt-override directory | opencode-config | Major | CLOSED | [DIA-261104-xw9y-check-b-doc-drift-gate-misses-the-omo-prompt-override-directory.md](DIA-261104-xw9y-check-b-doc-drift-gate-misses-the-omo-prompt-override-directory.md) |
 
 ## Status summary
 
@@ -405,7 +405,7 @@
 
 | Status      | Count |
 | ----------- | ----- |
-| OPEN        | 103   |
+| OPEN        | 102   |
 | DONE        | 15    |
 | VALIDATE    | 0     |
 | E2E         | 0     |
@@ -414,7 +414,7 @@
 | FIXED       | 2     |
 | IMPLEMENTED | 2     |
 | VERIFIED    | 29    |
-| CLOSED      | 233   |
+| CLOSED      | 234   |
 | BLOCKED     | 0     |
 | DISPATCHED  | 0     |
 | RUNNING     | 0     |
