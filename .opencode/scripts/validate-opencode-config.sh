@@ -5,8 +5,10 @@
 # JSON.parse rejects all three, so we strip comments and trailing commas with a
 # small char-level tokenizer that respects string literals — naive regex
 # stripping would corrupt URLs such as https://... inside the config.
-# The tokenizer lives in lib/jsonc-parse.js, shared with the coder/coder-
-# escalated permission lockstep check below (DIA-260825-nts7 fix-all F2).
+# The tokenizer lives in lib/jsonc-parse.js, shared with the permission
+# lockstep check (coder + analyzer base/escalated pairs, DIA-260825-nts7 F2 +
+# DIA-260827-ft3z check A) and the deny-first doc-contract check
+# (DIA-260827-ft3z check B).
 #
 # Exit codes: 0 all valid, 1 validation failure, 2 node unavailable.
 set -euo pipefail
@@ -43,12 +45,22 @@ for file in "${FILES[@]}"; do
   fi
 done
 
-# --- coder / coder-escalated permission lockstep (DIA-260825-nts7 F2) --------
-# coder-escalated is documented in opencode.jsonc as an exact clone of the
-# base coder permission map plus task-related keys. Nothing enforced that and
-# the maps drifted (reviewer finding). Fail test-config on any drift so the
-# next clone edit cannot silently diverge.
+# --- permission lockstep (DIA-260825-nts7 F2, DIA-260827-ft3z check A) -------
+# coder-escalated is documented as an exact clone of the base coder permission
+# map plus task-related keys; analyzer-escalated is documented as an exact
+# clone of base analyzer. Neither was enforced and the coder maps already
+# drifted (reviewer finding). Fail test-config on any drift so the next clone
+# edit cannot silently diverge.
 if ! node "$LIB" --lockstep "$ROOT/.opencode/opencode.jsonc"; then
+  failures=$((failures + 1))
+fi
+
+# --- deny-first doc contract (DIA-260827-ft3z check B) ------------------------
+# Every agent whose configured bash map is deny-first must not claim a flat
+# allow in its docs: .opencode/agents/<name>.md (if present) and the agent's
+# orchestratorPrompt in oh-my-opencode-slim.jsonc (if present). Drift class
+# seen twice in one session; no gate compared these surfaces before.
+if ! node "$LIB" --doc-drift "$ROOT/.opencode/opencode.jsonc"; then
   failures=$((failures + 1))
 fi
 

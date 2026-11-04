@@ -9,12 +9,24 @@
 # was retired because its unanchored whole-file substring grep went false-green
 # on a commented-out prerequisite and false-red on a harmless reorder).
 #
-# The validators themselves are unit-tested hermetically in
-# validate-agent-names.bats / validate-handoff.bats; this suite only guards the
+# The other config validators are unit-tested hermetically in
+# validate-agent-names.bats / validate-handoff.bats; this suite guards the
 # Makefile wiring seam so a future edit cannot silently drop the validators
-# (or the typecheck) from the config gate.
+# (or the typecheck) from the config gate. DIA-260827-ft3z adds behavioral
+# coverage for validate-opencode-config.sh itself - the --lockstep permission-
+# clone gate (coder + analyzer base/escalated pairs) and the --doc-drift
+# deny-first doc-contract gate - because no dedicated
+# validate-opencode-config.bats exists; fixtures live under $BATS_TEST_TMPDIR
+# and the real repo config is exercised by the passing-gate test.
 
 load test-helper
+
+# DIA-260827-ft3z: the behavioral tests below run the validator library with
+# node. Resolve it up front and skip with a clear message when absent (same
+# contract as overnight.bats).
+NODE_BIN="$(command -v node || true)"
+LIB="$REPO_ROOT/.opencode/scripts/lib/jsonc-parse.js"
+VALIDATOR="$REPO_ROOT/.opencode/scripts/validate-opencode-config.sh"
 
 @test "test-config wiring: Makefile references both new validators" {
   # Each new validator must appear in the test-config target body. The recipe
@@ -61,4 +73,134 @@ load test-helper
   phony_line="$(grep -F '.PHONY:' "$REPO_ROOT/Makefile")"
   run grep -Fq 'test-typecheck' <<<"$phony_line"
   [ "$status" -eq 0 ]
+}
+
+# ---------------------------------------------------------------------------
+# DIA-260827-ft3z: validator behavior - permission lockstep (check A) and
+# deny-first doc contract (check B). Every failure case builds a MUTATED
+# fixture under $BATS_TEST_TMPDIR and asserts the validator exits 1 with an
+# actionable message; the clean-fixture and real-config tests assert exit 0.
+# ---------------------------------------------------------------------------
+
+@test "validator: analyzer vs analyzer-escalated permission divergence fails lockstep (DIA-260827-ft3z)" {
+  [ -n "$NODE_BIN" ] || skip "node is required to run jsonc-parse.js"
+  local tree="$BATS_TEST_TMPDIR/lockstep-diverge"
+  mkdir -p "$tree/.opencode"
+  cat > "$tree/.opencode/opencode.jsonc" <<'JSONC'
+{
+  "agent": {
+    "coder": { "permission": { "doom_loop": "deny", "task": "deny", "bash": { "*": "deny" } } },
+    "coder-escalated": { "permission": { "doom_loop": "deny", "bash": { "*": "deny" }, "task": "deny" } },
+    "analyzer": { "permission": { "edit": { "*": "deny", "knowledge/*": "allow" }, "bash": { "*": "deny", "jq *": "allow" }, "task": "deny" } },
+    "analyzer-escalated": { "permission": { "edit": { "*": "deny", "knowledge/*": "allow" }, "bash": { "*": "deny", "rg *": "allow" }, "task": "deny" } }
+  }
+}
+JSONC
+  run "$NODE_BIN" "$LIB" --lockstep "$tree/.opencode/opencode.jsonc"
+  assert_status 1
+  # names both agents and the differing path inside the permission object
+  assert_output_contains "analyzer / analyzer-escalated permission lockstep broken"
+  assert_output_contains "value differs at bash"
+  # the coder pair in the same fixture is clean - the failure stays isolated
+  assert_output_not_contains "coder / coder-escalated permission lockstep broken"
+}
+
+@test "validator: deny-first agent md claiming bash: allow fails doc-drift (DIA-260827-ft3z)" {
+  [ -n "$NODE_BIN" ] || skip "node is required to run jsonc-parse.js"
+  local tree="$BATS_TEST_TMPDIR/doc-md-forbidden"
+  mkdir -p "$tree/.opencode/agents"
+  cat > "$tree/.opencode/opencode.jsonc" <<'JSONC'
+{ "agent": { "analyzer": { "permission": { "bash": { "*": "deny", "jq *": "allow" } } } } }
+JSONC
+  cat > "$tree/.opencode/agents/analyzer.md" <<'MD'
+# analyzer
+This prose claims bash: allow for the jq, rg, wc enum.
+MD
+  run "$NODE_BIN" "$LIB" --doc-drift "$tree/.opencode/opencode.jsonc"
+  assert_status 1
+  assert_output_contains "deny-first doc contract drift"
+  assert_output_contains "analyzer.md:2"
+  assert_output_contains "bash: allow"
+}
+
+@test "validator: deny-first orchestratorPrompt claiming Mermaid CLI fails doc-drift (DIA-260827-ft3z)" {
+  [ -n "$NODE_BIN" ] || skip "node is required to run jsonc-parse.js"
+  local tree="$BATS_TEST_TMPDIR/doc-prompt-forbidden"
+  mkdir -p "$tree/.opencode/agents"
+  cat > "$tree/.opencode/opencode.jsonc" <<'JSONC'
+{ "agent": { "analyzer": { "permission": { "bash": { "*": "deny", "jq *": "allow" } } } } }
+JSONC
+  cat > "$tree/.opencode/oh-my-opencode-slim.jsonc" <<'JSONC'
+{ "agents": { "analyzer": { "orchestratorPrompt": "analyzer\n- renders diagrams with Mermaid CLI" } } }
+JSONC
+  run "$NODE_BIN" "$LIB" --doc-drift "$tree/.opencode/opencode.jsonc"
+  assert_status 1
+  assert_output_contains "deny-first doc contract drift"
+  assert_output_contains "agents.analyzer.orchestratorPrompt"
+  assert_output_contains "Mermaid CLI"
+}
+
+@test "validator: clean fixture tree passes lockstep and doc-drift (DIA-260827-ft3z)" {
+  [ -n "$NODE_BIN" ] || skip "node is required to run jsonc-parse.js"
+  local tree="$BATS_TEST_TMPDIR/clean-fixture"
+  mkdir -p "$tree/.opencode/agents"
+  cat > "$tree/.opencode/opencode.jsonc" <<'JSONC'
+{
+  "agent": {
+    "analyzer": { "permission": { "edit": { "*": "deny", "knowledge/*": "allow" }, "bash": { "*": "deny", "jq *": "allow" }, "task": "deny" } },
+    "analyzer-escalated": { "permission": { "edit": { "*": "deny", "knowledge/*": "allow" }, "bash": { "*": "deny", "jq *": "allow" }, "task": "deny" } }
+  }
+}
+JSONC
+  cat > "$tree/.opencode/agents/analyzer.md" <<'MD'
+# analyzer
+bash: deny-first enum - jq, rg, wc; everything else denied.
+MD
+  cat > "$tree/.opencode/oh-my-opencode-slim.jsonc" <<'JSONC'
+{ "agents": { "analyzer": { "orchestratorPrompt": "analyzer\n- bash limited to jq, rg, wc; else deny" } } }
+JSONC
+  run "$NODE_BIN" "$LIB" --lockstep "$tree/.opencode/opencode.jsonc"
+  assert_status 0
+  assert_output_contains "ok: analyzer/analyzer-escalated permission lockstep"
+  run "$NODE_BIN" "$LIB" --doc-drift "$tree/.opencode/opencode.jsonc"
+  assert_status 0
+  assert_output_contains "ok: deny-first doc contract"
+}
+
+@test "validator: agent without a bash map is out of scope for doc-drift (DIA-260827-ft3z)" {
+  [ -n "$NODE_BIN" ] || skip "node is required to run jsonc-parse.js"
+  local tree="$BATS_TEST_TMPDIR/no-bash-map"
+  mkdir -p "$tree/.opencode/agents"
+  # analyzer is deny-first with clean docs (counted); prompt-only-agent has no
+  # bash permission at all, so its forbidden md must be IGNORED by check B.
+  cat > "$tree/.opencode/opencode.jsonc" <<'JSONC'
+{
+  "agent": {
+    "analyzer": { "permission": { "bash": { "*": "deny", "jq *": "allow" } } },
+    "prompt-only-agent": { "permission": { "edit": { "*": "deny" } } }
+  }
+}
+JSONC
+  cat > "$tree/.opencode/agents/analyzer.md" <<'MD'
+# analyzer
+bash: deny-first enum - jq, rg, wc; everything else denied.
+MD
+  cat > "$tree/.opencode/agents/prompt-only-agent.md" <<'MD'
+# prompt-only-agent
+This doc claims bash: allow but the agent has no bash map at all.
+MD
+  run "$NODE_BIN" "$LIB" --doc-drift "$tree/.opencode/opencode.jsonc"
+  assert_status 0
+  assert_output_contains "1 deny-first agents"
+}
+
+@test "validator: real repo config passes the full gate (DIA-260827-ft3z)" {
+  [ -n "$NODE_BIN" ] || skip "node is required to run validate-opencode-config.sh"
+  run bash "$VALIDATOR"
+  assert_status 0
+  # both new check modes are wired into the entry point (their ok lines only
+  # print when the shell script invokes them)
+  assert_output_contains "ok: analyzer/analyzer-escalated permission lockstep"
+  assert_output_contains "ok: deny-first doc contract"
+  assert_output_contains "ok: all OpenCode config files are valid JSONC"
 }
