@@ -32,10 +32,12 @@
 # positional - input always arrives on stdin and the wrapper captures stdout,
 # so a positional OUTPUT (`uniq - /path`) is an arbitrary truncate+write
 # primitive (the same class of hole that keeps sort out of the allowlist);
-# rg rejects -z/--search-zip (they spawn an external decompressor as a child
-# process); tail rejects -f/--follow/--follow=* (they never terminate, hanging
-# an unattended lane). Scoped per reducer on purpose: cut -f is a legitimate
-# field spec and cut -z is --zero-terminated, so no global -f/-z ban.
+# rg rejects -z/--search-zip and any short cluster containing z (-nz, -zc;
+# they spawn an external decompressor as a child process); tail rejects
+# -f/--follow/--follow=* and any short cluster containing f or F (-F, -nf,
+# -n5f; they never terminate, hanging an unattended lane). Scoped per reducer
+# on purpose: cut -f is a legitimate field spec and cut -z is
+# --zero-terminated, so no global -f/-z ban.
 #
 # The token count is the documented heuristic ~4 chars / token (see the
 # data-reducer skill) - an estimate for context planning, NOT a billable
@@ -72,9 +74,10 @@ jq, rg, wc, head, tail, cut, tr, uniq
 - reducer-scoped argument rejects: uniq takes NO positional argument (input
   arrives on stdin, output is the wrapper's capture file - a positional
   OUTPUT would truncate+write an arbitrary file); rg rejects -z/--search-zip
-  (they spawn an external decompressor); tail rejects -f/--follow/--follow=*
-  (they never terminate). Scoped per reducer: cut -f (field spec) and cut -z
-  (--zero-terminated) are NOT rejected.
+  and any short cluster containing z (they spawn an external decompressor);
+  tail rejects -f/--follow/--follow=* and any short cluster containing f or
+  F (they never terminate). Scoped per reducer: cut -f (field spec) and
+  cut -z (--zero-terminated) are NOT rejected.
 Anything else is a usage error (exit 2).
 EOF
 }
@@ -164,23 +167,36 @@ done
 #   knowledge/* edit scope (the same reason sort -o is out of the allowlist).
 #   A lone "-" is a positional (the stdin spelling), not an option.
 #   Options (-c/-d/-u) change WHAT is reduced, not where bytes go: allowed.
+#   DELIBERATE OVER-RESTRICTION: the [!-]* arm also rejects non-dash tokens
+#   that are option VALUES, not positionals (`uniq -f 2`, `uniq -s 3`,
+#   `uniq -w 4` - the bare value is a non-dash token, indistinguishable from
+#   a positional without parsing uniq's option arity). Rejecting those too
+#   errs on the safe side: every legitimate reduction here runs stdin ->
+#   stdout, so over-rejecting an option-value form costs nothing.
 #   rg -z/--search-zip - spawn an external decompressor (zcat/bzip2/gzip...)
-#   as a child process: execution outside the allowlist.
+#   as a child process: execution outside the allowlist. Exact tokens alone
+#   missed the clustered spellings (-nz, -zc), so the short arm is now a
+#   cluster match: `-z*` for z-leading clusters, `-[a-zA-Z]*z*` for z after a
+#   leading letter. Both require a letter right after the dash, so long
+#   options (whose second character is a dash, e.g. --glob=*.zip) never match.
 #   tail -f/--follow/--follow=* - never terminate: an unattended lane hangs
-#   forever.
+#   forever. Same cluster widening: `-[fF]*` for f/F-leading clusters (-F),
+#   `-[a-zA-Z]*[fF]*` for f/F after a leading letter (-nf, -n5f), with the
+#   explicit long-form arms kept because `--follow` starts with two dashes
+#   and is deliberately not matched by the short-cluster arms.
 # The slice starts AFTER the reducer name: the name itself would otherwise
 # match its own "uniq:..." arm and reject a bare, argument-less `uniq`.
 for a in "${cmd[@]:1}"; do
   case "$first:$a" in
     uniq:-|uniq:[!-]*)
-      echo "data-reduce: reducer rejected (positional argument): $a - uniq takes options only; input arrives on stdin and output is the wrapper's capture file, so a positional INPUT/OUTPUT writes an arbitrary file" >&2
+      echo "data-reduce: reducer rejected (non-option argument): $a - a non-option argument is rejected for uniq: it may be a positional INPUT/OUTPUT (input arrives on stdin and output is the wrapper's capture file, so a positional OUTPUT writes an arbitrary file) or an option value; rejecting both errs on the safe side" >&2
       exit 2
       ;;
-    rg:-z|rg:--search-zip)
+    rg:-z*|rg:-[a-zA-Z]*z*|rg:--search-zip)
       echo "data-reduce: reducer rejected (decompressor flag): $a - rg -z/--search-zip spawn an external decompressor" >&2
       exit 2
       ;;
-    tail:-f|tail:--follow|tail:--follow=*)
+    tail:-[fF]*|tail:-[a-zA-Z]*[fF]*|tail:--follow|tail:--follow=*)
       echo "data-reduce: reducer rejected (follow flag): $a - tail -f/--follow never terminates and would hang the lane" >&2
       exit 2
       ;;

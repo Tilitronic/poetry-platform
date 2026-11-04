@@ -8,8 +8,10 @@
 #            2 on usage errors: no input, missing input file, reducer not
 #            on the allowlist (jq rg wc head tail cut tr uniq), a
 #            command-executing flag (--pre, --pre-glob, --pre=*, --pre-glob=*),
-#            or a reducer-scoped argument (uniq positional INPUT/OUTPUT, rg
-#            -z/--search-zip, tail -f/--follow/--follow=*)
+#            or a reducer-scoped argument (uniq non-option token - positional
+#            INPUT/OUTPUT or option value, rg -z/--search-zip and short z
+#            clusters (-nz/-zc), tail -f/--follow/--follow=* and short f/F
+#            clusters (-F/-nf))
 #
 # Isolation: fixtures live under $BATS_TEST_TMPDIR; the script's own mktemp
 # workdir is self-cleaning (EXIT trap). No Docker, no network, no repo
@@ -302,9 +304,13 @@ EOF
 # exactly the same reason (sort -o FILE), but uniq's OUTPUT positional was
 # never rejected - `uniq - <file>` truncates and writes any path in the repo,
 # defeating the knowledge/* edit scope. rg -z/--search-zip spawn an external
-# decompressor; tail -f/--follow never terminate (an unattended lane hangs).
-# The scoping is part of the contract: cut -f is a field spec and cut -z is
-# --zero-terminated, so the rejects must fire ONLY for the named reducer.
+# decompressor (exact tokens alone missed the clustered -nz/-zc spellings);
+# tail -f/--follow never terminate (an unattended lane hangs; the same holds
+# for the clustered -F/-nf spellings). The short-cluster arms require a letter
+# right after the dash, so long options such as --glob=*.zip are NOT caught -
+# the precision test below pins that. The scoping is part of the contract:
+# cut -f is a field spec and cut -z is --zero-terminated, so the rejects must
+# fire ONLY for the named reducer.
 
 @test "data-reduce: uniq positional OUTPUT is rejected without creating or truncating the target" {
   local f="$BATS_TEST_TMPDIR/blob.txt"
@@ -314,7 +320,7 @@ EOF
   # absent target stays absent - the guard fires before the command runs
   run --separate-stderr bash "$REDUCE" "$f" -- uniq - "$target"
   assert_status 2
-  assert_stderr_contains "positional argument"
+  assert_stderr_contains "non-option argument"
   assert_stderr_contains "writes an arbitrary file"
   assert_file_not_exists "$target"
 
@@ -322,7 +328,7 @@ EOF
   printf 'sentinel\n' > "$target"
   run --separate-stderr bash "$REDUCE" "$f" -- uniq - "$target"
   assert_status 2
-  assert_stderr_contains "positional argument"
+  assert_stderr_contains "non-option argument"
   assert_file_contains "$target" "sentinel"
 }
 
@@ -352,13 +358,48 @@ EOF
   assert_stderr_contains "--search-zip"
 }
 
-@test "data-reduce: tail -f, --follow and --follow=* are rejected (never terminate)" {
+@test "data-reduce: rg short decompressor clusters (-nz, -zc) are rejected" {
   local f="$BATS_TEST_TMPDIR/blob.txt"
   mk_fixture 10 "$f"
 
+  # O2 (DIA-260827-ft3z re-review): exact tokens alone let the clustered
+  # spellings through - `-nz` (z after a leading letter) and `-zc` (z-leading)
+  # both spawn the decompressor just like bare `-z`.
   local flag
-  for flag in -f --follow --follow=1; do
-    run --separate-stderr bash "$REDUCE" "$f" -- tail "$flag"
+  for flag in -nz -zc; do
+    run --separate-stderr bash "$REDUCE" "$f" -- rg "$flag" -c '^line'
+    assert_status 2
+    assert_stderr_contains "decompressor flag"
+    assert_stderr_contains "$flag"
+  done
+}
+
+@test "data-reduce: rg --glob=*.zip survives the short-cluster guard (precision)" {
+  local f="$BATS_TEST_TMPDIR/blob.txt"
+  mk_fixture 100 "$f"
+
+  # False-positive avoidance pin: the short-cluster arm is `-[a-zA-Z]...`
+  # (a letter right after the dash), and long options start with `--`, so a
+  # literal `z` inside --glob=*.zip must NOT be read as a decompressor
+  # cluster. The reduction itself still runs to completion.
+  run --separate-stderr bash "$REDUCE" "$f" -- rg --glob='*.zip' -c '^line'
+
+  assert_status 0
+  assert_output_contains "100"
+  assert_stderr_contains "saved"
+}
+
+@test "data-reduce: tail -f, -F, -nf, --follow and --follow=* are rejected (never terminate)" {
+  local f="$BATS_TEST_TMPDIR/blob.txt"
+  mk_fixture 10 "$f"
+
+  # O4 (DIA-260827-ft3z re-review): every invocation is bounded by
+  # `timeout 5` so a regression fails cleanly (timeout kills the follower and
+  # reports 124, a non-2 exit) instead of the suite hanging forever - on the
+  # pre-fix guard `tail -f` follows stdin to EOF and never returns.
+  local flag
+  for flag in -f -F -nf --follow --follow=1; do
+    run --separate-stderr timeout 5 bash "$REDUCE" "$f" -- tail "$flag"
     assert_status 2
     assert_stderr_contains "follow flag"
     assert_stderr_contains "$flag"

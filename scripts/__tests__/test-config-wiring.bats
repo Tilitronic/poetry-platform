@@ -259,7 +259,10 @@ MD
       }
     }
     if (problems.length > 0) { console.error(problems.join("\n")); process.exit(1); }
-    console.log("ok: analyzer maps pin 8 rg --pre denies after the rg * allow and 4 bare openspec forms beside their starred twins");
+    // O5 (DIA-260827-ft3z re-review): the count is derived from DENY.length so
+    // a future change to that array cannot leave the message claiming a stale
+    // number (the bats assertion below still pins the current count of 8).
+    console.log("ok: analyzer maps pin " + DENY.length + " rg --pre denies after the rg * allow and 4 bare openspec forms beside their starred twins");
   ' "$LIB" "$REPO_ROOT/.opencode/opencode.jsonc"
   assert_status 0
   assert_output_contains "ok: analyzer maps pin 8 rg --pre denies after the rg * allow"
