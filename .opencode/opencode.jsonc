@@ -276,8 +276,10 @@
     },
     // analyzer — artifact-producer tier (DIA-057/F3 fix).
     // Writes analysis reports to knowledge/<type><id>-<topic>/
-    // shelf registration delegated to @memory-manager (DIA-143). Bash allowed for
-    // Mermaid CLI + analysis tooling; edit scoped to output dirs only.
+    // shelf registration delegated to @memory-manager (DIA-143). Bash is an
+    // enumerated deny-first contract (jq/rg/wc, the data-reduce wrapper, the
+    // fixed-path book-rag query helper, four read-only openspec subcommands);
+    // edit scoped to output dirs only.
     "analyzer": {
       "mode": "subagent",
       "color": "#14B8A6",
@@ -287,20 +289,31 @@
           "knowledge/*": "allow"
         },
         "bash": {
-          // Deny-first allow-list (DIA-260827-ft3z): a trailing flat "allow"
-          // outranks the global deny list under findLast, leaving it dead.
-          // Catch-all MUST stay FIRST - if the last bash rule were
+          // Enumerated deny-first contract (DIA-260827-ft3z): a trailing flat
+          // "allow" outranks the global deny list under findLast, leaving it
+          // dead. Catch-all MUST stay FIRST - if the last bash rule were
           // {"*": "deny"}, disabled() would hide the bash tool entirely (DIA-126).
+          // The four openspec subcommands are exactly what the
+          // openspec-explore skill mandates read-only (list/status/show/
+          // context); the writing subcommands stay denied. scripts/session-log
+          // was removed: neither this lane's skills nor its prompt names it,
+          // and its --output path is a pure write grant that buys nothing.
+          // The coder map was deliberately NOT borrowed: it is an
+          // implementation lane's map with write-capable commands and would
+          // over-grant this artifact lane.
           "*": "deny",
           "jq *": "allow",
           "rg *": "allow",
           "wc *": "allow",
           "bash scripts/data-reduce.sh *": "allow",
           "scripts/data-reduce.sh *": "allow",
-          "scripts/session-log *": "allow",
           // Fixed-path interpreter only: free python3 is a universal write
           // primitive that would reopen this ticket's hole.
-          "python3 .opencode/scripts/query_rag.py *": "allow"
+          "python3 .opencode/scripts/query_rag.py *": "allow",
+          "openspec list *": "allow",
+          "openspec status *": "allow",
+          "openspec show *": "allow",
+          "openspec context *": "allow"
         },
         "task": "deny"
       }
@@ -313,8 +326,9 @@
     // still works (S2 orchestrator allow-list includes it). Permissions are an
     // exact clone of the base analyzer (edit scoped to knowledge/* only,
     // shelf registration delegated to @memory-manager (DIA-162 sole-writer
-    // invariant), bash allow, task deny). After producing output, routes back
-    // to the base analyzer/reviewer for normal flow.
+    // invariant), bash enumerated deny-first contract, task deny). After
+    // producing output, routes back to the base analyzer/reviewer for normal
+    // flow.
     "analyzer-escalated": {
       "description": "Escalated analysis lane for 'cannot comprehend domain' cases. The active preset selects its model. Orchestrator-only, hidden from @autocomplete, one-shot no-retry.",
       "mode": "subagent",
@@ -326,20 +340,28 @@
           "knowledge/*": "allow"
         },
         "bash": {
-          // Deny-first allow-list (DIA-260827-ft3z): a trailing flat "allow"
-          // outranks the global deny list under findLast, leaving it dead.
-          // Catch-all MUST stay FIRST - if the last bash rule were
-          // {"*": "deny"}, disabled() would hide the bash tool entirely (DIA-126).
+          // Enumerated deny-first contract (DIA-260827-ft3z), exact clone of
+          // the base analyzer map above: a trailing flat "allow" outranks the
+          // global deny list under findLast, leaving it dead. Catch-all MUST
+          // stay FIRST - if the last bash rule were {"*": "deny"},
+          // disabled() would hide the bash tool entirely (DIA-126).
+          // openspec list/status/show/context mirror the read-only calls the
+          // openspec-explore skill mandates; scripts/session-log was removed
+          // (unreferenced by these lanes, pure write grant); the coder map was
+          // deliberately NOT borrowed (write-capable, would over-grant).
           "*": "deny",
           "jq *": "allow",
           "rg *": "allow",
           "wc *": "allow",
           "bash scripts/data-reduce.sh *": "allow",
           "scripts/data-reduce.sh *": "allow",
-          "scripts/session-log *": "allow",
           // Fixed-path interpreter only: free python3 is a universal write
           // primitive that would reopen this ticket's hole.
-          "python3 .opencode/scripts/query_rag.py *": "allow"
+          "python3 .opencode/scripts/query_rag.py *": "allow",
+          "openspec list *": "allow",
+          "openspec status *": "allow",
+          "openspec show *": "allow",
+          "openspec context *": "allow"
         },
         "task": "deny"
       },

@@ -27,7 +27,12 @@ reading the data directly is fine.
 
 Pre-flight recipe: check the size before deciding —
 `wc -c < FILE` (for stdin, pipe it: `... | wc -c`); if the byte count
-exceeds ~100000 (~100 KB), route the blob through `scripts/data-reduce.sh`.
+exceeds ~100000 (~100 KB), reduce it before reading. Two routes, split by
+reducer type: `scripts/data-reduce.sh` meters jq/rg/wc-class reducers
+(allowlist: jq, rg, wc, head, tail, cut, tr, uniq — anything else is
+rejected with exit 2); interpreter reducers (`python3 -c` or a reducer
+script file) run directly on lanes that have interpreter access, never
+through the script.
 
 ## Worker options (chosen per data shape)
 
@@ -58,8 +63,13 @@ exceeds ~100000 (~100 KB), route the blob through `scripts/data-reduce.sh`.
 
 ## Measuring the savings (scripts/data-reduce.sh)
 
-`scripts/data-reduce.sh` runs any reduction command over a file or stdin,
-measures input vs output bytes, and prints the savings line:
+`scripts/data-reduce.sh` runs an ALLOWLISTED reducer over a file or stdin,
+measures input vs output bytes, and prints the savings line. The reducer's
+first element must be a bare name from jq, rg, wc, head, tail, cut, tr, uniq;
+anything else — including python3 and slash-qualified names — exits 2. So the
+split is plain: the script meters jq/rg/wc-class reducers, while interpreter
+reducers (`python3 -c` / a reducer script file) run directly on lanes that
+have interpreter access, outside the script:
 
     bash scripts/data-reduce.sh logs.txt -- rg -c 'ERROR'
     # stdout: the reduction result (pure — pipe it onward)

@@ -18,7 +18,10 @@ Your permission contract in `.opencode/opencode.jsonc` is **artifact-producer**:
 
 ```
 edit: knowledge/* (allow), else deny
-bash: allow
+bash: deny-first enum — jq, rg, wc, the data-reduce wrapper
+      (bash scripts/data-reduce.sh / scripts/data-reduce.sh), the fixed-path
+      book-rag query helper (python3 .opencode/scripts/query_rag.py), and four
+      read-only openspec subcommands (list/status/show/context); else deny
 task: deny
 ```
 
