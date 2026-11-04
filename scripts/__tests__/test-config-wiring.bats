@@ -236,8 +236,9 @@ MD
   assert_output_contains "ok: deny-first doc contract"
   assert_output_contains "ok: all OpenCode config files are valid JSONC"
   # G1 depth honesty on the REAL maps: analyzer permission is edit(2) +
-  # bash(23) + task(1) = 26 leaf rules behind 3 top-level keys.
-  assert_output_contains "(3 keys, 26 rules: analyzer, analyzer-escalated)"
+  # bash(1) + task(1) = 4 leaf rules behind 3 top-level keys (bash is now the
+  # flat string "deny", so it contributes one leaf rule, not a 23-rule object).
+  assert_output_contains "(3 keys, 4 rules: analyzer, analyzer-escalated)"
   # G3 widened scope on the REAL tree: the eight flat-"deny" agents plus the
   # deny-first object maps = 12 in-scope agents, named in the ok line. R1 moved
   # researcher OUT of the doc scope on purpose: its `curl *` / `wget *` allow
@@ -247,20 +248,25 @@ MD
   assert_output_contains "orchestrator, architector, analyzer, analyzer-escalated, reviewer, code-navigator"
 }
 
-@test "config: analyzer maps pin rg --pre denies AFTER the rg allow and carry bare openspec forms (DIA-260827-ft3z)" {
+@test "config: analyzer maps pin bash as the flat string deny with no allow rules and matching edit/task (DIA-260827-ft3z)" {
   [ -n "$NODE_BIN" ] || skip "node is required to run jsonc-parse.js"
-  # Structural case (S1 + F7b): parses the REAL .opencode/opencode.jsonc with
-  # the SAME JSONC parser the config gate uses - jsonc-parse.js exports no
-  # module API, so its function definitions (everything before the CLI argv
-  # dispatch) are evaluated here instead of writing a second parser. What it
-  # pins is ORDERING, which is what last-match-wins needs: every rg --pre /
-  # --pre-glob deny must sit at a key index AFTER the direct "rg *" allow in
-  # BOTH analyzer maps (a deny before the allow is shadowed and worthless),
-  # and the four bare openspec subcommands must exist beside their starred
-  # twins (the star requires a trailing argument, so the bare form would
-  # otherwise fall through to the catch-all deny). Fails on the pre-S1 config
-  # (8 missing denies per map) and on any reordering that moves a deny above
-  # the allow.
+  # No-shell pin (DIA-260827-ft3z): both analyzer lanes dropped the deny-first
+  # bash OBJECT for the flat string "deny" - they have no shell at all. Parses
+  # the REAL .opencode/opencode.jsonc with the SAME JSONC parser the config
+  # gate uses - jsonc-parse.js exports no module API, so its function
+  # definitions (everything before the CLI argv dispatch) are evaluated here
+  # instead of writing a second parser. What it pins:
+  #   1. bash is EXACTLY the string "deny" in both maps - not an object, not
+  #      a deny-first enum that merely looks closed;
+  #   2. no bash allow rule survives of any kind: the jq/rg/wc enum entries,
+  #      the data-reduce wrapper forms, the fixed-path query_rag.py form, the
+  #      bare+starred openspec subcommands and the whole rg --pre deny block
+  #      are ALL gone (the ordering constraint the previous case pinned - deny
+  #      after allow - has no meaning without an allow to shadow);
+  #   3. the edit map and the task value are present and identical between
+  #      the two lanes, so lockstep equality is not vacuous on a shared hole.
+  # Fails against the pre-996aa9aa config (23-rule bash object per lane) and
+  # against any reintroduction of a single allow rule.
   run "$NODE_BIN" -e '
     const fs = require("fs");
     const lib = process.argv[1];
@@ -272,42 +278,33 @@ MD
     const mod = { exports: {} };
     new Function("require", "module", "exports", src.slice(0, cut) + "\nmodule.exports = { parseJsonc };")(require, mod, mod.exports);
     const cfg = mod.exports.parseJsonc(file);
-    const DENY = [
-      "rg --pre *", "rg --pre=*", "rg * --pre *", "rg * --pre=*",
-      "rg --pre-glob *", "rg --pre-glob=*", "rg * --pre-glob *", "rg * --pre-glob=*"
-    ];
-    const BARE = ["openspec list", "openspec status", "openspec show", "openspec context"];
+    // Every shape the abandoned object map used to carry: enum allows, the
+    // data-reduce wrapper, the fixed-path query helper, the openspec
+    // subcommands and the preprocessor deny block.
+    const GONE = ["jq", "rg", "wc", "data-reduce", "query_rag.py", "openspec", "--pre"];
     const problems = [];
     for (const name of ["analyzer", "analyzer-escalated"]) {
       const perm = (cfg.agent[name] || {}).permission || {};
       const bash = perm.bash;
-      if (!bash) { problems.push(name + ": no bash permission map"); continue; }
-      const keys = Object.keys(bash);
-      const allowAt = keys.indexOf("rg *");
-      if (allowAt < 0) problems.push(name + ": direct rg * allow missing");
-      for (const p of DENY) {
-        const at = keys.indexOf(p);
-        if (at < 0) { problems.push(name + ": deny pattern missing: " + p); continue; }
-        if (bash[p] !== "deny") problems.push(name + ": " + p + " is " + bash[p] + ", expected deny");
-        if (allowAt >= 0 && at < allowAt) {
-          problems.push(name + ": " + p + " at key index " + at + " is BEFORE the rg * allow at index " + allowAt + " (last-match-wins would shadow it)");
+      if (bash !== "deny") problems.push(name + ": bash is " + JSON.stringify(bash) + ", expected the flat string \"deny\"");
+      if (bash && typeof bash === "object") {
+        for (const k of Object.keys(bash)) {
+          if (bash[k] === "allow") problems.push(name + ": bash still carries an allow rule: " + k);
+          for (const g of GONE) if (k.includes(g)) problems.push(name + ": bash still lists the abandoned " + g + " form: " + k);
         }
       }
-      for (const b of BARE) {
-        const star = b + " *";
-        if (!(b in bash)) problems.push(name + ": bare openspec form missing: " + b);
-        else if (bash[b] !== "allow") problems.push(name + ": " + b + " is " + bash[b] + ", expected allow");
-        if (!(star in bash)) problems.push(name + ": starred openspec form missing: " + star);
-      }
     }
+    const a = (cfg.agent["analyzer"] || {}).permission || {};
+    const b = (cfg.agent["analyzer-escalated"] || {}).permission || {};
+    if (!a.edit || !b.edit) problems.push("edit map missing on a lane: analyzer=" + JSON.stringify(a.edit) + " analyzer-escalated=" + JSON.stringify(b.edit));
+    else if (JSON.stringify(a.edit) !== JSON.stringify(b.edit)) problems.push("edit maps differ between analyzer and analyzer-escalated: " + JSON.stringify(a.edit) + " vs " + JSON.stringify(b.edit));
+    if (!("task" in a) || !("task" in b)) problems.push("task value missing on a lane: analyzer=" + JSON.stringify(a.task) + " analyzer-escalated=" + JSON.stringify(b.task));
+    else if (a.task !== b.task) problems.push("task values differ between analyzer and analyzer-escalated: " + JSON.stringify(a.task) + " vs " + JSON.stringify(b.task));
     if (problems.length > 0) { console.error(problems.join("\n")); process.exit(1); }
-    // O5 (DIA-260827-ft3z re-review): the count is derived from DENY.length so
-    // a future change to that array cannot leave the message claiming a stale
-    // number (the bats assertion below still pins the current count of 8).
-    console.log("ok: analyzer maps pin " + DENY.length + " rg --pre denies after the rg * allow and 4 bare openspec forms beside their starred twins");
+    console.log("ok: analyzer maps pin bash as the flat string deny with no allow rules and matching edit/task");
   ' "$LIB" "$REPO_ROOT/.opencode/opencode.jsonc"
   assert_status 0
-  assert_output_contains "ok: analyzer maps pin 8 rg --pre denies after the rg * allow"
+  assert_output_contains "ok: analyzer maps pin bash as the flat string deny with no allow rules and matching edit/task"
 }
 
 # ---------------------------------------------------------------------------
