@@ -294,3 +294,53 @@ JSONC
   assert_output_not_contains "FAIL:"
   assert_output_contains "3 passed, 0 failed"
 }
+
+@test "validate-model-ids: multi-line block comment keeps the original file:line" {
+  install_fake_opencode
+  local tree="$BATS_TEST_TMPDIR/multiline-block"
+  mkdir -p "$tree/.opencode"
+  # The /* */ block spans lines 6-8 and a real dead ID sits on line 10, AFTER
+  # the comment closes. The stripper re-emits the newlines inside a removed
+  # block comment, so the FAIL must report :10:; a stripper that dropped them
+  # would shift the ID up to :8: (and the quoted ID inside the comment must
+  # never be extracted, so it must not appear in the output at all).
+  cat > "$tree/.opencode/oh-my-opencode-slim.jsonc" <<JSONC
+{
+  "presets": {
+    "fixture": {
+      "architector": {
+        "model": [
+          /* multi-line block comment line 1
+             line 2 of the block comment
+             "opencode-go/comment-only-dead" */
+          "opencode-go/gemini-4-argon",
+          "opencode-go/gemini-4-argon-contributor"
+        ]
+      }
+    }
+  },
+  "council": {
+    "presets": {
+      "default": {
+        "deepseek": { "model": "opencode-go/deepseek-v4.1-flash" }
+      }
+    }
+  }
+}
+JSONC
+  cat > "$tree/.opencode/opencode.jsonc" <<JSONC
+{
+  "agent": { "coder": { "model": "opencode-go/deepseek-v4.1-flash" } }
+}
+JSONC
+
+  MODEL_IDS_ROOT="$tree" run bash "$VALIDATOR"
+
+  assert_status 1
+  # Original (un-shifted) line number of the dead ID, not 10 - 2.
+  assert_output_contains "oh-my-opencode-slim.jsonc:10:"
+  assert_output_not_contains "oh-my-opencode-slim.jsonc:8:"
+  assert_output_contains "opencode-go/gemini-4-argon-contributor"
+  assert_output_not_contains "comment-only-dead"
+  assert_output_contains "3 passed, 1 failed"
+}

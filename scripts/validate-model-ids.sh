@@ -19,12 +19,22 @@
 # seats - pre-existing provider-connect issue), which stay WARN: `opencode
 # models` only lists reachable providers, so absence proves nothing for a
 # provider known to be disconnected.
+# Operational edge of that hard-fail: a provider temporarily absent from a
+# non-empty catalog (a transient provider outage) fails make test-config even
+# though nothing is typo'd - re-run once the provider is reachable, and add a
+# provider to KNOWN_DISCONNECTED_PROVIDERS only if it is genuinely disconnected
+# rather than momentarily unavailable.
 # SKIP exit 0: `opencode models` unavailable/empty (offline, CLI missing, CI)
 # - a validator that hard-fails a cold checkout is worse than none.
 # Line scan, not a JSON parse: JSON string values cannot contain raw quotes,
 # so only real keys can match; // and /* */ comments are stripped first by a
 # quote-respecting char-level stripper (reuse: audit-agent-tool-coverage.sh
 # strip_jsonc), so inline comments cannot contribute quoted strings.
+# Note: three divergent JSONC comment strippers now exist - scripts/jsonc_strip.py,
+# the frozen inline copy in scripts/audit-agent-tool-coverage.sh, and the
+# variant below (adds single-quote tracking + newline re-emission). Consolidate
+# them when a fourth copy appears or a behavioural divergence is discovered
+# between the three.
 # Exit: 0 pass/skip, 1 invalid dispatch ID, 2 missing config source.
 set -euo pipefail
 

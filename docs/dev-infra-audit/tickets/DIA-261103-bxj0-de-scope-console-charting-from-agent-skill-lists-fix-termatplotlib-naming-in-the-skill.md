@@ -103,7 +103,7 @@ weakening the security property.
 
 ## Verification
 
-- [x] grep for console-charting in .opencode/oh-my-opencode-slim.jsonc returns zero matches
+- [x] quoted-pattern grep for console-charting in .opencode/oh-my-opencode-slim.jsonc returns zero matches (zero un-negated assignments; a plain substring grep still matches the two "!console-charting" negations)
 - [x] both orchestrator skills arrays contain "!console-charting"
 - [x] make test-config exits 0
 - [x] .opencode/skills/console-charting/SKILL.md names termatplotlib consistently and marks it optional
