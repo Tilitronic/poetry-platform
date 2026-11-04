@@ -284,6 +284,12 @@ test-config: test-interview test-skills test-typecheck
 	# DIA-261023-d6b9: envelope-duplication gate suite (imports the real
 	# production seam .opencode/plugins/lib/envelope-gate.ts, not local copies).
 	node scripts/__tests__/envelope-gate.test.mjs
+	# DIA-260827-ft3z tasks 1.1/1.2: RED seam suites (test-author pass). Pure
+	# destination policy + bash tripwire classifier, imported as .ts from
+	# .opencode/plugins/lib/ (node strips types natively - same pattern as the
+	# routing-order-gate suite above). RED on purpose until tasks 2.1/4.1 land.
+	node scripts/__tests__/destination-policy.test.mjs
+	node scripts/__tests__/tripwire-classifier.test.mjs
 	# DIA-260821-5r03: observer duplicate-registration dedupe gate. Enforces
 	# single-source-of-truth (observers load via auto-discovery of
 	# .opencode/plugins/; no explicit plugin-array entry for an auto-discovered

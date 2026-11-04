@@ -1115,3 +1115,83 @@ JSONC
   assert_status 1
   assert_output_contains 'presets.p1.preset-orch-agent.orchestratorPrompt:2: forbidden phrase "bash: allow"'
 }
+
+# ---------------------------------------------------------------------------
+# DIA-260827-ft3z task 1.3: the former fetch-write hole as a config-gate
+# negative test. Case 1 resolves the four LITERAL former commands through the
+# same resolver the gate uses, against the REAL config, and asserts deny - RED
+# while researcher still carries the curl/wget/trafilatura/crwl allows, green
+# once task 3.1 flattens its bash to deny. Case 2 re-opens the hole in a
+# fixture (deny-scoped edit + `curl *` re-added) and asserts the gate FAILS on
+# it - RED while researcher still sits in EXEMPT_EDIT_BASH, green once the
+# exemption closes. Together they pin both halves: the real config denies the
+# shapes, and a restored grant is caught instead of exempted.
+# ---------------------------------------------------------------------------
+
+@test "config: the four former fetch write shapes resolve to deny for researcher (DIA-260827-ft3z)" {
+  [ -n "$NODE_BIN" ] || skip "node is required to run jsonc-parse.js"
+  run "$NODE_BIN" -e '
+    const fs = require("fs");
+    const lib = process.argv[1];
+    const file = process.argv[2];
+    const src = fs.readFileSync(lib, "utf8");
+    // jsonc-parse.js exports no module API: evaluate everything up to its
+    // FIRST CLI dispatch branch and export the resolver helpers the config
+    // gate itself uses - one resolver, not a second implementation. The
+    // marker is the leading text of that branch, so every helper defined
+    // below the argv slice stays inside the evaluated source.
+    const marker = "if (args[0] === ";
+    const cut = src.indexOf(marker);
+    if (cut < 0) { console.error("jsonc-parse.js layout changed: marker not found"); process.exit(2); }
+    const mod = { exports: {} };
+    new Function("require", "module", "exports", src.slice(0, cut) + "\nmodule.exports = { parseJsonc, resolveRule, effectivePermission };")(require, mod, mod.exports);
+    const cfg = mod.exports.parseJsonc(file);
+    const researcherPerm = ((cfg.agent || {}).researcher || {}).permission || {};
+    const bash = mod.exports.effectivePermission(researcherPerm, cfg.permission, "bash");
+    // The four literal commands the researcher allow-list used to grant,
+    // exactly as filed in tasks.md 1.3.
+    const FORMER = [
+      "curl -o /workspace/anything http://x",
+      "wget -O /workspace/anything http://x",
+      "trafilatura -o /workspace/anything http://x",
+      "crwl -o /workspace/anything http://x",
+    ];
+    const problems = [];
+    for (const cmd of FORMER) {
+      // A flat string permission is the verdict for every command; an object
+      // map resolves by findLast over its rules, same as the gate does.
+      const verdict = typeof bash === "string" ? bash : mod.exports.resolveRule(bash, cmd);
+      if (verdict !== "deny") problems.push(cmd + " resolves to " + JSON.stringify(verdict) + "; expected deny");
+    }
+    if (problems.length > 0) { console.error(problems.join("\n")); process.exit(1); }
+    console.log("ok: researcher denies all four former fetch write shapes");
+  ' "$LIB" "$REPO_ROOT/.opencode/opencode.jsonc"
+  assert_status 0
+  assert_output_contains "ok: researcher denies all four former fetch write shapes"
+}
+
+@test "config: fixture researcher with curl * re-added fails the gate (DIA-260827-ft3z)" {
+  [ -n "$NODE_BIN" ] || skip "node is required to run jsonc-parse.js"
+  local tree="$BATS_TEST_TMPDIR/readd-curl-star"
+  mkdir -p "$tree/.opencode"
+  require_analyzer_docs "$tree"
+  # The POST-closure researcher shape (deny-scoped edit, deny-first bash) with
+  # the former hole re-added: a single "curl *" grant behind the catch-all
+  # deny. While researcher still sits in EXEMPT_EDIT_BASH the invariant skips
+  # it and the gate stays green - this case is RED until task 3.1 removes the
+  # exemption, then it pins that a restored curl * fails the gate.
+  cat > "$tree/.opencode/opencode.jsonc" <<'JSONC'
+{
+  "agent": {
+    "analyzer": { "permission": { "edit": { "*": "deny", "knowledge/*": "allow" }, "bash": { "*": "deny", "jq *": "allow" }, "task": "deny" } },
+    "analyzer-escalated": { "permission": { "edit": { "*": "deny", "knowledge/*": "allow" }, "bash": { "*": "deny", "jq *": "allow" }, "task": "deny" } },
+    "researcher": { "permission": { "edit": { "*": "deny", "knowledge/*": "allow" }, "bash": { "*": "deny", "curl *": "allow" } } }
+  }
+}
+JSONC
+  run "$NODE_BIN" "$LIB" --doc-drift "$tree/.opencode/opencode.jsonc"
+  assert_status 1
+  assert_output_contains "deny-scoped edit with unrestricted bash"
+  assert_output_contains "researcher: edit is deny-scoped but bash is not"
+  assert_output_contains "curl"
+}
