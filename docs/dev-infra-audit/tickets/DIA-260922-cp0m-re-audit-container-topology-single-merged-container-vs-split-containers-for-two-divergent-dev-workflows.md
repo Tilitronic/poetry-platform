@@ -36,8 +36,21 @@ evidence: []
 
 ## Description
 
-<To be filled at creation time: what is wrong / what to build, with exact
-files and line references where known.>
+Re-audit whether consolidating the dev setup into one dev-toolchain container
+(plus the separate stateful postgres) was warranted for the two divergent
+opencode workflows, and either finish the merge or revert to split on evidence;
+the audit ran and the developer decided Variant 3 - keep one dev container,
+finish the merge.
+
+Reading note for a fresh reader: this body carries its own history, including
+two blocks that later work falsified - the early "Audit + Verification
+Findings" section still claims the legacy runtime is retained and that
+`check-pin-sync.sh` does 4 comparisons, both overturned by PHASE 3
+(`openspec/changes/dia-260821-x5nj-unified-docker-dev-runtime/proposal.md:28`,
+which lists "DIA-260922-cp0m ticket body needs hygiene" as an out-of-scope
+follow-up), and the `### STATUS` line predates
+`.sdd/dev-infra/architecture.md:104`, which records PHASES 1/2/3/4/5/6 complete.
+Ground truth for topology is ADR 11 (`.sdd/dev-infra/architecture.md:144`).
 
 ### Problem: in-container engine probes are wrong by construction (2026-09-26)
 
@@ -49,7 +62,30 @@ files and line references where known.>
 
 ## Verification
 
-<Acceptance criteria as checkboxes - how to prove the ticket is done.>
+The four acceptance criteria recorded in `## Fix` (ACCEPTANCE CRITERIA 1-4):
+
+- [x] Evidence-cited before/after topology (commit hashes, file diffs) -
+      delivered: `## Audit + Verification Findings` (7 hashes verified) and the
+      audit commit `f67a97bc` + spec commit `68b0283c`.
+- [x] Warrant assessment (was the consolidation justified for both workflows?) -
+      delivered: "VERDICT: PARTLY justified" plus the load-bearing assessment
+      for the Windows/WSL-host workflow in the same section.
+- [x] Reliability/low-maintenance comparison (merged vs split) - delivered:
+      PHASE reports 1-6 in this body, ADR 11 at
+      `.sdd/dev-infra/architecture.md:104,144`.
+- [x] Recommendation with trade-offs - delivered: DECISION (developer,
+      2026-09-22) Variant 3, "keep ONE dev-toolchain container plus the
+      separate stateful postgres; FINISH the merge rather than revert".
+
+Still open (ticket stays OPEN on this):
+
+- [ ] Ticket-body hygiene per `openspec/changes/dia-260821-x5nj-unified-docker-dev-runtime/proposal.md:28`:
+      correct the falsified claims in the early findings block and refresh the
+      `gate_state` / `gate_triggers` / `gate_waivers` frontmatter.
+- [ ] Merge-phase evidence per AGENTS.md DIA-174: recorded
+      `bash scripts/check-stack-ready.sh` output showing `STACK_READY`, committed
+      into the merge report, with the probe result logged in the session log
+      before merge dispatch.
 
 ## Fix
 

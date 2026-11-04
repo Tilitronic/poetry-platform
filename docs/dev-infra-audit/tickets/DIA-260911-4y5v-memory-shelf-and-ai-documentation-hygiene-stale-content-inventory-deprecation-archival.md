@@ -6,7 +6,7 @@ id: DIA-260911-4y5v
 title: "Memory shelf and AI documentation hygiene: stale content inventory, deprecation, archival"
 area: docs
 severity: Medium
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: ""
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
@@ -163,3 +163,5 @@ CHANGELOG.md), and this ticket file.
 - Scope disposition: this evidence completes only the datetime artifact-ID
   correction slice. The broader memory/documentation hygiene inventory and its
   remaining six acceptance items stay OPEN under this ticket.
+
+Closed 2026-11-04: implemented (Fix + Re-verify carry PASS evidence); governing ticket DIA-261104-rhez.

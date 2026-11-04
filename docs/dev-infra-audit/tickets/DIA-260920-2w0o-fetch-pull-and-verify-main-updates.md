@@ -36,17 +36,53 @@ evidence: []
 
 ## Description
 
-<To be filled at creation time: what is wrong / what to build, with exact
-files and line references where known.>
+Re-run the fetch/pull verification against origin, record the dated verdict
+in this ticket, and close the umbrella campaign whose original trigger was
+never reproduced.
+
+## Problem
+
+- The campaign opened off a "new updates" report that recon could not
+  reproduce, and the verdict lives only in a lesson, never in the ticket:
+  `.opencode/memory/lessons.md:3101` (L20260920-2w0o-001) - "nothing to pull.
+  origin/omo-slim-changes 0 ahead / 0 behind; origin/main is an ANCESTOR of
+  HEAD; refs/pull/1/head SHA == HEAD ... PR #1 holds zero new content".
+- Re-checked at rewrite time: `git rev-list --left-right --count origin/main...HEAD`
+  = `0 1032` (origin/main has nothing HEAD lacks) and
+  `git rev-list --left-right --count origin/omo-slim-changes...HEAD` =
+  `0 21` (21 local commits unpushed; pushing is gated by DIA-261021-51pm).
+  So there is still nothing to pull - the outstanding action is to record
+  that verdict on the ticket (the body was the creation template) and let
+  the owner close it.
+- Note the standing diagnostic rule from the same lesson: host-side gate
+  FAILs on this WSL2 distro are environment drift, not regressions
+  (drift tracked in DIA-260920-jh6q).
 
 ## Verification
 
-<Acceptance criteria as checkboxes - how to prove the ticket is done.>
+- [ ] Dated fetch/verify output recorded in this ticket's Fix section
+- [ ] `git fetch origin --prune` shows 0 new commits on origin/main and
+      origin/omo-slim-changes
+- [ ] Owner closes the ticket (status change is outside this body rewrite)
 
 ## Fix
 
-> To be filled at fix time.
+Run `git fetch origin --prune`, paste the output of the two
+`git rev-list --left-right --count` probes into this ticket, and either close
+it as "nothing to pull (verified <date>)" or, if new commits appear, take
+them through the normal merge gate (stack-ready probe + review). Touch: this
+ticket; git fetch only (no working-tree changes).
 
 ## Re-verify
 
-> To be filled at re-verify time.
+```bash
+git fetch origin --prune
+git rev-list --left-right --count origin/main...HEAD            # left side 0
+git rev-list --left-right --count origin/omo-slim-changes...HEAD # left side 0
+grep -n "nothing to pull\|verdict" docs/dev-infra-audit/tickets/DIA-260920-2w0o-*.md
+```
+
+## References
+
+- `.opencode/memory/lessons.md:3101-3125` (L20260920-2w0o-001 verdict + cross-refs)
+- Commit history: origin/main ancestor of HEAD (1032 commits ahead at rewrite time)

@@ -39,22 +39,68 @@ evidence:
 - Reviewer two-axis ABORTED per developer decision after 3 envelope refusals; record abort.
 - Spurious cod-12/cod-16/cod-17 user rejected permission denials: developer confirmed they rejected nothing; system-side denials, recovered via fresh lanes.
 - Recommend: close jh6q after developer confirms (all suites green), or keep OPEN for host rust-analyzer pin-sync + bun version sync follow-ups.
+- .opencode/memory/lessons.md L20260920-2w0o-001 (drift-vs-regression classification; names this ticket as the drift tracker)
+- scripts/check-host-lsp.sh:115-135 (container-first rust-analyzer probe, DIA-106; host 1.83.0 was the observed drift)
+- scripts/lsp-versions.env (RUST_ANALYZER_VERSION=1.97.1, the pin install/check compare against)
+- .mise.toml:13 + Dockerfile.dev:35 (bun = "1.4.2" pins vs host bun 1.4.0 observed in ses_f40f4ff0fffebS7PpeNujhCbSS)
+- Makefile:258 (compose config validation is host-scoped, so a host without docker fails it by design)
 
 ---
 
 ## Description
 
-<To be filled at creation time: what is wrong / what to build, with exact
-files and line references where known.>
+Close the residual host-gate environment drift (host rust-analyzer version,
+host bun version/PATH, docker availability expectations) after the PATH and
+test-fixture failures were remediated.
+
+## Problem
+
+- Host gates failed for environment reasons, not code: `make test-shell`
+  failed at `check-host-lsp` because host rust-analyzer was 1.83.0 while
+  `scripts/lsp-versions.env` pins `RUST_ANALYZER_VERSION=1.97.1`; host bun
+  was missing from PATH although host-local targets require it
+  (`scripts/verify-pre-push.sh:169-170` runs `bun test` host-side,
+  `Makefile:105` checks `.mise.toml` bun parity); docker CLI was absent so
+  `make test-config` hard-failed at compose config. Evidence rows in this
+  ticket's frontmatter (`ses_f40f4ff0fffebS7PpeNujhCbSS`, `ses_f415d413effe7YigrfBage4aCp`)
+  and lesson `.opencode/memory/lessons.md:3101` ("host-side gate FAILs ...
+  are environment drift, not regressions").
+- Partially remediated: bun PATH guard added in `~/.bashrc` + `~/.profile`
+  (`ses_f415d413effe7YigrfBage4aCp`), compose-overrides fixture made hermetic
+  (`ses_f40fcd2d8ffepO9gu461uT1AtA`, suites 15/15 and 14/14), wrapper
+  717/717 exit 0 recorded (`ses_f40f4ff0fffebS7PpeNujhCbSS`).
+- Residual drift still open per the same row: host rust-analyzer not synced
+  to the pin (mitigated but not fixed: `scripts/check-host-lsp.sh:115-135`
+  now probes THROUGH the container, DIA-106) and host bun 1.4.0 vs the
+  1.4.2 pins (`.mise.toml:13`, `Dockerfile.dev:35`).
 
 ## Verification
 
-<Acceptance criteria as checkboxes - how to prove the ticket is done.>
+- [ ] `bash scripts/install-host-lsp.sh` reports rust-analyzer at
+      `RUST_ANALYZER_VERSION` (or the container-first probe is accepted as
+      the permanent posture, recorded here)
+- [ ] `command -v bun && bun --version` on the host matches the 1.4.2 pin,
+      or the accepted drift is recorded with a `ponytail:` note
+- [ ] `make test-shell` exit 0 on the host; the docker-absent expectation for
+      `check-compose-config` documented (Makefile:258 already scopes it
+      host-side)
+- [ ] Full bats wrapper green (baseline: 717/717 exit 0)
 
 ## Fix
 
-> To be filled at fix time.
+Sync the host tools to the repo pins: `bash scripts/install-host-lsp.sh`
+(installs rust-analyzer at `scripts/lsp-versions.env` value), align host bun
+with `.mise.toml:13` (`bun = "1.4.2"`), and record in this ticket which
+gates legitimately require docker on the host vs which are container-side.
+Touch: host environment (user-space), this ticket; no repo code change
+unless a version pin is deliberately bumped.
 
 ## Re-verify
 
-> To be filled at re-verify time.
+```bash
+bash scripts/check-host-lsp.sh          # exit 0 (container-first probe passes)
+command -v bun && bun --version         # on PATH, matches .mise.toml 1.4.2 or documented drift
+make test-shell                         # exit 0 on host
+grep -n "rust-analyzer\|bun\|docker" docs/dev-infra-audit/tickets/DIA-260920-jh6q-*.md
+                                        # dispositions recorded
+```

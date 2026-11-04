@@ -6,7 +6,7 @@ id: DIA-260917-s95f
 title: "promo preset union-alpha variants enumeration"
 area: config
 severity: Medium
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: ""
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
@@ -84,3 +84,7 @@ Independent re-run 2026-09-17: make test-config exit 0 (all structural
 gates PASS); 9-lane smoke ALL9; git status lists only intended files;
 docker compose ps recorded engine-down (no daemon, dev NOT Up - see
 evidence note); commit DIA-260917-s95f recorded with hash.
+
+## Resolution
+
+Obsolete 2026-11-04: union-alpha preset removed by DIA-260929-5c6m; closed by DIA-261104-rhez - no work required.

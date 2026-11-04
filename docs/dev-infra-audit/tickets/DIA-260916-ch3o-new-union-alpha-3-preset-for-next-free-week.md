@@ -6,7 +6,7 @@ id: DIA-260916-ch3o
 title: "new Union Alpha 3 preset for next free week"
 area: scripts
 severity: Medium
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: ""
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
@@ -50,3 +50,7 @@ files and line references where known.>
 ## Re-verify
 
 > To be filled at re-verify time.
+
+## Resolution
+
+Obsolete 2026-11-04: union-alpha preset removed by DIA-260929-5c6m; closed by DIA-261104-rhez - no work required.

@@ -6,7 +6,7 @@ id: DIA-261006-y72h
 title: "at-sign agent-mention hygiene: strip leading at-sign from agent mentions on the instruction surface, codify the dispatch-payload mention rule, reconcile CAUSE A"
 area: scripts
 severity: Medium
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: ""
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
@@ -83,6 +83,8 @@ Reproduce: token-aware grep for a leading at-sign before any canonical agent nam
 CAUSE A, originally diagnosed in DIA-260926-ch1d (CLOSED), is recorded durably at the learnings path above and reconciled here.
 
 Re-review observations fixed in this pass: (Minor) stale section-9 wording - the AGENTS.md intro now reads "Canonical agent-name mapping ... (mention form -> internal name)" and the Contract note now scopes Source-1 to the Internal name column; (Suggestion) rule-5 parity - both inline .jsonc orchestrator prompts now use the same softened bail clause as A8 and gate 4.
+
+Closed 2026-11-04: implemented (AGENTS.md:211 dispatch-payload mention hygiene rule plus orchestrator prompt rule 5 in .opencode/oh-my-opencode-slim.jsonc); governing ticket DIA-261104-rhez.
 
 ## Re-verify
 

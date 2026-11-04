@@ -48,12 +48,44 @@ evidence:
 
 ## Description
 
-<To be filled at creation time: what is wrong / what to build, with exact
-files and line references where known.>
+Docker Desktop does not come back up for the WSL2 Ubuntu distro on its own, so
+after a host reboot or sleep/wake cycle `docker-desktop` is Stopped and every
+docker command inside WSL fails until someone starts Docker Desktop manually.
+
+## Problem
+
+- What is wrong today (full symptom/root-cause record with session ids is in
+  `## Fix` below): with `docker-desktop` Stopped, `docker --version`,
+  `docker info` and `docker compose ps` all exit 1, `/usr/bin/docker*` are three
+  dangling symlinks into `/mnt/wsl/docker-desktop/cli-tools`, `/var/run/docker.sock`
+  is missing, and `make up` fails at `Makefile:48-49`.
+- Nothing in the repo starts it: `scripts/dev-stack.sh:32-37` probes
+  `container-engine.sh reachable` and only prints
+  "error: container engine '<x>' is not reachable; start it and rerun the stack";
+  no script anywhere references `Docker Desktop` or `docker-desktop`
+  (`grep -rn "Docker Desktop\|docker-desktop" scripts/*.sh` -> no hits).
+- Nothing documents recovery: `docs/docker-dev.md` has no reboot/stopped/
+  auto-start section (grep for `reboot|stopped|auto-start|interop` -> no hits),
+  even though a WORKING launch command is already recorded in `## Fix` (tested
+  2026-09-20 and 2026-09-21).
+- Recurrence is real and repo-independent: engine went down twice in one day
+  (2026-09-20, 2026-09-21) with identical symptoms, likely Windows update or
+  sleep/wake (evidence list in the frontmatter, `ses_f42232feaffecbGGs5TesMQjWb`,
+  `ses_20260922`). Ticket stays OPEN for monitoring per its own re-verify note.
 
 ## Verification
 
-<Acceptance criteria as checkboxes - how to prove the ticket is done.>
+- [ ] On a host with `docker-desktop` Stopped, one documented repo command
+      restores the engine: `docker info --format '{{.ServerVersion}}'` exits 0
+      within ~10-15s of the launch.
+- [ ] The recovery path is reachable from `make stack` / `scripts/dev-stack.sh`
+      (the `reachable` failure branch names or performs the WSL launch instead of
+      only printing "start it and rerun the stack").
+- [ ] `docs/docker-dev.md` documents the WSL launch command and the
+      `docker info` (not `wsl.exe -l -v`) readiness rule.
+- [ ] `make up` exits 0 afterwards with `poetry-dev` and `poetry-postgres` Up
+      healthy.
+- [ ] The `cmd.exe /c start ...` form stays documented as NOT working.
 
 ## Fix
 

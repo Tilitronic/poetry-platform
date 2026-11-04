@@ -6,7 +6,7 @@ id: DIA-260821-cku1
 title: "Add minimal controlled scripts/tickets update capability for status and Fix/Re-verify evidence"
 area: dev-infra
 severity: Major
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: ""
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
@@ -50,3 +50,5 @@ files and line references where known.>
 ## Re-verify
 
 > To be filled at re-verify time.
+
+Closed 2026-11-04: implemented (update subcommand exists at scripts/tickets:132); governing ticket DIA-261104-rhez.

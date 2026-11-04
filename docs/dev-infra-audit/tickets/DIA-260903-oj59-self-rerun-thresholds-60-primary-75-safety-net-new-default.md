@@ -6,7 +6,7 @@ id: DIA-260903-oj59
 title: "self-rerun thresholds: 60% primary / 75% safety-net (new default)"
 area: opencode-config
 severity: Medium
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: ""
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
@@ -50,3 +50,7 @@ files and line references where known.>
 ## Re-verify
 
 > To be filled at re-verify time.
+
+## Resolution
+
+Obsolete 2026-11-04: 60/75 self-rerun thresholds never landed; live context_usage gates are 15/25 (delegation-observer.ts:4079-4080); closed by DIA-261104-rhez - no work required.

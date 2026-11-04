@@ -6,7 +6,7 @@ id: DIA-260929-syg0
 title: "scripts/**tests**/test-infra-log.bats: non-bash guard case assumes /bin/sh is not bash and fails where sh is bash, blocking the pre-push make test-shell gate"
 area: scripts
 severity: Medium
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: ""
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
@@ -86,6 +86,8 @@ scripts/__tests__/test-infra-log.bats` exits 0 with 4 ok / 0 not ok, the
   run line became `run $nonbash "$WRAPPER" ...`; the assertions (status 2,
   "bash required") are unchanged.
 - commit: see git log for this ticket id
+
+Closed 2026-11-04: implemented (scripts/**tests**/test-infra-log.bats:51-65 non-bash guard, prefers dash and skips with an explicit reason where sh is bash); governing ticket DIA-261104-rhez.
 
 ## Deferred (accepted, not fixed in this commit, re-review da8f30cc cycle 1)
 

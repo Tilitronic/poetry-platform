@@ -36,12 +36,35 @@ evidence: []
 
 ## Description
 
-<To be filled at creation time: what is wrong / what to build, with exact
-files and line references where known.>
+Run the auditor condition C-B evidence sweep over `.opencode/session/registry.jsonl`
+for rows dated after commit `f6c84a52` and record either the qualifying
+`.scratch` command rows or an explicit clean-sweep statement with the command.
+
+## Problem
+
+- Condition C-B (attached to the DIA-260926-5vin SOUND-with-conditions verdict)
+  asks whether real traffic already exercises traversal-shaped,
+  variable-expanded or multi-argument `.scratch` commands. Until the sweep is
+  recorded, the marginal verdict is unsupported in the ledger: nobody can show
+  whether those shapes are live or theoretical.
+- The repo has no sweep artifact for it: no file under
+  `docs/dev-infra-audit/tickets/`, `.opencode/learnings/` or
+  `.opencode/session/` records a registry scan command for this condition
+  (grep for `DIA-260928-e5vz` outside the ticket itself and the README rollup
+  returns nothing).
+- Commit reference exists: `f6c84a52` = "fix(config): allow the mandated
+  .scratch cleanup without a permission ask (DIA-260926-5vin)", committer date
+  2026-09-27T22:23:55+0000.
 
 ## Verification
 
-<Acceptance criteria as checkboxes - how to prove the ticket is done.>
+- [ ] The exact scan command is recorded verbatim in this ticket (see
+      `## Evidence` below).
+- [ ] Either a bounded finding (row count + qualifying rows with line index,
+      winning action pattern, outcome, shape class, raw command) or an explicit
+      clean-sweep statement with a zero count.
+- [ ] The schema caveat below is stated, so a zero is not read as stronger
+      evidence than it is.
 
 ## Fix
 
@@ -59,4 +82,49 @@ Acceptance criterion: the sweep is complete only when the exact command used to 
 
 ## Re-verify
 
-> To be filled at re-verify time.
+Re-run the recorded command; the zero count must reproduce on the current
+append-only registry (absolute totals drift upward as new rows land):
+
+```bash
+python3 - <<'EOF'
+import json, subprocess
+cutoff = subprocess.check_output(["git", "log", "-1", "--format=%cI", "f6c84a52"], text=True).strip()
+rows = [(i, json.loads(l)) for i, l in enumerate(open(".opencode/session/registry.jsonl"), 1) if l.strip()]
+since = [(i, r) for i, r in rows if r.get("timestamp", "") >= cutoff]
+hits = [(i, r) for i, r in since if ".scratch" in json.dumps(r)]
+print("cutoff", cutoff, "| total", len(rows), "| since", len(since), "| .scratch text hits", len(hits))
+for i, r in hits:
+    print(" ", i, r.get("event"), r.get("timestamp"), "field=reason" if "reason" in r else "")
+print("command/pattern/outcome fields present in any row:",
+      any(k in json.dumps(r) for _, r in rows for k in ('"command"', '"pattern"', '"action"')))
+EOF
+```
+
+## Evidence (sweep run 2026-11-04, clean)
+
+Command: the verbatim `python3` block in `## Re-verify` above.
+
+Output (snapshot; `registry.jsonl` is append-only so totals move):
+
+    cutoff 2026-09-27T22:23:55Z | total 4565 | since 2082 | .scratch text hits 2
+      2490 capability_minted 2026-09-27T23:02:05.434Z field=reason
+      2568 capability_minted 2026-09-28T12:44:54.087Z field=reason
+    command/pattern/outcome fields present in any row: False
+
+Finding: **zero qualifying rows**. Both `.scratch` hits since the cutoff are
+free-text `reason` values on `capability_minted` rows (ticket-creation
+justifications that merely mention `.scratch`); neither carries a command, a
+winning action pattern, an outcome or an argument shape.
+
+Schema caveat (part of the finding, not a footnote): `registry.jsonl` contains
+NO `command`, `pattern` or `action` key on ANY of its rows (verified by the
+last line of the command), and `permission_asked_logged` rows carry only
+`permission_id`. The condition's requested evidence format is therefore not
+satisfiable from this file: the sweep proves that no `.scratch` COMMAND row
+exists in the registry because the registry records no command rows at all.
+If the auditor wants command text, it must come from the OpenCode permission
+store (`make session-analytics` over opencode stats/db), not this registry.
+
+This keeps the current decision justified (the clean-sweep outcome the Fix
+section describes), and it does NOT supersede the separate High-severity
+multi-argument rm ride-along finding (DIA-260928-rzty).

@@ -6,7 +6,7 @@ id: DIA-261021-cs3v
 title: "Dispatch gate warnings on compliant dispatches: satisfy FIXED_POINT and config-work routing checks up front"
 area: opencode-config
 severity: Major
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: ""
 gate_state: "grilled" # grilled | waived | bypassed | partial | skipped
@@ -46,6 +46,8 @@ files and line references where known.>
 ## Fix
 
 > To be filled at fix time.
+
+Closed 2026-11-04: implemented (orchestrator prompt rule 6 FIXED_POINT contract, AGENTS.md:219 dispatch payload contract, orchestrator_append.md:394 reviewer envelope rule, CHANGELOG.yaml entry DIA-261021-cs3v); governing ticket DIA-261104-rhez.
 
 ## Re-verify
 

@@ -6,7 +6,7 @@ id: DIA-260928-nm2u
 title: "permission stall hardening: make an unanswered ask resolve non-fatally so no ask class ends a lane with an empty envelope"
 area: scripts
 severity: Major
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: ""
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
@@ -157,6 +157,8 @@ Related tickets to name:
 ### First ledger record
 
 This item was previously tracked ONLY in the analysis, in ADR-001, and in handoff prose - this ticket is its first ticket-ledger record.
+
+Closed 2026-11-04: implemented (scripts/overnight.sh:216 exports OPENCODE_UNATTENDED=1, the O-B/O-D gating signal); governing ticket DIA-261104-rhez.
 
 ## Re-verify
 

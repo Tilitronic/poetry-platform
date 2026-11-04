@@ -6,7 +6,7 @@ id: DIA-260920-cry5
 title: "Bun 1.3.14 segfault + illegal instruction in opencode sub-agent process"
 area: docker
 severity: Major
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: ""
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
@@ -133,6 +133,8 @@ Before declaring a crash, run:
 5. Only then classify as Class 1 (real crash) or Class 2 (self-update).
 
 All gates are now green: `make test-config` exit 0, `make test-shell` exit 0 (717 ok / 0 not-ok).
+
+Closed 2026-11-04: implemented (Dockerfile.dev:35 BUN_VERSION=1.4.2); governing ticket DIA-261104-rhez.
 
 ## Recurrence Log
 

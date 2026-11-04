@@ -6,7 +6,7 @@ id: DIA-260827-nza6
 title: "OpenCode query-script tests outside every gate with weak assertions"
 area: tests
 severity: Medium
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: DIA-260827-wfcx
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
@@ -51,3 +51,7 @@ Stand up a dedicated pytest environment/target, mock the subprocess/HTTP seam, r
 ## Re-verify
 
 > To be filled at re-verify time.
+
+## Resolution
+
+Obsolete 2026-11-04: test_query_web.py deleted in 48015b99; closed by DIA-261104-rhez - no work required.

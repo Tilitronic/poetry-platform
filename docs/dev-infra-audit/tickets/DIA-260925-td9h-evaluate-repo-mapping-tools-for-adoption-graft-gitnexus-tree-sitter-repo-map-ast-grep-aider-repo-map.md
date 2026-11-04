@@ -36,17 +36,52 @@ evidence: []
 
 ## Description
 
-<To be filled at creation time: what is wrong / what to build, with exact
-files and line references where known.>
+Record the developer's adoption decision for the repo-mapping tool evaluation
+that this ticket commissioned, so the ledger stops showing an OPEN evaluation
+whose study is already finished.
+
+## Problem
+
+- The evaluation itself is DONE and published: report at
+  `knowledge/ana-260925-5v4r-repo-mapping-tools-evaluation/ana-260925-5v4r-repo-mapping-tools-evaluation-report.md`,
+  shelf-registered in `.opencode/memory-shelf.yaml:1011-1013` with
+  `task_ref: DIA-260925-td9h`, and committed in `96cb183a` ("docs: add
+  repo-mapping tool evaluation conspects + DIA-260925-td9h and DIA-260926-kksa
+  tickets").
+- The report already carries a full EBDV decision set (section 8, lines 479-506)
+  with **V1 status quo / adopt none** as the recommended variant and V2
+  (time-boxed codebase-memory-mcp pilot) as the only sanctioned challenger.
+- What is missing is the disposition: this ticket has no UPDATE/decision block,
+  and `.opencode/CHANGELOG.yaml` contains zero entries citing `DIA-260925-td9h`
+  (grep over the ledger returns nothing). A fresh reader cannot tell whether V1
+  was accepted, V2 was authorized, or the study was never decided.
+- Consequence: the "revisit triggers" in report section 8 (lines 513-524) have
+  no owner and no recorded decision to be compared against.
 
 ## Verification
 
-<Acceptance criteria as checkboxes - how to prove the ticket is done.>
+- [ ] `scripts/tickets show DIA-260925-td9h` returns a body that names the
+      chosen variant (V1 status quo or V2 pilot) with the developer's rationale.
+- [ ] If the choice triggers config work (V2 adds an MCP entry), a
+      `.opencode/CHANGELOG.yaml` entry exists citing `DIA-260925-td9h`.
+- [ ] If V1 is chosen, no config file changes at all (report line 488: "no
+      config change").
 
 ## Fix
 
-> To be filled at fix time.
+Proposed fix, smallest first:
+
+1. Append a dated UPDATE block to this ticket recording the developer decision
+   over the report's five variants (report lines 486-492); default reading if
+   the developer has not spoken is to confirm V1 explicitly rather than leave
+   it implicit.
+2. Only if V2 is authorized: route it through AGENTS.md section 2.5 (MCP block +
+   permission scoping + prompt guidance), then add the CHANGELOG entry.
+
+No code, config, or script change is required for the V1 path.
 
 ## Re-verify
 
-> To be filled at re-verify time.
+    scripts/tickets show DIA-260925-td9h        # body now carries the decision block
+    grep -rn "DIA-260925-td9h" .opencode/CHANGELOG.yaml   # non-empty only if V2/config work happened
+    grep -n "task_ref: DIA-260925-td9h" .opencode/memory-shelf.yaml   # study stays shelf-registered

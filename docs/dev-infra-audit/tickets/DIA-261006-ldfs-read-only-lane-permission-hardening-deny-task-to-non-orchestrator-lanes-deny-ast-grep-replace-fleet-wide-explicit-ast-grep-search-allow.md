@@ -6,7 +6,7 @@ id: DIA-261006-ldfs
 title: "read-only lane permission hardening: deny task to non-orchestrator lanes, deny ast_grep_replace fleet-wide, explicit ast_grep_search allow"
 area: scripts
 severity: Medium
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: ""
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
@@ -96,6 +96,8 @@ Tracked in a separate follow-up ticket; NOT in this change set.
 ## Fix
 
 Applied 2026-10-06 in `.opencode/opencode.jsonc` (change set A, B, C, C+1, C+2, D) plus `.opencode/learnings/external-patterns/2026-10-06-undeclared-permission-baseline-allow-drift.md` and `.opencode/learnings/index.md`. `make test-config` exit 0; `opencode debug agent` assertion table green.
+
+Closed 2026-11-04: implemented (.opencode/opencode.jsonc carries task deny on the non-orchestrator lanes, fleet-wide ast_grep_replace deny, and ast_grep_search allow with the orchestrator/conspecter denies); governing ticket DIA-261104-rhez.
 
 ## Re-verify
 

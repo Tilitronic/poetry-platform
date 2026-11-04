@@ -36,17 +36,49 @@ evidence: []
 
 ## Description
 
-<To be filled at creation time: what is wrong / what to build, with exact
-files and line references where known.>
+Restore the `[delegation-observer] handoff archived: <sid> ...` info line in
+app.log that the b35229f8 seam extraction dropped (fix already landed in
+`9ff8bb48`; this ticket records the defect and the proof).
+
+## Problem
+
+- Regression origin: the DIA-260902-eqgg seam extraction moved archive behaviour
+  into the pure `lib/handoff.ts` helper, which has no `ctx` and by single
+  responsibility cannot log, and the log line was never re-homed at the caller
+  (recorded in `.opencode/learnings/external-patterns/2026-09-27-empty-result-predicate-and-plugin-observability.md`,
+  "Change 2").
+- Concrete failure: `.opencode/plugins/__tests__/parallel-handoff.test.mjs:323`
+  expects an info app.log whose message contains BOTH `handoff archived: ses_A`
+  AND `archive/`; before the fix that assertion failed, while the archive
+  filesystem behaviour stayed intact (a passing filesystem test does not prove
+  the log line survived).
+- Affected surface: `.opencode/plugins/delegation-observer.ts` handoff write path
+  (now at :3648); consumer of the line is any audit/observability read of
+  app.log for handoff archival, plus the test above.
 
 ## Verification
 
-<Acceptance criteria as checkboxes - how to prove the ticket is done.>
+- [ ] `grep -n "handoff archived" .opencode/plugins/delegation-observer.ts`
+      returns the log call (present at :3648 as of HEAD).
+- [ ] `parallel-handoff.test.mjs` passes, including the BOTH-substrings
+      assertion at :323 and the negative no-log-on-first-write case at :253.
+- [ ] Plugin suite green (recorded for the shipping commit: 555 pass / 1 skip /
+      0 fail, bun 1.4.2).
 
 ## Fix
 
-> To be filled at fix time.
+Fixed in `9ff8bb48` ("fix(plugins): empty-result predicate measures result
+text; restore handoff archive log (DIA-260926-ch1d, DIA-260927-uevh)", commit
+date 2026-09-27). Shape: a guarded
+`ctx.client.app.log({ ... message: "[delegation-observer] handoff archived: ${handoffSessionId} prior slot -> ${writeResult.archived_prior}" })`
+emitted right after the atomic handoff write, guarded by
+`writeResult?.archived_prior` so the first-write case still logs nothing; no
+test asserts a log COUNT (all assertions use `.some(...)`), so the addition is
+non-breaking for the suite.
 
 ## Re-verify
 
-> To be filled at re-verify time.
+    grep -n "handoff archived" .opencode/plugins/delegation-observer.ts
+    grep -n "handoff archived: ses_A" .opencode/plugins/__tests__/parallel-handoff.test.mjs
+    cd .opencode/plugins/__tests__ && bun test    # or: make test-harness (Makefile:381-384)
+    grep -n "DIA-260927-uevh" .opencode/CHANGELOG.yaml    # cited in the DIA-260926-ch1d entry summary

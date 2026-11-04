@@ -6,7 +6,7 @@ id: DIA-260819-880v
 title: "Orchestrator not using todowrite for planned items"
 area: opencode-config
 severity: Low
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: ""
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
@@ -77,3 +77,5 @@ Files to check:
 > To be filled at re-verify time.
 
 <!-- UPDATE 2026-08-19: Todowrite discipline added to 3 surfaces + drift-checker marker #9. make test-config passes. -->
+
+Closed 2026-11-04: implemented (todowrite discipline rule present in orchestrator_append.md:313); governing ticket DIA-261104-rhez.

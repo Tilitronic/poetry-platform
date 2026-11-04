@@ -36,17 +36,51 @@ evidence: []
 
 ## Description
 
-<To be filled at creation time: what is wrong / what to build, with exact
-files and line references where known.>
+Make the published OpenCode infrastructure operational map discoverable from
+the repo's entry docs and give this ticket a freshness/verification rule for
+it.
+
+## Problem
+
+- The map is published: `docs/dev-infra-audit/opencode-infrastructure.md`
+  (341 lines, commit `e78e68ea`) and is cited by the changelog and several
+  learnings/tickets - but it is unreachable from every entry doc:
+  `grep -c "opencode-infrastructure" AGENTS.md docs/onboarding.md docs/dev-infra-audit/NEXT-RUN.md`
+  returns 0/0/0, `grep -c "opencode-infrastructure" .opencode/memory-shelf.yaml`
+  returns 0, and no script or Makefile target reads it. Nothing points a new
+  reader at it and nothing checks it for staleness.
+- The handoff that opened this ticket left it as a skeleton:
+  `.opencode/session/handoffs/archive/ses_f53226755ffeCmRnB5CF53UpaW.2026-09-17T11-03-47.863Z.*.json:16`
+  - "Next: fill Description/Verification scope on jrph + 2z0u + ch3o + gv9i
+    skeletons as their work proceeds"; `:13` records "map published, scope fill
+    pending".
 
 ## Verification
 
-<Acceptance criteria as checkboxes - how to prove the ticket is done.>
+- [ ] At least one entry doc links the map (`grep -n "opencode-infrastructure"
+docs/onboarding.md` non-empty)
+- [ ] This ticket's Verification carries a freshness rule (map's "Updated"
+      header re-checked against the last commit touching the mapped surface
+      whenever that surface changes)
+- [ ] `make test-config` exit 0
 
 ## Fix
 
-> To be filled at fix time.
+Add a one-line pointer to `docs/dev-infra-audit/opencode-infrastructure.md`
+from `docs/onboarding.md` (smallest discoverable entry point), and record the
+freshness rule in this ticket. Touch: `docs/onboarding.md` and this ticket.
 
 ## Re-verify
 
-> To be filled at re-verify time.
+```bash
+grep -n "opencode-infrastructure" docs/onboarding.md        # >= 1
+grep -n "Updated:" docs/dev-infra-audit/opencode-infrastructure.md
+git log -1 --format=%cs -- docs/dev-infra-audit/opencode-infrastructure.md
+# header date vs last-touch date reviewed for drift
+make test-config                                            # exit 0
+```
+
+## References
+
+- Commit `e78e68ea` (docs(map): publish opencode infrastructure operational map)
+- `.opencode/session/handoffs/archive/ses_f53226755ffeCmRnB5CF53UpaW.2026-09-17T11-03-47.863Z.*.json:13,16` (scope-fill pending, resume instruction)

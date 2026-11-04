@@ -6,7 +6,7 @@ id: DIA-260827-36ht
 title: "Plugin behavioral gate is red and missing from pre-push"
 area: plugins
 severity: High
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: DIA-260827-wfcx
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
@@ -51,3 +51,5 @@ Inject the Windows/WSL availability flag into the desktop-toast tests instead of
 ## Re-verify
 
 > To be filled at re-verify time.
+
+Closed 2026-11-04: implemented (verify-pre-push.sh:170 + dia189 tests 32 pass); governing ticket DIA-261104-rhez.

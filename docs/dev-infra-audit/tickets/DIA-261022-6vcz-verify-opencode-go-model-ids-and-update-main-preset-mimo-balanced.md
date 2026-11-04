@@ -6,7 +6,7 @@ id: DIA-261022-6vcz
 title: "Verify OpenCode Go model IDs and update main preset mimo-balanced"
 area: scripts
 severity: Medium
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: ""
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
@@ -66,6 +66,8 @@ Probe decision (BRANCH B): opencode-go/longcat-2.5-preview-free is listed by `op
 > prefix, missing source exit 2, allowlisted provider warns) assert behaviour
 > the pre-fix script already had and therefore act as regression guards, not as
 > new-behaviour evidence.
+
+Closed 2026-11-04: implemented (scripts/validate-model-ids.sh present and wired into make test-config at Makefile:273; commits 9ff2b8c4 and 6f155302); governing ticket DIA-261104-rhez.
 
 ## Re-verify
 

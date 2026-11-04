@@ -6,7 +6,7 @@ id: DIA-260910-ri0u
 title: "Isolated commit for 9api closure (Bats test + ticket + rollup/memory)"
 area: scripts
 severity: Low
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: ""
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
@@ -66,3 +66,5 @@ Commit allow-list (exact scope, no additions):
 ## Re-verify
 
 > To be filled at re-verify time.
+
+Closed 2026-11-04: implemented (commit a96a5b1a); governing ticket DIA-261104-rhez.

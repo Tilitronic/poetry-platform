@@ -6,7 +6,7 @@ id: DIA-260901-91qy
 title: "Commit all local changes - ticket closures DIA-260901-3y39/1mpx + memory lessons + README rollup"
 area: scripts
 severity: Medium
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: ""
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
@@ -94,6 +94,8 @@ Repack: soft-reset to 7fa7aae, two thematic commits (DIA-260903-o7n0 memory / DI
 ## Re-verify
 
 > To be filled at re-verify time.
+
+Closed 2026-11-04: implemented (clean tree after commit afa0bacc); governing ticket DIA-261104-rhez.
 
 ## UPDATE 2026-09-09 - RED lane (test-author only): range ticket-status regression battery
 

@@ -17,7 +17,7 @@ id: DIA-206
 title: "ai-specialist lane systemic empty-return failure"
 area: opencode-config
 severity: Major
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: "" # optional DIA-NNN parent epic ticket (DIA-125 keep-local extension; scripts/tickets emits this field always)
 
@@ -127,3 +127,5 @@ How to reproduce/confirm the defect:
 Must include the actual gate output/exit code that proves VERIFIED.>
 
 > To be filled at re-verify time.
+
+Closed 2026-11-04: implemented (empty-result predicate at delegation-observer.ts:3230); governing ticket DIA-261104-rhez.

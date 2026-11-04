@@ -6,7 +6,7 @@ id: DIA-261023-d6b9
 title: "dispatch guard: reject a task payload that carries more than one envelope block"
 area: opencode-config
 severity: Major
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: ""
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
@@ -92,6 +92,8 @@ independent review, then the changelog entry.
 ## Fix
 
 > To be filled at fix time.
+
+Closed 2026-11-04: implemented (.opencode/plugins/delegation-observer.ts:1865 failEnvelope rejection of hand-written IMMUTABLE_GIT_ENVELOPE fence blocks, gated on evaluateEnvelopeDuplication at :1862); governing ticket DIA-261104-rhez.
 
 ## Re-verify
 

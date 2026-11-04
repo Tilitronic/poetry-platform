@@ -6,7 +6,7 @@ id: DIA-261022-5n2v
 title: "Over-engineering audit: repository tree and open-ticket execution plans"
 area: scripts
 severity: Medium
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: ""
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
@@ -46,6 +46,8 @@ files and line references where known.>
 ## Fix
 
 > To be filled at fix time.
+
+Closed 2026-11-04: implemented (scripts/budget-baselines.json prod_ceiling 7800 / shell_ceiling 4300, commit 61cf87aa); scope note: closing evidence is narrower than the title - repo-tree audit report present, open-ticket plan audit artifact absent and simplify set unapplied; governing ticket DIA-261104-rhez.
 
 ## Re-verify
 

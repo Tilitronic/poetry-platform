@@ -6,7 +6,7 @@ id: DIA-260929-5c6m
 title: "remove promo-union-alpha and free presets: stale presets with non-working model assignments"
 area: scripts
 severity: Medium
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: ""
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
@@ -83,6 +83,8 @@ Decision record:
 ## Fix
 
 > To be filled at fix time.
+
+Closed 2026-11-04: implemented (promo-union-alpha and free presets absent from .opencode/oh-my-opencode-slim.jsonc; CHANGELOG.yaml retire entry for DIA-260929-5c6m present); governing ticket DIA-261104-rhez.
 
 ## Re-verify
 

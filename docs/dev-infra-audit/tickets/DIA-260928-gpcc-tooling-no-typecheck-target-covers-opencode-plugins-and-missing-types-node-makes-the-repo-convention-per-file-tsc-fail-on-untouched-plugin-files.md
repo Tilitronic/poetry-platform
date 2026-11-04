@@ -6,7 +6,7 @@ id: DIA-260928-gpcc
 title: "tooling: no typecheck target covers .opencode/plugins and missing @types/node makes the repo-convention per-file tsc fail on untouched plugin files"
 area: scripts
 severity: Medium
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: ""
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
@@ -180,6 +180,8 @@ step.
 ## Re-verify
 
 > To be filled at re-verify time.
+
+Closed 2026-11-04: implemented (Makefile:297 test-typecheck target, wired at Makefile:257 in test-config); governing ticket DIA-261104-rhez.
 
 ## Remaining work
 

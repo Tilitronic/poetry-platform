@@ -6,7 +6,7 @@ id: DIA-260926-40bb
 title: "context/handoff thresholds: stale design.md + dead resource-pressure code + the 15/25 vs 60/75 policy question"
 area: scripts
 severity: Medium
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: ""
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
@@ -76,3 +76,5 @@ evidence: []
 ## Re-verify
 
 > To be filled at re-verify time.
+
+Closed 2026-11-04: implemented (getContextPressure gone from delegation-observer.ts; design.md:44 points at NEXT-RUN.md); governing ticket DIA-261104-rhez.
