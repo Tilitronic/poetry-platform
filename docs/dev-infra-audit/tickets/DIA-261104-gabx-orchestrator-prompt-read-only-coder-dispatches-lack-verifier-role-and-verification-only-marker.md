@@ -6,7 +6,7 @@ id: DIA-261104-gabx
 title: "orchestrator prompt: read-only coder dispatches lack verifier role and verification-only marker"
 area: opencode-config
 severity: Major
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: ""
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
@@ -30,7 +30,10 @@ attempts: 0
 lease_expires_at: "" # ISO-8601; set on DISPATCHED, cleared on COMPLETE
 files_touched: []
 artifacts: []
-evidence: []
+evidence:
+
+- commit:b454ff76fc3187ad167445873cc8d5395a617961
+- commit:7c29205ac36f1169caeca08d7ebda81ad93583e7
 
 ---
 
@@ -94,7 +97,17 @@ analyzer-escalated prompt bodies.
 
 ## Verification
 
-<Acceptance criteria as checkboxes - how to prove the ticket is done.>
+- make test-config exit 0 after each commit (b454ff76 and 7c29205a).
+- scripts/check-orchestrator-prompt-drift.sh: 0 gaps; both jsonc preset
+  prompts updated byte-identically (same string in both preset blocks).
+- batch-d-infra suite: 64 pass / 0 fail.
+- ai-auditor verdict PASS-WITH-FINDINGS, then targeted re-review PASS:
+  the single Minor finding verified-closed, zero re-review observations.
+- Commits: b454ff76fc3187ad167445873cc8d5395a617961 (verifier role +
+  verification-only markers across orchestrator_append.md,
+  coder-escalated.md, oh-my-opencode-slim.jsonc) and
+  7c29205ac36f1169caeca08d7ebda81ad93583e7 (resume-truncated-lane skill
+  alignment).
 
 ## Fix
 
