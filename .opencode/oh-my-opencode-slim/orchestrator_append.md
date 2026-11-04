@@ -469,9 +469,15 @@ the orchestrator has bash: deny and no direct read access to
 .opencode/CHANGELOG.yaml, so it MUST NOT run the lookup commands itself.
 The partial-read lookup is executed BY A DELEGATED LANE whose permission
 block actually allows bash + read of the ledger - in the current config
-(.opencode/opencode.jsonc) that is coder (primary; bash inherits the
-global "*": allow baseline), coder-escalated, designer, or memory-manager.
-NOT eligible: read-only lanes with
+(.opencode/opencode.jsonc) that is coder (primary; it carries an explicit
+bash map whose `python3 *` allow admits the lookup directly, not merely the
+global "*": allow baseline) or coder-escalated (the same map). NOT eligible:
+designer or memory-manager - neither declares a bash key, so their bash
+resolves to the global "*": allow baseline, an open over-grant tracked as
+deferred permission drift under DIA-261006-ldfs (the id cited by the designer
+config comment in .opencode/opencode.jsonc). Listing them as lookup lanes
+would entrench that bug and break the moment it is fixed, so they stay off
+this list until their maps are closed. NOT eligible: read-only lanes with
 bash: "deny" (code-navigator, reviewer, observer, conspecter, council,
 ai-specialist, ai-auditor). Also NOT eligible: analyzer and
 analyzer-escalated - their enumerated bash map allows jq, rg, wc, the

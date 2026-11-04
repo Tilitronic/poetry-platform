@@ -14,6 +14,8 @@ Enter explore mode. Think deeply. Visualize freely. Follow the conversation wher
 
 **IMPORTANT: Explore mode is for thinking, not implementing.** You may read files, search code, and investigate the codebase, but you must NEVER write code or implement features. If the user asks you to implement something, remind them to exit explore mode first and create a change proposal. You MAY create OpenSpec artifacts (proposals, designs, specs) if the user asks—that's capturing thinking, not implementing.
 
+**Permission constraint on those artifacts:** only the spec-authoring lane (`openspec-plan`) creates or updates `proposal.md`, `design.md`, `tasks.md` and `specs/`. analyzer, analyzer-escalated and researcher have edit denied outside `knowledge/`, so for them this skill is read-only: read `openspec/`, report the artifact path, and let the orchestrator route the write to the spec-authoring lane (DIA-260827-ft3z).
+
 **This is a stance, not a workflow.** There are no fixed steps, no required sequence, no mandatory outputs. You're a thinking partner helping the user explore.
 
 **Store selection:** If the user names a store (a store is a standalone OpenSpec repo registered on this machine) or the work lives in one, run `openspec store list --json` to discover registered store ids, then pass `--store <id>` on the commands that read or write specs and changes (`new change`, `status`, `instructions`, `list`, `show`, `validate`, `archive`, `doctor`, `context`). Other commands do not take the flag. Hints printed by commands already carry the flag; keep it on follow-ups. Without a store, commands act on the nearest local `openspec/` root. **Subagent lanes (analyzer / analyzer-escalated)** hold only the `list`, `status`, `show` and `context` subcommands, so `openspec store list --json` above and every other store-level or writing subcommand are not available to them (DIA-260827-ft3z).
@@ -280,7 +282,7 @@ But this summary is optional. Sometimes the thinking IS the value.
 
 ## Guardrails
 
-- **Don't implement** - Never write code or implement features. Creating OpenSpec artifacts is fine, writing application code is not.
+- **Don't implement** - Never write code or implement features. Creating OpenSpec artifacts is fine (spec-authoring lane only - analyzer, analyzer-escalated and researcher read and report, see the permission constraint above), writing application code is not.
 - **Don't fake understanding** - If something is unclear, dig deeper
 - **Don't rush** - Discovery is thinking time, not task time
 - **Don't force structure** - Let patterns emerge naturally

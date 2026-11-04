@@ -94,8 +94,11 @@ capture.
 
 ## Applicability (which lanes)
 
-Worker lanes: **coder / analyzer / code-navigator / researcher**. The
-reduction runs IN the worker (the orchestrator has bash denied) and only the
-small result returns to the orchestrator.
+Worker lanes that can actually run a reducer: **coder / analyzer /
+analyzer-escalated**. The reduction runs IN the worker (the orchestrator has
+bash denied) and only the small result returns to the orchestrator.
+code-navigator has no bash at all and researcher's bash is allow-listed to
+curl / wget / trafilatura / crwl only - neither can run one, so neither is a
+worker lane for this skill.
 
 Currently wired: analyzer / analyzer-escalated only (DIA-260826-6mhy).

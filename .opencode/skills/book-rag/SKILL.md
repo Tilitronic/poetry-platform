@@ -86,14 +86,14 @@ When routing, use your semantic understanding — you can match concepts
 that keyword matching would miss (e.g., "TypeScript" → `#js`,
 "gradient descent" → `#ml`).
 
-If unsure about available KBs, run `rag --list` first.
+If unsure about available KBs, run `python3 .opencode/scripts/query_rag.py --list` first.
 
 ### Phase 3: Execute search(es)
 
 For each selected KB:
 1. **Scope the query** to the KB's domain — add context that helps
    retrieval focus on the right content
-2. **Run** `rag #tag "scoped query"`
+2. **Run** `python3 .opencode/scripts/query_rag.py "#tag scoped query"`
 3. **Collect results** with source book titles and relevance scores
 
 **Example (cross-KB):**
@@ -139,8 +139,8 @@ at `knowledge-bases.yaml` in this skill folder.
 - **Degraded mode:** If OpenWebUI is unreachable, stale cache is used with a warning
 
 ```bash
-rag --list --refresh         # Force refresh, then list
-rag --refresh                # Refresh cache only
+python3 .opencode/scripts/query_rag.py --list --refresh   # Force refresh, then list
+python3 .opencode/scripts/query_rag.py --refresh          # Refresh cache only
 ```
 
 ### Mode 3: Auto-routing with `--route`
@@ -148,7 +148,7 @@ rag --refresh                # Refresh cache only
 When you're unsure which KB to query, let the script select the best match:
 
 ```bash
-rag --route "gradient descent optimization"
+python3 .opencode/scripts/query_rag.py --route "gradient descent optimization"
 # Output:
 # #ml (score: 0.38) — machine learning
 ```
@@ -161,8 +161,8 @@ or fall back to global search (no #tag).
 
 When the user says `#rag <topic>`, the agent should:
 
-1. Run `rag --route "<topic>"` to find matching KB(s)
-2. If matches found → query each: `rag #tag "<query>"`
+1. Run `python3 .opencode/scripts/query_rag.py --route "<topic>"` to find matching KB(s)
+2. If matches found → query each: `python3 .opencode/scripts/query_rag.py "#tag <query>"`
 3. If no match → ask user: internet search or query all KBs?
 
 This replaces manual KB analysis — it saves tokens and avoids stale
@@ -202,7 +202,7 @@ python3 .opencode/scripts/query_rag.py --list
 ### Listing books within a KB
 
 ```bash
-python3 .opencode/scripts/query_rag.py --books #csc      # books in one KB
+python3 .opencode/scripts/query_rag.py --books "#csc"    # books in one KB
 python3 .opencode/scripts/query_rag.py --books-all         # books in ALL KBs
 python3 .opencode/scripts/query_rag.py --stats             # file counts per KB
 ```
@@ -275,7 +275,7 @@ When returning RAG-grounded answers to the user:
 User query received with #rag or #tag
 │
 ├─ Contains explicit #tag at START?
-│   ├─ YES → run: rag "#tag <query>" directly
+│   ├─ YES → run: python3 .opencode/scripts/query_rag.py "#tag <query>" directly
 │   └─ NO  → proceed to workflow below
 │
 ├─ #rag workflow:
@@ -290,13 +290,13 @@ User query received with #rag or #tag
 │   │   Pick KB(s) using semantic understanding:
 │   │   - Confident? → use that KB
 │   │   - Spans topics? → use multiple KBs
-│   │   - Unsure? → rag --list first
+│   │   - Unsure? → python3 .opencode/scripts/query_rag.py --list first
 │   │   - No match? → ask user: internet or query all KBs?
 │   │
 │   ├─ Phase 3 — EXECUTE
 │   │   For each KB:
 │   │     1. Scope query to KB's domain
-│   │     2. Run: rag #tag "<scoped query>"
+│   │     2. Run: python3 .opencode/scripts/query_rag.py "#tag <scoped query>"
 │   │     3. Collect results with sources + scores
 │   │
 │   └─ SYNTHESIZE
