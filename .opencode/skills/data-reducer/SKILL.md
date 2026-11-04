@@ -36,21 +36,34 @@ through the script.
 
 ## Worker options (chosen per data shape)
 
+For the WIRED lanes (analyzer / analyzer-escalated, DIA-260826-6mhy) the
+grant holds no interpreter and no project-script command, so only these
+options are usable there — use them and the wrapper:
+
+- `jq` — JSON / JSONL shapes: projection, selection, aggregation.
+- `rg` — line-oriented logs: filtering, counting, context extraction.
+- `wc` — the size probe (`wc -c < FILE`) and a bare count reduction.
+- `scripts/data-reduce.sh` — the wrapper above, which meters any of the
+  three and prints the savings line.
+
+Lanes WITH interpreter / project-script access (coder and other bash-allow
+lanes — explicitly NOT the wired analyzer lanes, so these do not apply
+here):
+
 - `python3` — aggregation, filtering, JSON/CSV parsing, statistics. Use
   `python3 -c '...'` reading `sys.stdin`, or a reducer script file
   (`.scratch/reducer.py` per DIA-175) that reads `sys.stdin` — do NOT use
   `python3 - <<PY` heredocs, because stdin carries the data, not the script.
-- `jq` — JSON / JSONL shapes: projection, selection, aggregation.
-- `rg` — line-oriented logs: filtering, counting, context extraction.
-- Project scripts — `.opencode/scripts/jsonl-stats.sh` for the orchestrator
-  session logs, `scripts/session-log` for message-log views — use the
-  purpose-built tool when one already matches the data shape.
+- Project scripts (coder-only) — `.opencode/scripts/jsonl-stats.sh` for the
+  orchestrator session logs, `scripts/session-log` for message-log views —
+  use the purpose-built tool when one already matches the data shape.
 
 > Note (deviation from the DIA-181 ticket): the ticket listed a `python3
 > heredoc` worker option. This skill narrows it to `python3 -c` / a script
 > file because `python3 - <<PY` feeds the SCRIPT via stdin, which collides
 > with the data also needing stdin — the data and the script cannot share
-> the same stream.
+> the same stream. Like the python3 bullet above, this is an
+> interpreter-lane option and does not apply to the wired analyzer lanes.
 
 ## Output contract
 

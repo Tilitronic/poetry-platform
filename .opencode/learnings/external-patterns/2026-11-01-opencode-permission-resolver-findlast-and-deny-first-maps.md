@@ -49,11 +49,11 @@
 - `python3 *` is a universal write primitive (`python3 -c 'open(...,"w")'`) and reopens the write-scope hole this ticket exists to close; scope to `python3 .opencode/scripts/query_rag.py *` instead. Note `python3 *` does not match the skills' documented `python -c` form.
 - console-charting inline Rich/plotext degrades to its documented no-python fallbacks (markdown table, Unicode block mapping, `console-charting SKILL.md:203-206`) once free python is denied.
 
-### Doc drift to fix later (list only)
+### Doc drift findings - CLOSED (re-verified 2026-11-01 after the DIA-260827-ft3z documentation pass; retained as a historical record, not deleted)
 
-- `.opencode/agents/analyzer.md:21` and `analyzer-escalated.md:33` still say `bash: allow`.
-- `.opencode/oh-my-opencode-slim.jsonc:331` says "bash (Mermaid CLI, terminal tools)".
-- `.opencode/skills/data-reducer/SKILL.md:40` references `.opencode/scripts/jsonl-stats.sh` - that file DOES exist; it is scoped to the orchestrator session log (`.opencode/session/messages.jsonl`), not to an analyzer need (the earlier "does not exist" claim was false).
+- `.opencode/agents/analyzer.md:21` and `analyzer-escalated.md:33` no longer say `bash: allow`: both now state the deny-first enum (jq, rg, wc, the data-reduce wrapper, the fixed-path query_rag.py helper, the four read-only openspec subcommands; else deny).
+- `.opencode/oh-my-opencode-slim.jsonc:329` (the analyzer preset prompt, previously cited at `:331`) no longer says "bash (Mermaid CLI, terminal tools)": it now states the enumerated bash grant, and its Permissions line reads "edit limited to knowledge/*" rather than the over-broad "write_files". The Mermaid CLI justification is gone everywhere in the prompt - mermaid-diagramming authors markdown blocks and runs no CLI.
+- `.opencode/skills/data-reducer/SKILL.md` moved the `.opencode/scripts/jsonl-stats.sh` reference from `:40` to `:45`, and to `:57` when this same ticket's documentation pass restructured the Worker options section. The skill now marks `.opencode/scripts/jsonl-stats.sh` and `scripts/session-log` explicitly as coder-only / lanes-with-interpreter options that do NOT apply to the wired analyzer lanes (which get jq, rg, wc and the wrapper); that is consistent with this bullet - the file DOES exist and stays scoped to the orchestrator session log (`.opencode/session/messages.jsonl`), not to an analyzer need (the earlier "does not exist" claim was false).
 
 ## 7. Durability boundary
 

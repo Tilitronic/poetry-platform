@@ -457,10 +457,14 @@ the orchestrator has bash: deny and no direct read access to
 The partial-read lookup is executed BY A DELEGATED LANE whose permission
 block actually allows bash + read of the ledger - in the current config
 (.opencode/opencode.jsonc) that is coder (primary; bash inherits the
-global "*": allow baseline), coder-escalated, analyzer, analyzer-escalated,
-designer, or memory-manager. NOT eligible: read-only lanes with
+global "*": allow baseline), coder-escalated, designer, or memory-manager.
+NOT eligible: read-only lanes with
 bash: "deny" (code-navigator, reviewer, observer, conspecter, council,
-ai-specialist, ai-auditor). The orchestrator dispatches
+ai-specialist, ai-auditor). Also NOT eligible: analyzer and
+analyzer-escalated - their enumerated bash map allows jq, rg, wc, the
+data-reduce wrapper, the fixed-path query_rag.py helper and four read-only
+openspec subcommands, but no free python3, so the lookup below fails
+deterministically there (DIA-260827-ft3z). The orchestrator dispatches
 the exact query below, the lane runs it and returns only the matching
 entry text. The orchestrator never pastes the full file into a prompt; it
 only forwards the query + ticket id.

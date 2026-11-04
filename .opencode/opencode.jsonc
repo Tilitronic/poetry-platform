@@ -293,9 +293,10 @@
           // "allow" outranks the global deny list under findLast, leaving it
           // dead. Catch-all MUST stay FIRST - if the last bash rule were
           // {"*": "deny"}, disabled() would hide the bash tool entirely (DIA-126).
-          // The four openspec subcommands are exactly what the
-          // openspec-explore skill mandates read-only (list/status/show/
-          // context); the writing subcommands stay denied. scripts/session-log
+          // The four openspec subcommands are the read-only subset these
+          // lanes use (list/status/show/context); the openspec-explore skill
+          // body exercises list and status, and the writing subcommands stay
+          // denied. scripts/session-log
           // was removed: neither this lane's skills nor its prompt names it,
           // and its --output path is a pure write grant that buys nothing.
           // The coder map was deliberately NOT borrowed: it is an
@@ -345,8 +346,9 @@
           // global deny list under findLast, leaving it dead. Catch-all MUST
           // stay FIRST - if the last bash rule were {"*": "deny"},
           // disabled() would hide the bash tool entirely (DIA-126).
-          // openspec list/status/show/context mirror the read-only calls the
-          // openspec-explore skill mandates; scripts/session-log was removed
+          // openspec list/status/show/context are the read-only subset
+          // these lanes use (the openspec-explore skill body exercises
+          // list and status); scripts/session-log was removed
           // (unreferenced by these lanes, pure write grant); the coder map was
           // deliberately NOT borrowed (write-capable, would over-grant).
           "*": "deny",

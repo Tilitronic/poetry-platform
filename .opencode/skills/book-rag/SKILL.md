@@ -42,6 +42,12 @@ Prefer the `/rag` OpenCode slash command, defined by .opencode/commands/rag.md i
 of calling the script directly. It passes flags like `--list` / `--books` / `--stats`
 through to the script. Use direct bash calls only when the command is unavailable.
 
+> **Subagent lanes (analyzer / analyzer-escalated):** their bash allowlist
+> permits exactly one invocation form, the fixed path from the repo root:
+> `python3 .opencode/scripts/query_rag.py <args>`. The `rag <args>`
+> shorthand and the relative `python3 ../../scripts/query_rag.py` form
+> below are NOT available to them (DIA-260827-ft3z).
+
 ---
 
 ## Workflow: Redesign → Route → Execute
