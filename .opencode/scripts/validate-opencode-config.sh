@@ -50,16 +50,22 @@ done
 # map plus task-related keys; analyzer-escalated is documented as an exact
 # clone of base analyzer. Neither was enforced and the coder maps already
 # drifted (reviewer finding). Fail test-config on any drift so the next clone
-# edit cannot silently diverge.
+# edit cannot silently diverge. G1 (DIA-260827-ft3z): every pair member must be
+# present with a non-empty permission map first - a missing member used to
+# compare nothing and print a green "0 keys compared" line.
 if ! node "$LIB" --lockstep "$ROOT/.opencode/opencode.jsonc"; then
   failures=$((failures + 1))
 fi
 
 # --- deny-first doc contract (DIA-260827-ft3z check B) ------------------------
-# Every agent whose configured bash map is deny-first must not claim a flat
-# allow in its docs: .opencode/agents/<name>.md (if present) and the agent's
-# orchestratorPrompt in oh-my-opencode-slim.jsonc (if present). Drift class
-# seen twice in one session; no gate compared these surfaces before.
+# Every agent whose EFFECTIVE bash map is deny-scoped (resolved semantically:
+# flat "deny", or a map whose last matching rule for an arbitrary probe is
+# deny - G2/G3) must not claim a flat allow in any of its doc surfaces:
+# .opencode/agents/<name>.md, the agent's orchestratorPrompt AND prompt fields
+# in oh-my-opencode-slim.jsonc (agents + presets), and the live prompt-override
+# files .opencode/oh-my-opencode-slim/<name>.md / <name>_append.md. Same block
+# also fails an agent whose edit is deny-scoped while its bash map is not
+# (tracked-debt exemption set lives beside the check in jsonc-parse.js).
 if ! node "$LIB" --doc-drift "$ROOT/.opencode/opencode.jsonc"; then
   failures=$((failures + 1))
 fi

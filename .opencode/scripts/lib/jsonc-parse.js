@@ -9,12 +9,16 @@
 //   node jsonc-parse.js <file>              exit 0 iff <file> parses as JSON(C)
 //   node jsonc-parse.js --lockstep <file>   compare the coder and analyzer
 //                                           base/escalated permission maps;
+//                                           every pair member must be present
+//                                           with a non-empty permission map
+//                                           first (no vacuous green);
 //                                           exit 1 + diff on drift
-//   node jsonc-parse.js --doc-drift <file>  deny-first bash-map agents must not
-//                                           claim a flat allow in their docs
-//                                           (agents/<name>.md + the agent's
-//                                           orchestratorPrompt in
-//                                           oh-my-opencode-slim.jsonc);
+//   node jsonc-parse.js --doc-drift <file>  bash-RESTRICTED agents (resolved
+//                                           semantically, not by key order)
+//                                           must not claim a flat allow in any
+//                                           of their doc surfaces, and an agent
+//                                           whose edit is deny-scoped must not
+//                                           carry an unrestricted bash map;
 //                                           exit 1 + diff on drift
 'use strict';
 const fs = require('fs');
@@ -84,6 +88,73 @@ function firstDiffPath(a, b, prefix) {
   return prefix;
 }
 
+// --- semantic permission helpers (DIA-260827-ft3z G2) ------------------------
+// OpenCode resolves a permission map with findLast over the merged rule list
+// (global rules first, agent rules appended), so the decision for a command is
+// "the LAST matching rule wins" - key order inside a JSON object is what
+// carries that. A predicate that only inspects Object.keys()[0] therefore
+// mis-reads any map whose catch-all is not the first key, and skips maps that
+// are effectively flat-allow. These helpers resolve a probe command instead of
+// inspecting key position. Matcher semantics (anchored whole-value, `*` = any
+// run of characters) mirror packages/opencode/src/util/wildcard.ts as recorded
+// in .opencode/learnings/external-patterns/2026-11-01-opencode-permission-resolver-findlast-and-deny-first-maps.md.
+function wildcardMatch(pattern, value) {
+  let source = '';
+  for (const ch of pattern) {
+    source += ch === '*' ? '[\\s\\S]*' : ch.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+  return new RegExp('^' + source + '$').test(value);
+}
+
+// Last matching rule wins (findLast). undefined when nothing matches.
+function resolveRule(map, probe) {
+  let last;
+  for (const key of Object.keys(map)) {
+    if (wildcardMatch(key, probe)) last = map[key];
+  }
+  return last;
+}
+
+// Two probes no legitimate allow pattern targets. Two rather than one so a map
+// that allows a probe-shaped command is caught from the other direction too.
+const RESTRICTION_PROBES = ['__dia_probe_denied__', 'zzz_nonexistent_cmd --flag'];
+
+// bash is deny-scoped when EVERY probe resolves to deny: a flat "deny" is
+// restricted, a flat "allow" is not, and a map whose last match for a probe is
+// allow is not.
+function isBashRestricted(bash) {
+  if (typeof bash === 'string') return bash === 'deny';
+  if (bash === null || typeof bash !== 'object' || Array.isArray(bash)) return false;
+  return RESTRICTION_PROBES.every((probe) => resolveRule(bash, probe) === 'deny');
+}
+
+// edit is deny-scoped when an arbitrary path resolves to deny: flat "deny", or
+// an object whose catch-all resolves to deny.
+function isDenyScoped(edit) {
+  if (typeof edit === 'string') return edit === 'deny';
+  if (edit === null || typeof edit !== 'object' || Array.isArray(edit)) return false;
+  return resolveRule(edit, RESTRICTION_PROBES[0]) === 'deny';
+}
+
+// Effective permission value: an UNDECLARED agent key has no agent rule at all,
+// so it resolves through the global block (agent rules are appended AFTER
+// global rules) - "no bash key" inherits the global bash map, "no edit key"
+// inherits the global edit baseline.
+function effectivePermission(agentPermission, globalPermission, key) {
+  const declared = agentPermission ? agentPermission[key] : undefined;
+  return declared !== undefined ? declared : (globalPermission || {})[key];
+}
+
+// Each top-level permission key expands to leaf rules: a string is one rule, an
+// object contributes its own entries (recursed), an array its items. The
+// lockstep success line reports both numbers so a ten-rule bash map cannot hide
+// behind a "3 keys compared" count.
+function countLeafRules(value) {
+  if (value === null || typeof value !== 'object') return 1;
+  if (Array.isArray(value)) return value.reduce((n, v) => n + countLeafRules(v), 0);
+  return Object.values(value).reduce((n, v) => n + countLeafRules(v), 0);
+}
+
 if (args[0] === '--lockstep') {
   // DIA-260825-nts7 fix-all batch F2: coder-escalated is documented as an
   // EXACT clone of the base coder permission map plus task-related keys, but
@@ -124,22 +195,57 @@ if (args[0] === '--lockstep') {
   const failures = [];
   const successes = [];
   for (const pair of PAIRS) {
-    const a = pick((agents[pair.base] || {}).permission, pair.exempt);
-    const b = pick((agents[pair.esc] || {}).permission, pair.exempt);
     const pairProblems = [];
-    for (const k of Object.keys(a)) {
-      if (!(k in b)) {
-        pairProblems.push(`key only in ${pair.base}: ${k}=${JSON.stringify(a[k])}`);
-      } else if (JSON.stringify(a[k]) !== JSON.stringify(b[k])) {
-        const where = firstDiffPath(a[k], b[k], k) || k;
+    let a = null;
+    let b = null;
+    // G1: a missing or empty member used to pick an empty object for BOTH
+    // sides, so the comparison below saw nothing and still printed a green
+    // line - a green gate with zero coverage is worse than no gate. Every
+    // member must be present with a non-empty, post-exemption permission map
+    // before anything is compared, and each failure names the pair member.
+    const members = [
+      { role: pair.base, agent: agents[pair.base], picked: 'a' },
+      { role: pair.esc, agent: agents[pair.esc], picked: 'b' },
+    ];
+    for (const member of members) {
+      const perm = member.agent && member.agent.permission;
+      if (!member.agent || typeof member.agent !== 'object') {
         pairProblems.push(
-          `value differs at ${where}: ${pair.base}=${JSON.stringify(a[k])} ${pair.esc}=${JSON.stringify(b[k])}`
+          `pair ${pair.base}/${pair.esc}: missing member "${member.role}" (agent not configured)`
         );
+      } else if (!perm || typeof perm !== 'object' || Array.isArray(perm)) {
+        pairProblems.push(
+          `pair ${pair.base}/${pair.esc}: member "${member.role}" has no permission object`
+        );
+      } else if (Object.keys(perm).length === 0) {
+        pairProblems.push(
+          `pair ${pair.base}/${pair.esc}: member "${member.role}" has an empty permission object`
+        );
+      } else if (Object.keys(pick(perm, pair.exempt)).length === 0) {
+        pairProblems.push(
+          `pair ${pair.base}/${pair.esc}: member "${member.role}" has no comparable permission keys left after exemptions`
+        );
+      } else if (member.picked === 'a') {
+        a = pick(perm, pair.exempt);
+      } else {
+        b = pick(perm, pair.exempt);
       }
     }
-    for (const k of Object.keys(b)) {
-      if (!(k in a)) {
-        pairProblems.push(`key only in ${pair.esc}: ${k}=${JSON.stringify(b[k])}`);
+    if (pairProblems.length === 0) {
+      for (const k of Object.keys(a)) {
+        if (!(k in b)) {
+          pairProblems.push(`key only in ${pair.base}: ${k}=${JSON.stringify(a[k])}`);
+        } else if (JSON.stringify(a[k]) !== JSON.stringify(b[k])) {
+          const where = firstDiffPath(a[k], b[k], k) || k;
+          pairProblems.push(
+            `value differs at ${where}: ${pair.base}=${JSON.stringify(a[k])} ${pair.esc}=${JSON.stringify(b[k])}`
+          );
+        }
+      }
+      for (const k of Object.keys(b)) {
+        if (!(k in a)) {
+          pairProblems.push(`key only in ${pair.esc}: ${k}=${JSON.stringify(b[k])}`);
+        }
       }
     }
     if (pairProblems.length > 0) {
@@ -147,9 +253,12 @@ if (args[0] === '--lockstep') {
       for (const p of pairProblems) failures.push(`  - ${p}`);
       failures.push(`fix: ${pair.fix}`);
     } else {
-      const note = pair.exempt.size > 0 ? 'task-related ignored' : 'no exemptions';
+      // Honest depth: top-level keys AND the leaf rules beneath them, plus the
+      // agent names actually compared - "3 keys" hides a twenty-rule bash map.
+      const rules = Object.values(a).reduce((n, v) => n + countLeafRules(v), 0);
+      const note = pair.exempt.size > 0 ? ', task-related ignored' : '';
       successes.push(
-        `ok: ${pair.base}/${pair.esc} permission lockstep (${Object.keys(a).length} keys compared, ${note})`
+        `ok: ${pair.base}/${pair.esc} permission lockstep (${Object.keys(a).length} keys, ${rules} rules${note}: ${pair.base}, ${pair.esc})`
       );
     }
   }
@@ -162,72 +271,176 @@ if (args[0] === '--lockstep') {
 }
 
 if (args[0] === '--doc-drift') {
-  // DIA-260827-ft3z check B: a deny-first bash map means the agent docs must
-  // not claim a flat allow. The drift class appeared twice in one session
-  // (agent prose + preset prompt kept "bash: allow" / "Mermaid CLI" after the
-  // config hardened the maps) and no gate compared the surfaces. Scope:
-  // agents whose configured bash permission is an OBJECT whose FIRST rule is
-  // the catch-all deny. This is a drift invariant, not a full prose-vs-token
-  // parity check - only these three forbidden claims are asserted.
+  // DIA-260827-ft3z check B (widened by G2/G3 of the same ticket): an agent
+  // whose bash is deny-scoped must not claim a flat allow in its docs. The
+  // drift class appeared twice in one session (agent prose + preset prompt kept
+  // "bash: allow" / "Mermaid CLI" after the config hardened the maps) and no
+  // gate compared the surfaces. Two things are asserted here:
+  //   1. scope + matching (G3) - an agent is IN SCOPE when its EFFECTIVE bash
+  //      permission is deny-scoped, resolved semantically (see the helpers
+  //      above) so a flat "deny" counts too, and every doc surface is scanned
+  //      for every occurrence of every forbidden phrase;
+  //   2. the edit/bash invariant (G2) - an agent whose edit is deny-scoped may
+  //      not run on an unrestricted bash map.
+  // This is a tripwire, not a full prose-vs-token parity check.
   const cfg = parseJsonc(args[1]);
   const dir = path.dirname(args[1]);
-  const FORBIDDEN = ['bash: allow', 'bash: fully allowed', 'Mermaid CLI'];
+  // Tripwire phrase list with a KNOWN PARAPHRASE CEILING: it catches the
+  // spellings that actually appeared in review, nothing more. "shell is open",
+  // "no command restrictions" and the like walk straight past it - closing that
+  // ceiling needs semantic prose-vs-config comparison, which is deliberately
+  // out of scope for a config gate. Extend the list when a new spelling of the
+  // same claim is seen.
+  const FORBIDDEN = [
+    'bash: allow',
+    'bash: fully allowed',
+    'Mermaid CLI',
+    'bash (allow)',
+    'bash is allowed',
+    'mmdc',
+  ];
   const findForbidden = (text) => {
     const lower = text.toLowerCase();
     const hits = [];
     for (const phrase of FORBIDDEN) {
-      const idx = lower.indexOf(phrase.toLowerCase());
-      if (idx >= 0) hits.push(text.slice(idx, idx + phrase.length));
+      const needle = phrase.toLowerCase();
+      // Loop instead of a single indexOf: a line that claims the flat allow
+      // twice must report BOTH occurrences, or the second claim survives the
+      // fix that removed the first.
+      for (let idx = lower.indexOf(needle); idx >= 0; idx = lower.indexOf(needle, idx + needle.length)) {
+        hits.push(text.slice(idx, idx + phrase.length));
+      }
     }
     return hits;
   };
   const problems = [];
-  let checked = 0;
-  for (const name of Object.keys(cfg.agent || {})) {
-    const agent = cfg.agent[name] || {};
-    const bash = (agent.permission || {}).bash;
-    if (!bash || typeof bash !== 'object' || Array.isArray(bash)) continue;
-    const bashKeys = Object.keys(bash);
-    if (bashKeys.length === 0 || bashKeys[0] !== '*' || bash['*'] !== 'deny') continue;
-    checked += 1;
-    const mdFile = path.join(dir, 'agents', name + '.md');
-    if (fs.existsSync(mdFile)) {
-      const lines = fs.readFileSync(mdFile, 'utf8').split(/\r?\n/);
-      for (let i = 0; i < lines.length; i++) {
-        for (const hit of findForbidden(lines[i])) {
-          problems.push(`${name}: ${mdFile}:${i + 1}: forbidden phrase "${hit}"`);
-        }
+  // Line-scanned surfaces (files): report every hit with its line number.
+  const scanLines = (subject, label, text) => {
+    const lines = text.split(/\r?\n/);
+    for (let i = 0; i < lines.length; i++) {
+      for (const hit of findForbidden(lines[i])) {
+        problems.push(`${subject}: ${label}:${i + 1}: forbidden phrase "${hit}"`);
       }
     }
+  };
+  // Whole-text surfaces (prompt fields): report every hit with its location.
+  const scanWhole = (subject, label, text) => {
+    for (const hit of findForbidden(text)) {
+      problems.push(`${subject}: ${label}: forbidden phrase "${hit}"`);
+    }
+  };
+  const inScope = [];
+  for (const name of Object.keys(cfg.agent || {})) {
+    const agent = cfg.agent[name] || {};
+    const perm = agent.permission || {};
+    // G3.1/G2: scope is the SEMANTIC predicate, so the flat-"deny" agents
+    // (MORE restrictive than a deny-first object) are checked too - their docs
+    // must not claim an allow either.
+    if (!isBashRestricted(effectivePermission(perm, cfg.permission, 'bash'))) continue;
+    inScope.push(name);
+
+    const mdFile = path.join(dir, 'agents', name + '.md');
+    if (fs.existsSync(mdFile)) scanLines(name, mdFile, fs.readFileSync(mdFile, 'utf8'));
+
     const slimFile = path.join(dir, 'oh-my-opencode-slim.jsonc');
     if (fs.existsSync(slimFile)) {
       const slim = parseJsonc(slimFile);
       const sites = [];
       const agentsBlock = slim.agents || {};
-      if (agentsBlock[name] && typeof agentsBlock[name].orchestratorPrompt === 'string') {
-        sites.push({ loc: `agents.${name}.orchestratorPrompt`, text: agentsBlock[name].orchestratorPrompt });
+      const agentEntry = agentsBlock[name];
+      if (agentEntry && typeof agentEntry.orchestratorPrompt === 'string') {
+        sites.push({ loc: `agents.${name}.orchestratorPrompt`, text: agentEntry.orchestratorPrompt });
+      }
+      // G3.2: `.prompt` is the other injected prompt field - same drift class,
+      // previously unscanned.
+      if (agentEntry && typeof agentEntry.prompt === 'string') {
+        sites.push({ loc: `agents.${name}.prompt`, text: agentEntry.prompt });
       }
       const presets = slim.presets || {};
       for (const pname of Object.keys(presets)) {
         const entry = presets[pname] && presets[pname][name];
-        if (entry && typeof entry.orchestratorPrompt === 'string') {
+        if (!entry) continue;
+        if (typeof entry.orchestratorPrompt === 'string') {
           sites.push({ loc: `presets.${pname}.${name}.orchestratorPrompt`, text: entry.orchestratorPrompt });
         }
-      }
-      for (const site of sites) {
-        for (const hit of findForbidden(site.text)) {
-          problems.push(`${name}: ${slimFile} ${site.loc}: forbidden phrase "${hit}"`);
+        if (typeof entry.prompt === 'string') {
+          sites.push({ loc: `presets.${pname}.${name}.prompt`, text: entry.prompt });
         }
       }
+      for (const site of sites) scanWhole(name, `${slimFile} ${site.loc}`, site.text);
+    }
+
+    // G3.3: the live prompt-override files are injected at runtime and were
+    // never scanned at all. Only files that exist are read - the override layer
+    // is a fixed contract enforced by scripts/check-omo-version-sync.sh.
+    const promptDir = path.join(dir, 'oh-my-opencode-slim');
+    for (const suffix of ['.md', '_append.md']) {
+      const promptFile = path.join(promptDir, name + suffix);
+      if (fs.existsSync(promptFile)) scanLines(name, promptFile, fs.readFileSync(promptFile, 'utf8'));
     }
   }
+
+  // G3.6 positive invariant, scoped to the analyzer pair only: their documents
+  // are the ones the deny-first contract is written into, and asserting it on
+  // every in-scope agent would only add noise.
+  for (const name of ['analyzer', 'analyzer-escalated']) {
+    const mdFile = path.join(dir, 'agents', name + '.md');
+    if (!fs.existsSync(mdFile)) continue;
+    if (!fs.readFileSync(mdFile, 'utf8').includes('deny-first')) {
+      problems.push(
+        `${name}: ${mdFile}: missing required "deny-first" marker (the agent document must state the deny-first bash contract)`
+      );
+    }
+  }
+
+  // G2 invariant: an agent whose EDIT is deny-scoped must not run on an
+  // unrestricted bash map - that is the campaign's actual failure mode, an
+  // edit-scoped lane whose shell can still write anywhere. The exemption set
+  // below is the known tracked debt; it stays EXPLICIT (one named agent, one
+  // ticket) so the debt is visible in review and a NEW agent appearing in this
+  // state fails loudly.
+  const EXEMPT_EDIT_BASH = new Set([
+    // memory-manager: edit is deny-first, the bash key is ABSENT so it
+    // inherits the global `"*": "allow"` baseline (verified with
+    // `opencode debug agent memory-manager`).
+    'memory-manager',
+  ]);
+  // Same tracked debt, deliberately NOT exempt: designer. Its config comment in
+  // .opencode/opencode.jsonc ("designer bash gap is a DEFERRED drift routed to
+  // the follow-up ticket" - the block that sat at line 621 when this gate was
+  // written) cites DIA-261006-ldfs. designer's edit key is undeclared too, so
+  // edit inherits the global allow and the invariant does not reach it today;
+  // leaving it covered means the gate fires the day its edit becomes
+  // deny-scoped without a deny-scoped bash.
+  const invariantFailures = [];
+  for (const name of Object.keys(cfg.agent || {})) {
+    if (EXEMPT_EDIT_BASH.has(name)) continue;
+    const perm = (cfg.agent[name] || {}).permission || {};
+    const edit = effectivePermission(perm, cfg.permission, 'edit');
+    const bash = effectivePermission(perm, cfg.permission, 'bash');
+    if (isDenyScoped(edit) && !isBashRestricted(bash)) {
+      invariantFailures.push(
+        `${name}: edit is deny-scoped but bash is not (bash resolves to allow for an arbitrary command)`
+      );
+    }
+  }
+
   if (problems.length > 0) {
     console.error(`FAIL  deny-first doc contract drift (${args[1]}):`);
     for (const p of problems) console.error(`  - ${p}`);
     console.error('fix: remove the flat-allow claim from the deny-first agent docs (config is ground truth)');
-    process.exit(1);
   }
-  console.log(`ok: deny-first doc contract (${checked} deny-first agents, no flat-allow claims)`);
+  if (invariantFailures.length > 0) {
+    console.error(`FAIL  deny-scoped edit with unrestricted bash (${args[1]}):`);
+    for (const p of invariantFailures) console.error(`  - ${p}`);
+    console.error(
+      'fix: give the agent a deny-scoped bash map (flat "deny" or a deny-first object), or add it to the exemption set next to its tracking ticket'
+    );
+  }
+  if (problems.length > 0 || invariantFailures.length > 0) process.exit(1);
+  console.log(
+    `ok: deny-first doc contract (${inScope.length} in-scope agents: ${inScope.join(', ')}, no flat-allow claims)`
+  );
   process.exit(0);
 }
 
