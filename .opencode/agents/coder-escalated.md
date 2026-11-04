@@ -36,6 +36,9 @@ task: deny   # quota protection — escalated lane never delegates further
 
 ## Output Contract
 
-Follow the base coder pre-handoff verification checklist: run dev build, lint,
-and tests before handing off; attach exit codes + summary lines. After
+Follow the base coder pre-handoff verification checklist (role-scoped per that
+checklist: verifier with no file edits skips build/lint/typecheck and runs only
+the requested verification commands); attach exit codes + summary lines. If
+blocked, return RESULT: BLOCKED in the full report block (never a standalone
+message). After
 producing output, route back to the base coder/reviewer for the normal flow.

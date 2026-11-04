@@ -141,7 +141,7 @@ The orchestrator does NOT run verification itself. Verification is performed by 
    gates listed as open_tickets. NEVER mark "clean" without independent verification
    evidence in delegation results.
 
-**Exit checksum delegation (DIA-093, FIX E — verification only):** The handoff file
+**Exit checksum delegation (DIA-093, FIX E — verification-only):** The handoff file
 (the DIA-085 resolved slot `.opencode/session/handoffs/<session-id>.json` — the legacy
 `.opencode/session/current-handoff.json` only if the resolution chain fell back to it) is
 written SOLELY via the `log_decision` tool
@@ -149,9 +149,9 @@ written SOLELY via the `log_decision` tool
 — the delegation-observer plugin's atomicWriteHandoff computes and stores the `checksum`
 field automatically (DIA-120). NEVER manually write or edit the handoff file: no
 write/edit tools, no `checksum: null` placeholder, no manual checksum-field edits. The
-coder lane dispatched at cycle termination computes the SHA256 checksum of the prognosis
-per the DIA-061 canonical serialization for VERIFICATION ONLY — recompute and compare
-against the stored value; the lane does NOT write the file. If the exit is a crisis/crash
+coder lane dispatched at cycle termination (ROLE: verifier; verification-only) computes the SHA256 checksum of the prognosis
+per the DIA-061 canonical serialization for verification-only — recompute and compare
+against the stored value; the lane MUST NOT write or edit the handoff file. If the exit is a crisis/crash
 where `log_decision` cannot run, `resume_instructions` MUST explicitly flag `lane-0
 checksum delegation required`.
 
@@ -251,7 +251,7 @@ gate, no exceptions):
    field state:
    - missing/invalid checksum (null, empty, or not 64-hex) is NOT a resume blocker: it is
      flagged in the prognosis presentation and verified by the lane-0 delegation after
-     approval (step 7; the lane computes for VERIFICATION ONLY — it never writes the file);
+     approval (step 7; the lane computes for verification-only — it never writes the file);
    - on MISMATCH after lane-0 computation (stored 64-hex value differs from the computed
      value): REFUSE substantive work and escalate immediately - tampered handoff (DIA-061).
      **RE-READ the handoff file's `checksum` field at comparison time** (do NOT compare
@@ -277,13 +277,13 @@ gate, no exceptions):
 6. **Begin work ONLY after** all items are approved. Rejected items become open_tickets
    and await instruction. If no handoff file exists (or it has no Prognosis section),
    skip to normal boot — no gate is needed.
-7. **LANE-0 CHECKSUM DELEGATION (automatic; no waiver menu; VERIFICATION ONLY — DIA-093,
+7. **LANE-0 CHECKSUM DELEGATION (automatic; no waiver menu; verification-only — DIA-093,
    DIA-120).** Immediately after batch approval and BEFORE any verification_request item,
-    dispatch coder on a single-task brief to compute the DIA-061 canonical checksum of the
+    dispatch coder on a single-task brief (ROLE: verifier; marker: verification-only) to compute the DIA-061 canonical checksum of the
     RESOLVED SLOT (from step 1 — the slot `.opencode/session/handoffs/<session-id>.json`,
     NOT the legacy file unless the chain fell back to it):
     `jq -c '.prognosis | to_entries | sort_by(.key) | from_entries' <resolved-slot-path> | tr -d '\n' | sha256sum`
-   The lane computes the canonical value for VERIFICATION ONLY — it MUST NOT write or edit
+   The lane computes the canonical value for verification-only — it MUST NOT write or edit
    the handoff file (the file is written SOLELY by the delegation-observer plugin via
    `log_decision(handoff, ..., JSON.stringify(prognosis))`; the plugin computes and stores
    the `checksum` field atomically, DIA-120). At comparison time RE-READ the handoff file's
@@ -350,7 +350,8 @@ result and do NOT loop on re-dispatches.
    subagent's final result text directly, DIA-099 gap G2).
 
 3. **RESUME** - run `scripts/lane-resume <task_id>` first (via coder dispatch
-   or developer; orchestrator has bash deny) to triage fresh-required vs
+   with ROLE: verifier and a verification-only marker, or developer;
+   orchestrator has bash deny) to triage fresh-required vs
    resume-recommended, then dispatch a resume lane and load the `resume-truncated-lane`
    skill. Provide the FULL original task spec (unabbreviated) + the partial
    output + the detection signal. The resume lane MUST verify-first
@@ -359,8 +360,8 @@ result and do NOT loop on re-dispatches.
    it MUST NOT re-apply already-landed work.
 
 4. **VALIDATE** - the resumed lane returns a NON-EMPTY structured result
-   (RESULT / FILES_TOUCHED / VERIFICATION_EVIDENCE). If it returns empty
-   again, escalate per the 3-failures rule - do NOT loop.
+   (RESULT / ROLE / FILES_TOUCHED / VERIFICATION_EVIDENCE / COMMANDS_RUN / BLOCKERS). If it returns empty
+   again, escalate after 3 consecutive empty results - do NOT loop.
 
 **Plugin crisis signal:** If messages.jsonl contains crisis event with
 `content_ref=empty-result-requires-redispatch`, the orchestrator MUST
@@ -436,6 +437,8 @@ Templates (copy-pasteable, adjust <...>):
     # verification / run-gates (no edits)
     verification-only: run make test-config and the routing-order-gate
     suite under scripts/__tests__/, report exit codes. No file edits.
+    ROLE: verifier
+    REPORT: RESULT, ROLE, FILES_TOUCHED, VERIFICATION_EVIDENCE, COMMANDS_RUN, BLOCKERS
 
     # config implementation (ai-specialist gate already done this session)
     campaign ticket DIA-<id>. Implement <change> in <config path>.
@@ -485,7 +488,8 @@ eligible: openspec-plan - its deny-first map admits `openspec *` only, no
 free python3. Also NOT eligible: analyzer and analyzer-escalated - their
 bash is denied outright (no shell at all since DIA-260827-ft3z), so the
 lookup below fails deterministically there. The orchestrator dispatches
-the exact query below, the lane runs it and returns only the matching
+the exact query below (ROLE: verifier; verification-only - read-only
+lookup), the lane runs it and returns only the matching
 entry text. The orchestrator never pastes the full file into a prompt; it
 only forwards the query + ticket id.
 
