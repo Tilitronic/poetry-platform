@@ -1325,3 +1325,9 @@
 - **Change:** guard against a hand-written reviewer envelope: pre-spawn authored-fence rejection, provenance line in the injected block, contract alignment, and a unit suite wired into the config gate
 - **Files:** .opencode/plugins/lib/envelope-gate.ts - .opencode/plugins/delegation-observer.ts - .opencode/oh-my-opencode-slim/orchestrator_append.md - scripts/__tests__/envelope-gate.test.mjs - .opencode/plugins/__tests__/reviewer-immutable-git-envelope.test.mjs - Makefile - .opencode/learnings/external-patterns/2026-10-23-envelope-duplication-guard-gate.md
 - **Verification:** manual
+
+## 2026-11-04 - DIA-261104-dexw: opencode-config
+
+- **Change:** Harden the coder lane contract: bounded investigation budget (two searches for yes/no or locate questions, stop-and-read on the same non-empty file set, explicit zero-hit reporting, interface-read before reimplementing a utility), three roles (implementer/test-author/verifier) with role-scoped pre-handoff checklist, explicit RESULT: BLOCKED path with a one-block-per-brief cap, and a six-field report schema; move the DIA-128 provenance comment out of the injected prompt into REFERENCE-ONLY.md; add KNOWN FACTS / OUT OF SCOPE / ROLE / SCRATCH to the canonical dispatch template; fix the append-layer recency conflict on role wording. No test asserting prompt text was added (DIA-260827-gnrr).
+- **Files:** .opencode/oh-my-opencode-slim/coder.md - .opencode/oh-my-opencode-slim/REFERENCE-ONLY.md - .opencode/oh-my-opencode-slim/coder_append.md - .opencode/oh-my-opencode-slim/orchestrator_append.md
+- **Verification:** manual
