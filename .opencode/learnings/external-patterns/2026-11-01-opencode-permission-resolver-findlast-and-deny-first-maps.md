@@ -53,7 +53,7 @@
 
 - `.opencode/agents/analyzer.md:21` and `analyzer-escalated.md:33` still say `bash: allow`.
 - `.opencode/oh-my-opencode-slim.jsonc:331` says "bash (Mermaid CLI, terminal tools)".
-- `.opencode/skills/data-reducer/SKILL.md:40` references `.opencode/scripts/jsonl-stats.sh` which does not exist.
+- `.opencode/skills/data-reducer/SKILL.md:40` references `.opencode/scripts/jsonl-stats.sh` - that file DOES exist; it is scoped to the orchestrator session log (`.opencode/session/messages.jsonl`), not to an analyzer need (the earlier "does not exist" claim was false).
 
 ## 7. Durability boundary
 
