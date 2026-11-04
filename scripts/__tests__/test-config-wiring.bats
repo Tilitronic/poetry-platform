@@ -204,3 +204,63 @@ MD
   assert_output_contains "ok: deny-first doc contract"
   assert_output_contains "ok: all OpenCode config files are valid JSONC"
 }
+
+@test "config: analyzer maps pin rg --pre denies AFTER the rg allow and carry bare openspec forms (DIA-260827-ft3z)" {
+  [ -n "$NODE_BIN" ] || skip "node is required to run jsonc-parse.js"
+  # Structural case (S1 + F7b): parses the REAL .opencode/opencode.jsonc with
+  # the SAME JSONC parser the config gate uses - jsonc-parse.js exports no
+  # module API, so its function definitions (everything before the CLI argv
+  # dispatch) are evaluated here instead of writing a second parser. What it
+  # pins is ORDERING, which is what last-match-wins needs: every rg --pre /
+  # --pre-glob deny must sit at a key index AFTER the direct "rg *" allow in
+  # BOTH analyzer maps (a deny before the allow is shadowed and worthless),
+  # and the four bare openspec subcommands must exist beside their starred
+  # twins (the star requires a trailing argument, so the bare form would
+  # otherwise fall through to the catch-all deny). Fails on the pre-S1 config
+  # (8 missing denies per map) and on any reordering that moves a deny above
+  # the allow.
+  run "$NODE_BIN" -e '
+    const fs = require("fs");
+    const lib = process.argv[1];
+    const file = process.argv[2];
+    const src = fs.readFileSync(lib, "utf8");
+    const marker = "const args = process.argv.slice(2);";
+    const cut = src.indexOf(marker);
+    if (cut < 0) { console.error("jsonc-parse.js layout changed: marker not found: " + marker); process.exit(2); }
+    const mod = { exports: {} };
+    new Function("require", "module", "exports", src.slice(0, cut) + "\nmodule.exports = { parseJsonc };")(require, mod, mod.exports);
+    const cfg = mod.exports.parseJsonc(file);
+    const DENY = [
+      "rg --pre *", "rg --pre=*", "rg * --pre *", "rg * --pre=*",
+      "rg --pre-glob *", "rg --pre-glob=*", "rg * --pre-glob *", "rg * --pre-glob=*"
+    ];
+    const BARE = ["openspec list", "openspec status", "openspec show", "openspec context"];
+    const problems = [];
+    for (const name of ["analyzer", "analyzer-escalated"]) {
+      const perm = (cfg.agent[name] || {}).permission || {};
+      const bash = perm.bash;
+      if (!bash) { problems.push(name + ": no bash permission map"); continue; }
+      const keys = Object.keys(bash);
+      const allowAt = keys.indexOf("rg *");
+      if (allowAt < 0) problems.push(name + ": direct rg * allow missing");
+      for (const p of DENY) {
+        const at = keys.indexOf(p);
+        if (at < 0) { problems.push(name + ": deny pattern missing: " + p); continue; }
+        if (bash[p] !== "deny") problems.push(name + ": " + p + " is " + bash[p] + ", expected deny");
+        if (allowAt >= 0 && at < allowAt) {
+          problems.push(name + ": " + p + " at key index " + at + " is BEFORE the rg * allow at index " + allowAt + " (last-match-wins would shadow it)");
+        }
+      }
+      for (const b of BARE) {
+        const star = b + " *";
+        if (!(b in bash)) problems.push(name + ": bare openspec form missing: " + b);
+        else if (bash[b] !== "allow") problems.push(name + ": " + b + " is " + bash[b] + ", expected allow");
+        if (!(star in bash)) problems.push(name + ": starred openspec form missing: " + star);
+      }
+    }
+    if (problems.length > 0) { console.error(problems.join("\n")); process.exit(1); }
+    console.log("ok: analyzer maps pin 8 rg --pre denies after the rg * allow and 4 bare openspec forms beside their starred twins");
+  ' "$LIB" "$REPO_ROOT/.opencode/opencode.jsonc"
+  assert_status 0
+  assert_output_contains "ok: analyzer maps pin 8 rg --pre denies after the rg * allow"
+}

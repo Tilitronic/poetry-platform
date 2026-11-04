@@ -311,10 +311,38 @@
           // Fixed-path interpreter only: free python3 is a universal write
           // primitive that would reopen this ticket's hole.
           "python3 .opencode/scripts/query_rag.py *": "allow",
+          // Bare + starred openspec forms both exist on purpose (F7b): under
+          // whole-value wildcard matching the star REQUIRES a trailing
+          // argument, so bare `openspec list` would fall through to the
+          // catch-all deny while every document says these four read-only
+          // subcommands are available. Keep both spellings.
+          "openspec list": "allow",
           "openspec list *": "allow",
+          "openspec status": "allow",
           "openspec status *": "allow",
+          "openspec show": "allow",
           "openspec show *": "allow",
-          "openspec context *": "allow"
+          "openspec context": "allow",
+          "openspec context *": "allow",
+          // rg preprocessor deny block (S1, DIA-260827-ft3z): these MUST stay
+          // AFTER the "rg *" allow above - permission resolution is
+          // last-match-wins, so a deny placed before the allow is shadowed
+          // and worthless. Both spellings per flag are required and are NOT
+          // redundant: with whole-value wildcard matching, `rg --pre bash x`
+          // does not match "rg * --pre *" (nothing precedes the flag) and
+          // `rg -n --pre bash x` does not match "rg --pre *" - so they cover
+          // flag-first AND mid-command positions, space-separated AND
+          // `=`-separated. Known false positive (accepted trade for a
+          // security deny): a search ITSELF containing the text " --pre "
+          // is blocked too.
+          "rg --pre *": "deny",
+          "rg --pre=*": "deny",
+          "rg * --pre *": "deny",
+          "rg * --pre=*": "deny",
+          "rg --pre-glob *": "deny",
+          "rg --pre-glob=*": "deny",
+          "rg * --pre-glob *": "deny",
+          "rg * --pre-glob=*": "deny"
         },
         "task": "deny"
       }
@@ -360,10 +388,38 @@
           // Fixed-path interpreter only: free python3 is a universal write
           // primitive that would reopen this ticket's hole.
           "python3 .opencode/scripts/query_rag.py *": "allow",
+          // Bare + starred openspec forms both exist on purpose (F7b): under
+          // whole-value wildcard matching the star REQUIRES a trailing
+          // argument, so bare `openspec list` would fall through to the
+          // catch-all deny while every document says these four read-only
+          // subcommands are available. Keep both spellings.
+          "openspec list": "allow",
           "openspec list *": "allow",
+          "openspec status": "allow",
           "openspec status *": "allow",
+          "openspec show": "allow",
           "openspec show *": "allow",
-          "openspec context *": "allow"
+          "openspec context": "allow",
+          "openspec context *": "allow",
+          // rg preprocessor deny block (S1, DIA-260827-ft3z): these MUST stay
+          // AFTER the "rg *" allow above - permission resolution is
+          // last-match-wins, so a deny placed before the allow is shadowed
+          // and worthless. Both spellings per flag are required and are NOT
+          // redundant: with whole-value wildcard matching, `rg --pre bash x`
+          // does not match "rg * --pre *" (nothing precedes the flag) and
+          // `rg -n --pre bash x` does not match "rg --pre *" - so they cover
+          // flag-first AND mid-command positions, space-separated AND
+          // `=`-separated. Known false positive (accepted trade for a
+          // security deny): a search ITSELF containing the text " --pre "
+          // is blocked too.
+          "rg --pre *": "deny",
+          "rg --pre=*": "deny",
+          "rg * --pre *": "deny",
+          "rg * --pre=*": "deny",
+          "rg --pre-glob *": "deny",
+          "rg --pre-glob=*": "deny",
+          "rg * --pre-glob *": "deny",
+          "rg * --pre-glob=*": "deny"
         },
         "task": "deny"
       },

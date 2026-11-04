@@ -6,8 +6,10 @@
 #   stderr - the savings line + diagnostics (measurement metadata)
 #   exit   - 0 on success; the reduction command's exit code on failure;
 #            2 on usage errors: no input, missing input file, reducer not
-#            on the allowlist (jq rg wc head tail cut tr uniq), or a
-#            command-executing flag (--pre, --pre-glob, --pre=*, --pre-glob=*)
+#            on the allowlist (jq rg wc head tail cut tr uniq), a
+#            command-executing flag (--pre, --pre-glob, --pre=*, --pre-glob=*),
+#            or a reducer-scoped argument (uniq positional INPUT/OUTPUT, rg
+#            -z/--search-zip, tail -f/--follow/--follow=*)
 #
 # Isolation: fixtures live under $BATS_TEST_TMPDIR; the script's own mktemp
 # workdir is self-cleaning (EXIT trap). No Docker, no network, no repo
@@ -293,4 +295,84 @@ EOF
   assert_output_contains "100"
   assert_stderr_contains "input 4 KB -> result 0 KB (saved 100%"
   assert_stderr_contains "tokens"
+}
+
+# --- reducer-scoped argument boundary (DIA-260827-ft3z) ----------------------
+# `uniq INPUT [OUTPUT]` made the allowlist write-capable: sort is excluded for
+# exactly the same reason (sort -o FILE), but uniq's OUTPUT positional was
+# never rejected - `uniq - <file>` truncates and writes any path in the repo,
+# defeating the knowledge/* edit scope. rg -z/--search-zip spawn an external
+# decompressor; tail -f/--follow never terminate (an unattended lane hangs).
+# The scoping is part of the contract: cut -f is a field spec and cut -z is
+# --zero-terminated, so the rejects must fire ONLY for the named reducer.
+
+@test "data-reduce: uniq positional OUTPUT is rejected without creating or truncating the target" {
+  local f="$BATS_TEST_TMPDIR/blob.txt"
+  local target="$BATS_TEST_TMPDIR/uniq-target.txt"
+  mk_fixture 10 "$f"
+
+  # absent target stays absent - the guard fires before the command runs
+  run --separate-stderr bash "$REDUCE" "$f" -- uniq - "$target"
+  assert_status 2
+  assert_stderr_contains "positional argument"
+  assert_stderr_contains "writes an arbitrary file"
+  assert_file_not_exists "$target"
+
+  # pre-existing target keeps its bytes - no truncation either
+  printf 'sentinel\n' > "$target"
+  run --separate-stderr bash "$REDUCE" "$f" -- uniq - "$target"
+  assert_status 2
+  assert_stderr_contains "positional argument"
+  assert_file_contains "$target" "sentinel"
+}
+
+@test "data-reduce: uniq -c still succeeds (options are not positionals)" {
+  local f="$BATS_TEST_TMPDIR/blob.txt"
+  mk_fixture 10 "$f"
+
+  run --separate-stderr bash "$REDUCE" "$f" -- uniq -c
+
+  assert_status 0
+  assert_output_contains "line-0001"
+  assert_stderr_contains "saved"
+}
+
+@test "data-reduce: rg -z and --search-zip are rejected (external decompressor)" {
+  local f="$BATS_TEST_TMPDIR/blob.txt"
+  mk_fixture 10 "$f"
+
+  run --separate-stderr bash "$REDUCE" "$f" -- rg -z -c '^line'
+  assert_status 2
+  assert_stderr_contains "decompressor flag"
+  assert_stderr_contains "-z"
+
+  run --separate-stderr bash "$REDUCE" "$f" -- rg --search-zip -c '^line'
+  assert_status 2
+  assert_stderr_contains "decompressor flag"
+  assert_stderr_contains "--search-zip"
+}
+
+@test "data-reduce: tail -f, --follow and --follow=* are rejected (never terminate)" {
+  local f="$BATS_TEST_TMPDIR/blob.txt"
+  mk_fixture 10 "$f"
+
+  local flag
+  for flag in -f --follow --follow=1; do
+    run --separate-stderr bash "$REDUCE" "$f" -- tail "$flag"
+    assert_status 2
+    assert_stderr_contains "follow flag"
+    assert_stderr_contains "$flag"
+  done
+}
+
+@test "data-reduce: scoped rejects leave cut -f (a legitimate field spec) working" {
+  local f="$BATS_TEST_TMPDIR/blob.txt"
+  mk_fixture 10 "$f"
+
+  # Regression guard for OVER-broad scoping: -f/-z must be rejected only for
+  # the reducers that named them, never globally.
+  run --separate-stderr bash "$REDUCE" "$f" -- cut -f 1
+  assert_status 0
+  assert_output_contains "line-0001"
+  assert_stderr_contains "saved"
 }

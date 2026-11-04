@@ -28,6 +28,15 @@
 # runs an arbitrary program, so name-pinning alone lets
 # `rg --pre bash '' x.sh` execute that script (also exit 2).
 #
+# Reducer-scoped argument rejects (same ticket, same exit 2): uniq rejects ANY
+# positional - input always arrives on stdin and the wrapper captures stdout,
+# so a positional OUTPUT (`uniq - /path`) is an arbitrary truncate+write
+# primitive (the same class of hole that keeps sort out of the allowlist);
+# rg rejects -z/--search-zip (they spawn an external decompressor as a child
+# process); tail rejects -f/--follow/--follow=* (they never terminate, hanging
+# an unattended lane). Scoped per reducer on purpose: cut -f is a legitimate
+# field spec and cut -z is --zero-terminated, so no global -f/-z ban.
+#
 # The token count is the documented heuristic ~4 chars / token (see the
 # data-reducer skill) - an estimate for context planning, NOT a billable
 # number.
@@ -60,6 +69,12 @@ jq, rg, wc, head, tail, cut, tr, uniq
 - sort is deliberately excluded (its -o flag writes files)
 - no command-executing flags: --pre, --pre-glob, --pre=*, --pre-glob=*
   are rejected (ripgrep runs them as a program)
+- reducer-scoped argument rejects: uniq takes NO positional argument (input
+  arrives on stdin, output is the wrapper's capture file - a positional
+  OUTPUT would truncate+write an arbitrary file); rg rejects -z/--search-zip
+  (they spawn an external decompressor); tail rejects -f/--follow/--follow=*
+  (they never terminate). Scoped per reducer: cut -f (field spec) and cut -z
+  (--zero-terminated) are NOT rejected.
 Anything else is a usage error (exit 2).
 EOF
 }
@@ -133,6 +148,40 @@ for a in "${cmd[@]}"; do
   case "$a" in
     --pre|--pre-glob|--pre=*|--pre-glob=*)
       echo "data-reduce: reducer rejected (command-executing flag): $a - --pre/--pre-glob execute an arbitrary command" >&2
+      exit 2
+      ;;
+  esac
+done
+
+# --- reducer-scoped argument boundary (DIA-260827-ft3z) -----------------------
+# The flag guard above is GLOBAL; these rejects are SCOPED to one named
+# reducer each, because the same token is legitimate on a sibling (cut -f is a
+# field spec, cut -z is --zero-terminated - a global -f/-z ban would break
+# them). Matched as "$first:$a" so the reducer name pins every arm.
+#   uniq INPUT [OUTPUT] - input always arrives on stdin and the wrapper
+#   captures stdout itself, so BOTH positionals are unwanted; the OUTPUT one
+#   (`uniq - /path`) truncates and writes an arbitrary file, defeating the
+#   knowledge/* edit scope (the same reason sort -o is out of the allowlist).
+#   A lone "-" is a positional (the stdin spelling), not an option.
+#   Options (-c/-d/-u) change WHAT is reduced, not where bytes go: allowed.
+#   rg -z/--search-zip - spawn an external decompressor (zcat/bzip2/gzip...)
+#   as a child process: execution outside the allowlist.
+#   tail -f/--follow/--follow=* - never terminate: an unattended lane hangs
+#   forever.
+# The slice starts AFTER the reducer name: the name itself would otherwise
+# match its own "uniq:..." arm and reject a bare, argument-less `uniq`.
+for a in "${cmd[@]:1}"; do
+  case "$first:$a" in
+    uniq:-|uniq:[!-]*)
+      echo "data-reduce: reducer rejected (positional argument): $a - uniq takes options only; input arrives on stdin and output is the wrapper's capture file, so a positional INPUT/OUTPUT writes an arbitrary file" >&2
+      exit 2
+      ;;
+    rg:-z|rg:--search-zip)
+      echo "data-reduce: reducer rejected (decompressor flag): $a - rg -z/--search-zip spawn an external decompressor" >&2
+      exit 2
+      ;;
+    tail:-f|tail:--follow|tail:--follow=*)
+      echo "data-reduce: reducer rejected (follow flag): $a - tail -f/--follow never terminates and would hang the lane" >&2
       exit 2
       ;;
   esac
