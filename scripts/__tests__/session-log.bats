@@ -7,12 +7,23 @@
 # check-host-jq probe is a make test-shell prerequisite, so a functional jq
 # is guaranteed on PATH when this suite runs.
 #
-# 7-case matrix: header+N-rows / row_id column / legacy-line fallback /
-# atomic write / tail N / missing file / malformed-line skip+warn.
+# 8-case matrix: header+N-rows / row_id column / legacy-line fallback /
+# atomic write / tail N / missing file / malformed-line skip+warn /
+# --output containment refusal (DIA-260827-ft3z).
+#
+# Escape hatch: render refuses --output outside .opencode/session/ unless
+# SESSION_LOG_ALLOW_ANY_OUTPUT=1 (documented TEST-ONLY hatch in the script).
+# The shared setup exports it so the pre-existing fixture-output cases keep
+# passing unchanged; the containment case below unsets it to exercise the
+# default boundary.
 
 load test-helper
 
 REPO_ROOT="$(cd "$(dirname "$BATS_TEST_FILENAME")/../.." && pwd)"
+
+setup() {
+  export SESSION_LOG_ALLOW_ANY_OUTPUT=1
+}
 
 # setup_tree: copies scripts/session-log into an isolated temp tree. Echoes
 # the tree root (mirrors check-host-jq.bats setup_tree).
@@ -170,4 +181,21 @@ JSONL
   assert_file_contains "$BATS_TEST_TMPDIR/malformed/messages.md" "After the bad line"
   run grep -c '^| 3 |' "$BATS_TEST_TMPDIR/malformed/messages.md"
   assert_output_contains "1"
+}
+
+@test "session-log: render refuses --output outside .opencode/session/ (default, no escape hatch)" {
+  tree="$(setup_tree)"
+  write_fixture "$BATS_TEST_TMPDIR/refuse" mixed
+  # default path: the TEST-ONLY hatch from setup() must NOT apply here
+  unset SESSION_LOG_ALLOW_ANY_OUTPUT
+
+  run bash "$tree/scripts/session-log" render \
+    --file "$BATS_TEST_TMPDIR/refuse/messages.jsonl" \
+    --output "$BATS_TEST_TMPDIR/refuse/pwned.md"
+
+  assert_status 1
+  assert_output_contains ".opencode/session"
+  # nothing was written - the refusal happens before the atomic replace
+  assert_output_not_contains "# Orchestrator Session Messages Log"
+  assert_file_not_exists "$BATS_TEST_TMPDIR/refuse/pwned.md"
 }

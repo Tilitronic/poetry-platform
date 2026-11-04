@@ -14,7 +14,15 @@
 #   stdout - the reduction command's output (the compact result; pipe it on)
 #   stderr - the savings line + diagnostics
 #   exit   - 0 on success; the reduction command's exit code on failure;
-#            2 on usage errors (no input, missing input file)
+#            2 on usage errors (no input, missing input file, reducer not on
+#            the allowlist)
+#
+# Reducer allowlist (script-layer boundary, DIA-260827-ft3z): the permission
+# layer matches only the raw text of this invocation and cannot see the argv
+# boundary after `--`, so the script enforces it. CMD's first element must be
+# a bare basename from: jq, rg, wc, head, tail, cut, tr, uniq. Slash-qualified
+# names (/bin/cat, ./x, scripts/...) and everything else are usage errors
+# (exit 2). `sort` is deliberately excluded: its -o flag writes files.
 #
 # The token count is the documented heuristic ~4 chars / token (see the
 # data-reducer skill) - an estimate for context planning, NOT a billable
@@ -41,6 +49,12 @@ savings line is printed to stderr:
   input N KB -> result M KB (saved P%, ~Q tokens)
 
 With no CMD the default reduction is `wc -lc` (line + byte count).
+
+CMD's first element must be a bare name from the allowlist:
+jq, rg, wc, head, tail, cut, tr, uniq
+- no slashes (no /bin/cat, no ./x, no scripts/...)
+- sort is deliberately excluded (its -o flag writes files)
+Anything else is a usage error (exit 2).
 EOF
 }
 
@@ -70,6 +84,34 @@ fi
 
 if [ "${#cmd[@]}" -eq 0 ]; then
   cmd=(wc -lc)
+fi
+
+# --- reducer command allowlist ---------------------------------------------
+# Script-layer boundary (DIA-260827-ft3z): the permission layer matches only
+# the raw prefix text of this invocation and cannot see the argv boundary
+# after `--`, so the script enforces it here. The first element must be a
+# bare basename from the allowlist - no slashes (no /bin/cat, no ./x, no
+# scripts/...), no other commands. `sort` is deliberately NOT allowlisted:
+# its -o flag writes files. The execution below stays argv-direct (no shell
+# is introduced); only the entry point is pinned.
+allowlist="jq rg wc head tail cut tr uniq"
+first="${cmd[0]}"
+case "$first" in
+  */*)
+    echo "data-reduce: reducer must be a bare name from the allowlist (no slashes): $first (allowed: $allowlist)" >&2
+    exit 2
+    ;;
+esac
+allowed=0
+for c in $allowlist; do
+  if [ "$c" = "$first" ]; then
+    allowed=1
+    break
+  fi
+done
+if [ "$allowed" -ne 1 ]; then
+  echo "data-reduce: reducer not in allowlist: $first (allowed: $allowlist)" >&2
+  exit 2
 fi
 
 # --- materialize the input ------------------------------------------------

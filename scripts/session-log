@@ -18,6 +18,13 @@
 #
 # Flags: --file <path> (default .opencode/session/messages.jsonl),
 #        --output <path> (default .opencode/session/messages.md).
+#        render is the only writer: it refuses --output unless the resolved
+#        path lands inside .opencode/session/ (relative paths resolve against
+#        the repo root, so the default works from any subdirectory).
+#        SESSION_LOG_ALLOW_ANY_OUTPUT=1 bypasses the containment check -
+#        TEST ONLY, never set it outside tests. The --file read path is
+#        intentionally unrestricted: reading is already permitted to these
+#        lanes and is not the defect.
 #
 # Bash-3 compatible (macOS stock bash 3.2) — no associative arrays, no [[ ]],
 # no ${!var} (same contract as scripts/check-host-jq.sh). Requires jq for every
@@ -33,6 +40,47 @@ N="20"
 fail() {
   echo "error: $*" >&2
   exit 1
+}
+
+# Repo-root anchor for the OUTPUT write-path check (DIA-260827-ft3z): this
+# script lives at <repo>/scripts/session-log, so its parent is the repo root
+# no matter the caller's CWD - the default --output resolves identically from
+# a subdirectory.
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd -P)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd -P)"
+SESSION_DIR="$REPO_ROOT/.opencode/session"
+
+# require_output_allowed: render atomically REPLACES $OUTPUT, so an
+# unconstrained --output is a write-anywhere primitive - a lane allowed to run
+# this script could overwrite files it is otherwise forbidden to edit, and the
+# permission layer (which only sees the raw command prefix) cannot pin the
+# path argument. The boundary lives here, where the path is visible. Relative
+# paths resolve against the repo root, not the CWD. SESSION_LOG_ALLOW_ANY_OUTPUT=1
+# is the single escape hatch and is TEST ONLY - it never weakens the default.
+require_output_allowed() {
+  if [ "${SESSION_LOG_ALLOW_ANY_OUTPUT:-}" = "1" ]; then
+    return 0
+  fi
+  local abs dir base resolved
+  case "$OUTPUT" in
+    /*) abs="$OUTPUT" ;;
+    *)  abs="$REPO_ROOT/$OUTPUT" ;;
+  esac
+  dir="$(dirname "$abs")"
+  base="$(basename "$abs")"
+  # Canonicalize the directory (pwd -P): a path like
+  # .opencode/session/../../evil.md must not pass on a string prefix alone.
+  if ! resolved="$(cd "$dir" 2>/dev/null && printf '%s/%s\n' "$(pwd -P)" "$base")"; then
+    fail "--output directory does not exist: $dir (must resolve inside $SESSION_DIR)"
+  fi
+  case "$resolved" in
+    "$SESSION_DIR"/*) ;;
+    *) fail "--output must resolve inside $SESSION_DIR (got: $resolved); SESSION_LOG_ALLOW_ANY_OUTPUT=1 bypasses this check - TEST ONLY" ;;
+  esac
+  # Re-bind OUTPUT to the path just checked: the atomic write below must hit
+  # the same file the containment check validated (a raw relative OUTPUT
+  # would resolve against the CWD, which may differ from the repo root).
+  OUTPUT="$resolved"
 }
 
 require_file() {
@@ -111,6 +159,7 @@ warn_malformed() {
 }
 
 render() {
+  require_output_allowed
   require_file
   require_jq
   local tmp="${OUTPUT}.tmp"
@@ -215,6 +264,8 @@ case "$SUB" in
   stats) stats ;;
   tail) tail_rows ;;
   *)
-    fail "usage: session-log <render|stats|tail> [N] [--file <path>] [--output <path>]"
+    fail "usage: session-log <render|stats|tail> [N] [--file <path>] [--output <path>]
+  render --output must resolve inside .opencode/session/ (repo-root anchored);
+  SESSION_LOG_ALLOW_ANY_OUTPUT=1 bypasses that check - TEST ONLY."
     ;;
 esac

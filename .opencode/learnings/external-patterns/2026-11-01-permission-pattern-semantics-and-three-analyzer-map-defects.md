@@ -35,4 +35,6 @@ Both analyzer lanes are assigned the console-charting skill, whose prescribed in
 6. Pattern-level metacharacter sealing is a partial control: deny shapes for `(`-substitution, backtick, `${`, and output redirection can be appended after a helper allow, but they cost false positives on legitimate arguments containing those characters, and they cannot close every shell expansion class.
 
 ## Outcome
-pending implementation, to be updated after the fix lands.
+Updated as of the DIA-260827-ft3z script-layer hardening pass:
+- The console-charting skill has been de-scoped from every agent (the skill file is retained).
+- The analyzer bash-map defects are still pending the map edit: defect 2 (data-reduce pass-through) and defect 3 (session-log write grant) are addressed at the script layer as of this commit - data-reduce.sh now rejects any reducer whose first element is not on its bare-name allowlist, and session-log render now refuses an --output that does not resolve inside .opencode/session/ - with the permission-map edit still to come.

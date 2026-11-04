@@ -5,7 +5,8 @@
 #   stdout - the reduction result ONLY (pure, pipeable onward)
 #   stderr - the savings line + diagnostics (measurement metadata)
 #   exit   - 0 on success; the reduction command's exit code on failure;
-#            2 on usage errors (no input / missing input file)
+#            2 on usage errors (no input / missing input file / reducer not
+#            on the allowlist - jq rg wc head tail cut tr uniq)
 #
 # Isolation: fixtures live under $BATS_TEST_TMPDIR; the script's own mktemp
 # workdir is self-cleaning (EXIT trap). No Docker, no network, no repo
@@ -61,7 +62,9 @@ mk_fixture() {
   local f="$BATS_TEST_TMPDIR/blob.txt"
   mk_fixture 100 "$f"
 
-  run --separate-stderr bash "$REDUCE" "$f" -- grep -c '^line'
+  # rg (allowlisted) instead of grep: the reducer allowlist pins the first
+  # element to jq rg wc head tail cut tr uniq (DIA-260827-ft3z).
+  run --separate-stderr bash "$REDUCE" "$f" -- rg -c '^line'
 
   assert_status 0
   assert_output_contains "100"
@@ -95,10 +98,12 @@ mk_fixture() {
   local f="$BATS_TEST_TMPDIR/blob.txt"
   mk_fixture 100 "$f"
 
-  run --separate-stderr bash "$REDUCE" "$f" -- true
+  # head -n 0 (allowlisted) replaces the old `true` reducer: the allowlist
+  # permits no shell builtins, and head -n 0 likewise emits nothing.
+  run --separate-stderr bash "$REDUCE" "$f" -- head -n 0
 
   assert_status 0
-  # `true` emits nothing: stdout is empty, stderr reports the full savings.
+  # empty output: stdout is empty, stderr reports the full savings.
   assert_stderr_contains "input 4 KB -> result 0 KB (saved 100%, ~1075 tokens)"
 }
 
@@ -117,11 +122,14 @@ mk_fixture() {
   local f="$BATS_TEST_TMPDIR/blob.txt"
   mk_fixture 10 "$f"
 
-  run --separate-stderr bash "$REDUCE" "$f" -- sh -c 'echo boom >&2; exit 7'
+  # jq -n 'error("boom")' (allowlisted) replaces the old `sh -c`: the
+  # allowlist rejects shell interpreters. jq's error() aborts with exit 5
+  # and prints "boom" on stderr, so the replay + propagation assertions hold.
+  run --separate-stderr bash "$REDUCE" "$f" -- jq -n 'error("boom")'
 
-  assert_status 7
+  assert_status 5
   assert_stderr_contains "boom"
-  assert_stderr_contains "reduction command failed (exit 7)"
+  assert_stderr_contains "reduction command failed (exit 5)"
 }
 
 @test "data-reduce: missing input file exits 2 with a clear message" {
@@ -136,4 +144,73 @@ mk_fixture() {
 
   assert_status 2
   assert_stderr_contains "Usage:"
+}
+
+# --- reducer allowlist boundary (DIA-260827-ft3z) ---------------------------
+# The permission layer sees only the raw prefix text of the invocation and
+# cannot pin the argv boundary after `--`; the script can, so these cases pin
+# the script-side boundary: allowlisted reducers run, everything else is a
+# usage error (exit 2) before any input is read.
+
+@test "data-reduce: allowlisted reducer still runs and prints the savings line" {
+  local f="$BATS_TEST_TMPDIR/blob.txt"
+  mk_fixture 100 "$f"
+
+  run --separate-stderr bash "$REDUCE" "$f" -- head -n 5
+
+  assert_status 0
+  assert_output_contains "line-0001"
+  assert_output_not_contains "line-0006"
+  assert_stderr_contains "input 4 KB -> result 0 KB (saved"
+  assert_stderr_contains "tokens"
+}
+
+@test "data-reduce: non-allowlisted reducer (python3 -c) exits 2 with the allowlist message" {
+  local f="$BATS_TEST_TMPDIR/blob.txt"
+  mk_fixture 10 "$f"
+
+  run --separate-stderr bash "$REDUCE" "$f" -- python3 -c "print('pwned')"
+
+  assert_status 2
+  assert_stderr_contains "allowlist"
+  assert_stderr_contains "python3"
+  # the allowlist itself is named in the message, and nothing executed
+  assert_stderr_contains "allowed: jq rg wc head tail cut tr uniq"
+  assert_output_not_contains "pwned"
+}
+
+@test "data-reduce: slash-qualified first element exits 2" {
+  local f="$BATS_TEST_TMPDIR/blob.txt"
+  mk_fixture 10 "$f"
+
+  run --separate-stderr bash "$REDUCE" "$f" -- /bin/cat
+
+  assert_status 2
+  assert_stderr_contains "/bin/cat"
+  assert_stderr_contains "allowlist"
+}
+
+@test "data-reduce: sort is rejected (its -o flag writes files)" {
+  local f="$BATS_TEST_TMPDIR/blob.txt"
+  mk_fixture 10 "$f"
+
+  run --separate-stderr bash "$REDUCE" "$f" -- sort
+
+  assert_status 2
+  assert_stderr_contains "sort"
+  assert_stderr_contains "allowlist"
+}
+
+@test "data-reduce: no-CMD default still works (stdin input)" {
+  local f="$BATS_TEST_TMPDIR/blob.txt"
+  mk_fixture 100 "$f"
+
+  # no CMD: the default wc -lc path passes through the allowlist check
+  # unchanged (the file-mode default is covered by the first case above).
+  run --separate-stderr bash "$REDUCE" - < "$f"
+
+  assert_status 0
+  assert_output_contains "100"
+  assert_output_contains "4300"
+  assert_stderr_contains "saved"
 }
