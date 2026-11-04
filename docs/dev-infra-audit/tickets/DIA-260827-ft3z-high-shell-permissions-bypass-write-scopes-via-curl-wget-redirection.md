@@ -36,6 +36,37 @@ evidence:
 
 ---
 
+## STATUS 2026-11-04 - what is true now and what is not
+
+True now:
+
+- The analyzer and analyzer-escalated lanes have no shell at all (bash is
+  deny outright, zero allow rules), so the curl/wget/redirection write-scope
+  class is closed for those two lanes by construction rather than narrowed.
+- The configuration gate exists and fails on config drift: G1 lockstep
+  non-vacuity, G2 semantic restriction predicate / dangerous-shape probe /
+  edit/bash invariant, and G3 doc-drift tripwire run from `make test-config`
+  via `.opencode/scripts/validate-opencode-config.sh`, covered by the 44 bats
+  cases in `scripts/__tests__/test-config-wiring.bats`.
+- researcher remains able to write any path through `curl -o` / `wget -O`;
+  the gate proves this (the dangerous-shape probe resolves those commands to
+  allow) and exempts researcher explicitly in `EXEMPT_EDIT_BASH`
+  (`.opencode/scripts/lib/jsonc-parse.js`) with a pointer to this ticket, so
+  a NEW agent appearing in that state still fails loudly.
+
+Not true yet:
+
+- The Verification line above is still false: a narrow edit-scoped lane CAN
+  still write outside its directory via curl/wget.
+- Redirection and command substitution remain open at runtime for every lane
+  that has a shell; the gates never intercept a live command.
+
+Frontmatter status stays OPEN. The ledger vocabulary (OPEN DONE VALIDATE E2E
+DEFERRED MONITOR FIXED IMPLEMENTED VERIFIED CLOSED BLOCKED DISPATCHED RUNNING
+COMPLETE) has no entry that honestly means partially delivered: FIXED,
+IMPLEMENTED and VERIFIED would all overstate a runtime acceptance that is
+still false.
+
 ## Description
 
 Reaudit (DIA-260827-wfcx, 2026-08-31; W-H2) confirms researcher/resource-manager can curl -o, wget -O, and redirect (opencode.jsonc:493-500,595-601); coder has node _, bun _, python3 _ (:337-342); the section-2.5 edit gate does not intercept bash (delegation-observer.ts:3114-3124). Impact: a lane with edit: knowledge/_ can write anywhere; coder can change .opencode/ and bypass the AI-specialist gate. Correct fix: path-validating fetch/write adapters, a protected-path shell gate, and removal of broad interpreters where unneeded.

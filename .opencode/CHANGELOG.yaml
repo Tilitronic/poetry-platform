@@ -5334,3 +5334,71 @@
     verified-closed, 0 re-review observations); commits b454ff76fc3187ad167445873cc8d5395a617961
     and 7c29205ac36f1169caeca08d7ebda81ad93583e7; ASCII-only (DIA-079).
   area: opencode-config
+- date: '2026-11-04'
+  ticket: DIA-260827-ft3z
+  scope: opencode-config
+  files:
+  - .opencode/opencode.jsonc
+  - .opencode/oh-my-opencode-slim.jsonc
+  - .opencode/agents/analyzer.md
+  - .opencode/agents/analyzer-escalated.md
+  - .opencode/scripts/lib/jsonc-parse.js
+  - .opencode/scripts/validate-opencode-config.sh
+  - scripts/__tests__/test-config-wiring.bats
+  - scripts/data-reduce.sh
+  - scripts/session-log
+  - .opencode/skills/book-rag/SKILL.md
+  - .opencode/skills/teaching/SKILL.md
+  - .opencode/scripts/query_rag.py
+  - .opencode/scripts/test_query_rag.py
+  summary: 'Shell-permission campaign. analyzer and analyzer-escalated bash reduced
+    from a flat allow to an enumerated deny-first contract and then removed outright:
+    both lanes now carry bash deny with zero allow rules, so the curl/wget/redirection
+    write-scope class is closed for them by construction rather than narrowed. Script-layer
+    guards: data-reduce reducer allowlist rejecting command-executing flags, session-log
+    output containment, --pre/--pre-glob and combined-short flag rejects. Configuration
+    gates: G1 lockstep non-vacuity, G2 semantic restriction predicate plus dangerous-shape
+    probe plus edit/bash invariant, G3 doc-drift tripwire, with 44 bats cases in scripts/__tests__/test-config-wiring.bats.
+    Deletion of the never-loaded book-rag and teaching skills (three files removed
+    under .opencode/skills/) plus the query_rag.py script and its orphaned test_query_rag.py.
+    NOT DELIVERED: the ticket''s RUNTIME acceptance - a narrow edit-scoped lane cannot
+    write outside its directory via curl/wget/redirection - is NOT delivered by any
+    of this: those gates are static config and doc checks that fail on drift, they
+    never intercept a live command. researcher can still write any path through curl
+    -o / wget -O; the gate proves that and exempts researcher explicitly with a pointer
+    to this ticket, and redirection plus command substitution remain open at runtime
+    for every lane that has a shell. Frontmatter status stays OPEN.'
+  verification: manual
+  area: opencode-config
+- date: '2026-11-04'
+  ticket: DIA-261022-6vcz
+  scope: dev-infra
+  files:
+  - scripts/validate-model-ids.sh
+  - scripts/__tests__/validate-model-ids.bats
+  - knowledge/model-registry.yaml
+  - .opencode/oh-my-opencode-slim.jsonc
+  - Makefile
+  summary: 'Model-ID validator hardening: scripts/validate-model-ids.sh now hard-fails
+    (exit 1) when a model ID''s provider prefix is absent from the live opencode models
+    catalog instead of the old warn-and-exit-0 path that let a typo''d or dead provider
+    slip through, with only the named KNOWN_DISCONNECTED_PROVIDERS allowlist staying
+    WARN; the line scanner strips // and block comments before quoted-string extraction
+    using the quote-respecting JSONC stripper reused from scripts/audit-agent-tool-coverage.sh,
+    so comment content can no longer parse as a model ID; suite grown to 11 bats cases
+    in scripts/__tests__/validate-model-ids.bats.'
+  verification: manual
+  area: scripts
+- date: '2026-11-04'
+  ticket: DIA-261103-bxj0
+  scope: opencode-config
+  files:
+  - .opencode/oh-my-opencode-slim.jsonc
+  - .opencode/skills/console-charting/SKILL.md
+  - .opencode/skills/mermaid-diagramming/SKILL.md
+  summary: console-charting de-scoped from every agent skill list (its chart path
+    requires python -c, which the analyzer lanes deny) and the three-way library-name
+    typo (termatplotlib / termtplotlib / termplotlib) normalized to termatplotlib;
+    the skill file remains on disk for future reuse. Surfaced by review DIA-260827-ft3z.
+  verification: manual
+  area: opencode-config
