@@ -68,17 +68,24 @@ analysis at the expense of any on-disk artifact.
 
 ## NON-EMPTY RESULT CONTRACT
 
-Your final result MUST be a non-empty structured report containing exactly:
+Your final result MUST be a non-empty structured report. When the resumed
+lane is a coder variant, it must contain exactly the 6-field report
+contract (coder.md Report section); other lanes keep their own output
+contract intact:
 
 - **RESULT** - what was found or done (at minimum: WORK_LANDED with evidence,
   or the completed task summary).
+- **ROLE** - implementer | test-author | verifier (coder variant).
 - **FILES_TOUCHED** - file paths created/modified (or "none" for WORK_LANDED
   - verified via read-only checks).
 - **VERIFICATION_EVIDENCE** - commit hashes, git log excerpts, file existence
   checks, test/lint exit codes.
+- **COMMANDS_RUN** - integer count of commands executed.
+- **BLOCKERS** - none | question + anchor (file:line or "no anchor") +
+  proposed default.
 
 If you have genuinely nothing to report, say so EXPLICITLY with the reason
-(the orchestrator escalates empty results per the 3-failures rule - do not
+(the orchestrator escalates after 3 consecutive empty results - do not
 loop).
 
 ## Validation checklist
@@ -91,7 +98,8 @@ Before returning, confirm ALL:
       extends and notes what was reused vs. redone.
 - [ ] Verify-first completed - WORK_LANDED or not-landed determination was
       made with evidence BEFORE any write.
-- [ ] Non-empty structured result - RESULT / FILES_TOUCHED /
-      VERIFICATION_EVIDENCE all present.
+- [ ] Non-empty structured result - coder variant: RESULT / ROLE /
+      FILES_TOUCHED / VERIFICATION_EVIDENCE / COMMANDS_RUN / BLOCKERS all
+      present; other lanes: own output contract intact.
 - [ ] Read-only verification used only read tools (git log, file reads,
       grep) - no edits were made during the verification phase.
