@@ -100,16 +100,15 @@ capture.
 
 ## Applicability (which lanes)
 
-Worker lanes that can actually run a reducer: **coder / coder-escalated, i.e.
-any bash-allow lane**. The reduction runs IN the worker (the orchestrator has
-bash denied) and only the small result returns to the orchestrator.
-analyzer / analyzer-escalated lost their shell outright (DIA-260827-ft3z:
-jq, rg, wc and the wrapper are all gone), so they RECEIVE reductions, they do
-not run them. code-navigator has no bash at all and researcher's bash is
-allow-listed to curl / wget / trafilatura / crwl only - none of the three is
-a worker lane for this skill.
+Worker lanes for this skill: **coder / coder-escalated** - exactly those two,
+and they are now wired to the skill in every preset block that configures them
+(DIA-260827-ft3z). No other lane runs a reducer, and no lane receives a
+reduction except through one of these two:
 
-Currently wired: no lane (the former wiring, analyzer / analyzer-escalated
-under DIA-260826-6mhy, ended with their shell). The orchestrator routes an
-oversized input to a bash-allow lane for reduction before dispatching it to
-a no-shell lane.
+- The orchestrator has bash denied, so it routes an oversized input to
+  coder / coder-escalated for reduction before dispatching the compact result.
+- analyzer / analyzer-escalated lost their shell outright (DIA-260827-ft3z:
+  jq, rg, wc and the wrapper are all gone), so they RECEIVE a reduction, they
+  do not run one.
+- code-navigator has no bash at all, and researcher's bash is allow-listed to
+  curl / wget / trafilatura / crwl only - neither is a worker lane here.
