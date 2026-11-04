@@ -194,8 +194,15 @@ models:
 #     new-input and output terms, ~$0.0383 per request. Against the $3.00 per-5h slice
 #     that is ~78 requests; against the $15.00 monthly pool, ~390 requests.
 #   - gemini-4-argon at $0.10 per 1M cache: the same 71,300 cached tokens
-#     cost ~$0.0071, ~$0.011-0.014 per request. Against the $12.00 per-5h slice that is
-#     ~880 requests; against the $60.00 promo pool, ~4,400 requests.
+#     cost ~$0.0071. Provenance of the request counts - two explicit sources,
+#     no masking range:
+#       (a) ~880 req/5h and ~4,400 req/mo are the 2200 planning baseline
+#           doubled after the unit prices halved; they imply ~$0.0136 per
+#           request and are NOT derived from the token profile below.
+#       (b) The token profile itself evaluates to $0.01105 per request (410 new
+#           input @ $2.00 + 71,300 cache read @ $0.10 + 310 output @ $10.00,
+#           all per 1M), i.e. ~5430 requests per month on the $60.00 promo
+#           pool - a cross-check, not the planning number.
 # CONCLUSION: on the Go subscription Argon gives roughly 11x the request headroom of
 # grok-4.7, and still roughly 5.5x after the 2x promo ends and the pool reverts to $30.00.
 # The single scenario where grok-4.7 wins: closed-source work under NDA where Zero Data
