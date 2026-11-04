@@ -129,13 +129,18 @@ function isDenyByDefault(bash) {
   return RESTRICTION_PROBES.every((probe) => resolveRule(bash, probe) === 'deny');
 }
 
-// Dangerous-allow probe: shapes that execute arbitrary code. The restriction
-// probes alone under-classify - {"*":"deny","python3 *":"allow"} resolves BOTH
-// probes to deny (no probe starts with python3) yet lets the lane run
-// `python3 -c 'open(...,"w")'`, which is the write-scope hole this campaign
-// exists to close (DIA-260827-ft3z C1). A map resolving ANY of these to allow
-// is unrestricted no matter what the probes say.
+// Dangerous-allow probe: shapes that execute arbitrary code OR write to an
+// arbitrary path. The restriction probes alone under-classify -
+// {"*":"deny","python3 *":"allow"} resolves BOTH probes to deny (no probe
+// starts with python3) yet lets the lane run `python3 -c 'open(...,"w")'`,
+// which is the write-scope hole this campaign exists to close (DIA-260827-ft3z
+// C1). The same hole opens through any write primitive or shell-out the map
+// allows: the researcher map this ticket was opened for keeps both probes on
+// deny while `curl -o /workspace/anything URL` resolves to allow behind its
+// `curl *` grant (R1). A map resolving ANY of these to allow is unrestricted
+// no matter what the probes say.
 const DANGEROUS_EXECUTION_SHAPES = [
+  // interpreter -c/-e forms
   "python3 -c 'x'",
   "python -c 'x'",
   "bash -c 'x'",
@@ -143,12 +148,27 @@ const DANGEROUS_EXECUTION_SHAPES = [
   "node -e '0'",
   "perl -e '0'",
   "ruby -e '0'",
+  // write primitives: the output / install target is an arbitrary path
+  "curl -o x http://x",
+  "curl --output x http://x",
+  "wget -O x http://x",
+  "tee x",
+  "dd of=x",
+  "sed -i x",
+  "python3 -m pip install x",
+  // shell-outs: the executed operand is arbitrary
+  "find . -exec x",
+  "xargs x",
+  "awk 'BEGIN{system(\"x\")}'",
+  "bun -e '0'",
+  "deno eval '0'",
+  "git -c core.pager=x log",
 ];
 
-// First dangerous shape the map resolves to allow, else null. The real analyzer
-// map allows only `python3 .opencode/scripts/query_rag.py *`, which is anchored
-// to a fixed script path and matches none of these shapes, so the gate stays
-// green on the current config.
+// First dangerous shape the map resolves to allow, else null. On the real tree
+// this names researcher (`curl -o x http://x` behind its `curl *` allow), which
+// is recorded as an explicit exemption in the invariant below rather than by
+// narrowing this list (DIA-260827-ft3z R1).
 function allowedDangerousShape(bash) {
   if (bash === null || typeof bash !== 'object' || Array.isArray(bash)) return null;
   return DANGEROUS_EXECUTION_SHAPES.find((shape) => resolveRule(bash, shape) === 'allow') || null;
@@ -167,6 +187,13 @@ function isBashRestricted(bash) {
 // Deny-scoped = at least one path probe resolves deny AND neither resolves
 // allow - the first keeps path-only catch-alls in, the second keeps any map
 // that grants an arbitrary path out.
+// Asymmetry, tolerated on purpose: a nested-only deny ({"nested/**":"deny"}
+// with no bare-name rule) counts as deny-scoped while a bare path stays
+// allowed - the pair reads probe outcomes and never asserts both deny, which
+// fails closed (the lane still has to carry a restricted bash) where the
+// opposite reading would wave a nested-deny map with flat-allow bash through;
+// the bare-path allowance itself is the edit matcher's glob semantics, outside
+// this tripwire.
 const EDIT_PATH_PROBES = ['dia_edit_probe', 'nested/dir/dia_edit_probe'];
 
 function isDenyScoped(edit) {
@@ -267,16 +294,22 @@ if (args[0] === '--lockstep') {
           pairProblems.push(
             `pair ${pair.base}/${pair.esc}: member "${member.role}" has no comparable permission keys left after exemptions`
           );
-        } else if (countLeafRules(picked) === 0) {
-          // M4: {"bash":{}} has a key but carries no rule, so the comparison
-          // below would green on "1 keys, 0 rules" - zero rule coverage.
-          pairProblems.push(
-            `pair ${pair.base}/${pair.esc}: member "${member.role}" has 0 leaf rules (an empty permission key such as "bash": {} carries no rule)`
-          );
-        } else if (member.picked === 'a') {
-          a = picked;
         } else {
-          b = picked;
+          // M4/R2: check PER KEY, not on the aggregate count. {"bash":{},
+          // "task":"deny"} used to green here - the aggregate saw the one
+          // "deny" leaf rule while bash carried none - and the comparison
+          // below would then report "1 keys, 1 rules" for zero bash coverage.
+          // Every empty key is named so the fix is unambiguous.
+          const emptyKeys = Object.keys(picked).filter((k) => countLeafRules(picked[k]) === 0);
+          if (emptyKeys.length > 0) {
+            pairProblems.push(
+              `pair ${pair.base}/${pair.esc}: member "${member.role}" has 0 leaf rules in key(s): ${emptyKeys.join(', ')} (an empty permission key such as "bash": {} carries no rule)`
+            );
+          } else if (member.picked === 'a') {
+            a = picked;
+          } else {
+            b = picked;
+          }
         }
       }
     }
@@ -349,11 +382,26 @@ if (args[0] === '--doc-drift') {
     'bash is allowed',
     'mmdc',
   ];
-  // Same-line negation markers (M2b): a line that negates the claim before the
-  // phrase ("we do not run mmdc") is NOT a claim. Checked against the line text
-  // preceding the hit, so "mmdc is not available" still fires (the negation
-  // comes after the phrase and does not retract it).
-  const NEGATION_MARKERS = ['not ', 'never', "don't", 'do not'];
+  // Same-line negation markers (M2b, bounded by R4): a line that negates the
+  // claim before the phrase ("we do not run mmdc") is NOT a claim. Bounded on
+  // two axes - word-boundary regexes, so `never` does not match "nevertheless"
+  // and `not` does not match "cannot" (the `not` there is not word-initial);
+  // and clause-scoped, so only the text between the last clause boundary
+  // (". ", "; ", ": ") before the hit and the hit itself is examined - a
+  // negation in an earlier clause cannot retract a later claim. Checked against
+  // the text preceding the hit, so "mmdc is not available" still fires (the
+  // negation comes after the phrase and does not retract it).
+  const NEGATION_MARKERS = [/\bnot\b/, /\bnever\b/, /don't/, /\bdo not\b/];
+  const CLAUSE_BOUNDARIES = ['. ', '; ', ': '];
+  const clauseBefore = (text, idx) => {
+    const prefix = text.slice(0, idx);
+    let start = 0;
+    for (const b of CLAUSE_BOUNDARIES) {
+      const at = prefix.lastIndexOf(b);
+      if (at >= 0 && at + b.length > start) start = at + b.length;
+    }
+    return prefix.slice(start);
+  };
   const findForbidden = (line) => {
     const lower = line.toLowerCase();
     const hits = [];
@@ -363,26 +411,33 @@ if (args[0] === '--doc-drift') {
       // twice must report BOTH occurrences, or the second claim survives the
       // fix that removed the first.
       for (let idx = lower.indexOf(needle); idx >= 0; idx = lower.indexOf(needle, idx + needle.length)) {
-        // M2a: `bash: allow` must not fire on `bash: allow-list` /
-        // `bash: allowlisted` - require a word boundary after a phrase that
-        // ends in the bare word "allow" (next char not -, not word char).
+        // M2a/R3: read the REST of the word after the match. Only the four
+        // allow-list spellings (`list`, `listed`, `-list`, `-listed`) name a
+        // procedure rather than a claim - `bash: allowed` is a genuine
+        // flat-allow claim and must fire, as must any other continuation.
         if (needle.endsWith('allow')) {
-          const after = lower[idx + needle.length];
-          if (after !== undefined && /[-\w]/.test(after)) continue;
+          const word = (lower.slice(idx + needle.length).match(/^[-\w]*/) || [''])[0];
+          if (word === 'list' || word === 'listed' || word === '-list' || word === '-listed') continue;
         }
-        // M2b: the same line negates the phrase before it.
-        if (NEGATION_MARKERS.some((m) => lower.slice(0, idx).includes(m))) continue;
-        hits.push(line.slice(idx, idx + phrase.length));
+        // M2b/R4: the clause before the hit negates the phrase.
+        if (NEGATION_MARKERS.some((re) => re.test(clauseBefore(lower, idx)))) continue;
+        hits.push({ phrase: line.slice(idx, idx + phrase.length), at: idx });
       }
     }
     return hits;
   };
   const problems = [];
-  // M2c: prompt fields are scanned LINE BY LINE (they used to be one blob, so
-  // a hit could not be attributed to its line), and a hit on a line that names
-  // a DIFFERENT configured agent - without naming the subject - describes that
-  // other lane's grant and must not be attributed to the restricted subject
-  // (a routing table is not a claim by every lane it appears next to).
+  // M2c/R5: a hit is attributed to the subject UNLESS the clause around it
+  // labels a DIFFERENT configured agent - a routing-table line describing
+  // another lane's grant is not a claim by the subject (a routing table is not
+  // a claim by every lane it appears next to). Attribution is per HIT, never
+  // per line: a line that both names another agent and makes its own claim
+  // ("Unlike coder, this lane grants bash: allow") must still report the claim,
+  // so only the individual hit is suppressed, and only when the label owns it.
+  // Two spellings of that label: the text right before the hit ends with
+  // `<name>:` (the hit directly follows the label), or the claim's clause
+  // opens with `<name>:` (`coder: this lane grants bash: allow`). The subject
+  // must not be named anywhere in that clause.
   const agentNames = Object.keys(cfg.agent || {});
   const namesAgent = (line, name) => {
     const hay = line.toLowerCase();
@@ -400,17 +455,44 @@ if (args[0] === '--doc-drift') {
     }
     return false;
   };
-  const attributedToOtherAgent = (line, subject) =>
-    agentNames.some((n) => n !== subject && namesAgent(line, n)) && !namesAgent(line, subject);
+  // The claim's clause around a hit at index `at`: split on ". " and "; " only
+  // - a ": " does NOT start a new clause, because a label and its claim share
+  // one clause (`coder: bash: allow` is a single labelled claim).
+  const claimClause = (line, at) => {
+    let start = 0;
+    for (const b of ['. ', '; ']) {
+      const p = line.lastIndexOf(b, at);
+      if (p >= 0 && p + b.length > start) start = p + b.length;
+    }
+    let end = line.length;
+    for (const b of ['. ', '; ']) {
+      const p = line.indexOf(b, at);
+      if (p >= 0 && p < end) end = p;
+    }
+    return line.slice(start, end);
+  };
+  const attributedHit = (line, at, subject) => {
+    const prefix = line.slice(0, at);
+    const clause = claimClause(line, at);
+    const labelledByOther = agentNames.some(
+      (n) =>
+        n !== subject &&
+        (prefix.trimEnd().toLowerCase().endsWith(n.toLowerCase() + ':') ||
+          clause.toLowerCase().startsWith(n.toLowerCase() + ':'))
+    );
+    return labelledByOther && !namesAgent(clause, subject);
+  };
   // Line-scanned surfaces. Every hit is resolved against its own line so the
-  // negation rule (M2b) and, for prompt fields, the attribution rule (M2c)
-  // apply; files report their line number, prompt fields their field path.
+  // negation rule (M2b/R4) and, for prompt fields, the per-hit attribution
+  // rule (M2c/R5) apply; files report their line number, prompt fields their
+  // field path. No line is ever dropped wholesale - only an individual hit that
+  // another agent's label owns is suppressed.
   const scanLines = (subject, label, text, attribute = false) => {
     const lines = text.split(/\r?\n/);
     for (let i = 0; i < lines.length; i++) {
-      if (attribute && attributedToOtherAgent(lines[i], subject)) continue;
       for (const hit of findForbidden(lines[i])) {
-        problems.push(`${subject}: ${label}:${i + 1}: forbidden phrase "${hit}"`);
+        if (attribute && attributedHit(lines[i], hit.at, subject)) continue;
+        problems.push(`${subject}: ${label}:${i + 1}: forbidden phrase "${hit.phrase}"`);
       }
     }
   };
@@ -491,14 +573,25 @@ if (args[0] === '--doc-drift') {
   // G2 invariant: an agent whose EDIT is deny-scoped must not run on an
   // unrestricted bash map - that is the campaign's actual failure mode, an
   // edit-scoped lane whose shell can still write anywhere. The exemption set
-  // below is the known tracked debt; it stays EXPLICIT (one named agent, one
-  // ticket) so the debt is visible in review and a NEW agent appearing in this
-  // state fails loudly.
+  // below is the known tracked debt; it stays EXPLICIT (one named agent per
+  // tracking ticket, each entry naming what it can still run) so the debt is
+  // visible in review and a NEW agent appearing in this state fails loudly.
   const EXEMPT_EDIT_BASH = new Set([
     // memory-manager: edit is deny-first, the bash key is ABSENT so it
     // inherits the global `"*": "allow"` baseline (verified with
     // `opencode debug agent memory-manager`).
     'memory-manager',
+    // researcher (DIA-260827-ft3z R1): NOT a weaker check - the write-shape
+    // probe above now PROVES the live hole this ticket was opened for. Its
+    // `curl *` / `wget *` allow-list still resolves `curl -o x http://x`,
+    // `curl --output x http://x` and `wget -O x http://x` to allow, so the
+    // lane writes any path its edit scope denies. That runtime acceptance
+    // (path-validating fetch adapters + a protected-path shell gate) is this
+    // campaign's OWN undelivered work, tracked under DIA-260827-ft3z - closing
+    // it is the Fix-section work, not a config edit. Recorded here so the hole
+    // stays visible in review and a NEW agent appearing in this state still
+    // fails loudly.
+    'researcher',
   ]);
   // Same tracked debt, deliberately NOT exempt: designer. Its config comment in
   // .opencode/opencode.jsonc ("designer bash gap is a DEFERRED drift routed to

@@ -239,8 +239,11 @@ MD
   # bash(23) + task(1) = 26 leaf rules behind 3 top-level keys.
   assert_output_contains "(3 keys, 26 rules: analyzer, analyzer-escalated)"
   # G3 widened scope on the REAL tree: the eight flat-"deny" agents plus the
-  # five deny-first object maps = 13 in-scope agents, named in the ok line.
-  assert_output_contains "13 in-scope agents"
+  # deny-first object maps = 12 in-scope agents, named in the ok line. R1 moved
+  # researcher OUT of the doc scope on purpose: its `curl *` / `wget *` allow
+  # now resolves the write shapes, so the map classifies as unrestricted (the
+  # live hole is recorded in the invariant's exemption set instead).
+  assert_output_contains "12 in-scope agents"
   assert_output_contains "orchestrator, architector, analyzer, analyzer-escalated, reviewer, code-navigator"
 }
 
@@ -507,9 +510,18 @@ MD
 }
 
 # ---------------------------------------------------------------------------
-# DIA-260827-ft3z review close-out: coverage holes in the gates above. Every
-# case here is DISCRIMINATING - it fails against the pre-fix predicate, the
-# pre-fix matcher, or the pre-fix phrase scanner, and passes after the fix.
+# DIA-260827-ft3z review close-out: coverage holes in the gates above, plus the
+# cycle-2 findings R1-R8. Discriminating vs regression guard (R6: the previous
+# blanket claim "every case here is DISCRIMINATING" was overstated and is
+# corrected here): a [D] case fails against the pre-fix predicate, the pre-fix
+# matcher or the pre-fix phrase scanner - or, for the probe-A/probe-B fixture,
+# against a probe-B-only predicate - and passes after the fix; a [G] case pins
+# behaviour that was ALREADY correct when written and only guards against a
+# regression. [G] in this section: "every remaining forbidden phrase fires at
+# least once" and "the deny-first marker is scoped to the analyzer pair" were
+# guards from the start, as are the R7 additions that pin untested acceptance
+# details (success-line pluralization, the no-permission-object branch, the
+# memory-manager exemption) rather than close a hole.
 # ---------------------------------------------------------------------------
 
 @test "validator: deny-by-default maps allowing a dangerous execution shape fail the invariant (DIA-260827-ft3z C1)" {
@@ -572,7 +584,7 @@ JSONC
   assert_output_not_contains "deny-first doc contract drift"
 }
 
-@test "validator: bash: allow does not match bash: allow-list or allowlisted (DIA-260827-ft3z M2a)" {
+@test "validator: bash: allow matches allowed but not allow-list or allowlisted (DIA-260827-ft3z M2a/R3)" {
   [ -n "$NODE_BIN" ] || skip "node is required to run jsonc-parse.js"
   local tree="$BATS_TEST_TMPDIR/allow-boundary"
   mkdir -p "$tree/.opencode"
@@ -580,18 +592,29 @@ JSONC
   cat > "$tree/.opencode/opencode.jsonc" <<'JSONC'
 { "agent": { "m2a": { "permission": { "edit": "deny", "bash": { "*": "deny", "jq *": "allow" } } } } }
 JSONC
+  # R3: the word after `allow` is examined, not just its first character. The
+  # four allow-list spellings are skipped; `allowed` is a genuine flat-allow
+  # claim and must fire (the old next-char rule swallowed it, so the hit count
+  # below discriminates: 1 against the old rule, 2 against the fixed one).
   cat > "$tree/.opencode/agents/m2a.md" <<'MD'
 # m2a
 Claims bash: allow-list for the enum - must NOT be reported.
+Claims bash: allowlisted for the enum - must NOT be reported.
+Claims bash: allowed for the enum - must be reported.
 Claims bash: allow for the enum - must be reported.
 MD
   run "$NODE_BIN" "$LIB" --doc-drift "$tree/.opencode/opencode.jsonc"
   assert_status 1
-  assert_output_contains 'm2a.md:3: forbidden phrase "bash: allow"'
-  assert_output_not_contains "allow-list"
+  # discriminating replacement for the old vacuous `assert_output_not_contains
+  # "allow-list"` (the reported phrase is always "bash: allow", so that string
+  # could never appear): the allow-list LINES must stay unreported.
+  assert_output_not_contains "m2a.md:2"
+  assert_output_not_contains "m2a.md:3"
+  assert_output_contains 'm2a.md:4: forbidden phrase "bash: allow"'
+  assert_output_contains 'm2a.md:5: forbidden phrase "bash: allow"'
   local hit_lines
   hit_lines="$(printf '%s\n' "$output" | grep -c 'forbidden phrase' || true)"
-  [ "$hit_lines" -eq 1 ]
+  [ "$hit_lines" -eq 2 ]
 }
 
 @test "validator: a same-line negation suppresses the phrase hit (DIA-260827-ft3z M2b)" {
@@ -868,4 +891,230 @@ MD
   assert_status 0
   assert_output_contains "1 in-scope agents: other-lane"
   assert_output_not_contains 'missing required "deny-first" marker'
+}
+
+# ---------------------------------------------------------------------------
+# DIA-260827-ft3z cycle-2 findings R1-R8 (re-review of the gate above). Every
+# case is tagged [D] discriminating or [G] regression guard in its comment;
+# see the section header for what those tags mean.
+# ---------------------------------------------------------------------------
+
+@test "validator: write and shell-out shapes disqualify a deny-by-default map (DIA-260827-ft3z R1) [D]" {
+  [ -n "$NODE_BIN" ] || skip "node is required to run jsonc-parse.js"
+  local tree="$BATS_TEST_TMPDIR/r1-write-shapes"
+  mkdir -p "$tree/.opencode"
+  require_analyzer_docs "$tree"
+  # The researcher map this ticket was opened for: both restriction probes
+  # resolve to deny, yet `curl -o /workspace/anything URL` writes anywhere
+  # behind the `curl *` allow. Under the interpreter-only shape list this
+  # classified as restricted and the invariant stayed silent on the real hole.
+  cat > "$tree/.opencode/opencode.jsonc" <<'JSONC'
+{ "agent": { "r1-curl": { "permission": { "edit": { "*": "deny", "knowledge/*": "allow" }, "bash": { "*": "deny", "curl *": "allow" } } } } }
+JSONC
+  # Once the write shapes are in, the map is UNRESTRICTED, so its own doc
+  # claim leaves doc-drift scope too - the other face of the reclassification.
+  cat > "$tree/.opencode/agents/r1-curl.md" <<'MD'
+# r1-curl
+This doc claims bash: allow and stays unreported (map is unrestricted).
+MD
+  run "$NODE_BIN" "$LIB" --doc-drift "$tree/.opencode/opencode.jsonc"
+  assert_status 1
+  assert_output_contains 'r1-curl: edit is deny-scoped but bash is not (bash is deny-by-default but allows the dangerous execution shape "curl -o x http://x")'
+  assert_output_not_contains "r1-curl.md:"
+  assert_output_not_contains "deny-first doc contract drift"
+}
+
+@test "validator: an empty key inside a populated permission map fails lockstep (DIA-260827-ft3z R2) [D]" {
+  [ -n "$NODE_BIN" ] || skip "node is required to run jsonc-parse.js"
+  local tree="$BATS_TEST_TMPDIR/r2-empty-key"
+  mkdir -p "$tree/.opencode"
+  # {"bash": {}, "task": "deny"}: the AGGREGATE leaf count is 1 (from task),
+  # so the old check went green while bash carried zero rules. The check is per
+  # key now and names every empty one.
+  cat > "$tree/.opencode/opencode.jsonc" <<'JSONC'
+{
+  "agent": {
+    "coder": { "permission": { "task": "deny", "bash": { "*": "deny" } } },
+    "coder-escalated": { "permission": { "task": "deny", "bash": { "*": "deny" } } },
+    "analyzer": { "permission": { "bash": {}, "task": "deny" } },
+    "analyzer-escalated": { "permission": { "bash": {}, "task": "deny" } }
+  }
+}
+JSONC
+  run "$NODE_BIN" "$LIB" --lockstep "$tree/.opencode/opencode.jsonc"
+  assert_status 1
+  assert_output_contains 'pair analyzer/analyzer-escalated: member "analyzer" has 0 leaf rules in key(s): bash'
+  assert_output_contains 'pair analyzer/analyzer-escalated: member "analyzer-escalated" has 0 leaf rules in key(s): bash'
+  # the clean coder pair in the same fixture stays green
+  assert_output_not_contains "coder / coder-escalated permission lockstep broken"
+  assert_output_not_contains "ok: analyzer/analyzer-escalated"
+}
+
+@test "validator: negation markers are word-bounded and clause-scoped (DIA-260827-ft3z R4) [D]" {
+  [ -n "$NODE_BIN" ] || skip "node is required to run jsonc-parse.js"
+  local tree="$BATS_TEST_TMPDIR/r4-negation-bounds"
+  mkdir -p "$tree/.opencode"
+  require_analyzer_docs "$tree"
+  cat > "$tree/.opencode/opencode.jsonc" <<'JSONC'
+{ "agent": { "r4": { "permission": { "edit": "deny", "bash": "deny" } } } }
+JSONC
+  # Line 2 must STILL be suppressed (the bounded marker still works). Lines
+  # 3-5 must fire: `never` no longer matches inside "nevertheless", `not` no
+  # longer matches inside "cannot", and a marker in an EARLIER clause can no
+  # longer retract a later claim. Against the unbounded marker all four lines
+  # were suppressed and the gate exited 0.
+  cat > "$tree/.opencode/agents/r4.md" <<'MD'
+# r4
+This lane does not run mmdc in any flow.
+We nevertheless render mmdc when asked.
+This lane cannot be stopped from running mmdc here.
+Never mind. This lane runs mmdc when asked.
+MD
+  run "$NODE_BIN" "$LIB" --doc-drift "$tree/.opencode/opencode.jsonc"
+  assert_status 1
+  assert_output_contains 'r4.md:3: forbidden phrase "mmdc"'
+  assert_output_contains 'r4.md:4: forbidden phrase "mmdc"'
+  assert_output_contains 'r4.md:5: forbidden phrase "mmdc"'
+  assert_output_not_contains "r4.md:2"
+  local hit_lines
+  hit_lines="$(printf '%s\n' "$output" | grep -c 'forbidden phrase' || true)"
+  [ "$hit_lines" -eq 3 ]
+}
+
+@test "validator: attribution suppresses only the labelled hit, never the line (DIA-260827-ft3z R5) [D]" {
+  [ -n "$NODE_BIN" ] || skip "node is required to run jsonc-parse.js"
+  local tree="$BATS_TEST_TMPDIR/r5-per-hit"
+  mkdir -p "$tree/.opencode"
+  require_analyzer_docs "$tree"
+  cat > "$tree/.opencode/opencode.jsonc" <<'JSONC'
+{
+  "agent": {
+    "analyzer": { "permission": { "edit": { "*": "deny", "knowledge/*": "allow" }, "bash": { "*": "deny", "jq *": "allow" }, "task": "deny" } },
+    "analyzer-escalated": { "permission": { "edit": { "*": "deny", "knowledge/*": "allow" }, "bash": { "*": "deny", "jq *": "allow" }, "task": "deny" } },
+    "coder": { "permission": { "bash": "allow" } }
+  }
+}
+JSONC
+  # Line 2 is coder's grant behind its own label - suppressed. Line 3 names
+  # coder but makes ITS OWN claim ("Unlike coder, this lane grants ...") and
+  # was dropped wholesale by the old whole-line rule. Line 4 labels the
+  # subject itself and always fires.
+  cat > "$tree/.opencode/oh-my-opencode-slim.jsonc" <<'JSONC'
+{ "agents": { "analyzer": { "prompt": "analyzer routing table:\ncoder: bash: allow for its git enum\nUnlike coder, this lane grants bash: allow for its jq enum\nanalyzer: grants bash: allow for its jq enum" } } }
+JSONC
+  run "$NODE_BIN" "$LIB" --doc-drift "$tree/.opencode/opencode.jsonc"
+  assert_status 1
+  assert_output_contains 'agents.analyzer.prompt:3: forbidden phrase "bash: allow"'
+  assert_output_contains 'agents.analyzer.prompt:4: forbidden phrase "bash: allow"'
+  assert_output_not_contains "agents.analyzer.prompt:2"
+  local hit_lines
+  hit_lines="$(printf '%s\n' "$output" | grep -c 'forbidden phrase' || true)"
+  [ "$hit_lines" -eq 2 ]
+}
+
+@test "validator: probe A allow with probe B deny is not restricted (DIA-260827-ft3z R6) [D]" {
+  [ -n "$NODE_BIN" ] || skip "node is required to run jsonc-parse.js"
+  local tree="$BATS_TEST_TMPDIR/r6-probe-a"
+  mkdir -p "$tree/.opencode"
+  require_analyzer_docs "$tree"
+  # Mirror of the probe-B fixture above: probe A (__dia_probe_denied__) resolves
+  # ALLOW, probe B (zzz_nonexistent_cmd --flag) resolves DENY. A predicate that
+  # only inspected probe B would call this map restricted, drop it out of the
+  # invariant and report the doc claim below; the correct predicate needs BOTH
+  # probes to deny, so this map is unrestricted: invariant fires, doc out of
+  # scope.
+  cat > "$tree/.opencode/opencode.jsonc" <<'JSONC'
+{ "agent": { "r6-agent": { "permission": { "edit": { "*": "deny" }, "bash": { "*": "deny", "__dia_probe*": "allow" } } } } }
+JSONC
+  cat > "$tree/.opencode/agents/r6-agent.md" <<'MD'
+# r6-agent
+This doc claims bash: allow - unreported because probe A resolves allow.
+MD
+  run "$NODE_BIN" "$LIB" --doc-drift "$tree/.opencode/opencode.jsonc"
+  assert_status 1
+  assert_output_contains "r6-agent: edit is deny-scoped but bash is not"
+  assert_output_not_contains "r6-agent.md:"
+  assert_output_not_contains "deny-first doc contract drift"
+}
+
+@test "validator: the lockstep success line pluralizes a single key and rule (DIA-260827-ft3z R7) [G]" {
+  [ -n "$NODE_BIN" ] || skip "node is required to run jsonc-parse.js"
+  local tree="$BATS_TEST_TMPDIR/r7-singular"
+  mkdir -p "$tree/.opencode"
+  # One top-level key carrying exactly one leaf rule: the acceptance detail is
+  # "1 key, 1 rule" (never "1 keys, 1 rules").
+  cat > "$tree/.opencode/opencode.jsonc" <<'JSONC'
+{
+  "agent": {
+    "coder": { "permission": { "bash": { "*": "deny" }, "task": "deny" } },
+    "coder-escalated": { "permission": { "bash": { "*": "deny" }, "task": "deny" } },
+    "analyzer": { "permission": { "bash": { "*": "deny" } } },
+    "analyzer-escalated": { "permission": { "bash": { "*": "deny" } } }
+  }
+}
+JSONC
+  run "$NODE_BIN" "$LIB" --lockstep "$tree/.opencode/opencode.jsonc"
+  assert_status 0
+  assert_output_contains "(1 key, 1 rule: analyzer, analyzer-escalated)"
+  assert_output_not_contains "1 keys"
+  assert_output_not_contains "2 rules"
+}
+
+@test "validator: the memory-manager exemption keeps its deny-scoped edit off the invariant (DIA-260827-ft3z R7) [G]" {
+  [ -n "$NODE_BIN" ] || skip "node is required to run jsonc-parse.js"
+  local tree="$BATS_TEST_TMPDIR/r7-exempt"
+  mkdir -p "$tree/.opencode"
+  require_analyzer_docs "$tree"
+  # memory-manager is the explicit tracked-debt exemption: deny-scoped edit on
+  # an unrestricted bash must NOT fire. Deleting the exemption entry reddens
+  # this case on the real tree too (its edit is deny-first and its bash key is
+  # absent, so it inherits the global allow).
+  cat > "$tree/.opencode/opencode.jsonc" <<'JSONC'
+{ "agent": { "memory-manager": { "permission": { "edit": { "*": "deny", ".opencode/memory/*": "allow" }, "bash": "allow" } } } }
+JSONC
+  run "$NODE_BIN" "$LIB" --doc-drift "$tree/.opencode/opencode.jsonc"
+  assert_status 0
+  assert_output_not_contains "deny-scoped edit with unrestricted bash"
+  assert_output_not_contains "memory-manager: edit is deny-scoped"
+}
+
+@test "validator: lockstep rejects a pair member with no permission object at all (DIA-260827-ft3z R7) [G]" {
+  [ -n "$NODE_BIN" ] || skip "node is required to run jsonc-parse.js"
+  local tree="$BATS_TEST_TMPDIR/r7-no-permission"
+  mkdir -p "$tree/.opencode"
+  # The agent is configured but declares NO permission key (distinct from the
+  # `permission: {}` empty-object case covered above).
+  cat > "$tree/.opencode/opencode.jsonc" <<'JSONC'
+{
+  "agent": {
+    "coder": { "permission": { "task": "deny", "bash": { "*": "deny" } } },
+    "coder-escalated": { "permission": { "task": "deny", "bash": { "*": "deny" } } },
+    "analyzer": {},
+    "analyzer-escalated": { "permission": { "bash": { "*": "deny" }, "task": "deny" } }
+  }
+}
+JSONC
+  run "$NODE_BIN" "$LIB" --lockstep "$tree/.opencode/opencode.jsonc"
+  assert_status 1
+  assert_output_contains 'pair analyzer/analyzer-escalated: member "analyzer" has no permission object'
+  assert_output_not_contains "ok: analyzer/analyzer-escalated"
+}
+
+@test "validator: a preset orchestratorPrompt claiming an allow is caught (DIA-260827-ft3z R7) [G]" {
+  [ -n "$NODE_BIN" ] || skip "node is required to run jsonc-parse.js"
+  local tree="$BATS_TEST_TMPDIR/r7-preset-orch"
+  mkdir -p "$tree/.opencode/agents"
+  require_analyzer_docs "$tree"
+  cat > "$tree/.opencode/opencode.jsonc" <<'JSONC'
+{ "agent": { "preset-orch-agent": { "permission": { "edit": "deny", "bash": "deny" } } } }
+JSONC
+  # presets.<p>.<name>.orchestratorPrompt is the surface DISTINCT from
+  # presets.<p>.<name>.prompt (covered by the preset/.prompt case above) and
+  # from agents.<name>.orchestratorPrompt (covered at the top of this suite).
+  cat > "$tree/.opencode/oh-my-opencode-slim.jsonc" <<'JSONC'
+{ "presets": { "p1": { "preset-orch-agent": { "orchestratorPrompt": "preset-orch-agent\n- claims bash: allow in a preset orchestratorPrompt" } } } }
+JSONC
+  run "$NODE_BIN" "$LIB" --doc-drift "$tree/.opencode/opencode.jsonc"
+  assert_status 1
+  assert_output_contains 'presets.p1.preset-orch-agent.orchestratorPrompt:2: forbidden phrase "bash: allow"'
 }
