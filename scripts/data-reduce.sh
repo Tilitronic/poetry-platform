@@ -19,10 +19,14 @@
 #
 # Reducer allowlist (script-layer boundary, DIA-260827-ft3z): the permission
 # layer matches only the raw text of this invocation and cannot see the argv
-# boundary after `--`, so the script enforces it. CMD's first element must be
-# a bare basename from: jq, rg, wc, head, tail, cut, tr, uniq. Slash-qualified
-# names (/bin/cat, ./x, scripts/...) and everything else are usage errors
-# (exit 2). `sort` is deliberately excluded: its -o flag writes files.
+# boundary after `--`, so the script enforces it. The boundary is NAME AND
+# FLAGS. Name: CMD's first element must be a bare basename from: jq, rg, wc,
+# head, tail, cut, tr, uniq. Slash-qualified names (/bin/cat, ./x, scripts/...)
+# and everything else are usage errors (exit 2). `sort` is deliberately
+# excluded: its -o flag writes files. Flags: no argv element may be --pre,
+# --pre-glob, or start with --pre= / --pre-glob= - ripgrep's preprocessor
+# runs an arbitrary program, so name-pinning alone lets
+# `rg --pre bash '' x.sh` execute that script (also exit 2).
 #
 # The token count is the documented heuristic ~4 chars / token (see the
 # data-reducer skill) - an estimate for context planning, NOT a billable
@@ -54,6 +58,8 @@ CMD's first element must be a bare name from the allowlist:
 jq, rg, wc, head, tail, cut, tr, uniq
 - no slashes (no /bin/cat, no ./x, no scripts/...)
 - sort is deliberately excluded (its -o flag writes files)
+- no command-executing flags: --pre, --pre-glob, --pre=*, --pre-glob=*
+  are rejected (ripgrep runs them as a program)
 Anything else is a usage error (exit 2).
 EOF
 }
@@ -93,7 +99,7 @@ fi
 # bare basename from the allowlist - no slashes (no /bin/cat, no ./x, no
 # scripts/...), no other commands. `sort` is deliberately NOT allowlisted:
 # its -o flag writes files. The execution below stays argv-direct (no shell
-# is introduced); only the entry point is pinned.
+# is introduced); the entry point AND the flags are pinned.
 allowlist="jq rg wc head tail cut tr uniq"
 first="${cmd[0]}"
 case "$first" in
@@ -113,6 +119,24 @@ if [ "$allowed" -ne 1 ]; then
   echo "data-reduce: reducer not in allowlist: $first (allowed: $allowlist)" >&2
   exit 2
 fi
+
+# --- command-executing flag boundary ----------------------------------------
+# A correct NAME is not sufficient: ripgrep's --pre / --pre-glob run an
+# arbitrary program as a preprocessor, so `rg --pre bash '' x.sh` passes the
+# name pin and executes x.sh. Reject these flags across EVERY allowlisted
+# reducer (not only rg) so a future allowlist entry cannot reintroduce the
+# same class of hole, and check it before the input is materialized or the
+# command runs. Bare --pre-glob alone executes nothing today, but it is
+# rejected anyway: it is one half of the same execution vector, and a single
+# blanket rule is cheaper than proving intent per invocation.
+for a in "${cmd[@]}"; do
+  case "$a" in
+    --pre|--pre-glob|--pre=*|--pre-glob=*)
+      echo "data-reduce: reducer rejected (command-executing flag): $a - --pre/--pre-glob execute an arbitrary command" >&2
+      exit 2
+      ;;
+  esac
+done
 
 # --- materialize the input ------------------------------------------------
 # Both modes copy into a temp file so the byte measurement is identical

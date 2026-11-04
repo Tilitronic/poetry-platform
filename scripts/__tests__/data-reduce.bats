@@ -5,8 +5,9 @@
 #   stdout - the reduction result ONLY (pure, pipeable onward)
 #   stderr - the savings line + diagnostics (measurement metadata)
 #   exit   - 0 on success; the reduction command's exit code on failure;
-#            2 on usage errors (no input / missing input file / reducer not
-#            on the allowlist - jq rg wc head tail cut tr uniq)
+#            2 on usage errors: no input, missing input file, reducer not
+#            on the allowlist (jq rg wc head tail cut tr uniq), or a
+#            command-executing flag (--pre, --pre-glob, --pre=*, --pre-glob=*)
 #
 # Isolation: fixtures live under $BATS_TEST_TMPDIR; the script's own mktemp
 # workdir is self-cleaning (EXIT trap). No Docker, no network, no repo
@@ -213,4 +214,83 @@ mk_fixture() {
   assert_output_contains "100"
   assert_output_contains "4300"
   assert_stderr_contains "saved"
+}
+
+# --- reducer flag boundary (DIA-260827-ft3z) --------------------------------
+# A clean NAME is not enough: ripgrep's --pre / --pre-glob run an arbitrary
+# program as the file preprocessor, so `rg --pre bash '' x.sh` passes the
+# name pin and executes x.sh. These cases pin the flag side of the boundary
+# and prove the program does NOT run: the payload creates a marker file AND
+# prints a canary line, so "it ran" would be visible either way.
+
+# mk_payload <script> <marker>: payload that creates <marker> and prints
+# "pwned-output". rg invokes it as `bash <script>` (program token + the file
+# argument it is given).
+mk_payload() {
+  local script="$1" marker="$2"
+  cat > "$script" <<EOF
+#!/usr/bin/env bash
+touch "$marker"
+printf 'pwned-output\n'
+EOF
+}
+
+@test "data-reduce: rg --pre (command-executing flag) exits 2 and the program does not run" {
+  local f="$BATS_TEST_TMPDIR/blob.txt"
+  local marker="$BATS_TEST_TMPDIR/side.marker"
+  local payload="$BATS_TEST_TMPDIR/run.sh"
+  mk_fixture 10 "$f"
+  mk_payload "$payload" "$marker"
+
+  # the confirmed vector: allowlisted NAME, payload as the rg file argument,
+  # --pre pointing the preprocessor at `bash` so rg runs `bash <payload>`.
+  run --separate-stderr bash "$REDUCE" "$f" -- rg --pre bash '' "$payload"
+
+  assert_status 2
+  assert_stderr_contains "command-executing flag"
+  assert_stderr_contains "--pre"
+  # demonstrably did not run: no marker file, no canary output
+  [ ! -e "$marker" ]
+  assert_output_not_contains "pwned-output"
+}
+
+@test "data-reduce: rg --pre= form exits 2 and the program does not run" {
+  local f="$BATS_TEST_TMPDIR/blob.txt"
+  local marker="$BATS_TEST_TMPDIR/side.marker"
+  local payload="$BATS_TEST_TMPDIR/run.sh"
+  mk_fixture 10 "$f"
+  mk_payload "$payload" "$marker"
+
+  run --separate-stderr bash "$REDUCE" "$f" -- rg --pre=bash '' "$payload"
+
+  assert_status 2
+  assert_stderr_contains "command-executing flag"
+  assert_stderr_contains "--pre=bash"
+  [ ! -e "$marker" ]
+  assert_output_not_contains "pwned-output"
+}
+
+@test "data-reduce: rg --pre-glob exits 2 on the blanket flag rule" {
+  local f="$BATS_TEST_TMPDIR/blob.txt"
+  mk_fixture 10 "$f"
+
+  # bare --pre-glob (no --pre) executes nothing by itself, but it is one
+  # half of the same vector and is rejected without proving intent.
+  run --separate-stderr bash "$REDUCE" "$f" -- rg --pre-glob '*' -c '^line'
+
+  assert_status 2
+  assert_stderr_contains "command-executing flag"
+  assert_stderr_contains "--pre-glob"
+}
+
+@test "data-reduce: flag guard leaves a normal rg -c invocation untouched" {
+  local f="$BATS_TEST_TMPDIR/blob.txt"
+  mk_fixture 100 "$f"
+
+  run --separate-stderr bash "$REDUCE" "$f" -- rg -c '^line'
+
+  assert_status 0
+  assert_output_contains "100"
+  assert_stderr_contains "input 4 KB -> result 0 KB (saved 100%"
+  assert_stderr_contains "tokens"
 }
