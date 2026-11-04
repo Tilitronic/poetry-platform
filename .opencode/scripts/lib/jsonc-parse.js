@@ -119,21 +119,61 @@ function resolveRule(map, probe) {
 // that allows a probe-shaped command is caught from the other direction too.
 const RESTRICTION_PROBES = ['__dia_probe_denied__', 'zzz_nonexistent_cmd --flag'];
 
-// bash is deny-scoped when EVERY probe resolves to deny: a flat "deny" is
-// restricted, a flat "allow" is not, and a map whose last match for a probe is
-// allow is not.
-function isBashRestricted(bash) {
+// Deny-by-default probe: EVERY restriction probe resolves to deny. A flat
+// "deny" passes, a flat "allow" does not, and a map whose last match for a
+// probe is allow does not. This alone is NOT enough to call a map restricted -
+// see the dangerous-allow probe below.
+function isDenyByDefault(bash) {
   if (typeof bash === 'string') return bash === 'deny';
   if (bash === null || typeof bash !== 'object' || Array.isArray(bash)) return false;
   return RESTRICTION_PROBES.every((probe) => resolveRule(bash, probe) === 'deny');
 }
 
-// edit is deny-scoped when an arbitrary path resolves to deny: flat "deny", or
-// an object whose catch-all resolves to deny.
+// Dangerous-allow probe: shapes that execute arbitrary code. The restriction
+// probes alone under-classify - {"*":"deny","python3 *":"allow"} resolves BOTH
+// probes to deny (no probe starts with python3) yet lets the lane run
+// `python3 -c 'open(...,"w")'`, which is the write-scope hole this campaign
+// exists to close (DIA-260827-ft3z C1). A map resolving ANY of these to allow
+// is unrestricted no matter what the probes say.
+const DANGEROUS_EXECUTION_SHAPES = [
+  "python3 -c 'x'",
+  "python -c 'x'",
+  "bash -c 'x'",
+  "sh -c 'x'",
+  "node -e '0'",
+  "perl -e '0'",
+  "ruby -e '0'",
+];
+
+// First dangerous shape the map resolves to allow, else null. The real analyzer
+// map allows only `python3 .opencode/scripts/query_rag.py *`, which is anchored
+// to a fixed script path and matches none of these shapes, so the gate stays
+// green on the current config.
+function allowedDangerousShape(bash) {
+  if (bash === null || typeof bash !== 'object' || Array.isArray(bash)) return null;
+  return DANGEROUS_EXECUTION_SHAPES.find((shape) => resolveRule(bash, shape) === 'allow') || null;
+}
+
+// bash is restricted iff it is deny-by-default AND no dangerous execution
+// shape resolves to allow.
+function isBashRestricted(bash) {
+  return isDenyByDefault(bash) && allowedDangerousShape(bash) === null;
+}
+
+// Edit-side probes are PATH-shaped (a bare name plus a nested path), unlike the
+// command-shaped bash probes: a path-only deny map ({"**/*":"deny"}) matches
+// neither command probe, so the old command probe skipped exactly the
+// deny-scoped edit maps this invariant exists to catch (DIA-260827-ft3z M1).
+// Deny-scoped = at least one path probe resolves deny AND neither resolves
+// allow - the first keeps path-only catch-alls in, the second keeps any map
+// that grants an arbitrary path out.
+const EDIT_PATH_PROBES = ['dia_edit_probe', 'nested/dir/dia_edit_probe'];
+
 function isDenyScoped(edit) {
   if (typeof edit === 'string') return edit === 'deny';
   if (edit === null || typeof edit !== 'object' || Array.isArray(edit)) return false;
-  return resolveRule(edit, RESTRICTION_PROBES[0]) === 'deny';
+  const resolved = EDIT_PATH_PROBES.map((probe) => resolveRule(edit, probe));
+  return resolved.includes('deny') && !resolved.includes('allow');
 }
 
 // Effective permission value: an UNDECLARED agent key has no agent rule at all,
@@ -221,14 +261,23 @@ if (args[0] === '--lockstep') {
         pairProblems.push(
           `pair ${pair.base}/${pair.esc}: member "${member.role}" has an empty permission object`
         );
-      } else if (Object.keys(pick(perm, pair.exempt)).length === 0) {
-        pairProblems.push(
-          `pair ${pair.base}/${pair.esc}: member "${member.role}" has no comparable permission keys left after exemptions`
-        );
-      } else if (member.picked === 'a') {
-        a = pick(perm, pair.exempt);
       } else {
-        b = pick(perm, pair.exempt);
+        const picked = pick(perm, pair.exempt);
+        if (Object.keys(picked).length === 0) {
+          pairProblems.push(
+            `pair ${pair.base}/${pair.esc}: member "${member.role}" has no comparable permission keys left after exemptions`
+          );
+        } else if (countLeafRules(picked) === 0) {
+          // M4: {"bash":{}} has a key but carries no rule, so the comparison
+          // below would green on "1 keys, 0 rules" - zero rule coverage.
+          pairProblems.push(
+            `pair ${pair.base}/${pair.esc}: member "${member.role}" has 0 leaf rules (an empty permission key such as "bash": {} carries no rule)`
+          );
+        } else if (member.picked === 'a') {
+          a = picked;
+        } else {
+          b = picked;
+        }
       }
     }
     if (pairProblems.length === 0) {
@@ -255,10 +304,11 @@ if (args[0] === '--lockstep') {
     } else {
       // Honest depth: top-level keys AND the leaf rules beneath them, plus the
       // agent names actually compared - "3 keys" hides a twenty-rule bash map.
+      const keys = Object.keys(a).length;
       const rules = Object.values(a).reduce((n, v) => n + countLeafRules(v), 0);
       const note = pair.exempt.size > 0 ? ', task-related ignored' : '';
       successes.push(
-        `ok: ${pair.base}/${pair.esc} permission lockstep (${Object.keys(a).length} keys, ${rules} rules${note}: ${pair.base}, ${pair.esc})`
+        `ok: ${pair.base}/${pair.esc} permission lockstep (${keys} key${keys === 1 ? '' : 's'}, ${rules} rule${rules === 1 ? '' : 's'}${note}: ${pair.base}, ${pair.esc})`
       );
     }
   }
@@ -299,8 +349,13 @@ if (args[0] === '--doc-drift') {
     'bash is allowed',
     'mmdc',
   ];
-  const findForbidden = (text) => {
-    const lower = text.toLowerCase();
+  // Same-line negation markers (M2b): a line that negates the claim before the
+  // phrase ("we do not run mmdc") is NOT a claim. Checked against the line text
+  // preceding the hit, so "mmdc is not available" still fires (the negation
+  // comes after the phrase and does not retract it).
+  const NEGATION_MARKERS = ['not ', 'never', "don't", 'do not'];
+  const findForbidden = (line) => {
+    const lower = line.toLowerCase();
     const hits = [];
     for (const phrase of FORBIDDEN) {
       const needle = phrase.toLowerCase();
@@ -308,28 +363,62 @@ if (args[0] === '--doc-drift') {
       // twice must report BOTH occurrences, or the second claim survives the
       // fix that removed the first.
       for (let idx = lower.indexOf(needle); idx >= 0; idx = lower.indexOf(needle, idx + needle.length)) {
-        hits.push(text.slice(idx, idx + phrase.length));
+        // M2a: `bash: allow` must not fire on `bash: allow-list` /
+        // `bash: allowlisted` - require a word boundary after a phrase that
+        // ends in the bare word "allow" (next char not -, not word char).
+        if (needle.endsWith('allow')) {
+          const after = lower[idx + needle.length];
+          if (after !== undefined && /[-\w]/.test(after)) continue;
+        }
+        // M2b: the same line negates the phrase before it.
+        if (NEGATION_MARKERS.some((m) => lower.slice(0, idx).includes(m))) continue;
+        hits.push(line.slice(idx, idx + phrase.length));
       }
     }
     return hits;
   };
   const problems = [];
-  // Line-scanned surfaces (files): report every hit with its line number.
-  const scanLines = (subject, label, text) => {
+  // M2c: prompt fields are scanned LINE BY LINE (they used to be one blob, so
+  // a hit could not be attributed to its line), and a hit on a line that names
+  // a DIFFERENT configured agent - without naming the subject - describes that
+  // other lane's grant and must not be attributed to the restricted subject
+  // (a routing table is not a claim by every lane it appears next to).
+  const agentNames = Object.keys(cfg.agent || {});
+  const namesAgent = (line, name) => {
+    const hay = line.toLowerCase();
+    const needle = name.toLowerCase();
+    let at = hay.indexOf(needle);
+    while (at >= 0) {
+      const before = hay[at - 1];
+      const after = hay[at + needle.length];
+      // Word boundary on both sides, '-' included so `analyzer` does not count
+      // as a mention inside `analyzer-escalated`.
+      const open = before === undefined || !/[-\w]/.test(before);
+      const close = after === undefined || !/[-\w]/.test(after);
+      if (open && close) return true;
+      at = hay.indexOf(needle, at + 1);
+    }
+    return false;
+  };
+  const attributedToOtherAgent = (line, subject) =>
+    agentNames.some((n) => n !== subject && namesAgent(line, n)) && !namesAgent(line, subject);
+  // Line-scanned surfaces. Every hit is resolved against its own line so the
+  // negation rule (M2b) and, for prompt fields, the attribution rule (M2c)
+  // apply; files report their line number, prompt fields their field path.
+  const scanLines = (subject, label, text, attribute = false) => {
     const lines = text.split(/\r?\n/);
     for (let i = 0; i < lines.length; i++) {
+      if (attribute && attributedToOtherAgent(lines[i], subject)) continue;
       for (const hit of findForbidden(lines[i])) {
         problems.push(`${subject}: ${label}:${i + 1}: forbidden phrase "${hit}"`);
       }
     }
   };
-  // Whole-text surfaces (prompt fields): report every hit with its location.
-  const scanWhole = (subject, label, text) => {
-    for (const hit of findForbidden(text)) {
-      problems.push(`${subject}: ${label}: forbidden phrase "${hit}"`);
-    }
-  };
   const inScope = [];
+  // MINOR: parse the slim config ONCE before the per-agent loop instead of
+  // re-reading and re-parsing the same file for every in-scope agent.
+  const slimFile = path.join(dir, 'oh-my-opencode-slim.jsonc');
+  const slim = fs.existsSync(slimFile) ? parseJsonc(slimFile) : null;
   for (const name of Object.keys(cfg.agent || {})) {
     const agent = cfg.agent[name] || {};
     const perm = agent.permission || {};
@@ -342,9 +431,7 @@ if (args[0] === '--doc-drift') {
     const mdFile = path.join(dir, 'agents', name + '.md');
     if (fs.existsSync(mdFile)) scanLines(name, mdFile, fs.readFileSync(mdFile, 'utf8'));
 
-    const slimFile = path.join(dir, 'oh-my-opencode-slim.jsonc');
-    if (fs.existsSync(slimFile)) {
-      const slim = parseJsonc(slimFile);
+    if (slim) {
       const sites = [];
       const agentsBlock = slim.agents || {};
       const agentEntry = agentsBlock[name];
@@ -367,7 +454,7 @@ if (args[0] === '--doc-drift') {
           sites.push({ loc: `presets.${pname}.${name}.prompt`, text: entry.prompt });
         }
       }
-      for (const site of sites) scanWhole(name, `${slimFile} ${site.loc}`, site.text);
+      for (const site of sites) scanLines(name, `${slimFile} ${site.loc}`, site.text, true);
     }
 
     // G3.3: the live prompt-override files are injected at runtime and were
@@ -382,10 +469,18 @@ if (args[0] === '--doc-drift') {
 
   // G3.6 positive invariant, scoped to the analyzer pair only: their documents
   // are the ones the deny-first contract is written into, and asserting it on
-  // every in-scope agent would only add noise.
+  // every in-scope agent would only add noise. The markdown is a REQUIRED
+  // surface (M3): a missing file used to `continue` silently, so deleting the
+  // document removed the requirement. Negative phrase scans above stay
+  // skip-on-absent (no file, no claim); this positive check does not.
   for (const name of ['analyzer', 'analyzer-escalated']) {
     const mdFile = path.join(dir, 'agents', name + '.md');
-    if (!fs.existsSync(mdFile)) continue;
+    if (!fs.existsSync(mdFile)) {
+      problems.push(
+        `${name}: required agent document missing: ${mdFile} (the agent markdown must state the deny-first bash contract)`
+      );
+      continue;
+    }
     if (!fs.readFileSync(mdFile, 'utf8').includes('deny-first')) {
       problems.push(
         `${name}: ${mdFile}: missing required "deny-first" marker (the agent document must state the deny-first bash contract)`
@@ -419,9 +514,14 @@ if (args[0] === '--doc-drift') {
     const edit = effectivePermission(perm, cfg.permission, 'edit');
     const bash = effectivePermission(perm, cfg.permission, 'bash');
     if (isDenyScoped(edit) && !isBashRestricted(bash)) {
-      invariantFailures.push(
-        `${name}: edit is deny-scoped but bash is not (bash resolves to allow for an arbitrary command)`
-      );
+      // C1: when the map is deny-by-default but still allows a dangerous
+      // execution shape, name the shape - "bash is not" alone hides WHICH
+      // grant reopens the write-scope hole.
+      const shape = isDenyByDefault(bash) ? allowedDangerousShape(bash) : null;
+      const why = shape
+        ? `bash is deny-by-default but allows the dangerous execution shape "${shape}"`
+        : 'bash resolves to allow for an arbitrary command';
+      invariantFailures.push(`${name}: edit is deny-scoped but bash is not (${why})`);
     }
   }
 

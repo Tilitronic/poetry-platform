@@ -28,6 +28,18 @@ NODE_BIN="$(command -v node || true)"
 LIB="$REPO_ROOT/.opencode/scripts/lib/jsonc-parse.js"
 VALIDATOR="$REPO_ROOT/.opencode/scripts/validate-opencode-config.sh"
 
+# M3 (DIA-260827-ft3z): the analyzer pair markdown is a REQUIRED surface of
+# every --doc-drift run (a missing file is a failure, not a skip), so each
+# fixture tree carries both documents or the positive-marker failure drowns the
+# assertion under test. Tests that need a custom analyzer.md call this first
+# and overwrite the file afterwards.
+require_analyzer_docs() {
+  local tree="$1"
+  mkdir -p "$tree/.opencode/agents"
+  printf '# analyzer\ndeny-first bash contract.\n' > "$tree/.opencode/agents/analyzer.md"
+  printf '# analyzer-escalated\ndeny-first bash contract.\n' > "$tree/.opencode/agents/analyzer-escalated.md"
+}
+
 @test "test-config wiring: Makefile references both new validators" {
   # Each new validator must appear in the test-config target body. The recipe
   # line form is `bash scripts/<name>.sh` (same shape as validate-opencode-config.sh).
@@ -109,6 +121,7 @@ JSONC
   [ -n "$NODE_BIN" ] || skip "node is required to run jsonc-parse.js"
   local tree="$BATS_TEST_TMPDIR/doc-md-forbidden"
   mkdir -p "$tree/.opencode/agents"
+  require_analyzer_docs "$tree"
   cat > "$tree/.opencode/opencode.jsonc" <<'JSONC'
 { "agent": { "analyzer": { "permission": { "bash": { "*": "deny", "jq *": "allow" } } } } }
 JSONC
@@ -127,6 +140,7 @@ MD
   [ -n "$NODE_BIN" ] || skip "node is required to run jsonc-parse.js"
   local tree="$BATS_TEST_TMPDIR/doc-prompt-forbidden"
   mkdir -p "$tree/.opencode/agents"
+  require_analyzer_docs "$tree"
   cat > "$tree/.opencode/opencode.jsonc" <<'JSONC'
 { "agent": { "analyzer": { "permission": { "bash": { "*": "deny", "jq *": "allow" } } } } }
 JSONC
@@ -156,6 +170,10 @@ JSONC
 JSONC
   cat > "$tree/.opencode/agents/analyzer.md" <<'MD'
 # analyzer
+bash: deny-first enum - jq, rg, wc; everything else denied.
+MD
+  cat > "$tree/.opencode/agents/analyzer-escalated.md" <<'MD'
+# analyzer-escalated
 bash: deny-first enum - jq, rg, wc; everything else denied.
 MD
   cat > "$tree/.opencode/oh-my-opencode-slim.jsonc" <<'JSONC'
@@ -191,6 +209,10 @@ JSONC
 JSONC
   cat > "$tree/.opencode/agents/analyzer.md" <<'MD'
 # analyzer
+bash: deny-first enum - jq, rg, wc; everything else denied.
+MD
+  cat > "$tree/.opencode/agents/analyzer-escalated.md" <<'MD'
+# analyzer-escalated
 bash: deny-first enum - jq, rg, wc; everything else denied.
 MD
   cat > "$tree/.opencode/agents/prompt-only-agent.md" <<'MD'
@@ -318,6 +340,7 @@ JSONC
   [ -n "$NODE_BIN" ] || skip "node is required to run jsonc-parse.js"
   local tree="$BATS_TEST_TMPDIR/flat-allow-pair"
   mkdir -p "$tree/.opencode"
+  require_analyzer_docs "$tree"
   # Coordinated regression of BOTH pair members to a flat "bash": "allow": the
   # lockstep equality check still passes (they are equal), the old key-position
   # predicate skipped them (not an object), and nothing failed. The G2 invariant
@@ -343,6 +366,7 @@ JSONC
   [ -n "$NODE_BIN" ] || skip "node is required to run jsonc-parse.js"
   local tree="$BATS_TEST_TMPDIR/key-order"
   mkdir -p "$tree/.opencode/agents"
+  require_analyzer_docs "$tree"
   # {"jq *":"allow","*":"allow"}: the catch-all is NOT first, so a key-position
   # predicate mis-reads it as deny-first and skips it. Under last-match-wins it
   # is flat-allow, so it must be treated as unrestricted: out of doc-drift scope
@@ -366,6 +390,7 @@ MD
   [ -n "$NODE_BIN" ] || skip "node is required to run jsonc-parse.js"
   local tree="$BATS_TEST_TMPDIR/restricted-ok"
   mkdir -p "$tree/.opencode"
+  require_analyzer_docs "$tree"
   cat > "$tree/.opencode/opencode.jsonc" <<'JSONC'
 { "agent": { "good-agent": { "permission": { "edit": { "*": "deny", "knowledge/*": "allow" }, "bash": { "*": "deny", "jq *": "allow" } } } } }
 JSONC
@@ -379,6 +404,7 @@ JSONC
   [ -n "$NODE_BIN" ] || skip "node is required to run jsonc-parse.js"
   local tree="$BATS_TEST_TMPDIR/flat-deny-doc"
   mkdir -p "$tree/.opencode/agents"
+  require_analyzer_docs "$tree"
   # A flat "bash": "deny" is MORE restrictive than a deny-first object, so its
   # docs must not claim an allow either. These eight agents were skipped by the
   # old object-only predicate.
@@ -400,6 +426,7 @@ MD
   [ -n "$NODE_BIN" ] || skip "node is required to run jsonc-parse.js"
   local tree="$BATS_TEST_TMPDIR/prompt-field"
   mkdir -p "$tree/.opencode/agents"
+  require_analyzer_docs "$tree"
   cat > "$tree/.opencode/opencode.jsonc" <<'JSONC'
 { "agent": { "prompt-agent": { "permission": { "edit": "deny", "bash": "deny" } } } }
 JSONC
@@ -419,6 +446,7 @@ JSONC
   [ -n "$NODE_BIN" ] || skip "node is required to run jsonc-parse.js"
   local tree="$BATS_TEST_TMPDIR/prompt-override"
   mkdir -p "$tree/.opencode/agents" "$tree/.opencode/oh-my-opencode-slim"
+  require_analyzer_docs "$tree"
   cat > "$tree/.opencode/opencode.jsonc" <<'JSONC'
 { "agent": { "probe-lane": { "permission": { "edit": "deny", "bash": "deny" } } } }
 JSONC
@@ -438,6 +466,7 @@ MD
   [ -n "$NODE_BIN" ] || skip "node is required to run jsonc-parse.js"
   local tree="$BATS_TEST_TMPDIR/multi-hit"
   mkdir -p "$tree/.opencode/agents"
+  require_analyzer_docs "$tree"
   cat > "$tree/.opencode/opencode.jsonc" <<'JSONC'
 { "agent": { "multi-agent": { "permission": { "edit": "deny", "bash": "deny" } } } }
 JSONC
@@ -456,6 +485,7 @@ MD
   [ -n "$NODE_BIN" ] || skip "node is required to run jsonc-parse.js"
   local tree="$BATS_TEST_TMPDIR/positive-invariant"
   mkdir -p "$tree/.opencode/agents"
+  require_analyzer_docs "$tree"
   cat > "$tree/.opencode/opencode.jsonc" <<'JSONC'
 {
   "agent": {
@@ -474,4 +504,368 @@ MD
   assert_status 1
   assert_output_contains 'missing required "deny-first" marker'
   assert_output_contains "analyzer.md"
+}
+
+# ---------------------------------------------------------------------------
+# DIA-260827-ft3z review close-out: coverage holes in the gates above. Every
+# case here is DISCRIMINATING - it fails against the pre-fix predicate, the
+# pre-fix matcher, or the pre-fix phrase scanner, and passes after the fix.
+# ---------------------------------------------------------------------------
+
+@test "validator: deny-by-default maps allowing a dangerous execution shape fail the invariant (DIA-260827-ft3z C1)" {
+  [ -n "$NODE_BIN" ] || skip "node is required to run jsonc-parse.js"
+  local tree="$BATS_TEST_TMPDIR/c1-dangerous-allow"
+  mkdir -p "$tree/.opencode"
+  require_analyzer_docs "$tree"
+  # Both maps resolve the two restriction probes to DENY (no probe starts with
+  # python3 / bash -c), so the old "both probes deny" predicate called them
+  # restricted and the invariant stayed silent - on a lane that can still run
+  # arbitrary code. The dangerous-allow probe must disqualify them and name
+  # WHICH shape was allowed.
+  cat > "$tree/.opencode/opencode.jsonc" <<'JSONC'
+{
+  "agent": {
+    "analyzer": { "permission": { "edit": { "*": "deny", "knowledge/*": "allow" }, "bash": { "*": "deny", "jq *": "allow" }, "task": "deny" } },
+    "analyzer-escalated": { "permission": { "edit": { "*": "deny", "knowledge/*": "allow" }, "bash": { "*": "deny", "jq *": "allow" }, "task": "deny" } },
+    "c1-python": { "permission": { "edit": { "*": "deny", "knowledge/*": "allow" }, "bash": { "*": "deny", "python3 *": "allow" } } },
+    "c1-bashc": { "permission": { "edit": { "*": "deny" }, "bash": { "*": "deny", "bash -c *": "allow" } } }
+  }
+}
+JSONC
+  # c1-python is UNRESTRICTED under the fixed predicate, so its doc claim must
+  # NOT be scanned either - a second face of the same classification.
+  cat > "$tree/.opencode/agents/c1-python.md" <<'MD'
+# c1-python
+This doc claims bash: allow and must stay unreported (map is unrestricted).
+MD
+  run "$NODE_BIN" "$LIB" --doc-drift "$tree/.opencode/opencode.jsonc"
+  assert_status 1
+  assert_output_contains 'c1-python: edit is deny-scoped but bash is not (bash is deny-by-default but allows the dangerous execution shape "python3 -c '"'"'x'"'"'")'
+  assert_output_contains 'c1-bashc: edit is deny-scoped but bash is not (bash is deny-by-default but allows the dangerous execution shape "bash -c '"'"'x'"'"'")'
+  # unrestricted maps leave doc-drift scope: no phrase scan, no drift header
+  assert_output_not_contains "deny-first doc contract drift"
+  assert_output_not_contains "c1-python.md:"
+}
+
+@test "validator: edit deny-scoping resolves with path-shaped probes, catch-all key position irrelevant (DIA-260827-ft3z M1/C2)" {
+  [ -n "$NODE_BIN" ] || skip "node is required to run jsonc-parse.js"
+  local tree="$BATS_TEST_TMPDIR/edit-path-probes"
+  mkdir -p "$tree/.opencode"
+  require_analyzer_docs "$tree"
+  # path-only: the old command-shaped probe (no slash) matched nothing, so the
+  # invariant was skipped on a map that denies every path. order-last: the
+  # deny catch-all sits LAST, so the result must come from resolution, not key
+  # position. Both maps grant no arbitrary path -> deny-scoped -> with a flat
+  # "allow" bash the invariant must fire for BOTH.
+  cat > "$tree/.opencode/opencode.jsonc" <<'JSONC'
+{
+  "agent": {
+    "path-only": { "permission": { "edit": { "**/*": "deny", "knowledge/**": "allow" }, "bash": "allow" } },
+    "order-last": { "permission": { "edit": { "knowledge/*": "allow", "*": "deny" }, "bash": "allow" } }
+  }
+}
+JSONC
+  run "$NODE_BIN" "$LIB" --doc-drift "$tree/.opencode/opencode.jsonc"
+  assert_status 1
+  assert_output_contains "path-only: edit is deny-scoped but bash is not"
+  assert_output_contains "order-last: edit is deny-scoped but bash is not"
+  assert_output_not_contains "deny-first doc contract drift"
+}
+
+@test "validator: bash: allow does not match bash: allow-list or allowlisted (DIA-260827-ft3z M2a)" {
+  [ -n "$NODE_BIN" ] || skip "node is required to run jsonc-parse.js"
+  local tree="$BATS_TEST_TMPDIR/allow-boundary"
+  mkdir -p "$tree/.opencode"
+  require_analyzer_docs "$tree"
+  cat > "$tree/.opencode/opencode.jsonc" <<'JSONC'
+{ "agent": { "m2a": { "permission": { "edit": "deny", "bash": { "*": "deny", "jq *": "allow" } } } } }
+JSONC
+  cat > "$tree/.opencode/agents/m2a.md" <<'MD'
+# m2a
+Claims bash: allow-list for the enum - must NOT be reported.
+Claims bash: allow for the enum - must be reported.
+MD
+  run "$NODE_BIN" "$LIB" --doc-drift "$tree/.opencode/opencode.jsonc"
+  assert_status 1
+  assert_output_contains 'm2a.md:3: forbidden phrase "bash: allow"'
+  assert_output_not_contains "allow-list"
+  local hit_lines
+  hit_lines="$(printf '%s\n' "$output" | grep -c 'forbidden phrase' || true)"
+  [ "$hit_lines" -eq 1 ]
+}
+
+@test "validator: a same-line negation suppresses the phrase hit (DIA-260827-ft3z M2b)" {
+  [ -n "$NODE_BIN" ] || skip "node is required to run jsonc-parse.js"
+  local tree="$BATS_TEST_TMPDIR/negation"
+  mkdir -p "$tree/.opencode"
+  require_analyzer_docs "$tree"
+  cat > "$tree/.opencode/opencode.jsonc" <<'JSONC'
+{ "agent": { "m2b": { "permission": { "edit": "deny", "bash": { "*": "deny", "jq *": "allow" } } } } }
+JSONC
+  cat > "$tree/.opencode/agents/m2b.md" <<'MD'
+# m2b
+This lane does not run mmdc in any flow.
+This lane renders with mmdc when asked.
+MD
+  run "$NODE_BIN" "$LIB" --doc-drift "$tree/.opencode/opencode.jsonc"
+  assert_status 1
+  assert_output_contains 'm2b.md:3: forbidden phrase "mmdc"'
+  assert_output_not_contains "m2b.md:2"
+  local hit_lines
+  hit_lines="$(printf '%s\n' "$output" | grep -c 'forbidden phrase' || true)"
+  [ "$hit_lines" -eq 1 ]
+}
+
+@test "validator: a prompt line naming another agent is not attributed to the subject (DIA-260827-ft3z M2c)" {
+  [ -n "$NODE_BIN" ] || skip "node is required to run jsonc-parse.js"
+  local tree="$BATS_TEST_TMPDIR/attribution"
+  mkdir -p "$tree/.opencode"
+  require_analyzer_docs "$tree"
+  cat > "$tree/.opencode/opencode.jsonc" <<'JSONC'
+{
+  "agent": {
+    "analyzer": { "permission": { "edit": { "*": "deny", "knowledge/*": "allow" }, "bash": { "*": "deny", "jq *": "allow" }, "task": "deny" } },
+    "analyzer-escalated": { "permission": { "edit": { "*": "deny", "knowledge/*": "allow" }, "bash": { "*": "deny", "jq *": "allow" }, "task": "deny" } },
+    "coder": { "permission": { "bash": "allow" } }
+  }
+}
+JSONC
+  # Line 2 is an accurate description of CODER's grant in a routing table; it
+  # must not be attributed to analyzer. Line 3 names the subject and fires.
+  cat > "$tree/.opencode/oh-my-opencode-slim.jsonc" <<'JSONC'
+{ "agents": { "analyzer": { "prompt": "analyzer routing table:\ncoder: bash: allow for its git enum\nanalyzer: bash: allow for its jq enum" } } }
+JSONC
+  run "$NODE_BIN" "$LIB" --doc-drift "$tree/.opencode/opencode.jsonc"
+  assert_status 1
+  assert_output_contains "agents.analyzer.prompt:3: forbidden phrase \"bash: allow\""
+  assert_output_not_contains "agents.analyzer.prompt:2"
+}
+
+@test "validator: matcher anchoring - a substring pattern does not match a longer probe (DIA-260827-ft3z C2)" {
+  [ -n "$NODE_BIN" ] || skip "node is required to run jsonc-parse.js"
+  local tree="$BATS_TEST_TMPDIR/match-anchor"
+  mkdir -p "$tree/.opencode"
+  require_analyzer_docs "$tree"
+  # "probe_denied" is a SUBSTRING of the restriction probe
+  # __dia_probe_denied__. Anchored whole-value matching leaves both probes on
+  # the "*" deny -> restricted -> the doc claim is in scope and reported.
+  # Unanchored matching would resolve the probe to allow, drop the agent out
+  # of scope and green the gate.
+  cat > "$tree/.opencode/opencode.jsonc" <<'JSONC'
+{ "agent": { "anchor-agent": { "permission": { "bash": { "*": "deny", "probe_denied": "allow" } } } } }
+JSONC
+  cat > "$tree/.opencode/agents/anchor-agent.md" <<'MD'
+# anchor-agent
+This doc claims bash: allow - reported only while matching stays anchored.
+MD
+  run "$NODE_BIN" "$LIB" --doc-drift "$tree/.opencode/opencode.jsonc"
+  assert_status 1
+  assert_output_contains 'anchor-agent.md:2: forbidden phrase "bash: allow"'
+}
+
+@test "validator: matcher escaping - a dot pattern does not match a bare word (DIA-260827-ft3z C2)" {
+  [ -n "$NODE_BIN" ] || skip "node is required to run jsonc-parse.js"
+  local tree="$BATS_TEST_TMPDIR/match-escape"
+  mkdir -p "$tree/.opencode"
+  require_analyzer_docs "$tree"
+  # The edit probe is dia_edit_probe (no dot). If the "." in the key
+  # dia_edit.probe were compiled as a regex any-char, the probe would resolve
+  # to allow, isDenyScoped would bail out and the invariant would stay silent.
+  # With escaping the key matches nothing, both probes hit "*", and the
+  # invariant fires against the flat "allow" bash.
+  cat > "$tree/.opencode/opencode.jsonc" <<'JSONC'
+{ "agent": { "escape-agent": { "permission": { "edit": { "*": "deny", "dia_edit.probe": "allow" }, "bash": "allow" } } } }
+JSONC
+  run "$NODE_BIN" "$LIB" --doc-drift "$tree/.opencode/opencode.jsonc"
+  assert_status 1
+  assert_output_contains "escape-agent: edit is deny-scoped but bash is not"
+}
+
+@test "validator: matcher star crosses spaces and probe-B allow means not restricted (DIA-260827-ft3z C2)" {
+  [ -n "$NODE_BIN" ] || skip "node is required to run jsonc-parse.js"
+  local tree="$BATS_TEST_TMPDIR/match-space"
+  mkdir -p "$tree/.opencode"
+  require_analyzer_docs "$tree"
+  # Probe B is "zzz_nonexistent_cmd --flag" - it only resolves to allow when
+  # "*" crosses the space. So this map denies probe A, allows probe B and must
+  # be classified NOT restricted: the invariant fires and the doc claim below
+  # stays out of scope.
+  cat > "$tree/.opencode/opencode.jsonc" <<'JSONC'
+{ "agent": { "space-agent": { "permission": { "edit": { "*": "deny" }, "bash": { "*": "deny", "zzz*": "allow" } } } } }
+JSONC
+  cat > "$tree/.opencode/agents/space-agent.md" <<'MD'
+# space-agent
+This doc claims bash: allow - unreported because the map is NOT restricted.
+MD
+  run "$NODE_BIN" "$LIB" --doc-drift "$tree/.opencode/opencode.jsonc"
+  assert_status 1
+  assert_output_contains "space-agent: edit is deny-scoped but bash is not"
+  assert_output_not_contains "space-agent.md:"
+}
+
+@test "validator: a missing analyzer agent markdown fails the positive marker (DIA-260827-ft3z M3)" {
+  [ -n "$NODE_BIN" ] || skip "node is required to run jsonc-parse.js"
+  local tree="$BATS_TEST_TMPDIR/missing-analyzer-md"
+  mkdir -p "$tree/.opencode/agents"
+  cat > "$tree/.opencode/opencode.jsonc" <<'JSONC'
+{ "agent": { "m3-agent": { "permission": { "edit": "deny", "bash": "deny" } } } }
+JSONC
+  # No agents/analyzer.md at all: deleting the document must not delete the
+  # requirement - absence is a failure naming the missing file.
+  run "$NODE_BIN" "$LIB" --doc-drift "$tree/.opencode/opencode.jsonc"
+  assert_status 1
+  assert_output_contains "analyzer: required agent document missing:"
+  assert_output_contains "agents/analyzer.md"
+  assert_output_contains "analyzer-escalated: required agent document missing:"
+  assert_output_contains "agents/analyzer-escalated.md"
+}
+
+@test "validator: lockstep rejects an empty permission object (DIA-260827-ft3z G1)" {
+  [ -n "$NODE_BIN" ] || skip "node is required to run jsonc-parse.js"
+  local tree="$BATS_TEST_TMPDIR/empty-permission"
+  mkdir -p "$tree/.opencode"
+  cat > "$tree/.opencode/opencode.jsonc" <<'JSONC'
+{
+  "agent": {
+    "analyzer": { "permission": {} },
+    "analyzer-escalated": { "permission": { "bash": { "*": "deny" }, "task": "deny" } }
+  }
+}
+JSONC
+  run "$NODE_BIN" "$LIB" --lockstep "$tree/.opencode/opencode.jsonc"
+  assert_status 1
+  assert_output_contains 'pair analyzer/analyzer-escalated: member "analyzer" has an empty permission object'
+  assert_output_not_contains "ok: analyzer/analyzer-escalated"
+}
+
+@test "validator: lockstep rejects a map that is all task-related exemptions (DIA-260827-ft3z G1)" {
+  [ -n "$NODE_BIN" ] || skip "node is required to run jsonc-parse.js"
+  local tree="$BATS_TEST_TMPDIR/all-exempt"
+  mkdir -p "$tree/.opencode"
+  cat > "$tree/.opencode/opencode.jsonc" <<'JSONC'
+{
+  "agent": {
+    "coder": { "permission": { "task": "deny" } },
+    "coder-escalated": { "permission": { "task": "deny" } },
+    "analyzer": { "permission": { "bash": { "*": "deny" }, "task": "deny" } },
+    "analyzer-escalated": { "permission": { "bash": { "*": "deny" }, "task": "deny" } }
+  }
+}
+JSONC
+  run "$NODE_BIN" "$LIB" --lockstep "$tree/.opencode/opencode.jsonc"
+  assert_status 1
+  assert_output_contains 'pair coder/coder-escalated: member "coder" has no comparable permission keys left after exemptions'
+  assert_output_contains 'pair coder/coder-escalated: member "coder-escalated" has no comparable permission keys left after exemptions'
+  assert_output_not_contains "ok: coder/coder-escalated"
+}
+
+@test "validator: lockstep rejects permission keys carrying zero leaf rules (DIA-260827-ft3z M4)" {
+  [ -n "$NODE_BIN" ] || skip "node is required to run jsonc-parse.js"
+  local tree="$BATS_TEST_TMPDIR/zero-rules"
+  mkdir -p "$tree/.opencode"
+  # {"bash":{}} has a key but no rule: the old gate printed "1 keys, 0 rules"
+  # and went green on zero rule coverage.
+  cat > "$tree/.opencode/opencode.jsonc" <<'JSONC'
+{
+  "agent": {
+    "analyzer": { "permission": { "bash": {} } },
+    "analyzer-escalated": { "permission": { "bash": {} } }
+  }
+}
+JSONC
+  run "$NODE_BIN" "$LIB" --lockstep "$tree/.opencode/opencode.jsonc"
+  assert_status 1
+  assert_output_contains 'member "analyzer" has 0 leaf rules'
+  assert_output_contains 'member "analyzer-escalated" has 0 leaf rules'
+  assert_output_not_contains "ok: analyzer/analyzer-escalated"
+}
+
+@test "validator: an undeclared agent resolves edit and bash through the global block (DIA-260827-ft3z G2)" {
+  [ -n "$NODE_BIN" ] || skip "node is required to run jsonc-parse.js"
+  local tree="$BATS_TEST_TMPDIR/global-fallback"
+  mkdir -p "$tree/.opencode"
+  require_analyzer_docs "$tree"
+  # global-agent declares NO permission keys: edit and bash both come from the
+  # top-level permission block, so the invariant must see a deny-scoped edit
+  # on an unrestricted bash through the fallback.
+  cat > "$tree/.opencode/opencode.jsonc" <<'JSONC'
+{
+  "permission": { "edit": { "*": "deny" }, "bash": "allow" },
+  "agent": { "global-agent": {} }
+}
+JSONC
+  run "$NODE_BIN" "$LIB" --doc-drift "$tree/.opencode/opencode.jsonc"
+  assert_status 1
+  assert_output_contains "global-agent: edit is deny-scoped but bash is not"
+}
+
+@test "validator: preset prompt field and live override name.md claims are caught (DIA-260827-ft3z C2)" {
+  [ -n "$NODE_BIN" ] || skip "node is required to run jsonc-parse.js"
+  local tree="$BATS_TEST_TMPDIR/prompt-surfaces"
+  mkdir -p "$tree/.opencode/agents" "$tree/.opencode/oh-my-opencode-slim"
+  require_analyzer_docs "$tree"
+  cat > "$tree/.opencode/opencode.jsonc" <<'JSONC'
+{ "agent": { "surf-agent": { "permission": { "edit": "deny", "bash": "deny" } } } }
+JSONC
+  cat > "$tree/.opencode/oh-my-opencode-slim.jsonc" <<'JSONC'
+{ "presets": { "p1": { "surf-agent": { "prompt": "surf-agent\n- claims bash: allow in a preset" } } } }
+JSONC
+  # <name>.md as distinct from <name>_append.md (the append form has its own
+  # test above).
+  cat > "$tree/.opencode/oh-my-opencode-slim/surf-agent.md" <<'MD'
+# surf-agent
+Runtime override claims bash: allow.
+MD
+  run "$NODE_BIN" "$LIB" --doc-drift "$tree/.opencode/opencode.jsonc"
+  assert_status 1
+  assert_output_contains "presets.p1.surf-agent.prompt:2: forbidden phrase \"bash: allow\""
+  assert_output_contains "surf-agent.md:2: forbidden phrase \"bash: allow\""
+}
+
+@test "validator: every remaining forbidden phrase fires at least once (DIA-260827-ft3z C2)" {
+  [ -n "$NODE_BIN" ] || skip "node is required to run jsonc-parse.js"
+  local tree="$BATS_TEST_TMPDIR/phrase-list"
+  mkdir -p "$tree/.opencode"
+  require_analyzer_docs "$tree"
+  cat > "$tree/.opencode/opencode.jsonc" <<'JSONC'
+{ "agent": { "phrase-agent": { "permission": { "edit": "deny", "bash": "deny" } } } }
+JSONC
+  cat > "$tree/.opencode/agents/phrase-agent.md" <<'MD'
+# phrase-agent
+line1: bash: fully allowed here
+line2: bash (allow) per docs
+line3: bash is allowed for jq
+line4: rendered via Mermaid CLI
+line5: invoked through mmdc
+MD
+  run "$NODE_BIN" "$LIB" --doc-drift "$tree/.opencode/opencode.jsonc"
+  assert_status 1
+  assert_output_contains 'phrase-agent.md:2: forbidden phrase "bash: fully allowed"'
+  assert_output_contains 'phrase-agent.md:3: forbidden phrase "bash (allow)"'
+  assert_output_contains 'phrase-agent.md:4: forbidden phrase "bash is allowed"'
+  assert_output_contains 'phrase-agent.md:5: forbidden phrase "Mermaid CLI"'
+  assert_output_contains 'phrase-agent.md:6: forbidden phrase "mmdc"'
+  local hit_lines
+  hit_lines="$(printf '%s\n' "$output" | grep -c 'forbidden phrase' || true)"
+  [ "$hit_lines" -eq 5 ]
+}
+
+@test "validator: the deny-first marker is scoped to the analyzer pair (DIA-260827-ft3z C2)" {
+  [ -n "$NODE_BIN" ] || skip "node is required to run jsonc-parse.js"
+  local tree="$BATS_TEST_TMPDIR/marker-confine"
+  mkdir -p "$tree/.opencode"
+  require_analyzer_docs "$tree"
+  # other-lane is in scope (deny-first bash map) but is NOT part of the
+  # analyzer pair, so its document may omit the deny-first marker.
+  cat > "$tree/.opencode/opencode.jsonc" <<'JSONC'
+{ "agent": { "other-lane": { "permission": { "edit": "deny", "bash": { "*": "deny", "jq *": "allow" } } } } }
+JSONC
+  cat > "$tree/.opencode/agents/other-lane.md" <<'MD'
+# other-lane
+No deny-first marker here, and that must be fine for a non-analyzer lane.
+MD
+  run "$NODE_BIN" "$LIB" --doc-drift "$tree/.opencode/opencode.jsonc"
+  assert_status 0
+  assert_output_contains "1 in-scope agents: other-lane"
+  assert_output_not_contains 'missing required "deny-first" marker'
 }
