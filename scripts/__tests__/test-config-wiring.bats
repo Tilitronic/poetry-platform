@@ -240,11 +240,12 @@ MD
   # flat string "deny", so it contributes one leaf rule, not a 23-rule object).
   assert_output_contains "(3 keys, 4 rules: analyzer, analyzer-escalated)"
   # G3 widened scope on the REAL tree: the eight flat-"deny" agents plus the
-  # deny-first object maps = 12 in-scope agents, named in the ok line. R1 moved
-  # researcher OUT of the doc scope on purpose: its `curl *` / `wget *` allow
-  # now resolves the write shapes, so the map classifies as unrestricted (the
-  # live hole is recorded in the invariant's exemption set instead).
-  assert_output_contains "12 in-scope agents"
+  # deny-first object maps. DIA-260827-ft3z design D1/D6 moved three more
+  # lanes INTO scope: researcher and designer now carry flat "bash": "deny"
+  # and memory-manager a deny-first map, so all three are checked for
+  # flat-allow doc claims (15 total; before the migration it was 12, with
+  # researcher OUT on purpose behind its curl/wget allow-list).
+  assert_output_contains "15 in-scope agents"
   assert_output_contains "orchestrator, architector, analyzer, analyzer-escalated, reviewer, code-navigator"
 }
 
@@ -517,8 +518,11 @@ MD
 # regression. [G] in this section: "every remaining forbidden phrase fires at
 # least once" and "the deny-first marker is scoped to the analyzer pair" were
 # guards from the start, as are the R7 additions that pin untested acceptance
-# details (success-line pluralization, the no-permission-object branch, the
-# memory-manager exemption) rather than close a hole.
+# details (success-line pluralization, the no-permission-object branch) rather
+# than close a hole. The former "memory-manager exemption" R7 case is no
+# longer a [G] guard: design D6 emptied EXEMPT_EDIT_BASH, so that case now
+# pins the emptied set (the same fixture must FAIL loudly) - see the
+# "emptied exemption set" case below.
 # ---------------------------------------------------------------------------
 
 @test "validator: deny-by-default maps allowing a dangerous execution shape fail the invariant (DIA-260827-ft3z C1)" {
@@ -1057,22 +1061,25 @@ JSONC
   assert_output_not_contains "2 rules"
 }
 
-@test "validator: the memory-manager exemption keeps its deny-scoped edit off the invariant (DIA-260827-ft3z R7) [G]" {
+@test "validator: the emptied exemption set makes memory-manager fail loudly (DIA-260827-ft3z D6)" {
   [ -n "$NODE_BIN" ] || skip "node is required to run jsonc-parse.js"
   local tree="$BATS_TEST_TMPDIR/r7-exempt"
   mkdir -p "$tree/.opencode"
   require_analyzer_docs "$tree"
-  # memory-manager is the explicit tracked-debt exemption: deny-scoped edit on
-  # an unrestricted bash must NOT fire. Deleting the exemption entry reddens
-  # this case on the real tree too (its edit is deny-first and its bash key is
-  # absent, so it inherits the global allow).
+  # DIA-260827-ft3z design D6 emptied EXEMPT_EDIT_BASH: memory-manager's bash
+  # map is now closed (deny-first, read-only git + the shelf validator), so the
+  # tracked-debt exemption is gone. The fixture that USED to be exempt -
+  # deny-scoped edit on an unrestricted bash - must now FAIL loudly; that is
+  # the intended behaviour of an empty set (a new agent in this state fails
+  # instead of sliding through). The former expectation (exit 0, no report)
+  # reddened the moment task 3.1 removed the member.
   cat > "$tree/.opencode/opencode.jsonc" <<'JSONC'
 { "agent": { "memory-manager": { "permission": { "edit": { "*": "deny", ".opencode/memory/*": "allow" }, "bash": "allow" } } } }
 JSONC
   run "$NODE_BIN" "$LIB" --doc-drift "$tree/.opencode/opencode.jsonc"
-  assert_status 0
-  assert_output_not_contains "deny-scoped edit with unrestricted bash"
-  assert_output_not_contains "memory-manager: edit is deny-scoped"
+  assert_status 1
+  assert_output_contains "deny-scoped edit with unrestricted bash"
+  assert_output_contains "memory-manager: edit is deny-scoped"
 }
 
 @test "validator: lockstep rejects a pair member with no permission object at all (DIA-260827-ft3z R7) [G]" {

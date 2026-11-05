@@ -564,9 +564,11 @@
     // researcher — external research + Phase A source capture (DIA-135 D5/D6).
     // Owns the 3-tier fetch chain (registry JSON API -> trafilatura -> crwl
     // LAST-RESORT only) into knowledge/<resid>-<topic>/sources/ plus the
-    // per-source relevance/reliability manifest (.source-urls.txt). Bash
-    // allow-list (deny-first per DIA-126 findLast pattern, matching conspecter's
-    // former map); edit scoped to knowledge/* plus the OMO knowledge dir
+    // per-source relevance/reliability manifest (.source-urls.txt), driven
+    // through the typed fetch-source tool (DIA-260827-ft3z design D1/D2).
+    // Bash is the flat string "deny" - the lane has NO shell; every fetch
+    // goes through the tool, which owns the tier order and validates the
+    // destination. Edit scoped to knowledge/* plus the OMO knowledge dir
     // (.opencode/oh-my-opencode-slim/knowledge/*) for ai-assist-sources.yaml
     // curation + Tier-1 cache maintenance absorbed from the retired
     // knowledge-source curation lane (DIA-260929-3ydp). Task denied because
@@ -586,23 +588,18 @@
           "knowledge/*": "allow",
           ".opencode/oh-my-opencode-slim/knowledge/*": "allow"
         },
-        "bash": {
-          "*": "deny",
-          "curl *": "allow",
-          "wget *": "allow",
-          "trafilatura *": "allow",
-          "crwl *": "allow"
-        },
+        "bash": "deny",
         "task": "deny"
       }
     },
-    // designer — DIA-261006-ldfs: this block previously had NO permission key at all, so
-    // task AND bash inherited the `* allow *` baseline. Only task is closed here; the
-    // designer bash gap is a DEFERRED drift routed to the follow-up ticket.
+    // designer - DIA-261006-ldfs closed task; DIA-260827-ft3z design D6
+    // closed the inherited bash gap (this block previously had NO permission
+    // key, so bash resolved to the global `* allow *` baseline).
     "designer": {
       "mode": "subagent",
       "color": "#EC4899",
       "permission": {
+        "bash": "deny",
         "task": "deny"
       }
     },
@@ -618,6 +615,17 @@
     // DIA-199 (2026-08-16): trailing * glob required - OpenCode edit-permission
     // matcher does not resolve exact-file patterns (reproduced PermissionDenied);
     // glob form works. DIA-143 sole-writer: memory-manager ONLY.
+    // DIA-260827-ft3z design D6: deny-first bash map (the lane previously
+    // inherited the global `* allow *` baseline). Grants are read-only git
+    // plus the shelf validator - the pattern MUST be the whole-command
+    // `bash scripts/validate-memory-shelf.sh *` form: patterns match the
+    // whole raw command string, so the bare path pattern would never match an
+    // invocation carrying arguments. The trailing ` *` also matches the bare
+    // form. The map ends on allows with the `*` deny FIRST (findLast), never a
+    // trailing catch-all deny - a last-matching `{"*": "deny"}` would hide
+    // the bash tool from this lane instead of restricting it. No `python3 *`:
+    // that allow is exactly the dangerous execution shape the config gate
+    // probes for; the agent document prescribes the validator script instead.
     "memory-manager": {
       "mode": "subagent",
       "color": "#F472B6",
@@ -628,6 +636,14 @@
           ".opencode/memory-shelf.yaml*": "allow",
           ".opencode/learnings/external-patterns/*": "allow",
           ".opencode/learnings/index.md*": "allow"
+        },
+        "bash": {
+          "*": "deny",
+          "git log *": "allow",
+          "git diff *": "allow",
+          "git show *": "allow",
+          "git status *": "allow",
+          "bash scripts/validate-memory-shelf.sh *": "allow"
         },
         "task": "deny"
       }

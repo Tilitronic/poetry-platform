@@ -135,8 +135,8 @@ function isDenyByDefault(bash) {
 // starts with python3) yet lets the lane run `python3 -c 'open(...,"w")'`,
 // which is the write-scope hole this campaign exists to close (DIA-260827-ft3z
 // C1). The same hole opens through any write primitive or shell-out the map
-// allows: the researcher map this ticket was opened for keeps both probes on
-// deny while `curl -o /workspace/anything URL` resolves to allow behind its
+// allows: the researcher map this ticket was opened for kept both probes on
+// deny while `curl -o /workspace/anything URL` resolved to allow behind its
 // `curl *` grant (R1). A map resolving ANY of these to allow is unrestricted
 // no matter what the probes say.
 const DANGEROUS_EXECUTION_SHAPES = [
@@ -152,6 +152,15 @@ const DANGEROUS_EXECUTION_SHAPES = [
   "curl -o x http://x",
   "curl --output x http://x",
   "wget -O x http://x",
+  // DIA-260827-ft3z design D7: the four remaining reproduced write modes of
+  // the former fetch allow-list. Appended AFTER the curl -o entry on purpose:
+  // allowedDangerousShape returns the FIRST shape that resolves to allow, and
+  // the r1-curl bats case pins "curl -o x http://x" as the name for a `curl *`
+  // map - inserting before it would silently change that assertion's text.
+  "curl -O x",
+  "wget -P x http://x",
+  "trafilatura -o x",
+  "crwl -o x",
   "tee x",
   "dd of=x",
   "sed -i x",
@@ -166,9 +175,9 @@ const DANGEROUS_EXECUTION_SHAPES = [
 ];
 
 // First dangerous shape the map resolves to allow, else null. On the real tree
-// this names researcher (`curl -o x http://x` behind its `curl *` allow), which
-// is recorded as an explicit exemption in the invariant below rather than by
-// narrowing this list (DIA-260827-ft3z R1).
+// this now returns null for every agent (the former researcher `curl *` allow
+// is gone as of DIA-260827-ft3z design D1/D6); it still names any map that
+// re-opens a write shape, which is what the invariant below reports.
 function allowedDangerousShape(bash) {
   if (bash === null || typeof bash !== 'object' || Array.isArray(bash)) return null;
   return DANGEROUS_EXECUTION_SHAPES.find((shape) => resolveRule(bash, shape) === 'allow') || null;
@@ -381,6 +390,20 @@ if (args[0] === '--doc-drift') {
     'bash (allow)',
     'bash is allowed',
     'mmdc',
+    // DIA-260827-ft3z design D7: shell-claim spellings that are false for any
+    // lane whose bash is now deny-scoped (researcher lost its allow-list when
+    // its capture chain moved to the typed fetch-source tool). All six were
+    // checked against every scanned surface (agent md, slim prompt fields,
+    // prompt-override md) before addition: they fire only on the researcher
+    // documents this ticket rewrites, never on unrelated documentation.
+    // `bash (allow-list` covers the no-backtick spelling of the claim that
+    // `bash allow-list` alone would miss behind a code span.
+    'bash allow-list',
+    'bash (allow-list',
+    'curl *',
+    'wget *',
+    'trafilatura *',
+    'crwl *',
   ];
   // Same-line negation markers (M2b, bounded by R4): a line that negates the
   // claim before the phrase ("we do not run mmdc") is NOT a claim. Bounded on
@@ -576,30 +599,23 @@ if (args[0] === '--doc-drift') {
   // below is the known tracked debt; it stays EXPLICIT (one named agent per
   // tracking ticket, each entry naming what it can still run) so the debt is
   // visible in review and a NEW agent appearing in this state fails loudly.
-  const EXEMPT_EDIT_BASH = new Set([
-    // memory-manager: edit is deny-first, the bash key is ABSENT so it
-    // inherits the global `"*": "allow"` baseline (verified with
-    // `opencode debug agent memory-manager`).
-    'memory-manager',
-    // researcher (DIA-260827-ft3z R1): NOT a weaker check - the write-shape
-    // probe above now PROVES the live hole this ticket was opened for. Its
-    // `curl *` / `wget *` allow-list still resolves `curl -o x http://x`,
-    // `curl --output x http://x` and `wget -O x http://x` to allow, so the
-    // lane writes any path its edit scope denies. That runtime acceptance
-    // (path-validating fetch adapters + a protected-path shell gate) is this
-    // campaign's OWN undelivered work, tracked under DIA-260827-ft3z - closing
-    // it is the Fix-section work, not a config edit. Recorded here so the hole
-    // stays visible in review and a NEW agent appearing in this state still
-    // fails loudly.
-    'researcher',
-  ]);
-  // Same tracked debt, deliberately NOT exempt: designer. Its config comment in
-  // .opencode/opencode.jsonc ("designer bash gap is a DEFERRED drift routed to
-  // the follow-up ticket" - the block that sat at line 621 when this gate was
-  // written) cites DIA-261006-ldfs. designer's edit key is undeclared too, so
-  // edit inherits the global allow and the invariant does not reach it today;
-  // leaving it covered means the gate fires the day its edit becomes
-  // deny-scoped without a deny-scoped bash.
+  //
+  // EMPTY BY DESIGN since DIA-260827-ft3z design D6: the last two members are
+  // gone. researcher went flat "bash": "deny" (its capture chain runs through
+  // the typed fetch-source tool) and memory-manager got a deny-first map whose
+  // grants are read-only git plus the shelf validator, so both lanes now pass
+  // the invariant on their own config. Do not re-add a member to silence a
+  // firing invariant - fix the lane's bash map instead. An agent appearing in
+  // the deny-scoped-edit / unrestricted-bash state now fails loudly, which is
+  // the intended behaviour of an empty set.
+  const EXEMPT_EDIT_BASH = new Set([]);
+  // Same tracked debt, deliberately NOT exempt: designer. Its config block
+  // (designer in .opencode/opencode.jsonc) cites DIA-261006-ldfs for the
+  // original task closure and DIA-260827-ft3z design D6 for the bash deny.
+  // designer's edit key is undeclared too, so edit inherits the global allow
+  // and the invariant does not reach it today; leaving it covered means the
+  // gate fires the day its edit becomes deny-scoped without a deny-scoped
+  // bash.
   const invariantFailures = [];
   for (const name of Object.keys(cfg.agent || {})) {
     if (EXEMPT_EDIT_BASH.has(name)) continue;

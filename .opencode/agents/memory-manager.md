@@ -30,7 +30,7 @@ change in `.opencode/memory-shelf.yaml` under the appropriate section
 - Multiline descriptions: use explicit `\n` escapes; avoid block scalars.
 - path values: always double-quoted.
 - created dates: ISO 8601 (`YYYY-MM-DD`), unquoted.
-- Verify with `python3 -c "import yaml; yaml.safe_load(open('$FILE'))"` after writing.
+- Verify after writing with `bash scripts/validate-memory-shelf.sh` (exit 0 = valid; this is the exact invocation the permission map allows - do not substitute an inline `python3 -c` YAML check, the lane's bash map does not admit it).
 
 ## When to Run
 
