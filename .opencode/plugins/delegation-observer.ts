@@ -99,6 +99,10 @@ import {
   VERIFICATION_ONLY_PATTERN,
 } from "./lib/routing-gate.ts"
 import { evaluateEnvelopeDuplication } from "./lib/envelope-gate.ts"
+// DIA-260827-ft3z D5: pure bash write-tripwire classifier (rules live in lib;
+// this file only resolves the lane and throws). Explicit .ts extension, same
+// loading contract as the other lib imports above.
+import { classifyBashWrite } from "./lib/bash-write-gate.ts"
 export { CAPABILITY_SECRET, mintCapabilityToken, verifyCapabilityToken }
 export { TICKET_ID_RE, TICKET_ID_FIND_RE, TICKET_ID_FILENAME_RE }
 
@@ -530,6 +534,16 @@ const delegationObserver: Plugin = async (ctx) => {
   // Child session id (task_id) -> agent name captured at dispatch. Enriches
   // completion/failure messages rows with the actual delegated agent.
   const childSessionAgent = new Map<string, string>()
+
+  // DIA-260827-ft3z (tasks 4.2/4.3, design D5): sessionID -> agent name
+  // captured from the session.created event (info.agent; precedent:
+  // needs-input-observer.ts sessionMeta). A best-effort WIDENING of the
+  // childSessionAgent lookup above - it covers root sessions and dispatches
+  // whose task() output carried no parseable id - NOT a boundary. In-memory
+  // only: sessions predating a plugin/OpenCode restart and task_revive
+  // sessions are never seeded here (fail-open; see the bash tripwire branch
+  // in tool.execute.before for the full honesty list).
+  const sessionAgent = new Map<string, string>()
 
   // DIA-220: per-session worktree paths for apoptosis cleanup. Populated
   // when a WORKTREE assertion is extracted from a task() dispatch; cleaned
@@ -2346,6 +2360,60 @@ const delegationObserver: Plugin = async (ctx) => {
         }
       }
 
+      // === DIA-260827-ft3z D5: bash write tripwire (task 4.2) ===
+      // Accident protection for the two implementation lanes that keep a
+      // shell. A throw from this hook skips item.execute (the established
+      // block mechanism in this file, same as the apoptosis/reviewer gates
+      // above), and it fires BEFORE the permission layer because permission
+      // evaluation lives inside each tool's execute body via ctx.ask.
+      // NOT a boundary: the classifier reads a command string and cannot see
+      // interpreter writes (python3 -c, node -e) or future tools. The typed
+      // fetch tool (D1-D4) is the provable control.
+      //
+      // Lane lookup is best-effort and FAILS OPEN. The four fail-open cases:
+      //   1. root sessions never dispatched through task() - covered by the
+      //      sessionAgent backfill (session.created info.agent) below;
+      //   2. sessions created before a plugin or OpenCode restart - NOT
+      //      covered: both maps are in-memory only and are never seeded from
+      //      disk;
+      //   3. task_revive sessions - NOT covered: a revive emits no
+      //      session.created and no task() output to parse;
+      //   4. dispatches whose task() output carried no parseable id - covered
+      //      by the same sessionAgent backfill.
+      // The backfill covers cases 1 and 4, NOT cases 2 and 3. Nobody may
+      // read this tripwire as covering pre-restart or revived sessions.
+      if (input.tool === "bash") {
+        // Same runtime args contract as the gates above: tool args live in
+        // output.args, read through unknown.
+        const bashArgs =
+          ((output as unknown as { args?: unknown }).args ?? {}) as Record<string, unknown>
+        const command = typeof bashArgs.command === "string" ? bashArgs.command : undefined
+        if (command !== undefined) {
+          const lane =
+            childSessionAgent.get(input.sessionID) ?? sessionAgent.get(input.sessionID)
+          const verdict = classifyBashWrite(command, lane)
+          if (verdict.blocked) {
+            registry.appendRow({
+              event: "bash_write_denied",
+              session_id: input.sessionID,
+              tool: input.tool,
+              subagent_type: lane ?? "unresolved",
+              target: verdict.target,
+              rule: verdict.rule,
+              detail: `tripwire denied bash write to '${verdict.target}' (rule: ${verdict.rule})`,
+              writer: "plugin",
+            })
+            throw new Error(
+              `PROTECTED-PATH TRIPWIRE: bash write denied (rule: ${verdict.rule}) -> ${verdict.target}\n` +
+                "Accident protection for coder/coder-escalated (DIA-260827-ft3z design D5): " +
+                "writes resolving under .git/, .opencode/session/, or docs/dev-infra-audit/tickets/ " +
+                "are denied before execution.\n" +
+                "Action: pick a destination outside the protected set."
+            )
+          }
+        }
+      }
+
       // === JUXTACRINE MODULE -- Synchronous signal recognition ===
       // These hooks recognize dispatch patterns at execution boundary.
       // Biological equivalent: signal recognition at cell surface.
@@ -3030,7 +3098,7 @@ const delegationObserver: Plugin = async (ctx) => {
       const event = input.event as {
         type: string
         properties?: {
-          info?: { id?: string; parentID?: string; title?: string }
+          info?: { id?: string; parentID?: string; title?: string; agent?: string }
           sessionID?: string
           error?: unknown
         }
@@ -3058,6 +3126,14 @@ const delegationObserver: Plugin = async (ctx) => {
           if (!info?.id) return
           const role = info.parentID ? "subagent" : "orchestrator"
           sessionMeta.set(info.id, { parentID: info.parentID, role })
+          // DIA-260827-ft3z task 4.3: lane backfill for the bash write
+          // tripwire (precedent: needs-input-observer.ts sessionMeta.agent).
+          // Covers sessions created after plugin load - root sessions and
+          // dispatches whose task() output carried no parseable id - and only
+          // those; pre-restart and task_revive sessions stay fail-open.
+          if (typeof info.agent === "string" && info.agent) {
+            sessionAgent.set(info.id, info.agent)
+          }
           // RUNNING transition: only child spawns are delegations. The root
           // orchestrator session is recorded for role attribution only.
           if (info.parentID) {
