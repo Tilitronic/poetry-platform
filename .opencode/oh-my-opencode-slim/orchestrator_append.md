@@ -475,13 +475,16 @@ block actually allows bash + read of the ledger - in the current config
 (.opencode/opencode.jsonc) that is coder (primary; it carries an explicit
 bash map whose `python3 *` allow admits the lookup directly, not merely the
 global "*": allow baseline) or coder-escalated (the same map). NOT eligible:
-designer or memory-manager - neither declares a bash key, so their bash
-resolves to the global "*": allow baseline, an open over-grant tracked under
-DIA-260827-ld2l ("memory-manager and designer over-granted permissions";
-DIA-261006-ldfs is only the deferral origin, and the id the designer config
-comment in .opencode/opencode.jsonc cites). Listing them as lookup lanes
-would entrench that bug and break the moment it is fixed, so they stay off
-this list until their maps are closed. NOT eligible: read-only lanes with
+designer or memory-manager - both maps are CLOSED as of DIA-260827-ft3z
+design D6: designer carries the flat string "bash": "deny", and
+memory-manager carries a deny-first map whose only grants are read-only git
+(`git log *`, `git diff *`, `git show *`, `git status *`) and
+`bash scripts/validate-memory-shelf.sh *`. Neither map admits a free
+`python3` lookup, so neither lane can run the query below. (Their former
+over-grant through the inherited global "*": allow baseline is tracked
+under DIA-260827-ld2l "memory-manager and designer over-granted
+permissions", with DIA-261006-ldfs as the deferral origin.) NOT eligible:
+read-only lanes with
 bash: "deny" (code-navigator, reviewer, observer, conspecter, council,
 ai-specialist, ai-auditor, architector) - none can run python3. NOT
 eligible: openspec-plan - its deny-first map admits `openspec *` only, no

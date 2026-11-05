@@ -14,12 +14,13 @@ The orchestrator uses this skill when standalone research should produce persist
 Before dispatching `researcher`, run `scripts/allocate-id res <slug>` to obtain a collision-resistant datetime ID (format: res-YYMMDD-<rand4>-<slug>). Pass the returned ID in the dispatch payload: "Write to knowledge/<returned-id>/sources/". Never let the researcher or conspecter self-allocate. Never scan knowledge/ for highest existing IDs — that pattern is retired (DIA-260831-9zq6).
 
 ### Phase 2: Research + Phase A Source Capture (researcher-owned, D5/D6)
-Dispatch `researcher` with a specific question, scope, the pre-allocated `res<id>`, and output format requirements. The researcher OWNS Phase A source capture: it fetches every source URL ONCE into `knowledge/res<id>-<topic>/sources/` using the 3-tier fallback chain, evaluates each source, and returns structured findings. This single-fetch ownership structurally eliminates the double-fetch defect (no second trafilatura pass by a conspecter).
+Dispatch `researcher` with a specific question, scope, the pre-allocated `res<id>`, and output format requirements. The researcher OWNS Phase A source capture: it fetches every source URL ONCE into `knowledge/res<id>-<topic>/sources/` through the typed `fetch-source` tool (the lane has no shell - DIA-260827-ft3z; the tool owns the fallback chain), evaluates each source, and returns structured findings. This single-fetch ownership structurally eliminates the double-fetch defect (no second capture pass by a conspecter).
 
-**3-tier fetch chain (by URL class):**
-- **Tier 1 — npm registry JSON API:** `registry.npmjs.org/<package>` -> `curl -s "https://registry.npmjs.org/<package>" > sources/<slug>.json` (the JSON response IS the archive; richer than HTML, no trafilatura needed)
-- **Tier 2 — trafilatura:** `trafilatura -u "<URL>" --output-format markdown > sources/<slug>.md` (direct, or after `curl -sL -A "<browser-UA>" "<URL>"` for JS-gated pages; verify content >100 bytes)
-- **Tier 3 — crwl headless: LAST-RESORT ONLY.** crwl is NEVER the first attempt (DIA-129). A crwl failure is a signal to SKIP the URL and mark it per DIA-072 — do not keep retrying. Cache crwl outputs per-URL-hash within the session to avoid repeat Chromium launches.
+**Fetch chain (executed inside `fetch-source`, tiers in implementation order):**
+- **Tier 1 - npm registry JSON API (registry.npmjs.org URLs only):** the tool serves the JSON response directly as the archive (richer than HTML, no trafilatura needed)
+- **Tier 2 - trafilatura:** the tool fetches markdown
+- **Tier 3 - curl with a browser user-agent:** on a tier-2 failure the tool falls through to a browser user-agent request (the JS-gated-page path) and archives that response
+- **Tier 4 - crwl headless: LAST-RESORT ONLY.** crwl is NEVER the first attempt (DIA-129). A crwl failure is a signal to SKIP the URL and mark it per DIA-072 - do not keep retrying. A missing crwl is reported by the tool as an unavailable tier inside the failed result, never a throw.
 
 **Quality evaluation (D6):** the researcher MUST evaluate each source for RELEVANCE (does it answer the research question) and RELIABILITY (authority, recency, independence, vendor-vs-independent) before archiving, and record a per-source rating (High/Med/Low each) in the `sources/.source-urls.txt` manifest.
 
@@ -86,8 +87,8 @@ The developer can explicitly skip analysis by setting `status: "skipped"`.
 
 ## Archive-Before-Claim Policy
 - A fact without a saved source must not count in the conspect.
-- The researcher's Phase A MUST use the 3-tier fallback chain (registry JSON API → trafilatura markdown → curl+browser-UA → crwl headless LAST-RESORT) before declaring a source unarchivable.
-- crwl is NEVER the first attempt; a crwl failure = skip the URL and mark it (DIA-129/DIA-072). Cache crwl outputs per-URL-hash.
+- The researcher's Phase A MUST archive through the `fetch-source` tool, which runs the fallback chain in order (tier order: registry JSON API for registry.npmjs.org URLs only, then trafilatura markdown, then curl with browser user-agent, then crwl LAST-RESORT) before declaring a source unarchivable.
+- crwl is NEVER the first attempt; a crwl failure = skip the URL and mark it (DIA-129/DIA-072).
 - If a URL cannot be archived (all methods exhausted), the corresponding claims are EXCLUDED from the conspect body and listed separately under "Unarchived Sources" with the flag `[source not archived — excluded per DIA-072 policy]`.
 - The orchestrator reviews excluded claims and decides whether to retry with alternative URLs or accept the gap.
 
