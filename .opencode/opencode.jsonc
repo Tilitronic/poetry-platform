@@ -28,6 +28,14 @@
   // a lock (a later per-agent entry with the same pattern still wins).
   "permission": {
     "edit": "allow",
+    // DIA-260827-ft3z (design D2): typed fetch tool for the researcher lane.
+    // Flat deny hides fetch-source from EVERY lane's tool schema; the
+    // researcher map's trailing "allow" wins for that lane (agent rules
+    // append after this global block, findLast decides). Custom tools are
+    // NOT permission-checked at execute time, so the real runtime control
+    // is the context.agent guard inside the tool - this entry is the
+    // schema-visibility gate.
+    "fetch-source": "deny",
     // Write-capable AST rewrite (OMO plugin tool): never ask()-gated, never
     // path-scopable, shells out to `sg` — deny fleet-wide.
     "ast_grep_replace": "deny",
@@ -567,6 +575,12 @@
       "mode": "subagent",
       "color": "#84CC16",
       "permission": {
+        // DIA-260827-ft3z (design D2): LOAD-BEARING, not cosmetic - the
+        // global block carries flat "fetch-source": "deny"; agent rules
+        // append after global rules, so this trailing allow is what keeps
+        // the typed fetch tool visible to this lane. Remove either entry and
+        // the tool either vanishes from researcher or appears everywhere.
+        "fetch-source": "allow",
         "edit": {
           "*": "deny",
           "knowledge/*": "allow",
