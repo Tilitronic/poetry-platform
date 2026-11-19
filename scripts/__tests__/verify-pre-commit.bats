@@ -11,6 +11,10 @@
 #   1. host + container running -> delegates lint-staged via `docker compose exec`
 #   2. host + container down    -> exit 1 with a clear "dev container not running"
 #   3. inside the container     -> runs `npx lint-staged --allow-empty` directly
+#
+# DIA-261119-85dy adds a linked-worktree dimension on top of contexts 1 and 3
+# (see the section comment below). The only real git commit any case performs
+# is the throwaway `git commit -m init` inside that fixture repo.
 
 load test-helper
 
@@ -29,8 +33,76 @@ setup() {
   setup_hermetic_host_context
 }
 
+# ---------------------------------------------------------------------------
+# DIA-261119-85dy: lint-staged cwd must follow the COMMITTING worktree
+# ---------------------------------------------------------------------------
+# When git runs the hook for a commit made in a linked worktree it exports
+# GIT_INDEX_FILE pointing at that worktree's index. lint-staged unsets
+# GIT_DIR but not GIT_INDEX_FILE, so running it from the hardcoded /workspace
+# (the MAIN worktree) evaluates that index against the wrong tree and dies
+# with "Unstaged changes could not be restored due to a merge conflict!".
+# Required behavior pinned by the cases at the bottom of this file: the
+# lint-staged invocation's cwd (and therefore its file view) is the committing
+# worktree's top level; main-worktree behavior stays /workspace.
+
+# make_linked_worktree: hermetic fixture = main repo + one linked worktree
+# (the scripts/worktrees.sh layout, at a temp path). The fixture tracks
+# scripts/guards/home-qualt.sh because the hook sources that file from
+# `git rev-parse --show-toplevel`, so a run whose cwd is the linked worktree
+# resolves the worktree copy. Uses the shared budget_git_init (hermetic repo
+# init + test identity in test-helper.bash). Echoes the worktree's git
+# toplevel -- the anchor the required behavior names.
+make_linked_worktree() {
+  local main="$BATS_TEST_TMPDIR/wt-main"
+  local linked="$BATS_TEST_TMPDIR/wt-linked"
+  mkdir -p "$main/scripts/guards"
+  cp "$REPO_ROOT/scripts/guards/home-qualt.sh" "$main/scripts/guards/"
+  budget_git_init "$main"
+  git -C "$main" add scripts
+  git -C "$main" commit -q -m init
+  git -C "$main" worktree add -q -b bats-linked "$linked" main
+  git -C "$linked" rev-parse --show-toplevel
+}
+
+# install_container_fakes: the in-container execution context of the "runs
+# lint-staged directly" test - a fake hostname answering poetry-dev
+# (is_in_dev_container -> direct path) plus a recording `npx` that logs the
+# cwd it was invoked from and the GIT_INDEX_FILE it inherited, instead of
+# linting. Temp HOME + .bash_profile keep run_workspace's `bash -lc` login
+# shell from re-prepending a host profile over the fake npx (DIA-071 /
+# DIA-119 mirrors of that test). Deliberately does NOT set POETRY_WORKSPACE:
+# these cases exercise the hook's own workspace resolution.
+install_container_fakes() {
+  local bindir="$BATS_TEST_TMPDIR/bin"
+  mkdir -p "$bindir"
+  cat > "$bindir/hostname" <<'FAKEHOSTNAME'
+#!/usr/bin/env bash
+echo "poetry-dev"
+FAKEHOSTNAME
+  cat > "$bindir/npx" <<'FAKENPX'
+#!/usr/bin/env bash
+# DIA-261119-85dy seam: record where lint-staged would run (cwd = the file
+# view the staged index is evaluated against) plus the inherited index path.
+printf 'npx cwd=%s git_index=%s args=%s\n' "$PWD" "${GIT_INDEX_FILE:-}" "$*" >> "${NPX_LOG:?NPX_LOG not set}"
+exit 0
+FAKENPX
+  chmod +x "$bindir/hostname" "$bindir/npx"
+  export PATH="$bindir:$PATH"
+  export NPX_LOG="$BATS_TEST_TMPDIR/npx.log"
+  export HOME="$BATS_TEST_TMPDIR/home"
+  mkdir -p "$HOME"
+  printf 'export PATH="%s:$PATH"\n' "$bindir" > "$HOME/.bash_profile"
+}
+
 @test "verify-pre-commit: delegates lint-staged to the dev container when on the host" {
   export FAKE_DOCKER_SERVICES="dev"
+  # DIA-261119-85dy: the delegated cd target is the COMMITTING repository's
+  # top level, resolved exactly the way the fixed hook resolves WORKSPACE
+  # (git rev-parse --show-toplevel from the invoking cwd) - so this case is
+  # context-aware: /workspace when the suite runs from the main worktree,
+  # the worktree path when it runs from a linked worktree. Never hardcoded.
+  local expected_ws
+  expected_ws="$(git rev-parse --show-toplevel)"
 
   run bash "$SCRIPTS_DIR/verify-pre-commit.sh"
 
@@ -39,7 +111,7 @@ setup() {
   assert_output_contains "autofix passed"
   # the full delegated command, including the --allow-empty flag; the inner cd
   # target is escaped-quoted so a space-containing WORKSPACE stays one argument
-  assert_file_contains "$FAKE_DOCKER_LOG" "cd \"/workspace\" && npx lint-staged --allow-empty"
+  assert_file_contains "$FAKE_DOCKER_LOG" "cd \"$expected_ws\" && npx lint-staged --allow-empty"
 }
 
 @test "verify-pre-commit: passes --allow-empty so empty commits are not blocked" {
@@ -147,4 +219,70 @@ FAKELS
   assert_status 0
   run grep -F 'guard_no_home_qualt()' "$SCRIPTS_DIR/verify-pre-commit.sh"
   assert_status 1
+}
+
+@test "verify-pre-commit: runs lint-staged from the committing linked-worktree top level" {
+  local linked wt_index
+  linked="$(make_linked_worktree)"
+  # the index git exports for a commit made in the linked worktree
+  wt_index="$(git -C "$linked" rev-parse --absolute-git-dir)/index"
+  install_container_fakes
+
+  # same cwd + env git gives the hook for a linked-worktree commit
+  run env GIT_INDEX_FILE="$wt_index" bash -c "cd '$linked' && exec bash '$SCRIPTS_DIR/verify-pre-commit.sh'"
+
+  assert_status 0
+  assert_output_contains "running inside dev container"
+  assert_output_contains "autofix passed"
+  # required: lint-staged's cwd (its file view) is the COMMITTING worktree's
+  # top level, so cwd and GIT_INDEX_FILE describe the same tree
+  assert_file_contains "$NPX_LOG" "npx cwd=$linked"
+  # ... and never the hardcoded /workspace main worktree (the defect)
+  run grep -cF "npx cwd=/workspace" "$NPX_LOG"
+  [ "$output" = "0" ]
+}
+
+@test "verify-pre-commit: keeps lint-staged at /workspace when committing from the main worktree" {
+  install_container_fakes
+
+  # main-worktree context: hook cwd is the repo root (what git hands it)
+  run bash -c "cd '$REPO_ROOT' && exec bash '$SCRIPTS_DIR/verify-pre-commit.sh'"
+
+  assert_status 0
+  assert_output_contains "running inside dev container"
+  assert_output_contains "autofix passed"
+  # unchanged behavior: the main worktree still runs lint-staged at /workspace
+  assert_file_contains "$NPX_LOG" "npx cwd=/workspace"
+}
+
+@test "verify-pre-commit: host dispatch still runs exactly one lint-staged invocation for a linked-worktree commit" {
+  local linked
+  linked="$(make_linked_worktree)"
+  export FAKE_DOCKER_SERVICES="dev"
+
+  run bash -c "cd '$linked' && exec bash '$SCRIPTS_DIR/verify-pre-commit.sh'"
+
+  assert_status 0
+  assert_output_contains "delegating to dev container"
+  # one delegated lint-staged only: worktree-aware resolution must not add a
+  # second invocation on top of the delegation
+  run grep -c "lint-staged" "$FAKE_DOCKER_LOG"
+  [ "$output" = "1" ]
+}
+
+@test "verify-pre-commit: host dispatch delegates lint-staged from the linked-worktree top level" {
+  local linked
+  linked="$(make_linked_worktree)"
+  export FAKE_DOCKER_SERVICES="dev"
+
+  run bash -c "cd '$linked' && exec bash '$SCRIPTS_DIR/verify-pre-commit.sh'"
+
+  assert_status 0
+  assert_output_contains "delegating to dev container"
+  # required: the delegated command's cd target (the lint-staged cwd inside
+  # the container) is the committing worktree top level, not /workspace. The
+  # "delegates lint-staged to the dev container when on the host" case pins
+  # the `cd "<ws>" && npx lint-staged --allow-empty` shape, so only the
+  # workspace operand is at stake here.
+  assert_file_contains "$FAKE_DOCKER_LOG" "cd \"$linked\" && npx lint-staged --allow-empty"
 }

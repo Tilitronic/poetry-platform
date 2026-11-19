@@ -3,7 +3,8 @@
 # eslint --fix / prettier --write / ruff --fix+format / bash -n to staged files.
 #
 # Execution context:
-#   - inside the dev container -> run npx lint-staged directly in /workspace
+#   - inside the dev container -> run npx lint-staged directly in the
+#     committing worktree's top level (DIA-261119-85dy)
 #   - on the host              -> prove readiness through the engine adapter,
 #     then delegate via the selected native compose command
 #
@@ -21,7 +22,14 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # Overridable so bats unit tests can point it at an isolated temp tree instead
 # of the real container mount.
-WORKSPACE="${POETRY_WORKSPACE:-/workspace}"
+# DIA-261119-85dy: default is the committing repository's top level, resolved
+# from the hook's own cwd (git hands a linked-worktree commit GIT_INDEX_FILE
+# pointing at that worktree's index; lint-staged unsets GIT_DIR but not
+# GIT_INDEX_FILE, so running from the hardcoded main checkout evaluates the
+# index against the wrong tree and aborts every such commit). POETRY_WORKSPACE
+# stays a test seam; the /workspace echo is the last-resort fallback when no
+# git toplevel resolves (same primitive as the home-qualt source below).
+WORKSPACE="${POETRY_WORKSPACE:-$(git rev-parse --show-toplevel 2>/dev/null || echo /workspace)}"
 # Directory scanned by the /home/qualt guard; overridable so bats unit tests
 # can point it at an isolated fixture tree instead of the real repo commands
 # dir (mirror of the WORKSPACE/POETRY_WORKSPACE seam above).
