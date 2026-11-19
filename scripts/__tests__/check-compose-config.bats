@@ -48,21 +48,35 @@ EOF
   echo "$tree"
 }
 
-# plant_non_container_hostname <dir>: writes a fake `hostname` script into
-# <dir> that echoes a NON-container name. Prepends <dir> to PATH so that
-# is_in_dev_container (sourced from in-container.sh) evaluates to FALSE
-# regardless of the real hostname. This lets these tests run on ANY host
-# AND inside the container without skipping.
-plant_non_container_hostname() {
-  local dir="$1"
+# plant_hostname <dir> <name>: writes a fake `hostname` script into <dir>
+# echoing <name> and prepends <dir> to PATH, so is_in_dev_container (sourced
+# from in-container.sh) evaluates against <name> regardless of the real
+# hostname. Lets these tests run on ANY host AND inside the container without
+# skipping.
+plant_hostname() {
+  local dir="$1" name="$2"
   mkdir -p "$dir"
-  cat > "$dir/hostname" <<'FAKEHOSTNAME'
-#!/usr/bin/env bash
-printf '%s\n' "test-host"
-FAKEHOSTNAME
+  printf '#!/usr/bin/env bash\nprintf "%%s\\n" "%s"\n' "$name" > "$dir/hostname"
   chmod +x "$dir/hostname"
   PATH="$dir:$PATH"
   export PATH
+}
+
+# plant_non_container_hostname <dir>: fake hostname echoing a NON-container
+# name (back-compat wrapper over plant_hostname).
+plant_non_container_hostname() {
+  plant_hostname "$1" "test-host"
+}
+
+# compose_service_block <service>: print the body of a service in the real
+# docker-compose.yml (from the two-space-indented service key until the next
+# service key). Service keys sit at 2 spaces; deeper keys/lists never match.
+compose_service_block() {
+  awk -v svc="  $1:" '
+    index($0, svc) == 1 { grab = 1; next }
+    grab && /^  [A-Za-z0-9_-]+:/ { exit }
+    grab { print }
+  ' "$REPO_ROOT/docker-compose.yml"
 }
 
 # ---------------------------------------------------------------------------
@@ -217,6 +231,164 @@ FAKEHOST
   # Must NOT invoke the engine adapter (no docker calls logged)
   [ ! -s "$FAKE_DOCKER_LOG" ] || {
     echo "check-compose-config: FAIL -- adapter invoked during in-container path" >&2
+    return 1
+  }
+}
+
+# ---------------------------------------------------------------------------
+# tasks.md 1.1 (S1.1): dev-v2 compose service shape -- RED phase, campaign
+# DIA-261119-vioa. Asserted against the real docker-compose.yml at file level
+# (the same seam compose-overrides.bats uses for service shape; no engine
+# needed). Each test fails TODAY on a missing-behavior assertion: the dev-v2
+# service does not exist yet. Guards on the unchanged V1 `dev` service run
+# first so a V1 regression is reported separately from the missing V2 work.
+# ---------------------------------------------------------------------------
+
+@test "task 1.1: dev-v2 mounts the full repo at /workspace with working_dir in the v2 worktree" {
+  local compose="$REPO_ROOT/docker-compose.yml"
+  # RED marker: the worktree working_dir does not exist yet (D1a N1).
+  assert_file_contains "$compose" "working_dir: /workspace/.worktrees/opencode-v2"
+  local block
+  block="$(compose_service_block dev-v2)"
+  [ -n "$block" ] || { echo "docker-compose.yml: missing service block 'dev-v2'" >&2; return 1; }
+  # Full-repo mount: source is exactly '.', optional mode suffix (:z etc).
+  grep -qE '^[[:space:]]*-[[:space:]]+\.:/workspace(:[a-zA-Z]+)?[[:space:]]*$' <<<"$block" || {
+    echo "dev-v2 must mount the full repo as '- .:/workspace' (NOT a single directory):" >&2
+    echo "$block" >&2
+    return 1
+  }
+  # NEGATIVE: no './<subdir>:/workspace' bind -- it would hide /workspace/.git/objects.
+  if grep -qE '^[[:space:]]*-[[:space:]]+\./[^:]+:/workspace(:[a-zA-Z]+)?[[:space:]]*$' <<<"$block"; then
+    echo "dev-v2 must not bind a subdirectory over /workspace (breaks git object store):" >&2
+    echo "$block" >&2
+    return 1
+  fi
+}
+
+@test "task 1.1: dev-v2 declares its own image, container name, hostname and cache/state/pnpm volumes" {
+  local compose="$REPO_ROOT/docker-compose.yml"
+  # RED marker: hostname poetry-dev-v2 does not exist yet.
+  assert_file_contains "$compose" "hostname: poetry-dev-v2"
+  local block dev_block top_volumes src shared=""
+  block="$(compose_service_block dev-v2)"
+  [ -n "$block" ] || { echo "docker-compose.yml: missing service block 'dev-v2'" >&2; return 1; }
+  dev_block="$(compose_service_block dev)"
+  # Own image tag (design D1 table: poetry-platform-dev-v2:<tag>).
+  grep -qE '^[[:space:]]*image:[[:space:]]+poetry-platform-dev-v2' <<<"$block" || {
+    echo "dev-v2 must declare its own image tag poetry-platform-dev-v2:" >&2; echo "$block" >&2; return 1; }
+  # Own container name: declared, and not V1's poetry-dev.
+  grep -qE '^[[:space:]]*container_name:' <<<"$block" || {
+    echo "dev-v2 must declare its own container_name:" >&2; echo "$block" >&2; return 1; }
+  if grep -qE '^[[:space:]]*container_name:[[:space:]]+poetry-dev[[:space:]]*$' <<<"$block"; then
+    echo "dev-v2 container_name must differ from V1's poetry-dev:" >&2; echo "$block" >&2; return 1
+  fi
+  # V1 identity unchanged (guard).
+  grep -qE '^[[:space:]]*container_name:[[:space:]]+poetry-dev[[:space:]]*$' <<<"$dev_block" || {
+    echo "V1 dev lost its container_name poetry-dev:" >&2; echo "$dev_block" >&2; return 1; }
+  grep -qE '^[[:space:]]*image:[[:space:]]+poetry-platform-dev:latest' <<<"$dev_block" || {
+    echo "V1 dev lost its image poetry-platform-dev:latest:" >&2; echo "$dev_block" >&2; return 1; }
+  # Own volumes: pnpm store at the worktree path named in tasks.md 1.1, plus
+  # dedicated cache/state volumes.
+  grep -qF 'pnpm_store_v2:/workspace/.worktrees/opencode-v2/node_modules' <<<"$block" || {
+    echo "dev-v2 must mount pnpm_store_v2 at the worktree node_modules path:" >&2; echo "$block" >&2; return 1; }
+  grep -qF 'dev_v2_cache' <<<"$block" || {
+    echo "dev-v2 must mount its own dev_v2_cache volume:" >&2; echo "$block" >&2; return 1; }
+  grep -qF 'dev_v2_state' <<<"$block" || {
+    echo "dev-v2 must mount its own dev_v2_state volume:" >&2; echo "$block" >&2; return 1; }
+  # Named volumes must be declared top-level or compose rejects the file.
+  top_volumes="$(awk '/^volumes:/{f=1;next} /^[A-Za-z]/{f=0} f' "$compose")"
+  for src in pnpm_store_v2 dev_v2_cache dev_v2_state; do
+    grep -qE "^  ${src}:" <<<"$top_volumes" || {
+      echo "top-level volumes: missing named volume '$src'" >&2; return 1; }
+  done
+  # NEGATIVE: zero shared volume sources between the services (the repo mount
+  # '.' is shared on purpose per D1a N1 and is excluded here).
+  while IFS= read -r src; do
+    [ -n "$src" ] || continue
+    [ "$src" = "." ] && continue
+    if grep -qF -- "- ${src}:" <<<"$block"; then
+      shared="$shared $src"
+    fi
+  done <<<"$(grep -oE '^[[:space:]]*-[[:space:]]+[A-Za-z0-9_.-]+:' <<<"$dev_block" \
+    | sed -E 's/^[[:space:]]*-[[:space:]]+//; s/:$//' | sort -u)"
+  [ -z "$shared" ] || {
+    echo "dev-v2 shares V1 volume(s):$shared (cache/state/pnpm must be disjoint)" >&2
+    return 1
+  }
+  # V1 keeps its existing volumes (guard).
+  grep -qF 'pnpm_store:/workspace/node_modules' <<<"$dev_block" || {
+    echo "V1 dev lost its pnpm_store mount:" >&2; echo "$dev_block" >&2; return 1; }
+  grep -qF 'dev_state:' <<<"$dev_block" || {
+    echo "V1 dev lost its dev_state mount:" >&2; echo "$dev_block" >&2; return 1; }
+  grep -qF 'dev_cache:' <<<"$dev_block" || {
+    echo "V1 dev lost its dev_cache mount:" >&2; echo "$dev_block" >&2; return 1; }
+}
+
+@test "task 1.1: dev-v2 publishes 9100/8100/3100 with env overrides on poetry-net; dev keeps 9000/8000/3000" {
+  local compose="$REPO_ROOT/docker-compose.yml"
+  # RED marker: no V2 host port published yet.
+  assert_file_contains "$compose" "9100"
+  local block dev_block line bad=""
+  block="$(compose_service_block dev-v2)"
+  [ -n "$block" ] || { echo "docker-compose.yml: missing service block 'dev-v2'" >&2; return 1; }
+  dev_block="$(compose_service_block dev)"
+  # Env-overridable host ports: '- ${*_PORT:-9100}:9100' spelling regardless of
+  # the variable name; the default MUST be the V2 host port.
+  grep -qF ':-9100}:9100' <<<"$block" || {
+    echo "dev-v2 must publish host port 9100 env-overridable (:-9100}:9100):" >&2; echo "$block" >&2; return 1; }
+  grep -qF ':-8100}:8100' <<<"$block" || {
+    echo "dev-v2 must publish host port 8100 env-overridable (:-8100}:8100):" >&2; echo "$block" >&2; return 1; }
+  grep -qF ':-3100}:3100' <<<"$block" || {
+    echo "dev-v2 must publish host port 3100 env-overridable (:-3100}:3100):" >&2; echo "$block" >&2; return 1; }
+  # Shared postgres network (both services on poetry-net).
+  grep -qE '^[[:space:]]*-[[:space:]]*poetry-net[[:space:]]*$' <<<"$block" || {
+    echo "dev-v2 must join the shared poetry-net network:" >&2; echo "$block" >&2; return 1; }
+  # NEGATIVE: every dev-v2 published port line must carry a V2 host port --
+  # this catches both env-default and bare '9000:9000' overlap spellings
+  # (the container side may legitimately be 9000/8000/3000).
+  while IFS= read -r line; do
+    case "$line" in
+      *9100*|*8100*|*3100*) ;;
+      *) bad="$bad | $line" ;;
+    esac
+  done < <(grep -E '^[[:space:]]*-[[:space:]].*[0-9]+:[0-9]+' <<<"$block")
+  [ -z "$bad" ] || {
+    echo "dev-v2 publishes a host port outside 9100/8100/3100 (overlap with V1):$bad" >&2
+    return 1
+  }
+  # V1 keeps its own ports with their env defaults (guard).
+  grep -qF ':-9000}:9000' <<<"$dev_block" || {
+    echo "V1 dev lost host port 9000:" >&2; echo "$dev_block" >&2; return 1; }
+  grep -qF ':-8000}:8000' <<<"$dev_block" || {
+    echo "V1 dev lost host port 8000:" >&2; echo "$dev_block" >&2; return 1; }
+  grep -qF ':-3000}:3000' <<<"$dev_block" || {
+    echo "V1 dev lost host port 3000:" >&2; echo "$dev_block" >&2; return 1; }
+}
+
+@test "task 1.8: detector allowlist accepts poetry-dev-v2 and poetry-dev, rejects lookalikes" {
+  local hdir="$BATS_TEST_TMPDIR/allowlist-host"
+  # Guards (run first): an arbitrary hostname and a poetry-dev prefix
+  # lookalike must stay rejected -- the detector is an explicit allowlist,
+  # not a prefix match.
+  plant_hostname "$hdir" "some-other-host"
+  run is_in_dev_container
+  [ "$status" -ne 0 ] || {
+    echo "detector accepted arbitrary hostname some-other-host" >&2; return 1; }
+  plant_hostname "$hdir" "poetry-dev-evil"
+  run is_in_dev_container
+  [ "$status" -ne 0 ] || {
+    echo "detector accepted prefix lookalike poetry-dev-evil (prefix match, not allowlist)" >&2; return 1; }
+  plant_hostname "$hdir" "poetry-dev"
+  run is_in_dev_container
+  [ "$status" -eq 0 ] || {
+    echo "detector rejected the V1 hostname poetry-dev" >&2; return 1; }
+  # RED today: in-container.sh matches only the literal poetry-dev, so the
+  # dev-v2 hostname is treated as 'not in container' and every container-gated
+  # script would hard-fail inside dev-v2 (D1a N3).
+  plant_hostname "$hdir" "poetry-dev-v2"
+  run is_in_dev_container
+  [ "$status" -eq 0 ] || {
+    echo "RED task 1.8: detector rejects hostname poetry-dev-v2 (allowlist must include it)" >&2
     return 1
   }
 }

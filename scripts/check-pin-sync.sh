@@ -5,6 +5,11 @@
 # parity (4 comparisons: 4 pins x 1 Dockerfile), reads only. MISE_VERSION
 # parity is out of scope. Legacy tools/opencode-docker/Dockerfile removed
 # (DIA-260824-8k62 PHASE 3 retirement).
+# OpenCode family (task 1.3 / design D2 / ADR 11 decision 4): the static pair
+# stays, and while it agrees the family's verdict ALSO asserts the declared
+# build ARG against the LIVE `opencode --version` on this service's PATH --
+# one counted verdict keeps the summary at four comparisons, so the gate is
+# neither shrunk to three pins nor doubled into five.
 # Exit precedence 2>1>0: 0 match; 1 parity violated; 2 INFRA (missing/dup). Bash-3.
 set -euo pipefail
 
@@ -82,6 +87,49 @@ compare() {
   return 1
 }
 
+# opencode_runtime_version: first x.y.z token of the live `opencode --version`
+# on PATH; empty when the binary is absent or prints nothing (caller skips).
+opencode_runtime_version() {
+  opencode --version 2>&1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -n 1 || true
+}
+
+# compare_opencode: fourth pin family (task 1.3, design D2). Static
+# .mise.toml-vs-Dockerfile.dev drift reports through the shared `compare`
+# (legacy message, one counted fail) and the runtime leg is skipped: with two
+# different declared values there is no single pin to hold against the live
+# binary. While the pair agrees, the ONE counted verdict is the
+# declared-vs-runtime assertion -- the partner is the live runtime on this
+# service's PATH, not a second static string.
+compare_opencode() {
+  local mise_val docker_val runtime
+  mise_val="$(strip_value "$MISE_OPENCODE")"
+  docker_val="$(strip_value "$DOCKER_OPENCODE")"
+  if [ "${mise_val}" != "${docker_val}" ]; then
+    compare opencode "${MISE_OPENCODE}" "${DOCKER_OPENCODE}" "Dockerfile.dev" || true
+    return 0
+  fi
+  runtime=""
+  if command -v opencode >/dev/null 2>&1; then
+    runtime="$(opencode_runtime_version)"
+  fi
+  if [ -z "${runtime}" ]; then
+    echo "ok: opencode ${docker_val} (parity @ Dockerfile.dev)"
+    echo "note: opencode --version unavailable; declared-vs-runtime assertion skipped"
+    ok=$((ok + 1))
+    return 0
+  fi
+  if [ "${runtime}" = "${docker_val}" ]; then
+    # Legacy substring kept intact (T1/T8/T9/T10 assert it verbatim); the
+    # runtime tail is what makes the fourth comparison visibly a runtime one.
+    echo "ok: opencode ${docker_val} (parity @ Dockerfile.dev) runtime=${runtime} matches declared"
+    ok=$((ok + 1))
+    return 0
+  fi
+  echo "fail: opencode runtime mismatch: declared Dockerfile.dev=${docker_val} runtime=${runtime}" >&2
+  fail=$((fail + 1))
+  return 1
+}
+
 # aggregate: summary on BOTH streams; exit 0 iff no mismatches.
 aggregate() {
   echo "summary: ${ok} ok, ${fail} fail"
@@ -99,6 +147,6 @@ parse_dockerfile "${DOCKERFILE_DEV}" "Dockerfile.dev" || infra_summary
 
 compare node "${MISE_NODE}" "${DOCKER_NODE}" "Dockerfile.dev" || true
 compare pnpm "${MISE_PNPM}" "${DOCKER_PNPM}" "Dockerfile.dev" || true
-compare opencode "${MISE_OPENCODE}" "${DOCKER_OPENCODE}" "Dockerfile.dev" || true
+compare_opencode || true
 compare bun "${MISE_BUN}" "${DOCKER_BUN}" "Dockerfile.dev" || true
 aggregate

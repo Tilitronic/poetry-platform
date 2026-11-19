@@ -4,6 +4,9 @@
 #   - `dev`       — ONE dev workstation container (opencode + all runtimes).
 #                   Monorepo mounted at /workspace; app services run inside
 #                   via `pnpm dev` (turbo). Ports for browser access only.
+#   - `dev-v2`    - parallel OpenCode V2 workstation (ADR 11): same repo
+#                   mount, working_dir rooted in the V2 worktree, isolated
+#                   cache/state/pnpm volumes and disjoint host ports.
 #   - `postgres`  — stateful infrastructure service. Data survives restarts
 #                   (named volume `pgdata`). Reachable from dev as `postgres:5432`.
 #
@@ -82,6 +85,65 @@ services:
     networks:
       - poetry-net
 
+  # Parallel V2 workstation (ADR 11 decisions 2-3, design D1/D1a): OpenCode V2
+  # runs side by side with the V1 `dev` service. Mounts the FULL repo - never a
+  # single-directory worktree mount, which would hide /workspace/.git/objects
+  # and break the worktree's .git pointer (D1a N1) - and roots the shell in the
+  # V2 worktree so V2 resolves its project config there, never V1's (D1a N1).
+  dev-v2:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+      # UID/GID alignment as in `dev` (DIA-260821-m7vk): the bind-mounted
+      # .git/ must stay writable by the container user.
+      args:
+        USER_UID: ${USER_UID:-1000}
+        USER_GID: ${USER_GID:-1000}
+        # V2 OpenCode release pin - PLACEHOLDER only. The exact verified
+        # release is decided by tasks.md 1.2's probe; 0.0.0 cannot install, so
+        # a V2 build carrying the placeholder fails loudly instead of guessing.
+        OPENCODE_VERSION: ${OPENCODE_VERSION_V2:-0.0.0}
+    image: poetry-platform-dev-v2:latest
+    container_name: poetry-dev-v2
+    hostname: poetry-dev-v2
+    working_dir: /workspace/.worktrees/opencode-v2
+    # Same three services as `dev`, disjoint HOST ports (D1a N2): defaults
+    # 9100/8100/3100 never collide with V1's 9000/8000/3000.
+    ports:
+      - '${AUTHOR_STUDIO_PORT_V2:-9100}:9100'
+      - '${API_SERVER_PORT_V2:-8100}:8100'
+      - '${PUBLISHING_PORT_V2:-3100}:3100'
+    volumes:
+      # Full repo mount (D1a N1) - git must see the real object store.
+      - .:/workspace:z
+      # Own pnpm store keyed to the V2 worktree: task 6.2's SDK swap must not
+      # poison V1's store (D1a N2).
+      - pnpm_store_v2:/workspace/.worktrees/opencode-v2/node_modules
+      # Own state/cache (ADR 11 decision 3): V1 and V2 SQLite schemas and OMO
+      # caches are incompatible; sharing them corrupts the V1 rollback point.
+      - dev_v2_state:/home/dev/.local/share
+      - dev_v2_cache:/home/dev/.cache
+    # DEV-ONLY credentials (SEC-DOCKER-003): same `poetry` fallback pattern as
+    # `dev`; API keys arrive via the read-only /run/secrets mounts below and
+    # are loaded by dev-entrypoint.sh.
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-poetry}:${POSTGRES_PASSWORD:-poetry}@postgres:5432/${POSTGRES_DB:-poetry}
+      - OPENCODE_ENABLE_EXA=1
+    secrets:
+      - anthropic_api_key
+      - openai_api_key
+      - context7_api_key
+      - github_token
+      - exa_api_key
+    depends_on:
+      postgres:
+        condition: service_healthy
+    stdin_open: true
+    tty: true
+    restart: unless-stopped
+    networks:
+      - poetry-net
+
   postgres:
     image: postgres:16-alpine
     container_name: poetry-postgres
@@ -124,6 +186,10 @@ volumes:
   pnpm_store:
   dev_state:
   dev_cache:
+  # V2 service volumes (ADR 11 decision 3): disjoint from the V1 set above.
+  pnpm_store_v2:
+  dev_v2_state:
+  dev_v2_cache:
 
 networks:
   poetry-net:

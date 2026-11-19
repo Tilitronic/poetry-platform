@@ -27,7 +27,7 @@
 #   make session-analytics  canned analytics over native OpenCode telemetry (opencode stats/db; ARGS pass-through)
 #   make test-harness  C5 scenario replay (bats) + bun plugin tests (requires a running container engine)
 
-.PHONY: build up shell opencode preset presets dev stack install db-psql logs down clean check-pin-sync check-compose-config check-tools check-host-jq check-host-lsp gen-jsconfig test-shell test-python test-infra test-config test-typecheck test-interview test-skills eval-lite audit-python context7-docs jsonl-stats session-log-render jsonl-cross-check session-query session-analytics test-harness worktree-gc
+.PHONY: build up shell opencode preset presets dev stack install db-psql logs down clean check-pin-sync check-omo-version-sync check-compose-config check-tools check-host-jq check-host-lsp gen-jsconfig test-shell test-python test-infra test-config test-typecheck test-interview test-skills eval-lite audit-python context7-docs jsonl-stats session-log-render jsonl-cross-check session-query session-analytics test-harness worktree-gc
 
 # Engine-aware compose stack (DIA-260826-766f + DIA-260912-y2uo): every bare
 # `docker compose` target below routes through scripts/container-engine.sh,
@@ -107,6 +107,13 @@ clean:
 # Dockerfile). See openspec/changes/dev-infra-pin-sync/.
 check-pin-sync:
 	bash scripts/check-pin-sync.sh
+
+# OMO pin gate (scripts/check-omo-version-sync.sh): per-service declared pin
+# parity (V1 root + .worktrees/opencode-v2) plus the loaded package cache.
+# Dedicated entry point for tasks.md group-1 references (DIA-261119-vioa
+# task 1.6); test-config below also runs the script directly as a recipe step.
+check-omo-version-sync:
+	bash scripts/check-omo-version-sync.sh
 
 # Host-only compose-config validation (scripts/check-compose-config.sh). Runs
 # `<engine> compose config --quiet` via container-engine.sh. Client-side, no

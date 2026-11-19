@@ -143,3 +143,24 @@ t.join(timeout=5)
   grep -q 'sys.argv\[1\]' "$SCRIPT"
   grep -q 'sys.argv\[2\]' "$SCRIPT"
 }
+
+# tasks.md 1.8 (S1.1, campaign DIA-261119-vioa): the hostname mock above only
+# covers poetry-dev. Inside dev-v2 the detector must ALSO accept
+# poetry-dev-v2, otherwise this script hard-fails with the not-in-container
+# diagnostic before it ever probes. RED today: that diagnostic fires.
+@test "check-stack-ready: hostname poetry-dev-v2 passes in-container detection (V2 allowlist)" {
+  cat > "$MOCK_DIR/hostname" <<'SH'
+#!/bin/sh
+echo poetry-dev-v2
+SH
+  chmod +x "$MOCK_DIR/hostname"
+  # Dead CHECK_TARGET: the probe outcome (refused/timeout -> STACK_NOT_READY)
+  # is unchanged either way; the discriminator is WHICH failure class fired.
+  run env CHECK_TARGET="192.0.2.1:1" "$SCRIPT"
+  [ "$status" -ne 0 ]
+  [[ "$output" == *"STACK_NOT_READY"* ]]
+  [[ "$output" != *"not running inside the dev container"* ]] || {
+    echo "RED task 1.8: detector rejected hostname poetry-dev-v2 (not-in-container diagnostic fired)" >&2
+    return 1
+  }
+}

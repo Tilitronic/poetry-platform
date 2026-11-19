@@ -319,3 +319,61 @@ EOF
   assert_file_contains "$REPO_ROOT/.mise.toml" 'opencode = "1.18.32"'
   assert_file_contains "$REPO_ROOT/.mise.toml" 'bun = "1.4.2"'
 }
+
+# ---- Task 1.3 (S1.1): per-service declared-vs-runtime OpenCode assertion ----
+# Campaign DIA-261119-vioa, RED phase. Design D2: three static toolchain pairs
+# (.mise.toml vs Dockerfile.dev) stay, and the OpenCode family's partner
+# becomes the LIVE runtime (`opencode --version`) instead of a static string.
+# The fixture tree models ONE service: all static pairs match (T1 shape) while
+# a planted `opencode` on PATH reports a different version.
+
+# plant_opencode_runtime <dir> <version>: fake `opencode` binary printing
+# <version>, prepended to PATH -- the "live runtime" seam (design D2).
+plant_opencode_runtime() {
+  local dir="$1" version="$2"
+  mkdir -p "$dir"
+  printf '#!/usr/bin/env bash\nprintf "%%s\\n" "%s"\n' "$version" > "$dir/opencode"
+  chmod +x "$dir/opencode"
+  PATH="$dir:$PATH"
+  export PATH
+}
+
+@test "check-pin-sync: declared vs runtime OpenCode mismatch fails the gate (task 1.3)" {
+  tree="$(setup_pin_sync_tree 1 1 "24.18.0" "10.33.0" "24.18.0" "10.33.0" "" "1.18.32" "1.4.2" "1.18.32" "1.4.2")"
+  plant_opencode_runtime "$BATS_TEST_TMPDIR/runtime-bin" "1.99.0"
+
+  run --separate-stderr bash "$tree/scripts/check-pin-sync.sh"
+
+  [ "$status" -ne 0 ] || {
+    echo "RED task 1.3: gate never compared declared vs runtime (declared 1.18.32, runtime 1.99.0) and exited 0" >&2
+    return 1
+  }
+  # The failure report must name the runtime version it observed (a static
+  # .mise.toml-vs-Dockerfile fail line would not carry it).
+  assert_stderr_contains "1.99.0"
+}
+
+@test "check-pin-sync: matching declared-vs-runtime passes with three static pairs kept and a fourth runtime comparison (task 1.3)" {
+  tree="$(setup_pin_sync_tree 1 1 "24.18.0" "10.33.0" "24.18.0" "10.33.0" "" "1.18.32" "1.4.2" "1.18.32" "1.4.2")"
+  plant_opencode_runtime "$BATS_TEST_TMPDIR/runtime-bin" "1.18.32"
+
+  run --separate-stderr bash "$tree/scripts/check-pin-sync.sh"
+
+  assert_status 0
+  # The three static toolchain pairs must survive (not a tautology).
+  assert_output_contains "ok: node 24.18.0 (parity @ Dockerfile.dev)"
+  assert_output_contains "ok: pnpm 10.33.0 (parity @ Dockerfile.dev)"
+  assert_output_contains "ok: bun 1.4.2 (parity @ Dockerfile.dev)"
+  # Not shrunk to three pins: four comparisons must still be reported.
+  local ok_lines
+  ok_lines="$(printf '%s\n' "$output" | grep -c '^ok:' || true)"
+  [ "$ok_lines" -ge 4 ] || {
+    echo "gate shrank below four comparisons: $ok_lines ok line(s) in:" >&2
+    echo "$output" >&2
+    return 1
+  }
+  # RED today: the fourth family's report only carries the static
+  # .mise.toml-vs-Dockerfile wording; design D2 makes its partner the live
+  # runtime, so the report must say so.
+  assert_output_contains "runtime"
+}

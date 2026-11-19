@@ -1202,3 +1202,49 @@ JSONC
   assert_output_contains "researcher: edit is deny-scoped but bash is not"
   assert_output_contains "curl"
 }
+
+# ---------------------------------------------------------------------------
+# tasks.md 1.6 / AUD-N2 (S1.1, campaign DIA-261119-vioa): no phantom gate.
+# The slice's acceptance text must name only real gates: every `make <target>`
+# referenced by tasks 1.1-1.8 resolves to a Makefile target, no test or script
+# invokes the phantom check-omo-version-sync make target (Makefile:260 is only
+# a recipe step inside test-config; the real entry point is the script), and
+# the non-make gate scripts the slice names actually exist.
+# The comment above deliberately never spells the phantom as `make <name>` --
+# the guard below greps scripts/ for exactly that shape and would self-match.
+# ---------------------------------------------------------------------------
+@test "gate wiring: tasks.md group-1 make targets all exist and no script invokes the phantom check-omo-version-sync target (tasks.md 1.6)" {
+  # Guards first (pass today): the slice's non-make gate entry points exist.
+  assert_file_exists "$REPO_ROOT/scripts/check-pin-sync.sh"
+  assert_file_exists "$REPO_ROOT/scripts/check-omo-version-sync.sh"
+  # No test or script may reference the non-existent make target.
+  local phantom=""
+  phantom="$(grep -rn --exclude-dir=vendor --include='*.sh' --include='*.bats' \
+      -E 'make[[:space:]]+check-omo-version-sync' "$REPO_ROOT/scripts" 2>/dev/null || true)"
+  phantom="${phantom}$(grep -hE 'make[[:space:]]+check-omo-version-sync' "$REPO_ROOT"/*.sh 2>/dev/null || true)"
+  if [ -n "$phantom" ]; then
+    echo "scripts/tests reference the non-existent make target check-omo-version-sync:" >&2
+    echo "$phantom" >&2
+    return 1
+  fi
+  # RED today: the group-1 task text itself still names `make
+  # check-omo-version-sync` (tasks.md 1.6) while the Makefile declares no such
+  # target -- so at least one backticked make command in tasks 1.1-1.8 does
+  # not resolve. GREEN per task 1.6: declare the target OR reword the mention;
+  # either way every named make gate must exist.
+  local group1 targets t missing=""
+  group1="$(awk '/^## 1\./{f=1} /^## 2\./{f=0} f' \
+    "$REPO_ROOT/openspec/changes/opencode-v2-migration/tasks.md")"
+  targets="$(grep -oE '`make [a-z0-9-]+`' <<<"$group1" | tr -d '\`' | sed 's/^make //' | sort -u)"
+  [ -n "$targets" ] || {
+    echo "extraction found no make targets in tasks.md group 1 (tasks.md layout changed?)" >&2
+    return 1
+  }
+  for t in $targets; do
+    grep -qE "^${t}:" "$REPO_ROOT/Makefile" || missing="$missing $t"
+  done
+  [ -z "$missing" ] || {
+    echo "tasks.md group 1 names make target(s) the Makefile does not declare:$missing" >&2
+    return 1
+  }
+}
