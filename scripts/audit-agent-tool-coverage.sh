@@ -12,10 +12,14 @@
 # Hybrid enumeration (design.md Decision 1):
 #   - Static JSONC parse (python3) of the config's global + per-agent
 #     permission blocks -> file:line source locations.
-#   - Runtime census (one `opencode debug agent <first-alphabetical-agent>`
-#     invocation, or the AUDIT_TOOL_CENSUS_FILE env override for hermetic
-#     tests) -> the complete tool universe, including plugin/MCP-registered
-#     tools that a static list cannot see.
+#   - Runtime census (dual-shape, DIA-261119-tnx5): `opencode debug agents`
+#     (opencode 2.x JSON agent records) is probed first; when it is
+#     unavailable (opencode 1.x) the probe falls back to one `opencode debug
+#     agent <first-alphabetical-agent>` invocation (resolved tools map).
+#     Both shapes normalise to {"tools": {...}}, the tool universe a static
+#     list cannot see (plugin/MCP-registered tools). The AUDIT_TOOL_CENSUS_FILE
+#     env override stubs the census for hermetic tests. When neither shape
+#     yields data the audit exits 2 (INFRA), never a silent pass.
 #
 # Effective coverage semantics (Decision 3): a tool is "covered" for agent X
 # iff it appears in agent X's permission block OR the global permission block.
@@ -241,9 +245,57 @@ if [ "$parse_rc" -ne 0 ]; then
 fi
 
 # ---------------------------------------------------------------------------
-# T3: runtime census. AUDIT_TOOL_CENSUS_FILE (hermetic test mode) or one
-# `opencode debug agent <first-alphabetical-agent>` invocation.
+# T3: runtime census. AUDIT_TOOL_CENSUS_FILE (hermetic test mode) or the
+# dual-shape live probe: `opencode debug agents` first (opencode 2.x), then
+# `opencode debug agent <first-alphabetical-agent>` (opencode 1.x).
 # ---------------------------------------------------------------------------
+cat > "$workdir/normalize-census.py" <<'PYEOF'
+import json
+import sys
+
+# Normalise either CLI census shape to the internal {"tools": {...}} form the
+# cross-reference consumes, so the checks below stay shape-agnostic:
+#   V1 `opencode debug agent <name>`  -> resolved tools map (identity).
+#   V2 `opencode debug agents`        -> JSON agent records; per-agent
+#     capability is derived from the ordered permissions entries
+#     (action/resource/effect): an action counts for that agent unless the
+#     matching rule denies it. The tool universe is the union over agents.
+try:
+    data = json.load(open(sys.argv[1]))
+except (json.JSONDecodeError, OSError):
+    sys.exit(1)
+
+if isinstance(data, dict) and isinstance(data.get("tools"), dict):
+    tools = data["tools"]
+elif isinstance(data, list) or (isinstance(data, dict) and "id" in data):
+    records = data if isinstance(data, list) else [data]
+    tools = {}
+    for record in records:
+        if not isinstance(record, dict):
+            continue
+        capability = {
+            entry.get("action")
+            for entry in record.get("permissions") or []
+            if isinstance(entry, dict)
+            and entry.get("action")
+            and entry.get("effect") != "deny"
+        }
+        for action in capability:
+            tools[action] = True
+else:
+    sys.exit(1)
+
+print(json.dumps({"tools": tools}))
+PYEOF
+
+# census_from <raw-file>: normalise raw CLI output into census.json and fail
+# when it carries no tool data (an available but uninformative CLI must not
+# become a silent pass).
+census_from() {
+  python3 "$workdir/normalize-census.py" "$1" > "$workdir/census.json" 2>/dev/null || return 1
+  python3 -c 'import json,sys; sys.exit(0 if json.load(open(sys.argv[1])).get("tools") else 1)' "$workdir/census.json"
+}
+
 if [ -n "${AUDIT_TOOL_CENSUS_FILE:-}" ]; then
   if [ ! -e "$AUDIT_TOOL_CENSUS_FILE" ]; then
     echo "error: AUDIT_TOOL_CENSUS_FILE not found: $AUDIT_TOOL_CENSUS_FILE" >&2
@@ -263,9 +315,17 @@ else
       exit 0
     fi
   else
-    if ! opencode debug agent "$FIRST_AGENT" > "$workdir/census.json" 2> "$workdir/census.err"; then
-      echo "error: opencode debug agent failed — no default model resolvable" >&2
-      cat "$workdir/census.err" >&2
+    census_ready=0
+    if opencode debug agents > "$workdir/census.raw" 2> "$workdir/probe-plural.err" \
+       && census_from "$workdir/census.raw"; then
+      census_ready=1
+    elif opencode debug agent "$FIRST_AGENT" > "$workdir/census.raw" 2> "$workdir/probe-singular.err" \
+         && census_from "$workdir/census.raw"; then
+      census_ready=1
+    fi
+    if [ "$census_ready" -ne 1 ]; then
+      echo "error: no census data from opencode debug agents or opencode debug agent" >&2
+      cat "$workdir/probe-plural.err" "$workdir/probe-singular.err" >&2
       exit 2
     fi
   fi
