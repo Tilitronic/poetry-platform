@@ -3,7 +3,7 @@
 #
 # 18-case FAKE-mock matrix (T1-T18) covering every branch of the validator
 # against Dockerfile.dev (4 comparisons: 4 pins x 1 Dockerfile):
-#   T1  all pins match                          -> exit 0 + four ok lines
+#   T1  static pairs match, runtime unavailable  -> exit 0 + 3 ok + skip (S2)
 #   T2  single pin mismatch (node, Dockerfile.dev) -> exit 1 + fail line
 #   T3  multiple pin mismatches (report-ALL)     -> exit 1 + all fail lines
 #   T4  .mise.toml missing                      -> exit 2 (INFRA)
@@ -17,7 +17,7 @@
 #   T12 single bun mismatch (Dockerfile.dev)       -> exit 1 + fail line
 #   T13 duplicate opencode key in .mise.toml    -> exit 2 (INFRA)
 #   T14 duplicate OPENCODE_VERSION ARG           -> exit 2 (INFRA)
-#   T15 missing opencode key in .mise.toml       -> exit 2 (INFRA)
+#   T15 missing opencode key in .mise.toml       -> exit 0/1 (P3: never INFRA)
 #   T16 missing OPENCODE_VERSION ARG             -> exit 2 (INFRA)
 #   T17 missing BUN_VERSION ARG                  -> exit 2 (INFRA)
 #   T18 report-ALL: all four pins drift          -> exit 1 + four fail lines
@@ -49,18 +49,23 @@ assert_stderr_contains() {
   }
 }
 
-# ---- T1: all 4 pins match ------------------------------------------------
-@test "check-pin-sync: T1 all 4 pins match -> exit 0 + four ok lines + summary: 4 ok, 0 fail" {
+# ---- T1: static pairs match; unavailable runtime is a skip, not an ok ------
+# S2: with no usable `opencode --version`, the fourth verdict must be a skip:
+# line and must NOT be counted, so the summary reads 3 ok (not 4). The stub
+# answers nothing, which is the same empty-runtime branch as a missing binary.
+@test "check-pin-sync: T1 three static pairs match -> exit 0 + skip line (runtime unavailable) + summary: 3 ok, 0 fail" {
   tree="$(setup_pin_sync_tree 1 1 "24.18.0" "10.33.0" "24.18.0" "10.33.0" "" "1.18.32" "1.4.2" "1.18.32" "1.4.2")"
+  plant_opencode_runtime "$BATS_TEST_TMPDIR/runtime-bin" ""
 
   run bash "$tree/scripts/check-pin-sync.sh"
 
   assert_status 0
   assert_output_contains "ok: node 24.18.0 (parity @ Dockerfile.dev)"
   assert_output_contains "ok: pnpm 10.33.0 (parity @ Dockerfile.dev)"
-  assert_output_contains "ok: opencode 1.18.32 (parity @ Dockerfile.dev)"
   assert_output_contains "ok: bun 1.4.2 (parity @ Dockerfile.dev)"
-  assert_output_contains "summary: 4 ok, 0 fail"
+  # S2: skip line, never a counted ok: line.
+  assert_output_contains "skip: opencode 1.18.32 (declared-vs-runtime assertion skipped: opencode --version unavailable)"
+  assert_output_contains "summary: 3 ok, 0 fail"
 }
 
 # ---- T2: single node mismatch ---------------------------------------------
@@ -216,9 +221,11 @@ assert_stderr_contains() {
   assert_output_contains "summary: 0 ok, 0 fail (infra)"
 }
 
-# ---- T15: missing opencode key in .mise.toml (INFRA) ----------------------
-@test "check-pin-sync: T15 missing opencode key in .mise.toml -> exit 2 (INFRA)" {
-  # Plant .mise.toml with ONLY node/pnpm (no opencode) + Dockerfile with all 4 ARGs
+# ---- T15: missing opencode key in .mise.toml is NOT INFRA (P3) -----------
+@test "check-pin-sync: T15 missing opencode key in .mise.toml -> real verdict (exit 0 or 1), never exit 2 (P3)" {
+  # P3: slice 1.2 retires the .mise.toml opencode declaration, so its absence
+  # must not fail the source check. The declared value lives in the
+  # Dockerfile.dev build ARG; node/pnpm/bun stay required static pairs.
   local tree="$BATS_TEST_TMPDIR/pin-sync"
   mkdir -p "$tree/scripts"
   cp "$REPO_ROOT/scripts/check-pin-sync.sh" "$tree/scripts/check-pin-sync.sh"
@@ -226,6 +233,7 @@ assert_stderr_contains() {
 [tools]
 node = "24.18.0"
 pnpm = "10.33.0"
+bun = "1.4.2"
 EOF
   cat > "$tree/Dockerfile.dev" <<'EOF'
 ARG NODE_VERSION=24.18.0
@@ -236,9 +244,26 @@ EOF
 
   run --separate-stderr bash "$tree/scripts/check-pin-sync.sh"
 
-  assert_status 2
-  assert_stderr_contains "fail: source defective: .mise.toml is missing key 'opencode' under [tools]"
-  assert_output_contains "summary: 0 ok, 0 fail (infra)"
+  # A real verdict: exit 0 or 1 only -- never 2, never a missing-declared-value
+  # report, never an (infra) summary.
+  [ "$status" -eq 0 ] || [ "$status" -eq 1 ] || {
+    echo "P3: expected exit 0 or 1 once the .mise.toml opencode key is gone, got exit $status" >&2
+    echo "$stderr" >&2
+    return 1
+  }
+  [[ "$stderr" != *"missing key 'opencode'"* ]] || {
+    echo "P3: script reported a missing declared opencode value:" >&2
+    echo "$stderr" >&2
+    return 1
+  }
+  [[ "$output" != *"(infra)"* ]] || {
+    echo "P3: script rendered an INFRA summary without the .mise.toml opencode key:" >&2
+    echo "$output" >&2
+    return 1
+  }
+  # The three static pairs still render a verdict.
+  assert_output_contains "ok: node 24.18.0 (parity @ Dockerfile.dev)"
+  assert_output_contains "ok: bun 1.4.2 (parity @ Dockerfile.dev)"
 }
 
 # ---- T16: missing OPENCODE_VERSION ARG (INFRA) ----------------------------
@@ -321,11 +346,12 @@ EOF
 }
 
 # ---- Task 1.3 (S1.1): per-service declared-vs-runtime OpenCode assertion ----
-# Campaign DIA-261119-vioa, RED phase. Design D2: three static toolchain pairs
-# (.mise.toml vs Dockerfile.dev) stay, and the OpenCode family's partner
-# becomes the LIVE runtime (`opencode --version`) instead of a static string.
-# The fixture tree models ONE service: all static pairs match (T1 shape) while
-# a planted `opencode` on PATH reports a different version.
+# Campaign DIA-261119-vioa. Design D2 INVARIANT: three static toolchain pairs
+# (.mise.toml vs Dockerfile.dev) stay static, while the OpenCode family's
+# partner is the LIVE runtime (`opencode --version`) - a report that carries
+# only the static comparison is a gate failure. The fixture tree models ONE
+# service: all static pairs match (T1 shape) while a planted `opencode` on
+# PATH reports a different version.
 
 # plant_opencode_runtime <dir> <version>: fake `opencode` binary printing
 # <version>, prepended to PATH -- the "live runtime" seam (design D2).
@@ -372,8 +398,8 @@ plant_opencode_runtime() {
     echo "$output" >&2
     return 1
   }
-  # RED today: the fourth family's report only carries the static
-  # .mise.toml-vs-Dockerfile wording; design D2 makes its partner the live
-  # runtime, so the report must say so.
+  # INVARIANT (design D2): the fourth family's report must name the live
+  # runtime comparison, not just the static .mise.toml-vs-Dockerfile wording -
+  # a report without "runtime" means the static-only gate ran.
   assert_output_contains "runtime"
 }

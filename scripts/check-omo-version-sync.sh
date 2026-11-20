@@ -159,13 +159,17 @@ fi
 # The declared pin must be present in the package cache the runtime loads
 # from. Probed against the ROOT declaration: that is the cache this run can
 # see, and it is asserted after every pin/override guard so a missing-source
-# or drift report keeps its own failure class.
+# or drift report keeps its own failure class. The real image cache root is
+# ~/.cache/opencode/node_modules (Dockerfile.dev OMO pre-population layer).
 # ponytail: presence-only probe of one cache root; add per-service cache roots
 # and a version comparison if a stale-but-present pin ever becomes a risk
 # (the V2 dev_v2_cache volume is only visible when the gate runs in dev-v2,
 # where the worktree IS this root).
-cache_root="${OMO_CACHE_ROOT:-${HOME:-}/.cache/opencode/packages}"
-if [ -d "$cache_root" ] && [ ! -d "$cache_root/oh-my-opencode-slim@$config_pin" ]; then
+cache_root="${OMO_CACHE_ROOT:-${HOME:-}/.cache/opencode/node_modules}"
+if [ ! -d "$cache_root" ]; then
+  # S1: name the path that was probed -- a silent skip hid that nothing ran.
+  echo "skip: OMO cache root absent: ${cache_root} (loaded-cache pin check skipped)"
+elif [ ! -d "$cache_root/oh-my-opencode-slim@$config_pin" ]; then
   echo "fail: OMO loaded cache missing declared pin: oh-my-opencode-slim@$config_pin ($cache_root)" >&2
   exit 1
 fi

@@ -107,12 +107,15 @@ services:
     container_name: poetry-dev-v2
     hostname: poetry-dev-v2
     working_dir: /workspace/.worktrees/opencode-v2
-    # Same three services as `dev`, disjoint HOST ports (D1a N2): defaults
-    # 9100/8100/3100 never collide with V1's 9000/8000/3000.
+    # Same three services as `dev`: only the HOST side is disjoint (D1a N2).
+    # Host ports are env-overridable, defaults 9100/8100/3100, never colliding
+    # with V1's 9000/8000/3000. The container ports stay the applications'
+    # listen ports (9000/8000/3000) - same as V1, since the apps inside
+    # dev-v2 listen on the same container ports.
     ports:
-      - '${AUTHOR_STUDIO_PORT_V2:-9100}:9100'
-      - '${API_SERVER_PORT_V2:-8100}:8100'
-      - '${PUBLISHING_PORT_V2:-3100}:3100'
+      - '${AUTHOR_STUDIO_PORT_V2:-9100}:9000'
+      - '${API_SERVER_PORT_V2:-8100}:8000'
+      - '${PUBLISHING_PORT_V2:-3100}:3000'
     volumes:
       # Full repo mount (D1a N1) - git must see the real object store.
       - .:/workspace:z

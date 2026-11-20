@@ -41,27 +41,59 @@ setup() {
 # GIT_DIR but not GIT_INDEX_FILE, so running it from the hardcoded /workspace
 # (the MAIN worktree) evaluates that index against the wrong tree and dies
 # with "Unstaged changes could not be restored due to a merge conflict!".
-# Required behavior pinned by the cases at the bottom of this file: the
-# lint-staged invocation's cwd (and therefore its file view) is the committing
-# worktree's top level; main-worktree behavior stays /workspace.
+# Required behavior pinned by the cases at the bottom of this file:
+#   - in-container: the lint-staged invocation's cwd (and therefore its file
+#     view) is the committing worktree's top level; main-worktree behavior
+#     stays /workspace.
+#   - host: the delegated `cd` names the CONTAINER path of the committing
+#     tree, never the host path (see container_path_for).
 
-# make_linked_worktree: hermetic fixture = main repo + one linked worktree
-# (the scripts/worktrees.sh layout, at a temp path). The fixture tracks
-# scripts/guards/home-qualt.sh because the hook sources that file from
-# `git rev-parse --show-toplevel`, so a run whose cwd is the linked worktree
-# resolves the worktree copy. Uses the shared budget_git_init (hermetic repo
-# init + test identity in test-helper.bash). Echoes the worktree's git
-# toplevel -- the anchor the required behavior names.
-make_linked_worktree() {
+# make_main_repo: hermetic fixture MAIN checkout - a fresh git repo carrying
+# scripts/guards/home-qualt.sh, which the hook sources from
+# `git rev-parse --show-toplevel`. Uses the shared budget_git_init (hermetic
+# repo init + test identity in test-helper.bash). Echoes its path.
+make_main_repo() {
   local main="$BATS_TEST_TMPDIR/wt-main"
-  local linked="$BATS_TEST_TMPDIR/wt-linked"
   mkdir -p "$main/scripts/guards"
   cp "$REPO_ROOT/scripts/guards/home-qualt.sh" "$main/scripts/guards/"
   budget_git_init "$main"
   git -C "$main" add scripts
   git -C "$main" commit -q -m init
+  echo "$main"
+}
+
+# make_linked_worktree: hermetic fixture = make_main_repo + one linked
+# worktree (the scripts/worktrees.sh layout, at a temp path). Echoes the
+# linked worktree's git toplevel -- the anchor the in-container cases name.
+make_linked_worktree() {
+  local main linked
+  main="$(make_main_repo)"
+  linked="$BATS_TEST_TMPDIR/wt-linked"
   git -C "$main" worktree add -q -b bats-linked "$linked" main
   git -C "$linked" rev-parse --show-toplevel
+}
+
+# container_path_for <tree>: the path the HOST branch must `cd` to inside the
+# dev container for a commit made in <tree> (campaign DIA-261119-vioa P1).
+# Mapping rule: main_root is the dirname of `git rev-parse --git-common-dir`
+# (resolved to an absolute path); a commit from main_root runs at /workspace,
+# the container's main checkout, and a commit from any linked worktree runs at
+# /workspace/.worktrees/<basename of the committing toplevel>. Derived from
+# git on every call, never hardcoded, so the expectations hold from the main
+# checkout and from any linked worktree.
+container_path_for() {
+  local tree="$1" top main_root
+  top="$(cd "$tree" && git rev-parse --show-toplevel)"
+  main_root="$(cd "$tree" && cd "$(dirname "$(git rev-parse --git-common-dir)")" && pwd)"
+  [ -n "$top" ] && [ -n "$main_root" ] || {
+    echo "container_path_for: cannot resolve git toplevel/common-dir under $tree" >&2
+    return 1
+  }
+  if [ "$top" = "$main_root" ]; then
+    printf '%s\n' "/workspace"
+  else
+    printf '%s\n' "/workspace/.worktrees/$(basename "$top")"
+  fi
 }
 
 # install_container_fakes: the in-container execution context of the "runs
@@ -96,15 +128,20 @@ FAKENPX
 
 @test "verify-pre-commit: delegates lint-staged to the dev container when on the host" {
   export FAKE_DOCKER_SERVICES="dev"
-  # DIA-261119-85dy: the delegated cd target is the COMMITTING repository's
-  # top level, resolved exactly the way the fixed hook resolves WORKSPACE
-  # (git rev-parse --show-toplevel from the invoking cwd) - so this case is
-  # context-aware: /workspace when the suite runs from the main worktree,
-  # the worktree path when it runs from a linked worktree. Never hardcoded.
-  local expected_ws
-  expected_ws="$(git rev-parse --show-toplevel)"
+  # HOST-branch contract (DIA-261119-vioa P1): the delegated cd names the
+  # CONTAINER path of the committing tree (container_path_for), never the host
+  # path. This fixture MAIN checkout has toplevel == main_root, so the rule
+  # maps it to /workspace while the hook passes the HOST path
+  # ($BATS_TEST_TMPDIR/wt-main). Deliberately not the suite's own tree: there
+  # the worktree sits at /workspace/.worktrees/opencode-v2, so host path and
+  # container path are the same string and no assertion could tell them apart
+  # (vacuous for this defect). The linked-worktree case below pins the other
+  # branch of the mapping rule.
+  local main expected_ws
+  main="$(make_main_repo)"
+  expected_ws="$(container_path_for "$main")"
 
-  run bash "$SCRIPTS_DIR/verify-pre-commit.sh"
+  run bash -c "cd '$main' && exec bash '$SCRIPTS_DIR/verify-pre-commit.sh'"
 
   assert_status 0
   assert_output_contains "delegating to dev container"
@@ -270,19 +307,21 @@ FAKELS
   [ "$output" = "1" ]
 }
 
-@test "verify-pre-commit: host dispatch delegates lint-staged from the linked-worktree top level" {
-  local linked
+@test "verify-pre-commit: host dispatch delegates lint-staged to the linked worktree's container path" {
+  local linked expected_ws
   linked="$(make_linked_worktree)"
+  # Mapping rule for this fixture: its toplevel ($linked, under /tmp) is not
+  # the fixture main_root, so the container path is
+  # /workspace/.worktrees/<basename of the committing toplevel> -
+  # /workspace/.worktrees/wt-linked - while the hook passes the HOST toplevel,
+  # a path the container cannot see at all.
+  expected_ws="$(container_path_for "$linked")"
   export FAKE_DOCKER_SERVICES="dev"
 
   run bash -c "cd '$linked' && exec bash '$SCRIPTS_DIR/verify-pre-commit.sh'"
 
   assert_status 0
   assert_output_contains "delegating to dev container"
-  # required: the delegated command's cd target (the lint-staged cwd inside
-  # the container) is the committing worktree top level, not /workspace. The
-  # "delegates lint-staged to the dev container when on the host" case pins
-  # the `cd "<ws>" && npx lint-staged --allow-empty` shape, so only the
-  # workspace operand is at stake here.
-  assert_file_contains "$FAKE_DOCKER_LOG" "cd \"$linked\" && npx lint-staged --allow-empty"
+  # the delegated `cd` must name the container path, never the host path
+  assert_file_contains "$FAKE_DOCKER_LOG" "cd \"$expected_ws\" && npx lint-staged --allow-empty"
 }

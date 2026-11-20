@@ -32,7 +32,7 @@ Main worktree dirty-entry PATHS (from `git -C /workspace status --porcelain`, pa
 
 | Gate                                       | Feature worktree (A)                   | Main worktree (B)                                                                              |
 | ------------------------------------------ | -------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| Aggregate config gate (`make test-config`) | EXIT 0, completes                      | EXIT 2, aborting at Makefile:260                                                               |
+| Aggregate config gate (`make test-config`) | EXIT 0, completes                      | EXIT 2, aborting at Makefile:267                                                               |
 | Shell suite                                | EXIT 0 (bats plan 1..799, 0 failures)  | not measured in this slice                                                                     |
 | Typecheck                                  | EXIT 0 (tsc 5.9.3 --noEmit clean)      | not measured in this slice                                                                     |
 | Pin-parity gate                            | EXIT 0 (4 ok, 0 fail)                  | EXIT 1 - `fail: opencode - .mise.toml=1.18.32 Dockerfile.dev=2.2.6`                            |
@@ -44,38 +44,38 @@ Prerequisite steps (Makefile):
 
 | Makefile line | Step                                                                             | Exit |
 | ------------- | -------------------------------------------------------------------------------- | ---- |
-| 222           | test-interview: bash scripts/test-interview-enforcement.sh                       | 0    |
-| 229           | test-skills: bash .opencode/scripts/validate-skills.sh                           | 0    |
-| 305           | test-typecheck: npx --no-install tsc --noEmit -p .opencode/plugins/tsconfig.json | 0    |
+| 229           | test-interview: bash scripts/test-interview-enforcement.sh                       | 0    |
+| 236           | test-skills: bash .opencode/scripts/validate-skills.sh                           | 0    |
+| 312           | test-typecheck: npx --no-install tsc --noEmit -p .opencode/plugins/tsconfig.json | 0    |
 
-Recipe-body steps (Makefile 258-300, 24 steps):
+Recipe-body steps (Makefile 265-307, 24 steps):
 
 | Makefile line | Step                                                               | Exit |
 | ------------- | ------------------------------------------------------------------ | ---- |
-| 258           | echo NOTE: compose config validation is host-scoped                | 0    |
-| 259           | bash .opencode/scripts/validate-opencode-config.sh                 | 0    |
-| 260           | bash scripts/check-omo-version-sync.sh                             | 0    |
-| 261           | bash scripts/validate-agent-names.sh                               | 0    |
-| 262           | bash scripts/validate-output-contracts.sh                          | 0    |
-| 263           | bash scripts/validate-reviewer-sections.sh                         | 0    |
-| 264           | bash scripts/validate-decision-variants.sh                         | 0    |
-| 265           | bash scripts/validate-grilling-gate.sh                             | 0    |
-| 266           | bash scripts/check-orchestrator-prompt-drift.sh                    | 0    |
-| 267           | bash scripts/validate-handoff.sh                                   | 0    |
-| 268           | bash scripts/test-ticket-gate.sh                                   | 0    |
-| 269           | bash scripts/test-builtin-containment.sh                           | 0    |
-| 270           | bash scripts/validate-memory-shelf.sh                              | 0    |
-| 271           | bash scripts/validate-changelog.sh                                 | 0    |
-| 272           | bash scripts/validate-dia-mentions.sh                              | 0    |
-| 273           | bash scripts/validate-model-ids.sh                                 | 0    |
-| 274           | bash scripts/audit-agent-tool-coverage.sh .opencode/opencode.jsonc | 0    |
-| 280           | node scripts/**tests**/batch-d-infra.test.mjs                      | 0    |
-| 283           | node scripts/**tests**/routing-order-gate.test.mjs                 | 0    |
-| 286           | node scripts/**tests**/envelope-gate.test.mjs                      | 0    |
-| 291           | node scripts/**tests**/destination-policy.test.mjs                 | 0    |
-| 292           | node scripts/**tests**/tripwire-classifier.test.mjs                | 0    |
-| 297           | bash scripts/validate-observer-dedupe.sh                           | 0    |
-| 300           | bash scripts/validate-plugin-structure.sh                          | 0    |
+| 265           | echo NOTE: compose config validation is host-scoped                | 0    |
+| 266           | bash .opencode/scripts/validate-opencode-config.sh                 | 0    |
+| 267           | bash scripts/check-omo-version-sync.sh                             | 0    |
+| 268           | bash scripts/validate-agent-names.sh                               | 0    |
+| 269           | bash scripts/validate-output-contracts.sh                          | 0    |
+| 270           | bash scripts/validate-reviewer-sections.sh                         | 0    |
+| 271           | bash scripts/validate-decision-variants.sh                         | 0    |
+| 272           | bash scripts/validate-grilling-gate.sh                             | 0    |
+| 273           | bash scripts/check-orchestrator-prompt-drift.sh                    | 0    |
+| 274           | bash scripts/validate-handoff.sh                                   | 0    |
+| 275           | bash scripts/test-ticket-gate.sh                                   | 0    |
+| 276           | bash scripts/test-builtin-containment.sh                           | 0    |
+| 277           | bash scripts/validate-memory-shelf.sh                              | 0    |
+| 278           | bash scripts/validate-changelog.sh                                 | 0    |
+| 279           | bash scripts/validate-dia-mentions.sh                              | 0    |
+| 280           | bash scripts/validate-model-ids.sh                                 | 0    |
+| 281           | bash scripts/audit-agent-tool-coverage.sh .opencode/opencode.jsonc | 0    |
+| 287           | node scripts/**tests**/batch-d-infra.test.mjs                      | 0    |
+| 290           | node scripts/**tests**/routing-order-gate.test.mjs                 | 0    |
+| 293           | node scripts/**tests**/envelope-gate.test.mjs                      | 0    |
+| 298           | node scripts/**tests**/destination-policy.test.mjs                 | 0    |
+| 299           | node scripts/**tests**/tripwire-classifier.test.mjs                | 0    |
+| 304           | bash scripts/validate-observer-dedupe.sh                           | 0    |
+| 307           | bash scripts/validate-plugin-structure.sh                          | 0    |
 
 Separate aggregate rows:
 

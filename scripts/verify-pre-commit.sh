@@ -44,6 +44,24 @@ source "$ROOT/scripts/in-container.sh"
 # docker/podman invocation and no cross-engine fallback.
 ENGINE_ADAPTER="$ROOT/scripts/container-engine.sh"
 
+# container_workspace: CONTAINER path of the committing worktree, for the HOST
+# branch's delegated cd (campaign DIA-261119-vioa, review finding P1). That cd
+# runs INSIDE the dev container via compose exec, which mounts the repo at
+# /workspace, so the host toplevel in WORKSPACE does not exist there (e.g.
+# /home/me/poetry/.worktrees/foo). Mapping rule: toplevel == dirname of the
+# absolute git-common-dir (main checkout) -> /workspace; otherwise a linked
+# worktree -> /workspace/.worktrees/<basename of toplevel>.
+container_workspace() {
+  local top main_root
+  top="$(git rev-parse --show-toplevel)"
+  main_root="$(cd "$(dirname "$(git rev-parse --git-common-dir)")" && pwd)"
+  if [ "$top" = "$main_root" ]; then
+    printf '%s\n' "/workspace"
+  else
+    printf '%s\n' "/workspace/.worktrees/$(basename "$top")"
+  fi
+}
+
 # run_workspace <command string>: executes <command> from the workspace root in
 # the right context — directly inside the container, or delegated on the host
 # through the selected native compose command.
@@ -53,7 +71,12 @@ run_workspace() {
   if is_in_dev_container; then
     (cd "$WORKSPACE" && bash -lc "$cmd")
   else
-    bash "$ENGINE_ADAPTER" compose -f "$ROOT/docker-compose.yml" exec -T dev bash -lc "cd \"${WORKSPACE}\" && ${cmd}"
+    # DIA-261119-vioa P1: cd the CONTAINER path of the committing worktree,
+    # never the host path (the container cannot see host-only paths).
+    # POETRY_WORKSPACE (test seam) still wins over the computed value.
+    local ws
+    ws="${POETRY_WORKSPACE:-$(container_workspace)}"
+    bash "$ENGINE_ADAPTER" compose -f "$ROOT/docker-compose.yml" exec -T dev bash -lc "cd \"${ws}\" && ${cmd}"
   fi
 }
 

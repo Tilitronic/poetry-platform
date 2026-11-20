@@ -79,6 +79,36 @@ compose_service_block() {
   ' "$REPO_ROOT/docker-compose.yml"
 }
 
+# compose_port_pairs <service>: print "host container" for every published
+# mapping in the service's `ports:` list. ${VAR:-default} expands to its
+# default, surrounding quotes and a trailing /protocol suffix are dropped.
+# Emits NOTHING when no mapping parses - callers must fail on an empty parse
+# (vacuity guard), never read "zero lines" as "no violations".
+compose_port_pairs() {
+  compose_service_block "$1" | awk '
+    /^[[:space:]]*ports:/ { p = 1; next }
+    p && /^[[:space:]]*-[[:space:]]/ { sub(/^[[:space:]]*-[[:space:]]*/, ""); print; next }
+    p && /^[[:space:]]*[A-Za-z_][A-Za-z0-9_.-]*:/ { p = 0 }
+  ' | sed -E -e "s/^['\"]//" -e "s/['\"]\$//" -e 's#/[A-Za-z0-9]+$##' \
+      -e 's/\$\{[A-Za-z0-9_]+:-([^}]*)\}/\1/g' \
+    | awk -F: 'NF >= 2 && $1 ~ /^[0-9]+$/ && $2 ~ /^[0-9]+$/ { print $1, $2 }'
+}
+
+# compose_volume_sources <service>: print the SOURCE (host) half of every
+# entry in the service's `volumes:` list. Shape-independent: plain names,
+# ./path, ${VAR} and ~ all parse because only the text before the first ':'
+# is taken. The shared repo bind '.' is excluded (both services mount it on
+# purpose, D1a N1). Emits NOTHING when nothing parses - callers must fail on
+# an empty parse (vacuity guard).
+compose_volume_sources() {
+  compose_service_block "$1" | awk '
+    /^[[:space:]]*volumes:/ { v = 1; next }
+    v && /^[[:space:]]*-[[:space:]]/ { sub(/^[[:space:]]*-[[:space:]]*/, ""); print; next }
+    v && /^[[:space:]]*[A-Za-z_][A-Za-z0-9_.-]*:/ { v = 0 }
+  ' | sed -E -e "s/^['\"]//" -e "s/['\"]\$//" \
+    | awk -F: '{ if ($1 != ".") print $1 }'
+}
+
 # ---------------------------------------------------------------------------
 # Setup
 # ---------------------------------------------------------------------------
@@ -236,17 +266,20 @@ FAKEHOST
 }
 
 # ---------------------------------------------------------------------------
-# tasks.md 1.1 (S1.1): dev-v2 compose service shape -- RED phase, campaign
-# DIA-261119-vioa. Asserted against the real docker-compose.yml at file level
-# (the same seam compose-overrides.bats uses for service shape; no engine
-# needed). Each test fails TODAY on a missing-behavior assertion: the dev-v2
-# service does not exist yet. Guards on the unchanged V1 `dev` service run
-# first so a V1 regression is reported separately from the missing V2 work.
+# tasks.md 1.1 (S1.1): dev-v2 compose service shape, campaign DIA-261119-vioa.
+# Asserted against the real docker-compose.yml at file level (the same seam
+# compose-overrides.bats uses for service shape; no engine needed). INVARIANT
+# pinned: dev-v2 is a full parallel workstation - its own image, container
+# name, hostname, working_dir, host ports and cache/state/pnpm volumes, all
+# disjoint from V1 - while the unchanged V1 `dev` service keeps its identity.
+# Guards on the V1 service run first so a V1 regression is reported separately
+# from a dev-v2 gap.
 # ---------------------------------------------------------------------------
 
 @test "task 1.1: dev-v2 mounts the full repo at /workspace with working_dir in the v2 worktree" {
   local compose="$REPO_ROOT/docker-compose.yml"
-  # RED marker: the worktree working_dir does not exist yet (D1a N1).
+  # INVARIANT (D1a N1): the v2 service roots its shell in the worktree, never
+  # in /workspace.
   assert_file_contains "$compose" "working_dir: /workspace/.worktrees/opencode-v2"
   local block
   block="$(compose_service_block dev-v2)"
@@ -267,9 +300,10 @@ FAKEHOST
 
 @test "task 1.1: dev-v2 declares its own image, container name, hostname and cache/state/pnpm volumes" {
   local compose="$REPO_ROOT/docker-compose.yml"
-  # RED marker: hostname poetry-dev-v2 does not exist yet.
+  # INVARIANT: dev-v2 carries its own hostname poetry-dev-v2 (the container
+  # detector and container_name must both see it, distinct from V1).
   assert_file_contains "$compose" "hostname: poetry-dev-v2"
-  local block dev_block top_volumes src shared=""
+  local block dev_block top_volumes src v1_srcs v2_srcs shared_srcs
   block="$(compose_service_block dev-v2)"
   [ -n "$block" ] || { echo "docker-compose.yml: missing service block 'dev-v2'" >&2; return 1; }
   dev_block="$(compose_service_block dev)"
@@ -301,18 +335,18 @@ FAKEHOST
     grep -qE "^  ${src}:" <<<"$top_volumes" || {
       echo "top-level volumes: missing named volume '$src'" >&2; return 1; }
   done
-  # NEGATIVE: zero shared volume sources between the services (the repo mount
-  # '.' is shared on purpose per D1a N1 and is excluded here).
-  while IFS= read -r src; do
-    [ -n "$src" ] || continue
-    [ "$src" = "." ] && continue
-    if grep -qF -- "- ${src}:" <<<"$block"; then
-      shared="$shared $src"
-    fi
-  done <<<"$(grep -oE '^[[:space:]]*-[[:space:]]+[A-Za-z0-9_.-]+:' <<<"$dev_block" \
-    | sed -E 's/^[[:space:]]*-[[:space:]]+//; s/:$//' | sort -u)"
-  [ -z "$shared" ] || {
-    echo "dev-v2 shares V1 volume(s):$shared (cache/state/pnpm must be disjoint)" >&2
+  # SET comparison (D1a N2): the two services' volume SOURCE sets must be
+  # disjoint - the shared repo bind '.' is excluded on purpose (D1a N1). Each
+  # side is extracted shape-independently (plain name, ./path, ${VAR}, ~) from
+  # its own volumes: sub-block, in BOTH directions; an empty extraction fails
+  # loudly instead of passing as "no overlap".
+  v1_srcs="$(compose_volume_sources dev)"
+  v2_srcs="$(compose_volume_sources dev-v2)"
+  [ -n "$v1_srcs" ] || { echo "dev: parsed ZERO volume sources (vacuity guard)" >&2; return 1; }
+  [ -n "$v2_srcs" ] || { echo "dev-v2: parsed ZERO volume sources (vacuity guard)" >&2; return 1; }
+  shared_srcs="$(comm -12 <(printf '%s\n' "$v1_srcs" | sort -u) <(printf '%s\n' "$v2_srcs" | sort -u))"
+  [ -z "$shared_srcs" ] || {
+    echo "dev-v2 shares V1 volume source(s): $(tr '\n' ' ' <<<"$shared_srcs")(cache/state/pnpm must be disjoint)" >&2
     return 1
   }
   # V1 keeps its existing volumes (guard).
@@ -326,34 +360,43 @@ FAKEHOST
 
 @test "task 1.1: dev-v2 publishes 9100/8100/3100 with env overrides on poetry-net; dev keeps 9000/8000/3000" {
   local compose="$REPO_ROOT/docker-compose.yml"
-  # RED marker: no V2 host port published yet.
+  # INVARIANT: dev-v2 publishes V2 host ports 9100/8100/3100 (env-overridable).
   assert_file_contains "$compose" "9100"
-  local block dev_block line bad=""
+  local block dev_block pairs host_set container_set
   block="$(compose_service_block dev-v2)"
   [ -n "$block" ] || { echo "docker-compose.yml: missing service block 'dev-v2'" >&2; return 1; }
   dev_block="$(compose_service_block dev)"
-  # Env-overridable host ports: '- ${*_PORT:-9100}:9100' spelling regardless of
-  # the variable name; the default MUST be the V2 host port.
-  grep -qF ':-9100}:9100' <<<"$block" || {
-    echo "dev-v2 must publish host port 9100 env-overridable (:-9100}:9100):" >&2; echo "$block" >&2; return 1; }
-  grep -qF ':-8100}:8100' <<<"$block" || {
-    echo "dev-v2 must publish host port 8100 env-overridable (:-8100}:8100):" >&2; echo "$block" >&2; return 1; }
-  grep -qF ':-3100}:3100' <<<"$block" || {
-    echo "dev-v2 must publish host port 3100 env-overridable (:-3100}:3100):" >&2; echo "$block" >&2; return 1; }
+  # Env-overridable HOST ports: the ${VAR:-default} default MUST be the V2
+  # host port, whatever the variable is called. The container side is pinned
+  # by the strict set comparison below (an app listening on V1's ports, only
+  # the host side differing).
+  grep -qF ':-9100}' <<<"$block" || {
+    echo "dev-v2 must publish host port 9100 env-overridable (default 9100):" >&2; echo "$block" >&2; return 1; }
+  grep -qF ':-8100}' <<<"$block" || {
+    echo "dev-v2 must publish host port 8100 env-overridable (default 8100):" >&2; echo "$block" >&2; return 1; }
+  grep -qF ':-3100}' <<<"$block" || {
+    echo "dev-v2 must publish host port 3100 env-overridable (default 3100):" >&2; echo "$block" >&2; return 1; }
   # Shared postgres network (both services on poetry-net).
   grep -qE '^[[:space:]]*-[[:space:]]*poetry-net[[:space:]]*$' <<<"$block" || {
     echo "dev-v2 must join the shared poetry-net network:" >&2; echo "$block" >&2; return 1; }
-  # NEGATIVE: every dev-v2 published port line must carry a V2 host port --
-  # this catches both env-default and bare '9000:9000' overlap spellings
-  # (the container side may legitimately be 9000/8000/3000).
-  while IFS= read -r line; do
-    case "$line" in
-      *9100*|*8100*|*3100*) ;;
-      *) bad="$bad | $line" ;;
-    esac
-  done < <(grep -E '^[[:space:]]*-[[:space:]].*[0-9]+:[0-9]+' <<<"$block")
-  [ -z "$bad" ] || {
-    echo "dev-v2 publishes a host port outside 9100/8100/3100 (overlap with V1):$bad" >&2
+  # STRICT parse of every published mapping: expand ${VAR:-default}, split the
+  # HOST and CONTAINER sides, compare both as sets. (The old digits:digits
+  # feeder matched ZERO lines - the '}' in ${VAR:-9100} splits the two numbers
+  # - so its negative loop passed for free.) Vacuity guard: a parse yielding
+  # zero mappings fails loudly, never reads as "no violations".
+  pairs="$(compose_port_pairs dev-v2)"
+  [ -n "$pairs" ] || {
+    echo "dev-v2: parsed ZERO published port mappings (vacuity guard - ports: shape drifted)" >&2
+    return 1
+  }
+  host_set="$(awk '{print $1}' <<<"$pairs" | sort -nu | paste -sd' ' -)"
+  container_set="$(awk '{print $2}' <<<"$pairs" | sort -nu | paste -sd' ' -)"
+  [ "$host_set" = "3100 8100 9100" ] || {
+    echo "dev-v2 host ports must be exactly {9100,8100,3100} (no V1 overlap); parsed: {$host_set}" >&2
+    return 1
+  }
+  [ "$container_set" = "3000 8000 9000" ] || {
+    echo "dev-v2 container ports must be exactly {9000,8000,3000} (the app listens on V1's ports; only the host side differs); parsed: {$container_set}" >&2
     return 1
   }
   # V1 keeps its own ports with their env defaults (guard).
@@ -382,9 +425,9 @@ FAKEHOST
   run is_in_dev_container
   [ "$status" -eq 0 ] || {
     echo "detector rejected the V1 hostname poetry-dev" >&2; return 1; }
-  # RED today: in-container.sh matches only the literal poetry-dev, so the
-  # dev-v2 hostname is treated as 'not in container' and every container-gated
-  # script would hard-fail inside dev-v2 (D1a N3).
+  # INVARIANT (D1a N3): the detector allowlist must include poetry-dev-v2 -
+  # otherwise that hostname reads as 'not in container' and every
+  # container-gated script hard-fails inside dev-v2.
   plant_hostname "$hdir" "poetry-dev-v2"
   run is_in_dev_container
   [ "$status" -eq 0 ] || {

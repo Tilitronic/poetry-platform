@@ -1,15 +1,18 @@
 #!/usr/bin/env bash
 # check-pin-sync.sh — .mise.toml ↔ Dockerfile.dev pin-parity validator (Gate B).
-# WHY: node/pnpm/opencode/bun pins live in .mise.toml [tools] (single source of
-# truth, ADR 11 line 99) and in the ARG declarations of Dockerfile.dev; asserts
-# parity (4 comparisons: 4 pins x 1 Dockerfile), reads only. MISE_VERSION
-# parity is out of scope. Legacy tools/opencode-docker/Dockerfile removed
-# (DIA-260824-8k62 PHASE 3 retirement).
-# OpenCode family (task 1.3 / design D2 / ADR 11 decision 4): the static pair
-# stays, and while it agrees the family's verdict ALSO asserts the declared
-# build ARG against the LIVE `opencode --version` on this service's PATH --
-# one counted verdict keeps the summary at four comparisons, so the gate is
-# neither shrunk to three pins nor doubled into five.
+# WHY: node/pnpm/bun pins live in .mise.toml [tools] (single source of truth,
+# ADR 11 line 99) and in the ARG declarations of Dockerfile.dev; the OpenCode
+# declared value is ARG OPENCODE_VERSION in Dockerfile.dev -- slice 1.2
+# retires the .mise.toml opencode key, and while it survives, drift against
+# the ARG is still reported. Reads only. MISE_VERSION parity is out of scope.
+# Legacy tools/opencode-docker/Dockerfile removed (DIA-260824-8k62 PHASE 3
+# retirement).
+# 3 static pairs + 1 declared-vs-runtime OpenCode verdict
+# OpenCode family (task 1.3 / design D2 / ADR 11 decision 4): the declared
+# build ARG is asserted against the LIVE `opencode --version` on this
+# service's PATH -- one counted verdict; an unavailable runtime reports
+# skip: and is never counted as ok, so the gate is neither shrunk to three
+# pins nor doubled into five.
 # Exit precedence 2>1>0: 0 match; 1 parity violated; 2 INFRA (missing/dup). Bash-3.
 set -euo pipefail
 
@@ -29,7 +32,9 @@ infra_summary() { # INFRA summary on both streams, exit 2
 }
 
 # parse_reference <file>: [tools] node/pnpm/opencode/bun ->
-# MISE_NODE/MISE_PNPM/MISE_OPENCODE/MISE_BUN. Dup => INFRA. Missing key => INFRA.
+# MISE_NODE/MISE_PNPM/MISE_OPENCODE/MISE_BUN. Dup => INFRA. Missing
+# node/pnpm/bun key => INFRA; the opencode key is optional (P3: the declared
+# value lives in Dockerfile.dev ARG OPENCODE_VERSION).
 parse_reference() {
   local file="$1" tools node_count pnpm_count opencode_count bun_count
   tools="$(awk '/^\[tools\]/ { in_tools=1; next } /^\[/ { in_tools=0 } in_tools { print }' "$file")"
@@ -43,8 +48,10 @@ parse_reference() {
   [ "${bun_count}" -le 1 ] || { echo "fail: source defective: .mise.toml has duplicate key 'bun' under [tools]" >&2; return 1; }
   [ "${node_count}" -eq 1 ] || { echo "fail: source defective: .mise.toml is missing key 'node' under [tools]" >&2; return 1; }
   [ "${pnpm_count}" -eq 1 ] || { echo "fail: source defective: .mise.toml is missing key 'pnpm' under [tools]" >&2; return 1; }
-  [ "${opencode_count}" -eq 1 ] || { echo "fail: source defective: .mise.toml is missing key 'opencode' under [tools]" >&2; return 1; }
   [ "${bun_count}" -eq 1 ] || { echo "fail: source defective: .mise.toml is missing key 'bun' under [tools]" >&2; return 1; }
+  # opencode key optional (P3): absence is not INFRA -- the declared value is
+  # ARG OPENCODE_VERSION in Dockerfile.dev, so no missing-declared-value
+  # report may fire once slice 1.2 retires the .mise.toml declaration.
   MISE_NODE="$(strip_value "$(printf '%s\n' "$tools" | grep -m1 '^node[[:space:]]*=' | sed 's/^node[[:space:]]*=[[:space:]]*//' || true)")"
   MISE_PNPM="$(strip_value "$(printf '%s\n' "$tools" | grep -m1 '^pnpm[[:space:]]*=' | sed 's/^pnpm[[:space:]]*=[[:space:]]*//' || true)")"
   MISE_OPENCODE="$(strip_value "$(printf '%s\n' "$tools" | grep -m1 '^opencode[[:space:]]*=' | sed 's/^opencode[[:space:]]*=[[:space:]]*//' || true)")"
@@ -104,7 +111,10 @@ compare_opencode() {
   local mise_val docker_val runtime
   mise_val="$(strip_value "$MISE_OPENCODE")"
   docker_val="$(strip_value "$DOCKER_OPENCODE")"
-  if [ "${mise_val}" != "${docker_val}" ]; then
+  # Static pair only while the optional .mise.toml opencode key exists (P3);
+  # with it gone the Dockerfile.dev ARG is the sole declaration and the
+  # runtime leg below runs against it directly.
+  if [ -n "${mise_val}" ] && [ "${mise_val}" != "${docker_val}" ]; then
     compare opencode "${MISE_OPENCODE}" "${DOCKER_OPENCODE}" "Dockerfile.dev" || true
     return 0
   fi
@@ -113,9 +123,8 @@ compare_opencode() {
     runtime="$(opencode_runtime_version)"
   fi
   if [ -z "${runtime}" ]; then
-    echo "ok: opencode ${docker_val} (parity @ Dockerfile.dev)"
-    echo "note: opencode --version unavailable; declared-vs-runtime assertion skipped"
-    ok=$((ok + 1))
+    # S2: an unavailable runtime is a skip, never a counted ok.
+    echo "skip: opencode ${docker_val} (declared-vs-runtime assertion skipped: opencode --version unavailable)"
     return 0
   fi
   if [ "${runtime}" = "${docker_val}" ]; then

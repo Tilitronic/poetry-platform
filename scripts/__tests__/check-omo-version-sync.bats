@@ -72,13 +72,14 @@ setup() {
 }
 
 # ---- Task 1.3 (S1.1): per-service OMO sources (V1 root + V2 worktree) -------
-# Campaign DIA-261119-vioa, RED phase. Design D2: the gate resolves PER-SERVICE
+# Campaign DIA-261119-vioa. Design D2 INVARIANT: the gate resolves PER-SERVICE
 # sources (V1: root config/tui/Dockerfile; V2: the v2 worktree's config/tui and
 # its build source) instead of one global set, because V1 stays on 2.2.19 while
-# the V2 side moves to 3.0.7 together -- a single cross-service equality is
-# forbidden. Fixture: V1 stays aligned (setup), V2-side config and tui.json
-# drift against each other. Today's gate cannot see the worktree at all: V1 is
-# aligned -> exit 0 -> RED.
+# the V2 side moves to 3.0.7 together - a single cross-service equality is
+# forbidden, and a gate that resolves only the V1 root (never the worktree)
+# cannot fail on V2 drift. Fixture: V1 stays aligned (setup), V2-side config
+# and tui.json drift against each other, so the run must exit non-zero and
+# name the V2 side.
 @test "OMO sync resolves per-service sources: V2 worktree pin drift fails while V1 stays aligned (task 1.3)" {
   local v2opencode="$OMO_SYNC_ROOT/.worktrees/opencode-v2/.opencode"
   mkdir -p "$v2opencode/oh-my-opencode-slim/knowledge"

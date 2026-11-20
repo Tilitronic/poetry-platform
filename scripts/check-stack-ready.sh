@@ -49,7 +49,7 @@ diag() {
 # Sourced, not executed -- provides is_in_dev_container().
 source "$(dirname "${BASH_SOURCE[0]}")/in-container.sh"
 if ! is_in_dev_container; then
-  diag "not running inside the dev container (hostname != poetry-dev)"
+  diag "not running inside the dev container (hostname not in allowlist: poetry-dev or poetry-dev-v2)"
   emit "STACK_NOT_READY"
   exit 1
 fi

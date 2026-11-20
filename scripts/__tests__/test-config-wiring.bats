@@ -1125,14 +1125,13 @@ JSONC
 
 # ---------------------------------------------------------------------------
 # DIA-260827-ft3z task 1.3: the former fetch-write hole as a config-gate
-# negative test. Case 1 resolves the four LITERAL former commands through the
-# same resolver the gate uses, against the REAL config, and asserts deny - RED
-# while researcher still carries the curl/wget/trafilatura/crwl allows, green
-# once task 3.1 flattens its bash to deny. Case 2 re-opens the hole in a
-# fixture (deny-scoped edit + `curl *` re-added) and asserts the gate FAILS on
-# it - RED while researcher still sits in EXEMPT_EDIT_BASH, green once the
-# exemption closes. Together they pin both halves: the real config denies the
-# shapes, and a restored grant is caught instead of exempted.
+# negative test. INVARIANT pinned by both halves: (case 1) the four LITERAL
+# former commands, resolved through the same resolver the gate uses against
+# the REAL config, must resolve to deny for researcher; (case 2) a fixture
+# that re-opens the hole (deny-scoped edit + `curl *` re-added) must make the
+# gate FAIL - a restored grant is caught, never exempted. Together they pin
+# that the real config denies the shapes and a restored grant cannot slip
+# through.
 # ---------------------------------------------------------------------------
 
 @test "config: the four former fetch write shapes resolve to deny for researcher (DIA-260827-ft3z)" {
@@ -1182,11 +1181,10 @@ JSONC
   local tree="$BATS_TEST_TMPDIR/readd-curl-star"
   mkdir -p "$tree/.opencode"
   require_analyzer_docs "$tree"
-  # The POST-closure researcher shape (deny-scoped edit, deny-first bash) with
-  # the former hole re-added: a single "curl *" grant behind the catch-all
-  # deny. While researcher still sits in EXEMPT_EDIT_BASH the invariant skips
-  # it and the gate stays green - this case is RED until task 3.1 removes the
-  # exemption, then it pins that a restored curl * fails the gate.
+  # INVARIANT: the POST-closure researcher shape (deny-scoped edit, deny-first
+  # bash) with the former hole re-added - a single "curl *" grant behind the
+  # catch-all deny - must make the gate FAIL: a restored curl * is caught, not
+  # skipped as exempt.
   cat > "$tree/.opencode/opencode.jsonc" <<'JSONC'
 {
   "agent": {
@@ -1214,7 +1212,8 @@ JSONC
 # the guard below greps scripts/ for exactly that shape and would self-match.
 # ---------------------------------------------------------------------------
 @test "gate wiring: tasks.md group-1 make targets all exist and no script invokes the phantom check-omo-version-sync target (tasks.md 1.6)" {
-  # Guards first (pass today): the slice's non-make gate entry points exist.
+  # Guards first (these must hold regardless of the make-target check below):
+  # the slice's non-make gate entry points exist.
   assert_file_exists "$REPO_ROOT/scripts/check-pin-sync.sh"
   assert_file_exists "$REPO_ROOT/scripts/check-omo-version-sync.sh"
   # No test or script may reference the non-existent make target.
@@ -1227,11 +1226,11 @@ JSONC
     echo "$phantom" >&2
     return 1
   fi
-  # RED today: the group-1 task text itself still names `make
-  # check-omo-version-sync` (tasks.md 1.6) while the Makefile declares no such
-  # target -- so at least one backticked make command in tasks 1.1-1.8 does
-  # not resolve. GREEN per task 1.6: declare the target OR reword the mention;
-  # either way every named make gate must exist.
+  # INVARIANT (tasks.md 1.6): every backticked `make` command named in the
+  # group-1 task text (tasks 1.1-1.8) must resolve to a declared Makefile
+  # target - the check-omo-version-sync mention included. A missing target is
+  # reported below: declare it or reword the mention, either way every named
+  # make gate must exist.
   local group1 targets t missing=""
   group1="$(awk '/^## 1\./{f=1} /^## 2\./{f=0} f' \
     "$REPO_ROOT/openspec/changes/opencode-v2-migration/tasks.md")"
