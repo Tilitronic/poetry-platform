@@ -25,7 +25,7 @@ The orchestrator holds the full picture; subagents get only their slice.
 
 | Rule | Description |
 |------|-------------|
-| **3 failures → escalate** | If coder fails the same test 3 times, re-route with hypothesis analysis. Do not loop. |
+| **3 failures → escalate** | If coder fails the same test 3 times, present the failure with hypothesis analysis to the developer (AGENTS.md section 2.3.1 cycle cap is the source of truth). Do not loop. |
 | **Re-plan limit** | Max 2 returns to architector per task. After 2, present to user: switch mode, narrow scope, or abort. **Never loop silently.** |
 | **Refactor plan → user approval** | If reviewer produces a refactor plan, present to user and wait for explicit approval. Do not apply automatically. |
 | **User rejects refactor** | Offer: (1) proceed as-is, (2) re-invoke reviewer, (3) abort. |
@@ -401,7 +401,7 @@ gates hard-throw on, and the orchestrator discipline that avoids the throws.
   the authored description and prompt. On success
   the plugin injects the immutable git envelope into the child prompt; the
   reviewer never runs git - the envelope is its only evidence.
-- Config-work routing gate: a coder/coder-escalated dispatch naming a
+- Config-work routing gate: a coder dispatch naming a
   config path throws UNLESS a verification-only marker ("verification-only",
   "read-only verification", "verify-only") is present in the dispatch text,
   OR a prior ai-specialist PARACRINE dispatch.started row exists in the
@@ -474,7 +474,7 @@ The partial-read lookup is executed BY A DELEGATED LANE whose permission
 block actually allows bash + read of the ledger - in the current config
 (.opencode/opencode.jsonc) that is coder (primary; it carries an explicit
 bash map whose `python3 *` allow admits the lookup directly, not merely the
-global "*": allow baseline) or coder-escalated (the same map). NOT eligible:
+global "*": allow baseline). NOT eligible:
 designer or memory-manager - both maps are CLOSED as of DIA-260827-ft3z
 design D6: designer carries the flat string "bash": "deny", and
 memory-manager carries a deny-first map whose only grants are read-only git
@@ -488,7 +488,7 @@ read-only lanes with
 bash: "deny" (code-navigator, reviewer, observer, conspecter, council,
 ai-specialist, ai-auditor, architector) - none can run python3. NOT
 eligible: openspec-plan - its deny-first map admits `openspec *` only, no
-free python3. Also NOT eligible: analyzer and analyzer-escalated - their
+free python3. Also NOT eligible: analyzer - its
 bash is denied outright (no shell at all since DIA-260827-ft3z), so the
 lookup below fails deterministically there. The orchestrator dispatches
 the exact query below (ROLE: verifier; verification-only - read-only

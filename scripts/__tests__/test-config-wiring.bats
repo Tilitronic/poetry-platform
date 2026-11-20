@@ -13,8 +13,7 @@
 # validate-agent-names.bats / validate-handoff.bats; this suite guards the
 # Makefile wiring seam so a future edit cannot silently drop the validators
 # (or the typecheck) from the config gate. DIA-260827-ft3z adds behavioral
-# coverage for validate-opencode-config.sh itself - the --lockstep permission-
-# clone gate (coder + analyzer base/escalated pairs) and the --doc-drift
+# coverage for validate-opencode-config.sh itself - the --doc-drift
 # deny-first doc-contract gate - because no dedicated
 # validate-opencode-config.bats exists; fixtures live under $BATS_TEST_TMPDIR
 # and the real repo config is exercised by the passing-gate test.
@@ -28,16 +27,15 @@ NODE_BIN="$(command -v node || true)"
 LIB="$REPO_ROOT/.opencode/scripts/lib/jsonc-parse.js"
 VALIDATOR="$REPO_ROOT/.opencode/scripts/validate-opencode-config.sh"
 
-# M3 (DIA-260827-ft3z): the analyzer pair markdown is a REQUIRED surface of
+# M3 (DIA-260827-ft3z): the analyzer markdown is a REQUIRED surface of
 # every --doc-drift run (a missing file is a failure, not a skip), so each
-# fixture tree carries both documents or the positive-marker failure drowns the
+# fixture tree carries the document or the positive-marker failure drowns the
 # assertion under test. Tests that need a custom analyzer.md call this first
 # and overwrite the file afterwards.
 require_analyzer_docs() {
   local tree="$1"
   mkdir -p "$tree/.opencode/agents"
   printf '# analyzer\ndeny-first bash contract.\n' > "$tree/.opencode/agents/analyzer.md"
-  printf '# analyzer-escalated\ndeny-first bash contract.\n' > "$tree/.opencode/agents/analyzer-escalated.md"
 }
 
 @test "test-config wiring: Makefile references both new validators" {
@@ -88,34 +86,11 @@ require_analyzer_docs() {
 }
 
 # ---------------------------------------------------------------------------
-# DIA-260827-ft3z: validator behavior - permission lockstep (check A) and
-# deny-first doc contract (check B). Every failure case builds a MUTATED
-# fixture under $BATS_TEST_TMPDIR and asserts the validator exits 1 with an
-# actionable message; the clean-fixture and real-config tests assert exit 0.
+# DIA-260827-ft3z: validator behavior - deny-first doc contract (check B).
+# Every failure case builds a MUTATED fixture under $BATS_TEST_TMPDIR and
+# asserts the validator exits 1 with an actionable message; the clean-fixture
+# and real-config tests assert exit 0.
 # ---------------------------------------------------------------------------
-
-@test "validator: analyzer vs analyzer-escalated permission divergence fails lockstep (DIA-260827-ft3z)" {
-  [ -n "$NODE_BIN" ] || skip "node is required to run jsonc-parse.js"
-  local tree="$BATS_TEST_TMPDIR/lockstep-diverge"
-  mkdir -p "$tree/.opencode"
-  cat > "$tree/.opencode/opencode.jsonc" <<'JSONC'
-{
-  "agent": {
-    "coder": { "permission": { "doom_loop": "deny", "task": "deny", "bash": { "*": "deny" } } },
-    "coder-escalated": { "permission": { "doom_loop": "deny", "bash": { "*": "deny" }, "task": "deny" } },
-    "analyzer": { "permission": { "edit": { "*": "deny", "knowledge/*": "allow" }, "bash": { "*": "deny", "jq *": "allow" }, "task": "deny" } },
-    "analyzer-escalated": { "permission": { "edit": { "*": "deny", "knowledge/*": "allow" }, "bash": { "*": "deny", "rg *": "allow" }, "task": "deny" } }
-  }
-}
-JSONC
-  run "$NODE_BIN" "$LIB" --lockstep "$tree/.opencode/opencode.jsonc"
-  assert_status 1
-  # names both agents and the differing path inside the permission object
-  assert_output_contains "analyzer / analyzer-escalated permission lockstep broken"
-  assert_output_contains "value differs at bash"
-  # the coder pair in the same fixture is clean - the failure stays isolated
-  assert_output_not_contains "coder / coder-escalated permission lockstep broken"
-}
 
 @test "validator: deny-first agent md claiming bash: allow fails doc-drift (DIA-260827-ft3z)" {
   [ -n "$NODE_BIN" ] || skip "node is required to run jsonc-parse.js"
@@ -154,17 +129,14 @@ JSONC
   assert_output_contains "Mermaid CLI"
 }
 
-@test "validator: clean fixture tree passes lockstep and doc-drift (DIA-260827-ft3z)" {
+@test "validator: clean fixture tree passes doc-drift (DIA-260827-ft3z)" {
   [ -n "$NODE_BIN" ] || skip "node is required to run jsonc-parse.js"
   local tree="$BATS_TEST_TMPDIR/clean-fixture"
   mkdir -p "$tree/.opencode/agents"
   cat > "$tree/.opencode/opencode.jsonc" <<'JSONC'
 {
   "agent": {
-    "coder": { "permission": { "task": "deny", "bash": { "*": "deny" } } },
-    "coder-escalated": { "permission": { "bash": { "*": "deny" }, "task": "deny" } },
-    "analyzer": { "permission": { "edit": { "*": "deny", "knowledge/*": "allow" }, "bash": { "*": "deny", "jq *": "allow" }, "task": "deny" } },
-    "analyzer-escalated": { "permission": { "edit": { "*": "deny", "knowledge/*": "allow" }, "bash": { "*": "deny", "jq *": "allow" }, "task": "deny" } }
+    "analyzer": { "permission": { "edit": { "*": "deny", "knowledge/*": "allow" }, "bash": { "*": "deny", "jq *": "allow" }, "task": "deny" } }
   }
 }
 JSONC
@@ -172,19 +144,9 @@ JSONC
 # analyzer
 bash: deny-first enum - jq, rg, wc; everything else denied.
 MD
-  cat > "$tree/.opencode/agents/analyzer-escalated.md" <<'MD'
-# analyzer-escalated
-bash: deny-first enum - jq, rg, wc; everything else denied.
-MD
   cat > "$tree/.opencode/oh-my-opencode-slim.jsonc" <<'JSONC'
 { "agents": { "analyzer": { "orchestratorPrompt": "analyzer\n- bash limited to jq, rg, wc; else deny" } } }
 JSONC
-  run "$NODE_BIN" "$LIB" --lockstep "$tree/.opencode/opencode.jsonc"
-  assert_status 0
-  assert_output_contains "ok: analyzer/analyzer-escalated permission lockstep"
-  # depth-honest success line (G1): top-level keys AND leaf rules, plus the
-  # agent names actually compared. Fixture permission = edit(2) + bash(2) + task(1).
-  assert_output_contains "(3 keys, 5 rules: analyzer, analyzer-escalated)"
   run "$NODE_BIN" "$LIB" --doc-drift "$tree/.opencode/opencode.jsonc"
   assert_status 0
   assert_output_contains "ok: deny-first doc contract"
@@ -211,10 +173,6 @@ JSONC
 # analyzer
 bash: deny-first enum - jq, rg, wc; everything else denied.
 MD
-  cat > "$tree/.opencode/agents/analyzer-escalated.md" <<'MD'
-# analyzer-escalated
-bash: deny-first enum - jq, rg, wc; everything else denied.
-MD
   cat > "$tree/.opencode/agents/prompt-only-agent.md" <<'MD'
 # prompt-only-agent
 This doc claims bash: allow but the agent has no bash map at all.
@@ -230,44 +188,36 @@ MD
   [ -n "$NODE_BIN" ] || skip "node is required to run validate-opencode-config.sh"
   run bash "$VALIDATOR"
   assert_status 0
-  # both new check modes are wired into the entry point (their ok lines only
-  # print when the shell script invokes them)
-  assert_output_contains "ok: analyzer/analyzer-escalated permission lockstep"
+  # the deny-first doc-contract check is wired into the entry point (its ok
+  # line only prints when the shell script invokes it)
   assert_output_contains "ok: deny-first doc contract"
   assert_output_contains "ok: all OpenCode config files are valid JSONC"
-  # G1 depth honesty on the REAL maps: analyzer permission is edit(2) +
-  # bash(1) + task(1) = 4 leaf rules behind 3 top-level keys (bash is now the
-  # flat string "deny", so it contributes one leaf rule, not a 23-rule object).
-  assert_output_contains "(3 keys, 4 rules: analyzer, analyzer-escalated)"
   # G3 widened scope on the REAL tree: the eight flat-"deny" agents plus the
   # deny-first object maps. DIA-260827-ft3z design D1/D6 moved three more
   # lanes INTO scope: researcher and designer now carry flat "bash": "deny"
   # and memory-manager a deny-first map, so all three are checked for
-  # flat-allow doc claims (15 total; before the migration it was 12, with
-  # researcher OUT on purpose behind its curl/wget allow-list).
-  assert_output_contains "15 in-scope agents"
-  assert_output_contains "orchestrator, architector, analyzer, analyzer-escalated, reviewer, code-navigator"
+  # flat-allow doc claims (14 total after the escalated-agent removal).
+  assert_output_contains "14 in-scope agents"
+  assert_output_contains "orchestrator, architector, analyzer, reviewer, code-navigator"
 }
 
-@test "config: analyzer maps pin bash as the flat string deny with no allow rules and matching edit/task (DIA-260827-ft3z)" {
+@test "config: analyzer map pins bash as the flat string deny with no allow rules (DIA-260827-ft3z)" {
   [ -n "$NODE_BIN" ] || skip "node is required to run jsonc-parse.js"
-  # No-shell pin (DIA-260827-ft3z): both analyzer lanes dropped the deny-first
-  # bash OBJECT for the flat string "deny" - they have no shell at all. Parses
+  # No-shell pin (DIA-260827-ft3z): the analyzer lane dropped the deny-first
+  # bash OBJECT for the flat string "deny" - it has no shell at all. Parses
   # the REAL .opencode/opencode.jsonc with the SAME JSONC parser the config
   # gate uses - jsonc-parse.js exports no module API, so its function
   # definitions (everything before the CLI argv dispatch) are evaluated here
   # instead of writing a second parser. What it pins:
-  #   1. bash is EXACTLY the string "deny" in both maps - not an object, not
-  #      a deny-first enum that merely looks closed;
+  #   1. bash is EXACTLY the string "deny" - not an object, not a deny-first
+  #      enum that merely looks closed;
   #   2. no bash allow rule survives of any kind: the jq/rg/wc enum entries,
   #      the data-reduce wrapper forms, the fixed-path query_rag.py form, the
   #      bare+starred openspec subcommands and the whole rg --pre deny block
   #      are ALL gone (the ordering constraint the previous case pinned - deny
-  #      after allow - has no meaning without an allow to shadow);
-  #   3. the edit map and the task value are present and identical between
-  #      the two lanes, so lockstep equality is not vacuous on a shared hole.
-  # Fails against the pre-996aa9aa config (23-rule bash object per lane) and
-  # against any reintroduction of a single allow rule.
+  #      after allow - has no meaning without an allow to shadow).
+  # Fails against the pre-996aa9aa config (23-rule bash object) and against
+  # any reintroduction of a single allow rule.
   run "$NODE_BIN" -e '
     const fs = require("fs");
     const lib = process.argv[1];
@@ -284,73 +234,39 @@ MD
     // subcommands and the preprocessor deny block.
     const GONE = ["jq", "rg", "wc", "data-reduce", "query_rag.py", "openspec", "--pre"];
     const problems = [];
-    for (const name of ["analyzer", "analyzer-escalated"]) {
-      const perm = (cfg.agent[name] || {}).permission || {};
-      const bash = perm.bash;
-      if (bash !== "deny") problems.push(name + ": bash is " + JSON.stringify(bash) + ", expected the flat string \"deny\"");
-      if (bash && typeof bash === "object") {
-        for (const k of Object.keys(bash)) {
-          if (bash[k] === "allow") problems.push(name + ": bash still carries an allow rule: " + k);
-          for (const g of GONE) if (k.includes(g)) problems.push(name + ": bash still lists the abandoned " + g + " form: " + k);
-        }
+    const perm = (cfg.agent["analyzer"] || {}).permission || {};
+    const bash = perm.bash;
+    if (bash !== "deny") problems.push("analyzer: bash is " + JSON.stringify(bash) + ", expected the flat string \"deny\"");
+    if (bash && typeof bash === "object") {
+      for (const k of Object.keys(bash)) {
+        if (bash[k] === "allow") problems.push("analyzer: bash still carries an allow rule: " + k);
+        for (const g of GONE) if (k.includes(g)) problems.push("analyzer: bash still lists the abandoned " + g + " form: " + k);
       }
     }
-    const a = (cfg.agent["analyzer"] || {}).permission || {};
-    const b = (cfg.agent["analyzer-escalated"] || {}).permission || {};
-    if (!a.edit || !b.edit) problems.push("edit map missing on a lane: analyzer=" + JSON.stringify(a.edit) + " analyzer-escalated=" + JSON.stringify(b.edit));
-    else if (JSON.stringify(a.edit) !== JSON.stringify(b.edit)) problems.push("edit maps differ between analyzer and analyzer-escalated: " + JSON.stringify(a.edit) + " vs " + JSON.stringify(b.edit));
-    if (!("task" in a) || !("task" in b)) problems.push("task value missing on a lane: analyzer=" + JSON.stringify(a.task) + " analyzer-escalated=" + JSON.stringify(b.task));
-    else if (a.task !== b.task) problems.push("task values differ between analyzer and analyzer-escalated: " + JSON.stringify(a.task) + " vs " + JSON.stringify(b.task));
     if (problems.length > 0) { console.error(problems.join("\n")); process.exit(1); }
-    console.log("ok: analyzer maps pin bash as the flat string deny with no allow rules and matching edit/task");
+    console.log("ok: analyzer map pins bash as the flat string deny with no allow rules");
   ' "$LIB" "$REPO_ROOT/.opencode/opencode.jsonc"
   assert_status 0
-  assert_output_contains "ok: analyzer maps pin bash as the flat string deny with no allow rules and matching edit/task"
+  assert_output_contains "ok: analyzer map pins bash as the flat string deny with no allow rules"
 }
 
 # ---------------------------------------------------------------------------
-# DIA-260827-ft3z G1/G2/G3 hardening: non-vacuous lockstep, semantic
-# restriction + edit/bash invariant, widened check-B scope and matching.
+# DIA-260827-ft3z G1/G2/G3 hardening: semantic restriction + edit/bash
+# invariant, widened check-B scope and matching.
 # ---------------------------------------------------------------------------
 
-@test "validator: missing analyzer pair members fail lockstep instead of a vacuous green (DIA-260827-ft3z)" {
+@test "validator: flat bash allow on a deny-scoped lane fails the edit/bash invariant (DIA-260827-ft3z)" {
   [ -n "$NODE_BIN" ] || skip "node is required to run jsonc-parse.js"
-  local tree="$BATS_TEST_TMPDIR/lockstep-missing"
-  mkdir -p "$tree/.opencode"
-  # Both analyzer entries removed. The old gate picked an empty object for both
-  # sides, compared nothing and printed "0 keys compared" - green with zero
-  # coverage. The coder pair in the same fixture is clean and must stay green.
-  cat > "$tree/.opencode/opencode.jsonc" <<'JSONC'
-{
-  "agent": {
-    "coder": { "permission": { "task": "deny", "bash": { "*": "deny" } } },
-    "coder-escalated": { "permission": { "bash": { "*": "deny" }, "task": "deny" } }
-  }
-}
-JSONC
-  run "$NODE_BIN" "$LIB" --lockstep "$tree/.opencode/opencode.jsonc"
-  assert_status 1
-  assert_output_contains 'pair analyzer/analyzer-escalated: missing member "analyzer"'
-  assert_output_contains 'pair analyzer/analyzer-escalated: missing member "analyzer-escalated"'
-  assert_output_not_contains "0 keys compared"
-  assert_output_not_contains "ok: analyzer/analyzer-escalated"
-  assert_output_not_contains "coder / coder-escalated permission lockstep broken"
-}
-
-@test "validator: both analyzer members flat bash allow fail the edit/bash invariant (DIA-260827-ft3z)" {
-  [ -n "$NODE_BIN" ] || skip "node is required to run jsonc-parse.js"
-  local tree="$BATS_TEST_TMPDIR/flat-allow-pair"
+  local tree="$BATS_TEST_TMPDIR/flat-allow-lane"
   mkdir -p "$tree/.opencode"
   require_analyzer_docs "$tree"
-  # Coordinated regression of BOTH pair members to a flat "bash": "allow": the
-  # lockstep equality check still passes (they are equal), the old key-position
-  # predicate skipped them (not an object), and nothing failed. The G2 invariant
-  # is what closes it.
+  # A flat "bash": "allow" on a deny-scoped lane: the old key-position
+  # predicate skipped it (not an object), and nothing failed.
+  # The G2 invariant is what closes it.
   cat > "$tree/.opencode/opencode.jsonc" <<'JSONC'
 {
   "agent": {
-    "analyzer": { "permission": { "edit": { "*": "deny", "knowledge/*": "allow" }, "bash": "allow", "task": "deny" } },
-    "analyzer-escalated": { "permission": { "edit": { "*": "deny", "knowledge/*": "allow" }, "bash": "allow", "task": "deny" } }
+    "analyzer": { "permission": { "edit": { "*": "deny", "knowledge/*": "allow" }, "bash": "allow", "task": "deny" } }
   }
 }
 JSONC
@@ -358,8 +274,7 @@ JSONC
   assert_status 1
   assert_output_contains "deny-scoped edit with unrestricted bash"
   assert_output_contains "analyzer: edit is deny-scoped but bash is not"
-  assert_output_contains "analyzer-escalated: edit is deny-scoped but bash is not"
-  # flat allow is not deny-scoped, so these two are OUT of the doc-drift scope
+  # flat allow is not deny-scoped, so the lane is OUT of the doc-drift scope
   assert_output_not_contains "deny-first doc contract drift"
 }
 
@@ -482,7 +397,7 @@ MD
   [ "$hit_lines" -eq 2 ]
 }
 
-@test "validator: analyzer pair documents must state the deny-first contract (DIA-260827-ft3z)" {
+@test "validator: the analyzer document must state the deny-first contract (DIA-260827-ft3z)" {
   [ -n "$NODE_BIN" ] || skip "node is required to run jsonc-parse.js"
   local tree="$BATS_TEST_TMPDIR/positive-invariant"
   mkdir -p "$tree/.opencode/agents"
@@ -490,8 +405,7 @@ MD
   cat > "$tree/.opencode/opencode.jsonc" <<'JSONC'
 {
   "agent": {
-    "analyzer": { "permission": { "edit": { "*": "deny", "knowledge/*": "allow" }, "bash": { "*": "deny", "jq *": "allow" } } },
-    "analyzer-escalated": { "permission": { "edit": { "*": "deny", "knowledge/*": "allow" }, "bash": { "*": "deny", "jq *": "allow" } } }
+    "analyzer": { "permission": { "edit": { "*": "deny", "knowledge/*": "allow" }, "bash": { "*": "deny", "jq *": "allow" } } }
   }
 }
 JSONC
@@ -516,10 +430,10 @@ MD
 # against a probe-B-only predicate - and passes after the fix; a [G] case pins
 # behaviour that was ALREADY correct when written and only guards against a
 # regression. [G] in this section: "every remaining forbidden phrase fires at
-# least once" and "the deny-first marker is scoped to the analyzer pair" were
+# least once" and "the deny-first marker is scoped to the analyzer agent" were
 # guards from the start, as are the R7 additions that pin untested acceptance
-# details (success-line pluralization, the no-permission-object branch) rather
-# than close a hole. The former "memory-manager exemption" R7 case is no
+# details (the preset orchestratorPrompt surface) rather than close a hole.
+# The former "memory-manager exemption" R7 case is no
 # longer a [G] guard: design D6 emptied EXEMPT_EDIT_BASH, so that case now
 # pins the emptied set (the same fixture must FAIL loudly) - see the
 # "emptied exemption set" case below.
@@ -539,7 +453,6 @@ MD
 {
   "agent": {
     "analyzer": { "permission": { "edit": { "*": "deny", "knowledge/*": "allow" }, "bash": { "*": "deny", "jq *": "allow" }, "task": "deny" } },
-    "analyzer-escalated": { "permission": { "edit": { "*": "deny", "knowledge/*": "allow" }, "bash": { "*": "deny", "jq *": "allow" }, "task": "deny" } },
     "c1-python": { "permission": { "edit": { "*": "deny", "knowledge/*": "allow" }, "bash": { "*": "deny", "python3 *": "allow" } } },
     "c1-bashc": { "permission": { "edit": { "*": "deny" }, "bash": { "*": "deny", "bash -c *": "allow" } } }
   }
@@ -649,7 +562,6 @@ MD
 {
   "agent": {
     "analyzer": { "permission": { "edit": { "*": "deny", "knowledge/*": "allow" }, "bash": { "*": "deny", "jq *": "allow" }, "task": "deny" } },
-    "analyzer-escalated": { "permission": { "edit": { "*": "deny", "knowledge/*": "allow" }, "bash": { "*": "deny", "jq *": "allow" }, "task": "deny" } },
     "coder": { "permission": { "bash": "allow" } }
   }
 }
@@ -740,68 +652,6 @@ JSONC
   assert_status 1
   assert_output_contains "analyzer: required agent document missing:"
   assert_output_contains "agents/analyzer.md"
-  assert_output_contains "analyzer-escalated: required agent document missing:"
-  assert_output_contains "agents/analyzer-escalated.md"
-}
-
-@test "validator: lockstep rejects an empty permission object (DIA-260827-ft3z G1)" {
-  [ -n "$NODE_BIN" ] || skip "node is required to run jsonc-parse.js"
-  local tree="$BATS_TEST_TMPDIR/empty-permission"
-  mkdir -p "$tree/.opencode"
-  cat > "$tree/.opencode/opencode.jsonc" <<'JSONC'
-{
-  "agent": {
-    "analyzer": { "permission": {} },
-    "analyzer-escalated": { "permission": { "bash": { "*": "deny" }, "task": "deny" } }
-  }
-}
-JSONC
-  run "$NODE_BIN" "$LIB" --lockstep "$tree/.opencode/opencode.jsonc"
-  assert_status 1
-  assert_output_contains 'pair analyzer/analyzer-escalated: member "analyzer" has an empty permission object'
-  assert_output_not_contains "ok: analyzer/analyzer-escalated"
-}
-
-@test "validator: lockstep rejects a map that is all task-related exemptions (DIA-260827-ft3z G1)" {
-  [ -n "$NODE_BIN" ] || skip "node is required to run jsonc-parse.js"
-  local tree="$BATS_TEST_TMPDIR/all-exempt"
-  mkdir -p "$tree/.opencode"
-  cat > "$tree/.opencode/opencode.jsonc" <<'JSONC'
-{
-  "agent": {
-    "coder": { "permission": { "task": "deny" } },
-    "coder-escalated": { "permission": { "task": "deny" } },
-    "analyzer": { "permission": { "bash": { "*": "deny" }, "task": "deny" } },
-    "analyzer-escalated": { "permission": { "bash": { "*": "deny" }, "task": "deny" } }
-  }
-}
-JSONC
-  run "$NODE_BIN" "$LIB" --lockstep "$tree/.opencode/opencode.jsonc"
-  assert_status 1
-  assert_output_contains 'pair coder/coder-escalated: member "coder" has no comparable permission keys left after exemptions'
-  assert_output_contains 'pair coder/coder-escalated: member "coder-escalated" has no comparable permission keys left after exemptions'
-  assert_output_not_contains "ok: coder/coder-escalated"
-}
-
-@test "validator: lockstep rejects permission keys carrying zero leaf rules (DIA-260827-ft3z M4)" {
-  [ -n "$NODE_BIN" ] || skip "node is required to run jsonc-parse.js"
-  local tree="$BATS_TEST_TMPDIR/zero-rules"
-  mkdir -p "$tree/.opencode"
-  # {"bash":{}} has a key but no rule: the old gate printed "1 keys, 0 rules"
-  # and went green on zero rule coverage.
-  cat > "$tree/.opencode/opencode.jsonc" <<'JSONC'
-{
-  "agent": {
-    "analyzer": { "permission": { "bash": {} } },
-    "analyzer-escalated": { "permission": { "bash": {} } }
-  }
-}
-JSONC
-  run "$NODE_BIN" "$LIB" --lockstep "$tree/.opencode/opencode.jsonc"
-  assert_status 1
-  assert_output_contains 'member "analyzer" has 0 leaf rules'
-  assert_output_contains 'member "analyzer-escalated" has 0 leaf rules'
-  assert_output_not_contains "ok: analyzer/analyzer-escalated"
 }
 
 @test "validator: an undeclared agent resolves edit and bash through the global block (DIA-260827-ft3z G2)" {
@@ -874,13 +724,13 @@ MD
   [ "$hit_lines" -eq 5 ]
 }
 
-@test "validator: the deny-first marker is scoped to the analyzer pair (DIA-260827-ft3z C2)" {
+@test "validator: the deny-first marker is scoped to the analyzer agent (DIA-260827-ft3z C2)" {
   [ -n "$NODE_BIN" ] || skip "node is required to run jsonc-parse.js"
   local tree="$BATS_TEST_TMPDIR/marker-confine"
   mkdir -p "$tree/.opencode"
   require_analyzer_docs "$tree"
-  # other-lane is in scope (deny-first bash map) but is NOT part of the
-  # analyzer pair, so its document may omit the deny-first marker.
+  # other-lane is in scope (deny-first bash map) but is NOT the analyzer
+  # agent, so its document may omit the deny-first marker.
   cat > "$tree/.opencode/opencode.jsonc" <<'JSONC'
 { "agent": { "other-lane": { "permission": { "edit": "deny", "bash": { "*": "deny", "jq *": "allow" } } } } }
 JSONC
@@ -925,32 +775,6 @@ MD
   assert_output_not_contains "deny-first doc contract drift"
 }
 
-@test "validator: an empty key inside a populated permission map fails lockstep (DIA-260827-ft3z R2) [D]" {
-  [ -n "$NODE_BIN" ] || skip "node is required to run jsonc-parse.js"
-  local tree="$BATS_TEST_TMPDIR/r2-empty-key"
-  mkdir -p "$tree/.opencode"
-  # {"bash": {}, "task": "deny"}: the AGGREGATE leaf count is 1 (from task),
-  # so the old check went green while bash carried zero rules. The check is per
-  # key now and names every empty one.
-  cat > "$tree/.opencode/opencode.jsonc" <<'JSONC'
-{
-  "agent": {
-    "coder": { "permission": { "task": "deny", "bash": { "*": "deny" } } },
-    "coder-escalated": { "permission": { "task": "deny", "bash": { "*": "deny" } } },
-    "analyzer": { "permission": { "bash": {}, "task": "deny" } },
-    "analyzer-escalated": { "permission": { "bash": {}, "task": "deny" } }
-  }
-}
-JSONC
-  run "$NODE_BIN" "$LIB" --lockstep "$tree/.opencode/opencode.jsonc"
-  assert_status 1
-  assert_output_contains 'pair analyzer/analyzer-escalated: member "analyzer" has 0 leaf rules in key(s): bash'
-  assert_output_contains 'pair analyzer/analyzer-escalated: member "analyzer-escalated" has 0 leaf rules in key(s): bash'
-  # the clean coder pair in the same fixture stays green
-  assert_output_not_contains "coder / coder-escalated permission lockstep broken"
-  assert_output_not_contains "ok: analyzer/analyzer-escalated"
-}
-
 @test "validator: negation markers are word-bounded and clause-scoped (DIA-260827-ft3z R4) [D]" {
   [ -n "$NODE_BIN" ] || skip "node is required to run jsonc-parse.js"
   local tree="$BATS_TEST_TMPDIR/r4-negation-bounds"
@@ -991,7 +815,6 @@ MD
 {
   "agent": {
     "analyzer": { "permission": { "edit": { "*": "deny", "knowledge/*": "allow" }, "bash": { "*": "deny", "jq *": "allow" }, "task": "deny" } },
-    "analyzer-escalated": { "permission": { "edit": { "*": "deny", "knowledge/*": "allow" }, "bash": { "*": "deny", "jq *": "allow" }, "task": "deny" } },
     "coder": { "permission": { "bash": "allow" } }
   }
 }
@@ -1038,28 +861,6 @@ MD
   assert_output_not_contains "deny-first doc contract drift"
 }
 
-@test "validator: the lockstep success line pluralizes a single key and rule (DIA-260827-ft3z R7) [G]" {
-  [ -n "$NODE_BIN" ] || skip "node is required to run jsonc-parse.js"
-  local tree="$BATS_TEST_TMPDIR/r7-singular"
-  mkdir -p "$tree/.opencode"
-  # One top-level key carrying exactly one leaf rule: the acceptance detail is
-  # "1 key, 1 rule" (never "1 keys, 1 rules").
-  cat > "$tree/.opencode/opencode.jsonc" <<'JSONC'
-{
-  "agent": {
-    "coder": { "permission": { "bash": { "*": "deny" }, "task": "deny" } },
-    "coder-escalated": { "permission": { "bash": { "*": "deny" }, "task": "deny" } },
-    "analyzer": { "permission": { "bash": { "*": "deny" } } },
-    "analyzer-escalated": { "permission": { "bash": { "*": "deny" } } }
-  }
-}
-JSONC
-  run "$NODE_BIN" "$LIB" --lockstep "$tree/.opencode/opencode.jsonc"
-  assert_status 0
-  assert_output_contains "(1 key, 1 rule: analyzer, analyzer-escalated)"
-  assert_output_not_contains "1 keys"
-  assert_output_not_contains "2 rules"
-}
 
 @test "validator: the emptied exemption set makes memory-manager fail loudly (DIA-260827-ft3z D6)" {
   [ -n "$NODE_BIN" ] || skip "node is required to run jsonc-parse.js"
@@ -1080,28 +881,6 @@ JSONC
   assert_status 1
   assert_output_contains "deny-scoped edit with unrestricted bash"
   assert_output_contains "memory-manager: edit is deny-scoped"
-}
-
-@test "validator: lockstep rejects a pair member with no permission object at all (DIA-260827-ft3z R7) [G]" {
-  [ -n "$NODE_BIN" ] || skip "node is required to run jsonc-parse.js"
-  local tree="$BATS_TEST_TMPDIR/r7-no-permission"
-  mkdir -p "$tree/.opencode"
-  # The agent is configured but declares NO permission key (distinct from the
-  # `permission: {}` empty-object case covered above).
-  cat > "$tree/.opencode/opencode.jsonc" <<'JSONC'
-{
-  "agent": {
-    "coder": { "permission": { "task": "deny", "bash": { "*": "deny" } } },
-    "coder-escalated": { "permission": { "task": "deny", "bash": { "*": "deny" } } },
-    "analyzer": {},
-    "analyzer-escalated": { "permission": { "bash": { "*": "deny" }, "task": "deny" } }
-  }
-}
-JSONC
-  run "$NODE_BIN" "$LIB" --lockstep "$tree/.opencode/opencode.jsonc"
-  assert_status 1
-  assert_output_contains 'pair analyzer/analyzer-escalated: member "analyzer" has no permission object'
-  assert_output_not_contains "ok: analyzer/analyzer-escalated"
 }
 
 @test "validator: a preset orchestratorPrompt claiming an allow is caught (DIA-260827-ft3z R7) [G]" {
@@ -1189,7 +968,6 @@ JSONC
 {
   "agent": {
     "analyzer": { "permission": { "edit": { "*": "deny", "knowledge/*": "allow" }, "bash": { "*": "deny", "jq *": "allow" }, "task": "deny" } },
-    "analyzer-escalated": { "permission": { "edit": { "*": "deny", "knowledge/*": "allow" }, "bash": { "*": "deny", "jq *": "allow" }, "task": "deny" } },
     "researcher": { "permission": { "edit": { "*": "deny", "knowledge/*": "allow" }, "bash": { "*": "deny", "curl *": "allow" } } }
   }
 }

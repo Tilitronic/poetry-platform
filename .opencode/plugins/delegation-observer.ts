@@ -2361,7 +2361,7 @@ const delegationObserver: Plugin = async (ctx) => {
       }
 
       // === DIA-260827-ft3z D5: bash write tripwire (task 4.2) ===
-      // Accident protection for the two implementation lanes that keep a
+      // Accident protection for the implementation lane that keeps a
       // shell. A throw from this hook skips item.execute (the established
       // block mechanism in this file, same as the apoptosis/reviewer gates
       // above), and it fires BEFORE the permission layer because permission
@@ -2405,7 +2405,7 @@ const delegationObserver: Plugin = async (ctx) => {
             })
             throw new Error(
               `PROTECTED-PATH TRIPWIRE: bash write denied (rule: ${verdict.rule}) -> ${verdict.target}\n` +
-                "Accident protection for coder/coder-escalated (DIA-260827-ft3z design D5): " +
+                "Accident protection for coder (DIA-260827-ft3z design D5): " +
                 "writes resolving under .git/, .opencode/session/, or docs/dev-infra-audit/tickets/ " +
                 "are denied before execution.\n" +
                 "Action: pick a destination outside the protected set."
@@ -2471,7 +2471,7 @@ const delegationObserver: Plugin = async (ctx) => {
           // Decision logic lives in ./lib/routing-gate.ts (DIA-260827-uv:
           // single source of truth shared with the node:test suite).
           // Runs BEFORE the ticket-gate early returns so it fires for ALL
-          // task() calls where subagent_type is coder/coder-escalated and
+          // task() calls where subagent_type is coder and
           // prompt contains config-work paths. BLOCKING: the dispatch is
           // rejected when @ai-specialist gate review has not been completed
           // in this session. Matching the §10 edit gate pattern.

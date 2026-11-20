@@ -40,9 +40,9 @@ export function isConfigWorkDispatch(dispatchText: string): boolean {
 export const VERIFICATION_ONLY_PATTERN =
   /\b(verification.only|read.only.verif\w*|verify.only)\b/i
 
-/** Check if a subagent type is a coder variant. */
+/** Check if a subagent type is the single implementation lane (coder). */
 export function isCoderAgent(subagentType: string): boolean {
-  return subagentType === "coder" || subagentType === "coder-escalated"
+  return subagentType === "coder"
 }
 
 type FsDeps = {
@@ -107,7 +107,7 @@ export type RoutingGateResult = {
 }
 
 /**
- * Full routing-order gate decision: coder variant + config-work paths +
+ * Full routing-order gate decision: implementation lane + config-work paths +
  * no prior @ai-specialist dispatch in this session => violation.
  * Mirrors the tool.execute.before control flow in delegation-observer.ts
  * (fires BEFORE any ticket-gate early return).

@@ -7,12 +7,6 @@
 //
 // Usage:
 //   node jsonc-parse.js <file>              exit 0 iff <file> parses as JSON(C)
-//   node jsonc-parse.js --lockstep <file>   compare the coder and analyzer
-//                                           base/escalated permission maps;
-//                                           every pair member must be present
-//                                           with a non-empty permission map
-//                                           first (no vacuous green);
-//                                           exit 1 + diff on drift
 //   node jsonc-parse.js --doc-drift <file>  bash-RESTRICTED agents (resolved
 //                                           semantically, not by key order)
 //                                           must not claim a flat allow in any
@@ -69,24 +63,6 @@ function parseJsonc(file) {
 }
 
 const args = process.argv.slice(2);
-
-// Deepest dotted path inside two values that JSON.stringify-differ. Order-
-// sensitive (JSON.stringify), mirroring the F2 lockstep comparison semantics;
-// a key-order-only divergence reports the container path whose order differs.
-function firstDiffPath(a, b, prefix) {
-  if (JSON.stringify(a) === JSON.stringify(b)) return null;
-  if (a === null || typeof a !== 'object' || b === null || typeof b !== 'object') {
-    return prefix;
-  }
-  const keys = Array.from(new Set(Object.keys(a).concat(Object.keys(b))));
-  for (const k of keys) {
-    const p = prefix + '.' + k;
-    if (!(k in a) || !(k in b) || JSON.stringify(a[k]) !== JSON.stringify(b[k])) {
-      return firstDiffPath(a[k], b[k], p) || p;
-    }
-  }
-  return prefix;
-}
 
 // --- semantic permission helpers (DIA-260827-ft3z G2) ------------------------
 // OpenCode resolves a permission map with findLast over the merged rule list
@@ -221,147 +197,6 @@ function effectivePermission(agentPermission, globalPermission, key) {
   return declared !== undefined ? declared : (globalPermission || {})[key];
 }
 
-// Each top-level permission key expands to leaf rules: a string is one rule, an
-// object contributes its own entries (recursed), an array its items. The
-// lockstep success line reports both numbers so a ten-rule bash map cannot hide
-// behind a "3 keys compared" count.
-function countLeafRules(value) {
-  if (value === null || typeof value !== 'object') return 1;
-  if (Array.isArray(value)) return value.reduce((n, v) => n + countLeafRules(v), 0);
-  return Object.values(value).reduce((n, v) => n + countLeafRules(v), 0);
-}
-
-if (args[0] === '--lockstep') {
-  // DIA-260825-nts7 fix-all batch F2: coder-escalated is documented as an
-  // EXACT clone of the base coder permission map plus task-related keys, but
-  // nothing enforced that - the maps already drifted once (reviewer finding).
-  // DIA-260827-ft3z check A extends the same gate to the analyzer pair:
-  // analyzer-escalated is documented as an exact clone of base analyzer, and
-  // the two maps could diverge with nothing noticing. One comparison, deep-
-  // equal on every permission key except the per-pair exemptions:
-  //   coder pair      - task-related keys exempt (the escalated lane denies
-  //                     delegation by design; base coder carries no task key
-  //                     of its own to compare against).
-  //   analyzer pair   - NO exemption: both lanes already carry task:"deny"
-  //                     (base analyzer denies task), so the keys are equal;
-  //                     exempting them would only mask a future divergence.
-  const cfg = parseJsonc(args[1]);
-  const agents = cfg.agent || {};
-  const pick = (perm, exempt) => {
-    const out = {};
-    for (const k of Object.keys(perm || {}).sort()) {
-      if (!exempt.has(k)) out[k] = perm[k];
-    }
-    return out;
-  };
-  const PAIRS = [
-    {
-      base: 'coder',
-      esc: 'coder-escalated',
-      exempt: new Set(['task']), // escalated lane adds task:"deny" by design
-      fix: 'keep coder-escalated permissions an exact clone of coder minus task-related keys',
-    },
-    {
-      base: 'analyzer',
-      esc: 'analyzer-escalated',
-      exempt: new Set(),
-      fix: 'keep analyzer-escalated permissions an exact clone of analyzer',
-    },
-  ];
-  const failures = [];
-  const successes = [];
-  for (const pair of PAIRS) {
-    const pairProblems = [];
-    let a = null;
-    let b = null;
-    // G1: a missing or empty member used to pick an empty object for BOTH
-    // sides, so the comparison below saw nothing and still printed a green
-    // line - a green gate with zero coverage is worse than no gate. Every
-    // member must be present with a non-empty, post-exemption permission map
-    // before anything is compared, and each failure names the pair member.
-    const members = [
-      { role: pair.base, agent: agents[pair.base], picked: 'a' },
-      { role: pair.esc, agent: agents[pair.esc], picked: 'b' },
-    ];
-    for (const member of members) {
-      const perm = member.agent && member.agent.permission;
-      if (!member.agent || typeof member.agent !== 'object') {
-        pairProblems.push(
-          `pair ${pair.base}/${pair.esc}: missing member "${member.role}" (agent not configured)`
-        );
-      } else if (!perm || typeof perm !== 'object' || Array.isArray(perm)) {
-        pairProblems.push(
-          `pair ${pair.base}/${pair.esc}: member "${member.role}" has no permission object`
-        );
-      } else if (Object.keys(perm).length === 0) {
-        pairProblems.push(
-          `pair ${pair.base}/${pair.esc}: member "${member.role}" has an empty permission object`
-        );
-      } else {
-        const picked = pick(perm, pair.exempt);
-        if (Object.keys(picked).length === 0) {
-          pairProblems.push(
-            `pair ${pair.base}/${pair.esc}: member "${member.role}" has no comparable permission keys left after exemptions`
-          );
-        } else {
-          // M4/R2: check PER KEY, not on the aggregate count. {"bash":{},
-          // "task":"deny"} used to green here - the aggregate saw the one
-          // "deny" leaf rule while bash carried none - and the comparison
-          // below would then report "1 keys, 1 rules" for zero bash coverage.
-          // Every empty key is named so the fix is unambiguous.
-          const emptyKeys = Object.keys(picked).filter((k) => countLeafRules(picked[k]) === 0);
-          if (emptyKeys.length > 0) {
-            pairProblems.push(
-              `pair ${pair.base}/${pair.esc}: member "${member.role}" has 0 leaf rules in key(s): ${emptyKeys.join(', ')} (an empty permission key such as "bash": {} carries no rule)`
-            );
-          } else if (member.picked === 'a') {
-            a = picked;
-          } else {
-            b = picked;
-          }
-        }
-      }
-    }
-    if (pairProblems.length === 0) {
-      for (const k of Object.keys(a)) {
-        if (!(k in b)) {
-          pairProblems.push(`key only in ${pair.base}: ${k}=${JSON.stringify(a[k])}`);
-        } else if (JSON.stringify(a[k]) !== JSON.stringify(b[k])) {
-          const where = firstDiffPath(a[k], b[k], k) || k;
-          pairProblems.push(
-            `value differs at ${where}: ${pair.base}=${JSON.stringify(a[k])} ${pair.esc}=${JSON.stringify(b[k])}`
-          );
-        }
-      }
-      for (const k of Object.keys(b)) {
-        if (!(k in a)) {
-          pairProblems.push(`key only in ${pair.esc}: ${k}=${JSON.stringify(b[k])}`);
-        }
-      }
-    }
-    if (pairProblems.length > 0) {
-      failures.push(`FAIL  ${pair.base} / ${pair.esc} permission lockstep broken (${args[1]}):`);
-      for (const p of pairProblems) failures.push(`  - ${p}`);
-      failures.push(`fix: ${pair.fix}`);
-    } else {
-      // Honest depth: top-level keys AND the leaf rules beneath them, plus the
-      // agent names actually compared - "3 keys" hides a twenty-rule bash map.
-      const keys = Object.keys(a).length;
-      const rules = Object.values(a).reduce((n, v) => n + countLeafRules(v), 0);
-      const note = pair.exempt.size > 0 ? ', task-related ignored' : '';
-      successes.push(
-        `ok: ${pair.base}/${pair.esc} permission lockstep (${keys} key${keys === 1 ? '' : 's'}, ${rules} rule${rules === 1 ? '' : 's'}${note}: ${pair.base}, ${pair.esc})`
-      );
-    }
-  }
-  if (failures.length > 0) {
-    for (const line of failures) console.error(line);
-    process.exit(1);
-  }
-  for (const line of successes) console.log(line);
-  process.exit(0);
-}
-
 if (args[0] === '--doc-drift') {
   // DIA-260827-ft3z check B (widened by G2/G3 of the same ticket): an agent
   // whose bash is deny-scoped must not claim a flat allow in its docs. The
@@ -469,8 +304,8 @@ if (args[0] === '--doc-drift') {
     while (at >= 0) {
       const before = hay[at - 1];
       const after = hay[at + needle.length];
-      // Word boundary on both sides, '-' included so `analyzer` does not count
-      // as a mention inside `analyzer-escalated`.
+      // Word boundary on both sides, '-' included so a shorter name does not
+      // count as a mention inside a longer hyphenated name starting with it.
       const open = before === undefined || !/[-\w]/.test(before);
       const close = after === undefined || !/[-\w]/.test(after);
       if (open && close) return true;
@@ -572,13 +407,13 @@ if (args[0] === '--doc-drift') {
     }
   }
 
-  // G3.6 positive invariant, scoped to the analyzer pair only: their documents
-  // are the ones the deny-first contract is written into, and asserting it on
+  // G3.6 positive invariant, scoped to the analyzer agent only: its document
+  // is the one the deny-first contract is written into, and asserting it on
   // every in-scope agent would only add noise. The markdown is a REQUIRED
   // surface (M3): a missing file used to `continue` silently, so deleting the
   // document removed the requirement. Negative phrase scans above stay
   // skip-on-absent (no file, no claim); this positive check does not.
-  for (const name of ['analyzer', 'analyzer-escalated']) {
+  for (const name of ['analyzer']) {
     const mdFile = path.join(dir, 'agents', name + '.md');
     if (!fs.existsSync(mdFile)) {
       problems.push(

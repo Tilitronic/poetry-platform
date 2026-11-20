@@ -1355,3 +1355,9 @@
 - **Change:** console-charting de-scoped from every agent skill list (its chart path requires python -c, which the analyzer lanes deny) and the three-way library-name typo (termatplotlib / termtplotlib / termplotlib) normalized to termatplotlib; the skill file remains on disk for future reuse. Surfaced by review DIA-260827-ft3z.
 - **Files:** .opencode/oh-my-opencode-slim.jsonc - .opencode/skills/console-charting/SKILL.md - .opencode/skills/mermaid-diagramming/SKILL.md
 - **Verification:** manual
+
+## 2026-11-20 - DIA-261112-exon: config
+
+- **Change:** Remove coder-escalated and analyzer-escalated agents
+- **Files:** .opencode/opencode.jsonc - .opencode/oh-my-opencode-slim.jsonc - AGENTS.md - .opencode/scripts/lib/jsonc-parse.js - .opencode/plugins/lib/routing-gate.ts - .opencode/plugins/lib/bash-write-gate.ts - knowledge/model-registry.yaml
+- **Verification:** manual

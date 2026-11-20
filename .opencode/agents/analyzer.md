@@ -25,9 +25,7 @@ bash: deny - deny-first with no allow rules, so this lane has no shell at
 task: deny
 ```
 
-This document is the single place the grant is written out; the
-`analyzer-escalated.md` copy and the analyzer preset prompt carry pointers
-instead of a second enumeration.
+This document is the single place the grant is written out.
 
 You CAN write analysis reports directly to `knowledge/`. No need for coder
 transcription. Do NOT register in memory-shelf.yaml yourself. Report the

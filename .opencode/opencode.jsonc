@@ -240,10 +240,8 @@
         "task": {
           "*": "deny",
           "coder": "allow",
-          "coder-escalated": "allow",
           "architector": "allow",
           "analyzer": "allow",
-          "analyzer-escalated": "allow",
           "reviewer": "allow",
           "designer": "allow",
           "code-navigator": "allow",
@@ -308,40 +306,6 @@
         "bash": "deny",
         "task": "deny"
       }
-    },
-    // analyzer-escalated — escalated analysis lane (DIA-111/DIA-108, 2026-08-12).
-    // Dispatched ONLY by the orchestrator when the base analyzer reports
-    // 'cannot comprehend domain' / abort-on-complexity. The active preset
-    // selects the escalated analysis model. hidden: true keeps it out of
-    // @autocomplete; task() dispatch
-    // still works (S2 orchestrator allow-list includes it). Permissions are an
-    // exact clone of the base analyzer (edit scoped to knowledge/* only,
-    // shelf registration delegated to @memory-manager (DIA-162 sole-writer
-    // invariant), bash denied outright with no allow rules - no shell at all,
-    // DIA-260827-ft3z - task deny). After
-    // producing output, routes back to the base analyzer/reviewer for normal
-    // flow.
-    "analyzer-escalated": {
-      "description": "Escalated analysis lane for 'cannot comprehend domain' cases. The active preset selects its model. Orchestrator-only, hidden from @autocomplete, one-shot no-retry.",
-      "mode": "subagent",
-      "color": "#14B8A6",
-      "hidden": true,
-      "permission": {
-        "edit": {
-          "*": "deny",
-          "knowledge/*": "allow"
-        },
-        // DIA-260827-ft3z: bash is denied OUTRIGHT - zero allow rules, so the
-        // lane cannot run jq, rg, wc, scripts/data-reduce.sh or
-        // any openspec subcommand. Flat string form, same shape architector /
-        // reviewer / orchestrator already use for a no-shell lane. The old
-        // deny-first object and its ordering rules left with the allowlist.
-        "bash": "deny",
-        "task": "deny"
-      },
-      // steps cap (DIA-132): max agentic iterations before forcing text-only response.
-      // Only native execution limit in AgentConfig (research res020). Start at 50.
-      "steps": 50
     },
     "reviewer": {
       "color": "#F59E0B",
@@ -458,99 +422,6 @@
           // single-target .scratch allows above remain (they work).
         }
       }
-    },
-    // coder-escalated — escalated implementation lane (DIA-111/DIA-108, 2026-08-12).
-    // Dispatched ONLY by the orchestrator on trigger: 2 consecutive failed
-    // re-review loops OR reviewer Critical severity findings. GPT-5.6 Terra
-    // High is used for the paid, complex implementation escalation. The
-    // one-shot no-retry rule still requires developer direction after failure.
-    // hidden: true keeps it out of @autocomplete; task() dispatch still works
-    // (S2 orchestrator allow-list includes it). Permissions are an exact clone
-    // of the base coder PLUS task: "deny" for quota protection (escalated lane
-    // must never delegate further).
-    "coder-escalated": {
-      "description": "Escalated implementation lane (GPT-5.6 Terra High) for complex problem-fix tasks. Orchestrator-only, hidden from @autocomplete, one-shot no-retry.",
-      "mode": "subagent",
-      "model": "openai/gpt-5.6-terra",
-      "color": "#3B82F6",
-      "hidden": true,
-      "permission": {
-        "doom_loop": "deny",
-        "bash": {
-          "yq *": "allow",
-          "npx *": "allow",
-          "turbo *": "allow",
-          "docker exec *": "allow",
-          "docker logs *": "allow",
-          "git log *": "allow",
-          "git status *": "allow",
-          "git diff *": "allow",
-          "git add *": "allow",
-          "git commit *": "allow",
-          "git show *": "allow",
-          "git branch *": "allow",
-          "git checkout *": "allow",
-          "git merge *": "allow",
-          "git rebase *": "allow",
-          "git fetch *": "allow",
-          "git pull *": "allow",
-          "make *": "allow",
-          "pnpm *": "allow",
-          "npm *": "allow",
-          "node *": "allow",
-          "bun *": "allow",
-          "jq *": "allow",
-          "sha256sum *": "allow",
-          "python3 *": "allow",
-          "scripts/*": "allow",
-          // DIA-260825-nts7 audit-fix: identical deny set to the base coder
-          // map (see comment there). Kept in lockstep - this block is
-          // documented as an exact clone of base coder plus task: "deny".
-          "git commit --no-verify *": "deny",
-          "git commit * --no-verify *": "deny",
-          "git commit * --no-verify": "deny",
-          "git commit --no-verify": "deny",
-          "git checkout -- *": "deny",
-          "git checkout --": "deny",
-          "git checkout .": "deny",
-          "git checkout .*": "deny",
-          "git branch -D *": "deny",
-          "git branch -D": "deny",
-          "git reset --hard *": "deny",
-          "git reset --hard": "deny",
-          // Verb-level git clean deny + dry-run allows; lockstep with the
-          // base map (DIA-260928-tcdd via rzty - see comment there).
-          "git clean *": "deny",
-          "git clean -n*": "allow",
-          "git clean --dry-run*": "allow",
-          // DIA-260825-nts7 re-audit residual batch (O1+O3): identical to the
-          // base coder additions - see comment there for WHY.
-          "git branch --delete --force *": "deny",
-          "git branch --delete --force": "deny",
-          "git commit -n *": "deny",
-          "git commit * -n *": "deny",
-          "git commit * -n": "deny",
-          // DIA-260825-nts7 fix-all batch F1: bare editor form, lockstep with
-          // base coder (see comment there).
-          "git commit -n": "deny",
-          // DIA-260926-5vin CAUSE B fix: anchored exact-path allows so the
-          // mandated .scratch/ cleanup never raises a permission ask. Narrow
-          // anchor - only rm/rmdir whose target is a .scratch path; any other
-          // path still asks.
-          "rm -rf /workspace/.scratch/*": "allow",
-          "rm -rf .scratch/*": "allow",
-          "rmdir /workspace/.scratch/*": "allow",
-          "rmdir .scratch/*": "allow"
-          // DIA-260928-rzty (applied via DIA-261022-5n2v): the two-or-more-
-          // argument ask guards that used to live here were FALSIFIED - they
-          // never took effect, so they only looked protective. Removed; the
-          // single-target .scratch allows above remain (they work).
-        },
-        "task": "deny"
-      },
-      // steps cap (DIA-132): max agentic iterations before forcing text-only response.
-      // Only native execution limit in AgentConfig (research res020). Start at 50.
-      "steps": 50
     },
     "code-navigator": {
       "mode": "subagent",

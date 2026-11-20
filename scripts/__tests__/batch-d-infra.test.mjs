@@ -299,17 +299,6 @@ describe('S2 CONFIG DRIFT (post-DIA-172)', () => {
     assert.equal(opencodeConfig.agent['observer'].permission.bash, 'deny');
   });
 
-  it('analyzer-escalated edit block grants no .opencode/ path (no memory-shelf.yaml)', () => {
-    const edit = opencodeConfig.agent['analyzer-escalated'].permission.edit;
-    assert.equal(edit['*'], 'deny');
-    assert.equal(edit['knowledge/*'], 'allow');
-    const keys = Object.keys(edit);
-    assert.ok(
-      !keys.some((k) => k.startsWith('.opencode')),
-      'analyzer-escalated edit must stay scoped to knowledge/*',
-    );
-  });
-
   it('conspecter edit allow is knowledge/* only (agent md + opencode config agree)', () => {
     assert.match(readRoot('.opencode/agents/conspecter.md'), /knowledge\/\*/);
     const edit = opencodeConfig.agent['conspecter'].permission.edit;

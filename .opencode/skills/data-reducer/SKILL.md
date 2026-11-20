@@ -37,9 +37,9 @@ through the script.
 ## Worker options (chosen per data shape)
 
 For a lane whose grant holds no interpreter and no project-script command
-(the narrow shape analyzer / analyzer-escalated carried under DIA-260826-6mhy)
-only these options are usable — and since DIA-260827-ft3z those two lanes hold
-no shell at all, so they run neither these nor the wrapper:
+(the narrow shape analyzer carried under DIA-260826-6mhy)
+only these options are usable - and since DIA-260827-ft3z that lane holds
+no shell at all, so it runs neither these nor the wrapper:
 
 - `jq` — JSON / JSONL shapes: projection, selection, aggregation.
 - `rg` — line-oriented logs: filtering, counting, context extraction.
@@ -48,7 +48,7 @@ no shell at all, so they run neither these nor the wrapper:
   three and prints the savings line.
 
 **Where reduction happens now:** a no-shell lane never reduces itself. A
-bash-allow lane (coder / coder-escalated) runs the reduction and passes only
+bash-allow lane (coder) runs the reduction and passes only
 the compact result to the analyzer lane.
 
 Lanes WITH interpreter / project-script access (coder and other bash-allow
@@ -100,15 +100,15 @@ capture.
 
 ## Applicability (which lanes)
 
-Worker lanes for this skill: **coder / coder-escalated** - exactly those two,
-and they are now wired to the skill in every preset block that configures them
+Worker lanes for this skill: **coder** - exactly that one,
+and it is now wired to the skill in every preset block that configures it
 (DIA-260827-ft3z). No other lane runs a reducer, and no lane receives a
-reduction except through one of these two:
+reduction except through it:
 
 - The orchestrator has bash denied, so it routes an oversized input to
-  coder / coder-escalated for reduction before dispatching the compact result.
-- analyzer / analyzer-escalated lost their shell outright (DIA-260827-ft3z:
-  jq, rg, wc and the wrapper are all gone), so they RECEIVE a reduction, they
-  do not run one.
+  coder for reduction before dispatching the compact result.
+- analyzer lost its shell outright (DIA-260827-ft3z:
+  jq, rg, wc and the wrapper are all gone), so it RECEIVES a reduction, it
+  does not run one.
 - code-navigator has no bash at all, and researcher's bash is allow-listed to
   curl / wget / trafilatura / crwl only - neither is a worker lane here.
