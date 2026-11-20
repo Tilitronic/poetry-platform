@@ -2,6 +2,9 @@
 .git/
 .gitignore
 
+# === Scratch (workspace-internal temp, DIA-261119-vioa) ===
+.scratch/
+
 # === Dependencies ===
 node_modules/
 **/node_modules/

@@ -1,15 +1,19 @@
 #!/usr/bin/env bash
 # check-pin-sync.sh — .mise.toml ↔ Dockerfile.dev pin-parity validator (Gate B).
 # WHY: node/pnpm/bun pins live in .mise.toml [tools] (single source of truth,
-# ADR 11 line 99) and in the ARG declarations of Dockerfile.dev; the OpenCode
-# declared value is ARG OPENCODE_VERSION in Dockerfile.dev -- slice 1.2
-# retires the .mise.toml opencode key, and while it survives, drift against
-# the ARG is still reported. Reads only. MISE_VERSION parity is out of scope.
+# ADR 11 line 99) and in the ARG declarations of Dockerfile.dev. The OpenCode
+# declared value is resolved PER SERVICE (DIA-261119-vioa task 1.3): V1 trusts
+# the optional .mise.toml opencode key when it exists (else the image ARG),
+# V2 (hostname poetry-dev-v2) trusts the image ARG. The two declarations are
+# NEVER compared to each other -- V1 runs 1.18.32 from the toolchain pin while
+# V2 builds 2.3.2 from the image argument, and different majors side by side
+# is the intended state (ADR 11). Reads only. MISE_VERSION parity is out of
+# scope.
 # Legacy tools/opencode-docker/Dockerfile removed (DIA-260824-8k62 PHASE 3
 # retirement).
-# 3 static pairs + 1 declared-vs-runtime OpenCode verdict
-# OpenCode family (task 1.3 / design D2 / ADR 11 decision 4): the declared
-# build ARG is asserted against the LIVE `opencode --version` on this
+# 3 static pairs + 1 per-service declared-vs-runtime OpenCode verdict
+# OpenCode family (task 1.3 / design D2 / ADR 11 decision 4): the resolved
+# declared value is asserted against the LIVE `opencode --version` on this
 # service's PATH -- one counted verdict; an unavailable runtime reports
 # skip: and is never counted as ok, so the gate is neither shrunk to three
 # pins nor doubled into five.
@@ -33,8 +37,8 @@ infra_summary() { # INFRA summary on both streams, exit 2
 
 # parse_reference <file>: [tools] node/pnpm/opencode/bun ->
 # MISE_NODE/MISE_PNPM/MISE_OPENCODE/MISE_BUN. Dup => INFRA. Missing
-# node/pnpm/bun key => INFRA; the opencode key is optional (P3: the declared
-# value lives in Dockerfile.dev ARG OPENCODE_VERSION).
+# node/pnpm/bun key => INFRA; the opencode key is optional (P3: V1 falls
+# back to the Dockerfile.dev ARG, V2 always uses the ARG).
 parse_reference() {
   local file="$1" tools node_count pnpm_count opencode_count bun_count
   tools="$(awk '/^\[tools\]/ { in_tools=1; next } /^\[/ { in_tools=0 } in_tools { print }' "$file")"
@@ -49,9 +53,10 @@ parse_reference() {
   [ "${node_count}" -eq 1 ] || { echo "fail: source defective: .mise.toml is missing key 'node' under [tools]" >&2; return 1; }
   [ "${pnpm_count}" -eq 1 ] || { echo "fail: source defective: .mise.toml is missing key 'pnpm' under [tools]" >&2; return 1; }
   [ "${bun_count}" -eq 1 ] || { echo "fail: source defective: .mise.toml is missing key 'bun' under [tools]" >&2; return 1; }
-  # opencode key optional (P3): absence is not INFRA -- the declared value is
-  # ARG OPENCODE_VERSION in Dockerfile.dev, so no missing-declared-value
-  # report may fire once slice 1.2 retires the .mise.toml declaration.
+  # opencode key optional (P3): absence is not INFRA -- the resolution in
+  # compare_opencode falls back to ARG OPENCODE_VERSION, so no
+  # missing-declared-value report may fire once slice 1.2 retires the
+  # .mise.toml declaration.
   MISE_NODE="$(strip_value "$(printf '%s\n' "$tools" | grep -m1 '^node[[:space:]]*=' | sed 's/^node[[:space:]]*=[[:space:]]*//' || true)")"
   MISE_PNPM="$(strip_value "$(printf '%s\n' "$tools" | grep -m1 '^pnpm[[:space:]]*=' | sed 's/^pnpm[[:space:]]*=[[:space:]]*//' || true)")"
   MISE_OPENCODE="$(strip_value "$(printf '%s\n' "$tools" | grep -m1 '^opencode[[:space:]]*=' | sed 's/^opencode[[:space:]]*=[[:space:]]*//' || true)")"
@@ -100,23 +105,39 @@ opencode_runtime_version() {
   opencode --version 2>&1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -n 1 || true
 }
 
-# compare_opencode: fourth pin family (task 1.3, design D2). Static
-# .mise.toml-vs-Dockerfile.dev drift reports through the shared `compare`
-# (legacy message, one counted fail) and the runtime leg is skipped: with two
-# different declared values there is no single pin to hold against the live
-# binary. While the pair agrees, the ONE counted verdict is the
-# declared-vs-runtime assertion -- the partner is the live runtime on this
-# service's PATH, not a second static string.
+# opencode_service_context: "V2" only on the V2 workstation hostname; every
+# other hostname (V1 poetry-dev, a host machine, or no dev container at all)
+# resolves to "V1" (DIA-261119-vioa task 1.3). Exact match, never a prefix.
+opencode_service_context() {
+  if [ "$(hostname 2>/dev/null || true)" = "poetry-dev-v2" ]; then
+    echo "V2"
+  else
+    echo "V1"
+  fi
+}
+
+# compare_opencode: fourth pin family (task 1.3, design D2). The DECLARED
+# value is resolved per service -- V1: the optional .mise.toml opencode key
+# when it exists, else the Dockerfile.dev ARG (slice 1.2 retires the key);
+# V2: always the Dockerfile.dev ARG, because the V2 image builds with
+# OPENCODE_VERSION=2.3.2 while V1 runs 1.18.32. The two declarations are
+# never compared to each other (a differing pair is exit 0); the ONE counted
+# verdict is the resolved-declared-vs-runtime assertion against the live
+# binary on this service's PATH.
 compare_opencode() {
-  local mise_val docker_val runtime
-  mise_val="$(strip_value "$MISE_OPENCODE")"
-  docker_val="$(strip_value "$DOCKER_OPENCODE")"
-  # Static pair only while the optional .mise.toml opencode key exists (P3);
-  # with it gone the Dockerfile.dev ARG is the sole declaration and the
-  # runtime leg below runs against it directly.
-  if [ -n "${mise_val}" ] && [ "${mise_val}" != "${docker_val}" ]; then
-    compare opencode "${MISE_OPENCODE}" "${DOCKER_OPENCODE}" "Dockerfile.dev" || true
-    return 0
+  local service source declared runtime
+  service="$(opencode_service_context)"
+  if [ "${service}" = "V2" ]; then
+    source="Dockerfile.dev ARG"
+    declared="$(strip_value "$DOCKER_OPENCODE")"
+  else
+    declared="$(strip_value "$MISE_OPENCODE")"
+    if [ -n "${declared}" ]; then
+      source=".mise.toml toolchain pin"
+    else
+      source="Dockerfile.dev ARG"
+      declared="$(strip_value "$DOCKER_OPENCODE")"
+    fi
   fi
   runtime=""
   if command -v opencode >/dev/null 2>&1; then
@@ -124,17 +145,15 @@ compare_opencode() {
   fi
   if [ -z "${runtime}" ]; then
     # S2: an unavailable runtime is a skip, never a counted ok.
-    echo "skip: opencode ${docker_val} (declared-vs-runtime assertion skipped: opencode --version unavailable)"
+    echo "skip: opencode ${service} declared from ${source}=${declared} (declared-vs-runtime assertion skipped: opencode --version unavailable)"
     return 0
   fi
-  if [ "${runtime}" = "${docker_val}" ]; then
-    # Legacy substring kept intact (T1/T8/T9/T10 assert it verbatim); the
-    # runtime tail is what makes the fourth comparison visibly a runtime one.
-    echo "ok: opencode ${docker_val} (parity @ Dockerfile.dev) runtime=${runtime} matches declared"
+  if [ "${runtime}" = "${declared}" ]; then
+    echo "ok: opencode ${service} declared from ${source}=${declared} runtime=${runtime} matches declared"
     ok=$((ok + 1))
     return 0
   fi
-  echo "fail: opencode runtime mismatch: declared Dockerfile.dev=${docker_val} runtime=${runtime}" >&2
+  echo "fail: opencode ${service} runtime mismatch: declared from ${source}=${declared} runtime=${runtime}" >&2
   fail=$((fail + 1))
   return 1
 }

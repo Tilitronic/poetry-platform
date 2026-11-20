@@ -1,8 +1,8 @@
 #!/usr/bin/env bats
 # Unit tests for scripts/check-pin-sync.sh (seam: validator script).
 #
-# 18-case FAKE-mock matrix (T1-T18) covering every branch of the validator
-# against Dockerfile.dev (4 comparisons: 4 pins x 1 Dockerfile):
+# 20-case FAKE-mock matrix (T1-T18, T11a-c) covering every branch of the
+# validator against Dockerfile.dev (4 comparisons: 4 pins x 1 Dockerfile):
 #   T1  static pairs match, runtime unavailable  -> exit 0 + 3 ok + skip (S2)
 #   T2  single pin mismatch (node, Dockerfile.dev) -> exit 1 + fail line
 #   T3  multiple pin mismatches (report-ALL)     -> exit 1 + all fail lines
@@ -13,18 +13,24 @@
 #   T8  quote variations                        -> exit 0 after stripping
 #   T9  CRLF line endings                       -> exit 0 after stripping
 #   T10 whitespace variations                   -> exit 0 after stripping
-#   T11 single opencode mismatch (Dockerfile.dev) -> exit 1 + fail line
+#   T11a V1 context, differing opencode decls   -> exit 0, line names V1 pin
+#   T11b V2 context                             -> exit 0, image ARG used
+#   T11c V1 declared-vs-runtime mismatch        -> exit 1 + fail line
 #   T12 single bun mismatch (Dockerfile.dev)       -> exit 1 + fail line
 #   T13 duplicate opencode key in .mise.toml    -> exit 2 (INFRA)
 #   T14 duplicate OPENCODE_VERSION ARG           -> exit 2 (INFRA)
 #   T15 missing opencode key in .mise.toml       -> exit 0/1 (P3: never INFRA)
 #   T16 missing OPENCODE_VERSION ARG             -> exit 2 (INFRA)
 #   T17 missing BUN_VERSION ARG                  -> exit 2 (INFRA)
-#   T18 report-ALL: all four pins drift          -> exit 1 + four fail lines
+#   T18 report-ALL: static pins drift (differing opencode pair is NOT a
+#       fail)                                   -> exit 1 + three fail lines
 #
 # Legacy T11-T13 (tools/opencode-docker/Dockerfile tests) removed:
 # DIA-260824-8k62 PHASE 3 retired the legacy runtime; check-pin-sync.sh
 # now compares only Dockerfile.dev.
+# The old T11 (global .mise.toml-vs-Dockerfile.dev opencode equality) was
+# replaced by T11a-c per campaign ticket DIA-261119-vioa task 1.3: the two
+# declarations are per-service and are never compared to each other.
 #
 # FAKE-mock invariant: behavioral tests NEVER read the real repo .mise.toml /
 # Dockerfile.dev -- every fixture is planted under $BATS_TEST_TMPDIR via
@@ -38,6 +44,12 @@ bats_require_minimum_version 1.5.0
 
 REPO_ROOT="$(cd "$(dirname "$BATS_TEST_FILENAME")/../.." && pwd)"
 
+# Every test resolves as V1 unless it plants its own hostname (T11b): the
+# service context must not depend on which container runs the suite.
+setup() {
+  plant_hostname "$BATS_TEST_TMPDIR/hostbin-v1" "poetry-dev"
+}
+
 # Local stderr assertion: `run --separate-stderr` captures fail lines (stderr)
 # separately from ok lines (stdout); test-helper has no stderr helper.
 assert_stderr_contains() {
@@ -47,6 +59,18 @@ assert_stderr_contains() {
     echo "$stderr" >&2
     return 1
   }
+}
+
+# plant_hostname <dir> <name>: fake `hostname` binary prepended to PATH, so
+# the script's V1/V2 service-context resolution is deterministic regardless
+# of which container runs the suite (same mock pattern as check-stack-ready).
+plant_hostname() {
+  local dir="$1" name="$2"
+  mkdir -p "$dir"
+  printf '#!/usr/bin/env bash\necho "%s"\n' "$name" > "$dir/hostname"
+  chmod +x "$dir/hostname"
+  PATH="$dir:$PATH"
+  export PATH
 }
 
 # ---- T1: static pairs match; unavailable runtime is a skip, not an ok ------
@@ -63,8 +87,9 @@ assert_stderr_contains() {
   assert_output_contains "ok: node 24.18.0 (parity @ Dockerfile.dev)"
   assert_output_contains "ok: pnpm 10.33.0 (parity @ Dockerfile.dev)"
   assert_output_contains "ok: bun 1.4.2 (parity @ Dockerfile.dev)"
-  # S2: skip line, never a counted ok: line.
-  assert_output_contains "skip: opencode 1.18.32 (declared-vs-runtime assertion skipped: opencode --version unavailable)"
+  # S2: skip line, never a counted ok: line. Names the V1 service context
+  # and the declaration it resolved (DIA-261119-vioa task 1.3).
+  assert_output_contains "skip: opencode V1 declared from .mise.toml toolchain pin=1.18.32 (declared-vs-runtime assertion skipped: opencode --version unavailable)"
   assert_output_contains "summary: 3 ok, 0 fail"
 }
 
@@ -144,7 +169,7 @@ assert_stderr_contains() {
   assert_status 0
   assert_output_contains "ok: node 24.18.0 (parity @ Dockerfile.dev)"
   assert_output_contains "ok: pnpm 10.33.0 (parity @ Dockerfile.dev)"
-  assert_output_contains "ok: opencode 1.18.32 (parity @ Dockerfile.dev)"
+  assert_output_contains "ok: opencode V1 declared from .mise.toml toolchain pin=1.18.32 runtime=1.18.32 matches declared"
   assert_output_contains "ok: bun 1.4.2 (parity @ Dockerfile.dev)"
   assert_output_contains "summary: 4 ok, 0 fail"
 }
@@ -158,7 +183,7 @@ assert_stderr_contains() {
   assert_status 0
   assert_output_contains "ok: node 24.18.0 (parity @ Dockerfile.dev)"
   assert_output_contains "ok: pnpm 10.33.0 (parity @ Dockerfile.dev)"
-  assert_output_contains "ok: opencode 1.18.32 (parity @ Dockerfile.dev)"
+  assert_output_contains "ok: opencode V1 declared from .mise.toml toolchain pin=1.18.32 runtime=1.18.32 matches declared"
   assert_output_contains "ok: bun 1.4.2 (parity @ Dockerfile.dev)"
   assert_output_contains "summary: 4 ok, 0 fail"
 }
@@ -172,19 +197,67 @@ assert_stderr_contains() {
   assert_status 0
   assert_output_contains "ok: node 24.18.0 (parity @ Dockerfile.dev)"
   assert_output_contains "ok: pnpm 10.33.0 (parity @ Dockerfile.dev)"
-  assert_output_contains "ok: opencode 1.18.32 (parity @ Dockerfile.dev)"
+  assert_output_contains "ok: opencode V1 declared from .mise.toml toolchain pin=1.18.32 runtime=1.18.32 matches declared"
   assert_output_contains "ok: bun 1.4.2 (parity @ Dockerfile.dev)"
   assert_output_contains "summary: 4 ok, 0 fail"
 }
 
-# ---- T11: single opencode mismatch ----------------------------------------
-@test "check-pin-sync: T11 single opencode mismatch (Dockerfile.dev) -> exit 1 + fail line + summary: 3 ok, 1 fail" {
-  tree="$(setup_pin_sync_tree 1 1 "24.18.0" "10.33.0" "24.18.0" "10.33.0" "" "1.18.32" "1.4.2" "1.18.99" "1.4.2")"
+# ---- T11a: V1 context, differing declarations -> exit 0, V1 pin used ------
+# Campaign DIA-261119-vioa task 1.3: toolchain pin 1.18.32 (V1) and image
+# ARG 2.3.2 (V2) intentionally differ. In V1 context the verdict resolves
+# the V1 toolchain pin and holds it against the live runtime; the pair is
+# never compared to each other.
+@test "check-pin-sync: T11a V1 context with differing declarations -> exit 0 + line names the V1 toolchain pin" {
+  tree="$(setup_pin_sync_tree 1 1 "24.18.0" "10.33.0" "24.18.0" "10.33.0" "" "1.18.32" "1.4.2" "2.3.2" "1.4.2")"
+  # setup() already planted hostname poetry-dev (V1 context).
+  plant_opencode_runtime "$BATS_TEST_TMPDIR/runtime-bin" "1.18.32"
+
+  run --separate-stderr bash "$tree/scripts/check-pin-sync.sh"
+
+  assert_status 0
+  assert_output_contains "ok: opencode V1 declared from .mise.toml toolchain pin=1.18.32 runtime=1.18.32 matches declared"
+  assert_output_contains "summary: 4 ok, 0 fail"
+  # A cross-declaration report would leak the image ARG value (2.3.2) into
+  # the output; a differing pair must stay silent.
+  [[ "$output$stderr" != *"2.3.2"* ]] || {
+    echo "cross-declaration comparison leaked the image ARG (2.3.2) into the report:" >&2
+    echo "$output" >&2
+    echo "$stderr" >&2
+    return 1
+  }
+}
+
+# ---- T11b: V2 context -> the image ARG is the declared value --------------
+@test "check-pin-sync: T11b V2 context resolves the image ARG (not the toolchain pin) -> exit 0 + line names 2.3.2" {
+  tree="$(setup_pin_sync_tree 1 1 "24.18.0" "10.33.0" "24.18.0" "10.33.0" "" "1.18.32" "1.4.2" "2.3.2" "1.4.2")"
+  plant_hostname "$BATS_TEST_TMPDIR/hostbin-v2" "poetry-dev-v2"
+  # Runtime answers the image ARG: had the V1 toolchain pin been resolved
+  # (1.18.32 != 2.3.2) the gate would exit 1 instead.
+  plant_opencode_runtime "$BATS_TEST_TMPDIR/runtime-bin" "2.3.2"
+
+  run --separate-stderr bash "$tree/scripts/check-pin-sync.sh"
+
+  assert_status 0
+  assert_output_contains "ok: opencode V2 declared from Dockerfile.dev ARG=2.3.2 runtime=2.3.2 matches declared"
+  assert_output_contains "summary: 4 ok, 0 fail"
+  # The V1 pin must not appear in the V2 verdict.
+  [[ "$output$stderr" != *"1.18.32"* ]] || {
+    echo "V2 verdict reported the V1 toolchain pin (1.18.32):" >&2
+    echo "$output" >&2
+    echo "$stderr" >&2
+    return 1
+  }
+}
+
+# ---- T11c: genuine within-service mismatch -> exit 1 ----------------------
+@test "check-pin-sync: T11c V1 declared-vs-runtime mismatch exits 1 even with a differing pair" {
+  tree="$(setup_pin_sync_tree 1 1 "24.18.0" "10.33.0" "24.18.0" "10.33.0" "" "1.18.32" "1.4.2" "2.3.2" "1.4.2")"
+  plant_opencode_runtime "$BATS_TEST_TMPDIR/runtime-bin" "1.99.0"
 
   run --separate-stderr bash "$tree/scripts/check-pin-sync.sh"
 
   assert_status 1
-  assert_stderr_contains "fail: opencode — .mise.toml=1.18.32 Dockerfile.dev=1.18.99"
+  assert_stderr_contains "fail: opencode V1 runtime mismatch: declared from .mise.toml toolchain pin=1.18.32 runtime=1.99.0"
   assert_output_contains "summary: 3 ok, 1 fail"
 }
 
@@ -318,18 +391,27 @@ EOF
   assert_output_contains "summary: 0 ok, 0 fail (infra)"
 }
 
-# ---- T18: all 4 pins drift (report-ALL) -----------------------------------
-@test "check-pin-sync: T18 all 4 pins drift (report-ALL) -> exit 1 + four fail lines + summary: 0 ok, 4 fail" {
+# ---- T18: static pins drift (report-ALL); opencode pair differs silently ---
+@test "check-pin-sync: T18 static pins drift (report-ALL) + differing opencode pair is not a fail -> exit 1 + three fail lines + summary: 0 ok, 3 fail" {
   tree="$(setup_pin_sync_tree 1 1 "24.18.0" "10.33.0" "24.19.0" "10.34.0" "" "1.18.32" "1.4.2" "1.18.99" "1.99.0")"
+  plant_opencode_runtime "$BATS_TEST_TMPDIR/runtime-bin" ""
 
   run --separate-stderr bash "$tree/scripts/check-pin-sync.sh"
 
   assert_status 1
   assert_stderr_contains "fail: node — .mise.toml=24.18.0 Dockerfile.dev=24.19.0"
   assert_stderr_contains "fail: pnpm — .mise.toml=10.33.0 Dockerfile.dev=10.34.0"
-  assert_stderr_contains "fail: opencode — .mise.toml=1.18.32 Dockerfile.dev=1.18.99"
   assert_stderr_contains "fail: bun — .mise.toml=1.4.2 Dockerfile.dev=1.99.0"
-  assert_output_contains "summary: 0 ok, 4 fail"
+  # The differing opencode pair (1.18.32 vs 1.18.99) is NOT a fail: V1
+  # resolves the toolchain pin; with the runtime stub answering nothing the
+  # fourth verdict is a skip (S2), never a counted ok.
+  assert_output_contains "skip: opencode V1 declared from .mise.toml toolchain pin=1.18.32 (declared-vs-runtime assertion skipped: opencode --version unavailable)"
+  [[ "$stderr" != *"opencode —"* ]] || {
+    echo "T18: cross-declaration opencode fail line still emitted:" >&2
+    echo "$stderr" >&2
+    return 1
+  }
+  assert_output_contains "summary: 0 ok, 3 fail"
 }
 
 # ---- S4: real .mise.toml structural integrity ------------------------------
