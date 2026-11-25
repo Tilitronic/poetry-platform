@@ -1355,3 +1355,9 @@
 - **Change:** console-charting de-scoped from every agent skill list (its chart path requires python -c, which the analyzer lanes deny) and the three-way library-name typo (termatplotlib / termtplotlib / termplotlib) normalized to termatplotlib; the skill file remains on disk for future reuse. Surfaced by review DIA-260827-ft3z.
 - **Files:** .opencode/oh-my-opencode-slim.jsonc - .opencode/skills/console-charting/SKILL.md - .opencode/skills/mermaid-diagramming/SKILL.md
 - **Verification:** manual
+
+## 2026-11-25 - DIA-261112-exon: opencode-config
+
+- **Change:** mimo-balanced preset routing update (developer-authored): reviewer moved to opencode-go/kimi-k3.1-pro with opencode-go/qwen4-max fallback, coder/analyzer/designer on opencode-go/deepseek-v4.1-flash with opencode-go/mimo-v2.6-flash fallback, variant high. Also repairs five pre-existing dead fallback model IDs (opencode-go/mimo-v2.5 x4 and opencode-go/longcat-2.0), corrects the stale jsonc:14 composition comment, adds two model-registry rows for kimi-k3.1-pro and qwen4-max, and collapses the four duplicated fallback arrays left by that repair.
+- **Files:** .opencode/oh-my-opencode-slim.jsonc - knowledge/model-registry.yaml
+- **Verification:** manual

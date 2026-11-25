@@ -123,7 +123,6 @@
       },
       "conspecter": {
         "model": [
-          "opencode-go/mimo-v2.6-flash",
           "opencode-go/mimo-v2.6-flash"
         ],
         "variant": "medium",
@@ -162,7 +161,6 @@
       },
       "memory-manager": {
         "model": [
-          "opencode-go/mimo-v2.6-flash",
           "opencode-go/mimo-v2.6-flash"
         ],
         "variant": "medium",
@@ -174,7 +172,6 @@
       },
       "code-navigator": {
         "model": [
-          "opencode-go/mimo-v2.6-flash",
           "opencode-go/mimo-v2.6-flash"
         ],
         "variant": "medium",
@@ -183,7 +180,6 @@
       },
       "researcher": {
         "model": [
-          "opencode-go/mimo-v2.6-flash",
           "opencode-go/mimo-v2.6-flash"
         ],
         "variant": "medium",
