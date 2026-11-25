@@ -77,3 +77,12 @@ dispatch-routing and quota-guard inputs, so empty rows degrade quota lookups.
 - models.dev provider rows for `kimi-k3.1-pro` and `qwen4-max` (fetched
   2026-11-25).
 - models.dev PR #13760 adding `qwen4-max` (merged 2026-11-16).
+
+## Outcome (2026-11-25)
+
+fc1a15f8 repaired the five dead fallback IDs and added the two registry rows;
+1dc21859 collapsed the four duplicated fallback arrays, so the dead-ID and
+missing-row defects above are RESOLVED in config.
+OPEN: (1) reviewer temperature 0.1 against kimi-k3.1-pro fixed 1.0 upstream,
+still unverified; (2) registry lane/routing_table reconciliation tracked in
+DIA-261125-mu6w; (3) the volume lanes now have no secondary fallback model.

@@ -72,3 +72,20 @@ rows). Two documentation defects were deliberately left unfixed there.
 ## Re-verify
 
 > To be filled at re-verify time.
+
+## Phase 6 audit findings (2026-11-25)
+
+Registry reconciliation demanded by the section 2.5 Phase 6 audit (append-only
+transfer; not fixed in DIA-261112-exon):
+
+- `gpt-5.3-codex` keeps `lane: ["reviewer"]` and `active: true` while
+  `routing_table` Rung4 still routes reviewer to it.
+- `opencode-go/deepseek-v4.1-flash` does not list `coder` or `designer` in its
+  `lane` array.
+- `mimo-v2.6-flash` still claims `coder` in its `lane` array while
+  `routing_table` Rung0/Rung1 route coder to the dead `mimo-v2.5`.
+- `qwen3.8-flash` still claims `designer` and `observer`.
+- `opencode-go/gemini-4-argon` still lists the dead `opencode-go/longcat-2.0`
+  in its `fallback` array.
+- `mimo-v2.5` still appears in registry `fallback` arrays at lines 25, 49, 61,
+  73, 87 and 113.
