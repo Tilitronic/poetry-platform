@@ -541,6 +541,24 @@ shelf:
     path: "knowledge/res-260925-50gj-repomix/res-260925-50gj-repomix-conspect.md"
     created: 2026-09-25
     task_ref: DIA-260925-td9h
+  - name: OpenCode V1 to V2 Migration
+    description: 'Conspect mapping the OpenCode V1 -> V2 migration surface (32
+      archived sources + .source-urls.txt manifest): breaking changes, plugin API
+      and config schema migration maps, permission-semantics change, minimal
+      migration sequence, and unverified gaps.'
+    path: "knowledge/res-261112-1ima-opencode-version-migration/res-261112-1ima-opencode-version-migration-conspect.md"
+    created: 2026-11-12
+    task_ref: DIA-261112-exon
+  - name: OpenCode V2 Native Capabilities
+    description: 'Conspect mapping which custom mechanisms of this project OpenCode V2
+      already provides natively (630 lines, 28 archived sources, 80 cited claims):
+      plugin storage KV, the permission evaluate hook, tool execute.before, policies,
+      session instruction entries. Per-component verdicts (NATIVE/PARTIAL/ABSENT)
+      and current-vs-estimated LOC projections across a 13-row executive verdict
+      table, plus what remains custom and what is unverified before a port.'
+    path: "knowledge/res-261113-hi88-opencode-v2-native-capabilities/res-261113-hi88-opencode-v2-native-capabilities-conspect.md"
+    created: 2026-11-13
+    task_ref: DIA-261112-exon
   analyses:
   - name: Agent Alignment Audit
     description: "MECE inventory of all agent definitions across OMO Slim, native\
@@ -1066,6 +1084,11 @@ shelf:
     path: knowledge/ana-261006-jd0s-observer-agent-disposition/ana-261006-jd0s-observer-agent-disposition-report.md
     created: 2026-10-06
     task_ref: DIA-260929-nc6w
+  - name: OpenCode infra keep-or-delete matrix (ana-261112-ibny)
+    description: "Rated keep/simplify/port/delete matrix for the OpenCode V1 -> V2 migration (DIA-261112-exon). Verdict: 16 DELETE / 5 SIMPLIFY / 10 PORT / 1 PORT-LAST / 2 KEEP-AS-IS; 52 percent of authored plugin LOC removable before porting."
+    path: knowledge/ana-261112-ibny-opencode-infra-keep-or-delete-matrix/ana-261112-ibny-opencode-infra-keep-or-delete-matrix-report.md
+    created: 2026-11-12
+    task_ref: DIA-261112-exon
   adrs:
   - name: Memory Storage Strategy
     description: 'Evaluation of Claude-Mem, Honcho, and current hand-written memory

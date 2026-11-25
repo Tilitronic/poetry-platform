@@ -392,15 +392,35 @@
 | DIA-261104-gabx | orchestrator prompt: read-only coder dispatches lack verifier role and verification-only marker | opencode-config | Major | CLOSED | [DIA-261104-gabx-orchestrator-prompt-read-only-coder-dispatches-lack-verifier-role-and-verification-only-marker.md](DIA-261104-gabx-orchestrator-prompt-read-only-coder-dispatches-lack-verifier-role-and-verification-only-marker.md) |
 | DIA-261104-rhez | Ticket ledger hygiene: close done-but-open and obsolete tickets, rewrite template bodies | scripts | Medium | OPEN | [DIA-261104-rhez-ticket-ledger-hygiene-close-done-but-open-and-obsolete-tickets-rewrite-template-bodies.md](DIA-261104-rhez-ticket-ledger-hygiene-close-done-but-open-and-obsolete-tickets-rewrite-template-bodies.md) |
 | DIA-261104-xw9y | Check B doc-drift gate misses the OMO prompt-override directory | opencode-config | Major | CLOSED | [DIA-261104-xw9y-check-b-doc-drift-gate-misses-the-omo-prompt-override-directory.md](DIA-261104-xw9y-check-b-doc-drift-gate-misses-the-omo-prompt-override-directory.md) |
+| DIA-261110-03hs | Update Docker image to OpenCode 2.x and OmO slim 3.x | docker | Major | OPEN | [DIA-261110-03hs-update-docker-image-to-opencode-2-x-and-omo-slim-3-x.md](DIA-261110-03hs-update-docker-image-to-opencode-2-x-and-omo-slim-3-x.md) |
+| DIA-261112-exon | OpenCode version migration: breaking-change inventory, blockers, and remove-or-adapt rating | scripts | Medium | OPEN | [DIA-261112-exon-opencode-version-migration-breaking-change-inventory-blockers-and-remove-or-adapt-rating.md](DIA-261112-exon-opencode-version-migration-breaking-change-inventory-blockers-and-remove-or-adapt-rating.md) |
+| DIA-261119-85dy | verify-pre-commit runs lint-staged from the main worktree so every linked-worktree commit fails | dev-infra | Major | OPEN | [DIA-261119-85dy-verify-pre-commit-runs-lint-staged-from-the-main-worktree-so-every-linked-worktree-commit-fails.md](DIA-261119-85dy-verify-pre-commit-runs-lint-staged-from-the-main-worktree-so-every-linked-worktree-commit-fails.md) |
+| DIA-261119-9fua | S4 (group 5): simplify registry journal, stall sweep, and fetch-source | scripts | Medium | OPEN | [DIA-261119-9fua-s4-group-5-simplify-registry-journal-stall-sweep-and-fetch-source.md](DIA-261119-9fua-s4-group-5-simplify-registry-journal-stall-sweep-and-fetch-source.md) |
+| DIA-261119-cbjr | S10b (group 12): cutover - retire V1 service, full gates on dev-v2, tag, merge | docker | Major | OPEN | [DIA-261119-cbjr-s10b-group-12-cutover-retire-v1-service-full-gates-on-dev-v2-tag-merge.md](DIA-261119-cbjr-s10b-group-12-cutover-retire-v1-service-full-gates-on-dev-v2-tag-merge.md) |
+| DIA-261119-km3j | S5 (group 8): config dead weight and V2 key renames - provider, lsp, compaction, containers, tui | opencode-config | Medium | OPEN | [DIA-261119-km3j-s5-group-8-config-dead-weight-and-v2-key-renames-provider-lsp-compaction-containers-tui.md](DIA-261119-km3j-s5-group-8-config-dead-weight-and-v2-key-renames-provider-lsp-compaction-containers-tui.md) |
+| DIA-261119-kq8x | S2 (group 3): delete self-contained tier and explicit cuts; shrink structure gate | scripts | Medium | OPEN | [DIA-261119-kq8x-s2-group-3-delete-self-contained-tier-and-explicit-cuts-shrink-structure-gate.md](DIA-261119-kq8x-s2-group-3-delete-self-contained-tier-and-explicit-cuts-shrink-structure-gate.md) |
+| DIA-261119-qdek | S8 (group 11): permission conversion - remaining agents and final no-V1-key mode | opencode-config | Major | OPEN | [DIA-261119-qdek-s8-group-11-permission-conversion-remaining-agents-and-final-no-v1-key-mode.md](DIA-261119-qdek-s8-group-11-permission-conversion-remaining-agents-and-final-no-v1-key-mode.md) |
+| DIA-261119-ri5b | S10a (group 7): prove V2 runtime on dev-v2 - plugin load, extended docker smoke, gate record | docker | Medium | OPEN | [DIA-261119-ri5b-s10a-group-7-prove-v2-runtime-on-dev-v2-plugin-load-extended-docker-smoke-gate-record.md](DIA-261119-ri5b-s10a-group-7-prove-v2-runtime-on-dev-v2-plugin-load-extended-docker-smoke-gate-record.md) |
+| DIA-261119-tnx5 | B4 (group 9): repair four V1-shaped validators and two vacuous readers; test-config checkpoint | scripts | Medium | OPEN | [DIA-261119-tnx5-b4-group-9-repair-four-v1-shaped-validators-and-two-vacuous-readers-test-config-checkpoint.md](DIA-261119-tnx5-b4-group-9-repair-four-v1-shaped-validators-and-two-vacuous-readers-test-config-checkpoint.md) |
+| DIA-261119-ud0v | S3.1-3.2 (group 4): delete needs-input tier; repair pre-push hook, bats, and batch-D manifest | scripts | Medium | OPEN | [DIA-261119-ud0v-s3-1-3-2-group-4-delete-needs-input-tier-repair-pre-push-hook-bats-and-batch-d-manifest.md](DIA-261119-ud0v-s3-1-3-2-group-4-delete-needs-input-tier-repair-pre-push-hook-bats-and-batch-d-manifest.md) |
+| DIA-261119-ui01 | S9 (group 6): port delegation-observer to V2 SDK - layout, dispatcher, tools, watchdog, layer-2 hook | delegation-observer | Major | OPEN | [DIA-261119-ui01-s9-group-6-port-delegation-observer-to-v2-sdk-layout-dispatcher-tools-watchdog-layer-2-hook.md](DIA-261119-ui01-s9-group-6-port-delegation-observer-to-v2-sdk-layout-dispatcher-tools-watchdog-layer-2-hook.md) |
+| DIA-261119-vioa | S0+S1.1 (groups 0-1): migration bootstrap and dev-v2 parallel container - worktree, baseline, compose service, isolated volumes, pin asserts, container detection | docker | Major | OPEN | [DIA-261119-vioa-s0-s1-1-groups-0-1-migration-bootstrap-and-dev-v2-parallel-container-worktree-baseline-compose-service-isolated-volumes-pin-asserts-container-detection.md](DIA-261119-vioa-s0-s1-1-groups-0-1-migration-bootstrap-and-dev-v2-parallel-container-worktree-baseline-compose-service-isolated-volumes-pin-asserts-container-detection.md) |
+| DIA-261119-xy1n | S6 (group 2): probe matrix on dev-v2 - OMO, Ponytail, envsitter pins, permission surfaces, path API | opencode-config | Medium | OPEN | [DIA-261119-xy1n-s6-group-2-probe-matrix-on-dev-v2-omo-ponytail-envsitter-pins-permission-surfaces-path-api.md](DIA-261119-xy1n-s6-group-2-probe-matrix-on-dev-v2-omo-ponytail-envsitter-pins-permission-surfaces-path-api.md) |
+| DIA-261119-yuv6 | S7 (group 10): permission conversion - V2 baseline, four critical agents, overnight profile | opencode-config | Major | OPEN | [DIA-261119-yuv6-s7-group-10-permission-conversion-v2-baseline-four-critical-agents-overnight-profile.md](DIA-261119-yuv6-s7-group-10-permission-conversion-v2-baseline-four-critical-agents-overnight-profile.md) |
+| DIA-261120-35wu | dev-infra: restore v1 dev stack as default (v2 build broken) | docker | Critical | OPEN | [DIA-261120-35wu-dev-infra-restore-v1-dev-stack-as-default-v2-build-broken.md](DIA-261120-35wu-dev-infra-restore-v1-dev-stack-as-default-v2-build-broken.md) |
+| DIA-261120-9589 | npm/pnpm dependency hygiene: effective pnpm.overrides plus same-major security patches | scripts | Medium | OPEN | [DIA-261120-9589-npm-pnpm-dependency-hygiene-effective-pnpm-overrides-plus-same-major-security-patches.md](DIA-261120-9589-npm-pnpm-dependency-hygiene-effective-pnpm-overrides-plus-same-major-security-patches.md) |
+| DIA-261125-aqz6 | V2 container is missing openai/\* models (47 of 163) - developer elected to skip the openai oauth import on 2026-11-25 | docker | Medium | OPEN | [DIA-261125-aqz6-v2-container-is-missing-openai-models-47-of-163-developer-elected-to-skip-the-openai-oauth-import-on-2026-11-25.md](DIA-261125-aqz6-v2-container-is-missing-openai-models-47-of-163-developer-elected-to-skip-the-openai-oauth-import-on-2026-11-25.md) |
+| DIA-261125-p1kd | P2 split-brain - dev-v2 builds from the main build context while the pin gate reads the worktree | docker | Major | OPEN | [DIA-261125-p1kd-p2-split-brain-dev-v2-builds-from-the-main-build-context-while-the-pin-gate-reads-the-worktree.md](DIA-261125-p1kd-p2-split-brain-dev-v2-builds-from-the-main-build-context-while-the-pin-gate-reads-the-worktree.md) |
+| DIA-261125-z4ij | divergent uid maps between poetry-dev and poetry-dev-v2 make /workspace/.git unwritable after container recreation | docker | Critical | OPEN | [DIA-261125-z4ij-divergent-uid-maps-between-poetry-dev-and-poetry-dev-v2-make-workspace-git-unwritable-after-container-recreation.md](DIA-261125-z4ij-divergent-uid-maps-between-poetry-dev-and-poetry-dev-v2-make-workspace-git-unwritable-after-container-recreation.md) |
 
 ## Status summary
 
 | Severity | Count |
 | -------- | ----- |
 | Blocker  | 9     |
-| Critical | 16    |
-| Major    | 92    |
-| Medium   | 210   |
+| Critical | 18    |
+| Major    | 100   |
+| Medium   | 220   |
 | Minor    | 2     |
 | Low      | 39    |
 | Info     | 2     |
@@ -408,7 +428,7 @@
 
 | Status      | Count |
 | ----------- | ----- |
-| OPEN        | 83    |
+| OPEN        | 102   |
 | DONE        | 15    |
 | VALIDATE    | 0     |
 | E2E         | 0     |
@@ -417,7 +437,7 @@
 | FIXED       | 2     |
 | IMPLEMENTED | 2     |
 | VERIFIED    | 29    |
-| CLOSED      | 256   |
+| CLOSED      | 257   |
 | BLOCKED     | 0     |
 | DISPATCHED  | 0     |
 | RUNNING     | 0     |
