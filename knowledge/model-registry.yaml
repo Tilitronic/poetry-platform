@@ -224,6 +224,24 @@ models:
     privacy_notes: "UNVERIFIED (flagged for developer confirmation 2026-11-01): training/retention terms for the configured standard ID opencode-go/gemini-4-argon are not confirmed - the prior statement that this model trains on prompts/completions described the Contributor tier (opencode-go/gemini-4-argon-contributor, now a dead slug) and does not establish the standard tier's terms. The 2026-10-22 developer clearance under DIA-261022-6vcz (no-sensitive-traffic basis, mirroring the DIA-260828-qtsi Muse precedent) remains recorded but is PENDING re-confirmation against the standard ID; until re-confirmed, treat the architector and ai-auditor lanes on this model as possibly non-ZDR. Any lane on a trains-on-data model requires such an explicit registry waiver, never a silent exception."
     active: true
 
+  - model_id: "opencode-go/kimi-k3.1-pro"
+    role: "reviewer-primary (mimo-balanced preset, DIA-261112-exon developer routing)"
+    swe_bench_verified: null  # no archived benchmark in-repo
+    source_ref: "DIA-261112-exon ai-specialist gate 2026-11-25 (live catalog, CLI 1.18.32, catalog mtime 2026-11-25; models.dev row fetched 2026-11-25)"
+    lane: ["reviewer"]
+    fallback: ["opencode-go/qwen4-max"]
+    quota_notes: "Pricing, context window and allowance NOT recorded - no in-repo evidence (BLOCKER logged on DIA-261112-exon; do not infer). Reviewer variant high (kimi ladder low|high|max). Temperature is fixed at 1.0 upstream per models.dev while the preset declares temperature 0.1 - runtime behaviour UNVERIFIED, observe the first reviewer dispatch."
+    active: true
+
+  - model_id: "opencode-go/qwen4-max"
+    role: "reviewer-fallback (mimo-balanced preset, DIA-261112-exon developer routing)"
+    swe_bench_verified: null  # no archived benchmark in-repo
+    source_ref: "DIA-261112-exon ai-specialist gate 2026-11-25 (live catalog, CLI 1.18.32, catalog mtime 2026-11-25; models.dev PR #13760 merged 2026-11-16)"
+    lane: ["reviewer"]
+    fallback: []
+    quota_notes: "Pricing, context window and allowance NOT recorded - no in-repo evidence (BLOCKER logged on DIA-261112-exon; do not infer). qwen4 variant ladder low|high|xhigh per the 2026-11-25 gate."
+    active: true
+
   - model_id: "gpt-5.6-luna"
     role: "analyzer-escalated"
     price_in_1m: 0.20
@@ -261,7 +279,7 @@ models:
     active: true
 
   - model_id: "gpt-5.3-codex"
-    role: "reviewer"
+    role: "reviewer (retired primary; reviewer primary is now opencode-go/kimi-k3.1-pro with opencode-go/qwen4-max fallback per DIA-261112-exon, 2026-11-25)"
     price_in_1m: 1.75
     price_out_1m: 14.00
     req_per_month: null  # ESTIMATE (per res024 sec 3.3)
