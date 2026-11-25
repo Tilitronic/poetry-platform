@@ -276,7 +276,7 @@ test("primary leg: childSessionAgent from a parsed task() id -> throws", async (
   const { hooks, ctx } = await makeHarness()
   const parentID = "ses_ft3z_parent_task"
   const childID = "ses_ft3z_child_task"
-  await driveTaskDispatch(hooks, { parentID, childID, agent: "coder-escalated" })
+  await driveTaskDispatch(hooks, { parentID, childID, agent: "coder" })
 
   const { error, registryRows } = await runBash(hooks, ctx, {
     sessionID: childID,
@@ -286,7 +286,7 @@ test("primary leg: childSessionAgent from a parsed task() id -> throws", async (
   expect(error).not.toBeNull()
   const denial = registryRows.find((r) => r.event === "bash_write_denied")
   expect(denial).toBeDefined()
-  expect(denial.subagent_type).toBe("coder-escalated")
+  expect(denial.subagent_type).toBe("coder")
   expect(String(denial.target)).toContain("docs/dev-infra-audit/tickets/")
 })
 
