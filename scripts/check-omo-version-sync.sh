@@ -161,17 +161,67 @@ fi
 # see, and it is asserted after every pin/override guard so a missing-source
 # or drift report keeps its own failure class. The real image cache root is
 # ~/.cache/opencode/node_modules (Dockerfile.dev OMO pre-population layer).
-# ponytail: presence-only probe of one cache root; add per-service cache roots
-# and a version comparison if a stale-but-present pin ever becomes a risk
+# Layout-aware (DIA-261119-vioa): a pnpm bake writes the versioned store
+# directory <cache>/oh-my-opencode-slim@<pin>, but the image bake runs npm
+# (Dockerfile.dev `npm install oh-my-opencode-slim@${OMO_VERSION}`), which
+# writes <cache>/oh-my-opencode-slim and records the pin as a dependency in
+# the package.json beside node_modules -- so a store-directory-only probe can
+# never pass on the image. Both layouts are accepted; metadata that is absent
+# or unreadable fails loud and names every path it probed (never a silent
+# success, never a silent skip).
+# ponytail: one cache root, one declared pin (the root service's); add
+# per-service cache roots only if a V2-side cache must be probed separately
 # (the V2 dev_v2_cache volume is only visible when the gate runs in dev-v2,
 # where the worktree IS this root).
 cache_root="${OMO_CACHE_ROOT:-${HOME:-}/.cache/opencode/node_modules}"
+cache_pkg_near="$(dirname "$cache_root")/package.json"
+cache_pkg_up="$(dirname "$(dirname "$cache_root")")/package.json"
+
+# cache_metadata_pin <package.json>: echo the declared oh-my-opencode-slim
+# version and exit 0, or exit 1 when the file is unreadable or never names
+# the package with a semver. Reads dependencies / devDependencies, including
+# npm-alias spellings (value `npm:<name>@<ver>`, or an alias key whose value
+# points at <name>@<ver>). The top-level "version" field is deliberately
+# ignored: `npm init -y` seeds it with 1.0.0, which would be a false match.
+cache_metadata_pin() {
+  node -e '
+const pkg = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"));
+const name = "oh-my-opencode-slim";
+for (const section of ["dependencies", "devDependencies"]) {
+  const deps = pkg[section];
+  if (!deps) continue;
+  for (const key of Object.keys(deps)) {
+    const spec = String(deps[key]).replace(/^npm:/, "");
+    if (key !== name && !key.startsWith(name + "@") && !spec.startsWith(name + "@")) continue;
+    const m = spec.match(/\d+\.\d+\.\d+/);
+    if (m) { process.stdout.write(m[0]); process.exit(0); }
+  }
+}
+process.exit(1);
+' "$1" 2>/dev/null
+}
+
 if [ ! -d "$cache_root" ]; then
   # S1: name the path that was probed -- a silent skip hid that nothing ran.
   echo "skip: OMO cache root absent: ${cache_root} (loaded-cache pin check skipped)"
-elif [ ! -d "$cache_root/oh-my-opencode-slim@$config_pin" ]; then
-  echo "fail: OMO loaded cache missing declared pin: oh-my-opencode-slim@$config_pin ($cache_root)" >&2
-  exit 1
+elif [ -d "$cache_root/oh-my-opencode-slim@$config_pin" ]; then
+  : # pnpm-style store entry: the directory name already carries the pin.
+else
+  cache_pin="" cache_meta=""
+  for pkg in "$cache_pkg_near" "$cache_pkg_up"; do
+    if [ -f "$pkg" ] && cache_pin="$(cache_metadata_pin "$pkg")"; then
+      cache_meta="$pkg"
+      break
+    fi
+  done
+  if [ -z "$cache_pin" ]; then
+    echo "fail: OMO loaded cache missing declared pin: oh-my-opencode-slim@$config_pin ($cache_root; probed package.json: $cache_pkg_near, $cache_pkg_up - absent or unreadable)" >&2
+    exit 1
+  fi
+  if [ "$cache_pin" != "$config_pin" ]; then
+    echo "fail: OMO loaded cache pin mismatch: declared oh-my-opencode-slim@$config_pin, cache metadata says oh-my-opencode-slim@$cache_pin ($cache_root; via $cache_meta)" >&2
+    exit 1
+  fi
 fi
 
 echo "ok: active OMO pins aligned at $config_pin"

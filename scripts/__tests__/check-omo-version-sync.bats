@@ -4,6 +4,11 @@ load test-helper
 
 setup() {
   export OMO_SYNC_ROOT="$BATS_TEST_TMPDIR/tree"
+  # Hermetic cache seam: point the loaded-cache probe at a fixture path that
+  # does not exist yet, so the suite never reads the host ~/.cache/opencode
+  # (which differs per image -- pnpm-style in V1, npm-style in V2). Tests
+  # that exercise a layout plant their own tree under this root.
+  export OMO_CACHE_ROOT="$BATS_TEST_TMPDIR/cache/node_modules"
   mkdir -p "$OMO_SYNC_ROOT/.opencode"
   printf '%s\n' '{' '  "plugin": [' '    "oh-my-opencode-slim@2.2.19",' '  ]' '}' > "$OMO_SYNC_ROOT/.opencode/opencode.jsonc"
   printf '%s\n' '{"plugin":["oh-my-opencode-slim@2.2.19"]}' > "$OMO_SYNC_ROOT/.opencode/tui.json"
@@ -109,4 +114,91 @@ setup() {
     echo "$output" >&2
     return 1
   }
+}
+
+# ---- Loaded-cache layouts (DIA-261119-vioa) --------------------------------
+# The gate used to probe ONLY the pnpm store directory, while the image bakes
+# the plugin with npm: that creates <cache>/oh-my-opencode-slim (no version
+# suffix) and records the pin in the package.json beside node_modules, so the
+# probe could never pass. Every fixture below is hermetic (OMO_CACHE_ROOT is
+# redirected by setup) and each one can fail if its branch regresses.
+
+@test "OMO sync accepts a pnpm-style cache store entry without any package.json" {
+  # Layout A (the original probe): the directory name itself carries the pin.
+  mkdir -p "$OMO_CACHE_ROOT/oh-my-opencode-slim@2.2.19"
+  assert_file_not_exists "$BATS_TEST_TMPDIR/cache/package.json"
+
+  run bash "$REPO_ROOT/scripts/check-omo-version-sync.sh"
+
+  assert_status 0
+  assert_output_contains "ok: active OMO pins aligned at 2.2.19"
+  # Neither failure mode may fire: requiring metadata here would break the
+  # pnpm layout, and skipping would hide that nothing was probed.
+  assert_output_not_contains "fail:"
+  assert_output_not_contains "skip:"
+}
+
+@test "OMO sync accepts an npm-style cache via the dependencies entry in package.json" {
+  # Layout B (the image bake): unversioned package dir + pin in the
+  # package.json sitting next to node_modules.
+  local cache_dir="$BATS_TEST_TMPDIR/npmcache"
+  export OMO_CACHE_ROOT="$cache_dir/node_modules"
+  mkdir -p "$OMO_CACHE_ROOT/oh-my-opencode-slim"
+  printf '%s\n' '{' '  "name": "opencode-cache",' '  "version": "1.0.0",' '  "dependencies": {' '    "oh-my-opencode-slim": "2.2.19"' '  }' '}' > "$cache_dir/package.json"
+
+  run bash "$REPO_ROOT/scripts/check-omo-version-sync.sh"
+
+  assert_status 0
+  assert_output_contains "ok: active OMO pins aligned at 2.2.19"
+  assert_output_not_contains "fail:"
+}
+
+@test "OMO sync accepts npm-style metadata spelled as devDependencies with an npm alias" {
+  # The other common shapes: devDependencies, and an npm alias value
+  # (`npm:<name>@<version>`). A parser that only reads plain dependencies
+  # values exits 1 here.
+  local cache_dir="$BATS_TEST_TMPDIR/aliascache"
+  export OMO_CACHE_ROOT="$cache_dir/node_modules"
+  mkdir -p "$OMO_CACHE_ROOT/oh-my-opencode-slim"
+  printf '%s\n' '{' '  "version": "1.0.0",' '  "devDependencies": {' '    "oh-my-opencode-slim": "npm:oh-my-opencode-slim@2.2.19"' '  }' '}' > "$cache_dir/package.json"
+
+  run bash "$REPO_ROOT/scripts/check-omo-version-sync.sh"
+
+  assert_status 0
+  assert_output_contains "ok: active OMO pins aligned at 2.2.19"
+  assert_output_not_contains "fail:"
+}
+
+@test "OMO sync fails loud when the npm-style cache has no readable package.json metadata" {
+  # Unversioned package dir (so the pnpm probe misses) and no package.json
+  # anywhere in the probe range: the failure must stay explicit and name the
+  # paths that were probed -- never a silent success, never a skip.
+  local cache_dir="$BATS_TEST_TMPDIR/nometa"
+  export OMO_CACHE_ROOT="$cache_dir/node_modules"
+  mkdir -p "$OMO_CACHE_ROOT/oh-my-opencode-slim"
+
+  run bash "$REPO_ROOT/scripts/check-omo-version-sync.sh"
+
+  assert_status 1
+  assert_output_contains "fail: OMO loaded cache missing declared pin: oh-my-opencode-slim@2.2.19"
+  assert_output_contains "$cache_dir/package.json"
+  assert_output_contains "absent or unreadable"
+  assert_output_not_contains "skip:"
+}
+
+@test "OMO sync rejects npm-style metadata whose version disagrees with the declared pin" {
+  # Presence alone must not pass: the resolved version is compared against
+  # the declared pin, and the report names both values plus the file used.
+  local cache_dir="$BATS_TEST_TMPDIR/mismatch"
+  export OMO_CACHE_ROOT="$cache_dir/node_modules"
+  mkdir -p "$OMO_CACHE_ROOT/oh-my-opencode-slim"
+  printf '%s\n' '{' '  "version": "1.0.0",' '  "dependencies": {' '    "oh-my-opencode-slim": "3.0.7"' '  }' '}' > "$cache_dir/package.json"
+
+  run bash "$REPO_ROOT/scripts/check-omo-version-sync.sh"
+
+  assert_status 1
+  assert_output_contains "fail: OMO loaded cache pin mismatch"
+  assert_output_contains "oh-my-opencode-slim@2.2.19"
+  assert_output_contains "oh-my-opencode-slim@3.0.7"
+  assert_output_contains "$cache_dir/package.json"
 }
