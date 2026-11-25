@@ -290,6 +290,21 @@ test("primary leg: childSessionAgent from a parsed task() id -> throws", async (
   expect(String(denial.target)).toContain("docs/dev-infra-audit/tickets/")
 })
 
+test("retired coder-escalated lane + same protected write -> no throw (out of scope, DIA-261112-exon)", async () => {
+  const { hooks, ctx } = await makeHarness()
+  const parentID = "ses_ft3z_parent_retired"
+  const childID = "ses_ft3z_child_retired"
+  await driveTaskDispatch(hooks, { parentID, childID, agent: "coder-escalated" })
+
+  const { error, registryRows } = await runBash(hooks, ctx, {
+    sessionID: childID,
+    command: "echo pwned > docs/dev-infra-audit/tickets/pwned.md",
+  })
+
+  expect(error).toBeNull()
+  expect(registryRows.filter((r) => r.event === "bash_write_denied").length).toBe(0)
+})
+
 test("control: same protected write with no backfill and no task id -> no throw", async () => {
   const { hooks, ctx } = await makeHarness()
 

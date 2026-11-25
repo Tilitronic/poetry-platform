@@ -266,34 +266,32 @@ The `README.md` rollup in the tickets directory is a static snapshot that can dr
 
 Canonical agent-name mapping for every agent the project declares (mention form -> internal name). This table is S1 of the 4-source agent-name lockstep contract (`scripts/validate-agent-names.sh`): the "Internal name" column must stay in equality with the `.opencode/opencode.jsonc` `agent` block keys, the `.opencode/oh-my-opencode-slim.jsonc` `agents`/preset/`disabled_agents` keys, and the `.opencode/agents/*.md` filename stems.
 
-| Mention form                   | Internal name        | Lane                                                                                                   |
-| ------------------------------ | -------------------- | ------------------------------------------------------------------------------------------------------ |
-| at-sign + `orchestrator`       | `orchestrator`       | Orchestrator (OMO primary)                                                                             |
-| at-sign + `architector`        | `architector`        | Architecture & strategy                                                                                |
-| at-sign + `analyzer`           | `analyzer`           | Analysis reports & visualization                                                                       |
-| at-sign + `analyzer-escalated` | `analyzer-escalated` | Escalated analysis for 'cannot comprehend domain' cases (GPT-5.6 Luna, orchestrator-only, hidden)      |
-| at-sign + `reviewer`           | `reviewer`           | Code review & QA                                                                                       |
-| at-sign + `coder`              | `coder`              | Bounded implementation                                                                                 |
-| at-sign + `coder-escalated`    | `coder-escalated`    | Escalated implementation for complex problem-fix tasks (GPT-5.6 Terra High, orchestrator-only, hidden) |
-| at-sign + `code-navigator`     | `code-navigator`     | Fast codebase recon                                                                                    |
-| at-sign + `researcher`         | `researcher`         | External research                                                                                      |
-| at-sign + `conspecter`         | `conspecter`         | Research conspect authoring                                                                            |
-| at-sign + `openspec-plan`      | `openspec-plan`      | Spec authoring (Socratic, practice-protected)                                                          |
-| at-sign + `ai-specialist`      | `ai-specialist`      | OpenCode system research & config (read-only)                                                          |
-| at-sign + `ai-auditor`         | `ai-auditor`         | Read-only config/skill surface auditor (documentation-only; never writes)                              |
-| at-sign + `designer`           | `designer`           | UI/UX design                                                                                           |
-| at-sign + `observer`           | `observer`           | Visual/media analysis                                                                                  |
-| at-sign + `memory-manager`     | `memory-manager`     | Knowledge persistence                                                                                  |
-| at-sign + `council`            | `council`            | Multi-model consensus                                                                                  |
-| at-sign + `explore`            | `explore`            | Built-in OpenCode explorer (disabled)                                                                  |
-| at-sign + `general`            | `general`            | Built-in OpenCode general agent (disabled)                                                             |
-| at-sign + `build`              | `build`              | Built-in OpenCode builder (disabled, DIA-260831-h3i4)                                                  |
-| at-sign + `plan`               | `plan`               | Built-in OpenCode planner (disabled, DIA-260831-h3i4)                                                  |
-| at-sign + `scout`              | `scout`              | Native scout guard (disabled, DIA-260831-h3i4)                                                         |
-| at-sign + `oracle`             | `oracle`             | OMO native alias (disabled)                                                                            |
-| at-sign + `fixer`              | `fixer`              | OMO native alias (disabled)                                                                            |
-| at-sign + `explorer`           | `explorer`           | OMO native alias (disabled)                                                                            |
-| at-sign + `librarian`          | `librarian`          | OMO native alias (disabled)                                                                            |
+| Mention form               | Internal name    | Lane                                                                      |
+| -------------------------- | ---------------- | ------------------------------------------------------------------------- |
+| at-sign + `orchestrator`   | `orchestrator`   | Orchestrator (OMO primary)                                                |
+| at-sign + `architector`    | `architector`    | Architecture & strategy                                                   |
+| at-sign + `analyzer`       | `analyzer`       | Analysis reports & visualization                                          |
+| at-sign + `reviewer`       | `reviewer`       | Code review & QA                                                          |
+| at-sign + `coder`          | `coder`          | Bounded implementation                                                    |
+| at-sign + `code-navigator` | `code-navigator` | Fast codebase recon                                                       |
+| at-sign + `researcher`     | `researcher`     | External research                                                         |
+| at-sign + `conspecter`     | `conspecter`     | Research conspect authoring                                               |
+| at-sign + `openspec-plan`  | `openspec-plan`  | Spec authoring (Socratic, practice-protected)                             |
+| at-sign + `ai-specialist`  | `ai-specialist`  | OpenCode system research & config (read-only)                             |
+| at-sign + `ai-auditor`     | `ai-auditor`     | Read-only config/skill surface auditor (documentation-only; never writes) |
+| at-sign + `designer`       | `designer`       | UI/UX design                                                              |
+| at-sign + `observer`       | `observer`       | Visual/media analysis                                                     |
+| at-sign + `memory-manager` | `memory-manager` | Knowledge persistence                                                     |
+| at-sign + `council`        | `council`        | Multi-model consensus                                                     |
+| at-sign + `explore`        | `explore`        | Built-in OpenCode explorer (disabled)                                     |
+| at-sign + `general`        | `general`        | Built-in OpenCode general agent (disabled)                                |
+| at-sign + `build`          | `build`          | Built-in OpenCode builder (disabled, DIA-260831-h3i4)                     |
+| at-sign + `plan`           | `plan`           | Built-in OpenCode planner (disabled, DIA-260831-h3i4)                     |
+| at-sign + `scout`          | `scout`          | Native scout guard (disabled, DIA-260831-h3i4)                            |
+| at-sign + `oracle`         | `oracle`         | OMO native alias (disabled)                                               |
+| at-sign + `fixer`          | `fixer`          | OMO native alias (disabled)                                               |
+| at-sign + `explorer`       | `explorer`       | OMO native alias (disabled)                                               |
+| at-sign + `librarian`      | `librarian`      | OMO native alias (disabled)                                               |
 
 Runtime mention form: an at-sign immediately followed by the internal name.
 

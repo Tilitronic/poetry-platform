@@ -5417,3 +5417,17 @@
     four duplicated fallback arrays left by that repair.'
   verification: manual
   area: opencode-config
+- date: '2026-11-20'
+  ticket: DIA-261112-exon
+  scope: config
+  files:
+  - .opencode/opencode.jsonc
+  - .opencode/oh-my-opencode-slim.jsonc
+  - AGENTS.md
+  - .opencode/scripts/lib/jsonc-parse.js
+  - .opencode/plugins/lib/routing-gate.ts
+  - .opencode/plugins/lib/bash-write-gate.ts
+  - knowledge/model-registry.yaml
+  summary: Remove coder-escalated and analyzer-escalated agents
+  verification: manual
+  area: opencode-config

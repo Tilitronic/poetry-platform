@@ -20,7 +20,7 @@
 #   delegation-only   role boundary: orchestrator delegates, never executes
 #   batch-approval    boot gate: prognosis presented before any delegation
 #   DIA-133           registry pointer: consult model-registry.yaml before
-#                     escalated dispatch (quota-guard policy)
+#                     a quota-metered dispatch (quota-guard policy)
 #   pure-dispatch     PURE-DISPATCH rule A1: task() is the sole tool call
 #                     (matched case-insensitively - the prompts write
 #                     PURE-DISPATCH)

@@ -242,7 +242,7 @@ Translated to this file's groups:
       **Acceptance:** researcher succeeds; other agents fail model-visibly; cancellation aborts the fetch; `.opencode/tools/` is gone and nothing auto-loads.
       **Gates:** `make test-config`, `make test-harness`.
 
-- [ ] 6.9 AUD-B2 Layer 2 hook: implement `permission.hook("evaluate")` and the `ctx.storage` gate-token carrier in the ported plugin. The `.opencode/**` and `AGENTS.md` `ask` base rules are appended at the END of the coder and coder-escalated permissions in task 10.3, because they must be written in the same atomic edit as the agent conversion (design D6). The hook upgrades `effect === "ask"` to allow only on a valid token and otherwise sets `deny`; never leave `ask`; never use a `deny` base (the hook is skipped) and never use `policies` for this.
+- [ ] 6.9 AUD-B2 Layer 2 hook: implement `permission.hook("evaluate")` and the `ctx.storage` gate-token carrier in the ported plugin. The `.opencode/**` and `AGENTS.md` `ask` base rules are appended at the END of the coder permissions in task 10.3, because they must be written in the same atomic edit as the agent conversion (design D6). The hook upgrades `effect === "ask"` to allow only on a valid token and otherwise sets `deny`; never leave `ask`; never use a `deny` base (the hook is skipped) and never use `policies` for this.
       **Blockers:** 6.4.
       **Acceptance:** a synthetic `ask` event with a valid token becomes allow; without a token or with an expired token it becomes deny; the hook never runs on a configured deny; the end-to-end edit cases are exercised in 10.6.
       **Gates:** `make test-harness`, `make test-config`.
@@ -353,9 +353,9 @@ Translated to this file's groups:
       **Acceptance:** the orchestrator cannot perform engineering work itself; the dispatch allow-list survives; no orphan key remains.
       **Gates:** `make test-config`, per-agent verification (10.9).
 
-- [ ] 10.3 coder and coder-escalated: convert atomically; preserve the lockstep clone contract; append the `.opencode/**` and `AGENTS.md` `ask` rules at the END of each permissions array (after broader edit allows).
+- [ ] 10.3 coder: convert atomically; append the `.opencode/**` and `AGENTS.md` `ask` rules at the END of the permissions array (after broader edit allows).
       **Blockers:** 10.2.
-      **Acceptance:** the two arrays are equal apart from documented task keys; shell/edit flows behave as before; the protected-path ask is the last matching rule.
+      **Acceptance:** the permissions array matches the pre-conversion effective-matrix oracle apart from documented task keys; shell/edit flows behave as before; the protected-path ask is the last matching rule.
       **Gates:** `make test-config`, `make test-harness`.
 
 - [ ] 10.4 reviewer: convert atomically; preserve the read-only and no-bash constraints and the envelope assumptions.
@@ -389,7 +389,7 @@ Translated to this file's groups:
 
 ## 11. Permissions: remaining agents (S8)
 
-- [ ] 11.1 Convert the remaining agents atomically (architector, analyzer, analyzer-escalated, designer, observer, memory-manager, conspecter, openspec-plan, council, ai-specialist, ai-auditor, and any configured alias), including their `.opencode/agents/<name>.md` frontmatter.
+- [ ] 11.1 Convert the remaining agents atomically (architector, analyzer, designer, observer, memory-manager, conspecter, openspec-plan, council, ai-specialist, ai-auditor, and any configured alias), including their `.opencode/agents/<name>.md` frontmatter.
       **Blockers:** 10.9.
       **Acceptance:** every agent has exactly one permission format; the effective matrix matches the oracle; zero load warnings.
 

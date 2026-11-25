@@ -180,7 +180,7 @@ with a read-only task) to report the current contents of:
 
 ### Dispatch Routing & Quota Guard
 
-Before ANY escalated dispatch to a quota-metered lane, the orchestrator MUST:
+Before ANY quota-metered dispatch, the orchestrator MUST:
 
 1. Consult `knowledge/model-registry.yaml` to identify the model's `req_per_month` cap. If null (Copilot-credit lanes), SKIP the guard.
 2. Count the lane's consumption in `registry.jsonl` matching `event: 'session_spawn'` for that model within the current YYYY-MM window.

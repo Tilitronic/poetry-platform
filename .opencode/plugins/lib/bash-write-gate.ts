@@ -2,8 +2,8 @@
  * bash-write-gate - pure bash write-tripwire classifier (DIA-260827-ft3z,
  * design.md D5).
  *
- * Accident protection for the two implementation lanes that keep a shell
- * (`coder`, `coder-escalated`): a command whose literal write destination
+ * Accident protection for the implementation lane that keeps a shell
+ * (`coder`): a command whose literal write destination
  * resolves under a protected literal is denied with the matched target and
  * the rule that fired. Everything else - including every out-of-scope lane
  * and an unresolvable lane (fail-open) - passes with `{ blocked: false }`.
@@ -21,9 +21,9 @@
 
 import { basename } from "node:path"
 
-// D5 scope: only the two lanes that keep a shell. Any other lane (or an
+// D5 scope: only the lane that keeps a shell. Any other lane (or an
 // unresolvable one) is returned untouched without inspecting the command.
-const SCOPE_LANES = new Set(["coder", "coder-escalated"])
+const SCOPE_LANES = new Set(["coder"])
 
 // D5 protected set - fixed, not configurable.
 const PROTECTED_LITERALS = [".git/", ".opencode/session/", "docs/dev-infra-audit/tickets/"]

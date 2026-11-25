@@ -16,9 +16,11 @@
 #         coverage (global ∪ per-agent merge). Exit 1.
 #   WARN  all other unlisted default-allow tools. Exit 0.
 #
-# Isolation: each test builds a hermetic fixture tree under $BATS_TEST_TMPDIR
-# and stubs the runtime census via AUDIT_TOOL_CENSUS_FILE — no live `opencode`
-# install is required. The real project config is never touched.
+# Isolation: each test builds a hermetic fixture tree under $BATS_TEST_TMPDIR.
+# The census is stubbed either via AUDIT_TOOL_CENSUS_FILE (hermetic fixtures,
+# no live `opencode` install) or via a fake `opencode` binary on PATH that
+# answers only one CLI shape (`opencode debug agents` plural / `opencode debug
+# agent <name>` singular). The real project config is never touched.
 
 load test-helper
 
@@ -196,7 +198,7 @@ JSONC
 }
 
 # ---------------------------------------------------------------------------
-# T3 — runtime census (tests 7–8)
+# T3 — runtime census + dual-shape CLI probe (tests 7-10)
 # ---------------------------------------------------------------------------
 
 @test "audit-tool-coverage: AUDIT_TOOL_CENSUS_FILE loads the tool universe" {
@@ -225,12 +227,14 @@ JSONC
   assert_output_contains "1 agents audited, 0 gaps"
 }
 
-@test "audit-tool-coverage: opencode debug agent failure exits 2" {
+@test "audit-tool-coverage: neither census CLI shape yields data -> exits 2" {
   local tree
   tree="$(setup_tree debug-failure)"
   printf '{ "agent": { "alpha": {} } }\n' > "$tree/config.jsonc"
   # PATH has opencode? No — we force the runtime census path by NOT setting
-  # AUDIT_TOOL_CENSUS_FILE and pointing opencode at a failing fake.
+  # AUDIT_TOOL_CENSUS_FILE and pointing opencode at a failing fake: the fake
+  # fails BOTH shapes (`debug agents` plural and `debug agent <name>`
+  # singular), so neither probe can yield census data.
   local bindir="$BATS_TEST_TMPDIR/fakebin"
   mkdir -p "$bindir"
   cat > "$bindir/opencode" <<'FAKE'
@@ -243,7 +247,111 @@ FAKE
   PATH="$bindir:$PATH" run bash "$AUDIT_SCRIPT" "$tree/config.jsonc"
 
   assert_status 2
-  assert_output_contains "opencode debug agent failed"
+  assert_output_contains "no census data from opencode debug agents or opencode debug agent"
+  assert_output_contains "no default model resolvable"
+}
+
+@test "audit-tool-coverage: V2 plural 'debug agents' shape drives the census" {
+  local tree bindir
+  tree="$(setup_tree v2-plural)"
+  cat > "$tree/config.jsonc" <<'JSONC'
+{
+  "agent": {
+    "alpha": {
+      "permission": {
+        "write": "deny",
+        "edit": "deny"
+      }
+    }
+  }
+}
+JSONC
+  bindir="$BATS_TEST_TMPDIR/plural-bin"
+  mkdir -p "$bindir"
+  # Plural-only fake (opencode 2.x shape): `debug agents` answers with agent
+  # records whose permissions entries carry action/resource/effect; the
+  # singular form is unknown here, so the audit can only succeed via the
+  # plural probe. `read` exists ONLY in this plural payload (the config never
+  # lists it), so the tool=read WARN proves the plural records really fed the
+  # cross-reference rather than being ignored.
+  cat > "$bindir/opencode" <<'FAKE'
+#!/usr/bin/env bash
+if [ "${1:-}" = "debug" ] && [ "${2:-}" = "agents" ]; then
+  cat <<'JSON'
+[
+  {
+    "id": "alpha",
+    "description": "fixture agent",
+    "mode": "primary",
+    "hidden": false,
+    "color": "#000000",
+    "permissions": [
+      { "action": "read", "resource": "*", "effect": "allow" },
+      { "action": "write", "resource": "*", "effect": "deny" },
+      { "action": "edit", "resource": "*", "effect": "allow" }
+    ]
+  }
+]
+JSON
+  exit 0
+fi
+echo 'Unknown subcommand "agent"' >&2
+exit 1
+FAKE
+  chmod +x "$bindir/opencode"
+
+  PATH="$bindir:$PATH" run bash "$AUDIT_SCRIPT" "$tree/config.jsonc"
+
+  assert_status 0
+  assert_output_contains "WARN:"
+  assert_output_contains "tool=read"
+  assert_output_contains "severity=WARN"
+  assert_output_contains "ok: agent=alpha"
+  assert_output_contains "1 agents audited, 0 gaps, 1 warnings"
+}
+
+@test "audit-tool-coverage: singular-only CLI (V1 shape) passes via fallback" {
+  local tree bindir
+  tree="$(setup_tree singular-only)"
+  cat > "$tree/config.jsonc" <<'JSONC'
+{
+  "agent": {
+    "alpha": {
+      "permission": {
+        "write": "deny",
+        "edit": "deny"
+      }
+    }
+  }
+}
+JSONC
+  bindir="$BATS_TEST_TMPDIR/singular-bin"
+  mkdir -p "$bindir"
+  # Singular-only fake (opencode 1.x shape): the plural probe fails, only
+  # `debug agent <name>` answers, with the V1 resolved tools map. The audit
+  # must still pass through the fallback.
+  cat > "$bindir/opencode" <<'FAKE'
+#!/usr/bin/env bash
+if [ "${1:-}" = "debug" ] && [ "${2:-}" = "agent" ] && [ -n "${3:-}" ]; then
+  cat <<'JSON'
+{
+  "name": "alpha",
+  "mode": "primary",
+  "tools": { "read": true, "write": true, "edit": true }
+}
+JSON
+  exit 0
+fi
+echo 'Unknown subcommand "agents"' >&2
+exit 1
+FAKE
+  chmod +x "$bindir/opencode"
+
+  PATH="$bindir:$PATH" run bash "$AUDIT_SCRIPT" "$tree/config.jsonc"
+
+  assert_status 0
+  assert_output_contains "ok: agent=alpha"
+  assert_output_contains "1 agents audited, 0 gaps, 1 warnings"
 }
 
 # ---------------------------------------------------------------------------

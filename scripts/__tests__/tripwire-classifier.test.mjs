@@ -11,7 +11,7 @@
  *      | { blocked: true, target: string, rule: string }
  * Protected literals: .git/, .opencode/session/,
  * docs/dev-infra-audit/tickets/. Explicit form set only (redirection, tee,
- * curl -o, ...); lane scope is coder and coder-escalated, fail-open for an
+ * curl -o, ...); lane scope is coder only, fail-open for an
  * unresolvable lane - accident protection, never a boundary.
  *
  * SEAM DECISION: plain Node ESM importing the pure .ts module directly.
@@ -46,10 +46,7 @@ describe('DIA-260827-ft3z bash write tripwire classifier (task 1.2)', () => {
   });
 
   it('blocks tee into the ticket ledger', () => {
-    const v = classifyBashWrite(
-      'tee docs/dev-infra-audit/tickets/DIA-260827-ft3z.md',
-      'coder-escalated',
-    );
+    const v = classifyBashWrite('tee docs/dev-infra-audit/tickets/DIA-260827-ft3z.md', 'coder');
     assert.equal(v.blocked, true, 'tee into the ticket ledger must be blocked');
     assert.ok(
       String(v.target).includes('docs/dev-infra-audit/tickets/'),
@@ -75,8 +72,15 @@ describe('DIA-260827-ft3z bash write tripwire classifier (task 1.2)', () => {
     assert.equal(v.blocked, false, 'an ordinary build/test command must pass unchanged');
   });
 
-  it('does not apply to lanes other than coder/coder-escalated', () => {
+  it('does not apply to lanes other than coder', () => {
     // Same protected literal, out-of-scope lanes: the tripwire must not fire.
+    // The coder in-scope leg is pinned here too, so this case fails if the
+    // scope set is ever widened or emptied again.
+    assert.equal(
+      classifyBashWrite('echo pwned > .git/config', 'coder').blocked,
+      true,
+      'coder is in scope',
+    );
     assert.equal(
       classifyBashWrite('echo pwned > .git/config', 'researcher').blocked,
       false,
@@ -86,6 +90,11 @@ describe('DIA-260827-ft3z bash write tripwire classifier (task 1.2)', () => {
       classifyBashWrite('echo pwned > .git/config', 'reviewer').blocked,
       false,
       'reviewer is out of scope',
+    );
+    assert.equal(
+      classifyBashWrite('echo pwned > .git/config', 'coder-escalated').blocked,
+      false,
+      'coder-escalated is out of scope (lane retired, DIA-261112-exon)',
     );
   });
 

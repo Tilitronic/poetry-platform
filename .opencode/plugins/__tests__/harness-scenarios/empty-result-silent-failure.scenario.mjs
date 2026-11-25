@@ -1,7 +1,7 @@
 /**
  * C5 scenario-1 (DIA-130 class): empty-result detection.
  *
- * Regression: coder-escalated returns an EMPTY <task_result> body. The
+ * Regression: a coder dispatch returns an EMPTY <task_result> body. The
  * plugin's session.idle handler must detect the absent TEXT (DIA-260926-ch1d
  * replaced the zero-file-edit proxy) and emit an empty_result_detected row
  * with dispatch_state EMPTY_RESULT / status NO_TEXT_RESULT in registry.jsonl.

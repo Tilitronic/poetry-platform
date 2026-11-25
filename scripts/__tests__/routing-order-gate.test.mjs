@@ -230,10 +230,6 @@ describe('DIA-230: Coder agent detection', () => {
     assert.ok(isCoderAgent('coder'));
   });
 
-  it('detects coder-escalated', () => {
-    assert.ok(isCoderAgent('coder-escalated'));
-  });
-
   it('does not detect other agents', () => {
     assert.ok(!isCoderAgent('ai-specialist'));
     assert.ok(!isCoderAgent('reviewer'));

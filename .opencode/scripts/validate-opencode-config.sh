@@ -5,10 +5,8 @@
 # JSON.parse rejects all three, so we strip comments and trailing commas with a
 # small char-level tokenizer that respects string literals — naive regex
 # stripping would corrupt URLs such as https://... inside the config.
-# The tokenizer lives in lib/jsonc-parse.js, shared with the permission
-# lockstep check (coder + analyzer base/escalated pairs, DIA-260825-nts7 F2 +
-# DIA-260827-ft3z check A) and the deny-first doc-contract check
-# (DIA-260827-ft3z check B).
+# The tokenizer lives in lib/jsonc-parse.js, shared with the deny-first
+# doc-contract check (DIA-260827-ft3z check B).
 #
 # Exit codes: 0 all valid, 1 validation failure, 2 node unavailable.
 set -euo pipefail
@@ -44,18 +42,6 @@ for file in "${FILES[@]}"; do
     failures=$((failures + 1))
   fi
 done
-
-# --- permission lockstep (DIA-260825-nts7 F2, DIA-260827-ft3z check A) -------
-# coder-escalated is documented as an exact clone of the base coder permission
-# map plus task-related keys; analyzer-escalated is documented as an exact
-# clone of base analyzer. Neither was enforced and the coder maps already
-# drifted (reviewer finding). Fail test-config on any drift so the next clone
-# edit cannot silently diverge. G1 (DIA-260827-ft3z): every pair member must be
-# present with a non-empty permission map first - a missing member used to
-# compare nothing and print a green "0 keys compared" line.
-if ! node "$LIB" --lockstep "$ROOT/.opencode/opencode.jsonc"; then
-  failures=$((failures + 1))
-fi
 
 # --- deny-first doc contract (DIA-260827-ft3z check B) ------------------------
 # Every agent whose EFFECTIVE bash map is deny-scoped (resolved semantically:
