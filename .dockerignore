@@ -23,6 +23,7 @@ dist/
 **/.quasar/
 *.tsbuildinfo
 **/*.tsbuildinfo
+**/.scratch/lockprobe/
 
 # === Turbo ===
 .turbo/
