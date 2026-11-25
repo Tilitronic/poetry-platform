@@ -78,7 +78,7 @@ rows). Two documentation defects were deliberately left unfixed there.
 Registry reconciliation demanded by the section 2.5 Phase 6 audit (append-only
 transfer; not fixed in DIA-261112-exon):
 
-- `gpt-5.3-codex` keeps `lane: ["reviewer"]` and `active: true` while
+- `gpt-5.3-codex` keeps a scalar `lane: "reviewer"` and `active: true` while
   `routing_table` Rung4 still routes reviewer to it.
 - `opencode-go/deepseek-v4.1-flash` does not list `coder` or `designer` in its
   `lane` array.

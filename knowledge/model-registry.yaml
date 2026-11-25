@@ -233,7 +233,7 @@ models:
     source_ref: "DIA-261112-exon ai-specialist gate 2026-11-25 (live catalog, CLI 1.18.32, catalog mtime 2026-11-25; models.dev row fetched 2026-11-25)"
     lane: ["reviewer"]
     fallback: ["opencode-go/qwen4-max"]
-    quota_notes: "Pricing, context window and allowance NOT recorded - no in-repo evidence (backfill tracked on DIA-261125-mu6w; do not infer). Reviewer variant high (kimi ladder low|high|max). Temperature is fixed at 1.0 upstream per models.dev while the preset declares temperature 0.1 - runtime behaviour UNVERIFIED, observe the first reviewer dispatch."
+    quota_notes: "Pricing, context window and allowance NOT recorded - no in-repo evidence (backfill tracked on DIA-261125-mu6w; do not infer). Reviewer variant high (kimi ladder low|high|max). Temperature is fixed at 1.0 upstream per models.dev while the preset declares temperature 0.1 - first reviewer dispatch on this seat completed on 2026-11-25 with no provider or HTTP error at the declared temperature 0.1; whether the runtime stripped that value or the model accepted it is not observable from the client side."
     active: true
 
   - model_id: "opencode-go/qwen4-max"

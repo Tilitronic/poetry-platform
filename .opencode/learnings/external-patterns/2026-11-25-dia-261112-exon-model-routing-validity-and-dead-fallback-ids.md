@@ -80,9 +80,12 @@ dispatch-routing and quota-guard inputs, so empty rows degrade quota lookups.
 
 ## Outcome (2026-11-25)
 
-fc1a15f8 repaired the five dead fallback IDs and added the two registry rows;
-1dc21859 collapsed the four duplicated fallback arrays, so the dead-ID and
-missing-row defects above are RESOLVED in config.
-OPEN: (1) reviewer temperature 0.1 against kimi-k3.1-pro fixed 1.0 upstream,
-still unverified; (2) registry lane/routing_table reconciliation tracked in
-DIA-261125-mu6w; (3) the volume lanes now have no secondary fallback model.
+fc1a15f8 and 1dc21859 resolved the dead fallback IDs, added the two registry rows
+and collapsed the four duplicated arrays; the deferred registry lane/routing_table
+reconciliation and the pricing/context values remain untouched and OPEN.
+OBSERVED: first reviewer dispatch completed 2026-11-25 with no provider or HTTP
+error on the declared temperature 0.1; whether the runtime stripped the value or
+the model accepted it is not client-observable, so the hazard is cleared but the
+mechanism question is not.
+OPEN: registry lane/routing_table reconciliation in DIA-261125-mu6w; volume lanes
+now have no secondary fallback model.
