@@ -124,7 +124,6 @@
         "model": [
           "opencode-go/mimo-v2.6-flash"
         ],
-        "variant": "medium",
         "mcps": [],
         "temperature": 0.1
       },
@@ -161,7 +160,6 @@
         "model": [
           "opencode-go/mimo-v2.6-flash"
         ],
-        "variant": "medium",
         "skills": [
           "git-diff"
         ],
@@ -172,7 +170,6 @@
         "model": [
           "opencode-go/mimo-v2.6-flash"
         ],
-        "variant": "medium",
         "skills": [],
         "mcps": []
       },
@@ -180,7 +177,6 @@
         "model": [
           "opencode-go/mimo-v2.6-flash"
         ],
-        "variant": "medium",
         "temperature": 0.3,
         "skills": [
           "mermaid-diagramming"
