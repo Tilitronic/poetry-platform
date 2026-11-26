@@ -1391,3 +1391,15 @@
 - **Change:** Delete council lane: remove agent block, 7 councillor task-permission keys, OMO council seat block, analyzer/ai-auditor council prompt clauses, AGENTS.md section-9 row; 13 operational lanes remain
 - **Files:** .opencode/agents/ai-auditor.md - .opencode/agents/analyzer.md - .opencode/oh-my-opencode-slim.jsonc - .opencode/oh-my-opencode-slim/analyzer_append.md - .opencode/oh-my-opencode-slim/orchestrator.md - .opencode/oh-my-opencode-slim/orchestrator_append.md - .opencode/opencode.jsonc - .opencode/skills/debugging-workflow/SKILL.md - AGENTS.md - docs/dev-infra-audit/NEXT-RUN.md - docs/onboarding.md
 - **Verification:** manual
+
+## 2026-11-26 - DIA-261126-q9r9: opencode-config
+
+- **Change:** Add V2 permission-ask timeout watchdog (feature-detected, inert on the 1.17.7 V1 host) with an 8-case RED/GREEN suite; correct ADR 16 line 171 reply contract; split Group 4 into 4a (add watchdog) and 4b (delete needs-input-observer deferred to V2 cutover)
+- **Files:** .opencode/plugins/__tests__/permission-ask-watchdog.test.mjs - .opencode/plugins/permission-ask-watchdog.ts - .sdd/dev-infra/architecture.md
+- **Verification:** manual
+
+## 2026-11-26 - DIA-261126-zrgj: opencode-config
+
+- **Change:** Drop variant from the four mimo-v2.6-flash lanes (code-navigator, researcher, conspecter, memory-manager) - OpenCode 2.x builds no variants list for toggle-type v2.6 models, so a declared variant rejected dispatch before start; live dispatch proof pending an OpenCode server restart
+- **Files:** .opencode/oh-my-opencode-slim.jsonc
+- **Verification:** manual
