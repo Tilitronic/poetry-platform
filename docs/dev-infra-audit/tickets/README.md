@@ -412,9 +412,11 @@
 | DIA-261125-aqz6 | V2 container is missing openai/\* models (47 of 163) - developer elected to skip the openai oauth import on 2026-11-25 | docker | Medium | OPEN | [DIA-261125-aqz6-v2-container-is-missing-openai-models-47-of-163-developer-elected-to-skip-the-openai-oauth-import-on-2026-11-25.md](DIA-261125-aqz6-v2-container-is-missing-openai-models-47-of-163-developer-elected-to-skip-the-openai-oauth-import-on-2026-11-25.md) |
 | DIA-261125-mu6w | model-registry backfill for kimi-k3.1-pro and qwen4-max (pricing, context window, quota notes) and routing_table Rung4 still names gpt-5.3-codex for the reviewer lane | opencode-config | Medium | OPEN | [DIA-261125-mu6w-model-registry-backfill-for-kimi-k3-1-pro-and-qwen4-max-pricing-context-window-quota-notes-and-routing-table-rung4-still-names-gpt-5-3-codex-for-the-reviewer-lane.md](DIA-261125-mu6w-model-registry-backfill-for-kimi-k3-1-pro-and-qwen4-max-pricing-context-window-quota-notes-and-routing-table-rung4-still-names-gpt-5-3-codex-for-the-reviewer-lane.md) |
 | DIA-261125-p1kd | P2 split-brain - dev-v2 builds from the main build context while the pin gate reads the worktree | docker | Major | CLOSED | [DIA-261125-p1kd-p2-split-brain-dev-v2-builds-from-the-main-build-context-while-the-pin-gate-reads-the-worktree.md](DIA-261125-p1kd-p2-split-brain-dev-v2-builds-from-the-main-build-context-while-the-pin-gate-reads-the-worktree.md) |
-| DIA-261125-z4ij | divergent uid maps between poetry-dev and poetry-dev-v2 make /workspace/.git unwritable after container recreation | docker | Critical | OPEN | [DIA-261125-z4ij-divergent-uid-maps-between-poetry-dev-and-poetry-dev-v2-make-workspace-git-unwritable-after-container-recreation.md](DIA-261125-z4ij-divergent-uid-maps-between-poetry-dev-and-poetry-dev-v2-make-workspace-git-unwritable-after-container-recreation.md) |
+| DIA-261125-z4ij | divergent uid maps between poetry-dev and poetry-dev-v2 make /workspace/.git unwritable after container recreation | docker | Critical | CLOSED | [DIA-261125-z4ij-divergent-uid-maps-between-poetry-dev-and-poetry-dev-v2-make-workspace-git-unwritable-after-container-recreation.md](DIA-261125-z4ij-divergent-uid-maps-between-poetry-dev-and-poetry-dev-v2-make-workspace-git-unwritable-after-container-recreation.md) |
+| DIA-261126-3svn | docker-host-parity: base compose userns_mode keep-id is not reset by the docker overlay, dev-v2 has no docker user override, WSL2 docker path blocked | docker | Major | OPEN | [DIA-261126-3svn-docker-host-parity-base-compose-userns-mode-keep-id-is-not-reset-by-the-docker-overlay-dev-v2-has-no-docker-user-override-wsl2-docker-path-blocked.md](DIA-261126-3svn-docker-host-parity-base-compose-userns-mode-keep-id-is-not-reset-by-the-docker-overlay-dev-v2-has-no-docker-user-override-wsl2-docker-path-blocked.md) |
 | DIA-261126-igip | gitignore dotenv gaps and pre-commit secret scanning | secrets | Critical | OPEN | [DIA-261126-igip-gitignore-dotenv-gaps-and-pre-commit-secret-scanning.md](DIA-261126-igip-gitignore-dotenv-gaps-and-pre-commit-secret-scanning.md) |
 | DIA-261126-imm4 | policies array shape is unvalidated - OpenCode 2.x silently drops invalid statements, disabling the dotenv floor | opencode-config | Major | OPEN | [DIA-261126-imm4-policies-array-shape-is-unvalidated-opencode-2-x-silently-drops-invalid-statements-disabling-the-dotenv-floor.md](DIA-261126-imm4-policies-array-shape-is-unvalidated-opencode-2-x-silently-drops-invalid-statements-disabling-the-dotenv-floor.md) |
+| DIA-261126-q9r9 | V2 policy amendment - supersede ADR15 core scope (5 developer decisions) | opencode-config | Major | OPEN | [DIA-261126-q9r9-v2-policy-amendment-supersede-adr15-core-scope-5-developer-decisions.md](DIA-261126-q9r9-v2-policy-amendment-supersede-adr15-core-scope-5-developer-decisions.md) |
 
 ## Status summary
 
@@ -422,7 +424,7 @@
 | -------- | ----- |
 | Blocker  | 9     |
 | Critical | 19    |
-| Major    | 101   |
+| Major    | 103   |
 | Medium   | 221   |
 | Minor    | 2     |
 | Low      | 39    |
@@ -431,7 +433,7 @@
 
 | Status      | Count |
 | ----------- | ----- |
-| OPEN        | 104   |
+| OPEN        | 105   |
 | DONE        | 15    |
 | VALIDATE    | 0     |
 | E2E         | 0     |
@@ -440,7 +442,7 @@
 | FIXED       | 2     |
 | IMPLEMENTED | 2     |
 | VERIFIED    | 29    |
-| CLOSED      | 258   |
+| CLOSED      | 259   |
 | BLOCKED     | 0     |
 | DISPATCHED  | 0     |
 | RUNNING     | 0     |
