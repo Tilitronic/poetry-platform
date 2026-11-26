@@ -69,8 +69,24 @@ build (main tree vs worktree) and which side the gate must read.
 
 ## Fix
 
-> To be filled at fix time.
+dev-v2 no longer sets `working_dir` (it roots at the image WORKDIR /workspace,
+like `dev`) and its `pnpm_store_v2` now mounts /workspace/node_modules; the
+build context was already the repo root, and `.worktrees/` is now excluded from
+it. Pins, profile, image tag, container name/hostname, ports and the state/cache
+volumes are unchanged.
+
+Commit: 406f7a3 (DIA-261112-exon).
 
 ## Re-verify
 
-> To be filled at re-verify time.
+### Resolution (mount half)
+
+Mount/run half RESOLVED at 406f7a3: dev-v2 now builds from and runs the
+repository root, so V2 runs the migration tree instead of the feature worktree.
+
+### Remaining half - pin gate
+
+Still OPEN: `scripts/check-omo-version-sync.sh` continues to read
+`.worktrees/opencode-v2` as the V2 service while that worktree exists, so the
+gate's V2 input is no longer dev-v2's actual runtime tree. Follow-up: drop or
+repoint that V2 block (developer decision).
