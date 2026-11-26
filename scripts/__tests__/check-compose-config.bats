@@ -270,20 +270,26 @@ FAKEHOST
 # Asserted against the real docker-compose.yml at file level (the same seam
 # compose-overrides.bats uses for service shape; no engine needed). INVARIANT
 # pinned: dev-v2 is a full parallel workstation - its own image, container
-# name, hostname, working_dir, host ports and cache/state/pnpm volumes, all
-# disjoint from V1 - while the unchanged V1 `dev` service keeps its identity.
+# name, hostname, host ports and cache/state/pnpm volumes, all disjoint from
+# V1, rooted at the repo root rather than a worktree (DIA-261125-p1kd) - while
+# the unchanged V1 `dev` service keeps its identity.
 # Guards on the V1 service run first so a V1 regression is reported separately
 # from a dev-v2 gap.
 # ---------------------------------------------------------------------------
 
-@test "task 1.1: dev-v2 mounts the full repo at /workspace with working_dir in the v2 worktree" {
-  local compose="$REPO_ROOT/docker-compose.yml"
-  # INVARIANT (D1a N1): the v2 service roots its shell in the worktree, never
-  # in /workspace.
-  assert_file_contains "$compose" "working_dir: /workspace/.worktrees/opencode-v2"
+@test "task 1.1: dev-v2 mounts the full repo at /workspace and roots at the repo root, not a v2 worktree" {
   local block
   block="$(compose_service_block dev-v2)"
   [ -n "$block" ] || { echo "docker-compose.yml: missing service block 'dev-v2'" >&2; return 1; }
+  # INVARIANT (DIA-261125-p1kd): the v2 service roots at the image WORKDIR
+  # /workspace like `dev`, so it must not point working_dir at another tree
+  # (the retired .worktrees/opencode-v2 path must not come back).
+  if grep -qE '^[[:space:]]*working_dir:[[:space:]]+' <<<"$block" \
+    && ! grep -qE '^[[:space:]]*working_dir:[[:space:]]+/workspace[[:space:]]*$' <<<"$block"; then
+    echo "dev-v2 must not set working_dir outside /workspace:" >&2
+    echo "$block" >&2
+    return 1
+  fi
   # Full-repo mount: source is exactly '.', optional mode suffix (:z etc).
   grep -qE '^[[:space:]]*-[[:space:]]+\.:/workspace(:[a-zA-Z]+)?[[:space:]]*$' <<<"$block" || {
     echo "dev-v2 must mount the full repo as '- .:/workspace' (NOT a single directory):" >&2
@@ -321,10 +327,10 @@ FAKEHOST
     echo "V1 dev lost its container_name poetry-dev:" >&2; echo "$dev_block" >&2; return 1; }
   grep -qE '^[[:space:]]*image:[[:space:]]+poetry-platform-dev:latest' <<<"$dev_block" || {
     echo "V1 dev lost its image poetry-platform-dev:latest:" >&2; echo "$dev_block" >&2; return 1; }
-  # Own volumes: pnpm store at the worktree path named in tasks.md 1.1, plus
-  # dedicated cache/state volumes.
-  grep -qF 'pnpm_store_v2:/workspace/.worktrees/opencode-v2/node_modules' <<<"$block" || {
-    echo "dev-v2 must mount pnpm_store_v2 at the worktree node_modules path:" >&2; echo "$block" >&2; return 1; }
+  # Own volumes: pnpm store at the repo-root node_modules (the worktree path
+  # was retired by DIA-261125-p1kd), plus dedicated cache/state volumes.
+  grep -qF 'pnpm_store_v2:/workspace/node_modules' <<<"$block" || {
+    echo "dev-v2 must mount pnpm_store_v2 at the repo-root node_modules path:" >&2; echo "$block" >&2; return 1; }
   grep -qF 'dev_v2_cache' <<<"$block" || {
     echo "dev-v2 must mount its own dev_v2_cache volume:" >&2; echo "$block" >&2; return 1; }
   grep -qF 'dev_v2_state' <<<"$block" || {
