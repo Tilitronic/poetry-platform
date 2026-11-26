@@ -91,6 +91,34 @@ into `tasks.md`. The handoff then restated it as a task. The spec governs:
 - Close the cheap gaps with native deny rules.
 - Final disposition is closed by probe 2.3 / task 2.6.
 
+## Two V2 permission layers: `permissions` array vs root `policies`/`tool.use`
+
+Measured 2026-11-26 while adding the plugin-independent dotenv floor.
+
+V2 exposes two distinct policy layers, and they are not interchangeable:
+
+- **Top-level `permissions` array** - ergonomic and purpose-built, but
+  out-rankable: the repo's normalized V1 blanket `"edit": "allow"` still
+  wins over it, and `scripts/audit-agent-tool-coverage.sh` hard-refuses it
+  (exit 2) whenever a `permissions` list is detected (the audit keys on a
+  `permissions` key, not on `policies`).
+- **Root `policies` / `tool.use` layer** - applies AFTER agent rules AND
+  saved approvals, so it cannot be out-ranked. This is the enforced floor
+  and the only layer that survives a silent plugin-load failure (a failed
+  plugin load is only a WARN, leaving zero tools and zero protection - the
+  0.0.4 experience).
+
+Consequence for the tree: the enforced dotenv floor uses `policies`, not
+`permissions`. Ordering is load-bearing - a policy `allow` lifts only a
+preceding `deny`, so both allow rules (`.env.example` template maintenance
+and the committed, routinely-edited `scripts/lsp-versions.env` pin file,
+which `*.env*` also matches) MUST follow the `edit:*.env*` deny.
+
+Version note: V1 1.18.32 ignores unknown top-level keys, so `policies` is
+inert there - it only takes effect on 2.3.2. It is therefore safe to land on
+the V2 migration tree without changing V1 behavior, but it also cannot be
+smoke-tested on the V1 1.18.32 container.
+
 ## Sources
 
 - `.opencode/opencode.jsonc:694` (pin) and `:595-616` (envsitter tool names

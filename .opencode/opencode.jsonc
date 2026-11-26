@@ -137,6 +137,13 @@
     }
   },
 
+  // Enforced dotenv floor (DIA-261112-exon): this root policies/tool.use layer applies AFTER agent rules and saved approvals, so it cannot be out-ranked, and it survives a silent envsitter-guard plugin-load failure (a failed load is only a WARN - no tools, no protection). Ordering is load-bearing: a policy allow lifts only a PRECEDING deny, so both allows MUST follow the deny.
+  "policies": [
+    { "action": "tool.use", "resource": "edit:*.env*", "effect": "deny" },
+    { "action": "tool.use", "resource": "edit:*.env.example", "effect": "allow" },
+    { "action": "tool.use", "resource": "edit:scripts/lsp-versions.env", "effect": "allow" }
+  ],
+
   // LSP enables type-aware diagnostics for the AI.
   "lsp": true,
 

@@ -1379,3 +1379,9 @@
 - **Change:** Bump envsitter-guard plugin pin 0.0.4 -> 0.1.1 in .opencode/opencode.jsonc: 0.0.4 is a V1-contract plugin that the OpenCode 2.3.2 runtime silently loads as inert (WARN 'Plugin must export a default definition...', zero tools registered), leaving dotenv protection disabled on the V2 tree; 0.1.1 implements the V2 plugin contract and registers the envsitter_* tools that block .env reads/shell/grep and redact values.
 - **Files:** .opencode/opencode.jsonc
 - **Verification:** manual
+
+## 2026-11-26 - DIA-261112-exon: config
+
+- **Change:** Add an enforced dotenv floor to .opencode/opencode.jsonc via a root policies/tool.use layer: deny edit:*.env* then allow edit:*.env.example and edit:scripts/lsp-versions.env (allows must follow the deny because a policy allow lifts only a preceding deny). This is plugin-independent - it applies after agent rules and saved approvals, so it still protects dotenv files when envsitter-guard fails to load (a failed load is only a WARN, leaving no tools and no protection). It uses policies rather than a top-level permissions array because permissions is out-rankable by the repo's normalized V1 edit:allow blanket and hard-refused (exit 2) by scripts/audit-agent-tool-coverage.sh; policies is not detected by that audit and is inert on V1 1.18.32 (unknown top-level keys ignored), taking effect only on 2.3.2.
+- **Files:** .opencode/opencode.jsonc - .opencode/learnings/external-patterns/2026-11-26-dia-261112-exon-envsitter-guard-v2-capability-gaps.md - .opencode/learnings/index.md
+- **Verification:** manual
