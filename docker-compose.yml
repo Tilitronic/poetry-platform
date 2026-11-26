@@ -108,7 +108,10 @@ services:
         # pin Dockerfile.dev declares; a 0.0.0 default made npm resolve
         # "notarget" and the build failed. Override via OPENCODE_VERSION_V2.
         OPENCODE_VERSION: ${OPENCODE_VERSION_V2:-2.3.2}
-        # OMO split (DIA-261119-vioa): V1 dev inherits the Dockerfile default 2.2.19; dev-v2 needs the 3.x line because OMO 3.x targets OpenCode 2.
+        # OMO split (DIA-261119-vioa): dev-v2 pins the 3.x line explicitly. On
+        # this V2 tree the Dockerfile default is already 3.0.7, so the override
+        # keeps dev-v2 on 3.x independent of that default; OMO 3.x targets
+        # OpenCode 2.
         OMO_VERSION: ${OMO_VERSION_V2:-3.0.7}
     image: poetry-platform-dev-v2:latest
     container_name: poetry-dev-v2

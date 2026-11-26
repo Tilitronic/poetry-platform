@@ -23,6 +23,10 @@ setup() {
   done
   printf 'sources\n' > "$omo/knowledge/ai-assist-sources.yaml"
   printf 'best\n' > "$omo/knowledge/opencode-best-practices.md"
+  # Default compose fixture: dev-v2 present with no working_dir, so the V2 tree
+  # resolves to /workspace (this root) per DIA-261125-p1kd. Tests that need a
+  # different resolution overwrite this file.
+  printf '%s\n' 'services:' '  dev-v2: {}' > "$OMO_SYNC_ROOT/docker-compose.yml"
 }
 
 @test "OMO sync accepts aligned pins with all override files present" {
@@ -88,6 +92,9 @@ setup() {
 @test "OMO sync resolves per-service sources: V2 worktree pin drift fails while V1 stays aligned (task 1.3)" {
   local v2opencode="$OMO_SYNC_ROOT/.worktrees/opencode-v2/.opencode"
   mkdir -p "$v2opencode/oh-my-opencode-slim/knowledge"
+  # The V2 tree now comes from the dev-v2 working_dir (DIA-261125-p1kd), so
+  # this fixture points that key at the worktree it plants below.
+  printf '%s\n' 'services:' '  dev-v2:' '    working_dir: /workspace/.worktrees/opencode-v2' > "$OMO_SYNC_ROOT/docker-compose.yml"
   printf '%s\n' '{' '  "plugin": [' '    "oh-my-opencode-slim@3.0.7",' '  ]' '}' > "$v2opencode/opencode.jsonc"
   printf '%s\n' '{"plugin":["oh-my-opencode-slim@3.0.6"]}' > "$v2opencode/tui.json"
   # V2 build source + full override/knowledge layer, so a stricter
@@ -114,6 +121,57 @@ setup() {
     echo "$output" >&2
     return 1
   }
+}
+
+# ---- V2 tree resolution from the dev-v2 service (DIA-261125-p1kd) ----------
+# The gate previously hardcoded .worktrees/opencode-v2. dev-v2 now roots at the
+# repository root, so the V2 tree is derived from the compose service's
+# working_dir (default /workspace when the key is absent), mapped from the
+# /workspace mount to the matching repo-relative directory.
+
+@test "OMO sync resolves dev-v2 with no working_dir to the repo root" {
+  printf '%s\n' 'services:' '  dev-v2:' '    image: poetry-platform-dev-v2:latest' > "$OMO_SYNC_ROOT/docker-compose.yml"
+  run bash "$REPO_ROOT/scripts/check-omo-version-sync.sh"
+  assert_status 0
+  assert_output_contains "ok: OMO pins aligned at 2.2.19 (V2 service dev-v2 at /workspace)"
+  assert_output_contains "ok: active OMO pins aligned at 2.2.19"
+}
+
+@test "OMO sync resolves dev-v2 with an explicit working_dir to that path" {
+  local v2="$OMO_SYNC_ROOT/v2tree"
+  local v2omo="$v2/.opencode/oh-my-opencode-slim"
+  mkdir -p "$v2omo/knowledge"
+  printf '%s\n' '{' '  "plugin": [' '    "oh-my-opencode-slim@3.0.7",' '  ]' '}' > "$v2/.opencode/opencode.jsonc"
+  printf '%s\n' '{"plugin":["oh-my-opencode-slim@3.0.7"]}' > "$v2/.opencode/tui.json"
+  printf '%s\n' 'ARG OMO_VERSION=3.0.7' > "$v2/Dockerfile.dev"
+  local name
+  for name in analyzer_append.md coder.md coder_append.md orchestrator_append.md reviewer.md; do
+    printf 'prompt\n' > "$v2omo/$name"
+  done
+  printf 'sources\n' > "$v2omo/knowledge/ai-assist-sources.yaml"
+  printf 'best\n' > "$v2omo/knowledge/opencode-best-practices.md"
+  printf '%s\n' 'services:' '  dev-v2:' '    working_dir: /workspace/v2tree' > "$OMO_SYNC_ROOT/docker-compose.yml"
+
+  run bash "$REPO_ROOT/scripts/check-omo-version-sync.sh"
+
+  assert_status 0
+  assert_output_contains "ok: OMO pins aligned at 3.0.7 (V2 service dev-v2 at /workspace/v2tree)"
+}
+
+@test "OMO sync degrades to a skip when dev-v2 is absent" {
+  printf '%s\n' 'services:' '  dev:' '    image: poetry-platform-dev:latest' > "$OMO_SYNC_ROOT/docker-compose.yml"
+  run bash "$REPO_ROOT/scripts/check-omo-version-sync.sh"
+  assert_status 0
+  assert_output_contains "skip: dev-v2 service not found in docker-compose.yml (V2 pin check skipped)"
+  assert_output_contains "ok: active OMO pins aligned at 2.2.19"
+}
+
+@test "OMO sync degrades to a skip when docker-compose.yml is absent" {
+  rm "$OMO_SYNC_ROOT/docker-compose.yml"
+  run bash "$REPO_ROOT/scripts/check-omo-version-sync.sh"
+  assert_status 0
+  assert_output_contains "skip: docker-compose.yml not found (V2 pin check skipped)"
+  assert_output_contains "ok: active OMO pins aligned at 2.2.19"
 }
 
 # ---- Loaded-cache layouts (DIA-261119-vioa) --------------------------------

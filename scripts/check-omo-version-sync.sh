@@ -4,17 +4,18 @@
 # tui.json / Dockerfile.dev declarations must agree WITHIN that service, and
 # the loaded package cache must hold the declared pin.
 #   V1 = this root (stays 2.2.19)
-#   V2 = .worktrees/opencode-v2 while it exists (ADR 11 dev-v2 working_dir):
-#        config required, image build file / tui.json / prompt-override layer
-#        checked while they exist (task 8.5 deletes tui.json).
+#   V2 = the docker-compose dev-v2 service's working_dir, mapped from the
+#        /workspace mount to its repo-relative directory (default /workspace,
+#        i.e. this root, when the key is absent; DIA-261125-p1kd): config
+#        required, image build file / tui.json / prompt-override layer checked
+#        while they exist (task 8.5 deletes tui.json).
 # A cross-service equality check is forbidden: it would force V1 onto V2's
 # pin. The vendored source snapshot was removed 2026-10-22 (DIA-261022-5n2v);
 # the npm package is the only runtime copy.
 set -euo pipefail
 
 root="${OMO_SYNC_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
-v2_root="$root/.worktrees/opencode-v2"
-v2_tag="V2 worktree .worktrees/opencode-v2"
+compose="$root/docker-compose.yml"
 
 # ---- pin extraction (one implementation, reused per service) ---------------
 config_pin_of() { # <opencode.jsonc>
@@ -69,7 +70,7 @@ check_drift() {
 # this directory: a missing file silently falls back to the built-in prompt,
 # and a near-miss name (orchestrator-append.md) is never loaded at all -- so
 # both conditions must fail loud here. The relative paths in the messages
-# already name the service (worktree path for V2).
+# already name the service (resolved V2 tree for the V2 service).
 check_override_layer() {
   local omo="$1" display="$2" name base file extras=""
   local required_overrides=(analyzer_append.md coder.md coder_append.md orchestrator_append.md reviewer.md)
@@ -125,8 +126,56 @@ check_drift "" "$config_pin" "$tui_pin" "$image_pin"
 
 check_override_layer "$root/.opencode/oh-my-opencode-slim" "root"
 
-# ---- V2 (worktree service): resolved while the worktree exists -------------
-if [ -d "$v2_root" ]; then
+# ---- V2 (docker-compose dev-v2 service): resolve its working_dir ----------
+# Resolve the V2 tree from the compose service so the gate reads the SAME tree
+# the container runs (DIA-261125-p1kd). dev-v2 mounts .:/workspace, so a
+# working_dir of /workspace or /workspace/<sub> maps to the repo root or the
+# matching repo-relative directory. Absent compose / service / key degrades to
+# a skip message, never a hard failure; no new dependency (PyYAML only).
+resolve_v2_working_dir() { # <compose file>: echo working_dir or a sentinel
+  [ -f "$1" ] || { printf 'NO_COMPOSE\n'; return 0; }
+  python3 - "$1" <<'PY' 2>/dev/null || printf 'RESOLVE_FAILED\n'
+import sys
+try:
+    import yaml
+except Exception:
+    print("NO_PYYAML")
+    raise SystemExit(0)
+try:
+    with open(sys.argv[1], encoding="utf-8") as fh:
+        data = yaml.safe_load(fh) or {}
+except Exception:
+    print("BAD_COMPOSE")
+    raise SystemExit(0)
+svc = (data.get("services") or {}).get("dev-v2")
+if svc is None:
+    print("NO_DEV_V2")
+else:
+    print(svc.get("working_dir") or "/workspace")
+PY
+}
+
+v2_root="" v2_tag=""
+v2_wd="$(resolve_v2_working_dir "$compose")"
+[ -n "$v2_wd" ] || v2_wd="RESOLVE_FAILED"
+case "$v2_wd" in
+  NO_COMPOSE)
+    echo "skip: docker-compose.yml not found (V2 pin check skipped)" ;;
+  NO_DEV_V2)
+    echo "skip: dev-v2 service not found in docker-compose.yml (V2 pin check skipped)" ;;
+  NO_PYYAML | BAD_COMPOSE | RESOLVE_FAILED)
+    echo "skip: could not resolve dev-v2 working_dir from docker-compose.yml (V2 pin check skipped)" ;;
+  /workspace)
+    v2_root="$root"
+    v2_tag="V2 service dev-v2 at /workspace" ;;
+  /workspace/*)
+    v2_root="$root/${v2_wd#/workspace/}"
+    v2_tag="V2 service dev-v2 at $v2_wd" ;;
+  *)
+    echo "skip: dev-v2 working_dir '$v2_wd' is outside /workspace (V2 pin check skipped)" ;;
+esac
+
+if [ -n "$v2_root" ]; then
   v2_config="$v2_root/.opencode/opencode.jsonc"
   v2_tui="$v2_root/.opencode/tui.json"
   v2_dockerfile="$v2_root/Dockerfile.dev"
@@ -172,7 +221,7 @@ fi
 # ponytail: one cache root, one declared pin (the root service's); add
 # per-service cache roots only if a V2-side cache must be probed separately
 # (the V2 dev_v2_cache volume is only visible when the gate runs in dev-v2,
-# where the worktree IS this root).
+# where the repo root IS this root).
 cache_root="${OMO_CACHE_ROOT:-${HOME:-}/.cache/opencode/node_modules}"
 cache_pkg_near="$(dirname "$cache_root")/package.json"
 cache_pkg_up="$(dirname "$(dirname "$cache_root")")/package.json"
