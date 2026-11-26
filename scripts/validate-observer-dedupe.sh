@@ -51,7 +51,10 @@ CONFIGS=(
 )
 
 # Emit the plugin array (array of strings) as JSON. JSONC comment-stripping via
-# node (jq cannot parse JSONC). Returns "[]" when .plugin is absent.
+# node (jq cannot parse JSONC). Reads the V2 canonical `plugins` key first and
+# falls back to the deprecated V1 `plugin` alias (DIA-261112-exon); V2 object
+# entries `{package, options}` are reduced to their package string. Returns
+# "[]" when neither key is present.
 plugin_array() {
   node -e '
     const fs = require("fs");
@@ -77,7 +80,15 @@ plugin_array() {
       out += c;
     }
     const cfg = JSON.parse(out);
-    process.stdout.write(JSON.stringify(Array.isArray(cfg.plugin) ? cfg.plugin : []));
+    const configured = cfg.plugins ?? cfg.plugin;
+    const entries = Array.isArray(configured) ? configured : [];
+    const pkgs = entries.map((e) => {
+      if (typeof e === "string") return e;
+      if (Array.isArray(e)) return typeof e[0] === "string" ? e[0] : "";
+      if (e && typeof e === "object") return typeof e.package === "string" ? e.package : "";
+      return "";
+    });
+    process.stdout.write(JSON.stringify(pkgs.filter((e) => e.length > 0)));
   ' "$1"
 }
 

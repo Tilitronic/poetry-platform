@@ -681,7 +681,7 @@
   // ---------------------------------------------------------------------------
   // Plugins — loaded by OpenCode for this project
   // ---------------------------------------------------------------------------
-  "plugin": [
+  "plugins": [
     // DIA-188: project-level OMO declaration (self-sufficiency). Pinned to
     // 3.0.7 matching the container and TUI pins; this is the
     // single declaration source after Phase 2.

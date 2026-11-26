@@ -638,7 +638,7 @@ describe('S6 DIA-184: host-aware root defaults', () => {
 // ============================================================================
 describe('S7 DIA-260821-5r03: project observer plugins have one registration source', () => {
   it('does not explicitly register auto-discovered .opencode/plugins files', () => {
-    const configuredPlugins = opencodeConfig.plugin ?? [];
+    const configuredPlugins = opencodeConfig.plugins ?? opencodeConfig.plugin ?? [];
     for (const pluginPath of [
       './.opencode/plugins/delegation-observer.ts',
       './.opencode/plugins/needs-input-observer.ts',

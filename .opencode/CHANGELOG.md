@@ -1367,3 +1367,9 @@
 - **Change:** Remove coder-escalated and analyzer-escalated agents
 - **Files:** .opencode/opencode.jsonc - .opencode/oh-my-opencode-slim.jsonc - AGENTS.md - .opencode/scripts/lib/jsonc-parse.js - .opencode/plugins/lib/routing-gate.ts - .opencode/plugins/lib/bash-write-gate.ts - knowledge/model-registry.yaml
 - **Verification:** manual
+
+## 2026-11-26 - DIA-261112-exon: config
+
+- **Change:** Use the canonical OpenCode 2.x plugins key in .opencode/opencode.jsonc (plugin remains a deprecated silent alias on 2.x but is unknown to 1.x); scripts/validate-observer-dedupe.sh now accepts both spellings and V2 {package, options} entries, with the same dual-form fix in batch-d-infra.test.mjs; .opencode/tui.json is deliberately left unchanged because V2 does not read project-local client config.
+- **Files:** .opencode/opencode.jsonc - scripts/validate-observer-dedupe.sh - scripts/__tests__/batch-d-infra.test.mjs
+- **Verification:** manual
