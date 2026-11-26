@@ -691,7 +691,7 @@
     // startup from the plugin-array entry (NOT the root pnpm tree). Resolves
     // the 7 dangling `ponytail:` comment sites (harvested by /ponytail-debt).
     "@dietrichgebert/ponytail",
-    "envsitter-guard@0.0.4"
+    "envsitter-guard@0.1.1"
   ],
 
   // ---------------------------------------------------------------------------

@@ -1373,3 +1373,9 @@
 - **Change:** Use the canonical OpenCode 2.x plugins key in .opencode/opencode.jsonc (plugin remains a deprecated silent alias on 2.x but is unknown to 1.x); scripts/validate-observer-dedupe.sh now accepts both spellings and V2 {package, options} entries, with the same dual-form fix in batch-d-infra.test.mjs; .opencode/tui.json is deliberately left unchanged because V2 does not read project-local client config.
 - **Files:** .opencode/opencode.jsonc - scripts/validate-observer-dedupe.sh - scripts/__tests__/batch-d-infra.test.mjs
 - **Verification:** manual
+
+## 2026-11-26 - DIA-261112-exon: opencode-config
+
+- **Change:** Bump envsitter-guard plugin pin 0.0.4 -> 0.1.1 in .opencode/opencode.jsonc: 0.0.4 is a V1-contract plugin that the OpenCode 2.3.2 runtime silently loads as inert (WARN 'Plugin must export a default definition...', zero tools registered), leaving dotenv protection disabled on the V2 tree; 0.1.1 implements the V2 plugin contract and registers the envsitter_* tools that block .env reads/shell/grep and redact values.
+- **Files:** .opencode/opencode.jsonc
+- **Verification:** manual

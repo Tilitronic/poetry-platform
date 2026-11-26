@@ -5445,3 +5445,16 @@
     because V2 does not read project-local client config.
   verification: manual
   area: opencode-config
+- date: '2026-11-26'
+  ticket: DIA-261112-exon
+  scope: opencode-config
+  files:
+  - .opencode/opencode.jsonc
+  summary: 'Bump envsitter-guard plugin pin 0.0.4 -> 0.1.1 in .opencode/opencode.jsonc:
+    0.0.4 is a V1-contract plugin that the OpenCode 2.3.2 runtime silently loads as
+    inert (WARN ''Plugin must export a default definition...'', zero tools registered),
+    leaving dotenv protection disabled on the V2 tree; 0.1.1 implements the V2 plugin
+    contract and registers the envsitter_* tools that block .env reads/shell/grep
+    and redact values.'
+  verification: manual
+  area: plugins
