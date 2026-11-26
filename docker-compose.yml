@@ -42,6 +42,11 @@ services:
     image: poetry-platform-dev:latest
     container_name: poetry-dev
     hostname: poetry-dev
+    # podman-specific key; container uid maps to the host user so both
+    # containers agree on file ownership and git refs stay writable; Docker
+    # does not accept keep-id, so Docker hosts must drop these two lines
+    # (DIA-261125-z4ij durable fix, 2026-11-25).
+    userns_mode: keep-id
     # Author-studio (Quasar/Vite), api-server (FastAPI), publishing-platform (Nuxt)
     ports:
       - '${AUTHOR_STUDIO_PORT:-9000}:9000'
@@ -116,6 +121,7 @@ services:
     image: poetry-platform-dev-v2:latest
     container_name: poetry-dev-v2
     hostname: poetry-dev-v2
+    userns_mode: keep-id
     # Roots at the image WORKDIR /workspace, like `dev` (DIA-261125-p1kd).
     # Same three services as `dev`: only the HOST side is disjoint (D1a N2).
     # Host ports are env-overridable, defaults 9100/8100/3100, never colliding
