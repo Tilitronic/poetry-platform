@@ -7,15 +7,16 @@ config edit per AGENTS.md section 2.5 step 1.
 
 ## The pin and the contract split
 
-- `envsitter-guard@0.0.4` is the pinned entry at `.opencode/opencode.jsonc:694`.
-- 0.0.4 implements the V1 plugin contract only: published 2026-01-15, a
-  function export, built against `@opencode-ai/plugin ^1.1.14`.
+- The pinned entry at `.opencode/opencode.jsonc:702` is
+  `envsitter-guard@0.1.1`, exact-pinned by commit d3594ad6.
+- 0.0.4, the previous pin, implemented the V1 plugin contract only: published
+  2026-01-15, a function export, built against `@opencode-ai/plugin ^1.1.14`.
+  On the OpenCode 2.x runtime it was loaded as inert (WARN, zero tools
+  registered), leaving the V2 tree unprotected by it.
 - V2 support arrived upstream in 0.1.0 (2026-10-21) with a breaking
-  `{ id, setup, server }` export.
-- Conclusion: on OpenCode 2.x the 0.0.4 pin very likely contributes nothing.
-  The V2 tree is effectively already unprotected by it. This is why
-  `tasks.md` 1.5 says "provisionally remove" and defers the re-add to
-  probe 2.3 / task 2.6.
+  `{ id, setup, server }` export; 0.1.1 is the V2-contract replacement.
+- Conclusion: the tree now carries the V2-contract replacement, exact-pinned.
+  The coexistence / re-add question remains open under probe 2.3 / task 2.6.
 
 ## What 0.0.4 actually guarantees
 
@@ -37,11 +38,15 @@ The plugin hooks no `bash` and no `git` at all, and 0.0.4 has no output
 scrubbing. `bash cat .env`, `grep` and `glob` leaked raw values into context
 even on V1.
 
-## Where the "bump to 0.1.1" instruction came from
+## The 0.1.1 pin
 
-An unapproved research recommendation (Q7 Option A) that was never folded
-into `tasks.md`. The handoff then restated it as a task. The spec governs:
-`tasks.md` says provisionally remove, not bump.
+The bump to 0.1.1 originated as an unapproved research recommendation (Q7
+Option A) that was never folded into `tasks.md`; `tasks.md` 1.5 says
+"provisionally remove" and defers the re-add to probe 2.3 / task 2.6. Commit
+d3594ad6 nevertheless exact-pinned 0.1.1 on the V2 tree
+(`.opencode/opencode.jsonc:702`), because 0.0.4 was inert there and 0.1.1 is
+the V2-contract replacement. The coexistence question with OMO stays open
+under probe 2.3 / task 2.6.
 
 ## V2 built-in coverage
 
@@ -87,7 +92,9 @@ into `tasks.md`. The handoff then restated it as a task. The spec governs:
 
 ## Decision recorded
 
-- `tasks.md` 1.5 deferred; no plugin change now.
+- `tasks.md` 1.5 deferred; the pin now carries the V2-contract replacement
+  0.1.1 (commit d3594ad6), with the coexistence question still open under
+  probe 2.3 / task 2.6.
 - Close the cheap gaps with native deny rules.
 - Final disposition is closed by probe 2.3 / task 2.6.
 
@@ -97,22 +104,34 @@ Measured 2026-11-26 while adding the plugin-independent dotenv floor.
 
 V2 exposes two distinct policy layers, and they are not interchangeable:
 
-- **Top-level `permissions` array** - ergonomic and purpose-built, but
-  out-rankable: the repo's normalized V1 blanket `"edit": "allow"` still
-  wins over it, and `scripts/audit-agent-tool-coverage.sh` hard-refuses it
-  (exit 2) whenever a `permissions` list is detected (the audit keys on a
-  `permissions` key, not on `policies`).
+- **Top-level `permissions` array** - ergonomic and purpose-built, but it
+  SHADOWS and discards the entire top-level V1 `permission` block. Per the V2
+  migration docs, when both forms set the same canonical value a valid native
+  V2 value takes precedence regardless of key order, so declaring a
+  `permissions` array would drop all the global V1 protection (the global bash
+  denies, the fetch-source and `ast_grep_replace` denies). It is also
+  out-rankable by a PER-AGENT rule (agent rules are appended after global
+  rules, last match wins) and by a saved "Allow always" approval, and
+  `scripts/audit-agent-tool-coverage.sh` hard-refuses it (exit 2) whenever a
+  `permissions` list is detected (the audit keys on a `permissions` key, not
+  on `policies`).
 - **Root `policies` / `tool.use` layer** - applies AFTER agent rules AND
-  saved approvals, so it cannot be out-ranked. This is the enforced floor
-  and the only layer that survives a silent plugin-load failure (a failed
-  plugin load is only a WARN, leaving zero tools and zero protection - the
-  0.0.4 experience).
+  saved approvals, so neither can out-rank it, and it coexists with the V1
+  `permission` object instead of shadowing it. This is the enforced floor and
+  the only layer that survives a silent plugin-load failure (a failed plugin
+  load is only a WARN, leaving zero tools and zero protection - the 0.0.4
+  experience).
 
 Consequence for the tree: the enforced dotenv floor uses `policies`, not
 `permissions`. Ordering is load-bearing - a policy `allow` lifts only a
 preceding `deny`, so both allow rules (`.env.example` template maintenance
-and the committed, routinely-edited `scripts/lsp-versions.env` pin file,
-which `*.env*` also matches) MUST follow the `edit:*.env*` deny.
+and the committed, routinely-edited `scripts/lsp-versions.env` pin file) MUST
+follow the two denies, `edit:*.env` and `edit:*.env.*`. The denies are
+narrowed from `edit:*.env*`, which also matched `*.envelope*` files and
+"envelope" is a real domain term here (envelope-gate,
+reviewer-immutable-git-envelope). The `lsp-versions.env` allow carries a
+leading `*` so a worktree-relative `.worktrees/<branch>/scripts/lsp-versions.env`
+is lifted too.
 
 Version note: V1 1.18.32 ignores unknown top-level keys, so `policies` is
 inert there - it only takes effect on 2.3.2. It is therefore safe to land on
@@ -121,11 +140,12 @@ smoke-tested on the V1 1.18.32 container.
 
 ## Sources
 
-- `.opencode/opencode.jsonc:694` (pin) and `:595-616` (envsitter tool names
+- `.opencode/opencode.jsonc:702` (pin) and `:602-630` (envsitter tool names
   enumerated in the ai-auditor permission block).
 - `.opencode/plugins/lib/bash-write-gate.ts:29` (`PROTECTED_LITERALS`).
 - `.gitignore:26-28` (dotenv patterns).
 - `scripts/verify-pre-commit.sh` (no `gitleaks` / `trufflehog` / entropy /
   secret-scan step).
 - envsitter-guard release history: 0.0.4 (2026-01-15, V1 function export),
-  0.1.0 (2026-10-21, V2 `{ id, setup, server }` export).
+  0.1.0 (2026-10-21, V2 `{ id, setup, server }` export), 0.1.1 (V2-contract
+  replacement, current exact pin).
