@@ -37,10 +37,10 @@ const FLATC = process.env.FLATC || 'flatc';
 // Language targets and their output directories
 // Supported flags: --ts, --python, --rust, --cpp, --c, --java, --go, --csharp, --kotlin, --swift, --php, --dart, --lobster
 const LANGUAGES = [
-  { name: 'TypeScript',  out: 'ts',     args: ['--ts', '--gen-object-api'] },
-  { name: 'Python',      out: 'python', args: ['--python'] },
-  { name: 'Rust',        out: 'rust',   args: ['--rust'] },
-  { name: 'C++',         out: 'cpp',    args: ['--cpp', '--cpp-ptr-type', 'unique_ptr'] },
+  { name: 'TypeScript', out: 'ts', args: ['--ts', '--gen-object-api'] },
+  { name: 'Python', out: 'python', args: ['--python'] },
+  { name: 'Rust', out: 'rust', args: ['--rust'] },
+  { name: 'C++', out: 'cpp', args: ['--cpp', '--cpp-ptr-type', 'unique_ptr'] },
   // C: flatc v25 does not have a dedicated --c flag. If C bindings are needed,
   // use the C++ generated header with extern "C" wrappers.
 ];
@@ -72,12 +72,7 @@ function main() {
 
     console.log(`  [${lang.name}] generating → ${outDir}`);
 
-    const cmd = [
-      `"${FLATC}"`,
-      ...lang.args,
-      `-o "${outDir}"`,
-      `"${SCHEMA}"`,
-    ].join(' ');
+    const cmd = [`"${FLATC}"`, ...lang.args, `-o "${outDir}"`, `"${SCHEMA}"`].join(' ');
 
     try {
       const out = execSync(cmd, { encoding: 'utf-8', stdio: 'pipe' });

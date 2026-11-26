@@ -11,7 +11,7 @@ metadata:
 
 **When to use Mermaid vs console text diagrams:**
 - **Use Mermaid** for diagrams with >7 elements, C4 architecture boundaries, sequence diagrams with alt/par/loop, or when the output will be rendered by VS Code/GitHub/docs site.
-- **Use console text** (Rich tree, PHART, hascii, ASCII inline via the `console-charting` skill) for ≤7 elements, quick sketches in chat/terminal, simple hierarchies, or any plain-text context.
+- **Use console text** (Rich tree, PHART, hascii, ASCII inline) for ≤7 elements, quick sketches in chat/terminal, simple hierarchies, or any plain-text context.
 - **Rule of thumb:** If it needs subgraphs, boundaries, or branching with >2 paths → Mermaid. If it fits in one terminal screen as a tree or ASCII box → console text.
 
 ## Diagram Type Selection
@@ -156,6 +156,7 @@ Mermaid diagrams must render readably in BOTH light and dark VS Code themes. Eve
   'activationBorderColor': '#5b8def', 'activationBkgColor': '#2d3a5c'
 }}}
 %%```
+```
 
 **Why this works:** `theme: 'base'` with `darkMode: true` and explicit `themeVariables` overrides ALL color defaults. The diagram uses a dark-neutral background (`#1e1e2e`) with light text (`#e0e0e0`) and vivid accent strokes (`#5b8def`). This palette renders readably in both light and dark theme contexts — in dark mode it blends naturally, in light mode it reads as distinct dark cards with ~10:1 contrast ratio.
 

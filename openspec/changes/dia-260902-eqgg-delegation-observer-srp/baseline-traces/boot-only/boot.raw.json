@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "event": "session_boot",
+  "boot_id": "38a40b8b-df34-4c29-9df9-730eb2b43c69",
+  "seq": 1,
+  "process_started_at": "2026-09-02T09:31:36.457Z",
+  "timestamp": "2026-09-02T09:31:36.457Z",
+  "config_load_signal": {
+    "opencode_jsonc_mtime": null,
+    "omo_jsonc_mtime": null
+  },
+  "writer": "plugin"
+}

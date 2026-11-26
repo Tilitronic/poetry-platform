@@ -1,0 +1,19 @@
+# Poetry Platform — WSL compose override (DIA-260821-x5nj, Slice 2).
+#
+# WSL-specific runtime tuning only. NO Fedora flags (userns_mode/
+# security_opt) and NO duplication of base volumes/ports/environment/
+# secrets — base docker-compose.yml is the single source of truth.
+#
+# Optional WSL-specific memory tuning (commented; enable if the WSL VM
+# needs a hard cap so the dev container cannot starve the host):
+#   deploy:
+#     resources:
+#       limits:
+#         memory: 8g
+services:
+  dev: {}
+    # Memory limits if needed (WSL-specific tuning)
+    # deploy:
+    #   resources:
+    #     limits:
+    #       memory: 8g

@@ -1,0 +1,47 @@
+# DIA-136 orchestrator session records: JSON-DB + API layer research - res026 source archive (2026-08-14)
+# One URL per line with per-source relevance/reliability rating. Failures marked: # NOT ARCHIVED (all methods exhausted)
+# STATUS: 24 sources captured, 1 partial-failure (duckdb-stable redirect, resolved via current)
+# Legend: REL=relevance (does it answer the question), RELIAB=reliability (authority/recency/independence)
+
+# --- npm registry JSON API (primary, archive-quality) ---
+https://registry.npmjs.org/lowdb -> sources/lowdb-registry.json           [REL:High][RELIAB:High] npm official, latest=7.0.1, full version history
+https://registry.npmjs.org/-/package/lowdb/dist-tags -> sources/lowdb-dist-tags.json [REL:High][RELIAB:High] current version tag
+https://registry.npmjs.org/json-server -> sources/json-server-registry.json [REL:High][RELIAB:High] npm official, latest=1.0.0-beta.15
+https://registry.npmjs.org/-/package/json-server/dist-tags -> sources/json-server-dist-tags.json [REL:High][RELIAB:High]
+https://registry.npmjs.org/nedb -> sources/nedb-registry.json           [REL:High][RELIAB:High] npm official, latest=1.8.0 (unmaintained)
+https://registry.npmjs.org/nedb2 -> sources/nedb2-registry.json          [REL:Med][RELIAB:High] successor package, latest=2018.12.30 (abandoned)
+https://registry.npmjs.org/@seald-io%2Fnedb -> sources/seald-nedb-registry.json [REL:High][RELIAB:High] maintained fork, latest=4.1.2
+https://registry.npmjs.org/-/package/@seald-io%2Fnedb/dist-tags -> sources/seald-nedb-dist-tags.json [REL:High][RELIAB:High]
+https://registry.npmjs.org/better-sqlite3 -> sources/better-sqlite3-registry.json [REL:High][RELIAB:High] latest=13.0.3
+https://registry.npmjs.org/-/package/better-sqlite3/dist-tags -> sources/better-sqlite3-dist-tags.json [REL:High][RELIAB:High]
+https://registry.npmjs.org/@typicode%2Flowdb -> sources/typicode-lowdb-registry.json [REL:Low][RELIAB:High] scoped-name alias; duplicate of lowdb
+
+# --- PyPI (primary) ---
+https://pypi.org/pypi/tinydb/json -> sources/tinydb-pypi.json           [REL:High][RELIAB:High] official PyPI metadata
+https://pypi.org/project/tinydb/ -> sources/tinydb-pypi-page.md          [REL:High][RELIAB:High] tinydb 4.9.0, maintenance-mode note, release dates
+
+# --- Official docs / READMEs (trafilatura or raw GitHub, primary) ---
+https://github.com/typicode/lowdb -> sources/lowdb-github.md             [REL:High][RELIAB:High] full README: ESM, TS, atomic writes, Low/LowSync, adapters
+https://github.com/typicode/lowdb/blob/master/README.md -> sources/lowdb-readme.md [REL:High][RELIAB:High] duplicate of above
+https://github.com/typicode/json-server -> sources/json-server-github.md [REL:High][RELIAB:High] README: REST API, v1 beta, query operators, migration notes
+https://github.com/typicode/json-server/blob/master/README.md -> sources/json-server-readme.md [REL:High][RELIAB:High] duplicate
+https://github.com/louischatriot/nedb/blob/master/README.md -> sources/nedb-readme.md [REL:High][RELIAB:High] confirms unmaintained warning, MongoDB-subset API
+https://github.com/seald/nedb -> sources/seald-nedb-readme.md           [REL:High][RELIAB:High] maintained fork README
+https://raw.githubusercontent.com/seald/nedb/master/package.json -> sources/seald-nedb-package.json [REL:High][RELIAB:High] v4.1.2, TS types, deps
+https://nodejs.org/api/sqlite.html -> sources/node-sqlite.md             [REL:High][RELIAB:High] node:sqlite DatabaseSync/StatementSync (Node v26.7.0)
+https://github.com/WiseLibs/better-sqlite3/blob/master/docs/api.md -> sources/better-sqlite3-api.md [REL:High][RELIAB:High] synchronous API, WAL, transactions
+https://raw.githubusercontent.com/duckdb/duckdb-web/refs/heads/main/docs/current/data/json/overview.md -> sources/duckdb-json-overview.md [REL:High][RELIAB:High] read_json, SELECT FROM json, embedded analytics
+https://raw.githubusercontent.com/duckdb/duckdb-web/refs/heads/main/docs/current/guides/file_formats/json_import.md -> sources/duckdb-json-import.md [REL:High][RELIAB:High] read_json import
+https://duckdb.org/docs/current/data/json/overview -> sources/duckdb-docs-current.md [REL:High][RELIAB:Med] JS-rendered HTML fallback; content confirmed via webfetch+raw md
+
+# --- npm package pages (webfetch, authoritative publish recency) ---
+https://www.npmjs.com/package/json-server -> sources/npm-pages-summary.md [REL:High][RELIAB:High] beta status, 5mo old, 400k downloads
+https://www.npmjs.com/package/lowdb -> sources/npm-pages-summary.md     [REL:High][RELIAB:High] 3yr old, 2.36M downloads, cluster/scale limits
+https://www.npmjs.com/package/better-sqlite3 -> sources/better-sqlite3-npm-page.md [REL:High][RELIAB:High] 13.0.3, 9 days old, 8.5M downloads
+
+# --- Advisory check (maintenance/security) ---
+https://github.com/advisories?query=json-server -> [REL:Med][RELIAB:High] 0 reviewed advisories for json-server in GH Advisory DB (2026-08-14); historic prototype-pollution CVE from training = Medium confidence, NOT confirmed this session
+
+# --- EXCLUDED ---
+https://github.com/Scille/umongo-nedb -> EXCLUDED: wrong repo guess, returned empty; correct repo is github.com/seald/nedb (archived above)
+https://duckdb.org/docs/stable/ -> EXCLUDED: redirect-only stub; resolved via /docs/current/ (archived above)

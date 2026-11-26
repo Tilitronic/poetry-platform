@@ -1,0 +1,9 @@
+### Introduction
+Moved Example is a library whose search result redirects to a new location.
+
+Source: https://example.com/moved
+
+### Usage overview
+```js
+import { moved } from 'moved-example';
+```

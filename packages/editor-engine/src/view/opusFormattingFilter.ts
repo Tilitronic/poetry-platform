@@ -1,4 +1,5 @@
-import { Extension, EditorState, EditorSelection } from '@codemirror/state';
+import type { Extension } from '@codemirror/state';
+import { EditorState, EditorSelection, Transaction } from '@codemirror/state';
 
 // ---------------------------------------------------------------------------
 // Compile-once regex constants
@@ -14,7 +15,7 @@ const LEADING_WS_RE = /^[ \t]+/;
 const NEEDS_CLEAN_RE = /[ \t\n\r,:\-;'\u2019]/;
 
 /** Collapse repeated punctuation: ,, :: ;; -- '' ’’. */
-const DUP_PUNCT_RE = /([,:'\u2019;\-])\1+/g;
+const DUP_PUNCT_RE = /([,:'\u2019;-])\1+/g;
 
 // Characters that trigger double-punctuation blocking on live typing.
 const REPEATABLE_PUNCT = new Set([',', ':', ';', '-', "'", '’']);
@@ -153,28 +154,6 @@ function handleSpace(
 }
 
 // ---------------------------------------------------------------------------
-// handlePunctuation
-//
-// Blocks double consecutive punctuation marks (, : ; - ' ’).
-// Returns a ChangeSpec to apply, or null to let it pass through.
-// ---------------------------------------------------------------------------
-function handlePunctuation(
-  doc: EditorState['doc'],
-  fromA: number,
-  toA: number,
-  text: string,
-): { from: number; to: number; insert: string } | null {
-  if (text.length !== 1 || fromA <= 0) return null;
-  if (!REPEATABLE_PUNCT.has(text)) return null;
-
-  const before = charBefore(doc, fromA);
-  if (before === text) {
-    return change(fromA, toA, '');
-  }
-  return null; // single punctuation mark is fine
-}
-
-// ---------------------------------------------------------------------------
 // processSegment
 //
 // Entry point for processing a single change segment.  Routes to the
@@ -218,37 +197,10 @@ function processSegment(
 }
 
 // ---------------------------------------------------------------------------
-// computeNewCursor
-//
-// Given the replacement changes, compute where the cursor should land.
-// Uses TrackAfter semantics — cursor goes PAST the inserted text.
-// ---------------------------------------------------------------------------
-function computeNewCursor(
-  changes: { from: number; to: number; insert: string }[],
-  originalCursor: number,
-): number {
-  if (changes.length === 1) {
-    const seg = changes[0]!;
-    if (seg.from <= originalCursor && originalCursor <= seg.to) {
-      return seg.from + seg.insert.length;
-    }
-    return originalCursor;
-  }
-
-  for (let i = 0; i < changes.length; i++) {
-    const seg = changes[i]!;
-    if (seg.from <= originalCursor && originalCursor <= seg.to) {
-      return seg.from + seg.insert.length;
-    }
-  }
-  return originalCursor;
-}
-
-// ---------------------------------------------------------------------------
 // opusFormattingFilter — CodeMirror 6 transaction filter
 // ---------------------------------------------------------------------------
 export function opusFormattingFilter(): Extension {
-  return EditorState.transactionFilter.of((transaction) => {
+  return EditorState.transactionFilter.of((transaction: Transaction) => {
     if (!transaction.docChanged) return transaction;
 
     const doc = transaction.startState.doc;
@@ -261,44 +213,46 @@ export function opusFormattingFilter(): Extension {
     // array + object allocation on the 99.9% of keystrokes (regular chars).
 
     let firstReplacement: { from: number; to: number; insert: string } | null = null;
-    let firstFrom = 0, firstTo = 0, firstText = '';
+    let firstFrom = 0,
+      firstTo = 0,
+      firstText = '';
     let anyModified = false;
     let segmentIndex = 0;
 
     // Lazy-allocated array for transactions with 2+ segments.
     let multiSegment: { from: number; to: number; insert: string }[] | null = null;
 
-    transaction.changes.iterChanges((fromA, toA, _fromB, _toB, inserted) => {
-      const text = inserted.toString();
-      const replacement = processSegment(doc, fromA, toA, text);
+    transaction.changes.iterChanges(
+      (fromA: number, toA: number, _fromB: number, _toB: number, inserted: any) => {
+        const text = inserted.toString();
+        const replacement = processSegment(doc, fromA, toA, text);
 
-      if (segmentIndex === 0) {
-        // First segment — stored inline, no array
-        firstFrom = fromA;
-        firstTo = toA;
-        firstText = text;
-        if (replacement !== null) {
-          firstReplacement = replacement;
-          anyModified = true;
-        }
-      } else {
-        // Second+ segment — allocate the array if not yet created,
-        // backfill the first segment into it.
-        if (!multiSegment) {
-          multiSegment = [];
-          multiSegment.push(
-            firstReplacement ?? change(firstFrom, firstTo, firstText),
-          );
-        }
-        if (replacement !== null) {
-          multiSegment.push(replacement);
-          anyModified = true;
+        if (segmentIndex === 0) {
+          // First segment — stored inline, no array
+          firstFrom = fromA;
+          firstTo = toA;
+          firstText = text;
+          if (replacement !== null) {
+            firstReplacement = replacement;
+            anyModified = true;
+          }
         } else {
-          multiSegment.push(change(fromA, toA, text));
+          // Second+ segment — allocate the array if not yet created,
+          // backfill the first segment into it.
+          if (!multiSegment) {
+            multiSegment = [];
+            multiSegment.push(firstReplacement ?? change(firstFrom, firstTo, firstText));
+          }
+          if (replacement !== null) {
+            multiSegment.push(replacement);
+            anyModified = true;
+          } else {
+            multiSegment.push(change(fromA, toA, text));
+          }
         }
-      }
-      segmentIndex++;
-    });
+        segmentIndex++;
+      },
+    );
 
     // Fast bail-out: no segment needs modification — return original
     if (!anyModified) return transaction;
@@ -306,13 +260,29 @@ export function opusFormattingFilter(): Extension {
     // Combine inline first segment with (optional) multi-segment array
     const replacementChanges = multiSegment ?? [firstReplacement!];
 
-    // Compute cursor position past the inserted text
-    const cursorAt = transaction.startState.selection.main.anchor;
-    const newCursor = computeNewCursor(replacementChanges, cursorAt);
+    // Build ChangeSet for position mapping (uses start doc length / lineSep)
+    const newChangeSet = transaction.startState.changes(replacementChanges);
+
+    // Map EVERY selection range through the final ChangeSet (assoc 1 = after insert)
+    const baseSelection = transaction.startState.selection;
+    const mappedSelection = EditorSelection.create(
+      baseSelection.ranges.map((r: any) =>
+        EditorSelection.range(newChangeSet.mapPos(r.anchor, 1), newChangeSet.mapPos(r.head, 1)),
+      ),
+      baseSelection.mainIndex,
+    );
+
+    const userEvent = transaction.annotation(Transaction.userEvent);
 
     return {
       changes: replacementChanges,
-      selection: EditorSelection.create([EditorSelection.cursor(newCursor)]),
+      selection: mappedSelection,
+      effects: transaction.effects,
+      // Preserve all annotations (includes userEvent); time will be re-added automatically if missing
+      // `annotations` is not exposed in the type but exists at runtime — cast to access
+      annotations: (transaction as unknown as { annotations: readonly any[] }).annotations,
+      scrollIntoView: transaction.scrollIntoView,
+      ...(userEvent ? { userEvent } : {}),
     };
   });
 }

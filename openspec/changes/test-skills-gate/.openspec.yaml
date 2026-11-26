@@ -1,0 +1,19 @@
+schema: spec-driven
+created: 2026-08-03
+skip_specs: true
+status: proposed
+status_note: >
+  Interview-locked (Q1–Q5) + Phase 3 summary CONFIRMED by developer (messages.md
+  row 154). Change name: test-skills-gate. Drafting delegated to AI per
+  practice-protected §6 (substance: AI, structure: AI, interview_depth: compressed).
+  Single-module dev-infra change; pattern clone of validate-opencode-config.sh +
+  test-interview-enforcement.sh. No .sdd/ escalation required (pre-commit-autofix
+  precedent). Ready for implementation.
+ownership:
+  substance: AI
+  structure: AI
+  interview_depth: compressed
+  interview_reason: >
+    Single-module dev-infra; pattern clone of existing validate-opencode-config.sh
+    and test-interview-enforcement.sh. Developer delegated drafting from confirmed
+    interview transcript (messages.md row 154) — no further grilling needed.

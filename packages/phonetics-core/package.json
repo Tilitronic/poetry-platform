@@ -3,12 +3,12 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "main": "src/engine/ipa.ts",
-  "types": "src/engine/ipa.ts",
+  "main": "src/atlas/load-atlas.ts",
+  "types": "src/atlas/load-atlas.ts",
   "exports": {
     ".": {
-      "import": "./src/engine/ipa.ts",
-      "types": "./src/engine/ipa.ts"
+      "import": "./src/atlas/load-atlas.ts",
+      "types": "./src/atlas/load-atlas.ts"
     },
     "./atlas": {
       "import": "./src/atlas/load-atlas.ts",
@@ -38,6 +38,8 @@
   },
   "devDependencies": {
     "@fast-check/vitest": "^0.4.1",
+    "@types/node": "^22.19.19",
+    "fast-check": "^4.9.0",
     "vitest": "^4.1.9"
   }
 }

@@ -1,0 +1,14 @@
+## 1. Preset compatibility vertical slice
+
+- [ ] 1.1 RED: Create hermetic capability fixtures and Bats expectations for a valid explicit declaration, an empty optional list, an empty entry, and a dangling preset. Blockers: none. Acceptance: the tests demonstrate that valid declarations exit 0, empty entries hard-fail, and a dangling preset emits its deterministic `FAIL:` and exits 1. Size: one fresh context window. SDD dependency: `.sdd/opencode-config/architecture.md`. This test-author task MUST use a different coder instance from task 1.2.
+- [ ] 1.2 GREEN: Add the read-only preset-manifest compatibility path needed to satisfy task 1.1. Blockers: 1.1. Acceptance: the validator resolves only explicit declarations, preserves existing form behavior, reports all preset findings without fail-fast behavior, and task 1.1 passes. Size: one fresh context window. SDD dependency: `.sdd/opencode-config/architecture.md`. This implementer task MUST use a different coder instance from task 1.1.
+
+## 2. Runtime capability vertical slice
+
+- [ ] 2.1 RED: Extend hermetic Bats coverage for unknown command, unknown agent or permission, missing binary, impossible bash requirement, and multiple simultaneous compatibility failures. Blockers: 1.2. Acceptance: every invalid class has a precise `FAIL:` assertion, the impossible bash fixture exits 1, and the multi-failure fixture proves collect-all output. Size: one fresh context window. SDD dependency: `.sdd/opencode-config/architecture.md`. This test-author task MUST use a different coder instance from task 2.2.
+- [ ] 2.2 GREEN: Add runtime-manifest resolution for commands, agent permissions, and distinct required binaries needed to satisfy task 2.1. Blockers: 2.1. Acceptance: each manifest is read once per run, checks use in-memory membership data, each distinct binary is probed once, all expected invalid declarations exit 1, and task 2.1 passes. Size: one fresh context window. SDD dependency: `.sdd/opencode-config/architecture.md`. This implementer task MUST use a different coder instance from task 2.1.
+
+## 3. Contract preservation and release gate
+
+- [ ] 3.1 Verify the completed validator against the agreed observable contract. Blockers: 1.2, 2.2. Acceptance: valid compatibility fixtures exit 0; validation and manifest failures exit 1; unavailable infrastructure exits 2; existing advisories remain warnings; diagnostics name skill, class, declaration, and target; and the real-tree baseline remains 26 passed and 40 warnings. Size: one fresh context window.
+- [ ] 3.2 Run the existing skill and configuration validation gates and document rollback evidence. Blockers: 3.1. Acceptance: the existing gates pass, no new Make target or dependency is introduced, and reverting the compatibility tier plus fixtures restores the prior form-only validator without migration or state cleanup. Size: one fresh context window. SDD dependency: `.sdd/opencode-config/architecture.md`.

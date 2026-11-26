@@ -1,0 +1,54 @@
+#!/usr/bin/env bash
+# lane-resume <task_id|session_id> - triage helper for truncated/empty lanes.
+#
+# WHY: the Truncated/Empty Subagent Result Protocol (orchestrator_append.md
+# step 3 RESUME) needs to know whether a dead lane can be resumed with the
+# resume-truncated-lane skill or must be re-dispatched fresh. Reads
+# .opencode/session/registry.jsonl (32k+ rows) via jq structured extraction -
+# naive grep at that scale is slow and matches inside unrelated fields.
+#
+# Output: one facts line (rows / last dispatch_state / agent / terminal event)
+# then a decision line. Decision order (first match wins):
+#   no matching rows                         -> unknown-id
+#   any errored row                          -> fresh-required
+#   last dispatch_state=running              -> still-running (possibly live
+#                                               session, do not double-dispatch)
+#   terminal ok and no empty-result row      -> landed-or-complete
+#   everything else (truncated, empty result,
+#   gate-blocked, stale non-terminal states) -> resume-recommended (load resume-truncated-lane skill)
+# Exit codes: 0 decision produced, 2 usage/infrastructure error.
+#
+# NO git-log cross-check (dropped per DIA-260825-k8mc ai-specialist gate).
+#
+# Permission model (DIA-126a): orchestrator has bash deny - run via @coder
+# dispatch (scripts/* allow) or the developer.
+#
+# Env override (bats hermetic seam, mirrors TICKETS_DIR): REGISTRY_FILE.
+set -euo pipefail
+
+REGISTRY_FILE="${REGISTRY_FILE:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/.opencode/session/registry.jsonl}"
+
+if [ $# -ne 1 ] || [ -z "$1" ]; then
+  echo "usage: lane-resume <task_id|session_id>" >&2
+  exit 2
+fi
+if [ ! -f "$REGISTRY_FILE" ]; then
+  echo "error: registry not found: $REGISTRY_FILE (override with REGISTRY_FILE)" >&2
+  exit 2
+fi
+
+jq -rs --arg id "$1" '
+  map(select(.task_id == $id or .session_id == $id)) as $rows
+  | ($rows | length) as $n
+  | (if $n > 0 then ($rows | last) else null end) as $last
+  |   ($rows | map(.event == "session_complete") | any) as $terminal_ok
+  | ($rows | map(.event == "empty_result_detected") | any) as $empty
+  | ($rows | map(.event == "session_failed" or .dispatch_state == "failed" or .dispatch_state == "errored") | any) as $errored
+  | if $n == 0 then "unknown-id"
+    elif $errored then "fresh-required"
+    elif ($last.dispatch_state == "running") then "still-running (possibly live session, do not double-dispatch)"
+    elif $terminal_ok and ($empty | not) then "landed-or-complete"
+    else "resume-recommended (load resume-truncated-lane skill)"
+    end
+  | "rows=\($n) last_state=\(if $last then ($last.dispatch_state // "null") else "-" end) agent=\(if $last then ($last.agent // $last.role // "unknown") else "-" end) terminal_event=\(if $terminal_ok then "yes" else "no" end)\ndecision: \(.)"
+' "$REGISTRY_FILE"

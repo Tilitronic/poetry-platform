@@ -1,0 +1,4 @@
+schema: spec-driven
+skip_specs: true
+created: 2026-08-23
+change: simplify-skill-ownership-remedy

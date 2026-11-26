@@ -1,0 +1,13 @@
+# FIX-2 (re-review 1/2) fixture: `date` as a YAML-native datetime object
+# (unquoted timestamp). The validator's normalize() converts it to
+# "2026-08-16" before the schema check, so it passes validation; the render
+# script must apply the same conversion or it would emit a broken header.
+- date: 2026-08-16T10:00:00
+  ticket: 'DIA-FIX2'
+  scope: 'datetime-normalized date renders as ISO date'
+  files:
+    - 'scripts/changelog-render'
+  summary: >
+    Change: unquoted datetime date value.
+  verification: >
+    Header must render "## 2026-08-16 - DIA-FIX2: ...".

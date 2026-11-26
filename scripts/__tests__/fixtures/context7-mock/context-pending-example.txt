@@ -1,0 +1,10 @@
+### Introduction
+Pending Example is a library whose documentation becomes available once the
+initial generation job finishes processing.
+
+Source: https://example.com/docs
+
+### Usage overview
+```js
+import { pending } from 'pending-example';
+```

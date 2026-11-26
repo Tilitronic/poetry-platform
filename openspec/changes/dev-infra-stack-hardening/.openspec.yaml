@@ -1,0 +1,11 @@
+schema: spec-driven
+created: 2026-08-02
+skip_specs: true
+status: implemented
+status_note: >
+  All tasks T1–T7 implemented and verified. Post-implementation spec-fidelity
+  update: five justified implementation deviations folded back into artifacts
+  (PID 1 probe via /proc/1/comm, Xvfb probe via /proc cmdline scan, tini
+  SHA256 verification, chown via ${USER_UID}:${USER_GID}, bats-wrapper syntax
+  check of new profile script); T7 (exec-session secrets passthrough, H5)
+  formalized post-implementation per orchestrator request.

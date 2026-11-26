@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# Run lint-staged (auto-fix staged files) before every commit. The gate lives
+# in scripts/verify-pre-commit.sh, which handles host vs dev-container
+# execution and fails when the dev container is down (start with `make up`,
+# or bypass explicitly with `git commit --no-verify`).
+bash scripts/verify-pre-commit.sh

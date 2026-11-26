@@ -1,0 +1,10 @@
+https://opencode.ai/docs/plugins/
+https://github.com/anomalyco/opencode/issues/8639
+https://github.com/anomalyco/opencode/issues/6830
+https://github.com/anomalyco/opencode/issues/19108
+https://github.com/anomalyco/opencode/issues/12931
+https://github.com/anomalyco/opencode/issues/16859
+https://github.com/anomalyco/opencode/issues/6880
+https://github.com/anomalyco/opencode/issues/31219
+https://github.com/anomalyco/opencode/issues/16841
+https://github.com/anomalyco/opencode/issues/17793

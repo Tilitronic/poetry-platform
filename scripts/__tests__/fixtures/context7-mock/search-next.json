@@ -1,0 +1,18 @@
+{
+  "results": [
+    {
+      "id": "/vercel/next.js",
+      "title": "Next.js",
+      "description": "The React framework for production",
+      "branch": "canary",
+      "lastUpdateDate": "2026-07-28T10:00:00Z",
+      "state": "finalized",
+      "totalTokens": 30000,
+      "totalSnippets": 120,
+      "stars": 120000,
+      "trustScore": 99,
+      "benchmarkScore": 95,
+      "versions": ["14.0.0", "13.5.6"]
+    }
+  ]
+}

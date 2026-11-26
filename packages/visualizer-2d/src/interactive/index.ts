@@ -5,11 +5,7 @@ export interface VisualizerHandle {
   destroy: () => void;
 }
 
-export function initInteractiveVisualizer(
-  selector: string,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  _orchestrator: any,
-): VisualizerHandle {
+export function initInteractiveVisualizer(selector: string, _orchestrator: any): VisualizerHandle {
   const el = d3.select(selector);
 
   el.html('');

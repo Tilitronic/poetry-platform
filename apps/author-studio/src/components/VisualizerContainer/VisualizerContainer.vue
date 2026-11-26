@@ -31,10 +31,8 @@
 import { ref, onMounted, defineAsyncComponent, watch } from 'vue';
 import { initInteractiveVisualizer } from '@poetry/visualizer-2d';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const props = defineProps<{ orchestrator: any }>();
 const activeTab = ref('2d');
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 let visualizer2D: any = null;
 
 // Dynamic (async) import of the 3D package.

@@ -1,6 +1,6 @@
 import { OpusState } from '../state/PoetryState';
 import { CommandBus } from './command-bus';
-import { ViewUpdate } from '@codemirror/view';
+import type { ViewUpdate } from '@codemirror/view';
 import { tokenize, type TextToken } from '../tokenizer/tokenizer';
 
 export class Orchestrator {

@@ -1,0 +1,6 @@
+# OpenSpec change configuration
+# This change is pure dev-infra repair (tooling/config/docs).
+# No spec-level behavior changes — pre-commit gate behavior is unchanged,
+# only the underlying permission model is fixed.
+schema: spec-driven
+skip_specs: true
