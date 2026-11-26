@@ -4,7 +4,7 @@
 # Review cadence: monthly, aligned with DIA ledger sweep
 # Fields: ticket-id<TAB>command<TAB>expected-exit-code<TAB>source-suite<TAB>failure-evidence<TAB>container-bound
 # container-bound: 'yes' = requires dev container running (skipped with WARN when container down); 'no' = host-runnable
-# Manual review gate: one human or agent sanity-reads the 20-task curated set each review cycle
+# Manual review gate: one human or agent sanity-reads the 18-task curated set each review cycle
 # (council alpha-suggestion, accepted as recorded -- design.md Decision 5).
 # Source priority: (1) DIA ticket ledger, (2) vitest editor-engine + phonetics-core,
 # (3) pytest api-server + analytics-pipeline, (4) escalated/crisis session-log patterns.
@@ -23,7 +23,6 @@ pytest-analytics-pipeline	docker compose exec -T dev bash -c 'cd /workspace/pack
 make-test-python	make test-python	0	pytest api-server + analytics-pipeline	Makefile test-python target (both pytest suites)	yes
 ruff-api-server	docker compose exec -T dev bash -c 'cd /workspace/apps/api-server && .venv/bin/ruff check .'	0	pytest api-server	api-server ruff lint	yes
 ruff-analytics-pipeline	docker compose exec -T dev bash -c 'cd /workspace/packages/analytics-pipeline && .venv/bin/ruff check .'	0	pytest analytics-pipeline	analytics-pipeline ruff lint	yes
-DIA-079	bash scripts/validate-handoff.sh	0	session-log	DIA-079 (handoff write JSON parse error)	no
 DIA-068	make jsonl-cross-check	0	session-log	DIA-068 (delegation-observer persistence trigger)	no
 ana007-jsonl-stats	make jsonl-stats	0	session-log	ana007 (session-log rollup)	no
 ana007-session-log-render	make session-log-render	0	session-log	ana007 (derived messages.md view)	no

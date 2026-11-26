@@ -30,14 +30,13 @@ echo "=== Gate A: production symbol usage outside import ==="
 declare -A gateA_symbols=(
   ["capability"]="mintCapabilityToken verifyCapabilityToken"
   ["ticket-gate"]="scanTickets isMetaTaskBypass TICKET_ID_FIND_RE"
-  ["handoff"]="libComputeChecksum libAtomicWriteHandoff"
   ["registry"]="createRegistry"
   ["stall-sweep"]="createStallSweep"
   ["formatter"]="runEditTimeFormatter"
   ["circuit-breaker"]="ToolCircuitBreaker"
   ["errors"]="errorMessage"
 )
-retained=(capability ticket-gate handoff registry stall-sweep formatter circuit-breaker errors)
+retained=(capability ticket-gate registry stall-sweep formatter circuit-breaker errors)
 for lib in "${retained[@]}"; do
   # Check module is imported
   if ! grep -Fq "from \"./lib/${lib}.ts\"" "$PLUGIN" && ! grep -Fq "from './lib/${lib}.ts'" "$PLUGIN" && ! grep -Fq "from \"./lib/${lib}\"" "$PLUGIN"; then
@@ -65,7 +64,6 @@ echo "=== Gate B: no duplicate shell definitions (manifest) ==="
 # Symbol-name prohibitions — must only appear as imports, never as local defs
 prohibited_symbols=(
   parseFrontmatterFields parseTicketDate keywordsCorrelate scanTickets evaluateTicketCorrelation isMetaTaskBypass isTicketGateBlocked
-  computeChecksum atomicWriteHandoff
   appendRow appendMessageRow captureConfigLoadSignal atomicWriteBootMarker
   stallThresholdMinutes STALL_SWEEP_KEY
   isFormatterIgnoredPath extractPatchPaths runEditTimeFormatter
@@ -107,7 +105,7 @@ fi
 echo "=== Gate C: tests on production interface (canonical only) ==="
 removed_aliases=(
   checkTicketGate evaluateGate isMetaTask shouldBypassTicketGate
-  atomicWrite writeHandoff createStallSweeper createToolCircuitBreaker createBreaker parseAndExec
+  createStallSweeper createToolCircuitBreaker createBreaker parseAndExec
 )
 for alias in "${removed_aliases[@]}"; do
   if grep -R --include='*.mjs' --include='*.ts' -n "import.*\b${alias}\b" "$TEST_GLOB" 2>/dev/null | grep -v "^\s*//" | grep -q .; then

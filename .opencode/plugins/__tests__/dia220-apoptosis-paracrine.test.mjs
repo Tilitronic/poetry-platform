@@ -5,7 +5,7 @@
  * signals) in delegation-observer.
  *
  * Apoptosis: when circuit.open == true AND session.error fires, the plugin
- * autonomously triggers handoff + worktree cleanup + apoptosis_complete row.
+ * autonomously triggers worktree cleanup + apoptosis_complete row.
  *
  * Paracrine: discrete state events (dispatch.started, dispatch.completed,
  * review.complete, build.passed, tests.failed) emitted into messages.jsonl.
@@ -21,7 +21,7 @@
  *      bun test dia220-apoptosis-paracrine.test.mjs'
  */
 import { test, expect, describe, beforeEach, afterEach } from "bun:test"
-import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs"
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import { createTempWorkspace, mockOpencodePlugin, createHarness, mockChildProcess } from "./helpers/plugin-harness.mjs"
 
@@ -82,9 +82,6 @@ beforeEach(() => {
 function freshCtx() {
   const { directory, cleanup } = createTempWorkspace("dia220-apop-")
   workspaceCleanups.push(cleanup)
-  mkdirSync(join(directory, ".opencode", "session", "handoffs"), {
-    recursive: true,
-  })
   return {
     directory,
     client: { app: { log: async () => {} } },
@@ -204,7 +201,7 @@ function ensureOpenTicket(ctx, ticketId) {
 // ---------------------------------------------------------------------------
 
 describe("DIA-220 Apoptosis (dual-key shutdown)", () => {
-  test("circuit.open + session.error triggers apoptosis: worktree removed + handoff written", async () => {
+  test("circuit.open + session.error triggers apoptosis: worktree removed + apoptosis row", async () => {
     const { hooks, ctx } = await makeHarness()
     const sessionID = "ses_apop_test_1"
     ensureOpenTicket(ctx, "DIA-220")
@@ -241,13 +238,6 @@ describe("DIA-220 Apoptosis (dual-key shutdown)", () => {
     expect(apoptosisRow).toBeDefined()
     expect(apoptosisRow.session_id).toBe(sessionID)
     expect(apoptosisRow.status).toBe("APOPTOSIS")
-
-    // Step 4: Verify handoff file was written.
-    const handoffsDir = join(ctx.directory, ".opencode/session/handoffs")
-    const handoffFiles = readdirSync(handoffsDir).filter(
-      (f) => f.endsWith(".json") && !f.startsWith(".")
-    )
-    expect(handoffFiles.length).toBeGreaterThan(0)
   })
 
   test("circuit NOT open + session.error: normal handling, no apoptosis", async () => {
@@ -459,13 +449,6 @@ describe("DIA-220 Apoptosis (dual-key shutdown)", () => {
     expect(apoptosisRow).toBeDefined()
     expect(apoptosisRow.session_id).toBe(sessionID)
     expect(apoptosisRow.status).toBe("APOPTOSIS")
-
-    // Handoff file written by apoptosis.
-    const handoffsDir = join(ctx.directory, ".opencode/session/handoffs")
-    const handoffFiles = readdirSync(handoffsDir).filter(
-      (f) => f.endsWith(".json") && !f.startsWith(".")
-    )
-    expect(handoffFiles.length).toBeGreaterThan(0)
   })
 
   test("after apoptosis, tool.execute.before throws on any tool call", async () => {

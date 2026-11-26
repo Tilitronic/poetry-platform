@@ -7,8 +7,8 @@
 # scenario scripts are in .opencode/plugins/__tests__/harness-scenarios/.
 #
 # Exit-code contract:
-#   0  all 3 scenarios pass
-#   1  any scenario fails
+#   0  the scenario passes
+#   1  the scenario fails
 #
 # Runs inside the poetry-dev container (bun + TypeScript).
 
@@ -19,8 +19,8 @@ SCENARIOS_DIR="$REPO_ROOT/.opencode/plugins/__tests__/harness-scenarios"
 
 # run_scenario <name>: runs a bun scenario script inside the selected container.
 # The script receives a fresh mkdtemp path via $WORKSPACE and asserts the
-# plugin's observable output (registry.jsonl, handoffs/). Exits non-zero on
-# assertion failure.
+# plugin's observable output (registry.jsonl). Exits non-zero on assertion
+# failure.
 run_scenario() {
   local name="$1"
   local script="$SCENARIOS_DIR/$name.scenario.mjs"
@@ -48,28 +48,4 @@ run_scenario() {
 
 @test "C5 scenario-1: empty-result session.idle emits EMPTY_RESULT in registry" {
   run_scenario "empty-result-silent-failure"
-}
-
-# ---------------------------------------------------------------------------
-# Scenario 2 (DIA-085 F-1 class): same-millisecond parallel handoff writes
-# ---------------------------------------------------------------------------
-# Regression: two successive handoff writes for the same session within the
-# same millisecond produce distinct archive filenames (UUID suffix). Before
-# the fix, identical ISO timestamps caused the second archive to overwrite
-# the first.
-
-@test "C5 scenario-2: same-millisecond parallel handoff writes produce distinct archives" {
-  run_scenario "parallel-handoff-archive"
-}
-
-# ---------------------------------------------------------------------------
-# Scenario 3 (DIA-085 F-3 class): pre-dispatch session slot identity
-# ---------------------------------------------------------------------------
-# Regression: two pre-dispatch orchestrator sessions writing handoffs must
-# create two distinct slot files (ses_X.json, ses_Y.json), not a single
-# "unknown.json" clobber. Before the fix, five fallback chains used
-# "unknown" as the last resort, causing parallel sessions to collapse.
-
-@test "C5 scenario-3: two pre-dispatch sessions create distinct slot files (no unknown.json clobber)" {
-  run_scenario "slot-identity-no-clobber"
 }

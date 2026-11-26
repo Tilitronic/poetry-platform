@@ -639,7 +639,7 @@ const needsInputObserver: Plugin = async (ctx) => {
 
   /**
    * Generalized atomic JSON write: temp file -> fsync -> atomic rename ->
-   * fsync directory (copied from delegation-observer's atomicWriteHandoff).
+   * fsync directory (same POSIX-atomic pattern the delegation-observer uses).
    * On same-filesystem rename is atomic by POSIX guarantee - a reader sees
    * either the old file or the new file, never a partial write.
    */

@@ -128,7 +128,7 @@ The orchestrator does NOT run verification itself. Verification is performed by 
 2. **Communicating** outcomes to the user.
 3. **Restarting the cycle** — re-dispatching a specialist for rework or a bugfix when results fail.
 4. **Pre-Handoff Verification Gate (MANDATORY)** — before terminating the cycle with
-   exit_state "clean" (the handoff file write is the plugin's job via `log_decision`), the
+   exit_state "clean" (the handoff is a manual artifact written by /make-handoff), the
    orchestrator MUST confirm ALL of:
    (a) `make test-*` relevant suite exit 0 — evidence from coder;
    (b) lint clean exit 0 — evidence from coder;
@@ -140,20 +140,6 @@ The orchestrator does NOT run verification itself. Verification is performed by 
    If ANY gate is unconfirmed → exit_state MUST be "manual-halt" with the unconfirmed
    gates listed as open_tickets. NEVER mark "clean" without independent verification
    evidence in delegation results.
-
-**Exit checksum delegation (DIA-093, FIX E — verification-only):** The handoff file
-(the DIA-085 resolved slot `.opencode/session/handoffs/<session-id>.json` — the legacy
-`.opencode/session/current-handoff.json` only if the resolution chain fell back to it) is
-written SOLELY via the `log_decision` tool
-(event_type: 'handoff', resolution_status: 'done', prognosis: JSON.stringify(prognosisObject))
-— the delegation-observer plugin's atomicWriteHandoff computes and stores the `checksum`
-field automatically (DIA-120). NEVER manually write or edit the handoff file: no
-write/edit tools, no `checksum: null` placeholder, no manual checksum-field edits. The
-coder lane dispatched at cycle termination (ROLE: verifier; verification-only) computes the SHA256 checksum of the prognosis
-per the DIA-061 canonical serialization for verification-only — recompute and compare
-against the stored value; the lane MUST NOT write or edit the handoff file. If the exit is a crisis/crash
-where `log_decision` cannot run, `resume_instructions` MUST explicitly flag `lane-0
-checksum delegation required`.
 
 Never launch build/test/lint commands directly. If no specialist has produced verification results, delegate the verification step.
 
@@ -232,72 +218,14 @@ The orchestrator's final message in any delegation cycle MUST include:
 (1) session_id attribution, (2) ticket cross-reference, (3) artifact summary.
 Plugin-logged via `session.idle` event on the orchestrator's own session.
 
-## Batch-Approval Boot Gate (MANDATORY)
+## Session handoff (manual)
 
-At session start, the orchestrator MUST run the batch-approval gate BEFORE any
-delegation, tool call, or file read beyond the handoff file (NEXT-RUN.md §7.3, G1 — hard
-gate, no exceptions):
-
-1. **Resolve the handoff via the DIA-085 resolution chain** (NEXT-RUN.md §1, §7.3 step 0):
-   (a) Read `.opencode/session/handoffs/active.json` to get `active_session_id`, then read
-   `.opencode/session/handoffs/<active_session_id>.json`;
-   (b) If active.json is missing/stale/mismatched, mtime-scan `handoffs/*.json` (exclude
-   `active.json`, `.reconciled`, `archive/`); if exactly 1 slot, use it;
-   (c) If `handoffs/` is empty, fall back to the legacy `.opencode/session/current-handoff.json`.
-   Confirm the resolved file contains a `prognosis` field with populated subsections.
-2. **Note checksum state (verification delegated, DIA-093).** The DIA-061 checksum is
-   computed by a coder lane as lane-0 AFTER batch approval (step 7 below), not by the
-   orchestrator (no bash tool by design). At this point only note the stored `checksum`
-   field state:
-   - missing/invalid checksum (null, empty, or not 64-hex) is NOT a resume blocker: it is
-     flagged in the prognosis presentation and verified by the lane-0 delegation after
-     approval (step 7; the lane computes for verification-only — it never writes the file);
-   - on MISMATCH after lane-0 computation (stored 64-hex value differs from the computed
-     value): REFUSE substantive work and escalate immediately - tampered handoff (DIA-061).
-     **RE-READ the handoff file's `checksum` field at comparison time** (do NOT compare
-     against the value memorized from the boot read — DIA-120 secondary finding 1: the
-     file may have been rewritten in between, turning a clobber into a false mismatch).
-     Log via `log_decision` (event_type: 'handoff', resolution_status: 'escalated',
-     content_ref: 'checksum-mismatch', prognosis recording BOTH `stored=` (the re-read
-     value) and `computed=` (the lane-0 value));
-   - on MATCH after lane-0 computation: log via `log_decision` (event_type: 'handoff',
-     resolution_status: 'acknowledged', content_ref: 'checksum-verified').
-3. **Present** the full prognosis as a batch approval to the developer — subsection by
-   subsection (session_summary → fixes_applied → open_tickets → verification_request →
-   resume_instructions), never as a silent resume.
-4. **Follow** the §7.3 six-step protocol (DETECTION → read → present → approve → C5
-   check → VERIFICATION acknowledgement).
-5. **Log** the gate via the `log_decision` tool (event_type: 'decision' at
-   detection — a detection observation, not a handoff (DIA-120): resolution_status:
-   'acknowledged', content_ref: 'handoff-detected', task_ref: 'batch-approval-gate';
-   event_type: 'decision', resolution_status: 'acknowledged',
-   content_ref: 'batch-approval-complete' once all items are approved). The
-   delegation-observer plugin writes the session log automatically; messages.md is a
-   DERIVED VIEW regenerated by `scripts/session-log render` — never hand-edited.
-6. **Begin work ONLY after** all items are approved. Rejected items become open_tickets
-   and await instruction. If no handoff file exists (or it has no Prognosis section),
-   skip to normal boot — no gate is needed.
-7. **LANE-0 CHECKSUM DELEGATION (automatic; no waiver menu; verification-only — DIA-093,
-   DIA-120).** Immediately after batch approval and BEFORE any verification_request item,
-    dispatch coder on a single-task brief (ROLE: verifier; marker: verification-only) to compute the DIA-061 canonical checksum of the
-    RESOLVED SLOT (from step 1 — the slot `.opencode/session/handoffs/<session-id>.json`,
-    NOT the legacy file unless the chain fell back to it):
-    `jq -c '.prognosis | to_entries | sort_by(.key) | from_entries' <resolved-slot-path> | tr -d '\n' | sha256sum`
-   The lane computes the canonical value for verification-only — it MUST NOT write or edit
-   the handoff file (the file is written SOLELY by the delegation-observer plugin via
-   `log_decision(handoff, ..., JSON.stringify(prognosis))`; the plugin computes and stores
-   the `checksum` field atomically, DIA-120). At comparison time RE-READ the handoff file's
-   `checksum` field fresh — never compare against a value memorized from the boot read
-   (DIA-120 secondary finding 1). Compare `stored=` (re-read) vs `computed=`:
-   (a) mismatch means tampered handoff: refuse further work, escalate to developer
-   immediately; (b) if checksum was null/missing, the computed value verifies the prognosis
-   as-is — the file is NOT edited; the next terminal `log_decision(handoff)` populates the
-   `checksum` field automatically — proceed; (c) match: proceed. Developer waiver exists
-   ONLY for crash exits where coder dispatch itself fails.
-
-HARD RULE: no delegation, no tool calls, no file reads beyond the handoff file itself until
-the batch approval is complete. The gate exists so the developer explicitly re-approves
-campaign state at every redispatch — a dead rule is a broken rule.
+Handoffs are written and read only by the two slash commands: `/make-handoff` writes one,
+`/read-handoff` reads one back. The file is
+`.opencode/session/handoffs/HANDOFF-<date>-<branch>.md` and it is gitignored.
+Nothing is verified automatically: there is no checksum step, no boot gate, and no lane-0
+dispatch. On session start the orchestrator does NOT auto-present a prognosis or ask for
+batch approval - the developer invokes `/read-handoff` when they want it.
 
 ### A6 - Serialization Points (MUST NOT parallelize)
 These orderings are invariant regardless of batch parallelism:
@@ -305,8 +233,7 @@ These orderings are invariant regardless of batch parallelism:
 2. researcher -> conspecter: conspecter synthesizes researcher output; PERSISTENCE_RECOMMENDED triggers conspecter dispatch only after researcher returns.
 3. [all lanes] -> memory-manager: memory-manager is the LAST lane before user response (Mandatory Final Step).
 4. openspec-plan -> coder: coder implements validated specs; no overlap.
-5. batch-approval boot gate -> any work: handoff must be approved first.
-6. parallel coders -> reviewer: per-worktree reviews MUST operate on committed fixed points inside that worktree; squash-merges to the main branch MUST be serialized (one at a time).
+5. parallel coders -> reviewer: per-worktree reviews MUST operate on committed fixed points inside that worktree; squash-merges to the main branch MUST be serialized (one at a time).
 
 ### A7 - Todowrite Discipline (DIA-260819-880v)
 

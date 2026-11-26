@@ -54,7 +54,6 @@ write_clean_plugin() {
   cat > "$target" <<'CLEAN'
 import { mintCapabilityToken, verifyCapabilityToken } from "./lib/capability.ts"
 import { scanTickets, parseFrontmatterFields, parseTicketDate, keywordsCorrelate, evaluateTicketCorrelation, isMetaTaskBypass, isTicketGateBlocked, TICKET_ID_RE, TICKET_ID_FIND_RE } from "./lib/ticket-gate.ts"
-import { computeChecksum, atomicWriteHandoff } from "./lib/handoff.ts"
 import { createRegistry } from "./lib/registry.ts"
 import { stallThresholdMinutes, STALL_SWEEP_KEY, STALL_SWEEP_INTERVAL_MS, createStallSweep } from "./lib/stall-sweep.ts"
 import { isFormatterIgnoredPath, extractPatchPaths, runEditTimeFormatter, FORMATTER_MAX_BYTES } from "./lib/formatter.ts"
@@ -62,7 +61,7 @@ import { ToolCircuitBreaker, CB_WINDOW_SIZE, CB_ERROR_THRESHOLD, CB_COOLDOWN_MS 
 import { errorMessage } from "./lib/errors.ts"
 const _a = mintCapabilityToken; const _b = verifyCapabilityToken; const _c = scanTickets; const _d = parseFrontmatterFields; const _e = parseTicketDate
 const _f = keywordsCorrelate; const _g = evaluateTicketCorrelation; const _h = isMetaTaskBypass; const _i = isTicketGateBlocked
-const _j = TICKET_ID_RE; const _k = TICKET_ID_FIND_RE; const _l = computeChecksum; const _m = atomicWriteHandoff
+const _j = TICKET_ID_RE; const _k = TICKET_ID_FIND_RE
 const _n = createRegistry; const _o = stallThresholdMinutes; const _p = STALL_SWEEP_KEY; const _q = STALL_SWEEP_INTERVAL_MS; const _r = createStallSweep
 const _s = isFormatterIgnoredPath; const _t = extractPatchPaths; const _u = runEditTimeFormatter; const _v = FORMATTER_MAX_BYTES
 const _w = ToolCircuitBreaker; const _x = CB_WINDOW_SIZE; const _y = CB_ERROR_THRESHOLD; const _z = CB_COOLDOWN_MS; const _err = errorMessage
@@ -92,12 +91,6 @@ count_symbol_outside_import() {
     cnt=$(count_symbol_outside_import "$PLUGIN" "$sym")
     [ "$cnt" -ge 1 ] || { echo "Gate A: symbol $sym not referenced outside import (count=$cnt)" >&2; return 1; }
   done
-  for sym in libComputeChecksum libAtomicWriteHandoff; do
-    run bash -c "grep -v '^\s*import' '$PLUGIN' | grep -q -E '\b${sym}\b'"
-    assert_status 0
-  done
-  run bash -c "grep -v '^\s*import' '$PLUGIN' | grep -q -E '\bcreateHandoff\b|\bcreateRegistry\b'"
-  assert_status 0
   for sym in createRegistry; do
     run bash -c "grep -v '^\s*import' '$PLUGIN' | grep -q -E '\b${sym}\b'"
     assert_status 0
@@ -124,14 +117,12 @@ count_symbol_outside_import() {
     cat > "$root/.opencode/plugins/delegation-observer.ts" <<'FIXTURE'
 import { mintCapabilityToken, verifyCapabilityToken } from "./lib/capability.ts"
 import { scanTickets } from "./lib/ticket-gate.ts"
-import { atomicWriteHandoff } from "./lib/handoff.ts"
 import { createRegistry } from "./lib/registry.ts"
 import { stallThresholdMinutes } from "./lib/stall-sweep.ts"
 import { isFormatterIgnoredPath } from "./lib/formatter.ts"
 import { ToolCircuitBreaker } from "./lib/circuit-breaker.ts"
 import { errorMessage } from "./lib/errors.ts"
 const _x = scanTickets
-const _y = atomicWriteHandoff
 const _z = createRegistry
 const _a = stallThresholdMinutes
 const _b = isFormatterIgnoredPath
@@ -155,7 +146,6 @@ FIXTURE
 @test "Gate B structural: shell contains no prohibited seam definitions or policy constants (manifest)" {
   prohibited_symbols=(
     parseFrontmatterFields parseTicketDate keywordsCorrelate scanTickets evaluateTicketCorrelation isMetaTaskBypass isTicketGateBlocked
-    computeChecksum atomicWriteHandoff
     appendRow appendMessageRow captureConfigLoadSignal atomicWriteBootMarker
     stallThresholdMinutes STALL_SWEEP_KEY
     isFormatterIgnoredPath extractPatchPaths runEditTimeFormatter
@@ -175,7 +165,6 @@ FIXTURE
     cat > "$root/.opencode/plugins/delegation-observer.ts" <<'FIXTURE'
 import { mintCapabilityToken, verifyCapabilityToken } from "./lib/capability.ts"
 import { scanTickets, parseFrontmatterFields } from "./lib/ticket-gate.ts"
-import { computeChecksum, atomicWriteHandoff } from "./lib/handoff.ts"
 import { createRegistry } from "./lib/registry.ts"
 import { stallThresholdMinutes, STALL_SWEEP_KEY, STALL_SWEEP_INTERVAL_MS } from "./lib/stall-sweep.ts"
 import { isFormatterIgnoredPath } from "./lib/formatter.ts"
@@ -190,7 +179,7 @@ function getStallMinutes(envName, fallback) {
 const STALL_INTERVAL = 60_000
 const MY_STALL_KEY = Symbol.for("delegation-observer.stallSweepInterval")
 const _a = mintCapabilityToken; const _b = verifyCapabilityToken; const _c = scanTickets; const _d = parseFrontmatterFields
-const _e = computeChecksum; const _f = atomicWriteHandoff; const _g = createRegistry; const _h = stallThresholdMinutes
+const _g = createRegistry; const _h = stallThresholdMinutes
 const _i = STALL_SWEEP_KEY; const _j = STALL_SWEEP_INTERVAL_MS; const _k = isFormatterIgnoredPath; const _l = ToolCircuitBreaker; const _m = errorMessage
 FIXTURE
   }
@@ -207,7 +196,6 @@ FIXTURE
     cat > "$root/.opencode/plugins/delegation-observer.ts" <<'FIXTURE'
 import { mintCapabilityToken } from "./lib/capability.ts"
 import { scanTickets } from "./lib/ticket-gate.ts"
-import { computeChecksum, atomicWriteHandoff } from "./lib/handoff.ts"
 import { createRegistry } from "./lib/registry.ts"
 import { stallThresholdMinutes, STALL_SWEEP_KEY } from "./lib/stall-sweep.ts"
 import { isFormatterIgnoredPath, extractPatchPaths, runEditTimeFormatter } from "./lib/formatter.ts"
@@ -219,7 +207,7 @@ const MY_IGNORE_LIST = [".opencode/session/", "knowledge/"]
 function checkIgnored(filePath, root) {
   return MY_IGNORE_LIST.some(p => filePath.startsWith(p))
 }
-const _a = mintCapabilityToken; const _b = scanTickets; const _c = computeChecksum; const _d = atomicWriteHandoff
+const _a = mintCapabilityToken; const _b = scanTickets
 const _e = createRegistry; const _f = stallThresholdMinutes; const _g = STALL_SWEEP_KEY; const _h = isFormatterIgnoredPath
 const _i = extractPatchPaths; const _j = runEditTimeFormatter; const _k = ToolCircuitBreaker; const _l = errorMessage
 FIXTURE
@@ -238,7 +226,7 @@ FIXTURE
 @test "Gate C structural: no test file imports removed aliases or alternate/probe interfaces (canonical only)" {
   removed_aliases=(
     checkTicketGate evaluateGate isMetaTask shouldBypassTicketGate
-    atomicWrite writeHandoff createStallSweeper createToolCircuitBreaker createBreaker parseAndExec
+    createStallSweeper createToolCircuitBreaker createBreaker parseAndExec
   )
   for alias in "${removed_aliases[@]}"; do
     run bash -c "grep -R --include='*.mjs' --include='*.ts' -n 'import.*\\b${alias}\\b' '$TEST_GLOB' | grep -v '^\s*//' | grep -q ."

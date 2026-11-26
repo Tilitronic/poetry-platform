@@ -221,15 +221,14 @@ Full setup docs: `docs/docker-dev.md`.
    lane carries the verification-only marker (canonical contract:
    orchestrator_append.md dispatch payload contract).
 
-### Session-end handoff (DIA-124)
+### Session handoff (manual)
 
-- **HARD RULE:** the handoff - the per-session slot
-  (`.opencode/session/handoffs/<session-id>.json`) plus the `active.json`
-  pointer (DIA-085 parallel-handoff-slots) - MUST be written via
-  `log_decision(handoff)` BEFORE the final session summary is presented to
-  the developer - never after, never only-if-time-permits. The final summary
-  references the handoff. On plugin failure, flag the missing handoff
-  explicitly. (Operating protocol: `docs/dev-infra-audit/NEXT-RUN.md` §7.2.)
+- Handoffs are written and read only by two slash commands: `/make-handoff` writes
+  `.opencode/session/handoffs/HANDOFF-<date>-<branch>.md` and `/read-handoff` reads the
+  newest matching file back on developer request. The directory is gitignored.
+- There is no plugin enforcement, no checksum, and no lane-0 verification: nothing about
+  a handoff is verified automatically, and the orchestrator does not auto-present a
+  prognosis at session start (the developer invokes `/read-handoff` when they want it).
 
 ### Ticket queries via scripts (DIA-260820-y268)
 

@@ -1,16 +1,16 @@
 #!/usr/bin/env bats
 # Wiring regression for the `make test-config` target (change
 # dev-infra-config-validators, task T4). Structural checks over the root
-# Makefile: static greps assert the test-config target body references both
-# new validators (validate-agent-names.sh + validate-handoff.sh) alongside the
-# pre-existing validate-opencode-config.sh, and a `make -n` dry-run asserts the
+# Makefile: a static grep asserts the test-config target body references
+# validate-agent-names.sh alongside the pre-existing
+# validate-opencode-config.sh, and a `make -n` dry-run asserts the
 # host-scoped skip note and the test-typecheck prerequisite (DIA-260928-gpcc:
 # the typecheck seam lives HERE now; scripts/__tests__/typecheck-target.bats
 # was retired because its unanchored whole-file substring grep went false-green
 # on a commented-out prerequisite and false-red on a harmless reorder).
 #
 # The other config validators are unit-tested hermetically in
-# validate-agent-names.bats / validate-handoff.bats; this suite guards the
+# validate-agent-names.bats; this suite guards the
 # Makefile wiring seam so a future edit cannot silently drop the validators
 # (or the typecheck) from the config gate. DIA-260827-ft3z adds behavioral
 # coverage for validate-opencode-config.sh itself - the --doc-drift
@@ -38,11 +38,14 @@ require_analyzer_docs() {
   printf '# analyzer\ndeny-first bash contract.\n' > "$tree/.opencode/agents/analyzer.md"
 }
 
-@test "test-config wiring: Makefile references both new validators" {
+@test "test-config wiring: Makefile references the new agent-name validator and not the deleted handoff validator" {
   # Each new validator must appear in the test-config target body. The recipe
   # line form is `bash scripts/<name>.sh` (same shape as validate-opencode-config.sh).
   assert_file_contains "$REPO_ROOT/Makefile" "bash scripts/validate-agent-names.sh"
-  assert_file_contains "$REPO_ROOT/Makefile" "bash scripts/validate-handoff.sh"
+  # DIA-261126-q9r9 (ADR 16): validate-handoff.sh is deleted with the automatic
+  # plugin handoff contract - the target must no longer wire it.
+  ! grep -qF -- "bash scripts/validate-handoff.sh" "$REPO_ROOT/Makefile" \
+    || { echo "Makefile still wires deleted validate-handoff.sh" >&2; return 1; }
   # Pre-existing baseline preserved: validate-opencode-config.sh still wired.
   assert_file_contains "$REPO_ROOT/Makefile" "bash .opencode/scripts/validate-opencode-config.sh"
 }

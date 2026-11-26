@@ -88,7 +88,6 @@ flowchart LR
   Reg["registry.jsonl\nlifecycle rows"]
   Msg["messages.jsonl\nsemantic decisions and handoffs"]
   Tick["ticker.json\nquestions, permissions, idle"]
-  Handoff["handoffs/<session>.json\nactive.json"]
 
   User --> Orch
   Orch --> Task
@@ -104,7 +103,6 @@ flowchart LR
 
   Gate --> Reg
   Gate --> Msg
-  Gate --> Handoff
 
   Child --> NIO["needs-input-observer"]
   NIO --> Tick
@@ -132,13 +130,13 @@ flowchart LR
 
 ### Persistent state ownership
 
-| State                            | Primary writer                                   | Main readers                       | Purpose                                    |
-| -------------------------------- | ------------------------------------------------ | ---------------------------------- | ------------------------------------------ |
-| `registry.jsonl`                 | `delegation-observer` through registry library   | observer tools, validation scripts | lifecycle and delegation evidence          |
-| `messages.jsonl`                 | `delegation-observer`; selected observer signals | session-log renderer, handoff flow | decisions, handoffs, semantic events       |
-| `ticker.json`                    | `needs-input-observer`                           | ticker renderer, developer         | waiting questions, permissions, idle state |
-| `handoffs/*.json`, `active.json` | handoff tool path                                | orchestrator at session start      | resumable session state                    |
-| `memory-shelf.yaml`              | memory workflow                                  | validation and agents              | durable project knowledge index            |
+| State                   | Primary writer                                   | Main readers                       | Purpose                                    |
+| ----------------------- | ------------------------------------------------ | ---------------------------------- | ------------------------------------------ |
+| `registry.jsonl`        | `delegation-observer` through registry library   | observer tools, validation scripts | lifecycle and delegation evidence          |
+| `messages.jsonl`        | `delegation-observer`; selected observer signals | session-log renderer               | decisions, handoffs, semantic events       |
+| `ticker.json`           | `needs-input-observer`                           | ticker renderer, developer         | waiting questions, permissions, idle state |
+| `handoffs/HANDOFF-*.md` | `/make-handoff` slash command (developer)        | developer via `/read-handoff`      | per-branch manual session snapshot         |
+| `memory-shelf.yaml`     | memory workflow                                  | validation and agents              | durable project knowledge index            |
 
 ## 3. OpenCode configuration-change workflow
 
@@ -209,7 +207,6 @@ flowchart TB
     Output["validate-output-contracts.sh"]
     Review["validate-reviewer-sections.sh"]
     EBDV["validate-decision-variants.sh"]
-    Handoff["validate-handoff.sh"]
     Shelf["validate-memory-shelf.sh"]
     Changelog["validate-changelog.sh"]
     Dia["validate-dia-mentions.sh"]
@@ -241,7 +238,6 @@ flowchart TB
   TC --> Output
   TC --> Review
   TC --> EBDV
-  TC --> Handoff
   TC --> Shelf
   TC --> Changelog
   TC --> Dia
@@ -261,13 +257,13 @@ flowchart TB
 
 ### Gate responsibilities
 
-| Command or hook        | Primary purpose                                                                                                                                  |
-| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `make test-config`     | Validates OpenCode JSONC, agent-name consistency, contracts, handoff structure, memory shelf, changelog, decision records, and plugin structure. |
-| `make test-shell`      | Runs host and shell-script checks with Bats; includes pin and host-tool checks.                                                                  |
-| `make test-infra`      | Runs the heavier integration path: shell gate, harness, compose smoke, and Python coverage.                                                      |
-| `verify-pre-commit.sh` | Requires the development container and prevents commits that bypass the project gate.                                                            |
-| `verify-pre-push.sh`   | Runs the selected fast gates before a push. It is not a substitute for the full infra path.                                                      |
+| Command or hook        | Primary purpose                                                                                                               |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `make test-config`     | Validates OpenCode JSONC, agent-name consistency, contracts, memory shelf, changelog, decision records, and plugin structure. |
+| `make test-shell`      | Runs host and shell-script checks with Bats; includes pin and host-tool checks.                                               |
+| `make test-infra`      | Runs the heavier integration path: shell gate, harness, compose smoke, and Python coverage.                                   |
+| `verify-pre-commit.sh` | Requires the development container and prevents commits that bypass the project gate.                                         |
+| `verify-pre-push.sh`   | Runs the selected fast gates before a push. It is not a substitute for the full infra path.                                   |
 
 ## 5. Agent responsibilities
 

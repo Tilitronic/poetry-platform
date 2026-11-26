@@ -74,10 +74,6 @@ import {
   isMetaTaskBypass,
 } from "./lib/ticket-gate.ts"
 import {
-  computeChecksum as libComputeChecksum,
-  atomicWriteHandoff as libAtomicWriteHandoff,
-} from "./lib/handoff.ts"
-import {
   createRegistry,
 } from "./lib/registry.ts"
 import {
@@ -409,31 +405,9 @@ const delegationObserver: Plugin = async (ctx) => {
   )
   const gateTokenDir = dirname(gateTokenPath)
 
-  // Handoff paths - DIA-085 (parallel-handoff-slots): per-session handoff
-  // slots replace the legacy single-slot file for WRITES. Each session owns
-  // handoffs/<session-id>.json (the source of truth); active.json is the
-  // dispensable pointer to the most recent writer; archive/ preserves prior
-  // slot content on same-session rewrites (no silent data loss); .reconciled
-  // is the boot-gate sidecar (reader-side, T2.x/T3.x territory). The legacy
-  // current-handoff.json path is kept as the documented READ-ONLY fallback
-  // constant - the new writer never touches it. All paths live under
-  // .opencode/session/ (gitignored via .gitignore:82).
+  // Session state root: boot marker + adaptive routing state live here.
+  // Under .opencode/session/ (gitignored via .gitignore:82).
   const handoffDir = join(ctx.directory, ".opencode/session")
-  const handoffLegacyPath = join(handoffDir, "current-handoff.json")
-  const handoffSlotsDir = join(handoffDir, "handoffs")
-  const handoffArchiveDir = join(handoffSlotsDir, "archive")
-  const handoffPointerPath = join(handoffSlotsDir, "active.json")
-  const handoffReconciledPath = join(handoffSlotsDir, ".reconciled")
-
-
-
-  // DIA-211 Phase 2: stigmergic active.json — tracks the current workflow
-  // state so the orchestrator can read it on wake and route to the next agent.
-  // Written ONLY on terminal handoff events with a next_action; the file is
-  // optional (if it fails, the handoff still works). Path is
-  // .opencode/session/active.json (NOT handoffs/active.json — that is the
-  // handoff pointer, a different file).
-  const ACTIVE_JSON_PATH = join(handoffDir, "active.json")
 
   // DIA-123 boot marker paths — a dedicated boot marker file under
   // .opencode/session/ (NOT ticker.json, which needs-input-observer owns).
@@ -707,14 +681,6 @@ const delegationObserver: Plugin = async (ctx) => {
   // and a restart is required. Combined with process_started_at, this proves
   // "booted after config write T0" iff process_started_at >= recorded mtime.
 
-  /**
-   * Atomic write of the boot marker (.opencode/session/boot.json). Same
-   * pattern as atomicWriteHandoff: temp file -> fsync -> atomic rename ->
-   * fsync directory. Fail-soft by construction — a lost marker never crashes
-   * the plugin; the registry `session_boot` row remains the canonical boot
-   * evidence.
-   */
-
   // sessionID -> tool calls executed in the current assistant turn (A1
   // heuristic). There is no message_id in the hook input, so we group by
   // session and reset on tool.execute.after. Parallel tool calls fire all
@@ -890,60 +856,21 @@ const delegationObserver: Plugin = async (ctx) => {
   // blocks that had already diverged (the idle path skipped
   // logStallResolutionIfStalled, the paracrine signal, and the stall
   // resolution). Consolidated into one helper so both paths run the identical
-  // sequence; only the handoff trigger/note, the stall-resolution reason, and
-  // the optional error field differ by mode. No external behavior changed
+  // sequence; only the trigger/note, the resume text, and the
+  // stall-resolution reason differ by mode. No external behavior changed
   // beyond removing that divergence (idle now also emits the paracrine signal
   // + stall resolution, matching error).
   function runApoptosis(
     sessionID: string,
     role: string,
-    mode: "idle" | "error",
-    errMsg?: string
+    mode: "idle" | "error"
   ): void {
-    const trigger = mode === "idle" ? "apoptosis_idle" : "apoptosis"
     const note =
       mode === "idle"
         ? "apoptosis triggered: circuit.open + session.idle dual-key fatal state"
         : "apoptosis triggered: circuit.open + session.error dual-key fatal state"
-    const resume =
-      mode === "idle"
-        ? "Session terminated by apoptosis (idle with open circuit). Investigate root cause of circuit breaker trip before re-dispatching."
-        : "Session terminated by apoptosis. Investigate root cause of circuit breaker trip + session error before re-dispatching."
 
-    // Step 1: handoff with apoptosis context.
-    try {
-      const handoffContent = {
-        status: "apoptosis",
-        session_id: sessionID,
-        timestamp: new Date().toISOString(),
-        checksum: libComputeChecksum({
-          trigger,
-          session_id: sessionID,
-          ...(errMsg ? { error: errMsg } : {}),
-        }),
-        prognosis: {
-          session_summary: {
-            note,
-            session_id: sessionID,
-            role,
-            ...(errMsg ? { error: errMsg } : {}),
-          },
-          fixes_applied: [],
-          open_tickets: [],
-          verification_request: [],
-          resume_instructions: resume,
-        },
-      }
-      // DIA-260827-y9n9: the slot MUST be keyed by the apoptosing session
-      // itself - handoffContent.session_id is `sessionID`, so keying the slot
-      // by a process-global orchestrator id wrote this session's handoff into
-      // ANOTHER session's slot (archiving that session's valid handoff).
-      libAtomicWriteHandoff({ slotsDir: handoffSlotsDir, archiveDir: handoffArchiveDir, pointerPath: handoffPointerPath, legacyPath: handoffLegacyPath, reconciledPath: handoffReconciledPath }, sessionID, handoffContent)
-    } catch (err) {
-      tuiSafeWarn(`[delegation-observer] apoptosis handoff write failed: ${errorMessage(err)}`)
-    }
-
-    // Step 2: safe worktree cleanup (prune if missing, skip dirty, remove clean).
+    // Step 1: safe worktree cleanup (prune if missing, skip dirty, remove clean).
     const worktrees = sessionWorktrees.get(sessionID)
     if (worktrees && worktrees.size > 0) {
       for (const wtPath of worktrees) {
@@ -952,7 +879,7 @@ const delegationObserver: Plugin = async (ctx) => {
       sessionWorktrees.delete(sessionID)
     }
 
-    // Step 3: apoptosis_complete registry row + mark session dead.
+    // Step 2: apoptosis_complete registry row + mark session dead.
     registry.appendRow({
       event: "apoptosis_complete",
       session_id: sessionID,
@@ -964,14 +891,14 @@ const delegationObserver: Plugin = async (ctx) => {
     })
     apoptosisSessions.add(sessionID)
 
-    // Step 4: paracrine signal (both paths — previously idle skipped this).
+    // Step 3: paracrine signal (both paths — previously idle skipped this).
     emitStateSignal(sessionID, "dispatch.completed", {
       agent: childSessionAgent.get(sessionID) ?? role,
       result: "apoptosis",
       note: `dual-key shutdown: circuit.open + session.${mode}`,
     })
 
-    // Step 5: record how a previously stalled delegation ended (both paths).
+    // Step 4: record how a previously stalled delegation ended (both paths).
     logStallResolutionIfStalled(
       sessionID,
       mode === "idle" ? "resolved_by_idle_apoptosis" : "resolved_by_error"
@@ -1092,48 +1019,10 @@ const delegationObserver: Plugin = async (ctx) => {
   }
 
   /**
-   * Compute SHA256 checksum of the prognosis object. The checksum covers only
-   * the prognosis, not the wrapper fields — this way integrity verification is
-   * independent of status/timestamp/session_id changes.
-   */
-
-  /**
-   * DIA-085 (parallel-handoff-slots): atomic per-session handoff write.
-   *
-   * Flow (design.md section 2):
-   *   1. archive_prior(sessionId) - if a prior slot exists for this session,
-   *      rename it to archive/<session-id>.<iso-ts-hyphenated>.json (ISO
-   *      colons become hyphens for filesystem safety). Best-effort: on
-   *      failure, tuiSafeWarn and proceed - the archive is the forensic
-   *      safety net, never a blocker.
-   *   2. write_slot(sessionId, content) - atomic write of
-   *      handoffs/<session-id>.json (temp -> fsync -> rename -> fsync dir).
-   *      The slot is the source of truth.
-   *   3. write_pointer(sessionId) - atomic write of handoffs/active.json,
-   *      AFTER the slot: a crash between the two renames leaves slot-new /
-   *      pointer-old, and the boot gate's mtime scan recovers (pointer is a
-   *      dispensable optimization).
-   *   4. Returns { archived_prior } so the caller can enrich the terminal
-   *      handoff registry row with the archive path when one happened
-   *      (design.md section 2 step 4 / section 5).
-   *
-   * Parallel-writer safety: different sessions write different slot files (no
-   * collision by construction); same-session racing writers both archive
-   * first, so the prior prognosis survives in archive/ and the last atomic
-   * rename wins.
-   *
-   * Preserves the POSIX-atomic pattern of the legacy single-slot writer (temp
-   * file -> fsync -> rename -> fsync dir; rename is atomic on POSIX
-   * filesystems including the Docker volume - the reader sees either the old
-   * file or the new file, never a partial write).
-   */
-
-  /**
-   * DIA-211: atomic write for JSON files (active.json). Simpler than
-   * atomicWriteHandoff — no fsync/dir-fsync (the file is a dispensable
-   * workflow-state hint, not a source of truth). Temp rename is atomic on
-   * the same filesystem (POSIX guarantee; the Docker volume qualifies).
-   * Fail-soft: callers wrap in try/catch.
+   * DIA-211: atomic write for JSON state files. No fsync/dir-fsync (the
+   * file is a dispensable workflow-state hint, not a source of truth).
+   * Temp rename is atomic on the same filesystem (POSIX guarantee; the
+   * Docker volume qualifies). Fail-soft: callers wrap in try/catch.
    */
   function atomicWriteJson(filePath: string, data: object): void {
     const tmpPath = `${filePath}.tmp.${Date.now()}`
@@ -3428,7 +3317,7 @@ const delegationObserver: Plugin = async (ctx) => {
           // (mirrors the idle-path fix at ~:3937).
           if (toolCircuitBreaker.getState(sessionID) === "OPEN") {
             // DIA-260826-jcte (rev-1 fix 1): shared apoptosis orchestration.
-            runApoptosis(sessionID, role, "error", errorMessage(event.properties?.error))
+            runApoptosis(sessionID, role, "error")
             return
           }
 
@@ -3576,299 +3465,6 @@ const delegationObserver: Plugin = async (ctx) => {
           prognosis: tool.schema.string().optional(),
         },
         async execute(args, context) {
-          // Parse prognosis defensively: the orchestrator LLM may pass plain
-          // text instead of a JSON-stringified object (no JSON contract hint
-          // reaches it). Fall back to a plain-text wrapper instead of failing.
-          function parsePrognosis(raw: string | undefined): Record<string, unknown> {
-            if (!raw) return {};
-            try {
-              // DIA-231: detect literal "JSON.stringify(...)" text passed by the
-              // LLM instead of the actual stringified result. The tool description
-              // (Option A) warns against this, but the LLM may still do it.
-              if (raw.trim().startsWith("JSON.stringify(")) {
-                ctx.client.app.log({
-                  body: {
-                    service: "delegation-observer",
-                    level: "warn",
-                    message:
-                      "[delegation-observer] prognosis appears to be literal 'JSON.stringify(...)' text, not actual JSON -- LLM instruction-following failure",
-                  },
-                })
-              }
-              const parsed = JSON.parse(raw) as unknown
-              // DIA-192: the caller may double-encode (a JSON string inside a
-              // JSON string). The outer parse then SUCCEEDS but yields a
-              // STRING - decode one more level to recover the structured
-              // object. A catch-only retry would be unreachable here:
-              // JSON.parse is deterministic, so an input that throws once
-              // throws again on the same raw.
-              if (typeof parsed === "string") {
-                try {
-                  return JSON.parse(parsed) as Record<string, unknown>
-                } catch {
-                  // Inner value is a plain string (e.g. a bare note), not
-                  // double-encoded JSON - preserve pre-DIA-192 behavior.
-                  return parsed as unknown as Record<string, unknown>
-                }
-              }
-              return parsed as Record<string, unknown>
-            } catch {
-              // Truly malformed JSON: this is a recovered error, so report it
-              // on the TUI-safe app-log channel (no raw console output into
-              // the TUI stream). DIA-192 (2026-08-15) demoted this from
-              // tuiSafeWarn to info; the 2026-08-16 re-open downgraded it
-              // FURTHER to debug - even info-level app-log entries read as
-              // alarming noise for a recovered error, so the parse-fallback
-              // notification now sits at the lowest severity that still
-              // leaves a forensic trail in app.log. Fires ONLY when parsing
-              // genuinely failed (outer + any inner decode).
-              ctx.client.app.log({
-                body: {
-                  service: "delegation-observer",
-                  level: "debug",
-                  message:
-                    "[delegation-observer] prognosis parse failed -- falling back to plain-text wrapper",
-                },
-              })
-              return {
-                session_summary: { note: raw },
-                fixes_applied: [],
-                open_tickets: [],
-                verification_request: [],
-                resume_instructions: ""
-              };
-            }
-          }
-          // Terminal handoff statuses: only these may trigger the handoff
-          // writer. Non-terminal events (e.g. 'in-flight') are progress
-          // observations, not cycle ends - writing them would clobber a valid
-          // handoff file with a statusMap-default fallback wrapper (DIA-120).
-          const TERMINAL_HANDOFF_STATUSES = new Set([
-            "done",
-            "escalated",
-            "pending-owner",
-          ])
-          // === PARACRINE MODULE (continued) -- Session-local state ===
-          // Biological equivalent: local extracellular matrix signals.
-          //
-          // When event_type is "handoff" and prognosis is provided, write the
-          // atomic per-session handoff slot to .opencode/session/handoffs/
-          // (DIA-085) so the successor session can detect it via a
-          // deterministic read() - no glob needed. Only terminal
-          // resolution_status events write (DIA-120 terminal-status filter,
-          // preserved unchanged).
-          // DIA-085: archive result from atomicWriteHandoff, surfaced into the
-          // terminal handoff registry row below when an archive happened (null
-          // when no prior slot existed -> optional field omitted, so the row
-          // stays backward-compatible).
-          let writeResult: { ok: boolean; archived_prior: string | null; error?: string } | null = null
-          if (
-            args.event_type === "handoff" &&
-            typeof args.prognosis === "string" &&
-            args.prognosis &&
-            TERMINAL_HANDOFF_STATUSES.has(args.resolution_status)
-          ) {
-            try {
-              const prognosis = parsePrognosis(args.prognosis) as Record<
-                string,
-                unknown
-              >
-              const statusMap: Record<string, string> = {
-                done: "done",
-                escalated: "failed",
-                "pending-owner": "manual-halt",
-              }
-              const status =
-                statusMap[args.resolution_status] ?? "manual-halt"
-              const checksum = libComputeChecksum(prognosis)
-              // DIA-085: the session identity becomes the SLOT identity,
-              // passed to atomicWriteHandoff as the slot selector so parallel
-              // orchestrator sessions never clobber each other's handoff file.
-              // DIA-260827-y9n9: the TRUSTED per-request identity
-              // (context.sessionID) is the sole primary source. The former
-              // first-place process-global orchestrator capture made a second
-              // parallel session write - and archive - the FIRST session's
-              // slot, and pointed active.json at the wrong identity.
-              const handoffSessionId = context?.sessionID
-              if (handoffSessionId) {
-                writeResult = libAtomicWriteHandoff({ slotsDir: handoffSlotsDir, archiveDir: handoffArchiveDir, pointerPath: handoffPointerPath, legacyPath: handoffLegacyPath, reconciledPath: handoffReconciledPath }, handoffSessionId, {
-                    status, session_id: handoffSessionId, cycle_id: args.cycle_id ?? null, timestamp: new Date().toISOString(),
-                    checksum,
-                    prognosis,
-                  })
-              } else {
-                ctx.client.app.log({
-                  body: {
-                    service: "delegation-observer",
-                    level: "error",
-                    message: "[delegation-observer] handoff slot write skipped: runtime session ID is missing",
-                  },
-                }).catch(() => {})
-              }
-
-              // DIA-260927-uevh: the archive TELEMETRY was dropped when the
-              // seam extraction (b35229f8, DIA-260902-eqgg) moved the archive
-              // behaviour into lib/handoff.ts -- a pure helper with no ctx, so
-              // it cannot log. Re-homed at the caller, guarded so a FIRST
-              // write (no prior slot) stays silent (DIA-204 info-level).
-              // The produced string reproduces the DIA-204 literal verbatim:
-              // "handoff archived: <sid> prior slot -> archive/<name>".
-              if (writeResult?.archived_prior) {
-                // app.log returns an SDK promise (verified: RequestResult is
-                // Promise-backed). Telemetry must never surface as an
-                // unhandled rejection inside the handoff path.
-                ctx.client.app.log({
-                  body: {
-                    service: "delegation-observer",
-                    level: "info",
-                    message: `[delegation-observer] handoff archived: ${handoffSessionId} prior slot -> ${writeResult.archived_prior}`,
-                  },
-                }).catch(() => {})
-              }
-
-              // DIA-211 Phase 2: stigmergic active.json -- on terminal handoff
-              // events with a next_action, update the workflow state file so
-              // the orchestrator can read it on wake and route to the next
-              // agent. Invariant enforced here (L20260817-010,
-              // DIA-261021-t8bh): active.json is updated ONLY when the
-              // handoff slot write actually succeeded -- a routing hint
-              // (workflow_state/next_agent) plus a stale context.session_id
-              // with no handoffs/<sid>.json is the split-brain state this
-              // gate forbids. Fail-soft: if the active.json write itself
-              // fails, the handoff is still valid.
-              if (typeof args.next_action === "string" && args.next_action) {
-                // The slot landed only when the writer was actually called
-                // AND returned ok === true. writeResult stays null when the
-                // write was skipped (missing runtime sessionID); the writer
-                // returns { ok: false } when its inner atomic write failed.
-                const slotLanded = writeResult !== null && writeResult.ok === true
-                if (!slotLanded) {
-                  // One error line naming the reason; the log promise must
-                  // never surface as an unhandled rejection.
-                  const reason =
-                    writeResult === null
-                      ? "handoff slot write skipped (runtime session ID is missing)"
-                      : `handoff slot write failed${writeResult.error ? `: ${writeResult.error}` : ""}`
-                  ctx.client.app.log({
-                    body: {
-                      service: "delegation-observer",
-                      level: "error",
-                      message: `[delegation-observer] active.json update skipped: ${reason}`,
-                    },
-                  }).catch(() => {})
-                } else {
-                  try {
-                    const ACTION_MAP: Record<
-                      string,
-                      { workflow_state: string; next_agent: string | null }
-                    > = {
-                      review: { workflow_state: "review", next_agent: "reviewer" },
-                      implement: {
-                        workflow_state: "implementation",
-                        next_agent: "coder",
-                      },
-                      plan: { workflow_state: "planning", next_agent: "openspec-plan" },
-                      research: {
-                        workflow_state: "research",
-                        next_agent: "researcher",
-                      },
-                      analyze: { workflow_state: "analysis", next_agent: "analyzer" },
-                      "investigate and re-dispatch": {
-                        workflow_state: "investigation",
-                        next_agent: null,
-                      },
-                      continue: {
-                        workflow_state: "current",
-                        next_agent: null,
-                      },
-                      escalate: {
-                        workflow_state: "escalation",
-                        next_agent: null,
-                      },
-                    }
-                    const mapping = ACTION_MAP[args.next_action]
-                    // Read current active.json to preserve fields we don't
-                    // update (e.g. stale context from a prior handoff).
-                    let current: Record<string, unknown> = {}
-                    if (existsSync(ACTIVE_JSON_PATH)) {
-                      try {
-                        current = JSON.parse(
-                          readFileSync(ACTIVE_JSON_PATH, "utf-8")
-                        ) as Record<string, unknown>
-                      } catch {
-                        // Corrupted file -- start fresh.
-                      }
-                    }
-                    const active: Record<string, unknown> = {
-                      schema_version: 1,
-                      ...current,
-                      workflow_state: mapping?.workflow_state ?? args.next_action,
-                      next_agent: mapping?.next_agent ?? null,
-                      next_action: args.next_action,
-                      context: {
-                        ...(typeof current.context === "object" &&
-                        current.context !== null
-                          ? (current.context as Record<string, unknown>)
-                          : {}),
-                        ...(args.ticket_id ? { ticket_id: args.ticket_id } : {}),
-                        ...(args.cycle_id ? { fixed_point: args.cycle_id } : {}),
-                        ...(context?.sessionID
-                          ? { session_id: context.sessionID }
-                          : {}),
-                      },
-                      updated_at: new Date().toISOString(),
-                      updated_by: "delegation-observer",
-                    }
-                    mkdirSync(handoffDir, { recursive: true })
-                    atomicWriteJson(ACTIVE_JSON_PATH, active)
-                  } catch (err) {
-                    // Active.json is dispensable -- warn and continue.
-                    ctx.client.app.log({
-                      body: {
-                        service: "delegation-observer",
-                        level: "warn",
-                        message: `[delegation-observer] active.json write failed: ${errorMessage(err)}`,
-                      },
-                    }).catch(() => {})
-                  }
-                }
-              }
-            } catch (err) {
-              // TUI-safe error-level app log (DIA-192 pattern): a genuine
-              // atomic-write failure keeps error severity but no longer
-              // emits raw warn-level output into the TUI stream.
-              ctx.client.app.log({
-                body: {
-                  service: "delegation-observer",
-                  level: "error",
-                  message: `[delegation-observer] handoff atomic write failed: ${errorMessage(err)}`,
-                },
-              }).catch(() => {})
-              // Fall through: still log the message row below. A lost handoff
-              // file is recoverable (orchestrator can retry), but a lost log
-              // row means the event is invisible.
-            }
-          } else if (
-            args.event_type === "handoff" &&
-            typeof args.prognosis === "string" &&
-            args.prognosis
-          ) {
-            // Non-terminal handoff event (e.g. 'in-flight' detection log):
-            // observation only, must NOT touch the handoff file (DIA-120).
-            // DIA-193: the skip is a BENIGN guard (writer must not clobber a
-            // valid handoff file) - surfaced as an info-level app log since
-            // 2026-08-15; the 2026-08-16 re-open downgraded it FURTHER to
-            // debug so a routine in-flight observation never reads as
-            // alarming, while the audit row below still records the event.
-            ctx.client.app.log({
-              body: {
-                service: "delegation-observer",
-                level: "debug",
-                message: `[delegation-observer] handoff-writer skipped: non-terminal resolution_status '${args.resolution_status}'`,
-              },
-            })
-          }
-
           registry.appendMessageRow(
             {
               "gen_ai.operation.name": "invoke_workflow",
@@ -3876,13 +3472,6 @@ const delegationObserver: Plugin = async (ctx) => {
               event_type: args.event_type,
               task_ref: args.task_ref,
               resolution_status: args.resolution_status,
-              // DIA-085 registry-row enrichment (design.md section 5): when
-              // the writer archived a prior slot, the terminal handoff row
-              // carries the relative archive path; omitted when no prior slot
-              // existed (optional, backward-compatible field).
-              ...(writeResult?.archived_prior
-                ? { archived_prior: writeResult.archived_prior }
-                : {}),
               ...(args.lane_id ? { lane_id: args.lane_id } : {}),
               ...(args.cycle_id ? { cycle_id: args.cycle_id } : {}),
               ...(args.ticket_id ? { ticket_id: args.ticket_id } : {}),

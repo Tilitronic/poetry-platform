@@ -1,7 +1,7 @@
 /**
  * RED integration tests for DIA-260902-eqgg re-review regressions.
  * Must FAIL against current code — exposes 5 regressions.
- * Uses production factory interfaces only (createRegistry, createHandoff, createStallSweep).
+ * Uses production factory interfaces only (createRegistry, createStallSweep).
  */
 import { describe, it } from "node:test"
 import assert from "node:assert/strict"
@@ -236,44 +236,6 @@ describe("REGRESSION 3 — registry write warnings preserved (seq/row_id, cardin
 // 4. O-01 canonical interface — only production factory, no compat surface
 // ---------------------------------------------------------------------------
 describe("O-01 — canonical factory interface only (no compat surface)", () => {
-  it("lib/handoff exposes ONLY production factory arity (no payload-object overload)", async () => {
-    const mod = await import("../lib/handoff.ts")
-    const { createHandoff } = mod
-    assert.equal(typeof createHandoff, "function", "createHandoff factory must exist")
-    const fakeFs = {
-      writeFileSync: () => {},
-      openSync: () => 10,
-      fsyncSync: () => {},
-      closeSync: () => {},
-      renameSync: () => {},
-      mkdirSync: () => {},
-      existsSync: () => false,
-      unlinkSync: () => {},
-      readFileSync: () => { throw new Error("ENOENT") },
-      randomUUID: () => "00000000-0000-4000-a000-000000000000",
-      now: () => Date.now(),
-    }
-    const inst = createHandoff(fakeFs)
-    const paths = { slotsDir: "/tmp/slots", archiveDir: "/tmp/archive", pointerPath: "/tmp/active.json", legacyPath: "/tmp/legacy.json" }
-    // Payload-object overload must NOT be supported — should throw or be invalid
-    let payloadSupported = false
-    try {
-      const r = inst.atomicWriteHandoff(paths, { sessionId: "ses_payload", content: { status: "done" } })
-      // If it returned ok without throwing, payload overload is still present
-      if (r && typeof r.ok === "boolean") payloadSupported = true
-    } catch { /* noop */ }
-    assert.equal(payloadSupported, false, "payload-object overload atomicWriteHandoff(paths, {sessionId, content}) must NOT be supported — production arity is (paths, sessionId, content)")
-    // Also check top-level export
-    if (typeof mod.atomicWriteHandoff === "function") {
-      let topPayloadSupported = false
-      try {
-        const r2 = mod.atomicWriteHandoff(paths, { sessionId: "ses_payload2", content: { status: "done" } })
-        if (r2 && typeof r2.ok === "boolean") topPayloadSupported = true
-      } catch { /* noop */ }
-      assert.equal(topPayloadSupported, false, "top-level atomicWriteHandoff payload overload must not exist")
-    }
-  })
-
   it("lib/registry exposes ONLY production factory (no _default, no plain fallback exports, no writeBootMarker alias)", async () => {
     const mod = await import("../lib/registry.ts")
     // _default must not exist
@@ -298,11 +260,10 @@ describe("O-01 — canonical factory interface only (no compat surface)", () => 
 
   it("tests import production factory directly (no alternate-interface probes)", async () => {
     // This test asserts the file itself does not probe alternate interfaces —
-    // we verify the current test file imports via createRegistry/createHandoff
+    // we verify the current test file imports via createRegistry
     const src = fsReadFileSync(new URL(import.meta.url), "utf-8")
-    // Must import createRegistry/createHandoff directly
+    // Must import createRegistry directly
     assert.ok(src.includes("createRegistry"), "test must import createRegistry (production factory)")
-    assert.ok(src.includes("createHandoff"), "test must import createHandoff")
     // Must NOT contain probe patterns like 'mod.create ?? mod.default' or payload-object checks as alternate interface
     // We check that this file does not itself rely on probe fallback for O-01 libs
     // (The O-01 requirement is that tests exercise production interface directly)
