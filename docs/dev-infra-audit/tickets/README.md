@@ -411,7 +411,7 @@
 | DIA-261120-9589 | npm/pnpm dependency hygiene: effective pnpm.overrides plus same-major security patches | scripts | Medium | OPEN | [DIA-261120-9589-npm-pnpm-dependency-hygiene-effective-pnpm-overrides-plus-same-major-security-patches.md](DIA-261120-9589-npm-pnpm-dependency-hygiene-effective-pnpm-overrides-plus-same-major-security-patches.md) |
 | DIA-261125-aqz6 | V2 container is missing openai/\* models (47 of 163) - developer elected to skip the openai oauth import on 2026-11-25 | docker | Medium | OPEN | [DIA-261125-aqz6-v2-container-is-missing-openai-models-47-of-163-developer-elected-to-skip-the-openai-oauth-import-on-2026-11-25.md](DIA-261125-aqz6-v2-container-is-missing-openai-models-47-of-163-developer-elected-to-skip-the-openai-oauth-import-on-2026-11-25.md) |
 | DIA-261125-mu6w | model-registry backfill for kimi-k3.1-pro and qwen4-max (pricing, context window, quota notes) and routing_table Rung4 still names gpt-5.3-codex for the reviewer lane | opencode-config | Medium | OPEN | [DIA-261125-mu6w-model-registry-backfill-for-kimi-k3-1-pro-and-qwen4-max-pricing-context-window-quota-notes-and-routing-table-rung4-still-names-gpt-5-3-codex-for-the-reviewer-lane.md](DIA-261125-mu6w-model-registry-backfill-for-kimi-k3-1-pro-and-qwen4-max-pricing-context-window-quota-notes-and-routing-table-rung4-still-names-gpt-5-3-codex-for-the-reviewer-lane.md) |
-| DIA-261125-p1kd | P2 split-brain - dev-v2 builds from the main build context while the pin gate reads the worktree | docker | Major | OPEN | [DIA-261125-p1kd-p2-split-brain-dev-v2-builds-from-the-main-build-context-while-the-pin-gate-reads-the-worktree.md](DIA-261125-p1kd-p2-split-brain-dev-v2-builds-from-the-main-build-context-while-the-pin-gate-reads-the-worktree.md) |
+| DIA-261125-p1kd | P2 split-brain - dev-v2 builds from the main build context while the pin gate reads the worktree | docker | Major | CLOSED | [DIA-261125-p1kd-p2-split-brain-dev-v2-builds-from-the-main-build-context-while-the-pin-gate-reads-the-worktree.md](DIA-261125-p1kd-p2-split-brain-dev-v2-builds-from-the-main-build-context-while-the-pin-gate-reads-the-worktree.md) |
 | DIA-261125-z4ij | divergent uid maps between poetry-dev and poetry-dev-v2 make /workspace/.git unwritable after container recreation | docker | Critical | OPEN | [DIA-261125-z4ij-divergent-uid-maps-between-poetry-dev-and-poetry-dev-v2-make-workspace-git-unwritable-after-container-recreation.md](DIA-261125-z4ij-divergent-uid-maps-between-poetry-dev-and-poetry-dev-v2-make-workspace-git-unwritable-after-container-recreation.md) |
 
 ## Status summary
@@ -429,7 +429,7 @@
 
 | Status      | Count |
 | ----------- | ----- |
-| OPEN        | 103   |
+| OPEN        | 102   |
 | DONE        | 15    |
 | VALIDATE    | 0     |
 | E2E         | 0     |
@@ -438,7 +438,7 @@
 | FIXED       | 2     |
 | IMPLEMENTED | 2     |
 | VERIFIED    | 29    |
-| CLOSED      | 257   |
+| CLOSED      | 258   |
 | BLOCKED     | 0     |
 | DISPATCHED  | 0     |
 | RUNNING     | 0     |

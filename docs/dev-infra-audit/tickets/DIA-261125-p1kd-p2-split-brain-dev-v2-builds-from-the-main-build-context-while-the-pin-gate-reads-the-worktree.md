@@ -6,7 +6,7 @@ id: DIA-261125-p1kd
 title: "P2 split-brain - dev-v2 builds from the main build context while the pin gate reads the worktree"
 area: docker
 severity: Major
-status: OPEN
+status: CLOSED
 blocked_by: [] # DIA-NNN refs, or empty
 parent_epic: ""
 gate_state: "skipped" # grilled | waived | bypassed | partial | skipped
@@ -17,7 +17,7 @@ discovered: 2026-11-25
 source: inventory
 date: 2026-11-25
 created: 2026-11-25
-updated: 2026-11-25
+updated: 2026-11-26
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -30,7 +30,10 @@ attempts: 0
 lease_expires_at: "" # ISO-8601; set on DISPATCHED, cleared on COMPLETE
 files_touched: []
 artifacts: []
-evidence: []
+evidence:
+
+- commit:323dda9
+- commit:8697615
 
 ---
 
@@ -84,9 +87,20 @@ Commit: 406f7a3 (DIA-261112-exon).
 Mount/run half RESOLVED at 406f7a3: dev-v2 now builds from and runs the
 repository root, so V2 runs the migration tree instead of the feature worktree.
 
-### Remaining half - pin gate
+### Resolution (pin-gate half)
 
-Still OPEN: `scripts/check-omo-version-sync.sh` continues to read
-`.worktrees/opencode-v2` as the V2 service while that worktree exists, so the
-gate's V2 input is no longer dev-v2's actual runtime tree. Follow-up: drop or
-repoint that V2 block (developer decision).
+Pin-gate half RESOLVED at 323dda9: `scripts/check-omo-version-sync.sh` no
+longer hardcodes `.worktrees/opencode-v2`. It resolves the V2 tree from the
+`dev-v2` service's `working_dir` in `docker-compose.yml`, defaulting to
+`/workspace` (the repository root) when the key is absent, so the pin gate and
+the image read the same tree. Absent compose file / absent dev-v2 service /
+unresolvable key degrades to a skip message instead of a hard failure. Output
+format, exit codes and the V1 checks are unchanged.
+
+Tests added at 323dda9 in `scripts/__tests__/check-omo-version-sync.bats`: no
+`working_dir`, explicit `working_dir`, dev-v2 service absent, compose file
+absent. Design/proposal amended at 8697615.
+
+Closing criterion met: the gate and the image read the same tree for the same
+pin. Verified: gate prints `ok: OMO pins aligned at 3.0.7 (V2 service dev-v2 at
+/workspace)`; the 17-test suite passes.
