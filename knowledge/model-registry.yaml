@@ -226,20 +226,26 @@ models:
 
   - model_id: "opencode-go/kimi-k3.1-pro"
     role: "reviewer-primary (mimo-balanced preset, DIA-261112-exon developer routing)"
+    price_in_1m: null
+    price_out_1m: null
+    req_per_month: null
     swe_bench_verified: null  # no archived benchmark in-repo
     source_ref: "DIA-261112-exon ai-specialist gate 2026-11-25 (live catalog, CLI 1.18.32, catalog mtime 2026-11-25; models.dev row fetched 2026-11-25)"
     lane: ["reviewer"]
     fallback: ["opencode-go/qwen4-max"]
-    quota_notes: "Pricing, context window and allowance NOT recorded - no in-repo evidence (BLOCKER logged on DIA-261112-exon; do not infer). Reviewer variant high (kimi ladder low|high|max). Temperature is fixed at 1.0 upstream per models.dev while the preset declares temperature 0.1 - runtime behaviour UNVERIFIED, observe the first reviewer dispatch."
+    quota_notes: "Pricing, context window and allowance NOT recorded - no in-repo evidence (backfill tracked in .opencode/learnings/external-patterns/2026-11-25-dia-261112-exon-model-routing-validity-and-dead-fallback-ids.md; do not infer). Reviewer variant high (kimi ladder low|high|max). Temperature is fixed at 1.0 upstream per models.dev while the preset declares temperature 0.1 - runtime behaviour UNVERIFIED, observe the first reviewer dispatch."
     active: true
 
   - model_id: "opencode-go/qwen4-max"
     role: "reviewer-fallback (mimo-balanced preset, DIA-261112-exon developer routing)"
+    price_in_1m: null
+    price_out_1m: null
+    req_per_month: null
     swe_bench_verified: null  # no archived benchmark in-repo
     source_ref: "DIA-261112-exon ai-specialist gate 2026-11-25 (live catalog, CLI 1.18.32, catalog mtime 2026-11-25; models.dev PR #13760 merged 2026-11-16)"
     lane: ["reviewer"]
     fallback: []
-    quota_notes: "Pricing, context window and allowance NOT recorded - no in-repo evidence (BLOCKER logged on DIA-261112-exon; do not infer). qwen4 variant ladder low|high|xhigh per the 2026-11-25 gate."
+    quota_notes: "Pricing, context window and allowance NOT recorded - no in-repo evidence (backfill tracked in .opencode/learnings/external-patterns/2026-11-25-dia-261112-exon-model-routing-validity-and-dead-fallback-ids.md; do not infer). qwen4 variant ladder low|high|xhigh per the 2026-11-25 gate."
     active: true
 
   - model_id: "gpt-5.6-luna"
