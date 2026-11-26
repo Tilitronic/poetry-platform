@@ -126,7 +126,6 @@ We have **13 active agents**, each with a different job and different permission
 | `observer`       | Visual/media analysis                                                               | Subagent                                                     |
 | `explorer`       | Explore mode — thinking partner for ideas/requirements                              | Subagent                                                     |
 | `memory-manager` | Knowledge persistence (`.opencode/memory/`, memory shelf)                           | Subagent                                                     |
-| `council`        | Multi-model consensus                                                               | Read-only                                                    |
 | `ai-specialist`  | OpenCode tooling best-practices research                                            | Read-only subagent (curl/wget only)                          |
 
 > The `openspec-plan` lane (Socratic spec authoring via the openspec-propose skill) is also referenced throughout the workflow — see AGENTS.md §2.2.

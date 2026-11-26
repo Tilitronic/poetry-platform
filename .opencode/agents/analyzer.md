@@ -71,6 +71,3 @@ shelf-registration: memory-shelf.yaml (shelf.analyses), delegated to memory-mana
 - **Delegate when:** structured analysis of data, terminal-visualized findings,
   pedagogical explanation of complex topics.
 - **Don't delegate when:** quick web research → researcher.
-- **Council escalation (user-opt-in):** never call council directly. Present an
-  analysis plan with a council recommendation; if the user approves, the
-  orchestrator dispatches council and feeds results back for synthesis.

@@ -48,7 +48,7 @@ Stage 3 — Analyze Causality       (analyzer)
   │  - Trace cause-effect chain
   │  - Output: root cause analysis report
   ▼
-Stage 4 — Design Solution          (architector or council)
+Stage 4 — Design Solution          (architector)
   │  - Evaluate fix options
   │  - Consider spec compliance
   │  - Output: fix specification

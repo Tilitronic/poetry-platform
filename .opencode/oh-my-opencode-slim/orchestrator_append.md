@@ -412,7 +412,7 @@ over-grant through the inherited global "*": allow baseline is tracked
 under DIA-260827-ld2l "memory-manager and designer over-granted
 permissions", with DIA-261006-ldfs as the deferral origin.) NOT eligible:
 read-only lanes with
-bash: "deny" (code-navigator, reviewer, observer, conspecter, council,
+bash: "deny" (code-navigator, reviewer, observer, conspecter,
 ai-specialist, ai-auditor, architector) - none can run python3. NOT
 eligible: openspec-plan - its deny-first map admits `openspec *` only, no
 free python3. Also NOT eligible: analyzer - its

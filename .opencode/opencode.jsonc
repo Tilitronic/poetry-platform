@@ -259,14 +259,7 @@
           "ai-specialist": "allow",
           "ai-auditor": "allow",
           "conspecter": "allow",
-          "openspec-plan": "allow",
-          "council": "allow",
-          "councillor": "allow",
-          "councillor-claude-sonnet-4.5": "allow",
-          "councillor-deepseek": "allow",
-          "councillor-gemini-3.1-pro": "allow",
-          "councillor-gpt-5.3-codex": "allow",
-          "councillor-qwen3.8-flash": "allow"
+          "openspec-plan": "allow"
         },
         "cancel_task": "allow",
         "log_decision": "allow",
@@ -570,20 +563,6 @@
           "openspec *": "allow"
         },
         "task": "deny"
-      }
-    },
-    // Council subagents — read-only. Council is SYNTHESIS-ONLY: its prompt states
-    // "You do NOT dispatch councillors yourself - the orchestrator handles dispatch",
-    // and OMO's Council Mode fan-out (task(subagent_type='councillor-*') + the final
-    // task(subagent_type='council')) runs from the ORCHESTRATOR prompt. DIA-261006-ldfs
-    // makes that structural fact a permission: task deny.
-    "council": {
-      "permission": {
-        "edit": "deny",
-        "task": "deny",
-        "bash": {
-          "*": "deny"
-        }
       }
     },
     "ai-specialist": {

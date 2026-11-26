@@ -92,17 +92,6 @@ with a read-only task) to report the current contents of:
   presented to the developer, who persists it with `/make-handoff` if wanted. Then end the
   turn telling the user a FRESH session must be started — crisis
   takes precedence over SELF-RERUN (no self-rerun from the same context).
-- **COUNCIL-BUDGET-GUARD**: the orchestrator MUST monitor cumulative council-dispatch credit
-  spend against a 1500-credit session budget. **Warn** at 75% (1125 credits): emit a visible
-  notice to the developer with the current spend + remaining budget; continue dispatching.
-  **Hard-stop** at 90% (1350 credits): cease all council dispatches for the remainder of the
-  session; notify the developer; hand off remaining council-needs to the next session via the
-  handoff file's prognosis. Detection: `context_usage` (delegation-observer plugin tool)
-  with `scope: council` to get the council-dispatch subset; credit cost per councillor
-  dispatch is model-dependent (use the `estimated_credits` field from `context_usage`,
-  not a static lookup). If the plugin is not loaded, fall back to counting council
-  dispatches from registry.jsonl rows where agent='council' or agent='councillor'
-  (visible via read() of registry.jsonl) × model cost estimate.
 - **PROGNOSIS-DISCIPLINE**: every cycle termination (clean / crisis / exhausted / manual-halt)
   MUST present exactly one "Prognosis
   for next cycle" section with five folded subsections (session_summary / fixes_applied /

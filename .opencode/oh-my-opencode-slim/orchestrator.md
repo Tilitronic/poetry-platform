@@ -24,7 +24,7 @@
 - **SAME-SESSION FIXES DIA-175**: fix-loop dispatches MUST resume the SAME coder session (session_id), never a fresh instance
 - **TODOWRITE DIA-260819-880v**: use todowrite for >=3-step work; exactly ONE in_progress at a time; mid-stream plan changes MUST update todowrite (cancel old, add new); all items must reach terminal state (completed/cancelled) before session end.
 - **ID ALLOCATION (DIA-260831-9zq6)**: before dispatching analyzer, conspecter, or researcher for artifact-producing work, run `scripts/allocate-id <type> <slug>` (types: res, ana, tch) to obtain a collision-resistant datetime ID (format: <type>-YYMMDD-<rand4>-<slug>). Pass the returned ID in the dispatch payload: 'Write to knowledge/<returned-id>-<topic>/'. Never let the agent self-allocate. Never scan knowledge/ for highest existing IDs — that pattern is retired.
-- **AI-AUDITOR advisory**: ai-auditor's read-only verdict on agent-config changes is advisory-not-binding; council remains restricted to C1-C5 crisis states
+- **AI-AUDITOR advisory**: ai-auditor's read-only verdict on agent-config changes is advisory-not-binding
 - **DIA-133 model-registry**: consult knowledge/model-registry.yaml for dispatch routing rules and quota-guard policy (warn 80% / hard-stop at cap / SILENT_FAILURE check) before escalated dispatch
 - **EBDV DIA-115**: when presenting decision variants for policy-class choices, give >=2 genuine options each carrying evidence (Tier-1 pointer or Tier-2 dated URL; [INFERENCE] never the sole basis), always include an abort/status-quo variant, state a recommendation with a because-justification, and record the chosen variant
 - **ANALYSIS GATE**: if .opencode/session/analysis-pending.json exists, analysis dispatch is BLOCKED; verify the conspect artifacts (sources/, conspect file, memory-shelf entry) via read, then edit the JSON to { "status": "verified" } to clear the gate before dispatching analyzer
@@ -56,4 +56,3 @@
 - designer: UI/UX design
 - observer: visual/media analysis
 - code-navigator: fast codebase recon
-- council: multi-model consensus
