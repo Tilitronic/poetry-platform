@@ -5,8 +5,8 @@
 #                   Monorepo mounted at /workspace; app services run inside
 #                   via `pnpm dev` (turbo). Ports for browser access only.
 #   - `dev-v2`    - parallel OpenCode V2 workstation (ADR 11): same repo
-#                   mount, working_dir rooted in the V2 worktree, isolated
-#                   cache/state/pnpm volumes and disjoint host ports.
+#                   mount, repo-root working directory, isolated cache/state/pnpm
+#                   volumes and disjoint host ports.
 #   - `postgres`  — stateful infrastructure service. Data survives restarts
 #                   (named volume `pgdata`). Reachable from dev as `postgres:5432`.
 #
