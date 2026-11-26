@@ -114,3 +114,72 @@ Omit the variant.` before the lane starts.
 ## Re-verify
 
 > To be filled at re-verify time.
+
+## 2026-11-26 UPDATE - config fix is correct but inert for already-bound sessions
+
+Read-only diagnosis lane, run after commit 207a5199.
+
+### The config fix is correct and already live
+
+Commit 207a5199 removes `"variant"` from the four lanes in
+`.opencode/oh-my-opencode-slim.jsonc`, and the LIVE AGENT REGISTRY already
+reflects it: the server API `GET /api/agent` with header
+`x-opencode-directory: /workspace` reports `variant: null` for
+`code-navigator`, `researcher`, `conspecter` and `memory-manager`, while
+`coder` still reports `variant: "high"`.
+
+Despite that, a live `code-navigator` dispatch still fails with:
+
+```
+Model "opencode-go/mimo-v2.6-flash" has no variants. Omit the variant.
+```
+
+### Mechanism: per-session preset snapshot frozen in the host KV store
+
+OMO 3.0.7 (`oh-my-opencode-slim`) freezes a per-session preset snapshot in
+the host KV store. Key form:
+
+```
+plugin:oh-my-opencode-slim:session-preset/v1/<sessionID>
+```
+
+stored in `/home/dev/.local/share/opencode/opencode.db`, table `kv`.
+
+The parent orchestrator session `ses_de7d7a22cffeXYjUXQ4FODDr0W` bound at
+14:00:28Z - 1h45m BEFORE commit 207a5199 (15:45:33Z) - and its frozen bundle
+still carries `variant: medium` for exactly those four lanes. Child sessions
+inherit the parent bundle verbatim, so every child of that session inherits
+the stale variant.
+
+`ensure()` returns the existing KV record and never rebinds, so the config
+edit AND a server restart are both insufficient for an already-bound session
+tree. The fix reaches only sessions that bind after the change.
+
+### Fingerprint: not generic variant inheritance
+
+`ai-specialist` runs `opencode-go/mimo-v2.6-pro` and has NO variant; it
+stayed alive. A parent-model fallback would have killed the pro lane too.
+
+### Config resolution is not at fault
+
+The host resolves `/workspace/.opencode/oh-my-opencode-slim.jsonc` as the
+unique nearest layer for `/workspace`: there is no user-level preset
+(`~/.config/opencode` holds only `service.json`), no root-level copy, and no
+`OPENCODE_CONFIG*` preset override. `OPENCODE_CONFIG_DIR=/home/dev/.config/opencode`
+only points at the config dir.
+
+### Remedy
+
+Start a NEW orchestrator session after the fix (a new session binds a fresh
+bundle from the current config). Do NOT resume the stale session
+`ses_de7d7a22cffeXYjUXQ4FODDr0W` or any of its children for the proof.
+
+Fallback if a fresh session somehow still inherits the stale bundle: delete
+the relevant `plugin:oh-my-opencode-slim:session-preset/v1/*` rows in the
+`kv` table (untested; treat as a last resort, not a default).
+
+### Acceptance update
+
+The proof must be a live dispatch in a session BOUND AFTER commit 207a5199.
+A config parse, a green `make test-config`, a server restart, or the live
+agent-registry state alone are NOT sufficient evidence to close this ticket.
