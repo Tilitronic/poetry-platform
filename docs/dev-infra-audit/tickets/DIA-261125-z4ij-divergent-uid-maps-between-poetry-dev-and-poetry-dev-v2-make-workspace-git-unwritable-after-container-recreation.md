@@ -17,7 +17,7 @@ discovered: 2026-11-25
 source: inventory
 date: 2026-11-25
 created: 2026-11-25
-updated: 2026-11-25
+updated: 2026-11-26
 
 # --- Session Attribution (v2 schema, optional) ---
 
@@ -30,7 +30,9 @@ attempts: 0
 lease_expires_at: "" # ISO-8601; set on DISPATCHED, cleared on COMPLETE
 files_touched: []
 artifacts: []
-evidence: []
+evidence:
+
+- commit:d62b576
 
 ---
 
@@ -66,7 +68,7 @@ pin the repo owner to an identity that both maps resolve for the session uid.
       and show the owner-range difference that makes one container see `999`
       and the other see `nobody:nogroup` for the same inode.
 - [ ] After recreation WITHOUT the workaround, `sh -c 'test -w /workspace/.git
-    && echo WRITABLE || echo NOT-WRITABLE'` prints `WRITABLE` for the
+  && echo WRITABLE || echo NOT-WRITABLE'` prints `WRITABLE` for the
       session uid.
 - [ ] `stat -c '%a' /workspace/.git` is not `777`, and `chmod -R go-w` has been
       applied to revert the workaround.
@@ -75,7 +77,26 @@ pin the repo owner to an identity that both maps resolve for the session uid.
 
 ## Fix
 
-> To be filled at fix time.
+Compose half PREPARED at d62b576: both `dev` and `dev-v2` now set
+`userns_mode: keep-id` (podman-only; Docker does NOT accept keep-id). This maps
+the container uid to the host user so both containers agree on file ownership
+and `/workspace/.git` refs stay writable after recreation.
+
+Remaining host-side steps (run on the HOST, not from a lane; this lane cannot
+recreate containers):
+
+1. Recreate BOTH containers so the compose setting applies, e.g.
+   `docker compose --profile v2 up -d --force-recreate dev dev-v2`
+   (podman-compose equivalent is fine).
+2. From EACH container (poetry-dev and poetry-dev-v2), confirm a git write
+   succeeds: `sh -c 'test -w /workspace/.git && echo WRITABLE || echo
+NOT-WRITABLE'` must print WRITABLE.
+3. Revert the temporary workaround:
+   `sudo chmod -R go-w /home/mimic/Documents/Coddding/poetry-platform/.git`
+   then confirm `sh -c 'test -w /workspace/.git'` still passes (exit 0).
+4. Docker hosts must drop the two `userns_mode: keep-id` lines (Docker rejects
+   keep-id); on Docker the uid alignment comes from the existing USER_UID /
+   USER_GID build args instead.
 
 ## Re-verify
 
