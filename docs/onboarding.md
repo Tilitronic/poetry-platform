@@ -87,7 +87,7 @@ We built a **layered AI workflow** that ensures code quality, maintainability, a
                     │   LAYER 1: AGENTS    │
                     │  Specialized Roles   │
                     │  (orchestrator +     │
-                    │   12 subagents)      │
+                    │   13 subagents)      │
                     ├──────────────────────┤
                     │   LAYER 0: CONFIG    │
                     │  Rules + Settings    │
@@ -111,7 +111,7 @@ These are the **foundation**. They tell the AI who it is and how to behave.
 
 ### Layer 1: Agents — Specialized AI Roles
 
-We have **13 active agents**, each with a different job and different permissions. They are defined in `.opencode/opencode.jsonc` (the orchestrator is registered by the oh-my-opencode-slim plugin):
+We have **14 active agents** (the orchestrator plus 13 operational subagents), each with a different job and different permissions. They are defined in `.opencode/opencode.jsonc` (the orchestrator is registered by the oh-my-opencode-slim plugin):
 
 | Agent            | Role                                                                                | Permissions                                                  |
 | ---------------- | ----------------------------------------------------------------------------------- | ------------------------------------------------------------ |
@@ -122,13 +122,13 @@ We have **13 active agents**, each with a different job and different permission
 | `coder`          | Bounded implementation, test-first via tdd-craftsman                                | Full (edit, bash, tests)                                     |
 | `code-navigator` | Fast codebase recon                                                                 | Subagent                                                     |
 | `researcher`     | External research; knowledge-source curation (ai-assist-sources.yaml, Tier-1 cache) | Subagent                                                     |
+| `conspecter`     | Research conspect authoring — pure synthesis from archived sources                  | Read-only subagent                                           |
+| `openspec-plan`  | Socratic spec authoring via openspec-propose (practice-protected)                   | Subagent (edit `openspec/*`, bash `openspec:*`)              |
 | `designer`       | UI/UX design                                                                        | Subagent                                                     |
 | `observer`       | Visual/media analysis                                                               | Subagent                                                     |
-| `explorer`       | Explore mode — thinking partner for ideas/requirements                              | Subagent                                                     |
 | `memory-manager` | Knowledge persistence (`.opencode/memory/`, memory shelf)                           | Subagent                                                     |
 | `ai-specialist`  | OpenCode tooling best-practices research                                            | Read-only subagent (curl/wget only)                          |
-
-> The `openspec-plan` lane (Socratic spec authoring via the openspec-propose skill) is also referenced throughout the workflow — see AGENTS.md §2.2.
+| `ai-auditor`     | Independent review of section 2.5 config changes (never writes)                     | Read-only subagent                                           |
 
 **Why multiple agents?** Separation of concerns. A code reviewer shouldn't have write access. A test writer should never touch implementation. Each agent is focused and restricted — this prevents the AI from cutting corners.
 
