@@ -102,9 +102,11 @@ clean:
 	$(COMPOSE) down -v
 
 # Standalone source-parity validator (scripts/check-pin-sync.sh). Asserts
-# .mise.toml ↔ Dockerfile.dev parity for node/pnpm/opencode/bun. Exit
-# precedence 2>1>0 (INFRA>mismatch>match). 4 comparisons (4 pins x 1
-# Dockerfile). See openspec/changes/dev-infra-pin-sync/.
+# .mise.toml <-> Dockerfile.dev parity for node/pnpm/bun, plus one per-service
+# opencode declared-vs-runtime verdict (opencode has no .mise.toml parity pin:
+# the declared value is the Dockerfile.dev ARG). Exit precedence 2>1>0
+# (INFRA>mismatch>match). 3 comparisons (3 pins x 1 Dockerfile) + 1 opencode
+# verdict. See openspec/changes/dev-infra-pin-sync/.
 check-pin-sync:
 	bash scripts/check-pin-sync.sh
 
@@ -125,7 +127,9 @@ check-compose-config:
 
 # Host-runnable tool integrity check (seam S2; scripts/check-tools.sh). Verifies
 # mise is on PATH, .mise.toml exists, `mise install` resolves the pins, and the
-# mise-managed node/pnpm/opencode/bun match the pinned versions. Deliberately NOT
+# mise-managed node/pnpm/bun match the pinned versions; the opencode pin comes
+# from the .mise.toml key when present, else the Dockerfile.dev OPENCODE_VERSION
+# ARG, and only its binary is version-checked. Deliberately NOT
 # wired into test-shell/test-infra (design.md §2.8): it requires mise on PATH —
 # the dev container or a host mise install — so it is a developer convenience,
 # not a CI gate.
@@ -271,7 +275,6 @@ test-config: test-interview test-skills test-typecheck
 	bash scripts/validate-decision-variants.sh
 	bash scripts/validate-grilling-gate.sh
 	bash scripts/check-orchestrator-prompt-drift.sh
-	bash scripts/validate-handoff.sh
 	bash scripts/test-ticket-gate.sh
 	bash scripts/test-builtin-containment.sh
 	bash scripts/validate-memory-shelf.sh

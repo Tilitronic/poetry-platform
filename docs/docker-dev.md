@@ -132,3 +132,50 @@ OpenCode is active, it IS already running inside the dev container, so the dev
 service being up is self-evident. What needs verifying is that the database is
 reachable from the container's network namespace -- exactly what
 `check-stack-ready.sh` proves.
+
+## Bring-up on a second machine (Linux, macOS, Windows + WSL2)
+
+### Clone location
+
+Clone inside the Linux filesystem: on WSL2 a path under `~/`, never `/mnt/c/...`.
+The compose bind mount is `.:/workspace:z`, so a cross-filesystem mount also
+breaks inotify and file ownership.
+
+### Create the secret placeholders before `up`
+
+The five file secrets are git-ignored, so a fresh clone has none and compose
+fails to resolve them (populate them via `secrets/README.md`):
+
+    mkdir -p secrets && touch secrets/anthropic_api_key secrets/openai_api_key secrets/context7_api_key secrets/github_token secrets/exa_api_key
+
+### `.env` is optional
+
+Every interpolation in `docker-compose.yml` has a default, so
+`cp .env.example .env` is only needed to override ports or `USER_UID` / `USER_GID`.
+
+### Container engine
+
+Podman is the supported path, WSL2 included: `scripts/compose-env.sh` adds
+`docker-compose.podman.yml` plus, on WSL2, `docker-compose.wsl.yml` (selected
+from `/proc/version`, or forced with `COMPOSE_OS=wsl`).
+
+Known limitation: Docker does not currently bring up cleanly on this branch. The
+base `docker-compose.yml` carries `userns_mode: keep-id` for `dev` and `dev-v2`,
+which Docker rejects, and the Docker overlay does not reset it. Tracked as an
+open ticket on Docker host parity.
+
+### Minimum sequence
+
+    bash scripts/container-engine.sh compose up -d
+    bash scripts/container-engine.sh compose exec -T dev pnpm install
+    bash scripts/container-engine.sh compose --profile v2 up -d --build dev-v2
+    bash scripts/container-engine.sh compose --profile v2 exec --user dev dev-v2 bash
+
+`make up` starts only `dev`; `dev-v2` sits behind the `v2` profile and there is
+currently no make target for it.
+
+### WSL2 specifics
+
+- Docker Desktop integration must be enabled for THIS distro, not only the default one.
+- Docker auto-start inside WSL2 Ubuntu is a known failure; start the engine by hand.
+- Memory/CPU caps on the WSL VM cause vsock/disconnect stalls; leave headroom.

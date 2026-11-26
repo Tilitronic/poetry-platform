@@ -16,7 +16,10 @@
 # declared value is asserted against the LIVE `opencode --version` on this
 # service's PATH -- one counted verdict; an unavailable runtime reports
 # skip: and is never counted as ok, so the gate is neither shrunk to three
-# pins nor doubled into five.
+# pins nor doubled into five. A V1 service on a V2-only tree (no .mise.toml
+# opencode key, ARG major >= 2) also reports skip: -- there is no declared V1
+# pin left to assert, and the gate counts skips in the summary but never as
+# failures.
 # Exit precedence 2>1>0: 0 match; 1 parity violated; 2 INFRA (missing/dup). Bash-3.
 set -euo pipefail
 
@@ -24,7 +27,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 MISE_TOML="${ROOT_DIR}/.mise.toml"
 DOCKERFILE_DEV="${ROOT_DIR}/Dockerfile.dev"
 
-ok=0 fail=0
+ok=0 fail=0 skip=0
 strip_value() { # remove quotes, CR, surrounding whitespace
   printf '%s' "$1" | tr -d '\r' | sed "s/['\"]//g" | sed 's/^[[:space:]]*//; s/[[:space:]]*$//'
 }
@@ -125,7 +128,7 @@ opencode_service_context() {
 # verdict is the resolved-declared-vs-runtime assertion against the live
 # binary on this service's PATH.
 compare_opencode() {
-  local service source declared runtime
+  local service source declared runtime arg_major
   service="$(opencode_service_context)"
   if [ "${service}" = "V2" ]; then
     source="Dockerfile.dev ARG"
@@ -135,6 +138,19 @@ compare_opencode() {
     if [ -n "${declared}" ]; then
       source=".mise.toml toolchain pin"
     else
+      # V2-only tree: no V1 pin is declared anywhere, so holding a V1 binary
+      # against this branch's 2.x image ARG is a category error (V1 lives on
+      # main, see Dockerfile.dev). A tree that still declares the key above
+      # keeps the mismatch verdict unchanged.
+      arg_major="${DOCKER_OPENCODE%%.*}"
+      case "${arg_major}" in
+        '' | *[!0-9]*) arg_major=0 ;;
+      esac
+      if [ "${arg_major}" -ge 2 ]; then
+        echo "skip: opencode V1 verdict not applicable - .mise.toml declares no opencode pin and this tree builds OpenCode ${arg_major}.x; run the pin gate inside poetry-dev-v2"
+        skip=$((skip + 1))
+        return 0
+      fi
       source="Dockerfile.dev ARG"
       declared="$(strip_value "$DOCKER_OPENCODE")"
     fi
@@ -146,6 +162,7 @@ compare_opencode() {
   if [ -z "${runtime}" ]; then
     # S2: an unavailable runtime is a skip, never a counted ok.
     echo "skip: opencode ${service} declared from ${source}=${declared} (declared-vs-runtime assertion skipped: opencode --version unavailable)"
+    skip=$((skip + 1))
     return 0
   fi
   if [ "${runtime}" = "${declared}" ]; then
@@ -158,10 +175,11 @@ compare_opencode() {
   return 1
 }
 
-# aggregate: summary on BOTH streams; exit 0 iff no mismatches.
+# aggregate: summary on BOTH streams; exit 0 iff no mismatches. Skips are
+# reported but never counted as failures (same summary shape as check-host-lsp).
 aggregate() {
-  echo "summary: ${ok} ok, ${fail} fail"
-  echo "summary: ${ok} ok, ${fail} fail" >&2
+  echo "summary: ${ok} ok, ${fail} fail, ${skip} skip"
+  echo "summary: ${ok} ok, ${fail} fail, ${skip} skip" >&2
   [ "${fail}" -eq 0 ] || exit 1
   exit 0
 }
