@@ -75,7 +75,8 @@ Translated to this file's groups:
       **Acceptance:** a V1/V2 pin mismatch fails; a matching pair passes; the gate is not a tautology and is not shrunk to three pins.
       **Gates:** `bash scripts/check-pin-sync.sh`, `bash scripts/check-omo-version-sync.sh`, `make test-config`.
 
-- [ ] 1.4 Ponytail: provisionally remove the unpinned `@dietrichgebert/ponytail` entry from the V2 config rather than float it. The exact pin decision is closed by probe 2.3 and task 2.6.
+- [x] 1.4 Ponytail: provisionally remove the unpinned `@dietrichgebert/ponytail` entry from the V2 config rather than float it. The exact pin decision is closed by probe 2.3 and task 2.6.
+      2026-11-26 decided (DIA-261112-exon): keep the ponytail plugin as-is, no code or config change; the ruleset plugin imposes no V2 key or API constraint, so removal is unnecessary.
       **Blockers:** 1.2.
       **Acceptance:** the V2 plugin array carries no unpinned Ponytail entry; the exact-pin decision is explicitly pending 2.6.
       **Gates:** `make test-config`.
@@ -296,6 +297,7 @@ Translated to this file's groups:
       **Gates:** JSONC parse; agent-name lockstep after 9.6.
 
 - [ ] 8.3 AUD-M1 unlisted conversions: convert `plugin` to `plugins` (object form with `{ package, options }`), `skills.urls` to one ordered `skills` array, and `mcp` servers to `mcp.servers` in the V2 config; record any key V2 accepts unchanged instead of inventing a conversion.
+      2026-11-26 (DIA-261112-exon): the `plugin` -> `plugins` key conversion is applied in the V2 tree with the existing string entries preserved; the `skills.urls` and `mcp.servers` conversions remain pending.
       **Blockers:** 8.1.
       **Acceptance:** the V2 service loads the converted config without warnings for these containers; no V1-only form remains where the migration map names a V2 form.
       **Gates:** `dev-v2` startup warnings, JSONC parse.
@@ -332,6 +334,7 @@ Translated to this file's groups:
       **Gates:** `make test-config`.
 
 - [ ] 9.5 AUD-m3: fix the two vacuous readers. `validate-observer-dedupe.sh:80` must read `cfg.plugins ?? cfg.plugin`, handle `{package, options}` entries, and fail on an empty result. `jsonc-parse.js --doc-drift` must read `cfg.agents ?? cfg.agent` and fail on zero agents, never print a vacuous green.
+      2026-11-26 (DIA-261112-exon): `validate-observer-dedupe.sh` now reads `cfg.plugins ?? cfg.plugin` and handles `{package, options}` entries; the `jsonc-parse.js --doc-drift` agents reader remains pending.
       **Blockers:** 8.5.
       **Acceptance:** a renamed-but-empty config fails both gates; the positive path still passes.
       **Gates:** `make test-config`, `make test-shell`.
