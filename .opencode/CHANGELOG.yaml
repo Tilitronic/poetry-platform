@@ -5457,8 +5457,8 @@
     contract. Measured on the real 2.3.2 binary with 0.1.1: the plugin hooks hard-block
     .env reads, hard-block shell commands that reference .env, hard-block grep, and
     render values as [envsitter: KEY redacted]. The 15 envsitter_* tools are value-free
-    inspection/mutation helpers - the blocking and redaction come from the plugin hook
-    layer, not from those tools.'
+    inspection/mutation helpers - the blocking and redaction come from the plugin
+    hook layer, not from those tools.'
   verification: manual
   area: plugins
 - date: '2026-11-26'
@@ -5469,21 +5469,41 @@
   - .opencode/learnings/external-patterns/2026-11-26-dia-261112-exon-envsitter-guard-v2-capability-gaps.md
   - .opencode/learnings/index.md
   summary: 'Add an enforced dotenv floor to .opencode/opencode.jsonc via a root policies/tool.use
-    layer: deny edit:*.env and edit:*.env.*, then allow edit:*.env.example and
-    edit:*scripts/lsp-versions.env (allows must follow the denies because a policy allow
-    lifts only a preceding deny; the narrowed denies avoid catching *.envelope* domain
-    files and the leading * lifts a worktree-relative lsp-versions.env path). This is
-    plugin-independent - it applies after agent rules and saved approvals, so it still
-    protects dotenv files when envsitter-guard fails to load (a failed load is only a
-    WARN, leaving no tools and no protection). It uses policies rather than a top-level
-    permissions array: a top-level permissions array SHADOWS and discards the entire
-    top-level V1 permission block (when both forms set the same canonical value a valid
-    native V2 value takes precedence regardless of key order), dropping the global bash,
+    layer: deny edit:*.env and edit:*.env.*, then allow edit:*.env.example and edit:*scripts/lsp-versions.env
+    (allows must follow the denies because a policy allow lifts only a preceding deny;
+    the narrowed denies avoid catching *.envelope* domain files and the leading *
+    lifts a worktree-relative lsp-versions.env path). This is plugin-independent -
+    it applies after agent rules and saved approvals, so it still protects dotenv
+    files when envsitter-guard fails to load (a failed load is only a WARN, leaving
+    no tools and no protection). It uses policies rather than a top-level permissions
+    array: a top-level permissions array SHADOWS and discards the entire top-level
+    V1 permission block (when both forms set the same canonical value a valid native
+    V2 value takes precedence regardless of key order), dropping the global bash,
     fetch-source and ast_grep_replace denies; it would also be out-rankable by a per-agent
     rule (agent rules are appended after global rules, last match wins) and a saved
-    "Allow always" approval, and scripts/audit-agent-tool-coverage.sh hard-refuses it
-    (exit 2). policies applies after agent rules AND saved approvals and coexists with
-    the V1 permission object; it is not detected by that audit and is inert on V1 1.18.32
-    (unknown top-level keys ignored), taking effect only on 2.3.2.'
+    "Allow always" approval, and scripts/audit-agent-tool-coverage.sh hard-refuses
+    it (exit 2). policies applies after agent rules AND saved approvals and coexists
+    with the V1 permission object; it is not detected by that audit and is inert on
+    V1 1.18.32 (unknown top-level keys ignored), taking effect only on 2.3.2.'
   verification: manual
   area: opencode-config
+- date: '2026-11-26'
+  ticket: DIA-261126-q9r9
+  scope: opencode-config
+  files:
+  - .opencode/agents/ai-auditor.md
+  - .opencode/agents/analyzer.md
+  - .opencode/oh-my-opencode-slim.jsonc
+  - .opencode/oh-my-opencode-slim/analyzer_append.md
+  - .opencode/oh-my-opencode-slim/orchestrator.md
+  - .opencode/oh-my-opencode-slim/orchestrator_append.md
+  - .opencode/opencode.jsonc
+  - .opencode/skills/debugging-workflow/SKILL.md
+  - AGENTS.md
+  - docs/dev-infra-audit/NEXT-RUN.md
+  - docs/onboarding.md
+  summary: 'Delete council lane: remove agent block, 7 councillor task-permission
+    keys, OMO council seat block, analyzer/ai-auditor council prompt clauses, AGENTS.md
+    section-9 row; 13 operational lanes remain'
+  verification: manual
+  area: agent-roster
