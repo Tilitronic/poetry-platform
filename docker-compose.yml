@@ -85,11 +85,12 @@ services:
     networks:
       - poetry-net
 
-  # Parallel V2 workstation (ADR 11 decisions 2-3, design D1/D1a): OpenCode V2
-  # runs side by side with the V1 `dev` service. Mounts the FULL repo - never a
-  # single-directory worktree mount, which would hide /workspace/.git/objects
-  # and break the worktree's .git pointer (D1a N1) - and roots the shell in the
-  # V2 worktree so V2 resolves its project config there, never V1's (D1a N1).
+  # Parallel V2 workstation (ADR 11 decision 2; DIA-261125-p1kd): OpenCode V2
+  # runs side by side with the V1 `dev` service. It builds from and runs the
+  # repository root, exactly like `dev`, so V2 runs the migration tree rather
+  # than a separate feature worktree (a branch cannot be checked out twice).
+  # The full-repo mount stays - a single-directory worktree mount would hide
+  # /workspace/.git/objects and break git for any linked worktree (D1a N1).
   dev-v2:
     # Opt-in only (DIA-261119-vioa): a plain `docker compose up -d` must not
     # build or start the V2 workstation, so it carries the `v2` profile.
@@ -112,7 +113,7 @@ services:
     image: poetry-platform-dev-v2:latest
     container_name: poetry-dev-v2
     hostname: poetry-dev-v2
-    working_dir: /workspace/.worktrees/opencode-v2
+    # Roots at the image WORKDIR /workspace, like `dev` (DIA-261125-p1kd).
     # Same three services as `dev`: only the HOST side is disjoint (D1a N2).
     # Host ports are env-overridable, defaults 9100/8100/3100, never colliding
     # with V1's 9000/8000/3000. The container ports stay the applications'
@@ -125,9 +126,9 @@ services:
     volumes:
       # Full repo mount (D1a N1) - git must see the real object store.
       - .:/workspace:z
-      # Own pnpm store keyed to the V2 worktree: task 6.2's SDK swap must not
-      # poison V1's store (D1a N2).
-      - pnpm_store_v2:/workspace/.worktrees/opencode-v2/node_modules
+      # Own pnpm store at the repo root: task 6.2's SDK swap must not poison
+      # V1's store (D1a N2).
+      - pnpm_store_v2:/workspace/node_modules
       # Own state/cache (ADR 11 decision 3): V1 and V2 SQLite schemas and OMO
       # caches are incompatible; sharing them corrupts the V1 rollback point.
       - dev_v2_state:/home/dev/.local/share
