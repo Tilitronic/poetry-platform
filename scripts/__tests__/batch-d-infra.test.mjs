@@ -135,6 +135,14 @@ const omoConfig = parseJsonc('.opencode/oh-my-opencode-slim.jsonc');
 const presetPrompts = Object.values(omoConfig.presets)
   .map((p) => (p.orchestrator ? p.orchestrator.prompt : undefined))
   .filter(Boolean);
+// DIA-261126-q9r9 (ADR 16): the orchestrator prompt is hoisted to a single md
+// file and the presets carry NO inline copy (an inline copy silently overrides
+// the file in OMO 3.0.7). When the inline prompts are absent, audit the hoisted
+// file instead - the single source the runtime now resolves.
+const promptTexts =
+  presetPrompts.length > 0
+    ? presetPrompts
+    : [readRoot('.opencode/oh-my-opencode-slim/orchestrator.md')];
 const orchAppend = readRoot('.opencode/oh-my-opencode-slim/orchestrator_append.md');
 const coderAppend = readRoot('.opencode/oh-my-opencode-slim/coder_append.md');
 const agentsMd = readRoot('AGENTS.md');
@@ -149,7 +157,7 @@ const turbo = parseJsonc('turbo.json');
 const NEVER_CLAUSE = /NEVER batch:[\s\S]*?yaml\./;
 const norm = (s) => (s === null ? null : s.replace(/\s+/g, ' ').trim());
 const a1NeverClause = (orchAppend.match(NEVER_CLAUSE) || [null])[0];
-const presetNeverClauses = presetPrompts.map((p) => (p.match(NEVER_CLAUSE) || [null])[0]);
+const presetNeverClauses = promptTexts.map((p) => (p.match(NEVER_CLAUSE) || [null])[0]);
 
 // Makefile test-config recipe block: from the target line up to the next
 // target definition (scoped so a reference to scripts/__tests__ elsewhere in
@@ -281,7 +289,7 @@ describe('S1 PLUGIN CLASSIFICATION (batch D, post-DIA-172)', async () => {
   });
 
   it("presets contain zero literal 'two coders' (wording is 'multiple @coder lanes')", () => {
-    for (const p of presetPrompts) {
+    for (const p of promptTexts) {
       assert.doesNotMatch(p, /two coders/i, "preset must not use 'two coders'");
     }
   });
@@ -310,10 +318,13 @@ describe('S2 CONFIG DRIFT (post-DIA-172)', () => {
     assert.equal(edit['knowledge/*'], 'allow');
   });
 
-  it('A1 NEVER clause byte-identical across A1 section and all presets (whitespace-normalized)', () => {
+  it('A1 NEVER clause byte-identical across A1 section and all prompt sources (whitespace-normalized)', () => {
     assert.ok(a1NeverClause, 'A1 NEVER clause must exist in orchestrator_append.md');
-    assert.ok(presetNeverClauses.length >= 1, 'preset prompts must carry a NEVER clause');
-    assert.ok(presetNeverClauses.every(Boolean), 'every preset prompt must carry a NEVER clause');
+    assert.ok(
+      presetNeverClauses.length >= 1,
+      'the orchestrator prompt(s) must carry a NEVER clause',
+    );
+    assert.ok(presetNeverClauses.every(Boolean), 'every prompt source must carry a NEVER clause');
     const normalized = [a1NeverClause, ...presetNeverClauses].map(norm);
     assert.equal(
       new Set(normalized).size,

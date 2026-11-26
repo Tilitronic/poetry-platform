@@ -1,15 +1,20 @@
 #!/usr/bin/env bash
-# Mechanical orchestrator-prompt drift checker (DIA-097). Greps the 2 audited
-# preset orchestrator prompts (mimo-balanced / openai-first-cost-balanced) in
-# .opencode/oh-my-opencode-slim.jsonc for REQUIRED delegation-rule markers and
-# fails the config gate when any marker is missing from any prompt. Runs from
-# `make test-config`; SLIM_JSONC env override keeps it hermetically testable
-# against fixture trees (same pattern as validate-decision-variants.sh).
+# Mechanical orchestrator-prompt drift checker (DIA-097). Reads the SINGLE
+# hoisted orchestrator prompt (.opencode/oh-my-opencode-slim/orchestrator.md,
+# DIA-261126-q9r9 / ADR 16) for REQUIRED delegation-rule markers and fails the
+# config gate when any marker is missing. It also fails when either audited
+# preset (mimo-balanced / openai-first-cost-balanced) reappears in
+# .opencode/oh-my-opencode-slim.jsonc carrying an INLINE orchestrator.prompt:
+# OMO 3.0.7 resolves inlinePrompt ?? filePrompt, so an inline copy silently
+# overrides the md file and the marker check above would guard the wrong text.
+# Runs from `make test-config`; SLIM_JSONC / ORCH_PROMPT_MD env overrides keep it
+# hermetically testable against fixture trees (same pattern as
+# validate-decision-variants.sh).
 #
-# WHY this gate exists: the orchestrator prompts are the only enforcement
+# WHY this gate exists: the orchestrator prompt is the only enforcement
 # surface for the delegation-only operating rules (DIA-082/083/091/093/097).
 # When a rule lands in AGENTS.md/NEXT-RUN.md but is never mirrored into the
-# prompts, the orchestrator silently loses the guidance at runtime - "no test
+# prompt, the orchestrator silently loses the guidance at runtime - "no test
 # fails, but delegation behavior regresses" (DIA-045 drift class). This script
 # makes that drift mechanically visible.
 #
@@ -18,7 +23,6 @@
 # content - the DIA-126a read-scope note, the EBDV (DIA-115) clause, and the
 # 15/25 threshold text - so future drift of THOSE phrases fails the gate too):
 #   delegation-only   role boundary: orchestrator delegates, never executes
-#   batch-approval    boot gate: prognosis presented before any delegation
 #   DIA-133           registry pointer: consult model-registry.yaml before
 #                     a quota-metered dispatch (quota-guard policy)
 #   pure-dispatch     PURE-DISPATCH rule A1: task() is the sole tool call
@@ -40,33 +44,39 @@
 #
 # The marker set is a FIXED contract, not configurable per run - a future
 # rule that must live in every orchestrator prompt is appended to MARKERS
-# here (and to the prompts) so the gate catches it. PRESETS override exists
-# only so bats fixtures can drive the checker against throwaway trees.
+# here (and to the prompt file) so the gate catches it. PRESETS override exists
+# only so the preset-lockstep check can be scoped by bats fixtures.
 #
 # Stream contract (mirrors validate-decision-variants.sh): `FAIL:`/`warn:` to
 # stderr, `ok:` to stdout, final summary line to stdout.
 #
-# Exit codes: 0 every prompt carries every marker, 1 a marker (or an entire
-# prompt) is missing, 2 INFRA (config file missing / python3 unavailable).
+# Exit codes: 0 prompt carries every marker and no preset carries an inline
+# copy, 1 a marker is missing / the prompt file is missing / a preset is absent
+# / an inline prompt reappeared, 2 INFRA (config file missing / python3
+# unavailable).
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SLIM_JSONC="${SLIM_JSONC:-$ROOT/.opencode/oh-my-opencode-slim.jsonc}"
-# The 2 presets whose orchestrator prompts are under audit (DIA-097).
+# Single source of truth for the orchestrator prompt (ADR 16 hoist).
+ORCH_PROMPT_MD="${ORCH_PROMPT_MD:-$ROOT/.opencode/oh-my-opencode-slim/orchestrator.md}"
+# The 2 presets that used to carry inline orchestrator prompts (DIA-097).
 # Inventory truth (DIA-260929-5c6m, 2026-09-29): the config carries exactly
-# these 2 prompt-bearing presets. The two preview-window presets that were
-# previously listed as explicitly unaudited (promo-union-alpha, free) were
-# deleted, so this 2-preset audit scope is now the full inventory.
+# these 2 presets. They must still exist AND must not carry an inline prompt.
 PRESETS="${PRESETS:-mimo-balanced openai-first-cost-balanced}"
 
 # Fixed required-marker contract (see header). Matched as fixed strings;
 # pure-dispatch additionally case-insensitive (PURE-DISPATCH in the prompts).
-MARKERS=(delegation-only batch-approval DIA-133 pure-dispatch no-bash-tool \
+# DIA-261126-q9r9 (ADR 16): the batch-approval marker was dropped in the same
+# commit that deleted the boot gate and replaced it with the manual
+# /make-handoff + /read-handoff pair - a marker for a retired mechanism would
+# otherwise force dead text back into the prompt.
+MARKERS=(delegation-only DIA-133 pure-dispatch no-bash-tool \
   read-scope-note ebdv-clause threshold-15-25 todowrite-discipline)
 # The MARKERS tokens stay hyphenated/whitespace-safe; the needles below spell
-# out the exact prompt phrases they match (verified present in both prompts
-# as of 2026-09-17 - including the DIA-097 additions the ai-auditor Minor
-# locks: the DIA-126a READ-SCOPE note, the EBDV (DIA-115) clause, and the
+# out the exact prompt phrases they match (verified present in the orchestrator
+# prompt as of 2026-09-17 - including the DIA-097 additions the ai-auditor
+# Minor locks: the DIA-126a READ-SCOPE note, the EBDV (DIA-115) clause, and the
 # 15/25 threshold text).
 NO_BASH_MARKER="no bash tool"
 READ_SCOPE_NOTE_MARKER="READ-SCOPE"
@@ -83,20 +93,22 @@ if ! command -v python3 >/dev/null 2>&1; then
   exit 2
 fi
 
-# ---------------------------------------------------------------------------
-# Extraction: python3 JSONC parser (char-level comment/trailing-comma stripper,
-# same rationale as validate-opencode-config.sh) walks presets.<name>
-# .orchestrator.prompt for the requested presets. Writes NUL-delimited records
-# "name<NUL>prompt<NUL>" to a temp file - the prompts may contain newlines
-# after JSON unescaping, so NUL framing (not line framing) keeps record
-# boundaries unambiguous, and a FILE (not a command-substitution variable)
-# preserves the NUL bytes that bash variables would strip.
-# A preset that exists in PRESETS but not in the config emits an EMPTY prompt,
-# which the bash loop below turns into a FAIL (prompt missing entirely).
-# ---------------------------------------------------------------------------
-records_file="$(mktemp)"
-trap 'rm -f "$records_file"' EXIT
-SLIM_PRESETS="$PRESETS" python3 - "$SLIM_JSONC" > "$records_file" <<'PYEOF'
+# A missing prompt file is a CONFIG defect (the prompt is simply gone at
+# runtime), so it exits 1 like a marker gap - not 2 (INFRA).
+if [ ! -f "$ORCH_PROMPT_MD" ]; then
+  echo "FAIL: orchestrator prompt missing entirely: $ORCH_PROMPT_MD (set ORCH_PROMPT_MD)" >&2
+  exit 1
+fi
+
+preset_count=0
+for _preset in $PRESETS; do preset_count=$((preset_count + 1)); done
+
+# Preset lockstep: every audited preset must still exist, and NONE may carry an
+# inline orchestrator.prompt (the silent-override hazard this gate exists for).
+# python3 JSONC parser is the same char-level comment/trailing-comma stripper as
+# validate-opencode-config.sh; it only READS the config now - the prompt text
+# comes from the md file.
+if ! SLIM_PRESETS="$PRESETS" python3 - "$SLIM_JSONC" "$ORCH_PROMPT_MD" <<'PYEOF'
 import json
 import os
 import sys
@@ -161,70 +173,60 @@ except Exception as exc:
     print(f"JSONC parse failed: {exc}", file=sys.stderr)
     sys.exit(1)
 
+prompt_md = sys.argv[2]
 presets = data.get("presets") or {}
+bad = 0
 for name in os.environ["SLIM_PRESETS"].split():
-    prompt = ""
-    block = presets.get(name) or {}
-    orch = block.get("orchestrator") or {}
-    if isinstance(orch.get("prompt"), str):
-        prompt = orch["prompt"]
-    sys.stdout.write(name + "\0" + prompt + "\0")
+    block = presets.get(name)
+    if not isinstance(block, dict):
+        print(f"FAIL: {name}: preset missing from config", file=sys.stderr)
+        bad += 1
+        continue
+    orch = block.get("orchestrator")
+    if isinstance(orch, dict) and "prompt" in orch:
+        print(
+            f"FAIL: {name}: inline orchestrator.prompt present - it silently "
+            f"overrides {prompt_md} (delete the key; edit the md file)",
+            file=sys.stderr,
+        )
+        bad += 1
+
+sys.exit(1 if bad else 0)
 PYEOF
-
-checked=0
-missing=0
-prompts=()
-while IFS= read -r -d '' preset && IFS= read -r -d '' prompt; do
-  checked=$((checked + 1))
-
-  if [ -z "$prompt" ]; then
-    echo "FAIL: $preset: orchestrator prompt missing entirely" >&2
-    missing=$((missing + 1))
-    continue
-  fi
-
-  prompts+=("$prompt")
-
-  for marker in "${MARKERS[@]}"; do
-    needle="$marker"
-    case "$marker" in
-      no-bash-tool)          needle="$NO_BASH_MARKER" ;;
-      read-scope-note)       needle="$READ_SCOPE_NOTE_MARKER" ;;
-      ebdv-clause)           needle="$EBDV_CLAUSE_MARKER" ;;
-      threshold-15-25)       needle="$THRESHOLD_MARKER" ;;
-      todowrite-discipline)  needle="$TODOWRITE_MARKER" ;;
-    esac
-    if [ "$marker" = "pure-dispatch" ]; then
-      # PURE-DISPATCH (uppercase) in the prompts; match case-insensitively.
-      if ! printf '%s' "$prompt" | grep -qiF -- "$needle"; then
-        echo "FAIL: $preset: missing required marker '$needle'" >&2
-        missing=$((missing + 1))
-      fi
-    else
-      if ! printf '%s' "$prompt" | grep -qF -- "$needle"; then
-        echo "FAIL: $preset: missing required marker '$needle'" >&2
-        missing=$((missing + 1))
-      fi
-    fi
-  done
-done < "$records_file"
-
-if [ "$missing" -gt 0 ]; then
-  echo "FAIL: check-orchestrator-prompt-drift: $checked preset(s) checked, $missing marker gap(s)" >&2
+then
+  echo "FAIL: check-orchestrator-prompt-drift: $preset_count preset(s) checked, preset/inline-prompt defect(s) found" >&2
   exit 1
 fi
 
-# Byte-identity verification across all audited presets (after marker check so
-# "1 marker gap(s)" summary is visible when a single prompt drifts).
-# Generic over the preset count so PRESETS-override fixtures (1..N) keep working.
-if [ "${#prompts[@]}" -ge 2 ]; then
-  for p in "${prompts[@]:1}"; do
-    if [ "$p" != "${prompts[0]}" ]; then
-      echo "FAIL: prompts not byte-identical across presets" >&2
-      exit 1
+prompt="$(cat "$ORCH_PROMPT_MD")"
+missing=0
+for marker in "${MARKERS[@]}"; do
+  needle="$marker"
+  case "$marker" in
+    no-bash-tool)          needle="$NO_BASH_MARKER" ;;
+    read-scope-note)       needle="$READ_SCOPE_NOTE_MARKER" ;;
+    ebdv-clause)           needle="$EBDV_CLAUSE_MARKER" ;;
+    threshold-15-25)       needle="$THRESHOLD_MARKER" ;;
+    todowrite-discipline)  needle="$TODOWRITE_MARKER" ;;
+  esac
+  if [ "$marker" = "pure-dispatch" ]; then
+    # PURE-DISPATCH (uppercase) in the prompt; match case-insensitively.
+    if ! printf '%s' "$prompt" | grep -qiF -- "$needle"; then
+      echo "FAIL: orchestrator prompt: missing required marker '$needle'" >&2
+      missing=$((missing + 1))
     fi
-  done
+  else
+    if ! printf '%s' "$prompt" | grep -qF -- "$needle"; then
+      echo "FAIL: orchestrator prompt: missing required marker '$needle'" >&2
+      missing=$((missing + 1))
+    fi
+  fi
+done
+
+if [ "$missing" -gt 0 ]; then
+  echo "FAIL: check-orchestrator-prompt-drift: $preset_count preset(s) checked, $missing marker gap(s)" >&2
+  exit 1
 fi
 
-echo "ok: check-orchestrator-prompt-drift: $checked preset(s) checked, ${#MARKERS[@]} markers each, 0 gaps, byte-identical"
+echo "ok: check-orchestrator-prompt-drift: $preset_count preset(s) checked, ${#MARKERS[@]} markers each, 0 gaps, single source orchestrator.md, no inline prompt"
 exit 0

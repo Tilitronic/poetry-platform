@@ -18,7 +18,7 @@ setup() {
   local omo="$OMO_SYNC_ROOT/.opencode/oh-my-opencode-slim"
   mkdir -p "$omo/knowledge"
   local name
-  for name in analyzer_append.md coder.md coder_append.md orchestrator_append.md reviewer.md; do
+  for name in analyzer_append.md coder.md coder_append.md orchestrator.md orchestrator_append.md reviewer.md; do
     printf 'prompt\n' > "$omo/$name"
   done
   printf 'sources\n' > "$omo/knowledge/ai-assist-sources.yaml"
@@ -64,6 +64,16 @@ setup() {
   assert_output_contains "coder.md"
 }
 
+@test "OMO sync rejects a missing empty-suffix orchestrator override" {
+  # orchestrator.md has no suffix, so an over-strict suffix-based required list
+  # would silently pass while the loader falls back to the built-in prompt.
+  rm "$OMO_SYNC_ROOT/.opencode/oh-my-opencode-slim/orchestrator.md"
+  run bash "$REPO_ROOT/scripts/check-omo-version-sync.sh"
+  assert_status 2
+  assert_output_contains "prompt override missing or empty"
+  assert_output_contains "orchestrator.md"
+}
+
 @test "OMO sync rejects an extra root override markdown file" {
   printf 'stray\n' > "$OMO_SYNC_ROOT/.opencode/oh-my-opencode-slim/orchestrator-append.md"
   run bash "$REPO_ROOT/scripts/check-omo-version-sync.sh"
@@ -102,7 +112,7 @@ setup() {
   # is the reported failure class.
   printf '%s\n' 'ARG OMO_VERSION=3.0.7' > "$OMO_SYNC_ROOT/.worktrees/opencode-v2/Dockerfile.dev"
   local name
-  for name in analyzer_append.md coder.md coder_append.md orchestrator_append.md reviewer.md; do
+  for name in analyzer_append.md coder.md coder_append.md orchestrator.md orchestrator_append.md reviewer.md; do
     printf 'prompt\n' > "$v2opencode/oh-my-opencode-slim/$name"
   done
   printf 'sources\n' > "$v2opencode/oh-my-opencode-slim/knowledge/ai-assist-sources.yaml"
@@ -145,7 +155,7 @@ setup() {
   printf '%s\n' '{"plugin":["oh-my-opencode-slim@3.0.7"]}' > "$v2/.opencode/tui.json"
   printf '%s\n' 'ARG OMO_VERSION=3.0.7' > "$v2/Dockerfile.dev"
   local name
-  for name in analyzer_append.md coder.md coder_append.md orchestrator_append.md reviewer.md; do
+  for name in analyzer_append.md coder.md coder_append.md orchestrator.md orchestrator_append.md reviewer.md; do
     printf 'prompt\n' > "$v2omo/$name"
   done
   printf 'sources\n' > "$v2omo/knowledge/ai-assist-sources.yaml"

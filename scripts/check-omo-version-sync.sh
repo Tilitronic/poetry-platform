@@ -73,7 +73,10 @@ check_drift() {
 # already name the service (resolved V2 tree for the V2 service).
 check_override_layer() {
   local omo="$1" display="$2" name base file extras=""
-  local required_overrides=(analyzer_append.md coder.md coder_append.md orchestrator_append.md reviewer.md)
+  # orchestrator.md is the empty-suffix prompt override the 3.0.7 loader
+  # resolves from this ROOT directory (the preset subdir is only an overlay
+  # that is tried first); it is a required override, not a tolerated extra.
+  local required_overrides=(analyzer_append.md coder.md coder_append.md orchestrator.md orchestrator_append.md reviewer.md)
   # REFERENCE-ONLY.md is the deliberate vendored-snapshot marker, not a prompt
   # override; it is the only tolerated extra *.md at the directory root.
   local allowed_extra_md=(REFERENCE-ONLY.md)
