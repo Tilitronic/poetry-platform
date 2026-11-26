@@ -417,13 +417,14 @@
 | DIA-261126-igip | gitignore dotenv gaps and pre-commit secret scanning | secrets | Critical | OPEN | [DIA-261126-igip-gitignore-dotenv-gaps-and-pre-commit-secret-scanning.md](DIA-261126-igip-gitignore-dotenv-gaps-and-pre-commit-secret-scanning.md) |
 | DIA-261126-imm4 | policies array shape is unvalidated - OpenCode 2.x silently drops invalid statements, disabling the dotenv floor | opencode-config | Major | OPEN | [DIA-261126-imm4-policies-array-shape-is-unvalidated-opencode-2-x-silently-drops-invalid-statements-disabling-the-dotenv-floor.md](DIA-261126-imm4-policies-array-shape-is-unvalidated-opencode-2-x-silently-drops-invalid-statements-disabling-the-dotenv-floor.md) |
 | DIA-261126-q9r9 | V2 policy amendment - supersede ADR15 core scope (5 developer decisions) | opencode-config | Major | OPEN | [DIA-261126-q9r9-v2-policy-amendment-supersede-adr15-core-scope-5-developer-decisions.md](DIA-261126-q9r9-v2-policy-amendment-supersede-adr15-core-scope-5-developer-decisions.md) |
+| DIA-261126-zrgj | 4 lanes dead: variant medium on opencode-go/mimo-v2.6-flash rejects dispatch (code-navigator, researcher, conspecter, memory-manager) | opencode-config | Critical | OPEN | [DIA-261126-zrgj-4-lanes-dead-variant-medium-on-opencode-go-mimo-v2-6-flash-rejects-dispatch-code-navigator-researcher-conspecter-memory-manager.md](DIA-261126-zrgj-4-lanes-dead-variant-medium-on-opencode-go-mimo-v2-6-flash-rejects-dispatch-code-navigator-researcher-conspecter-memory-manager.md) |
 
 ## Status summary
 
 | Severity | Count |
 | -------- | ----- |
 | Blocker  | 9     |
-| Critical | 19    |
+| Critical | 20    |
 | Major    | 103   |
 | Medium   | 221   |
 | Minor    | 2     |
@@ -433,7 +434,7 @@
 
 | Status      | Count |
 | ----------- | ----- |
-| OPEN        | 105   |
+| OPEN        | 106   |
 | DONE        | 15    |
 | VALIDATE    | 0     |
 | E2E         | 0     |
